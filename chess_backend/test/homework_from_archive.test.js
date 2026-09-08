@@ -106,7 +106,7 @@ test('a student with no mistakes gets a reason, not an empty assignment', async 
   const pool = stubPool({ candidates: [] });
   await assert.rejects(
     () => homeworkFromArchive(pool, { trainerId: 1, studentId: 7 }),
-    (err) => err instanceof HomeworkRefused && /uveze arhivu/.test(err.message),
+    (err) => err instanceof HomeworkRefused && /import their archive/.test(err.message),
   );
 });
 
@@ -154,21 +154,21 @@ test('a candidate whose answer will not replay is skipped and counted', async ()
   const out = await homeworkFromArchive(pool, { trainerId: 1, studentId: 7, count: 2 });
   assert.equal(out.items, 1);
   assert.equal(out.skipped.length, 1);
-  assert.match(out.skipped[0].reason, /nema rešenje/);
+  assert.match(out.skipped[0].reason, /no playable solution/);
 });
 
 test('the instruction says what kind of task this is', () => {
   assert.match(
     instructionFor({ kind: 'engine' }, 'Qh5'),
-    /odigrao Qh5/,
+    /played Qh5/,
   );
   assert.match(
     instructionFor({ kind: 'tablebase', wdl_before: 2 }, 'Ke2'),
-    /dobitak zadržava/,
+    /keeps the win/,
   );
   assert.match(
     instructionFor({ kind: 'tablebase', wdl_before: 0 }, 'Ke2'),
-    /remi drži/,
+    /holds the draw/,
   );
 });
 
@@ -186,7 +186,7 @@ test('the same mistake makes the same position twice', () => {
 test('a real assignment carries the positions and the trainer owns them', async () => {
   const pool = stubPool({ candidates: [mistake(), mistake({ id: 2, theme: 'pin' })] });
   const out = await homeworkFromArchive(pool, {
-    trainerId: 1, studentId: 7, count: 2, title: 'Iz tvojih partija',
+    trainerId: 1, studentId: 7, count: 2, title: 'From your games',
   });
   assert.equal(out.items, 2);
   assert.equal(pool.puzzles.length, 2);

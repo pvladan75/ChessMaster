@@ -62,25 +62,25 @@ function factsFrom(report, { positions = DEFAULT_POSITIONS } = {}) {
 }
 
 function buildPrompt(facts) {
-  return `Ti si šahovski trener. Na osnovu izmerenih podataka o protivniku napiši
-kratak opis njegovog otvaranja — najviše tri rečenice, na srpskom.
+  return `You are a chess coach. Based on the measured data about the opponent, write
+a brief description of their opening — at most three sentences, in English.
 
-PODACI (JSON). Ovo je sve što znaš:
+DATA (JSON). This is everything you know:
 ${JSON.stringify(facts, null, 2)}
 
-Značenje polja: "games" je broj partija, "score" je prolaznost od 0 do 1,
-"share" je udeo tog poteza u toj poziciji, "ply" je polupotez, "verdict" je
-presuda o potezu ("theory", "playable", "mistake"), "better" je bolji potez.
+Field meanings: "games" is number of games, "score" is score from 0 to 1,
+"share" is the share of that move in that position, "ply" is half-move, "verdict" is
+the verdict on the move ("theory", "playable", "mistake"), "better" is a better move.
 
-PRAVILA:
-- Piši o „protivniku". Ime ne znaš i ne izmišljaj ga.
-- Svaki broj koji napišeš mora doslovno postojati u podacima gore. Ne smeš
-  zaokruživati, sabirati, prosečiti niti izvoditi bilo koji novi broj.
-- "score" i "share" **uvek piši kao procenat**, nikad kao decimalu: 0.413 je
-  „41.3%", 0.76 je „76%". Ovo čitaju deca — „prolaznost 0.38" im ne znači
-  ništa. Pomnoži sa sto i dodaj znak procenta; to je jedini račun koji smeš.
-- Ako nisi siguran u broj, izostavi ga. Rečenica bez broja je u redu.
-- Bez uvoda i bez zaključka. Samo opis.`;
+RULES:
+- Refer to "the opponent". You do not know their name, so do not invent one.
+- Every number you write must literally appear in the data above. You must not
+  round, sum, average, or derive any new number.
+- "score" and "share" **always write as a percentage**, never as a decimal: 0.413 is
+  "41.3%", 0.76 is "76%". The reader is a student, not a statistician — a "score of 0.38" means
+  nothing to them. Multiply by one hundred and add a percent sign; that is the only calculation you may do.
+- If you are not sure about a number, leave it out. A sentence without a number is fine.
+- No introduction and no conclusion. Just the description.`;
 }
 
 /// A second attempt, told exactly which numerals were refused.
@@ -91,8 +91,8 @@ PRAVILA:
 function buildRetryPrompt(facts, invented) {
   return `${buildPrompt(facts)}
 
-PRETHODNI POKUŠAJ JE ODBIJEN. Sadržao je brojeve kojih nema u podacima: ${invented.join(', ')}.
-Napiši ponovo, bez tih brojeva.`;
+THE PREVIOUS ATTEMPT WAS REFUSED. It contained numbers that are not in the data: ${invented.join(', ')}.
+Write again, without those numbers.`;
 }
 
 function createPrepNarrative({ generate, positions = DEFAULT_POSITIONS, retry = true } = {}) {

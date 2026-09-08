@@ -32,7 +32,7 @@ const logger = require('./logger');
 /// colour, fixed, so a second seed finds the first one instead of making a
 /// duplicate — `repertoires` is unique on (user, name), which is what makes
 /// that work.
-const SEED_NAMES = { w: 'Iz mojih partija — beli', b: 'Iz mojih partija — crni' };
+const SEED_NAMES = { w: 'From my games — White', b: 'From my games — Black' };
 const SEED_ROOT_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 /// A position has to have been reached this often before it is worth calling
@@ -53,7 +53,7 @@ const SEED_CONCURRENCY = 8;
 
 function requireColor(color) {
   if (color !== null && !['w', 'b'].includes(color)) {
-    throw new RangeError('Boja mora biti „w" ili „b".');
+    throw new RangeError('Color must be "w" or "b".');
   }
 }
 
@@ -109,7 +109,7 @@ async function repertoireDiff(pool, userId, {
 } = {}) {
   if (!Number.isInteger(userId)) throw new TypeError('userId is required');
   const handle = String(subject || '').trim();
-  if (!handle) throw new RangeError('Nedostaje korisničko ime.');
+  if (!handle) throw new RangeError('Username is missing.');
   requireColor(color);
   const cap = Number.isInteger(limit) && limit > 0 && limit <= 200 ? limit : 40;
 

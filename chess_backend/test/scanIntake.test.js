@@ -135,8 +135,8 @@ test('settling the side keeps castling rights', () => {
 });
 
 test('an answer that is not a side is refused', () => {
-  assert.throws(() => withSideToMove(MATE_IN_ONE, 'beli'), /mora biti/);
-  assert.throws(() => withSideToMove(MATE_IN_ONE, ''), /mora biti/);
+  assert.throws(() => withSideToMove(MATE_IN_ONE, 'beli'), /must be/);
+  assert.throws(() => withSideToMove(MATE_IN_ONE, ''), /must be/);
 });
 
 test('a position with no solution is not in doubt, only unfinished', () => {
@@ -163,7 +163,7 @@ test('a conflict names the likely cause instead of just refusing', () => {
 
   assert.equal(plan.action, 'conflict');
   assert.equal(plan.sideLikelyWrong, true);
-  assert.match(plan.reason, /druga strana/);
+  assert.match(plan.reason, /other side/);
 });
 
 test('a conflict with no such explanation says only what it knows', () => {
@@ -175,18 +175,18 @@ test('a conflict with no such explanation says only what it knows', () => {
 
   assert.equal(plan.action, 'conflict');
   assert.ok(!plan.sideLikelyWrong, 'flipping the side does not rescue this one');
-  assert.match(plan.reason, /ne igra/);
+  assert.match(plan.reason, /does not play/);
 });
 
 test('a verified mate in one states its own task', () => {
   // Reporting, not guessing: the move has been played out and it mates.
-  assert.equal(deriveInstruction(MATE_IN_ONE, 'Qf1#'), 'Beli matira u jednom potezu.');
+  assert.equal(deriveInstruction(MATE_IN_ONE, 'Qf1#'), 'White mates in one move.');
 });
 
 test('a black mate in one says so in black\'s name', () => {
   const fen = '5K1k/7b/8/8/8/8/6q1/8 b - - 0 1';
   const derived = deriveInstruction(fen, 'Qg7#');
-  if (derived != null) assert.match(derived, /^Crni matira/);
+  if (derived != null) assert.match(derived, /^Black mates/);
 });
 
 test('anything short of a mate invents no task at all', () => {
@@ -208,7 +208,7 @@ test('the trainer\'s own words are kept, never replaced by a derived task', () =
 
 test('a position with no instruction gets the derived one', () => {
   const row = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' });
-  assert.equal(row.instruction, 'Beli matira u jednom potezu.');
+  assert.equal(row.instruction, 'White mates in one move.');
 });
 
 test('a re-scan fills a missing task but never overwrites one', () => {
@@ -223,5 +223,5 @@ test('a re-scan fills a missing task but never overwrites one', () => {
     prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' })
   );
   assert.equal(empty.action, 'fill');
-  assert.equal(empty.fields.instruction, 'Beli matira u jednom potezu.');
+  assert.equal(empty.fields.instruction, 'White mates in one move.');
 });

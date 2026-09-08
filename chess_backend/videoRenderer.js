@@ -111,7 +111,7 @@ async function renderFrameBuffer({
     ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`♟ ${title || 'Snimak časa'}`, offsetX, offsetY / 2);
+    ctx.fillText(`♟ ${title || 'Session recording'}`, offsetX, offsetY / 2);
   }
 
   // Timer & Status Badge
@@ -205,7 +205,7 @@ async function renderFrameBuffer({
     ctx.fillStyle = '#EEEEEE';
     ctx.font = `${cfg.fontSizeMove}px sans-serif`;
     ctx.textAlign = 'center';
-    const moveText = lastMove && lastMove.san ? `Zadnji potez: ${lastMove.san}` : 'Početna pozicija';
+    const moveText = lastMove && lastMove.san ? `Last move: ${lastMove.san}` : 'Starting position';
     ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
   }
 

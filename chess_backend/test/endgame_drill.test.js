@@ -133,7 +133,7 @@ test('an impossible move is refused rather than judged', async () => {
   const tb = fakeTablebase();
   await assert.rejects(
     () => judgeMove({ fen: WON, move: 'Qh8', tablebase: tb }),
-    /nije moguć/
+    /not possible/
   );
 });
 
@@ -147,7 +147,7 @@ test('a position past seven pieces is refused before anything is asked', async (
       move: 'e4',
       tablebase: tb,
     }),
-    /sedam figura/
+    /seven pieces/
   );
   assert.equal(tb.asked.length, 0);
 });
@@ -211,7 +211,7 @@ test('a position past seven pieces has no line', async () => {
       fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       tablebase: tb,
     }),
-    /sedam figura/
+    /seven pieces/
   );
 });
 
@@ -383,7 +383,7 @@ test('a position past seven pieces has no readout to give', async () => {
   const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   await assert.rejects(
     () => readout({ fen, goal: 'win', tablebase: fakeTablebase({}) }),
-    /sedam figura/
+    /seven pieces/
   );
 });
 

@@ -19,43 +19,43 @@ const { getStudentProgress } = require('./assignmentService');
 /// Lichess themes appear rarely, and both sides fall back to the raw tag, so a
 /// missed entry degrades to "untranslated" rather than "missing".
 const THEME_LABELS = {
-  fork: 'dvojni napad',
-  pin: 'vezivanje',
-  skewer: 'ražanj',
-  discoveredAttack: 'otkriveni napad',
-  doubleCheck: 'dvostruki šah',
-  deflection: 'odvlačenje',
-  attraction: 'privlačenje',
-  clearance: 'oslobađanje polja',
-  interference: 'presecanje',
-  intermezzo: 'međupotez',
-  xRayAttack: 'rendgenski napad',
-  zugzwang: 'cugcvang',
-  sacrifice: 'žrtva',
-  hangingPiece: 'nezaštićena figura',
-  trappedPiece: 'uhvaćena figura',
-  defensiveMove: 'odbrambeni potez',
-  quietMove: 'tihi potez',
-  capturingDefender: 'uklanjanje branioca',
-  exposedKing: 'izložen kralj',
-  backRankMate: 'mat po zadnjoj liniji',
-  smotheredMate: 'ugušeni mat',
-  advancedPawn: 'napredovali pešak',
-  promotion: 'promocija',
-  underPromotion: 'potpromocija',
-  attackingF2F7: 'napad na f2/f7',
-  kingsideAttack: 'napad na kraljevom krilu',
-  queensideAttack: 'napad na daminom krilu',
+  fork: 'fork',
+  pin: 'pin',
+  skewer: 'skewer',
+  discoveredAttack: 'discovered attack',
+  doubleCheck: 'double check',
+  deflection: 'deflection',
+  attraction: 'attraction',
+  clearance: 'clearance',
+  interference: 'interference',
+  intermezzo: 'intermezzo',
+  xRayAttack: 'x-ray attack',
+  zugzwang: 'zugzwang',
+  sacrifice: 'sacrifice',
+  hangingPiece: 'hanging piece',
+  trappedPiece: 'trapped piece',
+  defensiveMove: 'defensive move',
+  quietMove: 'quiet move',
+  capturingDefender: 'capturing defender',
+  exposedKing: 'exposed king',
+  backRankMate: 'back-rank mate',
+  smotheredMate: 'smothered mate',
+  advancedPawn: 'advanced pawn',
+  promotion: 'promotion',
+  underPromotion: 'underpromotion',
+  attackingF2F7: 'attacking f2/f7',
+  kingsideAttack: 'kingside attack',
+  queensideAttack: 'queenside attack',
   enPassant: 'en passant',
-  mateIn1: 'mat u 1',
-  mateIn2: 'mat u 2',
-  mateIn3: 'mat u 3',
-  mateIn4: 'mat u 4',
-  mateIn5: 'mat u 5',
-  rookEndgame: 'topovska završnica',
-  pawnEndgame: 'pešačka završnica',
-  knightEndgame: 'skakačka završnica',
-  bishopEndgame: 'lovačka završnica',
+  mateIn1: 'mate in 1',
+  mateIn2: 'mate in 2',
+  mateIn3: 'mate in 3',
+  mateIn4: 'mate in 4',
+  mateIn5: 'mate in 5',
+  rookEndgame: 'rook endgame',
+  pawnEndgame: 'pawn endgame',
+  knightEndgame: 'knight endgame',
+  bishopEndgame: 'bishop endgame',
 };
 
 function themeLabel(theme) {
@@ -120,7 +120,7 @@ function renderHtml(report) {
       .map(
         (t) =>
           `<li><span>${esc(themeLabel(t.theme))}</span><b>${t.accuracy}%</b>` +
-          `<small>${t.attempts} ${t.attempts === 1 ? 'zadatak' : 'zadataka'}</small></li>`
+          `<small>${t.attempts} ${t.attempts === 1 ? 'puzzle' : 'puzzles'}</small></li>`
       )
       .join('')}</ul>`;
   };
@@ -132,12 +132,12 @@ function renderHtml(report) {
         `${s.ratingChange >= 0 ? '+' : ''}${s.ratingChange}</span>`;
 
   return `<!doctype html>
-<html lang="sr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Izveštaj o napretku — ${esc(s.studentName)}</title>
+<title>Progress report — ${esc(s.studentName)}</title>
 <style>
   :root {
     --ink: #1a1f1c; --muted: #6b7870; --line: #dde3dd;
@@ -182,10 +182,10 @@ function renderHtml(report) {
 <div class="sheet">
 
 <header>
-  <div class="eyebrow">Izveštaj o napretku</div>
+  <div class="eyebrow">Progress report</div>
   <h1>${esc(s.studentName)}</h1>
-  <p class="sub">Period od ${s.periodDays} dana &middot; sastavljeno ${formatDate(s.generatedAt)}${
-    s.trainerName ? ` &middot; trener: ${esc(s.trainerName)}` : ''
+  <p class="sub">Period of ${s.periodDays} days &middot; generated ${formatDate(s.generatedAt)}${
+    s.trainerName ? ` &middot; coach: ${esc(s.trainerName)}` : ''
   }</p>
 </header>
 
@@ -193,46 +193,46 @@ ${
   hasData
     ? `
 <div class="grid">
-  <div class="stat"><b>${ratingLine}</b><span>Rejting u rešavanju zagonetki</span></div>
-  <div class="stat"><b>${s.solvedAttempts}/${s.totalAttempts}</b><span>Tačno rešenih zadataka</span></div>
-  <div class="stat"><b>${s.accuracy === null ? '—' : `${s.accuracy}%`}</b><span>Tačnost</span></div>
-  <div class="stat"><b>${s.activeDays}</b><span>Dana sa vežbanjem</span></div>
+  <div class="stat"><b>${ratingLine}</b><span>Puzzle solving rating</span></div>
+  <div class="stat"><b>${s.solvedAttempts}/${s.totalAttempts}</b><span>Puzzles solved correctly</span></div>
+  <div class="stat"><b>${s.accuracy === null ? '—' : `${s.accuracy}%`}</b><span>Accuracy</span></div>
+  <div class="stat"><b>${s.activeDays}</b><span>Days with practice</span></div>
 </div>
 
-<h2>Šta ide dobro</h2>
-${themeList(s.strengths, 'Još nema dovoljno rešenih zadataka da bismo izdvojili jaku stranu.')}
+<h2>What is going well</h2>
+${themeList(s.strengths, 'Not enough puzzles solved yet to highlight a strong theme.')}
 
-<h2>Na čemu radimo dalje</h2>
-${themeList(s.toWorkOn, 'Još nema dovoljno rešenih zadataka da bismo izdvojili slabu stranu.')}
+<h2>What we are working on next</h2>
+${themeList(s.toWorkOn, 'Not enough puzzles solved yet to highlight a weak theme.')}
 <p class="muted" style="font-size:13px">
-  Tema ulazi u izveštaj tek kada dete uradi nekoliko zadataka iz nje — jedan
-  promašen zadatak ne znači da je to slaba strana.
+  A theme only enters the report once the student completes several puzzles from it — a
+  single missed puzzle does not mean it is a weakness.
 </p>
 
-<h2>Domaći zadaci</h2>
+<h2>Assignments</h2>
 <div class="grid">
-  <div class="stat"><b>${s.assignments?.completed ?? 0}/${s.assignments?.total ?? 0}</b><span>Završenih zadataka</span></div>
-  <div class="stat"><b>${s.assignments?.overdue ?? 0}</b><span>Van roka</span></div>
+  <div class="stat"><b>${s.assignments?.completed ?? 0}/${s.assignments?.total ?? 0}</b><span>Completed assignments</span></div>
+  <div class="stat"><b>${s.assignments?.overdue ?? 0}</b><span>Overdue</span></div>
 </div>
 `
     : `
-<h2>Ovaj period</h2>
-<p>U poslednjih ${s.periodDays} dana nema zabeleženog vežbanja, pa u izveštaju
-nema brojeva. To ne znači da dete nije napredovalo na časovima — samo da nije
-rešavalo zadatke u aplikaciji.</p>
+<h2>This period</h2>
+<p>There is no practice recorded in the last ${s.periodDays} days, so there are no
+numbers in the report. This does not mean the student did not make progress in lessons —
+only that they did not solve puzzles in the app.</p>
 `
 }
 
 ${
   report.note
-    ? `<h2>Poruka trenera</h2><div class="note"><p>${esc(report.note)}</p></div>`
+    ? `<h2>Coach's message</h2><div class="note"><p>${esc(report.note)}</p></div>`
     : ''
 }
 
 <footer>
-  Izveštaj je sastavljen automatski iz onoga što je dete uradilo u aplikaciji.
-  Brojevi se odnose na navedeni period i ne menjaju se naknadno.
-  Za pitanja se obratite treneru${s.trainerName ? ` (${esc(s.trainerName)})` : ''}.
+  This report was generated automatically from what the student did in the app.
+  The numbers apply to the specified period and will not change retroactively.
+  For questions, please contact the coach${s.trainerName ? ` (${esc(s.trainerName)})` : ''}.
 </footer>
 
 </div>

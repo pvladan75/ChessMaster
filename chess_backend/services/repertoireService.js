@@ -50,7 +50,7 @@ function requireBreadth(breadth) {
     return DEFAULT_BREADTH;
   }
   if (!BREADTHS.includes(breadth)) {
-    throw new RangeError(`Širina mora biti ${BREADTHS.join(', ')} — ne „${breadth}".`);
+    throw new RangeError(`Breadth must be ${BREADTHS.join(', ')} — not "${breadth}".`);
   }
   return breadth;
 }
@@ -62,18 +62,18 @@ function requireBreadth(breadth) {
 /// counters is what would quietly turn it into two.
 function fenKey(fen) {
   if (typeof fen !== 'string' || fen.trim() === '') {
-    throw new RangeError('Pozicija (FEN) nije prosleđena.');
+    throw new RangeError('Position (FEN) was not provided.');
   }
   const parts = fen.trim().split(/\s+/);
   if (parts.length < 4) {
-    throw new RangeError('Pozicija (FEN) nije ispravna.');
+    throw new RangeError('Position (FEN) is invalid.');
   }
   return parts.slice(0, 4).join(' ');
 }
 
 function requireColor(color) {
   if (!COLORS.includes(color)) {
-    throw new RangeError(`Boja mora biti „w" ili „b", a ne „${color}".`);
+    throw new RangeError(`Color must be "w" or "b", not "${color}".`);
   }
   return color;
 }
@@ -107,7 +107,7 @@ function pathList(text) {
 function readGate(rootFen, viaUci) {
   if (viaUci === null || viaUci === undefined || viaUci === '') return null;
   if (typeof viaUci !== 'string' || viaUci.length < 4 || viaUci.length > 6) {
-    throw new RangeError('Potez kroz koji ide repertoar nije ispravan.');
+    throw new RangeError('The move through which the repertoire goes is invalid.');
   }
   let played = null;
   try {
@@ -122,7 +122,7 @@ function readGate(rootFen, viaUci) {
   }
   if (!played) {
     throw new RangeError(
-      'Taj potez se ne može odigrati u početnoj poziciji repertoara.');
+      'That move cannot be played in the repertoire starting position.');
   }
   return { uci: viaUci, san: played.san };
 }
@@ -131,7 +131,7 @@ async function createRepertoire(pool, userId, {
   name, color, rootFen, rootPath, viaUci = null, breadth = null,
 }) {
   const clean = typeof name === 'string' ? name.trim() : '';
-  if (clean === '') throw new RangeError('Repertoar mora imati ime.');
+  if (clean === '') throw new RangeError('Repertoire must have a name.');
   requireColor(color);
   const wide = requireBreadth(breadth);
   // Validated here so a broken FEN is refused at the door rather than stored
@@ -250,9 +250,9 @@ async function addMove(pool, userId, {
 }) {
   requireColor(color);
   const key = fenKey(fen);
-  if (!uci || !san) throw new RangeError('Potez nije prosleđen.');
+  if (!uci || !san) throw new RangeError('Move was not provided.');
   if (!SOURCES.includes(source)) {
-    throw new RangeError(`Izvor poteza mora biti ${SOURCES.join(' ili ')}.`);
+    throw new RangeError(`Move source must be ${SOURCES.join(' or ')}.`);
   }
 
   const existing = await pool.query(
@@ -310,7 +310,7 @@ async function promoteMove(pool, userId, { color, fen, uci }) {
       // Nothing was promoted, so the demotion must not stand either: a node
       // with moves and no primary is a node the drill cannot ask about.
       await client.query('ROLLBACK');
-      throw new RangeError('Taj potez nije u repertoaru za ovu poziciju.');
+      throw new RangeError('That move is not in the repertoire for this position.');
     }
     await client.query('COMMIT');
     return promoted.rows[0];
@@ -375,7 +375,7 @@ async function recordAttempt(pool, userId, {
 }) {
   requireColor(color);
   const key = fenKey(fen);
-  if (!uci) throw new RangeError('Potez nije prosleđen.');
+  if (!uci) throw new RangeError('Move was not provided.');
 
   const result = await pool.query(
     `INSERT INTO repertoire_attempts
@@ -531,7 +531,7 @@ async function confirmNode(pool, userId, { color, fen, uci = null }) {
 async function confirmLine(pool, userId, { color, fens }) {
   requireColor(color);
   if (!Array.isArray(fens) || fens.length === 0) {
-    throw new RangeError('Linija nije prosleđena.');
+    throw new RangeError('Line was not provided.');
   }
   const keys = fens.map(fenKey);
   const result = await pool.query(
@@ -603,11 +603,11 @@ async function forgetImportedMoves(pool, userId, { color }) {
             FROM repertoire_moves
            WHERE user_id = $1 AND color = $2
              AND fen_key IN (
-               SELECT fen_key FROM repertoire_moves
-                WHERE user_id = $1 AND color = $2
-                GROUP BY fen_key
-               HAVING COUNT(*) FILTER (WHERE role = 'primary') = 0)
-           ORDER BY fen_key, added_at ASC)`,
+                SELECT fen_key FROM repertoire_moves
+                 WHERE user_id = $1 AND color = $2
+                 GROUP BY fen_key
+                HAVING COUNT(*) FILTER (WHERE role = 'primary') = 0)
+            ORDER BY fen_key, added_at ASC)`,
       [userId, color],
     );
     await client.query('COMMIT');
@@ -638,13 +638,13 @@ async function forgetImportedMoves(pool, userId, { color }) {
 async function setGate(pool, userId, { id, viaUci = null } = {}) {
   const numeric = Number(id);
   if (!Number.isInteger(numeric)) {
-    throw new RangeError('Repertoar nije imenovan brojem.');
+    throw new RangeError('Repertoire is not named by a number.');
   }
   const found = await pool.query(
     'SELECT root_fen FROM repertoires WHERE id = $1 AND user_id = $2',
     [numeric, userId],
   );
-  if (found.rowCount === 0) throw new RangeError('Taj repertoar ne postoji.');
+  if (found.rowCount === 0) throw new RangeError('That repertoire does not exist.');
 
   const gate = readGate(found.rows[0].root_fen, viaUci);
   const written = await pool.query(
@@ -675,7 +675,7 @@ async function setGate(pool, userId, { id, viaUci = null } = {}) {
 async function setBreadth(pool, userId, { id, breadth } = {}) {
   const numeric = Number(id);
   if (!Number.isInteger(numeric)) {
-    throw new RangeError('Repertoar nije imenovan brojem.');
+    throw new RangeError('Repertoire is not named by a number.');
   }
   const wide = requireBreadth(breadth);
   const written = await pool.query(
@@ -684,7 +684,7 @@ async function setBreadth(pool, userId, { id, breadth } = {}) {
       RETURNING id, breadth`,
     [numeric, userId, wide],
   );
-  if (written.rowCount === 0) throw new RangeError('Taj repertoar ne postoji.');
+  if (written.rowCount === 0) throw new RangeError('That repertoire does not exist.');
   return { id: numeric, breadth: written.rows[0].breadth };
 }
 
@@ -706,7 +706,7 @@ async function repertoiresByIds(pool, userId, ids) {
     .map((id) => Number(id))
     .filter((id) => Number.isInteger(id));
   if (wanted.length === 0) {
-    throw new RangeError('Nijedan repertoar nije izabran.');
+    throw new RangeError('No repertoire was chosen.');
   }
   const result = await pool.query(
     `SELECT id, name, color, root_fen, root_path, via_uci, breadth
@@ -716,11 +716,11 @@ async function repertoiresByIds(pool, userId, ids) {
     [userId, wanted],
   );
   if (result.rowCount !== new Set(wanted).size) {
-    throw new RangeError('Neki od izabranih repertoara ne postoji.');
+    throw new RangeError('Some of the chosen repertoires do not exist.');
   }
   const colors = new Set(result.rows.map((row) => row.color));
   if (colors.size > 1) {
-    throw new RangeError('Zajednička sesija ide za jednu boju.');
+    throw new RangeError('A combined session is for one color only.');
   }
   return result.rows.map((row) => ({
     id: row.id,
@@ -736,7 +736,7 @@ async function repertoiresByIds(pool, userId, ids) {
 async function deleteRepertoire(pool, userId, id) {
   const numeric = Number(id);
   if (!Number.isInteger(numeric)) {
-    throw new RangeError('Repertoar nije imenovan brojem.');
+    throw new RangeError('Repertoire is not named by a number.');
   }
   const result = await pool.query(
     'DELETE FROM repertoires WHERE id = $1 AND user_id = $2',
@@ -757,7 +757,7 @@ async function deleteRepertoire(pool, userId, id) {
 async function addExtraReply(pool, userId, { color, fen, uci, san = null }) {
   requireColor(color);
   const key = fenKey(fen);
-  if (!uci) throw new RangeError('Potez nije prosleđen.');
+  if (!uci) throw new RangeError('Move was not provided.');
 
   const result = await pool.query(
     `INSERT INTO repertoire_extra_replies (user_id, color, fen_key, uci, san)
@@ -773,7 +773,7 @@ async function addExtraReply(pool, userId, { color, fen, uci, san = null }) {
 async function removeExtraReply(pool, userId, { color, fen, uci }) {
   requireColor(color);
   const key = fenKey(fen);
-  if (!uci) throw new RangeError('Potez nije prosleđen.');
+  if (!uci) throw new RangeError('Move was not provided.');
 
   const result = await pool.query(
     `DELETE FROM repertoire_extra_replies

@@ -25,7 +25,7 @@ const writeLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše upisa grešaka. Sačekajte malo.' },
+  message: { error: 'Too many mistake writes. Please wait a moment.' },
 });
 
 function fail(res, err, whatFailed) {
@@ -48,7 +48,7 @@ router.post('/', authenticateToken, writeLimiter, async (req, res) => {
   try {
     return res.json(await recordMistakes(pool, req.user.id, req.body?.items));
   } catch (err) {
-    return fail(res, err, 'Greške nisu mogle da se upišu.');
+    return fail(res, err, 'Failed to record mistakes.');
   }
 });
 
@@ -62,7 +62,7 @@ router.get('/due', authenticateToken, async (req, res) => {
       }),
     });
   } catch (err) {
-    return fail(res, err, 'Greške za ponavljanje nisu dostupne.');
+    return fail(res, err, 'Mistakes due for review are not available.');
   }
 });
 
@@ -73,13 +73,13 @@ router.get('/due', authenticateToken, async (req, res) => {
 // same map, as the lesson reviews.
 router.post('/:id/grade', authenticateToken, async (req, res) => {
   const id = Number(req.params.id);
-  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Loš id.' });
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id.' });
 
   const asked = req.body?.grade;
   const quality = typeof asked === 'string' ? GRADES[asked] : Number(asked);
   if (quality === undefined) {
     return res.status(400).json({
-      error: `Ocena mora biti jedna od: ${Object.keys(GRADES).join(', ')}.`,
+      error: `Grade must be one of: ${Object.keys(GRADES).join(', ')}.`,
     });
   }
 
@@ -88,7 +88,7 @@ router.post('/:id/grade', authenticateToken, async (req, res) => {
     if (!outcome.ok) return res.status(400).json({ error: outcome.reason });
     return res.json(outcome);
   } catch (err) {
-    return fail(res, err, 'Ocena nije mogla da se upiše.');
+    return fail(res, err, 'Failed to record grade.');
   }
 });
 
@@ -97,7 +97,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
   try {
     return res.json(await stats(pool, req.user.id));
   } catch (err) {
-    return fail(res, err, 'Statistika grešaka nije dostupna.');
+    return fail(res, err, 'Mistake statistics are not available.');
   }
 });
 
@@ -110,7 +110,7 @@ router.get('/recurrence', authenticateToken, async (req, res) => {
   try {
     return res.json(await recurrence(pool, req.user.id));
   } catch (err) {
-    return fail(res, err, 'Pregled ponavljanja nije dostupan.');
+    return fail(res, err, 'Recurrence overview is not available.');
   }
 });
 

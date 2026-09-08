@@ -118,20 +118,20 @@ async function shape(pool, userId, subject) {
 
   const [color, speed, termination, length, phase, year, opening] = await Promise.all([
     grouped('subject_color'),
-    grouped("COALESCE(speed, 'nepoznato')"),
-    grouped("COALESCE(termination, 'nepoznato')"),
-    grouped(`CASE WHEN ply_count < 40 THEN 'do 20. poteza'
-                  WHEN ply_count < 80 THEN '20-40. potez'
-                  ELSE 'preko 40. poteza' END`),
+    grouped("COALESCE(speed, 'unknown')"),
+    grouped("COALESCE(termination, 'unknown')"),
+    grouped(`CASE WHEN ply_count < 40 THEN 'up to move 20'
+                  WHEN ply_count < 80 THEN 'moves 20-40'
+                  ELSE 'over 40 moves' END`),
     // min_men is written at import for exactly this kind of question: it is the
     // fewest men the game ever had, so it says which phase the game reached
     // without replaying a single move.
-    grouped(`CASE WHEN min_men <= 7 THEN 'stigla do tablica'
-                  WHEN min_men <= 10 THEN 'stigla u završnicu'
-                  ELSE 'rešena pre završnice' END`),
+    grouped(`CASE WHEN min_men <= 7 THEN 'reached tablebase'
+                  WHEN min_men <= 10 THEN 'reached endgame'
+                  ELSE 'decided before endgame' END`),
     grouped("to_char(played_at, 'YYYY')", ', AVG(subject_elo)::int AS avg_elo'),
     pool.query(
-      `SELECT COALESCE(eco, '?') || ' ' || COALESCE(opening, 'bez imena') AS key,
+      `SELECT COALESCE(eco, '?') || ' ' || COALESCE(opening, 'unnamed') AS key,
               COUNT(*)::int AS games, SUM(subject_score)::numeric AS points
          FROM user_games
         WHERE user_id = $1 AND subject = $2 AND opening IS NOT NULL
@@ -246,7 +246,7 @@ async function monthlyTrend(pool, userId, subject, { months = 12 } = {}) {
 async function playerProfile(pool, userId, { subject, clockSample } = {}) {
   if (!Number.isInteger(userId)) throw new TypeError('userId is required');
   const handle = String(subject || '').trim();
-  if (!handle) throw new RangeError('Nedostaje korisničko ime.');
+  if (!handle) throw new RangeError('Username is missing.');
 
   const [totals, shaped, clock] = await Promise.all([
     pool.query(

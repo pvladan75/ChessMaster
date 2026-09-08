@@ -78,7 +78,7 @@ async function listScanned(pool, userId, { search }) {
     // rather than a title being invented.
     title: [row.source_title, row.source_label && `#${row.source_label}`]
       .filter(Boolean)
-      .join(' ') || 'Skenirana pozicija',
+      .join(' ') || 'Scanned position',
     fen: row.fen,
     sideToMove: row.side_to_move,
     instruction: row.instruction,
@@ -123,7 +123,7 @@ async function listSavedPositions(pool, userId, { search }) {
   return result.rows.map((row) => ({
     kind: 'position',
     id: String(row.id),
-    title: row.title || 'Bez naziva',
+    title: row.title || 'Untitled',
     fen: row.fen,
     pgn: row.pgn,
     instruction: null,
@@ -162,7 +162,7 @@ async function listAnalyses(pool, userId, { search }) {
   return result.rows.map((row) => ({
     kind: 'analysis',
     id: String(row.id),
-    title: row.title || 'Bez naziva',
+    title: row.title || 'Untitled',
     fen: row.starting_fen,
     instruction: null,
     themes: [],

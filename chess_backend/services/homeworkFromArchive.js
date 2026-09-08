@@ -73,13 +73,13 @@ function sideToMove(fen) {
 function instructionFor(row, playedSan) {
   if (row.kind === 'tablebase') {
     if (Number(row.wdl_before) > 0) {
-      return 'Ovde si imao dobijenu poziciju. Nađi potez koji dobitak zadržava.';
+      return 'You had a winning position here. Find the move that keeps the win.';
     }
-    return 'Ovde je pozicija bila remi. Nađi potez koji remi drži.';
+    return 'The position was a draw here. Find the move that holds the draw.';
   }
   return playedSan
-    ? `U ovoj poziciji si odigrao ${playedSan}. Nađi bolji potez.`
-    : 'Nađi najbolji potez u ovoj poziciji.';
+    ? `In this position you played ${playedSan}. Find a better move.`
+    : 'Find the best move in this position.';
 }
 
 /// A stable id, so regenerating homework from the same mistake reuses the
@@ -161,7 +161,7 @@ async function storePositions(pool, trainerId, rows) {
       // "netačno" whatever they play. `assignableProblem` refuses these anyway;
       // catching it here means the reason is countable instead of a rejection
       // list at the end.
-      skipped.push({ id: row.id, reason: 'nema rešenje koje se može odigrati' });
+      skipped.push({ id: row.id, reason: 'has no playable solution' });
       continue;
     }
     const playedSan = sanOf(row.fen_before, row.played_uci);
@@ -180,7 +180,7 @@ async function storePositions(pool, trainerId, rows) {
       [
         puzzleId, trainerId, row.fen_before, sideToMove(row.fen_before),
         solutionSan, instructionFor(row, playedSan), themes,
-        'Iz partija učenika',
+        'From student games',
       ],
     );
     stored.push({ puzzleId, mistakeId: row.id, kind: row.kind, solutionSan });
@@ -201,16 +201,16 @@ async function homeworkFromArchive(pool, {
     throw new TypeError('trainerId and studentId are required');
   }
   if (trainerId === studentId) {
-    throw new HomeworkRefused('Sebi se domaći ne zadaje.');
+    throw new HomeworkRefused('You cannot assign homework to yourself.');
   }
   if (kind !== null && !['engine', 'tablebase'].includes(kind)) {
-    throw new HomeworkRefused('Vrsta greške mora biti „engine" ili „tablebase".');
+    throw new HomeworkRefused('Mistake kind must be "engine" or "tablebase".');
   }
   const wanted = Math.min(Math.max(Number(count) || DEFAULT_ITEMS, 1), MAX_ITEMS);
 
   // The one gate, called rather than rewritten.
   if (!(await trainerOwnsStudent(pool, trainerId, studentId))) {
-    throw new HomeworkRefused('Taj učenik nije na vašoj listi.', { status: 403 });
+    throw new HomeworkRefused('That student is not on your list.', { status: 403 });
   }
 
   const candidates = await candidateMistakes(pool, studentId, {
@@ -218,7 +218,7 @@ async function homeworkFromArchive(pool, {
   });
   if (candidates.length === 0) {
     throw new HomeworkRefused(
-      'Taj učenik nema nijednu grešku iz svojih partija. Prvo treba da uveze arhivu i pusti analizu.',
+      'That student has no mistakes from their games. They need to import their archive and run analysis first.',
     );
   }
 
@@ -243,7 +243,7 @@ async function homeworkFromArchive(pool, {
 
   const { stored, skipped } = await storePositions(pool, trainerId, chosen);
   if (stored.length === 0) {
-    throw new HomeworkRefused('Nijedna greška nije mogla da postane zadatak.');
+    throw new HomeworkRefused('No mistake could be turned into a puzzle.');
   }
 
   // The assignment itself is created by the function that already owns that
@@ -252,13 +252,13 @@ async function homeworkFromArchive(pool, {
   const outcome = await createCustomAssignment(pool, {
     trainerId,
     studentId,
-    title: title || 'Iz tvojih partija',
+    title: title || 'From your games',
     instructions,
     dueAt,
     puzzleIds: stored.map((s) => s.puzzleId),
   });
 
-  if (!outcome.ok) throw new HomeworkRefused(outcome.reason || 'Domaći nije mogao da se napravi.');
+  if (!outcome.ok) throw new HomeworkRefused(outcome.reason || 'Failed to create homework.');
 
   logger.info(
     { trainerId, studentId, items: stored.length, skipped: skipped.length },

@@ -54,7 +54,7 @@ const POSITION_TABLES = Object.freeze([
 function requireId(id) {
   const numeric = Number(id);
   if (!Number.isInteger(numeric)) {
-    throw new RangeError('Repertoar nije imenovan brojem.');
+    throw new RangeError('Repertoire is not named by a number.');
   }
   return numeric;
 }
@@ -102,7 +102,7 @@ async function repertoireRow(pool, userId, id) {
     [requireId(id), userId],
   );
   if (found.rowCount === 0) {
-    throw new RangeError('Taj repertoar ne postoji.');
+    throw new RangeError('That repertoire does not exist.');
   }
   return found.rows[0];
 }

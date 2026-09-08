@@ -82,7 +82,7 @@ const spineLimiter = rateLimit({
   max: 6,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše kičmi u kratkom roku. Sačekajte minut.' },
+  message: { error: 'Too many spines in a short period. Please wait a minute.' },
 });
 
 /// The repertoire's **gate**: the one move it goes through at its root.
@@ -141,7 +141,7 @@ async function rootsFrom(query, userId) {
   const roots = await repertoiresByIds(pool, userId, ids);
   const asked = query?.color;
   if (typeof asked === 'string' && asked !== '' && asked !== roots[0].color) {
-    throw new RangeError('Boja se ne slaže sa izabranim repertoarima.');
+    throw new RangeError('Color does not match selected repertoires.');
   }
   return roots;
 }
@@ -158,7 +158,7 @@ function answer(res, work, whatFailed) {
       }
       // A name that is already taken is the caller's business, not a fault.
       if (err && err.code === '23505') {
-        return res.status(409).json({ error: 'To ime je već zauzeto.' });
+        return res.status(409).json({ error: 'That name is already taken.' });
       }
       logger.error(`[REPERTOAR] ${whatFailed}: ${err.message}`);
       return res.status(500).json({ error: whatFailed });
@@ -183,7 +183,7 @@ router.post('/', authenticateToken, (req, res) => {
     createRepertoire(pool, req.user.id, {
       name, color, rootFen, rootPath, viaUci, breadth: breadth ?? null,
     }),
-    'Repertoar nije mogao da se napravi.',
+    'Repertoire could not be created.',
   );
 });
 
@@ -200,7 +200,7 @@ router.put('/gate', authenticateToken, (req, res) => {
   answer(
     res,
     setGate(pool, req.user.id, { id, viaUci: viaUci ?? null }),
-    'Potez kroz koji ide repertoar nije mogao da se sačuva.',
+    'Repertoire gate move could not be saved.',
   );
 });
 
@@ -220,7 +220,7 @@ router.put('/breadth', authenticateToken, (req, res) => {
   answer(
     res,
     setBreadth(pool, req.user.id, { id, breadth }),
-    'Širina repertoara nije mogla da se sačuva.',
+    'Repertoire breadth could not be saved.',
   );
 });
 
@@ -233,7 +233,7 @@ router.get('/unconfirmed/count', authenticateToken, (req, res) => {
   answer(
     res,
     unconfirmedCounts(pool, req.user.id),
-    'Broj nepotvrđenih poteza nije mogao da se pročita.',
+    'Could not read unconfirmed move count.',
   );
 });
 
@@ -259,7 +259,7 @@ router.get('/practice/today', authenticateToken, (req, res) => {
         ? color.trim()
         : null,
     }),
-    'Broj odvežbanih pozicija nije mogao da se pročita.',
+    'Could not read practised position count.',
   );
 });
 
@@ -279,7 +279,7 @@ router.get('/progress', authenticateToken, (req, res) => {
     repertoireProgress(pool, req.user.id, {
       minRating: Number(req.query.minRating) || 0,
     }),
-    'Napredak repertoara nije mogao da se pročita.',
+    'Could not read repertoire progress.',
   );
 });
 
@@ -308,7 +308,7 @@ router.get('/unconfirmed', authenticateToken, (req, res) => {
       minRating: Number(minRating) || 0,
       limit: Number(limit) || 200,
     }),
-    'Nepotvrđeni potezi nisu mogli da se pročitaju.',
+    'Could not read unconfirmed moves.',
   );
 });
 
@@ -338,14 +338,14 @@ router.post('/alternative', authenticateToken, (req, res) => {
       minRating: Number(body.minRating) || 0,
       includeDecisions: body.includeDecisions === true,
     }),
-    'Zamena nacrta nije uspela.',
+    'Draft replacement failed.',
   );
 });
 
 // GET /repertoire
 router.get('/', authenticateToken, (req, res) => {
   answer(res, listRepertoires(pool, req.user.id),
-    'Spisak repertoara nije mogao da se pročita.');
+    'Could not read repertoire list.');
 });
 
 // GET /repertoire/imported?color=b — how many moves nobody was ever asked about
@@ -363,7 +363,7 @@ router.get('/imported', authenticateToken, (req, res) => {
   answer(
     res,
     importedMoves(pool, req.user.id, { color: req.query.color }),
-    'Broj uvezenih poteza nije mogao da se pročita.',
+    'Could not read imported move count.',
   );
 });
 
@@ -371,7 +371,7 @@ router.delete('/imported', authenticateToken, (req, res) => {
   answer(
     res,
     forgetImportedMoves(pool, req.user.id, { color: req.query.color }),
-    'Uvezeni potezi nisu mogli da se uklone.',
+    'Could not remove imported moves.',
   );
 });
 
@@ -395,7 +395,7 @@ router.get('/removal', authenticateToken, (req, res) => {
       // made of. `stranded` is the wider count, kept because it is what the
       // delete will sweep.
     }).then(({ keys, ...rest }) => ({ ...rest, stranded: keys.length })),
-    'Nije moglo da se izračuna šta bi brisanje odnelo.',
+    'Could not calculate what deletion would remove.',
   );
 });
 
@@ -408,7 +408,7 @@ router.get('/color', authenticateToken, (req, res) => {
   answer(
     res,
     colorStats(pool, req.user.id, { color: req.query.color }),
-    'Stanje boje nije moglo da se pročita.',
+    'Could not read side status.',
   );
 });
 
@@ -431,7 +431,7 @@ router.delete('/color', authenticateToken, (req, res) => {
       includeComments: req.query.comments === '1'
         || req.query.comments === 'true',
     }),
-    'Potezi nisu mogli da se obrišu.',
+    'Could not delete moves.',
   );
 });
 
@@ -459,7 +459,7 @@ router.put('/comment', authenticateToken, (req, res) => {
       fen: body.fen,
       body: body.body,
     }),
-    'Komentar nije mogao da se sačuva.',
+    'Could not save comment.',
   );
 });
 
@@ -469,7 +469,7 @@ router.delete('/comment', authenticateToken, (req, res) => {
   answer(
     res,
     removeComment(pool, req.user.id, { color, fen }),
-    'Komentar nije mogao da se obriše.',
+    'Could not delete comment.',
   );
 });
 
@@ -488,7 +488,7 @@ router.get('/comments', authenticateToken, (req, res) => {
         ? keys.split(',').map((key) => key.trim()).filter((key) => key !== '')
         : null,
     }),
-    'Komentari nisu mogli da se pročitaju.',
+    'Could not read comments.',
   );
 });
 
@@ -513,7 +513,7 @@ router.delete('/:id', authenticateToken, (req, res) => {
         minRating: Number(req.query.minRating) || 0,
       })
       : deleteRepertoire(pool, req.user.id, req.params.id),
-    'Repertoar nije mogao da se obriše.',
+    'Could not delete repertoire.',
   );
 });
 
@@ -523,7 +523,7 @@ router.get('/node', authenticateToken, (req, res) => {
   answer(
     res,
     nodeMoves(pool, req.user.id, { color, fen }).then((moves) => ({ moves })),
-    'Pozicija nije mogla da se pročita.',
+    'Could not read position.',
   );
 });
 
@@ -533,7 +533,7 @@ router.post('/node/move', authenticateToken, (req, res) => {
   answer(
     res,
     addMove(pool, req.user.id, { color, fen, uci, san, verdict }),
-    'Potez nije mogao da se sačuva.',
+    'Could not save move.',
   );
 });
 
@@ -570,7 +570,7 @@ router.post('/spine', authenticateToken, spineLimiter, (req, res) => {
       }
       throw err;
     }),
-    'Kičma nije mogla da se napravi.',
+    'Could not build spine.',
   );
 });
 
@@ -588,7 +588,7 @@ router.post('/node/confirm', authenticateToken, (req, res) => {
   answer(
     res,
     confirmNode(pool, req.user.id, { color, fen, uci: uci ?? null }),
-    'Potez nije mogao da se potvrdi.',
+    'Could not confirm move.',
   );
 });
 
@@ -601,7 +601,7 @@ router.post('/line/confirm', authenticateToken, (req, res) => {
   answer(
     res,
     confirmLine(pool, req.user.id, { color, fens }),
-    'Linija nije mogla da se potvrdi.',
+    'Could not confirm line.',
   );
 });
 
@@ -611,7 +611,7 @@ router.post('/node/primary', authenticateToken, (req, res) => {
   answer(
     res,
     promoteMove(pool, req.user.id, { color, fen, uci }),
-    'Glavni potez nije mogao da se promeni.',
+    'Could not change main move.',
   );
 });
 
@@ -632,7 +632,7 @@ router.get('/book', authenticateToken, (req, res) => {
     storedBook(pool, req.user.id, {
       color, fen, minRating: Number(minRating) || 0,
     }),
-    'Knjiga nije mogla da se pročita.',
+    'Could not read book.',
   );
 });
 
@@ -666,7 +666,7 @@ router.put('/note', authenticateToken, (req, res) => {
       bestUci: body.bestUci ?? null,
       bestLineSan: body.bestLineSan ?? null,
     }),
-    'Ocena nije mogla da se sačuva.',
+    'Could not save evaluation.',
   );
 });
 
@@ -685,7 +685,7 @@ router.get('/notes', authenticateToken, (req, res) => {
         ? keys.split(',').map((key) => key.trim()).filter((key) => key !== '')
         : null,
     }),
-    'Ocene nisu mogle da se pročitaju.',
+    'Could not read evaluations.',
   );
 });
 
@@ -717,7 +717,7 @@ router.get('/disagreements', authenticateToken, (req, res) => {
         : null,
       limit: Number(limit) || undefined,
     }),
-    'Spisak neslaganja nije mogao da se sastavi.',
+    'Could not compile disagreement list.',
   );
 });
 
@@ -738,7 +738,7 @@ router.get('/node/orphans', authenticateToken, (req, res) => {
     orphansOfRemoving(pool, req.user.id, {
       color, fen, uci, minRating: Number(minRating) || 0,
     }),
-    'Nije moglo da se izračuna šta ostaje bez veze.',
+    'Could not calculate what becomes stranded.',
   );
 });
 
@@ -761,7 +761,7 @@ router.post('/prune', authenticateToken, (req, res) => {
       includeDecisions: body.includeDecisions === true,
       minRating: Number(body.minRating) || 0,
     }),
-    'Orezivanje nije uspelo.',
+    'Pruning failed.',
   );
 });
 
@@ -771,7 +771,7 @@ router.delete('/node/move', authenticateToken, (req, res) => {
   answer(
     res,
     removeMove(pool, req.user.id, { color, fen, uci }),
-    'Potez nije mogao da se ukloni.',
+    'Could not remove move.',
   );
 });
 
@@ -790,7 +790,7 @@ router.post('/node/skip', authenticateToken, (req, res) => {
   answer(
     res,
     skipNode(pool, req.user.id, { color, fen }),
-    'Grana nije mogla da se odseče.',
+    'Branch could not be skipped.',
   );
 });
 
@@ -800,7 +800,7 @@ router.delete('/node/skip', authenticateToken, (req, res) => {
   answer(
     res,
     unskipNode(pool, req.user.id, { color, fen }),
-    'Grana nije mogla da se vrati.',
+    'Branch could not be unskipped.',
   );
 });
 
@@ -818,7 +818,7 @@ router.post('/node/reply', authenticateToken, (req, res) => {
   answer(
     res,
     addExtraReply(pool, req.user.id, { color, fen, uci, san }),
-    'Potez nije mogao da se doda u pripremu.',
+    'Could not add move to preparation.',
   );
 });
 
@@ -828,7 +828,7 @@ router.delete('/node/reply', authenticateToken, (req, res) => {
   answer(
     res,
     removeExtraReply(pool, req.user.id, { color, fen, uci }),
-    'Potez nije mogao da se izbaci iz pripreme.',
+    'Could not remove move from preparation.',
   );
 });
 
@@ -844,7 +844,7 @@ router.post('/attempt', authenticateToken, (req, res) => {
     recordAttempt(pool, req.user.id, {
       color, fen, uci, san, verdict, kept: !!kept, lookedUp: !!lookedUp,
     }),
-    'Pokušaj nije mogao da se zabeleži.',
+    'Could not record attempt.',
   );
 });
 
@@ -869,7 +869,7 @@ router.get('/frontier', authenticateToken, (req, res) => {
       minRating: Number(minRating) || 0,
       limit: Math.min(Math.max(Number(limit) || 200, 1), 500),
     }),
-    'Pregled repertoara nije mogao da se izračuna.',
+    'Could not calculate repertoire overview.',
   );
 });
 
@@ -904,7 +904,7 @@ router.get('/tree', authenticateToken, (req, res) => {
       minRating: Number(minRating) || 0,
       maxPly: Math.min(Math.max(Number(maxPly) || 16, 2), 40),
     }),
-    'Stablo repertoara nije moglo da se sastavi.',
+    'Could not assemble repertoire tree.',
   );
 });
 
@@ -917,7 +917,7 @@ router.get('/weak', authenticateToken, (req, res) => {
       color,
       limit: Math.min(Math.max(Number(limit) || 20, 1), 100),
     }).then((nodes) => ({ nodes })),
-    'Slabe pozicije nisu mogle da se pročitaju.',
+    'Could not read weak positions.',
   );
 });
 
@@ -934,7 +934,7 @@ router.get('/drill/next', authenticateToken, (req, res) => {
       nextItem(pool, req.user.id, { color }),
       drillStats(pool, req.user.id, { color }),
     ]).then(([item, stats]) => ({ item, stats })),
-    'Sledeća pozicija nije mogla da se pročita.',
+    'Could not read next position.',
   );
 });
 
@@ -1002,7 +1002,7 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       gateUci: gateOf(req.query),
       breadth: breadthOf(req.query),
     })),
-    'Linija za vežbanje nije mogla da se sastavi.',
+    'Could not assemble drill line.',
   );
 });
 
@@ -1034,7 +1034,7 @@ router.get('/drill/branches', authenticateToken, (req, res) => {
         minRating: Number(minRating) || 0,
       }),
     ),
-    'Grane za vežbanje nisu mogle da se pročitaju.',
+    'Could not read drill branches.',
   );
 });
 
@@ -1048,7 +1048,7 @@ router.get('/drill/reveal', authenticateToken, (req, res) => {
   answer(
     res,
     revealPrimary(pool, req.user.id, { color, fen }),
-    'Potez nije mogao da se pročita.',
+    'Could not read move.',
   );
 });
 
@@ -1094,7 +1094,7 @@ router.post('/drill/answer', authenticateToken, (req, res) => {
       });
       return { ...graded, reply };
     }),
-    'Odgovor nije mogao da se oceni.',
+    'Could not evaluate answer.',
   );
 });
 

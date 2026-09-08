@@ -45,9 +45,9 @@ function requirePly(value, name, fallback) {
   const ply = Number(value);
   if (!Number.isInteger(ply) || ply < MIN_PLY || ply > NODE_WINDOW_PLIES) {
     throw new RangeError(
-      `${name} mora biti između ${MIN_PLY} i ${NODE_WINDOW_PLIES}. `
-      + 'Dublje od dvadesetog poluteza svaka partija je gotovo jedinstvena, '
-      + 'pa procenat po poziciji više ništa ne meri.',
+      `${name} must be between ${MIN_PLY} and ${NODE_WINDOW_PLIES}. `
+      + 'Deeper than the twentieth ply almost every game is unique, '
+      + 'so a per-position percentage no longer measures anything.',
     );
   }
   return ply;
@@ -57,7 +57,7 @@ function requireNumber(value, name, fallback, { min, max }) {
   if (value === undefined || value === null || value === '') return fallback;
   const number = Number(value);
   if (!Number.isFinite(number) || number < min || number > max) {
-    throw new RangeError(`${name} mora biti između ${min} i ${max}.`);
+    throw new RangeError(`${name} must be between ${min} and ${max}.`);
   }
   return number;
 }
@@ -87,20 +87,20 @@ async function leakReport(pool, userId, {
 } = {}) {
   if (!Number.isInteger(userId)) throw new TypeError('userId is required');
   const handle = String(subject || '').trim();
-  if (!handle) throw new RangeError('Nedostaje korisničko ime.');
+  if (!handle) throw new RangeError('Username is missing.');
   if (color !== null && !['w', 'b'].includes(color)) {
-    throw new RangeError('Boja mora biti „w" ili „b".');
+    throw new RangeError('Color must be "w" or "b".');
   }
 
-  const from = requirePly(fromPly, 'Početni polupotez', DEFAULT_FROM_PLY);
-  const to = requirePly(toPly, 'Krajnji polupotez', DEFAULT_TO_PLY);
-  if (from > to) throw new RangeError('Početni polupotez je posle krajnjeg.');
+  const from = requirePly(fromPly, 'Starting ply', DEFAULT_FROM_PLY);
+  const to = requirePly(toPly, 'Ending ply', DEFAULT_TO_PLY);
+  if (from > to) throw new RangeError('Starting ply is after ending ply.');
 
-  const floor = requireNumber(minGames, 'Najmanji broj partija', DEFAULT_MIN_GAMES,
+  const floor = requireNumber(minGames, 'Minimum number of games', DEFAULT_MIN_GAMES,
     { min: 2, max: 1000 });
-  const ceiling = requireNumber(maxScore, 'Gornji prag prolaznosti', DEFAULT_MAX_SCORE,
+  const ceiling = requireNumber(maxScore, 'Maximum score ceiling', DEFAULT_MAX_SCORE,
     { min: 0, max: 1 });
-  const cap = requireNumber(limit, 'Broj pozicija', DEFAULT_LIMIT, { min: 1, max: 200 });
+  const cap = requireNumber(limit, 'Number of positions', DEFAULT_LIMIT, { min: 1, max: 200 });
 
   const { rows } = await pool.query(
     `WITH picked AS (

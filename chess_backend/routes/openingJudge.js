@@ -34,7 +34,7 @@ const judgeLimiter = rateLimit({
   max: 40,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše upita za suđenje poteza. Sačekajte trenutak.' },
+  message: { error: 'Too many requests to judge moves. Please wait a moment.' },
 });
 
 // GET /opening-judge?fen=...&move=...&minRating=1600
@@ -64,7 +64,7 @@ router.get('/', authenticateToken, judgeLimiter, async (req, res) => {
       return res.status(err.status).json({ error: err.message, reason: err.reason });
     }
     logger.error(`[JUDGE] Neočekivana greška: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri suđenju poteza.' });
+    res.status(500).json({ error: 'Failed to judge move.' });
   }
 });
 
@@ -112,7 +112,7 @@ router.get('/replies', authenticateToken, judgeLimiter, async (req, res) => {
       return res.status(err.status).json({ error: err.message, reason: err.reason });
     }
     logger.error(`[JUDGE] Neočekivana greška: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri čitanju odgovora protivnika.' });
+    res.status(500).json({ error: 'Failed to read opponent replies.' });
   }
 });
 

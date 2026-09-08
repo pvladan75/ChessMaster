@@ -64,7 +64,7 @@ async function putComment(pool, userId, { color, fen, body } = {}) {
   }
 
   if (text.length > MAX_BODY) {
-    throw new RangeError(`Komentar može imati najviše ${MAX_BODY} znakova.`);
+    throw new RangeError(`Comment may have at most ${MAX_BODY} characters.`);
   }
 
   const written = await pool.query(

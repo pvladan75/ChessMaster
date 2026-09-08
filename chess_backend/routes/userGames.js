@@ -83,7 +83,7 @@ const upload = multer({
     const looksPgn = path.extname(file.originalname).toLowerCase() === '.pgn'
       || (file.mimetype || '').startsWith('text/')
       || file.mimetype === 'application/x-chess-pgn';
-    cb(looksPgn ? null : new Error('Podržan je samo .pgn fajl.'), looksPgn);
+    cb(looksPgn ? null : new Error('Only .pgn files are supported.'), looksPgn);
   },
 });
 
@@ -95,7 +95,7 @@ const importLimiter = rateLimit({
   max: 12,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše pokušaja uvoza. Sačekajte malo.' },
+  message: { error: 'Too many import attempts. Please wait a bit.' },
 });
 
 function fail(res, err, whatFailed) {
@@ -145,7 +145,7 @@ router.post('/import', authenticateToken, importLimiter, async (req, res) => {
     detach(finished, importId);
     return res.status(202).json({ importId, since: resumeFrom });
   } catch (err) {
-    return fail(res, err, 'Uvoz partija nije mogao da počne.');
+    return fail(res, err, 'Game import could not start.');
   }
 });
 
@@ -157,7 +157,7 @@ router.post('/import', authenticateToken, importLimiter, async (req, res) => {
 router.post('/import/pgn', authenticateToken, importLimiter, async (req, res) => {
   const { pgn, username } = req.body ?? {};
   if (typeof pgn !== 'string' || pgn.trim().length === 0) {
-    return res.status(400).json({ error: 'Nedostaje PGN.' });
+    return res.status(400).json({ error: 'PGN is missing.' });
   }
   try {
     const { importId, finished } = await importer.start({
@@ -170,7 +170,7 @@ router.post('/import/pgn', authenticateToken, importLimiter, async (req, res) =>
     detach(finished, importId);
     return res.status(202).json({ importId });
   } catch (err) {
-    return fail(res, err, 'Uvoz partija nije mogao da počne.');
+    return fail(res, err, 'Game import could not start.');
   }
 });
 
@@ -189,7 +189,7 @@ router.post(
   importLimiter,
   upload.single('archive'),
   async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'Nedostaje .pgn fajl.' });
+    if (!req.file) return res.status(400).json({ error: '.pgn file is missing.' });
     const uploadedPath = req.file.path;
     try {
       const { importId, finished } = await importer.start({
@@ -204,7 +204,7 @@ router.post(
       return res.status(202).json({ importId, bytes: req.file.size });
     } catch (err) {
       removeQuietly(uploadedPath);
-      return fail(res, err, 'Uvoz partija nije mogao da počne.');
+      return fail(res, err, 'Game import could not start.');
     }
   },
 );
@@ -249,7 +249,7 @@ router.post('/prep/import', authenticateToken, importLimiter, async (req, res) =
     if (err instanceof OpponentPrepUnavailable || err instanceof ArchiveImportUnavailable) {
       return res.status(err.status || 400).json({ error: err.message, reason: err.reason });
     }
-    return fail(res, err, 'Priprema za protivnika nije mogla da počne.');
+    return fail(res, err, 'Opponent preparation could not start.');
   }
 });
 
@@ -267,7 +267,7 @@ router.post('/prep/import', authenticateToken, importLimiter, async (req, res) =
 router.get('/prep/narrative', authenticateToken, async (req, res) => {
   const q = req.query ?? {};
   const handle = String(q.subject || '').trim();
-  if (!handle) return res.status(400).json({ error: 'Nedostaje korisničko ime.' });
+  if (!handle) return res.status(400).json({ error: 'Username is missing.' });
 
   try {
     // Narrating your own report is an ordinary feature and needs no gate. Doing
@@ -277,7 +277,7 @@ router.get('/prep/narrative', authenticateToken, async (req, res) => {
     const own = await isOwnSubject(pool, req.user.id, handle);
     if (!own && !policyFrom().enabled) {
       return res.status(403).json({
-        error: 'Priprema za protivnika nije uključena na ovom serveru.',
+        error: 'Opponent preparation is not enabled on this server.',
         reason: 'disabled',
       });
     }
@@ -298,7 +298,7 @@ router.get('/prep/narrative', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
-    return fail(res, err, 'Opis protivnika nije dostupan.');
+    return fail(res, err, 'Opponent narrative is not available.');
   }
 });
 
@@ -307,20 +307,20 @@ router.get('/imports', authenticateToken, async (req, res) => {
   try {
     return res.json({ runs: await importer.listRuns(req.user.id) });
   } catch (err) {
-    return fail(res, err, 'Istorija uvoza nije dostupna.');
+    return fail(res, err, 'Import history is not available.');
   }
 });
 
 // GET /games/imports/:id — how one run is going, including its skip reasons.
 router.get('/imports/:id', authenticateToken, async (req, res) => {
   const id = Number(req.params.id);
-  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Loš id.' });
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id.' });
   try {
     const run = await importer.getRun(req.user.id, id);
-    if (!run) return res.status(404).json({ error: 'Nema tog uvoza.' });
+    if (!run) return res.status(404).json({ error: 'Import not found.' });
     return res.json(run);
   } catch (err) {
-    return fail(res, err, 'Stanje uvoza nije dostupno.');
+    return fail(res, err, 'Import status is not available.');
   }
 });
 
@@ -359,7 +359,7 @@ router.get('/openings/leaks', authenticateToken, async (req, res) => {
     return res.json(report);
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
-    return fail(res, err, 'Izveštaj o otvaranjima nije dostupan.');
+    return fail(res, err, 'Opening leaks report is not available.');
   }
 });
 
@@ -395,7 +395,7 @@ router.post('/openings/backfill', authenticateToken, importLimiter, async (req, 
   try {
     return res.json(await backfillNodes(pool, req.user.id));
   } catch (err) {
-    return fail(res, err, 'Dopuna otvaranja nije uspela.');
+    return fail(res, err, 'Failed to backfill openings.');
   }
 });
 
@@ -414,7 +414,7 @@ router.get('/repertoire/diff', authenticateToken, async (req, res) => {
     }));
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
-    return fail(res, err, 'Poređenje sa repertoarom nije dostupno.');
+    return fail(res, err, 'Repertoire diff is not available.');
   }
 });
 
@@ -430,7 +430,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     }));
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
-    return fail(res, err, 'Profil igrača nije dostupan.');
+    return fail(res, err, 'Player profile is not available.');
   }
 });
 
@@ -446,7 +446,7 @@ router.get('/subjects', authenticateToken, async (req, res) => {
   try {
     return res.json({ subjects: await importer.archiveSubjects(req.user.id) });
   } catch (err) {
-    return fail(res, err, 'Spisak igrača iz arhive nije dostupan.');
+    return fail(res, err, 'Archive subject list is not available.');
   }
 });
 
@@ -455,7 +455,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
   try {
     return res.json(await importer.archiveStats(req.user.id));
   } catch (err) {
-    return fail(res, err, 'Statistika arhive nije dostupna.');
+    return fail(res, err, 'Archive statistics are not available.');
   }
 });
 
@@ -466,7 +466,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
-      error: `Fajl je veći od ${Math.round(MAX_ARCHIVE_BYTES / (1024 * 1024))} MB.`,
+      error: `File is larger than ${Math.round(MAX_ARCHIVE_BYTES / (1024 * 1024))} MB.`,
     });
   }
   if (err) {

@@ -50,10 +50,10 @@ async function playAlternative(pool, userId, {
 } = {}) {
   requireColor(color);
   const key = fenKey(fen);
-  if (!uci || !san) throw new RangeError('Potez nije prosleđen.');
-  if (!rejectedUci) throw new RangeError('Nije rečeno koji nacrt se odbija.');
+  if (!uci || !san) throw new RangeError('Move was not provided.');
+  if (!rejectedUci) throw new RangeError('Rejected draft was not specified.');
   if (uci === rejectedUci) {
-    throw new RangeError('Odbijeni i izabrani potez su isti.');
+    throw new RangeError('The rejected and chosen moves are the same.');
   }
 
   const client = await pool.connect();
@@ -66,10 +66,10 @@ async function playAlternative(pool, userId, {
       [userId, color, key, rejectedUci],
     );
     if (draft.rowCount === 0) {
-      throw new RangeError('Taj potez nije u repertoaru za ovu poziciju.');
+      throw new RangeError('That move is not in the repertoire for this position.');
     }
     if (draft.rows[0].source !== 'auto') {
-      throw new RangeError('Taj potez je vaša odluka, a ne nacrt.');
+      throw new RangeError('That move is your decision, not a draft.');
     }
 
     // First, while the rejected move is still standing. The sweep below asks

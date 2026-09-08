@@ -30,7 +30,7 @@ const explorerLimiter = rateLimit({
   max: 90,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše upita ka bazi otvaranja. Sačekajte trenutak.' },
+  message: { error: 'Too many requests to the opening database. Please wait a moment.' },
 });
 
 // GET /opening-explorer?fen=...&moves=12&minRating=2000
@@ -57,7 +57,7 @@ router.get('/', authenticateToken, explorerLimiter, async (req, res) => {
       return res.status(err.status).json({ error: err.message, reason: err.reason });
     }
     logger.error(`[EXPLORER] Neočekivana greška: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri čitanju baze otvaranja.' });
+    res.status(500).json({ error: 'Failed to read opening database.' });
   }
 });
 

@@ -52,13 +52,13 @@ const MAX_DISAGREEMENTS = 100;
 function requireInt(value, what, { min = null, max = null } = {}) {
   const number = Number(value);
   if (!Number.isFinite(number) || !Number.isInteger(number)) {
-    throw new RangeError(`${what} mora biti ceo broj.`);
+    throw new RangeError(`${what} must be an integer.`);
   }
   if (min !== null && number < min) {
-    throw new RangeError(`${what} ne može biti manje od ${min}.`);
+    throw new RangeError(`${what} cannot be less than ${min}.`);
   }
   if (max !== null && number > max) {
-    throw new RangeError(`${what} ne može biti veće od ${max}.`);
+    throw new RangeError(`${what} cannot be greater than ${max}.`);
   }
   return number;
 }
@@ -98,13 +98,13 @@ async function putNote(pool, userId, {
   // because a row that exists and says nothing is worse than no row: the tree
   // would draw a card for it and the line pass would count it as done.
   if (evalCp === null || evalCp === undefined) {
-    throw new RangeError('Ocena (eval_cp) nije prosleđena.');
+    throw new RangeError('Evaluation (eval_cp) was not provided.');
   }
-  const cp = requireInt(evalCp, 'Ocena', { min: -100000, max: 100000 });
+  const cp = requireInt(evalCp, 'Evaluation', { min: -100000, max: 100000 });
   const mate = mateIn === null || mateIn === undefined
     ? null
-    : requireInt(mateIn, 'Mat u', { min: -500, max: 500 });
-  const depth = requireInt(evalDepth ?? 0, 'Dubina', { min: 0, max: 100 });
+    : requireInt(mateIn, 'Mate in', { min: -500, max: 500 });
+  const depth = requireInt(evalDepth ?? 0, 'Depth', { min: 0, max: 100 });
   const uci = typeof bestUci === 'string' && bestUci.trim() !== ''
     ? bestUci.trim().slice(0, 6)
     : null;

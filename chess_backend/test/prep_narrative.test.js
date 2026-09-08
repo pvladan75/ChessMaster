@@ -84,7 +84,7 @@ test('an invented number is refused, and one retry is asked for', async () => {
 
   assert.equal(said.reason, null, 'the second answer was clean');
   assert.equal(model.prompts.length, 2);
-  assert.match(model.prompts[1], /ODBIJEN/, 'the retry says it was refused');
+  assert.match(model.prompts[1], /REFUSED/, 'the retry says it was refused');
   assert.match(model.prompts[1], /40/, 'and names the number that got it refused');
 });
 
@@ -167,7 +167,7 @@ test('the prompt demands percentages, because a child cannot read 0.38', async (
   // this app is for. The guard cannot catch prose that is true and useless.
   const prompt = buildPrompt(factsFrom(REPORT));
 
-  assert.match(prompt, /uvek piši kao procenat/);
+  assert.match(prompt, /always write as a percentage/);
   assert.match(prompt, /41\.3%/, 'and shows the conversion rather than describing it');
 });
 

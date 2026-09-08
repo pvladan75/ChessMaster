@@ -133,7 +133,7 @@ function buildArchiveQuery({ since = null, filters = {} } = {}) {
   // Head to head, in one request. The whole reason preparation is cheap.
   if (filters.vs !== undefined && filters.vs !== null && filters.vs !== '') {
     const vs = String(filters.vs).trim();
-    if (!vs) throw bad('Protivnik za poređenje nije imenovan.');
+    if (!vs) throw bad('Opponent for comparison is not named.');
     params.set('vs', vs);
   }
 
@@ -141,28 +141,28 @@ function buildArchiveQuery({ since = null, filters = {} } = {}) {
     // 'w'/'b' is what the rest of this codebase says; Lichess wants the words.
     const asked = String(filters.color).trim().toLowerCase();
     const colour = { w: 'white', b: 'black', white: 'white', black: 'black' }[asked];
-    if (!colour) throw bad('Boja mora biti „w" ili „b".');
+    if (!colour) throw bad('Color must be "w" or "b".');
     params.set('color', colour);
   }
 
   if (filters.perfType !== undefined && filters.perfType !== null && filters.perfType !== '') {
     const asked = String(filters.perfType).split(',').map((p) => p.trim()).filter(Boolean);
-    if (asked.length === 0) throw bad('Tempo igre nije imenovan.');
+    if (asked.length === 0) throw bad('Time control is not named.');
     for (const perf of asked) {
-      if (!PERF_TYPES.has(perf)) throw bad(`Nepoznat tempo igre: ${perf}.`);
+      if (!PERF_TYPES.has(perf)) throw bad(`Unknown time control: ${perf}.`);
     }
     params.set('perfType', asked.join(','));
   }
 
   if (filters.rated !== undefined && filters.rated !== null) {
-    if (typeof filters.rated !== 'boolean') throw bad('„rated" mora biti tačno ili netačno.');
+    if (typeof filters.rated !== 'boolean') throw bad('"rated" must be true or false.');
     params.set('rated', String(filters.rated));
   }
 
   if (filters.max !== undefined && filters.max !== null && filters.max !== '') {
     const max = Number(filters.max);
     if (!Number.isInteger(max) || max < 1 || max > MAX_GAMES_PER_RUN) {
-      throw bad(`Broj partija mora biti ceo broj od 1 do ${MAX_GAMES_PER_RUN}.`);
+      throw bad(`Number of games must be an integer from 1 to ${MAX_GAMES_PER_RUN}.`);
     }
     params.set('max', String(max));
   }
@@ -212,7 +212,7 @@ function createArchiveImporter({
     await pool.query(
       `UPDATE user_game_imports
           SET status = 'failed',
-              error = 'Uvoz je prekinut pre nego što se završio.',
+              error = 'Import was interrupted before it completed.',
               finished_at = NOW()
         WHERE user_id = $1 AND status = 'running'
           AND started_at < NOW() - ($2::int * INTERVAL '1 millisecond')`,
@@ -319,7 +319,7 @@ function createArchiveImporter({
     const blockedFor = pacer.blockedForMs();
     if (blockedFor > 0) {
       throw new ArchiveImportUnavailable(
-        `Lichess trenutno ne prima upite. Probajte za ${Math.ceil(blockedFor / 1000)} s.`,
+        `Lichess is temporarily not accepting requests. Try again in ${Math.ceil(blockedFor / 1000)} s.`,
         { reason: 'rate-limited', status: 503 },
       );
     }
@@ -343,14 +343,14 @@ function createArchiveImporter({
     } catch (err) {
       clearTimeout(timer);
       throw new ArchiveImportUnavailable(
-        'Nema veze sa Lichess-om.', { reason: 'network', status: 502 },
+        'No connection to Lichess.', { reason: 'network', status: 502 },
       );
     }
 
     if (res.status === 404) {
       clearTimeout(timer);
       throw new ArchiveImportUnavailable(
-        `Lichess ne zna za nalog "${subject}".`,
+        `Lichess does not recognise account "${subject}".`,
         { reason: 'not-found', status: 404 },
       );
     }
@@ -358,14 +358,14 @@ function createArchiveImporter({
       pacer.block();
       clearTimeout(timer);
       throw new ArchiveImportUnavailable(
-        'Lichess je odbio zahtev zbog ograničenja. Probajte kasnije.',
+        'Lichess rejected request due to rate limit. Try again later.',
         { reason: 'rate-limited', status: 503 },
       );
     }
     if (!res.ok) {
       clearTimeout(timer);
       throw new ArchiveImportUnavailable(
-        `Lichess je odgovorio ${res.status}.`, { reason: 'network', status: 502 },
+        `Lichess responded with ${res.status}.`, { reason: 'network', status: 502 },
       );
     }
     return { res, done: () => clearTimeout(timer) };
@@ -403,7 +403,7 @@ function createArchiveImporter({
       if (tally.snapshot().read > maxGames) {
         stopped = true;
         throw new ArchiveImportUnavailable(
-          `Arhiva je veća od ${maxGames} partija; uvoz je zaustavljen.`,
+          `Archive is larger than ${maxGames} games; import was stopped.`,
           { reason: 'too-large', status: 413 },
         );
       }
@@ -458,7 +458,7 @@ function createArchiveImporter({
     } catch (err) {
       const message = err instanceof ArchiveImportUnavailable
         ? err.message
-        : `Uvoz nije uspeo: ${err.message}`;
+        : `Import failed: ${err.message}`;
       logger.error(`[ARHIVA] Uvoz ${importId} pao: ${err.message}`);
       await saveProgress(importId, tally, { status: 'failed', error: message })
         .catch((saveErr) => logger.error(
@@ -479,12 +479,12 @@ function createArchiveImporter({
     const handle = String(subject || '').trim();
     if (!handle) {
       throw new ArchiveImportUnavailable(
-        'Nedostaje korisničko ime.', { reason: 'bad-request', status: 400 },
+        'Username is missing.', { reason: 'bad-request', status: 400 },
       );
     }
     if (!['lichess', 'pgn'].includes(source)) {
       throw new ArchiveImportUnavailable(
-        `Nepoznat izvor: ${source}.`, { reason: 'bad-request', status: 400 },
+        `Unknown source: ${source}.`, { reason: 'bad-request', status: 400 },
       );
     }
 
@@ -497,7 +497,7 @@ function createArchiveImporter({
       // Two runs over one archive would double every counter and spend the
       // shared allowance twice for the same games.
       throw new ArchiveImportUnavailable(
-        'Uvoz je već u toku.', { reason: 'already-running', status: 409 },
+        'Import is already in progress.', { reason: 'already-running', status: 409 },
       );
     }
 

@@ -26,12 +26,12 @@ export const MAX_PAGES_PER_SCAN = 40;
 // sentence — the only one of the three that asks anyone for a glyph map.
 const UNREADABLE_MESSAGE = {
   no_text:
-    'Na tim stranama nema nikakvog teksta — knjiga je skenirana kao slika. ' +
-    'Skener čita samo dijagrame složene šahovskim fontom.',
+    'There is no text on those pages — the book was scanned as an image. ' +
+    'The scanner only reads diagrams typeset with a chess font.',
   no_diagram_text:
-    'Na tim stranama ima teksta, ali nijedan red nema oblik dijagrama — dijagrami ' +
-    'su slike ili crteži. Skener čita samo dijagrame složene šahovskim fontom.',
-  unknown_font: 'Dijagrami u ovoj knjizi koriste font koji još ne znamo da čitamo.',
+    'There is text on those pages, but no line has the shape of a diagram — diagrams ' +
+    'are images or drawings. The scanner only reads diagrams typeset with a chess font.',
+  unknown_font: 'Diagrams in this book use a font we do not know how to read yet.',
 };
 
 export class ScanError extends Error {
@@ -47,7 +47,7 @@ function clampRange(from, to, pageCount, label) {
   const end = Math.max(start, Math.min(Number(to) || start, pageCount));
   if (end - start + 1 > MAX_PAGES_PER_SCAN) {
     throw new ScanError(
-      `Najviše ${MAX_PAGES_PER_SCAN} strana po prolazu (${label}).`,
+      `At most ${MAX_PAGES_PER_SCAN} pages per scan (${label}).`,
       { code: 'range_too_large' }
     );
   }
@@ -86,7 +86,7 @@ export function flagDuplicateNumbers(positions, numberOf = (p) => p.label) {
     const pages = sharing.map((p) => p.page).join(', ');
     for (const position of sharing) {
       position.solutionLegal = null;
-      position.problem = `broj ${number} stoji na više dijagrama (strane ${pages}) — rešenje se ne može vezati`;
+      position.problem = `number ${number} appears on multiple diagrams (pages ${pages}) — solution cannot be matched`;
     }
   }
   return positions;
@@ -109,7 +109,7 @@ export async function scanDocument({
 }) {
   const doc = await openPdf(filePath);
   const pageCount = doc.numPages;
-  const { start, end } = clampRange(fromPage, toPage, pageCount, 'dijagrami');
+  const { start, end } = clampRange(fromPage, toPage, pageCount, 'diagrams');
 
   // Pick the glyph map from a sample of the requested range. Selection goes by
   // alphabet, not font name: the second test book calls its diagram font
@@ -140,7 +140,7 @@ export async function scanDocument({
 
   let solutions = new Map();
   if (solutionsFrom) {
-    const range = clampRange(solutionsFrom, solutionsTo ?? solutionsFrom, pageCount, 'rešenja');
+    const range = clampRange(solutionsFrom, solutionsTo ?? solutionsFrom, pageCount, 'solutions');
     solutions = await readSolutions(doc, range.start, range.end);
   }
 

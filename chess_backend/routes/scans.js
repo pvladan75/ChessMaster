@@ -54,7 +54,7 @@ const upload = multer({
   fileFilter(req, file, cb) {
     const looksPdf =
       file.mimetype === 'application/pdf' || path.extname(file.originalname).toLowerCase() === '.pdf';
-    cb(looksPdf ? null : new Error('Podržan je samo PDF.'), looksPdf);
+    cb(looksPdf ? null : new Error('Only PDF is supported.'), looksPdf);
   },
 });
 
@@ -71,7 +71,7 @@ sweepLeftovers();
 // POST /scans — scan a page range of an uploaded PDF and return candidates.
 router.post('/', authenticateToken, upload.single('document'), async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'Nije poslat dokument.' });
+    return res.status(400).json({ error: 'No document sent.' });
   }
 
   const { fromPage, toPage, solutionsFrom, solutionsTo } = req.body;
@@ -113,7 +113,7 @@ router.post('/', authenticateToken, upload.single('document'), async (req, res) 
     });
   } catch (err) {
     logger.error(`[SCAN] Neuspešno skeniranje: ${err.stack || err.message}`);
-    res.status(500).json({ error: 'Greška pri čitanju dokumenta.' });
+    res.status(500).json({ error: 'Failed to read document.' });
   } finally {
     removeQuietly(req.file.path);
   }
@@ -124,10 +124,10 @@ router.post('/confirm', authenticateToken, async (req, res) => {
   const { sourceTitle, positions } = req.body || {};
 
   if (!Array.isArray(positions) || positions.length === 0) {
-    return res.status(400).json({ error: 'Nije poslata nijedna pozicija.' });
+    return res.status(400).json({ error: 'No positions sent.' });
   }
   if (positions.length > MAX_POSITIONS_PER_CONFIRM) {
-    return res.status(400).json({ error: `Najviše ${MAX_POSITIONS_PER_CONFIRM} pozicija odjednom.` });
+    return res.status(400).json({ error: `At most ${MAX_POSITIONS_PER_CONFIRM} positions at a time.` });
   }
 
   // Every FEN is re-validated in scanIntake before it can become a row; the
@@ -135,7 +135,7 @@ router.post('/confirm', authenticateToken, async (req, res) => {
   const { rows, rejected } = prepareRows(positions);
 
   if (rows.length === 0) {
-    return res.status(400).json({ error: 'Nijedna pozicija nije ispravna.', rejected });
+    return res.status(400).json({ error: 'No position is valid.', rejected });
   }
 
   const title = typeof sourceTitle === 'string' ? sourceTitle.slice(0, 255) : null;
@@ -236,7 +236,7 @@ router.post('/confirm', authenticateToken, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     logger.error(`[SCAN] Čuvanje nije uspelo: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri čuvanju pozicija.' });
+    res.status(500).json({ error: 'Failed to save positions.' });
   } finally {
     client.release();
   }
@@ -258,7 +258,7 @@ router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
       [req.params.puzzleId, req.user.id]
     );
     if (existing.rowCount === 0) {
-      return res.status(404).json({ error: 'Pozicija nije nađena.' });
+      return res.status(404).json({ error: 'Position not found.' });
     }
 
     // Editing only the task text. Teaching words are the trainer's, so they are
@@ -280,7 +280,7 @@ router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
     } catch (err) {
       // Worth its own status: this is not a broken request but a real answer —
       // that side cannot be the one to move in this position.
-      return res.status(422).json({ error: `Ta strana ne može biti na potezu: ${err.message}` });
+      return res.status(422).json({ error: `That side cannot be to move: ${err.message}` });
     }
 
     // Answering the side question settles that doubt — but only that one. If a
@@ -304,7 +304,7 @@ router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
     res.json(updated.rows[0]);
   } catch (err) {
     logger.error(`[SCAN] Izmena strane na potezu nije uspela: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri izmeni pozicije.' });
+    res.status(500).json({ error: 'Failed to update position.' });
   }
 });
 
@@ -320,12 +320,12 @@ router.delete('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
       [req.params.puzzleId, req.user.id]
     );
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Pozicija nije nađena.' });
+      return res.status(404).json({ error: 'Position not found.' });
     }
     res.json({ deleted: result.rows[0].puzzle_id });
   } catch (err) {
     logger.error(`[SCAN] Brisanje pozicije nije uspelo: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri brisanju pozicije.' });
+    res.status(500).json({ error: 'Failed to delete position.' });
   }
 });
 
@@ -355,7 +355,7 @@ router.get('/puzzles', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     logger.error(`[SCAN] Lista pozicija nije učitana: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri učitavanju pozicija.' });
+    res.status(500).json({ error: 'Failed to load positions.' });
   }
 });
 

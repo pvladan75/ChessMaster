@@ -323,7 +323,7 @@ async function frontier(pool, userId, {
   breadth = DEFAULT_BREADTH,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
-    throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
+    throw new RangeError(`Color must be "w" or "b", not "${color}".`);
   }
   // Throws on a broken FEN, which is right: a walk from nowhere is not an empty
   // answer, it is a bad request.

@@ -56,16 +56,20 @@ test('a student name with markup characters is escaped too', () => {
 
   assert.ok(html.includes('Ana &lt;b&gt;Test&lt;/b&gt;'));
   // Including in the <title>, which is the other place it lands.
-  assert.ok(!html.includes('<title>Izveštaj o napretku — Ana <b>'));
+  assert.ok(!html.includes('<title>Progress report — Ana <b>'));
 });
 
-test('motif codes are shown in Serbian, not as Lichess tags', () => {
-  const html = renderHtml({ snapshot: snapshot() });
+test('motif codes are shown with readable labels, not as raw tags', () => {
+  const html = renderHtml({ snapshot: snapshot({
+    strengths: [{ theme: 'doubleCheck', attempts: 12, solved: 11, accuracy: 92 }],
+    toWorkOn: [{ theme: 'hangingPiece', attempts: 8, solved: 2, accuracy: 25 }],
+  }) });
 
   // A parent cannot be expected to know what "hangingPiece" means.
-  assert.ok(html.includes('dvojni napad'));
-  assert.ok(html.includes('vezivanje'));
-  assert.ok(!html.includes('>fork<'));
+  assert.ok(html.includes('double check'));
+  assert.ok(html.includes('hanging piece'));
+  assert.ok(!html.includes('>doubleCheck<'));
+  assert.ok(!html.includes('>hangingPiece<'));
 });
 
 test('an unknown motif falls back to its raw tag rather than disappearing', () => {
@@ -80,17 +84,17 @@ test('an unknown motif falls back to its raw tag rather than disappearing', () =
 test('every theme line states how many attempts it is based on', () => {
   const html = renderHtml({ snapshot: snapshot() });
 
-  // "25%" alone invites a parent to read a bad month as a verdict; "8 zadataka"
+  // "25%" alone invites a parent to read a bad month as a verdict; "8 puzzles"
   // is what makes it interpretable.
-  assert.ok(html.includes('8 zadataka'));
-  assert.ok(html.includes('12 zadataka'));
+  assert.ok(html.includes('8 puzzles'));
+  assert.ok(html.includes('12 puzzles'));
 });
 
 test('a single attempt is counted in the singular', () => {
   const html = renderHtml({
     snapshot: snapshot({ toWorkOn: [{ theme: 'pin', attempts: 1, accuracy: 0 }] }),
   });
-  assert.ok(html.includes('1 zadatak<'), 'Serbian singular, not "1 zadataka"');
+  assert.ok(html.includes('1 puzzle<'), 'English singular, not "1 puzzles"');
 });
 
 test('a period with no activity says so instead of showing zeroes', () => {
@@ -106,10 +110,10 @@ test('a period with no activity says so instead of showing zeroes', () => {
     }),
   });
 
-  assert.ok(html.includes('nema zabeleženog vežbanja'));
+  assert.ok(html.includes('no practice recorded'));
   // A wall of zeroes would read as failure rather than as absence of data.
-  assert.ok(!html.includes('Tačnost'));
-  assert.ok(html.includes('ne znači da dete nije napredovalo'));
+  assert.ok(!html.includes('Accuracy'));
+  assert.ok(html.includes('does not mean the student'));
 });
 
 test('an unknown accuracy renders as a dash, never as 0%', () => {
@@ -127,12 +131,12 @@ test('rating movement is signed, and absent when there is nothing to compare', (
 
 test('empty theme lists explain themselves rather than rendering blank', () => {
   const html = renderHtml({ snapshot: snapshot({ strengths: [], toWorkOn: [] }) });
-  assert.ok(html.includes('nema dovoljno rešenih zadataka'));
+  assert.ok(html.includes('Not enough puzzles solved yet'));
 });
 
 test('the note section is omitted entirely when the trainer wrote nothing', () => {
-  assert.ok(!renderHtml({ snapshot: snapshot() }).includes('Poruka trenera'));
-  assert.ok(renderHtml({ snapshot: snapshot(), note: 'Bravo!' }).includes('Poruka trenera'));
+  assert.ok(!renderHtml({ snapshot: snapshot() }).includes("Coach's message"));
+  assert.ok(renderHtml({ snapshot: snapshot(), note: 'Bravo!' }).includes("Coach's message"));
 });
 
 test('the page asks not to be indexed', () => {

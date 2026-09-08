@@ -79,23 +79,23 @@ async function lookupRating(handle, { fetchImpl, baseUrl, pacer, perfTypes }) {
       { headers: { Accept: 'application/json', 'User-Agent': USER_AGENT } },
     ));
   } catch (err) {
-    throw new OpponentPrepUnavailable('Nema veze sa Lichess-om.', {
+    throw new OpponentPrepUnavailable('No connection to Lichess.', {
       reason: 'network', status: 502,
     });
   }
   if (res.status === 404) {
-    throw new OpponentPrepUnavailable(`Lichess ne zna za nalog "${handle}".`, {
+    throw new OpponentPrepUnavailable(`Lichess does not recognise account "${handle}".`, {
       reason: 'not-found', status: 404,
     });
   }
   if (res.status === 429) {
     pacer.block();
-    throw new OpponentPrepUnavailable('Lichess je odbio zahtev zbog ograničenja.', {
+    throw new OpponentPrepUnavailable('Lichess rejected request due to rate limit.', {
       reason: 'rate-limited', status: 503,
     });
   }
   if (!res.ok) {
-    throw new OpponentPrepUnavailable(`Lichess je odgovorio ${res.status}.`, {
+    throw new OpponentPrepUnavailable(`Lichess responded with ${res.status}.`, {
       reason: 'network', status: 502,
     });
   }
@@ -167,7 +167,7 @@ function createOpponentPrep({
       // Loud, and by name. A feature that is off should say so rather than
       // return an empty report that reads like an opponent with no weaknesses.
       throw new OpponentPrepUnavailable(
-        'Priprema za protivnika nije uključena na ovom serveru.',
+        'Opponent preparation is not enabled on this server.',
         { reason: 'disabled', status: 403 },
       );
     }
@@ -176,7 +176,7 @@ function createOpponentPrep({
       const already = await subjectsPulledToday(userId);
       if (already >= policy.maxSubjectsPerDay) {
         throw new OpponentPrepUnavailable(
-          `Danas je moguće pripremiti najviše ${policy.maxSubjectsPerDay} protivnika.`,
+          `At most ${policy.maxSubjectsPerDay} opponents can be prepared today.`,
           { reason: 'too-many-subjects', status: 429 },
         );
       }
@@ -186,7 +186,7 @@ function createOpponentPrep({
       const found = await rating(handle, perfTypes);
       if (found === null) {
         throw new OpponentPrepUnavailable(
-          `Lichess ne daje rejting za "${handle}", pa priprema nije moguća.`,
+          `Lichess does not provide a rating for "${handle}", so preparation is not possible.`,
           { reason: 'no-rating', status: 403 },
         );
       }
@@ -195,7 +195,7 @@ function createOpponentPrep({
         // person's rating back to whoever asked about them is the smaller half
         // of the same problem this floor exists for.
         throw new OpponentPrepUnavailable(
-          `Priprema je moguća samo za igrače sa rejtingom ${policy.minRating} i više.`,
+          `Preparation is only available for players rated ${policy.minRating} and above.`,
           { reason: 'below-rating-floor', status: 403 },
         );
       }
@@ -209,7 +209,7 @@ function createOpponentPrep({
     if (!Number.isInteger(userId)) throw new TypeError('userId is required');
     const handle = String(subject || '').trim();
     if (!handle) {
-      throw new OpponentPrepUnavailable('Nedostaje korisničko ime protivnika.', {
+      throw new OpponentPrepUnavailable('Opponent username is missing.', {
         reason: 'bad-request', status: 400,
       });
     }
