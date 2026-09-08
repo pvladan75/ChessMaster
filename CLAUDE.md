@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1774 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1772 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 964 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -679,6 +679,39 @@ machinery needed no new concept** — with nothing below thirteen reaching it, t
 band it covers is exactly 13 to `AGE_OF_CONSENT - 1`, so it stopped answering
 „may this child be here at all" and started answering „is this teenager in a
 country whose threshold is above thirteen?". One changed question, no new code.
+
+**The count went *down* on 8.9.2026, from 1774 to 1772, and that is correct.**
+Batch 64 translated the repertoire and the trainers, and two tests went with the
+language: `tactics_skipped_homework_test.dart` had four, one per Serbian
+plural form — singular accusative, paucal, genitive plural, and the teens that
+catch a naive implementation — and English has two. **Every input the four
+asserted is asserted by the two** (1, 21, 101, 2, 4, 23, 5, 10, 0, 11, 12, 14,
+111), so nothing is uncovered; there were simply two fewer forms to name. A
+falling count is exactly what the test gate exists to stop, so it was checked
+input by input before it was believed.
+
+Three things from that batch are worth carrying, and none is about the code it
+produced.
+
+**A timeout is not a failure of the worker's pace when the brief caused it.**
+Round one hit 75 minutes having finished every one of the twenty-six files —
+`gate_english_ui` confirmed it — and having updated almost none of the tests,
+because the task said „after each file, run the tests for the test files you
+touched". Twenty-six suite runs of three minutes each. The instruction was
+mine and it is withdrawn.
+
+**This worker cannot wait for a subprocess.** Given a second, narrow round it
+spent all seven minutes emitting „I will wait for the test run to finish" and
+edited one line. Two rounds burned the same way. Work that needs a long-running
+command watched belongs to the lead, and the harness lesson is to brief batches
+that need at most one full suite run at the end.
+
+**A translation's failing assertions are recoverable from the failure output.**
+`Found 0 widgets with text "…"` names the exact string, and the English for it
+is already in the diff — so the remaining forty-one were finished by reading
+the test output and the worker's own diff rather than by inventing wording.
+Multi-line assertions are what a line-by-line pass misses, and they are the
+ones that were left.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
