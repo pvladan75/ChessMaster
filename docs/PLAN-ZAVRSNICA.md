@@ -319,13 +319,72 @@ size of the sweep. `docs/GLOSSARY-EN.md` is the contract, the two anchors in
 `docs/gates/` are the vocabulary, and `gate_english_ui` is what grades it. The
 manual and the site are therefore written in **English**, not Serbian.
 
-**One consequence that is not a translation and has to be decided:** the legal
-texts were approved by a lawyer **for Serbia**, in Serbian, and that approval
-does not travel. A globally distributed app used by children means COPPA in the
-United States and GDPR-K in the European Union, where the age of consent differs
-between member states — which is why `AGE_OF_CONSENT` and
-`PARENT_CONSENT_VERSION` are configuration in the first place. Nothing in the
-code blocks on this today; publishing does.
+### The audience declaration — decided 8.9.2026
+
+**The app ships as a General Audience product, 13+. It is not declared as
+directed to children and does not enter Designed for Families.** The owner's
+decision, with their reasons recorded because the declaration has to be
+defensible later, not just made:
+
+1. The product is a training and analysis tool for players and trainers —
+   tutorials, mate in three, pawn endgames, PGN and Stockfish analysis. It is
+   not a toy for pre-schoolers.
+2. No unintentional appeal to children: no cartoon characters, mascots, jolly
+   animations or childish slogans that would invite a reviewer to reclassify it.
+3. The live room is a tool for trainers and clubs. The trainer or club organises
+   the lessons and owns the relationship with the people they teach; the
+   platform is the technical intermediary.
+4. 13+ removes the obligation of verifiable parental consent, the restrictions
+   on ordinary analytics, and the months-long store review that Designed for
+   Families brings.
+5. The Serbian parental-consent form is replaced by a standard general-audience
+   clause in the English Terms of Service: the service is 13+, and parents or
+   trainers who use it with minors take responsibility for supervision.
+
+`AGE_OF_CONSENT` stays parameterised. It is good practice and, as below, it is
+also still load-bearing.
+
+### What the declaration requires of the code, which today contradicts it
+
+Not legal advice — a lawyer signs the texts. These are facts about this
+repository and the standard triggers, and they are the difference between a
+declaration that survives review and one that does not.
+
+**There is no minimum age anywhere in this codebase.** An eight-year-old can
+create an account today. `chess_backend/services/ageService.js` defaults
+`AGE_OF_CONSENT` to 16 — that is a *consent threshold*, not a floor — and
+`routes/account.js` computes `minor = age < ageOfConsent()` and then
+**accommodates** them: `parentConsentService` moves the relationship to
+`awaiting_parent` and a parent confirms through a page this backend serves.
+
+That machinery was built to let a child in. A 13+ declaration says the opposite,
+and the two cannot both be true on the same screen. **COPPA triggers on actual
+knowledge**, and an app that asks for a birth year has it — so „we declared
+13+" does not answer for an account whose stored `birth_year` says eleven.
+Making the declaration true means the age gate **refuses** under-13 sign-ups
+rather than forking them into a parent flow. That is a small change to
+`age_gate_screen.dart` and one guard on account creation, and it is a product
+decision with legal weight, so it is not made here without being asked for.
+
+**13+ does not clear the European Union.** The GDPR's own age for consenting to
+an information-society service is 16, and member states may lower it as far as
+13 — which is exactly why `AGE_OF_CONSENT` is configuration and defaults to 16.
+So a fourteen-year-old in Germany still needs parental authorisation, whatever
+the store listing says. The parental-consent machinery therefore gets
+**re-pointed, not deleted**: it stops being „may this child be here at all" and
+becomes „this 13-to-15-year-old is in a country that asks for a parent". The
+code needs no new concept for that; it needs one changed question.
+
+**`docs/saglasnost-roditelja.md` is retired, not deleted.** It carries a
+lawyer's approval for Serbia with a date on it, and a superseded approved text
+is evidence about what was shown to whom and when.
+
+**The register of the English copy is part of the declaration.** An interface
+that addresses „dete" in every second sentence reads as child-directed whatever
+the listing says. The translation is in flight now, which makes this the moment
+to set it: the copy speaks to a *player* and a *trainer*, and mentions a child
+where the feature genuinely is about one — the parent report, the assignment a
+student receives.
 
 **Translating the app.** There is no localisation layer at all — no
 `flutter_localizations`, no `.arb`, and roughly 1700 string literals carrying
