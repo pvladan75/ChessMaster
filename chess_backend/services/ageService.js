@@ -34,6 +34,45 @@ const logger = require('./logger');
 /// somebody's decision to make rather than a default to accept.
 const DEFAULT_AGE_OF_CONSENT = 16;
 
+/// Below this, there is no account. Decided 8.9.2026 with the audience.
+///
+/// The app ships as a General Audience product, 13+, rather than as one
+/// directed to children — see `docs/PLAN-ZAVRSNICA.md`. That declaration is
+/// only true if the code refuses somebody who says they are eleven, and until
+/// today it did the opposite: it called them a minor and routed them into a
+/// parent's confirmation, which is machinery built to let a child *in*.
+///
+/// **COPPA triggers on actual knowledge**, and an app that asks for a birth
+/// year has it. So a stated year below this is refused rather than
+/// accommodated, and the refusal is on the route as well as on the screen,
+/// because a screen is a suggestion.
+///
+/// Not configuration, unlike [AGE_OF_CONSENT]. That one varies by country
+/// because the law does; this one is the floor of every regime there is —
+/// nowhere is the answer lower than 13 — and a floor that can be lowered by an
+/// environment variable is not a floor.
+const MINIMUM_AGE = 13;
+
+/// Whether a stated year puts somebody under [MINIMUM_AGE].
+///
+/// Read through [statedAge], which is the **conservative** age: a year alone
+/// cannot say whether a birthday has passed, so it answers with the age the
+/// person has certainly reached. Using the same function here as everywhere
+/// else is the point — a second, more generous reading invented for this one
+/// question is how two definitions of one number come to disagree, which this
+/// codebase has paid for more than once.
+///
+/// The cost is stated rather than hidden: somebody who turned 13 earlier this
+/// year is refused until the year turns. That is the error this trade prefers.
+/// The other one admits a twelve-year-old.
+///
+/// A year that cannot be read at all is **not** under age — it is no statement,
+/// and `parseStatedYear` is what refuses those.
+function isUnderMinimumAge(birthYear, now = new Date()) {
+  const age = statedAge(birthYear, now);
+  return age !== null && age < MINIMUM_AGE;
+}
+
 /// Parses `AGE_OF_CONSENT`, or says why it cannot.
 ///
 /// Returns the number, or throws. Deliberately narrow: outside 13–18 there is
@@ -202,6 +241,8 @@ async function startingVoiceLevel(pool, studentId) {
 module.exports = {
   startingVoiceLevel,
   DEFAULT_AGE_OF_CONSENT,
+  MINIMUM_AGE,
+  isUnderMinimumAge,
   parseAgeOfConsent,
   parseStatedYear,
   ageOfConsent,

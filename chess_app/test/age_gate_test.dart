@@ -217,21 +217,27 @@ void main() {
   });
 
   testWidgets('a stated year opens the app', (tester) async {
+    // The fixture moved on 8.9.2026 and the assertions did not. It used to
+    // state 2014 — eleven years old — and eleven no longer gets an account at
+    // all: the app ships 13+, general audience, and the floor refuses that
+    // year before it leaves the phone. Fourteen keeps what this test is about,
+    // which is that a *stated* year closes the gate, and keeps it interesting,
+    // because fourteen is still a minor against a threshold of sixteen.
     await signIn();
     final f = fake(
       standing: standingBody(ageKnown: false),
       afterPost:
-          standingBody(ageKnown: true, birthYear: 2014, age: 11, minor: true),
+          standingBody(ageKnown: true, birthYear: 2011, age: 14, minor: true),
     );
 
     await tester.pumpWidget(app(f.service));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), '2014');
+    await tester.enterText(find.byType(TextField), '2011');
     await tester.tap(find.text('Sačuvaj'));
     await tester.pumpAndSettle();
 
-    expect(jsonDecode(f.posted.single)['birthYear'], 2014);
+    expect(jsonDecode(f.posted.single)['birthYear'], 2011);
     expect(find.byType(BirthYearScreen), findsNothing);
     expect(find.text('aplikacija'), findsOneWidget);
   });
@@ -274,6 +280,57 @@ void main() {
 
     expect(f.posted, isEmpty);
     expect(find.byType(BirthYearScreen), findsOneWidget);
+  });
+
+  testWidgets('a year under thirteen never leaves the phone', (tester) async {
+    // Added 8.9.2026 with the audience declaration: the app ships as a general
+    // audience product, 13+, rather than as one directed to children. That is
+    // only true if a stated year below the floor is **refused** — until this,
+    // the code did the opposite and routed such a user into a parent's
+    // confirmation, which is machinery built to let a child in.
+    //
+    // The server refuses it too and the server is the guard; this is the
+    // answer arriving without a round trip, which is why `posted` must be
+    // empty.
+    await signIn();
+    final f = fake(standing: standingBody(ageKnown: false));
+
+    await tester.pumpWidget(app(f.service));
+    await tester.pumpAndSettle();
+
+    final elevenYearsOld = DateTime.now().year - 11;
+    await tester.enterText(find.byType(TextField), '$elevenYearsOld');
+    await tester.tap(find.text('Sačuvaj'));
+    await tester.pumpAndSettle();
+
+    expect(f.posted, isEmpty,
+        reason: 'a year below the floor was sent to the server, which is the '
+            'one row this decision exists to avoid ever storing');
+    expect(find.byType(BirthYearScreen), findsOneWidget);
+    expect(find.textContaining('13'), findsWidgets,
+        reason: 'the refusal has to say what the floor is, or it reads as a '
+            'bug in the field');
+  });
+
+  testWidgets('and thirteen itself is let through', (tester) async {
+    // The other half, and the one a floor gets wrong: refusing everybody is
+    // also a way to pass the test above.
+    await signIn();
+    final f = fake(standing: standingBody(ageKnown: false));
+
+    await tester.pumpWidget(app(f.service));
+    await tester.pumpAndSettle();
+
+    // Conservatively thirteen: a year alone cannot say whether a birthday has
+    // passed, so the app reads the age certainly reached — the same reading
+    // the server uses.
+    final surelyThirteen = DateTime.now().year - 14;
+    await tester.enterText(find.byType(TextField), '$surelyThirteen');
+    await tester.tap(find.text('Sačuvaj'));
+    await tester.pumpAndSettle();
+
+    expect(f.posted, isNotEmpty,
+        reason: 'a thirteen-year-old was refused an account by the floor');
   });
 
   testWidgets('the gate is not a trap: signing out is a way through',

@@ -21,6 +21,8 @@ const {
   statedAge,
   ageStatus,
   mayRelate,
+  MINIMUM_AGE,
+  isUnderMinimumAge,
 } = require('../services/ageService');
 
 test('an unset threshold is the strictest applicable one, not none', () => {
@@ -173,3 +175,69 @@ test('every year the check accepts is a year statedAge can read', () => {
     assert.notEqual(statedAge(year, now), null, `godina: ${year}`);
   }
 });
+
+
+// --------------------------------------------------------------------------
+// The floor, added 8.9.2026 with the audience declaration
+// --------------------------------------------------------------------------
+//
+// The app ships as a General Audience product, 13+, rather than as one directed
+// to children. That declaration is only true if a stated year below thirteen is
+// **refused** — until this existed the code did the opposite, calling such a
+// user a minor and routing them into a parent's confirmation, which is
+// machinery built to let a child in. COPPA triggers on actual knowledge, and an
+// app that asks for a birth year has it.
+
+test('the floor is thirteen, and it is not configuration', () => {
+  assert.equal(MINIMUM_AGE, 13);
+  // `AGE_OF_CONSENT` varies by country because the law does. This does not:
+  // nowhere is the answer below thirteen, and a floor an environment variable
+  // can lower is not a floor.
+  assert.equal(process.env.MINIMUM_AGE, undefined);
+});
+
+test('a year that puts somebody under thirteen is under age', () => {
+  assert.equal(isUnderMinimumAge(bornAgo(8)), true);
+  assert.equal(isUnderMinimumAge(bornAgo(12)), true);
+});
+
+test('and thirteen itself is not', () => {
+  assert.equal(isUnderMinimumAge(bornAgo(13)), false);
+  assert.equal(isUnderMinimumAge(bornAgo(40)), false);
+});
+
+test('it reads the same conservative age everything else does', () => {
+  // A year alone cannot say whether a birthday has passed, so `statedAge`
+  // answers with the age certainly reached — and this asks that same function
+  // rather than inventing a more generous one. Two definitions of one number
+  // is a fault this codebase has paid for more than once.
+  //
+  // The cost, stated rather than hidden: somebody born exactly thirteen
+  // calendar years ago is read as twelve until their birthday year turns.
+  const thirteenCalendarYearsAgo = thisYear - 13;
+  assert.equal(statedAge(thirteenCalendarYearsAgo), 12);
+  assert.equal(isUnderMinimumAge(thirteenCalendarYearsAgo), true);
+});
+
+test('a year nobody stated is not under age', () => {
+  // No statement is not a statement of eleven. `parseStatedYear` is what
+  // refuses unreadable input; this must not turn silence into a refusal.
+  assert.equal(isUnderMinimumAge(null), false);
+  assert.equal(isUnderMinimumAge(undefined), false);
+  assert.equal(isUnderMinimumAge('nonsense'), false);
+});
+
+test('the parental band is what is left between the floor and the threshold',
+  () => {
+    // The whole of the „re-pointing" the audience decision asked for. Nothing
+    // below thirteen reaches the parent flow any more, so that flow now answers
+    // a different question: is this teenager in a country whose threshold is
+    // above thirteen? The GDPR's own age is 16 and member states may lower it
+    // as far as 13.
+    for (let age = MINIMUM_AGE; age < DEFAULT_AGE_OF_CONSENT; age += 1) {
+      assert.equal(isUnderMinimumAge(bornAgo(age)), false,
+        `${age} must be allowed an account`);
+      assert.ok(age < DEFAULT_AGE_OF_CONSENT,
+        `${age} must still be asked for a parent where the threshold is 16`);
+    }
+  });

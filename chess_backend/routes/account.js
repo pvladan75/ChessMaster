@@ -20,6 +20,8 @@ const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const {
   ageOfConsent,
+  isUnderMinimumAge,
+  MINIMUM_AGE,
   statedAge,
   parseStatedYear,
 } = require('../services/ageService');
@@ -89,6 +91,28 @@ router.post('/me/age', authenticateToken, async (req, res) => {
   const { year, error } = parseStatedYear(req.body?.birthYear);
   if (error) return res.status(400).json({ error });
 
+  // Below thirteen there is no account, and the refusal is here rather than
+  // only on the screen because a screen is a suggestion. Added 8.9.2026 with
+  // the audience declaration: the app ships 13+, general audience, and that is
+  // only true if this route says no.
+  //
+  // **The year is not written.** Refusing and then storing it would leave the
+  // one row this decision exists to avoid — a `birth_year` saying eleven, on a
+  // service declaring 13+ — and it would also lock the account out of the
+  // correction the route below documents: somebody who mistypes 1997 as 2017
+  // must be able to state their year again. Nothing is stored, so nothing has
+  // to be undone.
+  if (isUnderMinimumAge(year)) {
+    logger.info(
+      `[NALOG] Korisnik ${req.user.id} je uneo godinu ispod donje granice `
+      + `(${MINIMUM_AGE}); godina nije upisana`,
+    );
+    return res.status(403).json({
+      error: `Ova usluga je za igrače od ${MINIMUM_AGE} godina naviše.`,
+      minimumAge: MINIMUM_AGE,
+    });
+  }
+
   try {
     const result = await pool.query(
       `UPDATE users
@@ -104,6 +128,14 @@ router.post('/me/age', authenticateToken, async (req, res) => {
     // Read back from the row, not echoed from the request — the same reason the
     // guest switch does it: a value that reports itself is a value that can be
     // right on the screen and wrong in the database.
+    // Since 8.9.2026 this band is exactly 13 to `AGE_OF_CONSENT - 1`, because
+    // anything below thirteen was refused above. That is the whole of the
+    // „re-pointing" the audience decision called for: the parental-consent
+    // machinery stops answering „may this child be here at all" — the answer to
+    // that is now no — and starts answering „is this teenager in a country
+    // whose threshold is above thirteen?". The GDPR's own age is 16 and member
+    // states may lower it as far as 13, which is why `AGE_OF_CONSENT` is
+    // configuration and this is not.
     const age = statedAge(result.rows[0].birth_year);
     const minor = age !== null && age < ageOfConsent();
     logger.info(`[NALOG] Korisnik ${req.user.id} je uneo godinu rođenja (maloletan: ${minor})`);

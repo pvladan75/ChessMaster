@@ -20,6 +20,17 @@ import 'package:chess_app/services/session_service.dart';
 ///
 /// It draws *over* what is underneath instead of replacing it, so an answer
 /// that arrives while a lesson is open does not tear the lesson down.
+/// Below this, there is no account.
+///
+/// Decided 8.9.2026 with the audience declaration: the app ships 13+, general
+/// audience. Unlike the consent threshold — which varies by country, is read
+/// from the server and lives in `AGE_OF_CONSENT` — this is the floor of every
+/// regime there is, and a floor that can be configured is not a floor.
+///
+/// The copy of it that matters is on the server, which refuses the same year
+/// whatever this file says.
+const int kMinimumAge = 13;
+
 class AgeGate extends StatefulWidget {
   const AgeGate({super.key, required this.child, this.standing});
 
@@ -163,6 +174,25 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
     if (value == null || value < 1900 || value > thisYear) {
       setState(
         () => _error = 'Unesite godinu rođenja, između 1900. i $thisYear.',
+      );
+      return;
+    }
+
+    // Below thirteen there is no account. The app ships as a general-audience
+    // product, 13+, rather than as one directed to children — and that is only
+    // true if a stated year below the floor is refused instead of routed into
+    // a parent's confirmation, which is machinery built to let a child in.
+    //
+    // **The server refuses this too, and the server is the guard.** This is
+    // here so the answer arrives without a round trip, and it uses the same
+    // conservative age the server does: a year alone cannot say whether a
+    // birthday has passed, so it answers with the age certainly reached.
+    // Somebody who turned 13 earlier this year waits until the year turns —
+    // the error this trade prefers, since the other one admits a
+    // twelve-year-old.
+    if (thisYear - value - 1 < kMinimumAge) {
+      setState(
+        () => _error = 'Ova usluga je za igrače od $kMinimumAge godina naviše.',
       );
       return;
     }

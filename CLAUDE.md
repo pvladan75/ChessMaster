@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1772 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1774 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 956 tests, all green
+cd chess_backend && npm test          # node --test, 964 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -654,6 +654,31 @@ And the harness gained its first non-Flutter gate: `gate_backend_tests` runs
 that has already taken 895 tests down silently. It skips itself when a batch
 left `chess_backend/` alone. Proved both ways before use: it passes at 958,
 fails on a raised expectation, and fails on a deliberately broken test.
+
+**Two more in the app and six on the backend on 8.9.2026, with the age floor —
+1774 and 964.** The app now ships as a General Audience product, 13+, rather
+than as one directed to children, and that declaration was **false in the code
+until this landed**: there was no minimum age anywhere. `AGE_OF_CONSENT`
+defaults to 16 but that is a consent threshold, not a floor, and an
+eight-year-old could open an account — whereupon `parentConsentService` routed
+them into a parent's confirmation, which is machinery built to let a child *in*.
+
+**COPPA triggers on actual knowledge**, and an app that asks for a birth year
+has it, so a declaration cannot answer for a stored `birth_year` saying eleven.
+The route refuses now and **does not write the year** — storing it would leave
+the one row the decision exists to avoid, and would lock out the correction the
+route documents (a mistyped 2017 must be restatable).
+
+Two things worth carrying. **The floor reads the same conservative age
+everything else does** — `statedAge`, which answers with the age certainly
+reached, since a year alone cannot say whether a birthday has passed. A second,
+more generous reading invented for this one question is how two definitions of
+one number come to disagree. The cost is stated rather than hidden: somebody
+born thirteen calendar years ago waits until the year turns. And **the parental
+machinery needed no new concept** — with nothing below thirteen reaching it, the
+band it covers is exactly 13 to `AGE_OF_CONSENT - 1`, so it stopped answering
+„may this child be here at all" and started answering „is this teenager in a
+country whose threshold is above thirteen?". One changed question, no new code.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
