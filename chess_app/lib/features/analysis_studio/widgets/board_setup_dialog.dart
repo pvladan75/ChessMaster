@@ -16,6 +16,22 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
+/// One way of naming a position, and the tab that offers it.
+enum _SetupTab {
+  fen(Icons.edit_note, 'FEN String'),
+  pgn(Icons.file_upload, 'PGN Uvoz'),
+  manual(Icons.grid_on, 'Ručno Slaganje'),
+  openings(Icons.travel_explore, 'Otvaranja'),
+  platform(Icons.cloud_download, 'Chess.com/Lichess');
+
+  const _SetupTab(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+
+  Tab get tab => Tab(icon: Icon(icon, size: 18), text: label);
+}
+
 class AnalysisBoardSetupDialog extends StatefulWidget {
   final String initialFen;
   final Function(String fen) onPositionSet;
@@ -61,10 +77,33 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       TextEditingController();
   bool _importLoading = false;
 
+  /// The tabs this dialog can actually deliver.
+  ///
+  /// Three of the five — „PGN Uvoz", „Otvaranja" and „Chess.com/Lichess" —
+  /// hand their result over through [onPgnLoaded], and a caller that passes
+  /// none gets tabs that close the dialog and drop what was asked for. The
+  /// tutorial studio is exactly that caller, and deliberately so: importing a
+  /// PGN into a tree is the Analysis Studio's job, and a second importer beside
+  /// the first is how the two come to disagree. So a trainer picking „Najdorf"
+  /// in the tutorial studio watched the window close and nothing happen.
+  ///
+  /// Same fault as the tree's context menu, which drew „Obriši Ovu Varijantu"
+  /// for a screen that had wired nothing to it. The tabs are drawn where they
+  /// work.
+  late final List<_SetupTab> _tabs = [
+    _SetupTab.fen,
+    if (widget.onPgnLoaded != null) _SetupTab.pgn,
+    _SetupTab.manual,
+    if (widget.onPgnLoaded != null) ...[
+      _SetupTab.openings,
+      _SetupTab.platform,
+    ],
+  ];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: _tabs.length, vsync: this);
     _fenTextController = TextEditingController(text: widget.initialFen);
     _validateFen(widget.initialFen);
     _initBuilderBoardFromFen(widget.initialFen);
@@ -103,7 +142,9 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       // is what greets the user once they pick a game and it closes.
       await _loadPgnContent(pgn);
       if (!mounted) return;
-      _tabController.animateTo(1);
+      // By name, not by number: the tabs are built from what the caller can
+      // receive, so „the second one" is not always the PGN tab.
+      _tabController.animateTo(_tabs.indexOf(_SetupTab.pgn));
     } on ChessImportException catch (e) {
       _showPgnFileError(e.message);
     } catch (e) {
@@ -325,30 +366,21 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
               indicatorColor: colors.accent,
               labelColor: colors.accent,
               unselectedLabelColor: colors.textMuted,
-              tabs: const [
-                Tab(icon: Icon(Icons.edit_note, size: 18), text: 'FEN String'),
-                Tab(icon: Icon(Icons.file_upload, size: 18), text: 'PGN Uvoz'),
-                Tab(
-                    icon: Icon(Icons.grid_on, size: 18),
-                    text: 'Ručno Slaganje'),
-                Tab(
-                    icon: Icon(Icons.travel_explore, size: 18),
-                    text: 'Otvaranja'),
-                Tab(
-                    icon: Icon(Icons.cloud_download, size: 18),
-                    text: 'Chess.com/Lichess'),
-              ],
+              tabs: [for (final tab in _tabs) tab.tab],
             ),
             const SizedBox(height: AppSpacing.md),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildFenInputTab(),
-                  _buildPgnImportTab(),
-                  _buildManualBuilderTab(),
-                  _buildOpeningSearchTab(),
-                  _buildPlatformImportTab(),
+                  for (final tab in _tabs)
+                    switch (tab) {
+                      _SetupTab.fen => _buildFenInputTab(),
+                      _SetupTab.pgn => _buildPgnImportTab(),
+                      _SetupTab.manual => _buildManualBuilderTab(),
+                      _SetupTab.openings => _buildOpeningSearchTab(),
+                      _SetupTab.platform => _buildPlatformImportTab(),
+                    },
                 ],
               ),
             ),
@@ -523,6 +555,35 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       'CLEAR'
     ];
 
+    // The board takes what is left over — except where there is nothing left
+    // over. A dialog on a 320 dp phone has room for the palette, the castling
+    // rights and the button, and about eighteen pixels of board, so on a short
+    // tab the column scrolls and the board is sized from the width instead.
+    //
+    // Written as one branch rather than as a squeeze because the squeeze is
+    // what broke here before: the castling rights gained real names on
+    // 8.9.2026 („Beli O-O" instead of `K`), the row went to two lines, and the
+    // column overflowed by sixteen pixels — invisible in a release build,
+    // where the chips would simply have been unreachable again.
+    return LayoutBuilder(builder: (context, constraints) {
+      // Both dimensions, because the controls below the board grow *sideways*
+      // and pay for it in height: on a narrow tab the four castling rights
+      // wrap onto a second and third line and take the board's space with
+      // them. A height test alone let a 320 dp phone through by sixteen
+      // pixels, which is how this was found — by the test written for the last
+      // time it happened.
+      final tall = constraints.maxHeight >= 420 && constraints.maxWidth >= 380;
+      final column = _builderColumn(colors, paletteKeys, tall, constraints);
+      return tall ? column : SingleChildScrollView(child: column);
+    });
+  }
+
+  Widget _builderColumn(
+    AppColorTokens colors,
+    List<String> paletteKeys,
+    bool tall,
+    BoxConstraints constraints,
+  ) {
     return Column(
       children: [
         // Palette Selection
@@ -534,14 +595,33 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
                 child: ChoiceChip(
+                  // The piece stands on a light square, not on the dialog's
+                  // own surface. On a dark surface a black piece is a black
+                  // shape on a dark ground — „crne figure se skoro i ne vide
+                  // od iste pozadine", reported live on 8.9.2026 — and the
+                  // fix has to be a difference in *lightness*, because the
+                  // reader of this app does not read hue.
                   label: key == 'CLEAR'
                       ? Icon(Icons.close, size: 18, color: colors.danger)
-                      : SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: chessPieceWidget(key, size: 22)),
+                      : Container(
+                          width: 26,
+                          height: 26,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppSettingsService
+                                .instance.boardSkin.lightSquare,
+                            borderRadius: AppRadii.roundedXs,
+                          ),
+                          child: chessPieceWidget(key, size: 22),
+                        ),
+                  // And the armed piece is marked by an outline as well as a
+                  // fill, so „which one am I placing" survives without colour.
                   selected: isSelected,
                   selectedColor: colors.accent.withValues(alpha: 0.22),
+                  side: BorderSide(
+                    color: isSelected ? colors.accent : colors.border,
+                    width: isSelected ? 2 : 1,
+                  ),
                   onSelected: (_) {
                     setState(() => _selectedPalettePiece = key);
                   },
@@ -592,7 +672,9 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
         const SizedBox(height: 6),
 
         // 8x8 Board Representation
-        Expanded(
+        _boardBox(
+          tall: tall,
+          side: constraints.maxWidth,
           child: AspectRatio(
             aspectRatio: 1.0,
             child: Container(
@@ -682,25 +764,29 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
               },
             ),
             const SizedBox(width: AppSpacing.md),
+            // Named the way the room's dialog named them. `K`, `Q`, `k`, `q`
+            // is FEN's spelling, not a person's: the case of a letter is the
+            // only thing separating White's rights from Black's, and a chip
+            // reading „q" tells a trainer nothing about whose queenside it is.
             Text('Rokade:',
                 style: AppText.body.copyWith(color: colors.textMuted)),
             FilterChip(
-              label: const Text('K', style: AppText.micro),
+              label: const Text('Beli O-O', style: AppText.micro),
               selected: _whiteCastleK,
               onSelected: (v) => setState(() => _whiteCastleK = v),
             ),
             FilterChip(
-              label: const Text('Q', style: AppText.micro),
+              label: const Text('Beli O-O-O', style: AppText.micro),
               selected: _whiteCastleQ,
               onSelected: (v) => setState(() => _whiteCastleQ = v),
             ),
             FilterChip(
-              label: const Text('k', style: AppText.micro),
+              label: const Text('Crni O-O', style: AppText.micro),
               selected: _blackCastleK,
               onSelected: (v) => setState(() => _blackCastleK = v),
             ),
             FilterChip(
-              label: const Text('q', style: AppText.micro),
+              label: const Text('Crni O-O-O', style: AppText.micro),
               selected: _blackCastleQ,
               onSelected: (v) => setState(() => _blackCastleQ = v),
             ),
@@ -725,6 +811,17 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       ],
     );
   }
+
+  /// Where the board sits in the column: filling what is left on a tab with
+  /// room, and a square of its own width on one without.
+  Widget _boardBox({
+    required bool tall,
+    required double side,
+    required Widget child,
+  }) =>
+      tall
+          ? Expanded(child: child)
+          : SizedBox(width: side, height: side, child: child);
 
   Widget _buildOpeningSearchTab() {
     // The search itself now lives in [OpeningPicker], because the repertoire

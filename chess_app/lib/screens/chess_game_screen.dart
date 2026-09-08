@@ -40,7 +40,7 @@ import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
-import 'package:chess_app/widgets/board_setup_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
@@ -2506,11 +2506,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
+  /// Setting up a position is one act, so it is one dialog.
+  ///
+  /// This screen had its own until 8.9.2026 — a second file with the same name
+  /// — and the difference was visible to the owner before it was visible in
+  /// the code: „u svim delovima aplikacije treba uvesti iste dijaloge za
+  /// postavljanje pozicije". The one that survived is the one that can be
+  /// opened **on the position in front of you**, which this screen's own never
+  /// could: it always came up on the standard opening, so setting up a study
+  /// from the board you were looking at meant building it again from nothing.
+  ///
+  /// `onPgnLoaded` is not passed, and that is what decides the tabs: importing
+  /// a game into a live room is not this screen's job, so the tabs that would
+  /// hand one over are not drawn.
   void _showBoardSetupDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => BoardSetupDialog(
-        onFenGenerated: (generatedFen) {
+      builder: (ctx) => AnalysisBoardSetupDialog(
+        initialFen: controller.getFen(),
+        onPositionSet: (generatedFen) {
           loadLessonPosition(generatedFen, null);
           _showSuccess('Postavljena pozicija učitana na tablu!');
         },

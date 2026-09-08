@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/move_tree.dart';
-import 'package:chess_app/widgets/board_setup_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/widgets/engine_line_dialog.dart';
 import 'package:chess_app/widgets/move_history_view.dart';
 import 'package:chess_app/widgets/pgn_import_dialog.dart';
@@ -80,9 +80,15 @@ void main() {
     });
   });
 
-  group('BoardSetupDialog', () {
+  group('the position editor', () {
     // Removing one piece used to mean arming the eraser, tapping, and arming
     // the piece again for the next square.
+    //
+    // The assertions are unchanged; the fixture moved on 8.9.2026. There were
+    // two setup dialogs, this screen's own and the Analysis Studio's, and the
+    // one that survived is the one that can open on the position in front of
+    // you. Its manual tab is the editor these three ways of clearing a square
+    // belong to.
 
     /// The palette renders one of every piece as well, and is InkWells too, so
     /// anything counted over the whole dialog is off by the palette's copy.
@@ -92,6 +98,21 @@ void main() {
     /// The grid is laid out a8 first, so index 0 is a8 and index 48 is a2.
     Finder boardSquare(int index) => onBoard(find.byType(InkWell)).at(index);
 
+    /// The dialog, open on „Ručno Slaganje". With no `onPgnLoaded` the tabs
+    /// that would hand a PGN over are not drawn, so the editor is the second.
+    Future<void> pumpEditor(WidgetTester tester) async {
+      await pump(
+        tester,
+        AnalysisBoardSetupDialog(
+          initialFen: _startFen,
+          onPositionSet: (_) {},
+        ),
+      );
+      final bar = tester.widget<TabBar>(find.byType(TabBar));
+      bar.controller!.animateTo(1);
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('tapping a square that holds the armed piece empties it',
         (tester) async {
       // Tall enough that rank 2 is in the viewport, since the dialog scrolls.
@@ -99,7 +120,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      await pump(tester, BoardSetupDialog(onFenGenerated: (_) {}));
+      await pumpEditor(tester);
 
       // A white pawn is what the palette arms first, and a2 holds one.
       expect(onBoard(find.byType(WhitePawn)), findsNWidgets(8));
@@ -111,7 +132,7 @@ void main() {
 
     testWidgets('long-pressing a square empties it whatever is armed',
         (tester) async {
-      await pump(tester, BoardSetupDialog(onFenGenerated: (_) {}));
+      await pumpEditor(tester);
 
       // a8 is a black rook — not the armed piece, so a tap would place a pawn
       // over it rather than clear it.

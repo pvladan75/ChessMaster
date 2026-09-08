@@ -1,4 +1,8 @@
-// The two board-setup dialogs, on a phone.
+// The board-setup dialog, on a phone and on a desktop.
+//
+// There were two of them until 8.9.2026 — this file was named after that — and
+// the one that survived is the one that can be opened on the position in front
+// of you. The assertions below are unchanged; the fixtures moved onto it.
 //
 // Found by looking at a debug build on 29.8.2026: the analysis studio's setup
 // dialog striped twice — 19 pixels on the title row and **168 on the row that
@@ -19,7 +23,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
-import 'package:chess_app/widgets/board_setup_dialog.dart';
 
 const _phone = Size(360, 640);
 const _startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -68,13 +71,15 @@ void main() {
         onPositionSet: (_) {},
       ),
     );
-    await selectTab(tester, 2); // Ručno slaganje
+    await selectTab(tester, 1); // Ručno slaganje — the second of two here
     expect(tester.takeException(), isNull);
 
     // The four rights, in the order they sit in the row. `q` was the one 168
     // pixels past the edge, but asserting only the last would pass the day
-    // somebody reorders them.
-    for (final label in ['K', 'Q', 'k', 'q']) {
+    // somebody reorders them. They read „Beli O-O" rather than `K` since
+    // 8.9.2026: the case of a letter was the only thing separating White's
+    // rights from Black's.
+    for (final label in ['Beli O-O', 'Beli O-O-O', 'Crni O-O', 'Crni O-O-O']) {
       final chip = find.widgetWithText(FilterChip, label);
       expect(chip, findsOneWidget, reason: 'castling chip $label is missing');
       final rect = tester.getRect(chip);
@@ -97,24 +102,27 @@ void main() {
       ),
       size: const Size(320, 640),
     );
-    await selectTab(tester, 2);
+    await selectTab(tester, 1);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('on a desktop the simple dialog needs no scrolling',
+  testWidgets('on a desktop the editor puts nothing below the fold',
       (tester) async {
     // The Windows complaint: palette, board and controls stacked into a column
-    // taller than the screen, so "Učitaj na tablu" sat below the fold. Asking
-    // whether the button is *findable* would not have caught it — an offstage
-    // widget in a scroll view is found. What has to be true is that there is
-    // nothing to scroll.
+    // taller than the screen, so the button that finishes the job sat below
+    // the fold. Asking whether the button is *findable* would not have caught
+    // it — an offstage widget in a scroll view is found — so this asks where
+    // it actually is.
     await pumpOnPhone(
       tester,
       Builder(
         builder: (context) => ElevatedButton(
           onPressed: () => showDialog<void>(
             context: context,
-            builder: (_) => BoardSetupDialog(onFenGenerated: (_) {}),
+            builder: (_) => AnalysisBoardSetupDialog(
+              initialFen: _startFen,
+              onPositionSet: (_) {},
+            ),
           ),
           child: const Text('otvori'),
         ),
@@ -123,35 +131,48 @@ void main() {
     );
     await tester.tap(find.text('otvori'));
     await tester.pumpAndSettle();
+    await selectTab(tester, 1);
     expect(tester.takeException(), isNull);
 
-    final scroller = find.descendant(
-      of: find.byType(SingleChildScrollView),
-      matching: find.byType(Scrollable),
-    );
-    final position = tester.state<ScrollableState>(scroller.first).position;
-    expect(position.maxScrollExtent, 0.0,
-        reason: 'the dialog still scrolls by ${position.maxScrollExtent} on a '
-            '1280x800 screen, so something is below the fold');
+    final confirm = find.text('Generiši i Postavi Poziciju');
+    expect(confirm, findsOneWidget);
+    expect(tester.getRect(confirm).bottom, lessThanOrEqualTo(800.0),
+        reason: 'the button that finishes the job is off the bottom of a '
+            '1280x800 screen');
   });
 
-  testWidgets('the simple setup dialog lays out on a 360dp phone',
+  testWidgets('and the editor is the second tab when no PGN can be handed over',
+      (tester) async {
+    // Three of the five tabs give their result to `onPgnLoaded`. A caller that
+    // passes none — the tutorial studio, deliberately — used to get them
+    // anyway: picking „Najdorf" closed the dialog and dropped the opening.
+    await pumpOnPhone(
+      tester,
+      AnalysisBoardSetupDialog(initialFen: _startFen, onPositionSet: (_) {}),
+      size: const Size(1280, 800),
+    );
+
+    expect(find.text('FEN String'), findsOneWidget);
+    expect(find.text('Ručno Slaganje'), findsOneWidget);
+    expect(find.text('PGN Uvoz'), findsNothing);
+    expect(find.text('Otvaranja'), findsNothing);
+    expect(find.text('Chess.com/Lichess'), findsNothing);
+  });
+
+  testWidgets('and all five are there for a caller that can take a PGN',
       (tester) async {
     await pumpOnPhone(
       tester,
-      Builder(
-        builder: (context) => ElevatedButton(
-          onPressed: () => showDialog<void>(
-            context: context,
-            builder: (_) => BoardSetupDialog(onFenGenerated: (_) {}),
-          ),
-          child: const Text('otvori'),
-        ),
+      AnalysisBoardSetupDialog(
+        initialFen: _startFen,
+        onPositionSet: (_) {},
+        onPgnLoaded: (_) {},
       ),
+      size: const Size(1280, 800),
     );
-    await tester.tap(find.text('otvori'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.text('Postavi poziciju (Board Setup)'), findsOneWidget);
+
+    expect(find.text('PGN Uvoz'), findsOneWidget);
+    expect(find.text('Otvaranja'), findsOneWidget);
+    expect(find.text('Chess.com/Lichess'), findsOneWidget);
   });
 }

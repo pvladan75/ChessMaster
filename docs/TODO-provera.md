@@ -4670,3 +4670,31 @@ nalog nikad ne bi mogao da upotrebi.
 listi lekcija vidi sve što je trener ikad sačuvao (soba to prikazuje u sekciji
 „od trenera"). To je smisao `acceptedTrainersOf` i dira zadatke i lekcije, pa
 nije stvar za usput.
+
+## 130. Jedan dijalog za postavljanje pozicije — 8.9.2026, nije viđeno uživo
+
+Faza 1a iz `docs/PLAN-ZAVRSNICA.md`. Bila su dva dijaloga, i to dva fajla istog
+imena: onaj iz sobe (samo slaganje figura, uvek se otvarao iz početne pozicije)
+i onaj iz Analize (pet kartica). Ostao je drugi — jer jedini može da se otvori
+**na poziciji koju gledaš** — a soba mu sada prosleđuje svoju tablu.
+
+Uz to su ispravljene tri mrtve kartice: „PGN Uvoz", „Otvaranja" i
+„Chess.com/Lichess" predaju rezultat kroz `onPgnLoaded`, a studio za tutorijal
+ga namerno ne prosleđuje — pa se biranjem otvaranja prozor zatvarao i ništa se
+nije dešavalo.
+
+1. [ ] **Soba.** „Postavi poziciju (Board Setup)" otvara isti dijalog kao
+   Analiza, i **na poziciji koja je na tabli**, ne iz početne.
+2. [ ] **Studio za tutorijal.** Ikonica „Unos pozicije" daje **dve** kartice —
+   „FEN String" i „Ručno Slaganje". Nema više „Otvaranja" ni uvoza.
+3. [ ] **Analiza.** I dalje ima svih pet kartica i uvoz radi kao pre.
+4. [ ] **Figure se vide.** U paleti crne figure stoje na svetlom polju —
+   proveri da se raspoznaju **bez** oslanjanja na boju; izabrana figura ima i
+   deblji okvir, ne samo drugu podlogu.
+5. [ ] **Rokade se čitaju.** Piše „Beli O-O", „Beli O-O-O", „Crni O-O", „Crni
+   O-O-O" umesto `K`, `Q`, `k`, `q`.
+6. [ ] **Na uskom prozoru.** Suzi prozor (ili otvori na telefonu): kartica
+   „Ručno Slaganje" se skroluje, i dugme „Generiši i Postavi Poziciju" se može
+   pritisnuti. Na širokom se ne skroluje ništa.
+7. [ ] **Tri načina brisanja polja** i dalje rade: klik na naoružanu figuru,
+   dugi pritisak, desni klik.
