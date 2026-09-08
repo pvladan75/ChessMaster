@@ -21,8 +21,10 @@ anywhere in this file, and none should be added to it.
 | Naming the board screens | **in** | Renaming entries, **not** merging screens |
 | TTS through a public API | out | See „What is deliberately not being done" |
 | Video rendered on the device | out | Same |
+| A user's manual and the site's content | **in** | The answer to „ne snalazim se u moru funkcija" |
 | Monetisation beyond what is built | out | Same |
 | Reorganising the app by function | out | Same |
+| Translating the app | out | No i18n layer exists; ~1700 Serbian literals |
 
 ## Phase 1 — the freeze, and two cuts
 
@@ -309,11 +311,26 @@ billing service are built; the six open items in `docs/CENA-I-PRETPLATA.md` §7
 are business decisions, not code, and they are better made against a month of
 real measurements than against a guess.
 
+**Translating the app.** There is no localisation layer at all — no
+`flutter_localizations`, no `.arb`, and roughly 1700 string literals carrying
+Serbian diacritics in `lib/` alone, which undercounts the ones that happen to
+have none. Adding i18n is a mechanical change across every screen plus a
+translation pass plus a review, and it would consume this whole plan. It is
+also not needed for the market this release is aimed at: the legal texts were
+approved for Serbia, and the users are Serbian children and their trainers.
+**The manual is written in Serbian for that reason too** — a manual in a
+language the app does not speak helps nobody. When translation happens it
+starts with the i18n layer, not with a document.
+
 **Reorganising the app by function**, one home for everything the app produces,
 and merging the analysis board with the room. This is the right instinct and the
 wrong moment: it is a redesign, it would consume everything left, and the part
 of it that actually hurts — two dialogs for one act, and screens whose names do
-not say what they are — is Phase 1. Written up here so the instinct is not lost.
+not say what they are — is Phase 1, and the part of it that a user actually
+feels is answered by Phase 4. That is the owner's own argument and it is the
+right one: **a manual that says which door a job is behind buys most of what
+rearranging the doors would buy, for a fraction of the risk.** Written up here
+so the instinct is not lost.
 
 ## Where the numbers stood when this was written
 
@@ -321,6 +338,8 @@ not say what they are — is Phase 1. Written up here so the instinct is not los
   else running. `flutter analyze`: 29 issues, all `info`, zero warnings.
 * Backend: **958**, last measured 7.9.2026 with `.env` moved aside. Not
   re-measured for this document.
+* Verification: 1037 items, 418 recorded. The 592 unrecorded are corrected in
+  Phase 5 — most were walked before this recording system existed.
 * Open on the board and unrelated to this plan: three design questions from the
   7.9.2026 reports — orientation as a property of a chain of beats, whether a
   beat may hold more than one task type, and a comment before *and* after a
