@@ -37,10 +37,11 @@ njega.
 | aplikacija | **1772 testa, 1 preskočen** |
 | backend | **964 testa**, sa `.env` sklonjenim u stranu |
 | `flutter analyze` | 29 `info`, nijedno upozorenje, nijedna greška |
-| grana | `master`, nepushovana |
+| grana | `master`, **pushovana 8.9.2026** (94 commita, `0444554..dab0cf0`) |
 
 Faza 1 (zamrzavanje + dva reza) i faza 2 (jezgro videa) su gotove. U toku je
-**engleski zaokret**, tri od četiri batch-a spojena.
+**engleski zaokret**: tri batch-a spojena, vođin deo četvrtog takođe (`b694d3b`),
+ostaju 65a i 65b.
 
 ### Šta je odlučeno danas i ne otvara se ponovo
 
@@ -63,17 +64,41 @@ Faza 1 (zamrzavanje + dva reza) i faza 2 (jezgro videa) su gotove. U toku je
 
 ### Šta je sledeće, po redu
 
-**Batch 65 — poslednji prevod.** Oko 516 linija: `features/analysis_studio`
-(161), `lib/widgets` (87), `features/position_scanner` (72),
-`features/archive` (59), `lib/core` (38), `lib/services` (29), plus groups,
-trainer_panel, library, reviews, theme, routing. Brief se piše po uzoru na
-`docs/brief-prevod-repertoar-2026-09.md`.
+**Batch 65 je podeljen na tri dela, i prvi je već gotov.** Merenje 8.9.2026:
+516 linija u 87 fajlova — trostruko više nego batch 64, koji je sa 26 fajlova
+istrošio ceo budžet. Podela ide po rečniku, ne po veličini.
 
-Uz njega ide i jedno čišćenje: **`lib/core/services/serbian_plural.dart` više
+**Gotovo — vođin deo, commit `b694d3b`.** `core/services/tactical_motif_detector.dart`
+i `core/services/positional_evaluator_service.dart` (28 literala) nisu tekst nego
+**generator rečenica**: rod po figuri, nominativ i akuzativ za svaku, genitiv za
+pridev boje, tri oblika množine za broj, i srpsko nabrajanje sa „i". Engleski ne
+traži ništa od toga, pa je mašinerija obrisana a ne prevedena. Isto pravilo kao
+batch 59 i 61: batch kome se da fajl koji traži refaktor je batch koji ima na
+čemu da pogreši. Suite ostao 1772, analyze 29.
+
+Iz njega jedna lekcija koja važi za oba preostala batch-a: **pet asercija u
+testovima nije imalo nijedno naše slovo** — `contains('Beli')`,
+`contains('otvorenu')`, `contains('je otvorena')` — pa ih `gate_english_ui`
+nikad ne bi imenovao; našao ih je samo suite. Kad se menja string, grepuje se
+**stara srpska reč**, ne dijakritik.
+
+**Sledeće — batch 65a**, `docs/TASK-prevod-analiza.md` i
+`docs/brief-prevod-analiza-2026-09.md`, dozvole već upisane u `orchestrate.py`.
+29 fajlova, 268 linija: `features/analysis_studio` (161), `widgets/ai_studio`
+(35), `features/position_scanner` (72). Brief nosi dve tabele — jednu koja
+**ponavlja reči koje su već otišle u kod** (fork, pin, skewer, outpost, bishop
+pair…), jer dva panela u batch-u imenuju iste motive, i jednu novu.
+
+**Zatim batch 65b** — ostatak, 54 fajla i 220 linija: `features/archive` (59),
+`lib/widgets` van `ai_studio` (52), `features/groups` (24), `lib/services` (29),
+`features/trainer_panel`, `library`, `reviews`, `theme`, `routing`, `core`.
+Brief se piše kad 65a prođe.
+
+Uz 65b ide i jedno čišćenje: **`lib/core/services/serbian_plural.dart` više
 nema nijednog pozivaoca u `lib/`** — briše se sa svoja dva test fajla kad ode i
 poslednji srpski.
 
-**Kad batch 65 prođe:** oba sidra iz `docs/gates/` (`vocabulary_en_test.dart`,
+**Kad 65b prođe:** oba sidra iz `docs/gates/` (`vocabulary_en_test.dart`,
 `screen_names_en_test.dart`) prelaze u `test/`, a srpski `tutorial_vocabulary_test.dart`
 i `screen_names_test.dart` se brišu. Tek tada počinje **faza 4 — priručnik i
 sajt**, na engleskom, pisan po glosaru.
