@@ -141,7 +141,7 @@ function parseParentEmail(raw) {
     && value.length <= 255
     && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   if (!ok) {
-    return { email: null, error: 'Unesite ispravnu email adresu roditelja.' };
+    return { email: null, error: 'Enter a valid parent email address.' };
   }
   return { email: value, error: null };
 }

@@ -34,17 +34,17 @@ function secretMatches(supplied) {
 async function syncPurchase(purchaseToken, fallbackUserId = null) {
   const purchase = await play.getSubscription(purchaseToken);
   if (!purchase) {
-    return { ok: false, reason: 'Kupovina nije pronađena kod Google-a.' };
+    return { ok: false, reason: 'Purchase not found with Google.' };
   }
   if (!purchase.tier) {
     logger.warn(`Play product '${purchase.productId}' is not mapped in PLAY_PRODUCT_TIERS.`);
-    return { ok: false, reason: 'Proizvod nije prepoznat na serveru.' };
+    return { ok: false, reason: 'Product not recognized by the server.' };
   }
 
   const existing = await entitlements.findSubscriptionByRef(pool, PROVIDER, purchaseToken);
   const userId = existing?.user_id || fallbackUserId;
   if (!userId) {
-    return { ok: false, reason: 'Kupovina nije povezana ni sa jednim nalogom.' };
+    return { ok: false, reason: 'Purchase is not associated with any account.' };
   }
 
   const row = await entitlements.upsertSubscription(pool, {
@@ -84,7 +84,7 @@ router.get('/entitlements', authenticateToken, async (req, res) => {
     res.json(await entitlements.getEntitlementState(pool, req.user.id));
   } catch (err) {
     logger.error('Error reading entitlements:', err);
-    res.status(500).json({ error: 'Greška pri čitanju prava pristupa.' });
+    res.status(500).json({ error: 'Error reading entitlements.' });
   }
 });
 
@@ -96,14 +96,14 @@ router.get('/usage', authenticateToken, requireRole('admin'), async (req, res) =
   const { month } = req.query;
 
   if (month !== undefined && !/^\d{4}-\d{2}$/.test(month)) {
-    return res.status(400).json({ error: 'Parametar month mora biti u obliku YYYY-MM.' });
+    return res.status(400).json({ error: 'The month parameter must be in YYYY-MM format.' });
   }
 
   try {
     res.json(await entitlements.getUsageReport(pool, { month: month || null }));
   } catch (err) {
     logger.error('Error building usage report:', err);
-    res.status(500).json({ error: 'Greška pri izradi izveštaja o potrošnji.' });
+    res.status(500).json({ error: 'Error generating usage report.' });
   }
 });
 
@@ -121,7 +121,7 @@ router.get('/usage/me', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error reading own usage:', err);
-    res.status(500).json({ error: 'Greška pri čitanju potrošnje.' });
+    res.status(500).json({ error: 'Error reading usage.' });
   }
 });
 
@@ -133,10 +133,10 @@ router.post('/play/verify', authenticateToken, async (req, res) => {
   const { purchaseToken } = req.body;
 
   if (!purchaseToken || typeof purchaseToken !== 'string') {
-    return res.status(400).json({ error: 'purchaseToken je obavezan.' });
+    return res.status(400).json({ error: 'purchaseToken is required.' });
   }
   if (!play.isConfigured()) {
-    return res.status(503).json({ error: 'Naplata trenutno nije dostupna.' });
+    return res.status(503).json({ error: 'Billing is currently unavailable.' });
   }
 
   try {
@@ -148,7 +148,7 @@ router.post('/play/verify', authenticateToken, async (req, res) => {
         { userId: req.user.id, ownerId: existing.user_id },
         'Rejected purchase token already bound to another account'
       );
-      return res.status(409).json({ error: 'Ova kupovina je već vezana za drugi nalog.' });
+      return res.status(409).json({ error: 'This purchase is already linked to another account.' });
     }
 
     const result = await syncPurchase(purchaseToken, req.user.id);
@@ -162,7 +162,7 @@ router.post('/play/verify', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Play purchase verification failed:', err);
-    res.status(502).json({ error: 'Google nije potvrdio kupovinu. Pokušajte ponovo.' });
+    res.status(502).json({ error: 'Google could not verify the purchase. Please try again.' });
   }
 });
 

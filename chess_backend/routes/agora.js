@@ -44,12 +44,12 @@ router.post('/token', authenticateToken, async (req, res) => {
   const { channelName, uid } = req.body;
 
   if (!channelName || typeof channelName !== 'string') {
-    return res.status(400).json({ error: 'channelName je obavezan.' });
+    return res.status(400).json({ error: 'channelName is required.' });
   }
 
   const numericUid = Number.isInteger(uid) ? uid : parseInt(uid, 10);
   if (!Number.isInteger(numericUid) || numericUid < 0) {
-    return res.status(400).json({ error: 'uid mora biti nenegativan ceo broj.' });
+    return res.status(400).json({ error: 'uid must be a non-negative integer.' });
   }
 
   let seat;
@@ -60,7 +60,7 @@ router.post('/token', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('[AGORA] Provera pristupa sobi nije uspela:', err);
-    return res.status(500).json({ error: 'Greška pri proveri pristupa sobi.' });
+    return res.status(500).json({ error: 'Error checking room access.' });
   }
 
   if (!seat.allowed) {
@@ -69,7 +69,7 @@ router.post('/token', authenticateToken, async (req, res) => {
     );
     // Refused out loud, with the same reason the socket gives, so the app says
     // one thing rather than hanging on "povezivanje…".
-    return res.status(403).json({ error: 'Niste na spisku za ovu sobu.', reason: seat.reason });
+    return res.status(403).json({ error: 'You are not on the guest list for this room.', reason: seat.reason });
   }
 
   if (!isConfigured) {
@@ -86,8 +86,8 @@ router.post('/token', authenticateToken, async (req, res) => {
       tokenRequired: false,
       maySpeak: seat.maySpeak,
       role: seat.role,
-      warning: 'Agora App Certificate nije konfigurisan — kanal nije zaštićen tokenom, '
-        + 'pa ni pravo na mikrofon nije stvarno ograničeno.',
+      warning: 'Agora App Certificate is not configured — channel is not protected by a token, '
+        + 'so microphone access is not truly restricted.',
     });
   }
 
@@ -118,7 +118,7 @@ router.post('/token', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('[AGORA] Failed to build RTC token:', err);
-    res.status(500).json({ error: 'Greška pri generisanju Agora tokena.' });
+    res.status(500).json({ error: 'Error generating Agora token.' });
   }
 });
 

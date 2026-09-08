@@ -27,7 +27,7 @@ router.get('/trainer/panel', authenticateToken, async (req, res) => {
     res.json(await trainerPanel(pool, req.user.id));
   } catch (err) {
     logger.error('Error building trainer panel:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju panela.' });
+    res.status(500).json({ error: 'Error fetching panel.' });
   }
 });
 

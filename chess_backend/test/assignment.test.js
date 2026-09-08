@@ -267,7 +267,7 @@ test('the trainer is told when the last item lands', async () => {
   const notice = pool.calls[1];
   assert.match(notice.text, /INSERT INTO user_notifications/);
   assert.equal(notice.params[0], 1, 'to the trainer');
-  assert.equal(notice.params[4], 'pavle je uradio zadatak: Matovi u dva');
+  assert.equal(notice.params[4], 'pavle completed the assignment: Matovi u dva');
   assert.equal(notice.params[5], 'assignment_done');
   assert.equal(notice.params[6], 3, 'points at the assignment');
 });
@@ -286,5 +286,5 @@ test('a student whose name is missing is still named something', async () => {
   ]);
   await markCompleteIfDone(pool, 3);
 
-  assert.equal(pool.calls[1].params[4], 'Učenik je uradio zadatak: Matovi u dva');
+  assert.equal(pool.calls[1].params[4], 'Student completed the assignment: Matovi u dva');
 });

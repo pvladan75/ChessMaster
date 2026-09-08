@@ -152,7 +152,7 @@ function parseStatedYear(raw, now = new Date()) {
   if (!ok) {
     return {
       year: null,
-      error: `Unesite godinu rođenja, između 1900. i ${thisYear}.`,
+      error: `Enter your birth year, between 1900 and ${thisYear}.`,
     };
   }
   return { year, error: null };
@@ -210,8 +210,8 @@ async function mayRelate(pool, { trainerId }) {
     return {
       allowed: false,
       reason: 'minor-as-trainer',
-      message: 'Maloletnik ne može da bude trener. '
-        + 'Vezu sa učenikom zasniva punoletna osoba.',
+      message: 'A minor cannot be a trainer. '
+        + 'A connection with a student must be established by an adult.',
     };
   }
 

@@ -26,7 +26,7 @@ const { ownsRoom } = require('./roomAccess');
 /// Loud rather than convenient: a caller that asks about somebody else's group
 /// has a bug, and answering "no members" would hide it.
 class NotYours extends Error {
-  constructor(message = 'Ta grupa nije vaša.') {
+  constructor(message = 'That group is not yours.') {
     super(message);
     this.name = 'NotYours';
   }
@@ -42,7 +42,7 @@ async function ownsGroup(pool, trainerId, groupId) {
 
 async function createGroup(pool, trainerId, { name }) {
   const clean = typeof name === 'string' ? name.trim() : '';
-  if (clean === '') throw new RangeError('Grupa mora imati ime.');
+  if (clean === '') throw new RangeError('Group must have a name.');
 
   const result = await pool.query(
     `INSERT INTO student_groups (trainer_id, name)
@@ -55,7 +55,7 @@ async function createGroup(pool, trainerId, { name }) {
 
 async function renameGroup(pool, trainerId, groupId, { name }) {
   const clean = typeof name === 'string' ? name.trim() : '';
-  if (clean === '') throw new RangeError('Grupa mora imati ime.');
+  if (clean === '') throw new RangeError('Group must have a name.');
 
   const result = await pool.query(
     `UPDATE student_groups SET name = $1
@@ -122,7 +122,7 @@ async function listMembers(pool, trainerId, groupId) {
 async function addMember(pool, trainerId, groupId, studentId) {
   if (!(await ownsGroup(pool, trainerId, groupId))) throw new NotYours();
   if (!(await acceptedEdgeBetween(pool, trainerId, studentId))) {
-    throw new RangeError('Taj učenik nije prihvatio vezu sa vama.');
+    throw new RangeError('That student has not accepted a connection with you.');
   }
 
   await pool.query(
@@ -150,7 +150,7 @@ async function removeMember(pool, trainerId, groupId, studentId) {
 /// list is left meaning "all my students" rather than "nobody".
 async function inviteToRoom(pool, trainerId, roomCode, { groupIds = [], userIds = [] } = {}) {
   if (!(await ownsRoom(pool, { roomCode, userId: trainerId }))) {
-    throw new NotYours('Ta soba nije vaša.');
+    throw new NotYours('That room is not yours.');
   }
 
   for (const groupId of groupIds) {
@@ -166,7 +166,7 @@ async function inviteToRoom(pool, trainerId, roomCode, { groupIds = [], userIds 
     // Same check as for a group member, for the same reason: an invitation is
     // not a way around consent.
     if (!(await acceptedEdgeBetween(pool, trainerId, userId))) {
-      throw new RangeError('Taj učenik nije prihvatio vezu sa vama.');
+      throw new RangeError('That student has not accepted a connection with you.');
     }
     await pool.query(
       `INSERT INTO room_guests (room_code, user_id) VALUES ($1, $2)
@@ -180,10 +180,10 @@ async function inviteToRoom(pool, trainerId, roomCode, { groupIds = [], userIds 
 
 async function uninviteFromRoom(pool, trainerId, roomCode, { groupId = null, userId = null } = {}) {
   if (!(await ownsRoom(pool, { roomCode, userId: trainerId }))) {
-    throw new NotYours('Ta soba nije vaša.');
+    throw new NotYours('That room is not yours.');
   }
   if ((groupId === null) === (userId === null)) {
-    throw new RangeError('Uklonite ili grupu ili pojedinca, ne oboje.');
+    throw new RangeError('Remove either a group or an individual, not both.');
   }
 
   const result = groupId !== null
@@ -200,7 +200,7 @@ async function uninviteFromRoom(pool, trainerId, roomCode, { groupId = null, use
 /// addresses.
 async function roomGuests(pool, trainerId, roomCode) {
   if (!(await ownsRoom(pool, { roomCode, userId: trainerId }))) {
-    throw new NotYours('Ta soba nije vaša.');
+    throw new NotYours('That room is not yours.');
   }
   const result = await pool.query(
     `SELECT rg.group_id, rg.user_id, g.name AS group_name, u.name AS user_name

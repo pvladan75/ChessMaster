@@ -91,15 +91,15 @@ function schedule(current, quality, now = new Date()) {
 
 /// Human-readable "next review in ...", for the button that produced it.
 function describeInterval(intervalDays) {
-  if (intervalDays === 0) return 'za nekoliko minuta';
-  if (intervalDays === 1) return 'sutra';
-  if (intervalDays < 7) return `za ${intervalDays} dana`;
+  if (intervalDays === 0) return 'in a few minutes';
+  if (intervalDays === 1) return 'tomorrow';
+  if (intervalDays < 7) return `in ${intervalDays} days`;
   if (intervalDays < 30) {
     const weeks = Math.round(intervalDays / 7);
-    return weeks === 1 ? 'za nedelju dana' : `za ${weeks} nedelje`;
+    return weeks === 1 ? 'in a week' : `in ${weeks} weeks`;
   }
   const months = Math.round(intervalDays / 30);
-  return months === 1 ? 'za mesec dana' : `za ${months} meseca`;
+  return months === 1 ? 'in a month' : `in ${months} months`;
 }
 
 /// Ensures a schedule row exists for a position the student has just seen.
@@ -129,15 +129,15 @@ async function ensureItem(pool, { userId, lessonId, stepKey, position = 0 }) {
 /// Records a grade and writes the resulting schedule.
 async function grade(pool, { userId, lessonId, stepKey, position = 0, quality }, now = new Date()) {
   if (!isValidGrade(quality)) {
-    return { ok: false, reason: 'Ocena mora biti ceo broj od 0 do 5.' };
+    return { ok: false, reason: 'Grade must be an integer between 0 and 5.' };
   }
   if (typeof stepKey !== 'string' || stepKey === '') {
-    return { ok: false, reason: 'Nedostaje oznaka koraka.' };
+    return { ok: false, reason: 'Step key is required.' };
   }
 
   const current = await ensureItem(pool, { userId, lessonId, stepKey, position });
   if (!current) {
-    return { ok: false, reason: 'Stavka za ponavljanje nije pronađena.' };
+    return { ok: false, reason: 'Review item not found.' };
   }
 
   const next = schedule(current, quality, now);

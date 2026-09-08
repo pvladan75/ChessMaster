@@ -162,7 +162,7 @@ test('you cannot become the trainer of your own trainer', async () => {
   });
 
   assert.equal(result.ok, false);
-  assert.match(result.reason, /ona je vaš trener/);
+  assert.match(result.reason, /they are your trainer/);
   assert.equal(pool.calls.length, 1, 'refused before inserting the mirror row');
 });
 
@@ -179,7 +179,7 @@ test('asking to be taught by your own student is refused the same way', async ()
   });
 
   assert.equal(result.ok, false);
-  assert.match(result.reason, /vi ste njen trener/);
+  assert.match(result.reason, /you are their trainer/);
   assert.equal(pool.calls.length, 1);
 });
 
@@ -194,7 +194,7 @@ test('an unanswered request in the other direction blocks this one too', async (
   });
 
   assert.equal(result.ok, false);
-  assert.match(result.reason, /suprotnom smeru/);
+  assert.match(result.reason, /opposite direction/);
   assert.equal(pool.calls.length, 1);
 });
 
@@ -243,7 +243,7 @@ test('a minor cannot be enrolled as anybody’s trainer', async () => {
   });
 
   assert.equal(result.ok, false);
-  assert.match(result.reason, /Maloletnik/);
+  assert.match(result.reason, /minor/i);
   assert.ok(!pool.calls.some((c) => /INSERT INTO trainer_students/.test(c.text)),
     'nijedan red nije upisan');
 });
@@ -281,7 +281,7 @@ test('a request from before the age was known is checked again on the answer',
       { requestId: 7, userId: 2, accept: true });
 
     assert.equal(result.ok, false);
-    assert.match(result.reason, /Maloletnik/);
+    assert.match(result.reason, /minor/i);
     assert.ok(!pool.calls.some((c) => /UPDATE trainer_students/.test(c.text)),
       'veza nije prihvaćena');
     assert.ok(!pool.calls.some((c) => /INSERT INTO friends/.test(c.text)));
@@ -374,7 +374,7 @@ test('the accept notice says who accepted', async () => {
   const sent = pool.calls[0];
   assert.match(sent.text, /INSERT INTO user_notifications/);
   assert.deepEqual(sent.params.slice(0, 2), [3, 4], 'to the sender, from the accepter');
-  assert.equal(sent.params[4], 'pvladan je prihvatio vaš zahtev.');
+  assert.equal(sent.params[4], 'pvladan accepted your request.');
   assert.equal(sent.params[5], 'request_accepted');
 });
 
@@ -394,7 +394,7 @@ test('the decline notice says no without saying why', async () => {
   const sent = pool.calls[0];
   assert.match(sent.text, /INSERT INTO user_notifications/);
   assert.deepEqual(sent.params.slice(0, 2), [3, 4], 'to the sender, from the decliner');
-  assert.equal(sent.params[4], 'pvladan nije prihvatio vaš zahtev.');
+  assert.equal(sent.params[4], 'pvladan declined your request.');
   assert.equal(sent.params[5], 'request_declined');
 });
 

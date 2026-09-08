@@ -35,13 +35,13 @@ async function findUserByEmail(email) {
 router.post('/trainer/students/add', authenticateToken, async (req, res) => {
   const { studentEmail } = req.body;
   if (!studentEmail) {
-    return res.status(400).json({ error: 'Email učenika je obavezan.' });
+    return res.status(400).json({ error: 'Student email is required.' });
   }
 
   try {
     const student = await findUserByEmail(studentEmail);
     if (!student) {
-      return res.status(404).json({ error: 'Korisnik sa datim email-om nije pronađen.' });
+      return res.status(404).json({ error: 'User with this email was not found.' });
     }
 
     const result = await relationships.requestRelationship(pool, {
@@ -55,7 +55,7 @@ router.post('/trainer/students/add', authenticateToken, async (req, res) => {
       await relationships.notifyRequest(pool, {
         recipientId: student.id,
         senderId: req.user.id,
-        senderName: req.user.name || 'Trener',
+        senderName: req.user.name || 'Trainer',
         requestId: result.id,
         senderIsTrainer: true,
       });
@@ -63,13 +63,13 @@ router.post('/trainer/students/add', authenticateToken, async (req, res) => {
     }
 
     res.json({
-      message: 'Poziv je poslat. Odnos počinje kad ga učenik prihvati.',
+      message: 'Invitation sent. The relationship begins when the student accepts it.',
       status: 'pending',
       student,
     });
   } catch (err) {
     logger.error('Error requesting student:', err);
-    res.status(500).json({ error: 'Greška pri slanju poziva.' });
+    res.status(500).json({ error: 'Error sending invitation.' });
   }
 });
 
@@ -77,13 +77,13 @@ router.post('/trainer/students/add', authenticateToken, async (req, res) => {
 router.post('/students/trainers/request', authenticateToken, async (req, res) => {
   const { trainerEmail } = req.body;
   if (!trainerEmail) {
-    return res.status(400).json({ error: 'Email trenera je obavezan.' });
+    return res.status(400).json({ error: 'Trainer email is required.' });
   }
 
   try {
     const trainer = await findUserByEmail(trainerEmail);
     if (!trainer) {
-      return res.status(404).json({ error: 'Korisnik sa datim email-om nije pronađen.' });
+      return res.status(404).json({ error: 'User with this email was not found.' });
     }
 
     const result = await relationships.requestRelationship(pool, {
@@ -97,7 +97,7 @@ router.post('/students/trainers/request', authenticateToken, async (req, res) =>
       await relationships.notifyRequest(pool, {
         recipientId: trainer.id,
         senderId: req.user.id,
-        senderName: req.user.name || 'Učenik',
+        senderName: req.user.name || 'Student',
         requestId: result.id,
         senderIsTrainer: false,
       });
@@ -105,13 +105,13 @@ router.post('/students/trainers/request', authenticateToken, async (req, res) =>
     }
 
     res.json({
-      message: 'Zahtev je poslat. Odnos počinje kad ga trener prihvati.',
+      message: 'Request sent. The relationship begins when the trainer accepts it.',
       status: 'pending',
       trainer,
     });
   } catch (err) {
     logger.error('Error requesting trainer:', err);
-    res.status(500).json({ error: 'Greška pri slanju zahteva.' });
+    res.status(500).json({ error: 'Error sending request.' });
   }
 });
 
@@ -121,7 +121,7 @@ router.get('/relationships/pending', authenticateToken, async (req, res) => {
     res.json({ requests: await relationships.pendingForUser(pool, req.user.id) });
   } catch (err) {
     logger.error('Error fetching pending relationships:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju zahteva.' });
+    res.status(500).json({ error: 'Error fetching requests.' });
   }
 });
 
@@ -129,7 +129,7 @@ router.get('/relationships/pending', authenticateToken, async (req, res) => {
 router.post('/relationships/:id/accept', authenticateToken, async (req, res) => {
   const requestId = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(requestId)) {
-    return res.status(400).json({ error: 'Neispravan zahtev.' });
+    return res.status(400).json({ error: 'Invalid request.' });
   }
 
   try {
@@ -150,15 +150,15 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
         await relationships.notifyAwaitingParent(pool, {
           recipientId: result.senderId,
           accepterId: req.user.id,
-          accepterName: req.user.name || 'Korisnik',
+          accepterName: req.user.name || 'User',
           delivered: false,
         });
         nudge(result.senderId);
         return res.json({
           status: 'awaiting_parent',
           parentEmailMissing: true,
-          message: 'Potrebna je saglasnost roditelja, a na nalogu učenika nema '
-            + 'adrese roditelja. Učenik je treba uneti u Podešavanjima.',
+          message: 'Parental consent is required, but there is no parent address on the student account. '
+            + 'The student should enter it in Settings.',
         });
       }
 
@@ -182,7 +182,7 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
       await relationships.notifyAwaitingParent(pool, {
         recipientId: result.senderId,
         accepterId: req.user.id,
-        accepterName: req.user.name || 'Korisnik',
+        accepterName: req.user.name || 'User',
         delivered,
       });
       nudge(result.senderId);
@@ -193,23 +193,23 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
         mailDelivered: delivered,
         deliveryError,
         message: delivered
-          ? 'Poslata je poruka roditelju. Veza počinje kad roditelj potvrdi.'
-          : 'Veza čeka saglasnost roditelja, ali poruka nije mogla da se '
-            + 'pošalje. Pokušajte ponovo iz spiska učenika.',
+          ? 'A message has been sent to the parent. The relationship begins when the parent confirms.'
+          : 'The relationship is awaiting parental consent, but the message could not be sent. '
+            + 'Please try again from the student list.',
       });
     }
 
     await relationships.notifyAccept(pool, {
       recipientId: result.senderId,
       accepterId: req.user.id,
-      accepterName: req.user.name || 'Korisnik',
+      accepterName: req.user.name || 'User',
     });
     nudge(result.senderId);
 
-    res.json({ status: 'accepted', message: 'Odnos je uspostavljen.' });
+    res.json({ status: 'accepted', message: 'Relationship established.' });
   } catch (err) {
     logger.error('Error accepting relationship:', err);
-    res.status(500).json({ error: 'Greška pri prihvatanju.' });
+    res.status(500).json({ error: 'Error accepting request.' });
   }
 });
 
@@ -217,7 +217,7 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
 router.post('/relationships/:id/decline', authenticateToken, async (req, res) => {
   const requestId = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(requestId)) {
-    return res.status(400).json({ error: 'Neispravan zahtev.' });
+    return res.status(400).json({ error: 'Invalid request.' });
   }
 
   try {
@@ -231,14 +231,14 @@ router.post('/relationships/:id/decline', authenticateToken, async (req, res) =>
     await relationships.notifyDecline(pool, {
       recipientId: result.senderId,
       declinerId: req.user.id,
-      declinerName: req.user.name || 'Korisnik',
+      declinerName: req.user.name || 'User',
     });
     nudge(result.senderId);
 
-    res.json({ message: 'Zahtev je odbijen.' });
+    res.json({ message: 'Request declined.' });
   } catch (err) {
     logger.error('Error declining relationship:', err);
-    res.status(500).json({ error: 'Greška pri odbijanju.' });
+    res.status(500).json({ error: 'Error declining request.' });
   }
 });
 
@@ -251,7 +251,7 @@ router.get('/trainer/students', authenticateToken, async (req, res) => {
     res.json({ students: await relationships.listStudents(pool, req.user.id) });
   } catch (err) {
     logger.error('Error fetching students:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju liste.' });
+    res.status(500).json({ error: 'Error fetching list.' });
   }
 });
 
@@ -261,7 +261,7 @@ router.get('/students/trainers', authenticateToken, async (req, res) => {
     res.json({ trainers: await relationships.listTrainers(pool, req.user.id) });
   } catch (err) {
     logger.error('Error fetching trainers:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju liste.' });
+    res.status(500).json({ error: 'Error fetching list.' });
   }
 });
 
@@ -277,7 +277,7 @@ router.get('/students/trainers', authenticateToken, async (req, res) => {
 router.patch('/trainer/students/:studentId/voice', authenticateToken, async (req, res) => {
   const studentId = Number.parseInt(req.params.studentId, 10);
   if (!Number.isInteger(studentId)) {
-    return res.status(400).json({ error: 'Neispravan učenik.' });
+    return res.status(400).json({ error: 'Invalid student.' });
   }
 
   try {
@@ -299,7 +299,7 @@ router.patch('/trainer/students/:studentId/voice', authenticateToken, async (req
     res.json({ level: result.level });
   } catch (err) {
     logger.error('[GLAS] Nivo glasa nije mogao da se promeni:', err);
-    res.status(500).json({ error: 'Promena nije mogla da se sačuva.' });
+    res.status(500).json({ error: 'Failed to save change.' });
   }
 });
 
@@ -307,15 +307,15 @@ router.patch('/trainer/students/:studentId/voice', authenticateToken, async (req
 router.delete('/trainer/students/:studentId', authenticateToken, async (req, res) => {
   const otherId = Number.parseInt(req.params.studentId, 10);
   if (!Number.isInteger(otherId)) {
-    return res.status(400).json({ error: 'Neispravan korisnik.' });
+    return res.status(400).json({ error: 'Invalid user.' });
   }
 
   try {
     await relationships.removeRelationship(pool, { userId: req.user.id, otherId });
-    res.json({ message: 'Odnos je raskinut.' });
+    res.json({ message: 'Relationship terminated.' });
   } catch (err) {
     logger.error('Error removing relationship:', err);
-    res.status(500).json({ error: 'Greška pri uklanjanju.' });
+    res.status(500).json({ error: 'Error removing relationship.' });
   }
 });
 
@@ -326,7 +326,7 @@ router.get('/users/me/stats', authenticateToken, async (req, res) => {
     res.json(stats);
   } catch (err) {
     logger.error('Error fetching user stats:', err);
-    res.status(500).json({ error: 'Greška pri preuzimanju statistike.' });
+    res.status(500).json({ error: 'Error fetching stats.' });
   }
 });
 
@@ -342,12 +342,12 @@ router.post('/users/account-type', authenticateToken, requireRole('admin'), asyn
   const validTypes = ['free', 'premium', 'club', 'pro'];
 
   if (!accountType || !validTypes.includes(accountType)) {
-    return res.status(400).json({ error: 'Nevažeći tip naloga.' });
+    return res.status(400).json({ error: 'Invalid account type.' });
   }
 
   const targetId = Number.parseInt(userId, 10);
   if (!Number.isInteger(targetId)) {
-    return res.status(400).json({ error: 'userId je obavezan i mora biti broj.' });
+    return res.status(400).json({ error: 'userId is required and must be a number.' });
   }
 
   try {
@@ -356,7 +356,7 @@ router.post('/users/account-type', authenticateToken, requireRole('admin'), asyn
       [accountType, targetId]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Korisnik nije pronađen.' });
+      return res.status(404).json({ error: 'User not found.' });
     }
 
     const updated = result.rows[0];
@@ -366,12 +366,12 @@ router.post('/users/account-type', authenticateToken, requireRole('admin'), asyn
     );
     res.json({
       success: true,
-      message: `Tip naloga za ${updated.email} promenjen na '${accountType}'.`,
+      message: `Account type for ${updated.email} changed to '${accountType}'.`,
       user: updated
     });
   } catch (err) {
     logger.error('Error updating account type:', err);
-    res.status(500).json({ error: 'Greška pri ažuriranju tipa naloga.' });
+    res.status(500).json({ error: 'Error updating account type.' });
   }
 });
 
@@ -389,7 +389,7 @@ router.get('/friends', authenticateToken, async (req, res) => {
     res.json({ friends: result.rows });
   } catch (err) {
     logger.error('Error fetching friends:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju liste prijatelja.' });
+    res.status(500).json({ error: 'Error fetching friends list.' });
   }
 });
 
@@ -427,7 +427,7 @@ router.get('/notifications', authenticateToken, async (req, res) => {
     res.json({ notifications: result.rows });
   } catch (err) {
     logger.error('Error fetching notifications:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju obaveštenja.' });
+    res.status(500).json({ error: 'Error fetching notifications.' });
   }
 });
 
@@ -450,7 +450,7 @@ router.post('/notifications/read', authenticateToken, async (req, res) => {
     res.json({ success: true, marked: result.rowCount });
   } catch (err) {
     logger.error('Error marking notifications read:', err);
-    res.status(500).json({ error: 'Greška pri ažuriranju obaveštenja.' });
+    res.status(500).json({ error: 'Error updating notifications.' });
   }
 });
 
@@ -461,7 +461,7 @@ router.post('/notifications/:id/read', authenticateToken, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     logger.error('Error marking notification read:', err);
-    res.status(500).json({ error: 'Greška pri ažuriranju obaveštenja.' });
+    res.status(500).json({ error: 'Error updating notification.' });
   }
 });
 
@@ -473,7 +473,7 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
   const targetIds = Array.isArray(friendIds) ? friendIds : (studentId ? [studentId] : []);
 
   if (targetIds.length === 0 || !roomCode) {
-    return res.status(400).json({ error: 'Parametri primaoca (studentId/friendIds) i roomCode su obavezni.' });
+    return res.status(400).json({ error: 'Recipient parameters (studentId/friendIds) and roomCode are required.' });
   }
 
   try {
@@ -490,15 +490,15 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
     }
     if (allowed.length === 0) {
       return res.status(403).json({
-        error: 'Poziv se šalje samo učeniku ili treneru koji je prihvatio vezu.',
+        error: 'An invitation can only be sent to a student or trainer who has accepted the relationship.',
       });
     }
 
     const senderRes = await pool.query('SELECT name FROM users WHERE id = $1', [senderId]);
-    const senderName = senderRes.rows[0]?.name || 'Trener/Prijatelj';
+    const senderName = senderRes.rows[0]?.name || 'Trainer/Friend';
 
-    const title = 'Poziv na čas šaha';
-    const message = `${senderName} vas poziva da se pridružite šahovskom času u sobi: ${roomCode}`;
+    const title = 'Chess session invitation';
+    const message = `${senderName} invites you to join a chess session in room: ${roomCode}`;
 
     for (const targetId of allowed) {
       await notify(pool, {
@@ -515,14 +515,14 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       message: allowed.length === targetIds.length
-        ? 'Pozivnica uspešno poslata.'
-        : `Pozivnica poslata: ${allowed.length} od ${targetIds.length}. `
-          + 'Ostali nisu u prihvaćenoj vezi sa vama.',
+        ? 'Invitation sent successfully.'
+        : `Invitation sent: ${allowed.length} of ${targetIds.length}. `
+          + 'The others are not in an accepted relationship with you.',
       sent: allowed.length,
     });
   } catch (err) {
     logger.error('Error sending invitation:', err);
-    res.status(500).json({ error: 'Greška pri slanju pozivnice.' });
+    res.status(500).json({ error: 'Error sending invitation.' });
   }
 });
 
@@ -532,7 +532,7 @@ router.post('/sessions/schedule', authenticateToken, async (req, res) => {
   const hostId = req.user.id;
 
   if (!title || !scheduledAt || !roomCode) {
-    return res.status(400).json({ error: 'Naslov, vreme i kod sobe su obavezni.' });
+    return res.status(400).json({ error: 'Title, time and room code are required.' });
   }
 
   try {
@@ -544,7 +544,7 @@ router.post('/sessions/schedule', authenticateToken, async (req, res) => {
     // for a day.
     if (!(await ownsRoom(pool, { roomCode, userId: hostId }))) {
       return res.status(403).json({
-        error: 'Čas se zakazuje u svojoj sobi. Napravite sobu pa je zakažite.',
+        error: 'A session is scheduled in your own room. Create a room first, then schedule it.',
       });
     }
 
@@ -571,22 +571,22 @@ router.post('/sessions/schedule', authenticateToken, async (req, res) => {
         );
 
         const hostRes = await pool.query('SELECT name FROM users WHERE id = $1', [hostId]);
-        const hostName = hostRes.rows[0]?.name || 'Trener';
+        const hostName = hostRes.rows[0]?.name || 'Trainer';
 
         await notify(pool, {
           recipientId: userId,
           senderId: hostId,
           roomCode,
-          title: `Zakazan čas: ${title}`,
-          message: `${hostName} je zakazao čas za ${new Date(scheduledAt).toLocaleString('sr-RS')}. Kod sobe: ${roomCode}`,
+          title: `Scheduled session: ${title}`,
+          message: `${hostName} scheduled a session for ${new Date(scheduledAt).toLocaleString()}. Room code: ${roomCode}`,
         });
       }
     }
 
-    res.json({ success: true, message: 'Čas uspešno zakazan.', sessionId });
+    res.json({ success: true, message: 'Session scheduled successfully.', sessionId });
   } catch (err) {
     logger.error('Error scheduling session:', err);
-    res.status(500).json({ error: 'Greška pri zakazivanju časa.' });
+    res.status(500).json({ error: 'Error scheduling session.' });
   }
 });
 
@@ -607,7 +607,7 @@ router.get('/sessions/scheduled', authenticateToken, async (req, res) => {
     res.json({ sessions: result.rows });
   } catch (err) {
     logger.error('Error fetching scheduled sessions:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju zakazanih časova.' });
+    res.status(500).json({ error: 'Error fetching scheduled sessions.' });
   }
 });
 

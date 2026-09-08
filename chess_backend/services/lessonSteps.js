@@ -41,19 +41,19 @@ function generateStepId() {
 /// nothing can load would otherwise be found by the student, inside a lesson.
 function buildLessonStep(step) {
   if (!step || typeof step !== 'object' || Array.isArray(step)) {
-    return { ok: false, status: 400, error: 'step je obavezan.' };
+    return { ok: false, status: 400, error: 'step is required.' };
   }
 
   const fen = typeof step.fen === 'string' ? step.fen.trim() : '';
   if (fen === '') {
-    return { ok: false, status: 400, error: 'Korak mora da nosi poziciju.' };
+    return { ok: false, status: 400, error: 'A step must have a position.' };
   }
 
   // The client is not the authority on the position, here as everywhere else.
   try {
     new Chess(fen);
   } catch {
-    return { ok: false, status: 422, error: 'Pozicija nije ispravna.' };
+    return { ok: false, status: 422, error: 'Invalid position.' };
   }
 
   // The step's identity, and the one field that must survive an edit unchanged.
@@ -72,14 +72,14 @@ function buildLessonStep(step) {
   } else if (typeof step.id === 'string' && STEP_ID_PATTERN.test(step.id)) {
     id = step.id;
   } else {
-    return { ok: false, status: 400, error: 'Korak nosi neispravnu oznaku.' };
+    return { ok: false, status: 400, error: 'Invalid step ID.' };
   }
 
   // Only the fields a step is made of. Anything else the caller sent stays out
   // rather than being stored because it happened to arrive.
   const entry = {
     id,
-    title: text(step.title, MAX_TITLE) ?? 'Pozicija',
+    title: text(step.title, MAX_TITLE) ?? 'Position',
     fen,
   };
 
@@ -113,7 +113,7 @@ function buildLessonStep(step) {
   // disappear with no error.
   const kind = step.kind === undefined || step.kind === null ? 'show' : step.kind;
   if (!KINDS.includes(kind)) {
-    return { ok: false, status: 400, error: 'Korak može da bude prikaz, pitanje o potezu ili pitanje sa ponuđenim odgovorima.' };
+    return { ok: false, status: 400, error: 'A step can be a display, a move question, or a multiple-choice question.' };
   }
   entry.kind = kind;
 
@@ -162,15 +162,15 @@ function buildLessonStep(step) {
 function buildMoveAnswer(fen, step) {
   const solutionSan = text(step.solutionSan, MAX_SAN);
   if (!solutionSan) {
-    return { ok: false, status: 400, error: 'Pitanje o potezu mora da nosi rešenje.' };
+    return { ok: false, status: 400, error: 'A move question must have a solution.' };
   }
   if (!playsIn(fen, solutionSan)) {
-    return { ok: false, status: 422, error: `Rešenje „${solutionSan}" ne može da se odigra u ovoj poziciji.` };
+    return { ok: false, status: 422, error: `The solution "${solutionSan}" cannot be played in this position.` };
   }
 
   const raw = Array.isArray(step.acceptedSans) ? step.acceptedSans : [];
   if (raw.length > MAX_ACCEPTED) {
-    return { ok: false, status: 400, error: `Najviše ${MAX_ACCEPTED} dodatnih tačnih poteza.` };
+    return { ok: false, status: 400, error: `At most ${MAX_ACCEPTED} additional correct moves.` };
   }
 
   const acceptedSans = [];
@@ -183,7 +183,7 @@ function buildMoveAnswer(fen, step) {
     // being told „netačno" for a move their trainer believed was accepted.
     if (bare(san) === bare(solutionSan) || acceptedSans.some((a) => bare(a) === bare(san))) continue;
     if (!playsIn(fen, san)) {
-      return { ok: false, status: 422, error: `Potez „${san}" ne može da se odigra u ovoj poziciji.` };
+      return { ok: false, status: 422, error: `The move "${san}" cannot be played in this position.` };
     }
     acceptedSans.push(san);
   }
@@ -199,20 +199,20 @@ function buildMoveAnswer(fen, step) {
 /// One correct answer in v1 — a trainer who wants two writes two steps.
 function buildChoices(value) {
   if (!Array.isArray(value) || value.length < MIN_CHOICES || value.length > MAX_CHOICES) {
-    return { ok: false, status: 400, error: `Pitanje mora da ima između ${MIN_CHOICES} i ${MAX_CHOICES} ponuđenih odgovora.` };
+    return { ok: false, status: 400, error: `The question must have between ${MIN_CHOICES} and ${MAX_CHOICES} choices.` };
   }
 
   const choices = [];
   for (const raw of value) {
     const body = text(raw && raw.text, MAX_CHOICE_TEXT);
     if (!body) {
-      return { ok: false, status: 400, error: 'Svaki ponuđeni odgovor mora da ima tekst.' };
+      return { ok: false, status: 400, error: 'Each choice must have text.' };
     }
     choices.push({ text: body, correct: raw.correct === true });
   }
 
   if (choices.filter((c) => c.correct).length !== 1) {
-    return { ok: false, status: 400, error: 'Tačno jedan ponuđeni odgovor mora da bude tačan.' };
+    return { ok: false, status: 400, error: 'Exactly one choice must be correct.' };
   }
 
   return { ok: true, choices };
@@ -313,7 +313,7 @@ function withBackfilledId(step, index) {
 /// missing.
 function buildLessonSteps(list) {
   if (!Array.isArray(list)) {
-    return { ok: false, status: 400, error: 'Tutorijal mora imati listu koraka.' };
+    return { ok: false, status: 400, error: 'A tutorial must have a list of steps.' };
   }
 
   const entries = [];
@@ -322,7 +322,7 @@ function buildLessonSteps(list) {
   for (let i = 0; i < list.length; i++) {
     const built = buildLessonStep(list[i]);
     if (!built.ok) {
-      return { ok: false, status: built.status, error: `Korak ${i + 1}: ${built.error}` };
+      return { ok: false, status: built.status, error: `Step ${i + 1}: ${built.error}` };
     }
 
     // Two steps claiming one id makes [stepByKey] ambiguous, and a schedule row
@@ -331,7 +331,7 @@ function buildLessonSteps(list) {
       return {
         ok: false,
         status: 400,
-        error: `Korak ${i + 1}: oznaka „${built.entry.id}" je već uzeta u ovom tutorijalu.`,
+        error: `Step ${i + 1}: identifier "${built.entry.id}" is already used in this tutorial.`,
       };
     }
     seen.add(built.entry.id);

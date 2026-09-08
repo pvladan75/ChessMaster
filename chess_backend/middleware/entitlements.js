@@ -13,14 +13,14 @@ const entitlements = require('../services/entitlementService');
 function requireEntitlement(entitlement) {
   return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Prijava je obavezna.' });
+      return res.status(401).json({ error: 'Sign-in is required.' });
     }
 
     try {
       const tier = await entitlements.resolveTier(pool, req.user.id);
       if (!entitlements.entitlementsForTier(tier).includes(entitlement)) {
         return res.status(403).json({
-          error: 'Ova funkcija je dostupna uz Premium nalog.',
+          error: 'This feature is available with a Premium account.',
           upgradeRequired: true,
           entitlement,
           tier,
@@ -30,7 +30,7 @@ function requireEntitlement(entitlement) {
       next();
     } catch (err) {
       logger.error('Entitlement check failed:', err);
-      res.status(500).json({ error: 'Greška pri proveri prava pristupa.' });
+      res.status(500).json({ error: 'Error checking entitlements.' });
     }
   };
 }
@@ -44,14 +44,14 @@ function requireEntitlement(entitlement) {
 function requireQuota(metric) {
   return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Prijava je obavezna.' });
+      return res.status(401).json({ error: 'Sign-in is required.' });
     }
 
     try {
       const result = await entitlements.consumeQuota(pool, req.user.id, metric);
       if (!result.allowed) {
         return res.status(403).json({
-          error: `Potrošili ste mesečnu kvotu (${result.limit}). Pređite na Premium za veću.`,
+          error: `You have used up your monthly quota (${result.limit}). Upgrade to Premium for a higher limit.`,
           quotaExceeded: true,
           metric,
           limit: result.limit,
@@ -62,7 +62,7 @@ function requireQuota(metric) {
       next();
     } catch (err) {
       logger.error('Quota check failed:', err);
-      res.status(500).json({ error: 'Greška pri proveri kvote.' });
+      res.status(500).json({ error: 'Error checking quota.' });
     }
   };
 }

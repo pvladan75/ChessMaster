@@ -25,7 +25,7 @@ router.get('/due', authenticateToken, async (req, res) => {
     res.json({ items, stats });
   } catch (err) {
     logger.error('Error fetching due reviews:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju ponavljanja.' });
+    res.status(500).json({ error: 'Error fetching reviews.' });
   }
 });
 
@@ -35,7 +35,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     res.json(await srs.getStats(pool, req.user.id));
   } catch (err) {
     logger.error('Error fetching review stats:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju statistike.' });
+    res.status(500).json({ error: 'Error fetching stats.' });
   }
 });
 
@@ -58,10 +58,10 @@ router.post('/grade', authenticateToken, async (req, res) => {
     : null;
 
   if (!Number.isInteger(lessonId)) {
-    return res.status(400).json({ error: 'lessonId je obavezan.' });
+    return res.status(400).json({ error: 'lessonId is required.' });
   }
   if (!stepKey && (!Number.isInteger(position) || position < 0)) {
-    return res.status(400).json({ error: 'stepKey ili position su obavezni.' });
+    return res.status(400).json({ error: 'Either stepKey or position is required.' });
   }
 
   try {
@@ -78,7 +78,7 @@ router.post('/grade', authenticateToken, async (req, res) => {
       [lessonId, req.user.id]
     );
     if (allowed.rows.length === 0) {
-      return res.status(403).json({ error: 'Nemate pristup tom tutorijalu.' });
+      return res.status(403).json({ error: 'You do not have access to this tutorial.' });
     }
 
     // The bridge for an older client: turn its index into the step's name,
@@ -97,7 +97,7 @@ router.post('/grade', authenticateToken, async (req, res) => {
       });
       key = steps[position] ? steps[position].id : null;
       if (!key) {
-        return res.status(404).json({ error: 'Taj korak više ne postoji u tutorijalu.' });
+        return res.status(404).json({ error: 'That step no longer exists in the tutorial.' });
       }
     }
 
@@ -121,7 +121,7 @@ router.post('/grade', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error grading review:', err);
-    res.status(500).json({ error: 'Greška pri beleženju ocene.' });
+    res.status(500).json({ error: 'Error recording grade.' });
   }
 });
 

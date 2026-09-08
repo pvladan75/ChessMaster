@@ -89,7 +89,7 @@ test('anybody else in the room blocks it, and is named', async () => {
   assert.deepEqual(verdict.blocked.map((b) => b.id), [2]);
   assert.match(verdict.reason, /Mila/,
     'odbijanje mora da imenuje onoga zbog koga se ne snima');
-  assert.match(verdict.reason, /sami u sobi/,
+  assert.match(verdict.reason, /alone in the room/,
     'odbijanje mora da kaže pravilo, ne samo činjenicu');
 });
 
@@ -117,7 +117,7 @@ test('a guest blocks it, though they have no account', async () => {
 
   assert.equal(verdict.allowed, false);
   assert.equal(verdict.blocked.length, 1);
-  assert.match(verdict.reason, /Gost/,
+  assert.match(verdict.reason, /Guest/,
     'gost mora da bude imenovan kao gost, jer drugo ime nema');
 });
 
@@ -132,7 +132,7 @@ test('an age nobody has stated is a refusal, not a pass', async () => {
 
   assert.equal(verdict.allowed, false);
   assert.deepEqual(verdict.blocked, [], 'nema koga da imenuje — pitanje je o vlasniku');
-  assert.match(verdict.reason, /godinu rođenja/,
+  assert.match(verdict.reason, /birth year/,
     'odbijanje mora da kaže šta korisnik treba da uradi');
 });
 
@@ -140,7 +140,7 @@ test('a minor alone in the room may not record either', async () => {
   const pool = stubPool({ years: { [OWNER]: CHILD_YEAR } });
   const verdict = await mayRecordRoom(pool, { roomCode: 'r', userIds: [OWNER] });
   assert.equal(verdict.allowed, false);
-  assert.match(verdict.reason, /punoletn/);
+  assert.match(verdict.reason, /adult/);
 });
 
 test('seventeen is not eighteen', async () => {

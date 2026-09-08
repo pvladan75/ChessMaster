@@ -41,7 +41,7 @@ function answer(res, work, whatFailed) {
         return res.status(400).json({ error: err.message });
       }
       if (err && err.code === '23505') {
-        return res.status(409).json({ error: 'To ime je već zauzeto.' });
+        return res.status(409).json({ error: 'That name is already taken.' });
       }
       logger.error(`[GRUPE] ${whatFailed}: ${err.message}`);
       return res.status(500).json({ error: whatFailed });
@@ -52,13 +52,13 @@ function answer(res, work, whatFailed) {
 // GET /groups
 router.get('/', authenticateToken, (req, res) => {
   answer(res, listGroups(pool, req.user.id).then((groups) => ({ groups })),
-    'Spisak grupa nije mogao da se pročita.');
+    'Could not read group list.');
 });
 
 // POST /groups  { name }
 router.post('/', authenticateToken, (req, res) => {
   answer(res, createGroup(pool, req.user.id, { name: req.body?.name }),
-    'Grupa nije mogla da se napravi.');
+    'Could not create group.');
 });
 
 // PATCH /groups/:id  { name }
@@ -66,14 +66,14 @@ router.patch('/:id', authenticateToken, (req, res) => {
   answer(
     res,
     renameGroup(pool, req.user.id, Number(req.params.id), { name: req.body?.name }),
-    'Grupa nije mogla da se preimenuje.',
+    'Could not rename group.',
   );
 });
 
 // DELETE /groups/:id
 router.delete('/:id', authenticateToken, (req, res) => {
   answer(res, deleteGroup(pool, req.user.id, Number(req.params.id)),
-    'Grupa nije mogla da se obriše.');
+    'Could not delete group.');
 });
 
 // GET /groups/:id/members — names only; a list is not the place for addresses.
@@ -82,7 +82,7 @@ router.get('/:id/members', authenticateToken, (req, res) => {
     res,
     listMembers(pool, req.user.id, Number(req.params.id))
       .then((members) => ({ members })),
-    'Spisak članova nije mogao da se pročita.',
+    'Could not read member list.',
   );
 });
 
@@ -92,7 +92,7 @@ router.post('/:id/members', authenticateToken, (req, res) => {
     res,
     addMember(pool, req.user.id, Number(req.params.id),
       Number(req.body?.studentId)),
-    'Učenik nije mogao da se doda u grupu.',
+    'Could not add student to group.',
   );
 });
 
@@ -102,7 +102,7 @@ router.delete('/:id/members/:studentId', authenticateToken, (req, res) => {
     res,
     removeMember(pool, req.user.id, Number(req.params.id),
       Number(req.params.studentId)),
-    'Učenik nije mogao da se ukloni iz grupe.',
+    'Could not remove student from group.',
   );
 });
 
@@ -112,7 +112,7 @@ router.get('/rooms/:roomCode/guests', authenticateToken, (req, res) => {
     res,
     roomGuests(pool, req.user.id, req.params.roomCode)
       .then((guests) => ({ guests })),
-    'Spisak zvanica nije mogao da se pročita.',
+    'Could not read guest list.',
   );
 });
 
@@ -129,7 +129,7 @@ router.post('/rooms/:roomCode/guests', authenticateToken, (req, res) => {
   answer(
     res,
     inviteToRoom(pool, req.user.id, req.params.roomCode, { groupIds, userIds }),
-    'Zvanice nisu mogle da se dodaju.',
+    'Could not add guests.',
   );
 });
 
@@ -140,7 +140,7 @@ router.delete('/rooms/:roomCode/guests', authenticateToken, (req, res) => {
   answer(
     res,
     uninviteFromRoom(pool, req.user.id, req.params.roomCode, { groupId, userId }),
-    'Zvanica nije mogla da se ukloni.',
+    'Could not remove guest.',
   );
 });
 

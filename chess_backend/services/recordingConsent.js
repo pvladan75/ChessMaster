@@ -81,7 +81,7 @@ async function blockedForRecording(pool, { ownerId, userIds }) {
 
   return others.map((id) => ({
     id: Number.isInteger(Number(id)) ? Number(id) : id,
-    name: names.get(id) || (Number.isInteger(Number(id)) ? 'Učesnik' : 'Gost'),
+    name: names.get(id) || (Number.isInteger(Number(id)) ? 'Participant' : 'Guest'),
     reason: 'present',
   }));
 }
@@ -98,7 +98,7 @@ async function mayRecordRoom(pool, { roomCode, userIds }) {
     [roomCode],
   );
   if (room.rowCount === 0) {
-    return { allowed: false, blocked: [], reason: 'Soba ne postoji.' };
+    return { allowed: false, blocked: [], reason: 'Room does not exist.' };
   }
 
   const ownerId = room.rows[0].creator_id;
@@ -115,15 +115,15 @@ async function mayRecordRoom(pool, { roomCode, userIds }) {
     return {
       allowed: false,
       blocked: [],
-      reason: 'Snimanje traži da unesete godinu rođenja — snima se samo '
-        + 'punoletna osoba, sama u sobi.',
+      reason: 'Recording requires entering your birth year — only adults '
+        + 'alone in the room may record.',
     };
   }
   if (owner.age < ADULT_AGE) {
     return {
       allowed: false,
       blocked: [],
-      reason: 'Snimanje je dostupno samo punoletnim korisnicima.',
+      reason: 'Recording is only available to adult users.',
     };
   }
 
@@ -137,8 +137,7 @@ async function mayRecordRoom(pool, { roomCode, userIds }) {
 /// around rather than the way this works.
 function refusalSentence(blocked) {
   const names = blocked.map((b) => b.name).join(', ');
-  return `Čas se ne snima. Zvuk se snima samo dok ste sami u sobi, a ovde je `
-    + `još: ${names}.`;
+  return `The session is not being recorded. Audio is recorded only while you are alone in the room, and the following are also here: ${names}.`;
 }
 
 module.exports = {

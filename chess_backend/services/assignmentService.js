@@ -142,12 +142,12 @@ async function createPuzzleAssignment(pool, {
   trainerId, studentId, title, instructions, dueAt, themes, minRating, maxRating, count,
 }) {
   if (!(await trainerOwnsStudent(pool, trainerId, studentId))) {
-    return { ok: false, reason: 'Taj učenik nije na vašoj listi.' };
+    return { ok: false, reason: 'That student is not on your list.' };
   }
 
   const puzzles = await resolvePuzzles(pool, { studentId, themes, minRating, maxRating, count });
   if (puzzles.length === 0) {
-    return { ok: false, reason: 'Nema zagonetki koje odgovaraju zadatim kriterijumima.' };
+    return { ok: false, reason: 'No puzzles match the specified criteria.' };
   }
 
   const client = await pool.connect();
@@ -227,15 +227,15 @@ async function createLessonAssignment(pool, {
   trainerId, studentId, lessonId, title, instructions, dueAt,
 }) {
   if (!(await trainerOwnsStudent(pool, trainerId, studentId))) {
-    return { ok: false, reason: 'Taj učenik nije na vašoj listi.' };
+    return { ok: false, reason: 'That student is not on your list.' };
   }
 
   const lesson = await loadAssignableLesson(pool, trainerId, lessonId);
   if (!lesson) {
-    return { ok: false, reason: 'Tutorijal nije pronađen ili nije vaš.' };
+    return { ok: false, reason: 'Tutorial not found or is not yours.' };
   }
   if (lesson.steps.length === 0) {
-    return { ok: false, reason: 'Tutorijal nema nijedan korak.' };
+    return { ok: false, reason: 'Tutorial has no steps.' };
   }
 
   const client = await pool.connect();
@@ -433,8 +433,8 @@ async function markCompleteIfDone(pool, assignmentId) {
   await notify(pool, {
     recipientId: row.trainer_id,
     senderId: row.student_id,
-    title: 'Zadatak je urađen',
-    message: `${row.student_name || 'Učenik'} je uradio zadatak: ${row.title}`,
+    title: 'Assignment completed',
+    message: `${row.student_name || 'Student'} completed the assignment: ${row.title}`,
     kind: 'assignment_done',
     refId: row.id,
   });
@@ -506,11 +506,11 @@ async function createCustomAssignment(pool, {
   trainerId, studentId, title, instructions, dueAt, puzzleIds,
 }) {
   if (!(await trainerOwnsStudent(pool, trainerId, studentId))) {
-    return { ok: false, reason: 'Taj učenik nije na vašoj listi.' };
+    return { ok: false, reason: 'That student is not on your list.' };
   }
   const ids = Array.isArray(puzzleIds) ? puzzleIds.filter((id) => typeof id === 'string') : [];
   if (ids.length === 0) {
-    return { ok: false, reason: 'Nije izabrana nijedna pozicija.' };
+    return { ok: false, reason: 'No positions selected.' };
   }
 
   // Owner-scoped in the query: a trainer can only set their own positions, and
@@ -527,7 +527,7 @@ async function createCustomAssignment(pool, {
   for (const id of ids) {
     const row = byId.get(id);
     if (!row) {
-      refused.push({ puzzleId: id, reason: 'nije vaša pozicija' });
+      refused.push({ puzzleId: id, reason: 'not your position' });
       continue;
     }
     const problem = assignableProblem(row);
@@ -539,7 +539,7 @@ async function createCustomAssignment(pool, {
   }
 
   if (usable.length === 0) {
-    return { ok: false, reason: 'Nijedna izabrana pozicija ne može da se zada.', refused };
+    return { ok: false, reason: 'None of the selected positions can be assigned.', refused };
   }
 
   const client = await pool.connect();

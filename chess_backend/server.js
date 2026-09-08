@@ -261,7 +261,7 @@ function denyPrivileged(socket, event, roomId) {
     `[SOCKET AUTHZ] Denied '${event}' on room ${roomId} for ` +
     `${socket.data.user ? `user ${socket.data.user.id}` : 'guest'} (socket ${socket.id})`
   );
-  socket.emit('action_denied', { event, reason: 'Nemate ovlašćenje za ovu akciju u ovoj sobi.' });
+  socket.emit('action_denied', { event, reason: 'You do not have permission for this action in this room.' });
 }
 
 io.on('connection', (socket) => {
@@ -294,7 +294,7 @@ io.on('connection', (socket) => {
     if (recipient) {
       io.to(recipient.socketId).emit('lesson_invite_received', {
         senderId: authUser.id,
-        senderName: authUser.name || 'Trener',
+        senderName: authUser.name || 'Trainer',
         roomCode
       });
     }
@@ -324,7 +324,7 @@ io.on('connection', (socket) => {
     socket.roomId = roomId;
     // Guests get a socket-scoped identity so they can watch without impersonating anyone.
     socket.userId = authUser ? authUser.id : socket.id;
-    socket.userName = authUser ? authUser.name : 'Gost';
+    socket.userName = authUser ? authUser.name : 'Guest';
 
     if (!activeRoomMembers[roomId]) {
       activeRoomMembers[roomId] = {};
@@ -590,7 +590,7 @@ io.on('connection', (socket) => {
     roomAudioUsers[roomId][audioUserId] = {
       socketId: socket.id,
       userId: audioUserId,
-      userName: socket.userName || (authUser ? authUser.name : 'Gost'),
+      userName: socket.userName || (authUser ? authUser.name : 'Guest'),
       role: member ? member.role : 'ucenik',
       // What the server decided, not what the client says about itself. The mute
       // flag below is the opposite kind of thing — a choice, reported by whoever
@@ -669,7 +669,7 @@ io.on('connection', (socket) => {
     }
     io.to(roomId).emit('quick_answer', {
       userId: socket.userId,
-      userName: socket.userName || 'Učenik',
+      userName: socket.userName || 'Student',
       answer,
     });
   });

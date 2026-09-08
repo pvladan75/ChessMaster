@@ -17,7 +17,7 @@ const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše pokušaja. Pokušajte ponovo za 15 minuta.' },
+  message: { error: 'Too many attempts. Please try again in 15 minutes.' },
 });
 
 router.use(['/register', '/login', '/verify-email', '/auth/verify-email', '/google', '/auth/google'], authLimiter);
@@ -31,7 +31,7 @@ router.post('/register', async (req, res) => {
   const { email, password, name } = req.body;
 
   if (!email || !password || !name) {
-    return res.status(400).json({ error: 'Sva polja (email, lozinka, ime) su obavezna.' });
+    return res.status(400).json({ error: 'All fields (email, password, name) are required.' });
   }
 
   const assignedRole = 'korisnik';
@@ -49,16 +49,16 @@ router.post('/register', async (req, res) => {
           await mailService.sendVerificationCode(email, verificationCode, existing.name);
         } catch (mailErr) {
           logger.error(`Failed to send verification code to ${email}: ${mailErr.message}`);
-          return res.status(500).json({ error: 'Nije moguće poslati verifikacioni kod. Kontaktirajte podršku.' });
+          return res.status(500).json({ error: 'Failed to send verification code. Please contact support.' });
         }
 
         return res.status(200).json({
           requiresVerification: true,
           email,
-          message: 'Email već postoji ali nije verifikovan. Nov verifikacioni kod je poslat.'
+          message: 'Email already exists but is not verified. A new verification code has been sent.'
         });
       }
-      return res.status(400).json({ error: 'Korisnik sa ovom email adresom već postoji.' });
+      return res.status(400).json({ error: 'A user with this email address already exists.' });
     }
 
     const saltRounds = 10;
@@ -76,13 +76,13 @@ router.post('/register', async (req, res) => {
       // Roll the registration back so the address stays free for a retry.
       await pool.query('DELETE FROM users WHERE id = $1', [insertResult.rows[0].id]);
       logger.error(`Failed to send verification code to ${email}: ${mailErr.message}`);
-      return res.status(500).json({ error: 'Nije moguće poslati verifikacioni kod. Kontaktirajte podršku.' });
+      return res.status(500).json({ error: 'Failed to send verification code. Please contact support.' });
     }
 
     res.status(201).json({
       requiresVerification: true,
       email,
-      message: 'Registracija uspešna. Unesite verifikacioni kod.'
+      message: 'Registration successful. Enter the verification code.'
     });
   } catch (err) {
     logger.error('Registration error:', err);
@@ -95,13 +95,13 @@ router.post(['/verify-email', '/auth/verify-email'], async (req, res) => {
   const { email, code } = req.body;
 
   if (!email || !code) {
-    return res.status(400).json({ error: 'Email i verifikacioni kod su obavezni.' });
+    return res.status(400).json({ error: 'Email and verification code are required.' });
   }
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
-      return res.status(400).json({ error: 'Korisnik sa datim emailom nije pronađen.' });
+      return res.status(400).json({ error: 'User with this email was not found.' });
     }
 
     const user = result.rows[0];
@@ -119,13 +119,13 @@ router.post(['/verify-email', '/auth/verify-email'], async (req, res) => {
     if (outcome === OUTCOME.ALREADY_VERIFIED) {
       logger.warn({ email }, 'Verification attempted on an already-verified account');
       return res.status(400).json({
-        error: 'Ovaj nalog je već verifikovan. Prijavite se lozinkom ili preko Google-a.',
+        error: 'This account is already verified. Sign in with your password or Google.',
         alreadyVerified: true,
       });
     }
 
     if (outcome !== OUTCOME.OK) {
-      return res.status(400).json({ error: 'Netačan verifikacioni kod.' });
+      return res.status(400).json({ error: 'Invalid verification code.' });
     }
 
     const updateResult = await pool.query(
@@ -184,7 +184,7 @@ router.post('/login', async (req, res) => {
     // attempts per 15 minutes, and the alternative is an unreachable account.
     if (isPasswordlessHash(user.password_hash)) {
       return res.status(400).json({
-        error: 'Ovaj nalog koristi Google prijavu i nema lozinku.',
+        error: 'This account uses Google sign-in and has no password.',
         usesGoogle: true,
         email: user.email,
       });
@@ -197,7 +197,7 @@ router.post('/login', async (req, res) => {
 
     if (user.is_verified === false) {
       return res.status(400).json({
-        error: 'Email nije verifikovan',
+        error: 'Email is not verified',
         requiresVerification: true,
         email: user.email
       });
@@ -228,7 +228,7 @@ router.post('/login', async (req, res) => {
 /// Throws when the token is absent, unverifiable, issued to another app, or unverified.
 async function verifyGoogleIdToken(idToken) {
   if (!idToken || idToken.trim() === '') {
-    throw new Error('Google ID token je obavezan.');
+    throw new Error('Google ID token is required.');
   }
 
   const verifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
@@ -240,7 +240,7 @@ async function verifyGoogleIdToken(idToken) {
     }
     payload = await response.json();
   } catch (e) {
-    throw new Error(`Google nije potvrdio identitet (${e.message}).`);
+    throw new Error(`Google could not verify identity (${e.message}).`);
   }
 
   // The audience must be this application, otherwise a token minted for any other
@@ -251,21 +251,21 @@ async function verifyGoogleIdToken(idToken) {
     .filter(Boolean);
 
   if (expectedAudiences.length === 0) {
-    throw new Error('GOOGLE_CLIENT_IDS nije konfigurisan na serveru.');
+    throw new Error('GOOGLE_CLIENT_IDS is not configured on the server.');
   }
   if (!expectedAudiences.includes(payload.aud)) {
-    throw new Error('Google token nije izdat za ovu aplikaciju.');
+    throw new Error('Google token was not issued for this application.');
   }
 
   const issuerOk = payload.iss === 'accounts.google.com' || payload.iss === 'https://accounts.google.com';
   if (!issuerOk) {
-    throw new Error('Neispravan izdavalac Google tokena.');
+    throw new Error('Invalid Google token issuer.');
   }
   if (!payload.email) {
-    throw new Error('Google token ne sadrži email adresu.');
+    throw new Error('Google token does not contain an email address.');
   }
   if (payload.email_verified !== true && payload.email_verified !== 'true') {
-    throw new Error('Google email adresa nije verifikovana.');
+    throw new Error('Google email address is not verified.');
   }
 
   return { email: payload.email, name: payload.name };
@@ -282,7 +282,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
       verified = await verifyGoogleIdToken(req.body.idToken);
     } catch (verifyErr) {
       logger.warn(`[GOOGLE_AUTH] Rejected sign-in: ${verifyErr.message}`);
-      return res.status(401).json({ error: 'Google prijava nije uspela: ' + verifyErr.message });
+      return res.status(401).json({ error: 'Google sign-in failed: ' + verifyErr.message });
     }
 
     const email = verified.email;
@@ -295,7 +295,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
       const defaultPasswordHash = GOOGLE_PLACEHOLDER_HASH;
       const insertResult = await pool.query(
         'INSERT INTO users (email, password_hash, name, role, is_verified) VALUES ($1, $2, $3, $4, TRUE) RETURNING id, email, name, role',
-        [email, defaultPasswordHash, name || 'Korisnik', 'korisnik']
+        [email, defaultPasswordHash, name || 'User', 'korisnik']
       );
       user = insertResult.rows[0];
       logger.info('[GOOGLE_AUTH] Created new Google user:', user.email);
@@ -350,7 +350,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
     });
   } catch (err) {
     logger.error('[GOOGLE_AUTH_ERROR]', err);
-    res.status(500).json({ error: 'Greška na serveru prilikom Google prijave: ' + (err.message || err.toString()) });
+    res.status(500).json({ error: 'Server error during Google sign-in: ' + (err.message || err.toString()) });
   }
 });
 
