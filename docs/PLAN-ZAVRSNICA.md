@@ -306,6 +306,36 @@ Serbian is materially worse to the ear, which is a thirty-second test and not a
 build. Its one genuine attraction is that it sends the trainer's own text and
 never a child's voice or name.
 
+**Reading a user's own text in the language they wrote it in.** The owner's
+rule, given 8.9.2026 and recorded verbatim because it decides the shape: *the
+only other language in this app is a place the user made — writing a repertoire,
+a tutorial, a comment. If those are read through TTS they must not be read
+through `en-*`, but through the service for that language. Serbian is never
+needed by default.*
+
+The **default** half of that is a fault and was fixed the same day: the voice
+picker still asked for `['sr', 'hr', 'bs', 'sh', 'me']` after the app went
+English-only, so an ordinary English machine reported `noVoice` and every
+read-aloud button in the app was silent. It now asks for `en`.
+
+The **per-artefact** half is not built, and this is the decision not to build it
+before release. A tutorial sentence a trainer wrote in Serbian is read today by
+whatever single voice the reader chose in Settings — which is the right voice
+for that trainer and the wrong one for the English interface around it. Making
+it per-string needs one of two things, and both are features rather than fixes:
+a language field on the artefact (a schema change, an editor control, and a
+migration for everything already written), or language detection per sentence
+(a guess, and a wrong guess is a sentence read in the wrong phonetics with no
+way for the reader to correct it).
+
+What the release ships instead is honest and reachable: the Settings voice list
+shows every installed voice, marks the ones meant for the interface, and lets
+any of them be chosen. A trainer writing in Serbian picks a Serbian voice and
+their material reads correctly. Written down here so the trade is a decision
+rather than an oversight, and so that whoever builds it starts from the
+artefact-field version — `SpeechService` already takes a language per call site
+in everything but name.
+
 **Monetisation beyond what exists.** Tiers, entitlements, quotas and the app's
 billing service are built; the six open items in `docs/CENA-I-PRETPLATA.md` §7
 are business decisions, not code, and they are better made against a month of

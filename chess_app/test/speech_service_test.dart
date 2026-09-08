@@ -82,43 +82,54 @@ Future<SpeechService> ready(FakeTts tts, {bool enabled = true}) async {
 
 void main() {
   group('choosing a voice', () {
-    test('Serbian wins when the machine has it', () {
+    test('the app language wins when the machine has it', () {
       expect(
-        SpeechService.pickLanguage(['en-US', 'hr-HR', 'sr-RS']),
-        'sr-RS',
+        SpeechService.pickLanguage(['de-DE', 'hr-HR', 'en-US']),
+        'en-US',
       );
     });
 
-    test('Croatian stands in for Serbian, because Windows ships no Serbian',
-        () {
-      // Not a courtesy. Microsoft's voice list has Croatian and no Serbian at
-      // all, and Croatian reads Latin-script Serbian with the right sounds.
-      // Without this the desktop half of the app is mute.
-      expect(SpeechService.pickLanguage(['de-DE', 'en-US', 'hr-HR']), 'hr-HR');
+    test('any en- region will do, because the app does not care which', () {
+      // The interface is English; en-GB reads it exactly as well as en-US, and
+      // a machine that has only one of them must not be treated as mute.
+      expect(SpeechService.pickLanguage(['de-DE', 'en-GB']), 'en-GB');
+    });
+
+    test('a Serbian voice is no longer picked on its own', () {
+      // The fault this replaced: the app went English-only while the picker
+      // still asked for `['sr', 'hr', 'bs', 'sh', 'me']`, so a machine with an
+      // ordinary English voice reported `noVoice` and every read-aloud button
+      // in the app went silent. It was found by a log line in a test run --
+      // "Nema srpskog glasa. Instalirano: en-US" -- and by nothing else,
+      // because every test here handed the service a fake Serbian engine.
+      expect(SpeechService.pickLanguage(['sr-RS', 'hr-HR']), isNull);
+      expect(SpeechService.pickLanguage(['en-US']), 'en-US');
     });
 
     test('an unrelated voice is never used', () async {
-      // The failure that matters: an English voice handed Serbian does not
-      // fail, it reads it with English phonetics. That sounds like the feature
-      // works, which is worse than silence.
-      expect(SpeechService.pickLanguage(['en-US', 'de-DE', 'fr-FR']), isNull);
+      // The failure that matters: a German voice handed English does not fail,
+      // it reads it with German phonetics. That sounds like the feature works,
+      // which is worse than silence.
+      expect(SpeechService.pickLanguage(['sr-RS', 'de-DE', 'fr-FR']), isNull);
 
-      final tts = FakeTts(['en-US', 'de-DE']);
+      final tts = FakeTts(['sr-RS', 'de-DE']);
       final service = await ready(tts);
       expect(service.state, SpeechState.noVoice);
-      await service.speak('Rd3 ispušta dobitak.');
+      await service.speak('Rd3 throws the win away.');
       expect(tts.spoken, isEmpty);
       expect(tts.language, isNull);
     });
 
     test('the list is marked, not filtered', () async {
-      // Any voice may be chosen - hearing an English one read Serbian is a
-      // reasonable thing to want once. What settings owes the reader is which
-      // ones are meant for it, so the tag does not have to be decoded.
-      expect(SpeechService.fitsSerbian('sr-RS'), isTrue);
-      expect(SpeechService.fitsSerbian('hr_HR'), isTrue);
-      expect(SpeechService.fitsSerbian('en-US'), isFalse);
-      expect(SpeechService.fitsSerbian('de-DE'), isFalse);
+      // Any voice may be chosen, and this is not a nicety: a trainer whose
+      // tutorials are written in Serbian wants a Serbian voice, and picking one
+      // here is the only way they get it. What settings owes the reader is
+      // which voices are meant for the interface, so the tag does not have to
+      // be decoded.
+      expect(SpeechService.fitsAppLanguage('en-GB'), isTrue);
+      expect(SpeechService.fitsAppLanguage('en_US'), isTrue);
+      expect(SpeechService.fitsAppLanguage('sr-RS'), isFalse);
+      expect(SpeechService.fitsAppLanguage('de-DE'), isFalse);
 
       final tts = FakeTts(['en-US', 'de-DE', 'hr-HR']);
       final service = await ready(tts);
@@ -130,24 +141,25 @@ void main() {
     });
 
     test('underscores and case do not hide a match', () {
-      expect(SpeechService.pickLanguage(['sr_RS']), 'sr_RS');
-      expect(SpeechService.pickLanguage(['HR-hr']), 'HR-hr');
+      expect(SpeechService.pickLanguage(['en_US']), 'en_US');
+      expect(SpeechService.pickLanguage(['US-en']), isNull);
+      expect(SpeechService.pickLanguage(['EN-gb']), 'EN-gb');
     });
 
     test('a chosen language survives, and a removed one does not', () async {
-      final tts = FakeTts(['sr-RS', 'hr-HR']);
+      final tts = FakeTts(['en-US', 'en-GB']);
       final kept = SpeechService.forTesting(tts);
       await kept.init(
-          enabled: true, rate: 0.5, preferred: 'hr-HR', engine: tts);
-      expect(kept.language, 'hr-HR');
+          enabled: true, rate: 0.5, preferred: 'en-GB', engine: tts);
+      expect(kept.language, 'en-GB');
 
       // The voice was uninstalled between runs: fall back to the best of what
       // is left rather than setting a language the engine does not have.
-      final gone = FakeTts(['sr-RS']);
+      final gone = FakeTts(['en-US']);
       final service = SpeechService.forTesting(gone);
       await service.init(
-          enabled: true, rate: 0.5, preferred: 'hr-HR', engine: gone);
-      expect(service.language, 'sr-RS');
+          enabled: true, rate: 0.5, preferred: 'en-GB', engine: gone);
+      expect(service.language, 'en-US');
     });
   });
 
@@ -156,33 +168,33 @@ void main() {
     // The install happens in the operating system's own settings, with the app
     // already open. Answering from the startup scan would tell someone who has
     // just installed a voice that there is none.
-    final installed = <String>['en-US'];
+    final installed = <String>['de-DE'];
     final tts = FakeTts(installed);
     final service = await ready(tts);
     expect(service.state, SpeechState.noVoice);
 
-    installed.add('hr-HR');
+    installed.add('en-GB');
     await service.refresh();
 
     expect(service.state, SpeechState.ready);
-    expect(service.language, 'hr-HR');
-    await service.speak('Kf2 drži remi.');
-    expect(tts.spoken.single, 'king f two drži remi.');
+    expect(service.language, 'en-GB');
+    await service.speak('Kf2 holds the draw.');
+    expect(tts.spoken.single, 'king f two holds the draw.');
   });
 
   group('speaking', () {
     test('notation is turned into words before it reaches the engine',
         () async {
-      final tts = FakeTts(['sr-RS']);
+      final tts = FakeTts(['en-US']);
       final service = await ready(tts);
-      await service.speak('Rd3 ispušta dobitak.');
-      expect(tts.spoken.single, 'rook d three ispušta dobitak.');
+      await service.speak('Rd3 throws the win away.');
+      expect(tts.spoken.single, 'rook d three throws the win away.');
     });
 
     test('the same sentence twice is said once', () async {
       // The panel rebuilds on a resize and on a chip changing, and every one
       // of those would otherwise restart the sentence over itself.
-      final tts = FakeTts(['sr-RS']);
+      final tts = FakeTts(['en-US']);
       final service = await ready(tts);
       await service.speak('Tačno.');
       await service.speak('Tačno.');
@@ -196,7 +208,7 @@ void main() {
       // What the app does on its own never cuts a sentence off. Being
       // interrupted mid-thought is how a spoken interface turns into noise, and
       // the board waits for the voice anyway.
-      final tts = SlowTts(['sr-RS']);
+      final tts = SlowTts(['en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
 
@@ -216,7 +228,7 @@ void main() {
     test('only the newest of the ones waiting is said', () async {
       // One slot, not a queue. Two verdicts arriving behind a third means the
       // older of them already describes a board that has moved on.
-      final tts = SlowTts(['sr-RS']);
+      final tts = SlowTts(['en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
 
@@ -234,7 +246,7 @@ void main() {
         () async {
       // Moving through the game, answering, leaving - each says the sentence is
       // no longer wanted, and so is anything queued behind it.
-      final tts = SlowTts(['sr-RS']);
+      final tts = SlowTts(['en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
 
@@ -254,7 +266,7 @@ void main() {
       // pending speak result, and there is no result until something has been
       // spoken - so the call dereferences a pointer that was never set and the
       // process dies where no try/catch can reach it.
-      final tts = FakeTts(['sr-RS']);
+      final tts = FakeTts(['en-US']);
       final service = await ready(tts);
 
       await service.stop();
@@ -268,7 +280,7 @@ void main() {
     });
 
     test('switched off, it says nothing at all', () async {
-      final tts = FakeTts(['sr-RS']);
+      final tts = FakeTts(['en-US']);
       final service = await ready(tts, enabled: false);
       expect(service.state, SpeechState.off);
       await service.speak('Tačno.');
@@ -280,7 +292,7 @@ void main() {
     });
 
     test('an empty sentence is not an utterance', () async {
-      final tts = FakeTts(['sr-RS']);
+      final tts = FakeTts(['en-US']);
       final service = await ready(tts);
       await service.speak(null);
       await service.speak('   ');
@@ -288,7 +300,7 @@ void main() {
     });
 
     test('turning it off stops what is being said', () async {
-      final tts = FakeTts(['sr-RS']);
+      final tts = FakeTts(['en-US']);
       final service = await ready(tts);
       await service.speak('Duga rečenica.');
       await service.setEnabled(false);
@@ -303,7 +315,7 @@ void main() {
     // run inside a build. A notification there is "setState() called during
     // build": the frame fails in layout, and what reaches the screen is a board
     // with no squares and the pieces floating over the background.
-    final tts = FakeTts(['sr-RS']);
+    final tts = FakeTts(['en-US']);
     final service = await ready(tts);
     var notifications = 0;
     service.addListener(() => notifications++);
@@ -318,7 +330,7 @@ void main() {
       // What the walkthrough asks before it plays the next move. Without it the
       // board moves on under a sentence still being read, and the listener is
       // told about a position that is no longer there.
-      final tts = SlowTts(['sr-RS']);
+      final tts = SlowTts(['en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
 
@@ -338,7 +350,7 @@ void main() {
       // and Windows is a different implementation. A flag that never clears
       // would stop the walkthrough forever, which is far worse than a sentence
       // being talked over.
-      final tts = SlowTts(['sr-RS']);
+      final tts = SlowTts(['en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
 
@@ -352,7 +364,7 @@ void main() {
     });
 
     test('stopping clears it at once', () async {
-      final tts = SlowTts(['sr-RS']);
+      final tts = SlowTts(['en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
       unawaited(service.speak('Tačno.'));
@@ -368,22 +380,22 @@ void main() {
       // The crash: choosing Croatian on a Windows machine that has no Croatian
       // voice took the whole app down on the way into settings, because the
       // engine threw out of an async call nobody was awaiting.
-      final tts = ListsMoreThanItHas(['hr-HR', 'en-US']);
+      final tts = ListsMoreThanItHas(['en-GB', 'en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
       expect(service.state, SpeechState.noVoice);
     });
 
     test('does not throw when it is chosen by hand', () async {
-      final tts = ListsMoreThanItHas(['hr-HR', 'en-US']);
+      final tts = ListsMoreThanItHas(['en-GB', 'en-US']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
-      await service.setLanguage('hr-HR');
+      await service.setLanguage('en-GB');
       expect(service.state, SpeechState.noVoice);
     });
 
     test('stays silent rather than half working', () async {
-      final tts = ListsMoreThanItHas(['hr-HR']);
+      final tts = ListsMoreThanItHas(['en-GB']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
       await service.speak('Tačno.');
@@ -391,7 +403,7 @@ void main() {
     });
 
     test('the rate is set through the same guard', () async {
-      final tts = ListsMoreThanItHas(['hr-HR']);
+      final tts = ListsMoreThanItHas(['en-GB']);
       final service = SpeechService.forTesting(tts);
       await service.init(enabled: true, rate: 0.5, engine: tts);
       await service.setRate(0.9);
@@ -408,7 +420,7 @@ void main() {
   });
 
   test('the rate reaches the engine, at startup and when changed', () async {
-    final tts = FakeTts(['sr-RS']);
+    final tts = FakeTts(['en-US']);
     final service = await ready(tts);
     expect(tts.rate, 0.5);
     await service.setRate(0.8);

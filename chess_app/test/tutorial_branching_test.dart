@@ -237,7 +237,7 @@ class _InstantTts implements TtsEngine {
   final List<String> spoken = [];
 
   @override
-  Future<List<String>> languages() async => ['sr-RS'];
+  Future<List<String>> languages() async => ['en-US'];
 
   @override
   Future<void> setLanguage(String language) async {}

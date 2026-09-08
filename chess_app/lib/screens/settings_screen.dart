@@ -477,7 +477,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       for (final language in languages)
                         DropdownMenuItem(
                           value: language,
-                          child: Text(SpeechService.fitsSerbian(language)
+                          child: Text(SpeechService.fitsAppLanguage(language)
                               ? '$language · supported'
                               : language),
                         ),

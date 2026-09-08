@@ -43,7 +43,7 @@ class FakeTts implements TtsEngine {
   }
 
   @override
-  Future<List<String>> languages() async => ['sr-RS'];
+  Future<List<String>> languages() async => ['en-US'];
 
   @override
   Future<void> setLanguage(String language) async {}
@@ -67,8 +67,12 @@ class FakeTts implements TtsEngine {
 /// A machine that has a synthesiser and no voice for Serbian — the ordinary
 /// state of a Windows install until somebody goes hunting for one.
 class VoicelessTts implements TtsEngine {
+  // A machine that has voices, but none for the language the app is written
+  // in. It said `['en-US']` while the app was Serbian and says `['de-DE']` now
+  // — the fixture is "no voice we can use", not "no voice at all", and which
+  // tag expresses that changes with the app's own language.
   @override
-  Future<List<String>> languages() async => ['en-US'];
+  Future<List<String>> languages() async => ['de-DE'];
 
   @override
   Future<void> setLanguage(String language) async {}

@@ -22,7 +22,7 @@ class _Engine implements TtsEngine {
   int stops = 0;
 
   @override
-  Future<List<String>> languages() async => const ['sr-RS'];
+  Future<List<String>> languages() async => const ['en-US'];
 
   @override
   Future<void> setLanguage(String language) async {}

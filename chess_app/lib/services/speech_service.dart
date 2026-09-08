@@ -167,31 +167,39 @@ class SpeechService extends ChangeNotifier {
   /// sentence again over itself.
   String _lastSpoken = '';
 
-  /// Serbian first, then the languages a Serbian speaker can be read to in.
+  /// The language the app's own text is written in.
   ///
-  /// This is not a courtesy: Windows ships no Serbian voice at all (Microsoft's
-  /// own list has Croatian and not Serbian), and Croatian reads Latin-script
-  /// Serbian correctly - same alphabet, same sounds. Without this the desktop
-  /// half of the app would be silent for everyone who has not gone hunting for
-  /// a voice.
-  static const preferredLanguages = ['sr', 'hr', 'bs', 'sh', 'me'];
+  /// It was `['sr', 'hr', 'bs', 'sh', 'me']` until the English pivot, and the
+  /// reason it was a *list* is worth keeping in mind rather than mourning:
+  /// Windows ships no Serbian voice at all, so the desktop half of the app
+  /// leaned on Croatian, which reads Latin-script Serbian correctly. English
+  /// needs no such rescue - every desktop and phone this ships to has an
+  /// English voice - so the list is one entry and any `en-*` matches it.
+  ///
+  /// **This is the app's language, not the user's material.** A trainer may
+  /// write a tutorial, a repertoire comment or a task in any language they
+  /// like, and text like that must not be read by an English voice. Today the
+  /// answer is the voice picker in Settings, which is the reader's choice for
+  /// everything at once; the per-artefact answer is written down and
+  /// deliberately not built - see `docs/STANJE-RADA.md`.
+  static const preferredLanguages = ['en'];
 
-  /// Whether a voice reads Serbian text as Serbian.
+  /// Whether a voice reads the app's own text as it is written.
   ///
   /// Used to mark the list in settings rather than to censor it. Any voice can
-  /// be chosen - an English one reading Serbian is a perfectly reasonable thing
-  /// to want to hear once - but which ones are meant for it should not have to
-  /// be guessed from a tag.
-  static bool fitsSerbian(String language) {
+  /// be chosen - somebody whose tutorials are in Serbian wants a Serbian one
+  /// and should have it - but which ones are meant for the interface should not
+  /// have to be guessed from a tag.
+  static bool fitsAppLanguage(String language) {
     final tag = language.toLowerCase().replaceAll('_', '-');
     return preferredLanguages
         .any((wanted) => tag == wanted || tag.startsWith('$wanted-'));
   }
 
-  /// Picks the voice to read Serbian with, out of what is installed.
+  /// Picks the voice to read the app's own text with, out of what is installed.
   ///
-  /// Never falls back to an unrelated language. An English voice handed Serbian
-  /// text does not fail - it reads it with English phonetics, which is worse
+  /// Never falls back to an unrelated language. A German voice handed English
+  /// text does not fail - it reads it with German phonetics, which is worse
   /// than silence because it sounds like the feature works.
   static String? pickLanguage(List<String> installed) {
     for (final wanted in preferredLanguages) {
@@ -241,7 +249,7 @@ class SpeechService extends ChangeNotifier {
     if (chosen == null) {
       _state = SpeechState.noVoice;
       AppLogger.log(
-          '[Govor] Nema srpskog glasa. Instalirano: ${_available.join(', ')}');
+          '[Govor] No voice for the app language. Installed: ${_available.join(', ')}');
       notifyListeners();
       return;
     }

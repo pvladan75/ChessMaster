@@ -171,6 +171,35 @@ Ocenjuje mašina; izveštaj je dokaz koji se čita, ne presuda.
 * `gate_contrast` sada uzima `baseline` i ne naplaćuje linije koje batch nije
   napisao.
 
+### Glas je posle zaokreta bio nem — popravljeno 8.9.2026
+
+`SpeechService.preferredLanguages` je i posle prelaska na engleski tražio
+`['sr', 'hr', 'bs', 'sh', 'me']`, a nikad ne pada na nesrodan jezik — namerno,
+jer engleski glas koji čita srpski ne pukne nego zvuči kao da funkcioniše.
+Posledica: na običnoj engleskoj mašini stanje je `noVoice`, pa **nijedno dugme
+za čitanje naglas u aplikaciji ništa ne kaže**, uključujući pripovedanje
+tutorijala. Sada traži `en`, a `fitsSerbian` je `fitsAppLanguage`.
+
+**Nijedan test to nije mogao da vidi, i to je pouka.** Svaki test u
+`speech_service_test.dart`, `lesson_narration_test.dart`,
+`govor_na_panelima_test.dart`, `tutorial_branching_test.dart` i
+`phase0_widgets_test.dart` dodavao je servisu lažni motor koji prijavljuje
+`['sr-RS']` — pretpostavka je bila ušivena u fixture. Najjači primer je
+`VoicelessTts`, koji je vraćao `['en-US']` **da bi značio „nema glasa"**; sada
+vraća `['de-DE']`. Nađeno je po log liniji u ispisu jednog test rana
+(„Nema srpskog glasa. Instalirano: en-US"), a ne po testu.
+
+Vlasnikovo pravilo, zapisano doslovno jer određuje oblik: *drugi jezik može da
+bude samo mesto koje je korisnik napravio — repertoar, tutorijal, komentar. Ako
+se to čita kroz TTS, ne sme kroz `en-*`, nego kroz servis za taj jezik. Srpski
+nam nigde ne treba po defaultu.* Polovina po defaultu je gore popravljena;
+polovina po artefaktu je **svesno odložena** i upisana u
+`docs/PLAN-ZAVRSNICA.md` — današnji odgovor je izbor glasa u Podešavanjima,
+koji važi za sve odjednom.
+
+Suite 1773 (jedan test više nego 1772: dva stara slučaja o srpskom glasu
+zamenjena sa tri o engleskom), analyze 29.
+
 ### Otvoreno, nije rađeno
 
 * Tri pitanja o dizajnu iz prijava od 7.9.2026: orijentacija kao svojstvo niza
