@@ -15,10 +15,112 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
+Poslednje ažuriranje: **8.9.2026** — vidi odeljak „ODAKLE SUTRA" odmah ispod.
+
+Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## ODAKLE SUTRA — 8.9.2026, kraj dana
+
+**Prvo pročitati `docs/PLAN-ZAVRSNICA.md`.** To je zamrznut obim za završetak
+projekta, sa šest faza i četiri izričita izuzeća, i sve ispod je stanje unutar
+njega.
+
+### Gde smo
+
+| | |
+|---|---|
+| aplikacija | **1772 testa, 1 preskočen** |
+| backend | **964 testa**, sa `.env` sklonjenim u stranu |
+| `flutter analyze` | 29 `info`, nijedno upozorenje, nijedna greška |
+| grana | `master`, nepushovana |
+
+Faza 1 (zamrzavanje + dva reza) i faza 2 (jezgro videa) su gotove. U toku je
+**engleski zaokret**, tri od četiri batch-a spojena.
+
+### Šta je odlučeno danas i ne otvara se ponovo
+
+1. **Aplikacija ide isključivo na engleski**, bez i18n sloja — zamena u mestu.
+   Ugovor je `docs/GLOSSARY-EN.md`.
+2. **Tutorial** je ono što trener piše; **Session** je živi susret u sobi.
+   Nikad „Lesson" na ekranu — u kodu ta reč znači artefakt (`saved_lessons`,
+   `LessonStep`).
+3. **Trainer**, ne Coach. Šema kaže trainer u svakom identifikatoru.
+4. **Tekst se obraća igraču, učeniku i treneru — nikad detetu**, osim gde je
+   funkcija izričito o roditeljskom nadzoru.
+5. **General Audience, 13+**, ne „namenjeno deci". Ispod 13 nema naloga —
+   `MINIMUM_AGE` odbija na ruti i na ekranu i **ne upisuje godinu**.
+   Roditeljski tok time pokriva 13–15 u zemljama sa pragom iznad 13.
+6. **Ekrani**: Room, Preparation, Analysis, Tutorial Studio. Reč „studio"
+   imenuje jedan ekran.
+7. `docs/politika-privatnosti.md` ostaje srpska i netaknuta; engleska je nov
+   fajl (`docs/privacy-policy-en.md`) u fazi 4; advokatska provera je
+   **eksterna kapija na izlasku**.
+
+### Šta je sledeće, po redu
+
+**Batch 65 — poslednji prevod.** Oko 516 linija: `features/analysis_studio`
+(161), `lib/widgets` (87), `features/position_scanner` (72),
+`features/archive` (59), `lib/core` (38), `lib/services` (29), plus groups,
+trainer_panel, library, reviews, theme, routing. Brief se piše po uzoru na
+`docs/brief-prevod-repertoar-2026-09.md`.
+
+Uz njega ide i jedno čišćenje: **`lib/core/services/serbian_plural.dart` više
+nema nijednog pozivaoca u `lib/`** — briše se sa svoja dva test fajla kad ode i
+poslednji srpski.
+
+**Kad batch 65 prođe:** oba sidra iz `docs/gates/` (`vocabulary_en_test.dart`,
+`screen_names_en_test.dart`) prelaze u `test/`, a srpski `tutorial_vocabulary_test.dart`
+i `screen_names_test.dart` se brišu. Tek tada počinje **faza 4 — priručnik i
+sajt**, na engleskom, pisan po glosaru.
+
+Posle toga: **faza 5** (trijaža 1037 stavki provere u tri gomile — zastarelo,
+viđeno, stvarno neprovereno) i **faza 6** (objavljivanje).
+
+Nedovršeno iz faze 2: renderer još ne crta natpis, strelice ni polja — to je
+batch koji dolazi posle prevoda. Jezgro (`tutorialVideoOf`) je gotovo i
+gejtovano.
+
+### Šta o workeru mora da se zna
+
+**`gemini-3.8-flash-high` ne ume da čeka potproces.** Dva puta je potrošio ceo
+budžet ispisujući „čekam da se testovi završe". Batch se brifuje tako da mu
+treba **najviše jedno puštanje celog suite-a, na kraju**; posao koji zahteva
+praćenje duge komande ostaje vođi.
+
+Persona za prevod je `flutter_translator` (`.agents/agents/`), napisana jer
+`flutter_copy_sweeper` traži tabelu odlučenih zamena a `flutter_feature_builder`
+sme da dira srpski tekst.
+
+**Dozvole se pišu pre puštanja**, u `orchestrate.py`: `untracked` za izveštaj po
+imenu i `translated` za svaki fajl pojedinačno. Peti put da `worktree` obori
+posao koji je task sam tražio.
+
+**Izveštaji su dva puta imali tačne brojeve i po jednu izmišljenu sekciju.**
+Ocenjuje mašina; izveštaj je dokaz koji se čita, ne presuda.
+
+### Nove kapije u harnessu (van repoa, `mislisha-test/orchestrator`)
+
+* `english ui` — nijedno naše slovo u literalu pod `chess_app/lib`.
+* `npm test` — backend suite sa `.env` sklonjenim, preskače se kad batch nije
+  dirao `chess_backend/`.
+* `gate_strings` ima `allow_translated` — jedina dozvola koja se sklanja umesto
+  da preusmeri.
+* `gate_contrast` sada uzima `baseline` i ne naplaćuje linije koje batch nije
+  napisao.
+
+### Otvoreno, nije rađeno
+
+* Tri pitanja o dizajnu iz prijava od 7.9.2026: orijentacija kao svojstvo niza
+  taktova, jedan tip zadatka po taktu, i komentar pre *i* posle poteza.
+* Prijava `n1788823148283`: organizacija ekrana. Uski zahvat je urađen (jedan
+  dijalog, imena); širi — jedno mesto za sve što aplikacija proizvodi — je
+  izričito van obima i odgovara mu priručnik iz faze 4.
+* Nove stavke provere uživo: **123–131** u `docs/TODO-provera.md`.
 
 ---
 
