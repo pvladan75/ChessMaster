@@ -138,7 +138,7 @@ class MoveHistoryView extends StatelessWidget {
       child: spans.isEmpty
           ? Center(
               child: Text(
-                'Nema odigranih poteza.',
+                'No moves yet.',
                 style: AppText.bodyLarge.copyWith(color: colors.textMuted),
               ),
             )

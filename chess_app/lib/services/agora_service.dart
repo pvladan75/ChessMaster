@@ -221,7 +221,8 @@ class AgoraService {
         return (
           token: '',
           maySpeak: false,
-          refused: data['error'] as String? ?? 'Niste na spisku za ovu sobu.',
+          refused: data['error'] as String? ??
+              'You are not on the list for this room.',
         );
       }
 
@@ -279,7 +280,8 @@ class AgoraService {
           // still belong in the lesson, so they join as a listener instead of
           // being turned away from it.
           _maySpeak = false;
-          onJoinStateChanged?.call(false, 'Nije odobrena dozvola za mikrofon.');
+          onJoinStateChanged?.call(
+              false, 'Microphone permission was not granted.');
         }
       }
 

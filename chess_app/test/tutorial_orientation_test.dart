@@ -98,7 +98,7 @@ void main() {
   }
 
   Future<void> flip(WidgetTester tester) async {
-    await tester.tap(find.byTooltip('Okreni tablu').first);
+    await tester.tap(find.byTooltip('Flip board').first);
     await tester.pumpAndSettle();
   }
 

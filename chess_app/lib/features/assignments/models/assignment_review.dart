@@ -107,7 +107,7 @@ class ReviewItem {
       );
 
   /// The name to show, or a fallback built from the order it was set in.
-  String label(int index) => title ?? 'Pozicija ${index + 1}';
+  String label(int index) => title ?? 'Position ${index + 1}';
 }
 
 /// One thing said about the homework, or about one position in it.
@@ -218,7 +218,7 @@ class AssignmentReview {
 
     return AssignmentReview(
       assignmentId: (assignment['id'] as num?)?.toInt() ?? 0,
-      title: assignment['title']?.toString() ?? 'Zadatak',
+      title: assignment['title']?.toString() ?? 'Assignment',
       kind: assignment['kind']?.toString(),
       instructions: _text(assignment['instructions']),
       trainerName: _text(assignment['trainerName']),

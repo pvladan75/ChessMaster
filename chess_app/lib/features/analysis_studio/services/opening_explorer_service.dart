@@ -220,7 +220,7 @@ class OpeningExplorerService {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final result = OpeningExplorerResult.fromJson(fen, data);
       AppLogger.log(
-          '[OpeningExplorer] ✅ ${result.moves.length} poteza, ${result.total} partija');
+          '[OpeningExplorer] ✅ ${result.moves.length} moves, ${result.total} games');
       return OpeningExplorerLookup.ok(result);
     } catch (e) {
       AppLogger.log('[OpeningExplorer] ❌ Backend nedostupan: $e');

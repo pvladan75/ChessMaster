@@ -19,38 +19,38 @@ void main() {
   test('pozicija bez kralja se odbija, i kaze se kog kralja nema', () {
     // Ovo je tacno onaj slucaj koji je rusio aplikaciju.
     expect(fenIllegalReason('8/8/8/8/4P3/8/8/8 w - - 0 1'),
-        contains('nema kraljeva'));
+        contains('no kings on the board'));
     expect(fenIllegalReason('8/8/4k3/8/4P3/8/8/8 w - - 0 1'),
-        contains('beli kralj'));
+        contains('white king is missing'));
     expect(fenIllegalReason('8/8/8/8/4P3/4K3/8/8 w - - 0 1'),
-        contains('crni kralj'));
+        contains('black king is missing'));
   });
 
   test('dva kralja iste boje su isto tako nemoguca', () {
     // Za motor jednako neupotrebljivo kao nijedan, samo puca na drugom mestu.
     expect(fenIllegalReason('8/8/4k3/8/8/4K1K1/8/8 w - - 0 1'),
-        contains('belog kralja'));
+        contains('more than one white king'));
   });
 
   test('pesak ne moze na prvom ni na osmom redu', () {
     expect(fenIllegalReason('P3k3/8/8/8/8/8/8/4K3 w - - 0 1'),
-        contains('osmom redu'));
+        contains('eighth rank'));
     expect(fenIllegalReason('4k3/8/8/8/8/8/8/p3K3 w - - 0 1'),
-        contains('prvom redu'));
+        contains('first rank'));
   });
 
   test('strana koja nije na potezu ne sme da bude u sahu', () {
     // Beli je na potezu, a crni kralj je vec napadnut: to znaci da je prethodni
     // potez ostavio kralja pod udarom, sto nijedna partija ne moze da proizvede.
     expect(fenIllegalReason('4k3/8/8/8/8/8/8/R3K3 w - - 0 1'), isNull,
-        reason: 'top jos ne napada kralja');
+        reason: 'the rook does not attack the king yet');
     expect(fenIllegalReason('R3k3/8/8/8/8/8/8/4K3 w - - 0 1'),
-        contains('nije na potezu'));
+        contains('not to move is in check'));
   });
 
   test('vise od osam pesaka nije partija', () {
     expect(fenIllegalReason('4k3/8/8/8/8/PPPPPPPP/PP6/4K3 w - - 0 1'),
-        contains('Previse pesaka'));
+        contains('Too many pawns'));
     // Osam je granica, ne greska.
     expect(fenIllegalReason('4k3/8/8/8/8/8/PPPPPPPP/4K3 w - - 0 1'), isNull);
   });
@@ -66,7 +66,7 @@ void main() {
     // i jos jedan top. Zato se ovde tvrdi **poruka**, ne samo odbijanje — inace
     // bi se pravilo moglo obrisati a da nijedan test ne primeti.
     expect(fenIllegalReason('4k3/8/8/8/R7/8/PPPPPPPP/RNBQKBNR w - - 0 1'),
-        contains('Previse figura'));
+        contains('Too many pieces'));
   });
 
   test('osam pesaka i tri dame ne mogu zajedno', () {
@@ -75,7 +75,7 @@ void main() {
     // morale su da dodju od pesaka kojih vise nema.
     final razlog = fenIllegalReason('4k3/8/8/8/QQ6/8/PPPPPPPP/Q3K3 w - - 0 1');
     expect(razlog, isNotNull);
-    expect(razlog, contains('promocija'));
+    expect(razlog, contains('promotions'));
   });
 
   test('promocija je moguca kad je pesaka manje', () {

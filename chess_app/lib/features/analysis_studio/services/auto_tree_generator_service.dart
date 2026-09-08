@@ -92,14 +92,14 @@ class AutoTreeGeneratorService {
     if (_isCancelled) return;
     if (currentPly >= params.pliesDepth) {
       AppLogger.log(
-          '[AutoTree] 🏁 Dostignuta max dubina (ply=$currentPly) za FEN: ${currentNode.fen}');
+          '[AutoTree] 🏁 Max depth reached (ply=$currentPly) for FEN: ${currentNode.fen}');
       return;
     }
 
     final game = chess.Chess.fromFEN(currentNode.fen);
     if (game.game_over) {
       AppLogger.log(
-          '[AutoTree] 🛑 game_over=true za FEN: ${currentNode.fen} (in_checkmate=${game.in_checkmate}, in_stalemate=${game.in_stalemate}, in_draw=${game.in_draw}) — grananje se prekida ovde.');
+          '[AutoTree] 🛑 game_over=true for FEN: ${currentNode.fen} (in_checkmate=${game.in_checkmate}, in_stalemate=${game.in_stalemate}, in_draw=${game.in_draw}) — grananje se prekida ovde.');
       return;
     }
 
@@ -163,7 +163,7 @@ class AutoTreeGeneratorService {
       // Check pruning delta
       if (evalDelta > params.deltaCutoff) {
         AppLogger.log(
-            '[AutoTree] ✂️ Potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} orezan (eval: ${line.evaluation}, delta > ${params.deltaCutoff})');
+            '[AutoTree] ✂️ Move ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} pruned (eval: ${line.evaluation}, delta > ${params.deltaCutoff})');
         continue;
       }
 
@@ -207,7 +207,7 @@ class AutoTreeGeneratorService {
 
       if (!moveOk) {
         AppLogger.log(
-            '[AutoTree WARNING] ⚠️ Nevalidan potez ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} za FEN: ${currentNode.fen}');
+            '[AutoTree WARNING] ⚠️ Invalid move ${moveSanStr.isNotEmpty ? moveSanStr : moveUci} for FEN: ${currentNode.fen}');
         continue;
       }
 

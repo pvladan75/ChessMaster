@@ -258,7 +258,7 @@ void main() {
 
     expect(branches[2].label, 'c5 31% ?');
     expect(branches[2].isMain, isFalse);
-    expect(branches[2].detail, 'nemate odgovor');
+    expect(branches[2].detail, 'you have no answer');
   });
 
   test('takeBranch(1) moves to that branchs own stop index', () {

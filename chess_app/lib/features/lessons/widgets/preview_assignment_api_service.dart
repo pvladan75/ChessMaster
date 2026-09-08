@@ -21,7 +21,8 @@ class PreviewAssignmentApiService extends AssignmentApiService {
     // and doesn't trigger the "Tačno." condition in the UI.
     return const StepAnswerResult(
       correct: false,
-      reason: 'Ovo je pregled zadatka. Potez nije poslat na proveru.',
+      reason:
+          'This is a preview of the assignment. The move was not sent to be checked.',
     );
   }
 

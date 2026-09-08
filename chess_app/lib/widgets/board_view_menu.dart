@@ -45,7 +45,7 @@ class BoardViewMenu extends StatelessWidget {
         return PopupMenuButton<void>(
           icon: Icon(showingCoords ? Icons.grid_on : Icons.grid_off,
               size: size, color: color),
-          tooltip: 'Prikaz na tabli',
+          tooltip: 'Board view',
           itemBuilder: (context) {
             return [
               PopupMenuItem<void>(
@@ -54,7 +54,7 @@ class BoardViewMenu extends StatelessWidget {
                 child: IgnorePointer(
                   ignoring: false,
                   child: _MenuSwitch(
-                    label: 'Koordinate',
+                    label: 'Coordinates',
                     valueGetter: () =>
                         AppSettingsService.instance.showBoardCoordinates,
                     onChanged: (v) =>
@@ -70,7 +70,7 @@ class BoardViewMenu extends StatelessWidget {
                   child: IgnorePointer(
                     ignoring: false,
                     child: _MenuSwitch(
-                      label: 'Strelice odabranog poteza',
+                      label: 'Arrows for the selected move',
                       valueGetter: () =>
                           AppSettingsService.instance.showChosenMoveArrow,
                       onChanged: (v) =>
@@ -85,7 +85,7 @@ class BoardViewMenu extends StatelessWidget {
                   child: IgnorePointer(
                     ignoring: false,
                     child: _MenuSwitch(
-                      label: 'Strelice sa statistikom',
+                      label: 'Arrows with statistics',
                       valueGetter: () =>
                           AppSettingsService.instance.showStatisticsArrows,
                       onChanged: (v) => AppSettingsService.instance
@@ -100,7 +100,7 @@ class BoardViewMenu extends StatelessWidget {
                   child: IgnorePointer(
                     ignoring: false,
                     child: _MenuSwitch(
-                      label: 'Strelice motora',
+                      label: 'Engine arrows',
                       valueGetter: () =>
                           AppSettingsService.instance.showEngineArrows,
                       onChanged: (v) =>

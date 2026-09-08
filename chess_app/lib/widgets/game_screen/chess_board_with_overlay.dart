@@ -233,7 +233,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
     AppFeedback.show(
       context,
       () => const SnackBar(
-        content: Text('FEN je kopiran.'),
+        content: Text('FEN copied.'),
         duration: Duration(seconds: 2),
       ),
     );

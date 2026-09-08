@@ -678,7 +678,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     if (move.isNotEmpty && move != '-' && move.length >= 4) {
       print(
-          '\n[ENGINE_MOVE_TRIGGER] Odigravanje poteza engine-a: $reason! Odabran potez: $move (Eval: $eval)\n');
+          '\n[ENGINE_MOVE_TRIGGER] Playing the engine move: $reason! Chosen move: $move (Eval: $eval)\n');
       // `_isOpponentTurn` deliberately stays true here. It used to be cleared
       // on this line, a full second before the move it announces is actually
       // played - and the board is only inert while it is set. In that second
@@ -731,7 +731,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         final promo = fallbackObj['promotion'] ?? '';
         validMove = '$from$to$promo';
         print(
-            '\n[TRAINING_LOG] ⚠️ ENGINE JE VRATIO NELEGALAN POTEZ ($bestMove)! Zamenjen legalnim potezom: $validMove\n');
+            '\n[TRAINING_LOG] ⚠️ THE ENGINE RETURNED AN ILLEGAL MOVE ($bestMove)! Replaced with a legal one: $validMove\n');
       }
     }
 
@@ -740,13 +740,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     print('\n--------------------------------------------------');
     print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
     print(
-        '[TRAINING_LOG] 3) FEN POZICIJA KOJU ANALIZIRA ENGINE: ${_puzzleGame?.fen}');
-    print('[TRAINING_LOG] 5) POTEZ ENGINE-A: $validMove');
+        '[TRAINING_LOG] 3) FEN POSITION THE ENGINE IS ANALYSING: ${_puzzleGame?.fen}');
+    print('[TRAINING_LOG] 5) ENGINE MOVE: $validMove');
     print(
         '[TRAINING_LOG] 5) OSNOV ODABIRA: Stockfish kalkulacija najbolje linije');
     print('[TRAINING_LOG] 5) DUBINA ANALIZE (DEPTH): $targetDepth');
     print(
-        '[TRAINING_LOG] 5) EVALUACIJA POZICIJE: $evaluation (Best: $validMove)');
+        '[TRAINING_LOG] 5) POSITION EVALUATION: $evaluation (Best: $validMove)');
     print('--------------------------------------------------\n');
 
     _sendBackendLog({

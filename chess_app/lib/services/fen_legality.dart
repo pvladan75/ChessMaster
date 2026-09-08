@@ -1,105 +1,113 @@
 import 'package:chess/chess.dart' as chess;
 
-/// Da li je FEN ne samo ispravno napisan nego i **moguca partija**.
+/// Whether a FEN is not merely well written but a **possible game**.
 ///
-/// `chess.Chess.validate_fen` proverava samo zapis: broj polja, dozvoljena
-/// slova, ispravnu rokadu i en-passant. Ne proverava nijedno pravilo igre — u
-/// njemu se rec „kralj" ne pojavljuje nijednom. Pozicija bez kralja se zato
-/// uredno parsira, prodje kao ispravna, stigne do motora, i tu aplikacija pukne.
+/// `chess.Chess.validate_fen` checks the notation only: the number of squares,
+/// the permitted letters, correct castling rights and en passant. It checks no
+/// rule of the game — the word "king" does not appear in it once. A position
+/// with no king therefore parses cleanly, passes as valid, reaches the engine,
+/// and that is where the application falls over.
 ///
-/// Nadjeno uzivo 30.8.2026: pozicija se rucno postavi bez kralja, uveze u
-/// Studio, ukljuci se motor — i aplikacija se srusi. Kvar nije u motoru nego
-/// ovde: pusteno mu je nesto sto nije sah.
+/// Found live 30.8.2026: a position is set up by hand with no king, imported
+/// into the Studio, the engine is switched on — and the app crashes. The fault
+/// is not in the engine but here: it was handed something that is not chess.
 ///
-/// Vraca `null` kad je sve u redu, ili poruku na srpskom kad nije.
+/// Returns `null` when all is well, or the reason when it is not.
+///
+/// Translated on 8.9.2026 with the English pivot. It had been missed by every
+/// sweep, and the reason is worth keeping: its Serbian was written **without
+/// diacritics** — "vise", "pesaka", "moze" — so `gate_english_ui`, which looks
+/// for `čćžšđ`, could not see a single line of it.
 String? fenIllegalReason(String fen) {
-  final tekst = fen.trim();
-  if (tekst.isEmpty) return 'Nema FEN zapisa.';
+  final text = fen.trim();
+  if (text.isEmpty) return 'No FEN given.';
 
-  // Prvo zapis, jer sve ispod pretpostavlja da se moze procitati.
+  // The notation first, because everything below assumes it can be read.
   try {
-    final provera = chess.Chess.validate_fen(tekst);
-    if (provera['valid'] != true) return 'Neispravan FEN format.';
+    final check = chess.Chess.validate_fen(text);
+    if (check['valid'] != true) return 'Malformed FEN.';
   } catch (_) {
-    return 'Neispravan FEN format.';
+    return 'Malformed FEN.';
   }
 
-  final polja = tekst.split(RegExp(r'\s+'));
-  final tabla = polja.first;
+  final fields = text.split(RegExp(r'\s+'));
+  final board = fields.first;
 
-  // Tacno jedan kralj svake boje. Ni nijedan ni dva — dva bela kralja su za
-  // motor jednako nemoguca kao nijedan, samo se rusi na drugom mestu.
-  final beli = 'K'.allMatches(tabla).length;
-  final crni = 'k'.allMatches(tabla).length;
-  if (beli == 0 && crni == 0) return 'Na tabli nema kraljeva.';
-  if (beli == 0) return 'Nedostaje beli kralj.';
-  if (crni == 0) return 'Nedostaje crni kralj.';
-  if (beli > 1) return 'Na tabli je vise od jednog belog kralja.';
-  if (crni > 1) return 'Na tabli je vise od jednog crnog kralja.';
+  // Exactly one king of each colour. Neither none nor two — for the engine two
+  // white kings are as impossible as none, they just break it somewhere else.
+  final white = 'K'.allMatches(board).length;
+  final black = 'k'.allMatches(board).length;
+  if (white == 0 && black == 0) return 'There are no kings on the board.';
+  if (white == 0) return 'The white king is missing.';
+  if (black == 0) return 'The black king is missing.';
+  if (white > 1) return 'There is more than one white king on the board.';
+  if (black > 1) return 'There is more than one black king on the board.';
 
-  // Koliko cega ima na tabli. Broji se samo prvo polje FEN-a; cifre su prazna
-  // polja i ne uticu.
-  int koliko(String slovo) => slovo.allMatches(tabla).length;
+  // How much of what is on the board. Only the first FEN field is counted;
+  // digits are empty squares and do not matter.
+  int count(String letter) => letter.allMatches(board).length;
 
-  for (final strana in const [
-    ('beli', 'PNBRQK'),
-    ('crni', 'pnbrqk'),
+  for (final side in const [
+    ('White', 'PNBRQK'),
+    ('Black', 'pnbrqk'),
   ]) {
-    final ime = strana.$1;
-    final slova = strana.$2;
-    final pesaci = koliko(slova[0]);
-    final ukupno = slova.split('').fold<int>(0, (n, c) => n + koliko(c));
+    final name = side.$1;
+    final letters = side.$2;
+    final pawns = count(letters[0]);
+    final total = letters.split('').fold<int>(0, (n, c) => n + count(c));
 
-    // Osam pesaka je sve sa cim se krece; deveti niotkuda ne dolazi.
-    if (pesaci > 8) return 'Previse pesaka za $ime: $pesaci.';
-    // Sesnaest figura je cela vojska. Vise od toga nije partija.
-    if (ukupno > 16) return 'Previse figura za $ime: $ukupno.';
+    // Eight pawns is everything you start with; a ninth comes from nowhere.
+    if (pawns > 8) return 'Too many pawns for $name: $pawns.';
+    // Sixteen pieces is the whole army. More than that is not a game.
+    if (total > 16) return 'Too many pieces for $name: $total.';
 
-    // I ono sto povezuje ta dva broja: svaka figura preko pocetnog sastava
-    // morala je da nastane promocijom, a promocija trosi pesaka. Zato dama
-    // viska i osam pesaka ne mogu zajedno — bez ovoga bi 8 pesaka i 3 dame
-    // prosle, jer ni jedan ni drugi broj sam po sebi nije prevelik.
-    final viska = [
-      (koliko(slova[4]) - 1), // dama
-      (koliko(slova[3]) - 2), // topovi
-      (koliko(slova[2]) - 2), // lovci
-      (koliko(slova[1]) - 2), // skakaci
+    // And the thing that ties those two numbers together: every piece beyond
+    // the starting set must have come from a promotion, and a promotion spends
+    // a pawn. So a spare queen and eight pawns cannot both be there — without
+    // this, 8 pawns and 3 queens would pass, because neither number is on its
+    // own too large.
+    final spare = [
+      (count(letters[4]) - 1), // queens
+      (count(letters[3]) - 2), // rooks
+      (count(letters[2]) - 2), // bishops
+      (count(letters[1]) - 2), // knights
     ].map((n) => n > 0 ? n : 0).fold<int>(0, (a, b) => a + b);
 
-    if (viska > 8 - pesaci) {
-      return 'Za $ime nema dovoljno pesaka za toliko promocija '
-          '($pesaci na tabli, a potrebno je $viska promocija).';
+    if (spare > 8 - pawns) {
+      return '$name has too few pawns for that many promotions '
+          '($pawns on the board, and $spare promotions would be needed).';
     }
   }
 
-  // Pesak na prvom ili poslednjem redu ne moze da nastane u partiji: do osmog
-  // reda stize samo da bi se odmah promovisao.
-  final redovi = tabla.split('/');
-  if (redovi.length == 8) {
+  // A pawn on the first or the last rank cannot arise in a game: it only ever
+  // reaches the eighth rank in order to promote at once.
+  final ranks = board.split('/');
+  if (ranks.length == 8) {
     for (final r in [0, 7]) {
-      if (redovi[r].contains('P') || redovi[r].contains('p')) {
-        return 'Pesak ne moze da stoji na ${r == 0 ? 'osmom' : 'prvom'} redu.';
+      if (ranks[r].contains('P') || ranks[r].contains('p')) {
+        return 'A pawn cannot stand on the ${r == 0 ? 'eighth' : 'first'} rank.';
       }
     }
   }
 
-  // Strana koja *nije* na potezu ne sme vec da bude u sahu: to bi znacilo da je
-  // prethodni potez ostavio kralja napadnutim, sto nijedna partija ne moze da
-  // proizvede. Motor takvu poziciju ne prihvata.
+  // The side that is *not* to move must not already be in check: that would
+  // mean the previous move left a king under attack, which no game can produce.
+  // The engine does not accept such a position.
   try {
-    final igra = chess.Chess.fromFEN(tekst);
-    final naPotezu = igra.turn;
-    final protivnik =
-        naPotezu == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
-    if (igra.king_attacked(protivnik)) {
-      return 'Strana koja nije na potezu je u sahu — takva pozicija ne moze da nastane.';
+    final game = chess.Chess.fromFEN(text);
+    final toMove = game.turn;
+    final opponent =
+        toMove == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
+    if (game.king_attacked(opponent)) {
+      return 'The side that is not to move is in check — no game can reach '
+          'that position.';
     }
   } catch (_) {
-    return 'Pozicija ne moze da se procita.';
+    return 'The position cannot be read.';
   }
 
   return null;
 }
 
-/// Kratka provera, za mesta koja hoce samo da/ne.
+/// The short check, for places that only want yes or no.
 bool isFenLegal(String fen) => fenIllegalReason(fen) == null;

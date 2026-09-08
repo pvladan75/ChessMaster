@@ -277,7 +277,7 @@ class GameAnalysisWalkerService {
       final child = cur.addChild(childFen: game.fen, san: san, uci: uci);
       if (i == 0) {
         child.nag = '!';
-        if (child.comment.isEmpty) child.comment = 'Bolji potez';
+        if (child.comment.isEmpty) child.comment = 'Better move';
       }
       cur = child;
     }

@@ -234,7 +234,7 @@ class SpeechService extends ChangeNotifier {
     } catch (e) {
       // A missing engine is a fact about the machine, not a crash: Android
       // without Google's speech services, or Windows with the feature stripped.
-      AppLogger.log('[Govor] Sinteza nije dostupna: $e');
+      AppLogger.log('[Speech] Synthesis is not available: $e');
       _available = const [];
       _state = SpeechState.failed;
       notifyListeners();
@@ -249,7 +249,7 @@ class SpeechService extends ChangeNotifier {
     if (chosen == null) {
       _state = SpeechState.noVoice;
       AppLogger.log(
-          '[Govor] No voice for the app language. Installed: ${_available.join(', ')}');
+          '[Speech] No voice for the app language. Installed: ${_available.join(', ')}');
       notifyListeners();
       return;
     }
@@ -293,7 +293,7 @@ class SpeechService extends ChangeNotifier {
       await engine.setSpeechRate(_rate);
       return true;
     } catch (e) {
-      AppLogger.log('[Govor] Glas "$language" nije upotrebljiv: $e');
+      AppLogger.log('[Speech] Voice "$language" is not usable: $e');
       _state = SpeechState.noVoice;
       return false;
     }
@@ -398,7 +398,8 @@ class SpeechService extends ChangeNotifier {
     _watchdog?.cancel();
     _watchdog = Timer(_budget(text), () {
       if (!_speaking) return;
-      AppLogger.log('[Govor] Kraj izgovora nije javljen, nastavljam dalje.');
+      AppLogger.log(
+          '[Speech] End of utterance was never reported, carrying on.');
       _finishSpeaking();
     });
   }
@@ -435,7 +436,7 @@ class SpeechService extends ChangeNotifier {
     try {
       await _engine?.stop();
     } catch (e) {
-      AppLogger.log('[Govor] Prekid nije uspeo: $e');
+      AppLogger.log('[Speech] Stopping failed: $e');
     }
   }
 }

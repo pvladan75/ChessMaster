@@ -81,7 +81,7 @@ class SideProposalRunner {
     for (var i = 0; i < positions.length; i++) {
       if (_cancelled) {
         AppLogger.log(
-            '[SideProposal] Prekinuto na ${i + 1}/${positions.length}.');
+            '[SideProposal] Stopped at ${i + 1}/${positions.length}.');
         return;
       }
       final position = positions[i];

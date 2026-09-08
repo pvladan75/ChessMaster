@@ -163,14 +163,16 @@ class WalkthroughCursor implements MoveCursor {
   /// Keyed off the look rather than off `state`, because `state` describes the
   /// position a move leads to and reads differently on the two kinds of card:
   /// a move of *mine* can sit in front of an `open` position, and reading the
-  /// raw field would have told the reader „nemate odgovor" about their own
+  /// raw field would have told the reader „you have no answer" about their own
   /// move. `lookOfRepertoireMove` is the one place that question is answered.
   String? _detailForMove(RepertoireTreeMove move) {
     switch (lookOfRepertoireMove(move)) {
       case MoveTreeNodeLook.gap:
-        return 'nemate odgovor';
+        return 'you have no answer';
       case MoveTreeNodeLook.covered:
-        return move.state == 'unopened' ? 'odluka bez uzetih odgovora' : null;
+        return move.state == 'unopened'
+            ? 'a decision with no answers taken'
+            : null;
       case MoveTreeNodeLook.authored:
       case MoveTreeNodeLook.refused:
         return null;

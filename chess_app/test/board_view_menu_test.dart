@@ -32,10 +32,10 @@ void main() {
     await tester.tap(find.byType(BoardViewMenu));
     await tester.pumpAndSettle();
 
-    expect(find.text('Koordinate'), findsOneWidget);
-    expect(find.text('Strelice odabranog poteza'), findsNothing);
-    expect(find.text('Strelice sa statistikom'), findsNothing);
-    expect(find.text('Strelice motora'), findsNothing);
+    expect(find.text('Coordinates'), findsOneWidget);
+    expect(find.text('Arrows for the selected move'), findsNothing);
+    expect(find.text('Arrows with statistics'), findsNothing);
+    expect(find.text('Engine arrows'), findsNothing);
   });
 
   testWidgets('shows all switches when arrows is true', (tester) async {
@@ -47,9 +47,9 @@ void main() {
     await tester.tap(find.byType(BoardViewMenu));
     await tester.pumpAndSettle();
 
-    expect(find.text('Koordinate'), findsOneWidget);
-    expect(find.text('Strelice odabranog poteza'), findsOneWidget);
-    expect(find.text('Strelice sa statistikom'), findsOneWidget);
-    expect(find.text('Strelice motora'), findsOneWidget);
+    expect(find.text('Coordinates'), findsOneWidget);
+    expect(find.text('Arrows for the selected move'), findsOneWidget);
+    expect(find.text('Arrows with statistics'), findsOneWidget);
+    expect(find.text('Engine arrows'), findsOneWidget);
   });
 }

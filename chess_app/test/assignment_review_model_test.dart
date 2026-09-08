@@ -137,7 +137,7 @@ void main() {
     final item = ReviewItem.fromJson(
         {'itemId': 1, 'position': 2, 'kind': 'lichess', 'attempted': true});
 
-    expect(item.label(2), 'Pozicija 3');
+    expect(item.label(2), 'Position 3');
   });
 
   test('a puzzle keeps the first wrong idea, not "the move played"', () {

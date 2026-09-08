@@ -122,8 +122,8 @@ class PgnGameInfo {
   PgnGameInfo({required this.headers, required this.pgnBody});
 
   String get displayName {
-    final white = headers['White'] ?? 'Beli';
-    final black = headers['Black'] ?? 'Crni';
+    final white = headers['White'] ?? 'White';
+    final black = headers['Black'] ?? 'Black';
     final date = headers['Date'] ?? 'Nepoznat datum';
     final result = headers['Result'] ?? '*';
     return '$white vs $black ($date) - [$result]';

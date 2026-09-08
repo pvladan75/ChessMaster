@@ -72,7 +72,7 @@ class PositionLibraryService {
         if (steps is! List) continue;
         courses.add(CourseSummary(
           id: (row['id'] as num).toInt(),
-          title: row['title']?.toString() ?? 'Bez naziva',
+          title: row['title']?.toString() ?? 'Untitled',
           stepCount: steps.length,
         ));
       }

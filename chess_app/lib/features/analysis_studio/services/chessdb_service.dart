@@ -87,7 +87,7 @@ class ChessDbService {
 
       final result = ChessDbResult(fen: fen, moves: moves);
       AppLogger.log(
-          '[ChessDB] ✅ Parsed: ${result.moves.length} poteza za FEN: $fen');
+          '[ChessDB] ✅ Parsed: ${result.moves.length} moves for FEN: $fen');
       _cache[fen] = result;
       return result;
     } catch (e) {

@@ -15,17 +15,17 @@ _CategoryStyle _styleFor(SyzygyCategory category) {
     case SyzygyCategory.win:
       return const _CategoryStyle('Pobeda', Colors.greenAccent);
     case SyzygyCategory.cursedWin:
-      return const _CategoryStyle('Pobeda (50-poteza)', Colors.lightGreen);
+      return const _CategoryStyle('Win (50-move)', Colors.lightGreen);
     case SyzygyCategory.maybeWin:
       return const _CategoryStyle('Verovatna pobeda', Colors.lightGreenAccent);
     case SyzygyCategory.draw:
-      return const _CategoryStyle('Remi', Colors.amberAccent);
+      return const _CategoryStyle('Draw', Colors.amberAccent);
     case SyzygyCategory.blessedLoss:
-      return const _CategoryStyle('Remi (50-poteza)', Colors.orangeAccent);
+      return const _CategoryStyle('Draw (50-move)', Colors.orangeAccent);
     case SyzygyCategory.maybeLoss:
-      return const _CategoryStyle('Verovatan gubitak', Colors.deepOrangeAccent);
+      return const _CategoryStyle('Probable loss', Colors.deepOrangeAccent);
     case SyzygyCategory.loss:
-      return const _CategoryStyle('Gubitak', Colors.redAccent);
+      return const _CategoryStyle('Loss', Colors.redAccent);
     case SyzygyCategory.unknown:
       return const _CategoryStyle('Nepoznato', Colors.grey);
   }
@@ -93,7 +93,7 @@ class SyzygyPanelWidget extends StatelessWidget {
           if (!isLoading && result == null) ...[
             const SizedBox(height: 6),
             Text(
-              'Tablebase nije dostupan za ovu poziciju.',
+              'No tablebase for this position.',
               style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
           ],

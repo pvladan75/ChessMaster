@@ -33,7 +33,7 @@ abstract final class AppFeedback {
     } catch (e) {
       // Deliberately swallowed, and deliberately logged: nothing the user does
       // depends on this, and everything they do depends on the caller.
-      AppLogger.log('[Poruka] nije prikazana: $e');
+      AppLogger.log('[Feedback] not shown: $e');
     }
   }
 
@@ -69,7 +69,7 @@ abstract final class AppFeedback {
     try {
       messenger?.hideCurrentSnackBar();
     } catch (e) {
-      AppLogger.log('[Poruka] nije sklonjena: $e');
+      AppLogger.log('[Feedback] not dismissed: $e');
     }
   }
 

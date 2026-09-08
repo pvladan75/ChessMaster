@@ -36,7 +36,7 @@ class PuzzleTrainerState {
     this.puzzleOrientation = PlayerColor.white,
     this.selectedCategory,
     this.selectedMateDepth = '2',
-    this.selectedBasicMateType = 'Lako (Mat kralj i kraljica)',
+    this.selectedBasicMateType = 'easy',
     this.showEvalBar = true,
     this.showEvaluation = false,
     this.isBackendConnected = true,

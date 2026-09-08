@@ -399,7 +399,7 @@ class OpeningJudgeService {
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final replies = OpponentReplies.fromJson(data);
-      AppLogger.log('[Sudija] ✅ ${replies.replies.length} odgovora, '
+      AppLogger.log('[Judge] ✅ ${replies.replies.length} replies, '
           'pokriveno ${(replies.coveredShare * 100).round()}%');
       final lookup = OpponentRepliesLookup.ok(replies);
       _repliesCache[cacheKey] = lookup;

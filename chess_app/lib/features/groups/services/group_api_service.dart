@@ -257,7 +257,7 @@ class GroupApiService {
       AppLogger.log('[Grupe] ❌ $e');
       return (
         body: null,
-        error: 'Server nije dostupan — proverite da li backend radi.',
+        error: 'Cannot reach the server — check that the backend is running.',
       );
     }
   }
@@ -271,7 +271,7 @@ class GroupApiService {
     } catch (_) {
       // A body that is not JSON says nothing about why.
     }
-    return 'Server je odgovorio ${res.statusCode}.';
+    return 'The server answered ${res.statusCode}.';
   }
 
   @visibleForTesting

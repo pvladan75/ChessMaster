@@ -14,5 +14,5 @@ int jsonInt(Object? value) {
     final parsed = int.tryParse(value);
     if (parsed != null) return parsed;
   }
-  throw FormatException('Nije ceo broj: $value');
+  throw FormatException('Not a whole number: $value');
 }

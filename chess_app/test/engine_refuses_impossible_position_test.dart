@@ -28,7 +28,7 @@ void main() {
 
     expect(refused, isNotNull,
         reason: 'pozicija bez kralja mora da bude odbijena pre motora');
-    expect(refused, contains('kralj'));
+    expect(refused, contains('king'));
     engine.onPositionRefused = null;
   });
 
@@ -43,7 +43,7 @@ void main() {
     // ignore: unawaited_futures
     engine.analyzePosition(legal);
 
-    expect(refusals, 0, reason: 'ispravna pozicija se ne odbija');
+    expect(refusals, 0, reason: 'a legal position is not refused');
     engine.onPositionRefused = null;
     engine.stopAnalysis();
   });

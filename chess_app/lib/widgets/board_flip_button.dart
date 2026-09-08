@@ -28,7 +28,7 @@ class BoardFlipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: Icon(Icons.swap_vert, size: size, color: color),
-      tooltip: 'Okreni tablu',
+      tooltip: 'Flip board',
       onPressed: onPressed,
     );
   }

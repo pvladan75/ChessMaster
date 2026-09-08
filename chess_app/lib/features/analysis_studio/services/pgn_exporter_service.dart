@@ -30,7 +30,7 @@ class PgnExporterService {
       'Event': 'Analysis Studio Session',
       // Bez dijakritike namerno: PGN izvozni format je po standardu ASCII/Latin-1,
       // a „Š" nije u Latin-1 — stroži čitači bi ga prikazali kao smeće.
-      'Site': 'Sahovski trener',
+      'Site': 'Chess trainer',
       'Date': dateStr,
       'Round': '1',
       'White': 'Player',

@@ -125,8 +125,8 @@ void main() {
           .where((f) => f.factors.contains(PositionalFactor.kingShield));
       expect(shieldFindings.any((f) => f.description.contains('pawn shield')),
           isTrue);
-      expect(shieldFindings.any((f) => f.description.contains('is open')),
-          isTrue);
+      expect(
+          shieldFindings.any((f) => f.description.contains('is open')), isTrue);
     });
 
     test('10. explainMove diffs positional findings the same way tactical does',
