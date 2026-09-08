@@ -23,7 +23,7 @@ void main() {
       expect(result.motifs, contains(TacticalMotif.fork));
       expect(result.motifs, contains(TacticalMotif.doubleAttack));
       expect(result.affectedSquares, containsAll(['c7', 'e8', 'a8']));
-      expect(result.description, contains('Viljuška'));
+      expect(result.description, contains('Fork'));
     });
 
     test('2. Detects Absolute Pin with Bishop along diagonal', () {
@@ -36,7 +36,7 @@ void main() {
       expect(result.hasMotif, isTrue);
       expect(result.motifs, contains(TacticalMotif.pin));
       expect(result.affectedSquares, containsAll(['b4', 'd2', 'e1']));
-      expect(result.description, contains('Vezivanje'));
+      expect(result.description, contains('Pin'));
     });
 
     test('3. Detects Discovered Check when Knight unblocks slider ray', () {
@@ -52,7 +52,7 @@ void main() {
       expect(result.hasMotif, isTrue);
       expect(result.motifs, contains(TacticalMotif.discoveredAttack));
       expect(result.affectedSquares, containsAll(['e2', 'e5', 'e8']));
-      expect(result.description, contains('Otkriveni šah'));
+      expect(result.description, contains('Discovered check'));
     });
 
     test('4. Detects Skewer along horizontal/orthogonal line', () {
@@ -64,7 +64,7 @@ void main() {
       expect(result.hasMotif, isTrue);
       expect(result.motifs, contains(TacticalMotif.skewer));
       expect(result.affectedSquares, containsAll(['a1', 'a5', 'a8']));
-      expect(result.description, contains('Ražanj'));
+      expect(result.description, contains('Skewer'));
     });
 
     test('5. Verifies empty motif result for quiet starting position', () {
@@ -199,14 +199,15 @@ void main() {
         created: [
           MotifFinding(
             motifs: [TacticalMotif.fork],
-            description: 'Viljuška: beli skakač napada damu i topa',
+            description:
+                'Fork: the white knight attacks the queen and the rook',
             affectedSquares: ['e5'],
             favorsMover: true,
             significance: 9,
           ),
           MotifFinding(
             motifs: [TacticalMotif.hangingPiece],
-            description: 'beli pešak na a2 je nebranjen',
+            description: 'the white pawn on a2 is undefended',
             affectedSquares: ['a2'],
             favorsMover: false,
             significance: 1,
@@ -217,7 +218,7 @@ void main() {
 
       final comment = detector.describeMoveDiff(diff);
 
-      expect(comment, contains('Viljuška'));
+      expect(comment, contains('Fork'));
       expect(comment, isNot(contains('a2')));
     });
 
@@ -228,7 +229,7 @@ void main() {
         created: [
           MotifFinding(
             motifs: [TacticalMotif.hangingPiece],
-            description: 'beli pešak na a2 je nebranjen',
+            description: 'the white pawn on a2 is undefended',
             affectedSquares: ['a2'],
             favorsMover: false,
             significance: 1,

@@ -96,8 +96,8 @@ class PositionalEvaluatorService {
   }
 
   String _formatFinding(PositionalFinding f, {bool resolved = false}) {
-    if (resolved) return 'Rešeno — ${f.description}';
-    return f.favorsMover ? f.description : 'Pažnja — ${f.description}';
+    if (resolved) return 'Resolved — ${f.description}';
+    return f.favorsMover ? f.description : 'Watch out — ${f.description}';
   }
 
   List<PositionalFinding> _mostNarratable(
@@ -176,7 +176,7 @@ class PositionalEvaluatorService {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.doubledPawn],
           description:
-              'Udvojeni pešaci: ${_colorAdj(color)} ima ${filePawns.length} pešaka na ${_fileLetter(file)}-liniji (${squares.join(', ')})',
+              'Doubled pawns: ${_colorAdj(color)} has ${filePawns.length} pawns on the ${_fileLetter(file)}-file (${squares.join(', ')})',
           affectedSquares: squares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 2,
@@ -192,7 +192,7 @@ class PositionalEvaluatorService {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.isolatedPawn],
           description:
-              'Izolovani pešak: ${_colorAdj(color)} pešak na ${_fileLetter(file)}-liniji (${squares.join(', ')}) nema susede da ga brane',
+              'Isolated pawn: the ${_colorAdj(color)} pawn on the ${_fileLetter(file)}-file (${squares.join(', ')}) has no neighbours to defend it',
           affectedSquares: squares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 3,
@@ -205,7 +205,7 @@ class PositionalEvaluatorService {
           findings.add(PositionalFinding(
             factors: const [PositionalFactor.backwardPawn],
             description:
-                'Zaostali pešak: ${_colorAdj(color)} pešak na ${p.square} je zaostao za susedima i ne sme bezbedno da napreduje',
+                'Backward pawn: the ${_colorAdj(color)} pawn on ${p.square} has fallen behind its neighbours and cannot advance safely',
             affectedSquares: [p.square],
             favorsMover: _favorsMover(color, false, moverColor),
             significance: 3,
@@ -215,7 +215,7 @@ class PositionalEvaluatorService {
           findings.add(PositionalFinding(
             factors: const [PositionalFactor.passedPawn],
             description:
-                'Prolazni pešak: ${_colorAdj(color)} pešak na ${p.square} nema protivničke pešake na putu do promocije',
+                'Passed pawn: the ${_colorAdj(color)} pawn on ${p.square} has no enemy pawns in its way to promotion',
             affectedSquares: [p.square],
             favorsMover: _favorsMover(color, true, moverColor),
             significance: 5,
@@ -233,7 +233,7 @@ class PositionalEvaluatorService {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.pawnIslands],
           description:
-              '${_colorAdjCap(color)} pešačka struktura je razbijena u $islands ostrva',
+              '${_colorAdjCap(color)} pawn structure is broken into $islands islands',
           affectedSquares: pawns.map((p) => p.square).toList(),
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 2,
@@ -348,14 +348,14 @@ class PositionalEvaluatorService {
                 : isSemiOpenForBlack);
         if (!relevantForThisColor) continue;
 
-        final noun = piece.type == chess.PieceType.ROOK ? 'top' : 'dama';
-        final lineDesc = isOpen ? 'otvorenu' : 'poluotvorenu';
+        final noun = piece.type == chess.PieceType.ROOK ? 'rook' : 'queen';
+        final lineDesc = isOpen ? 'open' : 'half-open';
         findings.add(PositionalFinding(
           factors: [
             isOpen ? PositionalFactor.openFile : PositionalFactor.semiOpenFile
           ],
           description:
-              '${_colorAdjCap(piece.color)} $noun na $sq kontroliše $lineDesc ${_fileLetter(f)}-liniju',
+              'The ${_colorAdj(piece.color)} $noun on $sq controls the $lineDesc ${_fileLetter(f)}-file',
           affectedSquares: [sq],
           favorsMover: _favorsMover(piece.color, true, moverColor),
           // Fluid/contested — file control shifts with nearly every trade or
@@ -425,7 +425,7 @@ class PositionalEvaluatorService {
       PositionalFinding(
         factors: const [PositionalFactor.centerControl],
         description:
-            '${_colorAdjCap(leadingColor)} ima veću kontrolu centra (d4/e4/d5/e5)',
+            '${_colorAdjCap(leadingColor)} has the greater share of the centre (d4/e4/d5/e5)',
         affectedSquares: centerSquares,
         favorsMover: _favorsMover(leadingColor, true, moverColor),
         // Fluid — the margin shifts with nearly every pawn/piece move.
@@ -461,7 +461,7 @@ class PositionalEvaluatorService {
       return [
         PositionalFinding(
           factors: const [PositionalFactor.bishopPair],
-          description: 'Beli ima prednost lovačkog para',
+          description: 'White has the bishop pair',
           affectedSquares: bishopSquares[chess.Color.WHITE]!,
           favorsMover: _favorsMover(chess.Color.WHITE, true, moverColor),
           significance: 5,
@@ -472,7 +472,7 @@ class PositionalEvaluatorService {
       return [
         PositionalFinding(
           factors: const [PositionalFactor.bishopPair],
-          description: 'Crni ima prednost lovačkog para',
+          description: 'Black has the bishop pair',
           affectedSquares: bishopSquares[chess.Color.BLACK]!,
           favorsMover: _favorsMover(chess.Color.BLACK, true, moverColor),
           significance: 5,
@@ -528,7 +528,7 @@ class PositionalEvaluatorService {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.colorComplexWeakness],
           description:
-              '${_colorAdjCap(color)} nema svetlopoljnog lovca, a $lightPawns pešaka je fiksirano na svetlim poljima — slab kompleks',
+              '${_colorAdjCap(color)} has no light-squared bishop, and $lightPawns pawns are fixed on light squares — a weak complex',
           affectedSquares: lightPawnSquares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 4,
@@ -538,7 +538,7 @@ class PositionalEvaluatorService {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.colorComplexWeakness],
           description:
-              '${_colorAdjCap(color)} nema crnopoljnog lovca, a $darkPawns pešaka je fiksirano na tamnim poljima — slab kompleks',
+              '${_colorAdjCap(color)} has no dark-squared bishop, and $darkPawns pawns are fixed on dark squares — a weak complex',
           affectedSquares: darkPawnSquares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 4,
@@ -567,7 +567,7 @@ class PositionalEvaluatorService {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.knightOutpost],
           description:
-              '${_colorAdjCap(p.color)} skakač na $sq je na trajnom uporištu — protivnički pešaci ga ne mogu oterati',
+              'The ${_colorAdj(p.color)} knight on $sq stands on a permanent outpost — no enemy pawn can drive it away',
           affectedSquares: [sq],
           favorsMover: _favorsMover(p.color, true, moverColor),
           significance: 4,
@@ -650,7 +650,7 @@ class PositionalEvaluatorService {
           findings.add(PositionalFinding(
             factors: const [PositionalFactor.kingShield],
             description:
-                '${_colorAdjCap(color)} kralj na $kingSq je ostao bez pešačkog štita',
+                'The ${_colorAdj(color)} king on $kingSq has lost its pawn shield',
             affectedSquares: [kingSq],
             favorsMover: _favorsMover(color, false, moverColor),
             significance: 5,
@@ -674,7 +674,7 @@ class PositionalEvaluatorService {
         findings.add(PositionalFinding(
           factors: const [PositionalFactor.kingShield],
           description:
-              '${_fileLetterCap(f)}-linija pored ${_colorAdjGen(color)} kralja na $kingSq je otvorena',
+              'The ${_fileLetterCap(f)}-file beside the ${_colorAdj(color)} king on $kingSq is open',
           affectedSquares: [kingSq],
           favorsMover: _favorsMover(color, false, moverColor),
           // Fluid — retriggers on almost every step while a king is running,
@@ -716,11 +716,10 @@ class PositionalEvaluatorService {
   String _fileLetterCap(int file) => String.fromCharCode(65 + file);
 
   String _colorAdj(chess.Color color) =>
-      color == chess.Color.WHITE ? 'beli' : 'crni';
+      color == chess.Color.WHITE ? 'white' : 'black';
 
+  /// Sentence-initial form. English needs no genitive, so the third helper
+  /// the Serbian phrasing required is gone rather than translated.
   String _colorAdjCap(chess.Color color) =>
-      color == chess.Color.WHITE ? 'Beli' : 'Crni';
-
-  String _colorAdjGen(chess.Color color) =>
-      color == chess.Color.WHITE ? 'belog' : 'crnog';
+      color == chess.Color.WHITE ? 'White' : 'Black';
 }

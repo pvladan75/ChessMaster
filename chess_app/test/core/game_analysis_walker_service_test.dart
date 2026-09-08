@@ -108,7 +108,7 @@ void main() {
 
       // The review writes what it says about the move, and no longer a number
       // onto the node. The queen-hanging blunder should produce a real comment.
-      expect(child.comment, contains('nebranjen'));
+      expect(child.comment, contains('undefended'));
 
       child.comment = 'moj ručni komentar';
       await service.annotateNodeChain(

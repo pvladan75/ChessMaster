@@ -102,90 +102,59 @@ class _DeflectionResult {
 }
 
 // =============================================================================
-// SERBIAN PHRASING HELPERS — piece names with grammatical gender/case, so
-// descriptions can say "beli skakač na f5" / "napada damu na c3" instead of
-// a generic, un-declined "figura". Every piece noun except "dama" is
-// masculine; chess pieces are conventionally declined as animate nouns in
-// Serbian chess speech (e.g. "uzeo je topa", not "uzeo je top").
+// PHRASING HELPERS — a piece is named by its colour and its kind ("the white
+// knight"), so a description can say "the white knight on f5 attacks the black
+// rook on d7" instead of a bare "piece". The Serbian this replaced needed a
+// grammatical gender, a nominative and an accusative for every noun, and three
+// plural forms for a count; English needs none of that, and the machinery for
+// it is gone rather than translated.
 // =============================================================================
 
-enum _Gender { masculine, feminine }
-
-class _PieceNoun {
-  final String nominative; // subject form: "skakač", "dama"
-  final String accusative; // object form: "skakača", "damu"
-  final _Gender gender;
-
-  const _PieceNoun(this.nominative, this.accusative, this.gender);
-}
-
-_PieceNoun _pieceNoun(chess.PieceType type) {
+String _pieceName(chess.PieceType type) {
   switch (type) {
     case chess.PieceType.PAWN:
-      return const _PieceNoun('pešak', 'pešaka', _Gender.masculine);
+      return 'pawn';
     case chess.PieceType.KNIGHT:
-      return const _PieceNoun('skakač', 'skakača', _Gender.masculine);
+      return 'knight';
     case chess.PieceType.BISHOP:
-      return const _PieceNoun('lovac', 'lovca', _Gender.masculine);
+      return 'bishop';
     case chess.PieceType.ROOK:
-      return const _PieceNoun('top', 'topa', _Gender.masculine);
+      return 'rook';
     case chess.PieceType.QUEEN:
-      return const _PieceNoun('dama', 'damu', _Gender.feminine);
+      return 'queen';
     case chess.PieceType.KING:
-      return const _PieceNoun('kralj', 'kralja', _Gender.masculine);
+      return 'king';
     default:
-      return const _PieceNoun('figura', 'figuru', _Gender.feminine);
+      return 'piece';
   }
 }
 
-String _agree(_Gender gender, String masculine, String feminine) =>
-    gender == _Gender.feminine ? feminine : masculine;
+String _colorAdj(chess.Color color) =>
+    color == chess.Color.WHITE ? 'white' : 'black';
 
-String _colorAdj(chess.Color color, _Gender gender) {
-  final isWhite = color == chess.Color.WHITE;
-  return _agree(gender, isWhite ? 'beli' : 'crni', isWhite ? 'bela' : 'crna');
-}
+/// "the white knight", "the black queen". One form does for subject and
+/// object alike, which is the whole of what English asks for here.
+String _piece(chess.Piece piece) =>
+    'the ${_colorAdj(piece.color)} ${_pieceName(piece.type)}';
 
-/// "beli skakač", "crna dama" — nominative, for the piece as subject.
-String _pieceSubject(chess.Piece piece) {
-  final noun = _pieceNoun(piece.type);
-  return '${_colorAdj(piece.color, noun.gender)} ${noun.nominative}';
-}
-
-/// "belog skakača", "crnu damu" — accusative, for the piece as object
-/// ("napada ${_pieceObject(...)}").
-String _pieceObject(chess.Piece piece) {
-  final noun = _pieceNoun(piece.type);
-  final isWhite = piece.color == chess.Color.WHITE;
-  final adj = _agree(
-      noun.gender, isWhite ? 'belog' : 'crnog', isWhite ? 'belu' : 'crnu');
-  return '$adj ${noun.accusative}';
-}
-
-const _serbianCounts = {
-  2: 'dve',
-  3: 'tri',
-  4: 'četiri',
-  5: 'pet',
-  6: 'šest',
-  7: 'sedam',
-  8: 'osam'
+const _countWords = {
+  2: 'two',
+  3: 'three',
+  4: 'four',
+  5: 'five',
+  6: 'six',
+  7: 'seven',
+  8: 'eight'
 };
 
-/// "dve bele figure" (2-4) / "pet belih figura" (5+) — count + color + noun,
-/// all correctly declined for how many there are.
-String _countedFigures(int count, chess.Color color) {
-  final countWord = _serbianCounts[count] ?? '$count';
-  if (count <= 4) {
-    return '$countWord ${color == chess.Color.WHITE ? 'bele' : 'crne'} figure';
-  }
-  return '$countWord ${color == chess.Color.WHITE ? 'belih' : 'crnih'} figura';
-}
+/// "two black pieces", "five white pieces".
+String _countedPieces(int count, chess.Color color) =>
+    '${_countWords[count] ?? '$count'} ${_colorAdj(color)} pieces';
 
-/// "a", "a i b", "a, b i c" — Serbian-style listing with "i" before the last item.
-String _joinSerbian(List<String> items) {
+/// "a", "a and b", "a, b and c".
+String _joinAnd(List<String> items) {
   if (items.length <= 1) return items.join();
-  return '${items.sublist(0, items.length - 1).join(', ')} i ${items.last}';
+  return '${items.sublist(0, items.length - 1).join(', ')} and ${items.last}';
 }
 
 /// Universal, pure stateless service for detecting tactical motifs in a
@@ -300,8 +269,8 @@ class TacticalMotifDetector {
   static const int _maxResolvedInComment = 2;
 
   /// Renders a [MoveMotifDiff] as a short Serbian move-comment: what the
-  /// move threatens (as-is), what it left exposed (prefixed "Pažnja"), and
-  /// what pre-existing exposure it fixed (prefixed "Rešeno"). A resolved
+  /// move threatens (as-is), what it left exposed (prefixed "Watch out"), and
+  /// what pre-existing exposure it fixed (prefixed "Resolved"). A resolved
   /// threat the mover *had* against the opponent isn't worth narrating on
   /// its own, so it's left out. Low-significance findings (a lone hanging
   /// pawn) are dropped whenever something more significant is also present,
@@ -320,7 +289,7 @@ class TacticalMotifDetector {
     return parts.join(' | ');
   }
 
-  /// Every candidate comment line for a move — the same "Pažnja —"/"Rešeno —"
+  /// Every candidate comment line for a move — the same "Watch out —"/"Resolved —"
   /// phrasing [describeMoveDiff] uses, but unfiltered and uncapped, for UIs
   /// that let a human pick which findings to keep (e.g. a checklist) instead
   /// of applying the automatic significance filter.
@@ -334,8 +303,8 @@ class TacticalMotifDetector {
   }
 
   String _formatFinding(MotifFinding f, {bool resolved = false}) {
-    if (resolved) return 'Rešeno — ${f.description}';
-    return f.favorsMover ? f.description : 'Pažnja — ${f.description}';
+    if (resolved) return 'Resolved — ${f.description}';
+    return f.favorsMover ? f.description : 'Watch out — ${f.description}';
   }
 
   /// Highest-significance findings first, capped at [max]. Findings below
@@ -459,7 +428,7 @@ class TacticalMotifDetector {
           TacticalMotif.hangingPiece,
         ],
         description:
-            'Dvojni udar: ${hanging.description}, uz ${mate.description.substring(0, 1).toLowerCase()}${mate.description.substring(1)}',
+            'Double attack: ${hanging.description}, plus ${mate.description.substring(0, 1).toLowerCase()}${mate.description.substring(1)}',
         affectedSquares:
             {...hanging.affectedSquares, ...mate.affectedSquares}.toList(),
         favorsMover: favorsMover,
@@ -550,7 +519,7 @@ class TacticalMotifDetector {
   }
 
   // =========================================================================
-  // 1. FORK (VILJUŠKA)
+  // 1. FORK
   // =========================================================================
 
   _ForkResult _detectFork(
@@ -618,25 +587,24 @@ class TacticalMotifDetector {
       allSquares.addAll(targets);
 
       final forker = game.get(forkerSq)!;
-      final targetPhrases = targets
-          .map((tSq) => '${_pieceObject(game.get(tSq)!)} na $tSq')
-          .toList();
+      final targetPhrases =
+          targets.map((tSq) => '${_piece(game.get(tSq)!)} on $tSq').toList();
 
       sentences.add(
-        '${_pieceSubject(forker)} sa $forkerSq napada ${_countedFigures(targets.length, targetColor!)}: '
-        '${_joinSerbian(targetPhrases)}',
+        '${_piece(forker)} on $forkerSq attacks ${_countedPieces(targets.length, targetColor!)}: '
+        '${_joinAnd(targetPhrases)}',
       );
     });
 
     return _ForkResult(
       hasFork: true,
       affectedSquares: allSquares.toList(),
-      description: 'Viljuška: ${sentences.join(' | ')}',
+      description: 'Fork: ${sentences.join(' | ')}',
     );
   }
 
   // =========================================================================
-  // 2. PIN (VEZIVANJE) & SKEWER (RAŽANJ)
+  // 2. PIN & SKEWER
   // =========================================================================
 
   _PinSkewerResult _detectPinAndSkewer(
@@ -713,16 +681,16 @@ class TacticalMotifDetector {
             if (secondPiece.type == chess.PieceType.KING || val2 > val1) {
               pinSquares.addAll([attackerSq, firstSq!, secondSq!]);
               pinSentences.add(
-                '${_pieceSubject(firstPiece)} na $firstSq je ${_agree(_pieceNoun(firstPiece.type).gender, 'vezan', 'vezana')} '
-                'za ${_pieceObject(secondPiece)} na $secondSq',
+                '${_piece(firstPiece)} on $firstSq is pinned '
+                'to ${_piece(secondPiece)} on $secondSq',
               );
             }
             // SKEWER: 1st piece is King or higher value than 2nd piece
             else if (firstPiece.type == chess.PieceType.KING || val1 > val2) {
               skewerSquares.addAll([attackerSq, firstSq!, secondSq!]);
               skewerSentences.add(
-                '${_pieceSubject(firstPiece)} na $firstSq mora da se pomeri, otkrivajući '
-                '${_pieceObject(secondPiece)} na $secondSq',
+                '${_piece(firstPiece)} on $firstSq has to move, exposing '
+                '${_piece(secondPiece)} on $secondSq',
               );
             }
           }
@@ -736,10 +704,10 @@ class TacticalMotifDetector {
       pinSquares: pinSquares.toList(),
       skewerSquares: skewerSquares.toList(),
       pinDescription:
-          pinSentences.isEmpty ? '' : 'Vezivanje: ${pinSentences.join(' | ')}',
+          pinSentences.isEmpty ? '' : 'Pin: ${pinSentences.join(' | ')}',
       skewerDescription: skewerSentences.isEmpty
           ? ''
-          : 'Ražanj: ${skewerSentences.join(' | ')}',
+          : 'Skewer: ${skewerSentences.join(' | ')}',
     );
   }
 
@@ -764,7 +732,7 @@ class TacticalMotifDetector {
   }
 
   // =========================================================================
-  // 3. DISCOVERED ATTACK / CHECK (OTKRIVENI NAPAD / ŠAH)
+  // 3. DISCOVERED ATTACK / CHECK
   // =========================================================================
 
   _DiscoveredAttackResult _detectDiscoveredAttack(
@@ -857,11 +825,11 @@ class TacticalMotifDetector {
             isCheck = true;
             discSquares.addAll([sliderSq, fromSq, hitSq!]);
             sentences.add(
-                '${_pieceSubject(p)} sa $sliderSq sada napada ${_pieceObject(hitPiece)} na $hitSq (otkriveno pomeranjem figure sa $fromSq)');
+                '${_piece(p)} from $sliderSq now attacks ${_piece(hitPiece)} on $hitSq (discovered by the move away from $fromSq)');
           } else if (_pieceValue(hitPiece.type) >= 3) {
             discSquares.addAll([sliderSq, fromSq, hitSq!]);
             sentences.add(
-                '${_pieceSubject(p)} sa $sliderSq sada napada ${_pieceObject(hitPiece)} na $hitSq (otkriveno pomeranjem figure sa $fromSq)');
+                '${_piece(p)} from $sliderSq now attacks ${_piece(hitPiece)} on $hitSq (discovered by the move away from $fromSq)');
           }
         }
       }
@@ -877,8 +845,8 @@ class TacticalMotifDetector {
     }
 
     final desc = isCheck
-        ? 'Otkriveni šah: ${sentences.join(' | ')}'
-        : 'Otkriveni napad: ${sentences.join(' | ')}';
+        ? 'Discovered check: ${sentences.join(' | ')}'
+        : 'Discovered attack: ${sentences.join(' | ')}';
 
     return _DiscoveredAttackResult(
       hasDiscoveredAttack: true,
@@ -889,7 +857,7 @@ class TacticalMotifDetector {
   }
 
   // =========================================================================
-  // 4. OVERLOADING (PREOPTEREĆENA FIGURA)
+  // 4. OVERLOADING
   // =========================================================================
 
   _OverloadingResult _detectOverloading(
@@ -912,12 +880,11 @@ class TacticalMotifDetector {
       overloadedSquares.addAll(targets);
 
       final defender = game.get(defSq)!;
-      final targetPhrases = targets
-          .map((tSq) => '${_pieceObject(game.get(tSq)!)} na $tSq')
-          .toList();
+      final targetPhrases =
+          targets.map((tSq) => '${_piece(game.get(tSq)!)} on $tSq').toList();
       sentences.add(
-        '${_pieceSubject(defender)} na $defSq brani ${_countedFigures(targets.length, defender.color)} istovremeno '
-        '(${_joinSerbian(targetPhrases)}) — ne može da odbrani sve',
+        '${_piece(defender)} on $defSq defends ${_countedPieces(targets.length, defender.color)} at once '
+        '(${_joinAnd(targetPhrases)}) — it cannot hold them all',
       );
     });
 
@@ -929,7 +896,7 @@ class TacticalMotifDetector {
     return _OverloadingResult(
       hasOverloading: true,
       affectedSquares: overloadedSquares.toList(),
-      description: 'Preopterećena figura: ${sentences.join(' | ')}',
+      description: 'Overloaded piece: ${sentences.join(' | ')}',
     );
   }
 
@@ -967,8 +934,8 @@ class TacticalMotifDetector {
       final defender = game.get(defSq)!;
       final target = game.get(targets.first)!;
       sentences.add(
-        '${_pieceSubject(defender)} na $defSq je jedini branilac za ${_pieceObject(target)} na ${targets.first}, '
-        'a sam je napadnut — ako se skloni, ${_pieceSubject(target)} ostaje ${_agree(_pieceNoun(target.type).gender, 'nebranjen', 'nebranjena')}',
+        '${_piece(defender)} on $defSq is the only defender of ${_piece(target)} on ${targets.first}, '
+        'and is under attack itself — if it moves away, ${_piece(target)} is left undefended',
       );
     });
 
@@ -980,7 +947,7 @@ class TacticalMotifDetector {
     return _DeflectionResult(
       hasDeflection: true,
       affectedSquares: deflectionSquares.toList(),
-      description: 'Skretanje: ${sentences.join(' | ')}',
+      description: 'Deflection: ${sentences.join(' | ')}',
     );
   }
 
@@ -1036,14 +1003,12 @@ class TacticalMotifDetector {
     if (hangingSquares.length == 1) {
       final sq = hangingSquares.first;
       final piece = game.get(sq)!;
-      final noun = _pieceNoun(piece.type);
-      pieceDesc =
-          '${_pieceSubject(piece)} na $sq je ${_agree(noun.gender, 'nebranjen', 'nebranjena')}';
+      pieceDesc = '${_piece(piece)} on $sq is undefended';
     } else {
       final phrases = hangingSquares
-          .map((sq) => '${_pieceSubject(game.get(sq)!)} na $sq')
+          .map((sq) => '${_piece(game.get(sq)!)} on $sq')
           .toList();
-      pieceDesc = '${_joinSerbian(phrases)} su nebranjeni';
+      pieceDesc = '${_joinAnd(phrases)} are undefended';
     }
 
     return _HangingDetectionResult(
@@ -1098,11 +1063,11 @@ class TacticalMotifDetector {
     }
 
     final kingPhrase = kingSq != null
-        ? '${_colorAdj(defenderColor, _Gender.masculine)} kralj na $kingSq'
-        : 'Kralj';
+        ? 'the ${_colorAdj(defenderColor)} king on $kingSq'
+        : 'the king';
     final desc = namedMateMove != null
-        ? '$kingPhrase je pod pretnjom mata: $namedMateMove sledećim potezom'
-        : '$kingPhrase je pod pretnjom mata';
+        ? '$kingPhrase is threatened with mate: $namedMateMove next move'
+        : '$kingPhrase is threatened with mate';
 
     return _MateDetectionResult(
       hasMate: true,

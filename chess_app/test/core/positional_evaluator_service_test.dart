@@ -38,7 +38,7 @@ void main() {
             f.affectedSquares.contains('a5'),
         orElse: () => throw StateError('expected a5 flagged as a passed pawn'),
       );
-      expect(passed.description, contains('Prolazni pešak'));
+      expect(passed.description, contains('Passed pawn'));
     });
 
     test('3. Detects a backward pawn controlled by an enemy pawn', () {
@@ -63,7 +63,7 @@ void main() {
         (f) => f.factors.contains(PositionalFactor.bishopPair),
         orElse: () => throw StateError('expected a bishop-pair finding'),
       );
-      expect(pair.description, contains('lovačkog para'));
+      expect(pair.description, contains('bishop pair'));
     });
 
     test('5. Detects a color complex weakness', () {
@@ -77,7 +77,7 @@ void main() {
         orElse: () =>
             throw StateError('expected a color-complex-weakness finding'),
       );
-      expect(weakness.description, contains('svetlopoljnog lovca'));
+      expect(weakness.description, contains('light-squared bishop'));
     });
 
     test('6. Detects a rook controlling an open file', () {
@@ -89,7 +89,7 @@ void main() {
         orElse: () => throw StateError('expected an open-file finding'),
       );
       expect(openFile.affectedSquares, contains('a1'));
-      expect(openFile.description, contains('otvorenu'));
+      expect(openFile.description, contains('controls the open'));
     });
 
     test('7. Detects a center-control edge from pawn occupation', () {
@@ -100,7 +100,7 @@ void main() {
         (f) => f.factors.contains(PositionalFactor.centerControl),
         orElse: () => throw StateError('expected a center-control finding'),
       );
-      expect(center.description, contains('Beli'));
+      expect(center.description, contains('White'));
     });
 
     test('8. Detects a permanent knight outpost', () {
@@ -123,10 +123,9 @@ void main() {
 
       final shieldFindings = result.findings
           .where((f) => f.factors.contains(PositionalFactor.kingShield));
-      expect(
-          shieldFindings.any((f) => f.description.contains('pešačkog štita')),
+      expect(shieldFindings.any((f) => f.description.contains('pawn shield')),
           isTrue);
-      expect(shieldFindings.any((f) => f.description.contains('otvorena')),
+      expect(shieldFindings.any((f) => f.description.contains('is open')),
           isTrue);
     });
 
@@ -159,8 +158,8 @@ void main() {
       final comment = service.describeMoveDiff(diff);
       final candidates = service.candidateCommentLines(diff);
 
-      expect(comment, contains('uporištu'));
-      expect(candidates.any((c) => c.contains('uporištu')), isTrue);
+      expect(comment, contains('outpost'));
+      expect(candidates.any((c) => c.contains('outpost')), isTrue);
     });
 
     test(
@@ -179,12 +178,12 @@ void main() {
           service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
       final comment = service.describeMoveDiff(diff);
 
-      expect(comment, contains('pešačkog štita'));
-      expect(comment, isNot(contains('je otvorena')));
+      expect(comment, contains('pawn shield'));
+      expect(comment, isNot(contains('is open')));
 
       // Still available for manual selection, just not auto-narrated.
       final candidates = service.candidateCommentLines(diff);
-      expect(candidates.any((c) => c.contains('je otvorena')), isTrue);
+      expect(candidates.any((c) => c.contains('is open')), isTrue);
     });
   });
 }
