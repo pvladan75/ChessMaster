@@ -34,14 +34,19 @@ njega.
 
 | | |
 |---|---|
-| aplikacija | **1772 testa, 1 preskočen** |
+| aplikacija | **1762 testa, 1 preskočen** |
 | backend | **964 testa**, sa `.env` sklonjenim u stranu |
 | `flutter analyze` | 29 `info`, nijedno upozorenje, nijedna greška |
-| grana | `master`, **pushovana 8.9.2026** (94 commita, `0444554..dab0cf0`) |
+| grana | `master`, pushovana 8.9.2026 |
+| srpski u `lib/` | **nema ga** — `gate_english_ui` čist nad svih 258 fajlova |
 
-Faza 1 (zamrzavanje + dva reza) i faza 2 (jezgro videa) su gotove. U toku je
-**engleski zaokret**: tri batch-a spojena, vođin deo četvrtog takođe (`b694d3b`),
-ostaju 65a i 65b.
+Faza 1 (zamrzavanje + dva reza) i faza 2 (jezgro videa) su gotove, i
+**engleski zaokret je zatvoren 8.9.2026**: batch-evi 62–65b spojeni, `docs/gates/`
+prazan, srpska sidra obrisana. Sledeće je **faza 4 — priručnik i sajt**, na
+engleskom, pisan po glosaru.
+
+Nedovršeno iz faze 2 i dalje stoji: renderer ne crta natpis, strelice ni polja.
+To je batch koji dolazi posle priručnika ili pre njega, po izboru.
 
 ### Šta je odlučeno danas i ne otvara se ponovo
 

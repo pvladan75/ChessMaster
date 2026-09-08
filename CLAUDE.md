@@ -726,6 +726,58 @@ true number under a false name is harder to catch than an invented one**, and it
 is the reason the count in a report is never taken without re-deriving what it
 counts.
 
+**The English pivot closed on 8.9.2026 and the count is 1762, 1 skipped, with
+`flutter analyze` at 29 infos and zero warnings.** `gate_english_ui` over all
+**258** files under `chess_app/lib` is clean: no Serbian letter survives in any
+string literal. `docs/gates/` is empty — `vocabulary_en_test.dart` and
+`screen_names_en_test.dart` are ordinary tests now and the Serbian pair they
+succeed is deleted.
+
+The arithmetic, because a moving count is where a suite quietly stops running
+half of itself: 1772 + 1 (the voice fix replaced two tests with three) − 12 (the
+two `serbian_plural` files, 7 + 5, counted before deleting) − 8 + 9 (the Serbian
+anchors out, the English ones in) = **1762**. Every step was measured.
+
+Four things from the last two batches are worth carrying.
+
+**When a batch touches one end of a vocabulary whose other end is already
+written, quote the written end into the brief.** 65a's brief carried a second
+table of 21 terms *already shipped* in `tactical_motif_detector.dart` and
+`positional_evaluator_service.dart`, because two panels in that batch label the
+motifs those files name in whole sentences. All 21 came back matching. A panel
+reading „Double pawns" over a sentence reading „Doubled pawns" is the vocabulary
+coming apart in the one place a user sees both at once.
+
+**English substrings nest where Serbian inflections do not.** `contains('slika')`
+is not a substring of `slike`; `contains('image')` **is** a substring of
+`images`, so one scanner assertion silently stopped discriminating when it was
+translated. A mutation proved the file still bites on its neighbour, which is the
+only thing that could have said so. Re-read every translated `contains` and
+`isNot(contains(...))`: ask whether the new string can also match the case the
+test rules out.
+
+**A guard can contradict the contract it enforces.** The vocabulary anchor
+failed the finished sweep on nine „Lesson" hits, and not one was the word on a
+screen — two wire values, a hero tag, two route paths, four interpolations of a
+local variable called `lesson`. The glossary already says *in code, `lesson`
+means the tutorial*, and the table, the wire type and the routes are
+deliberately not renamed. Fixed in the gate, not with nine allowances: `${...}`
+is stripped **from the line** before literals are found (a literal holding
+nested quotes is sliced by a naive regex into the gap *between* two literals,
+which reads as copy), and a literal with no capital and no space is a value
+rather than a sentence. The narrowing was proved by two mutations before it was
+believed, because a narrowing that cannot fail is the same as deleting the test.
+
+**A fixture can encode the very assumption under test.** The pivot left
+`SpeechService` still asking for `['sr', 'hr', 'bs', 'sh', 'me']`, and it never
+falls back to an unrelated language — deliberately, since a voice reading the
+wrong language sounds like the feature works. So on an ordinary English machine
+the state is `noVoice` and **every read-aloud button in the app says nothing**.
+No test could see it: all five files that touch speech handed the service a fake
+engine reporting `['sr-RS']`, and `VoicelessTts` returned `['en-US']` in order
+to *mean* „no voice". It was found by a log line in a test run. Twenty-odd tests
+agreed with each other and with nothing real.
+
 **The count went *down* on 8.9.2026, from 1774 to 1772, and that is correct.**
 Batch 64 translated the repertoire and the trainers, and two tests went with the
 language: `tactics_skipped_homework_test.dart` had four, one per Serbian
