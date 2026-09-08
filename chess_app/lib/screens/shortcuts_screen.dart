@@ -33,79 +33,78 @@ class ShortcutGroup {
 /// find it or use it. A shortcut nobody knows about does not exist.
 const kShortcutGroups = <ShortcutGroup>[
   ShortcutGroup(
-    'Svuda u aplikaciji',
-    'Rade na svakom ekranu.',
+    'Everywhere in app',
+    'Works on every screen.',
     [
-      AppShortcut(['Esc'], 'Zatvara ono što je otvoreno preko rada.'),
-      AppShortcut(['Ctrl', ','], 'Otvara Podešavanja.'),
-      AppShortcut(['F1'], 'Otvara ovaj spisak.'),
-      AppShortcut(
-          ['Ctrl', 'C'], 'Kopira FEN pozicije sa table koja je na ekranu.'),
+      AppShortcut(['Esc'], 'Closes whatever is open over current work.'),
+      AppShortcut(['Ctrl', ','], 'Opens Settings.'),
+      AppShortcut(['F1'], 'Opens this shortcut list.'),
+      AppShortcut(['Ctrl', 'C'], 'Copies FEN of the board on screen.'),
     ],
   ),
   ShortcutGroup(
-    'Tabovi',
-    'Na početnom ekranu, gde su četiri taba. Dok je otvorena vežba ili soba '
-        'preko njega, tasteri pripadaju onome što je gore.',
+    'Tabs',
+    'On the home screen, where the four tabs are. While an exercise or room '
+        'is open above it, keys belong to what is on top.',
     [
-      AppShortcut(['Ctrl', '1'], 'Trening.'),
-      AppShortcut(['Ctrl', '2'], 'Časovi.'),
-      AppShortcut(['Ctrl', '3'], 'Biblioteka.'),
-      AppShortcut(['Ctrl', '4'], 'Ljudi.'),
+      AppShortcut(['Ctrl', '1'], 'Training.'),
+      AppShortcut(['Ctrl', '2'], 'Sessions.'),
+      AppShortcut(['Ctrl', '3'], 'Library.'),
+      AppShortcut(['Ctrl', '4'], 'People.'),
     ],
   ),
   ShortcutGroup(
-    'Kretanje kroz poteze',
-    'Svuda gde ispod table stoji traka sa potezima: analiza, soba, tutorijal, '
-        'ponavljanje, vežbe i šetnja kroz partiju. Dok je fokus u polju za '
-        'tekst, strelice pripadaju polju.',
+    'Move navigation',
+    'Everywhere with a move strip below the board: analysis, room, tutorial, '
+        'reviews, exercises, and game review. While focus is in a text '
+        'field, arrow keys belong to the field.',
     [
-      AppShortcut(['←'], 'Potez unazad.'),
-      AppShortcut(['→'], 'Potez unapred.'),
-      AppShortcut(['↑'], 'Na početak linije.'),
-      AppShortcut(['↓'], 'Na kraj linije.'),
-      AppShortcut(['Home'], 'Na početak linije, isto kao ↑.'),
-      AppShortcut(['End'], 'Na kraj linije, isto kao ↓.'),
+      AppShortcut(['←'], 'Move backward.'),
+      AppShortcut(['→'], 'Move forward.'),
+      AppShortcut(['↑'], 'To the start of the line.'),
+      AppShortcut(['↓'], 'To the end of the line.'),
+      AppShortcut(['Home'], 'To the start of the line, same as ↑.'),
+      AppShortcut(['End'], 'To the end of the line, same as ↓.'),
     ],
   ),
   ShortcutGroup(
-    'Trener završnica',
-    'Na ekranu sa završnicama. Svako slovo pritiska dugme koje je u tom '
-        'trenutku na ekranu, i ćuti kad tog dugmeta nema.',
+    'Endgame trainer',
+    'On the endgames screen. Each letter presses the button currently '
+        'on screen, and does nothing when that button is not present.',
     [
-      AppShortcut(['N'], 'Sledeća pozicija.'),
-      AppShortcut(['R'], 'Ispočetka, isto što i istoimeno dugme.'),
-      AppShortcut(['H'], 'Pomoć.'),
-      AppShortcut(['T'], 'Nalaz tablica, dok se pozicija igra do kraja.'),
-      AppShortcut(['U'], 'Vrati potez, posle greške u igranju do kraja.'),
+      AppShortcut(['N'], 'Next position.'),
+      AppShortcut(['R'], 'Restart, same as the restart button.'),
+      AppShortcut(['H'], 'Hint.'),
+      AppShortcut(['T'], 'Tablebase lookup, while playing out the position.'),
+      AppShortcut(['U'], 'Undo move, after an error while playing out.'),
     ],
   ),
   ShortcutGroup(
-    'Reprodukcija snimka',
-    'Na ekranu sa snimljenim časom. Dok je fokus na nekom dugmetu, razmak '
-        'pripada tom dugmetu.',
+    'Recording playback',
+    'On the recorded session screen. While focus is on a button, space '
+        'belongs to that button.',
     [
-      AppShortcut(['Razmak'], 'Pusti ili pauziraj snimak.'),
+      AppShortcut(['Space'], 'Play or pause recording.'),
     ],
   ),
   ShortcutGroup(
-    'Stablo poteza',
-    'U Analizi, i to tek kad se u samo stablo klikne — dok fokus nije u njemu, '
-        'strelice pripadaju traci sa potezima ispod table.',
+    'Move tree',
+    'In Analysis, only after clicking inside the tree itself — while focus is not in it, '
+        'arrow keys belong to the move strip below the board.',
     [
-      AppShortcut(['↑'], 'Na potez iz kog ova varijanta izlazi.'),
-      AppShortcut(['↓'], 'Na prvi nastavak.'),
-      AppShortcut(['←'], 'Na prethodnu varijantu istog poteza.'),
-      AppShortcut(['→'], 'Na sledeću varijantu istog poteza.'),
-      AppShortcut(['+'], 'Uvećaj stablo.'),
-      AppShortcut(['−'], 'Umanji stablo.'),
+      AppShortcut(['↑'], 'To the move this variation branches from.'),
+      AppShortcut(['↓'], 'To the first move.'),
+      AppShortcut(['←'], 'To the previous variation of the same move.'),
+      AppShortcut(['→'], 'To the next variation of the same move.'),
+      AppShortcut(['+'], 'Zoom in tree.'),
+      AppShortcut(['−'], 'Zoom out tree.'),
     ],
   ),
   ShortcutGroup(
-    'Miš',
-    'Na svakoj tabli u sobi i u vežbama.',
+    'Mouse',
+    'On every board in rooms and exercises.',
     [
-      AppShortcut(['Desni klik'], 'Kopira FEN pozicije.'),
+      AppShortcut(['Right click'], 'Copies board FEN.'),
     ],
   ),
 ];
@@ -122,16 +121,16 @@ class ShortcutsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Prečice na tastaturi'),
+        title: const Text('Keyboard Shortcuts'),
         elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           Text(
-            'Nijedna prečica nije jedini put do nečega — sve što je ovde ima i '
-            'svoje dugme. Na telefonu, gde tastature nema, radi samo desni '
-            'klik, i to sa mišem.',
+            'No shortcut is the only way to do something — everything here also '
+            'has its own button. On mobile devices without a keyboard, only right '
+            'click works with a mouse.',
             style: AppText.caption.copyWith(color: context.colors.textMuted),
           ),
           const SizedBox(height: AppSpacing.lg),

@@ -76,7 +76,7 @@ void main() {
       'keyH': 'H',
       'keyT': 'T',
       'keyU': 'U',
-      'space': 'Razmak',
+      'space': 'Space',
       'equal': '+',
       'numpadAdd': '+',
       'minus': '−',

@@ -114,19 +114,19 @@ class HomeFriendsTab extends StatelessWidget {
                   : (iTeachThem ? Icons.person : Icons.school))),
         ),
         title: Text(
-          r['name'] ?? 'Korisnik',
+          r['name'] ?? 'User',
           style: AppText.bodyLargeBold.copyWith(color: colors.textPrimary),
         ),
         subtitle: Text(
           awaitingParent
               ? (iTeachThem
-                  ? 'Čeka saglasnost roditelja'
-                  : 'Čeka saglasnost roditelja — dodirnite')
+                  ? 'Awaiting parental consent'
+                  : 'Awaiting parental consent — tap here')
               : (isPending
                   ? (r['i_asked'] == true
-                      ? 'Čeka potvrdu'
-                      : 'Odgovorite u zvoncetu')
-                  : (iTeachThem ? 'Vaš učenik' : 'Vaš trener')),
+                      ? 'Awaiting confirmation'
+                      : 'Respond in notifications')
+                  : (iTeachThem ? 'Your student' : 'Your trainer')),
           style: AppText.caption.copyWith(color: colors.textSecondary),
         ),
         onTap: awaitingParent
@@ -141,18 +141,19 @@ class HomeFriendsTab extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.insights, size: 20),
                 tooltip: awaitingParent
-                    ? 'Dostupno kad roditelj potvrdi'
+                    ? 'Available once parent confirms'
                     : (isPending
-                        ? 'Dostupno kad učenik prihvati'
-                        : 'Napredak i zadaci'),
+                        ? 'Available once student accepts'
+                        : 'Progress and assignments'),
                 onPressed: notYet
                     ? null
                     : () => onOpenProgress(Map<String, dynamic>.from(r)),
               ),
             IconButton(
               icon: Icon(Icons.delete, color: colors.danger, size: 20),
-              tooltip:
-                  iTeachThem ? 'Raskini odnos' : 'Raskini odnos sa trenerom',
+              tooltip: iTeachThem
+                  ? 'End relationship'
+                  : 'End relationship with trainer',
               onPressed: () => onDeleteStudent(r['id']),
             ),
           ],
@@ -204,7 +205,7 @@ class HomeFriendsTab extends StatelessWidget {
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: Text(
-                              'Moji Prijatelji & Kontakti',
+                              'Friends & Contacts',
                               style: AppText.headline
                                   .copyWith(color: colors.textPrimary),
                             ),
@@ -212,7 +213,7 @@ class HomeFriendsTab extends StatelessWidget {
                           if (myStudents.isNotEmpty)
                             IconButton(
                               icon: Icon(Icons.groups, color: colors.brand),
-                              tooltip: 'Grupe učenika',
+                              tooltip: 'Student groups',
                               onPressed: () => Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) =>
@@ -228,12 +229,12 @@ class HomeFriendsTab extends StatelessWidget {
                         runSpacing: AppSpacing.xs,
                         children: [
                           ChoiceChip(
-                            label: const Text('Ja sam trener'),
+                            label: const Text('I am a trainer'),
                             selected: iAmTrainerInRequest,
                             onSelected: (_) => onRoleChanged(true),
                           ),
                           ChoiceChip(
-                            label: const Text('Ja sam učenik'),
+                            label: const Text('I am a student'),
                             selected: !iAmTrainerInRequest,
                             onSelected: (_) => onRoleChanged(false),
                           ),
@@ -242,8 +243,8 @@ class HomeFriendsTab extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         iAmTrainerInRequest
-                            ? 'Vi predajete, druga strana je učenik.'
-                            : 'Druga strana predaje, vi ste učenik.',
+                            ? 'You teach, the other person is a student.'
+                            : 'The other person teaches, you are a student.',
                         style:
                             AppText.body.copyWith(color: colors.textSecondary),
                       ),
@@ -255,8 +256,8 @@ class HomeFriendsTab extends StatelessWidget {
                               controller: studentEmailController,
                               decoration: InputDecoration(
                                 labelText: iAmTrainerInRequest
-                                    ? 'Email učenika'
-                                    : 'Email trenera',
+                                    ? "Student's email"
+                                    : "Trainer's email",
                                 hintText: 'osoba@example.com',
                                 border: const OutlineInputBorder(),
                                 isDense: true,
@@ -273,7 +274,7 @@ class HomeFriendsTab extends StatelessWidget {
                                 vertical: 14,
                               ),
                             ),
-                            child: const Text('Pošalji zahtev'),
+                            child: const Text('Send request'),
                           ),
                         ],
                       ),
@@ -288,7 +289,7 @@ class HomeFriendsTab extends StatelessWidget {
                               vertical: AppSpacing.xl),
                           child: Center(
                             child: Text(
-                              'Još nemate ni učenika ni trenera.',
+                              'You have neither students nor trainers yet.',
                               style: AppText.body
                                   .copyWith(color: colors.textMuted),
                             ),
@@ -297,7 +298,7 @@ class HomeFriendsTab extends StatelessWidget {
                       else ...[
                         if (myStudents.isNotEmpty) ...[
                           Text(
-                            'Moji učenici',
+                            'My students',
                             style: AppText.bodyLargeBold
                                 .copyWith(color: colors.textPrimary),
                           ),
@@ -308,7 +309,7 @@ class HomeFriendsTab extends StatelessWidget {
                           const SizedBox(height: AppSpacing.lg),
                         if (myTrainers.isNotEmpty) ...[
                           Text(
-                            'Moji treneri',
+                            'My trainers',
                             style: AppText.bodyLargeBold
                                 .copyWith(color: colors.textPrimary),
                           ),

@@ -37,13 +37,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       TextEditingController(text: _settings.lichessApiToken);
 
   static const List<(String, String)> _analysisPanelToggles = [
-    ('Stablo poteza', 'move_tree'),
-    ('Taktički motivi', 'tactical_motifs'),
-    ('Pozicioni faktori', 'positional_factors'),
-    ('Opening Explorer (baza otvaranja)', 'opening_explorer'),
-    ('Sud o potezu (teorija / igrivo / greška)', 'opening_judge'),
+    ('Move tree', 'move_tree'),
+    ('Tactical motifs', 'tactical_motifs'),
+    ('Positional factors', 'positional_factors'),
+    ('Opening Explorer', 'opening_explorer'),
+    ('Move evaluation (theory / playable / mistake)', 'opening_judge'),
     ('Tablebase (Syzygy)', 'syzygy'),
-    ('Panel analize engine-a', 'engine_analysis'),
+    ('Engine analysis panel', 'engine_analysis'),
   ];
 
   Future<void> _openEngineSettings() async {
@@ -62,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       AppFeedback.show(
         context,
         () => SnackBar(
-          content: Text('Nije moguće otvoriti lichess.org u pregledaču.',
+          content: Text('Unable to open lichess.org in browser.',
               style: AppText.body.copyWith(color: context.colors.canvas)),
           backgroundColor: context.colors.danger,
         ),
@@ -79,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Do the thing, then say it.
     AppFeedback.show(
       context,
-      () => SnackBar(content: Text('Kopirano: $label')),
+      () => SnackBar(content: Text('Copied: $label')),
     );
   }
 
@@ -91,8 +91,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       () => SnackBar(
         content: Text(
           _settings.lichessApiToken.isEmpty
-              ? 'Token uklonjen.'
-              : 'Lichess token sačuvan.',
+              ? 'Token removed.'
+              : 'Lichess token saved.',
           style: AppText.body.copyWith(color: context.colors.canvas),
         ),
         backgroundColor: context.colors.success,
@@ -134,8 +134,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// three. If the files come out sounding English, the voice chosen is an
   /// English one - which the list says, and which this makes audible.
   static const _speechSample =
-      'Linije se čitaju ovako: a, b, c, d, e, f, g, h. '
-      'Greška je napravljena u 8. potezu, posle Rd8.';
+      'Files are read as follows: a, b, c, d, e, f, g, h. '
+      'Mistake was made on move 8, after Rd8.';
 
   /// The FEN the previews are drawn from.
   ///
@@ -256,7 +256,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Tema aplikacije:',
+            const Text('App theme:',
                 style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: AppSpacing.sm),
             // A Wrap rather than a Row or a SegmentedButton: three Serbian
@@ -276,12 +276,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Sistem prati podešavanje telefona ili računara. Boje table se '
-              'biraju odvojeno i ne menjaju se sa temom.',
+              'System follows your phone or computer settings. Board colors are '
+              'chosen separately and do not change with the theme.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             const Divider(height: 24),
-            const Text('Boja table:',
+            const Text('Board color:',
                 style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
@@ -306,7 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             const Divider(height: 24),
-            const Text('Figure:',
+            const Text('Pieces:',
                 style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
@@ -325,8 +325,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Figure se crtaju na izabranoj tabli, pa se ovde vidi i kako '
-              'stoje jedne pored drugih.',
+              'Pieces are rendered on the selected board, showing how they '
+              'look side by side.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
           ],
@@ -351,10 +351,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
           child: ListTile(
             leading: Icon(Icons.cake_outlined, color: context.colors.accent),
-            title: const Text('Godina rođenja'),
-            subtitle: Text(known == null
-                ? 'Nije uneta.'
-                : '$known — dodirnite da ispravite.'),
+            title: const Text('Birth year'),
+            subtitle:
+                Text(known == null ? 'Not set.' : '$known — tap to correct.'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(AppRoutes.birthYear),
           ),
@@ -387,11 +386,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onFile ? Icons.mark_email_read_outlined : Icons.email_outlined,
                 color: onFile ? context.colors.accent : context.colors.warning,
               ),
-              title: const Text('Email roditelja'),
+              title: const Text('Parent email'),
               subtitle: Text(onFile
-                  ? 'Upisan. Dodirnite da ga promenite — poruka o saglasnosti '
-                      'ide na novu adresu.'
-                  : 'Nije upisan. Bez njega trener ne može da radi sa vama.'),
+                  ? 'Saved. Tap to change — the consent email '
+                      'will be sent to the new address.'
+                  : 'Not saved. Without it the trainer cannot work with you.'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => showParentEmailDialog(context),
             ),
@@ -416,11 +415,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Izgovaraj poruke',
+                  title: const Text('Speak messages',
                       style: TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: Text(
-                    'Poruke iz info panela se čitaju naglas, da pogled može da '
-                    'ostane na tabli.',
+                    'Messages from the info panel are read aloud so your eyes '
+                    'can stay on the board.',
                     style: AppText.caption
                         .copyWith(color: context.colors.textMuted),
                   ),
@@ -439,14 +438,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                         child: Text(
                           speech.state == SpeechState.failed
-                              ? 'Ovaj uređaj nema sintezu govora, pa čitanje '
-                                  'nije moguće.'
-                              : 'Nema instaliranog glasa za srpski. Windows ga '
-                                  'i ne nudi — instalirajte hrvatski '
-                                  '(Podešavanja → Vreme i jezik → Govor → '
-                                  'Dodaj glasove), koji čita srpski latinični '
-                                  'tekst ispravno. Na Androidu: Podešavanja → '
-                                  'Pristupačnost → Tekst u govor.',
+                              ? 'This device does not have speech synthesis, so reading '
+                                  'is not available.'
+                              : 'No installed voice found for this language. On Windows: '
+                                  'Settings → Time & Language → Speech → Add voices. '
+                                  'On Android: Settings → Accessibility → Text-to-speech.',
                           style: AppText.caption
                               .copyWith(color: context.colors.textMuted),
                         ),
@@ -459,13 +455,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: OutlinedButton.icon(
                       onPressed: speech.refresh,
                       icon: const Icon(Icons.refresh, size: 16),
-                      label: const Text('Potraži glasove ponovo'),
+                      label: const Text('Check for voices again'),
                     ),
                   ),
                 ],
                 if (languages.isNotEmpty) ...[
                   const Divider(height: 24),
-                  const Text('Jezik govora:',
+                  const Text('Speech language:',
                       style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: AppSpacing.sm),
                   DropdownButton<String>(
@@ -476,13 +472,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: languages.contains(speech.language)
                         ? speech.language
                         : null,
-                    hint: const Text('Izaberite glas'),
+                    hint: const Text('Choose a voice'),
                     items: [
                       for (final language in languages)
                         DropdownMenuItem(
                           value: language,
                           child: Text(SpeechService.fitsSerbian(language)
-                              ? '$language · čita srpski'
+                              ? '$language · supported'
                               : language),
                         ),
                     ],
@@ -491,11 +487,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                   Text(
-                    'Spisak je ono što uređaj stvarno ima. Glas koji ne čita '
-                    'srpski sme da se izabere — pročitaće naš tekst svojom '
-                    'fonetikom, što je korisno da se čuje, ali nije za rad. '
-                    'Jezik same aplikacije je zasebno pitanje i čeka prevod '
-                    'svih tekstova.',
+                    'This list shows the voices installed on your device. '
+                    'Voices will pronounce text using their own phonetics.',
                     style: AppText.caption
                         .copyWith(color: context.colors.textMuted),
                   ),
@@ -505,7 +498,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Expanded(
-                      child: Text('Brzina čitanja:',
+                      child: Text('Speech rate:',
                           style: TextStyle(fontWeight: FontWeight.w500)),
                     ),
                     Text(
@@ -532,7 +525,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? () => speech.speak(_speechSample, force: true)
                         : null,
                     icon: const Icon(Icons.volume_up, size: 16),
-                    label: const Text('Probaj'),
+                    label: const Text('Test'),
                   ),
                 ),
               ],
@@ -564,7 +557,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, _) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Podešavanja Aplikacije'),
+            title: const Text('App Settings'),
             elevation: 0,
           ),
           body: ListView(
@@ -585,7 +578,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Text(
                           widget.session.name.isNotEmpty
                               ? widget.session.name[0].toUpperCase()
-                              : 'K',
+                              : 'U',
                           style: AppText.display
                               .copyWith(color: context.colors.canvas),
                         ),
@@ -615,7 +608,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 borderRadius: AppRadii.roundedSm,
                               ),
                               child: Text(
-                                'Korisnik',
+                                'User',
                                 style: AppText.captionBold
                                     .copyWith(color: context.colors.accent),
                               ),
@@ -630,19 +623,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ? context.colors.success
                               : context.colors.danger,
                         ),
-                        tooltip:
-                            widget.session.isGuest ? 'Prijavi se' : 'Odjavi se',
+                        tooltip: widget.session.isGuest ? 'Log in' : 'Log out',
                         onPressed: () {
                           showDialog(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text('Odjava'),
+                              title: const Text('Log out'),
                               content: const Text(
-                                  'Da li ste sigurni da želite da se odjavite?'),
+                                  'Are you sure you want to log out?'),
                               actions: [
                                 TextButton(
                                     onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Otkaži')),
+                                    child: const Text('Cancel')),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: context.colors.danger,
@@ -651,7 +643,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     Navigator.pop(ctx);
                                     _logout();
                                   },
-                                  child: const Text('Odjavi se'),
+                                  child: const Text('Log out'),
                                 ),
                               ],
                             ),
@@ -670,14 +662,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // below: it picks among the voices the machine actually has.
 
               const SizedBox(height: AppSpacing.xxl),
-              Text('IZGLED',
+              Text('APPEARANCE',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: AppSpacing.sm),
               _appearanceCard(context),
 
               const SizedBox(height: AppSpacing.xxl),
-              Text('NALOG',
+              Text('ACCOUNT',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: AppSpacing.sm),
@@ -707,7 +699,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // number used to answer both questions, so turning the
                       // opponent down to help a beginner also made every
                       // evaluation in the app shallower.
-                      const Text('Jačina motora kada igra protiv vas:',
+                      const Text('Engine strength when playing against you:',
                           style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: AppSpacing.sm),
                       SegmentedButton<String>(
@@ -728,11 +720,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Motor odigra potez čim dostigne dubinu svog nivoa — '
-                        'Lako ${AppSettingsService.kEnginePlayDepths['lako']}, '
-                        'Srednje ${AppSettingsService.kEnginePlayDepths['srednje']}, '
-                        'Teško ${AppSettingsService.kEnginePlayDepths['tesko']} '
-                        'poteza unapred.',
+                        'The engine moves as soon as it reaches its level depth — '
+                        'Easy ${AppSettingsService.kEnginePlayDepths['lako']}, '
+                        'Medium ${AppSettingsService.kEnginePlayDepths['srednje']}, '
+                        'Hard ${AppSettingsService.kEnginePlayDepths['tesko']} '
+                        'moves ahead.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
@@ -745,8 +737,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           // pixels on a 360 dp phone — invisibly, because a
                           // release build clips instead of striping.
                           const Expanded(
-                            child: Text(
-                                'Maksimalno vreme razmišljanja engine-a:',
+                            child: Text('Maximum engine think time:',
                                 style: TextStyle(fontWeight: FontWeight.w500)),
                           ),
                           Text(
@@ -771,30 +762,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                       ),
                       Text(
-                        'Motor igra potez čim dostigne dubinu svog nivoa ILI čim '
-                        'istekne ovo vreme — šta se pre desi.',
+                        'The engine moves as soon as it reaches its level depth OR when '
+                        'this time expires — whichever comes first.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       Text(
-                        'Dubina analize i broj linija se podešavaju na samoj '
-                        'tabli, ispod prekidača „Prikaži evaluaciju" — na '
-                        'svakom ekranu gde se evaluacija prikazuje. Poslednje '
-                        'izabrano važi i za sledeću tablu koju otvorite.',
+                        'Analysis depth and number of lines are set on the board '
+                        'itself, below the "Show evaluation" toggle — on '
+                        'every screen where evaluation is shown. The last '
+                        'selection applies to the next board you open.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       if (isCustomEngineSupported) ...[
                         const Divider(height: 24),
-                        const Text('Lokalni engine (.exe):',
+                        const Text('Local engine (.exe):',
                             style: TextStyle(fontWeight: FontWeight.w500)),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           _settings.customEnginePath.isNotEmpty
                               ? _settings.customEnginePath
-                              : 'Podrazumevani (Online / FFI paket)',
+                              : 'Default (Online / FFI package)',
                           style: AppText.caption.copyWith(
                             color: _settings.customEnginePath.isNotEmpty
                                 ? context.colors.accent
@@ -807,7 +798,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: OutlinedButton.icon(
                             onPressed: _openEngineSettings,
                             icon: const Icon(Icons.settings_suggest, size: 16),
-                            label: const Text('Podesi lokalni engine'),
+                            label: const Text('Configure local engine'),
                           ),
                         ),
                       ],
@@ -817,7 +808,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: AppSpacing.xxl),
-              Text('IZGLED TABLE I PANELA',
+              Text('BOARD AND PANEL APPEARANCE',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: AppSpacing.sm),
@@ -833,7 +824,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Expanded(
-                            child: Text('Veličina table:',
+                            child: Text('Board size:',
                                 style: TextStyle(fontWeight: FontWeight.w500)),
                           ),
                           Text(
@@ -856,18 +847,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                       ),
                       Text(
-                        'Smanjite tablu da biste oslobodili više prostora za panele pored nje.',
+                        'Reduce board size to free up more space for panels beside it.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Koordinate oko table',
+                        title: const Text('Board coordinates',
                             style: TextStyle(fontWeight: FontWeight.w500)),
                         subtitle: Text(
-                          'Slova i brojevi uz ivicu table, na svim ekranima. '
-                          'Isti prekidač stoji i na samim ekranima sa tablom.',
+                          'Letters and numbers along the board edges on all screens. '
+                          'The same toggle is also available on board screens.',
                           style: AppText.caption
                               .copyWith(color: context.colors.textMuted),
                         ),
@@ -880,12 +871,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Expanded(
-                            child: Text('Animacija poteza:',
+                            child: Text('Move animation:',
                                 style: TextStyle(fontWeight: FontWeight.w500)),
                           ),
                           Text(
                             _settings.moveAnimationDurationMs == 0
-                                ? 'Isključeno'
+                                ? 'Off'
                                 : '${_settings.moveAnimationDurationMs} ms',
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -899,7 +890,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         max: 500,
                         divisions: 10,
                         label: _settings.moveAnimationDurationMs == 0
-                            ? 'Isključeno'
+                            ? 'Off'
                             : '${_settings.moveAnimationDurationMs} ms',
                         activeColor: context.colors.accent,
                         onChanged: (val) {
@@ -907,12 +898,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                       ),
                       Text(
-                        'Koliko dugo figura klizi ka odredišnom polju. Krajnje levo isključuje animaciju.',
+                        'How long a piece slides to the destination square. Far left disables animation.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
-                      const Text('Paneli u Analizi:',
+                      const Text('Panels in Analysis:',
                           style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: AppSpacing.xs),
                       ..._analysisPanelToggles.map((panel) => CheckboxListTile(
@@ -935,10 +926,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         visualDensity: VisualDensity.compact,
                         value: _settings.manualCommentMode,
                         title: const Text(
-                            'Ručno biranje komentara u stablu poteza',
+                            'Manual comment selection in move tree',
                             style: AppText.bodyLarge),
                         subtitle: Text(
-                          'Isključi automatski komentar — sam biraš koje nalaze da zadržiš iz ponuđene liste.',
+                          'Disable automatic comments — choose manually which findings to keep from the list.',
                           style: AppText.caption
                               .copyWith(color: context.colors.textMuted),
                         ),
@@ -953,7 +944,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: AppSpacing.xxl),
-              Text('GOVOR (ČITANJE PORUKA)',
+              Text('SPEECH (READING MESSAGES)',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: AppSpacing.sm),
@@ -961,7 +952,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               if (!widget.session.isGuest) ...[
                 const SizedBox(height: AppSpacing.xxl),
-                Text('NALOG',
+                Text('ACCOUNT',
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.textMuted)),
                 const SizedBox(height: AppSpacing.sm),
@@ -970,7 +961,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
 
               const SizedBox(height: AppSpacing.xxl),
-              Text('PREČICE NA TASTATURI',
+              Text('KEYBOARD SHORTCUTS',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: AppSpacing.sm),
@@ -979,19 +970,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
                 child: ListTile(
                   leading: Icon(Icons.keyboard, color: context.colors.accent),
-                  title: const Text('Spisak prečica'),
+                  title: const Text('Keyboard shortcuts'),
                   // The row exists because the keys are invisible. Ctrl+, was
                   // built, tested and unusable for exactly as long as there was
                   // nowhere to read that it existed.
                   subtitle:
-                      const Text('Šta koji taster radi. Isto otvara i F1.'),
+                      const Text('What each key does. F1 also opens this.'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push(AppRoutes.shortcuts),
                 ),
               ),
 
               const SizedBox(height: AppSpacing.xxl),
-              Text('BAZA OTVARANJA (OPENING EXPLORER)',
+              Text('OPENING EXPLORER',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: AppSpacing.sm),
@@ -1003,7 +994,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Izvor podataka:',
+                      const Text('Data source:',
                           style: TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(height: AppSpacing.sm),
                       Row(
@@ -1032,14 +1023,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         _settings.openingDbSource == 'lichess'
-                            ? 'Lichess: popularnost poteza iz stvarno odigranih partija igrača. Ne traži nikakvo podešavanje — upit ide preko našeg servera, koji pamti odgovore.'
-                            : 'ChessDB: procena kvaliteta poteza iz deljene baze motorske analize (chessdb.cn) — ne pokazuje statistiku odigranih partija.',
+                            ? 'Lichess: move popularity from games played by real players. No setup needed — queries go through our server, which caches responses.'
+                            : 'ChessDB: move quality evaluation from shared engine analysis database (chessdb.cn) — does not show game statistics.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
                       const Divider(height: 24),
                       Text(
-                        'Lični Lichess token nije potreban. Unesite ga samo ako želite da vaši upiti idu direktno na Lichess, na vaš nalog, umesto preko zajedničkog. Dugme otvara stranicu sa već popunjenim opisom i bez ijedne tražene dozvole — ostaje samo „Create".',
+                        'A personal Lichess token is not required. Enter one only if you want your queries to go directly to Lichess on your account instead of through the shared server. The button opens a page with a pre-filled description and no permissions requested — just click "Create".',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
@@ -1049,7 +1040,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         obscureText: true,
                         style: AppText.bodyLarge,
                         decoration: InputDecoration(
-                          labelText: 'Lichess API token (nije obavezan)',
+                          labelText: 'Lichess API token (optional)',
                           hintText: 'lip_...',
                           isDense: true,
                           border: const OutlineInputBorder(),
@@ -1070,12 +1061,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           OutlinedButton.icon(
                             onPressed: _openLichessTokenPage,
                             icon: const Icon(Icons.open_in_new, size: 16),
-                            label: const Text('Napravi token'),
+                            label: const Text('Create token'),
                           ),
                           ElevatedButton.icon(
                             onPressed: _saveLichessToken,
                             icon: const Icon(Icons.save, size: 16),
-                            label: const Text('Sačuvaj token'),
+                            label: const Text('Save token'),
                           ),
                         ],
                       ),
@@ -1120,9 +1111,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Icons.palette_outlined,
                       color: context.colors.brand,
                     ),
-                    title: const Text('Galerija dizajna (Debug)'),
+                    title: const Text('Design Gallery (Debug)'),
                     subtitle: const Text(
-                      'Pregled palete boja, tipografije, dugmadi i komponenti.',
+                      'Preview color palette, typography, buttons, and components.',
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push(AppRoutes.designGallery),

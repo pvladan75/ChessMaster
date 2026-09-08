@@ -107,12 +107,12 @@ void main() {
     final library =
         File('lib/widgets/home/biblioteka_tab.dart').readAsStringSync();
 
-    expect(dashboard, contains("Text('Priprema'"));
-    expect(dashboard, contains('bez učenika'),
+    expect(dashboard, contains("Text('Preparation'"));
+    expect(dashboard, contains('without a student'),
         reason: 'the card for „Priprema" has to say what is different about '
             'it, or the name is the only thing that changed');
-    expect(library, contains('Analiza'));
-    expect(library, contains('Motor, baza otvaranja i stablo varijanti'),
+    expect(library, contains('Analysis'));
+    expect(library, contains('Engine, opening database, and variation tree'),
         reason: 'the card for „Analiza" described a free board for working '
             'with PGN and FEN, which is what the other one said too');
   });

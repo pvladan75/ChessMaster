@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/core/services/serbian_plural.dart';
 
 /// The "Početna" tab: welcome header, session shortcuts, account stats and
 /// the recordings list. Purely presentational — [HomeScreen] owns fetching
@@ -73,7 +72,7 @@ class HomeDashboardTab extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Dobrodošli, $userName!',
+                              'Welcome, $userName!',
                               style: AppText.headline
                                   .copyWith(color: colors.textPrimary),
                             ),
@@ -85,7 +84,7 @@ class HomeDashboardTab extends StatelessWidget {
                             const _ConnectionNotice(),
                             const SizedBox(height: AppSpacing.xs),
                             Text(
-                              'Spremite se za šahovski čas, rešavajte zagonetke ili analizirajte pozicije.',
+                              'Get ready for a chess session, solve puzzles, or analyze positions.',
                               style: AppText.body
                                   .copyWith(color: colors.textSecondary),
                             ),
@@ -119,12 +118,12 @@ class HomeDashboardTab extends StatelessWidget {
                               Icon(Icons.video_call,
                                   size: 36, color: colors.accent),
                               const SizedBox(height: AppSpacing.md),
-                              Text('Nova Sesija',
+                              Text('New Session',
                                   style: AppText.title
                                       .copyWith(color: colors.accent)),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                'Pokrenite čas kao Host ili zakažite termin za učenike.',
+                                'Start a session as host or schedule a time for students.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
                               ),
@@ -152,12 +151,12 @@ class HomeDashboardTab extends StatelessWidget {
                               Icon(Icons.dashboard,
                                   size: 36, color: colors.brand),
                               const SizedBox(height: AppSpacing.md),
-                              Text('Priprema',
+                              Text('Preparation',
                                   style: AppText.title
                                       .copyWith(color: colors.brand)),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                'Vaše sačuvane pozicije i tutorijali, na tabli — bez učenika.',
+                                'Your saved positions and tutorials on the board — without a student.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
                               ),
@@ -194,13 +193,13 @@ class HomeDashboardTab extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Moji zadaci',
+                                'My assignments',
                                 style:
                                     AppText.title.copyWith(color: colors.info),
                               ),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                'Vežbe koje vam je trener zadao i vaš napredak po temama.',
+                                'Drills assigned by your trainer and your progress by topic.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
                               ),
@@ -253,7 +252,7 @@ class HomeDashboardTab extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Ponavljanje',
+                                'Review',
                                 style: AppText.title.copyWith(
                                   color: dueReviewCount > 0
                                       ? colors.warning
@@ -263,16 +262,10 @@ class HomeDashboardTab extends StatelessWidget {
                               const SizedBox(height: AppSpacing.xs),
                               Text(
                                 dueReviewCount > 0
-                                    ? serbianCount(
-                                        dueReviewCount,
-                                        one: '$dueReviewCount pozicija čeka '
-                                            'na ponavljanje.',
-                                        few: '$dueReviewCount pozicije čekaju '
-                                            'na ponavljanje.',
-                                        many: '$dueReviewCount pozicija čeka '
-                                            'na ponavljanje.',
-                                      )
-                                    : 'Pozicije iz tutorijala vraćaju se na ponavljanje kad im dođe vreme.',
+                                    ? (dueReviewCount == 1
+                                        ? '1 position is waiting for review.'
+                                        : '$dueReviewCount positions are waiting for review.')
+                                    : 'Positions from tutorials return for review when their time comes.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
                               ),
@@ -299,7 +292,7 @@ class HomeDashboardTab extends StatelessWidget {
                         child: TextField(
                           controller: codeController,
                           decoration: const InputDecoration(
-                            labelText: 'Unesite kod sobe (npr. 123456)',
+                            labelText: 'Enter room code (e.g. 123456)',
                             prefixIcon: Icon(Icons.vpn_key),
                             border: OutlineInputBorder(),
                             isDense: true,
@@ -309,7 +302,7 @@ class HomeDashboardTab extends StatelessWidget {
                       const SizedBox(width: AppSpacing.md),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.login),
-                        label: const Text('Pridruži se'),
+                        label: const Text('Join'),
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(48, 48),
                           padding: const EdgeInsets.symmetric(
@@ -350,7 +343,7 @@ class HomeDashboardTab extends StatelessWidget {
                               Icon(Icons.video_library, color: colors.brand),
                               const SizedBox(width: AppSpacing.sm),
                               Text(
-                                'Snimljeni materijal',
+                                'Recorded material',
                                 style: AppText.title
                                     .copyWith(color: colors.textPrimary),
                               ),
@@ -371,7 +364,7 @@ class HomeDashboardTab extends StatelessWidget {
                               vertical: AppSpacing.lg),
                           child: Center(
                             child: Text(
-                              'Nemate sačuvanog materijala.',
+                              'You have no saved material.',
                               style: AppText.body
                                   .copyWith(color: colors.textMuted),
                             ),
@@ -386,7 +379,7 @@ class HomeDashboardTab extends StatelessWidget {
                               const Divider(height: 1),
                           itemBuilder: (ctx, idx) {
                             final rec = recordings[idx];
-                            final title = rec['title'] ?? 'Snimljeni materijal';
+                            final title = rec['title'] ?? 'Recorded material';
                             final dateStr = DateTime.parse(rec['created_at'])
                                 .toLocal()
                                 .toString()
@@ -416,7 +409,7 @@ class HomeDashboardTab extends StatelessWidget {
                               trailing: ElevatedButton.icon(
                                 icon: const Icon(Icons.movie, size: 14),
                                 label: Text(
-                                  'Pusti',
+                                  'Play',
                                   style: AppText.caption,
                                 ),
                                 style: ElevatedButton.styleFrom(

@@ -41,7 +41,7 @@ void main() {
   testWidgets('one position waits, and the verb stays singular',
       (tester) async {
     await pumpDashboard(tester, 1);
-    expect(find.text('1 pozicija čeka na ponavljanje.'), findsOneWidget);
+    expect(find.text('1 position is waiting for review.'), findsOneWidget);
   });
 
   testWidgets('two to four take the paucal, and the verb follows it',
@@ -49,20 +49,20 @@ void main() {
     // „2 pozicije čekaju", not „2 pozicija čeka". This is the form the app was
     // never writing.
     await pumpDashboard(tester, 2);
-    expect(find.text('2 pozicije čekaju na ponavljanje.'), findsOneWidget);
+    expect(find.text('2 positions are waiting for review.'), findsOneWidget);
     await pumpDashboard(tester, 4);
-    expect(find.text('4 pozicije čekaju na ponavljanje.'), findsOneWidget);
+    expect(find.text('4 positions are waiting for review.'), findsOneWidget);
   });
 
   testWidgets('five and up go back to the singular verb', (tester) async {
     await pumpDashboard(tester, 5);
-    expect(find.text('5 pozicija čeka na ponavljanje.'), findsOneWidget);
+    expect(find.text('5 positions are waiting for review.'), findsOneWidget);
   });
 
   testWidgets('eleven to fourteen are the exception, on screen too',
       (tester) async {
     await pumpDashboard(tester, 12);
-    expect(find.text('12 pozicija čeka na ponavljanje.'), findsOneWidget);
+    expect(find.text('12 positions are waiting for review.'), findsOneWidget);
   });
 
   test('no ternary in lib/ has two identical arms', () {

@@ -176,9 +176,9 @@ void main() {
     await open(tester, AppRoutes.preferences);
     expect(find.byType(SettingsScreen), findsOneWidget);
 
-    await tester.scrollUntilVisible(find.text('Spisak prečica'), 200,
+    await tester.scrollUntilVisible(find.text('Keyboard shortcuts'), 200,
         scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('Spisak prečica'));
+    await tester.tap(find.text('Keyboard shortcuts'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 

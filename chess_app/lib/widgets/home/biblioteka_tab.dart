@@ -47,23 +47,26 @@ class HomeBibliotekaTab extends StatelessWidget {
                           Icon(Icons.library_books,
                               color: context.colors.accent, size: 28),
                           const SizedBox(width: AppSpacing.md),
-                          Text(
-                            'Biblioteka pozicija i tutorijala',
-                            style: AppText.headline
-                                .copyWith(color: context.colors.textPrimary),
+                          Expanded(
+                            child: Text(
+                              'Library of positions and tutorials',
+                              style: AppText.headline
+                                  .copyWith(color: context.colors.textPrimary),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Upravljajte vašim sačuvanim pozicijama, PGN fajlovima i tutorijalima.',
+                        'Manage your saved positions, PGN files, and tutorials.',
                         style: AppText.body
                             .copyWith(color: context.colors.textSecondary),
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.dashboard_customize),
-                        label: const Text('Otvori Pripremu sa praznom tablom'),
+                        label:
+                            const Text('Open Preparation with an empty board'),
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 48),
                           padding: AppSpacing.buttonPadding,
@@ -88,7 +91,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                               color: context.colors.accent, size: 28),
                           const SizedBox(width: AppSpacing.md),
                           Text(
-                            'Analiza 🔬',
+                            'Analysis 🔬',
                             style: AppText.headline
                                 .copyWith(color: context.colors.textPrimary),
                           ),
@@ -96,7 +99,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Motor, baza otvaranja i stablo varijanti — za rad na jednoj poziciji ili partiji.',
+                        'Engine, opening database, and variation tree — for working on a single position or game.',
                         style: AppText.body
                             .copyWith(color: context.colors.textSecondary),
                       ),
@@ -105,7 +108,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.biotech),
-                          label: const Text('Otvori Analizu'),
+                          label: const Text('Open Analysis'),
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                             padding: AppSpacing.buttonPadding,
@@ -131,7 +134,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                               color: context.colors.accent, size: 28),
                           const SizedBox(width: AppSpacing.md),
                           Text(
-                            'Pozicije iz vaše knjige',
+                            'Positions from your book',
                             style: AppText.headline
                                 .copyWith(color: context.colors.textPrimary),
                           ),
@@ -139,8 +142,8 @@ class HomeBibliotekaTab extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Učitajte PDF knjige i izvucite dijagrame kao pozicije za zadatke. '
-                        'Svaku poziciju potvrđujete sami, a dokument se ne čuva na serveru.',
+                        'Upload a book PDF and extract diagrams as positions for tasks. '
+                        'You confirm each position yourself, and the document is not stored on the server.',
                         style: AppText.body
                             .copyWith(color: context.colors.textSecondary),
                       ),
@@ -149,7 +152,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.document_scanner_outlined),
-                          label: const Text('Skeniraj pozicije'),
+                          label: const Text('Scan positions'),
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                             padding: AppSpacing.buttonPadding,
@@ -162,7 +165,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.grid_view_outlined),
-                          label: const Text('Moje sačuvane pozicije'),
+                          label: const Text('My saved positions'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                             padding: AppSpacing.buttonPadding,

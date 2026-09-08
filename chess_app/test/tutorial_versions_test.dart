@@ -143,7 +143,7 @@ void main() {
   }
 
   Future<void> chooseAction(WidgetTester tester, String label) async {
-    final menu = find.byTooltip('Opcije').first;
+    final menu = find.byTooltip('Options').first;
     await tester.ensureVisible(menu);
     await tester.pumpAndSettle();
     await tester.tap(menu);
@@ -155,11 +155,11 @@ void main() {
   testWidgets('a rename never mentions the steps', (tester) async {
     final api = await openLibrary(tester);
 
-    await chooseAction(tester, 'Preimenuj');
-    expect(find.text('Preimenuj tutorijal'), findsOneWidget);
+    await chooseAction(tester, 'Rename');
+    expect(find.text('Rename tutorial'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).last, 'Novi naziv');
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     final put = api.seen.firstWhere(
@@ -177,7 +177,7 @@ void main() {
       (tester) async {
     final api = await openLibrary(tester);
 
-    await chooseAction(tester, 'Sačuvaj kao novu verziju');
+    await chooseAction(tester, 'Save as new version');
 
     final clone = api.seen.firstWhere(
       (r) => r.path.contains('/clone'),
@@ -196,7 +196,7 @@ void main() {
       (tester) async {
     await openLibrary(tester);
 
-    await chooseAction(tester, 'Uredi tutorijal');
+    await chooseAction(tester, 'Edit tutorial');
 
     expect(find.byType(LessonStepEditorPanel), findsOneWidget);
     expect(find.text('Stari naziv'), findsWidgets);
@@ -211,7 +211,7 @@ void main() {
     // made of.
     await openLibrary(tester);
 
-    await chooseAction(tester, 'Izmeni pozicije');
+    await chooseAction(tester, 'Edit positions');
 
     expect(find.text('Izmeni tutorijal'), findsWidgets);
   });

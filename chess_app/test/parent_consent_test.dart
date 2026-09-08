@@ -66,8 +66,8 @@ void main() {
     ]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Čeka saglasnost roditelja'), findsOneWidget);
-    expect(find.text('Vaš učenik'), findsNothing);
+    expect(find.text('Awaiting parental consent'), findsOneWidget);
+    expect(find.text('Your student'), findsNothing);
 
     // Homework and progress are what an accepted edge unlocks, so the button
     // that leads to them is off. A row that looked ordinary would be the same
@@ -95,7 +95,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Čeka saglasnost roditelja — dodirnite'), findsOneWidget);
+    expect(find.text('Awaiting parental consent — tap here'), findsOneWidget);
     await tester.tap(find.text('Trener'));
     await tester.pumpAndSettle();
 
@@ -111,8 +111,8 @@ void main() {
     ]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Čeka potvrdu'), findsOneWidget);
-    expect(find.textContaining('roditelj'), findsNothing);
+    expect(find.text('Awaiting confirmation'), findsOneWidget);
+    expect(find.textContaining('parent'), findsNothing);
   });
 
   /// A standing service backed by canned answers, plus what was posted.

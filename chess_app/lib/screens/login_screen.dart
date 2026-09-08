@@ -82,9 +82,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     final reason = SessionService.instance.expiryReason;
     if (reason != null) {
       _expiryNotice = reason == 'account-gone'
-          ? 'Ovaj nalog više ne postoji na serveru. Prijavite se drugim '
-              'nalogom.'
-          : 'Prijava je istekla. Prijavite se ponovo.';
+          ? 'This account no longer exists on the server. Sign in with another '
+              'account.'
+          : 'Session expired. Please sign in again.';
       // After the frame, not during it: acknowledging notifies, the router
       // listens, and a router rebuilt in the middle of this build is how one
       // message becomes a loop.
@@ -142,10 +142,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       } else {
         try {
           final data = jsonDecode(response.body);
-          _showError(data['error'] ?? 'Google prijava nije uspela.');
+          _showError(data['error'] ?? 'Google sign-in failed.');
         } catch (_) {
           _showError(
-              'Greška na serveru prilikom Google prijave (Status ${response.statusCode}).');
+              'Server error during Google sign-in (Status ${response.statusCode}).');
         }
       }
     } on OAuthRedirectException catch (e) {
@@ -169,14 +169,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   Future<String?> _pluginIdToken() async {
     await _googleSignInInit;
     if (!_googleSignIn.supportsAuthenticate()) {
-      _showError('Google prijava nije podržana na ovoj platformi.');
+      _showError('Google sign-in is not supported on this platform.');
       return null;
     }
 
     final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
     final String? idToken = googleUser.authentication.idToken;
     if (idToken == null || idToken.isEmpty) {
-      _showError('Google nije vratio identitet (id_token).');
+      _showError('Google did not return identity (id_token).');
       return null;
     }
     return idToken;
@@ -186,7 +186,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     final code = _codeController.text.trim();
     final email = _emailController.text.trim();
     if (email.isEmpty || code.isEmpty) {
-      _showError('Unesite email i 6-cifreni verifikacioni kod.');
+      _showError('Enter your email and the 6-digit verification code.');
       return;
     }
 
@@ -203,12 +203,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         final data = jsonDecode(response.body);
         final session = UserSession.fromJson(data['user'], data['token']);
         await _saveSession(session);
-        _showSuccess('Email verifikovan! Dobrodošli.');
+        _showSuccess('Email verified! Welcome.');
         _navigateToHome(session);
       } else {
         try {
           final data = jsonDecode(response.body);
-          _showError(data['error'] ?? 'Verifikacija nije uspela.');
+          _showError(data['error'] ?? 'Verification failed.');
           // Nothing left to do on this screen: the account is verified and the
           // way in is a password or Google. Leaving the user in front of a code
           // field that can never work again is how a person concludes the app
@@ -217,12 +217,11 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             setState(() => _isAwaitingVerification = false);
           }
         } catch (_) {
-          _showError(
-              'Greška pri verifikaciji (Status ${response.statusCode}).');
+          _showError('Verification error (Status ${response.statusCode}).');
         }
       }
     } catch (e) {
-      _showError('Mrežna greška pri verifikaciji koda.');
+      _showError('Network error during code verification.');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -259,10 +258,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
           setState(() {
             _isAwaitingVerification = true;
           });
-          _showSuccess(
-              data['error'] ?? 'Unesite verifikacioni kod poslat na email.');
+          _showSuccess(data['error'] ??
+              'Enter the verification code sent to your email.');
         } else {
-          _showError(data['error'] ?? 'Prijava nije uspela.');
+          _showError(data['error'] ?? 'Sign-in failed.');
         }
       } else {
         // Register API Call
@@ -283,13 +282,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             _isAwaitingVerification = true;
           });
           _showSuccess(data['message'] ??
-              'Kod za verifikaciju je generisan! Unesite 6-cifreni kod.');
+              'Verification code generated! Enter the 6-digit code.');
         } else {
-          _showError(data['error'] ?? 'Registracija nije uspela.');
+          _showError(data['error'] ?? 'Registration failed.');
         }
       }
     } catch (e) {
-      _showError('Greška u mreži. Proverite konekciju sa serverom.');
+      _showError('Network error. Check connection to the server.');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -348,13 +347,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isAwaitingVerification
-            ? 'Verifikacija Email-a'
-            : (_isLogin ? 'Prijava' : 'Registracija')),
+            ? 'Email Verification'
+            : (_isLogin ? 'Sign In' : 'Register')),
         actions: [
           TextButton.icon(
             onPressed: () => _navigateToHome(UserSession.guest()),
             icon: const Icon(Icons.person_outline),
-            label: const Text('Nastavi kao Gost'),
+            label: const Text('Continue as Guest'),
           ),
         ],
       ),
@@ -384,8 +383,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         _isAwaitingVerification
-                            ? 'Unesite Verifikacioni Kod'
-                            : (_isLogin ? 'Mislisha' : 'Registracija Naloga'),
+                            ? 'Enter Verification Code'
+                            : (_isLogin ? 'Mislisha' : 'Account Registration'),
                         style: const TextStyle(
                             fontSize: 24, fontWeight: FontWeight.bold),
                       ),
@@ -424,10 +423,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           //
                           // The developer note used to be shown to everybody, including a
                           // parent registering a child.
-                          'Poslat je verifikacioni kod na ${_emailController.text}.'
-                          '\nAko ga nema u prijemnom sandučetu, pogledajte i '
-                          'neželjenu poštu (spam).'
-                          '${kDebugMode ? '\n(U dev okruženju kod se ispisuje u backend logovima.)' : ''}',
+                          'A verification code has been sent to ${_emailController.text}.'
+                          '\nIf you do not see it in your inbox, please check your spam folder.'
+                          '${kDebugMode ? '\n(In dev environment, the code is printed in backend logs.)' : ''}',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 14, color: context.colors.textMuted),
@@ -436,14 +434,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         TextFormField(
                           controller: _codeController,
                           decoration: const InputDecoration(
-                            labelText: 'Verifikacioni Kod (6 cifara)',
+                            labelText: 'Verification Code (6 digits)',
                             prefixIcon: Icon(Icons.pin),
                             border: OutlineInputBorder(),
                           ),
                           keyboardType: TextInputType.number,
                           maxLength: 6,
                           validator: (val) => val == null || val.length != 6
-                              ? 'Unesite 6 cifara'
+                              ? 'Enter 6 digits'
                               : null,
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -465,12 +463,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             controller: _nameController,
                             autofillHints: const [AutofillHints.name],
                             decoration: const InputDecoration(
-                              labelText: 'Ime i Prezime',
+                              labelText: 'Full Name',
                               prefixIcon: Icon(Icons.person),
                               border: OutlineInputBorder(),
                             ),
                             validator: (value) => value == null || value.isEmpty
-                                ? 'Unesite ime'
+                                ? 'Enter name'
                                 : null,
                           ),
                           const SizedBox(height: AppSpacing.lg),
@@ -486,7 +484,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             AutofillHints.email,
                           ],
                           decoration: const InputDecoration(
-                            labelText: 'Email Adresa',
+                            labelText: 'Email Address',
                             prefixIcon: Icon(Icons.email),
                             border: OutlineInputBorder(),
                           ),
@@ -494,7 +492,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           autofocus: _isLogin && !_emailIsKnown,
                           validator: (value) =>
                               value == null || !value.contains('@')
-                                  ? 'Unesite validnu email adresu'
+                                  ? 'Enter a valid email address'
                                   : null,
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -506,7 +504,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                 : AutofillHints.newPassword,
                           ],
                           decoration: const InputDecoration(
-                            labelText: 'Lozinka',
+                            labelText: 'Password',
                             prefixIcon: Icon(Icons.lock),
                             border: OutlineInputBorder(),
                           ),
@@ -515,12 +513,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           onFieldSubmitted: (_) => _submit(),
                           validator: (value) =>
                               value == null || value.length < 6
-                                  ? 'Lozinka mora imati bar 6 karaktera'
+                                  ? 'Password must be at least 6 characters'
                                   : null,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         CheckboxListTile(
-                          title: const Text('Zapamti me',
+                          title: const Text('Remember me',
                               style: TextStyle(fontSize: 14)),
                           // Said out loud, because it was read as "remember my
                           // password" and it has never meant that: it keeps the
@@ -528,7 +526,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           // password itself is offered by the device's password
                           // manager, if it has been saved there.
                           subtitle: Text(
-                            'Ostajete prijavljeni na ovom uređaju.',
+                            'You stay signed in on this device.',
                             style: AppText.body,
                           ),
                           value: _rememberMe,
@@ -556,10 +554,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                                   ),
                                 ),
                                 child: Text(_isAwaitingVerification
-                                    ? 'Potvrdi Verifikaciju'
+                                    ? 'Confirm Verification'
                                     : (_isLogin
-                                        ? 'Prijavi se email adresom'
-                                        : 'Registruj se email adresom')),
+                                        ? 'Sign in with email'
+                                        : 'Register with email')),
                               ),
                             ),
                       const SizedBox(height: AppSpacing.md),
@@ -570,7 +568,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                               _isAwaitingVerification = false;
                             });
                           },
-                          child: const Text('Nazad na prijavu'),
+                          child: const Text('Back to sign in'),
                         )
                       else
                         TextButton(
@@ -584,8 +582,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           // button that also registers, and said nothing about
                           // which one it meant.
                           child: Text(_isLogin
-                              ? 'Nemate nalog? Registrujte se email adresom'
-                              : 'Već imate nalog? Prijavite se email adresom'),
+                              ? "Don't have an account? Register with email"
+                              : 'Already have an account? Sign in with email'),
                         ),
                     ],
                   ),
@@ -627,7 +625,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             // Google registration anywhere, and "Prijavi se" alone made people
             // look for one.
             label: const Text(
-              'Prijava / Registracija preko Google-a',
+              'Sign in / Register with Google',
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
             ),
@@ -641,7 +639,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Ako još nemate nalog, napraviće se sam.',
+          'If you do not have an account yet, one will be created automatically.',
           textAlign: TextAlign.center,
           style: AppText.body.copyWith(color: Theme.of(context).hintColor),
         ),
@@ -657,7 +655,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Text(
-            'ili',
+            'or',
             style: TextStyle(color: Theme.of(context).hintColor),
           ),
         ),

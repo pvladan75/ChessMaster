@@ -106,7 +106,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('aplikacija'), findsOneWidget);
-    expect(find.text('Godina rođenja'), findsNothing);
+    expect(find.text('Birth year'), findsNothing);
   });
 
   testWidgets('an account nobody has ever asked is stopped', (tester) async {
@@ -116,10 +116,10 @@ void main() {
     await tester.pumpWidget(app(f.service));
     await tester.pumpAndSettle();
 
-    expect(find.text('Godina rođenja'), findsWidgets);
+    expect(find.text('Birth year'), findsWidgets);
     // The threshold shown is the server's, not a constant repeated here: two
     // numbers that can disagree are two numbers that will.
-    expect(find.textContaining('mlađe od 16'), findsOneWidget);
+    expect(find.textContaining('under 16'), findsOneWidget);
   });
 
   testWidgets('a guest has no account to state anything about', (tester) async {
@@ -187,7 +187,7 @@ void main() {
     await tester.enterText(find.byType(TextField), '1997');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(jsonDecode(f.posted.single)['birthYear'], 1997);
@@ -228,7 +228,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '2014');
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(jsonDecode(f.posted.single)['birthYear'], 2014);
@@ -245,18 +245,18 @@ void main() {
     final f = fake(
       standing: standingBody(ageKnown: false),
       postStatus: 400,
-      postError: 'Unesite godinu rođenja, između 1900. i 2026.',
+      postError: 'Enter a birth year between 1900 and 2026.',
     );
 
     await tester.pumpWidget(app(f.service));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '1899');
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.byType(BirthYearScreen), findsOneWidget);
-    expect(find.textContaining('između 1900.'), findsWidgets);
+    expect(find.textContaining('between 1900'), findsWidgets);
   });
 
   testWidgets('an impossible year never leaves the phone', (tester) async {
@@ -269,7 +269,7 @@ void main() {
     // Four digits, in the future. The field itself refuses letters and a fifth
     // digit, so this is the case that reaches the check.
     await tester.enterText(find.byType(TextField), '2999');
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(f.posted, isEmpty);
@@ -286,7 +286,7 @@ void main() {
     await tester.pumpWidget(app(f.service));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Odjavi se'));
+    await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
 
     expect(SessionService.instance.isSignedIn, isFalse);
@@ -313,7 +313,7 @@ void main() {
     expect(find.text('2017'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '1997');
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(f.service.current?.birthYear, 1997);

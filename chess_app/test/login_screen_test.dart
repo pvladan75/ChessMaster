@@ -34,11 +34,11 @@ void main() {
     await open(tester);
 
     expect(find.textContaining('Google'), findsWidgets);
-    expect(find.text('ili'), findsOneWidget);
+    expect(find.text('or'), findsOneWidget);
     // Both buttons name the way in they use, so neither can be read as the
     // other one's confirmation.
-    expect(find.text('Prijavi se email adresom'), findsOneWidget);
-    expect(find.text('Nemate nalog? Registrujte se email adresom'),
+    expect(find.text('Sign in with email'), findsOneWidget);
+    expect(find.text("Don't have an account? Register with email"),
         findsOneWidget);
   });
 
@@ -49,11 +49,11 @@ void main() {
     // The button that also creates the account carries both words. It used to
     // say only "Prijavi se preko Google-a", so somebody without an account went
     // looking for a Google registration that does not exist.
-    expect(find.text('Prijava / Registracija preko Google-a'), findsOneWidget);
+    expect(find.text('Sign in / Register with Google'), findsOneWidget);
 
     // Scrolled to first: the card is taller than the test window, and a button
     // below the fold cannot be tapped.
-    final toRegister = find.text('Nemate nalog? Registrujte se email adresom');
+    final toRegister = find.text("Don't have an account? Register with email");
     await tester.ensureVisible(toRegister);
     await tester.pumpAndSettle();
     await tester.tap(toRegister);
@@ -62,9 +62,9 @@ void main() {
     // And it is still there in registration mode, where it was missing
     // entirely — the one screen where somebody is definitely looking for a way
     // to make an account.
-    expect(find.text('Prijava / Registracija preko Google-a'), findsOneWidget);
-    expect(find.text('Registruj se email adresom'), findsOneWidget);
-    expect(find.text('Ime i Prezime'), findsOneWidget);
+    expect(find.text('Sign in / Register with Google'), findsOneWidget);
+    expect(find.text('Register with email'), findsOneWidget);
+    expect(find.text('Full Name'), findsOneWidget);
   });
 
   testWidgets('"Zapamti me" says what it actually does', (tester) async {
@@ -72,8 +72,8 @@ void main() {
 
     // It was read as "remember my password" and has never meant that: it keeps
     // the session so the form is not asked for at all.
-    expect(find.text('Zapamti me'), findsOneWidget);
-    expect(find.text('Ostajete prijavljeni na ovom uređaju.'), findsOneWidget);
+    expect(find.text('Remember me'), findsOneWidget);
+    expect(find.text('You stay signed in on this device.'), findsOneWidget);
   });
 
   testWidgets('the remembered address is filled in, the password never is',
@@ -96,7 +96,7 @@ void main() {
     final password = tester.widget<TextField>(
       find.descendant(
         of: find.ancestor(
-          of: find.text('Lozinka'),
+          of: find.text('Password'),
           matching: find.byType(TextFormField),
         ),
         matching: find.byType(TextField),
@@ -114,9 +114,9 @@ void main() {
     await open(tester, google: false);
 
     expect(find.textContaining('Google'), findsNothing);
-    expect(find.text('ili'), findsNothing);
-    expect(find.text('Prijavi se email adresom'), findsOneWidget);
-    expect(find.text('Email Adresa'), findsOneWidget);
+    expect(find.text('or'), findsNothing);
+    expect(find.text('Sign in with email'), findsOneWidget);
+    expect(find.text('Email Address'), findsOneWidget);
   });
 
   testWidgets('the sign-in card fits a 360 px phone', (tester) async {
