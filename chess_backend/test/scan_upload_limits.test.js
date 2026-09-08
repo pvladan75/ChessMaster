@@ -40,10 +40,10 @@ test('a book over the ceiling is refused by size, and says so', () => {
 });
 
 test('a document that is not a PDF is the caller\'s business too, not a server error', () => {
-  const rejection = uploadRejection(new Error('Podržan je samo PDF.'));
+  const rejection = uploadRejection(new Error('Only PDF is supported.'));
 
   assert.equal(rejection.status, 400);
-  assert.equal(rejection.body.error, 'Podržan je samo PDF.');
+  assert.equal(rejection.body.error, 'Only PDF is supported.');
 });
 
 test('an upload failure that is not about size does not claim the file was too big', () => {

@@ -118,14 +118,14 @@ export function unknownGlyphs(rows) {
 export function rowToFenRank(row, map, where) {
   const squares = map.squares(row);
   if (squares.length !== 8) {
-    throw new Error(`${where}: red ima ${squares.length} polja umesto 8: ${JSON.stringify(row)}`);
+    throw new Error(`${where}: row has ${squares.length} squares instead of 8: ${JSON.stringify(row)}`);
   }
   let out = '';
   let empty = 0;
   for (const glyph of squares) {
     const piece = map.glyphs[glyph];
     if (piece === undefined) {
-      throw new Error(`${where}: nepoznat glif ${JSON.stringify(glyph)} u redu ${JSON.stringify(row)}`);
+      throw new Error(`${where}: unknown glyph ${JSON.stringify(glyph)} in row ${JSON.stringify(row)}`);
     }
     if (piece === '.') {
       empty += 1;

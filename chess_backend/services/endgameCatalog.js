@@ -43,13 +43,13 @@ const minors = (s) => (s.B || 0) + (s.N || 0);
 const pieces = (s) => (s.Q || 0) + (s.R || 0) + minors(s);
 
 const FAMILIES = [
-  { id: 'rooks', name: 'Topovske završnice' },
-  { id: 'rook_vs_minors', name: 'Top protiv lakih figura' },
-  { id: 'queens', name: 'Damske završnice' },
-  { id: 'queen_vs_rest', name: 'Dama protiv ostalog materijala' },
-  { id: 'minors', name: 'Lake figure' },
-  { id: 'pawns', name: 'Pešačke završnice' },
-  { id: 'pawns_vs_pieces', name: 'Pešaci protiv figura' },
+  { id: 'rooks', name: 'Rook endgames' },
+  { id: 'rook_vs_minors', name: 'Rook versus minor pieces' },
+  { id: 'queens', name: 'Queen endgames' },
+  { id: 'queen_vs_rest', name: 'Queen versus rest of material' },
+  { id: 'minors', name: 'Minor pieces' },
+  { id: 'pawns', name: 'Pawn endgames' },
+  { id: 'pawns_vs_pieces', name: 'Pawns versus pieces' },
 ];
 
 const FAMILY_NAMES = Object.fromEntries(FAMILIES.map((f) => [f.id, f.name]));
@@ -77,34 +77,32 @@ function familyOf(key) {
   return 'minors';
 }
 
-// Nominative for the side that acts, genitive for the side after "protiv".
-const ONE = { Q: 'dama', R: 'top', B: 'lovac', N: 'skakač', P: 'pešak' };
-const ONE_GEN = { Q: 'dame', R: 'topa', B: 'lovca', N: 'skakača', P: 'pešaka' };
-const MANY = { Q: 'dame', R: 'topa', B: 'lovca', N: 'skakača', P: 'pešaka' };
+const ONE = { Q: 'queen', R: 'rook', B: 'bishop', N: 'knight', P: 'pawn' };
+const MANY = { Q: 'queens', R: 'rooks', B: 'bishops', N: 'knights', P: 'pawns' };
 const HOW = {
-  2: 'dva', 3: 'tri', 4: 'četiri', 5: 'pet', 6: 'šest', 7: 'sedam', 8: 'osam',
+  2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight',
 };
 const ORDER = ['Q', 'R', 'B', 'N', 'P'];
 
-function describeSide(set, genitive) {
+function describeSide(set) {
   const parts = [];
   for (const piece of ORDER) {
     const n = set[piece] || 0;
     if (!n) continue;
     parts.push(n === 1
-      ? (genitive ? ONE_GEN[piece] : ONE[piece])
+      ? ONE[piece]
       : `${HOW[n] || n} ${MANY[piece]}`);
   }
-  if (parts.length === 0) return genitive ? 'golog kralja' : 'goli kralj';
+  if (parts.length === 0) return 'bare king';
   if (parts.length === 1) return parts[0];
-  return `${parts.slice(0, -1).join(', ')} i ${parts[parts.length - 1]}`;
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 }
 
-/// 'KRPPvKR' -> 'top i dva pešaka protiv topa'.
+/// 'KRPPvKR' -> 'rook and two pawns versus rook'.
 function labelOf(key) {
   const parsed = parseMaterial(key);
   if (parsed === null) return String(key || '');
-  return `${describeSide(parsed[0], false)} protiv ${describeSide(parsed[1], true)}`;
+  return `${describeSide(parsed[0])} versus ${describeSide(parsed[1])}`;
 }
 
 /// Whether the two bishops stand on squares of different colours.
@@ -145,12 +143,12 @@ function oppositeBishops(fen) {
 /// somebody actually got it wrong at, and that is worth keeping separate from
 /// "we do not know".
 const ELO_BANDS = [
-  { id: 'mined', name: 'Bez rejtinga (izrudareno)', min: null, max: null },
-  { id: 'u1800', name: 'Do 1800', min: 0, max: 1799 },
+  { id: 'mined', name: 'Unrated (mined)', min: null, max: null },
+  { id: 'u1800', name: 'Under 1800', min: 0, max: 1799 },
   { id: 'b1800', name: '1800 - 2000', min: 1800, max: 1999 },
   { id: 'b2000', name: '2000 - 2200', min: 2000, max: 2199 },
   { id: 'b2200', name: '2200 - 2400', min: 2200, max: 2399 },
-  { id: 'b2400', name: '2400 i preko', min: 2400, max: 9999 },
+  { id: 'b2400', name: '2400 and above', min: 2400, max: 9999 },
 ];
 
 /// The SQL that puts a row in one of them. Kept next to the bands so the two

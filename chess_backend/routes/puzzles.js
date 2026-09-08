@@ -25,7 +25,7 @@ const debugLogLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, status: 'REJECTED', reason: 'Previše zahteva. Sačekajte trenutak.' },
+  message: { success: false, status: 'REJECTED', reason: 'Too many requests. Please wait a moment.' },
 });
 
 // The Gemini call costs money per request, so it gets a tighter budget still.
@@ -34,7 +34,7 @@ const aiLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše AI zahteva. Sačekajte trenutak.' },
+  message: { error: 'Too many AI requests. Please wait a moment.' },
 });
 
 // Every uncached position in a drill is a request to a tablebase someone else
@@ -46,7 +46,7 @@ const drillLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Previše poteza u minuti. Sačekajte trenutak.' },
+  message: { error: 'Too many moves per minute. Please wait a moment.' },
 });
 
 // GET /api/puzzles/next - Fetch next puzzle from clean puzzles_23 and winning_chess dataset
@@ -93,7 +93,7 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
     }
 
     if (puzzleRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Nema dostupnih zagonetki u bazi.' });
+      return res.status(404).json({ error: 'No puzzles available in the database.' });
     }
 
     const puzzle = puzzleRes.rows[0];
@@ -125,7 +125,7 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
     res.json(responsePayload);
   } catch (err) {
     logger.error('Error fetching next puzzle:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju zagonetke.' });
+    res.status(500).json({ error: 'Error fetching puzzle.' });
   }
 });
 
@@ -165,7 +165,7 @@ router.get('/puzzles/endgame/catalog', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error building endgame catalog:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju spiska završnica.' });
+    res.status(500).json({ error: 'Error fetching endgame list.' });
   }
 });
 
@@ -254,7 +254,7 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Nema završnice koja odgovara traženim uslovima.' });
+      return res.status(404).json({ error: 'No endgame matches the requested criteria.' });
     }
 
     const item = result.rows[0];
@@ -292,7 +292,7 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error fetching endgame puzzle:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju završnice.' });
+    res.status(500).json({ error: 'Error fetching endgame.' });
   }
 });
 
@@ -322,7 +322,7 @@ router.post('/puzzles/endgame/play', authenticateToken, drillLimiter, async (req
       return res.status(503).json({ error: err.message });
     }
     logger.error('Error judging endgame move:', err);
-    res.status(500).json({ error: 'Greška pri suđenju poteza.' });
+    res.status(500).json({ error: 'Error judging move.' });
   }
 });
 
@@ -366,7 +366,7 @@ router.get('/puzzles/endgame/probe', authenticateToken, async (req, res) => {
       return res.status(503).json({ error: err.message });
     }
     logger.error(`[Zavrsnice] Nalaz nije izveden: ${err.message}`);
-    res.status(500).json({ error: 'Greska pri citanju tablica.' });
+    res.status(500).json({ error: 'Error reading tablebase.' });
   }
 });
 
@@ -405,7 +405,7 @@ router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => 
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Nema partije koja odgovara traženim uslovima.' });
+      return res.status(404).json({ error: 'No game matches the requested criteria.' });
     }
 
     const row = result.rows[0];
@@ -431,7 +431,7 @@ router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => 
     });
   } catch (err) {
     logger.error('Error fetching blunder game:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju partije.' });
+    res.status(500).json({ error: 'Error fetching game.' });
   }
 });
 
@@ -462,7 +462,7 @@ router.get('/puzzles/endgame/line', authenticateToken, drillLimiter,
         return res.status(503).json({ error: err.message });
       }
       logger.error('Error building endgame line:', err);
-      res.status(500).json({ error: 'Greška pri izvođenju linije.' });
+      res.status(500).json({ error: 'Error generating line.' });
     }
   });
 
@@ -483,7 +483,7 @@ router.get('/puzzles/adaptive', authenticateToken, async (req, res) => {
 
     if (!result) {
       return res.status(404).json({
-        error: 'Nema dostupnih zagonetki. Da li je baza uvezena (import_lichess_puzzles.js)?',
+        error: 'No puzzles available. Has the database been imported (import_lichess_puzzles.js)?',
       });
     }
 
@@ -497,7 +497,7 @@ router.get('/puzzles/adaptive', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error selecting adaptive puzzle:', err);
-    res.status(500).json({ error: 'Greška pri izboru zagonetke.' });
+    res.status(500).json({ error: 'Error selecting puzzle.' });
   }
 });
 
@@ -523,7 +523,7 @@ router.get('/puzzles/themes', authenticateToken, async (req, res) => {
     res.json({ overallRating: profile.overallRating, themes });
   } catch (err) {
     logger.error('Error reading theme ratings:', err);
-    res.status(500).json({ error: 'Greška pri čitanju rejtinga po temama.' });
+    res.status(500).json({ error: 'Error reading rating by theme.' });
   }
 });
 
@@ -538,7 +538,7 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
   const userId = req.user.id;
 
   if (!puzzleId || typeof solved !== 'boolean') {
-    return res.status(400).json({ error: 'puzzleId i solved su obavezni.' });
+    return res.status(400).json({ error: 'puzzleId and solved are required.' });
   }
 
   try {
@@ -547,7 +547,7 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
       [puzzleId]
     );
     if (puzzleRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Zagonetka nije pronađena.' });
+      return res.status(404).json({ error: 'Puzzle not found.' });
     }
 
     const puzzleRating = puzzleRes.rows[0].rating;
@@ -626,7 +626,7 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error recording puzzle attempt:', err);
-    res.status(500).json({ error: 'Greška pri čuvanju rezultata.' });
+    res.status(500).json({ error: 'Error saving result.' });
   }
 });
 
@@ -641,12 +641,12 @@ router.get('/puzzles/by-id/:puzzleId', authenticateToken, async (req, res) => {
       [req.params.puzzleId]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Zagonetka nije pronađena.' });
+      return res.status(404).json({ error: 'Puzzle not found.' });
     }
     res.json({ puzzle: puzzleSelection.toClientPuzzle(result.rows[0]) });
   } catch (err) {
     logger.error('Error fetching puzzle by id:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju zagonetke.' });
+    res.status(500).json({ error: 'Error fetching puzzle.' });
   }
 });
 
@@ -710,7 +710,7 @@ router.post('/puzzles/submit', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error submitting puzzle result:', err);
-    res.status(500).json({ error: 'Greška pri čuvanju rezultata.' });
+    res.status(500).json({ error: 'Error saving result.' });
   }
 });
 
@@ -825,17 +825,16 @@ router.post('/puzzles/log', debugLogLimiter, (req, res) => {
 // The rate limiter caps bursts per IP; the quota caps what an account may spend
 // over a month. They solve different problems, so both apply.
 router.post('/ai/explain-position', aiLimiter, authenticateToken, requireQuota(ENT.AI_COMMENTS), async (req, res) => {
-  const { fen, evals, userLanguage } = req.body;
+  const { fen, evals } = req.body;
   if (!fen) {
     await refundQuota(req);
-    return res.status(400).json({ error: 'FEN kod je obavezan parametar.' });
+    return res.status(400).json({ error: 'FEN code is a required parameter.' });
   }
 
   try {
     const explanation = await geminiService.explainPosition({
       fen,
       evals: evals || {},
-      userLanguage: userLanguage || 'sr'
     });
 
     res.json({ ...explanation, quota: { limit: req.quota.limit, used: req.quota.used } });
@@ -843,7 +842,7 @@ router.post('/ai/explain-position', aiLimiter, authenticateToken, requireQuota(E
     // The user got nothing, so the reserved unit goes back.
     await refundQuota(req);
     logger.error('Error in AI position explanation route:', err);
-    res.status(500).json({ error: 'Greška pri generisanju AI objašnjenja.' });
+    res.status(500).json({ error: 'Error generating AI explanation.' });
   }
 });
 
@@ -853,11 +852,10 @@ router.post('/ai/generate-move-comment', aiLimiter, authenticateToken, requireQu
   const {
     moveSan, evalBefore, evalAfter, tacticalFindings, positionalFindings,
     previousMove, engineAlternative, nextMoveEval, siblingAlternatives,
-    userLanguage
   } = req.body;
   if (!moveSan) {
     await refundQuota(req);
-    return res.status(400).json({ error: 'moveSan je obavezan parametar.' });
+    return res.status(400).json({ error: 'moveSan is a required parameter.' });
   }
 
   try {
@@ -871,14 +869,13 @@ router.post('/ai/generate-move-comment', aiLimiter, authenticateToken, requireQu
       engineAlternative: engineAlternative || null,
       nextMoveEval: nextMoveEval || null,
       siblingAlternatives: siblingAlternatives || [],
-      userLanguage: userLanguage || 'sr'
     });
 
     res.json({ ...result, quota: { limit: req.quota.limit, used: req.quota.used } });
   } catch (err) {
     await refundQuota(req);
     logger.error('Error in AI move comment route:', err);
-    res.status(500).json({ error: 'Greška pri generisanju AI komentara.' });
+    res.status(500).json({ error: 'Error generating AI commentary.' });
   }
 });
 

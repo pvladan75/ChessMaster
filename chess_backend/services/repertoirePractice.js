@@ -62,11 +62,11 @@ async function logAnswer(pool, userId, { color, fenKey, scored, outcome }) {
 async function practisedSince(pool, userId, { since, color = null } = {}) {
   const from = new Date(since);
   if (Number.isNaN(from.getTime())) {
-    throw new RangeError('Početak dana nije ispravan datum.');
+    throw new RangeError('Start of day is not a valid date.');
   }
   const oldest = new Date(Date.now() - MAX_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   if (from < oldest) {
-    throw new RangeError(`Može se tražiti najviše ${MAX_WINDOW_DAYS} dana unazad.`);
+    throw new RangeError(`May request at most ${MAX_WINDOW_DAYS} days back.`);
   }
   if (color !== null) requireColor(color);
 

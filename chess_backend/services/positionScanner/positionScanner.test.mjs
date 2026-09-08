@@ -51,7 +51,7 @@ test('the number runs into the move and is still recovered', () => {
 test('glyph rows become FEN ranks, and an unknown glyph is fatal', () => {
   assert.equal(rowToFenRank('0Z0Z0L0Z', skak, 'test'), '5Q2');
   assert.equal(rowToFenRank('ZZZZZZZZ', skak, 'test'), '8');
-  assert.throws(() => rowToFenRank('0Z0Z0§0Z', skak, 'test'), /nepoznat glif/);
+  assert.throws(() => rowToFenRank('0Z0Z0§0Z', skak, 'test'), /unknown glyph/);
 });
 
 test('a map is chosen by alphabet, and refused when nothing fits', () => {
@@ -129,8 +129,8 @@ test('a number printed over two diagrams binds to neither', () => {
 
   flagDuplicateNumbers(positions);
 
-  assert.match(positions[0].problem, /broj 6 stoji na više dijagrama \(strane 40, 78\)/);
-  assert.match(positions[1].problem, /broj 6 stoji na više dijagrama/);
+  assert.match(positions[0].problem, /number 6 appears on multiple diagrams \(pages 40, 78\)/);
+  assert.match(positions[1].problem, /number 6 appears on multiple diagrams/);
   assert.equal(positions[0].solutionLegal, null, 'not called illegal — called unbound');
   assert.equal(positions[1].solutionLegal, null, 'the right one is not guessed at either');
 
@@ -219,7 +219,7 @@ test('a PDF with no text reaches the caller as no_text, not as unknown_font', as
     () => scanDocument({ filePath: file, fromPage: 1, toPage: 1 }),
     (err) => {
       assert.equal(err.code, 'no_text');
-      assert.match(err.message, /nema nikakvog teksta/);
+      assert.match(err.message, /no text on those pages/);
       return true;
     }
   );

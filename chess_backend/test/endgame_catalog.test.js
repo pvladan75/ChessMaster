@@ -50,15 +50,14 @@ test('nothing lands outside a family, and nonsense lands nowhere', () => {
   assert.equal(familyOf('KRPvKR extra'), null);
 });
 
-test('the sentence puts the second side in the genitive', () => {
-  // "protiv top" is what the first draft said, and it is wrong Serbian.
-  assert.equal(labelOf('KRPvKR'), 'top i pešak protiv topa');
-  assert.equal(labelOf('KRPPvKR'), 'top i dva pešaka protiv topa');
-  assert.equal(labelOf('KRPvKRP'), 'top i pešak protiv topa i pešaka');
-  assert.equal(labelOf('KQPvKQ'), 'dama i pešak protiv dame');
-  assert.equal(labelOf('KBPvKN'), 'lovac i pešak protiv skakača');
-  assert.equal(labelOf('KPvK'), 'pešak protiv golog kralja');
-  assert.equal(labelOf('KRBPvKRN'), 'top, lovac i pešak protiv topa i skakača');
+test('the sentence puts the second side after versus', () => {
+  assert.equal(labelOf('KRPvKR'), 'rook and pawn versus rook');
+  assert.equal(labelOf('KRPPvKR'), 'rook and two pawns versus rook');
+  assert.equal(labelOf('KRPvKRP'), 'rook and pawn versus rook and pawn');
+  assert.equal(labelOf('KQPvKQ'), 'queen and pawn versus queen');
+  assert.equal(labelOf('KBPvKN'), 'bishop and pawn versus knight');
+  assert.equal(labelOf('KPvK'), 'pawn versus bare king');
+  assert.equal(labelOf('KRBPvKRN'), 'rook, bishop and pawn versus rook and knight');
 });
 
 test('a key that cannot be read is shown as it came', () => {
@@ -93,7 +92,7 @@ test('the catalog groups, counts and orders by weight', () => {
   // Biggest ending first inside the family, so the list opens on what there is
   // most of rather than on whatever the database returned first.
   assert.equal(catalog[0].endings[0].material, 'KRPPvKR');
-  assert.equal(catalog[0].endings[0].label, 'top i dva pešaka protiv topa');
+  assert.equal(catalog[0].endings[0].label, 'rook and two pawns versus rook');
   assert.equal(catalog[1].id, 'pawns');
   assert.equal(catalog[1].count, 146);
 });

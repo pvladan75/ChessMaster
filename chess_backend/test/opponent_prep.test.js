@@ -55,13 +55,13 @@ test('colour is translated into the word Lichess wants', () => {
 });
 
 test('a colour nobody plays is refused rather than dropped', () => {
-  assert.throws(() => q({ color: 'green' }), /Boja/);
+  assert.throws(() => q({ color: 'green' }), /Color/);
 });
 
 test('an unknown format is refused rather than ignored', () => {
   // The specific hazard: Lichess ignores an unrecognised perfType, so this
   // typo would quietly return every format at every time control.
-  assert.throws(() => q({ perfType: 'bliz' }), /Nepoznat tempo/);
+  assert.throws(() => q({ perfType: 'bliz' }), /Unknown time control/);
   assert.equal(q({ perfType: 'blitz,rapid' }).perfType, 'blitz,rapid');
 });
 

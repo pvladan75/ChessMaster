@@ -84,7 +84,7 @@ class TablebaseUnavailable extends Error {
 function wdlOf(category) {
   if (!(category in WDL)) {
     throw new TablebaseUnavailable(
-      `Tablica nije dala ishod za poziciju (kategorija: ${category ?? 'nema'}).`
+      `Tablebase gave no outcome for position (category: ${category ?? 'none'}).`
     );
   }
   return WDL[category];
@@ -188,7 +188,7 @@ function createTablebase({
     const blockedFor = pacer.blockedForMs();
     if (blockedFor > 0) {
       throw new TablebaseUnavailable(
-        `Lichess privremeno ne prima upite za tablice. Probajte za ${
+        `Lichess is temporarily not accepting tablebase requests. Try again in ${
           Math.ceil(blockedFor / 1000)} s.`,
         null, { reason: 'rate-limited', retryable: false },
       );
@@ -204,12 +204,12 @@ function createTablebase({
       if (res.status === 429) {
         pacer.block();
         throw new TablebaseUnavailable(
-          'Lichess je odbio upit zbog učestalosti; provera staje umesto da navaljuje.',
+          'Lichess rejected request due to rate limit; stopping checks instead of hammering.',
           null, { reason: 'rate-limited', retryable: false },
         );
       }
       if (!res.ok) {
-        throw new TablebaseUnavailable(`Tablica je odgovorila ${res.status}.`);
+        throw new TablebaseUnavailable(`Tablebase responded with ${res.status}.`);
       }
       requests += 1;
       return await res.json();
@@ -232,7 +232,7 @@ function createTablebase({
       }
     }
     throw new TablebaseUnavailable(
-      'Tablica trenutno nije dostupna, pa se pozicija ne može presuditi.', last
+      'Tablebase is currently unavailable, so the position cannot be judged.', last
     );
   }
 

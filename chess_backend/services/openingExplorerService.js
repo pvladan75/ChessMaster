@@ -63,7 +63,7 @@ function ratingBucketsFrom(minRating) {
   const min = Number(minRating);
   if (!RATING_BUCKETS.includes(min)) {
     throw new RangeError(
-      `Nepoznat prag rejtinga „${minRating}". Dozvoljeni su: ${RATING_BUCKETS.join(', ')}.`
+      `Unknown rating threshold "${minRating}". Allowed values: ${RATING_BUCKETS.join(', ')}.`
     );
   }
   return RATING_BUCKETS.filter((b) => b >= min);
@@ -123,7 +123,7 @@ function createOpeningExplorer({
     const blockedFor = pacer.blockedForMs();
     if (blockedFor > 0) {
       throw new OpeningExplorerUnavailable(
-        `Lichess privremeno ne prima upite. Probajte za ${
+        `Lichess is temporarily not accepting requests. Try again in ${
           Math.ceil(blockedFor / 1000)} s.`,
         { reason: 'rate-limited', status: 503 }
       );
@@ -141,20 +141,20 @@ function createOpeningExplorer({
       }));
       if (res.status === 401 || res.status === 403) {
         throw new OpeningExplorerUnavailable(
-          'Lichess je odbio token servera za bazu otvaranja.',
+          'Lichess rejected the server token for the opening database.',
           { reason: 'unauthorized', status: 502 }
         );
       }
       if (res.status === 429) {
         pacer.block();
         throw new OpeningExplorerUnavailable(
-          'Potrošen je dozvoljeni broj upita ka Lichess bazi otvaranja.',
+          'Rate limit exceeded for Lichess opening database.',
           { reason: 'rate-limited', status: 503 }
         );
       }
       if (!res.ok) {
         throw new OpeningExplorerUnavailable(
-          `Baza otvaranja je odgovorila ${res.status}.`, { reason: 'network' }
+          `Opening database responded with ${res.status}.`, { reason: 'network' }
         );
       }
       requests += 1;
@@ -180,7 +180,7 @@ function createOpeningExplorer({
       }
     }
     throw new OpeningExplorerUnavailable(
-      'Baza otvaranja trenutno nije dostupna.', { reason: 'network', cause: last }
+      'Opening database is currently unavailable.', { reason: 'network', cause: last }
     );
   }
 
@@ -192,7 +192,7 @@ function createOpeningExplorer({
    */
   async function probe(fen, { moves = 12, minRating = null } = {}) {
     if (typeof fen !== 'string' || fen.trim() === '') {
-      throw new RangeError('Pozicija (FEN) nije prosleđena.');
+      throw new RangeError('Position (FEN) was not provided.');
     }
 
     // What the caller sent is judged before what this server has, so a
@@ -203,7 +203,7 @@ function createOpeningExplorer({
 
     if (!token) {
       throw new OpeningExplorerUnavailable(
-        'Baza otvaranja nije podešena na serveru (LICHESS_API_TOKEN).',
+        'Opening database is not configured on the server (LICHESS_API_TOKEN).',
         { reason: 'not-configured', status: 503 }
       );
     }

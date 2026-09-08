@@ -118,13 +118,13 @@ async function main() {
 
   console.log('\nglif  ukupno   svetla   tamna  redovi          najviše/dijagramu  zaključak');
   for (const s of stats) {
-    const colour = s.onDark === 0 ? 'svetlo' : s.onLight === 0 ? 'tamno' : 'OBOJE(!)';
+    const colour = s.onDark === 0 ? 'light' : s.onLight === 0 ? 'dark' : 'BOTH(!)';
     const ranks = [...s.ranks].sort((a, b) => a - b).join('');
     const notes = [];
-    if (s.total > n * 10) notes.push('prazno polje');
-    if (s.maxPerDiagram === 1 && s.total > n * 0.5) notes.push('kandidat za kralja');
-    if (!s.ranks.has(1) && !s.ranks.has(8) && s.total > n) notes.push('kandidat za pešaka');
-    if (colour === 'OBOJE(!)') notes.push('nije glif polja — ivica ili oznaka');
+    if (s.total > n * 10) notes.push('empty square');
+    if (s.maxPerDiagram === 1 && s.total > n * 0.5) notes.push('king candidate');
+    if (!s.ranks.has(1) && !s.ranks.has(8) && s.total > n) notes.push('pawn candidate');
+    if (colour === 'BOTH(!)') notes.push('not a square glyph — border or marker');
     console.log(
       `  ${JSON.stringify(s.glyph).padEnd(5)} ${String(s.total).padStart(6)} ` +
         `${String(s.onLight).padStart(8)} ${String(s.onDark).padStart(7)}  ${ranks.padEnd(14)} ` +

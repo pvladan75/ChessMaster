@@ -175,7 +175,7 @@ async function orphansOfRemoving(pool, userId, {
 } = {}) {
   const roots = await rootsOf(pool, userId, color);
   if (roots.length === 0) {
-    throw new RangeError('Za ovu boju nema nijednog repertoara.');
+    throw new RangeError('There is no repertoire for this color.');
   }
   const breadth = widestOf(roots);
   const after = step(fen, uci);
@@ -283,7 +283,7 @@ async function pruneKeys(pool, userId, {
   }
   const roots = await rootsOf(pool, userId, color);
   if (roots.length === 0) {
-    throw new RangeError('Za ovu boju nema nijednog repertoara.');
+    throw new RangeError('There is no repertoire for this color.');
   }
   const breadth = widestOf(roots);
 

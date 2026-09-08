@@ -198,7 +198,7 @@ async function answer(pool, userId, {
   now = new Date(),
 }) {
   const key = fenKey(fen);
-  if (!uci) throw new RangeError('Potez nije prosleđen.');
+  if (!uci) throw new RangeError('Move was not provided.');
 
   // Only what the student chose. A position holding nothing but generated
   // moves has no answer to be right or wrong about, and saying so is the
@@ -389,7 +389,7 @@ async function pickReply(pool, {
   const key = fenKey(fen);
   requireColor(color);
   if (userId === null || userId === undefined) {
-    throw new RangeError('Korisnik nije prosleđen.');
+    throw new RangeError('User was not provided.');
   }
   const rows = await pool.query(
     `SELECT r.uci, r.san, r.games, r.share, r.covered,

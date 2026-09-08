@@ -208,7 +208,7 @@ test('a decision is not a draft, and is refused rather than replaced',
       playAlternative(pool, 7, {
         color: 'w', fen: START, uci: 'e2e4', san: 'e4', rejectedUci: 'd2d4',
       }),
-      /odluka/,
+      /decision/,
     );
     assert.equal(pool.deleted.length, 0);
     assert.ok(pool.indexOf('ROLLBACK') >= 0);
@@ -221,7 +221,7 @@ test('a move that is not in the repertoire is refused', async () => {
     playAlternative(pool, 7, {
       color: 'w', fen: START, uci: 'e2e4', san: 'e4', rejectedUci: 'g1f3',
     }),
-    /nije u repertoaru/,
+    /not in the repertoire/,
   );
   assert.equal(pool.deleted.length, 0);
 });
@@ -232,7 +232,7 @@ test('rejecting and playing the same move is refused', async () => {
     playAlternative(pool, 7, {
       color: 'w', fen: START, uci: 'd2d4', san: 'd4', rejectedUci: 'd2d4',
     }),
-    /isti/,
+    /same/,
   );
 });
 

@@ -18,12 +18,12 @@ function sendPlainError(res, status, message) {
     .status(status)
     .type('html')
     .send(
-      `<!doctype html><html lang="sr"><head><meta charset="utf-8">` +
+      `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
         `<meta name="viewport" content="width=device-width, initial-scale=1">` +
-        `<meta name="robots" content="noindex, nofollow"><title>Izveštaj</title></head>` +
+        `<meta name="robots" content="noindex, nofollow"><title>Report</title></head>` +
         `<body style="font-family:system-ui,sans-serif;max-width:520px;margin:15vh auto;padding:0 20px;` +
         `color:#1a1f1c;line-height:1.6"><h1 style="font-size:20px">${reports.esc(message)}</h1>` +
-        `<p style="color:#6b7870">Zatražite od trenera nov link.</p></body></html>`
+        `<p style="color:#6b7870">Ask your trainer for a new link.</p></body></html>`
     );
 }
 
@@ -31,7 +31,7 @@ function sendPlainError(res, status, message) {
 router.get('/:id', authenticateReportToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return sendPlainError(res, 400, 'Link nije ispravan.');
+    return sendPlainError(res, 400, 'Link is invalid.');
   }
 
   try {
@@ -40,7 +40,7 @@ router.get('/:id', authenticateReportToken, async (req, res) => {
       [id]
     );
     if (result.rows.length === 0) {
-      return sendPlainError(res, 404, 'Izveštaj više nije dostupan.');
+      return sendPlainError(res, 404, 'Report is no longer available.');
     }
 
     const report = result.rows[0];
@@ -49,7 +49,7 @@ router.get('/:id', authenticateReportToken, async (req, res) => {
     // deliberately expired on the server must not stay readable just because
     // someone still holds a valid-looking token.
     if (new Date(report.expires_at).getTime() < Date.now()) {
-      return sendPlainError(res, 410, 'Ovaj izveštaj je istekao.');
+      return sendPlainError(res, 410, 'This report has expired.');
     }
 
     res.set({
@@ -62,7 +62,7 @@ router.get('/:id', authenticateReportToken, async (req, res) => {
     res.type('html').send(reports.renderHtml(report));
   } catch (err) {
     logger.error('Error rendering parent report:', err);
-    sendPlainError(res, 500, 'Izveštaj trenutno nije moguće prikazati.');
+    sendPlainError(res, 500, 'Report cannot be displayed at this time.');
   }
 });
 

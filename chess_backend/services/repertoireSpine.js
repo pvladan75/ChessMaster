@@ -72,7 +72,7 @@ async function buildSpine(pool, userId, {
   token = '', judge = defaultJudge,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
-    throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
+    throw new RangeError(`Color must be "w" or "b", not "${color}".`);
   }
   fenKey(rootFen);
   const moves = Math.min(Math.max(Number(depth) || 0, 1), MAX_SPINE_DEPTH);

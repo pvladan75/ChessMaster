@@ -234,7 +234,7 @@ test('an unknown account fails the run and says which kind of failure it was', a
 
   const closing = db.lastUpdate();
   assert.equal(closing.params[6], 'failed');
-  assert.match(closing.params[7], /ne zna za nalog/);
+  assert.match(closing.params[7], /does not recognise account/);
 });
 
 test('a refusal from Lichess is never written as a finished run', async () => {

@@ -21,25 +21,21 @@ async function generateContentWithRetry(ai, params, { retries = 2, baseDelayMs =
   }
 }
 
-function generateFallbackExplanation({ fen, evals, userLanguage = 'sr' }) {
-  const isSr = userLanguage === 'sr';
-
+function generateFallbackExplanation({ fen, evals }) {
   // Parse side to move from FEN ('w' or 'b')
   const fenParts = (fen || '').split(' ');
-  const sideToMove = fenParts[1] === 'b' ? (isSr ? 'Crni na potezu' : 'Black to move') : (isSr ? 'Beli na potezu' : 'White to move');
+  const sideToMove = fenParts[1] === 'b' ? 'Black to move' : 'White to move';
 
   const bestMove = evals?.bestMove || (evals?.continuation ? evals.continuation.split(' ')[0] : null) || (evals?.pv ? evals.pv.split(' ')[0] : null);
   const cp = evals?.cp !== undefined ? evals.cp : (evals?.evaluation !== undefined ? Math.round(evals.evaluation * 100) : 0);
 
-  let summary = isSr
-    ? `${sideToMove}. Pozicija pruža taktičke resurse sa procenom motora ${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}.`
-    : `${sideToMove}. Position offers tactical opportunities with engine evaluation ${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}.`;
+  let summary = `${sideToMove}. Position offers tactical opportunities with engine evaluation ${cp > 0 ? '+' : ''}${(cp / 100).toFixed(2)}.`;
 
-  let keyMotif = isSr ? 'Taktička inicijativa i mobilnost' : 'Tactical Initiative & Mobility';
+  let keyMotif = 'Tactical Initiative & Mobility';
   if (cp > 300) {
-    keyMotif = isSr ? 'Značajna prednost (Zobijena pozicija)' : 'Decisive Advantage';
+    keyMotif = 'Decisive Advantage';
   } else if (cp < -300) {
-    keyMotif = isSr ? 'Odbrambeni resursi i kontraigra' : 'Defensive Counterplay';
+    keyMotif = 'Defensive Counterplay';
   }
 
   const movesList = evals?.continuation
@@ -47,12 +43,10 @@ function generateFallbackExplanation({ fen, evals, userLanguage = 'sr' }) {
     : (bestMove ? [bestMove] : []);
 
   const moveAdvice = bestMove
-    ? (isSr ? `Pritisnite protivnika potezom ${bestMove}.` : `Pressure opponent with ${bestMove}.`)
-    : (isSr ? 'Analizirajte nezaštićene figure i aktivirajte najjače figure.' : 'Analyze undefended pieces and activate key pieces.');
+    ? `Pressure opponent with ${bestMove}.`
+    : 'Analyze undefended pieces and activate key pieces.';
 
-  let plan = isSr
-    ? `1. ${sideToMove}: ${moveAdvice}\n2. Kontrolišite ključne dijagonale i linije.\n3. Nastavite sa preporučenom linijom motora.`
-    : `1. ${sideToMove}: ${moveAdvice}\n2. Control key open files and diagonals.\n3. Continue calculated engine line.`;
+  let plan = `1. ${sideToMove}: ${moveAdvice}\n2. Control key open files and diagonals.\n3. Continue calculated engine line.`;
 
   return {
     summary,
@@ -62,29 +56,29 @@ function generateFallbackExplanation({ fen, evals, userLanguage = 'sr' }) {
   };
 }
 
-async function explainPosition({ fen, evals, userLanguage = 'sr' }) {
+async function explainPosition({ fen, evals }) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY' || apiKey.trim() === '') {
     console.log('Gemini API Key missing/placeholder. Returning fallback structured coach explanation.');
-    return generateFallbackExplanation({ fen, evals, userLanguage });
+    return generateFallbackExplanation({ fen, evals });
   }
 
   try {
     const ai = new GoogleGenAI({ apiKey });
     const prompt = `
-Vi ste vrhunski šahovski velemajstor i AI Šahovski Trener (Chess Coach).
-Vaš zadatak je da učeniku na jasan, motivišući i pedagoški način objasnite trenutnu šahovsku poziciju na osnovu FEN koda i analize motorne evaluacije (Stockfish).
+You are a world-class chess grandmaster and AI Chess Coach.
+Your task is to explain the current chess position to the student in a clear, motivating, and pedagogical way based on the FEN code and engine evaluation analysis (Stockfish).
 
-FEN pozicija: "${fen}"
-Evaluacijski podaci (Stockfish): ${JSON.stringify(evals || {})}
-Jezik objašnjenja: ${userLanguage === 'sr' ? 'srpski (šahovska terminologija)' : 'english'}
+FEN position: "${fen}"
+Evaluation data (Stockfish): ${JSON.stringify(evals || {})}
+Language of explanation: English
 
-Vratite ISKLJUČIVO ispravan JSON objekat sa sledećom strukturom (bez markdown oznaka poput \`\`\`json):
+Return EXCLUSIVELY a valid JSON object with the following structure (without markdown tags like \`\`\`json):
 {
-  "summary": "Kratak pedagoški zaključak o poziciji u 1-2 rečenice.",
-  "keyMotif": "Glavni taktički ili pozicioni motiv (npr. 'Dvostruki udar (Viljuška)', 'Vezivanje kraljice', 'Slabost zadnjeg reda').",
-  "plan": "Detaljno objašnjenje plana igre korak-po-korak i razlog zašto su predloženi potezi najbolji.",
+  "summary": "A brief pedagogical conclusion about the position in 1-2 sentences.",
+  "keyMotif": "Main tactical or positional motif (e.g. 'Fork', 'Pinning the queen', 'Back-rank weakness').",
+  "plan": "Detailed step-by-step game plan explanation and reason why the suggested moves are best.",
   "recommendedMoves": ["e2e4", "e7e5"]
 }
 `;
@@ -106,7 +100,7 @@ Vratite ISKLJUČIVO ispravan JSON objekat sa sledećom strukturom (bez markdown 
     return JSON.parse(cleanJson);
   } catch (err) {
     console.error('Gemini API Exception, using structured fallback:', err.message || err);
-    return generateFallbackExplanation({ fen, evals, userLanguage });
+    return generateFallbackExplanation({ fen, evals });
   }
 }
 
@@ -125,7 +119,7 @@ function generateFallbackMoveComment({ evalBefore, evalAfter, tacticalFindings, 
   // nothing to join — describe the eval swing instead of returning nothing.
   if (typeof evalBefore === 'number' && typeof evalAfter === 'number') {
     const fmt = (v) => (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2));
-    return { comment: `Evaluacija ide sa ${fmt(evalBefore)} na ${fmt(evalAfter)}.` };
+    return { comment: `Evaluation moves from ${fmt(evalBefore)} to ${fmt(evalAfter)}.` };
   }
 
   return { comment: '' };
@@ -142,7 +136,6 @@ async function generateMoveComment({
   engineAlternative,    // { moveSan, eval, tacticalFindings, positionalFindings } | null/undefined
   nextMoveEval,         // { moveSan, eval } | null/undefined — cheap fallback, only useful when engineAlternative is absent
   siblingAlternatives,  // [{ moveSan, tacticalFindings, positionalFindings }, ...] | undefined
-  userLanguage = 'sr',
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -159,12 +152,12 @@ async function generateMoveComment({
     // as a list of sections rather than one fixed template since most of
     // these are optional (a quiet, unbranched move has none of them).
     const sections = [
-      `=== Nalazi ODIGRANOG poteza ("${moveSan}") ===\nTaktički: ${JSON.stringify(tacticalFindings || [])}\nPozicioni: ${JSON.stringify(positionalFindings || [])}`,
+      `=== Findings for PLAYED move ("${moveSan}") ===\nTactical: ${JSON.stringify(tacticalFindings || [])}\nPositional: ${JSON.stringify(positionalFindings || [])}`,
     ];
 
     if (previousMove) {
       sections.push(
-        `=== Nalazi poteza KOJI JE DOVEO do ove pozicije (prethodni potez, "${previousMove.moveSan}") ===\nTaktički: ${JSON.stringify(previousMove.tacticalFindings || [])}\nPozicioni: ${JSON.stringify(previousMove.positionalFindings || [])}`
+        `=== Findings for move THAT LED to this position (previous move, "${previousMove.moveSan}") ===\nTactical: ${JSON.stringify(previousMove.tacticalFindings || [])}\nPositional: ${JSON.stringify(previousMove.positionalFindings || [])}`
       );
     }
 
@@ -172,11 +165,11 @@ async function generateMoveComment({
     if (engineAlternative) {
       hasAlternative = true;
       sections.push(
-        `=== Engine-ova preporuka UMESTO odigranog poteza (NIJE odigrano): "${engineAlternative.moveSan}", evaluacija: ${engineAlternative.eval ?? 'nepoznato'} ===\nTaktički: ${JSON.stringify(engineAlternative.tacticalFindings || [])}\nPozicioni: ${JSON.stringify(engineAlternative.positionalFindings || [])}`
+        `=== Engine recommendation INSTEAD OF played move (NOT played): "${engineAlternative.moveSan}", evaluation: ${engineAlternative.eval ?? 'unknown'} ===\nTactical: ${JSON.stringify(engineAlternative.tacticalFindings || [])}\nPositional: ${JSON.stringify(engineAlternative.positionalFindings || [])}`
       );
     } else if (nextMoveEval) {
       sections.push(
-        `=== Evaluacija posle stvarno odigranog sledećeg poteza ("${nextMoveEval.moveSan}") ===\n${nextMoveEval.eval}`
+        `=== Evaluation after actual played next move ("${nextMoveEval.moveSan}") ===\n${nextMoveEval.eval}`
       );
     }
 
@@ -184,31 +177,31 @@ async function generateMoveComment({
       hasAlternative = true;
       for (const alt of siblingAlternatives) {
         sections.push(
-          `=== Alternativna varijanta iz stabla (NIJE odigrano): "${alt.moveSan}" ===\nTaktički: ${JSON.stringify(alt.tacticalFindings || [])}\nPozicioni: ${JSON.stringify(alt.positionalFindings || [])}`
+          `=== Alternative branch from tree (NOT played): "${alt.moveSan}" ===\nTactical: ${JSON.stringify(alt.tacticalFindings || [])}\nPositional: ${JSON.stringify(alt.positionalFindings || [])}`
         );
       }
     }
 
     const instruction = hasAlternative
-      ? 'Napišite komentar od 1 do 4 rečenice koji upoređuje odigrani potez sa navedenim alternativama koje NISU odigrane, objašnjavajući zašto je odigrani potez bolji, gori ili uporediv — oslanjajući se na date nalaze i evaluacije, ne nabrajajte ih mehanički, napišite prirodan tekst kao za čitaoca partije.'
-      : 'Napišite komentar od 1 do 3 rečenice koji objašnjava ZAŠTO je ovaj potez dobar, loš ili sporan, oslanjajući se na date nalaze i promenu evaluacije — ne nabrajajte nalaze mehanički, napišite prirodan tekst kao za čitaoca partije.';
+      ? 'Write a 1 to 4 sentence commentary comparing the played move with the specified alternatives that were NOT played, explaining why the played move is better, worse, or comparable — relying on the provided findings and evaluations, do not list them mechanically, write natural prose as for a game reader.'
+      : 'Write a 1 to 3 sentence commentary explaining WHY this move is good, bad, or questionable, relying on the provided findings and evaluation swing — do not list findings mechanically, write natural prose as for a game reader.';
 
     const prompt = `
-Vi ste šahovski velemajstor i komentator koji piše kratke, pronicljive komentare uz poteze u partiji, u stilu koji se koristi u analiziranim PGN fajlovima.
+You are a chess grandmaster and commentator writing concise, insightful move annotations for a game, in the style used in annotated PGN files.
 
-Odigran potez: "${moveSan}"
-Evaluacija pre poteza: ${evalBefore ?? 'nepoznato'}
-Evaluacija posle poteza: ${evalAfter ?? 'nepoznato'}
+Played move: "${moveSan}"
+Evaluation before move: ${evalBefore ?? 'unknown'}
+Evaluation after move: ${evalAfter ?? 'unknown'}
 
 ${sections.join('\n\n')}
 
-Jezik: ${userLanguage === 'sr' ? 'srpski (šahovska terminologija)' : 'english'}
+Language: English
 
 ${instruction}
 
-Kad god pominjete bilo koji potez u tekstu (odigrani ili alternativni), koristite tačno onu SAN notaciju koja vam je data iznad (npr. "Be7", "Nf3", "Qxd5") — sa standardnim engleskim slovima za figure (K, Q, R, B, N). Ne prevodite slova figura na srpski (nikako "Le7", "Sf3", "Td1" i slično), čak ni kad je ostatak teksta na srpskom.
+Whenever mentioning any move in the text (played or alternative), use the exact SAN notation given above (e.g. "Be7", "Nf3", "Qxd5") — with standard English piece letters (K, Q, R, B, N).
 
-Vratite ISKLJUČIVO ispravan JSON objekat (bez markdown oznaka poput \`\`\`json):
+Return EXCLUSIVELY a valid JSON object (without markdown tags like \`\`\`json):
 {
   "comment": "..."
 }

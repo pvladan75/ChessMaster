@@ -181,24 +181,24 @@ async function judgeMove({ fen, move, tablebase }) {
   try {
     board = new Chess(fen);
   } catch {
-    throw new DrillError('Pozicija nije ispravna.');
+    throw new DrillError('Position is invalid.');
   }
 
   // Seven is as far as any tablebase reaches. Asking about more would get an
   // answer the service does not stand behind, and this mode has no use for one.
   if (pieceCount(fen) > 7) {
-    throw new DrillError('Pozicija ima više od sedam figura, pa se ne može presuditi iz tablica.');
+    throw new DrillError('Position has more than seven pieces, so it cannot be judged from the tablebase.');
   }
 
   const before = await tablebase.probe(fen);
   const goal = drillOutcome(before.category);
   if (goal === 'loss') {
-    throw new DrillError('Ova pozicija je već izgubljena, pa nema šta da se drži.');
+    throw new DrillError('This position is already lost, so there is nothing to hold.');
   }
 
   const played = applyMove(board, move);
   if (!played) {
-    throw new DrillError('Taj potez nije moguć u ovoj poziciji.');
+    throw new DrillError('That move is not possible in this position.');
   }
 
   const entry = before.moves.find((m) => m.uci === uciOf(played));
@@ -206,7 +206,7 @@ async function judgeMove({ fen, move, tablebase }) {
     // The tables listed every legal move and this one was not among them, so
     // one of the two is wrong about the position. Neither is worth guessing on.
     throw new TablebaseUnavailable(
-      `Tablica ne poznaje potez ${played.san} u toj poziciji.`
+      `Tablebase does not recognize move ${played.san} in that position.`
     );
   }
 
@@ -358,12 +358,12 @@ async function readout({ fen, goal = 'win', tablebase }) {
     // eslint-disable-next-line no-new
     new Chess(fen);
   } catch {
-    throw new DrillError('Pozicija nije ispravna.');
+    throw new DrillError('Position is invalid.');
   }
   if (pieceCount(fen) > 7) {
-    throw new DrillError('Pozicija ima vise od sedam figura, pa je tablice ne pokrivaju.');
+    throw new DrillError('Position has more than seven pieces, so the tablebase does not cover it.');
   }
-  if (!(goal in RANK)) throw new DrillError(`Nepoznat cilj: ${goal}.`);
+  if (!(goal in RANK)) throw new DrillError(`Unknown goal: ${goal}.`);
 
   const probed = await tablebase.probe(fen);
   const outcome = drillOutcome(probed.category);
@@ -432,10 +432,10 @@ async function bestLine({ fen, plies = 10, tablebase }) {
   try {
     board = new Chess(fen);
   } catch {
-    throw new DrillError('Pozicija nije ispravna.');
+    throw new DrillError('Position is invalid.');
   }
   if (pieceCount(fen) > 7) {
-    throw new DrillError('Pozicija ima više od sedam figura, pa se linija ne može izvesti.');
+    throw new DrillError('Position has more than seven pieces, so the line cannot be derived.');
   }
 
   const start = await tablebase.probe(fen);

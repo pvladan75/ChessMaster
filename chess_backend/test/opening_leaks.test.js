@@ -78,7 +78,7 @@ test('the window cannot be widened past where the numbers mean anything', async 
   const pool = stubPool();
   await assert.rejects(
     () => leakReport(pool, 5, { subject: 'subjekat', toPly: 30 }),
-    (err) => err instanceof RangeError && /dvadesetog/.test(err.message),
+    (err) => err instanceof RangeError && /twentieth/.test(err.message),
   );
   await assert.rejects(
     () => leakReport(pool, 5, { subject: 'subjekat', fromPly: 0 }),

@@ -19,7 +19,7 @@ router.get('/positions', authenticateToken, async (req, res) => {
   // keeps meeting.
   if (kind !== undefined && !isKind(kind)) {
     return res.status(400).json({
-      error: `Nepoznata vrsta „${kind}". Dozvoljene su: ${KINDS.join(', ')}.`,
+      error: `Unknown kind "${kind}". Allowed values: ${KINDS.join(', ')}.`,
     });
   }
 
@@ -31,7 +31,7 @@ router.get('/positions', authenticateToken, async (req, res) => {
     res.json({ items });
   } catch (err) {
     logger.error(`[LIBRARY] Lista pozicija nije učitana: ${err.message}`);
-    res.status(500).json({ error: 'Greška pri učitavanju biblioteke pozicija.' });
+    res.status(500).json({ error: 'Failed to load position library.' });
   }
 });
 

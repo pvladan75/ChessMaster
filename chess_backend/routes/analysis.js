@@ -9,7 +9,7 @@ router.post('/', authenticateToken, async (req, res) => {
   const { title, startingFen, tree } = req.body;
 
   if (!title || !startingFen || !tree) {
-    return res.status(400).json({ error: 'title, startingFen i tree su obavezni.' });
+    return res.status(400).json({ error: 'title, startingFen and tree are required.' });
   }
 
   try {
@@ -20,7 +20,7 @@ router.post('/', authenticateToken, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     logger.error('Save analysis error:', err);
-    res.status(500).json({ error: 'Greška na serveru pri čuvanju analize.' });
+    res.status(500).json({ error: 'Server error saving analysis.' });
   }
 });
 
@@ -34,7 +34,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     logger.error('List analyses error:', err);
-    res.status(500).json({ error: 'Greška na serveru pri učitavanju liste analiza.' });
+    res.status(500).json({ error: 'Server error loading analysis list.' });
   }
 });
 
@@ -46,12 +46,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Analiza nije pronađena.' });
+      return res.status(404).json({ error: 'Analysis not found.' });
     }
     res.json(result.rows[0]);
   } catch (err) {
     logger.error('Load analysis error:', err);
-    res.status(500).json({ error: 'Greška na serveru pri učitavanju analize.' });
+    res.status(500).json({ error: 'Server error loading analysis.' });
   }
 });
 
@@ -63,12 +63,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Analiza nije pronađena.' });
+      return res.status(404).json({ error: 'Analysis not found.' });
     }
     res.json({ success: true });
   } catch (err) {
     logger.error('Delete analysis error:', err);
-    res.status(500).json({ error: 'Greška na serveru pri brisanju analize.' });
+    res.status(500).json({ error: 'Server error deleting analysis.' });
   }
 });
 

@@ -79,7 +79,7 @@ function keysAlong(rootFen, alongPath) {
     }
     if (!played) {
       throw new RangeError(
-        `Potez „${san}" iz putanje ne može da se odigra iz zadate pozicije.`);
+        `Move "${san}" from path cannot be played from the given position.`);
     }
     keys.add(fenKey(board.fen()));
   }
@@ -104,7 +104,7 @@ async function walkLines(pool, userId, {
   gateUci = null, breadth = DEFAULT_BREADTH, alongPath = [],
 } = {}) {
   if (color !== 'w' && color !== 'b') {
-    throw new RangeError(`Boja mora biti "w" ili "b", a ne "${color}".`);
+    throw new RangeError(`Color must be "w" or "b", not "${color}".`);
   }
   fenKey(rootFen);
 

@@ -108,7 +108,7 @@ function ratingBucketsFrom(minRating) {
   const min = Number(minRating);
   if (!RATING_BUCKETS.includes(min)) {
     throw new RangeError(
-      `Nepoznat prag rejtinga „${minRating}". Dozvoljeni su: ${RATING_BUCKETS.join(', ')}.`
+      `Unknown rating threshold "${minRating}". Allowed: ${RATING_BUCKETS.join(', ')}.`
     );
   }
   return RATING_BUCKETS.filter((b) => b >= min);
@@ -209,7 +209,7 @@ function createOpeningJudge({
     if (blockedFor > 0) {
       const left = Math.ceil(blockedFor / 1000);
       throw new OpeningJudgeUnavailable(
-        `Lichess privremeno ne prima upite. Probajte za ${left} s.`,
+        `Lichess is temporarily not accepting requests. Try again in ${left} s.`,
         { reason: 'rate-limited', status: 503 }
       );
     }
@@ -225,13 +225,13 @@ function createOpeningJudge({
 
       if (res.status === 401 || res.status === 403) {
         throw new OpeningJudgeUnavailable(
-          'Lichess je odbio vaš token.', { reason: 'unauthorized', status: 502 }
+          'Lichess rejected your token.', { reason: 'unauthorized', status: 502 }
         );
       }
       if (res.status === 429) {
         pacer.block();
         throw new OpeningJudgeUnavailable(
-          'Potrošen je dozvoljeni broj upita ka Lichessu. Probajte za minut.',
+          'Rate limit exceeded for Lichess requests. Try again in a minute.',
           { reason: 'rate-limited', status: 503 }
         );
       }
@@ -241,7 +241,7 @@ function createOpeningJudge({
       if (res.status === 404 && allowMissing) return null;
       if (!res.ok) {
         throw new OpeningJudgeUnavailable(
-          `Lichess je odgovorio ${res.status}.`, { reason: 'network' }
+          `Lichess responded with ${res.status}.`, { reason: 'network' }
         );
       }
       requests += 1;
@@ -249,7 +249,7 @@ function createOpeningJudge({
     } catch (err) {
       if (err instanceof OpeningJudgeUnavailable) throw err;
       throw new OpeningJudgeUnavailable(
-        'Lichess trenutno nije dostupan.', { reason: 'network', cause: err }
+        'Lichess is currently unavailable.', { reason: 'network', cause: err }
       );
     } finally {
       clearTimeout(timer);
@@ -350,10 +350,10 @@ function createOpeningJudge({
    */
   async function judge(fen, move, { token = '', minRating = null } = {}) {
     if (typeof fen !== 'string' || fen.trim() === '') {
-      throw new RangeError('Pozicija (FEN) nije prosleđena.');
+      throw new RangeError('Position (FEN) was not provided.');
     }
     if (typeof move !== 'string' || move.trim() === '') {
-      throw new RangeError('Potez nije prosleđen.');
+      throw new RangeError('Move was not provided.');
     }
 
     // The caller's own mistakes are answered before this server's state, so a
@@ -364,7 +364,7 @@ function createOpeningJudge({
     try {
       board = new Chess(fen);
     } catch {
-      throw new RangeError('Pozicija (FEN) nije ispravna.');
+      throw new RangeError('Position (FEN) is invalid.');
     }
 
     let played;
@@ -374,7 +374,7 @@ function createOpeningJudge({
       played = null;
     }
     if (!played) {
-      throw new RangeError(`Potez „${move}" nije moguć u toj poziciji.`);
+      throw new RangeError(`Move "${move}" is not possible in that position.`);
     }
 
     const uci = `${played.from}${played.to}${played.promotion ?? ''}`;
@@ -383,7 +383,7 @@ function createOpeningJudge({
 
     if (!token) {
       throw new OpeningJudgeUnavailable(
-        'Za suđenje poteza potreban je vaš Lichess token.',
+        'Judging a move requires your Lichess token.',
         { reason: 'no-token', status: 403 }
       );
     }
@@ -493,12 +493,12 @@ function createOpeningJudge({
    */
   async function replies(fen, { token = '', minRating = null } = {}) {
     if (typeof fen !== 'string' || fen.trim() === '') {
-      throw new RangeError('Pozicija (FEN) nije prosleđena.');
+      throw new RangeError('Position (FEN) was not provided.');
     }
     const buckets = ratingBucketsFrom(minRating);
     if (!token) {
       throw new OpeningJudgeUnavailable(
-        'Za gradnju repertoara potreban je vaš Lichess token.',
+        'Building a repertoire requires your Lichess token.',
         { reason: 'no-token', status: 403 }
       );
     }

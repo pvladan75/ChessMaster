@@ -35,14 +35,14 @@ function uploadRejection(err) {
     return {
       status: 413,
       body: {
-        error: `Knjiga je veća od ${Math.round(MAX_DOCUMENT_BYTES / (1024 * 1024))} MB. Podeli PDF na manje delove pa skeniraj deo po deo.`,
+        error: `Book is larger than ${Math.round(MAX_DOCUMENT_BYTES / (1024 * 1024))} MB. Split the PDF into smaller parts and scan part by part.`,
         code: 'file_too_large',
       },
     };
   }
   return {
     status: 400,
-    body: { error: err.message || 'Dokument nije prihvaćen.', code: 'upload_rejected' },
+    body: { error: err.message || 'Document not accepted.', code: 'upload_rejected' },
   };
 }
 
@@ -60,7 +60,7 @@ function cleanThemes(value) {
  */
 function prepareRow(position) {
   const fen = typeof position?.fen === 'string' ? position.fen.trim() : '';
-  if (!fen) throw new Error('Pozicija nema FEN.');
+  if (!fen) throw new Error('Position has no FEN.');
 
   // Throws on anything that is not a position; that is the point of the call.
   const board = new Chess(fen);
@@ -153,8 +153,8 @@ function mergePlan(existing, incoming) {
         action: 'conflict',
         fields: {},
         reason: playsFlipped
-          ? `rešenje "${incoming.solutionSan}" igra tek ako je druga strana na potezu — strana je verovatno pogrešna`
-          : `rešenje "${incoming.solutionSan}" ne igra u već sačuvanoj poziciji`,
+          ? `solution "${incoming.solutionSan}" only plays if other side is to move — side to move is likely wrong`
+          : `solution "${incoming.solutionSan}" does not play in stored position`,
         sideLikelyWrong: playsFlipped,
       };
     }
@@ -198,10 +198,10 @@ function mergePlan(existing, incoming) {
  */
 function withSideToMove(fen, side) {
   if (side !== 'w' && side !== 'b') {
-    throw new Error(`Strana na potezu mora biti 'w' ili 'b', dobijeno ${JSON.stringify(side)}.`);
+    throw new Error(`Side to move must be 'w' or 'b', got ${JSON.stringify(side)}.`);
   }
   const parts = fen.trim().split(/\s+/);
-  if (parts.length < 4) throw new Error('FEN nije potpun.');
+  if (parts.length < 4) throw new Error('FEN is incomplete.');
   parts[1] = side;
   parts[3] = '-';
   const rewritten = parts.join(' ');
@@ -243,10 +243,10 @@ function deriveInstruction(fen, solutionSan) {
   if (!solutionSan) return null;
   try {
     const board = new Chess(fen);
-    const side = board.turn() === 'w' ? 'Beli' : 'Crni';
+    const side = board.turn() === 'w' ? 'White' : 'Black';
     const move = board.move(solutionSan);
     if (!move) return null;
-    if (board.isCheckmate()) return `${side} matira u jednom potezu.`;
+    if (board.isCheckmate()) return `${side} mates in one move.`;
     return null;
   } catch {
     return null;
