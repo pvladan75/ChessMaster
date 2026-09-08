@@ -205,6 +205,31 @@ koji važi za sve odjednom.
 Suite 1773 (jedan test više nego 1772: dva stara slučaja o srpskom glasu
 zamenjena sa tri o engleskom), analyze 29.
 
+### Server je progovorio engleski — batch 66a, 8.9.2026
+
+Vlasnik je na čistom buildu pročitao „učenik 2 želi da vas upiše kao
+učenika". **Server šalje rečenice na ekran**, a svaki brief u ovom zaokretu je
+govorio „ne diraj chess_backend" — što je bilo tačno za te batch-eve i to je
+ovo sakrilo. Merenje: 847 srpskih linija u 79 produkcionih fajlova.
+
+**66a je spojen** (`a5fc057`): 30 fajlova, 278 literala, 9 backend testova.
+`npm test` 964, `flutter test` 1762 — oba nepromenjena. **Ostaje 66b: 281
+linija u 41 fajlu** (zagonetke, repertoar, otvaranja, završnice, skener,
+arhiva).
+
+**Tri stvari su trajno van obima, sa razlogom:** `routes/consent.js` i
+roditeljski mejl u `services/mailService.js` nose formulaciju koju je advokat
+odobrio za Srbiju 25.8.2026 — engleska verzija je dokument iz faze 4 sa
+spoljnom proverom; `db.js` je šema; a **vrednosti uloga** (`'trener'`,
+`'ucenik'`, `'korisnik'`, `'host'`, `'admin'`, `'user'`) žive u CHECK
+ograničenju baze i aplikacija grana po njima na 25 mesta. Preimenovanje toga je
+migracija kroz šemu, server, socket i aplikaciju — nije prevod.
+
+**Što batch ne može da popravi, i rečeno je unapred:** `user_notifications` je
+tabela, pa su poruke sa vlasnikovog snimka **već upisani redovi**. Prevod
+generatora menja šta se piše od sada i ništa što postoji. Briše li se to —
+vlasnikova odluka, ne posao batch-a.
+
 ### Otvoreno, nije rađeno
 
 * Tri pitanja o dizajnu iz prijava od 7.9.2026: orijentacija kao svojstvo niza
