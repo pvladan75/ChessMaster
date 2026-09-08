@@ -188,7 +188,7 @@ void main() {
 
   /// The legend's own words. It is the line that says what the drawing was
   /// made at, which is why the dial belongs on it rather than in a menu.
-  final width = find.text('Koliko odgovora: uobičajeno 80%');
+  final width = find.text('Breadth: standard 80%');
 
   testWidgets('the width in the legend opens its own dialog', (tester) async {
     await pump(tester);
@@ -198,12 +198,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(BreadthSettingDialog), findsOneWidget);
-    expect(find.text('Koliko odgovora spremamo'), findsOneWidget);
+    expect(find.text('How many replies to prepare'), findsOneWidget);
     // And it is the width alone: no depth, and nothing about a spine — this is
     // not `BreadthDialog`, which saves the width only if it may also write.
     expect(find.byType(BreadthDialog), findsNothing);
-    expect(find.text('6 poteza'), findsNothing);
-    expect(find.text('Predloži glavnu liniju odavde'), findsNothing);
+    expect(find.text('6 moves'), findsNothing);
+    expect(find.text('Suggest main line from here'), findsNothing);
   });
 
   testWidgets('choosing a width saves it and writes no moves', (tester) async {
@@ -212,9 +212,9 @@ void main() {
 
     await tester.tap(width);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Samo glavni odgovor'));
+    await tester.tap(find.text('Main reply only'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(api.savedBreadth, 'main', reason: 'širina nije upisana u red');
@@ -229,7 +229,7 @@ void main() {
     // The whole point of the separate dialog.
     expect(api.spineCalls, 0, reason: 'promena širine je upisala poteze');
     // And the legend now says the new one.
-    expect(find.text('Koliko odgovora: samo glavni odgovor'), findsOneWidget);
+    expect(find.text('Breadth: main reply only'), findsOneWidget);
   });
 
   testWidgets('cancelling changes nothing at all', (tester) async {
@@ -238,9 +238,9 @@ void main() {
 
     await tester.tap(width);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Široko (95%)'));
+    await tester.tap(find.text('Broad (95%)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odustani'));
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(api.savedBreadth, isNull);
@@ -257,11 +257,11 @@ void main() {
     await pump(tester);
     await tester.tap(width);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(api.savedBreadth, 'standard');
-    expect(find.text('Koliko odgovora: uobičajeno 80%'), findsOneWidget);
+    expect(find.text('Breadth: standard 80%'), findsOneWidget);
   });
 
   testWidgets('a repertoire without an id is not offered the dial',
@@ -273,26 +273,25 @@ void main() {
     expect(width, findsOneWidget);
     await tester.tap(width);
     await tester.pumpAndSettle();
-    expect(find.text('Koliko odgovora spremamo'), findsNothing);
+    expect(find.text('How many replies to prepare'), findsNothing);
   });
 
   testWidgets('a save the server refuses keeps the old width', (tester) async {
     await pump(tester);
     api.saveWorks = false;
-
     await tester.tap(width);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Samo glavni odgovor'));
+    await tester.tap(find.text('Main reply only'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     // The dialog stays open and says so, and the screen has not adopted a
     // width the server does not hold.
-    expect(find.text('Koliko odgovora spremamo'), findsOneWidget);
-    expect(find.textContaining('Nije sačuvano'), findsOneWidget);
+    expect(find.text('How many replies to prepare'), findsOneWidget);
+    expect(find.textContaining('Not saved'), findsOneWidget);
 
-    await tester.tap(find.text('Odustani'));
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(width, findsOneWidget);
   });

@@ -135,8 +135,9 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     if (found != null) _opening = found;
     if (_named) return;
     final opening = _opening;
-    _name.text =
-        opening == null ? '' : '$opening — ${_color == 'w' ? 'beli' : 'crni'}';
+    _name.text = opening == null
+        ? ''
+        : '$opening — ${_color == 'w' ? 'White' : 'Black'}';
   }
 
   /// Re-reads what is already played in the position on the board.
@@ -204,10 +205,10 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
   /// screen an hour ago, in the other direction: the position was fine, the
   /// name was empty, and nothing on screen said which.
   String? get _whyNot {
-    if (_name.text.trim().isEmpty) return 'Upišite ime repertoara.';
+    if (_name.text.trim().isEmpty) return 'Enter a repertoire name.';
     if (!_ourTurn) {
-      return 'Na potezu je ${_forWhite ? "crni" : "beli"}. Odigrajte još jedan '
-          'potez, ili promenite stranu.';
+      return '${_forWhite ? "Black" : "White"} is to move. Play one more '
+          'move, or switch sides.';
     }
     return null;
   }
@@ -289,8 +290,9 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: OpeningPicker(
-              hint: 'Izaberite otvaranje sa spiska, pa varijantu u njemu — '
-                  'ili ukucajte naziv. Pozicija i ime dolaze s njim.',
+              hint:
+                  'Choose an opening from the list, then a variation within it — '
+                  'or type a name. The position and name come with it.',
               onPicked: (entry) {
                 Navigator.of(ctx).pop();
                 _applyOpening(entry.name, entry.pgn);
@@ -348,7 +350,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     try {
       board = chess.Chess.fromFEN(fen);
     } catch (_) {
-      setState(() => _error = 'Ta pozicija nije ispravna — proverite FEN.');
+      setState(() => _error = 'That position is invalid — check the FEN.');
       return;
     }
     setState(() {
@@ -390,7 +392,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
         _saving = false;
         // The server's own words, not a guess: a taken name, a stopped backend
         // and a refused position read differently and are fixed differently.
-        _error = made.error ?? 'Nije sačuvano.';
+        _error = made.error ?? 'Not saved.';
       });
       return;
     }
@@ -402,7 +404,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: const Text('Novi repertoar'),
+        title: const Text('New repertoire'),
         elevation: 0,
         actions: const [BoardViewMenu()],
       ),
@@ -427,20 +429,20 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                         controller: _name,
                         onChanged: (_) => setState(() => _named = true),
                         decoration: InputDecoration(
-                          labelText: 'Ime',
-                          hintText: 'npr. Smit-Mora — crni',
+                          labelText: 'Name',
+                          hintText: 'e.g. Smith-Morra — Black',
                           helperText: _named || _opening == null
                               ? null
-                              : 'Predloženo iz baze otvaranja — možete ga '
-                                  'izmeniti.',
+                              : 'Suggested from opening database — you can '
+                                  'edit it.',
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Center(
                         child: SegmentedButton<String>(
                           segments: const [
-                            ButtonSegment(value: 'w', label: Text('Beli')),
-                            ButtonSegment(value: 'b', label: Text('Crni')),
+                            ButtonSegment(value: 'w', label: Text('White')),
+                            ButtonSegment(value: 'b', label: Text('Black')),
                           ],
                           selected: {_color},
                           onSelectionChanged: (s) {
@@ -504,8 +506,8 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
   Widget _buildLine(BuildContext context) {
     if (_line.isEmpty) {
       return Text(
-        'Odigrajte poteze do pozicije od koje krećete — obe strane, kao da '
-        'pokazujete otvaranje.',
+        'Play the moves up to your starting position — both sides, as if '
+        'showing an opening.',
         style: AppText.caption.copyWith(color: context.colors.textMuted),
       );
     }
@@ -542,7 +544,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'U ovoj poziciji već igrate: $already.',
+              'In this position you already play: $already.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.xxs),
@@ -551,8 +553,8 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                 Expanded(
                   child: Text(
                     _gateSan == null
-                        ? 'Ovaj repertoar: bez ograničenja (ceo graf).'
-                        : 'Ovaj repertoar ide kroz $_gateSan.',
+                        ? 'This repertoire: no restriction (full graph).'
+                        : 'This repertoire goes through $_gateSan.',
                     style: AppText.body
                         .copyWith(color: context.colors.textPrimary),
                   ),
@@ -560,7 +562,7 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
                 TextButton.icon(
                   onPressed: _saving ? null : _pickGate,
                   icon: const Icon(Icons.alt_route, size: 18),
-                  label: const Text('Izaberi'),
+                  label: const Text('Choose'),
                 ),
               ],
             ),
@@ -581,10 +583,10 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
       children: [
         Text(
           _ourTurn
-              ? 'Na potezu je ${_forWhite ? "beli" : "crni"} — vaša strana, pa '
-                  'repertoar može da počne odavde.'
-              : 'Na potezu je ${_forWhite ? "crni" : "beli"}. Odigrajte još '
-                  'jedan potez, ili promenite stranu.',
+              ? '${_forWhite ? "White" : "Black"} is to move — your side, so '
+                  'the repertoire can start from here.'
+              : '${_forWhite ? "Black" : "White"} is to move. Play one '
+                  'more move, or switch sides.',
           style: AppText.caption.copyWith(
             color: _ourTurn ? context.colors.success : context.colors.warning,
           ),
@@ -611,27 +613,27 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
         OutlinedButton.icon(
           onPressed: _line.isEmpty || _saving ? null : _undo,
           icon: const Icon(Icons.undo, size: 18),
-          label: const Text('Nazad'),
+          label: const Text('Back'),
         ),
         OutlinedButton.icon(
           onPressed: _line.isEmpty || _saving ? null : _reset,
           icon: const Icon(Icons.refresh, size: 18),
-          label: const Text('Ispočetka'),
+          label: const Text('Reset'),
         ),
         OutlinedButton.icon(
           onPressed: _saving ? null : _pickOpening,
           icon: const Icon(Icons.search, size: 18),
-          label: const Text('Izaberi otvaranje'),
+          label: const Text('Choose opening'),
         ),
         TextButton.icon(
           onPressed: _saving ? null : _pasteFen,
           icon: const Icon(Icons.content_paste, size: 18),
-          label: const Text('Nalepi FEN'),
+          label: const Text('Paste FEN'),
         ),
         FilledButton.icon(
           onPressed: _canSave ? _save : null,
           icon: const Icon(Icons.check, size: 18),
-          label: const Text('Napravi'),
+          label: const Text('Create'),
         ),
       ],
     );
@@ -661,22 +663,22 @@ class _PasteFenDialogState extends State<_PasteFenDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Nalepi poziciju (FEN)'),
+      title: const Text('Paste position (FEN)'),
       content: TextField(
         controller: _controller,
         maxLines: 3,
         decoration: const InputDecoration(
-          helperText: 'Ceo FEN, sa poljem koje kaže ko je na potezu.',
+          helperText: 'Full FEN, including the active color field.',
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Postavi'),
+          child: const Text('Set'),
         ),
       ],
     );

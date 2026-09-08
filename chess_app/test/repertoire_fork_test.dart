@@ -119,7 +119,7 @@ void main() {
           entry: OpeningBookEntry(eco: 'C60', name: 'Ruy Lopez', pgn: '')),
     );
 
-    await tester.tap(find.text('Izdvoji'));
+    await tester.tap(find.text('Fork'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -140,7 +140,7 @@ void main() {
     final api = _RecordingApi();
     await _open(tester, api: api, book: _FakeBook());
 
-    await tester.tap(find.text('Izdvoji'));
+    await tester.tap(find.text('Fork'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 

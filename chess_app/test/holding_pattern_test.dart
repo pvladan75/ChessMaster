@@ -12,7 +12,7 @@ void main() {
         fen: fen,
         holdingUci: const ['e1d2', 'e1f2'],
       );
-      expect(lesson, 'Drže samo potezi kralja.');
+      expect(lesson, 'Only the king moves hold.');
     });
 
     test('the rook has to stay on its rank', () {
@@ -23,7 +23,7 @@ void main() {
         fen: fen,
         holdingUci: const ['a1b1', 'a1c1', 'a1d1'],
       );
-      expect(lesson, 'Top mora da ostane na 1. redu.');
+      expect(lesson, 'The Rook must stay on rank 1.');
     });
 
     test('a pattern the played move breaks is the one worth saying', () {
@@ -37,7 +37,7 @@ void main() {
         playedUci: 'e1d2',
       );
       expect(patterns.first.explainsPlayed, isTrue);
-      expect(patterns.first.text, contains('topa'));
+      expect(patterns.first.text, contains('rook'));
     });
 
     test('nothing is claimed when the moves that hold share nothing', () {
@@ -86,7 +86,7 @@ void main() {
         fen: fen,
         holdingUci: const ['a1a3', 'a1b1'],
       );
-      expect(patterns.map((p) => p.text), contains('Drži samo šah.'));
+      expect(patterns.map((p) => p.text), contains('Only a check holds.'));
     });
 
     test('an unreadable position produces silence, not a guess', () {
@@ -138,7 +138,7 @@ void main() {
       // its own: this is where the queen belongs.
       expect(
         holdingLesson(fen: daSilva, holdingUci: const ['b8b2']),
-        contains('B-liniji'),
+        contains('B-file'),
       );
     });
 
@@ -150,7 +150,7 @@ void main() {
           holdingUci: const ['a1b1', 'a1c1', 'a1d1'],
           playedUci: 'a1a8',
         ),
-        contains('1. redu'),
+        contains('rank 1'),
       );
     });
   });
@@ -166,7 +166,7 @@ void main() {
       // "Stays on the rank" excludes fewer moves than "is a rook move", but it
       // is the one the played move broke.
       expect(patterns.first.explainsPlayed, isTrue);
-      expect(patterns.first.text, contains('1. redu'));
+      expect(patterns.first.text, contains('rank 1'));
     });
   });
 }

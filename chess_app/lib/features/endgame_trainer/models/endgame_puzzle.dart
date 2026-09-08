@@ -5,8 +5,6 @@
 /// when they can be tested without a board.
 library;
 
-import 'package:chess_app/core/services/serbian_plural.dart';
-
 /// What the position asks of the side to move.
 enum EndgameMode {
   /// The position is won. Find a move that keeps it won.
@@ -202,19 +200,9 @@ class EndgameVerdict {
 ///
 /// Board logic stays outside, as in [TacticsSolveSession]: the caller owns the
 /// position and only reports what happened.
-/// How many other moves also hold the result, in the form Serbian needs.
-///
-/// Written out three times rather than assembled, because the verb changes with
-/// the number as well as the noun: "Postoji jedan", "Postoje dva", "Postoji
-/// pet". The app used to say "Postoji još 2 takvih poteza" for every count
-/// above one, which reads as careless in text and is unmistakable once a voice
-/// is reading it aloud.
-String movesLeftText(int left) => serbianCount(
-      left,
-      one: 'Postoji još $left takav potez.',
-      few: 'Postoje još $left takva poteza.',
-      many: 'Postoji još $left takvih poteza.',
-    );
+/// How many other moves also hold the result.
+String movesLeftText(int left) =>
+    left == 1 ? 'There is 1 other move.' : 'There are $left other moves.';
 
 class EndgameSolveSession {
   /// [alreadyFound] holds moves the user has already produced for this position

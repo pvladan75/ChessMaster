@@ -50,7 +50,7 @@ class HoldingPattern {
     this.playedWasSamePiece = false,
   });
 
-  /// The sentence, in Serbian.
+  /// The sentence, in English.
   final String text;
 
   final HoldingKind kind;
@@ -109,21 +109,21 @@ class _Move {
 
 // Not const: PieceType overrides ==, which a constant map key may not.
 final _pieceNames = {
-  chess.PieceType.KING: 'kralja',
-  chess.PieceType.QUEEN: 'dame',
-  chess.PieceType.ROOK: 'topa',
-  chess.PieceType.BISHOP: 'lovca',
-  chess.PieceType.KNIGHT: 'skakača',
-  chess.PieceType.PAWN: 'pešaka',
+  chess.PieceType.KING: 'king',
+  chess.PieceType.QUEEN: 'queen',
+  chess.PieceType.ROOK: 'rook',
+  chess.PieceType.BISHOP: 'bishop',
+  chess.PieceType.KNIGHT: 'knight',
+  chess.PieceType.PAWN: 'pawn',
 };
 
 final _pieceSubjects = {
-  chess.PieceType.KING: 'Kralj',
-  chess.PieceType.QUEEN: 'Dama',
-  chess.PieceType.ROOK: 'Top',
-  chess.PieceType.BISHOP: 'Lovac',
-  chess.PieceType.KNIGHT: 'Skakač',
-  chess.PieceType.PAWN: 'Pešak',
+  chess.PieceType.KING: 'King',
+  chess.PieceType.QUEEN: 'Queen',
+  chess.PieceType.ROOK: 'Rook',
+  chess.PieceType.BISHOP: 'Bishop',
+  chess.PieceType.KNIGHT: 'Knight',
+  chess.PieceType.PAWN: 'Pawn',
 };
 
 List<_Move> _legalMoves(String fen) {
@@ -222,7 +222,7 @@ List<HoldingPattern> describeHolding({
   final pieces = holding.map((m) => m.piece).toSet();
   if (pieces.length == 1) {
     final piece = pieces.first;
-    add(HoldingKind.piece, 'Drže samo potezi ${_pieceNames[piece]}.',
+    add(HoldingKind.piece, 'Only the ${_pieceNames[piece]} moves hold.',
         (m) => m.piece == piece);
 
     // And where that piece has to stay. A rook that must not leave its rank is
@@ -233,14 +233,14 @@ List<HoldingPattern> describeHolding({
         if (holding.every((m) => m.toRank == m.fromRank)) {
           add(
             HoldingKind.line,
-            '${_pieceSubjects[piece]} mora da ostane na ${origin[1]}. redu.',
+            'The ${_pieceSubjects[piece]} must stay on rank ${origin[1]}.',
             (m) => m.piece == piece && m.toRank == m.fromRank,
           );
         } else if (holding.every((m) => m.toFile == m.fromFile)) {
           add(
             HoldingKind.line,
-            '${_pieceSubjects[piece]} mora da ostane na '
-            '${origin[0].toUpperCase()}-liniji.',
+            'The ${_pieceSubjects[piece]} must stay on the '
+            '${origin[0].toUpperCase()}-file.',
             (m) => m.piece == piece && m.toFile == m.fromFile,
           );
         }
@@ -253,21 +253,21 @@ List<HoldingPattern> describeHolding({
   final ranks = holding.map((m) => m.toRank).toSet();
   if (ranks.length == 1 && holding.length > 1) {
     final rank = String.fromCharCode(ranks.first);
-    add(HoldingKind.destination, 'Drži samo potez na $rank. red.',
+    add(HoldingKind.destination, 'Only moves to rank $rank hold.',
         (m) => m.toRank == ranks.first);
   }
   final files = holding.map((m) => m.toFile).toSet();
   if (files.length == 1 && holding.length > 1) {
     final file = String.fromCharCode(files.first).toUpperCase();
-    add(HoldingKind.destination, 'Drži samo potez na $file-liniju.',
+    add(HoldingKind.destination, 'Only moves to the $file-file hold.',
         (m) => m.toFile == files.first);
   }
 
   if (holding.every((m) => m.isCheck)) {
-    add(HoldingKind.forcing, 'Drži samo šah.', (m) => m.isCheck);
+    add(HoldingKind.forcing, 'Only a check holds.', (m) => m.isCheck);
   }
   if (holding.every((m) => m.isCapture)) {
-    add(HoldingKind.forcing, 'Drži samo uzimanje.', (m) => m.isCapture);
+    add(HoldingKind.forcing, 'Only a capture holds.', (m) => m.isCapture);
   }
 
   found.sort(_compare);

@@ -150,8 +150,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       setState(() {
         _loading = false;
         _error = response == null
-            ? 'Ne mogu da učitam zagonetku. Proverite vezu sa serverom.'
-            : 'Zagonetka je stigla u neispravnom obliku.';
+            ? 'Cannot load puzzle. Check your connection to the server.'
+            : 'Puzzle received in an invalid format.';
       });
       return;
     }
@@ -176,7 +176,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     if (puzzle == null || !puzzle.isPlayable) {
       // One bad row must not strand the student on the rest of the homework.
       AppLogger.log(
-          '[Tactics] Preskačem zadatu zagonetku ${ids[_assignmentIndex]}.');
+          '[Tactics] Skipping assigned puzzle ${ids[_assignmentIndex]}.');
       _assignmentIndex++;
       await _loadAssignmentPuzzle(token);
       return;
@@ -216,7 +216,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     _boardController.loadFen(game.fen);
     AppLogger.log(
-        '[Tactics] Zagonetka ${puzzle.id} (rejting ${puzzle.rating}) učitana.');
+        '[Tactics] Puzzle ${puzzle.id} (rating ${puzzle.rating}) loaded.');
   }
 
   /// True when this move lands a pawn on the last rank.
@@ -282,10 +282,11 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
         // that changes nothing — the trainer sees the first move either way.
         // Better to say so and move on.
         setState(() {
-          _feedback = 'Nije to. Zadatak ima jedan pokušaj, potez je zabeležen.';
+          _feedback =
+              'That is not it. The assignment allows one attempt, your move has been recorded.';
           _feedbackIsGood = false;
         });
-        await _finish(solved: false, note: 'Nije rešeno.');
+        await _finish(solved: false, note: 'Not solved.');
         return;
       }
 
@@ -294,7 +295,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       // not count as a clean solve and the rating is unaffected.
       session.retryAfterMistake();
       setState(() {
-        _feedback = 'Nije to. Probajte drugi potez.';
+        _feedback = 'That is not it. Try another move.';
         _feedbackIsGood = false;
       });
       return;
@@ -305,7 +306,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     setState(() {
       _hintSquare = null;
-      _feedback = verdict.puzzleSolved ? null : 'Tačno — nastavite.';
+      _feedback = verdict.puzzleSolved ? null : 'Correct — continue.';
       _feedbackIsGood = true;
     });
 
@@ -371,7 +372,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     setState(() {
       _boardLocked = true;
-      _feedback = note ?? (solved ? 'Rešeno!' : 'Rešeno uz pomoć.');
+      _feedback = note ?? (solved ? 'Solved!' : 'Solved with help.');
       _feedbackIsGood = solved;
     });
 
@@ -438,7 +439,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     if (square == null) return;
     setState(() {
       _hintSquare = square;
-      _feedback = 'Pomerite figuru sa polja $square.';
+      _feedback = 'Move the piece from $square.';
       _feedbackIsGood = true;
     });
   }
@@ -448,7 +449,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: Text(widget.assignmentTitle ?? 'Taktika'),
+        title: Text(widget.assignmentTitle ?? 'Tactics'),
         actions: [
           const BoardViewMenu(),
           BoardFlipButton(
@@ -555,17 +556,19 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              unfinished ? 'Domaći još nije predat.' : 'Zadatak je završen.',
+              unfinished
+                  ? 'Homework is not submitted yet.'
+                  : 'Assignment complete.',
               textAlign: TextAlign.center,
               style: AppText.headline,
             ),
             const SizedBox(height: 6),
             Text(
               unfinished
-                  ? 'Preskočili ste ${puzzleCountLabel(skipped)}. Domaći se '
-                      'predaje tek kad ih pokušate — do tada trener ne dobija '
-                      'obaveštenje da ste završili.'
-                  : 'Vaš trener vidi rezultat.',
+                  ? 'You skipped ${puzzleCountLabel(skipped)}. Homework is '
+                      'only submitted once you attempt them — until then your trainer '
+                      'is not notified that you finished.'
+                  : 'Your trainer can see the result.',
               textAlign: TextAlign.center,
               style: TextStyle(color: context.colors.textSecondary),
             ),
@@ -581,12 +584,12 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                   ElevatedButton.icon(
                     onPressed: _retrySkipped,
                     icon: const Icon(Icons.playlist_add_check),
-                    label: const Text('Uradi preskočene'),
+                    label: const Text('Retry skipped'),
                   ),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).maybePop(),
                   icon: const Icon(Icons.arrow_back),
-                  label: const Text('Nazad na zadatke'),
+                  label: const Text('Back to assignments'),
                 ),
               ],
             ),
@@ -610,7 +613,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             ElevatedButton.icon(
               onPressed: _loadNext,
               icon: const Icon(Icons.refresh),
-              label: const Text('Pokušaj ponovo'),
+              label: const Text('Try again'),
             ),
           ],
         ),
@@ -623,7 +626,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     final session = _session;
     if (puzzle == null || session == null) return const SizedBox.shrink();
 
-    final toMove = _orientation == PlayerColor.white ? 'Beli' : 'Crni';
+    final toMove = _orientation == PlayerColor.white ? 'White' : 'Black';
 
     return Card(
       color: context.colors.surface,
@@ -636,7 +639,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    '$toMove na potezu — nađite najbolji potez',
+                    '$toMove to move — find the best move',
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold),
                   ),
@@ -653,15 +656,15 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
               // The motif is deliberately withheld until it is over: naming it
               // upfront gives the puzzle away.
               session.isComplete && puzzle.trainableThemes.isNotEmpty
-                  ? 'Motiv: ${puzzle.trainableThemes.join(', ')}'
-                  : 'Potrebno poteza: ${puzzle.userMoveCount} · '
-                      'pronađeno ${session.solvedMoveCount}',
+                  ? 'Motif: ${puzzle.trainableThemes.join(', ')}'
+                  : 'Moves needed: ${puzzle.userMoveCount} · '
+                      'found ${session.solvedMoveCount}',
               style: AppText.body.copyWith(color: context.colors.textSecondary),
             ),
             if (widget.isAssignment) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Zadatak: $_assignmentIndex od ${widget.puzzleIds!.length}',
+                'Puzzle: $_assignmentIndex of ${widget.puzzleIds!.length}',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted),
               ),
@@ -669,7 +672,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                 !session.isComplete) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Vežbate svoju najslabiju temu.',
+                'Practicing your weakest theme.',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted),
               ),
@@ -695,10 +698,10 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             positive ? Icons.trending_up : Icons.trending_down,
             color: positive ? context.colors.success : context.colors.danger,
           ),
-          title: Text('Rejting: ${result.newRating} '
+          title: Text('Rating: ${result.newRating} '
               '(${result.ratingChange >= 0 ? '+' : ''}${result.ratingChange})'),
-          subtitle: Text('Težina zagonetke: ${result.puzzleRating} · '
-              'ukupno rešeno: ${result.puzzlesSolved}'),
+          subtitle: Text('Puzzle rating: ${result.puzzleRating} · '
+              'total solved: ${result.puzzlesSolved}'),
         ),
       );
     }
@@ -728,40 +731,27 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
           OutlinedButton.icon(
             onPressed: _hintSquare == null ? _useHint : null,
             icon: const Icon(Icons.lightbulb_outline),
-            label: const Text('Pomoć'),
+            label: const Text('Hint'),
           ),
         if (!complete || failedNow)
           OutlinedButton.icon(
             onPressed: _showSolution,
             icon: const Icon(Icons.visibility),
-            label: const Text('Prikaži rešenje'),
+            label: const Text('Show solution'),
           ),
         ElevatedButton.icon(
           onPressed: _loadNext,
           icon: const Icon(Icons.skip_next),
-          label: Text(complete ? 'Sledeća zagonetka' : 'Preskoči'),
+          label: Text(complete ? 'Next puzzle' : 'Skip'),
         ),
       ],
     );
   }
 }
 
-/// "1 zagonetku", "2 zagonetke", "5 zagonetaka" — the accusative the sentence
-/// above needs, in the three forms Serbian actually uses.
-///
-/// Written out rather than fudged with "zagonetki(e)": this string is read by
-/// children, and the app is theirs before it is anybody's. The 11-14 exception
-/// is the one that catches every naive implementation - 11 takes the same form
-/// as 5, not the same as 1.
+/// "1 puzzle", "2 puzzles", "5 puzzles" — English uses two forms: singular and plural.
 String puzzleCountLabel(int count) {
-  final last = count % 10;
-  final lastTwo = count % 100;
-
-  if (last == 1 && lastTwo != 11) return '$count zagonetku';
-  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) {
-    return '$count zagonetke';
-  }
-  return '$count zagonetaka';
+  return count == 1 ? '1 puzzle' : '$count puzzles';
 }
 
 /// The verdict, shown and — when speech is switched on — read out.

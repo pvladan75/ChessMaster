@@ -240,10 +240,10 @@ void main() {
     final shown = _shown(tester, panel);
     // What is drawn, asserted first: the voice is then judged against the
     // screen rather than against a sentence typed into this file.
-    expect(shown, contains('Šta igrate crnim?'));
+    expect(shown, contains('What do you play as Black?'));
     expect(
       shown,
-      contains('Odigrajte potez koji ste izabrali za ovu poziciju.'),
+      contains('Play the move you chose for this position.'),
     );
     expect(engine.said, [speakable(shown)]);
   });
@@ -260,7 +260,7 @@ void main() {
     // Two panels now: the verdict, then the next question under it.
     final verdict = find.byType(SpeakableInfo).first;
     final shown = _shown(tester, verdict);
-    expect(shown, startsWith('Tačno — Nc6'));
+    expect(shown, startsWith('Correct — Nc6'));
     expect(engine.said, contains(speakable(shown)));
   });
 
@@ -287,7 +287,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    final asked = find.text('Šta igrate crnim?');
+    final asked = find.text('What do you play with Black?');
     expect(asked, findsOneWidget);
     final panel =
         find.ancestor(of: asked, matching: find.byType(SpeakableInfo));
@@ -325,7 +325,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    final note = find.textContaining('Nije moglo da se pročita dokle ste');
+    final note = find.textContaining('Could not read your progress');
     expect(note, findsOneWidget, reason: 'poruka mora da se vidi');
     final panel = find.ancestor(of: note, matching: find.byType(SpeakableInfo));
     expect(panel, findsOneWidget,
@@ -346,7 +346,7 @@ void main() {
     expect(engine.said, isEmpty);
     final panel = find.byType(SpeakableInfo);
     final shown = _shown(tester, panel);
-    expect(shown, '4 nepotvrđenih u grafu');
+    expect(shown, '4 unconfirmed in the graph');
 
     await tester
         .tap(find.descendant(of: panel, matching: find.byType(IconButton)));
@@ -361,7 +361,7 @@ void main() {
     final panel = find.byType(SpeakableInfo);
     expect(panel, findsOneWidget);
     final shown = _shown(tester, panel);
-    expect(shown, 'Još nema šta da se vežba.');
+    expect(shown, 'Nothing to drill yet.');
     expect(engine.said, isEmpty);
 
     await tester
@@ -382,7 +382,7 @@ void main() {
 
     final panel = find.byType(SpeakableInfo);
     final shown = _shown(tester, panel);
-    expect(shown, contains('Šta igrate crnim?'));
+    expect(shown, contains('What do you play as Black?'));
 
     // The app-bar switch, used the way item 92 tells the reader to use it.
     await tester.tap(find.byType(SpeechToggleButton));
@@ -397,7 +397,7 @@ void main() {
 
     // Off is the default, so this is the screen most readers see.
     expect(engine.said, isEmpty);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
   });
 
   testWidgets('a machine with no voice still draws the whole drill',
@@ -409,7 +409,7 @@ void main() {
     // there, and nothing was thrown at the framework.
     expect(engine.said, isEmpty);
     expect(tester.takeException(), isNull);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
     expect(find.byType(SpeechToggleButton), findsOneWidget);
   });
 

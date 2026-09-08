@@ -117,7 +117,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Potez vodi na polje'), findsOneWidget);
+    expect(find.textContaining('Move leads to square'), findsOneWidget);
   });
 
   testWidgets('N asks for the next position', (tester) async {
@@ -152,12 +152,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAt(at('f1'));
     await tester.pumpAndSettle();
-    expect(find.text('Pomoć'), findsNothing, reason: 'rešeno, pa nema dugmeta');
+    expect(find.text('Hint'), findsNothing, reason: 'rešeno, pa nema dugmeta');
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Potez vodi na polje'), findsNothing,
+    expect(find.textContaining('Move leads to square'), findsNothing,
         reason: 'taster bez dugmeta ne sme da radi');
   });
 
@@ -165,16 +165,16 @@ void main() {
       (tester) async {
     await pump(tester);
 
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
-    expect(find.text('Vrati potez'), findsNothing);
+    expect(find.text('Take back'), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyU);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Vraćeno na položaj'), findsNothing,
+    expect(find.textContaining('Restored to the position'), findsNothing,
         reason: 'nema greške da se vrati, pa taster ćuti');
-    expect(find.textContaining('Igrate do kraja'), findsOneWidget);
+    expect(find.textContaining('Play to the end'), findsOneWidget);
   });
 
   testWidgets('T opens the tables, and only while the drill is on',
@@ -185,9 +185,9 @@ void main() {
     // position solved with the answer in front of you is not solved.
     await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
     await tester.pumpAndSettle();
-    expect(find.text('Sakrij nalaz'), findsNothing);
+    expect(find.text('Hide findings'), findsNothing);
 
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
@@ -195,23 +195,23 @@ void main() {
 
     // A wide window puts the finding beside the board, so the button renames
     // itself; that rename is the proof the key pressed it.
-    expect(find.text('Sakrij nalaz'), findsOneWidget);
+    expect(find.text('Hide findings'), findsOneWidget);
     expect(find.text('Rf1+'), findsOneWidget);
   });
 
   testWidgets('R starts the drill over', (tester) async {
     await pump(tester);
 
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
-    expect(find.text('Ispočetka'), findsOneWidget);
+    expect(find.text('Start over'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
     await tester.pumpAndSettle();
 
     // Still the drill, and back at its opening sentence.
-    expect(find.textContaining('Igrate do kraja'), findsOneWidget);
-    expect(find.textContaining('Protivnik'), findsOneWidget);
+    expect(find.textContaining('Play to the end'), findsOneWidget);
+    expect(find.textContaining('Opponent'), findsOneWidget);
     expect(api.fetches, 1, reason: 'ispočetka je ova pozicija, ne sledeća');
   });
 }

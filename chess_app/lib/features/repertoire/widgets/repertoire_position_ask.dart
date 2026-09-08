@@ -36,7 +36,7 @@ class PositionAdvice {
   String get asComment {
     final parts = <String>[
       if (summary.trim().isNotEmpty) summary.trim(),
-      if (keyMotif.trim().isNotEmpty) 'Motiv: ${keyMotif.trim()}',
+      if (keyMotif.trim().isNotEmpty) 'Motif: ${keyMotif.trim()}',
       if (plan.trim().isNotEmpty) plan.trim(),
     ];
     return parts.join('\n');
@@ -95,7 +95,7 @@ Future<String?> showPositionAdviceDialog(
           children: [
             Icon(Icons.auto_awesome, size: 18, color: colors.accent),
             const SizedBox(width: AppSpacing.sm),
-            const Expanded(child: Text('AI o poziciji')),
+            const Expanded(child: Text('AI on position')),
           ],
         ),
         content: SizedBox(
@@ -112,7 +112,7 @@ Future<String?> showPositionAdviceDialog(
                       style: AppText.body.copyWith(color: colors.textPrimary)),
                 if (advice.keyMotif.trim().isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.sm),
-                  Text('Motiv: ${advice.keyMotif.trim()}',
+                  Text('Motif: ${advice.keyMotif.trim()}',
                       style: AppText.captionBold.copyWith(color: colors.info)),
                 ],
                 if (advice.plan.trim().isNotEmpty) ...[
@@ -139,8 +139,8 @@ Future<String?> showPositionAdviceDialog(
                 ],
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Ovo je mišljenje modela, ne ocena vašeg poteza. Sud o '
-                  'potezu i dalje daje otvaranjska baza.',
+                  'This is the model\'s opinion, not an evaluation of your move. '
+                  'The opening database still judges the move.',
                   style: AppText.micro.copyWith(color: colors.textMuted),
                 ),
               ],
@@ -150,11 +150,11 @@ Future<String?> showPositionAdviceDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Zatvori'),
+            child: const Text('Close'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(advice.asComment),
-            child: const Text('U moj komentar'),
+            child: const Text('Add to my comment'),
           ),
         ],
       );

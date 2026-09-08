@@ -304,8 +304,8 @@ void reachTests() {
       // The number is conditional on the opponent staying inside what is
       // prepared. Without the clause it reads as the chance of the line
       // happening at all, which at a narrow breadth it is nowhere near.
-      expect(reachSentence(0.25),
-          'Šansa linije: 25% (u okviru pokrivenog repertoara)');
+      expect(
+          reachSentence(0.25), 'Line chance: 25% (within covered repertoire)');
       expect(reachSentence(0.004), contains('<1%'));
       // Nothing to say rather than „0%", so a card with no number carries no
       // tooltip at all.

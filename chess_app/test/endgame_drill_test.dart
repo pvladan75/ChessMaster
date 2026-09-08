@@ -27,8 +27,8 @@ void main() {
     test('a move that held the win and gained ground says both', () {
       final text = drillFeedbackText(
           step(closer: true, replySan: 'Kd5', playedSan: 'Rf6'));
-      expect(text, contains('zadržan'));
-      expect(text, contains('bliže'));
+      expect(text, contains('held'));
+      expect(text, contains('closer'));
       expect(text, contains('Kd5'));
     });
 
@@ -37,15 +37,15 @@ void main() {
       // A child who shuffles will read a bare "tačno" as "that was the move"
       // and keep shuffling. Naming it is the only feedback that changes it.
       final text = drillFeedbackText(step(closer: false));
-      expect(text, contains('zadržan'));
-      expect(text, contains('niste prišli bliže'));
+      expect(text, contains('held'));
+      expect(text, contains('did not move closer'));
     });
 
     test('a lost win names the move that lost it', () {
       final text = drillFeedbackText(
           step(held: false, outcome: 'draw', playedSan: 'Ke7'));
       expect(text, contains('Ke7'));
-      expect(text, contains('ispušta dobitak'));
+      expect(text, contains('lets the win go'));
     });
 
     test('a win that becomes a loss is not called a draw', () {
@@ -57,20 +57,20 @@ void main() {
       final text = drillFeedbackText(
           step(held: false, outcome: 'loss', playedSan: 'Kc3'));
       expect(text, contains('Kc3'));
-      expect(text, contains('ispušta dobitak'));
-      expect(text, contains('izgubljena'));
-      expect(text, isNot(contains('remi')));
+      expect(text, contains('lets the win go'));
+      expect(text, contains('lost'));
+      expect(text, isNot(contains('draw')));
     });
 
     test('a lost draw is worded as a draw, not as a win', () {
       final text = drillFeedbackText(
           step(held: false, goal: 'draw', outcome: 'loss', playedSan: 'Kf8'));
-      expect(text, contains('gubi remi'));
-      expect(text, isNot(contains('dobitak')));
+      expect(text, contains('loses the draw'));
+      expect(text, isNot(contains('win')));
     });
 
     test('mate is the end of a drill, and is said as an achievement', () {
-      expect(drillFeedbackText(step(finished: 'mate')), contains('Mat!'));
+      expect(drillFeedbackText(step(finished: 'mate')), contains('Checkmate!'));
     });
 
     test('a repetition is named for what it was', () {
@@ -79,23 +79,23 @@ void main() {
       // started, and the two are not the same thing to say.
       final text =
           drillFeedbackText(step(goal: 'draw', finished: 'repetition'));
-      expect(text, contains('ponovila'));
-      expect(text, isNot(contains('Pedeset')));
+      expect(text, contains('repetition'));
+      expect(text, isNot(contains('Fifty')));
     });
 
     test('running the fifty moves out is not reported as success', () {
       // The one ending that looks like a win held. It was: the win was there
       // the whole way and the moves ran out, which is the lesson.
       final text = drillFeedbackText(step(finished: 'fifty_moves'));
-      expect(text, contains('Pedeset poteza'));
-      expect(text, contains('previše poteza'));
+      expect(text, contains('Fifty moves'));
+      expect(text, contains('too many moves'));
     });
 
     test('a held draw does not talk about getting nearer', () {
       // There is nothing to get nearer to when the task is to hold.
       final text = drillFeedbackText(step(goal: 'draw', outcome: 'draw'));
-      expect(text, contains('remi je održan'));
-      expect(text, isNot(contains('bliže')));
+      expect(text, contains('draw held'));
+      expect(text, isNot(contains('closer')));
     });
 
     test('no sentence ever counts down the moves left', () {
@@ -114,8 +114,8 @@ void main() {
       ];
       for (final s in samples) {
         final text = drillFeedbackText(s);
-        expect(text, isNot(matches(RegExp(r'\b\d+\s+poteza do\b'))),
-            reason: 'ne sme da broji poteze do kraja: $text');
+        expect(text, isNot(matches(RegExp(r'\b\d+\s+moves? to\b'))),
+            reason: 'must not count moves to the end: $text');
       }
     });
   });
@@ -125,9 +125,9 @@ void main() {
       // A position can be drawn and still have something to get wrong, and no
       // rule about material can honestly close that one. What can be asked is
       // the demonstration: hold it this many more moves.
-      expect(holdOutText(1), 'Držite remi još 1 potez.');
-      expect(holdOutText(2), 'Držite remi još 2 poteza.');
-      expect(holdOutText(8), 'Držite remi još 8 poteza.');
+      expect(holdOutText(1), 'Hold the draw for 1 more move.');
+      expect(holdOutText(2), 'Hold the draw for 2 more moves.');
+      expect(holdOutText(8), 'Hold the draw for 8 more moves.');
     });
 
     test('reaching the end says what was actually proved', () {
@@ -135,8 +135,8 @@ void main() {
       // established is that the reader held it.
       final text = holdOutText(0);
       expect(text, contains('$holdOutMoves'));
-      expect(text, contains('zaključena'));
-      expect(text, isNot(contains('mrtva')));
+      expect(text, contains('completed'));
+      expect(text, isNot(contains('dead')));
     });
 
     test('the claim is long enough to be worth something', () {

@@ -107,11 +107,11 @@ void main() {
     // The line, numbered from move one because the root path is known.
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 Nc6 5.Nf3'),
         findsOneWidget);
-    expect(find.textContaining('igra se u 50%'), findsOneWidget);
+    expect(find.textContaining('played in 50%'), findsOneWidget);
     // Every share is written out. Nothing on this screen is said in colour
     // alone — a hue is not allowed to be the only place a number lives.
-    expect(find.textContaining('spremljeno 60% · bez odgovora 40%'),
-        findsOneWidget);
+    expect(
+        find.textContaining('prepared 60% · unanswered 40%'), findsOneWidget);
   });
 
   testWidgets(
@@ -122,9 +122,9 @@ void main() {
     // Played in a tenth of games and entirely unanswered. Measured against the
     // whole repertoire it would read as nine-tenths finished, which is the
     // number that would have been wrong.
-    expect(find.textContaining('spremljeno 0% · bez odgovora 100%'),
-        findsOneWidget);
-    expect(find.textContaining('igra se u 10%'), findsOneWidget);
+    expect(
+        find.textContaining('prepared 0% · unanswered 100%'), findsOneWidget);
+    expect(find.textContaining('played in 10%'), findsOneWidget);
   });
 
   testWidgets('a cut branch is not drawn as a finished one', (tester) async {
@@ -146,8 +146,8 @@ void main() {
           ],
         ));
 
-    expect(find.textContaining('ne spremam 100%'), findsOneWidget);
-    expect(find.textContaining('spremljeno 100%'), findsNothing);
+    expect(find.textContaining('not preparing 100%'), findsOneWidget);
+    expect(find.textContaining('prepared 100%'), findsNothing);
   });
 
   testWidgets('a server that did not answer is not an empty repertoire',
@@ -156,8 +156,8 @@ void main() {
     // be drawn as "there is nothing here".
     await pump(tester);
 
-    expect(find.textContaining('nije mogla da se pročita'), findsOneWidget);
-    expect(find.textContaining('Još nema grana'), findsNothing);
+    expect(find.textContaining('could not be loaded'), findsOneWidget);
+    expect(find.textContaining('No branches on the map'), findsNothing);
   });
 
   testWidgets(
@@ -170,8 +170,8 @@ void main() {
           ],
         ));
 
-    expect(find.text('Prvi potez još nije izabran.'), findsOneWidget);
-    await tester.tap(find.text('Gradi'));
+    expect(find.text('First move has not been chosen yet.'), findsOneWidget);
+    await tester.tap(find.text('Build'));
     await tester.pumpAndSettle();
     expect(built.single, smithMorra);
   });
@@ -180,11 +180,11 @@ void main() {
       (tester) async {
     await pump(tester, walk: twoBranches());
 
-    await tester.tap(find.text('Gradi ovde').first);
+    await tester.tap(find.text('Build here').first);
     await tester.pumpAndSettle();
     expect(built.single, twoBranches().branches.first.fen);
 
-    await tester.tap(find.text('Vežbaj granu').first);
+    await tester.tap(find.text('Drill branch').first);
     await tester.pumpAndSettle();
     expect(drilled.single, twoBranches().branches.first.fen);
   });
@@ -208,8 +208,8 @@ void main() {
           ],
         ));
 
-    expect(find.text('Gradi ovde'), findsOneWidget);
-    expect(find.text('Vežbaj granu'), findsNothing);
+    expect(find.text('Build here'), findsOneWidget);
+    expect(find.text('Drill branch'), findsNothing);
   });
 
   testWidgets('the map fits a 360 dp phone', (tester) async {

@@ -459,11 +459,11 @@ void main() {
     // And the book was read for the position after the move, not after the
     // main move of the position the question belongs to.
     expect(api.bookReads, contains(afterC5));
-    expect(find.textContaining('Posle c5'), findsWidgets);
+    expect(find.textContaining('After c5'), findsWidgets);
     // And this is where preparing the opponent's replies lives now: on the
     // position they are played from, rather than in a second list stacked under
     // the position before it.
-    expect(find.text('Idi'), findsOneWidget);
+    expect(find.text('Go'), findsOneWidget);
   });
 
   testWidgets('and there is a way back to the question', (tester) async {
@@ -475,13 +475,13 @@ void main() {
 
     // Scrolled into view first: the controls sit under the board, and a tap on
     // a widget below the fold lands on whatever is at those coordinates.
-    await tester.ensureVisible(find.text('Nazad na c5'));
+    await tester.ensureVisible(find.text('Back to c5'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nazad na c5'));
+    await tester.tap(find.text('Back to c5'));
     await tester.pumpAndSettle();
 
     expect(find.text('1.e4 e6 2.d4 d5 3.e5'), findsOneWidget);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
   });
 
   testWidgets('the context menu on your own move actually does something',
@@ -516,7 +516,7 @@ void main() {
     await tester.longPress(find.text('4. c3 64% ?'));
     await tester.pumpAndSettle();
     expect(find.text('Obriši Ovu Varijantu'), findsNothing);
-    await tester.tap(find.text('Ne spremam ovu granu'));
+    await tester.tap(find.text('Do not prepare this branch'));
     await tester.pumpAndSettle();
 
     expect(api.cut, [afterC3]);
@@ -532,9 +532,9 @@ void main() {
     await pump(tester, const Size(1400, 900), cutTree: true);
 
     expect(find.text('4. c3 64% ✂'), findsNothing);
-    expect(find.text('Prikaži grane koje ne spremam (1)'), findsOneWidget);
+    expect(find.text('Show branches I am not preparing (1)'), findsOneWidget);
 
-    await tester.tap(find.text('Prikaži grane koje ne spremam (1)'));
+    await tester.tap(find.text('Show branches I am not preparing (1)'));
     await tester.pumpAndSettle();
     expect(find.text('4. c3 64% ✂'), findsWidgets);
   });
@@ -549,14 +549,14 @@ void main() {
 
     await tester.longPress(find.text('3... c5 ★'));
     await tester.pumpAndSettle();
-    expect(find.text('Izdvoji u novo otvaranje'), findsOneWidget);
+    expect(find.text('Extract into new opening'), findsOneWidget);
 
-    await tester.tap(find.text('Izdvoji u novo otvaranje'));
+    await tester.tap(find.text('Extract into new opening'));
     await tester.pumpAndSettle();
 
     // The dialog is up, and it already knows which move it is about.
-    expect(find.text('Izdvoji u novo otvaranje'), findsWidgets);
-    expect(find.textContaining('Kroz potez'), findsOneWidget);
+    expect(find.text('Fork into new opening'), findsOneWidget);
+    expect(find.textContaining('Through move'), findsOneWidget);
   });
 
   testWidgets('the opponent move is not something to fork', (tester) async {
@@ -565,7 +565,7 @@ void main() {
     await tester.longPress(find.text('4. c3 64% ?'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Izdvoji u novo otvaranje'), findsNothing);
+    expect(find.text('Extract into new opening'), findsNothing);
   });
 
   testWidgets('a cut branch is not offered as prepared', (tester) async {
@@ -580,9 +580,9 @@ void main() {
     await tester.tap(find.textContaining('c5 ★').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Idi'), findsNothing);
-    expect(find.text('Vidi šta ne spremam'), findsOneWidget);
-    expect(find.textContaining('✂ ne spremam'), findsOneWidget);
+    expect(find.text('Go'), findsNothing);
+    expect(find.text('See what is not prepared'), findsOneWidget);
+    expect(find.textContaining('✂ not preparing'), findsOneWidget);
   });
 
   testWidgets('a reply that was not cut still says Idi', (tester) async {
@@ -594,8 +594,8 @@ void main() {
     await tester.tap(find.textContaining('c5 ★').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Idi'), findsOneWidget);
-    expect(find.textContaining('✂ ne spremam'), findsNothing);
+    expect(find.text('Go'), findsOneWidget);
+    expect(find.textContaining('✂ not preparing'), findsNothing);
   });
 
   testWidgets('the cards are numbered from where the game really is',
@@ -615,7 +615,7 @@ void main() {
     expect(find.byType(MoveNavigationControls), findsOneWidget);
     // It runs past the board to the end of the line, or its forward buttons
     // would be dead the moment the screen opens.
-    expect(find.text('Potez 0 od 2'), findsOneWidget);
+    expect(find.text('Move 0 of 2'), findsOneWidget);
   });
 
   testWidgets('forward out of a branching position asks which line',
@@ -675,17 +675,17 @@ void main() {
     // Scrolled to first: the panels above the controls grew, so a button that
     // used to be on screen is now below the fold and a tap would land on
     // whatever is at those coordinates.
-    await tester.ensureVisible(find.text('Pitaj motor'));
+    await tester.ensureVisible(find.text('Ask engine'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Pitaj motor'));
+    await tester.tap(find.text('Ask engine'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Dodirnite liniju'), findsOneWidget);
+    expect(find.textContaining('Tap a line'), findsOneWidget);
 
     // The root card is the position the board is standing on.
     await tester.tap(find.text('🏁').first);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Dodirnite liniju'), findsOneWidget);
+    expect(find.textContaining('Tap a line'), findsOneWidget);
   });
 
   testWidgets('going on lights up the move the board just made',
@@ -703,7 +703,7 @@ void main() {
     final judge = _RepliesJudge();
     await pump(tester, const Size(1400, 900), judge: judge);
 
-    final dalje = find.widgetWithText(FilledButton, 'Dalje');
+    final dalje = find.widgetWithText(FilledButton, 'Next');
     await tester.ensureVisible(dalje);
     await tester.pumpAndSettle();
     await tester.tap(dalje);
@@ -761,7 +761,7 @@ void main() {
       // wrong one still works.
       await tester.tap(find.descendant(
         of: find.byType(UnconfirmedBanner),
-        matching: find.text('Pregledaj nepotvrđene'),
+        matching: find.text('Review unconfirmed'),
       ));
       await tester.pumpAndSettle();
 
@@ -1040,7 +1040,7 @@ void main() {
       final wholeRoot = api.lastTreeRootFen;
       expect(api.lastTreeGate, 'c7c5');
 
-      await tester.tap(find.text('Prikaži samo od ove pozicije'));
+      await tester.tap(find.text('Show only from this position'));
       await tester.pumpAndSettle();
 
       expect(api.lastTreeRootFen, afterC3);
@@ -1065,9 +1065,9 @@ void main() {
           nodePath: const ['c5', 'c3'], nodeFen: afterC3);
       final wholeRoot = api.lastTreeRootFen;
 
-      await tester.tap(find.text('Prikaži samo od ove pozicije'));
+      await tester.tap(find.text('Show only from this position'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Prikaži ceo repertoar'));
+      await tester.tap(find.text('Show entire repertoire'));
       await tester.pumpAndSettle();
 
       expect(api.lastTreeRootFen, wholeRoot);
@@ -1128,8 +1128,8 @@ void main() {
       // proxy for the row's height — and it broke the day the banner was
       // compacted from 134 px to 66, saying nothing about whether the button
       // had moved. Below the sentence's *bottom* is the thing that was meant.
-      final sentence = tester.getRect(find.text('4 nepotvrđenih u grafu'));
-      final button = tester.getTopLeft(find.text('Pregledaj nepotvrđene'));
+      final sentence = tester.getRect(find.text('4 unconfirmed in the graph'));
+      final button = tester.getTopLeft(find.text('Review unconfirmed'));
       expect(button.dy, greaterThan(sentence.bottom),
           reason: 'na telefonu dugme ide ispod rečenice');
     });
@@ -1141,8 +1141,9 @@ void main() {
       await pumpBanner(tester, 1200);
 
       expect(tester.takeException(), isNull);
-      final sentence = tester.getTopLeft(find.text('4 nepotvrđenih u grafu'));
-      final button = tester.getTopLeft(find.text('Pregledaj nepotvrđene'));
+      final sentence =
+          tester.getTopLeft(find.text('4 unconfirmed in the graph'));
+      final button = tester.getTopLeft(find.text('Review unconfirmed'));
       expect((button.dy - sentence.dy).abs(), lessThan(30),
           reason: 'u širokom prozoru stoje jedno pored drugog');
     });

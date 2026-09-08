@@ -150,7 +150,7 @@ class _RepertoireWalkthroughScreenState
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Upoznaj repertoar',
+            Text('Tour your repertoire',
                 style:
                     AppText.title.copyWith(color: context.colors.textPrimary)),
             Text(widget.name,
@@ -189,7 +189,7 @@ class _RepertoireWalkthroughScreenState
     if (_failed) {
       return Center(
         child: Text(
-          'Ne mogu da učitam repertoar. Pokušajte ponovo.',
+          'Could not load repertoire. Please try again.',
           style: AppText.body.copyWith(color: context.colors.danger),
         ),
       );
@@ -197,7 +197,7 @@ class _RepertoireWalkthroughScreenState
     if (tree == null || _stops.isEmpty) {
       return Center(
         child: Text(
-          'U ovom repertoaru još nema poteza.',
+          'No moves in this repertoire yet.',
           style: AppText.body.copyWith(color: context.colors.textMuted),
         ),
       );
@@ -266,7 +266,7 @@ class _RepertoireWalkthroughScreenState
             // a new move and the counter going back to it is the truth — that
             // is the position the reader has been brought back to.
             centerLabel: _stops.length > 1 && at >= 0
-                ? 'Potez ${at + 1} od ${_stops.length}'
+                ? 'Move ${at + 1} of ${_stops.length}'
                 : null,
             canNavigate: _beats.length > 1,
             onFlipBoard: () => setState(() => _flipped = !_flipped),
@@ -435,7 +435,7 @@ class _RepertoireWalkthroughScreenState
           foregroundColor: context.colors.canvas,
         ),
         onPressed: () => widget.onBuildHere!(stop.move.fen),
-        child: const Text('Napravi odgovor'),
+        child: const Text('Prepare reply'),
       ));
     }
 

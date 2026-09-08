@@ -126,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('održite remi'), findsOneWidget);
+    expect(find.textContaining('hold the draw'), findsOneWidget);
   });
 
   testWidgets('says "nothing matches" and "unavailable" differently', (
@@ -137,8 +137,8 @@ void main() {
     addTearDown(tester.view.reset);
 
     for (final entry in {
-      EndgameFetchOutcome.noneMatch: 'odgovara traženim uslovima',
-      EndgameFetchOutcome.unavailable: 'nije moguće dobaviti',
+      EndgameFetchOutcome.noneMatch: 'matches the requested criteria',
+      EndgameFetchOutcome.unavailable: 'currently unavailable',
     }.entries) {
       await tester.pumpWidget(
         wrap(
@@ -187,29 +187,29 @@ void main() {
     await tester.pumpAndSettle();
 
     // Five pieces and an exact source, so it can be played out.
-    expect(find.text('Odigraj do kraja'), findsOneWidget);
+    expect(find.text('Play to the end'), findsOneWidget);
 
     // The controls sit below the board on a 360 dp phone, so the button has
     // to be scrolled to before it can be tapped.
-    await tester.ensureVisible(find.text('Odigraj do kraja'));
+    await tester.ensureVisible(find.text('Play to the end'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
 
     // The whole row of drill buttons has to fit the same 360 dp phone.
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('Igrate do kraja'), findsOneWidget);
-    expect(find.text('Ispočetka'), findsOneWidget);
-    expect(find.text('Nazad na zadatak'), findsOneWidget);
+    expect(find.textContaining('Play to the end'), findsOneWidget);
+    expect(find.text('Start over'), findsOneWidget);
+    expect(find.text('Back to task'), findsOneWidget);
     // The solve-mode controls step aside; hunting for other moves makes no
     // sense once the position is being played out.
-    expect(find.text('Pomoć'), findsNothing);
+    expect(find.text('Hint'), findsNothing);
 
-    await tester.ensureVisible(find.text('Nazad na zadatak'));
+    await tester.ensureVisible(find.text('Back to task'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nazad na zadatak'));
+    await tester.tap(find.text('Back to task'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('održite remi'), findsOneWidget);
+    expect(find.textContaining('hold the draw'), findsOneWidget);
   });
 
   testWidgets('leaving the drill goes back to the task, hunt and all',
@@ -258,19 +258,19 @@ void main() {
     await tester.pumpAndSettle();
     // "Tačno" alone also matches the "Tačno iz tablica" chip, and the heading
     // says "Rešeno — remi je održan" beside the verdict.
-    expect(find.textContaining('remi je održan'), findsWidgets);
+    expect(find.textContaining('draw held'), findsWidgets);
     // The button by its exact label: the panel's explanation names it too.
-    expect(find.text('Nađi i ostale (1/2)'), findsOneWidget);
-    expect(find.textContaining('Tabla je zatvorena'), findsOneWidget);
+    expect(find.text('Find the rest (1/2)'), findsOneWidget);
+    expect(find.textContaining('Board is locked'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Odigraj do kraja'));
+    await tester.ensureVisible(find.text('Play to the end'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Nazad na zadatak'));
+    await tester.ensureVisible(find.text('Back to task'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nazad na zadatak'));
+    await tester.tap(find.text('Back to task'));
     await tester.pumpAndSettle();
 
     expect(
@@ -278,7 +278,7 @@ void main() {
       isTrue,
       reason: 'zadatak nije gotov, pa tabla mora da prima potez',
     );
-    expect(find.textContaining('nađite još jedan'), findsOneWidget);
+    expect(find.textContaining('find another'), findsOneWidget);
   });
 
   testWidgets('on a wide window the finding sits beside the board, not over it',
@@ -302,17 +302,17 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Nalaz tablica'));
+    await tester.tap(find.text('Tablebase findings'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing,
         reason: 'na širokom prozoru nema prozorčića');
-    expect(find.text('Nalaz tablica'), findsOneWidget,
+    expect(find.text('Tablebase findings'), findsOneWidget,
         reason: 'naslov panela; dugme se u tom stanju zove drugačije');
-    expect(find.text('Sakrij nalaz'), findsOneWidget);
+    expect(find.text('Hide findings'), findsOneWidget);
     expect(find.text('Rf1+'), findsOneWidget);
 
     // And the drill is still playable underneath it.
@@ -323,7 +323,7 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(find.text('Sakrij nalaz'));
+    await tester.tap(find.text('Hide findings'));
     await tester.pumpAndSettle();
     expect(find.text('Rf1+'), findsNothing);
   });
@@ -350,9 +350,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nalaz tablica'));
+    await tester.tap(find.text('Tablebase findings'));
     await tester.pumpAndSettle();
 
     final board = find.byType(ChessBoardWithOverlay);
@@ -368,24 +368,24 @@ void main() {
       isNot(before),
       reason: 'potez iz nalaza mora da se odigra na tabli',
     );
-    expect(find.text('Istraživanje'), findsOneWidget);
-    expect(find.text('Nazad na poziciju'), findsOneWidget);
+    expect(find.text('Exploring'), findsOneWidget);
+    expect(find.text('Back to position'), findsOneWidget);
     expect(
       tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove,
       isTrue,
       reason: 'tabla ostaje slobodna da se odgovori',
     );
     // Nothing was judged, so nothing is counted against the reader.
-    expect(find.textContaining('Greške:'), findsNothing);
+    expect(find.textContaining('Mistakes:'), findsNothing);
 
-    await tester.tap(find.text('Nazad na poziciju'));
+    await tester.tap(find.text('Back to position'));
     await tester.pumpAndSettle();
     expect(
       tester.widget<ChessBoardWithOverlay>(board).controller.game.fen,
       before,
       reason: 'povratak vraca tacno onu poziciju odakle se krenulo',
     );
-    expect(find.text('Istraživanje'), findsNothing);
+    expect(find.text('Exploring'), findsNothing);
   });
 
   testWidgets('on a phone the finding is still a window', (tester) async {
@@ -407,14 +407,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Odigraj do kraja'));
+    await tester.ensureVisible(find.text('Play to the end'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odigraj do kraja'));
+    await tester.tap(find.text('Play to the end'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Nalaz tablica'));
+    await tester.ensureVisible(find.text('Tablebase findings'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nalaz tablica'));
+    await tester.tap(find.text('Tablebase findings'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsOneWidget);
@@ -450,7 +450,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Odigraj do kraja'), findsNothing);
+    expect(find.text('Play to the end'), findsNothing);
   });
 
   testWidgets('a thrown-away draw can be punished, and the board turns round',
@@ -488,25 +488,25 @@ void main() {
     await tester.pumpAndSettle();
 
     // The story, and the rating of whoever got it wrong.
-    expect(find.textContaining('U partiji je odigrano Ra2+'), findsOneWidget);
-    expect(find.text('Pogrešio: 2270'), findsOneWidget);
+    expect(find.textContaining('In the game, Ra2+ was played'), findsOneWidget);
+    expect(find.text('Blunder by: 2270'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Kazni'));
+    await tester.ensureVisible(find.text('Punish'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Kazni'));
+    await tester.tap(find.text('Punish'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('Kaznite grešku'), findsOneWidget);
+    expect(find.textContaining('Punish the blunder'), findsOneWidget);
     // The mistake is already on the board and the win belongs to the other
     // side, so the exercise is played from there.
-    expect(find.textContaining('remi je izgubljen'), findsOneWidget);
+    expect(find.textContaining('the draw was lost'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Nazad na zadatak'));
+    await tester.ensureVisible(find.text('Back to task'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nazad na zadatak'));
+    await tester.tap(find.text('Back to task'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('održite remi'), findsOneWidget);
+    expect(find.textContaining('hold the draw'), findsOneWidget);
   });
 
   testWidgets('a position with nothing to punish does not offer it',
@@ -531,7 +531,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Odigraj do kraja'), findsOneWidget);
-    expect(find.text('Kazni'), findsNothing);
+    expect(find.text('Play to the end'), findsOneWidget);
+    expect(find.text('Punish'), findsNothing);
   });
 }

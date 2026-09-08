@@ -122,7 +122,7 @@ class EndgameApiService {
       }
       if (res.statusCode != 200) {
         AppLogger.log(
-            '[Zavrsnice] Server je odbio zahtev (${res.statusCode}).');
+            '[Endgames] Server rejected request (${res.statusCode}).');
         return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
       }
 
@@ -138,12 +138,12 @@ class EndgameApiService {
         // route filters these out, so reaching here means something upstream
         // changed; say so rather than putting a board with no answer in front
         // of a child.
-        AppLogger.log('[Zavrsnice] Pozicija ${puzzle.id} nema nijedan potez.');
+        AppLogger.log('[Endgames] Position ${puzzle.id} has no moves.');
         return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
       }
       return EndgameFetchResult(EndgameFetchOutcome.ok, puzzle);
     } catch (e) {
-      AppLogger.log('[Zavrsnice] Greška pri dobavljanju: $e');
+      AppLogger.log('[Endgames] Error fetching: $e');
       return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
     }
   }
@@ -163,13 +163,13 @@ class EndgameApiService {
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) {
-        AppLogger.log('[Zavrsnice] Spisak nije stigao (${res.statusCode}).');
+        AppLogger.log('[Endgames] Catalog did not arrive (${res.statusCode}).');
         return null;
       }
       return EndgameCatalog.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Zavrsnice] Greška pri dobavljanju spiska: $e');
+      AppLogger.log('[Endgames] Error fetching catalog: $e');
       return null;
     }
   }
@@ -210,8 +210,7 @@ class EndgameApiService {
         return const GameFetchResult(EndgameFetchOutcome.noneMatch);
       }
       if (res.statusCode != 200) {
-        AppLogger.log(
-            '[Zavrsnice] Server je odbio partiju (${res.statusCode}).');
+        AppLogger.log('[Endgames] Server rejected game (${res.statusCode}).');
         return const GameFetchResult(EndgameFetchOutcome.unavailable);
       }
 
@@ -225,12 +224,12 @@ class EndgameApiService {
       if (!game.isPlayable) {
         // A game with no mistakes in it has nothing to stop at, and one with no
         // moves has nothing to walk. Either means something upstream changed.
-        AppLogger.log('[Zavrsnice] Partija ${game.id} nema sta da se prodje.');
+        AppLogger.log('[Endgames] Game ${game.id} has nothing to walk.');
         return const GameFetchResult(EndgameFetchOutcome.unavailable);
       }
       return GameFetchResult(EndgameFetchOutcome.ok, game);
     } catch (e) {
-      AppLogger.log('[Zavrsnice] Greška pri dobavljanju partije: $e');
+      AppLogger.log('[Endgames] Error fetching game: $e');
       return const GameFetchResult(EndgameFetchOutcome.unavailable);
     }
   }
@@ -241,7 +240,7 @@ class EndgameApiService {
   /// quick, and a menu at that moment is a question nobody asked. It is what
   /// makes the list findable afterwards - "Moje pozicije" filtered to this is
   /// everything that was left unexplained, rather than mixed in with the rest.
-  static const unclearTag = 'Nejasno';
+  static const unclearTag = 'Unclear';
 
   /// Keeps a position in the trainer's own library, to be looked at later.
   ///
@@ -264,7 +263,7 @@ class EndgameApiService {
       tags: const [unclearTag],
     );
     if (error == null) return true;
-    AppLogger.log('[Zavrsnice] Pozicija nije sačuvana: $error');
+    AppLogger.log('[Endgames] Position was not saved: $error');
     return false;
   }
 
@@ -284,7 +283,7 @@ class EndgameApiService {
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) {
-        AppLogger.log('[Zavrsnice] Linija nije stigla (${res.statusCode}).');
+        AppLogger.log('[Endgames] Line did not arrive (${res.statusCode}).');
         return null;
       }
       final body = jsonDecode(res.body) as Map<String, dynamic>;
@@ -292,7 +291,7 @@ class EndgameApiService {
           .map((e) => e.toString())
           .toList();
     } catch (e) {
-      AppLogger.log('[Zavrsnice] Greška pri izvođenju linije: $e');
+      AppLogger.log('[Endgames] Error calculating line: $e');
       return null;
     }
   }
@@ -316,13 +315,13 @@ class EndgameApiService {
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) {
-        AppLogger.log('[Zavrsnice] Nalaz nije stigao (${res.statusCode}).');
+        AppLogger.log('[Endgames] Readout did not arrive (${res.statusCode}).');
         return null;
       }
       return TablebaseReadout.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Zavrsnice] Greška pri čitanju tablica: $e');
+      AppLogger.log('[Endgames] Error reading tablebases: $e');
       return null;
     }
   }
@@ -367,10 +366,10 @@ class EndgameApiService {
       final outcome = res.statusCode == 503
           ? DrillJudgeOutcome.unavailable
           : DrillJudgeOutcome.refused;
-      AppLogger.log('[Zavrsnice] Potez nije presuđen (${res.statusCode}).');
+      AppLogger.log('[Endgames] Move was not judged (${res.statusCode}).');
       return DrillJudgeResult(outcome, message: message);
     } catch (e) {
-      AppLogger.log('[Zavrsnice] Greška pri suđenju poteza: $e');
+      AppLogger.log('[Endgames] Error judging move: $e');
       return const DrillJudgeResult(DrillJudgeOutcome.unavailable);
     }
   }

@@ -83,14 +83,14 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('3 nepotvrđenih u grafu'), findsOneWidget);
+    expect(find.text('3 unconfirmed in the graph'), findsOneWidget);
     final walksBefore = api.walks;
 
-    await tester.tap(find.text('Potvrdi'));
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
     // The walk was read again, and the banner says what it says now.
     expect(api.walks, greaterThan(walksBefore));
-    expect(find.text('2 nepotvrđenih u grafu'), findsOneWidget);
+    expect(find.text('2 unconfirmed in the graph'), findsOneWidget);
   });
 }

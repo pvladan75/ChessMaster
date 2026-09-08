@@ -162,11 +162,11 @@ void main() {
 
     await playSmithMorra(tester);
 
-    final button = find.widgetWithText(FilledButton, 'Napravi');
+    final button = find.widgetWithText(FilledButton, 'Create');
     expect(tester.widget<FilledButton>(button).onPressed, isNull);
-    expect(find.textContaining('Na potezu je crni'), findsOneWidget);
+    expect(find.textContaining('Black is to move'), findsOneWidget);
 
-    await tester.tap(find.text('Crni'));
+    await tester.tap(find.text('Black'));
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'Smit-Mora, crni');
     await tester.pump();
@@ -186,8 +186,9 @@ void main() {
 
     final field = tester.widget<TextField>(find.byType(TextField).first);
     expect(field.controller!.text, contains('Sicilian'));
-    expect(field.controller!.text, endsWith('beli'));
-    expect(find.textContaining('Predloženo iz baze otvaranja'), findsOneWidget);
+    expect(field.controller!.text, endsWith('White'));
+    expect(
+        find.textContaining('Suggested from opening database'), findsOneWidget);
 
     // And once the reader writes their own, the suggestion stops correcting
     // them: a field that keeps rewriting what you typed is worse than one that
@@ -218,16 +219,16 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Izaberi otvaranje'));
+    await tester.tap(find.text('Choose opening'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('1. e4 c5 2. d4 cxd4'), findsOneWidget);
     expect(find.textContaining('4. Nxc3'), findsOneWidget);
     // Black is to move there, so that is the side the repertoire is for.
-    expect(find.textContaining('Na potezu je crni'), findsOneWidget);
+    expect(find.textContaining('Black is to move'), findsOneWidget);
     final field = tester.widget<TextField>(find.byType(TextField).first);
     expect(field.controller!.text, contains('Smith-Morra'));
-    expect(field.controller!.text, endsWith('crni'));
+    expect(field.controller!.text, endsWith('Black'));
   });
 
   testWidgets('a book line the board refuses stops rather than half-loading',
@@ -241,7 +242,7 @@ void main() {
       openingPicker: () => ('Nešto', '1. e4 c5 2. Qh9 d4'),
     );
 
-    await tester.tap(find.text('Izaberi otvaranje'));
+    await tester.tap(find.text('Choose opening'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('1. e4 c5'), findsOneWidget);
@@ -260,15 +261,15 @@ void main() {
     await play(tester, 'e2', 'e4');
     await play(tester, 'c7', 'c5');
 
-    final button = find.widgetWithText(FilledButton, 'Napravi');
+    final button = find.widgetWithText(FilledButton, 'Create');
     expect(tester.widget<FilledButton>(button).onPressed, isNull);
-    expect(find.text('Upišite ime repertoara.'), findsOneWidget);
+    expect(find.text('Enter a repertoire name.'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).first, 'Gering');
     await tester.pump();
 
     expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
-    expect(find.text('Upišite ime repertoara.'), findsNothing);
+    expect(find.text('Enter a repertoire name.'), findsNothing);
   });
 
   testWidgets('on a wide window the fields stay beside the board',
@@ -288,11 +289,11 @@ void main() {
     await pump(tester, api, onDone: (m) => made = m);
 
     await playSmithMorra(tester);
-    await tester.tap(find.text('Crni'));
+    await tester.tap(find.text('Black'));
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'Smit-Mora, crni');
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Napravi'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
     await tester.pumpAndSettle();
 
     expect(api.lastName, 'Smit-Mora, crni');
@@ -311,21 +312,21 @@ void main() {
     await play(tester, 'c7', 'c5');
     expect(find.textContaining('1. e4 c5'), findsOneWidget);
 
-    await tester.tap(find.text('Nazad'));
+    await tester.tap(find.text('Back'));
     await tester.pumpAndSettle();
     expect(find.textContaining('1. e4'), findsOneWidget);
     expect(find.textContaining('c5'), findsNothing);
 
-    await tester.tap(find.text('Ispočetka'));
+    await tester.tap(find.text('Reset'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Odigrajte poteze'), findsOneWidget);
+    expect(find.textContaining('Play the moves'), findsOneWidget);
   });
 
   /// Types a name and presses the button, which is all the failure cases need.
   Future<void> tryToSave(WidgetTester tester) async {
     await tester.enterText(find.byType(TextField).first, 'Smit-Mora');
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Napravi'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
     await tester.pumpAndSettle();
   }
 
@@ -366,7 +367,7 @@ void main() {
       startFen: 'rnbqkbnr/pp1ppppp/8/8/4P3/2N5/PP3PPP/R1BQKBNR b KQkq - 0 4',
     );
 
-    expect(find.textContaining('Na potezu je crni'), findsOneWidget);
+    expect(find.textContaining('Black is to move'), findsOneWidget);
     expect(
       tester
           .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))

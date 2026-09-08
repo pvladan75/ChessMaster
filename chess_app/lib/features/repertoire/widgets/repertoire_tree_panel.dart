@@ -110,7 +110,7 @@ String? reachSentence(double? reach) {
   if (reach == null) return null;
   final said = shareLabel(reach);
   if (said == null) return null;
-  return 'Šansa linije: $said (u okviru pokrivenog repertoara)';
+  return 'Line chance: $said (within covered repertoire)';
 }
 
 String? markOfRepertoireMove(RepertoireTreeMove move) {
@@ -293,9 +293,9 @@ class RepertoireTreePanel extends StatelessWidget {
   final VoidCallback? onChangeBreadth;
 
   static const _widthNames = {
-    'main': 'samo glavni odgovor',
-    'standard': 'uobičajeno 80%',
-    'broad': 'široko 95%',
+    'main': 'main reply only',
+    'standard': 'standard 80%',
+    'broad': 'broad 95%',
   };
 
   @override
@@ -304,11 +304,11 @@ class RepertoireTreePanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Uz protivnikov potez stoji koliko se često igra. ★ je vaš glavni '
-          'potez, ? pozicija bez vaše odluke, … odluka bez uzetih odgovora, '
-          '✂ grana koju ne spremam. Zadržite pokazivač nad kartom da vidite '
-          'šansu linije. Dodirnite potez da tabla ode tamo, a '
-          'dugim pritiskom (ili desnim klikom) otvorite izmene.',
+          'Beside the opponent\'s move is how often it is played. ★ is your main '
+          'move, ? is a position without your decision, … is a decision without '
+          'replies taken, ✂ is a branch I am not preparing. Hover over a card '
+          'to see the line chance. Tap a move to go there, and '
+          'long press (or right click) to open edits.',
           style: AppText.micro.copyWith(color: context.colors.textMuted),
         ),
         if (minRating != null || breadth != null) ...[
@@ -320,7 +320,7 @@ class RepertoireTreePanel extends StatelessWidget {
             spacing: AppSpacing.sm,
             children: [
               if (minRating != null)
-                Text('Knjiga: partije od $minRating+',
+                Text('Book: games from $minRating+',
                     style: AppText.micro
                         .copyWith(color: context.colors.textSecondary)),
               if (breadth != null)
@@ -328,7 +328,7 @@ class RepertoireTreePanel extends StatelessWidget {
                 // it is an icon rather than a colour, because a colour is not
                 // a thing every reader can see.
                 if (onChangeBreadth == null)
-                  Text('Koliko odgovora: ${_widthNames[breadth] ?? breadth}',
+                  Text('Breadth: ${_widthNames[breadth] ?? breadth}',
                       style: AppText.micro
                           .copyWith(color: context.colors.textSecondary))
                 else
@@ -342,8 +342,7 @@ class RepertoireTreePanel extends StatelessWidget {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       foregroundColor: context.colors.textSecondary,
                     ),
-                    label: Text(
-                        'Koliko odgovora: ${_widthNames[breadth] ?? breadth}',
+                    label: Text('Breadth: ${_widthNames[breadth] ?? breadth}',
                         style: AppText.micro
                             .copyWith(color: context.colors.textSecondary)),
                   ),
@@ -356,25 +355,25 @@ class RepertoireTreePanel extends StatelessWidget {
             icon: Icon(showCut ? Icons.visibility_off : Icons.content_cut,
                 size: 16),
             label: Text(showCut
-                ? 'Sakrij grane koje ne spremam ($cutHidden)'
-                : 'Prikaži grane koje ne spremam ($cutHidden)'),
+                ? 'Hide branches I am not preparing ($cutHidden)'
+                : 'Show branches I am not preparing ($cutHidden)'),
           ),
         if (narrowed && onWiden != null)
           TextButton.icon(
             onPressed: onWiden,
             icon: const Icon(Icons.unfold_more, size: 16),
-            label: const Text('Prikaži ceo repertoar'),
+            label: const Text('Show entire repertoire'),
           )
         else if (!narrowed && onNarrow != null)
           TextButton.icon(
             onPressed: onNarrow,
             icon: const Icon(Icons.unfold_less, size: 16),
-            label: const Text('Prikaži samo od ove pozicije'),
+            label: const Text('Show only from this position'),
           ),
         if (truncatedAt != null) ...[
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Crtež je skraćen na $truncatedAt polupoteza — repertoar ide dublje.',
+            'Drawing is truncated at $truncatedAt plies — repertoire goes deeper.',
             style: AppText.micro.copyWith(color: context.colors.warning),
           ),
         ],
@@ -446,7 +445,7 @@ class RepertoireLineStrip extends StatelessWidget {
   Widget _chip(BuildContext context, AnalysisNode node,
       {required bool current}) {
     final label =
-        node.moveSan == null ? 'koren' : '${node.moveSan}${node.nag ?? ""}';
+        node.moveSan == null ? 'root' : '${node.moveSan}${node.nag ?? ""}';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
       child: InkWell(

@@ -155,7 +155,7 @@ void main() {
     final api = _FakeApi(treeToReturn: buildTestTree());
     await pump(tester, api);
 
-    expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
+    expect(find.text('Your move — main line.'), findsOneWidget);
 
     // Scroll down manually
     await tester.drag(find.byType(ListView), const Offset(0, -300));
@@ -165,12 +165,12 @@ void main() {
     await tester.tap(chip);
     await tester.pumpAndSettle();
 
-    expect(find.text('Protivnik igra e5 — 55% partija.'), findsOneWidget);
+    expect(find.text('Opponent plays e5 — 55% of games.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
+    expect(find.text('Your move — main line.'), findsOneWidget);
 
     // Nf3 ends the first line, so the next press is the tour coming back to
     // e4 rather than a move. Asserted here rather than skipped past: this walk
@@ -179,34 +179,36 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-        find.text('Videli smo liniju posle e5. Sada ide e6.'), findsOneWidget);
+        find.text('We saw the line after e5. Now comes e6.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Protivnik igra e6 — 14% partija.'), findsOneWidget);
+    expect(find.text('Opponent plays e6 — 14% of games.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
+    expect(find.text('Your move — main line.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Na d5, 60% partija, nemate odgovor.'), findsOneWidget);
+    expect(find.text('Against d5, in 60% of games, you have no reply.'),
+        findsOneWidget);
 
     // And the second climb, back to the same fork for the last reply.
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
     expect(
-        find.text('Videli smo liniju posle e6. Sada ide c5.'), findsOneWidget);
+        find.text('We saw the line after e6. Now comes c5.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Na c5, 31% partija, nemate odgovor.'), findsOneWidget);
+    expect(find.text('Against c5, in 31% of games, you have no reply.'),
+        findsOneWidget);
   });
 
   testWidgets(
@@ -230,8 +232,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Napravi odgovor'), findsOneWidget);
-    await tester.tap(find.text('Napravi odgovor'));
+    expect(find.text('Prepare reply'), findsOneWidget);
+    await tester.tap(find.text('Prepare reply'));
     await tester.pumpAndSettle();
 
     expect(builtFen,
@@ -322,13 +324,15 @@ void main() {
     // Narrow
     await pump(tester, api, size: const Size(360, 640));
     expect(
-        find.textContaining('Uz protivnikov potez stoji koliko se često igra'),
+        find.textContaining(
+            'Beside the opponent\'s move is how often it is played'),
         findsNothing);
 
     // Wide
     await pump(tester, api, size: const Size(1400, 900));
     expect(
-        find.textContaining('Uz protivnikov potez stoji koliko se često igra'),
+        find.textContaining(
+            'Beside the opponent\'s move is how often it is played'),
         findsOneWidget);
   });
 
@@ -423,7 +427,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.chevron_right));
       await tester.pumpAndSettle();
     }
-    expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
+    expect(find.text('Your move — main line.'), findsOneWidget);
 
     final board = tester
         .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
@@ -444,14 +448,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
-    expect(find.text('Vaš potez — glavna linija.'), findsOneWidget);
+    expect(find.text('Your move — main line.'), findsOneWidget);
 
     // One more press ends the line and comes back to e4.
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
     expect(
-        find.text('Videli smo liniju posle e5. Sada ide e6.'), findsOneWidget);
+        find.text('We saw the line after e5. Now comes e6.'), findsOneWidget);
     // Standing at the fork means the fork's own replies are on the board.
     final board = tester
         .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
@@ -506,9 +510,9 @@ void main() {
     final api = _FakeApi(treeToReturn: null);
     await pump(tester, api);
 
-    expect(find.text('Ne mogu da učitam repertoar. Pokušajte ponovo.'),
+    expect(find.text('Could not load repertoire. Please try again.'),
         findsOneWidget);
-    expect(find.text('U ovom repertoaru još nema poteza.'), findsNothing);
+    expect(find.text('No moves in this repertoire yet.'), findsNothing);
   });
 
   testWidgets('Empty repertoire shows the empty-repertoire sentence',
@@ -519,6 +523,6 @@ void main() {
             children: []));
     await pump(tester, api);
 
-    expect(find.text('U ovom repertoaru još nema poteza.'), findsOneWidget);
+    expect(find.text('No moves in this repertoire yet.'), findsOneWidget);
   });
 }

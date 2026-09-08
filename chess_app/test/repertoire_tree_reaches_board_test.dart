@@ -198,7 +198,7 @@ void main() {
     await pump(tester);
     await standAfterC5(tester);
 
-    expect(find.text('Idi'), findsOneWidget,
+    expect(find.text('Go'), findsOneWidget,
         reason: 'nema dugmeta „Idi" — pripremljen odgovor nije ponuđen');
     // In the drawing, not in the list of replies under the board — that row
     // says „c3" whatever the picture holds, and matching it would be the test
@@ -211,7 +211,7 @@ void main() {
     expect(cardForC3, findsNothing,
         reason: 'crtež već sadrži potez, pa test ne dokazuje ništa');
 
-    await tester.tap(find.text('Idi'));
+    await tester.tap(find.text('Go'));
     await tester.pumpAndSettle();
 
     // The board went there, and so did the picture.

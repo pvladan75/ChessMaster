@@ -146,7 +146,7 @@ void main() {
       await tester.pumpWidget(_combined(api));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Izaberi granu'));
+      await tester.tap(find.byTooltip('Choose branch'));
       await tester.pumpAndSettle();
 
       final branches = api.lastFor('/drill/branches');
@@ -161,7 +161,7 @@ void main() {
 
       // And the one sentence about the shared schedule, before anything is
       // ticked rather than after.
-      expect(find.text('Pozicija koju oba otvaranja dostižu pita se jednom.'),
+      expect(find.text('A position reached by both openings is asked once.'),
           findsOneWidget);
 
       // Two rows on the screen is not yet two rows in the code: keyed by
@@ -175,7 +175,7 @@ void main() {
               .where((c) => c.value == true)
               .length,
           1);
-      expect(find.text('Vežbaj izabrane (1)'), findsOneWidget);
+      expect(find.text('Drill selected (1)'), findsOneWidget);
     });
 
     testWidgets('ticking two branches runs them as one sitting',
@@ -188,7 +188,7 @@ void main() {
       await tester.pumpWidget(_combined(api));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Izaberi granu'));
+      await tester.tap(find.byTooltip('Choose branch'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Checkbox).first);
@@ -196,8 +196,8 @@ void main() {
       await tester.tap(find.byType(Checkbox).last);
       await tester.pump();
 
-      expect(find.text('Vežbaj izabrane (2)'), findsOneWidget);
-      await tester.tap(find.text('Vežbaj izabrane (2)'));
+      expect(find.text('Drill selected (2)'), findsOneWidget);
+      await tester.tap(find.text('Drill selected (2)'));
       await tester.pumpAndSettle();
 
       // The first branch is asked for, and — nothing being due in it — the
@@ -218,7 +218,7 @@ void main() {
       await tester.pumpWidget(_combined(api));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Izaberi granu'));
+      await tester.tap(find.byTooltip('Choose branch'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Otvorena sicilijanka'));
@@ -239,22 +239,22 @@ void main() {
 
     await tester.longPress(find.text('Sicilijanka, crni'));
     await tester.pumpAndSettle();
-    expect(find.text('Vežbaj izabrane (1)'), findsOneWidget);
+    expect(find.text('Drill selected (1)'), findsOneWidget);
 
     await tester.tap(find.text('Otvorena sicilijanka'));
     await tester.pumpAndSettle();
-    expect(find.text('Vežbaj izabrane (2)'), findsOneWidget);
+    expect(find.text('Drill selected (2)'), findsOneWidget);
 
     // The white one is refused with a sentence, and does not join the count.
     await tester.tap(find.text('Ruy Lopez'));
     await tester.pumpAndSettle();
-    expect(find.text('Jedna sesija može da pita samo o jednoj strani.'),
+    expect(find.text('A single session can only ask about one side.'),
         findsOneWidget);
-    expect(find.text('Vežbaj izabrane (2)'), findsOneWidget);
+    expect(find.text('Drill selected (2)'), findsOneWidget);
 
-    await tester.tap(find.text('Vežbaj izabrane (2)'));
+    await tester.tap(find.text('Drill selected (2)'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vežbanje — Kombinovano'), findsOneWidget);
+    expect(find.text('Drill — Combined'), findsOneWidget);
   });
 }
