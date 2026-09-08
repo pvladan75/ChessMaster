@@ -1,4 +1,3 @@
-import 'package:chess_app/core/services/serbian_plural.dart';
 import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_beats.dart';
@@ -60,28 +59,30 @@ WalkthroughLine walkthroughLine(
   switch (stop.kind) {
     case MoveTreeNodeLook.authored:
       parts.add(move.isPrimary
-          ? 'Vaš potez — glavna linija.'
-          : 'Vaš potez — druga mogućnost.');
+          ? 'Your move — main line.'
+          : 'Your move — alternative.');
       break;
     case MoveTreeNodeLook.covered:
       final share = shareLabel(move.share);
       parts.add(share == null
-          ? 'Protivnik igra ${move.san}.'
-          : 'Protivnik igra ${move.san} — $share partija.');
-      if (move.state == 'unopened') parts.add('Odluka bez uzetih odgovora.');
+          ? 'Opponent plays ${move.san}.'
+          : 'Opponent plays ${move.san} — $share of games.');
+      if (move.state == 'unopened') {
+        parts.add('Decision with no replies taken.');
+      }
       break;
     case MoveTreeNodeLook.gap:
       final share = shareLabel(move.share);
       parts.add(share == null
-          ? 'Na ${move.san} nemate odgovor.'
-          : 'Na ${move.san}, $share partija, nemate odgovor.');
+          ? 'Against ${move.san}, you have no reply.'
+          : 'Against ${move.san}, in $share of games, you have no reply.');
       break;
     case MoveTreeNodeLook.refused:
       // The tour never walks into a cut branch, so this line should never be
       // read. It is here because the answer to "what does this card say" must
       // exist for all four states — a stop with no sentence at all would be a
       // blank card, which is the one outcome nobody could diagnose.
-      parts.add('Ovu granu ne spremam.');
+      parts.add('I am not preparing this branch.');
       break;
   }
 
@@ -94,13 +95,12 @@ WalkthroughLine walkthroughLine(
   ];
   final fork = theirs.length > 1;
   if (fork) {
-    parts.add('Odavde protivnik ima ${theirs.length} '
-        '${serbianCount(theirs.length, one: "odgovor", few: "odgovora", many: "odgovora")}: '
+    parts.add('From here the opponent has ${theirs.length} replies: '
         '${_named(theirs)}.');
   }
 
   if (note != null && note.trim().isNotEmpty) {
-    parts.add('Vaša napomena: ${note.trim()}');
+    parts.add('Your note: ${note.trim()}');
   }
 
   return WalkthroughLine(
@@ -132,11 +132,11 @@ WalkthroughLine walkthroughReturn(
   final next = beat.next?.san;
 
   if (done != null && next != null) {
-    parts.add('Videli smo liniju posle $done. Sada ide $next.');
+    parts.add('We saw the line after $done. Now comes $next.');
   } else if (next != null) {
-    parts.add('Sada ide $next.');
+    parts.add('Now comes $next.');
   } else {
-    parts.add('Vraćamo se na račvanje.');
+    parts.add('Back to the fork.');
   }
 
   final theirs = [
@@ -144,8 +144,7 @@ WalkthroughLine walkthroughReturn(
       if (!reply.mine) reply,
   ];
   if (theirs.length > 1) {
-    parts.add('Odavde protivnik ima ${theirs.length} '
-        '${serbianCount(theirs.length, one: "odgovor", few: "odgovora", many: "odgovora")}: '
+    parts.add('From here the opponent has ${theirs.length} replies: '
         '${_named(theirs)}.');
   }
 
@@ -163,18 +162,17 @@ String _named(List<RepertoireTreeMove> theirs) {
   final shown = theirs.take(3).map(_reply).toList();
   final rest = theirs.length - shown.length;
   if (rest > 0) {
-    shown.add('još $rest '
-        '${serbianCount(rest, one: "odgovor", few: "odgovora", many: "odgovora")}');
+    shown.add(rest == 1 ? '1 more reply' : '$rest more replies');
   }
   if (shown.length == 1) return shown.first;
-  return '${shown.sublist(0, shown.length - 1).join(", ")} i ${shown.last}';
+  return '${shown.sublist(0, shown.length - 1).join(", ")} and ${shown.last}';
 }
 
 /// One reply, said the way the card writes it.
 String _reply(RepertoireTreeMove move) {
   final share = shareLabel(move.share);
-  final head = share == null ? move.san : '${move.san} u $share';
+  final head = share == null ? move.san : '${move.san} in $share';
   return lookOfRepertoireMove(move) == MoveTreeNodeLook.gap
-      ? '$head, bez odgovora'
+      ? '$head, no reply'
       : head;
 }

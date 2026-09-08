@@ -243,7 +243,7 @@ void main() {
     testWidgets('asking the engine keeps what it said, with its depth',
         (tester) async {
       await pump(tester);
-      await tester.tap(find.text('Pitaj motor'));
+      await tester.tap(find.text('Ask engine'));
       await tester.pumpAndSettle();
 
       expect(api.written.length, 1);
@@ -263,7 +263,7 @@ void main() {
         asked.add(fen);
         return [line(eval: '-M4')];
       });
-      await tester.tap(find.text('Pitaj motor'));
+      await tester.tap(find.text('Ask engine'));
       await tester.pumpAndSettle();
 
       expect(api.written.single['mateIn'], -4);
@@ -275,13 +275,13 @@ void main() {
     testWidgets('the stored evaluation is on screen with its depth and date',
         (tester) async {
       await pump(tester);
-      await tester.tap(find.text('Pitaj motor'));
+      await tester.tap(find.text('Ask engine'));
       await tester.pumpAndSettle();
 
       // An eval without its depth is a number that ages invisibly: depth 12
       // from a fortnight ago and depth 30 from a minute ago look identical.
-      expect(find.textContaining('Sačuvano: +0.35'), findsOneWidget);
-      expect(find.textContaining('dubina 20'), findsOneWidget);
+      expect(find.textContaining('Saved: +0.35'), findsOneWidget);
+      expect(find.textContaining('depth 20'), findsOneWidget);
       expect(find.textContaining('31.8.2026.'), findsOneWidget);
     });
 
@@ -290,11 +290,11 @@ void main() {
       // Silence is said out loud rather than written down as an evaluation of
       // zero, which is a real number about a position nobody looked at.
       await pump(tester, analyse: (fen, depth, multiPV) async => const []);
-      await tester.tap(find.text('Pitaj motor'));
+      await tester.tap(find.text('Ask engine'));
       await tester.pumpAndSettle();
 
       expect(api.written, isEmpty);
-      expect(find.textContaining('Motor nije odgovorio'), findsOneWidget);
+      expect(find.textContaining('Engine did not respond'), findsOneWidget);
     });
   });
 }

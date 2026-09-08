@@ -455,7 +455,7 @@ void main() {
   testWidgets('the screen asks for the student\'s own move', (tester) async {
     await pump(tester);
 
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
     // Built for Black, so the board is turned that way — the student sees what
     // they would see over the board.
     expect(
@@ -473,12 +473,12 @@ void main() {
 
     expect(judge.judged, 1, reason: 'suđenje je poenta ovog režima');
     expect(find.text('Nc6 · Glavna teorija'), findsOneWidget);
-    expect(find.text('Uzmi Nc6'), findsOneWidget);
+    expect(find.text('Take Nc6'), findsOneWidget);
     // One: the verdict, and nothing else. A second book used to be fetched the
     // moment a move was played — a request per move, for a list that has been
     // on screen since the position opened. Their allowance, so the count is on
     // screen rather than guessed at.
-    expect(find.textContaining('upita: 1'), findsOneWidget);
+    expect(find.textContaining('queries: 1'), findsOneWidget);
   });
 
   testWidgets('playing a move fetches no second list', (tester) async {
@@ -501,13 +501,13 @@ void main() {
       ),
     );
 
-    expect(find.text('Šta se ovde igra'), findsOneWidget);
+    expect(find.text('What is played here'), findsOneWidget);
     await play(tester, 'b8', 'c6');
 
     // Still one panel, and only the verdict was paid for.
-    expect(find.text('Šta se ovde igra'), findsOneWidget);
+    expect(find.text('What is played here'), findsOneWidget);
     expect(judge.asked, 0);
-    expect(find.textContaining('upita: 1'), findsOneWidget);
+    expect(find.textContaining('queries: 1'), findsOneWidget);
   });
 
   testWidgets('a move already kept is not offered for keeping again',
@@ -528,10 +528,10 @@ void main() {
 
     await play(tester, 'b8', 'c6');
 
-    expect(find.text('Uzmi Nc6'), findsNothing);
+    expect(find.text('Take Nc6'), findsNothing);
     expect(judge.judged, 0, reason: 'odluka koja postoji se ne sudi ponovo');
     // Standing after it, looking at what comes back.
-    expect(find.text('Nazad na Nc6'), findsOneWidget);
+    expect(find.text('Back to Nc6'), findsOneWidget);
   });
 
   testWidgets('a kept move is stored, and the first one is the primary',
@@ -539,7 +539,7 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
 
     final stored = api.kept.values.single;
@@ -558,19 +558,19 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vaši potezi ovde'), findsOneWidget);
-    expect(find.textContaining('Zvezdica je glavni potez'), findsOneWidget);
-    expect(find.text('glavni'), findsOneWidget);
+    expect(find.text('Your moves here'), findsOneWidget);
+    expect(find.textContaining('Star marks the main move'), findsOneWidget);
+    expect(find.text('main'), findsOneWidget);
 
     await play(tester, 'd7', 'd6');
-    await tester.tap(find.text('Uzmi d6'));
+    await tester.tap(find.text('Take d6'));
     await tester.pumpAndSettle();
 
-    expect(find.text('dodirnite za glavni'), findsOneWidget);
-    await tester.tap(find.text('dodirnite za glavni'));
+    expect(find.text('tap for main'), findsOneWidget);
+    await tester.tap(find.text('tap for main'));
     await tester.pumpAndSettle();
 
     expect(api.promoted, 'd7d6');
@@ -584,22 +584,22 @@ void main() {
     engineAsked = null;
     await pump(tester);
 
-    expect(find.text('Motor'), findsNothing);
+    expect(find.text('Engine'), findsNothing);
 
-    await tester.tap(find.text('Pitaj motor'));
+    await tester.tap(find.text('Ask engine'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Motor'), findsOneWidget);
+    expect(find.text('Engine'), findsOneWidget);
     expect(engineAsked, isNotNull);
     expect(find.text('+0.20'), findsOneWidget);
-    expect(find.textContaining('ne troši Lichess kvotu'), findsOneWidget);
+    expect(find.textContaining('does not use Lichess quota'), findsOneWidget);
   });
 
   testWidgets('the engine line can be played, and is judged like any move',
       (tester) async {
     await pump(tester);
 
-    await tester.tap(find.text('Pitaj motor'));
+    await tester.tap(find.text('Ask engine'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Nc6'));
     await tester.pumpAndSettle();
@@ -607,7 +607,7 @@ void main() {
     // A suggestion is not a decision: it goes through the same verdict and the
     // same keep-or-discard as a move played by hand.
     expect(judge.judged, 1);
-    expect(find.text('Uzmi Nc6'), findsOneWidget);
+    expect(find.text('Take Nc6'), findsOneWidget);
   });
 
   testWidgets(
@@ -620,9 +620,9 @@ void main() {
     final gate = Completer<List<AnalysisLine>>();
     await pump(tester, analyse: (fen, depth, multiPV) => gate.future);
 
-    await tester.tap(find.text('Pitaj motor'));
+    await tester.tap(find.text('Ask engine'));
     await tester.pump();
-    expect(find.text('Motor'), findsOneWidget, reason: 'razmišlja');
+    expect(find.text('Engine'), findsOneWidget, reason: 'razmišlja');
 
     // Plain pumps from here: the panel draws a spinner while the engine is
     // thinking, and pumpAndSettle waits on a spinner forever. So each step
@@ -638,7 +638,7 @@ void main() {
     await tester.tapAt(squareAt(tester, 'b8'));
     await tester.pump();
     await tester.tapAt(squareAt(tester, 'c6'));
-    await until(find.text('Uzmi Nc6'));
+    await until(find.text('Take Nc6'));
 
     // The engine panel pushes the buttons below the fold, and a tap that lands
     // on nothing is a tap that proves nothing.
@@ -649,10 +649,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
     }
 
-    await press(find.text('Uzmi Nc6'));
-    await until(find.text('Vaši potezi ovde'));
-    await press(find.text('Dalje'));
-    await until(find.textContaining('Spremno je'));
+    await press(find.text('Take Nc6'));
+    await until(find.text('Your moves here'));
+    await press(find.text('Next'));
+    await until(find.textContaining('Prepared'));
 
     // Only now does the engine answer — about the board that was left behind.
     gate.complete([
@@ -692,7 +692,7 @@ void main() {
       return const <AnalysisLine>[];
     });
 
-    await tester.tap(find.text('Pitaj motor'));
+    await tester.tap(find.text('Ask engine'));
     await tester.pumpAndSettle();
     expect(calls, 1);
 
@@ -711,7 +711,7 @@ void main() {
     await pump(tester, verdict: OpeningVerdict.mistake);
 
     await play(tester, 'd8', 'a5');
-    await tester.tap(find.text('Odbaci'));
+    await tester.tap(find.text('Discard'));
     await tester.pumpAndSettle();
 
     final attempt = api.attempts.single;
@@ -739,16 +739,16 @@ void main() {
       ),
     );
 
-    expect(find.text('Šta se ovde igra'), findsOneWidget);
+    expect(find.text('What is played here'), findsOneWidget);
     expect(find.text('Ne znam'), findsNothing);
     expect(judge.asked, 0, reason: 'lista koja se sama pojavi ne sme da košta');
 
     await play(tester, 'b8', 'c6');
     // Scrolled to first: the list adds a panel above the controls, so the
     // button that was on screen before it is now below the fold.
-    await tester.ensureVisible(find.text('Uzmi Nc6'));
+    await tester.ensureVisible(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
 
     // And nothing is written down as a confession any more: with the list on
@@ -775,15 +775,15 @@ void main() {
       ),
     );
 
-    await tester.ensureVisible(find.text('Igraj').first);
+    await tester.ensureVisible(find.text('Play').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Igraj').first);
+    await tester.tap(find.text('Play').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Uzmi Nc6'), findsOneWidget);
-    await tester.ensureVisible(find.text('Uzmi Nc6'));
+    expect(find.text('Take Nc6'), findsOneWidget);
+    await tester.ensureVisible(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
     expect(api.kept.values.single.single.san, 'Nc6');
   });
@@ -793,29 +793,29 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
     // Two book lookups: this position's, which came with the verdict, and the
     // one after the kept move, which is the next wave.
     expect(judge.asked, 1);
-    expect(find.textContaining('Spremno je 85%'), findsOneWidget);
-    expect(find.textContaining('van toga još 3'), findsOneWidget);
+    expect(find.textContaining('Prepared 85%'), findsOneWidget);
+    expect(find.textContaining('beyond that another 3'), findsOneWidget);
 
     // A stop, not a step. These answers cost a request and they decide what the
     // whole next wave looks like; they used to be counted and thrown away
     // without ever being shown to the person who paid for them.
-    expect(find.text('Odgovori protivnika'), findsOneWidget);
-    expect(find.textContaining('Posle Nc6'), findsOneWidget);
+    expect(find.text('Opponent replies'), findsOneWidget);
+    expect(find.textContaining('After Nc6'), findsOneWidget);
 
-    await tester.tap(find.text('Sledeća pozicija'));
+    await tester.tap(find.text('Next position'));
     await tester.pumpAndSettle();
 
     // And now the board has moved on to a position where it is Black to move.
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
   });
 
   /// The arrows currently on the board.
@@ -829,9 +829,9 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
     final drawn = arrows(tester);
@@ -853,7 +853,7 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
 
     final first = arrows(tester);
@@ -870,7 +870,7 @@ void main() {
     // A second move kept here is an alternate: thinner, unstarred, and still
     // carrying its own share.
     await play(tester, 'd7', 'd6');
-    await tester.tap(find.text('Uzmi d6'));
+    await tester.tap(find.text('Take d6'));
     await tester.pumpAndSettle();
 
     final both = arrows(tester);
@@ -902,9 +902,9 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
     // The board is showing a position it is White's turn in. A move dragged
@@ -922,7 +922,7 @@ void main() {
       (tester) async {
     await pump(tester);
 
-    final dalje = find.widgetWithText(FilledButton, 'Dalje');
+    final dalje = find.widgetWithText(FilledButton, 'Next');
     expect(tester.widget<FilledButton>(dalje).onPressed, isNull,
         reason: 'nema šta da se otvori dok pozicija nema nijedan odgovor');
   });
@@ -934,7 +934,7 @@ void main() {
     await play(tester, 'b8', 'c6');
 
     expect(find.textContaining('traži vaš Lichess token'), findsOneWidget);
-    expect(find.text('Uzmi Nc6'), findsOneWidget,
+    expect(find.text('Take Nc6'), findsOneWidget,
         reason: 'izbor je i dalje korisnikov — sud je pomoć, ne dozvola');
   });
 
@@ -953,17 +953,17 @@ void main() {
     // Scrolled to rather than tapped blind. On a 640 px screen the controls sit
     // below the board and are genuinely off screen — which is a fact about the
     // layout worth knowing, not something to work around by widening the test.
-    await tester.ensureVisible(find.text('Uzmi Nc6'));
+    await tester.ensureVisible(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    await tester.ensureVisible(find.text('Dalje'));
+    await tester.ensureVisible(find.text('Next'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    expect(find.text('Odgovori protivnika'), findsOneWidget);
+    expect(find.text('Opponent replies'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1050,9 +1050,9 @@ void main() {
     // most often, and the other one is waiting behind it.
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 Nc6 5.Nf3'),
         findsOneWidget);
-    expect(find.text('Još 1 neodgovorena pozicija, ne računajući ovu.'),
+    expect(find.text('1 more unanswered position, not counting this one.'),
         findsOneWidget);
-    expect(find.textContaining('bez odgovora 55%'), findsOneWidget);
+    expect(find.textContaining('unanswered 55%'), findsOneWidget);
   });
 
   testWidgets('a line that was decided and then left says what it needs',
@@ -1073,7 +1073,7 @@ void main() {
 
     // Coming back to a position that already has a move in it reads as a
     // mistake unless the screen says why it is here.
-    expect(find.textContaining('ostalo je samo da uzmete odgovore'),
+    expect(find.textContaining('all that remains is to take the replies'),
         findsOneWidget);
   });
 
@@ -1086,9 +1086,8 @@ void main() {
     await pump(tester);
 
     expect(api.frontierCalls, 1);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
-    expect(
-        find.textContaining('počinjete od početne pozicije'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
+    expect(find.textContaining('starting from'), findsOneWidget);
   });
 
   testWidgets('a line opened deep goes in front of a shallow one queued first',
@@ -1118,11 +1117,11 @@ void main() {
         ));
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sledeća pozicija'));
+    await tester.tap(find.text('Next position'));
     await tester.pumpAndSettle();
 
     // 5.Nf3 is played in half the games from a position reached in all of
@@ -1130,7 +1129,7 @@ void main() {
     // asked first. (The fake book names its moves in UCI, which is why the
     // line reads `5.g1f3`.)
     expect(find.text('4...Nc6 5.g1f3'), findsOneWidget);
-    expect(find.text('Još 1 neodgovorena pozicija, ne računajući ovu.'),
+    expect(find.text('1 more unanswered position, not counting this one.'),
         findsOneWidget);
   });
 
@@ -1167,13 +1166,13 @@ void main() {
           ],
         ));
 
-    expect(find.text('Još 2 neodgovorene pozicije, ne računajući ovu.'),
+    expect(find.text('2 more unanswered positions, not counting this one.'),
         findsOneWidget);
     // Scrolled to rather than tapped blind: on a 640 px screen the controls sit
     // below the board and are genuinely off screen.
-    await tester.ensureVisible(find.text('Ne spremam ovo'));
+    await tester.ensureVisible(find.text('Do not prepare this'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Ne spremam ovo'));
+    await tester.tap(find.text('Do not prepare this'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
@@ -1183,17 +1182,15 @@ void main() {
     // feminine singular, because one position agrees with its verb — the three
     // forms went through `serbianCount` on 3.9.2026, and this assertion is
     // what noticed.
-    expect(
-        find.textContaining('s njom je izašla još 1 pozicija'), findsOneWidget);
-    expect(
-        find.text(
-            'Poslednja neodgovorena pozicija koju ovaj repertoar dohvata.'),
+    expect(find.textContaining('1 more position was removed with it'),
+        findsOneWidget);
+    expect(find.text('Last unanswered position reachable by this repertoire.'),
         findsOneWidget);
     expect(find.textContaining('4...d6 5.Bc4'), findsOneWidget);
     // Counted apart from "bez odgovora", and never taken off it: cutting is
     // work refused, not work done, and those games are still going to be
     // played.
-    expect(find.textContaining('ne spremam 1 (60%)'), findsOneWidget);
+    expect(find.textContaining('not preparing 1 (60%)'), findsOneWidget);
   });
 
   testWidgets('a cut branch can be put back', (tester) async {
@@ -1217,17 +1214,18 @@ void main() {
           ],
         ));
 
-    await tester.tap(find.text('Ne spremam ovo'));
+    await tester.tap(find.text('Do not prepare this'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Ipak spremi ovu granu'));
+    await tester.tap(find.text('Prepare this branch anyway'));
     await tester.pumpAndSettle();
 
     expect(api.restored.single,
         fenAfter(smithMorra, ['Nc6', 'Nf3']).split(' ').take(4).join(' '));
-    expect(find.textContaining('Grana je vraćena'), findsOneWidget);
+    expect(find.textContaining('Branch was returned to the queue'),
+        findsOneWidget);
     // Back in the queue, in its own place — not shoved in front of the
     // position the student is in the middle of answering.
-    expect(find.text('Još 1 neodgovorena pozicija, ne računajući ovu.'),
+    expect(find.text('1 more unanswered position, not counting this one.'),
         findsOneWidget);
     expect(find.textContaining('ne spremam'), findsNothing);
   });
@@ -1239,8 +1237,8 @@ void main() {
     // way back in.
     await pump(tester);
 
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
-    expect(find.text('Ne spremam ovo'), findsNothing);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
+    expect(find.text('Do not prepare this'), findsNothing);
   });
 
   testWidgets('a cut the server refused is not shown as done', (tester) async {
@@ -1260,10 +1258,10 @@ void main() {
           ],
         ));
 
-    await tester.tap(find.text('Ne spremam ovo'));
+    await tester.tap(find.text('Do not prepare this'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Grana je ostala'), findsOneWidget);
+    expect(find.textContaining('Branch remained'), findsOneWidget);
     expect(find.textContaining('ne spremam'), findsNothing);
     // Still the position that was there: nothing moved on.
     expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
@@ -1277,27 +1275,27 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
 
     // Folded away by default: ten moves at one per cent each under every
     // position would bury the answers that decide the next wave.
     expect(find.text('Bc4'), findsNothing);
-    await tester.tap(find.text('Spremi i neki od njih'));
+    await tester.tap(find.text('Prepare some of them'));
     await tester.pumpAndSettle();
 
     expect(find.text('Bc4'), findsOneWidget);
-    await tester.tap(find.text('Spremi').first);
+    await tester.tap(find.text('Prepare').first);
     await tester.pumpAndSettle();
 
     // Written down on the server, not only queued here: the frontier follows
     // covered replies only, so a hand-picked one that was not stored would be
     // lost the moment the screen closed.
     expect(api.prepared, ['f1c4']);
-    expect(find.textContaining('U pripremi je i Bc4'), findsOneWidget);
-    expect(find.text('u pripremi'), findsOneWidget);
+    expect(find.textContaining('Bc4 is now in preparation'), findsOneWidget);
+    expect(find.text('in preparation'), findsOneWidget);
   });
 
   testWidgets('a prepared move joins the queue in its own place',
@@ -1307,20 +1305,20 @@ void main() {
     await pump(tester);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     // One position came out of the covered wave.
-    expect(find.text('Još 1 neodgovorena pozicija, ne računajući ovu.'),
+    expect(find.text('1 more unanswered position, not counting this one.'),
         findsOneWidget);
 
-    await tester.tap(find.text('Spremi i neki od njih'));
+    await tester.tap(find.text('Prepare some of them'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Spremi').first);
+    await tester.tap(find.text('Prepare').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Još 2 neodgovorene pozicije, ne računajući ovu.'),
+    expect(find.text('2 more unanswered positions, not counting this one.'),
         findsOneWidget);
   });
 
@@ -1332,18 +1330,18 @@ void main() {
     await pump(tester, prepareFails: true);
 
     await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Uzmi Nc6'));
+    await tester.tap(find.text('Take Nc6'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dalje'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Spremi i neki od njih'));
+    await tester.tap(find.text('Prepare some of them'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Spremi').first);
+    await tester.tap(find.text('Prepare').first);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('nije dodat u pripremu'), findsOneWidget);
-    expect(find.text('u pripremi'), findsNothing);
-    expect(find.text('Još 1 neodgovorena pozicija, ne računajući ovu.'),
+    expect(find.textContaining('was not added to preparation'), findsOneWidget);
+    expect(find.text('in preparation'), findsNothing);
+    expect(find.text('1 more unanswered position, not counting this one.'),
         findsOneWidget);
   });
 
@@ -1359,13 +1357,13 @@ void main() {
       ],
     });
 
-    expect(find.textContaining('nije još vaš izbor'), findsOneWidget);
-    await tester.tap(find.text('Potvrdi'));
+    expect(find.textContaining('not yet your choice'), findsOneWidget);
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
     expect(api.confirmed, ['b8c6']);
-    expect(find.textContaining('nije još vaš izbor'), findsNothing);
-    expect(find.text('glavni'), findsOneWidget);
+    expect(find.textContaining('not yet your choice'), findsNothing);
+    expect(find.text('main'), findsOneWidget);
   });
 
   testWidgets('a move the student chose is not offered for confirmation',
@@ -1376,8 +1374,8 @@ void main() {
       ],
     });
 
-    expect(find.text('Potvrdi'), findsNothing);
-    expect(find.text('glavni'), findsOneWidget);
+    expect(find.text('Confirm'), findsNothing);
+    expect(find.text('main'), findsOneWidget);
   });
 
   testWidgets('the spine writes a trunk and says it is only a draft',
@@ -1390,15 +1388,14 @@ void main() {
       path: ['Nc6', 'Nf3', 'e6', 'd4'],
     );
 
-    await tester.tap(find.text('Predloži glavnu liniju'));
+    await tester.tap(find.text('Suggest main line'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('6 poteza'));
+    await tester.tap(find.text('6 moves'));
     await tester.pumpAndSettle();
 
     expect(api.spineDepth, 6);
-    expect(find.textContaining('Upisano 2 predloga'), findsOneWidget);
-    expect(
-        find.textContaining('Potvrdite ono sa čim se slažete'), findsOneWidget);
+    expect(find.textContaining('Recorded 2'), findsOneWidget);
+    expect(find.textContaining('Confirm what you agree with'), findsOneWidget);
   });
 
   testWidgets('a spine that stopped early says where and why', (tester) async {
@@ -1414,13 +1411,14 @@ void main() {
       minGames: 100,
     );
 
-    await tester.tap(find.text('Predloži glavnu liniju'));
+    await tester.tap(find.text('Suggest main line'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('4 poteza'));
+    await tester.tap(find.text('4 moves'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('stalo jer je dalje pretanko'), findsOneWidget);
-    expect(find.textContaining('40 partija'), findsOneWidget);
+    expect(find.textContaining('stopped because further is too thin'),
+        findsOneWidget);
+    expect(find.textContaining('40 games'), findsOneWidget);
   });
 
   testWidgets('a spine that wrote nothing does not claim a line',
@@ -1428,21 +1426,21 @@ void main() {
     await pump(tester);
     api.spine = const SpineResult(reason: 'thin', minGames: 100);
 
-    await tester.tap(find.text('Predloži glavnu liniju'));
+    await tester.tap(find.text('Suggest main line'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('4 poteza'));
+    await tester.tap(find.text('4 moves'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Ništa nije upisano'), findsOneWidget);
+    expect(find.textContaining('Nothing was recorded'), findsOneWidget);
   });
 
   testWidgets('a spine the server refused says so', (tester) async {
     await pump(tester);
     // `spine` left null: the fake answers the way a server that did not reply
     // does.
-    await tester.tap(find.text('Predloži glavnu liniju'));
+    await tester.tap(find.text('Suggest main line'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('4 poteza'));
+    await tester.tap(find.text('4 moves'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Server nije odgovorio'), findsOneWidget);
@@ -1460,12 +1458,12 @@ void main() {
     });
     api.orphans = (keys: ['k1', 'k2'], drafts: 2, decisions: 0);
 
-    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.tap(find.byTooltip('Remove'));
     await tester.pumpAndSettle();
 
     // One sweep, and it was not allowed to touch decisions.
     expect(api.pruned, [false]);
-    expect(find.textContaining('Uklonjeno i 2 poteza'), findsOneWidget);
+    expect(find.textContaining('Also removed 2 moves'), findsOneWidget);
   });
 
   testWidgets('a decision that would be stranded is asked about, not taken',
@@ -1479,12 +1477,12 @@ void main() {
     });
     api.orphans = (keys: ['k1'], drafts: 0, decisions: 3);
 
-    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.tap(find.byTooltip('Remove'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Ostalo je bez veze'), findsOneWidget);
-    expect(find.textContaining('3 vaših poteza'), findsOneWidget);
-    await tester.tap(find.text('Ostavi'));
+    expect(find.text('Left disconnected'), findsOneWidget);
+    expect(find.textContaining('3 of your decisions'), findsOneWidget);
+    await tester.tap(find.text('Keep'));
     await tester.pumpAndSettle();
 
     // Nothing swept: the drafts count was zero and the decisions were kept.
@@ -1499,9 +1497,9 @@ void main() {
     });
     api.orphans = (keys: ['k1'], drafts: 0, decisions: 1);
 
-    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.tap(find.byTooltip('Remove'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Obriši i njih'));
+    await tester.tap(find.text('Delete them too'));
     await tester.pumpAndSettle();
 
     expect(api.pruned, [true]);
@@ -1515,11 +1513,11 @@ void main() {
     });
     api.orphans = (keys: const [], drafts: 0, decisions: 0);
 
-    await tester.tap(find.byTooltip('Ukloni'));
+    await tester.tap(find.byTooltip('Remove'));
     await tester.pumpAndSettle();
 
     expect(api.pruned, isEmpty);
-    expect(find.textContaining('Uklonjeno i'), findsNothing);
+    expect(find.textContaining('Also removed'), findsNothing);
   });
 
   testWidgets('one list beside the board, for the side to move',
@@ -1548,8 +1546,8 @@ void main() {
     );
 
     // The board's own position, and only that.
-    expect(find.text('Šta se ovde igra'), findsOneWidget);
-    expect(find.textContaining('Posle Nc6'), findsNothing);
+    expect(find.text('What is played here'), findsOneWidget);
+    expect(find.textContaining('After Nc6'), findsNothing);
     expect(find.text('Nf3'), findsWidgets);
     // And the judge was never asked anything for this.
     expect(judge.asked, 0);
@@ -1569,16 +1567,16 @@ void main() {
       book: const StoredBook(fen: 'x'),
     );
 
-    expect(find.textContaining('Ovu poziciju još niko nije otvarao'),
+    expect(find.textContaining('No one has opened this position yet'),
         findsOneWidget);
     expect(judge.asked, 0);
 
-    await tester.tap(find.text('Otvori knjigu (1 upit)'));
+    await tester.tap(find.text('Open book (1 query)'));
     await tester.pumpAndSettle();
 
     // Exactly one, and only because it was asked for.
     expect(judge.asked, 1);
-    expect(find.textContaining('upita: 1'), findsOneWidget);
+    expect(find.textContaining('queries: 1'), findsOneWidget);
   });
 
   testWidgets('the opening banner is never keyed on anything that moves',
@@ -1632,19 +1630,19 @@ void main() {
     await pump(tester, walk: const RepertoireFrontier(decided: 4, open: []));
 
     expect(
-        find.text('Odgovorili ste na sve pozicije do kojih ovaj repertoar '
-            'stiže.'),
+        find.text('You have answered all positions reachable by this '
+            'repertoire.'),
         findsOneWidget);
-    expect(find.text('Otvori repertoar'), findsOneWidget);
+    expect(find.text('Open repertoire'), findsOneWidget);
 
-    await tester.tap(find.text('Otvori repertoar'));
+    await tester.tap(find.text('Open repertoire'));
     await tester.pumpAndSettle();
 
     // The board is back, on the repertoire's own root: the question under it
     // is the one this screen exists to ask.
     expect(
-        find.text('Odgovorili ste na sve pozicije do kojih ovaj repertoar '
-            'stiže.'),
+        find.text('You have answered all positions reachable by this '
+            'repertoire.'),
         findsNothing);
     expect(find.byType(BoardWithCoordinates), findsOneWidget);
   });

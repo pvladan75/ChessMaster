@@ -69,14 +69,14 @@ class RepertoireCommentPanel extends StatelessWidget {
               Icon(Icons.sticky_note_2_outlined, size: 14, color: colors.info),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
-                child: Text('Moj komentar',
+                child: Text('My comment',
                     style: AppText.captionBold.copyWith(color: colors.info)),
               ),
               // Never hidden behind a long press or a menu: this is the button
               // the whole panel exists for.
               IconButton(
                 icon: Icon(Icons.edit_outlined, size: 16, color: colors.info),
-                tooltip: _hasText ? 'Izmeni komentar' : 'Napiši komentar',
+                tooltip: _hasText ? 'Edit comment' : 'Write comment',
                 visualDensity: VisualDensity.compact,
                 onPressed: busy ? null : onEdit,
               ),
@@ -84,7 +84,7 @@ class RepertoireCommentPanel extends StatelessWidget {
                 IconButton(
                   icon: Icon(Icons.delete_outline,
                       size: 16, color: colors.danger),
-                  tooltip: 'Obriši komentar',
+                  tooltip: 'Delete comment',
                   visualDensity: VisualDensity.compact,
                   onPressed: busy ? null : onDelete,
                 ),
@@ -99,9 +99,9 @@ class RepertoireCommentPanel extends StatelessWidget {
                   ? Text(body!.trim(),
                       style: AppText.body.copyWith(color: colors.textPrimary))
                   : Text(
-                      'Ništa još nije zapisano o ovoj poziciji. Plan, zamka, '
-                      'čega se paziti — ono što biste sebi rekli za pola '
-                      'godine.',
+                      'Nothing has been written about this position yet. Plan, '
+                      'trap, what to watch out for — what you would tell '
+                      'yourself in half a year.',
                       style: AppText.caption.copyWith(color: colors.textMuted)),
             ),
           ),
@@ -147,7 +147,7 @@ Future<String?> showRepertoireCommentEditor(
             maxLength: maxLength,
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
-              hintText: 'Šta treba znati o ovoj poziciji?',
+              hintText: 'What should you know about this position?',
               border: OutlineInputBorder(),
             ),
           ),
@@ -158,7 +158,7 @@ Future<String?> showRepertoireCommentEditor(
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Komentar uz poziciju'),
+        title: const Text('Comment on position'),
         content: SizedBox(
           // From MediaQuery rather than a fixed number: a dialog 360 wide on a
           // 360 dp screen has no margin at all, and that has happened here
@@ -169,11 +169,11 @@ Future<String?> showRepertoireCommentEditor(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Sačuvaj'),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -194,7 +194,7 @@ Future<String?> showRepertoireCommentEditor(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Komentar uz poziciju',
+          Text('Comment on position',
               style:
                   AppText.bodyBold.copyWith(color: context.colors.textPrimary)),
           const SizedBox(height: AppSpacing.sm),
@@ -205,12 +205,12 @@ Future<String?> showRepertoireCommentEditor(
             children: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Odustani'),
+                child: const Text('Cancel'),
               ),
               const SizedBox(width: AppSpacing.sm),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(controller.text),
-                child: const Text('Sačuvaj'),
+                child: const Text('Save'),
               ),
             ],
           ),

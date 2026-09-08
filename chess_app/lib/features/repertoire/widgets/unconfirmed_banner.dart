@@ -78,7 +78,7 @@ class UnconfirmedBanner extends StatelessWidget {
       // One string, two frames. `SpeakableInfo` draws it in the card; the bar
       // draws it plainly, and neither may spell it differently from the other
       // or from what is spoken.
-      final said = '$total nepotvrđenih u grafu';
+      final said = '$total unconfirmed in the graph';
       final sentence = Theme(
         data: Theme.of(context).copyWith(
           iconButtonTheme: IconButtonThemeData(
@@ -111,7 +111,7 @@ class UnconfirmedBanner extends StatelessWidget {
           minimumSize: const Size(64, 32),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: const Text('Pregledaj nepotvrđene'),
+        child: const Text('Review unconfirmed'),
       );
       final icon =
           Icon(Icons.edit_note, color: context.colors.warning, size: 20);

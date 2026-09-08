@@ -45,21 +45,21 @@ void main() {
     test('an ordinary move on the trunk is not spoken', () {
       final line = walkthroughLine(only(mine('e4')));
 
-      expect(line.parts, ['Vaš potez — glavna linija.']);
+      expect(line.parts, ['Your move — main line.']);
       expect(line.speak, isFalse);
     });
 
     test('an answered reply of theirs is not spoken either', () {
       final line = walkthroughLine(only(theirs('e5', 0.55, 'decided')));
 
-      expect(line.parts.single, 'Protivnik igra e5 — 55% partija.');
+      expect(line.parts.single, 'Opponent plays e5 — 55% of games.');
       expect(line.speak, isFalse);
     });
 
     test('a hole is spoken, and says which move and how often', () {
       final line = walkthroughLine(only(theirs('c5', 0.31, 'open')));
 
-      expect(line.spoken, 'Na c5, 31% partija, nemate odgovor.');
+      expect(line.spoken, 'Against c5, in 31% of games, you have no reply.');
       expect(line.speak, isTrue);
     });
 
@@ -78,8 +78,8 @@ void main() {
       // which of it is unanswered.
       expect(
         line.spoken,
-        'Vaš potez — glavna linija. Odavde protivnik ima 2 odgovora: '
-        'e5 u 55% i c5 u 31%, bez odgovora.',
+        'Your move — main line. From here the opponent has 2 replies: '
+        'e5 in 55% and c5 in 31%, no reply.',
       );
     });
 
@@ -96,14 +96,14 @@ void main() {
       );
 
       expect(line.spoken,
-          endsWith('a5 u 30%, b5 u 25%, c5 u 20% i još 2 odgovora.'));
+          endsWith('a5 in 30%, b5 in 25%, c5 in 20% and 2 more replies.'));
     });
 
     test('a note is spoken, and it is the last thing said', () {
       final line = walkthroughLine(only(mine('e4')), note: '  Pazi na f7.  ');
 
       expect(line.speak, isTrue);
-      expect(line.parts.last, 'Vaša napomena: Pazi na f7.');
+      expect(line.parts.last, 'Your note: Pazi na f7.');
       // An empty note is not a note.
       expect(walkthroughLine(only(mine('e4')), note: '   ').speak, isFalse);
     });
@@ -115,7 +115,7 @@ void main() {
       );
 
       expect(line.speak, isFalse);
-      expect(line.parts.single, 'Vaš potez — glavna linija.');
+      expect(line.parts.single, 'Your move — main line.');
     });
 
     test('my own alternatives are not the opponent having answers', () {
@@ -127,7 +127,7 @@ void main() {
       );
 
       expect(line.speak, isFalse);
-      expect(line.spoken, 'Protivnik igra e5 — 55% partija.');
+      expect(line.spoken, 'Opponent plays e5 — 55% of games.');
     });
   });
 

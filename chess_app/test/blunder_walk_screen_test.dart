@@ -102,11 +102,12 @@ void main() {
     // A release build paints no overflow stripes, so this is the only cheap
     // place to catch a row that outgrows the phone.
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('Crni je ovde odigrao Rd3'), findsOneWidget);
-    expect(find.textContaining('Odigrajte na tabli potez koji drži remi'),
+    expect(find.textContaining('Black played Rd3 here'), findsOneWidget);
+    expect(
+        find.textContaining('Play the move that holds the draw on the board'),
         findsOneWidget);
     expect(find.textContaining('Seger, Ruediger (2416)'), findsOneWidget);
-    expect(find.text('Greške: 0/2'), findsOneWidget);
+    expect(find.text('Mistakes: 0/2'), findsOneWidget);
   });
 
   testWidgets('the mistake is drawn on the board, and takes itself off again',
@@ -182,7 +183,7 @@ void main() {
     await tester.tapAt(at('b3'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Tačno'), findsOneWidget);
+    expect(find.textContaining('Correct'), findsOneWidget);
   });
 
   testWidgets('a wrong try does not lock the board against the right one',
@@ -216,14 +217,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAt(at('f8'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('ne drži remi'), findsOneWidget);
+    expect(find.textContaining('does not hold the draw'), findsOneWidget);
 
     // And now the one that does.
     await tester.tapAt(at('f3'));
     await tester.pumpAndSettle();
     await tester.tapAt(at('b3'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Tačno'), findsOneWidget);
+    expect(find.textContaining('Correct'), findsOneWidget);
   });
 
   testWidgets('a dragged piece is judged the same as a tapped one',
@@ -260,7 +261,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Tačno'), findsOneWidget);
+    expect(find.textContaining('Correct'), findsOneWidget);
   });
 
   testWidgets('the next game is not locked by the punishment left behind it',
@@ -306,23 +307,24 @@ void main() {
       if (button.onPressed == null) break;
       await tester.tap(back);
       await tester.pumpAndSettle();
-      if (find.text('Zašto je loše').evaluate().isNotEmpty) break;
+      if (find.text('Why it is bad').evaluate().isNotEmpty) break;
     }
 
-    expect(find.text('Zašto je loše'), findsOneWidget,
+    expect(find.text('Why it is bad'), findsOneWidget,
         reason: 'kazna se nudi tek kad je greška iza kursora');
-    await tester.tap(find.text('Zašto je loše'));
+    await tester.tap(find.text('Why it is bad'));
     await tester.pumpAndSettle();
-    expect(find.text('Nazad na partiju'), findsOneWidget);
+    expect(find.text('Back to game'), findsOneWidget);
     // And it says so, rather than leaving a board that will not answer. Being
     // in a mode without knowing it is indistinguishable from a bug.
-    expect(find.textContaining('Tabla se ovde ne igra'), findsOneWidget);
+    expect(
+        find.textContaining('The board cannot be played here'), findsOneWidget);
 
     // Straight on to the next game, without closing the punishment first.
-    await tester.tap(find.text('Preskoči'));
+    await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Nazad na partiju'), findsNothing,
+    expect(find.text('Back to game'), findsNothing,
         reason: 'kazna je ostala iz prethodne partije');
     expect(
       tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove,
@@ -362,8 +364,8 @@ void main() {
     addTearDown(tester.view.reset);
 
     for (final entry in {
-      EndgameFetchOutcome.noneMatch: 'odgovara traženim uslovima',
-      EndgameFetchOutcome.unavailable: 'nije moguće dobaviti',
+      EndgameFetchOutcome.noneMatch: 'matches the requested criteria',
+      EndgameFetchOutcome.unavailable: 'unable to fetch',
     }.entries) {
       await tester.pumpWidget(wrap(Container(
         key: ValueKey(entry.key),

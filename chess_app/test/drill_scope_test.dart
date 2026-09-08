@@ -84,10 +84,10 @@ void main() {
       (tester) async {
     await _pump(tester, _Api(todayBody: jsonEncode({'positions': 0})));
 
-    expect(find.textContaining('Vežbate: Benoni'), findsOneWidget);
-    expect(find.textContaining('ceo repertoar'), findsOneWidget);
-    expect(find.textContaining('18 pozicija'), findsOneWidget);
-    expect(find.textContaining('na redu 4'), findsOneWidget);
+    expect(find.textContaining('Drilling: Benoni'), findsOneWidget);
+    expect(find.textContaining('entire repertoire'), findsOneWidget);
+    expect(find.textContaining('18 positions'), findsOneWidget);
+    expect(find.textContaining('due 4'), findsOneWidget);
   });
 
   testWidgets('the day is counted in what was done, not in what is left',
@@ -95,12 +95,12 @@ void main() {
     await _pump(tester, _Api(todayBody: jsonEncode({'positions': 4})));
 
     // A number that goes up is worth finishing; one that counts down is a debt.
-    expect(find.text('danas 4 od 10'), findsOneWidget);
+    expect(find.text('today 4 of 10'), findsOneWidget);
   });
 
   testWidgets('a finished target says so', (tester) async {
     await _pump(tester, _Api(todayBody: jsonEncode({'positions': 12})));
-    expect(find.text('danas 12 — cilj ispunjen'), findsOneWidget);
+    expect(find.text('today 12 — goal reached'), findsOneWidget);
   });
 
   testWidgets('a server that did not answer says nothing about today',
@@ -109,14 +109,14 @@ void main() {
     // enough sentence to be told when it is true.
     await _pump(tester, _Api());
 
-    expect(find.textContaining('danas'), findsNothing);
-    expect(find.textContaining('Vežbate: Benoni'), findsOneWidget);
+    expect(find.textContaining('today'), findsNothing);
+    expect(find.textContaining('Drilling: Benoni'), findsOneWidget);
   });
 
   testWidgets('a target of zero switches the whole idea off', (tester) async {
     await AppSettingsService.instance.setDailyTarget(0);
     await _pump(tester, _Api(todayBody: jsonEncode({'positions': 4})));
 
-    expect(find.textContaining('danas'), findsNothing);
+    expect(find.textContaining('today'), findsNothing);
   });
 }

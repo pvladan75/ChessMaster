@@ -233,7 +233,7 @@ void main() {
         ),
       ));
 
-      expect(find.text('Moj komentar'), findsNothing);
+      expect(find.text('My comment'), findsNothing);
     });
 
     testWidgets('beside the board an empty comment is an invitation',
@@ -245,10 +245,10 @@ void main() {
         ),
       ));
 
-      expect(find.text('Moj komentar'), findsOneWidget);
-      expect(find.byTooltip('Napiši komentar'), findsOneWidget);
+      expect(find.text('My comment'), findsOneWidget);
+      expect(find.byTooltip('Write comment'), findsOneWidget);
       // Nothing to delete yet, so no button that would do it.
-      expect(find.byTooltip('Obriši komentar'), findsNothing);
+      expect(find.byTooltip('Delete comment'), findsNothing);
     });
 
     testWidgets('what was written is on screen, in both mountings',
@@ -266,7 +266,7 @@ void main() {
         ));
         expect(find.text('Plan: c5 pa Nc6, i pritisak na d4.'), findsOneWidget,
             reason: 'komentar se ne vidi (dense: $dense)');
-        expect(find.byTooltip('Obriši komentar'), findsOneWidget);
+        expect(find.byTooltip('Delete comment'), findsOneWidget);
       }
     });
   });
@@ -300,8 +300,8 @@ void main() {
       api = _FakeApi();
       await pump(tester, const Size(400, 900));
 
-      expect(find.byTooltip('Dodaj komentar'), findsOneWidget);
-      expect(find.byTooltip('Pitaj AI o poziciji'), findsOneWidget);
+      expect(find.byTooltip('Add comment'), findsOneWidget);
+      expect(find.byTooltip('Ask AI about position'), findsOneWidget);
       // A phone folds them onto a second line rather than clipping them, which
       // in a release build is silent.
       expect(tester.takeException(), isNull);
@@ -312,10 +312,10 @@ void main() {
       api = _FakeApi();
       await pump(tester, const Size(400, 900));
 
-      await tester.tap(find.byTooltip('Dodaj komentar'));
+      await tester.tap(find.byTooltip('Add comment'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'Pazi na Qb6 i Bd7-b5.');
-      await tester.tap(find.text('Sačuvaj'));
+      await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
       expect(api.written.length, 1);
@@ -333,10 +333,10 @@ void main() {
       api = _FakeApi();
       await pump(tester, const Size(400, 900));
 
-      await tester.tap(find.byTooltip('Dodaj komentar'));
+      await tester.tap(find.byTooltip('Add comment'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'nešto');
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       expect(api.written, isEmpty);
@@ -369,9 +369,9 @@ void main() {
       );
       await pump(tester, const Size(400, 900));
 
-      await tester.tap(find.byTooltip('Obriši komentar'));
+      await tester.tap(find.byTooltip('Delete comment'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Obriši'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(api.deleted.length, 1);
@@ -438,14 +438,14 @@ void main() {
           .pumpWidget(MaterialApp(home: RepertoireListScreen(api: api)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Još'));
+      await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Obriši repertoar'));
+      await tester.tap(find.text('Delete repertoire'));
       await tester.pumpAndSettle();
 
       // The count is read out before anything is decided.
       expect(find.textContaining('18'), findsWidgets);
-      await tester.tap(find.widgetWithText(FilledButton, 'Obriši'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(api.deleted.single.withMoves, isFalse);
@@ -462,13 +462,13 @@ void main() {
           .pumpWidget(MaterialApp(home: RepertoireListScreen(api: api)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Još'));
+      await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Obriši repertoar'));
+      await tester.tap(find.text('Delete repertoire'));
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('Obriši i poteze'));
+      await tester.tap(find.textContaining('Also delete moves'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Obriši'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(api.deleted.single.withMoves, isTrue);
@@ -486,14 +486,14 @@ void main() {
           .pumpWidget(MaterialApp(home: RepertoireListScreen(api: api)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Brisanje poteza iz baze'));
+      await tester.tap(find.byTooltip('Delete moves from database'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Obriši sve poteze za crnog'));
+      await tester.tap(find.text('Delete all moves for Black'));
       await tester.pumpAndSettle();
 
       // Counted first, and the sentence says what else goes with the moves.
       expect(find.textContaining('61'), findsWidgets);
-      await tester.tap(find.widgetWithText(FilledButton, 'Obriši'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(api.erased.single.color, 'b');
@@ -508,7 +508,7 @@ void main() {
           .pumpWidget(MaterialApp(home: RepertoireListScreen(api: api)));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('sačuvani uz boju'), findsOneWidget);
+      expect(find.textContaining('saved with the color'), findsOneWidget);
     });
   });
 }

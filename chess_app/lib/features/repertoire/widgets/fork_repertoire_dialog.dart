@@ -95,7 +95,7 @@ class _ForkRepertoireDialogState extends State<ForkRepertoireDialog> {
       return;
     }
 
-    AppFeedback.success(context, 'Otvaranje uspešno izdvojeno.');
+    AppFeedback.success(context, 'Opening forked successfully.');
     Navigator.pop(context, result.made);
   }
 
@@ -110,13 +110,13 @@ class _ForkRepertoireDialogState extends State<ForkRepertoireDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Izdvoji u novo otvaranje',
+            Text('Fork into new opening',
                 style:
                     AppText.title.copyWith(color: context.colors.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Ova pozicija postaje početak novog otvaranja. '
-              'Potezi se ne kopiraju — sve što ste igrali ovde ostaje sačuvano i vidljivo iz novog otvaranja.',
+              'This position becomes the start of a new opening. '
+              'Moves are not copied — everything you played here remains saved and visible from the new opening.',
               style: AppText.body.copyWith(color: context.colors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.xxl),
@@ -125,7 +125,7 @@ class _ForkRepertoireDialogState extends State<ForkRepertoireDialog> {
               focusNode: _nameFocus,
               style: AppText.body.copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
-                labelText: 'Ime otvaranja',
+                labelText: 'Opening name',
                 labelStyle:
                     AppText.body.copyWith(color: context.colors.textMuted),
                 border: OutlineInputBorder(
@@ -146,11 +146,11 @@ class _ForkRepertoireDialogState extends State<ForkRepertoireDialog> {
             const SizedBox(height: AppSpacing.lg),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text('Kroz koji potez ide?',
+              title: Text('Which move does it go through?',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textPrimary)),
               subtitle: Text(
-                _viaUci == null ? 'Bez ograničenja' : 'Kroz potez $_viaUci',
+                _viaUci == null ? 'No restrictions' : 'Through move $_viaUci',
                 style: AppText.body.copyWith(color: context.colors.textMuted),
               ),
               trailing: Icon(Icons.chevron_right,
@@ -169,7 +169,7 @@ class _ForkRepertoireDialogState extends State<ForkRepertoireDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Odustani'),
+                  child: const Text('Cancel'),
                 ),
                 FilledButton(
                   onPressed: _busy ? null : _submit,
@@ -179,7 +179,7 @@ class _ForkRepertoireDialogState extends State<ForkRepertoireDialog> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Izdvoji'),
+                      : const Text('Fork'),
                 ),
               ],
             ),

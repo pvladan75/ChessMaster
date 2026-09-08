@@ -44,18 +44,18 @@ void main() {
     // „repertoara", because whose width it is turned out to be the whole
     // misunderstanding: read inside a dialog titled „Napravi kičmu odavde" it
     // was taken for the width of the spine. Reported live 4.9.2026.
-    expect(find.text('Koliko odgovora spremamo'), findsOneWidget);
+    expect(find.text('How many replies to prepare'), findsOneWidget);
 
     // Tap broad. `ensureVisible` because the width section now carries a
     // sentence saying whose width it is, and a dialog is a scroll view: a tap
     // at a clipped offset is a tap that quietly does nothing.
-    await tester.ensureVisible(find.text('Široko (95%)'));
-    await tester.tap(find.text('Široko (95%)'));
+    await tester.ensureVisible(find.text('Broad (95%)'));
+    await tester.tap(find.text('Broad (95%)'));
     await tester.pumpAndSettle();
 
     // Tap depth
-    await tester.ensureVisible(find.text('6 poteza'));
-    await tester.tap(find.text('6 poteza'));
+    await tester.ensureVisible(find.text('6 moves'));
+    await tester.tap(find.text('6 moves'));
     await tester.pumpAndSettle();
 
     expect(api.savedBreadth, 'broad');
@@ -76,7 +76,7 @@ void main() {
       home: BreadthDialog(id: null, api: api),
     ));
 
-    expect(find.textContaining('Ova opcija nije dostupna'), findsOneWidget);
+    expect(find.textContaining('This option is not available'), findsOneWidget);
 
     // Tap radio button - shouldn't crash or change since it's disabled, but since we tap the widget it might trigger anyway if we are not careful?
     // RadioListTile is disabled if onChanged is null. We set onChanged to null.

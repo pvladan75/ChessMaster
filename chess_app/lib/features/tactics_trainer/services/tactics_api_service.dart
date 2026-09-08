@@ -106,7 +106,7 @@ class TacticsApiService {
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) {
-        AppLogger.log('[Tactics] Server je odbio zahtev (${res.statusCode}).');
+        AppLogger.log('[Tactics] Server rejected request (${res.statusCode}).');
         return null;
       }
 
@@ -119,7 +119,7 @@ class TacticsApiService {
         ),
       );
     } catch (e) {
-      AppLogger.log('[Tactics] Ne mogu da preuzmem zagonetku: $e');
+      AppLogger.log('[Tactics] Could not fetch puzzle: $e');
       return null;
     }
   }
@@ -137,7 +137,7 @@ class TacticsApiService {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       return TacticsPuzzle.fromJson(Map<String, dynamic>.from(data['puzzle']));
     } catch (e) {
-      AppLogger.log('[Tactics] Ne mogu da preuzmem zadatu zagonetku: $e');
+      AppLogger.log('[Tactics] Could not fetch assigned puzzle: $e');
       return null;
     }
   }
@@ -172,7 +172,7 @@ class TacticsApiService {
       return AttemptResult.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Tactics] Ne mogu da pošaljem rezultat: $e');
+      AppLogger.log('[Tactics] Could not submit result: $e');
       return null;
     }
   }
@@ -189,7 +189,7 @@ class TacticsApiService {
           .map((e) => ThemeRating.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
-      AppLogger.log('[Tactics] Ne mogu da učitam rejtinge po temama: $e');
+      AppLogger.log('[Tactics] Could not load theme ratings: $e');
       return const [];
     }
   }

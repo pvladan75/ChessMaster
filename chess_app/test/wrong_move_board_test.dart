@@ -102,9 +102,9 @@ void main() {
 
     await move(tester, 'a1', 'a2');
 
-    expect(find.textContaining('ispušta').hitTestable(), findsNothing,
+    expect(find.textContaining('drops the win').hitTestable(), findsNothing,
         reason: 'ovo je remi pozicija, ne dobitna');
-    expect(find.textContaining('gubi remi'), findsOneWidget);
+    expect(find.textContaining('loses the draw'), findsOneWidget);
     expect(fenOf(tester), start,
         reason: 'na tabli mora da stoji pozicija koja se rešava');
   });
@@ -119,7 +119,7 @@ void main() {
     await move(tester, 'a1', 'a2');
     await move(tester, 'a1', 'f1');
 
-    expect(find.textContaining('gubi remi'), findsNothing,
+    expect(find.textContaining('loses the draw'), findsNothing,
         reason: 'tačan potez posle greške mora da bude prihvaćen');
     expect(fenOf(tester), isNot('8/5pk1/8/8/8/8/5PK1/r7 b - - 0 55'),
         reason: 'tačan potez mora da se odigra na tabli');
@@ -129,7 +129,7 @@ void main() {
     await open(tester);
     await move(tester, 'a1', 'a2');
 
-    expect(find.text('Pokušaj ponovo'), findsNothing);
+    expect(find.text('Try again'), findsNothing);
     // And the board is still live, which is the whole point of removing it.
     expect(
       tester.widget<ChessBoardWithOverlay>(boardFinder()).isAllowedToMove,
@@ -149,7 +149,7 @@ void main() {
     await move(tester, 'a1', 'a2');
     await move(tester, 'a1', 'f1');
 
-    expect(find.textContaining('Tačno').hitTestable(), findsWidgets,
+    expect(find.textContaining('Correct').hitTestable(), findsWidgets,
         reason: 'pozicija je rešena i posle greške');
   });
 }

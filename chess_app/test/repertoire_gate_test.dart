@@ -223,7 +223,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ide kroz O-O'), findsOneWidget);
+      expect(find.textContaining('goes through O-O'), findsOneWidget);
     });
 
     testWidgets('without a gate it says nothing and asks for everything',
@@ -241,7 +241,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ide kroz'), findsNothing);
+      expect(find.textContaining('goes through'), findsNothing);
       expect(api.treeGates.every((gate) => gate == null), isTrue);
     });
   });
@@ -255,7 +255,7 @@ void main() {
           .pumpWidget(MaterialApp(home: RepertoireListScreen(api: api)));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('kroz O-O'), findsOneWidget);
+      expect(find.textContaining('via O-O'), findsOneWidget);
     });
 
     testWidgets('can set the gate on a repertoire that already exists',
@@ -267,14 +267,14 @@ void main() {
           .pumpWidget(MaterialApp(home: RepertoireListScreen(api: api)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Još'));
+      await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Kroz koji potez ide'));
+      await tester.tap(find.text('Which move it goes through'));
       await tester.pumpAndSettle();
 
       // The move already kept in that position is at the top, marked.
       expect(find.text('b4'), findsOneWidget);
-      expect(find.text('Bez ograničenja'), findsOneWidget);
+      expect(find.text('No restrictions'), findsOneWidget);
       await tester.tap(find.text('b4'));
       await tester.pumpAndSettle();
 
@@ -289,11 +289,11 @@ void main() {
           .pumpWidget(MaterialApp(home: RepertoireListScreen(api: api)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Još'));
+      await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Kroz koji potez ide'));
+      await tester.tap(find.text('Which move it goes through'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Bez ograničenja'));
+      await tester.tap(find.text('No restrictions'));
       await tester.pumpAndSettle();
 
       expect(api.gated.single.viaUci, isNull);

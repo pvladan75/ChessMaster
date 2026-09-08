@@ -175,7 +175,7 @@ void main() {
     await openHome(tester);
     expect(find.byType(ResumeStrip), findsOneWidget,
         reason: 'traka postoji u stablu');
-    expect(find.text('Nastavi'), findsNothing,
+    expect(find.text('Resume'), findsNothing,
         reason: 'ali se ne vidi kad nema šta da se nastavi');
   });
 
@@ -192,7 +192,7 @@ void main() {
     await openHome(tester);
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Nastavi'), findsOneWidget);
+    expect(find.text('Resume'), findsOneWidget);
     expect(find.textContaining('123456'), findsWidgets);
   });
 

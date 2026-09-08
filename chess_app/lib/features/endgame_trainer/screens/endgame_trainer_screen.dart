@@ -23,13 +23,13 @@ import '../services/endgame_api_service.dart';
 /// Serbian names for the mined endgame types. The keys are what the database
 /// stores and must not be translated there.
 const Map<String, String> kEndgameTypeNames = {
-  'PawnEnding': 'Pešačke završnice',
-  'RookPawnVsRook': 'Top i pešak protiv topa',
-  'QueenVsRook': 'Dama protiv topa',
-  'BishopVsKnight': 'Lovac protiv skakača',
-  'RookBishopVsRook': 'Top i lovac protiv topa',
-  'OppositeBishops': 'Raznobojni lovci',
-  'DoubleBishopVsBishopKnight': 'Dva lovca protiv lovca i skakača',
+  'PawnEnding': 'Pawn endings',
+  'RookPawnVsRook': 'Rook and pawn vs rook',
+  'QueenVsRook': 'Queen vs rook',
+  'BishopVsKnight': 'Bishop vs knight',
+  'RookBishopVsRook': 'Rook and bishop vs rook',
+  'OppositeBishops': 'Opposite-colored bishops',
+  'DoubleBishopVsBishopKnight': 'Two bishops vs bishop and knight',
 };
 
 /// Trains endgame technique on mined positions.
@@ -239,8 +239,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           // about the filters and retrying will not help; "unavailable" might
           // pass. Reporting both as one error taught the user the wrong lesson.
           _error = result.outcome == EndgameFetchOutcome.noneMatch
-              ? 'Nema završnice koja odgovara traženim uslovima.'
-              : 'Trenutno nije moguće dobaviti završnicu.';
+              ? 'No endgame matches the requested criteria.'
+              : 'Endgame is currently unavailable.';
         });
         return;
       }
@@ -338,7 +338,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
     if (verdict.alreadyFound) {
       setState(() {
-        _feedback = 'Taj potez ste već našli. Potražite drugi.';
+        _feedback = 'You already found that move. Look for another.';
         _feedbackIsGood = false;
       });
       _boardController.loadFen(game.fen);
@@ -354,8 +354,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       solve.retryAfterMistake();
       setState(() {
         _feedback = solve.puzzle.mode == EndgameMode.draw
-            ? 'Taj potez gubi remi. Probajte drugi.'
-            : 'Taj potez ispušta dobitak. Probajte drugi.';
+            ? 'That move loses the draw. Try another.'
+            : 'That move drops the win. Try another.';
         _feedbackIsGood = false;
       });
       _boardController.loadFen(game.fen);
@@ -396,8 +396,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       puzzle.fen,
       punishing: false,
       intro: puzzle.mode == EndgameMode.draw
-          ? 'Protivnik igra tablično najbolje i pokušaće da dobije. Držite remi do kraja.'
-          : 'Protivnik brani tablično najbolje. Dobitak morate da odigrate do kraja.',
+          ? 'Opponent plays tablebase-best and will try to win. Hold the draw to the end.'
+          : 'Opponent defends tablebase-best. You must play the win to the end.',
     );
   }
 
@@ -435,8 +435,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     _beginDrill(
       fen,
       punishing: true,
-      intro: '${puzzle.playedMove} je upravo odigrano i remi je izgubljen. '
-          'Sada je dobitak vaš — odigrajte ga do kraja.',
+      intro: '${puzzle.playedMove} was just played and the draw was lost. '
+          'Now the win is yours — play it to the end.',
     );
   }
 
@@ -472,7 +472,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drillEnd = null;
       _drillRetryFen = null;
       _feedbackIsGood = false;
-      _feedback = 'Vraćeno na položaj pre tog poteza. Probajte drugi.';
+      _feedback = 'Restored to the position before that move. Try another.';
     });
     _boardController.loadFen(fen);
   }
@@ -533,7 +533,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     setState(() {
       _boardLocked = true;
       _feedbackIsGood = false;
-      _feedback = 'Proveravam u tablicama…';
+      _feedback = 'Checking tablebases…';
     });
 
     final result = await _api.judgeDrillMove(fen: fenBefore, move: uci);
@@ -548,9 +548,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         _feedbackIsGood = false;
         _feedback = result.message ??
             (result.outcome == DrillJudgeOutcome.unavailable
-                ? 'Tablica trenutno nije dostupna, pa potez ne može da se presudi. '
-                    'Pokušajte za koji trenutak.'
-                : 'Taj potez nije moguće presuditi.');
+                ? 'Tablebase is currently unavailable, so the move cannot be judged. '
+                    'Try again in a moment.'
+                : 'Unable to judge that move.');
       });
       return;
     }
@@ -632,8 +632,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     if (readout == null) {
       setState(() {
         _feedbackIsGood = false;
-        _feedback = 'Tablica trenutno nije dostupna, pa se nalaz ne može '
-            'pročitati.';
+        _feedback = 'Tablebase is currently unavailable, so findings cannot '
+            'be read.';
       });
     }
     return readout;
@@ -662,9 +662,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _game = board;
       _boardLocked = false;
       _feedbackIsGood = move.holds;
-      _feedback = 'Istražujete: ${move.san}. '
-          '${_readoutMoveWord(move)} Tabla je slobodna — odigrajte odgovor ili '
-          'uzmite potez iz nalaza.';
+      _feedback = 'Exploring: ${move.san}. '
+          '${_readoutMoveWord(move)} Board is free — play a reply or '
+          'pick a move from findings.';
     });
     _boardController.loadFen(board.fen);
     _refreshReadout(force: true);
@@ -682,7 +682,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     setState(() {
       _game = board;
       _feedbackIsGood = false;
-      _feedback = 'Istražujete — potezi se ovde ne ocenjuju.';
+      _feedback = 'Exploring — moves are not graded here.';
     });
     _boardController.loadFen(board.fen);
     _refreshReadout(force: true);
@@ -706,8 +706,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// What one line of the finding says about a move, in words.
   String _readoutMoveWord(ReadoutMove move) {
     final outcome = outcomeWord(move.outcome);
-    if (move.dtz == null) return 'Posle njega: $outcome.';
-    return 'Posle njega: $outcome, DTZ ${move.dtz}.';
+    if (move.dtz == null) return 'After it: $outcome.';
+    return 'After it: $outcome, DTZ ${move.dtz}.';
   }
 
   /// Keeps the open panel about the position in front of the reader.
@@ -756,8 +756,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     if (readout == null) {
       setState(() {
         _feedbackIsGood = false;
-        _feedback = 'Tablica trenutno nije dostupna, pa se remi ne može '
-            'zaključiti.';
+        _feedback = 'Tablebase is currently unavailable, so the draw cannot '
+            'be concluded.';
       });
       return;
     }
@@ -768,8 +768,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       // claiming anything about the position that is not true.
       final dropping = readout.dropping;
       final why = dropping.isEmpty
-          ? 'Ovo još nije mrtva pozicija.'
-          : 'Ovo još nije mrtva pozicija — ${dropping.first.san} gubi remi.';
+          ? 'This is not a dead position yet.'
+          : 'This is not a dead position yet — ${dropping.first.san} loses the draw.';
       setState(() {
         _holdLeft = holdOutMoves;
         _feedbackIsGood = false;
@@ -781,8 +781,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _holdLeft = null;
       _drillEnd = 'draw';
       _feedbackIsGood = true;
-      _feedback = 'Remi je zaključen — nema pešaka, a izgubiti se može samo '
-          'poklanjanjem figure. Nema više šta da se drži.';
+      _feedback = 'Draw is concluded — no pawns left, and losing is only '
+          'possible by giving away a piece. Nothing left to hold.';
     });
   }
 
@@ -820,20 +820,20 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
     final held = puzzle.winningMoves.isEmpty
         ? null
-        : 'Držalo je: ${_allHoldingSan(puzzle).join(', ')}.';
+        : 'Held: ${_allHoldingSan(puzzle).join(', ')}.';
     final story = _storyText(puzzle);
     final lesson = _lessonFor(puzzle);
     final elo = puzzle.blunderElo == null
         ? null
-        : 'Pogrešio igrač od ${puzzle.blunderElo}.';
+        : 'Missed by a ${puzzle.blunderElo} player.';
     final game = puzzle.game?.label;
     final task = puzzle.mode == EndgameMode.draw
-        ? 'Zadatak: održati remi.'
-        : 'Zadatak: zadržati dobitak.';
+        ? 'Task: hold the draw.'
+        : 'Task: keep the win.';
 
     final ok = await _api.keepForLater(
       fen: puzzle.fen,
-      title: '${kEndgameTypeNames[puzzle.type] ?? puzzle.type} — nejasno',
+      title: '${kEndgameTypeNames[puzzle.type] ?? puzzle.type} — unclear',
       description:
           [task, story, held, lesson, elo, game].whereType<String>().join(' '),
     );
@@ -843,8 +843,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _kept = ok;
       _feedbackIsGood = ok;
       _feedback = ok
-          ? 'Zapamćeno u „Moje pozicije", oznaka „Nejasno".'
-          : 'Poziciju trenutno nije moguće sačuvati.';
+          ? 'Saved in "My positions", tagged "Unclear".'
+          : 'Could not save position right now.';
     });
   }
 
@@ -868,14 +868,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// implies their move was the only one.
   String _successText(EndgameSolveSession solve) {
     final held = solve.puzzle.mode == EndgameMode.draw
-        ? 'Tačno — remi je održan.'
-        : 'Tačno — dobitak je zadržan.';
+        ? 'Correct — draw held.'
+        : 'Correct — win kept.';
     final left = _missing(solve.puzzle).length;
     if (left == 0) {
       return _withLesson(
         solve.puzzle.winningMoves.length == 1
-            ? '$held Bio je to jedini potez.'
-            : '$held Našli ste sve poteze koji drže rezultat.',
+            ? '$held That was the only move.'
+            : '$held You found all moves that hold the result.',
         solve.puzzle,
       );
     }
@@ -913,7 +913,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     setState(() {
       _solve = EndgameSolveSession(puzzle, alreadyFound: Set.of(_found));
       _game = chess.Chess.fromFEN(puzzle.fen);
-      _feedback = 'Isti položaj — nađite još jedan potez koji drži rezultat.';
+      _feedback = 'Same position — find another move that holds the result.';
       _feedbackIsGood = false;
       _hintSquare = null;
     });
@@ -928,10 +928,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _revealed = true;
       _feedback = _withLesson(
         rest.isEmpty
-            ? 'Nema više poteza koji drže rezultat.'
+            ? 'No more moves that hold the result.'
             : (rest.length == 1
-                ? 'Drži i ${rest.first}.'
-                : 'Drže i: ${rest.join(', ')}.'),
+                ? '${rest.first} also holds.'
+                : 'Also holding: ${rest.join(', ')}.'),
         puzzle,
       );
       _feedbackIsGood = true;
@@ -945,7 +945,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _hintSquare = solve.revealHint();
       _feedback = _hintSquare == null
           ? null
-          : 'Potez vodi na polje ${_hintSquare!.toUpperCase()}.';
+          : 'Move leads to square ${_hintSquare!.toUpperCase()}.';
       _feedbackIsGood = false;
     });
   }
@@ -1000,8 +1000,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       appBar: AppBar(
         title: Text(
           widget.type == null
-              ? 'Završnice'
-              : (kEndgameTypeNames[widget.type] ?? 'Završnice'),
+              ? 'Endgames'
+              : (kEndgameTypeNames[widget.type] ?? 'Endgames'),
         ),
         actions: [
           const BoardViewMenu(),
@@ -1115,13 +1115,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   }
 
   String _taskText(EndgamePuzzle puzzle) {
-    final onMove = puzzle.whiteToMove ? 'Beli' : 'Crni';
+    final onMove = puzzle.whiteToMove ? 'White' : 'Black';
     if (_drilling) {
       return _punishing
-          ? 'Kaznite grešku — odigrajte dobitak do kraja'
+          ? 'Punish the blunder — play the win to the end'
           : (puzzle.mode == EndgameMode.draw
-              ? 'Igrate do kraja — držite remi'
-              : 'Igrate do kraja — odigrajte dobitak');
+              ? 'Play to the end — hold the draw'
+              : 'Play to the end — play the win');
     }
     // A solved position still said "Beli na potezu — zadržite dobitak", which
     // is an instruction to play on a board that will not answer. Coming back
@@ -1129,12 +1129,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final solve = _solve;
     if (solve != null && solve.isComplete) {
       return puzzle.mode == EndgameMode.draw
-          ? 'Rešeno — remi je održan'
-          : 'Rešeno — dobitak je zadržan';
+          ? 'Solved — draw held'
+          : 'Solved — win kept';
     }
     return puzzle.mode == EndgameMode.draw
-        ? '$onMove na potezu — održite remi'
-        : '$onMove na potezu — zadržite dobitak';
+        ? '$onMove to move — hold the draw'
+        : '$onMove to move — keep the win';
   }
 
   String? _subtitleText(EndgameSolveSession solve) {
@@ -1156,15 +1156,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       return left > 0
           // The count goes through the same sentence the verdict uses, so the
           // cases agree without a second rule to keep in step.
-          ? 'Tabla je zatvorena dok je pozicija rešena. ${movesLeftText(left)} '
-              '„Nađi i ostale" vraća položaj da ih potražite, a „Sledeća" nosi '
-              'novu poziciju.'
-          : 'Tabla je zatvorena dok je pozicija rešena. „Odigraj do kraja" '
-              'nastavlja ovu poziciju, a „Sledeća" nosi novu.';
+          ? 'Board is locked while position is solved. ${movesLeftText(left)} '
+              '"Find the rest" restores the position to look for them, and "Next" brings '
+              'a new position.'
+          : 'Board is locked while position is solved. "Play to the end" '
+              'continues this position, and "Next" brings a new one.';
     }
     return solve.puzzle.mode == EndgameMode.draw
-        ? 'Odigrajte na tabli potez koji drži remi.'
-        : 'Odigrajte na tabli potez koji zadržava dobitak.';
+        ? 'Play the move on the board that holds the draw.'
+        : 'Play the move on the board that keeps the win.';
   }
 
   /// What actually happened here, when the position came from a real mistake.
@@ -1173,22 +1173,22 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   String? _storyText(EndgamePuzzle puzzle) {
     if (_drilling || puzzle.playedMove == null) return null;
     final lost = puzzle.mode == EndgameMode.draw
-        ? 'remi je izgubljen'
-        : 'dobitak je ispušten';
-    return 'U partiji je odigrano ${puzzle.playedMove} i $lost.';
+        ? 'the draw was lost'
+        : 'the win was dropped';
+    return 'In the game, ${puzzle.playedMove} was played and $lost.';
   }
 
   List<String> _chips(EndgamePuzzle puzzle) => [
         kEndgameTypeNames[puzzle.type] ?? puzzle.type,
-        'Težina: ${_difficultyLabel(puzzle)}',
-        if (puzzle.blunderElo != null) 'Pogrešio: ${puzzle.blunderElo}',
-        if (puzzle.isExact) 'Tačno iz tablica',
-        if (_drilling && _drillMoves > 0) 'Odigrano: $_drillMoves',
-        if (_drilling && _drillMistakes > 0) 'Greške: $_drillMistakes',
-        if (_exploring) 'Istraživanje',
-        if (_readouts > 0) 'Nalaz: $_readouts',
-        if (_holdLeft != null && _holdLeft! > 0) 'Do remija: $_holdLeft',
-        if (!_drilling && _attempted > 0) 'Rešeno: $_solved/$_attempted',
+        'Difficulty: ${_difficultyLabel(puzzle)}',
+        if (puzzle.blunderElo != null) 'Blunder by: ${puzzle.blunderElo}',
+        if (puzzle.isExact) 'Exact from tablebases',
+        if (_drilling && _drillMoves > 0) 'Played: $_drillMoves',
+        if (_drilling && _drillMistakes > 0) 'Mistakes: $_drillMistakes',
+        if (_exploring) 'Exploring',
+        if (_readouts > 0) 'Findings: $_readouts',
+        if (_holdLeft != null && _holdLeft! > 0) 'To draw: $_holdLeft',
+        if (!_drilling && _attempted > 0) 'Solved: $_solved/$_attempted',
         if (puzzle.game != null) puzzle.game!.label,
       ];
 
@@ -1197,11 +1197,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     if (score != null) return '$score/10';
     switch (puzzle.difficulty) {
       case 'easy':
-        return 'lako';
+        return 'easy';
       case 'hard':
-        return 'teško';
+        return 'hard';
       default:
-        return 'srednje';
+        return 'medium';
     }
   }
 
@@ -1218,13 +1218,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             FilledButton.icon(
               onPressed: _boardLocked ? null : _retryDrillMove,
               icon: const Icon(Icons.undo),
-              label: const Text('Vrati potez'),
+              label: const Text('Take back'),
             ),
           OutlinedButton.icon(
             onPressed:
                 _boardLocked ? null : (_punishing ? _startPunish : _startDrill),
             icon: const Icon(Icons.refresh),
-            label: const Text('Ispočetka'),
+            label: const Text('Start over'),
           ),
           // The tables, on request and never on their own. In this mode the
           // reader is playing against perfect defence and can be stuck without
@@ -1234,7 +1234,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             FilledButton.icon(
               onPressed: _stopExploring,
               icon: const Icon(Icons.undo),
-              label: const Text('Nazad na poziciju'),
+              label: const Text('Back to position'),
             ),
           Builder(builder: (context) {
             final wide = Breakpoints.isWide(context);
@@ -1246,24 +1246,24 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               icon: Icon(open
                   ? Icons.visibility_off_outlined
                   : Icons.table_chart_outlined),
-              label: Text(open ? 'Sakrij nalaz' : 'Nalaz tablica'),
+              label: Text(open ? 'Hide findings' : 'Tablebase findings'),
             );
           }),
           if (_mightBeOver && _drillEnd == null)
             OutlinedButton.icon(
               onPressed: _reading ? null : _concludeDraw,
               icon: const Icon(Icons.handshake_outlined),
-              label: const Text('Zaključi remi'),
+              label: const Text('Conclude draw'),
             ),
           OutlinedButton.icon(
             onPressed: _boardLocked ? null : _stopDrill,
             icon: const Icon(Icons.close),
-            label: const Text('Nazad na zadatak'),
+            label: const Text('Back to task'),
           ),
           FilledButton.icon(
             onPressed: _boardLocked ? null : _loadNext,
             icon: const Icon(Icons.arrow_forward),
-            label: const Text('Sledeća'),
+            label: const Text('Next'),
           ),
         ],
       );
@@ -1278,7 +1278,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           OutlinedButton.icon(
             onPressed: _showHint,
             icon: const Icon(Icons.lightbulb_outline),
-            label: const Text('Pomoć'),
+            label: const Text('Hint'),
           ),
         // Offered only when there is something left to find, and only as a
         // choice: the position is solved either way.
@@ -1287,14 +1287,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           OutlinedButton.icon(
             onPressed: _huntForTheRest,
             icon: const Icon(Icons.replay),
-            label: Text('Nađi i ostale (${_found.length}/'
+            label: Text('Find the rest (${_found.length}/'
                 '${solve.puzzle.winningMoves.length})'),
           ),
           if (!_revealed)
             TextButton.icon(
               onPressed: _revealRest,
               icon: const Icon(Icons.visibility_outlined),
-              label: const Text('Pokaži'),
+              label: const Text('Show'),
             ),
         ],
         // Offered before and after an answer alike. "I found it and still do
@@ -1305,7 +1305,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           icon: Icon(_kept
               ? Icons.bookmark_added_outlined
               : Icons.bookmark_add_outlined),
-          label: Text(_kept ? 'Zapamćeno' : 'Zapamti za kasnije'),
+          label: Text(_kept ? 'Saved' : 'Save for later'),
         ),
         // Offered whether or not the position has been solved: knowing which
         // move holds the win and being able to finish it are two different
@@ -1314,20 +1314,20 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           OutlinedButton.icon(
             onPressed: _startDrill,
             icon: const Icon(Icons.play_arrow),
-            label: const Text('Odigraj do kraja'),
+            label: const Text('Play to the end'),
           ),
         // The other side of the same position, offered next to it.
         if (_canPunish)
           OutlinedButton.icon(
             onPressed: _startPunish,
             icon: const Icon(Icons.gavel),
-            label: const Text('Kazni'),
+            label: const Text('Punish'),
           ),
         FilledButton.icon(
           onPressed: _loadNext,
           icon: const Icon(Icons.arrow_forward),
           label: Text(
-            solve.status == EndgameSolveStatus.solved ? 'Sledeća' : 'Preskoči',
+            solve.status == EndgameSolveStatus.solved ? 'Next' : 'Skip',
           ),
         ),
       ],
@@ -1347,7 +1347,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             const SizedBox(height: AppSpacing.lg),
             FilledButton(
               onPressed: _loadNext,
-              child: const Text('Pokušaj ponovo'),
+              child: const Text('Try again'),
             ),
           ],
         ),
@@ -1400,7 +1400,7 @@ class _ReadoutPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Nalaz tablica', style: theme.textTheme.titleSmall),
+              Text('Tablebase findings', style: theme.textTheme.titleSmall),
               const Spacer(),
               if (loading)
                 const SizedBox(
@@ -1413,7 +1413,9 @@ class _ReadoutPanel extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           if (data == null)
             Text(
-              loading ? 'Čitam tablice…' : 'Nalaz za ovu poziciju još nije tu.',
+              loading
+                  ? 'Reading tablebases…'
+                  : 'Findings for this position are not yet available.',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: context.colors.textMuted),
             )
@@ -1421,7 +1423,7 @@ class _ReadoutPanel extends StatelessWidget {
             Text(
               '${outcomeWord(data.outcome)}'
               '${data.dtz == null ? '' : ', DTZ ${data.dtz}'} · '
-              'drži ${data.holding} od ${data.total}',
+              'holds ${data.holding} of ${data.total}',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 6),
@@ -1444,9 +1446,9 @@ class _ReadoutPanel extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'DTZ: polupotezi do uzimanja ili poteza pešaka, ne do mata. '
-              'Zvezdica = potez nulira taj brojač. '
-              'Dodir na potez ga odigra na tabli.',
+              'DTZ: half-moves to next capture or pawn move, not to mate. '
+              'Asterisk = move zeroes that counter. '
+              'Tap a move to play it on the board.',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: context.colors.textMuted),
             ),
@@ -1477,7 +1479,7 @@ class _ReadoutDialog extends StatelessWidget {
     final losing = readout.moves.where((m) => !m.holds).toList();
 
     return AlertDialog(
-      title: const Text('Nalaz tablica'),
+      title: const Text('Tablebase findings'),
       content: SizedBox(
         // From the screen, never a fixed number, and counting everything the
         // dialog takes for itself: 40 of inset on each side and 24 of content
@@ -1489,29 +1491,29 @@ class _ReadoutDialog extends StatelessWidget {
           shrinkWrap: true,
           children: [
             Text(
-              'Pozicija: ${outcomeWord(readout.outcome)}'
+              'Position: ${outcomeWord(readout.outcome)}'
               '${readout.dtz == null ? '' : ', DTZ ${readout.dtz}'}. '
-              'Drži ${readout.holding} od ${readout.total} poteza.',
+              '${readout.holding} of ${readout.total} moves hold.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.md),
             if (holding.isNotEmpty) ...[
-              Text('Drže rezultat', style: theme.textTheme.labelLarge),
+              Text('Holding moves', style: theme.textTheme.labelLarge),
               for (final move in holding)
                 _MoveRow(move: move, onTap: _tap(context, move)),
             ],
             if (losing.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.md),
-              Text('Gube rezultat', style: theme.textTheme.labelLarge),
+              Text('Losing moves', style: theme.textTheme.labelLarge),
               for (final move in losing)
                 _MoveRow(move: move, onTap: _tap(context, move)),
             ],
             const Divider(height: 24),
             Text(
-              'DTZ je broj polupoteza do sledećeg uzimanja ili poteza pešaka, '
-              'ne do mata — po njemu se broji pravilo pedeset poteza. Zvezdica '
-              'znači da potez nulira taj brojač, što je u dobijenoj poziciji '
-              'napredak po definiciji. Dodir na potez ga odigra na tabli.',
+              'DTZ is the number of half-moves to the next capture or pawn move, '
+              'not to mate — it counts towards the fifty-move rule. An asterisk '
+              'means the move zeroes that counter, which in a won position is '
+              'progress by definition. Tap a move to play it on the board.',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: context.colors.textMuted),
             ),
@@ -1521,7 +1523,7 @@ class _ReadoutDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Zatvori'),
+          child: const Text('Close'),
         ),
       ],
     );

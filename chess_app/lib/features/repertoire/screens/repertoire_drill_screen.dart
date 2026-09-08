@@ -341,9 +341,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     final target = AppSettingsService.instance.dailyTarget;
     final parts = <String>[
       widget.name,
-      if (_branchSan != null) 'grana $_branchSan' else 'ceo repertoar',
-      if (_stats.positions > 0) '${_stats.positions} pozicija',
-      if (_stats.due > 0) 'na redu ${_stats.due}',
+      if (_branchSan != null) 'branch $_branchSan' else 'entire repertoire',
+      if (_stats.positions > 0)
+        '${_stats.positions} ${_stats.positions == 1 ? "position" : "positions"}',
+      if (_stats.due > 0) 'due ${_stats.due}',
     ];
     final done = _today?.positions;
     return Padding(
@@ -355,7 +356,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         runSpacing: AppSpacing.xxs,
         children: [
           Text(
-            'Vežbate: ${parts.join(' · ')}',
+            'Drilling: ${parts.join(' · ')}',
             style: AppText.micro.copyWith(color: context.colors.textSecondary),
           ),
           if (target > 0 && done != null)
@@ -364,8 +365,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               // is left: a number that goes up is worth finishing, and one
               // that counts down is a debt.
               done >= target
-                  ? 'danas $done — cilj ispunjen'
-                  : 'danas $done od $target',
+                  ? 'today $done — goal reached'
+                  : 'today $done of $target',
               style: AppText.micro.copyWith(
                 color: done >= target
                     ? context.colors.success
@@ -404,8 +405,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (walk == null) {
-      AppFeedback.error(
-          context, 'Nepotvrđeni potezi nisu mogli da se pročitaju.');
+      AppFeedback.error(context, 'Unconfirmed moves could not be read.');
       return;
     }
     if (walk.positions.isEmpty) {
@@ -435,10 +435,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     final held = counts == null
         ? 0
         : (widget.color == 'w' ? counts.w : counts.b).positions;
-    if (held <= 0) return 'Nema više nepotvrđenih poteza.';
-    return 'U ovom repertoaru nema nepotvrđenih poteza koje ovoliko odgovora '
-        'dohvata — u grafu ih ima $held. Proširite repertoar ili ih '
-        'potvrdite sa druge grane.';
+    if (held <= 0) return 'No more unconfirmed moves.';
+    return 'There are no unconfirmed moves in this repertoire reachable by '
+        'this breadth — there are $held in the graph. Expand the repertoire '
+        'or confirm them from another branch.';
   }
 
   /// The branches, and what to do with one.
@@ -469,7 +469,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
 
     if (branches.isEmpty) {
       AppFeedback.info(context,
-          'Još nema grana — repertoar ima samo koren ili nijednu odluku.');
+          'No branches yet — repertoire has only the root or no decisions.');
       return;
     }
 
@@ -565,8 +565,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   void _endSpar(String why) {
     setState(() {
       _sparNote = _sparMissed == 0
-          ? '$why Odigrano $_sparPlayed, bez greške.'
-          : '$why Odigrano $_sparPlayed, greške: $_sparMissed.';
+          ? '$why Played $_sparPlayed, no mistakes.'
+          : '$why Played $_sparPlayed, mistakes: $_sparMissed.';
       _sparring = false;
     });
   }
@@ -607,7 +607,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(
                   AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxs),
-              child: Text('Druga odluka u ovoj poziciji',
+              child: Text('Another decision in this position',
                   style: AppText.bodyBold
                       .copyWith(color: sheet.colors.textPrimary)),
             ),
@@ -615,7 +615,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               padding: const EdgeInsets.fromLTRB(
                   AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm),
               child: Text(
-                'Vežbanje ide dalje kroz potez koji izaberete.',
+                'Drill continues through the move you choose.',
                 style: AppText.micro.copyWith(color: sheet.colors.textMuted),
               ),
             ),
@@ -625,7 +625,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                 dense: true,
                 leading:
                     Icon(Icons.alt_route, size: 18, color: sheet.colors.accent),
-                title: Text('Vežbaj ${alt.san}', style: AppText.bodyLarge),
+                title: Text('Drill ${alt.san}', style: AppText.bodyLarge),
                 onTap: () => Navigator.pop(sheet, alt),
               ),
             const SizedBox(height: AppSpacing.sm),
@@ -754,7 +754,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _lastMoveTo = null;
       _prefixNote = root == null && ids == null
           ? null
-          : 'Linija nije mogla da se sastavi — pitanje ide bez ponavljanja.';
+          : 'Line could not be composed — asking without rehearsal.';
     });
     final fen = _fen;
     if (fen != null) _boardController.loadFen(fen);
@@ -875,9 +875,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixNote = right
           ? null
           : ownMove
-              ? 'I $playedSan je vaš potez — ali ova linija vežba '
+              ? '$playedSan is also your move — but this line drills '
                   '${want.san}.'
-              : 'U ovoj liniji ide ${want.san}. Ponavljanje se ne ocenjuje.';
+              : 'This line plays ${want.san}. Rehearsal is not graded.';
       _prefixNoteMild = ownMove;
       _lastMoveFrom = null;
       _lastMoveTo = null;
@@ -1098,9 +1098,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       boardFen,
       verdict: [
         graded.outcome == 'primary'
-            ? 'Tačno — ${_playedSan ?? ''}'
-            : 'I to je vaše — ${_playedSan ?? ''}',
-        if (_replySan != null) 'protivnik $_replySan',
+            ? 'Correct — ${_playedSan ?? ''}'
+            : 'Also yours — ${_playedSan ?? ''}',
+        if (_replySan != null) 'opponent $_replySan',
         if (back.isNotEmpty) back.trim().replaceAll('.', '').toLowerCase(),
       ].join(' · '),
     );
@@ -1130,12 +1130,12 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     });
 
     if (graded.outcome == 'unprepared') {
-      _endSpar('Dovde ide grana — dalje nema vašeg poteza.');
+      _endSpar('Branch goes this far — no further move of yours.');
       return;
     }
     if (!right) return;
     if (graded.reply == null) {
-      _endSpar('Grana odigrana do kraja.');
+      _endSpar('Branch played to the end.');
       return;
     }
 
@@ -1179,7 +1179,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: Text('Vežbanje — ${widget.name}'),
+        title: Text('Drill — ${widget.name}'),
         elevation: 0,
         actions: [
           // The branches, from the drill itself. `fromFen` worked from the day
@@ -1189,7 +1189,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           IconButton(
             onPressed: _busy ? null : _pickBranch,
             icon: const Icon(Icons.account_tree_outlined),
-            tooltip: 'Izaberi granu',
+            tooltip: 'Choose branch',
           ),
           const SpeechToggleButton(),
           const BoardViewMenu(arrows: true),
@@ -1206,8 +1206,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               fit: BoxFit.scaleDown,
               child: Text(
                 _ahead
-                    ? 'van rasporeda'
-                    : 'na redu: ${_stats.due} · novo: ${_stats.fresh}',
+                    ? 'ahead of schedule'
+                    : 'due: ${_stats.due} · fresh: ${_stats.fresh}',
                 style: AppText.micro.copyWith(color: context.colors.textMuted),
               ),
             ),
@@ -1283,7 +1283,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   Widget _buildSparLine(BuildContext context) {
     final note = _sparNote;
     if (!_sparring && note == null) return const SizedBox.shrink();
-    final branch = _branchSan ?? 'grana';
+    final branch = _branchSan ?? 'branch';
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Row(
@@ -1297,8 +1297,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           Expanded(
             child: Text(
               note ??
-                  'Sparing: $branch · odigrano $_sparPlayed'
-                      '${_sparMissed > 0 ? ", greške: $_sparMissed" : ""}',
+                  'Sparring: $branch · played $_sparPlayed'
+                      '${_sparMissed > 0 ? ", mistakes: $_sparMissed" : ""}',
               style:
                   AppText.caption.copyWith(color: context.colors.textPrimary),
             ),
@@ -1324,13 +1324,13 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           Icon(Icons.alt_route, size: 16, color: context.colors.accent),
           const SizedBox(width: 6),
           Expanded(
-            child: Text('Vežbate liniju kroz $san.',
+            child: Text('Drilling line via $san.',
                 style: AppText.caption
                     .copyWith(color: context.colors.textPrimary)),
           ),
           TextButton(
             onPressed: _busy ? null : _clearVia,
-            child: const Text('Nazad na red'),
+            child: const Text('Back to queue'),
           ),
         ],
       ),
@@ -1360,16 +1360,16 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildLine(context),
-          Text('Ponovite liniju', style: AppText.bodyBold),
+          Text('Rehearse line', style: AppText.bodyBold),
           const SizedBox(height: AppSpacing.xxs),
           Text(
             line.startKnown
                 // Earned, and said so: the rehearsal is short because the
                 // opening moves are already known cold.
-                ? 'Počinjemo odatle dokle znate napamet — potez ${done + 1} od '
-                    '$mine do pitanja.'
-                : 'Od početka repertoara — potez ${done + 1} od $mine do '
-                    'pitanja.',
+                ? 'Starting from where you know by heart — move ${done + 1} of '
+                    '$mine to the question.'
+                : 'From the start of the repertoire — move ${done + 1} of $mine to '
+                    'the question.',
             style: AppText.caption.copyWith(color: context.colors.textMuted),
           ),
           // The road that was asked for, named. Nothing is given away: the
@@ -1379,7 +1379,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           if (_viaHere) ...[
             const SizedBox(height: AppSpacing.xxs),
             Text(
-              'Ova linija ide kroz ${_viaSan ?? ''} — odigrajte ga.',
+              'This line goes through ${_viaSan ?? ''} — play it.',
               style: AppText.caption.copyWith(color: context.colors.accent),
             ),
           ],
@@ -1395,8 +1395,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           if (_alternateAhead && !_viaHere) ...[
             const SizedBox(height: AppSpacing.xxs),
             Text(
-              'U ovoj poziciji imate više svojih poteza — ova linija ide kroz '
-              'alternativu, ne kroz glavni.',
+              'In this position you have multiple moves — this line goes through '
+              'the alternative, not the main move.',
               style: AppText.caption.copyWith(color: context.colors.info),
             ),
           ],
@@ -1433,17 +1433,20 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           SpeakableInfo(
             autoSpeak: true,
             text:
-                '${_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?'} ${_revealed == null ? 'Odigrajte potez koji ste izabrali za ovu poziciju.' : 'Vaš potez je ${_revealed!.san}. Odigrajte ga.'}',
+                '${_forWhite ? 'What do you play as White?' : 'What do you play as Black?'} ${_revealed == null ? 'Play the move you chose for this position.' : 'Your move is ${_revealed!.san}. Play it.'}',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_forWhite ? 'Šta igrate belim?' : 'Šta igrate crnim?',
+                Text(
+                    _forWhite
+                        ? 'What do you play as White?'
+                        : 'What do you play as Black?',
                     style: AppText.bodyBold),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
                   _revealed == null
-                      ? 'Odigrajte potez koji ste izabrali za ovu poziciju.'
-                      : 'Vaš potez je ${_revealed!.san}. Odigrajte ga.',
+                      ? 'Play the move you chose for this position.'
+                      : 'Your move is ${_revealed!.san}. Play it.',
                   style: AppText.caption.copyWith(
                     color: _revealed == null
                         ? context.colors.textMuted
@@ -1476,31 +1479,31 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       'primary' => (
           color: context.colors.success,
           icon: Icons.check_circle_outline,
-          title: 'Tačno — ${_playedSan ?? ''}',
+          title: 'Correct — ${_playedSan ?? ''}',
           detail: _whenBack(graded),
         ),
       'alternate' => (
           color: context.colors.info,
           icon: Icons.alt_route,
-          title: 'I to je vaše — ${_playedSan ?? ''}',
+          title: 'Also yours — ${_playedSan ?? ''}',
           detail: graded.primary == null
               ? _whenBack(graded)
-              : 'Glavni potez vam je ${graded.primary!.san}. ${_whenBack(graded)}',
+              : 'Your main move is ${graded.primary!.san}. ${_whenBack(graded)}',
         ),
       'unprepared' => (
           color: context.colors.textMuted,
           icon: Icons.help_outline,
-          title: 'Ovu poziciju niste pokrili',
-          detail: 'Ovde nema vašeg poteza, pa nema ni ocene. '
-              'Otvorite izgradnju i odlučite šta igrate.',
+          title: 'You have not covered this position',
+          detail: 'No move of yours here, so no rating. '
+              'Open build to decide what you play.',
         ),
       _ => (
           color: context.colors.danger,
           icon: Icons.close,
-          title: 'Nije to — ${_playedSan ?? ''}',
+          title: 'Incorrect — ${_playedSan ?? ''}',
           detail: graded.primary == null
               ? _whenBack(graded)
-              : 'Vaš potez je ${graded.primary!.san}. ${_whenBack(graded)}',
+              : 'Your move is ${graded.primary!.san}. ${_whenBack(graded)}',
         ),
     };
 
@@ -1526,8 +1529,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         if (graded.practice) ...[
           const SizedBox(height: 6),
           Text(
-            'Vežba van rasporeda — ocena se ne upisuje, pa se raspored ove '
-            'pozicije nije pomerio.',
+            'Drill ahead of schedule — rating is not recorded, so the schedule '
+            'for this position has not moved.',
             style: AppText.caption.copyWith(color: context.colors.textMuted),
           ),
         ],
@@ -1535,8 +1538,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           const SizedBox(height: 6),
           Text(
             _replyCovered
-                ? 'Protivnik je odgovorio $_replySan.'
-                : 'Protivnik je odgovorio $_replySan — to niste pokrili.',
+                ? 'Opponent replied $_replySan.'
+                : 'Opponent replied $_replySan — you have not covered this.',
             style: AppText.caption.copyWith(
               color: _replyCovered
                   ? context.colors.textMuted
@@ -1553,44 +1556,40 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   String _backAgain() {
     final at = _stats.nextDueAt;
     if (at == null) {
-      return 'Sve što ste izgradili vraća se na red kad dođe vreme. ';
+      return 'Everything you built returns when it is time. ';
     }
     final left = at.difference(DateTime.now());
     if (left.inMinutes <= 1) {
-      return 'Sledeća se vraća za koji trenutak. ';
+      return 'Next returns in a moment. ';
     }
     if (left.inHours < 1) {
-      return 'Sledeća se vraća za ${left.inMinutes} minuta. ';
+      return 'Next returns in ${left.inMinutes} ${left.inMinutes == 1 ? "minute" : "minutes"}. ';
     }
     if (left.inHours < 20) {
-      return 'Sledeća se vraća za ${left.inHours} sati. ';
+      return 'Next returns in ${left.inHours} ${left.inHours == 1 ? "hour" : "hours"}. ';
     }
     // Rounded to whole days rather than truncated. SM-2 schedules in days, so
     // "tomorrow" arrives as twenty-three hours and something, and `inDays`
     // would report that as zero — a position due tomorrow reading as due today
     // is the one mistake this sentence must not make.
     final days = (left.inHours / 24).round();
-    if (days <= 1) return 'Sledeća se vraća sutra. ';
-    return 'Sledeća se vraća za $days dana. ';
+    if (days <= 1) return 'Next returns tomorrow. ';
+    return 'Next returns in $days days. ';
   }
 
   /// When the position comes back, in words rather than in a number of days.
   String _whenBack(DrillAnswer graded) {
     final days = graded.intervalDays;
     if (days == null) return '';
-    if (days == 0) return 'Vraća se za koji minut.';
-    if (days == 1) return 'Vraća se sutra.';
-    if (days < 7) return 'Vraća se za $days dana.';
+    if (days == 0) return 'Returns in a few minutes.';
+    if (days == 1) return 'Returns tomorrow.';
+    if (days < 7) return 'Returns in $days days.';
     if (days < 30) {
       final weeks = (days / 7).round();
-      return weeks == 1
-          ? 'Vraća se za nedelju dana.'
-          : 'Vraća se za $weeks nedelje.';
+      return weeks == 1 ? 'Returns in a week.' : 'Returns in $weeks weeks.';
     }
     final months = (days / 30).round();
-    return months == 1
-        ? 'Vraća se za mesec dana.'
-        : 'Vraća se za $months meseca.';
+    return months == 1 ? 'Returns in a month.' : 'Returns in $months months.';
   }
 
   Widget _buildControls(BuildContext context) {
@@ -1608,7 +1607,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           OutlinedButton.icon(
             onPressed: _busy ? null : _skipRehearsal,
             icon: const Icon(Icons.fast_forward, size: 18),
-            label: const Text('Preskoči ponavljanje'),
+            label: const Text('Skip rehearsal'),
           ),
           // The other road out of this fork. Only where there is one, and it
           // names nothing until it is pressed.
@@ -1616,12 +1615,12 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             OutlinedButton.icon(
               onPressed: _busy ? null : _pickFork,
               icon: const Icon(Icons.alt_route, size: 18),
-              label: const Text('Druga odluka'),
+              label: const Text('Another decision'),
             ),
           OutlinedButton.icon(
             onPressed: _busy ? null : _refuseAndNext,
             icon: const Icon(Icons.skip_next, size: 18),
-            label: const Text('Druga linija'),
+            label: const Text('Another line'),
           ),
         ] else if (_sparNote != null) ...[
           // The run is over. Another branch is the useful next thing, and the
@@ -1629,30 +1628,30 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           FilledButton.icon(
             onPressed: _busy ? null : _pickBranch,
             icon: const Icon(Icons.account_tree_outlined, size: 18),
-            label: const Text('Druga grana'),
+            label: const Text('Another branch'),
           ),
           OutlinedButton.icon(
             onPressed: _busy ? null : () => _loadNext(keepAhead: false),
             icon: const Icon(Icons.arrow_forward, size: 18),
-            label: const Text('Nazad na red'),
+            label: const Text('Back to queue'),
           ),
         ] else if (graded == null) ...[
           OutlinedButton.icon(
             onPressed: _busy || _revealed != null ? null : _reveal,
             icon: const Icon(Icons.visibility_outlined, size: 18),
-            label: const Text('Pokaži'),
+            label: const Text('Show'),
           ),
           OutlinedButton.icon(
             onPressed: _busy ? null : _refuseAndNext,
             icon: const Icon(Icons.skip_next, size: 18),
-            label: const Text('Preskoči'),
+            label: const Text('Skip'),
           ),
         ] else ...[
           if (!graded.isPrepared && widget.onBuildHere != null)
             FilledButton.icon(
               onPressed: () => widget.onBuildHere!(_fen!),
               icon: const Icon(Icons.playlist_add, size: 18),
-              label: const Text('Izgradi ovu poziciju'),
+              label: const Text('Build this position'),
             ),
           // What is left of "Nastavi liniju" now that a right answer walks on
           // by itself: the offer to carry on from a mistake, once the right
@@ -1666,12 +1665,12 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             OutlinedButton.icon(
               onPressed: _busy ? null : () => _continueAt(_lineFen!),
               icon: const Icon(Icons.play_arrow, size: 18),
-              label: const Text('Nastavi liniju'),
+              label: const Text('Continue line'),
             ),
           FilledButton.icon(
             onPressed: _busy ? null : _loadNext,
             icon: const Icon(Icons.arrow_forward, size: 18),
-            label: const Text('Sledeća'),
+            label: const Text('Next'),
           ),
         ],
       ],
@@ -1702,15 +1701,15 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             Builder(builder: (context) {
               final text = via != null
                   ? (nothingBuilt
-                      ? 'Iza poteza $via još nema šta da se vežba.'
-                      : 'Iza poteza $via ništa nije na redu.')
+                      ? 'Nothing to drill after move $via yet.'
+                      : 'Nothing due after move $via.')
                   : nothingBuilt
                       ? (inBranch
-                          ? 'U ovoj grani nema šta da se vežba.'
-                          : 'Još nema šta da se vežba.')
+                          ? 'Nothing to drill in this branch.'
+                          : 'Nothing to drill yet.')
                       : (inBranch
-                          ? 'U ovoj grani ništa nije na redu.'
-                          : 'Ništa nije na redu.');
+                          ? 'Nothing due in this branch.'
+                          : 'Nothing due.');
               return SpeakableInfo(
                 text: text,
                 child: Text(
@@ -1723,21 +1722,21 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             const SizedBox(height: 6),
             Text(
               via != null
-                  ? 'Taj potez je vaš, ali iza njega još nije izgrađena '
-                      'linija. Otvorite izgradnju i uzmite protivnikove '
-                      'odgovore na njega.'
+                  ? 'That move is yours, but no line has been built after it '
+                      'yet. Open build and take the opponent\'s '
+                      'replies to it.'
                   : nothingBuilt
                       ? (inBranch
-                          ? 'Ovu granu ne spremam ili u njoj još nema vaših '
-                              'poteza.'
-                          : 'Prvo izgradite nekoliko pozicija — vežba pita ono što '
-                              'ste vi izabrali.')
+                          ? 'Not preparing this branch or no moves of yours '
+                              'in it yet.'
+                          : 'First build a few positions — drill asks what '
+                              'you have chosen.')
                       // When the next one comes back, not only that it will. A
                       // branch of one position, drilled once and scheduled for
                       // tomorrow, used to say nothing but "nothing is due" — which
                       // reads as "this branch cannot be practised".
-                      : '${_backAgain()}Do sada znate ${_stats.known} od '
-                          '${_stats.positions} pozicija.',
+                      : '${_backAgain()}So far you know ${_stats.known} of '
+                          '${_stats.positions} ${_stats.positions == 1 ? "position" : "positions"}.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
@@ -1747,7 +1746,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             if (_drafts > 0 && widget.rootFen != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Još $_drafts nepotvrđenih poteza čeka u ovom repertoaru.',
+                '$_drafts more unconfirmed ${_drafts == 1 ? "move waits" : "moves wait"} in this repertoire.',
                 style: AppText.caption.copyWith(color: context.colors.warning),
                 textAlign: TextAlign.center,
               ),
@@ -1760,7 +1759,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _goBuildDrafts,
                   icon: const Icon(Icons.edit_note, size: 18),
-                  label: const Text('Pregledaj nepotvrđene'),
+                  label: const Text('Review unconfirmed'),
                 ),
             ],
             // Where today stands, on the screen that would otherwise say
@@ -1774,12 +1773,12 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 _today!.positions >= AppSettingsService.instance.dailyTarget
-                    ? 'Danas ste odvežbali ${_today!.positions} '
-                        '${_today!.positions == 1 ? "poziciju" : "pozicija"} — '
-                        'cilj je ispunjen.'
-                    : 'Danas ste odvežbali ${_today!.positions} od '
+                    ? 'Today you drilled ${_today!.positions} '
+                        '${_today!.positions == 1 ? "position" : "positions"} — '
+                        'goal reached.'
+                    : 'Today you drilled ${_today!.positions} of '
                         '${AppSettingsService.instance.dailyTarget}. '
-                        'Vežba van rasporeda se ne ocenjuje, ali se računa.',
+                        'Drill ahead of schedule is not graded, but counts.',
                 style: AppText.caption.copyWith(color: context.colors.accent),
                 textAlign: TextAlign.center,
               ),
@@ -1793,7 +1792,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               FilledButton.icon(
                 onPressed: _busy ? null : _practiseAhead,
                 icon: const Icon(Icons.play_arrow, size: 18),
-                label: const Text('Vežbaj ipak'),
+                label: const Text('Drill anyway'),
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
@@ -1804,13 +1803,13 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               FilledButton.icon(
                 onPressed: _busy ? null : _clearVia,
                 icon: const Icon(Icons.arrow_forward, size: 18),
-                label: const Text('Nazad na red'),
+                label: const Text('Back to queue'),
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
             OutlinedButton(
               onPressed: () => Navigator.of(context).maybePop(),
-              child: const Text('Nazad'),
+              child: const Text('Back'),
             ),
           ],
         ),
@@ -1848,7 +1847,7 @@ class _BranchPickerSheetState extends State<_BranchPickerSheet> {
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: AppSpacing.sm,
               children: [
-                Text('Šta vežbate?',
+                Text('What are you drilling?',
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.textPrimary)),
                 if (_selectedIds.isNotEmpty)
@@ -1860,7 +1859,7 @@ class _BranchPickerSheetState extends State<_BranchPickerSheet> {
                       Navigator.pop(
                           context, (branches: selectedBranches, spar: false));
                     },
-                    child: Text('Vežbaj izabrane (${_selectedIds.length})'),
+                    child: Text('Drill selected (${_selectedIds.length})'),
                   ),
               ],
             ),
@@ -1873,7 +1872,7 @@ class _BranchPickerSheetState extends State<_BranchPickerSheet> {
               padding: const EdgeInsets.fromLTRB(
                   AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xs),
               child: Text(
-                'Pozicija koju oba otvaranja dostižu pita se jednom.',
+                'A position reached by both openings is asked once.',
                 style: AppText.caption
                     .copyWith(color: context.colors.textSecondary),
               ),
@@ -1882,8 +1881,9 @@ class _BranchPickerSheetState extends State<_BranchPickerSheet> {
             dense: true,
             leading: Icon(Icons.all_inclusive,
                 size: 18, color: context.colors.accent),
-            title: Text('Ceo repertoar', style: AppText.bodyLarge),
-            subtitle: Text('Sve grane pomešane, redom kojim raspored traži.',
+            title: Text('Entire repertoire', style: AppText.bodyLarge),
+            subtitle: Text(
+                'All branches combined, in the order the schedule asks.',
                 style: AppText.micro.copyWith(color: context.colors.textMuted)),
             onTap: () => Navigator.pop(
                 context, (branches: const <DrillBranch>[], spar: false)),
@@ -1925,14 +1925,14 @@ class _BranchPickerSheetState extends State<_BranchPickerSheet> {
                       ],
                     ),
                     subtitle: Text(
-                      'dospelo ${branch.due} od ${branch.positions}'
-                      '${branch.known > 0 ? " · zna ${branch.known}" : ""}',
+                      'due ${branch.due} of ${branch.positions}'
+                      '${branch.known > 0 ? " · knows ${branch.known}" : ""}',
                       style: AppText.micro
                           .copyWith(color: context.colors.textMuted),
                     ),
                     // The run, beside the queue rather than instead of it.
                     trailing: IconButton(
-                      tooltip: 'Odigraj granu do kraja',
+                      tooltip: 'Play branch to the end',
                       icon: const Icon(Icons.play_circle_outline),
                       onPressed: () => Navigator.pop(
                           context, (branches: [branch], spar: true)),

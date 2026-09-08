@@ -2506,16 +2506,18 @@ class RepertoireApiService {
       AppLogger.log('[Repertoar] ❌ $e');
       return (
         res: null,
-        error: 'Server nije dostupan — proverite da li backend radi.',
+        error: 'Server is unavailable — check if the backend is running.',
       );
     }
   }
 
   /// What the server said, in its own words where it had any.
   String _errorOf(http.Response res) {
-    if (res.statusCode == 409) return 'Već imate repertoar sa tim imenom.';
+    if (res.statusCode == 409) {
+      return 'You already have a repertoire with this name.';
+    }
     if (res.statusCode == 401 || res.statusCode == 403) {
-      return 'Niste prijavljeni ili je prijava istekla.';
+      return 'You are not signed in or your session has expired.';
     }
     try {
       final decoded = jsonDecode(res.body);
@@ -2527,10 +2529,10 @@ class RepertoireApiService {
       // here would be worse than admitting the status code.
     }
     if (res.statusCode >= 500) {
-      return 'Greška na serveru (${res.statusCode}). Ako je baza tek dobila '
-          'nove tabele, backend treba restartovati.';
+      return 'Server error (${res.statusCode}). If the database has new '
+          'tables, the backend may need a restart.';
     }
-    return 'Server je odgovorio ${res.statusCode}.';
+    return 'Server returned ${res.statusCode}.';
   }
 
   @visibleForTesting

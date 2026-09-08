@@ -165,38 +165,38 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     final found = await api.importedMoves(color: item.color);
     if (!mounted) return;
     if (found == null) {
-      AppFeedback.error(context, 'Server nije odgovorio.');
+      AppFeedback.error(context, 'The server did not respond.');
       return;
     }
     if (found.moves == 0) {
-      AppFeedback.info(
-          context, 'Nema poteza iz uvoza — sve u ovoj boji ste izabrali sami.');
+      AppFeedback.info(context,
+          'No imported moves — everything for this color was chosen by you.');
       return;
     }
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Očisti poteze iz uvoza'),
+        title: const Text('Clean imported moves'),
         content: Text(
-          'U boji „${item.forWhite ? "beli" : "crni"}" ima ${found.moves} '
-          '${found.moves == 1 ? "potez" : "poteza"} u '
-          '${found.positions} ${found.positions == 1 ? "poziciji" : "pozicija"} '
-          'za koje ne postoji zapis da ste ih vi izabrali. Gotovo sigurno su '
-          'ušli uvozom partija.\n\n'
-          'Ovo je procena, ne dokaz: jedini trag je da li je uz potez '
-          'zabeležen vaš izbor. Potezi koje ste izabrali pre nego što je taj '
-          'zapis postojao izgledali bi isto.\n\n'
-          'Brisanje se ne može poništiti.',
+          'For color "${item.forWhite ? "white" : "black"}" there are ${found.moves} '
+          '${found.moves == 1 ? "move" : "moves"} in '
+          '${found.positions} ${found.positions == 1 ? "position" : "positions"} '
+          'with no record of you having chosen them. Almost certainly '
+          'introduced by game imports.\n\n'
+          'This is an estimate, not proof: the only trace is whether '
+          'your choice was recorded with the move. Moves chosen before '
+          'that record existed would look the same.\n\n'
+          'Deleting cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Obriši'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -209,9 +209,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     await _load();
     if (!mounted) return;
     if (done) {
-      AppFeedback.info(context, 'Obrisano ${found.moves} poteza iz uvoza.');
+      AppFeedback.info(context,
+          'Deleted ${found.moves} imported ${found.moves == 1 ? "move" : "moves"}.');
     } else {
-      AppFeedback.error(context, 'Nije obrisano — server nije odgovorio.');
+      AppFeedback.error(context, 'Not deleted — the server did not respond.');
     }
   }
 
@@ -248,12 +249,12 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     await _load();
     if (!mounted) return;
     if (!done.saved) {
-      AppFeedback.error(context, 'Nije sačuvano — server nije odgovorio.');
+      AppFeedback.error(context, 'Not saved — the server did not respond.');
     } else if (done.viaSan == null) {
       AppFeedback.info(
-          context, 'Repertoar više nije ograničen na jedan potez.');
+          context, 'Repertoire is no longer restricted to one move.');
     } else {
-      AppFeedback.info(context, 'Repertoar ide kroz ${done.viaSan}.');
+      AppFeedback.info(context, 'Repertoire goes through ${done.viaSan}.');
     }
   }
 
@@ -279,22 +280,22 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setLocal) => AlertDialog(
-          title: Text('Obriši „${item.name}"?'),
+          title: Text('Delete "${item.name}"?'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Ime i početna pozicija se brišu uvek. Potezi pripadaju '
-                  'boji, a ne jednom repertoaru, pa podrazumevano ostaju.',
+                  'Name and starting position are always deleted. Moves belong to '
+                  'the color, not a single repertoire, so they stay by default.',
                 ),
                 if (preview == null) ...[
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Koliko poteza bi otišlo sa njim nije moglo da se izračuna '
-                    '— server nije odgovorio. Poteze možete obrisati posle, sa '
-                    'ovog ekrana.',
+                    'How many moves would be removed with it could not be calculated '
+                    '— the server did not respond. You can delete moves later from '
+                    'this screen.',
                     style: AppText.caption
                         .copyWith(color: context.colors.textMuted),
                   ),
@@ -311,21 +312,21 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       preview.moves == 0
-                          ? 'Nema poteza koje drži samo ovaj repertoar.'
-                          : 'Obriši i poteze: ${preview.moves} u '
+                          ? 'No moves kept only by this repertoire.'
+                          : 'Also delete moves: ${preview.moves} in '
                               '${preview.positions} '
-                              '${preview.positions == 1 ? "poziciji" : "pozicija"}',
+                              '${preview.positions == 1 ? "position" : "positions"}',
                       style: AppText.body,
                     ),
                     subtitle: preview.moves == 0
                         ? null
                         : Text(
-                            'Od toga ${preview.decisions} '
-                            '${preview.decisions == 1 ? "koji ste sami izabrali" : "koje ste sami izabrali"}'
-                            '${preview.shared > 0 ? ", a ${preview.shared} pozicija ostaje jer ih drži još neki repertoar iste boje" : ""}.'
-                            '\nIdu i grane koje ne spremate, dodati odgovori, '
-                            'raspored za vežbanje i ocene motora za te '
-                            'pozicije. Ovo se ne može poništiti.',
+                            'Of which ${preview.decisions} '
+                            '${preview.decisions == 1 ? "was chosen by you" : "were chosen by you"}'
+                            '${preview.shared > 0 ? ", while ${preview.shared} ${preview.shared == 1 ? "position remains" : "positions remain"} because another repertoire of the same color holds them" : ""}.'
+                            '\nBranches not prepared, added replies, '
+                            'training schedule, and engine evaluations for those '
+                            'positions also go. This cannot be undone.',
                             style: AppText.caption
                                 .copyWith(color: context.colors.textMuted),
                           ),
@@ -337,13 +338,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                           setLocal(() => withComments = on ?? false),
                       contentPadding: EdgeInsets.zero,
                       title: Text(
-                        'Obriši i moje komentare (${preview.comments})',
+                        'Also delete my comments (${preview.comments})',
                         style: AppText.body,
                       ),
                       subtitle: Text(
-                        'Podrazumevano ostaju: ono što ste napisali ne može '
-                        'da se izračuna ponovo, a vraća se čim opet dođete na '
-                        'tu poziciju.',
+                        'They stay by default: what you wrote cannot '
+                        'be recalculated, and returns as soon as you reach '
+                        'this position again.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
@@ -355,11 +356,11 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Odustani'),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Obriši'),
+              child: const Text('Delete'),
             ),
           ],
         ),
@@ -377,9 +378,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     await _load();
     if (!mounted) return;
     if (!done) {
-      AppFeedback.error(context, 'Nije obrisano — server nije odgovorio.');
+      AppFeedback.error(context, 'Not deleted — the server did not respond.');
     } else if (withMoves && preview != null && preview.moves > 0) {
-      AppFeedback.info(context, 'Obrisano i ${preview.moves} poteza.');
+      AppFeedback.info(context,
+          'Also deleted ${preview.moves} ${preview.moves == 1 ? "move" : "moves"}.');
     }
   }
 
@@ -395,13 +397,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   Future<void> _eraseColor(String color) async {
     final stats = await _api.colorStats(color: color);
     if (!mounted) return;
-    final side = color == 'w' ? 'belog' : 'crnog';
+    final side = color == 'w' ? 'White' : 'Black';
     if (stats == null) {
-      AppFeedback.error(context, 'Server nije odgovorio.');
+      AppFeedback.error(context, 'The server did not respond.');
       return;
     }
     if (stats.isEmpty) {
-      AppFeedback.info(context, 'Za $side nema sačuvanih poteza.');
+      AppFeedback.info(context, 'No saved moves for $side.');
       return;
     }
 
@@ -410,26 +412,26 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setLocal) => AlertDialog(
-          title: Text('Obriši sve poteze za $side?'),
+          title: Text('Delete all moves for $side?'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Sačuvano je ${stats.moves} '
-                  '${stats.moves == 1 ? "potez" : "poteza"} u '
+                  'Saved: ${stats.moves} '
+                  '${stats.moves == 1 ? "move" : "moves"} in '
                   '${stats.positions} '
-                  '${stats.positions == 1 ? "poziciji" : "pozicija"}, od toga '
+                  '${stats.positions == 1 ? "position" : "positions"}, of which '
                   '${stats.decisions} '
-                  '${stats.decisions == 1 ? "koji ste sami izabrali" : "koje ste sami izabrali"}.',
+                  '${stats.decisions == 1 ? "was chosen by you" : "were chosen by you"}.',
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Idu i grane koje ne spremate, dodati odgovori, raspored za '
-                  'vežbanje i ocene motora za tu boju. Sami repertoari '
-                  '(ime i početna pozicija) ostaju — njih brišete pojedinačno.'
-                  '\n\nBrisanje se ne može poništiti.',
+                  'Branches not prepared, added replies, training schedule, and '
+                  'engine evaluations for this color also go. The repertoires themselves '
+                  '(name and starting position) stay — delete them individually.'
+                  '\n\nDeleting cannot be undone.',
                   style:
                       AppText.caption.copyWith(color: context.colors.textMuted),
                 ),
@@ -440,12 +442,12 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                         setLocal(() => withComments = on ?? false),
                     contentPadding: EdgeInsets.zero,
                     title: Text(
-                      'Obriši i moje komentare (${stats.comments})',
+                      'Also delete my comments (${stats.comments})',
                       style: AppText.body,
                     ),
                     subtitle: Text(
-                      'Podrazumevano ostaju: ono što ste napisali ne može da '
-                      'se izračuna ponovo.',
+                      'They stay by default: what you wrote cannot '
+                      'be recalculated.',
                       style: AppText.caption
                           .copyWith(color: context.colors.textMuted),
                     ),
@@ -456,11 +458,11 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Odustani'),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Obriši'),
+              child: const Text('Delete'),
             ),
           ],
         ),
@@ -476,9 +478,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     await _load();
     if (!mounted) return;
     if (done) {
-      AppFeedback.info(context, 'Obrisano ${stats.moves} poteza za $side.');
+      AppFeedback.info(context,
+          'Deleted ${stats.moves} ${stats.moves == 1 ? "move" : "moves"} for $side.');
     } else {
-      AppFeedback.error(context, 'Nije obrisano — server nije odgovorio.');
+      AppFeedback.error(context, 'Not deleted — the server did not respond.');
     }
   }
 
@@ -519,7 +522,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
       final first = _items.firstWhere((e) => e.id == _selectedIds.first);
       if (first.color != item.color) {
         AppFeedback.error(
-            context, 'Jedna sesija može da pita samo o jednoj strani.');
+            context, 'A single session can only ask about one side.');
         return;
       }
     }
@@ -540,7 +543,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     Navigator.of(context)
         .push(MaterialPageRoute(
       builder: (_) => RepertoireDrillScreen(
-        name: 'Kombinovano',
+        name: 'Combined',
         color: first.color,
         minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
@@ -610,7 +613,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: const Text('Repertoar'),
+        title: const Text('Repertoire'),
         elevation: 0,
         actions: [
           // The band the book answers from, on the screen that owns every
@@ -618,14 +621,14 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
           // most played move" means, which is the sentence the whole build
           // loop is built on.
           PopupMenuButton<int>(
-            tooltip: 'Rejting protivnika',
+            tooltip: 'Opponent rating',
             icon: const Icon(Icons.groups_outlined),
             onSelected: (band) async {
               await AppSettingsService.instance.setRepertoireMinRating(band);
               if (!context.mounted) return;
               setState(() {});
-              AppFeedback.info(
-                  context, 'Knjiga sada odgovara iz partija od $band naviše.');
+              AppFeedback.info(context,
+                  'Book now answers from games rated $band and above.');
             },
             itemBuilder: (context) => [
               for (final band in kRepertoireRatingBands)
@@ -645,7 +648,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
           // to the colour — and until this menu there was nothing anywhere that
           // could reach them again.
           PopupMenuButton<String>(
-            tooltip: 'Brisanje poteza iz baze',
+            tooltip: 'Delete moves from database',
             icon: const Icon(Icons.delete_sweep_outlined),
             onSelected: _eraseColor,
             itemBuilder: (context) => const [
@@ -653,14 +656,14 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                 value: 'w',
                 child: ListTile(
                   leading: Icon(Icons.circle_outlined),
-                  title: Text('Obriši sve poteze za belog'),
+                  title: Text('Delete all moves for White'),
                 ),
               ),
               PopupMenuItem(
                 value: 'b',
                 child: ListTile(
                   leading: Icon(Icons.circle),
-                  title: Text('Obriši sve poteze za crnog'),
+                  title: Text('Delete all moves for Black'),
                 ),
               ),
             ],
@@ -672,7 +675,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
           : FloatingActionButton.extended(
               onPressed: _create,
               icon: const Icon(Icons.add),
-              label: const Text('Novi'),
+              label: const Text('New'),
             ),
       // A bar that grows with its content rather than a `BottomAppBar`, whose
       // height is fixed at 80: two buttons do not fit on one line at 360 dp,
@@ -696,13 +699,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       TextButton.icon(
                         onPressed: () => setState(() => _selectedIds.clear()),
                         icon: const Icon(Icons.close),
-                        label: Text('Odustani',
+                        label: Text('Cancel',
                             style: AppText.bodyBold
                                 .copyWith(color: context.colors.textSecondary)),
                       ),
                       FilledButton(
                         onPressed: _startCombinedSession,
-                        child: Text('Vežbaj izabrane (${_selectedIds.length})'),
+                        child: Text('Drill selected (${_selectedIds.length})'),
                       ),
                     ],
                   ),
@@ -725,13 +728,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
             children: [
               const Icon(Icons.menu_book_outlined, size: 40),
               const SizedBox(height: AppSpacing.md),
-              Text('Još nijedan repertoar.',
+              Text('No repertoires yet.',
                   style: AppText.bodyBold, textAlign: TextAlign.center),
               const SizedBox(height: 6),
               Text(
-                'Napravite jedan i aplikacija će vas pitati šta biste igrali, '
-                'poziciju po poziciju. Ništa se ne uči napamet — bira se, i '
-                'ono što izaberete ostaje vaše.',
+                'Create one and the app will ask what you would play, '
+                'position by position. Nothing is memorized by rote — you choose, '
+                'and what you choose stays yours.',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted),
                 textAlign: TextAlign.center,
@@ -742,10 +745,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
               // of moves. They were never in the repertoire — they belong to
               // the colour — and the menu above empties them.
               Text(
-                'Potezi koje ste ranije birali i dalje su sačuvani uz boju, pa '
-                'ih novi repertoar iste boje odmah zna. Ako želite čist '
-                'početak, u meniju gore („Brisanje poteza iz baze") obrišite '
-                'poteze za belog ili crnog.',
+                'Moves you chose earlier are still saved with the color, so '
+                'a new repertoire for the same color knows them right away. If you '
+                'want a clean start, delete moves for White or Black in the '
+                'menu above ("Delete moves from database").',
                 style: AppText.micro.copyWith(color: context.colors.textMuted),
                 textAlign: TextAlign.center,
               ),
@@ -778,12 +781,12 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${item.forWhite ? "Beli" : "Crni"} · '
+                  '${item.forWhite ? "White" : "Black"} · '
                   // The gate, where there is one. Two repertoires from the same
                   // position are otherwise two identical rows with different
                   // names.
-                  '${item.viaSan != null ? "kroz ${item.viaSan} · " : ""}'
-                  '${item.moves} ${item.moves == 1 ? "potez" : "poteza"} u grafu',
+                  '${item.viaSan != null ? "via ${item.viaSan} · " : ""}'
+                  '${item.moves} ${item.moves == 1 ? "move" : "moves"} in graph',
                   style:
                       AppText.caption.copyWith(color: context.colors.textMuted),
                 ),
@@ -794,8 +797,8 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                 if (_progress[item.id]?.open != null)
                   Text(
                     _progress[item.id]!.open == 0
-                        ? 'sve odgovoreno'
-                        : '${_progress[item.id]!.open} neodgovorenih pozicija',
+                        ? 'all answered'
+                        : '${_progress[item.id]!.open} unanswered ${_progress[item.id]!.open == 1 ? "position" : "positions"}',
                     style: AppText.caption.copyWith(
                       color: _progress[item.id]!.open == 0
                           ? context.colors.textMuted
@@ -838,7 +841,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                     ),
                   ),
                 IconButton(
-                  tooltip: 'Vežbaj',
+                  tooltip: 'Drill',
                   icon: const Icon(Icons.fitness_center),
                   onPressed: () => _drill(item),
                 ),
@@ -848,7 +851,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                 // the tree were both a screen deep and one of them was not
                 // found at all.
                 PopupMenuButton<String>(
-                  tooltip: 'Još',
+                  tooltip: 'More',
                   onSelected: (choice) {
                     switch (choice) {
                       case 'walkthrough':
@@ -873,35 +876,35 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       value: 'walkthrough',
                       child: ListTile(
                         leading: Icon(Icons.menu_book_outlined),
-                        title: Text('Upoznaj repertoar'),
+                        title: Text('Explore repertoire'),
                       ),
                     ),
                     PopupMenuItem(
                       value: 'coverage',
                       child: ListTile(
                         leading: Icon(Icons.radar),
-                        title: Text('Rupe u repertoaru'),
+                        title: Text('Gaps in repertoire'),
                       ),
                     ),
                     PopupMenuItem(
                       value: 'gate',
                       child: ListTile(
                         leading: Icon(Icons.alt_route),
-                        title: Text('Kroz koji potez ide'),
+                        title: Text('Which move it goes through'),
                       ),
                     ),
                     PopupMenuItem(
                       value: 'imported',
                       child: ListTile(
                         leading: Icon(Icons.cleaning_services_outlined),
-                        title: Text('Očisti poteze iz uvoza'),
+                        title: Text('Clean imported moves'),
                       ),
                     ),
                     PopupMenuItem(
                       value: 'delete',
                       child: ListTile(
                         leading: Icon(Icons.delete_outline),
-                        title: Text('Obriši repertoar'),
+                        title: Text('Delete repertoire'),
                       ),
                     ),
                   ],

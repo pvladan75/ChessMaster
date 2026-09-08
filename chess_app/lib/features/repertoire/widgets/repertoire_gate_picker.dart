@@ -88,16 +88,16 @@ Future<String?> showGatePicker(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text('Kroz koji potez ide ovaj repertoar?',
+            child: Text('Which move does this repertoire go through?',
                 style:
                     AppText.bodyBold.copyWith(color: sheet.colors.textPrimary)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
-              'Potezi ostaju zajednički za celu boju — ovo bira samo šta se '
-              'vidi: stablo, red za odlučivanje i vežbanje pokazuju jedno '
-              'otvaranje.',
+              'Moves remain shared for the entire color — this only chooses what '
+              'is shown: the tree, decision queue, and drill show one '
+              'opening.',
               style: AppText.caption.copyWith(color: sheet.colors.textMuted),
             ),
           ),
@@ -110,8 +110,9 @@ Future<String?> showGatePicker(
                   dense: true,
                   leading: Icon(Icons.all_inclusive,
                       size: 18, color: sheet.colors.textSecondary),
-                  title: const Text('Bez ograničenja'),
-                  subtitle: Text('Ceo graf iz ove pozicije, kao do sada.',
+                  title: const Text('No restrictions'),
+                  subtitle: Text(
+                      'The entire graph from this position, as before.',
                       style: AppText.caption
                           .copyWith(color: sheet.colors.textMuted)),
                   trailing: current == null
@@ -136,7 +137,7 @@ Future<String?> showGatePicker(
                     ),
                     title: Text(option.san, style: AppText.bodyLarge),
                     subtitle: option.kept
-                        ? Text('Već igrate ovaj potez ovde',
+                        ? Text('You already play this move here',
                             style: AppText.caption
                                 .copyWith(color: sheet.colors.textMuted))
                         : null,

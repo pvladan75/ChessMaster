@@ -34,20 +34,18 @@ void main() {
 
   group('how many other moves also hold', () {
     test('one move keeps the verb and the noun singular', () {
-      expect(movesLeftText(1), 'Postoji još 1 takav potez.');
+      expect(movesLeftText(1), 'There is 1 other move.');
     });
 
-    test('two to four take the paucal, and the plural verb with it', () {
-      // The report from the phone: it said "Postoji još 2 takvih poteza",
-      // which is wrong twice - the verb and the case of both words.
-      expect(movesLeftText(2), 'Postoje još 2 takva poteza.');
-      expect(movesLeftText(3), 'Postoje još 3 takva poteza.');
-      expect(movesLeftText(4), 'Postoje još 4 takva poteza.');
+    test('two to four take the plural', () {
+      expect(movesLeftText(2), 'There are 2 other moves.');
+      expect(movesLeftText(3), 'There are 3 other moves.');
+      expect(movesLeftText(4), 'There are 4 other moves.');
     });
 
-    test('five and up take the genitive plural', () {
-      expect(movesLeftText(5), 'Postoji još 5 takvih poteza.');
-      expect(movesLeftText(11), 'Postoji još 11 takvih poteza.');
+    test('five and up take the plural', () {
+      expect(movesLeftText(5), 'There are 5 other moves.');
+      expect(movesLeftText(11), 'There are 11 other moves.');
     });
   });
 }

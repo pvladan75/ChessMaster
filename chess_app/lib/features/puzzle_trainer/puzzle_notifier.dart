@@ -48,7 +48,7 @@ class PuzzleNotifier extends StateNotifier<PuzzleTrainerState> {
     if (puzzleData == null || puzzleData['fen'] == null) {
       state = state.copyWith(
         status: PuzzleStatus.failed,
-        errorMessage: 'Greška pri učitavanju zagonetke sa servera.',
+        errorMessage: 'Error loading puzzle from server.',
       );
       return;
     }

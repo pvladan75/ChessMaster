@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:chess_app/core/services/serbian_plural.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -114,8 +113,8 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
   @override
   Widget build(BuildContext context) {
     final title = widget.mode == EndgameMode.draw
-        ? 'Šta vežbamo — održati remi'
-        : 'Šta vežbamo — dobitak';
+        ? 'What to drill — hold the draw'
+        : 'What to drill — win';
 
     return Scaffold(
       backgroundColor: context.colors.canvas,
@@ -138,12 +137,11 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
               const Icon(Icons.search_off, size: 40),
               const SizedBox(height: AppSpacing.md),
               const Text(
-                'Spisak završnica trenutno nije dostupan.',
+                'Endgame list is currently unavailable.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.lg),
-              FilledButton(
-                  onPressed: _load, child: const Text('Pokušaj ponovo')),
+              FilledButton(onPressed: _load, child: const Text('Try again')),
             ],
           ),
         ),
@@ -167,14 +165,14 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Nivo', style: Theme.of(context).textTheme.titleSmall),
+        Text('Level', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             ChoiceChip(
-              label: const Text('Svi nivoi'),
+              label: const Text('All levels'),
               selected: _band == null,
               onSelected: (_) => setState(() => _band = null),
             ),
@@ -188,7 +186,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Nivo je rejting igrača koji je u toj poziciji pogrešio.',
+          'Level is the rating of the player who made a mistake in that position.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -212,10 +210,10 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
         contentPadding: EdgeInsets.zero,
         value: settings.endgameIncludeOnline,
         onChanged: settings.setEndgameIncludeOnline,
-        title: const Text('Uključi i online partije'),
+        title: const Text('Include online games'),
         subtitle: Text(
-          'Podrazumevano se vežba na partijama igranim za tablom. Online '
-          'partije su druga lestvica rejtinga, pa se dodaju samo namerno.',
+          'By default drills use over-the-board games. Online '
+          'games have a different rating scale, so they are only added intentionally.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
@@ -227,10 +225,10 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
       contentPadding: EdgeInsets.zero,
       value: _oppositeOnly,
       onChanged: (value) => setState(() => _oppositeOnly = value),
-      title: const Text('Samo raznobojni lovci'),
+      title: const Text('Opposite-colored bishops only'),
       subtitle: Text(
-        'U celoj zbirci ih je ${catalog.oppositeBishops}. '
-        'Nivo se tada ne primenjuje.',
+        'There are ${catalog.oppositeBishops} in the entire collection. '
+        'Level does not apply then.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     );
@@ -248,11 +246,11 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
             onChanged: (_) =>
                 _toggleFamily(family, _familyState(family) != true),
             title: Text(family.name),
-            subtitle: Text('${family.count} pozicija, '
+            subtitle: Text('${_positions(family.count)}, '
                 '${family.endings.length} ${_shapeWord(family.endings.length)}'),
             secondary: IconButton(
               icon: Icon(open ? Icons.expand_less : Icons.expand_more),
-              tooltip: open ? 'Sakrij' : 'Prikaži vrste',
+              tooltip: open ? 'Hide' : 'Show types',
               onPressed: () => setState(
                   () => open ? _open.remove(family.id) : _open.add(family.id)),
             ),
@@ -280,21 +278,9 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
     );
   }
 
-  /// One vrsta, two to four vrste, five and up vrsta.
-  String _shapeWord(int n) => serbianCount(
-        n,
-        one: 'vrsta',
-        few: 'vrste',
-        many: 'vrsta',
-      );
+  String _shapeWord(int n) => n == 1 ? 'type' : 'types';
 
-  /// One pozicija, two to four pozicije, five and up pozicija.
-  String _positions(int n) => serbianCount(
-        n,
-        one: '$n pozicija',
-        few: '$n pozicije',
-        many: '$n pozicija',
-      );
+  String _positions(int n) => n == 1 ? '1 position' : '$n positions';
 
   Widget _buildBar() {
     final total = _total;
@@ -307,8 +293,8 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
             Expanded(
               child: Text(
                 total == 0
-                    ? 'Nijedna pozicija ne odgovara ovom izboru'
-                    : 'Izabrano: ${_positions(total)}',
+                    ? 'No positions match this selection'
+                    : 'Selected: ${_positions(total)}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -325,7 +311,7 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
                         oppositeOnly: _oppositeOnly,
                       )),
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Počni'),
+              label: const Text('Start'),
             ),
           ],
         ),

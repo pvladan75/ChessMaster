@@ -92,12 +92,12 @@ void main() {
       (tester) async {
     await pump(tester, heldInGraph: 21);
 
-    await tester.tap(find.text('Pregledaj nepotvrđene'));
+    await tester.tap(find.text('Review unconfirmed'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('21'), findsWidgets,
         reason: 'broj koji stoji u grafu mora da se kaže');
-    expect(find.text('Nema više nepotvrđenih poteza.'), findsNothing,
+    expect(find.text('No more unconfirmed moves.'), findsNothing,
         reason: 'nije istina — ima ih dvadeset jedan');
   });
 
@@ -105,9 +105,9 @@ void main() {
       (tester) async {
     await pump(tester, heldInGraph: 0);
 
-    await tester.tap(find.text('Pregledaj nepotvrđene'));
+    await tester.tap(find.text('Review unconfirmed'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Nema više nepotvrđenih poteza.'), findsOneWidget);
+    expect(find.text('No more unconfirmed moves.'), findsOneWidget);
   });
 }

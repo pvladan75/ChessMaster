@@ -13,9 +13,9 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// in-sentence form for its legend — same three, different register, and a
 /// live verification item quotes it word for word.)
 const Map<String, String> kBreadthNames = {
-  'main': 'Samo glavni odgovor',
-  'standard': 'Uobičajeno (80%)',
-  'broad': 'Široko (95%)',
+  'main': 'Main reply only',
+  'standard': 'Standard (80%)',
+  'broad': 'Broad (95%)',
 };
 
 /// The width's name, or the key itself when it is one this build does not know.
@@ -23,7 +23,7 @@ const Map<String, String> kBreadthNames = {
 /// Never a guess and never a default: a width the app cannot name is a width
 /// somebody added on the server, and printing the key says so.
 String breadthName(String? breadth) =>
-    kBreadthNames[breadth] ?? (breadth ?? 'nepoznato');
+    kBreadthNames[breadth] ?? (breadth ?? 'unknown');
 
 class BreadthDialog extends StatefulWidget {
   const BreadthDialog({
@@ -72,7 +72,7 @@ class _BreadthDialogState extends State<BreadthDialog> {
       Navigator.of(context).pop((depth: depth, breadth: _selectedWidth));
     } else {
       setState(() => _saving = false);
-      AppFeedback.error(context, 'Nije sačuvano — server nije odgovorio.');
+      AppFeedback.error(context, 'Not saved — server did not respond.');
     }
   }
 
@@ -81,20 +81,20 @@ class _BreadthDialogState extends State<BreadthDialog> {
     final disabled = widget.id == null;
 
     return AlertDialog(
-      title: const Text('Predloži glavnu liniju odavde'),
+      title: const Text('Suggest main line from here'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Upisuje najigraniji potez za obe strane, koliko poteza kažete. '
-              'To su predlozi, ne vaše odluke — vežba ih neće pitati dok ih ne '
-              'potvrdite. Staje ranije ako linija postane retka.',
+              'Writes the most played move for both sides, for as many moves as you specify. '
+              'These are suggestions, not your decisions — drills will not test them until you '
+              'confirm them. Stops early if the line becomes rare.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Koliko odgovora spremamo', style: AppText.bodyBold),
+            Text('How many replies to prepare', style: AppText.bodyBold),
             // Whose width this is, said before it is changed.
             //
             // Reported live 4.9.2026: „napravim kičmu iz pozicije koja nije na
@@ -113,9 +113,9 @@ class _BreadthDialogState extends State<BreadthDialog> {
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xxs),
               child: Text(
-                'Ovo važi za ceo repertoar, ne samo za ovu liniju — glavna linija je '
-                'uvek jedna linija. Uže skriva samo grane iz knjige koje niste '
-                'dirali; vaše ostaje na svakoj širini.',
+                'This applies to the entire repertoire, not just this line — the main line is '
+                'always a single line. Narrower only hides book branches you haven\'t '
+                'touched; yours remains at every breadth.',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted),
               ),
@@ -125,7 +125,7 @@ class _BreadthDialogState extends State<BreadthDialog> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 child: Text(
-                  'Ova opcija nije dostupna (nedostaje ID repertoara).',
+                  'This option is not available (missing repertoire ID).',
                   style: AppText.caption.copyWith(color: context.colors.danger),
                 ),
               ),
@@ -135,14 +135,14 @@ class _BreadthDialogState extends State<BreadthDialog> {
               onChanged: (v) => setState(() => _selectedWidth = v),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Dubina', style: AppText.bodyBold),
+            Text('Depth', style: AppText.bodyBold),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,
               children: [
                 for (final option in const [4, 6, 8, 10, 12])
                   ActionChip(
-                    label: Text('$option poteza'),
+                    label: Text('$option moves'),
                     onPressed: _saving ? null : () => _saveAndReturn(option),
                   ),
               ],
@@ -153,7 +153,7 @@ class _BreadthDialogState extends State<BreadthDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
       ],
     );
@@ -250,7 +250,7 @@ class _BreadthSettingDialogState extends State<BreadthSettingDialog> {
       Navigator.of(context).pop(_selectedWidth);
     } else {
       setState(() => _saving = false);
-      AppFeedback.error(context, 'Nije sačuvano — server nije odgovorio.');
+      AppFeedback.error(context, 'Not saved — server did not respond.');
     }
   }
 
@@ -259,7 +259,7 @@ class _BreadthSettingDialogState extends State<BreadthSettingDialog> {
     final disabled = widget.id == null;
 
     return AlertDialog(
-      title: const Text('Koliko odgovora spremamo'),
+      title: const Text('How many replies to prepare'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -270,8 +270,8 @@ class _BreadthSettingDialogState extends State<BreadthSettingDialog> {
             // they come out of the statistics — and not knowing that is what
             // makes a wide setting read as "the app adds moves by itself".
             Text(
-              'Protivnikovi odgovori se uzimaju iz statistike odigranih '
-              'partija, a ovo kaže koliko ih se uzima. Važi za ceo repertoar.',
+              'Opponent replies are taken from game statistics, '
+              'and this sets how many are included. Applies to the entire repertoire.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -280,9 +280,9 @@ class _BreadthSettingDialogState extends State<BreadthSettingDialog> {
             // a reply landing where the reader has decided something, and a
             // reply they took by hand, are followed at every width.
             Text(
-              'Vaše ostaje: potezi koje ste sami uzeli („Spremi i ovo") i '
-              'pozicije u kojima ste već odlučili prate se na svakoj širini. '
-              'Uže skriva samo grane iz knjige koje niste dirali.',
+              'Yours remains: moves you took yourself ("Prepare this too") and '
+              'positions where you already decided are kept at every breadth. '
+              'Narrower only hides book branches you haven\'t touched.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -290,7 +290,7 @@ class _BreadthSettingDialogState extends State<BreadthSettingDialog> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 child: Text(
-                  'Ova opcija nije dostupna (nedostaje ID repertoara).',
+                  'This option is not available (missing repertoire ID).',
                   style: AppText.caption.copyWith(color: context.colors.danger),
                 ),
               ),
@@ -305,11 +305,11 @@ class _BreadthSettingDialogState extends State<BreadthSettingDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _saving || disabled ? null : _save,
-          child: const Text('Sačuvaj'),
+          child: const Text('Save'),
         ),
       ],
     );

@@ -135,11 +135,11 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: Text('Rupe u repertoaru — ${widget.name}'),
+        title: Text('Repertoire coverage — ${widget.name}'),
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: 'Osveži',
+            tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
             onPressed: _loading ? null : _load,
           ),
@@ -155,10 +155,10 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
       return _buildMessage(
         context,
         icon: Icons.cloud_off,
-        title: 'Mapa nije mogla da se pročita.',
-        detail: 'Server nije odgovorio, pa se ne zna dokle ste stigli. To nije '
-            'isto što i prazan repertoar — proverite da li backend radi, pa '
-            'osvežite.',
+        title: 'Map could not be loaded.',
+        detail: 'Server did not respond, so progress is unknown. This is not '
+            'the same as an empty repertoire — check that the backend is running, '
+            'then refresh.',
       );
     }
 
@@ -168,18 +168,18 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
         context,
         icon: walk.rootOpen ? Icons.play_circle_outline : Icons.map_outlined,
         title: walk.rootOpen
-            ? 'Prvi potez još nije izabran.'
-            : 'Još nema grana na mapi.',
+            ? 'First move has not been chosen yet.'
+            : 'No branches on the map yet.',
         detail: walk.rootOpen
-            ? 'Mapa se deli po odgovorima protivnika, a njih nema dok vi ne '
-                'odigrate prvi potez.'
-            : 'Grane nastaju kad uzmete protivnikove odgovore na svoj potez.',
+            ? 'The map is split by the opponent\'s replies, and there are '
+                'none until you make the first move.'
+            : 'Branches appear when you take the opponent\'s replies to your move.',
         action: widget.onBuildAt == null
             ? null
             : FilledButton.icon(
                 onPressed: () => widget.onBuildAt!(widget.rootFen),
                 icon: const Icon(Icons.playlist_add, size: 18),
-                label: const Text('Gradi'),
+                label: const Text('Build'),
               ),
       );
     }
@@ -242,21 +242,21 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Ceo repertoar',
+          Text('Entire repertoire',
               style: AppText.bodyBold.copyWith(color: context.colors.accent)),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Bez odgovora $open% partija koje kroz njega prođu'
-            '${cut > 0 ? ", ne spremam $cut%" : ""}. '
-            'Ide do ${walk.depthInMoves}. poteza, '
-            '${walk.decided} pozicija je odlučeno.',
+            'Unanswered in $open% of games that pass through it'
+            '${cut > 0 ? ", not preparing $cut%" : ""}. '
+            'Goes to move ${walk.depthInMoves}, '
+            '${walk.decided == 1 ? "1 position is decided." : "${walk.decided} positions are decided."}',
             style: AppText.caption.copyWith(color: context.colors.textPrimary),
           ),
           if (walk.truncated) ...[
             const SizedBox(height: AppSpacing.xxs),
             Text(
-              'Pregled je skraćen — repertoar je veći od onoga što jedan '
-              'prolaz stigne da izbroji.',
+              'View is truncated — repertoire is larger than what a single '
+              'pass can count.',
               style: AppText.micro.copyWith(color: context.colors.warning),
             ),
           ],
@@ -268,10 +268,10 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
   Widget _buildBranch(BuildContext context, CoverageBranch branch) {
     final name = _nameOf(branch);
     final ({IconData icon, String label}) state = branch.prunedWithin >= 1
-        ? (icon: Icons.content_cut, label: 'ne spremam')
+        ? (icon: Icons.content_cut, label: 'not preparing')
         : branch.isFinished
-            ? (icon: Icons.check_circle_outline, label: 'spremljeno')
-            : (icon: Icons.hourglass_empty, label: 'u izradi');
+            ? (icon: Icons.check_circle_outline, label: 'prepared')
+            : (icon: Icons.hourglass_empty, label: 'in preparation');
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -294,7 +294,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.textPrimary)),
               ),
-              Text('igra se u ${_percent(branch.share)}',
+              Text('played in ${_percent(branch.share)}',
                   style:
                       AppText.micro.copyWith(color: context.colors.textMuted)),
             ],
@@ -312,18 +312,18 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'spremljeno ${_percent(branch.coveredWithin)} · '
-            'bez odgovora ${_percent(branch.openWithin)}'
-            '${branch.prunedWithin > 0 ? " · ne spremam ${_percent(branch.prunedWithin)}" : ""}',
+            'prepared ${_percent(branch.coveredWithin)} · '
+            'unanswered ${_percent(branch.openWithin)}'
+            '${branch.prunedWithin > 0 ? " · not preparing ${_percent(branch.prunedWithin)}" : ""}',
             style: AppText.caption.copyWith(color: context.colors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
             // Depth in whole moves, because that is how anybody says it: "I am
             // prepared to move six", never "to ply twelve".
-            'do ${((branch.maxPly + 1) / 2).ceil()}. poteza posle korena · '
-            '${branch.decided} odlučeno · ${branch.open} otvoreno'
-            '${branch.pruned > 0 ? " · ${branch.pruned} ne spremam" : ""} · '
+            'to move ${((branch.maxPly + 1) / 2).ceil()} after root · '
+            '${branch.decided} decided · ${branch.open} open'
+            '${branch.pruned > 0 ? " · ${branch.pruned} not preparing" : ""} · '
             '${state.label}',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),
@@ -340,13 +340,13 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
                   OutlinedButton.icon(
                     onPressed: () => widget.onBuildAt!(branch.fen),
                     icon: const Icon(Icons.playlist_add, size: 18),
-                    label: const Text('Gradi ovde'),
+                    label: const Text('Build here'),
                   ),
                 if (widget.onDrillAt != null && branch.decided > 0)
                   OutlinedButton.icon(
                     onPressed: () => widget.onDrillAt!(branch.fen),
                     icon: const Icon(Icons.fitness_center, size: 18),
-                    label: const Text('Vežbaj granu'),
+                    label: const Text('Drill branch'),
                   ),
               ],
             ),

@@ -6,8 +6,6 @@
 /// told "eighteen moves to go" would be told something untrue.
 library;
 
-import 'package:chess_app/core/services/serbian_plural.dart';
-
 class DrillStep {
   const DrillStep({
     required this.held,
@@ -76,14 +74,11 @@ const holdOutMoves = 8;
 /// What the drill says while a claimed draw is being held out.
 String holdOutText(int left) {
   if (left <= 0) {
-    return 'Remi je održan još $holdOutMoves poteza — vežba je zaključena.';
+    return 'Draw held for $holdOutMoves more moves — drill completed.';
   }
-  return serbianCount(
-    left,
-    one: 'Držite remi još $left potez.',
-    few: 'Držite remi još $left poteza.',
-    many: 'Držite remi još $left poteza.',
-  );
+  return left == 1
+      ? 'Hold the draw for 1 more move.'
+      : 'Hold the draw for $left more moves.';
 }
 
 /// What to tell the child after one judged move.
@@ -96,7 +91,7 @@ String holdOutText(int left) {
 String drillFeedbackText(DrillStep step) {
   if (!step.held) {
     if (step.goal == 'draw') {
-      return '${step.playedSan} gubi remi. Ovde se prekida.';
+      return '${step.playedSan} loses the draw. Drill stops here.';
     }
     // A win that is let go does not always land on a draw, and saying so when
     // it does not is a false statement about the position, not a rounding.
@@ -105,46 +100,44 @@ String drillFeedbackText(DrillStep step) {
     // e5 - and the screen said "ostaje remi". The verdict is in the answer the
     // server already sends; it was simply not read.
     return step.outcome == 'loss'
-        ? '${step.playedSan} ispušta dobitak — pozicija je sada izgubljena.'
-        : '${step.playedSan} ispušta dobitak — ostaje remi.';
+        ? '${step.playedSan} lets the win go — the position is now lost.'
+        : '${step.playedSan} lets the win go — remains a draw.';
   }
 
   switch (step.finished) {
     case 'mate':
-      return 'Mat! Završnicu ste odigrali do kraja.';
+      return 'Checkmate! You played the endgame to the end.';
     case 'stalemate':
-      return 'Pat — remi je održan.';
+      return 'Stalemate — draw held.';
     case 'insufficient':
-      return 'Nema dovoljno materijala za mat — remi.';
+      return 'Insufficient material for mate — draw.';
     case 'repetition':
       // Named for what happened. A dead drawn rook ending repeats within a few
       // moves, and calling that "fifty moves without a capture" points at a
       // counter that has barely started.
       return step.goal == 'draw'
-          ? 'Pozicija se ponovila tri puta — remi je održan.'
-          : 'Pozicija se ponovila tri puta i po pravilu je remi. Dobitak je '
-              'bio tu, ali se nije napredovalo.';
+          ? 'Threefold repetition — draw held.'
+          : 'Threefold repetition makes it a draw. The win was there, but no progress was made.';
     case 'fifty_moves':
     case 'draw_rule':
       // The one ending that looks like success and is not. A win the tables
       // call a win is convertible inside the fifty moves, so running the count
       // out means the moves were spent, not that the position was not winning.
       return step.goal == 'draw'
-          ? 'Pedeset poteza bez uzimanja — remi je održan.'
-          : 'Pedeset poteza bez uzimanja i bez poteza pešaka — po pravilu je '
-              'remi. Dobitak je bio tu, ali je potrošeno previše poteza.';
+          ? 'Fifty moves without a capture — draw held.'
+          : 'Fifty moves without a capture or pawn move — draw by rule. The win was there, but too many moves were spent.';
   }
 
   final reply =
-      step.replySan == null ? '' : ' Protivnik igra ${step.replySan}.';
-  if (step.goal == 'draw') return 'Tačno — remi je održan.$reply';
+      step.replySan == null ? '' : ' Opponent plays ${step.replySan}.';
+  if (step.goal == 'draw') return 'Correct — draw held.$reply';
   if (step.closer == true) {
-    return 'Tačno — dobitak je zadržan i prišli ste bliže.$reply';
+    return 'Correct — win held and you moved closer.$reply';
   }
   if (step.closer == false) {
     // Correct and worth saying so, because a child who shuffles will otherwise
     // read "tačno" as "that was the move" and keep shuffling.
-    return 'Tačno, dobitak je zadržan — ali niste prišli bliže.$reply';
+    return 'Correct, win held — but you did not move closer.$reply';
   }
-  return 'Tačno — dobitak je zadržan.$reply';
+  return 'Correct — win held.$reply';
 }

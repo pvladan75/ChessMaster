@@ -237,11 +237,11 @@ void main() {
     final api = _FakeApi();
     await pump(tester, api);
 
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
     // The move the student decided on is nowhere on the screen until they ask
     // for it or play something.
     expect(find.textContaining('Nc6'), findsNothing);
-    expect(find.textContaining('na redu: 2'), findsOneWidget);
+    expect(find.textContaining('due: 2'), findsOneWidget);
   });
 
   testWidgets('the move they decided on is a pass, and says when it returns',
@@ -251,15 +251,15 @@ void main() {
 
     await play(tester, 'b8', 'c6');
 
-    expect(find.textContaining('Tačno'), findsOneWidget);
-    expect(find.textContaining('Vraća se za 6 dana'), findsOneWidget);
+    expect(find.textContaining('Correct'), findsOneWidget);
+    expect(find.textContaining('Returns in 6 days'), findsOneWidget);
     expect(api.lastRevealedFlag, false);
 
     // And then it walks on by itself, carrying the verdict with it: the panel
     // that named the schedule is gone, and the sentence it was named in is not.
     await walkOn(tester);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
-    expect(find.textContaining('vraća se za 6 dana'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.textContaining('returns in 6 days'), findsOneWidget);
   });
 
   testWidgets('good chess that is not their decision is still a miss',
@@ -271,8 +271,8 @@ void main() {
 
     await play(tester, 'g8', 'f6');
 
-    expect(find.textContaining('Nije to'), findsOneWidget);
-    expect(find.textContaining('Vaš potez je Nc6'), findsOneWidget);
+    expect(find.textContaining('Incorrect'), findsOneWidget);
+    expect(find.textContaining('Your move is Nc6'), findsOneWidget);
   });
 
   testWidgets('asking to be shown marks the answer as recognised',
@@ -280,9 +280,9 @@ void main() {
     final api = _FakeApi();
     await pump(tester, api);
 
-    await tester.tap(find.text('Pokaži'));
+    await tester.tap(find.text('Show'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Vaš potez je Nc6'), findsOneWidget);
+    expect(find.textContaining('Your move is Nc6'), findsOneWidget);
     expect(api.reveals, 1);
 
     await play(tester, 'b8', 'c6');
@@ -298,15 +298,15 @@ void main() {
 
     await play(tester, 'b8', 'c6');
 
-    expect(find.textContaining('Protivnik je odgovorio a3'), findsOneWidget);
-    expect(find.textContaining('to niste pokrili'), findsOneWidget);
+    expect(find.textContaining('Opponent replied a3'), findsOneWidget);
+    expect(find.textContaining('you have not covered this'), findsOneWidget);
 
     // And it stops there. Being surprised is the door back into building, and
     // walking past that sentence into a position with no answer to give would
     // be the worst moment to hurry.
     await walkOn(tester);
-    expect(find.textContaining('to niste pokrili'), findsOneWidget);
-    expect(find.text('Nastavi liniju'), findsOneWidget);
+    expect(find.textContaining('you have not covered this'), findsOneWidget);
+    expect(find.text('Continue line'), findsOneWidget);
   });
 
   testWidgets('a right answer walks on down the line by itself',
@@ -317,11 +317,11 @@ void main() {
     await pump(tester, api);
 
     await play(tester, 'b8', 'c6');
-    expect(find.text('Nastavi liniju'), findsNothing,
+    expect(find.text('Continue line'), findsNothing,
         reason: 'ništa se ne traži od korisnika — šetnja ide sama');
 
     await walkOn(tester);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
 
     // And what it asks next was not what the schedule asked for, so it goes up
     // saying "write this down only if it really was due".
@@ -340,8 +340,8 @@ void main() {
     await play(tester, 'g8', 'f6');
     await walkOn(tester);
 
-    expect(find.textContaining('Nije to'), findsOneWidget);
-    expect(find.text('Nastavi liniju'), findsOneWidget,
+    expect(find.textContaining('Incorrect'), findsOneWidget);
+    expect(find.text('Continue line'), findsOneWidget,
         reason: 'dalje se ide kad korisnik kaže, ne sam');
   });
 
@@ -355,8 +355,8 @@ void main() {
     await play(tester, 'b8', 'c6');
     await walkOn(tester);
 
-    expect(find.textContaining('Tačno'), findsOneWidget);
-    expect(find.text('Nastavi liniju'), findsNothing);
+    expect(find.textContaining('Correct'), findsOneWidget);
+    expect(find.text('Continue line'), findsNothing);
   });
 
   testWidgets('a position that was never built offers to build it',
@@ -366,9 +366,9 @@ void main() {
     await pump(tester, api, onBuildHere: (fen) => asked = fen);
 
     await play(tester, 'b8', 'c6');
-    expect(find.textContaining('niste pokrili'), findsOneWidget);
+    expect(find.textContaining('not covered'), findsOneWidget);
 
-    await tester.tap(find.text('Izgradi ovu poziciju'));
+    await tester.tap(find.text('Build this position'));
     await tester.pumpAndSettle();
     expect(asked, smithMorra,
         reason: 'gradi se pozicija u kojoj je stao, ne neka druga');
@@ -384,15 +384,15 @@ void main() {
     // pumps, initState never runs again, and the second case quietly asserts
     // against the first one's data.
     await pump(tester, nothingBuilt, key: const ValueKey('nista-izgradjeno'));
-    expect(find.text('Još nema šta da se vežba.'), findsOneWidget);
+    expect(find.text('Nothing to drill yet.'), findsOneWidget);
 
     final nothingDue = _FakeApi(
       item: null,
       stats: const DrillStats(positions: 20, due: 0, known: 9, fresh: 0),
     );
     await pump(tester, nothingDue, key: const ValueKey('nista-na-redu'));
-    expect(find.text('Ništa nije na redu.'), findsOneWidget);
-    expect(find.textContaining('znate 9 od 20'), findsOneWidget);
+    expect(find.text('Nothing due.'), findsOneWidget);
+    expect(find.textContaining('know 9 of 20'), findsOneWidget);
   });
 
   testWidgets('the drill fits a 360 dp phone', (tester) async {
@@ -457,21 +457,21 @@ void main() {
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
     expect(api.lineCalls, 1);
-    expect(find.text('Ponovite liniju'), findsOneWidget);
+    expect(find.text('Rehearse line'), findsOneWidget);
     expect(find.text('1.e4'), findsOneWidget);
-    expect(find.textContaining('potez 1 od 2'), findsOneWidget);
+    expect(find.textContaining('move 1 of 2'), findsOneWidget);
 
     await play(tester, 'c7', 'c5');
 
     // The student's move and the opponent's answer, both on the board and both
     // in the line above it.
     expect(find.text('1.e4 c5 2.d4'), findsOneWidget);
-    expect(find.textContaining('potez 2 od 2'), findsOneWidget);
+    expect(find.textContaining('move 2 of 2'), findsOneWidget);
 
     await play(tester, 'c5', 'd4');
 
     // And now the question, at the end of the line rather than on its own.
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3'), findsOneWidget);
     // Nothing along the way was graded.
     expect(api.graded, 0, reason: 'ponavljanje je ocenjeno');
@@ -487,7 +487,7 @@ void main() {
 
     await play(tester, 'e7', 'e5');
 
-    expect(find.textContaining('U ovoj liniji ide c5'), findsOneWidget);
+    expect(find.textContaining('This line plays c5'), findsOneWidget);
     expect(api.graded, 0, reason: 'ponavljanje je ocenjeno');
     // The line's own move went on the board anyway: carrying on from a move
     // that is not in the line would be rehearsing a different line.
@@ -527,14 +527,14 @@ void main() {
     final api = _FakeApi()..line = forkedLine();
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
-    expect(find.textContaining('ide kroz alternativu'), findsOneWidget);
+    expect(find.textContaining('goes through the alternative'), findsOneWidget);
   });
 
   testWidgets('and a line through the main move says nothing', (tester) async {
     final api = _FakeApi()..line = morraLine();
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
-    expect(find.textContaining('ide kroz alternativu'), findsNothing);
+    expect(find.textContaining('goes through the alternative'), findsNothing);
   });
 
   testWidgets('another move of their own is named as theirs, not as a miss',
@@ -547,9 +547,9 @@ void main() {
 
     await play(tester, 'e7', 'e5');
 
-    expect(find.textContaining('I e5 je vaš potez'), findsOneWidget);
-    expect(find.textContaining('ova linija vežba c5'), findsOneWidget);
-    expect(find.textContaining('U ovoj liniji ide'), findsNothing);
+    expect(find.textContaining('e5 is also your move'), findsOneWidget);
+    expect(find.textContaining('this line drills c5'), findsOneWidget);
+    expect(find.textContaining('This line plays'), findsNothing);
     expect(api.graded, 0, reason: 'ponavljanje je ocenjeno');
     // And the line went on through the move it walks, as it always did.
     expect(find.text('1.e4 c5 2.d4'), findsOneWidget);
@@ -561,8 +561,8 @@ void main() {
 
     await play(tester, 'd7', 'd6');
 
-    expect(find.textContaining('U ovoj liniji ide c5'), findsOneWidget);
-    expect(find.textContaining('je vaš potez'), findsNothing);
+    expect(find.textContaining('This line plays c5'), findsOneWidget);
+    expect(find.textContaining('is also your move'), findsNothing);
   });
 
   testWidgets("the line's move is drawn while it is alone on the board",
@@ -611,14 +611,14 @@ void main() {
     final plain = _FakeApi()..line = morraLine();
     await pump(tester, plain,
         rootFen: fenAfter(['e4']), rootPath: const ['e4']);
-    expect(find.text('Druga odluka'), findsNothing);
+    expect(find.text('Another decision'), findsNothing);
 
     final api = _FakeApi()..line = forkedLine();
     await pump(tester, api,
         key: const ValueKey('racva'),
         rootFen: fenAfter(['e4']),
         rootPath: const ['e4']);
-    expect(find.text('Druga odluka'), findsOneWidget);
+    expect(find.text('Another decision'), findsOneWidget);
   });
 
   testWidgets('choosing the other road asks for the line through it',
@@ -641,11 +641,11 @@ void main() {
 
     // The move is named nowhere until it is asked for — the rehearsal is not
     // graded, but with two decisions kept, naming one gives away the other.
-    expect(find.textContaining('Vežbaj e5'), findsNothing);
+    expect(find.textContaining('Drill e5'), findsNothing);
 
-    await tester.tap(find.text('Druga odluka'));
+    await tester.tap(find.text('Another decision'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vežbaj e5'));
+    await tester.tap(find.text('Drill e5'));
     await tester.pumpAndSettle();
 
     expect(api.lastViaFen, fenAfter(['e4']));
@@ -654,10 +654,10 @@ void main() {
     // to walk it, and practising early writes nothing down.
     expect(api.lastAhead, true);
     // And the screen says which road it is on, with the way back.
-    expect(find.textContaining('Vežbate liniju kroz e5'), findsOneWidget);
-    expect(find.text('Nazad na red'), findsOneWidget);
+    expect(find.textContaining('Drilling line via e5'), findsOneWidget);
+    expect(find.text('Back to queue'), findsOneWidget);
 
-    await tester.tap(find.text('Nazad na red'));
+    await tester.tap(find.text('Back to queue'));
     await tester.pumpAndSettle();
     expect(api.lastViaUci, isNull);
     expect(api.lastAhead, false);
@@ -696,15 +696,15 @@ void main() {
     );
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
-    await tester.tap(find.text('Druga odluka'));
+    await tester.tap(find.text('Another decision'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vežbaj e5'));
+    await tester.tap(find.text('Drill e5'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('ide kroz e5 — odigrajte ga'), findsOneWidget);
+    expect(find.textContaining('goes through e5 — play it'), findsOneWidget);
     // And the "one of your moves is not this one" warning is gone: they named
     // the move a moment ago, so hedging about it says less than nothing.
-    expect(find.textContaining('ide kroz alternativu'), findsNothing);
+    expect(find.textContaining('goes through the alternative'), findsNothing);
   });
 
   testWidgets('a road with nothing behind it says so, and lets you off it',
@@ -720,17 +720,16 @@ void main() {
     );
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
-    await tester.tap(find.text('Druga odluka'));
+    await tester.tap(find.text('Another decision'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vežbaj e5'));
+    await tester.tap(find.text('Drill e5'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Iza poteza e5 ništa nije na redu'),
-        findsOneWidget);
-    expect(find.text('Ništa nije na redu.'), findsNothing);
-    expect(find.text('Nazad na red'), findsOneWidget);
+    expect(find.textContaining('Nothing due after move e5'), findsOneWidget);
+    expect(find.text('Nothing due.'), findsNothing);
+    expect(find.text('Back to queue'), findsOneWidget);
 
-    await tester.tap(find.text('Nazad na red'));
+    await tester.tap(find.text('Back to queue'));
     await tester.pumpAndSettle();
     expect(api.lastViaUci, isNull);
   });
@@ -742,7 +741,7 @@ void main() {
     final api = _FakeApi()..line = morraLine();
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
-    await tester.tap(find.text('Druga linija'));
+    await tester.tap(find.text('Another line'));
     await tester.pumpAndSettle();
 
     expect(api.lastExclude, [fenKeyOf(morraLine().question!.fen)]);
@@ -762,7 +761,7 @@ void main() {
     );
     final before = api.lineCalls;
 
-    await tester.tap(find.text('Druga linija'));
+    await tester.tap(find.text('Another line'));
     await tester.pumpAndSettle();
 
     // Two calls, not one: the empty answer was asked again with a clean pile,
@@ -776,10 +775,10 @@ void main() {
     final api = _FakeApi()..line = morraLine();
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
-    await tester.tap(find.text('Preskoči ponavljanje'));
+    await tester.tap(find.text('Skip rehearsal'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3'), findsOneWidget);
   });
 
@@ -792,7 +791,7 @@ void main() {
       ..line = morraLine(startKnown: true, startPath: const ['c5', 'd4']);
     await pump(tester, api, rootFen: fenAfter(['e4']), rootPath: const ['e4']);
 
-    expect(find.textContaining('dokle znate napamet'), findsOneWidget);
+    expect(find.textContaining('where you know by heart'), findsOneWidget);
   });
 
   testWidgets('a line that could not be read falls back, and says so',
@@ -805,8 +804,8 @@ void main() {
 
     expect(api.lineCalls, 1);
     expect(api.loads, 1);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
-    expect(find.textContaining('bez ponavljanja'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.textContaining('without rehearsal'), findsOneWidget);
   });
 
   testWidgets('an empty branch says it is the branch that is empty',
@@ -824,7 +823,7 @@ void main() {
         fromFen: fenAfter(['e4', 'c5', 'd4']));
 
     expect(api.lastFromFen, fenAfter(['e4', 'c5', 'd4']));
-    expect(find.text('U ovoj grani nema šta da se vežba.'), findsOneWidget);
+    expect(find.text('Nothing to drill in this branch.'), findsOneWidget);
   });
 
   testWidgets('the rehearsal fits a 360 dp phone', (tester) async {
@@ -858,9 +857,9 @@ void main() {
       );
     await pump(tester, api, rootFen: smithMorra, fromFen: smithMorra);
 
-    expect(find.text('U ovoj grani ništa nije na redu.'), findsOneWidget);
-    expect(find.textContaining('Sledeća se vraća sutra'), findsOneWidget);
-    expect(find.text('Vežbaj ipak'), findsOneWidget);
+    expect(find.text('Nothing due in this branch.'), findsOneWidget);
+    expect(find.textContaining('Next returns tomorrow'), findsOneWidget);
+    expect(find.text('Drill anyway'), findsOneWidget);
   });
 
   testWidgets('an empty branch is not offered a practice run', (tester) async {
@@ -872,7 +871,7 @@ void main() {
       );
     await pump(tester, api, rootFen: smithMorra, fromFen: smithMorra);
 
-    expect(find.text('Vežbaj ipak'), findsNothing);
+    expect(find.text('Drill anyway'), findsNothing);
   });
 
   testWidgets('practising ahead is judged and not written down',
@@ -892,17 +891,17 @@ void main() {
       );
     await pump(tester, api, rootFen: smithMorra, fromFen: smithMorra);
 
-    await tester.tap(find.text('Vežbaj ipak'));
+    await tester.tap(find.text('Drill anyway'));
     await tester.pumpAndSettle();
     expect(api.lastAhead, true);
-    expect(find.text('Šta igrate crnim?'), findsOneWidget);
+    expect(find.text('What do you play as Black?'), findsOneWidget);
 
     await play(tester, 'b8', 'c6');
 
     expect(api.lastPractice, true);
-    expect(find.textContaining('ocena se ne upisuje'), findsOneWidget);
+    expect(find.textContaining('rating is not recorded'), findsOneWidget);
     // And no promise of a return date, because nothing was stored.
-    expect(find.textContaining('Vraća se za'), findsNothing);
+    expect(find.textContaining('Returns in'), findsNothing);
 
     await walkOn(tester);
     expect(api.lastPractice, true,
@@ -932,13 +931,13 @@ void main() {
       ];
 
     Future<void> openPicker(WidgetTester tester) async {
-      await tester.tap(find.byTooltip('Izaberi granu'));
+      await tester.tap(find.byTooltip('Choose branch'));
       await tester.pumpAndSettle();
     }
 
     Future<void> startRun(WidgetTester tester) async {
       await openPicker(tester);
-      await tester.tap(find.byTooltip('Odigraj granu do kraja'));
+      await tester.tap(find.byTooltip('Play branch to the end'));
       await tester.pumpAndSettle();
     }
 
@@ -951,9 +950,9 @@ void main() {
       await pump(tester, api, rootFen: smithMorra);
 
       await openPicker(tester);
-      expect(find.text('Ceo repertoar'), findsOneWidget);
+      expect(find.text('Entire repertoire'), findsOneWidget);
       expect(find.text('e4 c5'), findsOneWidget);
-      expect(find.textContaining('dospelo 0 od 4'), findsOneWidget);
+      expect(find.textContaining('due 0 of 4'), findsOneWidget);
 
       await tester.tap(find.text('e4 c5'));
       await tester.pumpAndSettle();
@@ -966,7 +965,7 @@ void main() {
       await pump(tester, api, rootFen: smithMorra, fromFen: branchFen);
 
       await openPicker(tester);
-      await tester.tap(find.text('Ceo repertoar'));
+      await tester.tap(find.text('Entire repertoire'));
       await tester.pumpAndSettle();
 
       expect(api.lastFromFen, isNull);
@@ -981,7 +980,7 @@ void main() {
       // elsewhere, and the row says a run is happening — a board that simply
       // keeps answering looks the same as the ordinary drill, and the two are
       // graded differently.
-      expect(find.textContaining('Sparing: e4 c5'), findsOneWidget);
+      expect(find.textContaining('Sparring: e4 c5'), findsOneWidget);
     });
 
     testWidgets('a position that was due is written down', (tester) async {
@@ -1041,8 +1040,8 @@ void main() {
       await play(tester, 'b8', 'c6');
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Dovde ide grana'), findsOneWidget);
-      expect(find.text('Druga grana'), findsOneWidget);
+      expect(find.textContaining('Branch goes this far'), findsOneWidget);
+      expect(find.text('Another branch'), findsOneWidget);
     });
   });
 }

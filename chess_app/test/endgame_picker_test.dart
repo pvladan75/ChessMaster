@@ -84,7 +84,7 @@ void main() {
 
     // Nothing has to be ticked before the reader can do anything: pressing the
     // button straight away is what the two hub buttons used to do on their own.
-    expect(find.text('Izabrano: 1915 pozicija'), findsOneWidget);
+    expect(find.text('Selected: 1915 positions'), findsOneWidget);
     expect(find.text('Topovske završnice'), findsOneWidget);
     // The biggest family is open, so the list does not look empty.
     expect(find.text('top i dva pešaka protiv topa'), findsOneWidget);
@@ -102,7 +102,7 @@ void main() {
     await tester.tap(find.text('Pešačke završnice'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Izabrano: 1769 pozicija'), findsOneWidget);
+    expect(find.text('Selected: 1769 positions'), findsOneWidget);
   });
 
   testWidgets('a level narrows the total without another request',
@@ -118,7 +118,7 @@ void main() {
     await tester.tap(find.text('2200 - 2400'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Izabrano: 800 pozicija'), findsOneWidget);
+    expect(find.text('Selected: 800 positions'), findsOneWidget);
   });
 
   testWidgets('an empty choice cannot be started', (tester) async {
@@ -134,7 +134,7 @@ void main() {
     await tester.tap(find.text('Pešačke završnice'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Nijedna pozicija'), findsOneWidget);
+    expect(find.textContaining('No positions match'), findsOneWidget);
     final button = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(button.onPressed, isNull);
   });
@@ -149,14 +149,14 @@ void main() {
     await tester.pumpWidget(wrap(picker(onStart: (choice) => chosen = choice)));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Počni'));
+    await tester.tap(find.text('Start'));
     await tester.pumpAndSettle();
     expect(chosen!.materialsParam, isNull,
         reason: 'sve izabrano = bez filtera');
 
     await tester.tap(find.text('Pešačke završnice'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Počni'));
+    await tester.tap(find.text('Start'));
     await tester.pumpAndSettle();
     expect(chosen!.materialsParam, 'KRPPvKR,KRPvKR');
   });
@@ -172,7 +172,7 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('nije dostupan'), findsOneWidget);
-    expect(find.text('Pokušaj ponovo'), findsOneWidget);
+    expect(find.textContaining('unavailable'), findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
   });
 }

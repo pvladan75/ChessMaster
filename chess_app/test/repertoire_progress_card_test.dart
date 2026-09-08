@@ -57,8 +57,8 @@ void main() {
       }),
     );
 
-    expect(find.text('5 neodgovorenih pozicija'), findsOneWidget);
-    expect(find.text('sve odgovoreno'), findsOneWidget);
+    expect(find.text('5 unanswered positions'), findsOneWidget);
+    expect(find.text('all answered'), findsOneWidget);
     // The badge is this repertoire's drafts, not the colour's.
     expect(find.text('4'), findsOneWidget);
   });
@@ -78,8 +78,8 @@ void main() {
       }),
     );
 
-    expect(find.textContaining('neodgovorenih'), findsNothing);
-    expect(find.text('sve odgovoreno'), findsNothing);
+    expect(find.textContaining('unanswered'), findsNothing);
+    expect(find.text('all answered'), findsNothing);
   });
 
   testWidgets('the cards are on screen before the counting answers',

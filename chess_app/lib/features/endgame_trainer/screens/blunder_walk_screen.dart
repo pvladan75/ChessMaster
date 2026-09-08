@@ -195,8 +195,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       setState(() {
         _loading = false;
         _error = result.outcome == EndgameFetchOutcome.noneMatch
-            ? 'Nema partije koja odgovara traženim uslovima.'
-            : 'Trenutno nije moguće dobaviti partiju.';
+            ? 'No game matches the requested criteria.'
+            : 'Currently unable to fetch a game.';
       });
       return;
     }
@@ -283,7 +283,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       setState(() {
         _fetchingRefutation = false;
         _feedbackIsGood = false;
-        _feedback = 'Kaznu trenutno nije moguće izvesti — tablica ne odgovara.';
+        _feedback =
+            'Cannot show refutation right now — tablebase did not respond.';
       });
       return;
     }
@@ -305,7 +306,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       // phrase. "Ovako se Qxb2 kažnjava" reads passably and hears badly: spoken
       // out, the notation lands in the middle of a construction the listener is
       // still waiting to have finished.
-      _feedback = 'Ovako se kažnjava potez ${blunder.played}.';
+      _feedback = 'This is how ${blunder.played} is punished.';
     });
     _boardController.loadFen(fens.first);
 
@@ -337,8 +338,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     if (walk == null || _keeping || _kept.contains(blunder.ply)) return;
     setState(() => _keeping = true);
 
-    final who = blunder.side == 'white' ? 'Beli' : 'Crni';
-    final lost = blunder.lostAWin ? 'ispustio dobitak' : 'izgubio remi';
+    final who = blunder.side == 'white' ? 'White' : 'Black';
+    final lost = blunder.lostAWin ? 'let the win go' : 'lost the draw';
     final lesson = holdingLesson(
       fen: blunder.fen,
       holdingUci: blunder.shouldPlayUci,
@@ -347,10 +348,10 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
 
     final ok = await _api.keepForLater(
       fen: blunder.fen,
-      title: '${blunder.material ?? 'Završnica'} — nejasno',
+      title: '${blunder.material ?? 'Endgame'} — unclear',
       description: [
-        '$who je odigrao ${blunder.played} i $lost.',
-        'Držalo je: ${blunder.shouldPlay.join(', ')}.',
+        '$who played ${blunder.played} and $lost.',
+        'Holding moves were: ${blunder.shouldPlay.join(', ')}.',
         lesson,
         walk.game.label,
       ].whereType<String>().join(' '),
@@ -361,8 +362,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       if (ok) _kept.add(blunder.ply);
       _feedbackIsGood = ok;
       _feedback = ok
-          ? 'Zapamćeno u „Moje pozicije", oznaka „Nejasno".'
-          : 'Poziciju trenutno nije moguće sačuvati.';
+          ? 'Saved to "My positions", tagged "Unclear".'
+          : 'Currently unable to save position.';
     });
   }
 
@@ -431,8 +432,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     if (walk.isFinished) {
       setState(() {
         _feedbackIsGood = true;
-        _feedback = 'Kraj partije — nema više poteza. Nađeno '
-            '${walk.solvedCount} od ${walk.totalCount}.';
+        _feedback = 'Game over — no more moves. Found '
+            '${walk.solvedCount} of ${walk.totalCount}.';
       });
     }
   }
@@ -462,8 +463,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       setState(() {
         _feedbackIsGood = false;
         _feedback = blunder.lostAWin
-            ? '$san takođe ispušta dobitak. Probajte drugi potez.'
-            : '$san ne drži remi. Probajte drugi potez.';
+            ? '$san also lets the win go. Try another move.'
+            : '$san does not hold the draw. Try another move.';
       });
       _showCurrent();
       return;
@@ -489,10 +490,10 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     final walk = _walk!;
 
     final verdict = found == null
-        ? 'Držalo je: ${blunder.shouldPlay.join(', ')}.'
+        ? 'Holding moves were: ${blunder.shouldPlay.join(', ')}.'
         : (blunder.shouldPlay.length == 1
-            ? 'Tačno — $found je bio jedini potez.'
-            : 'Tačno. Držalo je i: '
+            ? 'Correct — $found was the only move.'
+            : 'Correct. Also holding was: '
                 '${blunder.shouldPlay.where((m) => m != found).join(', ')}.');
 
     // What the moves that hold had in common, when they had anything. Said
@@ -515,13 +516,14 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     setState(() {
       _feedbackIsGood = found != null;
       if (!last) {
-        _feedback = '$taught Partija se nastavlja onako kako je odigrana.';
+        _feedback = '$taught The game continues as played.';
       } else if (movesLeft <= 0) {
-        _feedback = '$taught To je bila poslednja greška i poslednji potez — '
-            'kraj partije.';
+        _feedback = '$taught That was the last mistake and the last move — '
+            'game over.';
       } else {
-        _feedback = '$taught To je bila poslednja greška — ostatak partije je '
-            'otključan, prođite kroz njega trakom.';
+        _feedback =
+            '$taught That was the last mistake — the rest of the game is '
+            'unlocked, walk through it on the strip.';
       }
     });
     // The wall has moved, so the line the strip walks is longer now.
@@ -534,7 +536,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: const Text('Greške iz partija'),
+        title: const Text('Game mistakes'),
         actions: const [BoardViewMenu()],
       ),
       body: SafeArea(child: _buildBody()),
@@ -614,7 +616,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                         // No chips. Naming the moves under the board says in
                         // notation what the board is already saying in pieces, and
                         // it is the form a child working on a board needs least.
-                        centerLabel: 'Potez ${walk.cursor} od ${walk.frontier}',
+                        centerLabel: 'Move ${walk.cursor} of ${walk.frontier}',
                         onFlipBoard: () => setState(() {
                           _orientation = _orientation == PlayerColor.white
                               ? PlayerColor.black
@@ -640,18 +642,18 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// The heading is always something to do, never a description of where you
   /// happen to be standing.
   String _taskText(BlunderWalk walk) {
-    if (_refutation != null) return 'Kazna se odigrava sama';
+    if (_refutation != null) return 'Refutation plays out automatically';
     final here = walk.pending;
     if (here != null) {
-      final who = here.side == 'white' ? 'Beli' : 'Crni';
+      final who = here.side == 'white' ? 'White' : 'Black';
       return here.lostAWin
-          ? '$who je ovde odigrao ${here.played} i ispustio dobitak'
-          : '$who je ovde odigrao ${here.played} i izgubio remi';
+          ? '$who played ${here.played} here and let the win go'
+          : '$who played ${here.played} here and lost the draw';
     }
-    if (walk.nextStop != null) return 'Idite napred do sledeće greške';
+    if (walk.nextStop != null) return 'Go forward to the next mistake';
     return walk.isFinished
-        ? 'Partija je prošla — nađeno ${walk.solvedCount} od ${walk.totalCount}'
-        : 'Sve greške su rešene — ostatak partije je otključan';
+        ? 'Game finished — found ${walk.solvedCount} of ${walk.totalCount}'
+        : 'All mistakes solved — rest of the game is unlocked';
   }
 
   /// And the instruction under it names the thing to press or the thing to do
@@ -664,14 +666,14 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     // is nothing to play - but nothing on the screen said so, and a mode you
     // are in without knowing it is indistinguishable from a bug.
     if (_refutation != null) {
-      return 'Tabla se ovde ne igra — gledate kako se greška kažnjava. '
-          'Dugme „Nazad na partiju" vraća na šetnju.';
+      return 'The board cannot be played here — you are watching the refutation. '
+          'The "Back to game" button returns to the walk.';
     }
     final here = walk.pending;
     if (here != null) {
       return here.lostAWin
-          ? 'Odigrajte na tabli potez koji zadržava dobitak.'
-          : 'Odigrajte na tabli potez koji drži remi.';
+          ? 'Play the move that holds the win on the board.'
+          : 'Play the move that holds the draw on the board.';
     }
     final next = walk.nextStop;
     if (next != null) {
@@ -679,23 +681,22 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       // And why the board does not answer here. A piece that lifts and falls
       // back with nothing said reads as a broken board rather than as a locked
       // one, which is how this got reported.
-      return 'Tabla se igra samo na grešci. Još $away ${_moveWord(away)} '
-          'napred — strelicom ispod table ili dugmetom „Na grešku".';
+      return 'The board is only played at mistakes. $away more ${_moveWord(away)} '
+          'forward — with the arrow below the board or the "To mistake" button.';
     }
     return walk.isFinished
         ? null
-        : 'Prođite ostatak partije trakom ispod table.';
+        : 'Walk through the rest of the game with the strip below the board.';
   }
 
-  /// One potez, two to four poteza, and the same again past twenty.
-  String _moveWord(int n) =>
-      (n % 10 == 1 && n % 100 != 11) ? 'potez' : 'poteza';
+  /// One move, two or more moves.
+  String _moveWord(int n) => n == 1 ? 'move' : 'moves';
 
   List<String> _chips(BlunderWalk walk) {
     final blunder = walk.pending;
     return [
       walk.game.label,
-      'Greške: ${walk.answeredCount}/${walk.totalCount}',
+      'Mistakes: ${walk.answeredCount}/${walk.totalCount}',
       if (blunder?.material != null) blunder!.material!,
     ];
   }
@@ -714,13 +715,13 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
           FilledButton.icon(
             onPressed: () => _seek(walk.nextStop!.ply),
             icon: const Icon(Icons.error_outline),
-            label: const Text('Na grešku'),
+            label: const Text('To mistake'),
           ),
         if (blunder != null)
           TextButton.icon(
             onPressed: _reveal,
             icon: const Icon(Icons.visibility_outlined),
-            label: const Text('Pokaži'),
+            label: const Text('Show'),
           ),
         // Offered once the stop is behind us: before that it is the solution.
         if (_refutation == null && blunder == null && walk.atCursor != null)
@@ -729,13 +730,13 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                 ? null
                 : () => _showRefutation(walk.atCursor!),
             icon: const Icon(Icons.gavel),
-            label: const Text('Zašto je loše'),
+            label: const Text('Why it is bad'),
           ),
         if (_refutation != null)
           FilledButton.icon(
             onPressed: _closeRefutation,
             icon: const Icon(Icons.close),
-            label: const Text('Nazad na partiju'),
+            label: const Text('Back to game'),
           ),
         // Wherever there is a mistake on this board, answered or not.
         if (_refutation == null && walk.atCursor != null)
@@ -747,13 +748,13 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                 ? Icons.bookmark_added_outlined
                 : Icons.bookmark_add_outlined),
             label: Text(_kept.contains(walk.atCursor!.ply)
-                ? 'Zapamćeno'
-                : 'Zapamti za kasnije'),
+                ? 'Saved'
+                : 'Save for later'),
           ),
         FilledButton.icon(
           onPressed: _loadNext,
           icon: const Icon(Icons.arrow_forward),
-          label: Text(walk.isFinished ? 'Sledeća partija' : 'Preskoči'),
+          label: Text(walk.isFinished ? 'Next game' : 'Skip'),
         ),
       ],
     );
@@ -771,7 +772,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
               const SizedBox(height: AppSpacing.lg),
               FilledButton(
                 onPressed: _loadNext,
-                child: const Text('Pokušaj ponovo'),
+                child: const Text('Try again'),
               ),
             ],
           ),

@@ -60,7 +60,7 @@ class _ResumeStripState extends State<ResumeStrip> {
       if (session.hasActiveSession)
         _ResumeChip(
           icon: Icons.videocam_outlined,
-          label: 'Nastavi čas ${session.roomCode}',
+          label: 'Resume session ${session.roomCode}',
           colour: colors.accent,
           onTap: () => context.push(
             AppRoutes.roomPath(session.roomCode!, role: session.role),
@@ -69,7 +69,7 @@ class _ResumeStripState extends State<ResumeStrip> {
       if (_hasDraft)
         _ResumeChip(
           icon: Icons.biotech_outlined,
-          label: 'Nastavi analizu',
+          label: 'Resume analysis',
           colour: colors.brand,
           onTap: () => context.push(AppRoutes.analysis),
         ),
@@ -88,7 +88,7 @@ class _ResumeStripState extends State<ResumeStrip> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Nastavi',
+            'Resume',
             style: AppText.captionBold.copyWith(color: colors.textMuted),
           ),
           const SizedBox(height: AppSpacing.sm),
