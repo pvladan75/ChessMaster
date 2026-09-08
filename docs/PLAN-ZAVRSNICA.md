@@ -81,11 +81,40 @@ different work, and merging them is the multi-week job this plan exists to
 avoid. What changes is the name and the door: each entry says what the screen is
 for, and the word „studio" belongs to exactly one of them.
 
-This is a wording decision and it is the owner's. It is made in this phase,
-before anything is renamed, and it obeys the glossary contract
-(`docs/TABELA-RECNIK-2026-09.md`): the strings gate takes a table of decided
-replacements, so the new names are written there first and the sweep is checked
-against it.
+**The names, delegated to me on 8.9.2026 and settled here.** One word from the
+owner changes any of them; until then these are what the app and the
+documentation both say, because the documentation is written against them.
+
+| Screen | Was | Is |
+|---|---|---|
+| The room with a student in it | „Soba: 589388" | unchanged |
+| The same room alone, with the library | „Šahovski studio" | **„Priprema"** |
+| The analysis board | „Tabla za Analizu" | **„Analiza"** |
+| Writing a tutorial | „Studio za tutorijal" | unchanged |
+
+The reasoning, because the names have to survive somebody disagreeing with
+them. „Šahovski studio" and „Tabla za Analizu" were not merely similar-looking;
+their own descriptions on the home screen described the same thing — „Samostalni
+rad, FEN postavljanje, PGN i Stockfish analiza" against „Slobodna šahovska tabla
+za duboku analizu … rad sa PGN/FEN pozicijama". No wonder the owner asked why
+both exist. The difference is not the board:
+
+* **Priprema** is where your own saved positions and tutorials are, on a board,
+  with drawing and recording — the room without a student in it. It is about
+  *your material*.
+* **Analiza** is the engine, the opening database and the tree of variations.
+  It is about *a position*.
+
+„Priprema" is preferred over „Moja tabla" and „Radna soba" because it names the
+work rather than the furniture, and because it is the word a trainer already
+uses for what they do there. And the word „studio" is left in exactly one
+place, which is the whole point of the exercise.
+
+The rename obeys the glossary contract (`docs/TABELA-RECNIK-2026-09.md`): the
+strings gate takes a table of decided replacements, so the new names go in that
+table and the sweep is checked against it. The home-screen descriptions are
+rewritten with them — a name that says one thing under a sentence that says
+another is worse than the old name.
 
 ### 1c. The freeze
 
@@ -174,22 +203,61 @@ Concretely:
 The gate for it: the button never changes a tree; a failed call leaves the
 field untouched; the request carries a position and nothing about a person.
 
-## Phase 4 — the live pass
+## Phase 4 — the manual, and the site
 
-This is the phase that decides whether the project is finished, and it is the
-largest. Measured on 8.9.2026:
+**Promoted, on the owner's reading, and they are right.** „Najveći problem je
+nepostojanje dokumentacije koja bi pomogla korisniku da se snađe u moru
+funkcija. Dobra dokumentacija može da nadomesti i malo klimavu organizaciju."
+
+That sentence is what makes this a phase rather than a chore at the end. The
+app's organisation is not being rebuilt — that decision is in this document —
+so the manual is not describing the structure, it **is** the structure the user
+gets. It is therefore written after the features are frozen and built, and
+against the names from Phase 1b.
+
+1. **A user's manual, in Serbian.** Task-shaped rather than screen-shaped: what
+   a trainer wants to do, and which door it is behind. „Napravi tutorijal",
+   „Pošalji ga đaku", „Vidi šta je dete uradilo", „Pripremi repertoar",
+   „Analiziraj partiju". A screen-by-screen tour is what the app already is,
+   and it is what the owner is complaining about.
+2. **The site, filled in.** `docs/TODO-objavljivanje.md` §3a already says the
+   site is a precondition rather than marketing — the privacy policy and the
+   parent's consent text are served from it. What it needs beyond the legal
+   pages is the same manual, and a page that says what the app is for.
+3. **What the child and the parent see** is its own short piece, and it is not
+   the trainer's manual with the words changed.
+
+Translation is **not** part of this — see below.
+
+## Phase 5 — the verification list, triaged
+
+The number in the first draft of this plan was wrong, and the owner corrected
+it: **most of the 592 undocumented items have been seen working**, they were
+walked before this recording system existed, and a large part of the rest
+describes features that were changed or abandoned. What the list is short of is
+*bookkeeping*, not testing.
+
+So this phase is triage of the list rather than a march through it. Measured on
+8.9.2026:
 
 | | |
 |---|---|
 | 1037 | verification items in `docs/TODO-provera.md` |
-| 418 | confirmed live |
-| 592 | **never seen running** |
+| 418 | confirmed live and recorded |
+| 592 | not recorded — mostly seen, some stale, a few genuinely unwalked |
 | 20 | marked as failing |
 | 6 | untestable as written |
 
-592 will not all be walked. Pretending otherwise is how a release date slips
-twice and then is met by not looking. So they are **triaged**, and the rule is
-written here rather than decided item by item:
+Three piles, and the work is putting each item in one:
+
+* **Stale** — describes something the app no longer does. Retired to
+  `docs/arhiva/` with a line saying which change retired it. This is expected to
+  be the biggest pile and it costs almost nothing per item.
+* **Seen** — the owner remembers walking it and the feature has not changed
+  since. Recorded as such, with the honest note that it was not recorded at the
+  time.
+* **Genuinely unwalked** — the only pile that costs anything, and the rule for
+  what must be walked before release is:
 
 **A gate — must be walked before release:**
 
@@ -208,7 +276,7 @@ watched. That sentence is the deliverable. „Tested in code, never run live" ha
 already hidden one real fault in this project (`getDue`, a missing import that
 compiled), and the honest record is what makes the next person look.
 
-## Phase 5 — publishing
+## Phase 6 — publishing
 
 `docs/TODO-objavljivanje.md`, in the dependency order it already has. Its long
 poles are external and cannot be compressed by working harder: the Play Console
