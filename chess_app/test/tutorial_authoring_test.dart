@@ -345,7 +345,7 @@ void main() {
       await play(tester, 'g1', 'f3');
       // Standing in the middle of the line rather than at its end: the pairing
       // has to come from the example's root either way.
-      await tester.tap(find.byTooltip('Prethodni potez'));
+      await tester.tap(find.byTooltip('Previous move'));
       await tester.pumpAndSettle();
 
       await tapText(tester, 'Save tutorial');
@@ -429,7 +429,7 @@ void main() {
               'waiting to be written onto this one');
 
       await type(tester, 'example-sentence', secondSentence);
-      await tester.tap(find.byTooltip('Prethodni potez'));
+      await tester.tap(find.byTooltip('Previous move'));
       await tester.pumpAndSettle();
 
       expect(sentenceField(tester).controller?.text, firstSentence,

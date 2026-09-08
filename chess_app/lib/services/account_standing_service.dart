@@ -115,7 +115,7 @@ class AccountStandingService extends ChangeNotifier {
     final res =
         await _send(() => _post('$backendUrl/me/age', {'birthYear': year}));
     if (res.body == null) {
-      return res.error ?? 'Godina nije mogla da se sačuva.';
+      return res.error ?? 'Could not save birth year.';
     }
     // `/me/age` answers with the age, not with the consent block, so the full
     // standing is fetched again. One extra request on a screen shown once.
@@ -134,7 +134,7 @@ class AccountStandingService extends ChangeNotifier {
     final res = await _send(
         () => _post('$backendUrl/me/parent-email', {'parentEmail': email}));
     if (res.body == null) {
-      return res.error ?? 'Adresa nije mogla da se sačuva.';
+      return res.error ?? 'Could not save address.';
     }
     await refresh();
     return null;
@@ -182,7 +182,7 @@ class AccountStandingService extends ChangeNotifier {
       AppLogger.log('[Nalog] ❌ $e');
       return (
         body: null,
-        error: 'Server nije dostupan — proverite da li backend radi.',
+        error: 'Server is not available — check if the backend is running.',
       );
     }
   }
@@ -196,6 +196,6 @@ class AccountStandingService extends ChangeNotifier {
     } catch (_) {
       // A body that is not JSON says nothing about why.
     }
-    return 'Server je odgovorio ${res.statusCode}.';
+    return 'Server responded with ${res.statusCode}.';
   }
 }

@@ -35,7 +35,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      AppFeedback.error(context, 'Greška: $e');
+      AppFeedback.error(context, 'Error: $e');
       setState(() => _loading = false);
     }
   }
@@ -48,21 +48,21 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
   String _translateClockKey(String key) {
     switch (key) {
       case 'under-30s':
-        return 'Ispod 30s';
+        return 'Under 30s';
       case '30-60s':
         return '30-60s';
       case '60-120s':
         return '60-120s';
       case 'over-120s':
-        return 'Preko 120s';
+        return 'Over 120s';
       default:
         return key;
     }
   }
 
   String _translateColor(String key) {
-    if (key == 'w') return 'Beli';
-    if (key == 'b') return 'Crni';
+    if (key == 'w') return 'White';
+    if (key == 'b') return 'Black';
     return key;
   }
 
@@ -87,7 +87,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
                 Text(label,
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.textSecondary)),
-                Text('${b.games} partija',
+                Text('${b.games} games',
                     style:
                         AppText.body.copyWith(color: context.colors.textMuted)),
                 Container(
@@ -130,7 +130,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
                 Text(b.key,
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.textSecondary)),
-                Text('${b.games} partija',
+                Text('${b.games} games',
                     style:
                         AppText.body.copyWith(color: context.colors.textMuted)),
                 Container(
@@ -165,18 +165,18 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Upravljanje vremenom',
+        Text('Time management',
             style: AppText.title.copyWith(color: context.colors.textPrimary)),
         const SizedBox(height: AppSpacing.sm),
-        Text('Analizirano partija: ${clock.sampled}',
+        Text('Games analyzed: ${clock.sampled}',
             style: AppText.body.copyWith(color: context.colors.textMuted)),
-        Text('Porazi na vreme: ${clock.lostOnTime}',
+        Text('Losses on time: ${clock.lostOnTime}',
             style: AppText.body.copyWith(color: context.colors.textMuted)),
         if (clock.hurriedShare != null)
-          Text('Brzopleti potezi (<3s): ${_formatScore(clock.hurriedShare)}',
+          Text('Rushed moves (<3s): ${_formatScore(clock.hurriedShare)}',
               style: AppText.body.copyWith(color: context.colors.textMuted)),
         const SizedBox(height: AppSpacing.md),
-        Text('Skor na osnovu vremena u 20. potezu:',
+        Text('Score by time at move 20:',
             style:
                 AppText.bodyBold.copyWith(color: context.colors.textSecondary)),
         const SizedBox(height: AppSpacing.sm),
@@ -190,7 +190,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
                 Text(_translateClockKey(b.key),
                     style: AppText.body
                         .copyWith(color: context.colors.textSecondary)),
-                Text('${b.games} partija',
+                Text('${b.games} games',
                     style:
                         AppText.body.copyWith(color: context.colors.textMuted)),
                 Container(
@@ -220,7 +220,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: Text('Profil: ${widget.username}'),
+        title: Text('Profile: ${widget.username}'),
         backgroundColor: context.colors.surface,
         foregroundColor: context.colors.textPrimary,
       ),
@@ -228,7 +228,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _profile == null
               ? Center(
-                  child: Text('Nema podataka',
+                  child: Text('No data',
                       style: AppText.body
                           .copyWith(color: context.colors.textMuted)))
               : SingleChildScrollView(
@@ -236,14 +236,14 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildBucketList('Po boji', _profile!.byColor,
+                      _buildBucketList('By color', _profile!.byColor,
                           keyTranslator: _translateColor),
-                      _buildBucketList('Po tempu igre', _profile!.bySpeed),
-                      _buildBucketList('Po ishodu', _profile!.byTermination),
-                      _buildBucketList('Po dužini partije', _profile!.byLength),
-                      _buildBucketList('Po fazi igre', _profile!.byPhase),
-                      _buildYearList('Po godinama', _profile!.byYear),
-                      _buildBucketList('Otvaranja', _profile!.byOpening),
+                      _buildBucketList('By time control', _profile!.bySpeed),
+                      _buildBucketList('By outcome', _profile!.byTermination),
+                      _buildBucketList('By game length', _profile!.byLength),
+                      _buildBucketList('By game phase', _profile!.byPhase),
+                      _buildYearList('By year', _profile!.byYear),
+                      _buildBucketList('Openings', _profile!.byOpening),
                       _buildClockSection(_profile!.clock),
                     ],
                   ),

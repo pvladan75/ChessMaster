@@ -103,8 +103,8 @@ class StockfishAnalysisWidget extends StatelessWidget {
           // convention is the app's rather than this screen's.
           Text(
             !isAllowedToUseEngine
-                ? 'Zaključano od strane trenera'
-                : '${_engineName()} — ocena je iz ugla belog.',
+                ? 'Locked by trainer'
+                : '${_engineName()} — evaluation is from White\'s perspective.',
             style: AppText.micro.copyWith(
               color: !isAllowedToUseEngine ? colors.danger : colors.textMuted,
             ),
@@ -131,7 +131,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             if (shown.isEmpty)
               Text(
-                'Računanje poteza...',
+                'Calculating moves...',
                 style: AppText.micro.copyWith(color: colors.textMuted),
               )
             else
@@ -139,7 +139,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
             if (shown.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Dodirnite liniju za kompletan pregled.',
+                'Tap a line for a complete overview.',
                 style: AppText.micro.copyWith(color: colors.textMuted),
               ),
             ],
@@ -151,11 +151,11 @@ class StockfishAnalysisWidget extends StatelessWidget {
 
   /// Which engine is behind the number, in the words the settings screen uses.
   String _engineName() {
-    if (isCustomEngineActive) return 'Sopstveni lokalni engine (.exe)';
-    return isOnline ? 'Spoljašnji Stockfish (Online API)' : 'Lokalni motor';
+    if (isCustomEngineActive) return 'Custom local engine (.exe)';
+    return isOnline ? 'External Stockfish (Online API)' : 'Local engine';
   }
 
-  /// „Motor", the two icons that act on it, and the switch that runs it.
+  /// „Engine", the two icons that act on it, and the switch that runs it.
   ///
   /// A `Wrap` rather than a `Row`: the panel is narrow on a phone, and a `Row`
   /// that does not fit is clipped in a release build with no stripes painted to
@@ -172,7 +172,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
           children: [
             Icon(Icons.psychology_outlined, size: 16, color: colors.accent),
             const SizedBox(width: 6),
-            Text('Motor',
+            Text('Engine',
                 style: AppText.bodyBold.copyWith(color: colors.accent)),
             if (onOpenSettings != null) ...[
               const SizedBox(width: 6),
@@ -192,8 +192,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: Tooltip(
-                    message:
-                        'Prekini i ponovo pokreni analizu trenutne pozicije',
+                    message: 'Stop and restart analysis of current position',
                     child:
                         Icon(Icons.restart_alt, size: 15, color: colors.accent),
                   ),
@@ -218,7 +217,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
-              child: Text('Prikaži evaluaciju',
+              child: Text('Show evaluation',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.caption.copyWith(color: colors.textMuted)),
@@ -250,7 +249,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
         // pixels of the edge at 360 dp before the reader raises their font
         // size at all.
         Flexible(
-          child: Text('Prikaži evaluacionu liniju',
+          child: Text('Show evaluation bar',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(color: colors.textMuted)),
@@ -314,7 +313,7 @@ class StockfishAnalysisWidget extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.only(left: AppSpacing.xs),
-                tooltip: 'Ubaci liniju kao varijaciju',
+                tooltip: 'Insert line as variation',
               ),
           ],
         ),

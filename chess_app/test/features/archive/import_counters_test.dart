@@ -47,10 +47,10 @@ void main() {
         host(runWith(read: 4126, stored: 4126, duplicate: 0, skipped: 0)));
     await tester.pumpAndSettle();
 
-    expect(find.text('pročitano 4126'), findsOneWidget);
-    expect(find.text('upisano 4126'), findsOneWidget);
-    expect(find.text('već postojalo 0'), findsOneWidget);
-    expect(find.text('preskočeno 0'), findsOneWidget);
+    expect(find.text('read 4126'), findsOneWidget);
+    expect(find.text('stored 4126'), findsOneWidget);
+    expect(find.text('already existed 0'), findsOneWidget);
+    expect(find.text('skipped 0'), findsOneWidget);
   });
 
   testWidgets('a non-zero skip count is drawn with its reasons, still fitting',
@@ -70,7 +70,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('preskočeno 300: 297 nije standardni šah, 3 bez poteza'),
+      find.text('skipped 300: 297 not standard chess, 3 no moves'),
       findsOneWidget,
     );
   });
@@ -78,7 +78,7 @@ void main() {
   test('an unknown reason key survives as itself rather than disappearing', () {
     expect(
       ImportCounters.describeSkipped(2, const {'something-new': 2}),
-      'preskočeno 2: 2 something-new',
+      'skipped 2: 2 something-new',
     );
   });
 }

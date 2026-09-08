@@ -87,7 +87,7 @@ class PanelLesson {
   factory PanelLesson.fromJson(Map<String, dynamic> json) => PanelLesson(
         id: (json['id'] as num?)?.toInt() ?? 0,
         roomCode: json['room_code']?.toString() ?? '',
-        title: json['title']?.toString() ?? 'Čas',
+        title: json['title']?.toString() ?? 'Session',
         guests: ((json['guests'] as List?) ?? const [])
             .map((e) => e.toString())
             .toList(),
@@ -132,9 +132,9 @@ class PanelAssignment {
   factory PanelAssignment.fromJson(Map<String, dynamic> json) =>
       PanelAssignment(
         id: (json['id'] as num?)?.toInt() ?? 0,
-        title: json['title']?.toString() ?? 'Zadatak',
+        title: json['title']?.toString() ?? 'Assignment',
         studentId: (json['student_id'] as num?)?.toInt() ?? 0,
-        studentName: json['student_name']?.toString() ?? 'Učenik',
+        studentName: json['student_name']?.toString() ?? 'Student',
         totalItems: (json['total_items'] as num?)?.toInt() ?? 0,
         attemptedItems: (json['attempted_items'] as num?)?.toInt() ?? 0,
         solvedItems: (json['solved_items'] as num?)?.toInt() ?? 0,
@@ -162,7 +162,7 @@ class PanelIdleStudent {
   factory PanelIdleStudent.fromJson(Map<String, dynamic> json) =>
       PanelIdleStudent(
         id: (json['id'] as num?)?.toInt() ?? 0,
-        name: json['name']?.toString() ?? 'Učenik',
+        name: json['name']?.toString() ?? 'Student',
         lastActiveAt: _parseDate(json['last_active_at']),
       );
 }

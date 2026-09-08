@@ -12,10 +12,10 @@ import 'package:chess_app/features/assignments/models/assignment.dart'
 /// Four buttons rather than six: asking a child to distinguish six shades of
 /// remembering produces noise, not data. Anything below 3 counts as a failure.
 enum ReviewGrade {
-  again(1, 'Ponovo'),
-  hard(3, 'Teško'),
-  good(4, 'Dobro'),
-  easy(5, 'Lako');
+  again(1, 'Again'),
+  hard(3, 'Hard'),
+  good(4, 'Good'),
+  easy(5, 'Easy');
 
   const ReviewGrade(this.quality, this.label);
 
@@ -110,7 +110,7 @@ class ReviewApiService {
             Map<String, dynamic>.from(data['stats'] ?? const {})),
       );
     } catch (e) {
-      AppLogger.log('[Reviews] Ne mogu da učitam ponavljanja: $e');
+      AppLogger.log('[Reviews] Could not load reviews: $e');
       return (items: <ReviewItem>[], stats: const ReviewStats());
     }
   }
@@ -157,7 +157,7 @@ class ReviewApiService {
       return (jsonDecode(res.body) as Map<String, dynamic>)['description']
           ?.toString();
     } catch (e) {
-      AppLogger.log('[Reviews] Ocena nije zabeležena: $e');
+      AppLogger.log('[Reviews] Grade not recorded: $e');
       return null;
     }
   }

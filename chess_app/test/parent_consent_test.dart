@@ -118,7 +118,7 @@ void main() {
   /// A standing service backed by canned answers, plus what was posted.
   ({AccountStandingService service, List<String> posted}) fake({
     int status = 200,
-    String error = 'Adresa nije mogla da se sačuva.',
+    String error = 'Could not save address.',
   }) {
     final posted = <String>[];
     final client = MockClient((request) async {
@@ -170,7 +170,7 @@ void main() {
     await openDialog(tester, f.service);
 
     await tester.enterText(find.byType(TextField), 'roditelj@primer.rs');
-    await tester.tap(find.text('Pošalji'));
+    await tester.tap(find.text('Send'));
     await tester.pumpAndSettle();
 
     expect(jsonDecode(f.posted.single)['parentEmail'], 'roditelj@primer.rs');
@@ -185,17 +185,15 @@ void main() {
     // Closing either way would look the same whether the consent letter went
     // out or nothing at all happened — and a relationship would stay stuck with
     // nobody able to say why.
-    final f =
-        fake(status: 400, error: 'Unesite ispravnu email adresu roditelja.');
+    final f = fake(status: 400, error: 'Enter a valid parent email address.');
     await openDialog(tester, f.service);
 
     await tester.enterText(find.byType(TextField), 'roditelj@primer.rs');
-    await tester.tap(find.text('Pošalji'));
+    await tester.tap(find.text('Send'));
     await tester.pumpAndSettle();
 
     expect(find.byType(TextField), findsOneWidget);
-    expect(
-        find.text('Unesite ispravnu email adresu roditelja.'), findsOneWidget);
+    expect(find.text('Enter a valid parent email address.'), findsOneWidget);
   });
 
   testWidgets('an address that is not one never leaves the phone',
@@ -204,7 +202,7 @@ void main() {
     await openDialog(tester, f.service);
 
     await tester.enterText(find.byType(TextField), 'roditelj');
-    await tester.tap(find.text('Pošalji'));
+    await tester.tap(find.text('Send'));
     await tester.pumpAndSettle();
 
     expect(f.posted, isEmpty);

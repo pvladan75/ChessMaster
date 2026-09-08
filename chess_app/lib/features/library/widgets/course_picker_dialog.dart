@@ -74,8 +74,8 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
       title: Text(
         widget.title ??
             (widget.count == 1
-                ? 'U koji tutorijal?'
-                : 'U koji tutorijal? (${widget.count} pozicije)'),
+                ? 'Which tutorial?'
+                : 'Which tutorial? (${widget.count} positions)'),
         style: const TextStyle(fontSize: 16),
       ),
       // Fixed width, for the same reason as everywhere else in this codebase:
@@ -90,7 +90,7 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
       ],
     );
@@ -107,9 +107,9 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
         children: [
           Icon(Icons.cloud_off, color: colors.textMuted),
           const SizedBox(height: AppSpacing.sm),
-          const Text('Nije moguće doći do servera.'),
+          const Text('Could not reach server.'),
           const SizedBox(height: AppSpacing.sm),
-          TextButton(onPressed: _load, child: const Text('Pokušaj opet')),
+          TextButton(onPressed: _load, child: const Text('Try again')),
         ],
       );
     }
@@ -119,7 +119,7 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
         child: Text(
-          'Nema nijednog tutorijala sa koracima. Napravite ga preko „Kreiraj tutorijal".',
+          'No tutorials with steps found. Create one via "Create tutorial".',
           textAlign: TextAlign.center,
           style: AppText.body.copyWith(color: colors.textSecondary),
         ),
@@ -136,7 +136,8 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
           dense: true,
           leading: Icon(Icons.menu_book, size: 18, color: colors.accent),
           title: Text(course.title, style: AppText.bodyLarge),
-          subtitle: Text('${course.stepCount} koraka',
+          subtitle: Text(
+              '${course.stepCount} ${course.stepCount == 1 ? 'step' : 'steps'}',
               style: AppText.caption.copyWith(color: colors.textSecondary)),
           onTap: () => Navigator.pop(context, course),
         );

@@ -257,7 +257,7 @@ void main() {
       expect(find.text('Move 1 of 5'), findsOneWidget);
 
       // The child decides to go back and look again.
-      await tester.tap(find.byTooltip('Prethodni potez'));
+      await tester.tap(find.byTooltip('Previous move'));
       await tester.pump();
 
       expect(find.text('Move 0 of 5'), findsOneWidget);
@@ -284,7 +284,7 @@ void main() {
       );
 
       expect(find.byTooltip('Play tutorial'), findsNothing);
-      expect(find.byTooltip('Sledeći potez'), findsOneWidget,
+      expect(find.byTooltip('Next move'), findsOneWidget,
           reason: 'the line is still there to be walked by hand');
     });
   });
@@ -483,7 +483,7 @@ void main() {
 
       await open(tester, demoThenQuestion(), speech);
 
-      await tester.tap(find.byTooltip('Idi na kraj'));
+      await tester.tap(find.byTooltip('Go to end'));
       await tester.pump();
       expect(find.text('Move 4 of 4'), findsOneWidget);
 

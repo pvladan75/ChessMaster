@@ -50,35 +50,35 @@ class BoardSkin {
   /// It exists so a reader who changes nothing sees no change. Do not retune it.
   static const BoardSkin classic = BoardSkin(
     id: 'classic',
-    name: 'Klasična',
+    name: 'Classic',
     lightSquare: Color(0xFFF0DAB5),
     darkSquare: Color(0xFFB58763),
   );
 
   static const BoardSkin green = BoardSkin(
     id: 'green',
-    name: 'Zelena',
+    name: 'Green',
     lightSquare: Color(0xFFE9EDCC),
     darkSquare: Color(0xFF779556),
   );
 
   static const BoardSkin blue = BoardSkin(
     id: 'blue',
-    name: 'Plava',
+    name: 'Blue',
     lightSquare: Color(0xFFC4D1D1),
     darkSquare: Color(0xFF677C8D),
   );
 
   static const BoardSkin highContrast = BoardSkin(
     id: 'high_contrast',
-    name: 'Visoki kontrast',
+    name: 'High Contrast',
     lightSquare: Color(0xFFFFFFFF),
     darkSquare: Color(0xFF737373),
   );
 
   static const BoardSkin grayscale = BoardSkin(
     id: 'grayscale',
-    name: 'Siva',
+    name: 'Gray',
     lightSquare: Color(0xFFE2E2E2),
     darkSquare: Color(0xFF8C8C8C),
   );
@@ -144,7 +144,7 @@ class PieceSkin {
   /// constraint — the stroke is what has to separate from the square.
   static const PieceSkin classic = PieceSkin(
     id: 'classic',
-    name: 'Klasične',
+    name: 'Classic',
     whiteFill: Color(0xFFFFFFFF),
     whiteStroke: Color(0xFF000000),
     blackFill: Color(0xFF000000),
@@ -154,7 +154,7 @@ class PieceSkin {
 
   static const PieceSkin warm = PieceSkin(
     id: 'warm',
-    name: 'Tople',
+    name: 'Warm',
     whiteFill: Color(0xFFFDF6E3),
     whiteStroke: Color(0xFF222222),
     blackFill: Color(0xFF222222),
@@ -164,7 +164,7 @@ class PieceSkin {
 
   static const PieceSkin highContrast = PieceSkin(
     id: 'high_contrast',
-    name: 'Visoki kontrast',
+    name: 'High Contrast',
     whiteFill: Color(0xFFFFFF00),
     whiteStroke: Color(0xFF000000),
     blackFill: Color(0xFF000000),

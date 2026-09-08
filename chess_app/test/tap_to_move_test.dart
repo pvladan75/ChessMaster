@@ -270,11 +270,11 @@ void main() {
     await tester.tapAt(_centreOf('d8'));
     await tester.pumpAndSettle();
 
-    expect(find.text('U šta se pretvara pešak?'), findsOneWidget,
+    expect(find.text('Promote pawn to:'), findsOneWidget,
         reason: 'tap-move je ranije ćutke pravio damu');
     expect(moves, isEmpty, reason: 'ništa se ne igra dok se ne odgovori');
 
-    await tester.tap(find.text('Skakač'));
+    await tester.tap(find.text('Knight'));
     await tester.pumpAndSettle();
 
     expect(controller.game.get('d8')?.type, PieceType.KNIGHT);
@@ -298,7 +298,7 @@ void main() {
     await tester.pump();
     await tester.tapAt(_centreOf('d8'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Odustani'));
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(moves, isEmpty);
@@ -323,7 +323,7 @@ void main() {
     await tester.tapAt(_centreOf('b8'));
     await tester.pumpAndSettle();
 
-    expect(find.text('U šta se pretvara pešak?'), findsNothing);
+    expect(find.text('Promote pawn to:'), findsNothing);
     expect(moves, ['b6b8']);
   });
 

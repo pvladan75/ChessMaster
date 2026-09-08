@@ -59,7 +59,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
       return Scaffold(
         backgroundColor: context.colors.canvas,
         appBar: AppBar(
-          title: const Text('Moje partije'),
+          title: const Text('My games'),
           backgroundColor: context.colors.surface,
           foregroundColor: context.colors.textPrimary,
         ),
@@ -73,7 +73,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
       return Scaffold(
         backgroundColor: context.colors.canvas,
         appBar: AppBar(
-          title: const Text('Moje partije'),
+          title: const Text('My games'),
           backgroundColor: context.colors.surface,
           foregroundColor: context.colors.textPrimary,
         ),
@@ -82,13 +82,13 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Greška pri učitavanju.',
+                'Failed to load.',
                 style: AppText.body.copyWith(color: context.colors.danger),
               ),
               const SizedBox(height: AppSpacing.md),
               ElevatedButton(
                 onPressed: _loadData,
-                child: const Text('Pokušaj ponovo'),
+                child: const Text('Try again'),
               ),
             ],
           ),
@@ -103,7 +103,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
       return Scaffold(
         backgroundColor: context.colors.canvas,
         appBar: AppBar(
-          title: const Text('Moje partije'),
+          title: const Text('My games'),
           backgroundColor: context.colors.surface,
           foregroundColor: context.colors.textPrimary,
         ),
@@ -112,7 +112,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Nema arhiviranih partija.',
+                'No archived games.',
                 style:
                     AppText.body.copyWith(color: context.colors.textSecondary),
               ),
@@ -120,7 +120,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
               ElevatedButton.icon(
                 onPressed: () => context.push(AppRoutes.archiveImport),
                 icon: const Icon(Icons.file_upload),
-                label: const Text('Uvoz partija'),
+                label: const Text('Import games'),
               ),
             ],
           ),
@@ -131,7 +131,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: const Text('Moje partije'),
+        title: const Text('My games'),
         backgroundColor: context.colors.surface,
         foregroundColor: context.colors.textPrimary,
       ),
@@ -142,7 +142,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
           const SizedBox(height: AppSpacing.lg),
           if (runs.isNotEmpty) ...[
             Text(
-              'Poslednji uvozi',
+              'Recent imports',
               style: AppText.title.copyWith(color: context.colors.textPrimary),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -153,7 +153,7 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
             child: FilledButton.icon(
               onPressed: () => context.push(AppRoutes.archiveImport),
               icon: const Icon(Icons.file_upload),
-              label: const Text('Uvezi još partija'),
+              label: const Text('Import more games'),
             ),
           ),
         ],
@@ -188,7 +188,7 @@ class _SubjectCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Partije: ${subject.games}',
+              'Games: ${subject.games}',
               style: AppText.body.copyWith(color: context.colors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -200,13 +200,13 @@ class _SubjectCard extends StatelessWidget {
                   onPressed: () =>
                       context.push(AppRoutes.archiveLeaksPath(subject.subject)),
                   icon: const Icon(Icons.search),
-                  label: const Text('Pogledaj rupe u otvaranju'),
+                  label: const Text('View opening leaks'),
                 ),
                 FilledButton.icon(
                   onPressed: () => context.push(
                       '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent(subject.subject)}'),
                   icon: const Icon(Icons.account_tree_outlined),
-                  label: const Text('Repertoar iz partija'),
+                  label: const Text('Repertoire from games'),
                   style: FilledButton.styleFrom(
                     backgroundColor:
                         context.colors.brand.withValues(alpha: 0.08),
@@ -217,7 +217,7 @@ class _SubjectCard extends StatelessWidget {
                   onPressed: () => context
                       .push(AppRoutes.archiveProfilePath(subject.subject)),
                   icon: const Icon(Icons.person_outline),
-                  label: const Text('Profil i navike'),
+                  label: const Text('Profile and habits'),
                 ),
               ],
             ),
@@ -249,7 +249,7 @@ class _RunRow extends StatelessWidget {
                       .copyWith(color: context.colors.textPrimary),
                 ),
                 Text(
-                  'Uvezeno: ${run.gamesStored} / ${run.gamesRead}',
+                  'Imported: ${run.gamesStored} / ${run.gamesRead}',
                   style: AppText.caption
                       .copyWith(color: context.colors.textSecondary),
                 ),

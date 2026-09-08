@@ -52,7 +52,7 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
   Future<void> _save() async {
     final value = _email.text.trim();
     if (value.isEmpty || !value.contains('@') || !value.contains('.')) {
-      setState(() => _error = 'Unesite ispravnu email adresu roditelja.');
+      setState(() => _error = 'Enter a valid parent email address.');
       return;
     }
 
@@ -78,7 +78,7 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AlertDialog(
-      title: const Text('Email roditelja'),
+      title: const Text('Parent email'),
       content: SizedBox(
         // A firm width, because an AlertDialog wraps its content in
         // IntrinsicWidth and a lazy list inside one without it throws instead
@@ -91,15 +91,15 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Da bi trener mogao da radi sa vama, roditelj mora da potvrdi '
-              'saglasnost. Na ovu adresu šaljemo poruku sa linkom na kom se '
-              'saglasnost daje.',
+              'To allow your trainer to work with you, a parent must confirm '
+              'consent. We will send an email with a consent link to this '
+              'address.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Adresa se koristi samo za to i ne prikazuje se drugim '
-              'korisnicima.',
+              'This address is used only for this purpose and is not visible to other '
+              'users.',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -108,8 +108,8 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                labelText: 'Email roditelja',
-                hintText: 'roditelj@primer.rs',
+                labelText: 'Parent email',
+                hintText: 'parent@example.com',
                 border: OutlineInputBorder(),
               ),
               onSubmitted: (_) => _saving ? null : _save(),
@@ -128,7 +128,7 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _saving ? null : _save,
@@ -138,7 +138,7 @@ class _ParentEmailDialogState extends State<_ParentEmailDialog> {
                   width: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Pošalji'),
+              : const Text('Send'),
         ),
       ],
     );

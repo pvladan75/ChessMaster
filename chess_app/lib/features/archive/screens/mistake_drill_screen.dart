@@ -64,7 +64,7 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      AppFeedback.error(context, 'Greška pri učitavanju grešaka: $e');
+      AppFeedback.error(context, 'Error loading mistakes: $e');
     }
   }
 
@@ -90,17 +90,17 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
       final res = await _api.gradeMistake(_current!.id, grade.name);
       if (!mounted) return;
       if (res.ok) {
-        AppFeedback.success(context, res.description ?? 'Ocena zabeležena');
+        AppFeedback.success(context, res.description ?? 'Grade recorded');
         setState(() {
           _completed++;
           _next();
         });
       } else {
-        AppFeedback.error(context, res.error ?? 'Greška na serveru');
+        AppFeedback.error(context, res.error ?? 'Server error');
       }
     } catch (e) {
       if (!mounted) return;
-      AppFeedback.error(context, 'Greška: $e');
+      AppFeedback.error(context, 'Error: $e');
     } finally {
       if (mounted) setState(() => _grading = false);
     }
@@ -138,19 +138,19 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
   }
 
   String _endingName(String key) {
-    if (key == 'KPRkpr') return 'Topovske završnice sa pešacima';
-    if (key == 'KPRkp') return 'Topovske sa prednošću pešaka';
-    if (key == 'KRkr') return 'Čiste topovske završnice';
-    if (key == 'KPkp') return 'Pešačke završnice';
-    if (key == 'KPk') return 'Kralj i pešak protiv kralja';
-    if (key == 'KQkq') return 'Damine završnice';
-    if (key == 'KBNk') return 'Matiranje lovcem i skakačem';
-    if (key == 'KBBk') return 'Matiranje sa dva lovca';
-    if (key == 'KRk') return 'Matiranje topom';
-    if (key == 'KQk') return 'Matiranje damom';
-    if (key == 'KRNkrn') return 'Top i skakač';
-    if (key == 'KRBkrb') return 'Top i lovac';
-    return 'Specijalne završnice';
+    if (key == 'KPRkpr') return 'Rook and pawn endgames';
+    if (key == 'KPRkp') return 'Rook endgames with pawn advantage';
+    if (key == 'KRkr') return 'Pure rook endgames';
+    if (key == 'KPkp') return 'Pawn endgames';
+    if (key == 'KPk') return 'King and pawn vs king';
+    if (key == 'KQkq') return 'Queen endgames';
+    if (key == 'KBNk') return 'Checkmate with bishop and knight';
+    if (key == 'KBBk') return 'Checkmate with two bishops';
+    if (key == 'KRk') return 'Checkmate with rook';
+    if (key == 'KQk') return 'Checkmate with queen';
+    if (key == 'KRNkrn') return 'Rook and knight';
+    if (key == 'KRBkrb') return 'Rook and bishop';
+    return 'Special endgames';
   }
 
   String _motifName(String key) {
@@ -161,7 +161,7 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('Moje greške'), elevation: 0),
+      appBar: AppBar(title: const Text('My mistakes'), elevation: 0),
       body: SafeArea(child: _buildBody()),
     );
   }
@@ -214,7 +214,8 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
 
   Widget _buildPrompt() {
     final item = _current!;
-    final toMove = _board.game.turn == chess_lib.Color.WHITE ? 'Beli' : 'Crni';
+    final toMove =
+        _board.game.turn == chess_lib.Color.WHITE ? 'White' : 'Black';
 
     return Card(
       color: context.colors.surface,
@@ -227,9 +228,7 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    item.opponent != null
-                        ? 'Protiv ${item.opponent}'
-                        : 'Zagonetka',
+                    item.opponent != null ? 'vs ${item.opponent}' : 'Puzzle',
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
@@ -272,14 +271,14 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
                       style: TextStyle(
                           fontSize: 12.5, color: context.colors.textSecondary)),
                 if (item.subjectColor != null)
-                  Text(item.subjectColor == 'w' ? 'Beli' : 'Crni',
+                  Text(item.subjectColor == 'w' ? 'White' : 'Black',
                       style: TextStyle(
                           fontSize: 12.5, color: context.colors.textSecondary)),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '$toMove na potezu. Setite se boljeg poteza.',
+              '$toMove to move. Recall the better move.',
               style:
                   TextStyle(fontSize: 12.5, color: context.colors.textPrimary),
             ),
@@ -312,9 +311,9 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
               Expanded(
                 child: Text(
                   isCorrect
-                      ? 'Bravo! Odigrali ste najbolji potez.'
-                      : 'Netačno. Najbolji potez je bio ${item.bestUci}, a vi ste pokušali ${_playerMoveUci ?? 'ništa'}. '
-                          'U partiji ste odigrali ${item.playedUci}.',
+                      ? 'Well done! You played the best move.'
+                      : 'Incorrect. The best move was ${item.bestUci}, and you tried ${_playerMoveUci ?? 'nothing'}. '
+                          'In the game you played ${item.playedUci}.',
                   style: AppText.bodyBold.copyWith(color: color),
                 ),
               ),
@@ -323,19 +322,19 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
           const SizedBox(height: AppSpacing.sm),
           if (item.kind == 'engine') ...[
             Text(
-              'Gubitak: ${item.swingCp != null ? "${item.swingCp} cp" : "?"}',
+              'Loss: ${item.swingCp != null ? "${item.swingCp} cp" : "?"}',
               style:
                   AppText.caption.copyWith(color: context.colors.textPrimary),
             ),
             if (item.theme != null)
               Text(
-                'Tema: ${item.theme}',
+                'Theme: ${item.theme}',
                 style: AppText.caption
                     .copyWith(color: context.colors.textSecondary),
               ),
           ] else if (item.kind == 'tablebase') ...[
             Text(
-              'Tabela: ${_wdlString(item.wdlBefore)} -> ${_wdlString(item.wdlAfter)}',
+              'Tablebase: ${_wdlString(item.wdlBefore)} -> ${_wdlString(item.wdlAfter)}',
               style:
                   AppText.caption.copyWith(color: context.colors.textPrimary),
             ),
@@ -347,16 +346,16 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
 
   String _wdlString(int? wdl) {
     if (wdl == null) return '?';
-    if (wdl > 0) return 'Dobijeno';
-    if (wdl < 0) return 'Izgubljeno';
-    return 'Remi';
+    if (wdl > 0) return 'Won';
+    if (wdl < 0) return 'Lost';
+    return 'Draw';
   }
 
   Widget _buildRevealButton() {
     return ElevatedButton.icon(
       onPressed: _reveal,
       icon: const Icon(Icons.visibility),
-      label: const Text('Prikaži odgovor'),
+      label: const Text('Show answer'),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
       ),
@@ -374,7 +373,7 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
     return Column(
       children: [
         Text(
-          'Koliko ste se setili?',
+          'How well did you recall it?',
           style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -420,14 +419,14 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  nothingDue ? 'Ništa nije na redu.' : 'Gotovo za danas.',
+                  nothingDue ? 'Nothing due.' : 'Done for today.',
                   style: AppText.headline,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   nothingDue
-                      ? 'Igrali ste sjajno i nemate grešaka za uvežbavanje.'
-                      : 'Ponovili ste $_completed ${_completed == 1 ? 'grešku' : 'grešaka'}.',
+                      ? 'You played great and have no mistakes to practice.'
+                      : 'You reviewed $_completed ${_completed == 1 ? 'mistake' : 'mistakes'}.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: context.colors.textSecondary),
                 ),
@@ -438,12 +437,12 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
                     OutlinedButton.icon(
                       onPressed: _load,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Osveži'),
+                      label: const Text('Refresh'),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: const Icon(Icons.arrow_back),
-                      label: const Text('Nazad'),
+                      label: const Text('Back'),
                     ),
                   ],
                 ),
@@ -454,31 +453,33 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
               (_recurrence!.motifs.isNotEmpty ||
                   _recurrence!.endings.isNotEmpty)) ...[
             const SizedBox(height: AppSpacing.xl),
-            Text('Vaše česte greške',
+            Text('Your frequent mistakes',
                 style:
                     AppText.title.copyWith(color: context.colors.textPrimary)),
             const SizedBox(height: AppSpacing.md),
             if (_recurrence!.motifs.isNotEmpty) ...[
-              Text('Taktika (motivi)',
+              Text('Tactics (motifs)',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textSecondary)),
               const SizedBox(height: AppSpacing.sm),
               ..._recurrence!.motifs.map((m) => ListTile(
                     title: Text(_motifName(m.key), style: AppText.body),
-                    trailing:
-                        Text('${m.count} grešaka', style: AppText.bodyBold),
+                    trailing: Text(
+                        '${m.count} ${m.count == 1 ? 'mistake' : 'mistakes'}',
+                        style: AppText.bodyBold),
                   )),
             ],
             if (_recurrence!.endings.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.md),
-              Text('Završnice',
+              Text('Endgames',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textSecondary)),
               const SizedBox(height: AppSpacing.sm),
               ..._recurrence!.endings.map((m) => ListTile(
                     title: Text(_endingName(m.key), style: AppText.body),
-                    trailing:
-                        Text('${m.count} grešaka', style: AppText.bodyBold),
+                    trailing: Text(
+                        '${m.count} ${m.count == 1 ? 'mistake' : 'mistakes'}',
+                        style: AppText.bodyBold),
                   )),
             ],
           ]

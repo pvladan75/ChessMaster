@@ -69,8 +69,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Nema arhiviranih partija.'), findsOneWidget);
-    expect(find.text('Uvoz partija'), findsOneWidget);
+    expect(find.text('No archived games.'), findsOneWidget);
+    expect(find.text('Import games'), findsOneWidget);
   });
 
   testWidgets('shows error state and retries', (tester) async {
@@ -84,15 +84,15 @@ void main() {
     await tester.pumpWidget(buildScreen());
     await tester.pumpAndSettle();
 
-    expect(find.text('Greška pri učitavanju.'), findsOneWidget);
+    expect(find.text('Failed to load.'), findsOneWidget);
 
     apiService.shouldThrow = false;
     apiService.returnedSubjects = [];
 
-    await tester.tap(find.text('Pokušaj ponovo'));
+    await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Nema arhiviranih partija.'), findsOneWidget);
+    expect(find.text('No archived games.'), findsOneWidget);
   });
 
   testWidgets('shows loaded state with subjects and runs', (tester) async {
@@ -135,13 +135,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('pvladan'), findsOneWidget);
-    expect(find.text('Partije: 4000'), findsOneWidget);
+    expect(find.text('Games: 4000'), findsOneWidget);
     expect(find.text('magnuscarlsen'), findsOneWidget);
-    expect(find.text('Partije: 1000'), findsOneWidget);
+    expect(find.text('Games: 1000'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -1000));
     await tester.pumpAndSettle();
     expect(find.text('pvladan (lichess)'), findsOneWidget);
-    expect(find.text('Uvezeno: 100 / 100'), findsOneWidget);
+    expect(find.text('Imported: 100 / 100'), findsOneWidget);
   });
 
   testWidgets('doors push correct routes', (tester) async {
@@ -181,18 +181,18 @@ void main() {
     await tester.pumpAndSettle();
 
     // 1. Leaks
-    await tester.tap(find.text('Pogledaj rupe u otvaranju'));
+    await tester.tap(find.text('View opening leaks'));
     await tester.pumpAndSettle();
     expect(pushedRoute, AppRoutes.archiveLeaksPath('pvladan'));
 
     // 3. Repertoire
-    await tester.tap(find.text('Repertoar iz partija'));
+    await tester.tap(find.text('Repertoire from games'));
     await tester.pumpAndSettle();
     expect(pushedRoute,
         '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent("pvladan")}');
 
     // 4. Profile
-    await tester.tap(find.text('Profil i navike'));
+    await tester.tap(find.text('Profile and habits'));
     await tester.pumpAndSettle();
     expect(pushedRoute, AppRoutes.archiveProfilePath('pvladan'));
   });

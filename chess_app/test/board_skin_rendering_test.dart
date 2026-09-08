@@ -208,12 +208,12 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
 
-      expect(find.text('U šta se pretvara pešak?'), findsOneWidget);
+      expect(find.text('Promote pawn to:'), findsOneWidget);
       expect(find.text('Choose promotion'), findsNothing);
-      // The four Serbian names, in the moving side's colour.
-      expect(find.text('Skakač'), findsOneWidget);
+      // The four names, in the moving side's colour.
+      expect(find.text('Knight'), findsOneWidget);
 
-      await tester.tap(find.text('Skakač'));
+      await tester.tap(find.text('Knight'));
       await tester.pumpAndSettle();
 
       expect(controller.game.get('a8')?.type.name, 'n');
@@ -238,7 +238,7 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       // Not promoted to a queen nobody chose: the pawn is still on a7.

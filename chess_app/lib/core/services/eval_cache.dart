@@ -127,6 +127,6 @@ class EvalCache {
     if (total == 0) return;
     final percent = ((_hits / total) * 100).round();
     AppLogger.log(
-        '[EvalCache] $context — $_hits/$total iz keša ($percent%), $size pozicija.');
+        '[EvalCache] $context — $_hits/$total from cache ($percent%), $size positions.');
   }
 }

@@ -45,7 +45,7 @@ class MoveNavigationControls extends StatelessWidget {
     required this.cursor,
     this.canNavigate = true,
     this.onFlipBoard,
-    this.centerLabel = 'Navigacija',
+    this.centerLabel = 'Navigation',
     this.trailing = const [],
     this.iconSize,
   });
@@ -92,12 +92,12 @@ class MoveNavigationControls extends StatelessWidget {
         IconButton(
           icon: Icon(Icons.first_page, size: iconSize),
           onPressed: canGoBack ? cursor.first : null,
-          tooltip: 'Idi na početak',
+          tooltip: 'Go to start',
         ),
         IconButton(
           icon: Icon(Icons.chevron_left, size: iconSize),
           onPressed: canGoBack ? cursor.previous : null,
-          tooltip: 'Prethodni potez',
+          tooltip: 'Previous move',
         ),
         if (centerLabel != null)
           Text(
@@ -107,12 +107,12 @@ class MoveNavigationControls extends StatelessWidget {
         IconButton(
           icon: Icon(Icons.chevron_right, size: iconSize),
           onPressed: canGoForward ? () => _forward(context) : null,
-          tooltip: 'Sledeći potez',
+          tooltip: 'Next move',
         ),
         IconButton(
           icon: Icon(Icons.last_page, size: iconSize),
           onPressed: canGoForward ? cursor.last : null,
-          tooltip: 'Idi na kraj',
+          tooltip: 'Go to end',
         ),
         if (onFlipBoard != null)
           BoardFlipButton(size: iconSize, onPressed: onFlipBoard!),

@@ -64,14 +64,14 @@ const _expected = <String, List<String>>{
     'You have no saved tutorials.',
   ],
   'lib/features/library/widgets/course_picker_dialog.dart': [
-    'U koji tutorijal?',
-    'Nema nijednog tutorijala sa koracima.',
+    'Which tutorial?',
+    'No tutorials with steps found.',
   ],
   'lib/features/position_scanner/screens/saved_positions_screen.dart': [
     'Add to tutorial',
   ],
   'lib/features/reviews/screens/review_session_screen.dart': [
-    'zadati tutorijal',
+    'assigned tutorial',
   ],
   'lib/screens/chess_game_screen.dart': [
     'Delete tutorial?',
@@ -82,16 +82,16 @@ const _expected = <String, List<String>>{
     'Saved tutorial from trainer',
   ],
   'lib/screens/shortcuts_screen.dart': ['tutorial'],
-  'lib/widgets/account_stats_card.dart': ['Sačuvani tutorijali / pozicije'],
+  'lib/widgets/account_stats_card.dart': ['Saved tutorials / positions'],
   'lib/widgets/create_course_dialog.dart': [
-    'Unesite naziv tutorijala.',
-    'Kreiraj tutorijal',
-    'Sačuvaj tutorijal',
-    'Naziv tutorijala',
+    'Enter tutorial name.',
+    'Create tutorial',
+    'Save tutorial',
+    'Tutorial name',
   ],
   'lib/widgets/game_screen/course_step_bar.dart': [
-    'Zatvori tutorijal',
-    "'Tutorijal'",
+    'Close tutorial',
+    "'Tutorial'",
   ],
   'lib/widgets/home/biblioteka_tab.dart': [
     'Library of positions and tutorials',
@@ -107,9 +107,9 @@ const _expected = <String, List<String>>{
     'saved positions and tutorials',
   ],
   'lib/widgets/save_position_dialog.dart': [
-    'Sačuvaj trenutni tutorijal / poziciju',
-    'Naziv tutorijala / pozicije',
-    'Unesite naziv tutorijala.',
+    'Save current tutorial / position',
+    'Tutorial / position name',
+    'Enter tutorial name.',
   ],
 };
 

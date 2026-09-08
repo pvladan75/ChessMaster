@@ -116,20 +116,21 @@ String authCodeFromRedirect(Uri requested, {required String expectedState}) {
   final error = params['error'];
   if (error != null && error.isNotEmpty) {
     if (error == 'access_denied') {
-      throw const OAuthRedirectException('Prijava preko Google-a je otkazana.');
+      throw const OAuthRedirectException('Google sign-in was cancelled.');
     }
-    throw OAuthRedirectException('Google je odbio prijavu ($error).');
+    throw OAuthRedirectException('Google rejected the sign-in ($error).');
   }
 
   final state = params['state'];
   if (state == null || state != expectedState) {
     throw const OAuthRedirectException(
-        'Odgovor ne pripada ovoj prijavi. Pokušajte ponovo.');
+        'The response does not match this sign-in attempt. Please try again.');
   }
 
   final code = params['code'];
   if (code == null || code.isEmpty) {
-    throw const OAuthRedirectException('Google nije vratio kôd za prijavu.');
+    throw const OAuthRedirectException(
+        'Google did not return an authorisation code.');
   }
   return code;
 }
@@ -137,10 +138,10 @@ String authCodeFromRedirect(Uri requested, {required String expectedState}) {
 /// The page the browser is left on. Plain, self-contained, and in the language
 /// of whoever is reading it — they came from a Serbian app.
 const String oauthDonePage = '<!doctype html>'
-    '<html lang="sr"><head><meta charset="utf-8">'
-    '<title>Prijava je gotova</title></head>'
+    '<html lang="en"><head><meta charset="utf-8">'
+    '<title>Sign-in complete</title></head>'
     '<body style="font-family:system-ui,sans-serif;text-align:center;'
     'padding:48px 24px">'
-    '<h2>Prijava je gotova.</h2>'
-    '<p>Možete da zatvorite ovu karticu i vratite se u aplikaciju.</p>'
+    '<h2>Sign-in complete.</h2>'
+    '<p>You can close this tab and return to the app.</p>'
     '</body></html>';

@@ -64,7 +64,7 @@ Future<void> showEngineSettingsDialog(
                 await prefs.setString('custom_engine_path', path);
                 setDialogState(() {
                   isBusy = true;
-                  statusMessage = 'Pokretanje engine-a...';
+                  statusMessage = 'Starting engine...';
                   progress = null;
                   errorMessage = null;
                 });
@@ -77,7 +77,7 @@ Future<void> showEngineSettingsDialog(
             } catch (e) {
               setDialogState(() {
                 isBusy = false;
-                errorMessage = 'Greška pri izboru fajla: $e';
+                errorMessage = 'Error selecting file: $e';
               });
             }
           }
@@ -85,7 +85,7 @@ Future<void> showEngineSettingsDialog(
           Future<void> downloadAuto() async {
             setDialogState(() {
               isBusy = true;
-              statusMessage = 'Priprema preuzimanja...';
+              statusMessage = 'Preparing download...';
               progress = null;
               errorMessage = null;
             });
@@ -100,7 +100,7 @@ Future<void> showEngineSettingsDialog(
                 },
               );
               setDialogState(() {
-                statusMessage = 'Podešavanje engine-a...';
+                statusMessage = 'Configuring engine...';
                 progress = null;
               });
               await applyChange();
@@ -111,7 +111,7 @@ Future<void> showEngineSettingsDialog(
             } catch (e) {
               setDialogState(() {
                 isBusy = false;
-                errorMessage = 'Preuzimanje nije uspelo: $e';
+                errorMessage = 'Download failed: $e';
               });
             }
           }
@@ -119,7 +119,7 @@ Future<void> showEngineSettingsDialog(
           Future<void> reset() async {
             setDialogState(() {
               isBusy = true;
-              statusMessage = 'Resetovanje...';
+              statusMessage = 'Resetting...';
               errorMessage = null;
             });
             await EngineDownloadService.instance.clearCustomEngine();
@@ -131,18 +131,18 @@ Future<void> showEngineSettingsDialog(
           }
 
           return AlertDialog(
-            title: const Text('Podešavanja Šahovskog Engine-a'),
+            title: const Text('Chess Engine Settings'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Trenutni engine:', style: AppText.bodyLargeBold),
+                  const Text('Current engine:', style: AppText.bodyLargeBold),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     hasCustom
-                        ? 'Sopstveni lokalni engine:\n$currentPath'
-                        : 'Podrazumevani (Online / FFI paket)',
+                        ? 'Custom local engine:\n$currentPath'
+                        : 'Default (Online / FFI package)',
                     style: AppText.body.copyWith(
                       color: hasCustom
                           ? context.colors.accent
@@ -156,7 +156,7 @@ Future<void> showEngineSettingsDialog(
                     LinearProgressIndicator(value: progress),
                   ] else ...[
                     Text(
-                      'Preuzmite zvanični Stockfish engine sa interneta i automatski ga podesite, ili izaberite bilo koji UCI kompatibilan .exe sa svog računara.',
+                      'Download the official Stockfish engine from the internet and configure it automatically, or select any UCI-compatible .exe from your computer.',
                       style: AppText.caption
                           .copyWith(color: context.colors.textMuted),
                     ),
@@ -178,24 +178,24 @@ Future<void> showEngineSettingsDialog(
                   onPressed: reset,
                   icon: Icon(Icons.delete,
                       color: context.colors.danger, size: 16),
-                  label: Text('Resetuj',
+                  label: Text('Reset',
                       style: TextStyle(color: context.colors.danger)),
                 ),
               if (!isBusy) ...[
                 TextButton.icon(
                   onPressed: pickManually,
                   icon: const Icon(Icons.folder_open, size: 16),
-                  label: const Text('Izaberi .exe'),
+                  label: const Text('Select .exe'),
                 ),
                 ElevatedButton.icon(
                   onPressed: downloadAuto,
                   icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Preuzmi automatski'),
+                  label: const Text('Download automatically'),
                 ),
               ],
               TextButton(
                 onPressed: isBusy ? null : () => Navigator.pop(dialogContext),
-                child: const Text('Zatvori'),
+                child: const Text('Close'),
               ),
             ],
           );

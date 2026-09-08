@@ -81,16 +81,16 @@ Widget _panel({
 
 void main() {
   group('the panel took the repertoire\'s shape', () {
-    testWidgets('it is headed „Motor", like the one it was matched to',
+    testWidgets('it is headed „Engine", like the one it was matched to',
         (tester) async {
       await tester.pumpWidget(_panel(lines: [_line()]));
 
-      expect(find.text('Motor'), findsOneWidget);
+      expect(find.text('Engine'), findsOneWidget);
       // And says which engine is answering and from whose side the number
       // reads — the repertoire's own sentence, because the convention is the
       // app's rather than this screen's.
       expect(
-        find.text('Lokalni motor — ocena je iz ugla belog.'),
+        find.text('Local engine — evaluation is from White\'s perspective.'),
         findsOneWidget,
       );
     });
@@ -129,7 +129,7 @@ void main() {
       await tester.pumpWidget(_panel(lines: const []));
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Računanje poteza...'), findsOneWidget);
+      expect(find.text('Calculating moves...'), findsOneWidget);
 
       await tester.pumpWidget(_panel(lines: [_line()]));
       expect(find.byType(CircularProgressIndicator), findsNothing);
@@ -144,7 +144,7 @@ void main() {
       await tester.pumpWidget(
           _panel(lines: [_line()], onToggleEngine: () => toggled += 1));
 
-      expect(find.text('Prikaži evaluaciju'), findsOneWidget);
+      expect(find.text('Show evaluation'), findsOneWidget);
       await tester.tap(find.byType(Switch).first);
       await tester.pump();
 
@@ -159,7 +159,7 @@ void main() {
         onToggleEvalBar: () => toggled += 1,
       ));
 
-      expect(find.text('Prikaži evaluacionu liniju'), findsOneWidget);
+      expect(find.text('Show evaluation bar'), findsOneWidget);
       await tester.tap(find.byType(Switch).last);
       await tester.pump();
 
@@ -194,7 +194,7 @@ void main() {
     testWidgets('a trainer\'s lock is still said out loud', (tester) async {
       await tester.pumpWidget(_panel(lines: const [], allowed: false));
 
-      expect(find.text('Zaključano od strane trenera'), findsOneWidget);
+      expect(find.text('Locked by trainer'), findsOneWidget);
       // And nothing is computed behind the lock.
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });

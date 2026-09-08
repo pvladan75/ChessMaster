@@ -89,7 +89,7 @@ class LocalRecordingService {
             'POST', Uri.parse('$backendUrl/recordings/save'));
         request.headers['Authorization'] = 'Bearer $userToken';
         request.fields['roomId'] = item['roomId'] ?? '';
-        request.fields['title'] = item['title'] ?? 'Snimak časa';
+        request.fields['title'] = item['title'] ?? 'Session recording';
         request.fields['timelineJson'] =
             jsonEncode(item['timelineEvents'] ?? []);
         request.fields['pauseIntervals'] =
@@ -128,13 +128,13 @@ class LocalRecordingService {
           if (flagged && data['message'] is String) {
             item['serverNotice'] = data['message'];
             notices.add(data['message'] as String);
-            print('[SYNC_RECORDING] Napomena servera: ${data['message']}');
+            print('[SYNC_RECORDING] Server notice: ${data['message']}');
           }
         } else if (response.statusCode == 403) {
           // The server refused it: somebody in that lesson is a child whose
           // parent has not agreed to a recording. It stays on this device — it
           // is the trainer's own — and it stops being offered to the server.
-          String reason = 'Server je odbio snimak.';
+          String reason = 'Server refused the recording.';
           try {
             final data = jsonDecode(response.body);
             if (data is Map && data['error'] is String) {
@@ -146,9 +146,9 @@ class LocalRecordingService {
           item['syncRefused'] = true;
           item['syncRefusedReason'] = reason;
           updated = true;
-          notices.add('Server je odbio snimak: $reason '
-              'Snimak ostaje na ovom uređaju.');
-          print('[SYNC_RECORDING] Odbijen snimak ${item['id']}: $reason');
+          notices.add('Server refused the recording: $reason '
+              'The recording stays on this device.');
+          print('[SYNC_RECORDING] Refused recording ${item['id']}: $reason');
         }
       } catch (e) {
         print(

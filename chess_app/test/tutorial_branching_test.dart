@@ -74,7 +74,7 @@ void main() {
   }
 
   Future<void> forward(WidgetTester tester) async {
-    await tester.tap(find.byTooltip('Sledeći potez'));
+    await tester.tap(find.byTooltip('Next move'));
     await tester.pumpAndSettle();
   }
 
@@ -158,7 +158,7 @@ void main() {
       await tester.tap(find.text('Kc5'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Prethodni potez'));
+      await tester.tap(find.byTooltip('Previous move'));
       await tester.pumpAndSettle();
 
       expect(find.text(sideNote), findsNothing);

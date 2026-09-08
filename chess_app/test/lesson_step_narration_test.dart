@@ -132,7 +132,7 @@ void main() {
     testWidgets('a move’s drawing replaces it', (tester) async {
       await open(tester, [drawnStep()]);
 
-      await step(tester, 'Sledeći potez');
+      await step(tester, 'Next move');
 
       final marks = board(tester).squares;
       expect(marks.length, 1);
@@ -148,8 +148,8 @@ void main() {
       // Read off the move index every build, not set once when the step loads.
       await open(tester, [drawnStep()]);
 
-      await step(tester, 'Sledeći potez');
-      await step(tester, 'Prethodni potez');
+      await step(tester, 'Next move');
+      await step(tester, 'Previous move');
 
       expect(board(tester).squares.single.square, 'd5');
       expect(board(tester).arrows.single.toString(), 'Gf3d5');
@@ -190,7 +190,7 @@ void main() {
         const LessonStep(title: 'Centar', fen: startFen, pgn: drawnPgn),
       ]);
 
-      await step(tester, 'Sledeći potez');
+      await step(tester, 'Next move');
 
       expect(spoken(tester).map((p) => p.text), contains('Zauzima centar.'));
     });

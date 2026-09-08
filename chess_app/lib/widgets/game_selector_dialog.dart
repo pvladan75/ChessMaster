@@ -16,7 +16,7 @@ class GameSelectorDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Izaberite partiju zbirke (${games.length})'),
+      title: Text('Choose a game from the collection (${games.length})'),
       content: SizedBox(
         width: 400,
         height: 300,
@@ -49,7 +49,7 @@ class GameSelectorDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
       ],
     );

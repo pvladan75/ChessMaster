@@ -164,7 +164,7 @@ void main() {
     expect(find.text('0-1'), findsOneWidget);
 
     // Initial state: not revealed, grading buttons shouldn't be there
-    expect(find.text('Teško'), findsNothing);
+    expect(find.text('Hard'), findsNothing);
 
     // Play the mistake move
     // Need to find the interactive board and tap or simply call onMove on it if it's deeply nested.

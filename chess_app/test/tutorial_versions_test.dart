@@ -213,6 +213,6 @@ void main() {
 
     await chooseAction(tester, 'Edit positions');
 
-    expect(find.text('Izmeni tutorijal'), findsWidgets);
+    expect(find.text('Edit tutorial'), findsWidgets);
   });
 }

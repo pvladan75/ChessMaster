@@ -68,12 +68,12 @@ class ServerStatusService extends ChangeNotifier {
   String get message {
     switch (_status) {
       case ServerStatus.offline:
-        return 'Nema veze sa serverom — prijava je zapamćena na uređaju, '
-            'ali ništa se ne čuva niti učitava.';
+        return 'No connection to server — sign-in is saved on the device, '
+            'but nothing is being saved or loaded.';
       case ServerStatus.expired:
-        return 'Prijava je istekla. Prijavite se ponovo da bi čuvanje radilo.';
+        return 'Sign-in has expired. Sign in again for saving to work.';
       case ServerStatus.gone:
-        return 'Ovaj nalog više ne postoji na serveru.';
+        return 'This account no longer exists on the server.';
       case ServerStatus.online:
       case ServerStatus.unknown:
         return '';
@@ -175,7 +175,7 @@ class ServerStatusService extends ChangeNotifier {
 
       _status = statusFor(res.statusCode, res.body);
     } catch (e) {
-      AppLogger.log('[ServerStatus] Provera veze nije prošla: $e');
+      AppLogger.log('[ServerStatus] Connection check failed: $e');
       _status = ServerStatus.offline;
     }
 

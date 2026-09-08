@@ -132,16 +132,17 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Repertoar: magnus'), findsOneWidget);
-    expect(find.text('Praćen repertoar'), findsOneWidget);
+    expect(find.text('Repertoire: magnus'), findsOneWidget);
+    expect(find.text('Repertoire followed'), findsOneWidget);
     expect(find.text('8'), findsOneWidget); // followedGames
-    expect(find.text('Potez 3'), findsOneWidget); // ply = 4 -> move 3
+    expect(find.text('Move 3'), findsOneWidget); // ply = 4 -> move 3
 
     // The seed is gone: a repertoire built out of imported games wrote into
     // the same graph the trainer reads, so moves nobody had chosen were
     // indistinguishable from decisions. This screen only compares now.
-    expect(find.text('Izvuci repertoar iz partija'), findsNothing);
-    expect(find.textContaining('Uvezene partije se u repertoar ne upisuju'),
+    expect(find.text('Extract repertoire from games'), findsNothing);
+    expect(
+        find.textContaining('Imported games are not added to the repertoire'),
         findsOneWidget);
   });
 }

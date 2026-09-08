@@ -127,7 +127,7 @@ void main() {
       await AppSettingsService.instance.init();
     });
 
-    testWidgets('choosing Svetla puts the light tokens under the screen',
+    testWidgets('choosing Light puts the light tokens under the screen',
         (tester) async {
       // Compared field by field rather than by identity: `Theme` animates
       // between two `ThemeData`s and hands out a *lerped* `AppColorTokens`
@@ -149,7 +149,7 @@ void main() {
       // has always looked like.
       expectTokens(AppColorTokens.dark, Brightness.dark);
 
-      await tapChoice(tester, 'Svetla');
+      await tapChoice(tester, 'Light');
       // The tokens, not just the Material brightness: every screen in this app
       // paints from `context.colors`, and the whole reason the picker was
       // removed in the first place was a light theme that carried the dark
@@ -157,14 +157,14 @@ void main() {
       // makes that failure silent.
       expectTokens(AppColorTokens.light, Brightness.light);
 
-      await tapChoice(tester, 'Tamna');
+      await tapChoice(tester, 'Dark');
       expectTokens(AppColorTokens.dark, Brightness.dark);
     });
 
     testWidgets('choosing a board repaints the board every screen draws',
         (tester) async {
       await pumpSettings(tester);
-      await tapChoice(tester, 'Zelena');
+      await tapChoice(tester, 'Green');
 
       // Not "is the id stored" — is the live board green. `SkinnedChessBoard`
       // with no override is what the five board screens build.
@@ -181,7 +181,7 @@ void main() {
     testWidgets('choosing pieces repaints the pieces every screen draws',
         (tester) async {
       await pumpSettings(tester);
-      await tapChoice(tester, 'Tople');
+      await tapChoice(tester, 'Warm');
 
       // `chessPieceWidget` with no override is the one place a piece becomes a
       // widget — the board, the animation, both editors, the thumbnails.
@@ -198,8 +198,8 @@ void main() {
       // The one thing the plan is explicit about: a skin is a taste, not a
       // palette. A green board in the light theme is a legitimate choice.
       await pumpSettings(tester);
-      await tapChoice(tester, 'Plava');
-      await tapChoice(tester, 'Svetla');
+      await tapChoice(tester, 'Blue');
+      await tapChoice(tester, 'Light');
 
       await tester.pumpWidget(
           wrap(SkinnedChessBoard(controller: ChessBoardController())));
@@ -235,7 +235,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
-      await tapChoice(tester, 'Svetla');
+      await tapChoice(tester, 'Light');
       expect(tester.takeException(), isNull);
     });
   });

@@ -150,9 +150,9 @@ class AppSettingsService extends ChangeNotifier {
   /// Sistem first, because it is the answer that stops being a decision: the
   /// phone already knows whether it is night.
   static const Map<ThemeMode, String> kThemeModeNames = {
-    ThemeMode.system: 'Sistem',
-    ThemeMode.light: 'Svetla',
-    ThemeMode.dark: 'Tamna',
+    ThemeMode.system: 'System',
+    ThemeMode.light: 'Light',
+    ThemeMode.dark: 'Dark',
   };
 
   /// The three strings that have ever been written under `app_theme_mode`,
@@ -190,9 +190,9 @@ class AppSettingsService extends ChangeNotifier {
 
   /// The reader-facing name of each level, in the order they are offered.
   static const Map<String, String> kEnginePlayLevelNames = {
-    'lako': 'Lako',
-    'srednje': 'Srednje',
-    'tesko': 'Teško',
+    'lako': 'Easy',
+    'srednje': 'Medium',
+    'tesko': 'Hard',
   };
 
   String get enginePlayLevel => _enginePlayLevel;

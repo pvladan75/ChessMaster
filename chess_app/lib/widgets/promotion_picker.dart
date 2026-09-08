@@ -30,7 +30,7 @@ Future<String?> askPromotionPiece(
     context: context,
     barrierDismissible: true,
     builder: (context) => AlertDialog(
-      title: const Text('U šta se pretvara pešak?'),
+      title: const Text('Promote pawn to:'),
       content: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -41,22 +41,22 @@ Future<String?> askPromotionPiece(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
       ],
     ),
   );
 }
 
-/// The Serbian name of each piece, under its picture.
+/// The name of each piece, under its picture.
 ///
 /// Written out rather than left to the drawing: the pieces are small, a child
-/// is choosing, and "lovac" and "top" are exactly the two that get mixed up.
+/// is choosing, and "bishop" and "rook" are exactly the two that get mixed up.
 const Map<String, String> _pieceNames = {
-  'q': 'Dama',
-  'r': 'Top',
-  'b': 'Lovac',
-  'n': 'Skakač',
+  'q': 'Queen',
+  'r': 'Rook',
+  'b': 'Bishop',
+  'n': 'Knight',
 };
 
 class _PromotionChoice extends StatelessWidget {

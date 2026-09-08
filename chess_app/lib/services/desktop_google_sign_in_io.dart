@@ -45,7 +45,7 @@ class DesktopGoogleSignIn {
   Future<String> obtainIdToken({String? loginHint}) async {
     if (!isConfigured) {
       throw const OAuthRedirectException(
-        'Google prijava nije podešena za ovu verziju aplikacije.',
+        'Google sign-in is not configured for this app version.',
       );
     }
 
@@ -68,7 +68,7 @@ class DesktopGoogleSignIn {
 
       if (!await launchUrl(authUrl, mode: LaunchMode.externalApplication)) {
         throw const OAuthRedirectException(
-          'Ne mogu da otvorim pretraživač za Google prijavu.',
+          'Could not open browser for Google sign-in.',
         );
       }
 
@@ -120,7 +120,7 @@ class DesktopGoogleSignIn {
     }, onError: (Object e) {
       if (!completer.isCompleted) {
         completer.completeError(
-          OAuthRedirectException('Greška lokalnog servera za prijavu: $e'),
+          OAuthRedirectException('Local sign-in server error: $e'),
         );
       }
     });
@@ -129,7 +129,7 @@ class DesktopGoogleSignIn {
       return await completer.future.timeout(
         _timeout,
         onTimeout: () => throw const OAuthRedirectException(
-          'Prijava preko Google-a je istekla. Pokušajte ponovo.',
+          'Google sign-in timed out. Please try again.',
         ),
       );
     } finally {
@@ -167,10 +167,10 @@ class DesktopGoogleSignIn {
       // URI that is not registered — and logging it is the difference between
       // fixing the console setup in a minute and guessing for an hour. It is
       // not shown to the user, who can do nothing with it.
-      AppLogger.log('[Google/desktop] Razmena kôda nije uspela: '
+      AppLogger.log('[Google/desktop] Code exchange failed: '
           '${response.statusCode} ${response.body}');
       throw const OAuthRedirectException(
-        'Google nije prihvatio prijavu sa ovog uređaja.',
+        'Google did not accept sign-in from this device.',
       );
     }
 
@@ -178,7 +178,7 @@ class DesktopGoogleSignIn {
     final idToken = data['id_token']?.toString() ?? '';
     if (idToken.isEmpty) {
       throw const OAuthRedirectException(
-        'Google nije vratio identitet (id_token).',
+        'Google did not return identity (id_token).',
       );
     }
     return idToken;

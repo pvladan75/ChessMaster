@@ -138,7 +138,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
       // The board is still worth keeping: the starting position is right, only
       // the variations are missing, and saying so beats dropping the step.
       _showError(
-          'Varijante za „${entry.title}" nisu učitane — dodata je samo pozicija.');
+          'Variations for "${entry.title}" could not be loaded — only position was added.');
       return step;
     }
     step['fen'] = tree.fen;
@@ -150,11 +150,11 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     final title = titleController.text.trim();
     final desc = descController.text.trim();
     if (title.isEmpty) {
-      _showError('Unesite naziv tutorijala.');
+      _showError('Enter tutorial name.');
       return;
     }
     if (selectedPositions.isEmpty) {
-      _showError('Dodajte bar jedan korak.');
+      _showError('Add at least one step.');
       return;
     }
 
@@ -191,8 +191,8 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
     }
 
     _showSuccess(updateInPlace
-        ? 'Tutorijal je izmenjen (${selectedPositions.length} koraka)!'
-        : 'Tutorijal sa ${selectedPositions.length} koraka je sačuvan!');
+        ? 'Tutorial updated (${selectedPositions.length} steps)!'
+        : 'Tutorial with ${selectedPositions.length} steps saved!');
     widget.onCourseCreated();
     Navigator.pop(context);
   }
@@ -206,10 +206,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
         children: [
           Icon(Icons.collections_bookmark, color: colors.brand),
           const SizedBox(width: AppSpacing.sm),
-          Text(
-              isEditing
-                  ? 'Izmeni tutorijal'
-                  : 'Kreiraj tutorijal (više koraka)',
+          Text(isEditing ? 'Edit tutorial' : 'Create tutorial (multiple steps)',
               style: AppText.title),
         ],
       ),
@@ -229,16 +226,16 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                 TextField(
                   controller: titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Naziv tutorijala',
-                    hintText: 'Npr. Završnice sa skakačem - Kompletna modul',
+                    labelText: 'Tutorial name',
+                    hintText: 'E.g. Knight Endgames - Complete Module',
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: descController,
                   decoration: const InputDecoration(
-                    labelText: 'Opis tutorijala (opciono)',
-                    hintText: 'Kratak opis zadataka...',
+                    labelText: 'Tutorial description (optional)',
+                    hintText: 'Brief description of exercises...',
                   ),
                   maxLines: 2,
                 ),
@@ -256,14 +253,14 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                     // One way in, over all three shelves. The two lists that
                     // used to be here could not see the scanner's positions,
                     // so a diagram out of a book could never enter a lesson.
-                    label: const Text('Dodaj iz biblioteke'),
+                    label: const Text('Add from library'),
                     onPressed: isAddingFromLibrary ? null : _addFromLibrary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 if (selectedPositions.isNotEmpty) ...[
                   const Text(
-                    'Redosled koraka (prevuci da promeniš):',
+                    'Step order (drag to reorder):',
                     style: AppText.bodyBold,
                   ),
                   const SizedBox(height: 6),
@@ -311,7 +308,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                             subtitle: Text(
                               item['instruction']?.toString().isNotEmpty == true
                                   ? item['instruction'].toString()
-                                  : 'bez zadatka — učenik neće znati šta se traži',
+                                  : 'no exercise — student will not know what to do',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: AppText.caption.copyWith(
@@ -329,7 +326,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                                 IconButton(
                                   icon: Icon(Icons.close,
                                       size: 18, color: context.colors.danger),
-                                  tooltip: 'Ukloni',
+                                  tooltip: 'Remove',
                                   onPressed: () => setState(
                                       () => selectedPositions.removeAt(index)),
                                 ),
@@ -354,12 +351,12 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         if (isEditing)
           OutlinedButton(
             onPressed: isSaving ? null : () => _submit(asNew: true),
-            child: const Text('Sačuvaj kao novu'),
+            child: const Text('Save as new'),
           ),
         ElevatedButton(
           onPressed: isSaving ? null : () => _submit(asNew: !isEditing),
@@ -368,7 +365,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(isEditing ? 'Sačuvaj izmene' : 'Sačuvaj tutorijal'),
+              : Text(isEditing ? 'Save changes' : 'Save tutorial'),
         ),
       ],
     );

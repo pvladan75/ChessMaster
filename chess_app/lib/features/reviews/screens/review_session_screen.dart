@@ -152,7 +152,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
       AppFeedback.show(
         context,
         () => const SnackBar(
-            content: Text('Ocena nije sačuvana — proverite vezu.')),
+            content: Text('Grade not saved — check your connection.')),
       );
       return;
     }
@@ -160,7 +160,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-          content: Text('${grade.label} — sledeće ponavljanje $description'),
+          content: Text('${grade.label} — next review $description'),
           duration: const Duration(milliseconds: 1400)),
     );
 
@@ -182,7 +182,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: const Text('Ponavljanje'),
+        title: const Text('Review'),
         actions: const [BoardViewMenu()],
         bottom: _queue.isEmpty
             ? null
@@ -259,7 +259,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     // the side to move but can now be flipped by hand, and a flipped board must
     // not change who the prompt says is on move.
     final toMove =
-        _sideToMove(item.step.fen) == PlayerColor.white ? 'Beli' : 'Crni';
+        _sideToMove(item.step.fen) == PlayerColor.white ? 'White' : 'Black';
 
     return Card(
       color: context.colors.surface,
@@ -288,8 +288,8 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             const SizedBox(height: AppSpacing.xs),
             Text(
               item.isNew
-                  ? 'Nova pozicija — pogledajte je i ocenite koliko vam je jasna.'
-                  : '$toMove na potezu. Setite se ideje, pa proverite.',
+                  ? 'New position — examine it and rate how clear it is.'
+                  : '$toMove to move. Recall the idea, then check.',
               style: TextStyle(
                   fontSize: 12.5, color: context.colors.textSecondary),
             ),
@@ -307,7 +307,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     return ElevatedButton.icon(
       onPressed: _reveal,
       icon: const Icon(Icons.visibility),
-      label: Text(_moves.isEmpty ? 'Prikaži opis' : 'Prikaži nastavak'),
+      label: Text(_moves.isEmpty ? 'Show description' : 'Show continuation'),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
       ),
@@ -346,7 +346,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     return Column(
       children: [
         Text(
-          'Koliko ste se setili?',
+          'How well did you remember?',
           style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -388,24 +388,24 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              nothingDue ? 'Ništa nije na redu.' : 'Gotovo za danas.',
+              nothingDue ? 'Nothing is due.' : 'Done for today.',
               style: AppText.headline,
             ),
             const SizedBox(height: 6),
             Text(
               nothingDue
                   ? _stats.total == 0
-                      ? 'Kada prođete kroz zadati tutorijal, pozicije iz njega počinju da se '
-                          'vraćaju na ponavljanje.'
-                      : 'Sve pozicije su ponovljene. Vratite se kasnije.'
-                  : 'Ponovili ste $_completed ${_completed == 1 ? 'poziciju' : 'pozicija'}.',
+                      ? 'When you complete an assigned tutorial, positions from it start '
+                          'coming back for review.'
+                      : 'All positions have been reviewed. Come back later.'
+                  : 'You reviewed $_completed ${_completed == 1 ? 'position' : 'positions'}.',
               textAlign: TextAlign.center,
               style: TextStyle(color: context.colors.textSecondary),
             ),
             if (_stats.total > 0) ...[
               const SizedBox(height: 10),
               Text(
-                'Ukupno u ponavljanju: ${_stats.total} · savladano: ${_stats.mature}',
+                'Total in review: ${_stats.total} · mastered: ${_stats.mature}',
                 style: AppText.body.copyWith(color: context.colors.textMuted),
               ),
             ],
@@ -416,12 +416,12 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
                 OutlinedButton.icon(
                   onPressed: _load,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Osveži'),
+                  label: const Text('Refresh'),
                 ),
                 ElevatedButton.icon(
                   onPressed: () => Navigator.of(context).maybePop(),
                   icon: const Icon(Icons.arrow_back),
-                  label: const Text('Nazad'),
+                  label: const Text('Back'),
                 ),
               ],
             ),

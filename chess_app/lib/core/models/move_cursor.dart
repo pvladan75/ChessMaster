@@ -191,7 +191,7 @@ class LinearMoveCursor implements MoveCursor {
 /// PGN notation does ("12. Nf3", "12... Nf3" only for Black's first move,
 /// otherwise bare "Nf3").
 String formatMoveWithNumber(MoveNode node, MoveNode rootNode) {
-  if (node.parent == null) return 'Početak';
+  if (node.parent == null) return 'Start';
 
   final path = <MoveNode>[];
   MoveNode? curr = node;
