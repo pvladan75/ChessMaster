@@ -61,10 +61,19 @@ StepTree readStepTree({required String fen, String? pgn}) {
 /// the parser was told to start from — the same string — and taking it from the
 /// caller keeps this function honest when a future parser normalises it.
 AnalysisNode _convert(MoveNode source, {String? fen}) {
+  // `MoveTree` names its own root `'Root'` — a placeholder, not a move — and
+  // copying it through made the opening position of every reopened part look
+  // like a move called Root, with a `from`/`to` built out of two empty
+  // strings. Nothing drew it, because „Tok" decides by index and
+  // `moveNumberLabel` by parentage, so it sat there until something asked the
+  // node itself. A root is a position; the field that says which move arrived
+  // at it is empty.
+  final isRoot = source.parent == null;
+  final san = (isRoot || source.san.isEmpty) ? null : source.san;
   final node = AnalysisNode(
     fen: fen ?? source.fen,
-    moveSan: source.san.isEmpty ? null : source.san,
-    moveUci: source.san.isEmpty ? null : _uciOf(source),
+    moveSan: san,
+    moveUci: san == null ? null : _uciOf(source),
     comment: source.comment,
     // Copied rather than shared: the parsed tree is thrown away as soon as this
     // returns, but a list handed on by reference is the kind of sharing that

@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1752 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1772 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -629,6 +629,31 @@ Stockfish analiza" against „Slobodna šahovska tabla za duboku analizu … rad
 PGN/FEN pozicijama". The names were never the whole problem; the sentences under
 them were. `test/screen_names_test.dart` keeps both halves: the retired names
 stay retired, and each card still says what is different about its screen.
+
+**Twenty more with phase 2's core — 1772, 1 skipped.** `tutorialVideoOf` turns
+a tutorial into the event list `chess_backend/videoRenderer.js` renders, and it
+is the **lead's** half on purpose: batch 61's lesson was that a batch with a
+finished core has nothing left to be wrong about. Three mutations, all caught.
+
+**The list is built in the app and not on the server, and that is a rule rather
+than a convenience.** The server stores a step's `pgn` as opaque text and has no
+PGN reader; giving it one would be a second parser disagreeing with this app's,
+which this project has already paid for once.
+
+**`MoveTree` names its own root `'Root'`**, and `readStepTree` copied that
+through as a move — so the opening position of every reopened part carried a
+move called Root with a `from`/`to` built from two empty strings. Nothing drew
+it: „Tok" decides by index and `moveNumberLabel` by parentage, so it sat there
+for as long as the reader existed and surfaced the first time something asked
+the node itself. Fixed at the crossing *and* at the new caller, because a
+producer that trusts a placeholder is one refactor from printing it.
+
+And the harness gained its first non-Flutter gate: `gate_backend_tests` runs
+`npm test` **with `.env` moved aside**, which is the environment CI has —
+`middleware/auth` calls `process.exit(1)` at import without `JWT_SECRET`, and
+that has already taken 895 tests down silently. It skips itself when a batch
+left `chess_backend/` alone. Proved both ways before use: it passes at 958,
+fails on a raised expectation, and fails on a deliberately broken test.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
