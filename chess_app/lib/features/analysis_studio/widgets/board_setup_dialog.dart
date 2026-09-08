@@ -19,9 +19,9 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// One way of naming a position, and the tab that offers it.
 enum _SetupTab {
   fen(Icons.edit_note, 'FEN String'),
-  pgn(Icons.file_upload, 'PGN Uvoz'),
-  manual(Icons.grid_on, 'Ručno Slaganje'),
-  openings(Icons.travel_explore, 'Otvaranja'),
+  pgn(Icons.file_upload, 'PGN Import'),
+  manual(Icons.grid_on, 'Piece Placement'),
+  openings(Icons.travel_explore, 'Openings'),
   platform(Icons.cloud_download, 'Chess.com/Lichess');
 
   const _SetupTab(this.icon, this.label);
@@ -84,10 +84,10 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   /// none gets tabs that close the dialog and drop what was asked for. The
   /// tutorial studio is exactly that caller, and deliberately so: importing a
   /// PGN into a tree is the Analysis Studio's job, and a second importer beside
-  /// the first is how the two come to disagree. So a trainer picking „Najdorf"
+  /// the first is how the two come to disagree. So a trainer picking "Najdorf"
   /// in the tutorial studio watched the window close and nothing happen.
   ///
-  /// Same fault as the tree's context menu, which drew „Obriši Ovu Varijantu"
+  /// Same fault as the tree's context menu, which drew "Delete This Variation"
   /// for a screen that had wired nothing to it. The tabs are drawn where they
   /// work.
   late final List<_SetupTab> _tabs = [
@@ -128,7 +128,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   Future<void> _fetchFromPlatform() async {
     final username = _importUsernameController.text.trim();
     if (username.isEmpty) {
-      _showPgnFileError('Unesite korisničko ime.');
+      _showPgnFileError('Enter a username.');
       return;
     }
     setState(() => _importLoading = true);
@@ -138,7 +138,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       if (!mounted) return;
       // Waits for the multi-game picker (if it appears) to actually close
       // before switching tabs — otherwise the tab underneath flips to "PGN
-      // Uvoz" while the picker is still open, and the still-empty text box
+      // Import" while the picker is still open, and the still-empty text box
       // is what greets the user once they pick a game and it closes.
       await _loadPgnContent(pgn);
       if (!mounted) return;
@@ -148,7 +148,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     } on ChessImportException catch (e) {
       _showPgnFileError(e.message);
     } catch (e) {
-      _showPgnFileError('Greška pri preuzimanju partija: $e');
+      _showPgnFileError('Error fetching games: $e');
     } finally {
       if (mounted) setState(() => _importLoading = false);
     }
@@ -170,13 +170,13 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       } else if (pickedFile.path != null) {
         content = await File(pickedFile.path!).readAsString();
       } else {
-        _showPgnFileError('Nemoguće pročitati sadržaj fajla.');
+        _showPgnFileError('Cannot read file contents.');
         return;
       }
 
       _loadPgnContent(content);
     } catch (e) {
-      _showPgnFileError('Greška pri učitavanju fajla: $e');
+      _showPgnFileError('Error loading file: $e');
     }
   }
 
@@ -345,7 +345,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          'Unos Pozicije (Board Setup)',
+                          'Board Setup',
                           style:
                               AppText.title.copyWith(color: colors.textPrimary),
                           overflow: TextOverflow.ellipsis,
@@ -397,7 +397,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Unesite važeći FEN string (Forsyth-Edwards Notation):',
+          'Enter a valid FEN string (Forsyth-Edwards Notation):',
           style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -424,7 +424,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.paste, size: 16),
-              label: const Text('Zalepi iz Klipborda'),
+              label: const Text('Paste from Clipboard'),
               onPressed: () async {
                 final data = await Clipboard.getData('text/plain');
                 if (data != null && data.text != null) {
@@ -435,7 +435,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             ),
             OutlinedButton.icon(
               icon: const Icon(Icons.restart_alt, size: 16),
-              label: const Text('Početna Pozicija'),
+              label: const Text('Starting Position'),
               onPressed: () {
                 const defaultFen =
                     'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -450,7 +450,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           width: double.infinity,
           child: ElevatedButton.icon(
             icon: const Icon(Icons.check),
-            label: const Text('Postavi FEN Poziciju'),
+            label: const Text('Set FEN Position'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             ),
@@ -473,7 +473,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Zalepite PGN tekst (Portable Game Notation) sa partijom ili varijantom:',
+          'Paste PGN text (Portable Game Notation) with a game or variation:',
           style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -497,7 +497,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.paste, size: 16),
-              label: const Text('Zalepi PGN'),
+              label: const Text('Paste PGN'),
               onPressed: () async {
                 final data = await Clipboard.getData('text/plain');
                 if (data != null &&
@@ -510,7 +510,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             const SizedBox(width: AppSpacing.sm),
             OutlinedButton.icon(
               icon: const Icon(Icons.folder_open, size: 16),
-              label: const Text('Učitaj .pgn fajl'),
+              label: const Text('Load .pgn file'),
               onPressed: _pickPgnFile,
             ),
           ],
@@ -520,7 +520,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           width: double.infinity,
           child: ElevatedButton.icon(
             icon: const Icon(Icons.file_open),
-            label: const Text('Uvezi PGN Partiju'),
+            label: const Text('Import PGN Game'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             ),
@@ -638,7 +638,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           children: [
             OutlinedButton.icon(
               icon: Icon(Icons.delete_outline, size: 16, color: colors.danger),
-              label: Text('Obriši tablu 🗑️',
+              label: Text('Clear board 🗑️',
                   style: AppText.caption.copyWith(color: colors.danger)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: colors.danger),
@@ -653,7 +653,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             ),
             OutlinedButton.icon(
               icon: Icon(Icons.restart_alt, size: 16, color: colors.accent),
-              label: Text('Početna pozicija 🔄',
+              label: Text('Starting position 🔄',
                   style: AppText.caption.copyWith(color: colors.accent)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: colors.accent),
@@ -746,7 +746,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.xs,
           children: [
-            Text('Na potezu:',
+            Text('To move:',
                 style: AppText.body.copyWith(color: colors.textMuted)),
             DropdownButton<PlayerColor>(
               value: _builderSideToMove,
@@ -755,9 +755,9 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
               style: AppText.body.copyWith(color: colors.textPrimary),
               items: const [
                 DropdownMenuItem(
-                    value: PlayerColor.white, child: Text('⚪ Beli')),
+                    value: PlayerColor.white, child: Text('⚪ White')),
                 DropdownMenuItem(
-                    value: PlayerColor.black, child: Text('⚫ Crni')),
+                    value: PlayerColor.black, child: Text('⚫ Black')),
               ],
               onChanged: (val) {
                 if (val != null) setState(() => _builderSideToMove = val);
@@ -768,25 +768,25 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             // is FEN's spelling, not a person's: the case of a letter is the
             // only thing separating White's rights from Black's, and a chip
             // reading „q" tells a trainer nothing about whose queenside it is.
-            Text('Rokade:',
+            Text('Castling:',
                 style: AppText.body.copyWith(color: colors.textMuted)),
             FilterChip(
-              label: const Text('Beli O-O', style: AppText.micro),
+              label: const Text('White O-O', style: AppText.micro),
               selected: _whiteCastleK,
               onSelected: (v) => setState(() => _whiteCastleK = v),
             ),
             FilterChip(
-              label: const Text('Beli O-O-O', style: AppText.micro),
+              label: const Text('White O-O-O', style: AppText.micro),
               selected: _whiteCastleQ,
               onSelected: (v) => setState(() => _whiteCastleQ = v),
             ),
             FilterChip(
-              label: const Text('Crni O-O', style: AppText.micro),
+              label: const Text('Black O-O', style: AppText.micro),
               selected: _blackCastleK,
               onSelected: (v) => setState(() => _blackCastleK = v),
             ),
             FilterChip(
-              label: const Text('Crni O-O-O', style: AppText.micro),
+              label: const Text('Black O-O-O', style: AppText.micro),
               selected: _blackCastleQ,
               onSelected: (v) => setState(() => _blackCastleQ = v),
             ),
@@ -797,7 +797,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
           width: double.infinity,
           child: ElevatedButton.icon(
             icon: const Icon(Icons.check_circle_outline),
-            label: const Text('Generiši i Postavi Poziciju'),
+            label: const Text('Generate and Set Position'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 10),
             ),
@@ -828,7 +828,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     // screen needs exactly this and none of the four tabs around it. One
     // implementation, two doors.
     return OpeningPicker(
-      hint: 'Pretražite otvaranja i varijante po imenu (npr. "Najdorf"):',
+      hint: 'Search openings and variations by name (e.g. "Najdorf"):',
       onPicked: (entry) {
         widget.onPgnLoaded?.call(entry.pgn);
         Navigator.pop(context);
@@ -843,7 +843,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Unesite korisničko ime da preuzmete poslednje partije:',
+          'Enter a username to download recent games:',
           style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -879,7 +879,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
             filled: true,
             fillColor: colors.canvas,
             border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
-            hintText: 'korisničko ime',
+            hintText: 'username',
             hintStyle: TextStyle(color: colors.textMuted),
             prefixIcon: Icon(Icons.person, color: colors.textMuted),
           ),
@@ -887,7 +887,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Učitava poslednjih 20 partija; ako ih ima više, birate koju uvozite.',
+          'Loads the last 20 games; if there are more, you choose which to import.',
           style: AppText.caption.copyWith(color: colors.textMuted),
         ),
         const Spacer(),
@@ -904,7 +904,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                     ),
                   )
                 : const Icon(Icons.cloud_download),
-            label: Text(_importLoading ? 'Preuzimanje...' : 'Preuzmi Partije'),
+            label: Text(_importLoading ? 'Downloading...' : 'Download Games'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             ),

@@ -23,7 +23,7 @@ const kOpeningExplorerRatingOptions = <int?>[
 ];
 
 String ratingOptionLabel(int? minRating) =>
-    minRating == null ? 'Svi rejtinzi' : '$minRating+';
+    minRating == null ? 'All ratings' : '$minRating+';
 
 class OpeningExplorerPanelWidget extends StatelessWidget {
   final bool useLichess;
@@ -110,14 +110,14 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
           if (!isLoading && result != null && result!.total > 0) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
-              '${result!.total} partija',
+              '${result!.total} ${result!.total == 1 ? 'game' : 'games'}',
               style: AppText.micro.copyWith(color: colors.textMuted),
             ),
           ],
           if (!isLoading && (result == null || result!.total == 0)) ...[
             const SizedBox(height: 6),
             Text(
-              'Nema statistike za ovu poziciju.',
+              'No statistics for this position.',
               style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
           ],
@@ -158,7 +158,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'ChessDB Cloud (konsenzus, ne partije)',
+                  'ChessDB Cloud (consensus, not games)',
                   overflow: TextOverflow.ellipsis,
                   style: AppText.bodyBold.copyWith(color: colors.accentAlt),
                 ),
@@ -174,13 +174,13 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Procena iz motorske analize, ne iz odigranih partija. Za pravu statistiku izaberite Lichess u Podešavanjima.',
+            'Evaluation from engine analysis, not played games. For real statistics, choose Lichess in Settings.',
             style: AppText.micro.copyWith(color: colors.textSecondary),
           ),
           if (!isLoadingChessDb && moves.isEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              'Nema podataka za ovu poziciju.',
+              'No data for this position.',
               style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
           ],

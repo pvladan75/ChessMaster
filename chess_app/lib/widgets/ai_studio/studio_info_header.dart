@@ -26,10 +26,10 @@ class StudioInfoHeaderWidget extends StatelessWidget {
 
   String get headerGoal {
     return selectedCategory == 'mate_puzzle'
-        ? '${puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Mat u $selectedMateDepth ${selectedMateDepth == '1' ? 'potez' : 'poteza'}'
+        ? '${puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move — Mate in $selectedMateDepth ${selectedMateDepth == '1' ? 'move' : 'moves'}'
         : (selectedCategory == 'basic_mate'
-            ? 'Vežbanje: $selectedBasicMateType (Matirajte Stockfish-a)'
-            : '${puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Pronađite dobitni put');
+            ? 'Practice: $selectedBasicMateType (Checkmate Stockfish)'
+            : '${puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move — Find the winning path');
   }
 
   @override

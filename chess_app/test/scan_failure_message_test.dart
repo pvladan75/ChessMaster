@@ -21,21 +21,21 @@ void main() {
   group('scanFailureMessage', () {
     test('an image scan is called a scan, and never a font problem', () {
       final message = scanFailureMessage(
-        const ScanOutcome(error: 'poruka sa servera', code: 'no_text'),
+        const ScanOutcome(error: 'server message', code: 'no_text'),
       );
 
-      expect(message, contains('slika'));
-      expect(message, isNot(contains('font koji')));
+      expect(message, contains('image'));
+      expect(message, isNot(contains('font we cannot')));
     });
 
     test('picture diagrams inside a text book are named as pictures', () {
       final message = scanFailureMessage(
-        const ScanOutcome(error: 'poruka sa servera', code: 'no_diagram_text'),
+        const ScanOutcome(error: 'server message', code: 'no_diagram_text'),
       );
 
-      expect(message, contains('ima teksta'));
-      expect(message, contains('slike'));
-      expect(message, isNot(contains('font koji')));
+      expect(message, contains('text'));
+      expect(message, contains('images'));
+      expect(message, isNot(contains('font we cannot')));
     });
 
     test('only a real unknown alphabet is blamed on the font', () {

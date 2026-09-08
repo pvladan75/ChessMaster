@@ -107,8 +107,8 @@ class _OpeningPickerState extends State<OpeningPicker> {
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search, size: 18),
             hintText: _loading
-                ? 'Učitavanje baze otvaranja…'
-                : 'Naziv otvaranja ili varijante…',
+                ? 'Loading opening database…'
+                : 'Opening or variation name…',
           ),
           onChanged: _search,
         ),
@@ -119,7 +119,7 @@ class _OpeningPickerState extends State<OpeningPicker> {
               IconButton(
                 onPressed: () => setState(() => _openFamily = null),
                 icon: const Icon(Icons.arrow_back, size: 18),
-                tooltip: 'Nazad na spisak otvaranja',
+                tooltip: 'Back to openings list',
                 visualDensity: VisualDensity.compact,
               ),
               Expanded(
@@ -147,7 +147,7 @@ class _OpeningPickerState extends State<OpeningPicker> {
     if (_searching) {
       if (_results.isEmpty) {
         return Center(
-          child: Text('Nema rezultata.',
+          child: Text('No results.',
               style: AppText.caption.copyWith(color: context.colors.textMuted)),
         );
       }

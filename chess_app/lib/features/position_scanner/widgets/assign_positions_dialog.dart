@@ -63,7 +63,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
 
   Future<void> _loadStudents() async {
     // Reaching the server and understanding its answer are separate failures,
-    // and one catch around both reported "nije moguće doći do servera" while the
+    // and one catch around both reported "unable to reach the server" while the
     // server was answering perfectly — sending the trainer to look at their
     // connection over a parsing mistake of ours.
     http.Response res;
@@ -77,7 +77,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = 'Nije moguće doći do servera.';
+          _error = 'Could not reach the server.';
         });
       }
       return;
@@ -87,7 +87,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
     if (res.statusCode != 200) {
       setState(() {
         _loading = false;
-        _error = 'Lista učenika nije učitana (${res.statusCode}).';
+        _error = 'Failed to load student list (${res.statusCode}).';
       });
       return;
     }
@@ -107,7 +107,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
           name: 'PositionScanner');
       setState(() {
         _loading = false;
-        _error = 'Server je odgovorio nečim što ne umem da pročitam.';
+        _error = 'Server returned an unreadable response.';
       });
     }
   }
@@ -115,7 +115,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
   Future<void> _submit() async {
     final studentId = _studentId;
     if (studentId == null || _title.text.trim().isEmpty) {
-      setState(() => _error = 'Izaberi učenika i unesi naslov.');
+      setState(() => _error = 'Select a student and enter a title.');
       return;
     }
 
@@ -147,15 +147,15 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
         Navigator.pop(
           context,
           refused == 0
-              ? 'Zadato ${widget.puzzleIds.length} pozicija.'
-              : 'Zadato ${widget.puzzleIds.length - refused}, odbijeno $refused.',
+              ? 'Assigned ${widget.puzzleIds.length} positions.'
+              : 'Assigned ${widget.puzzleIds.length - refused}, refused $refused.',
         );
         return;
       }
 
       setState(() {
         _saving = false;
-        _error = body['error']?.toString() ?? 'Zadavanje nije uspelo.';
+        _error = body['error']?.toString() ?? 'Assignment failed.';
         _refused = (body['refused'] as List?)?.cast<Map<String, dynamic>>() ??
             const [];
       });
@@ -164,7 +164,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Nije moguće doći do servera.';
+          _error = 'Could not reach the server.';
         });
       }
     }
@@ -174,7 +174,9 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return AlertDialog(
-      title: Text('Zadaj ${widget.puzzleIds.length} pozicija'),
+      title: Text(widget.puzzleIds.length == 1
+          ? 'Assign 1 position'
+          : 'Assign ${widget.puzzleIds.length} positions'),
       content: SizedBox(
         width: 380,
         child: _loading
@@ -187,19 +189,19 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                   children: [
                     if (_students.isEmpty)
                       Text(
-                        'Nemate nijednog učenika. Odnos se zasniva u tabu Prijatelji, '
-                        'i mora ga potvrditi druga strana.',
+                        'You have no students. The connection is established in the People tab, '
+                        'and must be confirmed by the other side.',
                         style: AppText.body.copyWith(color: colors.warning),
                       )
                     else
                       DropdownButtonFormField<int>(
                         initialValue: _studentId,
-                        decoration: const InputDecoration(labelText: 'Učenik'),
+                        decoration: const InputDecoration(labelText: 'Student'),
                         items: _students
                             .map((s) => DropdownMenuItem(
                                   value: (s['id'] as num).toInt(),
                                   child:
-                                      Text(s['name']?.toString() ?? 'učenik'),
+                                      Text(s['name']?.toString() ?? 'student'),
                                 ))
                             .toList(),
                         onChanged: (value) =>
@@ -209,8 +211,8 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                     TextField(
                       controller: _title,
                       decoration: const InputDecoration(
-                        labelText: 'Naslov zadatka',
-                        hintText: 'npr. Matovi u jedan — strane 32–51',
+                        labelText: 'Assignment title',
+                        hintText: 'e.g. Checkmates in one — pages 32–51',
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -218,8 +220,8 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                       controller: _instructions,
                       maxLines: 2,
                       decoration: const InputDecoration(
-                        labelText: 'Napomena za ceo zadatak (opciono)',
-                        hintText: 'npr. uradi do petka, bez motora',
+                        labelText: 'Note for the entire assignment (optional)',
+                        hintText: 'e.g. complete by Friday, no engine',
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -228,8 +230,8 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                         Expanded(
                           child: Text(
                             _dueAt == null
-                                ? 'Bez roka'
-                                : 'Rok: ${_dueAt!.day}.${_dueAt!.month}.${_dueAt!.year}.',
+                                ? 'No deadline'
+                                : 'Deadline: ${_dueAt!.day}/${_dueAt!.month}/${_dueAt!.year}',
                             style: AppText.body
                                 .copyWith(color: colors.textSecondary),
                           ),
@@ -245,7 +247,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                             );
                             if (picked != null) setState(() => _dueAt = picked);
                           },
-                          child: const Text('Rok'),
+                          child: const Text('Deadline'),
                         ),
                       ],
                     ),
@@ -272,7 +274,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _saving || _students.isEmpty ? null : _submit,
@@ -281,7 +283,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Zadaj'),
+              : const Text('Assign'),
         ),
       ],
     );

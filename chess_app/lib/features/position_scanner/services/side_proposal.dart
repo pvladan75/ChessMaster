@@ -49,7 +49,7 @@ class SideProposal {
   static const SideProposal empty = SideProposal(
     side: null,
     confidence: ProposalConfidence.none,
-    reason: 'motor nema mišljenje',
+    reason: 'the engine has no opinion',
     whiteEval: '',
     blackEval: '',
   );
@@ -109,7 +109,7 @@ SideProposal decideSide({
     return SideProposal(
       side: null,
       confidence: ProposalConfidence.none,
-      reason: 'motor nije dao ocenu za obe strane',
+      reason: 'the engine did not evaluate both sides',
       whiteEval: whiteEval,
       blackEval: blackEval,
     );
@@ -133,8 +133,8 @@ SideProposal decideSide({
       side: side,
       confidence: ProposalConfidence.high,
       reason: side == 'w'
-          ? 'beli matira ($whiteEval), crni nema mat'
-          : 'crni matira ($blackEval), beli nema mat',
+          ? 'White mates ($whiteEval), Black has no mate'
+          : 'Black mates ($blackEval), White has no mate',
       whiteEval: whiteEval,
       blackEval: blackEval,
     );
@@ -144,10 +144,10 @@ SideProposal decideSide({
   if (gap >= decisiveGap) {
     final side = whiteMoverGain > blackMoverGain ? 'w' : 'b';
     final faster = bothMate
-        ? 'obe strane matiraju, ali ${side == 'w' ? 'beli' : 'crni'} brže ($whiteEval / $blackEval)'
+        ? 'both sides mate, but ${side == 'w' ? 'White' : 'Black'} is faster ($whiteEval / $blackEval)'
         : side == 'w'
-            ? 'potez mnogo više vredi belom ($whiteEval naspram $blackEval)'
-            : 'potez mnogo više vredi crnom ($blackEval naspram $whiteEval)';
+            ? 'the move is worth much more to White ($whiteEval vs $blackEval)'
+            : 'the move is worth much more to Black ($blackEval vs $whiteEval)';
     return SideProposal(
       side: side,
       confidence: ProposalConfidence.medium,
@@ -161,8 +161,8 @@ SideProposal decideSide({
     side: null,
     confidence: ProposalConfidence.none,
     reason: bothMate
-        ? 'obe strane matiraju ($whiteEval / $blackEval) — matira ko je prvi'
-        : 'obe strane imaju slično ($whiteEval / $blackEval) — motor ne razlikuje',
+        ? 'both sides mate ($whiteEval / $blackEval) — whoever moves first mates'
+        : 'both sides are similar ($whiteEval / $blackEval) — engine cannot distinguish',
     whiteEval: whiteEval,
     blackEval: blackEval,
   );

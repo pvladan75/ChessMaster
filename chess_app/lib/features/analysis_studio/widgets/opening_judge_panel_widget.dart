@@ -4,17 +4,8 @@ import 'package:chess_app/features/analysis_studio/services/opening_judge_servic
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
-/// „5 partija", „2 partije", „1 partija" — Serbian counts three ways, and a
-/// panel that says „2 partija" is a panel a child stops reading.
-String gamesLabel(int count) {
-  final lastTwo = count % 100;
-  final last = count % 10;
-  if (last == 1 && lastTwo != 11) return '$count partija';
-  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) {
-    return '$count partije';
-  }
-  return '$count partija';
-}
+/// "1 game", "2 games" — English singular and plural.
+String gamesLabel(int count) => count == 1 ? '1 game' : '$count games';
 
 /// Centipawns as a reader sees them: 0.35 rather than 35.
 String pawns(int centipawns) => (centipawns.abs() / 100).toStringAsFixed(2);
@@ -28,16 +19,16 @@ String pawns(int centipawns) => (centipawns.abs() / 100).toStringAsFixed(2);
 ({IconData icon, String title}) _face(OpeningVerdict verdict) {
   switch (verdict) {
     case OpeningVerdict.theory:
-      return (icon: Icons.menu_book, title: 'Glavna teorija');
+      return (icon: Icons.menu_book, title: 'Mainline theory');
     case OpeningVerdict.playable:
       return (
         icon: Icons.thumb_up_alt_outlined,
-        title: 'Praktična alternativa'
+        title: 'Practical alternative'
       );
     case OpeningVerdict.mistake:
-      return (icon: Icons.warning_amber_rounded, title: 'Sumnjiv potez');
+      return (icon: Icons.warning_amber_rounded, title: 'Dubious move');
     case OpeningVerdict.unknown:
-      return (icon: Icons.help_outline, title: 'Nije presuđeno');
+      return (icon: Icons.help_outline, title: 'No verdict');
   }
 }
 
@@ -113,7 +104,7 @@ class OpeningJudgePanelWidget extends StatelessWidget {
               Icon(Icons.gavel, size: 16, color: context.colors.accent),
               const SizedBox(width: 6),
               Expanded(
-                child: Text('Sud o potezu',
+                child: Text('Move Verdict',
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.accent)),
               ),
@@ -138,7 +129,7 @@ class OpeningJudgePanelWidget extends StatelessWidget {
     if (moveSan == null) {
       return [
         Text(
-          'Odigrajte potez na tabli pa ga presudite.',
+          'Play a move on the board to judge it.',
           style: AppText.caption.copyWith(color: context.colors.textMuted),
         ),
       ];
@@ -161,10 +152,10 @@ class OpeningJudgePanelWidget extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: isLoading ? null : onJudge,
               icon: const Icon(Icons.gavel, size: 16),
-              label: Text('Presudi $moveSan'),
+              label: Text('Judge $moveSan'),
             ),
             Text(
-              'Troši vaš Lichess token.',
+              'Uses your Lichess token.',
               style: AppText.micro.copyWith(color: context.colors.textMuted),
             ),
           ],
@@ -177,8 +168,8 @@ class OpeningJudgePanelWidget extends StatelessWidget {
   List<Widget> _noToken(BuildContext context) {
     return [
       Text(
-        'Suđenje poteza traži vaš Lichess token — pita Lichess do četiri puta '
-        'po potezu, pa ne ide preko zajedničkog tokena servera.',
+        'Move judging requires your own Lichess token — it queries Lichess up to four times '
+        'per move, so it does not use the shared server token.',
         style: AppText.caption.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: 6),
@@ -191,10 +182,10 @@ class OpeningJudgePanelWidget extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onOpenSettings,
               icon: const Icon(Icons.settings, size: 16),
-              label: const Text('Podešavanja'),
+              label: const Text('Settings'),
             ),
           Text(
-            'Baza otvaranja radi i bez njega.',
+            'The opening database works without it.',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),
         ],
@@ -206,17 +197,16 @@ class OpeningJudgePanelWidget extends StatelessWidget {
     // Each one says what actually happened. "We could not ask" and "the move is
     // fine" must never read the same.
     const messages = {
-      'unauthorized':
-          'Lichess je odbio vaš token. Proverite ga u Podešavanjima.',
-      'rate-limited': 'Potrošen je dozvoljeni broj upita ka Lichessu. '
-          'Probajte za koji minut.',
-      'network': 'Server nije dostupan, pa potez nije presuđen.',
-      'no-token': 'Nema vašeg Lichess tokena.',
-      'guest': 'Za suđenje poteza treba biti prijavljen.',
-      'bad-request': 'Taj potez nije moguće presuditi u ovoj poziciji.',
+      'unauthorized': 'Lichess rejected your token. Check it in Settings.',
+      'rate-limited': 'Lichess request quota exceeded. '
+          'Try again in a few minutes.',
+      'network': 'Server unavailable, move was not judged.',
+      'no-token': 'No Lichess token found.',
+      'guest': 'Sign in required to judge moves.',
+      'bad-request': 'Cannot judge this move in this position.',
     };
     return Text(
-      messages[reason] ?? 'Potez nije presuđen ($reason).',
+      messages[reason] ?? 'Move not judged ($reason).',
       style: AppText.caption.copyWith(color: context.colors.warning),
     );
   }
@@ -253,7 +243,7 @@ class OpeningJudgePanelWidget extends StatelessWidget {
             TextButton.icon(
               onPressed: isLoading ? null : onJudge,
               icon: const Icon(Icons.refresh, size: 14),
-              label: const Text('Ponovo'),
+              label: const Text('Retry'),
             ),
         ],
       ),
@@ -274,41 +264,43 @@ class OpeningJudgePanelWidget extends StatelessWidget {
 
     switch (j.verdict) {
       case OpeningVerdict.theory:
-        lines.add('Majstori ga igraju: ${gamesLabel(j.mastersGames)}.');
+        lines.add('Played by masters: ${gamesLabel(j.mastersGames)}.');
         break;
       case OpeningVerdict.unknown:
-        lines.add('Lichess nema ocenu ove pozicije, pa potez nije presuđen — '
-            'to nije isto što i loš potez.');
+        lines.add(
+            'Lichess has no evaluation for this position, so the move is not judged — '
+            'this is not the same as a bad move.');
         break;
       case OpeningVerdict.playable:
       case OpeningVerdict.mistake:
         final loss = j.lossCp;
         final mate = j.mateAfter;
         if (mate != null && mate < 0) {
-          lines.add('Posle njega je mat u ${mate.abs()} protiv vas.');
+          lines.add('Mate in ${mate.abs()} against you after this.');
         } else if (loss != null && loss > 0) {
-          lines.add('Košta ${pawns(loss)} pešaka.');
+          lines.add('Costs ${pawns(loss)} pawns.');
         } else {
-          lines.add('Ne gubi ništa u odnosu na najbolji potez.');
+          lines.add('Loses nothing compared to the best move.');
         }
         if (j.verdict == OpeningVerdict.mistake &&
             (j.afterCp ?? 0) < 0 &&
             (loss ?? 0) <= 0) {
           // The other way a move fails the test: it gives nothing away because
           // there is nothing left to give.
-          lines.add('Pozicija je i pre njega bila lošija.');
+          lines.add('The position was already worse before it.');
         }
         if (j.bandGames > 0) {
-          final band =
-              j.minRating == null ? 'u praksi' : 'kod ${j.minRating}+ igrača';
-          lines.add('Odigran $band: ${gamesLabel(j.bandGames)}.');
+          final band = j.minRating == null
+              ? 'in practice'
+              : 'by ${j.minRating}+ players';
+          lines.add('Played $band: ${gamesLabel(j.bandGames)}.');
         }
         break;
     }
 
-    if (j.better != null) lines.add('Bolje je bilo ${j.better}.');
+    if (j.better != null) lines.add('Better was ${j.better}.');
     if (j.punishment.isNotEmpty) {
-      lines.add('Kažnjava se sa ${j.punishment.join(' ')}.');
+      lines.add('Punished with ${j.punishment.join(' ')}.');
     }
     return lines;
   }

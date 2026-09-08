@@ -549,22 +549,20 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _toolbarButton(Icons.add, 'Uvećaj', () => _zoomBy(1.25)),
-          _toolbarButton(Icons.remove, 'Umanji', () => _zoomBy(1 / 1.25)),
-          _toolbarButton(Icons.center_focus_strong,
-              'Centriraj na aktivni potez', () => _centerOnActive(positioned)),
-          _toolbarButton(Icons.restart_alt, 'Resetuj pogled', _resetView),
+          _toolbarButton(Icons.add, 'Zoom in', () => _zoomBy(1.25)),
+          _toolbarButton(Icons.remove, 'Zoom out', () => _zoomBy(1 / 1.25)),
+          _toolbarButton(Icons.center_focus_strong, 'Center on active move',
+              () => _centerOnActive(positioned)),
+          _toolbarButton(Icons.restart_alt, 'Reset view', _resetView),
           _toolbarButton(
             _isHorizontal ? Icons.swap_vert : Icons.swap_horiz,
-            _isHorizontal ? 'Vertikalni raspored' : 'Horizontalni raspored',
+            _isHorizontal ? 'Vertical layout' : 'Horizontal layout',
             () => setState(() => _isHorizontal = !_isHorizontal),
           ),
           Divider(height: 6, color: context.colors.border),
           _toolbarButton(
             _isPlaying ? Icons.pause : Icons.play_arrow,
-            _isPlaying
-                ? 'Pauziraj automatsko prikazivanje'
-                : 'Pusti automatsko prikazivanje svih (vidljivih) linija',
+            _isPlaying ? 'Pause autoplay' : 'Play all (visible) lines',
             _togglePlay,
           ),
           _buildSpeedButton(),
@@ -575,7 +573,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
 
   Widget _buildSpeedButton() {
     return PopupMenuButton<_PlaySpeed>(
-      tooltip: 'Brzina prikazivanja: ${_playSpeed.label}',
+      tooltip: 'Playback speed: ${_playSpeed.label}',
       initialValue: _playSpeed,
       color: context.colors.surface,
       onSelected: _setPlaySpeed,
@@ -598,7 +596,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
         );
       }).toList(),
       child: Tooltip(
-        message: 'Brzina prikazivanja: ${_playSpeed.label}',
+        message: 'Playback speed: ${_playSpeed.label}',
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child:
@@ -835,7 +833,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
               top: -4,
               child: Tooltip(
                 message:
-                    'Ova pozicija je dostignuta i drugim redosledom poteza',
+                    'This position was also reached via a different move order',
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.xxs),
                   decoration: BoxDecoration(
@@ -867,7 +865,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
             children: [
               ListTile(
                 leading: Icon(Icons.star, color: ctx.colors.warning),
-                title: Text('Unapredi u Glavnu Liniju (Main Line)',
+                title: Text('Promote to Main Line',
                     style: AppText.bodyLarge
                         .copyWith(color: ctx.colors.textPrimary)),
                 onTap: () {
@@ -880,7 +878,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
               ListTile(
                 leading: Icon(Icons.delete, color: ctx.colors.danger),
                 title: Text(
-                    widget.deleteLabel?.call(node) ?? 'Obriši Ovu Varijantu',
+                    widget.deleteLabel?.call(node) ?? 'Delete this variation',
                     style: AppText.bodyLarge
                         .copyWith(color: ctx.colors.textPrimary)),
                 onTap: () {
@@ -907,7 +905,7 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Ista pozicija dostignuta i preko:',
+                      'Same position reached via:',
                       style: AppText.captionBold
                           .copyWith(color: ctx.colors.textMuted),
                     ),
@@ -934,9 +932,9 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
 }
 
 enum _PlaySpeed {
-  slow(Duration(milliseconds: 1800), 'Sporo'),
-  normal(Duration(milliseconds: 900), 'Normalno'),
-  fast(Duration(milliseconds: 400), 'Brzo');
+  slow(Duration(milliseconds: 1800), 'Slow'),
+  normal(Duration(milliseconds: 900), 'Normal'),
+  fast(Duration(milliseconds: 400), 'Fast');
 
   final Duration interval;
   final String label;

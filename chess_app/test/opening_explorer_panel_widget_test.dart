@@ -77,9 +77,9 @@ void main() {
       ),
     );
 
-    expect(find.text('Svi rejtinzi'), findsOneWidget);
+    expect(find.text('All ratings'), findsOneWidget);
 
-    await tester.tap(find.text('Svi rejtinzi'));
+    await tester.tap(find.text('All ratings'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('2500+').last);
     await tester.pumpAndSettle();

@@ -23,7 +23,7 @@ void main() {
       expect(info.pieceCount, 3);
       expect(info.isEndgame, isTrue);
       expect(info.isSyzygyReady, isTrue);
-      expect(info.openingName, contains('Syzygy Tablebase Podrška Spremna'));
+      expect(info.openingName, contains('Syzygy Tablebase Support Ready'));
     });
 
     test('3. AnalysisNode no longer carries an engine evaluation', () {

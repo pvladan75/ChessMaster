@@ -87,7 +87,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   List<String> get _sources {
     final names = <String>{};
     for (final p in _positions ?? const <SavedPosition>[]) {
-      names.add(p.sourceTitle ?? 'bez izvora');
+      names.add(p.sourceTitle ?? 'no source');
     }
     return names.toList()..sort();
   }
@@ -95,9 +95,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   List<SavedPosition> get _visible {
     final all = _positions ?? const <SavedPosition>[];
     if (_source == null) return all;
-    return all
-        .where((p) => (p.sourceTitle ?? 'bez izvora') == _source)
-        .toList();
+    return all.where((p) => (p.sourceTitle ?? 'no source') == _source).toList();
   }
 
   /// Positions a run would cover, in the order they are shown.
@@ -164,8 +162,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         lessonId: course.id,
         step: {
           'title': position.sourceLabel == null
-              ? 'Pozicija sa strane ${position.sourcePage ?? '?'}'
-              : '#${position.sourceLabel} · ${position.sourceTitle ?? 'knjiga'}',
+              ? 'Position from page ${position.sourcePage ?? '?'}'
+              : '#${position.sourceLabel} · ${position.sourceTitle ?? 'book'}',
           'fen': position.fen,
           if (position.instruction != null) 'instruction': position.instruction,
           if (position.solutionSan != null) 'solutionSan': position.solutionSan,
@@ -183,8 +181,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     // Both numbers, always. "Dodato" alone would hide the ones that did not go
     // in, and those are the ones worth knowing about.
     final message = firstError == null
-        ? 'Dodato $added u „${course.title}".'
-        : 'Dodato $added, nije prošlo ${chosen.length - added}: $firstError';
+        ? 'Added $added to "${course.title}".'
+        : 'Added $added, failed ${chosen.length - added}: $firstError';
     AppFeedback.show(context, () => SnackBar(content: Text(message)));
   }
 
@@ -215,8 +213,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
           context,
           () => const SnackBar(
                 content: Text(
-                  'Motor nije pokrenut kao lokalni, pa ne može da odgovori — mrežni ne '
-                  'poznaje pozicije iz knjiga. Proveri Podešavanja → Lokalni engine (.exe).',
+                  'Engine is not running locally and cannot respond — network engine does '
+                  'not recognize book positions. Check Settings → Local engine (.exe).',
                 ),
                 duration: Duration(seconds: 8),
               ));
@@ -281,7 +279,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     }
     AppFeedback.show(
       context,
-      () => SnackBar(content: Text('Prihvaćeno $accepted od ${batch.length}.')),
+      () => SnackBar(content: Text('Accepted $accepted of ${batch.length}.')),
     );
   }
 
@@ -295,24 +293,25 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final text = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Šta učenik treba da uradi?'),
+        title: const Text('What should the student do?'),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 3,
           maxLength: 500,
           decoration: const InputDecoration(
-            hintText: 'npr. Nađi mat u jednom potezu, pazi na odbranu skakačem',
+            hintText:
+                'e.g. Find checkmate in one move, watch out for knight defense',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani')),
+              child: const Text('Cancel')),
           FilledButton(
               onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('Sačuvaj')),
+              child: const Text('Save')),
         ],
       ),
     );
@@ -323,7 +322,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     if (!mounted) return;
     if (!ok) {
       AppFeedback.show(context,
-          () => const SnackBar(content: Text('Uputstvo nije sačuvano.')));
+          () => const SnackBar(content: Text('Instruction was not saved.')));
       return;
     }
     setState(() => position.instruction = text.isEmpty ? null : text);
@@ -347,25 +346,25 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final side = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ko je na potezu?'),
+        title: const Text('Who is to move?'),
         content: Text(
           position.sourceLabel == null
-              ? 'Knjiga to ne kaže za ovu poziciju (strana ${position.sourcePage}). '
-                  'Dok se ne odluči, motor bi analizirao pogrešnu stranu.'
-              : 'Knjiga to ne kaže za dijagram #${position.sourceLabel} '
-                  '(strana ${position.sourcePage}). Dok se ne odluči, motor bi '
-                  'analizirao pogrešnu stranu.',
+              ? 'The book does not state it for this position (page ${position.sourcePage}). '
+                  'Until decided, the engine would analyze the wrong side.'
+              : 'The book does not state it for diagram #${position.sourceLabel} '
+                  '(page ${position.sourcePage}). Until decided, the engine would '
+                  'analyze the wrong side.',
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Odustani')),
+              child: const Text('Cancel')),
           TextButton(
               onPressed: () => Navigator.pop(context, 'b'),
-              child: const Text('Crni')),
+              child: const Text('Black')),
           FilledButton(
               onPressed: () => Navigator.pop(context, 'w'),
-              child: const Text('Beli')),
+              child: const Text('White')),
         ],
       ),
     );
@@ -377,8 +376,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
       AppFeedback.show(
           context,
           () => const SnackBar(
-              content:
-                  Text('Ta strana ne može biti na potezu u ovoj poziciji.')));
+              content: Text('That side cannot be to move in this position.')));
       return;
     }
     setState(() => position.settleSide(side, fen));
@@ -389,17 +387,17 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Obrisati poziciju?'),
+        title: const Text('Delete position?'),
         content: Text(position.sourceLabel == null
-            ? 'Pozicija sa strane ${position.sourcePage}.'
-            : 'Dijagram #${position.sourceLabel}, strana ${position.sourcePage}.'),
+            ? 'Position from page ${position.sourcePage}.'
+            : 'Diagram #${position.sourceLabel}, page ${position.sourcePage}.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Odustani')),
+              child: const Text('Cancel')),
           FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Obriši')),
+              child: const Text('Delete')),
         ],
       ),
     );
@@ -408,8 +406,8 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     final ok = await _api.deleteSaved(position.puzzleId);
     if (!mounted) return;
     if (!ok) {
-      AppFeedback.show(context,
-          () => const SnackBar(content: Text('Brisanje nije uspelo.')));
+      AppFeedback.show(
+          context, () => const SnackBar(content: Text('Delete failed.')));
       return;
     }
     setState(() => _positions =
@@ -422,13 +420,13 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     return Scaffold(
       backgroundColor: colors.canvas,
       appBar: AppBar(
-        title: const Text('Moje pozicije'),
+        title: const Text('My positions'),
         backgroundColor: colors.surface,
         actions: [
           IconButton(
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
-            tooltip: 'Osveži',
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -443,10 +441,9 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     if (_failed) {
       return _Message(
         icon: Icons.cloud_off,
-        title: 'Nije moguće doći do servera.',
-        detail: 'Pozicije su sačuvane, samo se trenutno ne mogu učitati.',
-        action:
-            FilledButton(onPressed: _load, child: const Text('Pokušaj opet')),
+        title: 'Unable to reach the server.',
+        detail: 'Positions are saved, but cannot be loaded right now.',
+        action: FilledButton(onPressed: _load, child: const Text('Try again')),
       );
     }
 
@@ -454,12 +451,12 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     if (all.isEmpty) {
       return _Message(
         icon: Icons.auto_stories_outlined,
-        title: 'Još nema sačuvanih pozicija.',
-        detail: 'Skenirajte dijagrame iz svoje knjige i potvrdite ih.',
+        title: 'No saved positions yet.',
+        detail: 'Scan diagrams from your book and confirm them.',
         action: FilledButton.icon(
           onPressed: () => context.push(AppRoutes.scan),
           icon: const Icon(Icons.document_scanner_outlined),
-          label: const Text('Skeniraj pozicije'),
+          label: const Text('Scan positions'),
         ),
       );
     }
@@ -477,19 +474,20 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
             runSpacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('${all.length} pozicija',
+              Text(
+                  '${all.length} ${all.length == 1 ? 'position' : 'positions'}',
                   style: TextStyle(
                       color: colors.textPrimary, fontWeight: FontWeight.w600)),
               if (all.any((p) => p.needsReview))
-                Text('${all.where((p) => p.needsReview).length} traži pogled',
+                Text('${all.where((p) => p.needsReview).length} needs review',
                     style: AppText.body.copyWith(color: colors.warning)),
               if (all.any((p) => !p.needsReview && p.solutionSan == null))
                 Text(
-                    '${all.where((p) => !p.needsReview && p.solutionSan == null).length} bez rešenja',
+                    '${all.where((p) => !p.needsReview && p.solutionSan == null).length} without solution',
                     style: AppText.body.copyWith(color: colors.info)),
               const SizedBox(width: AppSpacing.sm),
               ChoiceChip(
-                label: const Text('sve'),
+                label: const Text('all'),
                 selected: _source == null,
                 onSelected: (_) => setState(() => _source = null),
               ),
@@ -551,20 +549,20 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         runSpacing: 4,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text('Izabrano ${_picked.length}',
+          Text('Selected ${_picked.length}',
               style: AppText.bodyLarge.copyWith(color: colors.textPrimary)),
           TextButton(
               onPressed: () => setState(_picked.clear),
-              child: const Text('Poništi')),
+              child: const Text('Clear')),
           OutlinedButton.icon(
             onPressed: _addToLesson,
             icon: const Icon(Icons.playlist_add),
-            label: const Text('Dodaj u tutorijal'),
+            label: const Text('Add to tutorial'),
           ),
           FilledButton.icon(
             onPressed: _assign,
             icon: const Icon(Icons.assignment_outlined),
-            label: const Text('Zadaj učeniku'),
+            label: const Text('Assign to student'),
           ),
         ],
       ),
@@ -599,23 +597,23 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
                 value: _checkTotal == 0 ? null : _checkDone / _checkTotal,
               ),
             ),
-            Text('provereno $_checkDone / $_checkTotal',
+            Text('checked $_checkDone / $_checkTotal',
                 style: AppText.body.copyWith(color: colors.textSecondary)),
             TextButton.icon(
               onPressed: _cancelCheck,
               icon: const Icon(Icons.stop_circle_outlined),
-              label: const Text('Prekini'),
+              label: const Text('Stop'),
             ),
           ] else ...[
             FilledButton.icon(
               onPressed: targets == 0 ? null : _runCheck,
               icon: const Icon(Icons.psychology_outlined),
-              label: Text('Proveri motorom ($targets)'),
+              label: Text('Check with engine ($targets)'),
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('dubina ',
+                Text('depth ',
                     style: AppText.body.copyWith(color: colors.textSecondary)),
                 DropdownButton<int>(
                   value: _depth,
@@ -629,7 +627,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               ],
             ),
             FilterChip(
-              label: const Text('i već odlučene'),
+              label: const Text('include settled'),
               selected: _includeSettled,
               onSelected: (value) => setState(() => _includeSettled = value),
               backgroundColor: colors.surfaceRaised,
@@ -638,12 +636,12 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
               OutlinedButton.icon(
                 onPressed: _acceptAllConfident,
                 icon: const Icon(Icons.done_all),
-                label: Text('Prihvati pouzdane ($confident)'),
+                label: Text('Accept confident ($confident)'),
               ),
             if (_proposals.isNotEmpty)
               TextButton(
                 onPressed: () => setState(_proposals.clear),
-                child: const Text('Obriši predloge'),
+                child: const Text('Clear proposals'),
               ),
           ],
         ],
@@ -718,8 +716,8 @@ class _SavedCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     position.sourceLabel == null
-                        ? 'str. ${position.sourcePage ?? '?'}'
-                        : '#${position.sourceLabel} · str. ${position.sourcePage}',
+                        ? 'p. ${position.sourcePage ?? '?'}'
+                        : '#${position.sourceLabel} · p. ${position.sourcePage}',
                     style: AppText.body.copyWith(color: colors.textSecondary),
                   ),
                 ),
@@ -761,8 +759,7 @@ class _SavedCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              position.instruction ??
-                                  'dodaj zadatak za učenika',
+                              position.instruction ?? 'add task for student',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: AppText.caption.copyWith(
@@ -791,7 +788,7 @@ class _SavedCard extends StatelessWidget {
                             color: colors.textPrimary),
                         const SizedBox(width: 5),
                         Text(
-                          position.solutionSan ?? 'bez rešenja',
+                          position.solutionSan ?? 'no solution',
                           style: AppText.body.copyWith(
                             color:
                                 incomplete ? colors.info : colors.textSecondary,
@@ -802,7 +799,7 @@ class _SavedCard extends StatelessWidget {
                     // Without this the yellow border says only "something", and
                     // the trainer cannot know the side was never confirmed.
                     if (position.needsReview)
-                      Text('strana na potezu nije potvrđena',
+                      Text('side to move is not confirmed',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
@@ -835,7 +832,7 @@ class _SavedCard extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.only(top: AppSpacing.xs),
         child: Text(
-          'motor: ${p.reason}',
+          'engine: ${p.reason}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: AppText.caption.copyWith(color: colors.textMuted),
@@ -850,7 +847,7 @@ class _SavedCard extends StatelessWidget {
         : p.confidence == ProposalConfidence.high
             ? colors.success
             : colors.info;
-    final named = p.side == 'w' ? 'beli' : 'crni';
+    final named = p.side == 'w' ? 'white' : 'black';
 
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.xs),
@@ -859,8 +856,8 @@ class _SavedCard extends StatelessWidget {
           Expanded(
             child: Text(
               disagrees
-                  ? 'motor se ne slaže: $named — ${p.reason}'
-                  : 'motor: $named — ${p.reason}',
+                  ? 'engine disagrees: $named — ${p.reason}'
+                  : 'engine: $named — ${p.reason}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(color: tone),

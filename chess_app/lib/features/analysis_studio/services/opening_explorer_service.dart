@@ -151,7 +151,7 @@ class OpeningExplorerService {
   /// can do more than that is a permission on a child's Lichess account sitting
   /// in `SharedPreferences` for no reason.
   static const createTokenUrl = 'https://lichess.org/account/oauth/token/create'
-      '?description=Sahovski%20trener%20-%20baza%20otvaranja';
+      '?description=Chess%20Trainer%20-%20Opening%20Database';
 
   static String get _personalToken =>
       AppSettingsService.instance.lichessApiToken;
@@ -252,7 +252,7 @@ class OpeningExplorerService {
 
       if (res.statusCode != 200) {
         AppLogger.log(
-            '[OpeningExplorer] ⚠️ Lichess ${res.statusCode} (lični token) | FEN: $fen');
+            '[OpeningExplorer] ⚠️ Lichess ${res.statusCode} (personal token) | FEN: $fen');
         return OpeningExplorerLookup.unavailable(
             _reasonOfStatus(res.statusCode));
       }

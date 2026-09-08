@@ -74,7 +74,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
     setState(() {
       _isAnalyzing = true;
       _processedNodes = 0;
-      _statusMsg = 'Pokretanje automatskog generisanja...';
+      _statusMsg = 'Starting automatic generation...';
     });
 
     final params = AutoAnalysisParams(
@@ -127,7 +127,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                     color: context.colors.warning, size: 22),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  'Automatska Analiza Pozicije',
+                  'Automatic Position Analysis',
                   style:
                       AppText.title.copyWith(color: context.colors.textPrimary),
                 ),
@@ -136,7 +136,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
             const SizedBox(height: AppSpacing.md),
             if (!_isAnalyzing) ...[
               Text(
-                'Podesite parametre za automatsku izgradnju stabla varijanti:',
+                'Configure parameters for automatic variation tree generation:',
                 style: AppText.body.copyWith(color: context.colors.textMuted),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -145,10 +145,10 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Dubina pretrage (N polupoteza): $_pliesDepth',
+                  Text('Search depth (N plies): $_pliesDepth',
                       style: AppText.body
                           .copyWith(color: context.colors.textPrimary)),
-                  Text('$_pliesDepth polupoteza',
+                  Text('$_pliesDepth plies',
                       style: AppText.bodyBold
                           .copyWith(color: context.colors.accent)),
                 ],
@@ -166,10 +166,10 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Kandidat potezi (n linija): $_candidateCount',
+                  Text('Candidate moves (n lines): $_candidateCount',
                       style: AppText.body
                           .copyWith(color: context.colors.textPrimary)),
-                  Text('Top $_candidateCount poteza',
+                  Text('Top $_candidateCount moves',
                       style: AppText.bodyBold
                           .copyWith(color: context.colors.info)),
                 ],
@@ -189,7 +189,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                      'Cutoff prag (delta): ${_deltaCutoff.toStringAsFixed(1)} pešaka',
+                      'Cutoff threshold (delta): ${_deltaCutoff.toStringAsFixed(1)} pawns',
                       style: AppText.body
                           .copyWith(color: context.colors.textPrimary)),
                   Text('${(_deltaCutoff * 100).round()} cp',
@@ -210,7 +210,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Dubina motora (d): $_engineDepth',
+                  Text('Engine depth (d): $_engineDepth',
                       style: AppText.body
                           .copyWith(color: context.colors.textPrimary)),
                   Text('depth $_engineDepth',
@@ -251,8 +251,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        'Do $_worstCasePositions pozicija na dubini $_engineDepth · procena ~$_estimatedSeconds s'
-                        '${_isHeavy ? '\nSmanjite N, n ili d da skratite analizu.' : ''}',
+                        'Up to $_worstCasePositions positions at depth $_engineDepth · estimate ~$_estimatedSeconds s'
+                        '${_isHeavy ? '\nReduce N, n, or d to shorten analysis.' : ''}',
                         style: AppText.caption.copyWith(
                           color: _isHeavy
                               ? context.colors.danger
@@ -269,7 +269,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.flash_on),
-                  label: const Text('Započni Automatsku Analizu ⚡',
+                  label: const Text('Start Automatic Analysis ⚡',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.warning,
@@ -291,15 +291,15 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                         color: context.colors.accent, size: 36),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Gotovo! Analizirano $_processedNodes pozicija.',
+                      'Done! Analyzed $_processedNodes positions.',
                       textAlign: TextAlign.center,
                       style: AppText.subtitle
                           .copyWith(color: context.colors.accent),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Gornja granica je bila $_totalEstimatedNodes (da nije bilo orezivanja). '
-                      'Grane čiji je eval bio gori od najboljeg poteza za više od ${_deltaCutoff.toStringAsFixed(1)} pešaka su preskočene — to je očekivano, ne greška.',
+                      'The upper bound was $_totalEstimatedNodes (without pruning). '
+                      'Branches whose eval was worse than the best move by more than ${_deltaCutoff.toStringAsFixed(1)} pawns were skipped — this is expected, not an error.',
                       textAlign: TextAlign.center,
                       style: AppText.caption
                           .copyWith(color: context.colors.textMuted),
@@ -310,7 +310,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                           backgroundColor: context.colors.accent,
                           foregroundColor: context.colors.canvas),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Zatvori'),
+                      child: const Text('Close'),
                     ),
                   ],
                 ),
@@ -326,7 +326,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                         color: context.colors.warning),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'Obrađeno čvorova: $_processedNodes / $_totalEstimatedNodes',
+                      'Nodes processed: $_processedNodes / $_totalEstimatedNodes',
                       style: AppText.bodyLargeBold
                           .copyWith(color: context.colors.accent),
                     ),
@@ -339,7 +339,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'Napomena: broj iznad je gornja granica bez orezivanja — grane sa slabijim potezima se preskaču pa se stvarni broj skoro uvek zaustavi mnogo ranije.',
+                      'Note: the number above is the upper bound without pruning — branches with weaker moves are skipped, so the actual count almost always stops much earlier.',
                       textAlign: TextAlign.center,
                       style: AppText.micro
                           .copyWith(color: context.colors.textMuted),
@@ -347,7 +347,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                     const SizedBox(height: AppSpacing.lg),
                     OutlinedButton.icon(
                       icon: Icon(Icons.cancel, color: context.colors.danger),
-                      label: Text('Otkaži',
+                      label: Text('Cancel',
                           style: TextStyle(color: context.colors.danger)),
                       onPressed: () {
                         _generatorService.cancel();

@@ -35,7 +35,7 @@ class ChessPlatformImportService {
       {int max = 20}) {
     final name = username.trim();
     if (name.isEmpty) {
-      throw ChessImportException('Unesite korisničko ime.');
+      throw ChessImportException('Enter a username.');
     }
     switch (platform) {
       case ChessPlatform.lichess:
@@ -64,25 +64,23 @@ class ChessPlatformImportService {
     } catch (e) {
       AppLogger.log('[ChessPlatformImport] Lichess fetch failed: $e');
       throw ChessImportException(
-          'Nema veze sa Lichess-om. Proverite internet konekciju.');
+          'Could not connect to Lichess. Check your internet connection.');
     }
 
     if (res.statusCode == 404) {
-      throw ChessImportException(
-          'Korisnik "$username" ne postoji na Lichess-u.');
+      throw ChessImportException('User "$username" does not exist on Lichess.');
     }
     if (res.statusCode == 429) {
       throw ChessImportException(
-          'Lichess trenutno ograničava zahteve. Pokušajte ponovo za koji trenutak.');
+          'Lichess is currently rate limiting requests. Please try again in a moment.');
     }
     if (res.statusCode != 200) {
       throw ChessImportException(
-          'Lichess je vratio grešku (${res.statusCode}).');
+          'Lichess returned an error (${res.statusCode}).');
     }
     final pgn = res.body.trim();
     if (pgn.isEmpty) {
-      throw ChessImportException(
-          '"$username" nema odigranih partija na Lichess-u.');
+      throw ChessImportException('"$username" has no played games on Lichess.');
     }
     return pgn;
   }
@@ -103,16 +101,16 @@ class ChessPlatformImportService {
       AppLogger.log(
           '[ChessPlatformImport] Chess.com archives fetch failed: $e');
       throw ChessImportException(
-          'Nema veze sa Chess.com-om. Proverite internet konekciju.');
+          'Could not connect to Chess.com. Check your internet connection.');
     }
 
     if (archivesRes.statusCode == 404) {
       throw ChessImportException(
-          'Korisnik "$username" ne postoji na Chess.com-u.');
+          'User "$username" does not exist on Chess.com.');
     }
     if (archivesRes.statusCode != 200) {
       throw ChessImportException(
-          'Chess.com je vratio grešku (${archivesRes.statusCode}).');
+          'Chess.com returned an error (${archivesRes.statusCode}).');
     }
 
     List<dynamic> archiveUrls;
@@ -120,12 +118,12 @@ class ChessPlatformImportService {
       archiveUrls = (jsonDecode(archivesRes.body)
           as Map<String, dynamic>)['archives'] as List<dynamic>;
     } catch (e) {
-      throw ChessImportException('Neočekivan odgovor sa Chess.com-a.');
+      throw ChessImportException('Unexpected response from Chess.com.');
     }
 
     if (archiveUrls.isEmpty) {
       throw ChessImportException(
-          '"$username" nema odigranih partija na Chess.com-u.');
+          '"$username" has no played games on Chess.com.');
     }
 
     final pgns = <String>[];
@@ -160,7 +158,7 @@ class ChessPlatformImportService {
     }
 
     if (pgns.isEmpty) {
-      throw ChessImportException('Nije nađena nijedna partija za "$username".');
+      throw ChessImportException('No games found for "$username".');
     }
     return pgns.join('\n\n');
   }

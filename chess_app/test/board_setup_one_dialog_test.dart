@@ -67,7 +67,7 @@ void main() {
 
     expect(find.byType(Tab), findsNWidgets(2));
     expect(find.text('FEN String'), findsOneWidget);
-    expect(find.text('Ručno Slaganje'), findsOneWidget);
+    expect(find.text('Piece Placement'), findsOneWidget);
   });
 
   testWidgets('and one that can is offered all five', (tester) async {

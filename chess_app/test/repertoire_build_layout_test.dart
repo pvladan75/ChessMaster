@@ -497,7 +497,7 @@ void main() {
     // same move without its number and has no menu of its own.
     await tester.longPress(find.text('3... c5 ★'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Unapredi u Glavnu Liniju (Main Line)'));
+    await tester.tap(find.text('Promote to Main Line'));
     await tester.pumpAndSettle();
 
     expect(api.promoted, ['c7c5']);
@@ -515,7 +515,7 @@ void main() {
 
     await tester.longPress(find.text('4. c3 64% ?'));
     await tester.pumpAndSettle();
-    expect(find.text('Obriši Ovu Varijantu'), findsNothing);
+    expect(find.text('Delete this variation'), findsNothing);
     await tester.tap(find.text('Do not prepare this branch'));
     await tester.pumpAndSettle();
 

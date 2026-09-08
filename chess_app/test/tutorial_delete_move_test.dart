@@ -226,7 +226,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.textContaining('c5').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Unapredi u Glavnu Liniju (Main Line)'));
+    await tester.tap(find.text('Promote to Main Line'));
     await tester.pumpAndSettle();
 
     final pgn = await savedLine(tester, api);

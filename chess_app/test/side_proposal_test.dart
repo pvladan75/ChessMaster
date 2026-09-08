@@ -34,7 +34,7 @@ void main() {
       final p = decideSide(whiteEval: 'M1', blackEval: '-2.50');
       expect(p.side, 'w');
       expect(p.confidence, ProposalConfidence.high);
-      expect(p.reason, contains('beli matira'));
+      expect(p.reason, contains('White mates'));
     });
 
     test('and the same in black\'s favour', () {
@@ -54,7 +54,7 @@ void main() {
       final p = decideSide(whiteEval: '+0.30', blackEval: '+0.10');
       expect(p.hasAnswer, isFalse);
       expect(p.side, isNull);
-      expect(p.reason, contains('ne razlikuje'));
+      expect(p.reason, contains('cannot distinguish'));
     });
 
     test('both sides mating is not an answer either', () {
@@ -66,7 +66,7 @@ void main() {
     test('an unreadable evaluation produces no proposal, not a guess', () {
       final p = decideSide(whiteEval: 'M1', blackEval: '');
       expect(p.hasAnswer, isFalse);
-      expect(p.reason, contains('nije dao ocenu'));
+      expect(p.reason, contains('did not evaluate'));
     });
 
     test('a proposal knows when it contradicts what is already stored', () {
@@ -109,7 +109,7 @@ void _bothMateTests() {
       // Six of the trainer's positions came back exactly like this.
       final p = decideSide(whiteEval: 'M1', blackEval: '-M1');
       expect(p.hasAnswer, isFalse);
-      expect(p.reason, contains('obe strane matiraju'));
+      expect(p.reason, contains('both sides mate'));
       expect(p.reason, contains('M1'),
           reason: 'the numbers are what lets a person settle it themselves');
     });
@@ -118,7 +118,7 @@ void _bothMateTests() {
       final p = decideSide(whiteEval: 'M1', blackEval: '-M6');
       expect(p.side, 'w');
       expect(p.confidence, ProposalConfidence.medium);
-      expect(p.reason, contains('brže'));
+      expect(p.reason, contains('faster'));
     });
 
     test('one move apart is too close to call', () {

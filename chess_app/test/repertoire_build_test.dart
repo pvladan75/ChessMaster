@@ -472,7 +472,7 @@ void main() {
     await play(tester, 'b8', 'c6');
 
     expect(judge.judged, 1, reason: 'suđenje je poenta ovog režima');
-    expect(find.text('Nc6 · Glavna teorija'), findsOneWidget);
+    expect(find.text('Nc6 · Mainline theory'), findsOneWidget);
     expect(find.text('Take Nc6'), findsOneWidget);
     // One: the verdict, and nothing else. A second book used to be fetched the
     // moment a move was played — a request per move, for a list that has been
@@ -933,7 +933,8 @@ void main() {
 
     await play(tester, 'b8', 'c6');
 
-    expect(find.textContaining('traži vaš Lichess token'), findsOneWidget);
+    expect(
+        find.textContaining('requires your own Lichess token'), findsOneWidget);
     expect(find.text('Take Nc6'), findsOneWidget,
         reason: 'izbor je i dalje korisnikov — sud je pomoć, ne dozvola');
   });

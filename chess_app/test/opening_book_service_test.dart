@@ -170,7 +170,7 @@ void main() {
       expect(find.text('Osnovna linija'), findsWidgets);
       expect(find.textContaining('Brooklyn'), findsWidgets);
 
-      await tester.tap(find.byTooltip('Nazad na spisak otvaranja'));
+      await tester.tap(find.byTooltip('Back to openings list'));
       await tester.pump(const Duration(milliseconds: 50));
       expect(find.text('Osnovna linija'), findsNothing);
     }, timeout: const Timeout(Duration(minutes: 3)));
@@ -199,7 +199,7 @@ void main() {
       await tester.enterText(find.byType(TextField), 'Najdorf');
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.byTooltip('Nazad na spisak otvaranja'), findsNothing);
+      expect(find.byTooltip('Back to openings list'), findsNothing);
       expect(find.textContaining('Najdorf'), findsWidgets);
     }, timeout: const Timeout(Duration(minutes: 3)));
   });

@@ -40,10 +40,10 @@ const _allowed = <String>[
 /// changes, because that is what a mechanical sweep gets wrong.
 const _expected = <String, List<String>>{
   'lib/features/analysis_studio/screens/analysis_studio_screen.dart': [
-    'Uredi korake tutorijala',
-    'Koji tutorijal uređuješ?',
-    'Tutorijal nije pronađen.',
-    'Korak uspešno dodat u tutorijal.',
+    'Edit tutorial steps',
+    'Which tutorial are you editing?',
+    'Tutorial not found.',
+    'Step successfully added to tutorial.',
   ],
   'lib/features/assignments/screens/lesson_viewer_screen.dart': [
     'This tutorial has no parts.',
@@ -68,7 +68,7 @@ const _expected = <String, List<String>>{
     'Nema nijednog tutorijala sa koracima.',
   ],
   'lib/features/position_scanner/screens/saved_positions_screen.dart': [
-    'Dodaj u tutorijal',
+    'Add to tutorial',
   ],
   'lib/features/reviews/screens/review_session_screen.dart': [
     'zadati tutorijal',

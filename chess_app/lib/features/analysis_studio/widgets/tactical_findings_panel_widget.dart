@@ -6,25 +6,25 @@ import 'package:flutter/material.dart';
 String _motifLabel(TacticalMotif motif) {
   switch (motif) {
     case TacticalMotif.pin:
-      return 'Vez';
+      return 'Pin';
     case TacticalMotif.fork:
-      return 'Viljuška';
+      return 'Fork';
     case TacticalMotif.discoveredAttack:
-      return 'Otkriveni napad';
+      return 'Discovered attack';
     case TacticalMotif.skewer:
-      return 'Ražanj';
+      return 'Skewer';
     case TacticalMotif.deflection:
-      return 'Skretanje';
+      return 'Deflection';
     case TacticalMotif.overloading:
-      return 'Preopterećenje';
+      return 'Overloaded piece';
     case TacticalMotif.hangingPiece:
-      return 'Visi figura';
+      return 'Undefended piece';
     case TacticalMotif.mateThreat:
-      return 'Pretnja matom';
+      return 'Mate threat';
     case TacticalMotif.doubleAttack:
-      return 'Dvostruki napad';
+      return 'Double attack';
     case TacticalMotif.mateThreatAndPieceAttack:
-      return 'Dvojni udar';
+      return 'Double attack';
   }
 }
 
@@ -59,7 +59,7 @@ class TacticalFindingsPanelWidget extends StatelessWidget {
               Icon(Icons.bolt, color: colors.accent, size: 16),
               const SizedBox(width: 6),
               Text(
-                'Taktički motivi',
+                'Tactical motifs',
                 style: AppText.bodyBold.copyWith(color: colors.accent),
               ),
             ],

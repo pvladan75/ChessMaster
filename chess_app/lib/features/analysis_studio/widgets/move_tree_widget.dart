@@ -13,7 +13,7 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
 
   /// What the second menu item is called, when the caller knows better.
   ///
-  /// „Obriši ovu varijantu" is true on an analysis board, where every move is
+  /// "Delete this variation" is true on an analysis board, where every move is
   /// the reader's own. In a repertoire it is true for half the cards: on the
   /// opponent's move nothing is deleted — the branch is refused, reversibly —
   /// and the label went on promising a deletion that never happened, beside a
@@ -83,7 +83,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          'Stablo Varijanti',
+                          'Variation Tree',
                           overflow: TextOverflow.ellipsis,
                           style: AppText.bodyLargeBold
                               .copyWith(color: context.colors.textPrimary),
@@ -116,7 +116,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                             Icon(Icons.bar_chart,
                                 size: 13, color: context.colors.accent),
                             const SizedBox(width: 3),
-                            Text('Grafičko',
+                            Text('Visual',
                                 style: AppText.caption.copyWith(
                                     color: context.colors.textPrimary)),
                           ],
@@ -156,7 +156,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       const SizedBox(width: AppSpacing.xs),
                       IconButton(
                         onPressed: () => _openFullscreen(context),
-                        tooltip: 'Prikaži preko celog ekrana',
+                        tooltip: 'Show fullscreen',
                         icon: Icon(Icons.open_in_full,
                             size: 16, color: context.colors.accent),
                         constraints:
@@ -222,7 +222,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                               color: dialogContext.colors.accent, size: 18),
                           const SizedBox(width: 6),
                           Text(
-                            'Stablo Varijanti',
+                            'Variation Tree',
                             style: AppText.subtitle.copyWith(
                                 color: dialogContext.colors.textPrimary),
                           ),
@@ -468,14 +468,14 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
             children: [
               // Drawn only where they do something. A screen that takes this
               // widget without the callbacks used to get the whole menu
-              // anyway: the tutorial studio showed „Obriši Ovu Varijantu",
+              // anyway: the tutorial studio showed "Delete This Variation",
               // the trainer pressed it, the sheet closed and the move stayed —
               // the recurring fault of this repository, in the form a user
               // meets it. Found live on 7.9.2026.
               if (widget.onPromoteNode != null)
                 ListTile(
                   leading: Icon(Icons.star, color: ctx.colors.warning),
-                  title: Text('Unapredi u Glavnu Liniju (Main Line)',
+                  title: Text('Promote to Main Line',
                       style: TextStyle(color: ctx.colors.textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -488,7 +488,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                 ListTile(
                   leading: Icon(Icons.delete, color: ctx.colors.danger),
                   title: Text(
-                      widget.deleteLabel?.call(node) ?? 'Obriši Ovu Varijantu',
+                      widget.deleteLabel?.call(node) ?? 'Delete this variation',
                       style: TextStyle(color: ctx.colors.textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
