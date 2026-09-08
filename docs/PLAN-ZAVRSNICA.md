@@ -319,6 +319,11 @@ size of the sweep. `docs/GLOSSARY-EN.md` is the contract, the two anchors in
 `docs/gates/` are the vocabulary, and `gate_english_ui` is what grades it. The
 manual and the site are therefore written in **English**, not Serbian.
 
+**„Trainer" stands, confirmed 8.9.2026.** Raised because „Coach" was used in
+passing when the register rule was decided; kept because every identifier in
+the schema says trainer, and a UI word that disagrees with the schema costs a
+guess in every bug report. Settled, and not to be reopened by a later batch.
+
 ### The audience declaration — decided 8.9.2026
 
 **The app ships as a General Audience product, 13+. It is not declared as
@@ -374,6 +379,14 @@ the store listing says. The parental-consent machinery therefore gets
 **re-pointed, not deleted**: it stops being „may this child be here at all" and
 becomes „this 13-to-15-year-old is in a country that asks for a parent". The
 code needs no new concept for that; it needs one changed question.
+
+**The privacy policy, decided 8.9.2026.** `docs/politika-privatnosti.md` is
+**untouched** and stays Serbian: it is a document with a valid signature for the
+domestic frame, and editing it would spend that signature. The English version
+for the global listing is a **new** file, `docs/privacy-policy-en.md`, shaped in
+Phase 4 with the rest of the documentation. A lawyer's review of it for the
+markets being entered is recorded as an **external release gate** — the last
+thing before publishing, not a blocker on any code or any batch.
 
 **`docs/saglasnost-roditelja.md` is retired, not deleted.** It carries a
 lawyer's approval for Serbia with a date on it, and a superseded approved text
