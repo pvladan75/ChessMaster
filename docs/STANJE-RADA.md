@@ -82,17 +82,38 @@ testovima nije imalo nijedno naše slovo** — `contains('Beli')`,
 nikad ne bi imenovao; našao ih je samo suite. Kad se menja string, grepuje se
 **stara srpska reč**, ne dijakritik.
 
-**Sledeće — batch 65a**, `docs/TASK-prevod-analiza.md` i
-`docs/brief-prevod-analiza-2026-09.md`, dozvole već upisane u `orchestrate.py`.
-29 fajlova, 268 linija: `features/analysis_studio` (161), `widgets/ai_studio`
-(35), `features/position_scanner` (72). Brief nosi dve tabele — jednu koja
-**ponavlja reči koje su već otišle u kod** (fork, pin, skewer, outpost, bishop
-pair…), jer dva panela u batch-u imenuju iste motive, i jednu novu.
+**Gotovo — batch 65a, spojen kao `c93deb8`.** 29 fajlova, 268 linija
+(`features/analysis_studio`, `widgets/ai_studio`, `features/position_scanner`),
+plus 17 test fajlova. **Svih jedanaest kapija zeleno iz prve runde**, prvi put u
+ovoj seriji; 48 minuta od 75. Premereno na `master` bez ičega drugog u pozadini:
+1772 testa i 1 preskočen, 29 `info`, nula upozorenja i grešaka, i tačno **220
+srpskih literala** ostalo u `lib/` — što je do slova obim 65b, pa batch nije
+izašao iz svog spiska.
 
-**Zatim batch 65b** — ostatak, 54 fajla i 220 linija: `features/archive` (59),
+Tri stvari iz njega. **Kad batch dodiruje jedan kraj rečnika čiji je drugi kraj
+već napisan, taj napisani kraj se prepisuje u brief** — brief je nosio drugu
+tabelu od 21 termina koji su **već otišli u kod** (fork, pin, skewer, outpost,
+bishop pair…), jer dva panela imenuju iste motive koje generator rečenica
+ispisuje; sva 21 su se vratila tačna. **Prevod ume da proširi matcher a da to
+niko nije odlučio** — `contains('slika')` nije podniz od `slike`, ali
+`contains('image')` jeste podniz od `images`; mutacija (zamena dve klasifikacije
+skenera) i dalje pada, na susednom testu, pa nije menjano — ali to je rekla samo
+mutacija. I **test za množinu se preimenuje, ne skraćuje**: `gamesLabel` je
+zadržao svih osam ulaza, pa brojka nije pala kao kod batch-a 64.
+
+**Treći izveštaj zaredom sa tačnim brojevima i izmišljenom sekcijom.** Sekcije
+5.3 i 5.5 citiraju rečenice kojih nema ni u diffu ni u stablu — poruka skenera o
+„slabom osvetljenju ili mutnoj slici" za funkciju koja čita **dijagrame složene
+fontom, nikad sliku**, i četiri izmišljena imena otvaranja pored četiri prava.
+Sekcija 3 je podmuklija i poučnija: njena tabela po fajlu je poštena računica
+(zbir 558 je tačno `git diff --numstat` dodatih linija) pod pogrešnim imenom
+(„prevedeni literali"), gde je pravi broj 268. **Tačan broj pod lažnim imenom
+teže se hvata od izmišljenog.**
+
+**Sledeće — batch 65b**, ostatak, 54 fajla i 220 linija: `features/archive` (59),
 `lib/widgets` van `ai_studio` (52), `features/groups` (24), `lib/services` (29),
 `features/trainer_panel`, `library`, `reviews`, `theme`, `routing`, `core`.
-Brief se piše kad 65a prođe.
+Brief se piše po uzoru na 65a.
 
 Uz 65b ide i jedno čišćenje: **`lib/core/services/serbian_plural.dart` više
 nema nijednog pozivaoca u `lib/`** — briše se sa svoja dva test fajla kad ode i
@@ -113,14 +134,14 @@ gejtovano.
 ### Šta o workeru mora da se zna
 
 **Dva runda su izgubljena na workera koji je ponavljao „čekam da se testovi
-završe" — ali uzrok nije utvrđen.** Prvo je zapisano kao „`gemini-3.8-flash-high`
-ne ume da čeka potproces"; vlasnik je to ispravio 8.9.2026 — u toku rada mu je
-pala internet konekcija, a nijedan raniji batch ovo nije pokazao. Logovi ne
-razdvajaju dva čitanja: prva runda se završila sa `Error: timeout waiting for
-response`, što liči na mrežu i ide u prilog vlasniku, a druga je izašla sa
-**kodom 0 posle 7,1 minut od 60**, uz jedanaest smislenih „čekam" poruka na
-temu, što nije oblik prekinute veze. **Oba objašnjenja su i dalje otvorena**;
-prvi čist run na ovom modelu presuđuje.
+završe", i uzrok je sada utvrđen — bila je mreža.** Prvo je zapisano kao
+„`gemini-3.8-flash-high` ne ume da čeka potproces"; vlasnik je to ispravio
+8.9.2026 — pala mu je internet konekcija. **Batch 65a je presudio istog dana**:
+ispisuje istih devet „pustio sam ceo suite i čekam" rečenica — i onda se vrati
+sa brojem, za 48 minuta od 75, sa svih jedanaest kapija zelenih. Na ispravnoj
+vezi model sasvim uredno čeka potproces. Pouka je o vođi, ne o workeru: **zastoj
+ima i okruženje a ne samo model, a imenovati model je jeftinija priča, ne i
+verovatnija.**
 
 Ono što ne zavisi od toga koje je tačno: **batch se brifuje tako da mu treba
 najviše jedno puštanje celog suite-a, na kraju.** Batch 64 je dobio nalog da

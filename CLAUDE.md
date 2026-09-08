@@ -680,6 +680,52 @@ band it covers is exactly 13 to `AGE_OF_CONSENT - 1`, so it stopped answering
 „may this child be here at all" and started answering „is this teenager in a
 country whose threshold is above thirteen?". One changed question, no new code.
 
+**Batch 65a merged on 8.9.2026 and the count did not move: 1772 passing, 1
+skipped, 29 infos, zero warnings, zero errors, all re-measured on `master` with
+nothing else running.** It translated 29 files — the analysis studio, the AI
+hub and the position scanner, 268 lines — and 17 test files with them, so a
+suite that stayed still is the correct result rather than a suspicious one. All
+eleven gates green in one round, which is the first time in this series.
+
+Three things from it are worth carrying.
+
+**When a batch touches one end of a vocabulary whose other end is already
+written, quote the written end into the brief.** The two findings panels label
+the motifs that `tactical_motif_detector.dart` and
+`positional_evaluator_service.dart` name in whole sentences, and a panel saying
+„Double pawns" over a sentence saying „Doubled pawns" is the vocabulary coming
+apart in the one place a user sees both at once. The brief carried a second
+table of 21 terms *already shipped* alongside the table of new ones; all 21 came
+back matching.
+
+**A translation can widen a matcher without anybody choosing to.** The scanner
+test asserted `contains('slika')` against a message whose sibling says `slike` —
+not a substring, so it discriminated. Translated, that became `contains('image')`
+against a sibling saying `images` — which *is* a substring, so that one
+assertion stopped discriminating. A mutation swapping the two classifications is
+still caught, by the neighbouring test's `contains('images')`, so nothing was
+changed; but only the mutation could say so. **Read a translated negative or
+narrow assertion again: English substrings nest where Serbian inflections do
+not.**
+
+**A plural test is renamed, never trimmed.** `gamesLabel` went from three
+Serbian forms to two English ones and kept all eight inputs (1, 2, 4, 5, 11, 21,
+22, 112). Batch 64's equivalent dropped two whole tests and the suite count fell
+by two — defensible, and checked input by input at the time, but the rename is
+the shape that does not need checking.
+
+**And the third report in a row with accurate numbers and an invented section.**
+Sections 5.3 and 5.5 quoted Serbian originals and English replacements that
+`grep` finds nowhere — a scanner message about „low lighting or a blurry image"
+for a feature that reads **text-typeset diagrams and never an image**, two board
+legality messages, and four invented opening names beside four real ones.
+Section 3 is subtler and more instructive: its per-file table is honest
+arithmetic — the total, 558, is exactly `git diff --numstat` added lines —
+wearing the wrong label, „translated literals", where the real count is 268. **A
+true number under a false name is harder to catch than an invented one**, and it
+is the reason the count in a report is never taken without re-deriving what it
+counts.
+
 **The count went *down* on 8.9.2026, from 1774 to 1772, and that is correct.**
 Batch 64 translated the repertoire and the trainers, and two tests went with the
 language: `tactics_skipped_homework_test.dart` had four, one per Serbian
@@ -701,15 +747,16 @@ touched". Twenty-six suite runs of three minutes each. The instruction was
 mine and it is withdrawn.
 
 **Two rounds were lost to a worker that would not stop saying „I will wait for
-the test run to finish", and the cause is not settled.** Written first as „this
-worker cannot wait for a subprocess"; the owner corrected that on 8.9.2026 —
-their internet connection dropped during the run, and no earlier batch had ever
-shown this. The logs do not separate the two readings: round one ended with
-`Error: timeout waiting for response`, which is network-shaped and is a point
-for the owner, while round two exited **0 after 7.1 minutes of a 60-minute
-budget** having emitted eleven coherent on-topic „I will wait" turns, which is
-not what a dropped connection usually looks like. **Both are still live**, and
-the next clean run on this model settles it either way.
+the test run to finish", and the cause is now settled — it was the network.**
+Written first as „this worker cannot wait for a subprocess". The owner corrected
+that on 8.9.2026: their internet had dropped during the run. **Batch 65a
+settled it the same day.** That run says the same nine „I have launched the full
+test suite and am waiting for the execution to complete" sentences — and then
+comes back with the number, in 48 minutes of a 75-minute budget, all gates
+green. On a working connection the model waits for a subprocess perfectly well.
+The lesson is about the lead, not the worker: **a stall has an environment as
+well as a model, and naming the model first is the cheaper story, not the
+likelier one.**
 
 What does *not* depend on which is true: **brief a batch so it needs at most one
 full suite run, at the end.** Batch 64 was told to run the tests after each of
