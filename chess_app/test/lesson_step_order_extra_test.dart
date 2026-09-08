@@ -79,11 +79,11 @@ void main() {
     // Select Treći, move up
     await tester.tap(find.text('Treći'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Pomeri gore'));
+    await tester.tap(find.byTooltip('Move up'));
     await tester.pumpAndSettle();
 
     // Tap Save
-    await tester.tap(find.text('Sačuvaj korak'));
+    await tester.tap(find.text('Save step'));
     await tester.pumpAndSettle();
 
     expect(capturedRequest, isNotNull);
@@ -140,14 +140,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Add step after initial selected step ('Prvi')
-    await tester.tap(find.text('Dodaj korak').last);
+    await tester.tap(find.text('Add step').last);
     await tester.pumpAndSettle();
 
     await tester.enterText(
         find.byKey(const Key('step-title')), 'Novi ubačeni korak');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Sačuvaj korak'));
+    await tester.tap(find.text('Save step'));
     await tester.pumpAndSettle();
 
     expect(capturedRequest, isNotNull);
@@ -191,7 +191,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(LessonStepEditorPanel), findsOneWidget);
-    expect(find.text('Dodaj korak'), findsWidgets);
-    expect(find.text('Obriši korak'), findsWidgets);
+    expect(find.text('Add step'), findsWidgets);
+    expect(find.text('Delete step'), findsWidgets);
   });
 }

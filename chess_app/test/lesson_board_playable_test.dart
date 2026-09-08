@@ -68,6 +68,6 @@ void main() {
 
     // The button appears only once pieces have actually moved; standing there
     // from the start would suggest something is wrong with the position.
-    expect(find.text('Vrati poziciju'), findsNothing);
+    expect(find.text('Reset position'), findsNothing);
   });
 }

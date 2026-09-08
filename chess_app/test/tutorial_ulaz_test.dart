@@ -244,9 +244,9 @@ void main() {
   group('where the door is drawn', () {
     testWidgets('on Windows, the card is there', (tester) async {
       await pump(tester);
-      expect(find.text('Interaktivni tutorijali'), findsOneWidget);
-      expect(find.text('Novi tutorijal'), findsOneWidget);
-      expect(find.text('Sačuvani tutorijali'), findsOneWidget);
+      expect(find.text('Interactive tutorials'), findsOneWidget);
+      expect(find.text('New tutorial'), findsOneWidget);
+      expect(find.text('Saved tutorials'), findsOneWidget);
     });
 
     testWidgets('everywhere else, it is not', (tester) async {
@@ -255,20 +255,20 @@ void main() {
       // is not there.
       debugTutorialStudioAvailable = false;
       await pump(tester);
-      expect(find.text('Interaktivni tutorijali'), findsNothing);
-      expect(find.text('Novi tutorijal'), findsNothing);
+      expect(find.text('Interactive tutorials'), findsNothing);
+      expect(find.text('New tutorial'), findsNothing);
     });
   });
 
   group('a new tutorial', () {
     testWidgets('is named before it is opened', (tester) async {
       await pump(tester);
-      await tester.tap(find.text('Novi tutorijal'));
+      await tester.tap(find.text('New tutorial'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Naziv tutorijala'), findsOneWidget);
+      expect(find.text('Tutorial title'), findsOneWidget);
       await tester.enterText(find.byType(TextField), 'Skakač i pešak');
-      await tester.tap(find.text('Napravi'));
+      await tester.tap(find.text('Create'));
       await tester.pumpAndSettle();
 
       final entry = openedWith(tester);
@@ -283,11 +283,11 @@ void main() {
       // It has to have a name before the first save anyway, and finding that
       // out twenty minutes later is the expensive way to learn it.
       await pump(tester);
-      await tester.tap(find.text('Novi tutorijal'));
+      await tester.tap(find.text('New tutorial'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '   ');
-      await tester.tap(find.text('Napravi'));
+      await tester.tap(find.text('Create'));
       await tester.pumpAndSettle();
 
       expect(openedWith(tester), isNull);
@@ -295,9 +295,9 @@ void main() {
 
     testWidgets('cancelling opens nothing', (tester) async {
       await pump(tester);
-      await tester.tap(find.text('Novi tutorijal'));
+      await tester.tap(find.text('New tutorial'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Otkaži'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       expect(openedWith(tester), isNull);
@@ -308,7 +308,7 @@ void main() {
     testWidgets('the list offers tutorials and not plain positions',
         (tester) async {
       await pump(tester, api: libraryApi());
-      await tester.tap(find.text('Sačuvani tutorijali'));
+      await tester.tap(find.text('Saved tutorials'));
       await tester.pumpAndSettle();
 
       expect(find.text('Opozicija'), findsOneWidget);
@@ -325,7 +325,7 @@ void main() {
 
     testWidgets('picking one opens that tutorial, whole', (tester) async {
       await pump(tester, api: libraryApi());
-      await tester.tap(find.text('Sačuvani tutorijali'));
+      await tester.tap(find.text('Saved tutorials'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Vezani top'));
       await tester.pumpAndSettle();
@@ -344,10 +344,10 @@ void main() {
 
     testWidgets('an empty library says so', (tester) async {
       await pump(tester, api: libraryApi(empty: true));
-      await tester.tap(find.text('Sačuvani tutorijali'));
+      await tester.tap(find.text('Saved tutorials'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nemate nijedan sačuvan tutorijal.'), findsOneWidget,
+      expect(find.text('You have no saved tutorials.'), findsOneWidget,
           reason: 'an empty box tells the trainer nothing about whether it '
               'failed or there is nothing there');
       expect(openedWith(tester), isNull);
@@ -358,10 +358,10 @@ void main() {
       // that is drawn either way. So „nothing saved" and „could not reach the
       // server" arrive here identically unless this card asks.
       await pump(tester, api: libraryApi(fail: true));
-      await tester.tap(find.text('Sačuvani tutorijali'));
+      await tester.tap(find.text('Saved tutorials'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Ne mogu da učitam listu tutorijala.'), findsOneWidget);
+      expect(find.text('Could not load tutorials.'), findsOneWidget);
       expect(openedWith(tester), isNull);
     });
   });
@@ -386,7 +386,7 @@ void main() {
       ));
       await tester.tap(find.text('pitaj'));
       await tester.pumpAndSettle();
-      expect(find.text('Gde ide ova linija?'), findsOneWidget);
+      expect(find.text('Where does this line go?'), findsOneWidget);
       await tester.tap(find.text(tapWhat));
       await tester.pumpAndSettle();
       return answer;
@@ -394,18 +394,18 @@ void main() {
 
     testWidgets('carrying on with the open tutorial answers true',
         (tester) async {
-      expect(await ask(tester, 'Nastavi tutorijal koji uređujem'), isTrue);
+      expect(await ask(tester, 'Continue editing tutorial'), isTrue);
     });
 
     testWidgets('starting a new one answers false', (tester) async {
-      expect(await ask(tester, 'Počni nov tutorijal'), isFalse);
+      expect(await ask(tester, 'Start new tutorial'), isFalse);
     });
 
     testWidgets('saying neither answers null, and nothing is opened',
         (tester) async {
       // Being asked and saying nothing is not the same as choosing the first
       // answer — the rule the branch sheet on the move strip already keeps.
-      expect(await ask(tester, 'Otkaži'), isNull);
+      expect(await ask(tester, 'Cancel'), isNull);
     });
 
     test('the Studio passes the answer through rather than deciding it', () {

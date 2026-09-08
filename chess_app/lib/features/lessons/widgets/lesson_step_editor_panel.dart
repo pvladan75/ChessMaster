@@ -114,7 +114,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       AppFeedback.show(
         context,
         () => SnackBar(
-          content: const Text('Poslednji korak ne može biti obrisan.'),
+          content: const Text('The last step cannot be deleted.'),
           backgroundColor: context.colors.danger,
         ),
       );
@@ -127,21 +127,21 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
         : _steps[_selectedIndex]['title']?.toString().trim();
     final displayName = (currentTitle != null && currentTitle.isNotEmpty)
         ? currentTitle
-        : 'Korak ${_selectedIndex + 1}';
+        : 'Step ${_selectedIndex + 1}';
 
     final drop = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Brisanje koraka'),
-        content: Text('Da li želiš da obrišeš korak „$displayName"?'),
+        title: const Text('Delete step'),
+        content: Text('Do you want to delete step "$displayName"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Obriši'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -236,20 +236,20 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       final drop = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Dete bi videlo odgovor'),
+          title: const Text('The student would see the answer'),
           content: const Text(
-            'Ovaj korak nosi liniju, a dete može da je prolista dugmetom '
-            '„Sledeći potez" pre nego što odgovori. Demonstracija ide u korak '
-            'ispred pitanja — pitanje ostaje samo pozicija.',
+            'This step has a line, and the student can browse through it with the '
+            '"Next move" button before answering. The demonstration belongs in the step '
+            'before the question — the question should be the position only.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Odustani'),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Ukloni liniju i postavi pitanje'),
+              child: const Text('Remove line and ask question'),
             ),
           ],
         ),
@@ -282,14 +282,14 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     final leaking = _steps.where(_leaksAnswer).toList();
     if (leaking.isNotEmpty) {
       final names = leaking
-          .map((s) => '„${s['title']?.toString() ?? 'Korak'}"')
+          .map((s) => '"${s['title']?.toString() ?? 'Step'}"')
           .join(', ');
       setState(() => _isSaving = false);
       AppFeedback.show(
         context,
         () => SnackBar(
-          content: Text('Nije sačuvano. $names nosi liniju u kojoj je odgovor '
-              '— ukloni liniju ili promeni tip zadatka.'),
+          content: Text('Not saved. $names has a line with the answer '
+              '— remove the line or change the task type.'),
           backgroundColor: context.colors.danger,
         ),
       );
@@ -320,7 +320,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       AppFeedback.show(
           context,
           () => SnackBar(
-                content: const Text('Korak je sačuvan.'),
+                content: const Text('Step saved.'),
                 backgroundColor: context.colors.success,
               ));
     }
@@ -390,12 +390,12 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Dete bi videlo odgovor',
+          Text('The student would see the answer',
               style: AppText.bodyBold.copyWith(color: context.colors.danger)),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Ovo pitanje nosi liniju koju dete može da prolista dugmetom '
-            '„Sledeći potez" pre nego što odgovori. Dok je tu, korak se ne čuva.',
+            'This question has a line that the student can browse through with the '
+            '"Next move" button before answering. While it is here, the step is not saved.',
             style: AppText.body.copyWith(color: context.colors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -403,7 +403,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
             alignment: Alignment.centerLeft,
             child: FilledButton(
               onPressed: () => _updateStep('pgn', null),
-              child: const Text('Ukloni liniju'),
+              child: const Text('Remove line'),
             ),
           ),
         ],
@@ -417,7 +417,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: AppSpacing.md),
-        Text('Ponuđeni odgovori', style: AppText.bodyBold),
+        Text('Offered answers', style: AppText.bodyBold),
         RadioGroup<int>(
           groupValue: choicesList.indexWhere((c) => c['correct'] == true),
           onChanged: (val) {
@@ -471,14 +471,14 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
               newChoices.add({'text': '', 'correct': newChoices.isEmpty});
               _updateStep('choices', newChoices);
             },
-            child: const Text('Dodaj odgovor'),
+            child: const Text('Add answer'),
           ),
       ],
     );
   }
 
   Widget _buildEditor() {
-    if (_steps.isEmpty) return const Text('Nema koraka.');
+    if (_steps.isEmpty) return const Text('No steps.');
     final step = _steps[_selectedIndex];
     final kind = step['kind']?.toString() ?? 'show';
 
@@ -498,7 +498,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
             key: const Key('step-title'),
             controller: _titleCtrl,
             decoration: const InputDecoration(
-              labelText: 'Naziv koraka',
+              labelText: 'Step title',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -518,8 +518,8 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
             key: const Key('step-instruction'),
             controller: _instructionCtrl,
             decoration: const InputDecoration(
-              labelText: 'Zadatak za učenika',
-              hintText: 'npr. Beli je na potezu — nađi dobitak figure',
+              labelText: 'Task for student',
+              hintText: 'e.g. White to move — find winning material',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -541,16 +541,16 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
                 initialValue: kind,
                 isExpanded: true,
                 items: const [
-                  DropdownMenuItem(value: 'show', child: Text('Samo prikaži')),
+                  DropdownMenuItem(value: 'show', child: Text('Show only')),
                   DropdownMenuItem(
-                      value: 'ask_move', child: Text('Traži potez na tabli')),
+                      value: 'ask_move', child: Text('Ask for move on board')),
                   DropdownMenuItem(
                       value: 'ask_choice',
-                      child: Text('Traži odgovor iz liste')),
+                      child: Text('Ask for answer from list')),
                 ],
                 onChanged: _chooseKind,
                 decoration: const InputDecoration(
-                  labelText: 'Tip zadatka',
+                  labelText: 'Task type',
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
@@ -558,9 +558,9 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
           if (kind == 'ask_choice') _buildChoicesEditor(step),
           const SizedBox(height: AppSpacing.xs),
           if (kind == 'ask_move') ...[
-            Text('Odigraj tačan potez na tabli', style: AppText.bodyBold),
+            Text('Play the correct move on the board', style: AppText.bodyBold),
             if (step['solutionSan'] != null)
-              Text('Tačan potez: ${step['solutionSan']}',
+              Text('Correct move: ${step['solutionSan']}',
                   style: AppText.body.copyWith(color: context.colors.success)),
             const SizedBox(height: AppSpacing.xs),
           ],
@@ -605,11 +605,11 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
             children: [
               FilledButton(
                 onPressed: _isSaving ? null : _save,
-                child: const Text('Sačuvaj korak'),
+                child: const Text('Save step'),
               ),
               OutlinedButton(
                 onPressed: _preview,
-                child: const Text('Pregled'),
+                child: const Text('Preview'),
               ),
             ],
           )
@@ -638,14 +638,14 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Tooltip(
-                      message: 'Pomeri gore',
+                      message: 'Move up',
                       child: IconButton(
                         icon: const Icon(Icons.arrow_upward),
                         onPressed: canMoveUp ? _moveUp : null,
                       ),
                     ),
                     Tooltip(
-                      message: 'Pomeri dole',
+                      message: 'Move down',
                       child: IconButton(
                         icon: const Icon(Icons.arrow_downward),
                         onPressed: canMoveDown ? _moveDown : null,
@@ -653,11 +653,11 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
                     ),
                     OutlinedButton(
                       onPressed: _addStep,
-                      child: const Text('Dodaj korak'),
+                      child: const Text('Add step'),
                     ),
                     OutlinedButton(
                       onPressed: _deleteStep,
-                      child: const Text('Obriši korak'),
+                      child: const Text('Delete step'),
                     ),
                   ],
                 ),
@@ -670,7 +670,7 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
                     final title = _steps[i]['title']?.toString().trim();
                     final label = (title != null && title.isNotEmpty)
                         ? title
-                        : 'Korak ${i + 1}';
+                        : 'Step ${i + 1}';
                     return ListTile(
                       title: Text(label),
                       selected: i == _selectedIndex,

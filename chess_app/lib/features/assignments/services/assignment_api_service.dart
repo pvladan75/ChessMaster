@@ -78,14 +78,14 @@ class AssignmentApiService {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       return CreateAssignmentResult(
         success: false,
-        error: body['error']?.toString() ?? 'Zadatak nije kreiran.',
+        error: body['error']?.toString() ?? 'Assignment not created.',
         quotaExceeded: body['quotaExceeded'] == true,
       );
     } catch (e) {
-      AppLogger.log('[Assignments] Kreiranje nije uspelo: $e');
+      AppLogger.log('[Assignments] Creation failed: $e');
       return const CreateAssignmentResult(
         success: false,
-        error: 'Nema veze sa serverom.',
+        error: 'Cannot connect to server.',
       );
     }
   }
@@ -121,13 +121,13 @@ class AssignmentApiService {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       return CreateAssignmentResult(
         success: false,
-        error: body['error']?.toString() ?? 'Tutorijal nije zadat.',
+        error: body['error']?.toString() ?? 'Tutorial not assigned.',
         quotaExceeded: body['quotaExceeded'] == true,
       );
     } catch (e) {
-      AppLogger.log('[Assignments] Zadavanje lekcije nije uspelo: $e');
+      AppLogger.log('[Assignments] Assigning tutorial failed: $e');
       return const CreateAssignmentResult(
-          success: false, error: 'Nema veze sa serverom.');
+          success: false, error: 'Cannot connect to server.');
     }
   }
 
@@ -145,7 +145,7 @@ class AssignmentApiService {
           )
           .timeout(const Duration(seconds: 10));
     } catch (e) {
-      AppLogger.log('[Assignments] Korak nije zabeležen: $e');
+      AppLogger.log('[Assignments] Step not recorded: $e');
     }
   }
 
@@ -176,7 +176,7 @@ class AssignmentApiService {
       return CustomAttemptResult.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Assignments] Odgovor nije poslat: $e');
+      AppLogger.log('[Assignments] Answer not sent: $e');
       return null;
     }
   }
@@ -203,7 +203,7 @@ class AssignmentApiService {
       return StepAnswerResult.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Assignments] Odgovor nije poslat: $e');
+      AppLogger.log('[Assignments] Answer not sent: $e');
       return null;
     }
   }
@@ -224,7 +224,7 @@ class AssignmentApiService {
       return StepRevealResult.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Assignments] Rešenje nije otkriveno: $e');
+      AppLogger.log('[Assignments] Solution not revealed: $e');
       return null;
     }
   }
@@ -248,7 +248,7 @@ class AssignmentApiService {
           .map((e) => Assignment.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
-      AppLogger.log('[Assignments] Ne mogu da učitam listu: $e');
+      AppLogger.log('[Assignments] Could not load list: $e');
       return const [];
     }
   }
@@ -262,7 +262,7 @@ class AssignmentApiService {
       return AssignmentDetail.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Assignments] Ne mogu da učitam zadatak: $e');
+      AppLogger.log('[Assignments] Could not load assignment: $e');
       return null;
     }
   }
@@ -282,7 +282,7 @@ class AssignmentApiService {
       return AssignmentReview.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Assignments] Ne mogu da učitam pregled: $e');
+      AppLogger.log('[Assignments] Could not load review: $e');
       return null;
     }
   }
@@ -314,10 +314,10 @@ class AssignmentApiService {
           error: null,
         );
       }
-      return (note: null, error: _errorFrom(res.body, 'Poruka nije poslata.'));
+      return (note: null, error: _errorFrom(res.body, 'Note not sent.'));
     } catch (e) {
-      AppLogger.log('[Assignments] Poruka nije poslata: $e');
-      return (note: null, error: 'Nema veze sa serverom.');
+      AppLogger.log('[Assignments] Note not sent: $e');
+      return (note: null, error: 'Cannot connect to server.');
     }
   }
 
@@ -332,9 +332,9 @@ class AssignmentApiService {
           )
           .timeout(const Duration(seconds: 12));
       if (res.statusCode == 200) return null;
-      return _errorFrom(res.body, 'Brisanje nije uspelo.');
+      return _errorFrom(res.body, 'Delete failed.');
     } catch (e) {
-      return 'Nema veze sa serverom.';
+      return 'Cannot connect to server.';
     }
   }
 
@@ -344,9 +344,9 @@ class AssignmentApiService {
           .delete(Uri.parse('$backendUrl/assignments/$id'), headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode == 200) return null;
-      return _errorFrom(res.body, 'Brisanje nije uspelo.');
+      return _errorFrom(res.body, 'Delete failed.');
     } catch (e) {
-      return 'Nema veze sa serverom.';
+      return 'Cannot connect to server.';
     }
   }
 
@@ -381,12 +381,12 @@ class AssignmentApiService {
       }
       return (
         url: null,
-        error: body['error']?.toString() ?? 'Izveštaj nije napravljen.',
+        error: body['error']?.toString() ?? 'Report not generated.',
         hasData: false,
       );
     } catch (e) {
-      AppLogger.log('[Assignments] Izrada izveštaja nije uspela: $e');
-      return (url: null, error: 'Nema veze sa serverom.', hasData: false);
+      AppLogger.log('[Assignments] Report generation failed: $e');
+      return (url: null, error: 'Cannot connect to server.', hasData: false);
     }
   }
 
@@ -403,7 +403,7 @@ class AssignmentApiService {
       return StudentProgress.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Assignments] Ne mogu da učitam izveštaj: $e');
+      AppLogger.log('[Assignments] Could not load report: $e');
       return null;
     }
   }

@@ -63,9 +63,9 @@ class TutorialSectionsPanel extends StatelessWidget {
   /// An icon as well as a word, and never colour alone: the one reader whose
   /// live sign-off this project runs on cannot tell these apart by hue.
   static (String, IconData) _chipOf(LessonStepKind kind) => switch (kind) {
-        LessonStepKind.show => ('Prikaz', Icons.visibility_outlined),
-        LessonStepKind.askMove => ('Potez', Icons.touch_app_outlined),
-        LessonStepKind.askChoice => ('Izbor', Icons.list_alt_outlined),
+        LessonStepKind.show => ('Show', Icons.visibility_outlined),
+        LessonStepKind.askMove => ('Move', Icons.touch_app_outlined),
+        LessonStepKind.askChoice => ('Choice', Icons.list_alt_outlined),
       };
 
   Future<void> _handleDelete(BuildContext context) async {
@@ -76,15 +76,15 @@ class TutorialSectionsPanel extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Brisanje dela'),
+        title: const Text('Delete part'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Obriši'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -116,7 +116,7 @@ class TutorialSectionsPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Sadržaj tutorijala',
+                  'Tutorial contents',
                   style:
                       AppText.title.copyWith(color: context.colors.textPrimary),
                 ),
@@ -139,23 +139,23 @@ class TutorialSectionsPanel extends StatelessWidget {
                   key: const Key('add-show'),
                   onPressed: onAddShow,
                   icon: const Icon(Icons.visibility_outlined, size: 18),
-                  label: const Text('Novi prikaz'),
+                  label: const Text('New demonstration'),
                 ),
                 OutlinedButton.icon(
                   key: const Key('ask-move'),
                   onPressed: () => onAsk(LessonStepKind.askMove),
                   icon: const Icon(Icons.touch_app_outlined, size: 18),
-                  label: const Text('Traži potez na tabli'),
+                  label: const Text('Find the move'),
                 ),
                 OutlinedButton.icon(
                   key: const Key('ask-choice'),
                   onPressed: () => onAsk(LessonStepKind.askChoice),
                   icon: const Icon(Icons.list_alt_outlined, size: 18),
-                  label: const Text('Traži odgovor iz liste'),
+                  label: const Text('Choose the answer'),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Pomeri gore',
+                  tooltip: 'Move up',
                   icon: const Icon(Icons.arrow_upward),
                   onPressed: canMoveUp
                       ? () => onMove(draft.selected, draft.selected - 1)
@@ -163,7 +163,7 @@ class TutorialSectionsPanel extends StatelessWidget {
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Pomeri dole',
+                  tooltip: 'Move down',
                   icon: const Icon(Icons.arrow_downward),
                   onPressed: canMoveDown
                       ? () => onMove(draft.selected, draft.selected + 1)
@@ -171,19 +171,19 @@ class TutorialSectionsPanel extends StatelessWidget {
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Kloniraj deo',
+                  tooltip: 'Clone part',
                   icon: const Icon(Icons.copy),
                   onPressed: () => onClone(draft.selected),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Preimenuj',
+                  tooltip: 'Rename',
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () => onRename(draft.selected),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Obriši deo',
+                  tooltip: 'Delete part',
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _handleDelete(context),
                 ),
@@ -244,7 +244,7 @@ class TutorialSectionsPanel extends StatelessWidget {
                     ),
                     trailing: hasJoin
                         ? Tooltip(
-                            message: 'Nastavlja se na prethodni deo',
+                            message: 'Continues from previous part',
                             child: Icon(
                               Icons.link,
                               color: context.colors.accent,

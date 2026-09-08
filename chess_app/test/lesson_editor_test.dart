@@ -94,7 +94,7 @@ void main() {
       final api = _FakeApi(error: 'Korak koji traži potez mora imati rešenje.');
       await openEditor(tester, api);
 
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       expect(find.text('Korak koji traži potez mora imati rešenje.'),
@@ -119,7 +119,7 @@ void main() {
         ],
       });
 
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       expect(api.saved, isNotEmpty,
@@ -138,7 +138,7 @@ void main() {
 
       await tester.enterText(
           find.byKey(const Key('step-instruction')), 'Nova rečenica.');
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       final sent = api.saved.single;
@@ -153,7 +153,7 @@ void main() {
       // container, which is the rule phase 2 paid for with two parsers.
       await openEditor(tester, _FakeApi());
 
-      await tester.tap(find.text('Pregled'));
+      await tester.tap(find.text('Preview'));
       await tester.pumpAndSettle();
 
       expect(find.byType(LessonViewerScreen), findsOneWidget);
@@ -169,7 +169,7 @@ void main() {
       // pass something, and what it passes must not be reaching a server.
       await openEditor(tester, _FakeApi());
 
-      await tester.tap(find.text('Pregled'));
+      await tester.tap(find.text('Preview'));
       await tester.pumpAndSettle();
 
       final viewer =
@@ -197,7 +197,7 @@ void main() {
       // theoretical.
       await openEditor(tester, _FakeApi());
 
-      await tester.tap(find.text('Pregled'));
+      await tester.tap(find.text('Preview'));
       await tester.pumpAndSettle();
 
       final state = tester
@@ -205,9 +205,10 @@ void main() {
       await state.submitMove('Ra8#');
       await tester.pumpAndSettle();
 
-      expect(find.text('Odgovor nije poslat — proveri vezu.'), findsNothing,
+      expect(
+          find.text('Answer not sent — check your connection.'), findsNothing,
           reason: 'the preview tried to send the answer somewhere');
-      expect(find.text('Tačno.'), findsNothing,
+      expect(find.text('Correct.'), findsNothing,
           reason: 'and it must not have judged it either');
     });
   });

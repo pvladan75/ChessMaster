@@ -95,8 +95,8 @@ void main() {
     // says which tutorial is waiting and lets the trainer choose. Two tests
     // below reopen the screen to prove the draft survived, so they answer the
     // question. What they assert is unchanged, and the draft still comes back.
-    if (resumeDraft && find.text('Nastavi').evaluate().isNotEmpty) {
-      await tester.tap(find.text('Nastavi'));
+    if (resumeDraft && find.text('Continue').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
     }
   }
@@ -205,7 +205,7 @@ void main() {
       // handover. The first two are the same dialog the Studio already owns.
       await open(tester);
 
-      await tapTooltip(tester, 'Unos pozicije');
+      await tapTooltip(tester, 'Position setup');
       expect(find.byType(AnalysisBoardSetupDialog), findsOneWidget);
 
       await tester.tapAt(const Offset(20, 20));

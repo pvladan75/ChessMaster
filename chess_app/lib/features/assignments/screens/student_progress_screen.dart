@@ -95,7 +95,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     if (created == true && mounted) {
       AppFeedback.show(
         context,
-        () => const SnackBar(content: Text('Zadatak je poslat učeniku.')),
+        () => const SnackBar(content: Text('Assignment sent to student.')),
       );
       _refresh();
     }
@@ -115,7 +115,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     if (created == true && mounted) {
       AppFeedback.show(
         context,
-        () => const SnackBar(content: Text('Tutorijal je poslat učeniku.')),
+        () => const SnackBar(content: Text('Tutorial sent to student.')),
       );
       _refresh();
     }
@@ -133,18 +133,19 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Povući zadatak?'),
-        content: Text('"${assignment.title}" će nestati sa učenikove liste, '
-            'zajedno sa onim što je već urađeno.'),
+        title: const Text('Withdraw assignment?'),
+        content: Text(
+            '"${assignment.title}" will disappear from the student\'s list, '
+            'along with any progress already made.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Otkaži')),
+              child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.danger),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Povuci'),
+            child: const Text('Withdraw'),
           ),
         ],
       ),
@@ -172,14 +173,14 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
           title: Text(widget.studentName),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Platforma'),
-              Tab(text: 'Partije'),
+              Tab(text: 'Platform'),
+              Tab(text: 'Games'),
             ],
           ),
           actions: [
             IconButton(
               icon: const Icon(Icons.summarize),
-              tooltip: 'Izveštaj za roditelja',
+              tooltip: 'Parent report',
               onPressed: () => showDialog(
                 context: context,
                 builder: (_) => ParentReportDialog(
@@ -197,9 +198,9 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 _refresh();
               },
               itemBuilder: (_) => const [
-                PopupMenuItem(value: 7, child: Text('Poslednjih 7 dana')),
-                PopupMenuItem(value: 30, child: Text('Poslednjih 30 dana')),
-                PopupMenuItem(value: 90, child: Text('Poslednjih 90 dana')),
+                PopupMenuItem(value: 7, child: Text('Last 7 days')),
+                PopupMenuItem(value: 30, child: Text('Last 30 days')),
+                PopupMenuItem(value: 90, child: Text('Last 90 days')),
               ],
               icon: const Icon(Icons.date_range),
             ),
@@ -213,14 +214,14 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
               heroTag: 'assign-lesson',
               onPressed: _assignLesson,
               icon: const Icon(Icons.menu_book),
-              label: const Text('Zadaj tutorijal'),
+              label: const Text('Assign tutorial'),
             ),
             const SizedBox(height: 10),
             FloatingActionButton.extended(
               heroTag: 'assign-puzzles',
               onPressed: _createAssignment,
               icon: const Icon(Icons.add_task),
-              label: const Text('Zadaj vežbu'),
+              label: const Text('Assign drill'),
             ),
           ],
         ),
@@ -260,7 +261,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(AppSpacing.lg),
-          child: Text('Izveštaj nije dostupan.'),
+          child: Text('Report not available.'),
         ),
       );
     }
@@ -275,19 +276,19 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Pregled', style: AppText.title),
+                  child: Text('Overview', style: AppText.title),
                 ),
                 Chip(
                   visualDensity: VisualDensity.compact,
                   avatar: const Icon(Icons.military_tech, size: 16),
-                  label: Text('Rejting ${progress.overallRating}'),
+                  label: Text('Rating ${progress.overallRating}'),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
             if (!progress.hasData)
               Text(
-                'Učenik nije rešavao zagonetke u poslednjih ${progress.periodDays} dana.',
+                'Student solved no puzzles in the last ${progress.periodDays} days.',
                 style: TextStyle(color: context.colors.textSecondary),
               )
             else
@@ -295,24 +296,24 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 spacing: 20,
                 runSpacing: 12,
                 children: [
-                  _stat('Rešeno',
+                  _stat('Solved',
                       '${progress.solvedAttempts}/${progress.totalAttempts}'),
                   // Null accuracy is rendered as a dash, never as 0%.
                   _stat(
-                      'Tačnost',
+                      'Accuracy',
                       progress.accuracy == null
                           ? '—'
                           : '${progress.accuracy}%'),
-                  _stat('Aktivnih dana', '${progress.activeDays}'),
-                  _stat('Ukupno rešeno', '${progress.lifetimeSolved}'),
+                  _stat('Active days', '${progress.activeDays}'),
+                  _stat('Total solved', '${progress.lifetimeSolved}'),
                 ],
               ),
             const SizedBox(height: AppSpacing.md),
             Divider(color: context.colors.border),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Zadaci: ${progress.assignmentsCompleted}/${progress.assignmentsTotal} završeno'
-              '${progress.assignmentsOverdue > 0 ? ' · ${progress.assignmentsOverdue} van roka' : ''}',
+              'Assignments: ${progress.assignmentsCompleted}/${progress.assignmentsTotal} completed'
+              '${progress.assignmentsOverdue > 0 ? ' · ${progress.assignmentsOverdue} overdue' : ''}',
               style: AppText.bodyLarge.copyWith(
                 color: progress.assignmentsOverdue > 0
                     ? context.colors.danger
@@ -346,8 +347,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Text(
-            'Još nema dovoljno pokušaja da bi se izdvojile slabe teme. '
-            'Tema ulazi u izveštaj tek posle nekoliko rešenih zagonetki.',
+            'Not enough attempts yet to identify weak themes. '
+            'A theme appears in the report only after several puzzles solved.',
             style:
                 AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
@@ -362,10 +363,10 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Po temama', style: AppText.title),
+            const Text('By theme', style: AppText.title),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Prikazane su samo teme sa dovoljno pokušaja da broj nešto znači.',
+              'Only themes with enough attempts for the number to be meaningful are shown.',
               style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -434,11 +435,11 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Zadaci', style: AppText.title),
+            const Text('Assignments', style: AppText.title),
             const SizedBox(height: AppSpacing.sm),
             if (_assignments.isEmpty)
               Text(
-                'Još niste zadali nijednu vežbu ovom učeniku.',
+                'You have not assigned any drills to this student yet.',
                 style: AppText.bodyLarge
                     .copyWith(color: context.colors.textSecondary),
               )
@@ -464,13 +465,13 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                     title: Text(assignment.title,
                         style: const TextStyle(fontSize: 14)),
                     subtitle: Text(
-                      '${assignment.attemptedItems}/${assignment.totalItems} urađeno'
-                      '${assignment.accuracy == null ? '' : ' · tačnost ${assignment.accuracy}%'}',
+                      '${assignment.attemptedItems}/${assignment.totalItems} completed'
+                      '${assignment.accuracy == null ? '' : ' · accuracy ${assignment.accuracy}%'}',
                       style: AppText.body,
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Povuci zadatak',
+                      tooltip: 'Withdraw assignment',
                       onPressed: () => _deleteAssignment(assignment),
                     ),
                   )),

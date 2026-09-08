@@ -118,7 +118,7 @@ void main() {
 
       // The task is still shown — that behaviour was found live and is right.
       expect(find.text('Beli matira u jednom potezu.'), findsOneWidget);
-      expect(find.text('Pokaži mi'), findsNothing);
+      expect(find.text('Show me'), findsNothing);
 
       final board = tester
           .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
@@ -163,7 +163,7 @@ void main() {
 
       expect(api.answers.single.choiceIndex, 1);
       expect(api.answers.single.moveSan, isNull);
-      expect(find.text('Tačno.'), findsOneWidget);
+      expect(find.text('Correct.'), findsOneWidget);
     });
 
     testWidgets('a wrong answer says why, in the server\'s own words',
@@ -208,7 +208,7 @@ void main() {
 
       await api.pretendMove(tester, 'Ra7');
 
-      expect(find.text('Tačno. Mi nastavljamo posle Ra8#.'), findsOneWidget);
+      expect(find.text('Correct. We continue after Ra8#.'), findsOneWidget);
     });
 
     testWidgets('a wrong move puts the position back', (tester) async {
@@ -247,10 +247,10 @@ void main() {
       final api = _FakeApi(correct: false, reason: 'nije traženi potez');
       await open(tester, detailOf([moveStep()]), api);
 
-      expect(find.text('Pokaži mi'), findsNothing);
+      expect(find.text('Show me'), findsNothing);
 
       await api.pretendMove(tester, 'Rb1');
-      expect(find.text('Pokaži mi'), findsNothing,
+      expect(find.text('Show me'), findsNothing,
           reason: 'one miss is a try, not a child who is stuck');
     });
 
@@ -264,7 +264,7 @@ void main() {
       await api.pretendMove(tester, 'Rb1');
       await api.pretendMove(tester, 'Ra7');
 
-      expect(find.text('Pokaži mi'), findsOneWidget);
+      expect(find.text('Show me'), findsOneWidget);
     });
 
     testWidgets('pressing it asks the server, and shows what comes back',
@@ -275,12 +275,12 @@ void main() {
 
       await api.pretendMove(tester, 'Rb1');
       await api.pretendMove(tester, 'Ra7');
-      await tester.tap(find.text('Pokaži mi'));
+      await tester.tap(find.text('Show me'));
       await tester.pumpAndSettle();
 
       expect(api.reveals, 1,
           reason: 'the answer is not on this side of the wire');
-      expect(find.text('Rešenje: Ra8#'), findsOneWidget);
+      expect(find.text('Solution: Ra8#'), findsOneWidget);
     });
 
     testWidgets('a server that does not answer says so and keeps the board',
@@ -292,7 +292,8 @@ void main() {
 
       await api.pretendMove(tester, 'Ra8#');
 
-      expect(find.text('Odgovor nije poslat — proveri vezu.'), findsOneWidget);
+      expect(find.text('Answer not sent — check your connection.'),
+          findsOneWidget);
       final board = tester
           .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
       expect(board.isAllowedToMove, isTrue, reason: 'they may try again');

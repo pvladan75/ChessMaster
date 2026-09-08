@@ -43,15 +43,17 @@ class _TrainerStudentArchiveViewState extends State<TrainerStudentArchiveView> {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Zadaj iz partija?'),
-            content: Text('Pronađeno je $count grešaka za domaći.'),
+            title: const Text('Assign from games?'),
+            content: Text(count == 1
+                ? '1 mistake found for assignment.'
+                : '$count mistakes found for assignment.'),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Otkaži')),
+                  child: const Text('Cancel')),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Zadaj'),
+                child: const Text('Assign'),
               ),
             ],
           ),
@@ -60,7 +62,7 @@ class _TrainerStudentArchiveViewState extends State<TrainerStudentArchiveView> {
           await _createHomework(false);
         }
       } else {
-        AppFeedback.success(context, 'Domaći je zadat iz partija.');
+        AppFeedback.success(context, 'Assignment created from games.');
         widget.onRefresh();
       }
     } catch (e) {
@@ -85,7 +87,7 @@ class _TrainerStudentArchiveViewState extends State<TrainerStudentArchiveView> {
 
     if (archive.subject == null || archive.games == 0) {
       return Center(
-        child: Text('Učenik još nije uvezao partije',
+        child: Text('Student has not imported games yet',
             style: AppText.bodyLarge
                 .copyWith(color: context.colors.textSecondary)),
       );
@@ -112,9 +114,10 @@ class _TrainerStudentArchiveViewState extends State<TrainerStudentArchiveView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Partije (${archive.subject})', style: AppText.title),
+            Text('Games (${archive.subject})', style: AppText.title),
             const SizedBox(height: AppSpacing.md),
-            Text('Ukupno analizirano: ${archive.games} partija',
+            Text(
+                'Total analyzed: ${archive.games} ${archive.games == 1 ? "game" : "games"}',
                 style: AppText.bodyLarge),
           ],
         ),
@@ -131,16 +134,17 @@ class _TrainerStudentArchiveViewState extends State<TrainerStudentArchiveView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Greške', style: AppText.title),
+            const Text('Mistakes', style: AppText.title),
             const SizedBox(height: AppSpacing.md),
-            Text('Ukupno pronađeno: ${m.total}', style: AppText.body),
-            Text('Čeka za ponavljanje: ${m.due}', style: AppText.body),
-            Text('Zrelo: ${m.mature}', style: AppText.body),
+            Text('Total found: ${m.total}', style: AppText.body),
+            Text('Due for review: ${m.due}', style: AppText.body),
+            Text('Mastered: ${m.mature}', style: AppText.body),
             const SizedBox(height: AppSpacing.md),
             FilledButton.icon(
               onPressed: _creating ? null : () => _createHomework(true),
               icon: const Icon(Icons.assignment),
-              label: Text(_creating ? 'Zadajem...' : 'Zadaj greške za domaći'),
+              label: Text(
+                  _creating ? 'Assigning...' : 'Assign mistakes for homework'),
             ),
           ],
         ),
@@ -156,8 +160,7 @@ class _TrainerStudentArchiveViewState extends State<TrainerStudentArchiveView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Aktivnost u poslednjih 12 meseci',
-                style: AppText.title),
+            const Text('Activity in the last 12 months', style: AppText.title),
             const SizedBox(height: AppSpacing.md),
             ...archive.trend!.map((t) {
               return Padding(
@@ -169,7 +172,8 @@ class _TrainerStudentArchiveViewState extends State<TrainerStudentArchiveView> {
                     SizedBox(
                         width: 80,
                         child: Text(t.month, style: AppText.bodyBold)),
-                    Text('${t.games} partija', style: AppText.body),
+                    Text('${t.games} ${t.games == 1 ? "game" : "games"}',
+                        style: AppText.body),
                     if (t.score != null)
                       Text('${(t.score! * 100).round()}%',
                           style: AppText.bodyBold

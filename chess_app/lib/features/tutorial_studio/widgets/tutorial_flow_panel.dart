@@ -118,7 +118,7 @@ class _BeatCardState extends State<_BeatCard> {
   Widget build(BuildContext context) {
     final beat = widget.beat;
     final headerText =
-        beat.index == 0 ? 'Polazna pozicija' : 'posle ${beat.arrivedLabel}';
+        beat.index == 0 ? 'Starting position' : 'after ${beat.arrivedLabel}';
 
     return Material(
       key: Key('beat-${beat.index}'),
@@ -174,7 +174,7 @@ class _BeatCardState extends State<_BeatCard> {
                       key: Key('beat-delete-${beat.index}'),
                       icon: const Icon(Icons.backspace_outlined, size: 16),
                       color: context.colors.textMuted,
-                      tooltip: 'Obriši ovaj potez',
+                      tooltip: 'Delete this move',
                       visualDensity: VisualDensity.compact,
                       onPressed: () => widget.onDelete!(beat.node),
                     ),
@@ -197,7 +197,7 @@ class _BeatCardState extends State<_BeatCard> {
                 // author is.
                 decoration: beat.isCurrent
                     ? const InputDecoration(
-                        labelText: 'Komentar za trenutni potez',
+                        labelText: 'Comment for current move',
                       )
                     : null,
                 // Wrapped, not scrolled sideways. A single-line field shows
@@ -255,7 +255,7 @@ class _BeatCardState extends State<_BeatCard> {
               ] else if (!beat.isLast && beat.playsLabel != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'pa se igra: ${beat.playsLabel}',
+                  'then plays: ${beat.playsLabel}',
                   style: AppText.caption.copyWith(
                     color: context.colors.textSecondary,
                   ),

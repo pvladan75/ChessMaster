@@ -46,22 +46,22 @@ const _expected = <String, List<String>>{
     'Korak uspešno dodat u tutorijal.',
   ],
   'lib/features/assignments/screens/lesson_viewer_screen.dart': [
-    'Ovaj tutorijal nema nijedan korak.',
+    'This tutorial has no parts.',
   ],
   'lib/features/assignments/screens/my_assignments_screen.dart': [
-    'Ovaj tutorijal više nije dostupan.',
+    'This tutorial is no longer available.',
   ],
   'lib/features/assignments/screens/student_progress_screen.dart': [
-    'Tutorijal je poslat učeniku.',
-    'Zadaj tutorijal',
+    'Tutorial sent to student.',
+    'Assign tutorial',
   ],
   'lib/features/assignments/services/assignment_api_service.dart': [
-    'Tutorijal nije zadat.',
+    'Tutorial not assigned.',
   ],
   'lib/features/assignments/widgets/assign_lesson_dialog.dart': [
-    'Ne mogu da učitam tutorijale.',
-    'Izaberite tutorijal.',
-    'Nemate nijedan sačuvan tutorijal.',
+    'Could not load tutorials.',
+    'Select a tutorial.',
+    'You have no saved tutorials.',
   ],
   'lib/features/library/widgets/course_picker_dialog.dart': [
     'U koji tutorijal?',

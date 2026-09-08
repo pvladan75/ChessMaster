@@ -131,7 +131,7 @@ void main() {
   }
 
   Future<LessonStepLine> saveAndRead(WidgetTester tester) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(saves, hasLength(1));
     final step = (saves.single['positionList'] as List).single as Map;
@@ -224,7 +224,7 @@ void main() {
 
       await tester.enterText(
           find.byKey(const Key('pgn-comment-field')), 'Klasičan odgovor.');
-      await tester.tap(find.text('Sačuvaj'));
+      await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
       final step = await saveAndRead(tester);
@@ -244,7 +244,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
           find.byKey(const Key('pgn-comment-field')), 'Ne ovo.');
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       final step = await saveAndRead(tester);

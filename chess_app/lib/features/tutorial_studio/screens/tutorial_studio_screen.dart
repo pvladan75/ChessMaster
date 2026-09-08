@@ -309,33 +309,32 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// The name is the whole point. „You have an unfinished draft" is a question
   /// nobody can answer; „Opozicija, 3 dela" is one they can.
   Future<_DraftChoice> _askAboutStoredDraft(TutorialDraft stored) async {
-    final name =
-        stored.title.trim().isEmpty ? 'bez naziva' : stored.title.trim();
+    final name = stored.title.trim().isEmpty ? 'unnamed' : stored.title.trim();
     final answer = await showDialog<_DraftChoice>(
       context: context,
       // Not dismissible: tapping beside this dialog used to answer it, and the
       // answer it gave was „discard".
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Imate nezavršen tutorijal'),
+        title: const Text('You have an unfinished tutorial'),
         content: Text(
-          'Prošli put ste pisali tutorijal „$name" '
+          'Last time you were writing tutorial "$name" '
           '(${stored.sections.length} ${_partsWord(stored.sections.length)}). '
-          'Nastavite tamo gde ste stali ili počnite novi? '
-          'Ako počnete novi, nezavršeni se briše.',
+          'Continue where you left off or start a new one? '
+          'If you start a new one, the unfinished one will be deleted.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_DraftChoice.cancel),
-            child: const Text('Odustajem'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_DraftChoice.fresh),
-            child: const Text('Nov'),
+            child: const Text('New'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(_DraftChoice.resume),
-            child: const Text('Nastavi'),
+            child: const Text('Continue'),
           ),
         ],
       ),
@@ -346,11 +345,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     return answer ?? _DraftChoice.cancel;
   }
 
-  static String _partsWord(int count) {
-    if (count == 1) return 'deo';
-    if (count >= 2 && count <= 4) return 'dela';
-    return 'delova';
-  }
+  static String _partsWord(int count) => count == 1 ? 'part' : 'parts';
 
   /// Fills the fields from the part that is open. Every write in this direction
   /// bumps [_fieldsEpoch].
@@ -477,17 +472,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Obriši potez?'),
-          content: Text('„${node.moveNumberLabel}${node.moveSan}" i sve što '
-              'je napisano posle njega biće obrisano.'),
+          title: const Text('Delete move?'),
+          content:
+              Text('"${node.moveNumberLabel}${node.moveSan}" and everything '
+                  'written after it will be deleted.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Odustani'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Obriši'),
+              child: const Text('Delete'),
             ),
           ],
         ),
@@ -614,22 +610,22 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Studio za tutorijal',
+        title: const Text('Tutorial Studio',
             overflow: TextOverflow.ellipsis, maxLines: 1, style: AppText.title),
         actions: [
           IconButton(
             icon: Icon(Icons.tune, color: context.colors.accent),
-            tooltip: 'Unos pozicije',
+            tooltip: 'Position setup',
             onPressed: _showSetupDialog,
           ),
           TextButton(
             key: const Key('preview-as-student'),
             onPressed: _previewAsStudent,
-            child: const Text('Pregledaj kao učenik'),
+            child: const Text('Preview as student'),
           ),
           FilledButton(
             onPressed: _saveTutorial,
-            child: const Text('Sačuvaj tutorijal'),
+            child: const Text('Save tutorial'),
           ),
           const SizedBox(width: AppSpacing.sm),
         ],
@@ -835,19 +831,19 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     final continueFromEnd = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Odakle počinje?'),
+        title: const Text('Where does it start?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Nova tabla'),
+            child: const Text('New board'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Odavde'),
+            child: const Text('From here'),
           ),
         ],
       ),
@@ -901,7 +897,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _loadSelectedSection();
     setState(() {});
     _persist();
-    AppFeedback.success(context, 'Pitanje je postavljeno na ovoj poziciji.');
+    AppFeedback.success(context, 'Question placed at this position.');
   }
 
   /// „Preimenuj" — the trainer's own name for a part, or none.
@@ -950,7 +946,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   void _removeSection(int index) {
     if (!_draft.removeSection(index)) {
-      AppFeedback.info(context, 'Poslednji deo ne može biti obrisan.');
+      AppFeedback.info(context, 'The last part cannot be deleted.');
       return;
     }
     _renumberGeneratedTitles();
@@ -1033,8 +1029,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     AppFeedback.info(
       context,
       mode == AnnotationMode.arrow
-          ? 'Nacrtajte strelicu na tabli.'
-          : 'Kliknite polje na tabli.',
+          ? 'Draw an arrow on the board.'
+          : 'Click a square on the board.',
     );
   }
 
@@ -1077,11 +1073,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     final header = MoveTree.fenHeaderOf(text);
     if (header != null && !MoveTree.samePosition(header, startFen)) {
       final answer = await _askAboutPastedPosition(
-        title: 'Tekst počinje iz druge pozicije',
+        title: 'Text starts from a different position',
         explanation:
-            'Ovaj PGN nosi svoju polaznu poziciju, različitu od pozicije ovog '
-            'dela. Ako je uzmete, dete će ovaj deo otvarati na toj poziciji.',
-        takeLabel: 'Uzmi tu poziciju',
+            'This PGN has its own starting position, different from the position of this '
+            'part. If you use it, the student will open this part on that position.',
+        takeLabel: 'Use that position',
       );
       if (!mounted || answer == _PastedPosition.cancel) return;
       if (answer == _PastedPosition.take) startFen = header;
@@ -1104,12 +1100,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       final fromStart = readStepTree(fen: TutorialDraft.startFen, pgn: text);
       if (fromStart.rejectedMoves == 0 && fromStart.root.children.isNotEmpty) {
         final answer = await _askAboutPastedPosition(
-          title: 'Tekst ne počinje odavde',
+          title: 'Text does not start from here',
           explanation:
-              'Ovaj PGN nema svoju polaznu poziciju, a njegovi potezi ne mogu '
-              'da se odigraju iz pozicije ovog dela — mogu iz početne. Ako je '
-              'uzmete, dete će ovaj deo otvarati iz početne pozicije.',
-          takeLabel: 'Uzmi početnu poziciju',
+              'This PGN has no starting position, and its moves cannot '
+              'be played from the position of this part — they can from the starting position. '
+              'If you use it, the student will open this part from the starting position.',
+          takeLabel: 'Use starting position',
         );
         if (!mounted || answer == _PastedPosition.cancel) return;
         if (answer == _PastedPosition.take) {
@@ -1122,13 +1118,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     if (read.rejectedMoves > 0) {
       AppFeedback.error(
         context,
-        'Nije primenjeno: ${read.rejectedMoves} '
-        '${_movesWord(read.rejectedMoves)} ne može da se odigra iz pozicije '
-        'ovog dela.'
+        'Not applied: ${read.rejectedMoves} '
+        '${_movesWord(read.rejectedMoves)} cannot be played from the position '
+        'of this part.'
         // Said only when it is the answer to „why did it not ask me
         // anything?". With a `[FEN]` the question was asked and answered.
-        '${header == null ? ' Tekst nema svoju polaznu poziciju ([FEN]), pa '
-            'ne može da se prepozna odakle počinje.' : ''}',
+        '${header == null ? ' The text has no starting position ([FEN]), so '
+            'where it starts cannot be detected.' : ''}',
       );
       return;
     }
@@ -1155,7 +1151,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       _lastMoveTo = null;
     });
     _persist();
-    AppFeedback.success(context, 'Primenjeno.');
+    AppFeedback.success(context, 'Applied.');
   }
 
   /// Asked once, never assumed: taking the pasted position changes the board a
@@ -1179,11 +1175,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_PastedPosition.cancel),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_PastedPosition.keep),
-            child: const Text('Zadrži postojeću'),
+            child: const Text('Keep existing'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(_PastedPosition.take),
@@ -1195,15 +1191,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     return answer ?? _PastedPosition.cancel;
   }
 
-  static String _movesWord(int count) {
-    if (count == 1) return 'potez';
-    if (count >= 2 && count <= 4) return 'poteza';
-    return 'poteza';
-  }
+  static String _movesWord(int count) => count == 1 ? 'move' : 'moves';
 
   Future<void> _saveTutorial() async {
     if (_titleController.text.trim().isEmpty) {
-      AppFeedback.error(context, 'Tutorijal mora da ima naziv.');
+      AppFeedback.error(context, 'Tutorial must have a title.');
       return;
     }
 
@@ -1217,8 +1209,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     if (leaking.isNotEmpty) {
       AppFeedback.error(
         context,
-        'Nije sačuvano. ${_namesOf(leaking)} nosi liniju u kojoj je odgovor '
-        '— ukloni liniju ili promeni tip zadatka.',
+        'Not saved. ${_namesOf(leaking)} has a line with the answer '
+        '— remove the line or change the task type.',
       );
       return;
     }
@@ -1227,13 +1219,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       if (section.kind != LessonStepKind.askChoice) continue;
       final answers = section.choices.where((c) => c.text.trim().isNotEmpty);
       if (answers.length < 2 || answers.length > 4) {
-        AppFeedback.error(context,
-            'Pitanje sa ponuđenim odgovorima traži dva do četiri odgovora.');
+        AppFeedback.error(
+            context, 'Multiple choice question requires two to four answers.');
         return;
       }
       if (answers.where((c) => c.correct).length != 1) {
-        AppFeedback.error(
-            context, 'Tačno jedan ponuđeni odgovor mora da bude tačan.');
+        AppFeedback.error(context, 'Exactly one answer must be correct.');
         return;
       }
     }
@@ -1246,7 +1237,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       // The draft now knows its lesson id and every step id, so the next press
       // of this button edits this tutorial instead of making a second one.
       _persist();
-      AppFeedback.success(context, 'Tutorijal je sačuvan.');
+      AppFeedback.success(context, 'Tutorial saved.');
     } else {
       AppFeedback.error(context, error);
     }
@@ -1261,7 +1252,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     return TextField(
       key: const Key('tutorial-title'),
       controller: _titleController,
-      decoration: const InputDecoration(labelText: 'Naziv tutorijala'),
+      decoration: const InputDecoration(labelText: 'Tutorial title'),
       // Written into the draft rather than only held in the controller. The
       // draft is what `TutorialDraftService` stores, so a title that lives only
       // here comes back empty next time — with every part still in place, which
@@ -1332,7 +1323,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   /// „Deo 2" and „Deo 4", quoted, for a sentence that names what is wrong.
   static String _namesOf(List<TutorialSection> sections) => sections
-      .map((s) => '„${s.title.trim().isEmpty ? 'Deo' : s.title}"')
+      .map((s) => '"${s.title.trim().isEmpty ? 'Deo' : s.title}"')
       .join(', ');
 
   /// Said on the way in, about parts that were already saved this way.
@@ -1360,9 +1351,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
-                  'Dete bi videlo odgovor: ${_namesOf(leaking)} traži potez, a '
-                  'nosi liniju koju dete može da prolista dugmetom „Sledeći '
-                  'potez".',
+                  'The student would see the answer: ${_namesOf(leaking)} asks for a move, but '
+                  'has a line the student can browse with the "Next '
+                  'move" button.',
                   style: AppText.body
                       .copyWith(color: context.colors.onDangerContainer),
                 ),
@@ -1389,20 +1380,20 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       final drop = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Dete bi videlo odgovor'),
+          title: const Text('The student would see the answer'),
           content: const Text(
-            'Ovaj deo nosi liniju, a dete može da je prolista dugmetom '
-            '„Sledeći potez" pre nego što odgovori. Demonstracija ide u deo '
-            'ispred pitanja — pitanje ostaje samo pozicija.',
+            'This part has a line, and the student can browse it with the '
+            '"Next move" button before answering. The demonstration goes into the part '
+            'before the question — the question remains just a position.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Odustani'),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Ukloni liniju i postavi pitanje'),
+              child: const Text('Remove line and ask question'),
             ),
           ],
         ),
@@ -1460,16 +1451,16 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               child: DropdownButtonFormField<LessonStepKind>(
                 key: const Key('example-kind'),
                 initialValue: _currentKind,
-                decoration: const InputDecoration(labelText: 'Tip zadatka'),
+                decoration: const InputDecoration(labelText: 'Task type'),
                 items: const [
                   DropdownMenuItem(
-                      value: LessonStepKind.show, child: Text('Samo prikaži')),
+                      value: LessonStepKind.show, child: Text('Show only')),
                   DropdownMenuItem(
                       value: LessonStepKind.askMove,
-                      child: Text('Traži potez na tabli')),
+                      child: Text('Ask for move on board')),
                   DropdownMenuItem(
                       value: LessonStepKind.askChoice,
-                      child: Text('Traži odgovor iz liste')),
+                      child: Text('Ask for answer from list')),
                 ],
                 onChanged: _chooseKind,
               ),
@@ -1480,7 +1471,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 key: const Key('example-instruction'),
                 controller: _instructionController,
                 decoration:
-                    const InputDecoration(labelText: 'Zadatak za učenika'),
+                    const InputDecoration(labelText: 'Task for student'),
                 // Same reason as the sentence on a beat card: a question a
                 // child reads is longer than one line, and a field that scrolls
                 // sideways hides its own beginning. It **grows** with the text
@@ -1495,10 +1486,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             ],
             if (_currentKind == LessonStepKind.askMove) ...[
               if (_currentSolutionSan != null)
-                Text('Tačan potez: $_currentSolutionSan'),
+                Text('Correct move: $_currentSolutionSan'),
             ],
             if (_currentKind == LessonStepKind.askChoice) ...[
-              Text('Ponuđeni odgovori', style: AppText.bodyBold),
+              Text('Offered answers', style: AppText.bodyBold),
               // `RadioGroup` rather than a `groupValue` on every button: that pair
               // of arguments is deprecated, and the batch that wrote them silenced
               // the analyzer with a file-level `ignore_for_file` instead — which
@@ -1547,7 +1538,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                     _choiceControllers.add(TextEditingController());
                   });
                 },
-                child: const Text('Dodaj odgovor'),
+                child: const Text('Add answer'),
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
@@ -1565,14 +1556,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           children: [
             _tabButton(
               key: const Key('tok-tab'),
-              label: 'Tok',
+              label: 'Flow',
               isSelected: _selectedTab == 0,
               onTap: () => setState(() => _selectedTab = 0),
             ),
             const SizedBox(width: AppSpacing.xs),
             _tabButton(
               key: const Key('stablo-tab'),
-              label: 'Stablo',
+              label: 'Tree',
               isSelected: _selectedTab == 1,
               onTap: () => setState(() => _selectedTab = 1),
             ),
@@ -1712,25 +1703,25 @@ class _RenameDialogState extends State<_RenameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Naziv'),
+      title: const Text('Title'),
       content: TextField(
         key: const Key('section-name-field'),
         controller: _controller,
         autofocus: true,
         decoration: InputDecoration(
-          labelText: 'Naziv',
+          labelText: 'Title',
           hintText: widget.hint,
-          helperText: 'Prazno — zove se po onome što piše u njemu.',
+          helperText: 'Empty — named after what is written in it.',
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('Sačuvaj'),
+          child: const Text('Save'),
         ),
       ],
     );
@@ -1759,7 +1750,7 @@ class _CommentDialogState extends State<_CommentDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Komentar za ovaj potez'),
+      title: const Text('Comment for this move'),
       content: TextField(
         key: const Key('pgn-comment-field'),
         controller: _controller,
@@ -1771,11 +1762,11 @@ class _CommentDialogState extends State<_CommentDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('Sačuvaj'),
+          child: const Text('Save'),
         ),
       ],
     );

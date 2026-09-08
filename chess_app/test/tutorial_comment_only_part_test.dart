@@ -95,7 +95,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('example-sentence')), sentence);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
 
     expect(saves, hasLength(1));

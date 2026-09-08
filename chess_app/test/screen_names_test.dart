@@ -38,7 +38,7 @@ const _retired = <String>[
 /// enforcing.
 const _allowed = <String>[
   // The one screen the word names.
-  "'Studio za tutorijal'",
+  "'Tutorial Studio'",
   // Log lines, read by us and never by a trainer.
   '[AnalysisStudio',
   '[TutorialStudio',

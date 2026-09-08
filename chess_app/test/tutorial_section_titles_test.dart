@@ -138,13 +138,13 @@ void main() {
 
       await tester.tap(find.byKey(const Key('add-show')));
       await tester.pumpAndSettle();
-      await tapText(tester, 'Nova tabla');
+      await tapText(tester, 'New board');
       await type(tester, 'example-sentence', 'Ovo je drugi.');
 
-      await tester.tap(find.byTooltip('Pomeri gore'));
+      await tester.tap(find.byTooltip('Move up'));
       await tester.pumpAndSettle();
 
-      await tapText(tester, 'Sačuvaj tutorijal');
+      await tapText(tester, 'Save tutorial');
       await tester.pumpAndSettle();
 
       expect(api.saves, hasLength(1));

@@ -110,7 +110,7 @@ void main() {
   Future<void> chooseAskMove(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('step-kind')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Traži potez na tabli').last);
+    await tester.tap(find.text('Ask for move on board').last);
     await tester.pumpAndSettle();
   }
 
@@ -122,10 +122,11 @@ void main() {
 
       await chooseAskMove(tester);
 
-      expect(find.textContaining('Dete bi videlo odgovor'), findsOneWidget,
+      expect(find.textContaining('The student would see the answer'),
+          findsOneWidget,
           reason: 'the trainer was allowed to publish the answer with no word '
               'about it');
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
     });
 
@@ -134,14 +135,14 @@ void main() {
       await openEditor(tester, api);
 
       await chooseAskMove(tester);
-      await tester.tap(find.text('Odustani'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Samo prikaži'), findsOneWidget,
+      expect(find.text('Show only'), findsOneWidget,
           reason: 'the dropdown is showing a kind the step does not have, so '
               'the trainer believes they set a question and did not');
 
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       final step = api.saved.single.first;
@@ -156,10 +157,10 @@ void main() {
       await openEditor(tester, api);
 
       await chooseAskMove(tester);
-      await tester.tap(find.text('Ukloni liniju i postavi pitanje'));
+      await tester.tap(find.text('Remove line and ask question'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       final step = api.saved.single.first;
@@ -178,8 +179,9 @@ void main() {
 
       await chooseAskMove(tester);
 
-      expect(find.textContaining('Dete bi videlo odgovor'), findsNothing);
-      await tester.tap(find.text('Sačuvaj korak'));
+      expect(find.textContaining('The student would see the answer'),
+          findsNothing);
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
       expect(api.saved.single.first['kind'], 'ask_move');
     });
@@ -193,7 +195,8 @@ void main() {
       await openEditor(tester, api,
           withLesson: lesson(kind: 'ask_move', solutionSan: 'Ra8#'));
 
-      expect(find.textContaining('Dete bi videlo odgovor'), findsOneWidget);
+      expect(find.textContaining('The student would see the answer'),
+          findsOneWidget);
     });
 
     testWidgets('is not sent while it is still in it', (tester) async {
@@ -204,11 +207,11 @@ void main() {
       await openEditor(tester, api,
           withLesson: lesson(kind: 'ask_move', solutionSan: 'Ra8#'));
 
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       expect(api.saved, isEmpty);
-      expect(find.textContaining('„Prvi"'), findsOneWidget,
+      expect(find.textContaining('"Prvi"'), findsOneWidget,
           reason: 'the refusal has to name the step, or a trainer with twelve '
               'of them cannot act on it');
     });
@@ -218,12 +221,13 @@ void main() {
       await openEditor(tester, api,
           withLesson: lesson(kind: 'ask_move', solutionSan: 'Ra8#'));
 
-      await tester.tap(find.text('Ukloni liniju'));
+      await tester.tap(find.text('Remove line'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Dete bi videlo odgovor'), findsNothing);
+      expect(find.textContaining('The student would see the answer'),
+          findsNothing);
 
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       final step = api.saved.single.first;
@@ -246,12 +250,13 @@ void main() {
 
       await tester.tap(find.byKey(const Key('step-kind')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Traži odgovor iz liste').last);
+      await tester.tap(find.text('Ask for answer from list').last);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Dete bi videlo odgovor'), findsNothing);
+      expect(find.textContaining('The student would see the answer'),
+          findsNothing);
 
-      await tester.tap(find.text('Sačuvaj korak'));
+      await tester.tap(find.text('Save step'));
       await tester.pumpAndSettle();
 
       final step = api.saved.single.first;

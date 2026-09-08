@@ -218,7 +218,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       AppFeedback.show(
         context,
         () => const SnackBar(
-            content: Text('Odgovor nije poslat — proveri vezu.')),
+            content: Text('Answer not sent — check your connection.')),
       );
       return;
     }
@@ -261,7 +261,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       AppFeedback.show(
         context,
         () => const SnackBar(
-            content: Text('Odgovor nije poslat — proveri vezu.')),
+            content: Text('Answer not sent — check your connection.')),
       );
       return;
     }
@@ -288,7 +288,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       AppFeedback.show(
         context,
         () => const SnackBar(
-            content: Text('Odgovor nije poslat — proveri vezu.')),
+            content: Text('Answer not sent — check your connection.')),
       );
       return;
     }
@@ -409,7 +409,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       AppFeedback.show(
         context,
         () => const SnackBar(
-            content: Text('Nema glasa na ovom uređaju — listaj dugmadima.')),
+            content: Text('No voice on this device — navigate with buttons.')),
       );
       return;
     }
@@ -526,7 +526,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     if (_steps.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.detail.assignment.title)),
-        body: const Center(child: Text('Ovaj tutorijal nema nijedan korak.')),
+        body: const Center(child: Text('This tutorial has no parts.')),
       );
     }
 
@@ -639,7 +639,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     if (_reveal != null) {
       return ActionBanner(
         tone: ActionTone.calm,
-        text: 'Rešenje: ${_reveal!.solutionSan}',
+        text: 'Solution: ${_reveal!.solutionSan}',
       );
     }
 
@@ -648,7 +648,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         final san = _verdict!.solutionSan;
         return ActionBanner(
           tone: ActionTone.calm,
-          text: san != null ? 'Tačno. Mi nastavljamo posle $san.' : 'Tačno.',
+          text: san != null ? 'Correct. We continue after $san.' : 'Correct.',
         );
       } else {
         return Column(
@@ -656,7 +656,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
             ActionBanner(
               tone: ActionTone.problem,
               text: _verdict!.reason,
-              actionLabel: _wrongAnswers >= 2 ? 'Pokaži mi' : null,
+              actionLabel: _wrongAnswers >= 2 ? 'Show me' : null,
               onAction: _wrongAnswers >= 2 ? _revealSolution : null,
             ),
             if (_step.kind == LessonStepKind.askChoice) _buildChoices(),
@@ -758,7 +758,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Odavde ide više linija — kojom?',
+            'Multiple lines continue from here — which one?',
             style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -805,7 +805,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                 Expanded(
                   child: Text(
                     _step.title.isEmpty
-                        ? 'Korak ${_stepIndex + 1}'
+                        ? 'Part ${_stepIndex + 1}'
                         : _step.title,
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold),
@@ -820,7 +820,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Pregledano $done od ${_steps.length} koraka',
+              'Viewed $done of ${_steps.length} parts',
               style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
             ),
             // The task for *this* position, above the assignment's own note.
@@ -877,14 +877,14 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       child: Column(
         children: [
           Text(
-            'Probaš poteze — ovde se ništa ne ocenjuje.',
+            'Trying moves — nothing is graded here.',
             style: AppText.body.copyWith(color: context.colors.textMuted),
           ),
           const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
             onPressed: _restore,
             icon: const Icon(Icons.restart_alt, size: 16),
-            label: const Text('Vrati poziciju'),
+            label: const Text('Reset position'),
           ),
         ],
       ),
@@ -940,7 +940,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
 
     return MoveNavigationControls(
       cursor: _moveCursor(),
-      centerLabel: 'Potez ${progress.at} od ${progress.of}',
+      centerLabel: 'Move ${progress.at} of ${progress.of}',
       onFlipBoard: () => setState(() {
         _orientation = _orientation == PlayerColor.white
             ? PlayerColor.black
@@ -969,7 +969,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         if (!_canNarrate) return const SizedBox.shrink();
         return IconButton(
           icon: Icon(_narrating ? Icons.stop : Icons.play_arrow),
-          tooltip: _narrating ? 'Zaustavi čitanje' : 'Pusti tutorijal',
+          tooltip: _narrating ? 'Stop reading' : 'Play tutorial',
           onPressed: _narrating ? _stopNarration : _narrate,
         );
       },
@@ -987,14 +987,14 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         OutlinedButton.icon(
           onPressed: _stepIndex == 0 ? null : () => _goToStep(_stepIndex - 1),
           icon: const Icon(Icons.arrow_back),
-          label: const Text('Prethodni korak'),
+          label: const Text('Previous part'),
         ),
         ElevatedButton.icon(
           onPressed: isLast
               ? () => Navigator.of(context).maybePop()
               : () => _goToStep(_stepIndex + 1),
           icon: Icon(isLast ? Icons.check : Icons.arrow_forward),
-          label: Text(isLast ? 'Završi' : 'Sledeći korak'),
+          label: Text(isLast ? 'Finish' : 'Next part'),
         ),
       ],
     );

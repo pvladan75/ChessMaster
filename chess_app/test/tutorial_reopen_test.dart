@@ -112,7 +112,7 @@ void main() {
 
   Future<Map<String, dynamic>> saveAndReadStep(
       WidgetTester tester, _RecordingApi api) async {
-    await tester.tap(find.text('Sačuvaj tutorijal'));
+    await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();
     expect(api.saves, hasLength(1), reason: 'nothing was written at all');
     final list = (api.saves.single['positionList'] as List)

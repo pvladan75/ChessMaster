@@ -378,12 +378,12 @@ void main() {
       );
 
       expect(
-        find.text('Sačuvaj tutorijal'),
+        find.text('Save tutorial'),
         findsOneWidget,
         reason: 'two saves on one screen are two answers to „did it save?"',
       );
 
-      final save = tester.getRect(find.text('Sačuvaj tutorijal'));
+      final save = tester.getRect(find.text('Save tutorial'));
       final authoring = tester.getRect(pane('authoring-pane'));
       expect(
         save.bottom,
@@ -398,7 +398,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Sačuvaj tutorijal').hitTestable(),
+        find.text('Save tutorial').hitTestable(),
         findsOneWidget,
         reason: 'the one write scrolled away with the half beneath it',
       );
@@ -454,7 +454,7 @@ void main() {
       // demanding it here would be a gate asking for work nobody briefed.
       await openAt(tester, const Size(700, 800));
       expect(tester.takeException(), isNull);
-      expect(find.text('Sadržaj tutorijala'), findsOneWidget);
+      expect(find.text('Tutorial contents'), findsOneWidget);
       await close(tester);
     });
   });

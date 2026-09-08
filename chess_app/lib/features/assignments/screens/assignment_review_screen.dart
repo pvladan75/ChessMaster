@@ -75,18 +75,17 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
             maxLines: 4,
             maxLength: 2000,
             decoration: const InputDecoration(
-              hintText: 'npr. ovu nisam razumeo',
+              hintText: 'e.g. I did not understand this one',
               border: OutlineInputBorder(),
             ),
           ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Odustani')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('Pošalji')),
+              child: const Text('Send')),
         ],
       ),
     );
@@ -103,7 +102,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     if (result.note == null) {
       AppFeedback.show(
         context,
-        () => SnackBar(content: Text(result.error ?? 'Poruka nije poslata.')),
+        () => SnackBar(content: Text(result.error ?? 'Message not sent.')),
       );
       return;
     }
@@ -114,15 +113,15 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Obrisati poruku?'),
+        title: const Text('Delete message?'),
         content: Text(note.body, maxLines: 4, overflow: TextOverflow.ellipsis),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Otkaži')),
+              child: const Text('Cancel')),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Obriši')),
+              child: const Text('Delete')),
         ],
       ),
     );
@@ -158,11 +157,11 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
         children: [
           Icon(Icons.cloud_off, size: 40, color: colors.textMuted),
           const SizedBox(height: AppSpacing.md),
-          const Text('Ne mogu da učitam pregled.', textAlign: TextAlign.center),
+          const Text('Could not load review.', textAlign: TextAlign.center),
           const SizedBox(height: AppSpacing.md),
           Center(
-            child: FilledButton(
-                onPressed: _load, child: const Text('Pokušaj opet')),
+            child:
+                FilledButton(onPressed: _load, child: const Text('Try again')),
           ),
         ],
       );
@@ -177,7 +176,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
         _generalNotes(review),
         const SizedBox(height: AppSpacing.lg),
         if (review.items.isEmpty)
-          Text('Ovaj zadatak nema nijednu poziciju.',
+          Text('This assignment has no positions.',
               style: TextStyle(color: colors.textSecondary))
         else
           ...review.items.asMap().entries.map(
@@ -190,8 +189,8 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
                   onComment: () => _writeNote(
                     itemId: entry.value.itemId,
                     prompt: review.isTrainer
-                        ? 'Komentar na ovu poziciju'
-                        : 'Pitanje o ovoj poziciji',
+                        ? 'Comment on this position'
+                        : 'Question about this position',
                   ),
                   onDeleteNote: _deleteNote,
                 ),
@@ -213,9 +212,9 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
           children: [
             Text(
               review.isLesson
-                  ? '${review.attemptedCount} / $total koraka pregledano'
-                  : '${review.attemptedCount} / $total urađeno'
-                      '${review.attemptedCount == 0 ? '' : ' · tačno ${review.solvedCount}'}',
+                  ? '${review.attemptedCount} of $total parts viewed'
+                  : '${review.attemptedCount} of $total completed'
+                      '${review.attemptedCount == 0 ? '' : ' · correct ${review.solvedCount}'}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             if (review.instructions != null) ...[
@@ -225,8 +224,8 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
             const SizedBox(height: 6),
             Text(
               review.isTrainer
-                  ? 'Učenik: ${review.studentName ?? '—'}'
-                  : 'Zadao: ${review.trainerName ?? '—'}',
+                  ? 'Student: ${review.studentName ?? '—'}'
+                  : 'Assigned by: ${review.trainerName ?? '—'}',
               style: AppText.body.copyWith(color: colors.textMuted),
             ),
           ],
@@ -249,25 +248,26 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
             Row(
               children: [
                 const Expanded(
-                  child: Text('Razgovor o zadatku',
+                  child: Text('Assignment Discussion',
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 ),
                 TextButton.icon(
                   onPressed: () => _writeNote(
-                    prompt:
-                        review.isTrainer ? 'Poruka učeniku' : 'Poruka treneru',
+                    prompt: review.isTrainer
+                        ? 'Message to student'
+                        : 'Message to trainer',
                   ),
                   icon: const Icon(Icons.add_comment_outlined, size: 16),
-                  label: const Text('Napiši'),
+                  label: const Text('Write'),
                 ),
               ],
             ),
             if (notes.isEmpty)
               Text(
                 review.isTrainer
-                    ? 'Još ništa nije napisano. Učenik vidi ono što ovde napišete.'
-                    : 'Još ništa nije napisano. Ovde možete pitati trenera.',
+                    ? 'Nothing written yet. The student will see what you write here.'
+                    : 'Nothing written yet. You can ask your trainer here.',
                 style: AppText.body.copyWith(color: colors.textSecondary),
               )
             else
@@ -324,7 +324,7 @@ class _ItemCard extends StatelessWidget {
                     height: 120,
                     alignment: Alignment.center,
                     color: colors.surfaceRaised,
-                    child: Text('tabla nije\ndostupna',
+                    child: Text('board not\navailable',
                         textAlign: TextAlign.center,
                         style: AppText.caption
                             .copyWith(color: colors.textSecondary)),
@@ -368,8 +368,7 @@ class _ItemCard extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onComment,
                 icon: const Icon(Icons.mode_comment_outlined, size: 15),
-                label: Text(isTrainer ? 'Komentariši' : 'Pitaj',
-                    style: AppText.body),
+                label: Text(isTrainer ? 'Comment' : 'Ask', style: AppText.body),
               ),
             ),
           ],
@@ -401,25 +400,25 @@ class _ItemCard extends StatelessWidget {
         lines.add(_line(
           context,
           isPuzzle
-              ? (isTrainer ? 'Prvo probao' : 'Prvo si probao')
-              : (isTrainer ? 'Odigrao' : 'Tvoj potez'),
+              ? (isTrainer ? 'First tried' : 'You first tried')
+              : (isTrainer ? 'Played' : 'Your move'),
           played ??
               (item.attempted
                   // Not the same as playing nothing, and it must not read that
                   // way: the move simply was not recorded for this attempt.
-                  ? 'nije zabeležen'
-                  : 'nije urađeno'),
+                  ? 'not recorded'
+                  : 'not completed'),
           muted: played == null,
         ));
       }
 
       if (item.solutionSan != null) {
-        lines.add(_line(context, 'Rešenje', item.solutionSan!));
+        lines.add(_line(context, 'Solution', item.solutionSan!));
       } else if (item.solutionMoves != null) {
-        lines.add(_line(context, 'Linija', item.solutionMoves!));
+        lines.add(_line(context, 'Line', item.solutionMoves!));
       } else if (item.solutionHidden) {
-        lines.add(
-            _line(context, 'Rešenje', 'otkriva se kad odgovoriš', muted: true));
+        lines.add(_line(context, 'Solution', 'revealed once you answer',
+            muted: true));
       }
 
       // Accepted, and not the move the book prints — the only rule that does
@@ -431,7 +430,7 @@ class _ItemCard extends StatelessWidget {
           item.playedSan != item.solutionSan) {
         lines.add(Padding(
           padding: const EdgeInsets.only(top: AppSpacing.xxs),
-          child: Text('priznato iako nije autorov potez',
+          child: Text('accepted although not author\'s move',
               style: AppText.caption.copyWith(color: colors.success)),
         ));
       }
@@ -439,7 +438,7 @@ class _ItemCard extends StatelessWidget {
 
     if (item.msTaken != null) {
       lines.add(_line(
-          context, 'Vreme', '${(item.msTaken! / 1000).toStringAsFixed(1)} s',
+          context, 'Time', '${(item.msTaken! / 1000).toStringAsFixed(1)} s',
           muted: true));
     }
 
@@ -478,13 +477,13 @@ class _ItemCard extends StatelessWidget {
     // answer to a question nobody asked.
     if (item.kind == ReviewItemKind.step || item.solved == null) {
       final seen = item.attempted;
-      return _chip(seen ? 'pregledano' : 'nije otvoreno',
+      return _chip(seen ? 'viewed' : 'not opened',
           seen ? colors.success : colors.textMuted);
     }
-    if (!item.attempted) return _chip('nije urađeno', colors.textMuted);
+    if (!item.attempted) return _chip('not completed', colors.textMuted);
     return item.solved == true
-        ? _chip('tačno', colors.success)
-        : _chip('netačno', colors.danger);
+        ? _chip('correct', colors.success)
+        : _chip('incorrect', colors.danger);
   }
 
   Widget _chip(String text, Color color) => Container(
@@ -524,7 +523,7 @@ class _NoteRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  note.mine ? 'ja' : (note.authorName ?? 'druga strana'),
+                  note.mine ? 'me' : (note.authorName ?? 'other side'),
                   style: TextStyle(fontSize: 10.5, color: colors.textMuted),
                 ),
                 Text(note.body, style: const TextStyle(fontSize: 12.5)),

@@ -78,34 +78,34 @@ void main() {
   testWidgets('wrong and untouched are marked differently', (tester) async {
     await pump(tester, detail(attempted: 2));
 
-    expect(find.text('tačno'), findsOneWidget);
-    expect(find.text('netačno'), findsOneWidget);
-    expect(find.text('nije urađeno'), findsOneWidget);
+    expect(find.text('correct'), findsOneWidget);
+    expect(find.text('incorrect'), findsOneWidget);
+    expect(find.text('not done'), findsOneWidget);
   });
 
   testWidgets('the move played is shown where it was recorded', (tester) async {
     await pump(tester, detail(attempted: 2));
 
-    expect(find.text('tvoj potez: Ra8#'), findsOneWidget);
+    expect(find.text('your move: Ra8#'), findsOneWidget);
     // The second was answered before the move was ever stored, and that is not
     // the same as having played nothing.
-    expect(find.text('potez nije zabeležen'), findsOneWidget);
+    expect(find.text('move not recorded'), findsOneWidget);
   });
 
   testWidgets('a started assignment offers to continue, not to begin again',
       (tester) async {
     await pump(tester, detail(attempted: 2));
 
-    expect(find.text('Nastavi'), findsOneWidget);
-    expect(find.text('Počni'), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Start'), findsNothing);
     expect(find.textContaining('1 / 3'), findsNothing);
-    expect(find.textContaining('2 / 3 urađeno'), findsOneWidget);
+    expect(find.textContaining('2 / 3 completed'), findsOneWidget);
   });
 
   testWidgets('the free order is said out loud, not left to be discovered',
       (tester) async {
     await pump(tester, detail(attempted: 1));
 
-    expect(find.textContaining('kojim redom hoćeš'), findsOneWidget);
+    expect(find.textContaining('in any order'), findsOneWidget);
   });
 }

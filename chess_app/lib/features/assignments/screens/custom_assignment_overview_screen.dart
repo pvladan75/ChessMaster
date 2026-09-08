@@ -121,7 +121,7 @@ class _CustomAssignmentOverviewScreenState
             Expanded(
               child: _positions.isEmpty
                   ? Center(
-                      child: Text('Ovaj zadatak nema nijednu poziciju.',
+                      child: Text('This assignment has no positions.',
                           style: TextStyle(color: colors.textSecondary)),
                     )
                   : GridView.builder(
@@ -163,8 +163,8 @@ class _CustomAssignmentOverviewScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$_doneCount / $total urađeno'
-            '${_doneCount == 0 ? '' : ' · tačno $_correctCount'}',
+            '$_doneCount / $total completed'
+            '${_doneCount == 0 ? '' : ' · $_correctCount correct'}',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
           if (note != null && note.trim().isNotEmpty) ...[
@@ -184,7 +184,7 @@ class _CustomAssignmentOverviewScreenState
                   // Continues in the trainer's order — the first position still
                   // waiting, not the one that happens to come after the last
                   // one touched.
-                  label: Text(_doneCount == 0 ? 'Počni' : 'Nastavi'),
+                  label: Text(_doneCount == 0 ? 'Start' : 'Continue'),
                 )
               else
                 Row(
@@ -192,7 +192,7 @@ class _CustomAssignmentOverviewScreenState
                   children: [
                     Icon(Icons.check_circle, size: 18, color: colors.success),
                     const SizedBox(width: 6),
-                    Text('Sve je urađeno',
+                    Text('All completed',
                         style:
                             AppText.bodyLarge.copyWith(color: colors.success)),
                   ],
@@ -200,14 +200,14 @@ class _CustomAssignmentOverviewScreenState
               OutlinedButton.icon(
                 onPressed: _openReview,
                 icon: const Icon(Icons.rate_review_outlined, size: 16),
-                label: const Text('Pregled i komentari'),
+                label: const Text('Review and comments'),
               ),
             ],
           ),
           if (total > 1) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Možeš da radiš kojim redom hoćeš — dodirni bilo koju poziciju.',
+              'You can solve in any order — tap any position.',
               style: TextStyle(fontSize: 11.5, color: colors.textMuted),
             ),
           ],
@@ -276,12 +276,12 @@ class _PositionTile extends StatelessWidget {
                 child: Text(
                   outcome == null
                       ? (position.instruction ??
-                          '${position.sideToMove == 'w' ? 'Beli' : 'Crni'} je na potezu.')
+                          '${position.sideToMove == 'w' ? 'White' : 'Black'} to move.')
                       : (playedSan == null
                           // Not "played nothing": the move simply was not
                           // recorded for this attempt.
-                          ? 'potez nije zabeležen'
-                          : 'tvoj potez: $playedSan'),
+                          ? 'move not recorded'
+                          : 'your move: $playedSan'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.caption.copyWith(
@@ -300,9 +300,9 @@ class _PositionTile extends StatelessWidget {
   Widget _stateChip(BuildContext context) {
     final colors = context.colors;
     final (text, color) = switch (outcome) {
-      true => ('tačno', colors.success),
-      false => ('netačno', colors.danger),
-      null => ('nije urađeno', colors.textMuted),
+      true => ('correct', colors.success),
+      false => ('incorrect', colors.danger),
+      null => ('not done', colors.textMuted),
     };
 
     return Container(
