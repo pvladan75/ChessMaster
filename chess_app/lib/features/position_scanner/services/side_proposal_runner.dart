@@ -97,7 +97,7 @@ class SideProposalRunner {
           proposal = SideProposal(
             side: side,
             confidence: ProposalConfidence.high,
-            reason: 'samo ${side == 'w' ? 'beli' : 'crni'} može biti na potezu',
+            reason: 'only ${side == 'w' ? 'white' : 'black'} can be to move',
             whiteEval: '',
             blackEval: '',
           );

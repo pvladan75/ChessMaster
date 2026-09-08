@@ -136,9 +136,9 @@ void main() {
     expect(find.byType(AiStudioScreen), findsNothing,
         reason: 'raskrsnica ne sme da nosi radni ekran sa sobom');
 
-    await tester.ensureVisible(find.text('Mat u 2').first);
+    await tester.ensureVisible(find.text('Mate in 2').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Mat u 2').first);
+    await tester.tap(find.text('Mate in 2').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 

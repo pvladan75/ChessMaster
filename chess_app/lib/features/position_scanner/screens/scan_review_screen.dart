@@ -84,7 +84,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     if (picked == null || picked.files.isEmpty) return;
     final file = picked.files.single;
     if (file.path == null) {
-      _toast('Nije moguće pročitati izabrani fajl.');
+      _toast('Cannot read the selected file.');
       return;
     }
     setState(() {
@@ -99,14 +99,14 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     final from = int.tryParse(_fromController.text.trim()) ?? 1;
     final to = int.tryParse(_toController.text.trim()) ?? from;
     if (to < from) {
-      _toast('Krajnja strana ne može biti pre početne.');
+      _toast('End page cannot be before start page.');
       return;
     }
 
     setState(() => _scanning = true);
     final outcome = await _api.scan(
       filePath: _filePath!,
-      fileName: _fileName ?? 'dokument.pdf',
+      fileName: _fileName ?? 'document.pdf',
       fromPage: from,
       toPage: to,
       solutionsFrom: int.tryParse(_solutionsFromController.text.trim()),
@@ -122,7 +122,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     if (!outcome.ok) {
       _toast(scanFailureMessage(outcome));
     } else if (outcome.result!.positions.isEmpty) {
-      _toast('Na tim stranama nema dijagrama koje umemo da pročitamo.');
+      _toast('There are no diagrams we can read on those pages.');
     }
   }
 
@@ -131,7 +131,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     if (result == null) return;
     final chosen = result.positions.where((p) => p.accepted).toList();
     if (chosen.isEmpty) {
-      _toast('Nijedna pozicija nije označena za čuvanje.');
+      _toast('No positions selected to save.');
       return;
     }
 
@@ -142,7 +142,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     setState(() => _saving = false);
 
     if (!outcome.ok) {
-      _toast(outcome.error ?? 'Čuvanje nije uspelo.');
+      _toast(outcome.error ?? 'Save failed.');
       return;
     }
     // Saying only "saved" leaves the trainer with no idea where the positions
@@ -155,12 +155,12 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text('U „Moje pozicije": ${outcome.summary}.'),
+        content: Text('In "Saved Positions": ${outcome.summary}.'),
         // It covers the last row of scanned positions, and until now the only
         // way out of it was to follow it somewhere else.
         showCloseIcon: true,
         action: SnackBarAction(
-          label: 'Pogledaj',
+          label: 'View',
           onPressed: () => router.push(AppRoutes.savedPositions),
         ),
         duration: const Duration(seconds: 8),
@@ -180,7 +180,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     return Scaffold(
       backgroundColor: colors.canvas,
       appBar: AppBar(
-        title: const Text('Skeniranje pozicija'),
+        title: const Text('Position Scanner'),
         backgroundColor: colors.surface,
       ),
       body: Column(
@@ -215,9 +215,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     if (items.isEmpty) {
       return Center(
         child: Text(
-          _onlyDoubtful
-              ? 'Nijedna pozicija nije sporna.'
-              : 'Nema pročitanih dijagrama.',
+          _onlyDoubtful ? 'No positions need review.' : 'No diagrams read.',
           style: TextStyle(color: context.colors.textSecondary),
         ),
       );
@@ -253,15 +251,15 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
-            '${result.documentName} · strane ${result.scannedFrom}–${result.scannedTo} od ${result.pageCount}',
+            '${result.documentName} · pages ${result.scannedFrom}–${result.scannedTo} of ${result.pageCount}',
             style: TextStyle(
                 color: colors.textPrimary, fontWeight: FontWeight.w600),
           ),
-          Text('${result.positions.length} pozicija, označeno $accepted',
+          Text('${result.positions.length} positions, $accepted selected',
               style: TextStyle(color: colors.textSecondary)),
           if (result.needingReview > 0)
             FilterChip(
-              label: Text('${result.needingReview} traži pogled'),
+              label: Text('${result.needingReview} needs a look'),
               selected: _onlyDoubtful,
               onSelected: (value) => setState(() => _onlyDoubtful = value),
               selectedColor: colors.warning.withValues(alpha: 0.25),
@@ -284,7 +282,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
           children: [
             Expanded(
               child: Text(
-                'Sačuvane pozicije ostaju samo tvoje — ne ulaze u zajedničku bazu zagonetki.',
+                'Saved positions remain only yours — they are not added to the public puzzle database.',
                 style: AppText.body.copyWith(color: colors.textMuted),
               ),
             ),
@@ -297,7 +295,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.save_outlined),
-              label: Text('Sačuvaj ($chosen)'),
+              label: Text('Save ($chosen)'),
             ),
           ],
         ),
@@ -342,12 +340,12 @@ class _SetupPanel extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: scanning ? null : onPick,
                 icon: const Icon(Icons.picture_as_pdf_outlined),
-                label: const Text('Izaberi PDF'),
+                label: const Text('Select PDF'),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
-                  fileName ?? 'Nije izabran dokument',
+                  fileName ?? 'No document selected',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: fileName == null
@@ -363,27 +361,27 @@ class _SetupPanel extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _PageField(label: 'Od strane', controller: fromController),
-              _PageField(label: 'Do strane', controller: toController),
+              _PageField(label: 'From page', controller: fromController),
+              _PageField(label: 'To page', controller: toController),
               _PageField(
-                  label: 'Rešenja od',
+                  label: 'Solutions from',
                   controller: solutionsFromController,
                   optional: true),
               _PageField(
-                  label: 'Rešenja do',
+                  label: 'Solutions to',
                   controller: solutionsToController,
                   optional: true),
               FilledButton.icon(
                 onPressed: scanning ? null : onScan,
                 icon: const Icon(Icons.document_scanner_outlined),
-                label: const Text('Skeniraj'),
+                label: const Text('Scan'),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            'Najviše 40 strana po prolazu. Strane sa rešenjima su neobavezne — '
-            'ako ih ima, iz njih se čita ko je na potezu i koji je potez.',
+            'Maximum 40 pages per pass. Solution pages are optional — '
+            'if provided, the side to move and solution move are read from them.',
             style: AppText.body.copyWith(color: colors.textMuted),
           ),
         ],
@@ -412,7 +410,7 @@ class _PageField extends StatelessWidget {
           labelText: label,
           isDense: true,
           border: const OutlineInputBorder(),
-          hintText: optional ? 'nije obavezno' : null,
+          hintText: optional ? 'optional' : null,
         ),
       ),
     );
@@ -452,8 +450,8 @@ class _PositionCard extends StatelessWidget {
               children: [
                 Text(
                   position.label == null
-                      ? 'str. ${position.page}'
-                      : '#${position.label} · str. ${position.page}',
+                      ? 'p. ${position.page}'
+                      : '#${position.label} · p. ${position.page}',
                   style: AppText.body.copyWith(color: colors.textSecondary),
                 ),
                 const Spacer(),
@@ -483,7 +481,7 @@ class _PositionCard extends StatelessWidget {
                       size: 12, color: colors.textPrimary),
                   const SizedBox(width: 6),
                   Text(
-                    white ? 'beli na potezu' : 'crni na potezu',
+                    white ? 'White to move' : 'Black to move',
                     style: AppText.body.copyWith(color: colors.textPrimary),
                   ),
                   const SizedBox(width: AppSpacing.xs),
@@ -502,7 +500,7 @@ class _PositionCard extends StatelessWidget {
             ),
             const Spacer(),
             if (position.solutionSan != null && position.solutionLegal == true)
-              Text('rešenje: ${position.solutionSan}',
+              Text('solution: ${position.solutionSan}',
                   style: AppText.body.copyWith(color: colors.textSecondary))
             else if (position.problem != null)
               Text(
@@ -520,11 +518,11 @@ class _PositionCard extends StatelessWidget {
   String _sideNote(String source) {
     switch (source) {
       case 'resenje':
-        return 'iz rešenja u knjizi';
+        return 'from book solution';
       case 'jedina legalna strana':
-        return 'jedina legalna strana';
+        return 'only legal side';
       default:
-        return 'knjiga ne kaže — proveri';
+        return 'book does not say — check';
     }
   }
 }
@@ -545,14 +543,14 @@ class _EmptyHint extends StatelessWidget {
                 size: 48, color: colors.textMuted),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Izaberi PDF svoje knjige i opseg strana.',
+              'Select a PDF of your book and page range.',
               style: TextStyle(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Dijagrami se čitaju iz teksta, ne sa slike, pa rade knjige složene '
-              'šahovskim fontom. Dokument se ne čuva na serveru.',
+              'Diagrams are read from text, not images, so books set in a '
+              'chess font work. The document is not stored on the server.',
               style: AppText.body.copyWith(color: colors.textMuted),
               textAlign: TextAlign.center,
             ),

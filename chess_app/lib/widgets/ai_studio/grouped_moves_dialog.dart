@@ -28,7 +28,7 @@ void showGroupedMovesDialog({
               Icon(Icons.filter_list, color: colors.brand, size: 22),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                'Odbrambene Varijante',
+                'Defensive Variations',
                 style: AppText.title.copyWith(color: colors.textPrimary),
               ),
             ],
@@ -43,7 +43,7 @@ void showGroupedMovesDialog({
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Izaberite odbrambeni potez protivnika za prikaz na tabli:',
+                    'Select the opponent\'s defensive move to display on the board:',
                     style:
                         AppText.bodyLarge.copyWith(color: colors.textSecondary),
                   ),
@@ -89,13 +89,13 @@ void showGroupedMovesDialog({
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text(
-                'Zatvori',
+                'Close',
                 style: AppText.bodyLarge.copyWith(color: colors.textMuted),
               ),
             ),
             ElevatedButton.icon(
               icon: const Icon(Icons.gamepad, size: 16),
-              label: const Text('Prikaži Poziciju na Tabli'),
+              label: const Text('Show Position on Board'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.info,
                 foregroundColor: colors.canvas,

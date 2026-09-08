@@ -51,19 +51,19 @@ void main() {
     // The whole map in one place, so the split has something to be checked
     // against rather than a memory of what used to happen.
     const promises = <String, String>{
-      'Otvori repertoar': 'repertoar',
-      'Započni trening': 'taktika',
-      'Dobij': 'zavrsnice:dobitak',
-      'Održi remi': 'zavrsnice:remi',
-      'Greške iz partija': 'greske',
-      'Mat u 1': 'mat:1',
-      'Mat u 2': 'mat:2',
-      'Mat u 3': 'mat:3',
-      'Lako': 'osnovno:easy',
-      'Srednje': 'osnovno:medium',
-      'Teško': 'osnovno:hard',
-      'Započni vežbanje dobitnih pozicija': 'dobijena',
-      'Uvezi partije': 'moje partije',
+      'Open repertoire': 'repertoar',
+      'Start training': 'taktika',
+      'Win': 'zavrsnice:dobitak',
+      'Hold a draw': 'zavrsnice:remi',
+      'Game blunders': 'greske',
+      'Mate in 1': 'mat:1',
+      'Mate in 2': 'mat:2',
+      'Mate in 3': 'mat:3',
+      'Easy': 'osnovno:easy',
+      'Medium': 'osnovno:medium',
+      'Hard': 'osnovno:hard',
+      'Start practicing winning positions': 'dobijena',
+      'Import games': 'moje partije',
     };
 
     for (final entry in promises.entries) {
@@ -79,7 +79,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    expect(await tapCard(tester, 'Održi remi'), ['zavrsnice:remi']);
+    expect(await tapCard(tester, 'Hold a draw'), ['zavrsnice:remi']);
   });
 
   testWidgets('nothing fires on its own', (tester) async {
@@ -142,21 +142,21 @@ void main() {
 
     final endgameCard = find
         .ancestor(
-          of: find.text('Završnice iz majstorskih partija'),
+          of: find.text('Endgames from master games'),
           matching: find.byType(Card),
         )
         .first;
     expect(
-      find.descendant(of: endgameCard, matching: find.text('Otvori repertoar')),
+      find.descendant(of: endgameCard, matching: find.text('Open repertoire')),
       findsNothing,
       reason: 'repertoar je opet završio u kartici završnica',
     );
 
     // And the three groups the cards are ordered by are actually labelled.
     for (final label in const [
-      'OTVARANJE',
-      'TAKTIKA',
-      'ZAVRŠNICA I TEHNIKA',
+      'OPENING',
+      'TACTICS',
+      'ENDGAME AND TECHNIQUE',
     ]) {
       expect(find.text(label), findsOneWidget,
           reason: 'nema naslova sekcije „$label”');

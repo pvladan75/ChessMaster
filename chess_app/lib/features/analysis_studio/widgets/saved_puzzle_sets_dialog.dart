@@ -58,14 +58,14 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
               children: [
                 Icon(Icons.extension, color: context.colors.accent, size: 22),
                 const SizedBox(width: AppSpacing.sm),
-                Text('Sačuvane vežbe',
+                Text('Saved puzzles',
                     style: AppText.title
                         .copyWith(color: context.colors.textPrimary)),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Vežbe se automatski čuvaju na uređaju kad se otkriju tokom "Analiziraj celu partiju".',
+              'Puzzles are automatically saved on this device when found during "Review full game".',
               style: AppText.body.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -78,7 +78,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 child: Text(
-                  'Još nema sačuvanih vežbi.',
+                  'No saved puzzles yet.',
                   textAlign: TextAlign.center,
                   style: AppText.body.copyWith(color: context.colors.textMuted),
                 ),
@@ -102,7 +102,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                               style: AppText.bodyLarge
                                   .copyWith(color: context.colors.textPrimary)),
                           subtitle: Text(
-                            '${set.puzzles.length} vežbi',
+                            '${set.puzzles.length} ${set.puzzles.length == 1 ? 'puzzle' : 'puzzles'}',
                             style: AppText.caption
                                 .copyWith(color: context.colors.textSecondary),
                           ),
@@ -112,7 +112,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                               IconButton(
                                 icon: Icon(Icons.delete_outline,
                                     color: context.colors.danger, size: 20),
-                                tooltip: 'Obriši',
+                                tooltip: 'Delete',
                                 onPressed: () => _delete(set),
                               ),
                               ElevatedButton(
@@ -123,7 +123,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                                         widget.onPuzzleSetOpened(
                                             set.puzzles, 0);
                                       },
-                                child: const Text('Otvori'),
+                                child: const Text('Open'),
                               ),
                             ],
                           ),
@@ -138,7 +138,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Zatvori'),
+                child: const Text('Close'),
               ),
             ),
           ],

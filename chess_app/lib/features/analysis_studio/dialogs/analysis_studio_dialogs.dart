@@ -22,13 +22,13 @@ void showCommentDialog(
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Dodaj / Izmeni Komentar'),
+      title: const Text('Add / Edit Comment'),
       content: TextField(
         controller: controller,
         maxLines: 4,
         style: TextStyle(color: ctx.colors.textPrimary),
         decoration: InputDecoration(
-          hintText: 'Unesite zabelešku ili analitički komentar...',
+          hintText: 'Enter a note or analytical comment...',
           hintStyle: TextStyle(color: ctx.colors.textMuted),
           filled: true,
           fillColor: ctx.colors.canvas,
@@ -36,11 +36,11 @@ void showCommentDialog(
       ),
       actions: [
         TextButton(
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
           onPressed: () => Navigator.pop(ctx),
         ),
         ElevatedButton(
-          child: const Text('Sačuvaj'),
+          child: const Text('Save'),
           onPressed: () {
             onSaved(controller.text.trim());
             Navigator.pop(ctx);
@@ -138,7 +138,7 @@ void showManualCommentDialog(
         }
 
         return AlertDialog(
-          title: const Text('Dodaj / Izmeni Komentar'),
+          title: const Text('Add / Edit Comment'),
           content: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 560,
@@ -154,7 +154,7 @@ void showManualCommentDialog(
                     maxLines: 3,
                     style: TextStyle(color: ctx.colors.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Sopstveni komentar (opciono)...',
+                      hintText: 'Custom comment (optional)...',
                       hintStyle: TextStyle(color: ctx.colors.textMuted),
                       filled: true,
                       fillColor: ctx.colors.canvas,
@@ -174,17 +174,17 @@ void showManualCommentDialog(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       buildChecklist(
-                        'Taktički motivi',
+                        'Tactical motifs',
                         tacticalCandidates,
                         selectedTactical,
-                        emptyHint: 'Nema taktičkih nalaza za ovaj potez.',
+                        emptyHint: 'No tactical findings for this move.',
                       ),
                       const SizedBox(width: AppSpacing.lg),
                       buildChecklist(
-                        'Pozicioni faktori',
+                        'Positional factors',
                         positionalCandidates,
                         selectedPositional,
-                        emptyHint: 'Nema pozicionih nalaza za ovaj potez.',
+                        emptyHint: 'No positional findings for this move.',
                       ),
                     ],
                   ),
@@ -194,11 +194,11 @@ void showManualCommentDialog(
           ),
           actions: [
             TextButton(
-              child: const Text('Otkaži'),
+              child: const Text('Cancel'),
               onPressed: () => Navigator.pop(ctx),
             ),
             ElevatedButton(
-              child: const Text('Sačuvaj'),
+              child: const Text('Save'),
               onPressed: () {
                 // Preserve each checklist's own order rather than click order.
                 final chosen = [
@@ -236,7 +236,7 @@ void showNagSelector(BuildContext context, ValueChanged<String?> onSelected) {
             spacing: 8,
             children: nags.map((n) {
               return ActionChip(
-                label: Text(n == 'clear' ? 'Ukloni NAG' : n,
+                label: Text(n == 'clear' ? 'Remove NAG' : n,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 backgroundColor:
                     n == 'clear' ? ctx.colors.danger : ctx.colors.accent,
@@ -265,14 +265,14 @@ void showLogsDialog(BuildContext context) {
             children: [
               Icon(Icons.terminal, color: ctx.colors.warning),
               const SizedBox(width: AppSpacing.sm),
-              Text('Logovi Engine-a 📜',
+              Text('Engine Logs 📜',
                   style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
             ],
           ),
           IconButton(
             icon:
                 Icon(Icons.delete_outline, color: ctx.colors.danger, size: 20),
-            tooltip: 'Očisti logove',
+            tooltip: 'Clear logs',
             onPressed: () {
               AppLogger.clear();
               (ctx as Element).markNeedsBuild();
@@ -289,7 +289,7 @@ void showLogsDialog(BuildContext context) {
             final logs = AppLogger.logs;
             if (logs.isEmpty) {
               return Center(
-                child: Text('Nema zabeleženih logova.',
+                child: Text('No logs recorded.',
                     style: AppText.body.copyWith(color: ctx.colors.textMuted)),
               );
             }
@@ -317,7 +317,7 @@ void showLogsDialog(BuildContext context) {
       actions: [
         ElevatedButton.icon(
           icon: const Icon(Icons.copy, size: 16),
-          label: const Text('Kopiraj Logove'),
+          label: const Text('Copy Logs'),
           style: ElevatedButton.styleFrom(
               backgroundColor: ctx.colors.accent,
               foregroundColor: ctx.colors.canvas),
@@ -328,7 +328,7 @@ void showLogsDialog(BuildContext context) {
               AppFeedback.show(
                 ctx,
                 () => SnackBar(
-                    content: Text('✅ Logovi kopirani u klipbord!',
+                    content: Text('✅ Logs copied to clipboard!',
                         style: TextStyle(color: ctx.colors.canvas)),
                     backgroundColor: ctx.colors.accent),
               );
@@ -336,7 +336,7 @@ void showLogsDialog(BuildContext context) {
           },
         ),
         TextButton(
-          child: const Text('Zatvori'),
+          child: const Text('Close'),
           onPressed: () => Navigator.pop(ctx),
         ),
       ],
@@ -357,7 +357,7 @@ Future<void> exportPgnDialog(
         children: [
           Icon(Icons.file_download, color: ctx.colors.info),
           const SizedBox(width: AppSpacing.sm),
-          Text('Izvezeni PGN Tekst',
+          Text('Exported PGN Text',
               style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
         ],
       ),
@@ -373,12 +373,12 @@ Future<void> exportPgnDialog(
       ),
       actions: [
         TextButton(
-          child: const Text('Zatvori'),
+          child: const Text('Close'),
           onPressed: () => Navigator.pop(ctx),
         ),
         ElevatedButton.icon(
           icon: const Icon(Icons.copy, size: 16),
-          label: const Text('Kopirano u Klipbord!'),
+          label: const Text('Copied to Clipboard!'),
           style: ElevatedButton.styleFrom(
               backgroundColor: ctx.colors.accent,
               foregroundColor: ctx.colors.canvas),
@@ -396,17 +396,17 @@ Future<bool> confirmReplaceAnalysisDialog(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Učitaj analizu?'),
+      title: const Text('Load analysis?'),
       content: Text(
-        'Trenutno stablo analize (nesačuvano) će biti zamenjeno sa "$title".',
+        'The current analysis tree (unsaved) will be replaced with "$title".',
         style: AppText.body.copyWith(color: ctx.colors.textMuted),
       ),
       actions: [
         TextButton(
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
             onPressed: () => Navigator.pop(ctx, false)),
         ElevatedButton(
-            child: const Text('Učitaj'),
+            child: const Text('Load'),
             onPressed: () => Navigator.pop(ctx, true)),
       ],
     ),
@@ -424,18 +424,18 @@ Future<void> promptSaveAnalysisDialog(
 }) async {
   final controller = TextEditingController(
     text:
-        'Analiza ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}.',
+        'Analysis ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}',
   );
   final title = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Sačuvaj analizu'),
+      title: const Text('Save analysis'),
       content: TextField(
         controller: controller,
         autofocus: true,
         style: TextStyle(color: ctx.colors.textPrimary),
         decoration: InputDecoration(
-          hintText: 'Naziv analize',
+          hintText: 'Analysis title',
           hintStyle: TextStyle(color: ctx.colors.textMuted),
           filled: true,
           fillColor: ctx.colors.canvas,
@@ -443,9 +443,9 @@ Future<void> promptSaveAnalysisDialog(
       ),
       actions: [
         TextButton(
-            child: const Text('Otkaži'), onPressed: () => Navigator.pop(ctx)),
+            child: const Text('Cancel'), onPressed: () => Navigator.pop(ctx)),
         ElevatedButton(
-          child: const Text('Sačuvaj'),
+          child: const Text('Save'),
           onPressed: () => Navigator.pop(ctx, controller.text.trim()),
         ),
       ],
@@ -466,8 +466,8 @@ Future<void> promptSaveAnalysisDialog(
     () => SnackBar(
       content: Text(
         result != null
-            ? '✅ Analiza "${result.title}" sačuvana.'
-            : '⚠️ Čuvanje nije uspelo. Proverite konekciju.',
+            ? '✅ Analysis "${result.title}" saved.'
+            : '⚠️ Save failed. Check your connection.',
         style: TextStyle(color: context.colors.canvas),
       ),
       backgroundColor:
@@ -493,7 +493,7 @@ void showSavedAnalysesDialog(
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text('Čuvanje analize zahteva prijavljen nalog.',
+        content: Text('Saving analysis requires a signed-in account.',
             style: TextStyle(color: context.colors.canvas)),
         backgroundColor: context.colors.warning,
       ),
@@ -521,7 +521,7 @@ void showSavedAnalysesDialog(
             children: [
               Icon(Icons.cloud_outlined, color: ctx.colors.info),
               const SizedBox(width: AppSpacing.sm),
-              Text('Sačuvane analize',
+              Text('Saved analyses',
                   style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
             ],
           ),
@@ -534,7 +534,7 @@ void showSavedAnalysesDialog(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.save, size: 16),
-                    label: const Text('Sačuvaj trenutnu analizu'),
+                    label: const Text('Save current analysis'),
                     style: ElevatedButton.styleFrom(
                         backgroundColor: ctx.colors.accent,
                         foregroundColor: ctx.colors.canvas),
@@ -556,7 +556,7 @@ void showSavedAnalysesDialog(
                       final items = snapshot.data ?? [];
                       if (items.isEmpty) {
                         return Center(
-                          child: Text('Nema sačuvanih analiza.',
+                          child: Text('No saved analyses.',
                               style: AppText.body
                                   .copyWith(color: ctx.colors.textMuted)),
                         );
@@ -580,23 +580,23 @@ void showSavedAnalysesDialog(
                             trailing: IconButton(
                               icon: Icon(Icons.delete_outline,
                                   color: ctx.colors.danger, size: 20),
-                              tooltip: 'Obriši',
+                              tooltip: 'Delete',
                               onPressed: () async {
                                 final confirmed = await showDialog<bool>(
                                   context: context,
                                   builder: (confirmCtx) => AlertDialog(
-                                    title: const Text('Obriši analizu?'),
+                                    title: const Text('Delete analysis?'),
                                     content: Text(
-                                        '"${item.title}" će biti trajno obrisana.',
+                                        '"${item.title}" will be permanently deleted.',
                                         style: AppText.body.copyWith(
                                             color: ctx.colors.textMuted)),
                                     actions: [
                                       TextButton(
-                                          child: const Text('Otkaži'),
+                                          child: const Text('Cancel'),
                                           onPressed: () =>
                                               Navigator.pop(confirmCtx, false)),
                                       TextButton(
-                                        child: Text('Obriši',
+                                        child: Text('Delete',
                                             style: TextStyle(
                                                 color: ctx.colors.danger)),
                                         onPressed: () =>
@@ -630,7 +630,7 @@ void showSavedAnalysesDialog(
           ),
           actions: [
             TextButton(
-                child: const Text('Zatvori'),
+                child: const Text('Close'),
                 onPressed: () => Navigator.pop(ctx)),
           ],
         );

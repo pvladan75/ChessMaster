@@ -79,7 +79,12 @@ void main() {
     // somebody reorders them. They read „Beli O-O" rather than `K` since
     // 8.9.2026: the case of a letter was the only thing separating White's
     // rights from Black's.
-    for (final label in ['Beli O-O', 'Beli O-O-O', 'Crni O-O', 'Crni O-O-O']) {
+    for (final label in [
+      'White O-O',
+      'White O-O-O',
+      'Black O-O',
+      'Black O-O-O'
+    ]) {
       final chip = find.widgetWithText(FilterChip, label);
       expect(chip, findsOneWidget, reason: 'castling chip $label is missing');
       final rect = tester.getRect(chip);
@@ -134,7 +139,7 @@ void main() {
     await selectTab(tester, 1);
     expect(tester.takeException(), isNull);
 
-    final confirm = find.text('Generiši i Postavi Poziciju');
+    final confirm = find.text('Generate and Set Position');
     expect(confirm, findsOneWidget);
     expect(tester.getRect(confirm).bottom, lessThanOrEqualTo(800.0),
         reason: 'the button that finishes the job is off the bottom of a '
@@ -153,9 +158,9 @@ void main() {
     );
 
     expect(find.text('FEN String'), findsOneWidget);
-    expect(find.text('Ručno Slaganje'), findsOneWidget);
-    expect(find.text('PGN Uvoz'), findsNothing);
-    expect(find.text('Otvaranja'), findsNothing);
+    expect(find.text('Piece Placement'), findsOneWidget);
+    expect(find.text('PGN Import'), findsNothing);
+    expect(find.text('Openings'), findsNothing);
     expect(find.text('Chess.com/Lichess'), findsNothing);
   });
 
@@ -171,8 +176,8 @@ void main() {
       size: const Size(1280, 800),
     );
 
-    expect(find.text('PGN Uvoz'), findsOneWidget);
-    expect(find.text('Otvaranja'), findsOneWidget);
+    expect(find.text('PGN Import'), findsOneWidget);
+    expect(find.text('Openings'), findsOneWidget);
     expect(find.text('Chess.com/Lichess'), findsOneWidget);
   });
 }

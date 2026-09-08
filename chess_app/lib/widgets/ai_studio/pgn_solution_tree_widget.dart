@@ -57,7 +57,7 @@ class PgnSolutionTreeWidget extends StatelessWidget {
               Icon(Icons.account_tree, color: colors.accent, size: 18),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                'Stablo Rešenja (PGN):',
+                'Solution Tree (PGN):',
                 style: AppText.subtitle.copyWith(color: colors.textPrimary),
               ),
             ],

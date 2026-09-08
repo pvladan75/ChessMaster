@@ -6,29 +6,29 @@ import 'package:flutter/material.dart';
 String _factorLabel(PositionalFactor factor) {
   switch (factor) {
     case PositionalFactor.doubledPawn:
-      return 'Udvojeni pešaci';
+      return 'Doubled pawns';
     case PositionalFactor.isolatedPawn:
-      return 'Izolovani pešak';
+      return 'Isolated pawn';
     case PositionalFactor.backwardPawn:
-      return 'Zaostali pešak';
+      return 'Backward pawn';
     case PositionalFactor.passedPawn:
-      return 'Prolazni pešak';
+      return 'Passed pawn';
     case PositionalFactor.pawnIslands:
-      return 'Pešačka ostrva';
+      return 'Pawn islands';
     case PositionalFactor.openFile:
-      return 'Otvorena linija';
+      return 'Open file';
     case PositionalFactor.semiOpenFile:
-      return 'Poluotvorena linija';
+      return 'Half-open file';
     case PositionalFactor.centerControl:
-      return 'Kontrola centra';
+      return 'Centre control';
     case PositionalFactor.knightOutpost:
-      return 'Uporište';
+      return 'Outpost';
     case PositionalFactor.bishopPair:
-      return 'Lovački par';
+      return 'Bishop pair';
     case PositionalFactor.colorComplexWeakness:
-      return 'Slab kompleks polja';
+      return 'Colour complex weakness';
     case PositionalFactor.kingShield:
-      return 'Sigurnost kralja';
+      return 'King safety';
   }
 }
 
@@ -64,7 +64,7 @@ class PositionalFindingsPanelWidget extends StatelessWidget {
               Icon(Icons.grid_view, color: colors.warning, size: 16),
               const SizedBox(width: 6),
               Text(
-                'Pozicioni faktori',
+                'Positional factors',
                 style: AppText.bodyBold.copyWith(color: colors.warning),
               ),
             ],

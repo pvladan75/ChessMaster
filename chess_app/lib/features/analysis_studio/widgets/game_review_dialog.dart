@@ -138,7 +138,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       if (puzzles.isNotEmpty) {
         final now = DateTime.now();
         final title =
-            'Vežbe od ${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+            'Puzzles from ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
         await LocalPuzzleSetStorageService.instance
             .saveSet(title: title, puzzles: puzzles);
       }
@@ -168,7 +168,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         AppFeedback.show(
           context,
           () => const SnackBar(
-              content: Text('Sačekajte kraj analize ili kliknite Otkaži.'),
+              content: Text('Wait for the analysis to finish or click Cancel.'),
               duration: Duration(seconds: 2)),
         );
       },
@@ -191,14 +191,14 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                       Icon(Icons.fact_check,
                           color: context.colors.accent, size: 22),
                       const SizedBox(width: AppSpacing.sm),
-                      Text('Analiziraj partiju',
+                      Text('Review game',
                           style: AppText.title
                               .copyWith(color: context.colors.textPrimary)),
                     ],
                   ),
                   IconButton(
                     icon: Icon(Icons.close, color: context.colors.textMuted),
-                    tooltip: 'Zatvori',
+                    tooltip: 'Close',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -228,15 +228,15 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
     return [
       Text(
         moveCount == 0
-            ? 'Nema odigranih poteza od izabrane pozicije.'
-            : 'Motor će proći kroz $moveCount poteza i za svaki zapisati taktički i pozicioni komentar plus eval. Radi i nad delom partije — vidi opciju ispod.',
+            ? 'No moves played from the selected position.'
+            : 'The engine will step through $moveCount moves and record a tactical and positional comment plus eval for each. Works on part of a game too — see option below.',
         style: AppText.body.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: AppSpacing.lg),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Dubina motora (d): $_engineDepth',
+          Text('Engine depth (d): $_engineDepth',
               style: AppText.body.copyWith(color: context.colors.textPrimary)),
           Text('depth $_engineDepth',
               style: AppText.bodyBold.copyWith(color: context.colors.warning)),
@@ -255,7 +255,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
         value: _overwriteExisting,
-        title: Text('Prepiši postojeće komentare',
+        title: Text('Overwrite existing comments',
             style: AppText.body.copyWith(color: context.colors.textPrimary)),
         onChanged: (val) => setState(() => _overwriteExisting = val ?? false),
       ),
@@ -265,14 +265,14 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         controlAffinity: ListTileControlAffinity.leading,
         value: _analyzeFromCurrent && _hasCurrentNodeOption,
         title: Text(
-          'Analiziraj samo od trenutne pozicije nadalje',
+          'Analyze only from the current position forward',
           style: AppText.body.copyWith(
               color: _hasCurrentNodeOption
                   ? context.colors.textPrimary
                   : context.colors.textMuted),
         ),
         subtitle: !_hasCurrentNodeOption
-            ? Text('Trenutna pozicija je već početak partije.',
+            ? Text('The current position is already the start of the game.',
                 style: AppText.micro.copyWith(color: context.colors.textMuted))
             : null,
         onChanged: _hasCurrentNodeOption
@@ -280,13 +280,14 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             : null,
       ),
       const Divider(height: 20),
-      Text('Otkrivanje grešaka',
+      Text('Blunder detection',
           style: AppText.bodyBold.copyWith(color: context.colors.textPrimary)),
       const SizedBox(height: AppSpacing.xs),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Prag greške: ${_blunderThreshold.toStringAsFixed(1)} pešaka',
+          Text(
+              'Blunder threshold: ${_blunderThreshold.toStringAsFixed(1)} pawns',
               style: AppText.body.copyWith(color: context.colors.textPrimary)),
         ],
       ),
@@ -303,7 +304,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
         value: _blunderAlertEnabled,
-        title: Text('Blunder Alert — označi greške i predloži bolji potez',
+        title: Text('Blunder Alert — tag mistakes and suggest a better move',
             style: AppText.body.copyWith(color: context.colors.textPrimary)),
         onChanged: (val) => setState(() => _blunderAlertEnabled = val ?? false),
       ),
@@ -316,11 +317,11 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
               SegmentedButton<BlunderAlertSide>(
                 segments: const [
                   ButtonSegment(
-                      value: BlunderAlertSide.both, label: Text('Oba')),
+                      value: BlunderAlertSide.both, label: Text('Both')),
                   ButtonSegment(
-                      value: BlunderAlertSide.white, label: Text('Beli')),
+                      value: BlunderAlertSide.white, label: Text('White')),
                   ButtonSegment(
-                      value: BlunderAlertSide.black, label: Text('Crni')),
+                      value: BlunderAlertSide.black, label: Text('Black')),
                 ],
                 selected: {_blunderSide},
                 onSelectionChanged: (sel) =>
@@ -331,7 +332,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 value: _insertBetterMoveLine,
-                title: Text('Dodaj kratku liniju sa boljim potezom',
+                title: Text('Add a short line with the better move',
                     style: AppText.caption
                         .copyWith(color: context.colors.textPrimary)),
                 onChanged: (val) =>
@@ -346,7 +347,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
         value: _extractPuzzlesEnabled,
-        title: Text('Izvuci vežbe iz otkrivenih grešaka',
+        title: Text('Extract puzzles from detected blunders',
             style: AppText.body.copyWith(color: context.colors.textPrimary)),
         onChanged: (val) =>
             setState(() => _extractPuzzlesEnabled = val ?? false),
@@ -356,7 +357,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           padding: const EdgeInsets.only(left: AppSpacing.xxxl),
           child: Row(
             children: [
-              Text('Maks. broj vežbi: $_maxPuzzles',
+              Text('Max puzzles: $_maxPuzzles',
                   style: AppText.caption
                       .copyWith(color: context.colors.textPrimary)),
               Expanded(
@@ -377,7 +378,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         width: double.infinity,
         child: FilledButton.icon(
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Pokreni analizu'),
+          label: const Text('Start analysis'),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           ),
@@ -395,13 +396,16 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             Icon(Icons.check_circle, color: context.colors.accent, size: 36),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Gotovo! Komentarisano $_processed pozicija.',
+              'Done! Commented on $_processed positions.',
               textAlign: TextAlign.center,
               style: AppText.subtitle.copyWith(color: context.colors.accent),
             ),
             if (_blunderAlertEnabled) ...[
               const SizedBox(height: 6),
-              Text('Označeno $_taggedBlunders grešaka.',
+              Text(
+                  _taggedBlunders == 1
+                      ? 'Tagged 1 blunder.'
+                      : 'Tagged $_taggedBlunders blunders.',
                   textAlign: TextAlign.center,
                   style:
                       AppText.body.copyWith(color: context.colors.textPrimary)),
@@ -410,8 +414,8 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
               const SizedBox(height: 6),
               Text(
                 _extractedPuzzles.isEmpty
-                    ? 'Nije pronađena nijedna vežba.'
-                    : 'Izvučeno ${_extractedPuzzles.length} vežbi (sačuvano).',
+                    ? 'No puzzles found.'
+                    : 'Extracted ${_extractedPuzzles.length} ${_extractedPuzzles.length == 1 ? "puzzle" : "puzzles"} (saved).',
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(color: context.colors.textPrimary),
               ),
@@ -419,7 +423,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Zatvori'),
+              child: const Text('Close'),
             ),
           ],
         ),
@@ -438,14 +442,14 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                 color: context.colors.accent),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Obrađeno pozicija: $_processed / $_total',
+              'Positions processed: $_processed / $_total',
               style:
                   AppText.bodyLargeBold.copyWith(color: context.colors.accent),
             ),
             const SizedBox(height: AppSpacing.lg),
             OutlinedButton.icon(
               icon: Icon(Icons.cancel, color: context.colors.danger),
-              label: Text('Otkaži',
+              label: Text('Cancel',
                   style: TextStyle(color: context.colors.danger)),
               onPressed: () {
                 _walker.cancel();

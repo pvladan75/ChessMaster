@@ -252,39 +252,39 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   ///
   /// There are nine of them. An `AppBar` does not wrap or scroll its actions —
   /// it clips them, silently — so on a phone the last two were simply not
-  /// reachable: "Podešavanja" and "Unos Pozicije / PGN" sat past the right
+  /// reachable: "Settings" and "Setup Position / PGN" sat past the right
   /// edge with nothing to say they were there. Reported from a phone on
   /// 20.8.2026, and invisible in a release build, which paints no overflow
   /// warning.
   List<Widget> _toolbarActions(BuildContext context) {
     final actions = <_ToolAction>[
-      _ToolAction(Icons.tune, context.colors.accent, 'Unos Pozicije / PGN',
+      _ToolAction(Icons.tune, context.colors.accent, 'Setup Position / PGN',
           _showSetupDialog),
-      _ToolAction(Icons.fact_check, context.colors.accent,
-          'Analiziraj celu partiju', _showGameReviewDialog),
-      _ToolAction(Icons.auto_awesome, context.colors.warning,
-          'Automatska Analiza ⚡', _showAutoAnalysisDialog),
+      _ToolAction(Icons.fact_check, context.colors.accent, 'Review entire game',
+          _showGameReviewDialog),
+      _ToolAction(Icons.auto_awesome, context.colors.warning, 'Auto Analysis ⚡',
+          _showAutoAnalysisDialog),
       _ToolAction(Icons.trending_flat, context.colors.accent,
-          'Produži granu (najbolja linija motora)', _showQuickExtendDialog),
-      _ToolAction(Icons.extension, context.colors.accent, 'Sačuvane vežbe',
+          'Extend branch (engine best line)', _showQuickExtendDialog),
+      _ToolAction(Icons.extension, context.colors.accent, 'Saved puzzle sets',
           _showSavedPuzzleSetsDialog),
       _ToolAction(Icons.add_task, context.colors.success,
-          'Napravi korak od ove pozicije', _createStepFromPosition),
+          'Create step from this position', _createStepFromPosition),
       _ToolAction(Icons.edit_note, context.colors.success,
-          'Uredi korake tutorijala', _editLessonSteps),
+          'Edit tutorial steps', _editLessonSteps),
       // The one door to the authoring screen, and it is not drawn where that
       // screen does not exist — decision 5 of docs/PLAN-TUTORIJAL.md. It
       // replaces neither of the two above: those add one position to something
       // that already exists, this one starts a tutorial from nothing.
       if (isTutorialStudioAvailable)
         _ToolAction(Icons.auto_stories, context.colors.success,
-            'Kreiraj interaktivni tutorijal', _openTutorialStudio),
-      _ToolAction(Icons.share, context.colors.info, 'Izvezi PGN', _exportPgn),
-      _ToolAction(Icons.cloud_outlined, context.colors.info, 'Sačuvane analize',
+            'Create interactive tutorial', _openTutorialStudio),
+      _ToolAction(Icons.share, context.colors.info, 'Export PGN', _exportPgn),
+      _ToolAction(Icons.cloud_outlined, context.colors.info, 'Saved analyses',
           _showSavedAnalysesDialog),
-      _ToolAction(Icons.settings, context.colors.textMuted, 'Podešavanja',
+      _ToolAction(Icons.settings, context.colors.textMuted, 'Settings',
           _openAppSettings),
-      _ToolAction(Icons.terminal, context.colors.warning, 'Logovi Engine-a 📜',
+      _ToolAction(Icons.terminal, context.colors.warning, 'Engine Logs 📜',
           () => dialogs.showLogsDialog(context)),
     ];
 
@@ -310,7 +310,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       ...actions.take(visible).map(asIcon),
       PopupMenuButton<int>(
         icon: const Icon(Icons.more_vert),
-        tooltip: 'Još alata',
+        tooltip: 'More tools',
         onSelected: (index) => actions[index].onPressed(),
         itemBuilder: (context) => [
           for (var i = visible; i < actions.length; i += 1)
@@ -349,7 +349,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: const Text('Vraćena je vaša poslednja analiza.'),
+        content: const Text('Your latest analysis has been restored.'),
         backgroundColor: context.colors.accent,
         duration: const Duration(seconds: 6),
         // Reported from a phone on 20.8.2026: it sat there for minutes with no
@@ -359,7 +359,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         showCloseIcon: true,
         closeIconColor: context.colors.canvas,
         action: SnackBarAction(
-          label: 'Počni iznova',
+          label: 'Start over',
           textColor: context.colors.canvas,
           onPressed: () {
             AnalysisDraftService.instance.clear();
@@ -431,7 +431,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         AppFeedback.show(
             context,
             () => SnackBar(
-                  content: Text('Motor ne može da računa: $reason'),
+                  content: Text('Engine cannot calculate: $reason'),
                   backgroundColor: context.colors.danger,
                 ));
       },
@@ -510,7 +510,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         '[OpeningExplorer] 🔍 wantsChessDb=$wantsChessDb | FEN: ${_currentNode.fen}');
 
     if (wantsChessDb) {
-      AppLogger.log('[OpeningExplorer] ⚙️ Korisnik je izabrao ChessDB');
+      AppLogger.log('[OpeningExplorer] ⚙️ User selected ChessDB');
       if (_openingExplorerResult != null || _openingExplorerLoading) {
         setState(() {
           _openingExplorerResult = null;
@@ -538,7 +538,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     // log says which of the two it was.
     if (!lookup.isAvailable) {
       AppLogger.log(
-          '[OpeningExplorer] ⛔ Nedostupno (${lookup.reason}) — koristim ChessDB');
+          '[OpeningExplorer] ⛔ Unavailable (${lookup.reason}) — using ChessDB');
       setState(() {
         _openingExplorerAvailable = false;
         _openingExplorerResult = null;
@@ -550,7 +550,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     final result = lookup.result;
     AppLogger.log(
-        '[OpeningExplorer] 📊 Rezultat: ${result == null ? "prazno" : "${result.moves.length} poteza, ${result.total} partija"}');
+        '[OpeningExplorer] 📊 Result: ${result == null ? "empty" : "${result.moves.length} moves, ${result.total} games"}');
 
     setState(() {
       _openingExplorerResult = result;
@@ -568,7 +568,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (!mounted || reqId != _openingExplorerRequestId) return;
 
     AppLogger.log(
-        '[ChessDB] 📊 Rezultat: ${result == null ? "null" : "${result.moves.length} poteza"}');
+        '[ChessDB] 📊 Result: ${result == null ? "null" : "${result.moves.length} moves"}');
 
     setState(() {
       _chessDbResult = result;
@@ -953,7 +953,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// pre-filled with the generated prose. Free-flowing AI text never matches
   /// a candidate finding line, so [dialogs.showManualCommentDialog] naturally
   /// drops it into its free-text box — reviewable/editable there, nothing is
-  /// saved until the user hits "Sačuvaj".
+  /// saved until the user hits "Save".
   ///
   /// Also gathers comparative context so the model can contrast what was
   /// played against what else was possible: the previous move, an unplayed
@@ -1097,7 +1097,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       AppFeedback.show(
         context,
         () => SnackBar(
-            content: const Text('Greška pri generisanju AI komentara.'),
+            content: const Text('Error generating AI comment.'),
             backgroundColor: context.colors.danger),
       );
       return;
@@ -1131,7 +1131,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             context,
             () => SnackBar(
                 content: const Text(
-                    '⚡ Automatska analiza uspešno završena i sačuvana u stablo!'),
+                    '⚡ Automatic analysis completed successfully and saved to tree!'),
                 backgroundColor: context.colors.warning),
           );
         },
@@ -1174,7 +1174,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       context: context,
       builder: (context) => CoursePickerDialog(
         service: library,
-        title: 'Koji tutorijal uređuješ?',
+        title: 'Which tutorial are you editing?',
       ),
     );
     if (course == null || !mounted) return;
@@ -1196,7 +1196,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (lesson == null) {
       AppFeedback.show(
         context,
-        () => const SnackBar(content: Text('Tutorijal nije pronađen.')),
+        () => const SnackBar(content: Text('Tutorial not found.')),
       );
       return;
     }
@@ -1232,20 +1232,20 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     return showDialog<AnalysisNode>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Odakle počinje korak?'),
+        title: const Text('Where does the step begin?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Učenik dobija tablu na početnoj poziciji koraka i lista poteze '
-              'jedan po jedan, sa tvojim komentarom uz svaki.',
+              'The student receives the board at the starting position of the step '
+              'and steps through the moves one by one, with your comment on each.',
             ),
             if (offMainLine) ...[
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Trenutni potez je u sporednoj varijanti. Korak „od početka '
-                'linije" prikazuje glavnu liniju, ne ovu.',
+                'The current move is in a sideline. Step "from start of line" '
+                'shows the main line, not this one.',
                 style: TextStyle(color: context.colors.warning),
               ),
             ],
@@ -1254,15 +1254,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_currentNode),
-            child: const Text('Odavde'),
+            child: const Text('From here'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(_rootNode),
-            child: const Text('Od početka linije'),
+            child: const Text('From start of line'),
           ),
         ],
       ),
@@ -1309,23 +1309,23 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       final wholeLine = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Šta prenosimo u tutorijal?'),
+          title: const Text('What are we transferring to the tutorial?'),
           content: const Text(
-            'Možeš da poneseš samo poziciju sa table, ili celu liniju koja ide '
-            'odavde — sa varijantama i komentarima koje si napisao.',
+            'You can take just the position from the board, or the whole line going '
+            'from here — with the variations and comments you wrote.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Odustani'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Samo poziciju'),
+              child: const Text('Position only'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Celu liniju'),
+              child: const Text('Whole line'),
             ),
           ],
         ),
@@ -1375,8 +1375,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       AppFeedback.show(
         context,
         () => SnackBar(
-          content: Text('Korak nije sačuvan: ${step.rejectedMoves} '
-              'poteza iz linije ne može da se odigra iz ove pozicije.'),
+          content: Text('Step was not saved: ${step.rejectedMoves} '
+              'moves from the line cannot be played from this position.'),
           backgroundColor: context.colors.danger,
         ),
       );
@@ -1385,7 +1385,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     final error = await lessons.appendStep(
       lessonId: course.id,
-      step: step.toJson(title: 'Novi zadatak'),
+      step: step.toJson(title: 'New task'),
     );
 
     if (!mounted) return;
@@ -1400,7 +1400,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       AppFeedback.show(
           context,
           () => SnackBar(
-                content: const Text('Korak uspešno dodat u tutorijal.'),
+                content: const Text('Step successfully added to tutorial.'),
                 backgroundColor: context.colors.success,
               ));
     }
@@ -1427,11 +1427,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               context,
               () => SnackBar(
                 content: Text(
-                    '🧩 Izvučeno ${extractedPuzzles.length} vežbi (sačuvano)'),
+                    '🧩 Extracted ${extractedPuzzles.length} puzzles (saved)'),
                 backgroundColor: context.colors.accent,
                 duration: const Duration(seconds: 6),
                 action: SnackBarAction(
-                  label: 'Prikaži',
+                  label: 'Show',
                   textColor: context.colors.canvas,
                   onPressed: () {
                     setState(() => _activePuzzleSet = extractedPuzzles);
@@ -1584,7 +1584,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         AppFeedback.show(
           context,
           () => SnackBar(
-              content: const Text('⚠️ Neispravan PGN format.'),
+              content: const Text('⚠️ Invalid PGN format.'),
               backgroundColor: context.colors.danger),
         );
         return;
@@ -1621,7 +1621,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       for (final san in sanHistory) {
         if (!replay.move(san)) {
           AppLogger.log(
-              '[AnalysisStudio] ⚠️ PGN uvoz zaustavljen na nelegalnom potezu: $san');
+              '[AnalysisStudio] ⚠️ PGN import stopped at illegal move: $san');
           break;
         }
         final moveObj = replay.history.last.move;
@@ -1642,11 +1642,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _triggerEngineAnalysis();
 
       AppLogger.log(
-          '[AnalysisStudio] 📥 PGN uvezen: $imported poteza od ${sanHistory.length}');
+          '[AnalysisStudio] 📥 PGN imported: $imported moves of ${sanHistory.length}');
       AppFeedback.show(
         context,
         () => SnackBar(
-          content: Text('✅ PGN učitan — $imported poteza u stablu.'),
+          content: Text('✅ PGN loaded — $imported moves in tree.'),
           backgroundColor: context.colors.accent,
         ),
       );
@@ -1654,7 +1654,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       AppFeedback.show(
         context,
         () => SnackBar(
-            content: Text('Greška pri uvozu PGN-a: $e'),
+            content: Text('Error importing PGN: $e'),
             backgroundColor: context.colors.danger),
       );
     }
@@ -1688,8 +1688,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       AppFeedback.show(
         context,
         () => SnackBar(
-            content:
-                const Text('⚠️ Učitavanje nije uspelo. Proverite konekciju.'),
+            content: const Text('⚠️ Loading failed. Check your connection.'),
             backgroundColor: context.colors.danger),
       );
       return;
@@ -1709,7 +1708,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(
-          content: Text('✅ Učitano: "${summary.title}"'),
+          content: Text('✅ Loaded: "${summary.title}"'),
           backgroundColor: context.colors.accent),
     );
   }
@@ -1762,7 +1761,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                       ],
                     )
                   : const Text(
-                      'Analiza',
+                      'Analysis',
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       style: AppText.title,
@@ -2239,17 +2238,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           IconButton(
             icon: Icon(Icons.chevron_left,
                 size: 20, color: context.colors.textPrimary),
-            tooltip: 'Prethodna vežba',
+            tooltip: 'Previous puzzle',
             onPressed: _activePuzzleIndex > 0 ? () => _goToPuzzle(-1) : null,
           ),
           Text(
-            'Vežba ${_activePuzzleIndex + 1} / ${set.length}',
+            'Puzzle ${_activePuzzleIndex + 1} / ${set.length}',
             style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
           ),
           IconButton(
             icon: Icon(Icons.chevron_right,
                 size: 20, color: context.colors.textPrimary),
-            tooltip: 'Sledeća vežba',
+            tooltip: 'Next puzzle',
             onPressed: _activePuzzleIndex < set.length - 1
                 ? () => _goToPuzzle(1)
                 : null,
@@ -2257,7 +2256,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           IconButton(
             icon: Icon(Icons.close,
                 size: 20, color: context.colors.textSecondary),
-            tooltip: 'Zatvori vežbe',
+            tooltip: 'Close puzzles',
             onPressed: _exitPuzzleSet,
           ),
         ],
@@ -2281,7 +2280,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         const SizedBox(width: AppSpacing.sm),
         IconButton(
           icon: Icon(Icons.comment, size: 18, color: context.colors.info),
-          tooltip: 'Dodaj Komentar',
+          tooltip: 'Add Comment',
           onPressed: _showCommentDialog,
         ),
         IconButton(
@@ -2293,20 +2292,20 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 )
               : Icon(Icons.auto_awesome,
                   size: 18, color: context.colors.accent),
-          tooltip: 'Generiši AI komentar',
+          tooltip: 'Generate AI comment',
           onPressed: (_isGeneratingAiComment || _currentNode.isRoot)
               ? null
               : _generateAiComment,
         ),
         IconButton(
           icon: Icon(Icons.style, size: 18, color: context.colors.warning),
-          tooltip: 'NAG Simboli (!, ?)',
+          tooltip: 'NAG Symbols (!, ?)',
           onPressed: _showNagSelector,
         ),
         IconButton(
           icon: Icon(Icons.delete_outline,
               size: 18, color: context.colors.danger),
-          tooltip: 'Obriši ovaj potez (i granu iza njega)',
+          tooltip: 'Delete this move (and branch after it)',
           onPressed: _currentNode.isRoot ? null : _confirmDeleteCurrentNode,
         ),
       ],
@@ -2400,29 +2399,29 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (parent == null) return;
 
     final removedCount = _subtreeSize(node);
-    final label = node.moveSan ?? 'ovaj potez';
+    final label = node.moveSan ?? 'this move';
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Obriši potez?',
+        title: Text('Delete move?',
             style: TextStyle(color: context.colors.textPrimary)),
         content: Text(
           removedCount > 1
-              ? 'Ovo briše "$label" i svih preostalih $removedCount poteza u ovoj grani (uključujući varijacije). Ne može se opozvati.'
-              : 'Ovo briše "$label". Ne može se opozvati.',
+              ? 'This deletes "$label" and all remaining $removedCount moves in this branch (including variations). This cannot be undone.'
+              : 'This deletes "$label". This cannot be undone.',
           style: TextStyle(color: context.colors.textMuted),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Otkaži')),
+              child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.danger,
                 foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Obriši'),
+            child: const Text('Delete'),
           ),
         ],
       ),

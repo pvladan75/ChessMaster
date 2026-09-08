@@ -95,7 +95,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
         AppFeedback.show(
           context,
           () => const SnackBar(
-              content: Text('Sačekajte kraj ili kliknite Otkaži.'),
+              content: Text('Wait for completion or click Cancel.'),
               duration: Duration(seconds: 2)),
         );
       },
@@ -116,14 +116,14 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                       Icon(Icons.trending_flat,
                           color: context.colors.accent, size: 22),
                       const SizedBox(width: AppSpacing.sm),
-                      Text('Produži granu',
+                      Text('Extend the branch',
                           style: AppText.title
                               .copyWith(color: context.colors.textPrimary)),
                     ],
                   ),
                   IconButton(
                     icon: Icon(Icons.close, color: context.colors.textMuted),
-                    tooltip: 'Zatvori',
+                    tooltip: 'Close',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -146,14 +146,14 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
   List<Widget> _buildSetup() {
     return [
       Text(
-        'Motor odigrava svoj najbolji potez, iz poteza u potez, i dodaje ih kao pravu liniju (bez grananja) iza trenutne pozicije.',
+        'The engine plays its best move, move by move, and adds them as a straight line (no branching) from the current position.',
         style: AppText.body.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: AppSpacing.lg),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Broj poteza: $_plies',
+          Text('Number of moves: $_plies',
               style: AppText.body.copyWith(color: context.colors.textPrimary)),
         ],
       ),
@@ -170,7 +170,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
         width: double.infinity,
         child: FilledButton.icon(
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Dodaj poteze'),
+          label: const Text('Add moves'),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           ),
@@ -191,14 +191,14 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                 color: context.colors.accent),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Odigrano poteza: $_processed / $_total',
+              'Moves played: $_processed / $_total',
               style:
                   AppText.bodyLargeBold.copyWith(color: context.colors.accent),
             ),
             const SizedBox(height: AppSpacing.lg),
             OutlinedButton.icon(
               icon: Icon(Icons.cancel, color: context.colors.danger),
-              label: Text('Otkaži',
+              label: Text('Cancel',
                   style: TextStyle(color: context.colors.danger)),
               onPressed: () {
                 _generator.cancel();
@@ -220,8 +220,8 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
             const SizedBox(height: AppSpacing.md),
             Text(
               _lastAdded == null
-                  ? 'Nije dodat nijedan potez (kraj partije?).'
-                  : 'Dodato $_processed poteza.',
+                  ? 'No moves added (game over?).'
+                  : 'Added $_processed ${_processed == 1 ? 'move' : 'moves'}.',
               textAlign: TextAlign.center,
               style: AppText.subtitle.copyWith(color: context.colors.accent),
             ),
@@ -231,7 +231,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                 widget.onCompleted(_lastAdded);
                 Navigator.pop(context);
               },
-              child: const Text('Zatvori'),
+              child: const Text('Close'),
             ),
           ],
         ),

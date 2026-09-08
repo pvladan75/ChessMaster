@@ -73,10 +73,11 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('traži vaš Lichess token'), findsOneWidget);
-    expect(find.text('Podešavanja'), findsOneWidget);
-    expect(find.textContaining('Presudi'), findsNothing,
-        reason: 'nema šta da se pritisne dok tokena nema');
+    expect(
+        find.textContaining('requires your own Lichess token'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.textContaining('Judge'), findsNothing,
+        reason: 'nothing to press when token is missing');
   });
 
   testWidgets('with a token and a move, the verdict is asked for by hand',
@@ -93,8 +94,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Presudi Bc4'), findsOneWidget);
-    await tester.tap(find.text('Presudi Bc4'));
+    expect(find.text('Judge Bc4'), findsOneWidget);
+    await tester.tap(find.text('Judge Bc4'));
     await tester.pump();
     expect(asked, 1);
   });
@@ -111,8 +112,8 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('Odigrajte potez'), findsOneWidget);
-    expect(find.textContaining('Presudi'), findsNothing);
+    expect(find.textContaining('Play a move'), findsOneWidget);
+    expect(find.textContaining('Judge'), findsNothing);
   });
 
   testWidgets('theory is named, and counted', (tester) async {
@@ -127,8 +128,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Bc4 · Glavna teorija'), findsOneWidget);
-    expect(find.text('Majstori ga igraju: 2000 partija.'), findsOneWidget);
+    expect(find.text('Bc4 · Mainline theory'), findsOneWidget);
+    expect(find.text('Played by masters: 2000 games.'), findsOneWidget);
   });
 
   testWidgets('a mistake says what to play instead and how it is punished',
@@ -152,11 +153,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Bc4 · Sumnjiv potez'), findsOneWidget);
-    expect(find.text('Košta 4.20 pešaka.'), findsOneWidget);
-    expect(find.text('Odigran kod 1600+ igrača: 40 partija.'), findsOneWidget);
-    expect(find.text('Bolje je bilo Nf3.'), findsOneWidget);
-    expect(find.text('Kažnjava se sa Qh4 Nf3 Qxe4+.'), findsOneWidget);
+    expect(find.text('Bc4 · Dubious move'), findsOneWidget);
+    expect(find.text('Costs 4.20 pawns.'), findsOneWidget);
+    expect(find.text('Played by 1600+ players: 40 games.'), findsOneWidget);
+    expect(find.text('Better was Nf3.'), findsOneWidget);
+    expect(find.text('Punished with Qh4 Nf3 Qxe4+.'), findsOneWidget);
   });
 
   testWidgets('a move that walks into mate says so', (tester) async {
@@ -172,7 +173,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Posle njega je mat u 3 protiv vas.'), findsOneWidget);
+    expect(find.text('Mate in 3 against you after this.'), findsOneWidget);
   });
 
   testWidgets('a playable move is not given advice it does not need',
@@ -188,9 +189,9 @@ void main() {
       ),
     );
 
-    expect(find.text('Bc4 · Praktična alternativa'), findsOneWidget);
-    expect(find.text('Košta 0.07 pešaka.'), findsOneWidget);
-    expect(find.textContaining('Bolje je bilo'), findsNothing);
+    expect(find.text('Bc4 · Practical alternative'), findsOneWidget);
+    expect(find.text('Costs 0.07 pawns.'), findsOneWidget);
+    expect(find.textContaining('Better was'), findsNothing);
   });
 
   testWidgets('an unjudged move does not read as a bad one', (tester) async {
@@ -205,9 +206,9 @@ void main() {
       ),
     );
 
-    expect(find.text('Bc4 · Nije presuđeno'), findsOneWidget);
-    expect(find.textContaining('nije isto što i loš potez'), findsOneWidget);
-    expect(find.textContaining('Sumnjiv'), findsNothing);
+    expect(find.text('Bc4 · No verdict'), findsOneWidget);
+    expect(find.textContaining('not the same as a bad move'), findsOneWidget);
+    expect(find.textContaining('Dubious'), findsNothing);
   });
 
   testWidgets('a spent quota says so in its own words', (tester) async {
@@ -223,10 +224,9 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('Potrošen je dozvoljeni broj upita'),
-        findsOneWidget);
+    expect(find.textContaining('quota exceeded'), findsOneWidget);
     // And the way back is still there, because the quota returns.
-    expect(find.text('Presudi Bc4'), findsOneWidget);
+    expect(find.text('Judge Bc4'), findsOneWidget);
   });
 
   testWidgets('every state fits a 360 dp phone', (tester) async {
@@ -270,14 +270,14 @@ void main() {
     }
   });
 
-  test('games are counted in Serbian', () {
-    expect(gamesLabel(1), '1 partija');
-    expect(gamesLabel(2), '2 partije');
-    expect(gamesLabel(4), '4 partije');
-    expect(gamesLabel(5), '5 partija');
-    expect(gamesLabel(11), '11 partija');
-    expect(gamesLabel(21), '21 partija');
-    expect(gamesLabel(22), '22 partije');
-    expect(gamesLabel(112), '112 partija');
+  test('games are counted in English', () {
+    expect(gamesLabel(1), '1 game');
+    expect(gamesLabel(2), '2 games');
+    expect(gamesLabel(4), '4 games');
+    expect(gamesLabel(5), '5 games');
+    expect(gamesLabel(11), '11 games');
+    expect(gamesLabel(21), '21 games');
+    expect(gamesLabel(22), '22 games');
+    expect(gamesLabel(112), '112 games');
   });
 }

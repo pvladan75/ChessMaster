@@ -59,9 +59,9 @@ void main() {
     await pumpTree(tester, root, root);
 
     // Zoom in twice via + button
-    await tester.tap(find.byTooltip('Uvećaj'));
+    await tester.tap(find.byTooltip('Zoom in'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Uvećaj'));
+    await tester.tap(find.byTooltip('Zoom in'));
     await tester.pumpAndSettle();
 
     final iv = tester.widget<InteractiveViewer>(find.byType(InteractiveViewer));
@@ -171,7 +171,7 @@ void main() {
 
     await pumpTree(tester, root, node25);
 
-    await tester.tap(find.byTooltip('Centriraj na aktivni potez'));
+    await tester.tap(find.byTooltip('Center on active move'));
     await tester.pumpAndSettle();
 
     final viewportRect = tester.getRect(find.byType(VisualMoveTreeWidget));

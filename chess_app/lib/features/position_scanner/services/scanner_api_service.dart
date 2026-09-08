@@ -37,15 +37,15 @@ class ScanOutcome {
 String scanFailureMessage(ScanOutcome outcome) {
   switch (outcome.code) {
     case 'no_text':
-      return 'Ova knjiga je skenirana kao slika — u njoj nema teksta. '
-          'Skener čita samo knjige u kojima su dijagrami složeni šahovskim fontom.';
+      return 'This book was scanned as an image — there is no text in it. '
+          'The scanner only reads books where diagrams are set in a chess font.';
     case 'no_diagram_text':
-      return 'Na tim stranama ima teksta, ali su dijagrami slike ili crteži. '
-          'Skener čita samo dijagrame složene šahovskim fontom.';
+      return 'There is text on those pages, but the diagrams are images or drawings. '
+          'The scanner only reads diagrams set in a chess font.';
     case 'unknown_font':
-      return 'Dijagrami u ovoj knjizi koriste font koji još ne umemo da čitamo.';
+      return 'The diagrams in this book use a font we cannot read yet.';
     default:
-      return outcome.error ?? 'Skeniranje nije uspelo.';
+      return outcome.error ?? 'Scan failed.';
   }
 }
 
@@ -80,12 +80,12 @@ class SaveOutcome {
   /// One line a person can read, naming only what actually happened.
   String get summary {
     final parts = <String>[];
-    if (saved > 0) parts.add('novih $saved');
-    if (filled > 0) parts.add('dopunjeno $filled');
-    if (unchanged > 0) parts.add('već postojalo $unchanged');
-    if (conflicts > 0) parts.add('neslaganja $conflicts');
-    if (rejected > 0) parts.add('odbijeno $rejected');
-    return parts.isEmpty ? 'ništa nije promenjeno' : parts.join(', ');
+    if (saved > 0) parts.add('$saved new');
+    if (filled > 0) parts.add('$filled updated');
+    if (unchanged > 0) parts.add('$unchanged already existed');
+    if (conflicts > 0) parts.add('$conflicts conflicts');
+    if (rejected > 0) parts.add('$rejected rejected');
+    return parts.isEmpty ? 'nothing changed' : parts.join(', ');
   }
 }
 
@@ -156,13 +156,13 @@ class ScannerApiService {
         );
       }
       return ScanOutcome(
-        error: _errorFrom(
-            response.body, 'Skeniranje nije uspelo (${response.statusCode}).'),
+        error:
+            _errorFrom(response.body, 'Scan failed (${response.statusCode}).'),
         code: _codeFrom(response.body),
       );
     } catch (e) {
       AppLogger.log('Scan failed: $e', name: 'PositionScanner');
-      return const ScanOutcome(error: 'Nije moguće doći do servera.');
+      return const ScanOutcome(error: 'Could not reach the server.');
     }
   }
 
@@ -194,10 +194,10 @@ class ScannerApiService {
       }
       return SaveOutcome(
           error: _errorFrom(
-              response.body, 'Čuvanje nije uspelo (${response.statusCode}).'));
+              response.body, 'Save failed (${response.statusCode}).'));
     } catch (e) {
       AppLogger.log('Confirm failed: $e', name: 'PositionScanner');
-      return const SaveOutcome(error: 'Nije moguće doći do servera.');
+      return const SaveOutcome(error: 'Could not reach the server.');
     }
   }
 

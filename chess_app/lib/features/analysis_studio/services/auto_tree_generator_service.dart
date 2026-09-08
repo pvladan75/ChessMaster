@@ -104,11 +104,11 @@ class AutoTreeGeneratorService {
     }
 
     AppLogger.log(
-        '[AutoTree] 🌳 Generišem n=${params.candidateCount} kandidata za čvor na dubini d=${params.engineDepth} | FEN: ${currentNode.fen}');
+        '[AutoTree] 🌳 Generating n=${params.candidateCount} candidates for node at depth d=${params.engineDepth} | FEN: ${currentNode.fen}');
     AppLogger.log(
-        '[AutoTree] ⏱️ Čekam Stockfish odgovor za depth ${params.engineDepth}...');
+        '[AutoTree] ⏱️ Waiting for Stockfish response for depth ${params.engineDepth}...');
     onProgress(
-        'Analiziram poziciju (Sloj ${currentPly + 1}/${params.pliesDepth})...');
+        'Analyzing position (Ply ${currentPly + 1}/${params.pliesDepth})...');
 
     final lines = await analyzer(
       currentNode.fen,
@@ -121,7 +121,7 @@ class AutoTreeGeneratorService {
 
     if (lines.isEmpty) {
       AppLogger.log(
-          '[AutoTree WARNING] ⚠️ Stockfish nije vratio linije za FEN: ${currentNode.fen}. Preskačem grananje čvora.');
+          '[AutoTree WARNING] ⚠️ Stockfish returned no lines for FEN: ${currentNode.fen}. Skipping node branching.');
       return;
     }
 

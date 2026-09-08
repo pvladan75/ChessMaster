@@ -122,9 +122,9 @@ void main() {
     final router = await openHomeRouter(tester);
     expect(find.byType(NavigationRail), findsOneWidget, reason: 'pre ulaska');
 
-    await tester.ensureVisible(find.text('Mat u 2').first);
+    await tester.ensureVisible(find.text('Mate in 2').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Mat u 2').first);
+    await tester.tap(find.text('Mate in 2').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 

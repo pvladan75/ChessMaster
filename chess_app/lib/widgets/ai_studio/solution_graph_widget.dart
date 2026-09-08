@@ -31,9 +31,9 @@ List<SolutionGraphNode> findPathToGraphNode(
 }
 
 enum _PlaySpeed {
-  slow(Duration(milliseconds: 1400), 'Sporo'),
-  normal(Duration(milliseconds: 800), 'Normalno'),
-  fast(Duration(milliseconds: 350), 'Brzo');
+  slow(Duration(milliseconds: 1400), 'Slow'),
+  normal(Duration(milliseconds: 800), 'Normal'),
+  fast(Duration(milliseconds: 350), 'Fast');
 
   final Duration interval;
   final String label;
@@ -240,7 +240,7 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
                       color: colors.info, size: 20),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
-                    'Grafičko Stablo Poteza',
+                    'Graphical Move Tree',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -279,8 +279,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
               const SizedBox(width: AppSpacing.sm),
               Text(
                 _isPlaying
-                    ? 'Reprodukcija rešenja...'
-                    : 'Pusti rešenje automatski',
+                    ? 'Playing solution...'
+                    : 'Play solution automatically',
                 style: AppText.caption.copyWith(color: colors.textSecondary),
               ),
               const Spacer(),
@@ -337,7 +337,7 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
     final colors = context.colors;
 
     return PopupMenuButton<_PlaySpeed>(
-      tooltip: 'Brzina: ${_playSpeed.label}',
+      tooltip: 'Speed: ${_playSpeed.label}',
       initialValue: _playSpeed,
       color: colors.surface,
       onSelected: _setPlaySpeed,
@@ -659,7 +659,8 @@ class _SolutionGraphWidgetState extends State<SolutionGraphWidget> {
           nodes.add(SolutionGraphNode(
             id: nodeId,
             moveUci: selectedOppMove,
-            moveSan: '.. [${oppMovesList.length} varijanti]',
+            moveSan:
+                '.. [${oppMovesList.length} ${oppMovesList.length == 1 ? 'variation' : 'variations'}]',
             fen: fenAfterSelected,
             parentFen: currentFen,
             isWhite: false,

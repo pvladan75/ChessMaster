@@ -413,7 +413,7 @@ void main() {
           .readAsStringSync();
       // Asserted on the answer rather than on the file, so a failure says what
       // is missing instead of printing 2400 lines of screen at whoever ran it.
-      expect(studio.contains('Kreiraj interaktivni tutorijal'), isTrue,
+      expect(studio.contains('Create interactive tutorial'), isTrue,
           reason: 'the Studio has no door to the tutorial studio');
       expect(studio.contains('isTutorialStudioAvailable'), isTrue,
           reason: 'the Studio draws the door on Android too');

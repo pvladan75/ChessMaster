@@ -58,11 +58,11 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.info,
       icon: Icons.inventory_2_outlined,
-      title: 'Moje partije',
+      title: 'My games',
       description:
-          'Uvezite PGN izvoz svojih partija i aplikacija pokazuje gde vam '
-          'otvaranje stalno curi: pozicije do kojih stižete često, potez koji '
-          'u njima igrate iznova i koliko vam je bodova doneo.',
+          'Import a PGN export of your games and the app shows where your '
+          'opening leaks: positions you reach often, the move you play '
+          'repeatedly, and how many points it scored.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: colors.info.withValues(alpha: 0.08),
@@ -72,7 +72,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.file_upload),
-        label: const Text('Uvezi partije'),
+        label: const Text('Import games'),
         onPressed: onSelectMyGames,
       ),
     );
@@ -82,10 +82,10 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.danger,
       icon: Icons.history_edu_outlined,
-      title: 'Moje greške',
+      title: 'My mistakes',
       description:
-          'Pregledajte i uvežbajte previde i greške iz svojih odigranih partija. '
-          'Pamti kad ste pogrešili i vraća poziciju na ponavljanje.',
+          'Review and drill blunders and mistakes from your played games. '
+          'Remembers when you made a mistake and returns the position for spaced repetition.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: colors.danger.withValues(alpha: 0.22),
@@ -95,7 +95,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.play_arrow),
-        label: const Text('Vežbaj greške'),
+        label: const Text('Drill mistakes'),
         onPressed: onSelectMistakesDrill,
       ),
     );
@@ -105,11 +105,11 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.brand,
       icon: Icons.menu_book_outlined,
-      title: 'Repertoar otvaranja',
+      title: 'Opening repertoire',
       description:
-          'Nije skup zadataka nego nešto što gradite: birate šta biste '
-          'odigrali, poziciju po poziciju, i odmah dobijate procenu '
-          'izbora. Repertoar ostaje sačuvan i dopunjuje se vremenom.',
+          'Not a set of puzzles, but something you build: choose what you would '
+          'play, position by position, and get an immediate evaluation of the '
+          'choice. The repertoire stays saved and grows over time.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: colors.brand.withValues(alpha: 0.08),
@@ -119,7 +119,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.play_arrow),
-        label: const Text('Otvori repertoar'),
+        label: const Text('Open repertoire'),
         onPressed: onSelectRepertoire,
       ),
     );
@@ -129,10 +129,10 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.info,
       icon: Icons.auto_graph,
-      title: 'Taktika po vašoj meri',
+      title: 'Tactics tailored to you',
       description:
-          'Zagonetke iz Lichess baze, birane prema vašem rejtingu i temi '
-          'koju najslabije rešavate. Rejting se prati po svakom motivu posebno.',
+          'Puzzles from the Lichess database, matched to your rating and the theme '
+          'you struggle with most. Rating is tracked per motif separately.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: colors.info.withValues(alpha: 0.08),
@@ -142,7 +142,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.play_arrow),
-        label: const Text('Započni trening'),
+        label: const Text('Start training'),
         onPressed: onSelectTactics,
       ),
     );
@@ -152,26 +152,26 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.accent,
       icon: Icons.sports_esports_outlined,
-      title: 'Zagonetke: Mat u 1, 2 ili 3 poteza',
+      title: 'Puzzles: Mate in 1, 2 or 3 moves',
       description:
-          'Rešavajte forsiranu matnu sekvencu u traženom broju poteza.',
+          'Solve forced checkmate sequences in the requested number of moves.',
       action: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
         children: [
           ElevatedButton.icon(
             icon: const Icon(Icons.looks_one_outlined),
-            label: const Text('Mat u 1'),
+            label: const Text('Mate in 1'),
             onPressed: () => onSelectMatePuzzle('1'),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.looks_two_outlined),
-            label: const Text('Mat u 2'),
+            label: const Text('Mate in 2'),
             onPressed: () => onSelectMatePuzzle('2'),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.looks_3_outlined),
-            label: const Text('Mat u 3'),
+            label: const Text('Mate in 3'),
             onPressed: () => onSelectMatePuzzle('3'),
           ),
         ],
@@ -183,28 +183,28 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.warning,
       icon: Icons.flag_outlined,
-      title: 'Završnice iz majstorskih partija',
-      description: 'Pozicije izdvojene iz partija velemajstora. Za završnice '
-          'sa malo figura ishod je tačan, ne procenjen — priznaje se '
-          'svaki potez koji drži rezultat, a ne samo jedan. Pre '
-          'početka birate koje završnice i koji nivo.',
+      title: 'Endgames from master games',
+      description: 'Positions taken from grandmaster games. For endgames '
+          'with few pieces the outcome is exact, not evaluated — any '
+          'move that preserves the result is accepted, not just one. Before '
+          'starting, choose the endgame type and difficulty level.',
       action: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
         children: [
           ElevatedButton.icon(
             icon: const Icon(Icons.emoji_events_outlined),
-            label: const Text('Dobij'),
+            label: const Text('Win'),
             onPressed: onSelectEndgameWin,
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.shield_outlined),
-            label: const Text('Održi remi'),
+            label: const Text('Hold a draw'),
             onPressed: onSelectEndgameDraw,
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.history_edu_outlined),
-            label: const Text('Greške iz partija'),
+            label: const Text('Game blunders'),
             onPressed: onSelectBlunderGames,
           ),
         ],
@@ -216,9 +216,9 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.accentAlt,
       icon: Icons.workspace_premium_outlined,
-      title: 'Vežbajte osnovno matiranje',
+      title: 'Practice basic checkmates',
       description:
-          'Matirajte protivnika u klasičnim matnim pozicijama protiv Stockfish-a.',
+          'Checkmate the opponent in classic mating positions against Stockfish.',
       action: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
@@ -228,7 +228,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
               Icons.sentiment_satisfied_alt,
               size: 20,
             ),
-            label: const Text('Lako'),
+            label: const Text('Easy'),
             onPressed: () => onSelectBasicMate('easy'),
           ),
           ElevatedButton.icon(
@@ -236,7 +236,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
               Icons.sentiment_neutral,
               size: 20,
             ),
-            label: const Text('Srednje'),
+            label: const Text('Medium'),
             onPressed: () => onSelectBasicMate('medium'),
           ),
           ElevatedButton.icon(
@@ -244,7 +244,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
               Icons.sentiment_very_dissatisfied,
               size: 20,
             ),
-            label: const Text('Teško'),
+            label: const Text('Hard'),
             onPressed: () => onSelectBasicMate('hard'),
           ),
         ],
@@ -256,9 +256,9 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.success,
       icon: Icons.military_tech_outlined,
-      title: 'Pronađite dobitni put',
+      title: 'Find the winning path',
       description:
-          'Igrajte dobitne pozicije do kraja protiv Stockfish-a uz opcioni Blunder Alert.',
+          'Play winning positions out against Stockfish with optional Blunder Alert.',
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: colors.success.withValues(alpha: 0.22),
@@ -268,7 +268,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.play_arrow),
-        label: const Text('Započni vežbanje dobitnih pozicija'),
+        label: const Text('Start practicing winning positions'),
         onPressed: onSelectWinningPosition,
       ),
     );
@@ -320,14 +320,14 @@ class CategorySelectionHubWidget extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Šahovski trener i vežbe',
+                            'Chess trainer and drills',
                             style: AppText.headline.copyWith(
                               color: colors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
-                            'Vežbe su poređane po fazi partije: otvaranje, taktika, pa završnica i tehnika.',
+                            'Drills are arranged by game phase: opening, tactics, then endgame and technique.',
                             style: AppText.body.copyWith(
                               color: colors.textSecondary,
                             ),
@@ -351,14 +351,14 @@ class CategorySelectionHubWidget extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _section(context, 'Otvaranje'),
+                          _section(context, 'Opening'),
                           _buildRepertoireCard(colors),
                           const SizedBox(height: AppSpacing.lg),
                           _buildMyGamesCard(colors),
                           const SizedBox(height: AppSpacing.lg),
                           _buildMistakesCard(colors),
                           const SizedBox(height: AppSpacing.xxl),
-                          _section(context, 'Taktika'),
+                          _section(context, 'Tactics'),
                           _buildTacticsCard(colors),
                           const SizedBox(height: AppSpacing.lg),
                           _buildMatePuzzlesCard(colors),
@@ -366,12 +366,12 @@ class CategorySelectionHubWidget extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.xl),
-                    // Column 2: Završnica i tehnika
+                    // Column 2: Endgame and technique
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _section(context, 'Završnica i tehnika'),
+                          _section(context, 'Endgame and technique'),
                           _buildMasterEndgamesCard(colors),
                           const SizedBox(height: AppSpacing.lg),
                           _buildBasicMateCard(colors),
@@ -384,19 +384,19 @@ class CategorySelectionHubWidget extends StatelessWidget {
                 ),
               ] else ...[
                 // Single-column layout on mobile / narrow screens (< 840px)
-                _section(context, 'Otvaranje'),
+                _section(context, 'Opening'),
                 _buildRepertoireCard(colors),
                 const SizedBox(height: AppSpacing.lg),
                 _buildMyGamesCard(colors),
                 const SizedBox(height: AppSpacing.lg),
                 _buildMistakesCard(colors),
                 const SizedBox(height: AppSpacing.xxl),
-                _section(context, 'Taktika'),
+                _section(context, 'Tactics'),
                 _buildTacticsCard(colors),
                 const SizedBox(height: AppSpacing.lg),
                 _buildMatePuzzlesCard(colors),
                 const SizedBox(height: AppSpacing.xxl),
-                _section(context, 'Završnica i tehnika'),
+                _section(context, 'Endgame and technique'),
                 _buildMasterEndgamesCard(colors),
                 const SizedBox(height: AppSpacing.lg),
                 _buildBasicMateCard(colors),
