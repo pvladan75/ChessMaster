@@ -229,9 +229,11 @@ Measure the test count yourself, before and after. Do not trust a number quoted
 at you, including the one in this brief.
 
 **Run the whole suite at most once, at the end.** Batch 64 was briefed to run
-the tests after every file and spent seventy-five minutes on twenty-six suite
-runs. That instruction is withdrawn. Translate the files, grep the tests, fix
-what you find by reading, and run the suite once when you are done.
+the tests after each of twenty-six files. Twenty-six suite runs at three minutes
+is seventy-eight, which is more than the whole budget before any thinking
+happens. That instruction was the lead's and it is withdrawn. Translate the
+files, grep the tests, fix what you find by reading, and run the suite once when
+you are done.
 
 ## What the report must contain
 

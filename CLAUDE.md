@@ -700,11 +700,22 @@ because the task said „after each file, run the tests for the test files you
 touched". Twenty-six suite runs of three minutes each. The instruction was
 mine and it is withdrawn.
 
-**This worker cannot wait for a subprocess.** Given a second, narrow round it
-spent all seven minutes emitting „I will wait for the test run to finish" and
-edited one line. Two rounds burned the same way. Work that needs a long-running
-command watched belongs to the lead, and the harness lesson is to brief batches
-that need at most one full suite run at the end.
+**Two rounds were lost to a worker that would not stop saying „I will wait for
+the test run to finish", and the cause is not settled.** Written first as „this
+worker cannot wait for a subprocess"; the owner corrected that on 8.9.2026 —
+their internet connection dropped during the run, and no earlier batch had ever
+shown this. The logs do not separate the two readings: round one ended with
+`Error: timeout waiting for response`, which is network-shaped and is a point
+for the owner, while round two exited **0 after 7.1 minutes of a 60-minute
+budget** having emitted eleven coherent on-topic „I will wait" turns, which is
+not what a dropped connection usually looks like. **Both are still live**, and
+the next clean run on this model settles it either way.
+
+What does *not* depend on which is true: **brief a batch so it needs at most one
+full suite run, at the end.** Batch 64 was told to run the tests after each of
+twenty-six files, and twenty-six runs at three minutes is seventy-eight — more
+than the whole budget, before the model does any thinking at all. That
+instruction was mine and it is withdrawn on arithmetic, not on a diagnosis.
 
 **A translation's failing assertions are recoverable from the failure output.**
 `Found 0 widgets with text "…"` names the exact string, and the English for it

@@ -112,10 +112,22 @@ gejtovano.
 
 ### Šta o workeru mora da se zna
 
-**`gemini-3.8-flash-high` ne ume da čeka potproces.** Dva puta je potrošio ceo
-budžet ispisujući „čekam da se testovi završe". Batch se brifuje tako da mu
-treba **najviše jedno puštanje celog suite-a, na kraju**; posao koji zahteva
-praćenje duge komande ostaje vođi.
+**Dva runda su izgubljena na workera koji je ponavljao „čekam da se testovi
+završe" — ali uzrok nije utvrđen.** Prvo je zapisano kao „`gemini-3.8-flash-high`
+ne ume da čeka potproces"; vlasnik je to ispravio 8.9.2026 — u toku rada mu je
+pala internet konekcija, a nijedan raniji batch ovo nije pokazao. Logovi ne
+razdvajaju dva čitanja: prva runda se završila sa `Error: timeout waiting for
+response`, što liči na mrežu i ide u prilog vlasniku, a druga je izašla sa
+**kodom 0 posle 7,1 minut od 60**, uz jedanaest smislenih „čekam" poruka na
+temu, što nije oblik prekinute veze. **Oba objašnjenja su i dalje otvorena**;
+prvi čist run na ovom modelu presuđuje.
+
+Ono što ne zavisi od toga koje je tačno: **batch se brifuje tako da mu treba
+najviše jedno puštanje celog suite-a, na kraju.** Batch 64 je dobio nalog da
+pusti testove posle svakog od dvadeset šest fajlova, a dvadeset šest puštanja
+po tri minuta je sedamdeset osam — više od celog budžeta, pre nego što model
+išta pomisli. Taj nalog je bio moj i povučen je zbog računice, ne zbog
+dijagnoze.
 
 Persona za prevod je `flutter_translator` (`.agents/agents/`), napisana jer
 `flutter_copy_sweeper` traži tabelu odlučenih zamena a `flutter_feature_builder`
