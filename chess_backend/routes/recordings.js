@@ -50,7 +50,7 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
   }
 
   if (!roomId || !title || !timelineJson) {
-    return res.status(400).json({ error: 'Polja roomId, title i timelineJson su obavezna.' });
+    return res.status(400).json({ error: 'Fields roomId, title and timelineJson are required.' });
   }
 
   // The second lock on the same door. The socket refuses to *start* a recording
@@ -100,7 +100,7 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     // this rule exists to survive, and its file is the one that may contain
     // somebody who never agreed to be in it.
     audioRefusal = stopped.reason
-      || 'Snimanje je zaustavljeno jer u sobi ima još nekoga.';
+      || 'Recording was stopped because there is someone else in the room.';
     logger.warn(
       `[SNIMANJE] Zvuk odbijen za sobu ${roomId}: snimanje je zaustavljeno, `
       + 'a soba nikada nije javila da je stala.',
@@ -118,7 +118,7 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     // not.
     consentUnverified = true;
     audioRefusal = audioRefusal
-      || 'Server ne pamti ko je bio u sobi (restart usred časa?), pa zvuk nije sačuvan.';
+      || 'The server does not remember who was in the room (restart mid-session?), so audio was not saved.';
     logger.warn(
       `[SNIMANJE] Zvuk odbijen za sobu ${roomId} — server ne pamti ko je bio `
       + 'u sobi (restart usred časa?).',
@@ -218,9 +218,9 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, room_id, title, created_at`,
       [roomId, req.user.id, title, finalAudioUrl, JSON.stringify(timelineJson), participantIds]
     );
-    let message = 'Snimak časa je uspešno sačuvan.';
+    let message = 'Session recording saved successfully.';
     if (audioRefusal) {
-      message = `Čas je sačuvan bez zvuka i može se pregledati nemo. ${audioRefusal}`;
+      message = `Session saved without audio and can be reviewed silently. ${audioRefusal}`;
     }
     res.status(201).json({
       message,
@@ -232,7 +232,7 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
     });
   } catch (err) {
     logger.error('Error saving recording:', err);
-    res.status(500).json({ error: 'Greška pri čuvanju snimka časa: ' + err.message });
+    res.status(500).json({ error: 'Error saving session recording: ' + err.message });
   }
 });
 
@@ -250,7 +250,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     logger.error('Error fetching recordings:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju snimaka.' });
+    res.status(500).json({ error: 'Error fetching recordings.' });
   }
 });
 
@@ -267,12 +267,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Snimak nije pronađen.' });
+      return res.status(404).json({ error: 'Recording not found.' });
     }
     res.json(result.rows[0]);
   } catch (err) {
     logger.error('Error fetching recording details:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju detalja snimka.' });
+    res.status(500).json({ error: 'Error fetching recording details.' });
   }
 });
 
@@ -300,7 +300,7 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
     );
     const recording = recRes.rows[0];
     if (!recording) {
-      return res.status(404).json({ error: 'Snimak nije pronađen.' });
+      return res.status(404).json({ error: 'Recording not found.' });
     }
 
     const filename = `recording_${recId}_${pieceStyle || 'classic'}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
@@ -331,7 +331,7 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
     }
 
     await videoRenderer.renderRecordingToMP4({
-      title: recording ? recording.title : 'Snimak Časa',
+      title: recording ? recording.title : 'Session Recording',
       timelineEvents,
       audioFilePath,
       durationSeconds: duration,
@@ -365,7 +365,7 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
     await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, duration);
 
     res.json({
-      message: 'MP4 video je uspešno izrenderovan, sačuvan i spreman za preuzimanje!',
+      message: 'MP4 video rendered successfully, saved, and ready for download!',
       jobId: `job_${recId}_${Date.now()}`,
       perspective: perspective || 'trainer',
       status: 'completed',
@@ -374,7 +374,7 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
     });
   } catch (err) {
     logger.error('Error initiating MP4 export:', err);
-    res.status(500).json({ error: 'Greška pri pokretanju MP4 izvoza.' });
+    res.status(500).json({ error: 'Error initiating MP4 export.' });
   }
 });
 
@@ -389,14 +389,14 @@ router.get('/export-download/:filename', authenticateDownloadToken, (req, res) =
 
   if (!filePath.startsWith(exportsDir + path.sep)) {
     logger.warn(`[DOWNLOAD] Rejected path outside exports directory: ${req.params.filename}`);
-    return res.status(400).send('Neispravno ime fajla.');
+    return res.status(400).send('Invalid filename.');
   }
 
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'video/mp4');
     res.download(filePath, safeName);
   } else {
-    res.status(404).send('Fajl videa nije pronađen.');
+    res.status(404).send('Video file not found.');
   }
 });
 

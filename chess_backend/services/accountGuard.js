@@ -51,7 +51,7 @@ async function tokenHolderStanding(pool, userId) {
       ok: false,
       status: 403,
       reason: 'malformed',
-      error: 'Neispravan token.',
+      error: 'Invalid token.',
       cause: null,
     };
   }
@@ -63,7 +63,7 @@ async function tokenHolderStanding(pool, userId) {
         ok: false,
         status: 401,
         reason: 'account-gone',
-        error: 'Nalog više ne postoji. Prijavite se ponovo.',
+        error: 'Account no longer exists. Please sign in again.',
         cause: null,
       };
     }
@@ -82,7 +82,7 @@ async function tokenHolderStanding(pool, userId) {
       ok: false,
       status: 503,
       reason: 'unverifiable',
-      error: 'Trenutno ne možemo da proverimo nalog. Pokušajte ponovo.',
+      error: 'Unable to verify account right now. Please try again.',
       cause: err,
     };
   }

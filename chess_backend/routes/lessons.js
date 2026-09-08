@@ -28,7 +28,7 @@ function buildOrReject(res, positionList) {
 /// limit is a 22001 from the driver and a 500 to the trainer, which reads as
 /// „cloning is broken" rather than „your title is long" — so the base is
 /// shortened instead, and only as much as it must be.
-const COPY_SUFFIX = ' (kopija)';
+const COPY_SUFFIX = ' (copy)';
 const MAX_LESSON_TITLE = 255;
 
 function copyTitle(title) {
@@ -125,7 +125,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       && !(positionList || []).some(hasId)
     ) {
       return res.status(409).json({
-        error: 'Koraci su stigli bez svojih oznaka. Osvežite tutorijal pa ga sačuvajte ponovo.',
+        error: 'Steps arrived without their IDs. Refresh the tutorial and save again.',
       });
     }
 
@@ -150,7 +150,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         [title, description || null, tags || null, initialFen, pgn || null, req.params.id, req.user.id]
       );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za izmenu.' });
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to edit it.' });
     }
     res.json(result.rows[0]);
   } catch (err) {
@@ -170,7 +170,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.post('/:id/steps', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Nepoznat tutorijal.' });
+    return res.status(400).json({ error: 'Unknown tutorial.' });
   }
 
   const built = buildLessonStep(req.body?.step);
@@ -198,10 +198,10 @@ router.post('/:id/steps', authenticateToken, async (req, res) => {
         [id, req.user.id]
       );
       if (existing.rows.length === 0 || existing.rows[0].mine !== true) {
-        return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za izmenu.' });
+        return res.status(404).json({ error: 'Tutorial not found or you do not have permission to edit it.' });
       }
       return res.status(409).json({
-        error: 'To je pojedinačna pozicija, ne tutorijal sa koracima. Napravite tutorijal u editoru.',
+        error: 'This is a single position, not a tutorial with steps. Create a tutorial in the editor.',
       });
     }
 
@@ -234,7 +234,7 @@ router.post('/:id/steps', authenticateToken, async (req, res) => {
 router.post('/:id/clone', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Nepoznat tutorijal.' });
+    return res.status(400).json({ error: 'Unknown tutorial.' });
   }
 
   const asked = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
@@ -247,7 +247,7 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
       [id, req.user.id]
     );
     if (found.rows.length === 0) {
-      return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za izmenu.' });
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to edit it.' });
     }
 
     const source = found.rows[0];
@@ -286,7 +286,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Tutorijal nije pronađen ili nemate dozvolu za brisanje.' });
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to delete it.' });
     }
     res.json({ success: true });
   } catch (err) {

@@ -138,15 +138,15 @@ function signReportToken(reportId, days) {
 function authenticateReportToken(req, res, next) {
   const token = req.query.token;
   if (!token) {
-    return res.status(401).json({ error: 'Link nije potpun.' });
+    return res.status(401).json({ error: 'Link is incomplete.' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, payload) => {
     if (err || payload.purpose !== 'report') {
-      return res.status(403).json({ error: 'Link je istekao ili nije ispravan.' });
+      return res.status(403).json({ error: 'Link has expired or is invalid.' });
     }
     if (String(payload.report) !== String(req.params.id)) {
-      return res.status(403).json({ error: 'Link ne odgovara traženom izveštaju.' });
+      return res.status(403).json({ error: 'Link does not match the requested report.' });
     }
     req.reportToken = payload;
     next();

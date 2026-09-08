@@ -124,13 +124,13 @@ test('the stored steps are left exactly as they were', async () => {
 
 test('the copy is named, and the caller may name it', async () => {
   const untitled = await run();
-  assert.equal(insertOf(untitled.queries).values[1], 'Opozicija (kopija)');
+  assert.equal(insertOf(untitled.queries).values[1], 'Opozicija (copy)');
 
   const named = await run({ body: { title: 'Opozicija — teža' } });
   assert.equal(insertOf(named.queries).values[1], 'Opozicija — teža');
 
   const blank = await run({ body: { title: '   ' } });
-  assert.equal(insertOf(blank.queries).values[1], 'Opozicija (kopija)',
+  assert.equal(insertOf(blank.queries).values[1], 'Opozicija (copy)',
     'a blank title is not a title');
 });
 
@@ -143,7 +143,7 @@ test('a long title does not overflow the column', async () => {
 
   const title = insertOf(queries).values[1];
   assert.ok(title.length <= 255, `title was ${title.length} characters`);
-  assert.ok(title.endsWith(' (kopija)'));
+  assert.ok(title.endsWith(' (copy)'));
 });
 
 test('the copy belongs to whoever asked for it', async () => {
@@ -190,6 +190,6 @@ test('a stored step the current rules refuse is not duplicated', async () => {
   });
 
   assert.ok(res.statusCode >= 400, `expected a refusal, got ${res.statusCode}`);
-  assert.match(res.body.error, /Korak 1/);
+  assert.match(res.body.error, /Step 1/);
   assert.equal(insertOf(queries), undefined);
 });

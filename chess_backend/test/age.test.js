@@ -106,7 +106,7 @@ test('a minor cannot be the trainer in a relationship', async () => {
 
   assert.equal(verdict.allowed, false);
   assert.equal(verdict.reason, 'minor-as-trainer');
-  assert.match(verdict.message, /Maloletnik/);
+  assert.match(verdict.message, /A minor/);
 });
 
 test('two children are refused whichever way round they ask', async () => {

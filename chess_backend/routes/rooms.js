@@ -47,19 +47,19 @@ router.post('/join', authenticateToken, async (req, res) => {
   const { roomCode } = req.body;
 
   if (!roomCode) {
-    return res.status(400).json({ error: 'Kod sobe je obavezan' });
+    return res.status(400).json({ error: 'Room code is required' });
   }
 
   try {
     const result = await pool.query('SELECT * FROM rooms WHERE room_code = $1 AND status = $2', [roomCode, 'active']);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Soba sa unetim kodom ne postoji ili je zatvorena' });
+      return res.status(404).json({ error: 'A room with that code does not exist or has been closed' });
     }
 
     res.json({ room: result.rows[0] });
   } catch (err) {
     logger.error('Room join error:', err);
-    res.status(500).json({ error: 'Greška pri pridruživanju sobi' });
+    res.status(500).json({ error: 'Error joining room' });
   }
 });
 
@@ -74,12 +74,12 @@ router.get('/:roomCode/guest-access', authenticateToken, async (req, res) => {
       userId: req.user.id,
     });
     if (allowGuests === null) {
-      return res.status(403).json({ error: 'Ta soba nije vaša.' });
+      return res.status(403).json({ error: 'That room is not yours.' });
     }
     res.json({ allowGuests });
   } catch (err) {
     logger.error('[SOBA] Prekidač za goste nije mogao da se pročita:', err);
-    res.status(500).json({ error: 'Podešavanje sobe nije moglo da se pročita.' });
+    res.status(500).json({ error: 'Could not read room settings.' });
   }
 });
 
@@ -92,7 +92,7 @@ router.get('/:roomCode/guest-access', authenticateToken, async (req, res) => {
 router.patch('/:roomCode/guest-access', authenticateToken, async (req, res) => {
   const wanted = req.body?.allowGuests;
   if (wanted !== true && wanted !== false) {
-    return res.status(400).json({ error: 'Nedostaje allowGuests (true ili false).' });
+    return res.status(400).json({ error: 'Missing allowGuests (true or false).' });
   }
 
   try {
@@ -102,7 +102,7 @@ router.patch('/:roomCode/guest-access', authenticateToken, async (req, res) => {
       allowGuests: wanted,
     });
     if (allowGuests === null) {
-      return res.status(403).json({ error: 'Ta soba nije vaša.' });
+      return res.status(403).json({ error: 'That room is not yours.' });
     }
     logger.info(
       `[SOBA] ${req.params.roomCode}: gosti ${allowGuests ? 'dozvoljeni' : 'zabranjeni'} (korisnik ${req.user.id})`,
@@ -110,7 +110,7 @@ router.patch('/:roomCode/guest-access', authenticateToken, async (req, res) => {
     res.json({ allowGuests });
   } catch (err) {
     logger.error('[SOBA] Prekidač za goste nije mogao da se promeni:', err);
-    res.status(500).json({ error: 'Podešavanje sobe nije moglo da se sačuva.' });
+    res.status(500).json({ error: 'Could not save room settings.' });
   }
 });
 

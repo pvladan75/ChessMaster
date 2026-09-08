@@ -108,7 +108,7 @@ async function acceptedEdgeBetween(pool, a, b) {
 /// consent step is identical in both directions.
 async function requestRelationship(pool, { initiatorId, otherId, initiatorIsTrainer }) {
   if (initiatorId === otherId) {
-    return { ok: false, reason: 'Ne možete zasnovati odnos sa samim sobom.' };
+    return { ok: false, reason: 'You cannot establish a relationship with yourself.' };
   }
 
   const trainerId = initiatorIsTrainer ? initiatorId : otherId;
@@ -137,7 +137,7 @@ async function requestRelationship(pool, { initiatorId, otherId, initiatorIsTrai
 
     if (sameDirection) {
       if (row.status === 'accepted') {
-        return { ok: false, reason: 'Taj odnos već postoji.', id: row.id };
+        return { ok: false, reason: 'That relationship already exists.', id: row.id };
       }
       // A repeated request is not an error: the invitation simply still stands.
       return { ok: true, alreadyPending: true, id: row.id, awaitingMe: row.initiated_by !== initiatorId };
@@ -150,14 +150,14 @@ async function requestRelationship(pool, { initiatorId, otherId, initiatorIsTrai
         ok: false,
         id: row.id,
         reason: initiatorIsTrainer
-          ? 'Sa tom osobom već postoji odnos — ona je vaš trener. Raskinite ga pre nego što zatražite obrnuto.'
-          : 'Sa tom osobom već postoji odnos — vi ste njen trener. Raskinite ga pre nego što zatražite obrnuto.',
+          ? 'A relationship with that person already exists — they are your trainer. Terminate it before requesting the opposite.'
+          : 'A relationship with that person already exists — you are their trainer. Terminate it before requesting the opposite.',
       };
     }
     return {
       ok: false,
       id: row.id,
-      reason: 'Zahtev u suprotnom smeru već čeka odgovor. Rešite njega pre nego što pošaljete ovaj.',
+      reason: 'A request in the opposite direction is already awaiting a response. Resolve it before sending this one.',
     };
   }
 
@@ -264,7 +264,7 @@ async function respondToRequest(pool, { requestId, userId, accept }) {
     );
 
     if (updated.rows.length === 0) {
-      return { ok: false, reason: 'Zahtev ne postoji, već je rešen, ili nije upućen vama.' };
+      return { ok: false, reason: 'Request does not exist, is already resolved, or was not addressed to you.' };
     }
 
     const { trainer_id: trainerId, student_id: studentId } = updated.rows[0];
@@ -323,7 +323,7 @@ async function respondToRequest(pool, { requestId, userId, accept }) {
   );
 
   if (deleted.rows.length === 0) {
-    return { ok: false, reason: 'Zahtev ne postoji, već je rešen, ili nije upućen vama.' };
+    return { ok: false, reason: 'Request does not exist, is already resolved, or was not addressed to you.' };
   }
   await closeRequestNotification(pool, requestId);
 
@@ -388,7 +388,7 @@ async function listStudents(pool, trainerId) {
 /// this is the same kind of decision about the same person.
 async function setVoiceLevel(pool, { trainerId, studentId, level }) {
   if (level !== 'listen' && level !== 'talk') {
-    return { ok: false, reason: 'Glas može biti samo „listen" ili „talk".' };
+    return { ok: false, reason: 'Voice can only be "listen" or "talk".' };
   }
 
   const updated = await pool.query(
@@ -399,7 +399,7 @@ async function setVoiceLevel(pool, { trainerId, studentId, level }) {
     [level, trainerId, studentId]
   );
   if (updated.rows.length === 0) {
-    return { ok: false, reason: 'Taj učenik nije vaš, ili veza još nije prihvaćena.' };
+    return { ok: false, reason: 'That student is not yours, or the relationship is not yet accepted.' };
   }
   // Read back, not echoed: the value on the screen and the value in the row are
   // two different things, and only one of them decides what the token says.
@@ -443,10 +443,10 @@ async function removeRelationship(pool, { userId, otherId }) {
 /// Best effort on purpose: a notification that fails to insert must not undo a
 /// request the user already made. It is logged instead.
 async function notifyRequest(pool, { recipientId, senderId, senderName, requestId, senderIsTrainer }) {
-  const title = senderIsTrainer ? 'Poziv trenera' : 'Zahtev učenika';
+  const title = senderIsTrainer ? 'Trainer invitation' : 'Student request';
   const message = senderIsTrainer
-    ? `${senderName} želi da vas upiše kao učenika.`
-    : `${senderName} želi da mu budete trener.`;
+    ? `${senderName} wants to enroll you as a student.`
+    : `${senderName} wants you to be their trainer.`;
 
   await notify(pool, {
     recipientId,
@@ -468,8 +468,8 @@ async function notifyAccept(pool, { recipientId, accepterId, accepterName }) {
   await notify(pool, {
     recipientId,
     senderId: accepterId,
-    title: 'Zahtev je prihvaćen',
-    message: `${accepterName} je prihvatio vaš zahtev.`,
+    title: 'Request accepted',
+    message: `${accepterName} accepted your request.`,
     kind: 'request_accepted',
   });
 }
@@ -488,12 +488,12 @@ async function notifyAwaitingParent(pool, { recipientId, accepterId, accepterNam
   await notify(pool, {
     recipientId,
     senderId: accepterId,
-    title: 'Čeka se saglasnost roditelja',
+    title: 'Awaiting parent consent',
     message: delivered
-      ? `${accepterName} je prihvatio/la zahtev. Poslata je poruka roditelju — `
-        + 'veza počinje kad roditelj potvrdi.'
-      : `${accepterName} je prihvatio/la zahtev, ali poruka roditelju nije `
-        + 'poslata. Veza čeka saglasnost.',
+      ? `${accepterName} accepted the request. A message was sent to the parent — `
+        + 'relationship starts when parent confirms.'
+      : `${accepterName} accepted the request, but message to parent could not be `
+        + 'sent. Relationship is awaiting consent.',
     kind: 'awaiting_parent',
   });
 }
@@ -511,8 +511,8 @@ async function notifyDecline(pool, { recipientId, declinerId, declinerName }) {
   await notify(pool, {
     recipientId,
     senderId: declinerId,
-    title: 'Zahtev nije prihvaćen',
-    message: `${declinerName} nije prihvatio vaš zahtev.`,
+    title: 'Request declined',
+    message: `${declinerName} declined your request.`,
     kind: 'request_declined',
   });
 }

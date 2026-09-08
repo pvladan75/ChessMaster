@@ -48,8 +48,8 @@ async function tellStudent(req, assignment) {
   await notify(pool, {
     recipientId: assignment.student_id,
     senderId: req.user.id,
-    title: 'Novi zadatak',
-    message: `${req.user.name || 'Trener'} vam je zadao: ${assignment.title}`,
+    title: 'New assignment',
+    message: `${req.user.name || 'Trainer'} assigned you: ${assignment.title}`,
     kind: 'assignment_new',
     refId: assignment.id,
   });
@@ -109,7 +109,7 @@ router.post('/from-archive', authenticateToken, requireQuota(ENT.ASSIGNMENTS), a
     }
     if (err instanceof TypeError) return res.status(400).json({ error: err.message });
     logger.error(`[DOMACI] Iz arhive nije uspelo: ${err.message}`);
-    return res.status(500).json({ error: 'Domaći iz arhive nije mogao da se napravi.' });
+    return res.status(500).json({ error: 'Failed to create homework from archive.' });
   }
 });
 
@@ -120,11 +120,11 @@ router.post('/from-archive', authenticateToken, requireQuota(ENT.ASSIGNMENTS), a
 // game history, which is a wider read than the relationship needs.
 router.get('/student/:id/archive', authenticateToken, async (req, res) => {
   const studentId = Number(req.params.id);
-  if (!Number.isInteger(studentId)) return res.status(400).json({ error: 'Loš id.' });
+  if (!Number.isInteger(studentId)) return res.status(400).json({ error: 'Invalid ID.' });
 
   try {
     if (!(await assignments.trainerOwnsStudent(pool, req.user.id, studentId))) {
-      return res.status(403).json({ error: 'Taj učenik nije na vašoj listi.' });
+      return res.status(403).json({ error: 'That student is not on your list.' });
     }
     const archive = await ownArchiveSubject(studentId);
     if (!archive) {
@@ -150,7 +150,7 @@ router.get('/student/:id/archive', authenticateToken, async (req, res) => {
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
     logger.error(`[DOMACI] Arhiva učenika nije dostupna: ${err.message}`);
-    return res.status(500).json({ error: 'Arhiva učenika nije dostupna.' });
+    return res.status(500).json({ error: 'Student archive is not available.' });
   }
 });
 
@@ -161,7 +161,7 @@ router.post('/', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, r
   const targetId = Number.parseInt(studentId, 10);
   if (!Number.isInteger(targetId) || !title || title.trim() === '') {
     await refundQuota(req);
-    return res.status(400).json({ error: 'studentId i naslov su obavezni.' });
+    return res.status(400).json({ error: 'studentId and title are required.' });
   }
 
   try {
@@ -188,7 +188,7 @@ router.post('/', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, r
   } catch (err) {
     await refundQuota(req);
     logger.error('Error creating assignment:', err);
-    res.status(500).json({ error: 'Greška pri kreiranju zadatka.' });
+    res.status(500).json({ error: 'Error creating assignment.' });
   }
 });
 
@@ -204,7 +204,7 @@ router.post('/custom', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
   const targetId = Number.parseInt(studentId, 10);
   if (!Number.isInteger(targetId) || !title || title.trim() === '') {
     await refundQuota(req);
-    return res.status(400).json({ error: 'studentId i naslov su obavezni.' });
+    return res.status(400).json({ error: 'studentId and title are required.' });
   }
 
   try {
@@ -233,7 +233,7 @@ router.post('/custom', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
   } catch (err) {
     await refundQuota(req);
     logger.error('Error creating custom assignment:', err);
-    res.status(500).json({ error: 'Greška pri kreiranju zadatka.' });
+    res.status(500).json({ error: 'Error creating assignment.' });
   }
 });
 
@@ -247,7 +247,7 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
   const { puzzleId, moveSan, msTaken } = req.body || {};
 
   if (!Number.isInteger(assignmentId) || typeof puzzleId !== 'string' || typeof moveSan !== 'string') {
-    return res.status(400).json({ error: 'puzzleId i moveSan su obavezni.' });
+    return res.status(400).json({ error: 'puzzleId and moveSan are required.' });
   }
 
   try {
@@ -262,7 +262,7 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
       [assignmentId, puzzleId, req.user.id]
     );
     if (item.rowCount === 0) {
-      return res.status(404).json({ error: 'Ta pozicija nije deo tvog zadatka.' });
+      return res.status(404).json({ error: 'That position is not part of your assignment.' });
     }
 
     const { fen, solution_san: solutionSan } = item.rows[0];
@@ -299,7 +299,7 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error judging custom attempt:', err);
-    res.status(500).json({ error: 'Greška pri proveri odgovora.' });
+    res.status(500).json({ error: 'Error checking answer.' });
   }
 });
 
@@ -311,7 +311,7 @@ router.post('/lesson', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
   const lesson = Number.parseInt(lessonId, 10);
   if (!Number.isInteger(targetId) || !Number.isInteger(lesson)) {
     await refundQuota(req);
-    return res.status(400).json({ error: 'studentId i lessonId su obavezni.' });
+    return res.status(400).json({ error: 'studentId and lessonId are required.' });
   }
 
   try {
@@ -334,7 +334,7 @@ router.post('/lesson', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
   } catch (err) {
     await refundQuota(req);
     logger.error('Error creating lesson assignment:', err);
-    res.status(500).json({ error: 'Greška pri zadavanju tutorijala.' });
+    res.status(500).json({ error: 'Error assigning tutorial.' });
   }
 });
 
@@ -344,7 +344,7 @@ router.post('/:id/step/:position', authenticateToken, async (req, res) => {
   const position = Number.parseInt(req.params.position, 10);
 
   if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
-    return res.status(400).json({ error: 'Neispravan zadatak ili korak.' });
+    return res.status(400).json({ error: 'Invalid assignment or step.' });
   }
 
   try {
@@ -358,7 +358,7 @@ router.post('/:id/step/:position', authenticateToken, async (req, res) => {
     res.json({ success: true, marked });
   } catch (err) {
     logger.error('Error marking lesson step:', err);
-    res.status(500).json({ error: 'Greška pri beleženju koraka.' });
+    res.status(500).json({ error: 'Error recording step.' });
   }
 });
 
@@ -371,13 +371,13 @@ router.post('/:id/step/:position/answer', authenticateToken, async (req, res) =>
   const id = Number.parseInt(req.params.id, 10);
   const position = Number.parseInt(req.params.position, 10);
   if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
-    return res.status(400).json({ error: 'Neispravan zadatak ili korak.' });
+    return res.status(400).json({ error: 'Invalid assignment or step.' });
   }
 
   try {
     const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
     if (!step) {
-      return res.status(404).json({ error: 'Taj korak nije deo tvog zadatka.' });
+      return res.status(404).json({ error: 'That step is not part of your assignment.' });
     }
 
     let verdict;
@@ -399,15 +399,15 @@ router.post('/:id/step/:position/answer', authenticateToken, async (req, res) =>
       const picked = Number.parseInt(req.body?.choiceIndex, 10);
       const choices = Array.isArray(step.choices) ? step.choices : [];
       if (!Number.isInteger(picked) || picked < 0 || picked >= choices.length) {
-        return res.status(400).json({ error: 'Nije izabran nijedan odgovor.' });
+        return res.status(400).json({ error: 'No choice was selected.' });
       }
       verdict = {
         correct: choices[picked].correct === true,
-        reason: choices[picked].correct === true ? 'tačan odgovor' : 'netačan odgovor',
+        reason: choices[picked].correct === true ? 'correct answer' : 'incorrect answer',
         playedSan: null,
       };
     } else {
-      return res.status(409).json({ error: 'Ovaj korak se čita, ne rešava.' });
+      return res.status(409).json({ error: 'This step is for reading, not solving.' });
     }
 
     await assignments.recordLessonStepAnswer(pool, {
@@ -430,7 +430,7 @@ router.post('/:id/step/:position/answer', authenticateToken, async (req, res) =>
     });
   } catch (err) {
     logger.error('Error judging lesson step:', err);
-    res.status(500).json({ error: 'Greška pri proveri odgovora.' });
+    res.status(500).json({ error: 'Error checking answer.' });
   }
 });
 
@@ -443,13 +443,13 @@ router.post('/:id/step/:position/reveal', authenticateToken, async (req, res) =>
   const id = Number.parseInt(req.params.id, 10);
   const position = Number.parseInt(req.params.position, 10);
   if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
-    return res.status(400).json({ error: 'Neispravan zadatak ili korak.' });
+    return res.status(400).json({ error: 'Invalid assignment or step.' });
   }
 
   try {
     const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
     if (!step) {
-      return res.status(404).json({ error: 'Taj korak nije deo tvog zadatka.' });
+      return res.status(404).json({ error: 'That step is not part of your assignment.' });
     }
 
     await assignments.revealLessonStep(pool, {
@@ -465,7 +465,7 @@ router.post('/:id/step/:position/reveal', authenticateToken, async (req, res) =>
     });
   } catch (err) {
     logger.error('Error revealing lesson step:', err);
-    res.status(500).json({ error: 'Greška pri prikazivanju rešenja.' });
+    res.status(500).json({ error: 'Error displaying solution.' });
   }
 });
 
@@ -500,7 +500,7 @@ router.get('/mine', authenticateToken, async (req, res) => {
     res.json({ assignments: await assignments.getStudentAssignments(pool, req.user.id) });
   } catch (err) {
     logger.error('Error fetching student assignments:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju zadataka.' });
+    res.status(500).json({ error: 'Error fetching assignments.' });
   }
 });
 
@@ -510,14 +510,14 @@ router.get('/given', authenticateToken, async (req, res) => {
 
   try {
     if (studentId && !(await assignments.trainerOwnsStudent(pool, req.user.id, studentId))) {
-      return res.status(403).json({ error: 'Taj učenik nije na vašoj listi.' });
+      return res.status(403).json({ error: 'That student is not on your list.' });
     }
     res.json({
       assignments: await assignments.getTrainerAssignments(pool, req.user.id, { studentId }),
     });
   } catch (err) {
     logger.error('Error fetching trainer assignments:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju zadataka.' });
+    res.status(500).json({ error: 'Error fetching assignments.' });
   }
 });
 
@@ -525,7 +525,7 @@ router.get('/given', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Neispravan ID zadatka.' });
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
   }
 
   try {
@@ -533,12 +533,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
     if (!detail) {
       // Same answer for "does not exist" and "not yours", so the endpoint cannot
       // be used to discover which assignment ids are real.
-      return res.status(404).json({ error: 'Zadatak nije pronađen.' });
+      return res.status(404).json({ error: 'Assignment not found.' });
     }
     res.json(detail);
   } catch (err) {
     logger.error('Error fetching assignment detail:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju zadatka.' });
+    res.status(500).json({ error: 'Error fetching assignment.' });
   }
 });
 
@@ -550,18 +550,18 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.get('/:id/review', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Neispravan ID zadatka.' });
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
   }
 
   try {
     const review = await buildReview(pool, id, req.user.id);
     if (!review) {
-      return res.status(404).json({ error: 'Zadatak nije pronađen.' });
+      return res.status(404).json({ error: 'Assignment not found.' });
     }
     res.json(review);
   } catch (err) {
     logger.error('Error building assignment review:', err);
-    res.status(500).json({ error: 'Greška pri dobavljanju pregleda.' });
+    res.status(500).json({ error: 'Error fetching review.' });
   }
 });
 
@@ -579,7 +579,7 @@ router.get('/:id/review', authenticateToken, async (req, res) => {
 router.post('/:id/reviewed', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Neispravan ID zadatka.' });
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
   }
 
   try {
@@ -587,7 +587,7 @@ router.post('/:id/reviewed', authenticateToken, async (req, res) => {
     res.json({ ok: true, marked });
   } catch (err) {
     logger.error('Error marking assignment reviewed:', err);
-    res.status(500).json({ error: 'Greška pri obeležavanju zadatka.' });
+    res.status(500).json({ error: 'Error marking assignment.' });
   }
 });
 
@@ -600,7 +600,7 @@ router.post('/:id/reviewed', authenticateToken, async (req, res) => {
 router.post('/:id/notes', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Neispravan ID zadatka.' });
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
   }
 
   const rawItem = req.body?.itemId;
@@ -608,7 +608,7 @@ router.post('/:id/notes', authenticateToken, async (req, res) => {
     ? null
     : Number.parseInt(rawItem, 10);
   if (itemId !== null && !Number.isInteger(itemId)) {
-    return res.status(400).json({ error: 'Neispravan ID pozicije.' });
+    return res.status(400).json({ error: 'Invalid position ID.' });
   }
 
   try {
@@ -627,8 +627,8 @@ router.post('/:id/notes', authenticateToken, async (req, res) => {
     await notify(pool, {
       recipientId: result.recipientId,
       senderId: req.user.id,
-      title: 'Poruka o zadatku',
-      message: `${req.user.name || 'Korisnik'} je napisao poruku o zadatku: ${result.assignmentTitle}`,
+      title: 'Assignment note',
+      message: `${req.user.name || 'User'} posted a note on assignment: ${result.assignmentTitle}`,
       kind: 'assignment_note',
       refId: id,
     });
@@ -636,7 +636,7 @@ router.post('/:id/notes', authenticateToken, async (req, res) => {
     res.status(201).json({ success: true, note: result.note });
   } catch (err) {
     logger.error('Error adding assignment note:', err);
-    res.status(500).json({ error: 'Greška pri upisu poruke.' });
+    res.status(500).json({ error: 'Error saving note.' });
   }
 });
 
@@ -645,7 +645,7 @@ router.delete('/:id/notes/:noteId', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   const noteId = Number.parseInt(req.params.noteId, 10);
   if (!Number.isInteger(id) || !Number.isInteger(noteId)) {
-    return res.status(400).json({ error: 'Neispravan ID.' });
+    return res.status(400).json({ error: 'Invalid ID.' });
   }
 
   try {
@@ -660,7 +660,7 @@ router.delete('/:id/notes/:noteId', authenticateToken, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     logger.error('Error deleting assignment note:', err);
-    res.status(500).json({ error: 'Greška pri brisanju poruke.' });
+    res.status(500).json({ error: 'Error deleting note.' });
   }
 });
 
@@ -672,12 +672,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Zadatak nije pronađen ili nije vaš.' });
+      return res.status(404).json({ error: 'Assignment not found or not yours.' });
     }
     res.json({ success: true });
   } catch (err) {
     logger.error('Error deleting assignment:', err);
-    res.status(500).json({ error: 'Greška pri brisanju zadatka.' });
+    res.status(500).json({ error: 'Error deleting assignment.' });
   }
 });
 
@@ -691,12 +691,12 @@ router.post('/report/:studentId', authenticateToken, async (req, res) => {
     : null;
 
   if (!Number.isInteger(studentId)) {
-    return res.status(400).json({ error: 'Neispravan ID učenika.' });
+    return res.status(400).json({ error: 'Invalid student ID.' });
   }
 
   try {
     if (!(await assignments.trainerOwnsStudent(pool, req.user.id, studentId))) {
-      return res.status(403).json({ error: 'Taj učenik nije na vašoj listi.' });
+      return res.status(403).json({ error: 'That student is not on your list.' });
     }
 
     const namesRes = await pool.query(
@@ -707,7 +707,7 @@ router.post('/report/:studentId', authenticateToken, async (req, res) => {
 
     const snapshot = await reports.buildSnapshot(pool, {
       studentId,
-      studentName: names[studentId] || 'Učenik',
+      studentName: names[studentId] || 'Student',
       trainerName: names[req.user.id] || null,
       days,
     });
@@ -737,7 +737,7 @@ router.post('/report/:studentId', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('Error generating parent report:', err);
-    res.status(500).json({ error: 'Greška pri izradi izveštaja.' });
+    res.status(500).json({ error: 'Error generating report.' });
   }
 });
 
@@ -748,7 +748,7 @@ router.get('/progress/me', authenticateToken, async (req, res) => {
     res.json(await assignments.getStudentProgress(pool, req.user.id, { days }));
   } catch (err) {
     logger.error('Error building own progress report:', err);
-    res.status(500).json({ error: 'Greška pri izradi izveštaja.' });
+    res.status(500).json({ error: 'Error generating report.' });
   }
 });
 
@@ -758,17 +758,17 @@ router.get('/progress/:studentId', authenticateToken, async (req, res) => {
   const days = Math.min(Math.max(Number.parseInt(req.query.days, 10) || 30, 1), 365);
 
   if (!Number.isInteger(studentId)) {
-    return res.status(400).json({ error: 'Neispravan ID učenika.' });
+    return res.status(400).json({ error: 'Invalid student ID.' });
   }
 
   try {
     if (!(await assignments.trainerOwnsStudent(pool, req.user.id, studentId))) {
-      return res.status(403).json({ error: 'Taj učenik nije na vašoj listi.' });
+      return res.status(403).json({ error: 'That student is not on your list.' });
     }
     res.json(await assignments.getStudentProgress(pool, studentId, { days }));
   } catch (err) {
     logger.error('Error building student progress report:', err);
-    res.status(500).json({ error: 'Greška pri izradi izveštaja.' });
+    res.status(500).json({ error: 'Error generating report.' });
   }
 });
 

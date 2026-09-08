@@ -130,7 +130,7 @@ function normalizePurchase(purchase, productTiers = PRODUCT_TIERS) {
 /// funnel through here.
 async function getSubscription(purchaseToken) {
   if (!isConfigured()) {
-    throw new Error('Google Play billing nije konfigurisan na serveru.');
+    throw new Error('Google Play billing is not configured on the server.');
   }
 
   const response = await callApi(

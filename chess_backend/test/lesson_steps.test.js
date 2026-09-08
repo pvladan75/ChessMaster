@@ -35,7 +35,7 @@ test('a position no board can load is refused, not repaired', () => {
 
   assert.equal(built.ok, false);
   assert.equal(built.status, 422);
-  assert.match(built.error, /nije ispravna/);
+  assert.match(built.error, /invalid position/i);
 });
 
 test('a step with no position at all is refused', () => {

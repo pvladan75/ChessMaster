@@ -59,7 +59,7 @@ test('a deleted account is 401 and says which kind of no it is', async () => {
   assert.equal(standing.reason, 'account-gone');
   // 401 rather than 403 on purpose: this is the one a client should react to by
   // signing out, and it needs to be told apart from a malformed token.
-  assert.match(standing.error, /Nalog/);
+  assert.match(standing.error, /Account/);
 });
 
 test('a database that will not answer is not a deleted account', async () => {

@@ -50,9 +50,9 @@ function materialSignature(fen) {
 /// mistakes a player most wants to see.
 async function recordMistakes(pool, userId, items = []) {
   if (!Number.isInteger(userId)) throw new TypeError('userId is required');
-  if (!Array.isArray(items)) throw new RangeError('Nedostaje spisak grešaka.');
+  if (!Array.isArray(items)) throw new RangeError('A list of mistakes is required.');
   if (items.length > MAX_ITEMS_PER_CALL) {
-    throw new RangeError(`Najviše ${MAX_ITEMS_PER_CALL} grešaka po pozivu.`);
+    throw new RangeError(`At most ${MAX_ITEMS_PER_CALL} mistakes per call.`);
   }
 
   const rejected = [];
@@ -171,14 +171,14 @@ async function dueItems(pool, userId, { limit = 20, now = new Date() } = {}) {
 /// One answer, scheduled by the same SM-2 as the lesson reviews.
 async function gradeItem(pool, { userId, itemId, quality }, now = new Date()) {
   if (!isValidGrade(quality)) {
-    return { ok: false, reason: 'Ocena mora biti ceo broj od 0 do 5.' };
+    return { ok: false, reason: 'Grade must be an integer between 0 and 5.' };
   }
   const { rows } = await pool.query(
     'SELECT * FROM mistake_reviews WHERE id = $1 AND user_id = $2',
     [itemId, userId],
   );
   const current = rows[0];
-  if (!current) return { ok: false, reason: 'Greška za ponavljanje nije pronađena.' };
+  if (!current) return { ok: false, reason: 'Review mistake not found.' };
 
   const next = schedule(current, quality, now);
   const updated = await pool.query(
@@ -245,7 +245,7 @@ async function recurrence(pool, userId, { limit = 12, sample = 5000 } = {}) {
     const into = row.kind === 'tablebase' ? endings : motifs;
     const key = row.kind === 'tablebase'
       ? materialSignature(row.fen_before)
-      : (row.theme || 'bez teme');
+      : (row.theme || 'no theme');
     const bucket = into.get(key) || { key, count: 0, worstSwing: 0, example: row.id };
     bucket.count += 1;
     const swing = Math.abs(Number(row.swing_cp) || 0);

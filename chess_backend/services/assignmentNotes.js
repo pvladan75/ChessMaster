@@ -20,14 +20,14 @@ const MAX_BODY = 2000;
 async function addNote(pool, { assignmentId, itemId = null, authorId, body }) {
   const text = typeof body === 'string' ? body.trim() : '';
   if (text === '') {
-    return { ok: false, status: 400, error: 'Poruka ne može biti prazna.' };
+    return { ok: false, status: 400, error: 'Message cannot be empty.' };
   }
 
   const access = await assignmentParticipant(pool, assignmentId, authorId);
   if (!access) {
     // Same answer as for an assignment that does not exist: an id typed by hand
     // must not reveal which ones are real.
-    return { ok: false, status: 404, error: 'Zadatak nije pronađen.' };
+    return { ok: false, status: 404, error: 'Assignment not found.' };
   }
 
   // A note about a position has to be about a position *in this assignment*.
@@ -39,7 +39,7 @@ async function addNote(pool, { assignmentId, itemId = null, authorId, body }) {
       [itemId, assignmentId]
     );
     if (item.rowCount === 0) {
-      return { ok: false, status: 400, error: 'Ta pozicija nije deo ovog zadatka.' };
+      return { ok: false, status: 400, error: 'That position is not part of this assignment.' };
     }
   }
 
@@ -83,7 +83,7 @@ async function deleteNote(pool, { assignmentId, noteId, authorId }) {
     [noteId, assignmentId, authorId]
   );
   if (result.rows.length === 0) {
-    return { ok: false, status: 404, error: 'Poruka nije pronađena ili nije vaša.' };
+    return { ok: false, status: 404, error: 'Message not found or not yours.' };
   }
   return { ok: true };
 }

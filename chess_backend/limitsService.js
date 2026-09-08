@@ -90,21 +90,21 @@ async function checkUserLimits(pool, userId, actionType) {
     if (stats.savedLessonsCount >= TIER_LIMITS.free.maxSavedLessons) {
       return {
         allowed: false,
-        reason: `Dostigli ste maksimalan broj sačuvanih lekcija za besplatan nalog (${TIER_LIMITS.free.maxSavedLessons}). Pređite na Premium za neograničeno skladištenje.`
+        reason: `You have reached the maximum number of saved tutorials for a free account (${TIER_LIMITS.free.maxSavedLessons}). Upgrade to Premium for unlimited storage.`
       };
     }
   } else if (actionType === 'create_room') {
     if (stats.monthlySessionsCount >= TIER_LIMITS.free.maxMonthlySessions) {
       return {
         allowed: false,
-        reason: `Popunili ste mesečnu kvotu kreiranja sesija za besplatan nalog (${TIER_LIMITS.free.maxMonthlySessions}/mesečno). Pređite na Premium za neograničen broj sesija.`
+        reason: `You have reached the monthly session quota for a free account (${TIER_LIMITS.free.maxMonthlySessions}/month). Upgrade to Premium for unlimited sessions.`
       };
     }
   } else if (actionType === 'export_mp4') {
     if (!TIER_LIMITS.free.mp4ExportAllowed) {
       return {
         allowed: false,
-        reason: 'Izvoz časova u MP4 video format je ekskluzivna funkcija Premium naloga.'
+        reason: 'Exporting sessions to MP4 video format is an exclusive feature of Premium accounts.'
       };
     }
   }

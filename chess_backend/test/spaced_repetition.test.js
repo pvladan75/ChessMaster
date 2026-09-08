@@ -144,14 +144,14 @@ test('only whole grades 0 to 5 are accepted', () => {
   assert.ok(!isValidGrade('4'));
 });
 
-test('intervals are described in natural Serbian', () => {
-  assert.equal(describeInterval(0), 'za nekoliko minuta');
-  assert.equal(describeInterval(1), 'sutra');
-  assert.equal(describeInterval(3), 'za 3 dana');
-  assert.equal(describeInterval(7), 'za nedelju dana');
-  assert.equal(describeInterval(14), 'za 2 nedelje');
-  assert.equal(describeInterval(30), 'za mesec dana');
-  assert.equal(describeInterval(60), 'za 2 meseca');
+test('intervals are described in natural English', () => {
+  assert.equal(describeInterval(0), 'in a few minutes');
+  assert.equal(describeInterval(1), 'tomorrow');
+  assert.equal(describeInterval(3), 'in 3 days');
+  assert.equal(describeInterval(7), 'in a week');
+  assert.equal(describeInterval(14), 'in 2 weeks');
+  assert.equal(describeInterval(30), 'in a month');
+  assert.equal(describeInterval(60), 'in 2 months');
 });
 
 test('a long-running schedule grows but stays finite', () => {

@@ -46,7 +46,7 @@ router.get('/me/standing', authenticateToken, async (req, res) => {
       [req.user.id],
     );
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Nalog ne postoji.' });
+      return res.status(404).json({ error: 'Account does not exist.' });
     }
 
     const row = result.rows[0];
@@ -72,7 +72,7 @@ router.get('/me/standing', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     logger.error('[NALOG] Stanje naloga nije moglo da se pročita:', err);
-    res.status(500).json({ error: 'Stanje naloga nije moglo da se pročita.' });
+    res.status(500).json({ error: 'Failed to read account standing.' });
   }
 });
 
@@ -108,7 +108,7 @@ router.post('/me/age', authenticateToken, async (req, res) => {
       + `(${MINIMUM_AGE}); godina nije upisana`,
     );
     return res.status(403).json({
-      error: `Ova usluga je za igrače od ${MINIMUM_AGE} godina naviše.`,
+      error: `This service is for players aged ${MINIMUM_AGE} and older.`,
       minimumAge: MINIMUM_AGE,
     });
   }
@@ -122,7 +122,7 @@ router.post('/me/age', authenticateToken, async (req, res) => {
       [year, req.user.id],
     );
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Nalog ne postoji.' });
+      return res.status(404).json({ error: 'Account does not exist.' });
     }
 
     // Read back from the row, not echoed from the request — the same reason the
@@ -150,13 +150,13 @@ router.post('/me/age', authenticateToken, async (req, res) => {
     // recording a child whose age has just been stated. So the trainer is told,
     // and the microphone becomes their decision rather than nobody's.
     if (minor) {
-      await notifyTrainersOfStatedAge(req.user.id, req.user.name || 'Učenik');
+      await notifyTrainersOfStatedAge(req.user.id, req.user.name || 'Student');
     }
 
     res.json({ ageKnown: age !== null, birthYear: result.rows[0].birth_year, age, minor });
   } catch (err) {
     logger.error('[NALOG] Godina rođenja nije mogla da se upiše:', err);
-    res.status(500).json({ error: 'Godina rođenja nije mogla da se sačuva.' });
+    res.status(500).json({ error: 'Failed to save birth year.' });
   }
 });
 
@@ -177,10 +177,10 @@ async function notifyTrainersOfStatedAge(studentId, studentName) {
       await notify(pool, {
         recipientId: row.trainer_id,
         senderId: studentId,
-        title: 'Učenik je uneo godinu rođenja',
-        message: `${studentName} je uneo/la godinu po kojoj je maloletan/na. `
-          + 'Postojeća veza i mikrofon ostaju kako jesu — mikrofon je od sada '
-          + 'vaša odluka, u spisku učenika.',
+        title: 'Student entered birth year',
+        message: `${studentName} entered a birth year indicating they are a minor. `
+          + 'Existing relationship and microphone remain as they are — microphone is now '
+          + 'your decision, in the student list.',
         kind: 'student_stated_minor_age',
       });
     }
@@ -210,7 +210,7 @@ router.post('/me/parent-email', authenticateToken, async (req, res) => {
       [email, req.user.id],
     );
     if (updated.rowCount === 0) {
-      return res.status(404).json({ error: 'Nalog ne postoji.' });
+      return res.status(404).json({ error: 'Account does not exist.' });
     }
 
     const waiting = await pool.query(
@@ -256,15 +256,15 @@ router.post('/me/parent-email', authenticateToken, async (req, res) => {
       requestsSent: sent,
       requestsFailed: failed.length,
       message: waiting.rowCount === 0
-        ? 'Adresa roditelja je sačuvana.'
+        ? 'Parent address has been saved.'
         : sent > 0 && failed.length === 0
-          ? 'Adresa je sačuvana i roditelju je poslato pitanje za saglasnost.'
-          : 'Adresa je sačuvana, ali pitanje za saglasnost nije poslato. '
-            + 'Pokušajte ponovo za koji minut.',
+          ? 'Address saved and consent request sent to parent.'
+          : 'Address saved, but consent request could not be sent. '
+            + 'Please try again in a few minutes.',
     });
   } catch (err) {
     logger.error('[NALOG] Email roditelja nije mogao da se upiše:', err);
-    res.status(500).json({ error: 'Adresa roditelja nije mogla da se sačuva.' });
+    res.status(500).json({ error: 'Failed to save parent address.' });
   }
 });
 

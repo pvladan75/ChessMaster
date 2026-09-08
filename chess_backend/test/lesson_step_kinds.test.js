@@ -47,7 +47,7 @@ test('an unknown kind is refused rather than treated as show', () => {
 
   assert.equal(built.ok, false);
   assert.equal(built.status, 400);
-  assert.match(built.error, /korak/i);
+  assert.match(built.error, /step/i);
 });
 
 test('a show step keeps its solution but never its choices', () => {
@@ -88,7 +88,7 @@ test('ask_move without a solution is refused', () => {
 
   assert.equal(built.ok, false);
   assert.equal(built.status, 400);
-  assert.match(built.error, /rešenj|potez/i);
+  assert.match(built.error, /solution|move/i);
 });
 
 test('a solution that cannot be played in the position is refused', () => {

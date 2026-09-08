@@ -215,7 +215,7 @@ test('a note about a position in someone else\'s homework is refused', async () 
 
   assert.equal(result.ok, false);
   assert.equal(result.status, 400);
-  assert.match(result.error, /nije deo ovog zadatka/);
+  assert.match(result.error, /not part of this assignment/);
 });
 
 test('an empty note is refused before anything is read', async () => {
@@ -232,7 +232,7 @@ test('an outsider cannot leave a note, and cannot tell why not', async () => {
   const result = await addNote(pool, { assignmentId: 7, authorId: 999, body: 'zdravo' });
 
   assert.equal(result.status, 404);
-  assert.match(result.error, /nije pronađen/);
+  assert.match(result.error, /not found/);
 });
 
 test('a note on the whole assignment carries no position', async () => {

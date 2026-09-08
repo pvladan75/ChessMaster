@@ -41,17 +41,17 @@ async function sendVerificationCode(email, code, name) {
     return { delivered: false, devFallback: true };
   }
 
-  const greeting = name ? `Zdravo ${name},` : 'Zdravo,';
+  const greeting = name ? `Hello ${name},` : 'Hello,';
   await transporter.sendMail({
     from: MAIL_FROM,
     to: email,
-    subject: 'Verifikacioni kod',
-    text: `${greeting}\n\nVaš verifikacioni kod je: ${code}\n\nKod važi 15 minuta. Ako niste tražili registraciju, ignorišite ovu poruku.`,
+    subject: 'Verification code',
+    text: `${greeting}\n\nYour verification code is: ${code}\n\nThe code is valid for 15 minutes. If you did not request registration, ignore this message.`,
     html:
       `<p>${greeting}</p>` +
-      `<p>Vaš verifikacioni kod je:</p>` +
+      `<p>Your verification code is:</p>` +
       `<p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p>` +
-      `<p>Kod važi 15 minuta. Ako niste tražili registraciju, ignorišite ovu poruku.</p>`,
+      `<p>The code is valid for 15 minutes. If you did not request registration, ignore this message.</p>`,
   });
 
   logger.info(`[MAIL] Verification code sent to ${email}`);
