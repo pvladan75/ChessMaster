@@ -71,22 +71,22 @@ class BoardAnnotationBar extends StatelessWidget {
         runSpacing: AppSpacing.xs,
         children: [
           Tooltip(
-            message: 'Strelica',
+            message: 'Arrow',
             child: OutlinedButton.icon(
               key: const Key('annotate-arrow'),
               onPressed: onArrowPressed,
               icon: const Icon(Icons.arrow_right_alt, size: 18),
-              label: const Text('Strelica', style: AppText.body),
+              label: const Text('Arrow', style: AppText.body),
               style: _modeStyle(context, active: isArrow),
             ),
           ),
           Tooltip(
-            message: 'Polje',
+            message: 'Square',
             child: OutlinedButton.icon(
               key: const Key('annotate-square'),
               onPressed: onSquarePressed,
               icon: const Icon(Icons.crop_square, size: 18),
-              label: const Text('Polje', style: AppText.body),
+              label: const Text('Square', style: AppText.body),
               style: _modeStyle(context, active: isSquare),
             ),
           ),
@@ -105,12 +105,12 @@ class BoardAnnotationBar extends StatelessWidget {
             ],
           ),
           Tooltip(
-            message: 'Obriši oznake',
+            message: 'Clear marks',
             child: OutlinedButton.icon(
               key: const Key('annotate-clear'),
               onPressed: onClearPressed,
               icon: const Icon(Icons.layers_clear, size: 18),
-              label: const Text('Obriši oznake', style: AppText.body),
+              label: const Text('Clear marks', style: AppText.body),
               style: OutlinedButton.styleFrom(
                 foregroundColor: context.colors.textSecondary,
                 side: BorderSide(color: context.colors.border),

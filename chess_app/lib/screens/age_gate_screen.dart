@@ -192,7 +192,8 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
     // twelve-year-old.
     if (thisYear - value - 1 < kMinimumAge) {
       setState(
-        () => _error = 'Ova usluga je za igrače od $kMinimumAge godina naviše.',
+        () =>
+            _error = 'This service is for players aged $kMinimumAge and over.',
       );
       return;
     }

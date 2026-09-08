@@ -191,6 +191,6 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    expect(find.text('Pogledaj rupe u otvaranju'), findsOneWidget);
+    expect(find.text('View opening leaks'), findsOneWidget);
   });
 }

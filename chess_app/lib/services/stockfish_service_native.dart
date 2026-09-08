@@ -397,7 +397,7 @@ class StockfishService {
     final illegal = fenIllegalReason(fen);
     if (illegal != null) {
       AppLogger.log(
-          '[StockfishService] ⛔ Pozicija odbijena, motor nije pozvan: $illegal | FEN: $fen');
+          '[StockfishService] ⛔ Position refused, engine was not called: $illegal | FEN: $fen');
       _analyzeDebounceTimer?.cancel();
       _isActive = false;
       onPositionRefused?.call(illegal);
@@ -423,7 +423,7 @@ class StockfishService {
     _isActive = true;
 
     AppLogger.log(
-        '[STOCKFISH_ENGINE_LOG] 🎯 Analiza | Dubina: $depth | Mode: ${_useOnline ? "Online API" : "Nativni Engine"} | FEN: $fen');
+        '[STOCKFISH_ENGINE_LOG] 🎯 Analysis | Depth: $depth | Mode: ${_useOnline ? "Online API" : "Native Engine"} | FEN: $fen');
 
     if (_useOnline) {
       final reqId = ++_requestId;
@@ -681,8 +681,8 @@ class StockfishService {
     } catch (_) {}
 
     AppLogger.log(
-      '[StockfishService] ⚠️ Motor nije odgovorio za $fen (tražena dubina $depth). '
-      'Prikazuje se gruba procena po materijalu, bez pretrage i bez poteza.',
+      '[StockfishService] ⚠️ Engine did not respond for $fen (requested depth $depth). '
+      'Showing rough material estimate, without search or move.',
     );
 
     final evalStr = evalScore > 0

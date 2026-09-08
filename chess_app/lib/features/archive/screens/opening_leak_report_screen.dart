@@ -52,11 +52,11 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     try {
       await ArchiveApiService.instance.backfill();
       if (!mounted) return;
-      AppFeedback.success(context, 'Indeksiranje pokrenuto.');
+      AppFeedback.success(context, 'Indexing started.');
       _fetchReport();
     } catch (e) {
       if (!mounted) return;
-      AppFeedback.error(context, 'Greška: $e');
+      AppFeedback.error(context, 'Error: $e');
     } finally {
       if (mounted) {
         setState(() => _isBackfilling = false);
@@ -67,16 +67,16 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
   ({IconData icon, String title}) _face(OpeningVerdict verdict) {
     switch (verdict) {
       case OpeningVerdict.theory:
-        return (icon: Icons.menu_book, title: 'Glavna teorija');
+        return (icon: Icons.menu_book, title: 'Mainline theory');
       case OpeningVerdict.playable:
         return (
           icon: Icons.thumb_up_alt_outlined,
-          title: 'Praktična alternativa'
+          title: 'Playable alternative'
         );
       case OpeningVerdict.mistake:
-        return (icon: Icons.warning_amber_rounded, title: 'Sumnjiv potez');
+        return (icon: Icons.warning_amber_rounded, title: 'Dubious move');
       case OpeningVerdict.unknown:
-        return (icon: Icons.help_outline, title: 'Nije presuđeno');
+        return (icon: Icons.help_outline, title: 'Not judged');
     }
   }
 
@@ -123,20 +123,20 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${node.ply}. polupotez · uspeh ${(node.score * 100).toStringAsFixed(1)}%',
+                  'Ply ${node.ply} · score ${(node.score * 100).toStringAsFixed(1)}%',
                   style:
                       AppText.caption.copyWith(color: context.colors.textMuted),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${mainMove.san} — ${mainMove.games} od ${node.games} partija · ${(mainMove.score * 100).toStringAsFixed(1)}%',
+                  '${mainMove.san} — ${mainMove.games} of ${node.games} ${node.games == 1 ? 'game' : 'games'} · ${(mainMove.score * 100).toStringAsFixed(1)}%',
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textPrimary),
                 ),
                 if (otherMoves.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Ostali pokušaji: ${otherMoves.map((m) => '${m.san} (${m.games})').join(', ')}',
+                    'Other tries: ${otherMoves.map((m) => '${m.san} (${m.games})').join(', ')}',
                     style: AppText.caption
                         .copyWith(color: context.colors.textSecondary),
                   ),
@@ -181,7 +181,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
           if (j.better != null) ...[
             const SizedBox(height: 2),
             Text(
-              'Bolje je bilo ${j.better}.',
+              'Better was ${j.better}.',
               style: AppText.micro.copyWith(color: color),
             ),
           ],
@@ -195,14 +195,14 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: const Text('Rupe u otvaranju'),
+        title: const Text('Opening leaks'),
         backgroundColor: context.colors.surface,
         foregroundColor: context.colors.textPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchReport,
-            tooltip: 'Osveži',
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -215,7 +215,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                'Greška: ${snapshot.error}',
+                'Error: ${snapshot.error}',
                 style: AppText.body.copyWith(color: context.colors.danger),
               ),
             );
@@ -233,14 +233,14 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                     horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                 child: Row(
                   children: [
-                    Text('Boja:',
+                    Text('Color:',
                         style: AppText.bodyBold
                             .copyWith(color: context.colors.textPrimary)),
                     const SizedBox(width: AppSpacing.md),
                     SegmentedButton<String>(
                       segments: const [
-                        ButtonSegment(value: 'w', label: Text('Beli')),
-                        ButtonSegment(value: 'b', label: Text('Crni')),
+                        ButtonSegment(value: 'w', label: Text('White')),
+                        ButtonSegment(value: 'b', label: Text('Black')),
                       ],
                       selected: {_color},
                       onSelectionChanged: (set) {
@@ -270,9 +270,9 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Brojevi iznad su potpuni i bez suđenja. Ako '
-                              'želite i mišljenje o potezu koji stalno '
-                              'igrate, to troši vaš Lichess token.',
+                              'The numbers above are complete without judging. If '
+                              'you also want an opinion on a move you play '
+                              'repeatedly, that uses your Lichess token.',
                               style: AppText.caption
                                   .copyWith(color: context.colors.textMuted),
                             ),
@@ -283,7 +283,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                                 _fetchReport();
                               },
                               icon: const Icon(Icons.gavel, size: 16),
-                              label: const Text('Presudi poteze'),
+                              label: const Text('Judge moves'),
                             ),
                           ],
                         ),
@@ -301,7 +301,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                                   .withValues(alpha: 0.5)),
                         ),
                         child: Text(
-                          'Izveštaj je prikazan, ali suđenje poteza zahteva Lichess token u Podešavanjima.',
+                          'The report is shown, but move judging requires a Lichess token in Settings.',
                           style: AppText.caption
                               .copyWith(color: context.colors.warning),
                         ),
@@ -322,7 +322,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${report.gamesWithoutNodes} partija nije indeksirano za otvaranja.',
+                              '${report.gamesWithoutNodes} ${report.gamesWithoutNodes == 1 ? 'game is' : 'games are'} not indexed for openings.',
                               style: AppText.body
                                   .copyWith(color: context.colors.info),
                             ),
@@ -330,8 +330,8 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                             ElevatedButton(
                               onPressed: _isBackfilling ? null : _backfill,
                               child: Text(_isBackfilling
-                                  ? 'Pokretanje...'
-                                  : 'Indeksiraj stare partije'),
+                                  ? 'Starting...'
+                                  : 'Index older games'),
                             ),
                           ],
                         ),
@@ -342,7 +342,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.xl),
                           child: Text(
-                            'Nema pronađenih grešaka u otvaranju.',
+                            'No opening leaks found.',
                             style: AppText.body
                                 .copyWith(color: context.colors.textMuted),
                           ),

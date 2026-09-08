@@ -82,7 +82,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
   }
 
   Future<void> _create() async {
-    final name = await _askForName(title: 'Nova grupa');
+    final name = await _askForName(title: 'New group');
     if (name == null || !mounted) return;
 
     final made = await _api.create(name);
@@ -97,7 +97,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
   Future<void> _rename(StudentGroup group) async {
     final name =
-        await _askForName(title: 'Novo ime grupe', initial: group.name);
+        await _askForName(title: 'New group name', initial: group.name);
     if (name == null || !mounted) return;
     final error = await _api.rename(group.id, name);
     if (!mounted) return;
@@ -109,19 +109,19 @@ class _GroupsScreenState extends State<GroupsScreen> {
     final sure = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Obrisati „${group.name}"?'),
+        title: Text('Delete "${group.name}"?'),
         content: const Text(
-          'Grupa nestaje, učenici ostaju vaši. Sobe koje su je imale na spisku '
-          'zvanica gube taj red.',
+          'The group is removed, your students remain. Rooms that had it on their '
+          'invitee list lose this entry.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Odustani'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Obriši'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -202,11 +202,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('Grupe učenika'), elevation: 0),
+      appBar: AppBar(title: const Text('Student groups'), elevation: 0),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _create,
         icon: const Icon(Icons.add),
-        label: const Text('Nova grupa'),
+        label: const Text('New group'),
       ),
       body: SafeArea(child: _buildBody(context)),
     );
@@ -240,13 +240,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
           children: [
             const Icon(Icons.groups_outlined, size: 40),
             const SizedBox(height: AppSpacing.md),
-            Text('Još nema grupa.',
+            Text('No groups yet.',
                 style: AppText.bodyBold, textAlign: TextAlign.center),
             const SizedBox(height: 6),
             Text(
-              'Grupa je spisak učenika, imenovan jednom. Kad pozivate u sobu, '
-              'pozovete grupu umesto da svaki put tražite iste ljude po '
-              'spisku.',
+              'A group is a list of students, named once. When inviting to a room, '
+              'invite the group instead of searching for the same people on the '
+              'list every time.',
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
@@ -273,7 +273,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
                 leading: const Icon(Icons.groups),
                 title: Text(group.name, style: AppText.bodyBold),
                 subtitle: Text(
-                  group.members == 1 ? '1 učenik' : '${group.members} učenika',
+                  group.members == 1
+                      ? '1 student'
+                      : '${group.members} students',
                   style:
                       AppText.caption.copyWith(color: context.colors.textMuted),
                 ),
@@ -281,12 +283,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Preimenuj',
+                      tooltip: 'Rename',
                       icon: const Icon(Icons.edit, size: 18),
                       onPressed: () => _rename(group),
                     ),
                     IconButton(
-                      tooltip: 'Obriši',
+                      tooltip: 'Delete',
                       icon: const Icon(Icons.delete_outline, size: 18),
                       onPressed: () => _delete(group),
                     ),
@@ -323,7 +325,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
           if (_members.isEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Text('Grupa je prazna.',
+              child: Text('Group is empty.',
                   style: AppText.caption
                       .copyWith(color: context.colors.textMuted)),
             )
@@ -335,7 +337,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(child: Text(member.name, style: AppText.body)),
                   IconButton(
-                    tooltip: 'Ukloni iz grupe',
+                    tooltip: 'Remove from group',
                     icon: const Icon(Icons.close, size: 16),
                     onPressed: () => _removeMember(group, member),
                   ),
@@ -346,7 +348,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
             child: TextButton.icon(
               onPressed: () => _addMembers(group),
               icon: const Icon(Icons.person_add_alt, size: 18),
-              label: const Text('Dodaj učenike'),
+              label: const Text('Add students'),
             ),
           ),
         ],
@@ -374,13 +376,13 @@ class _PickStudentsState extends State<_PickStudents> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Dodaj u grupu'),
+      title: const Text('Add to group'),
       content: SizedBox(
         width: 420,
         child: widget.students.isEmpty
             ? Text(
-                'Nema učenika koje biste dodali. U grupu ulaze samo oni koji su '
-                'prihvatili vezu sa vama.',
+                'No students to add. Only students who have accepted your '
+                'invite can be added to a group.',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted),
               )
@@ -392,7 +394,7 @@ class _PickStudentsState extends State<_PickStudents> {
                       CheckboxListTile(
                         dense: true,
                         value: _chosen.contains(student['id']),
-                        title: Text(student['name']?.toString() ?? 'Učenik'),
+                        title: Text(student['name']?.toString() ?? 'Student'),
                         onChanged: (on) => setState(() {
                           final id = student['id'] as int;
                           if (on == true) {
@@ -409,13 +411,13 @@ class _PickStudentsState extends State<_PickStudents> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _chosen.isEmpty
               ? null
               : () => Navigator.of(context).pop(_chosen.toList()),
-          child: const Text('Dodaj'),
+          child: const Text('Add'),
         ),
       ],
     );
@@ -455,19 +457,19 @@ class _NameDialogState extends State<_NameDialog> {
         controller: _controller,
         autofocus: true,
         decoration: const InputDecoration(
-          labelText: 'Ime grupe',
-          hintText: 'npr. Utorak 18h',
+          labelText: 'Group name',
+          hintText: 'e.g. Tuesday 6pm',
         ),
         onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Odustani'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Sačuvaj'),
+          child: const Text('Save'),
         ),
       ],
     );

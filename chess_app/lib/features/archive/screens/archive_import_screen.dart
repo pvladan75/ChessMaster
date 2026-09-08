@@ -34,7 +34,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
   Future<void> _pickAndUpload() async {
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
-      AppFeedback.error(context, 'Unesite korisničko ime.');
+      AppFeedback.error(context, 'Enter username.');
       return;
     }
 
@@ -59,7 +59,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isUploading = false);
-        AppFeedback.error(context, 'Greška: $e');
+        AppFeedback.error(context, 'Error: $e');
       }
     }
   }
@@ -85,7 +85,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
           if (run.status == 'failed' && run.error != null) {
             AppFeedback.error(context, run.error!);
           } else if (run.status == 'done') {
-            AppFeedback.success(context, 'Uvoz je završen.');
+            AppFeedback.success(context, 'Import completed.');
           }
         }
       } catch (e) {
@@ -97,7 +97,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
         setState(() {
           _isUploading = false;
         });
-        AppFeedback.error(context, 'Greška pri čitanju statusa: $e');
+        AppFeedback.error(context, 'Error reading status: $e');
       }
     });
   }
@@ -107,7 +107,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: const Text('Uvoz partija'),
+        title: const Text('Import games'),
         backgroundColor: context.colors.surface,
         foregroundColor: context.colors.textPrimary,
       ),
@@ -116,7 +116,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Korisničko ime na Lichess / Chess.com:',
+            Text('Username on Lichess / Chess.com:',
                 style: AppText.bodyBold
                     .copyWith(color: context.colors.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
@@ -126,7 +126,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
               style: AppText.body.copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
-                hintText: 'npr. magnuscarlsen',
+                hintText: 'e.g. magnuscarlsen',
                 hintStyle:
                     AppText.body.copyWith(color: context.colors.textMuted),
               ),
@@ -135,7 +135,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
             ElevatedButton.icon(
               onPressed: _isUploading ? null : _pickAndUpload,
               icon: const Icon(Icons.file_upload),
-              label: Text(_isUploading ? 'Uvoz u toku...' : 'Izaberi PGN fajl'),
+              label: Text(_isUploading ? 'Importing...' : 'Select PGN file'),
             ),
             const SizedBox(height: AppSpacing.lg),
             if (_run != null) ...[
@@ -150,14 +150,14 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
                   onPressed: () =>
                       context.push(AppRoutes.archiveLeaksPath(_run!.subject)),
                   icon: const Icon(Icons.search),
-                  label: const Text('Pogledaj rupe u otvaranju'),
+                  label: const Text('View opening leaks'),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 FilledButton.icon(
                   onPressed: () => context.push(
                       '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent(_run!.subject)}'),
                   icon: const Icon(Icons.account_tree_outlined),
-                  label: const Text('Repertoar iz partija'),
+                  label: const Text('Repertoire from games'),
                   style: FilledButton.styleFrom(
                     backgroundColor:
                         context.colors.brand.withValues(alpha: 0.08),
@@ -169,7 +169,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
                   onPressed: () =>
                       context.push(AppRoutes.archiveProfilePath(_run!.subject)),
                   icon: const Icon(Icons.person_outline),
-                  label: const Text('Profil i navike'),
+                  label: const Text('Profile and habits'),
                 ),
               ],
               const SizedBox(height: AppSpacing.md),

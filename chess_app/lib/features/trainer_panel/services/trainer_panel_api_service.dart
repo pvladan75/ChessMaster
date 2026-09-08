@@ -34,7 +34,7 @@ class TrainerPanelApiService {
       return TrainerPanel.fromJson(
           jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      AppLogger.log('[Panel] Ne mogu da učitam panel: $e');
+      AppLogger.log('[Panel] Could not load panel: $e');
       return TrainerPanel.empty;
     }
   }
@@ -52,7 +52,7 @@ class TrainerPanelApiService {
           )
           .timeout(const Duration(seconds: 10));
     } catch (e) {
-      AppLogger.log('[Panel] Pregled nije zabeležen: $e');
+      AppLogger.log('[Panel] Review not recorded: $e');
     }
   }
 }

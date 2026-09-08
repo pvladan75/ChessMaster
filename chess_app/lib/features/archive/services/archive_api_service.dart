@@ -308,7 +308,7 @@ class ArchiveApiService {
       return ArchiveHomeworkResponse.fromJson(jsonDecode(response.body));
     } else if (response.statusCode == 400 || response.statusCode == 403) {
       final decoded = jsonDecode(response.body);
-      final msg = decoded['error'] ?? decoded['message'] ?? 'Greška';
+      final msg = decoded['error'] ?? decoded['message'] ?? 'Error';
       throw Exception(msg);
     }
     throw Exception('Failed to create homework: ${response.body}');

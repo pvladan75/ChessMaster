@@ -61,7 +61,7 @@ class ArrowColor {
   /// either colour being slightly off.
   static const ArrowColor r = ArrowColor(
     id: 'R',
-    name: 'Crvena',
+    name: 'Red',
     color: Color(0xFFFF2929),
   );
 
@@ -69,7 +69,7 @@ class ArrowColor {
   /// enough to clear its neighbours by luminance.
   static const ArrowColor o = ArrowColor(
     id: 'O',
-    name: 'Narandžasta',
+    name: 'Orange',
     color: Color(0xFFFF9429),
   );
 
@@ -77,7 +77,7 @@ class ArrowColor {
   /// survives being light better than red does — a pale red reads as pink.
   static const ArrowColor g = ArrowColor(
     id: 'G',
-    name: 'Zelena',
+    name: 'Green',
     color: Color(0xFF85FF85),
   );
 
@@ -86,13 +86,13 @@ class ArrowColor {
   /// luminance range.
   static const ArrowColor b = ArrowColor(
     id: 'B',
-    name: 'Plava',
+    name: 'Blue',
     color: Color(0xFF00188F),
   );
 
   static const ArrowColor p = ArrowColor(
     id: 'P',
-    name: 'Ljubičasta',
+    name: 'Purple',
     color: Color(0xFF910FB3),
   );
 
@@ -106,7 +106,7 @@ class ArrowColor {
   /// correct thing for a value that means nothing.
   static const ArrowColor fallback = ArrowColor(
     id: '?',
-    name: 'Nepoznata',
+    name: 'Unknown',
     color: Color(0xFF9E9E9E),
   );
 

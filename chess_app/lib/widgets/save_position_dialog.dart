@@ -66,7 +66,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
         .toList();
 
     return AlertDialog(
-      title: const Text('Sačuvaj trenutni tutorijal / poziciju'),
+      title: const Text('Save current tutorial / position'),
       // The width must be tight: AlertDialog wraps its children in an
       // IntrinsicWidth, and a loose maxWidth would let that intrinsic pass
       // descend into the suggestion list below, which cannot report intrinsics.
@@ -83,22 +83,22 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                 TextField(
                   controller: titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Naziv tutorijala / pozicije',
-                    hintText: 'Npr. Sicilijanska odbrana - Najdorf',
+                    labelText: 'Tutorial / position name',
+                    hintText: 'E.g. Sicilian Defense - Najdorf',
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: descController,
                   decoration: const InputDecoration(
-                    labelText: 'Opis (opciono)',
-                    hintText: 'Kratke napomene za učenike...',
+                    labelText: 'Description (optional)',
+                    hintText: 'Brief notes for students...',
                   ),
                   maxLines: 2,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 const Text(
-                  'Labele (Oznake):',
+                  'Labels (Tags):',
                   style: AppText.bodyLargeBold,
                 ),
                 const SizedBox(height: 6),
@@ -121,7 +121,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                       child: TextField(
                         controller: tagInputController,
                         decoration: const InputDecoration(
-                          hintText: 'Ukucaj i dodaj labelu...',
+                          hintText: 'Type and add label...',
                           isDense: true,
                           border: OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(
@@ -139,7 +139,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.md,
                               vertical: AppSpacing.md)),
-                      child: const Text('Dodaj'),
+                      child: const Text('Add'),
                     ),
                   ],
                 ),
@@ -170,7 +170,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                 const SizedBox(height: AppSpacing.lg),
                 CheckboxListTile(
                   title: const Text(
-                    'Zapamti ove Labele za sledeće pozicije',
+                    'Remember these labels for next positions',
                     style: AppText.bodyBold,
                   ),
                   value: persistChecked,
@@ -190,7 +190,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: () {
@@ -201,7 +201,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
               AppFeedback.show(
                 context,
                 () => SnackBar(
-                    content: const Text('Unesite naziv tutorijala.'),
+                    content: const Text('Enter tutorial name.'),
                     backgroundColor: context.colors.danger),
               );
               return;
@@ -210,7 +210,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
             Navigator.pop(context);
             widget.onSave(title, desc, dialogActiveTags, persistChecked);
           },
-          child: const Text('Sačuvaj'),
+          child: const Text('Save'),
         ),
       ],
     );

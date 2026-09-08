@@ -49,7 +49,7 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
         children: [
           Icon(Icons.file_open, color: colors.brand),
           const SizedBox(width: AppSpacing.sm),
-          const Expanded(child: Text('Uvezi PGN', style: AppText.title)),
+          const Expanded(child: Text('Import PGN', style: AppText.title)),
         ],
       ),
       content: SizedBox(
@@ -65,7 +65,7 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
                   widget.onPickFile();
                 },
                 icon: const Icon(Icons.folder_open, size: 16),
-                label: const Text('Otvori PGN fajl'),
+                label: const Text('Open PGN file'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.brand,
                   foregroundColor: colors.canvas,
@@ -73,7 +73,7 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'ili nalepi tekst partije:',
+                'or paste game text:',
                 style: AppText.body.copyWith(color: colors.textMuted),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -96,7 +96,7 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         ElevatedButton.icon(
           onPressed: () {
@@ -106,7 +106,7 @@ class _PgnImportDialogState extends State<PgnImportDialog> {
             widget.onPasted(text);
           },
           icon: const Icon(Icons.playlist_add, size: 16),
-          label: const Text('Učitaj'),
+          label: const Text('Load'),
         ),
       ],
     );

@@ -40,7 +40,7 @@ Future<int?> showBranchChoice(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxs),
             child: Text(
-              'Odavde ide više linija — kojom?',
+              'Multiple lines from here — which one?',
               style: AppText.bodyBold.copyWith(color: sheet.colors.textPrimary),
             ),
           ),

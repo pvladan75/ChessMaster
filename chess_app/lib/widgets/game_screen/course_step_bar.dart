@@ -32,12 +32,12 @@ class CourseStepBar extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(
             child: PopupMenuButton<int>(
-              tooltip: 'Skoči na korak',
+              tooltip: 'Jump to step',
               initialValue: activeIndex,
               onSelected: onGoToStep,
               itemBuilder: (ctx) => List.generate(items.length, (i) {
                 final stepTitle =
-                    items[i]['title']?.toString() ?? 'Korak ${i + 1}';
+                    items[i]['title']?.toString() ?? 'Step ${i + 1}';
                 return PopupMenuItem<int>(
                   value: i,
                   child: Row(
@@ -58,7 +58,7 @@ class CourseStepBar extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '${courseTitle ?? 'Tutorijal'} — korak ${activeIndex + 1}/${items.length}',
+                      '${courseTitle ?? 'Tutorial'} — step ${activeIndex + 1}/${items.length}',
                       style: AppText.bodyBold
                           .copyWith(color: context.colors.onGroupedContainer),
                       overflow: TextOverflow.ellipsis,
@@ -75,14 +75,14 @@ class CourseStepBar extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.chevron_left,
                 color: context.colors.onGroupedContainer),
-            tooltip: 'Prethodni korak',
+            tooltip: 'Previous step',
             onPressed:
                 activeIndex > 0 ? () => onGoToStep(activeIndex - 1) : null,
           ),
           IconButton(
             icon: Icon(Icons.chevron_right,
                 color: context.colors.onGroupedContainer),
-            tooltip: 'Sledeći korak',
+            tooltip: 'Next step',
             onPressed: activeIndex < items.length - 1
                 ? () => onGoToStep(activeIndex + 1)
                 : null,
@@ -91,7 +91,7 @@ class CourseStepBar extends StatelessWidget {
             icon: Icon(Icons.close,
                 color: context.colors.onGroupedContainer.withValues(alpha: 0.7),
                 size: 18),
-            tooltip: 'Zatvori tutorijal',
+            tooltip: 'Close tutorial',
             onPressed: onClose,
           ),
         ],

@@ -145,8 +145,8 @@ void main() {
   testWidgets('an empty screen says what a group is for', (tester) async {
     await pumpGroups(tester, _FakeApi());
 
-    expect(find.text('Još nema grupa.'), findsOneWidget);
-    expect(find.textContaining('pozovete grupu'), findsOneWidget);
+    expect(find.text('No groups yet.'), findsOneWidget);
+    expect(find.textContaining('invite the group'), findsOneWidget);
   });
 
   testWidgets('a group is made by name, and counted in the list',
@@ -154,15 +154,15 @@ void main() {
     final api = _FakeApi();
     await pumpGroups(tester, api);
 
-    await tester.tap(find.text('Nova grupa'));
+    await tester.tap(find.text('New group'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Utorak 18h');
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(api.createdName, 'Utorak 18h');
     expect(find.text('Utorak 18h'), findsOneWidget);
-    expect(find.text('0 učenika'), findsOneWidget);
+    expect(find.text('0 students'), findsOneWidget);
   });
 
   testWidgets('a taken name is said in the server\'s own words',
@@ -170,10 +170,10 @@ void main() {
     final api = _FakeApi(failWith: 'To ime je već zauzeto.');
     await pumpGroups(tester, api);
 
-    await tester.tap(find.text('Nova grupa'));
+    await tester.tap(find.text('New group'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Utorak 18h');
-    await tester.tap(find.text('Sačuvaj'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.text('To ime je već zauzeto.'), findsOneWidget);
@@ -194,7 +194,7 @@ void main() {
 
     await tester.tap(find.text('Utorak 18h'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dodaj učenike'));
+    await tester.tap(find.text('Add students'));
     await tester.pumpAndSettle();
 
     expect(find.text('Mika'), findsOneWidget);
@@ -202,7 +202,7 @@ void main() {
 
     await tester.tap(find.text('Mika'));
     await tester.pump();
-    await tester.tap(find.text('Dodaj'));
+    await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
 
     expect(api.added, [9]);
@@ -247,8 +247,8 @@ void main() {
     // surprise as a control that works while its button is hidden.
     await pumpGuests(tester, _FakeApi());
 
-    expect(find.textContaining('otvorena za sve vaše učenike'), findsOneWidget);
-    expect(find.textContaining('ulaze samo oni'), findsOneWidget);
+    expect(find.textContaining('open to all your students'), findsOneWidget);
+    expect(find.textContaining('only they can enter'), findsOneWidget);
   });
 
   testWidgets('a whole group is invited with one tap', (tester) async {
@@ -257,7 +257,7 @@ void main() {
     );
     await pumpGuests(tester, api);
 
-    expect(find.text('Pozovi grupu'), findsOneWidget);
+    expect(find.text('Invite group'), findsOneWidget);
     await tester.tap(find.text('Utorak 18h (8)'));
     await tester.pumpAndSettle();
 
@@ -271,7 +271,7 @@ void main() {
     ]);
     await pumpGuests(tester, api);
 
-    expect(find.text('Pozovi pojedinačno'), findsOneWidget);
+    expect(find.text('Invite individually'), findsOneWidget);
     await tester.tap(find.text('Mika'));
     await tester.pumpAndSettle();
 
@@ -286,8 +286,8 @@ void main() {
     final api = _FakeApi();
     await pumpGuests(tester, api);
 
-    expect(find.text('Soba prima goste'), findsOneWidget);
-    expect(find.textContaining('ulaze samo prijavljeni'), findsOneWidget);
+    expect(find.text('Room allows guests'), findsOneWidget);
+    expect(find.textContaining('only registered users'), findsOneWidget);
 
     await tester.tap(find.byType(SwitchListTile));
     await tester.pumpAndSettle();
@@ -295,8 +295,9 @@ void main() {
     expect(api.guestSwitches, [true]);
     // Said in the words that matter: the code is all it takes, and a recorded
     // lesson records whoever came in on it.
-    expect(find.textContaining('svako ko zna kod sobe'), findsOneWidget);
-    expect(find.textContaining('u snimku'), findsOneWidget);
+    expect(
+        find.textContaining('anyone who knows the room code'), findsOneWidget);
+    expect(find.textContaining('recording'), findsOneWidget);
   });
 
   testWidgets('a room that takes guests says the list does not stop them',
@@ -310,8 +311,8 @@ void main() {
     );
     await pumpGuests(tester, api);
 
-    expect(find.text('Ulaze samo oni sa ovog spiska.'), findsOneWidget);
-    expect(find.textContaining('bez obzira na spisak'), findsOneWidget);
+    expect(find.text('Only those on this list can enter.'), findsOneWidget);
+    expect(find.textContaining('regardless of the list'), findsOneWidget);
   });
 
   testWidgets('a setting that could not be read says so, instead of "off"',
@@ -322,9 +323,9 @@ void main() {
     await pumpGuests(tester, _FakeApi(guestAccessFails: true));
 
     expect(find.byType(SwitchListTile), findsNothing);
-    expect(
-        find.textContaining('Ne znam da li soba prima goste'), findsOneWidget);
-    expect(find.text('Pokušaj ponovo'), findsOneWidget);
+    expect(find.textContaining('Unable to determine if room allows guests'),
+        findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
   });
 
   testWidgets('the guest dialog fits a 360 dp phone', (tester) async {
@@ -358,8 +359,8 @@ void main() {
     );
     await pumpGuests(tester, api);
 
-    expect(find.text('Ulaze samo oni sa ovog spiska.'), findsOneWidget);
-    expect(find.text('cela grupa'), findsOneWidget);
+    expect(find.text('Only those on this list can enter.'), findsOneWidget);
+    expect(find.text('entire group'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.close).first);
     await tester.pumpAndSettle();

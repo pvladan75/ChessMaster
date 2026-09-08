@@ -93,7 +93,7 @@ void main() {
     await tester.pumpWidget(wrap(view(TrainerPanel.empty)));
     await tester.pumpAndSettle();
 
-    expect(find.text('Panel trenera'), findsNothing);
+    expect(find.text('Trainer panel'), findsNothing);
     expect(find.byType(Card), findsNothing);
   });
 
@@ -101,23 +101,23 @@ void main() {
     await tester.pumpWidget(wrap(view(full)));
     await tester.pumpAndSettle();
 
-    expect(find.text('DANAS'), findsOneWidget);
-    expect(find.text('ZA PREGLED'), findsOneWidget);
-    expect(find.text('DOMAĆI ISTIČE'), findsOneWidget);
-    expect(find.text('DOMAĆI STOJI'), findsOneWidget);
-    expect(find.text('NIJE VEŽBAO'), findsOneWidget);
+    expect(find.text('TODAY'), findsOneWidget);
+    expect(find.text('TO REVIEW'), findsOneWidget);
+    expect(find.text('HOMEWORK DUE SOON'), findsOneWidget);
+    expect(find.text('HOMEWORK STALLED'), findsOneWidget);
+    expect(find.text('INACTIVE'), findsOneWidget);
 
     // The two holes found live on 27.8.2026: homework with no deadline was
     // invisible everywhere, and homework that stalled halfway disappeared the
     // moment the student solved their first puzzle.
-    expect(find.textContaining('stao na 8 od 10'), findsOneWidget);
-    expect(find.textContaining('bez roka'), findsOneWidget);
+    expect(find.textContaining('stopped at 8 of 10'), findsOneWidget);
+    expect(find.textContaining('no deadline'), findsOneWidget);
 
     // Each row names the person it is about, because the trainer's next move
     // depends on which student it is.
     expect(find.textContaining('Marko Ilić'), findsOneWidget);
     expect(find.textContaining('Petar Nikolić'), findsOneWidget);
-    expect(find.textContaining('pre 9 dana'), findsOneWidget);
+    expect(find.textContaining('9 days ago'), findsOneWidget);
   });
 
   testWidgets('a section with nothing in it is not drawn', (tester) async {
@@ -126,10 +126,10 @@ void main() {
     ))));
     await tester.pumpAndSettle();
 
-    expect(find.text('NIJE VEŽBAO'), findsOneWidget);
-    expect(find.text('DANAS'), findsNothing);
-    expect(find.text('ZA PREGLED'), findsNothing);
-    expect(find.text('DOMAĆI STOJI'), findsNothing);
+    expect(find.text('INACTIVE'), findsOneWidget);
+    expect(find.text('TODAY'), findsNothing);
+    expect(find.text('TO REVIEW'), findsNothing);
+    expect(find.text('HOMEWORK STALLED'), findsNothing);
   });
 
   testWidgets('the panel fits a 360 px phone', (tester) async {
@@ -186,18 +186,18 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await press(find.text('Uđi'));
+    await press(find.text('Enter'));
     expect(entered, 'ABC123');
 
-    await press(find.text('Pregledaj'));
+    await press(find.text('Review'));
     expect(opened, 3, reason: 'the finished assignment, not the one still due');
 
-    await press(find.text('Otvori').last);
+    await press(find.text('Open').last);
     expect(student, 13);
 
     // The stalled row opens the homework, not the student: the thing standing
     // still is the assignment, and that is what the trainer needs to see.
-    await press(find.text('Otvori').at(1));
+    await press(find.text('Open').at(1));
     expect(opened, 5);
   });
 

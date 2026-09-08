@@ -51,7 +51,7 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
         setState(() => _stats = jsonDecode(response.body));
       }
     } catch (e) {
-      AppLogger.log('[Nalog] Statistika nije stigla: $e');
+      AppLogger.log('[Nalog] Could not load stats: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -84,7 +84,7 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
                 // title, the gap and the plan chip together overflowed this row
                 // by 26 pixels at 360 dp.
                 Expanded(
-                  child: Text('Statistika naloga', style: AppText.title),
+                  child: Text('Account statistics', style: AppText.title),
                 ),
                 if (_loading)
                   const SizedBox(
@@ -111,8 +111,8 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
               dense: true,
               contentPadding: EdgeInsets.zero,
               leading: Icon(Icons.bookmark, color: context.colors.accent),
-              title: Text('Sačuvani tutorijali / pozicije',
-                  style: AppText.bodyLarge),
+              title:
+                  Text('Saved tutorials / positions', style: AppText.bodyLarge),
               trailing: Text(
                 _limit(stats?['savedLessonsCount'], limits?['maxSavedLessons'],
                     20),
@@ -124,8 +124,8 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
               contentPadding: EdgeInsets.zero,
               leading:
                   Icon(Icons.video_camera_front, color: context.colors.info),
-              title: Text('Kreirano sesija u tekućem mesecu',
-                  style: AppText.bodyLarge),
+              title:
+                  Text('Sessions created this month', style: AppText.bodyLarge),
               trailing: Text(
                 _limit(stats?['monthlySessionsCount'],
                     limits?['maxMonthlySessions'], 5),

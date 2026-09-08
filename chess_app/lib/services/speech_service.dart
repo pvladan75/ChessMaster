@@ -31,7 +31,7 @@ class FlutterTtsEngine implements TtsEngine {
     // listening and take the app down. Caught here instead: the wait then has
     // only its deadline to fall back on, which is what the deadline is for.
     _tts.awaitSpeakCompletion(true).catchError((Object e) {
-      AppLogger.log('[Govor] Čekanje na kraj izgovora nije podržano: $e');
+      AppLogger.log('[Govor] Waiting for speech completion not supported: $e');
     });
   }
 

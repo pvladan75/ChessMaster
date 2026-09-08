@@ -32,9 +32,9 @@ String libraryKindWire(LibraryKind kind) => switch (kind) {
     };
 
 String libraryKindLabel(LibraryKind kind) => switch (kind) {
-      LibraryKind.scan => 'iz knjige',
-      LibraryKind.position => 'sačuvane pozicije',
-      LibraryKind.analysis => 'analize',
+      LibraryKind.scan => 'from book',
+      LibraryKind.position => 'saved positions',
+      LibraryKind.analysis => 'analyses',
     };
 
 class LibraryEntry {
@@ -97,7 +97,7 @@ class LibraryEntry {
   factory LibraryEntry.fromJson(Map<String, dynamic> json) => LibraryEntry(
         kind: libraryKindFrom(json['kind']?.toString()) ?? LibraryKind.position,
         id: json['id']?.toString() ?? '',
-        title: json['title']?.toString() ?? 'Bez naziva',
+        title: json['title']?.toString() ?? 'Untitled',
         fen: json['fen']?.toString() ?? '',
         instruction: _text(json['instruction']),
         pgn: _text(json['pgn']),
@@ -122,7 +122,7 @@ class LibraryEntry {
   /// A short line under the title: where it came from, in the trainer's terms.
   String get subtitle {
     if (kind == LibraryKind.scan) {
-      final page = sourcePage == null ? null : 'str. $sourcePage';
+      final page = sourcePage == null ? null : 'p. $sourcePage';
       return [sourceTitle, page].whereType<String>().join(' · ');
     }
     return libraryKindLabel(kind);

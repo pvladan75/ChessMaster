@@ -60,7 +60,7 @@ class TrainerPanelView extends StatelessWidget {
                 // silence instead of striping it.
                 const Expanded(
                   child: Text(
-                    'Panel trenera',
+                    'Trainer panel',
                     style: AppText.headline,
                   ),
                 ),
@@ -70,7 +70,7 @@ class TrainerPanelView extends StatelessWidget {
             if (panel.today.isNotEmpty)
               _section(
                 context,
-                title: 'Danas',
+                title: 'Today',
                 color: colors.accent,
                 children: [
                   for (final lesson in panel.today) _lessonRow(context, lesson),
@@ -79,7 +79,7 @@ class TrainerPanelView extends StatelessWidget {
             if (panel.awaitingReview.isNotEmpty)
               _section(
                 context,
-                title: 'Za pregled',
+                title: 'To review',
                 color: colors.success,
                 count: panel.awaitingReview.length,
                 children: [
@@ -89,7 +89,7 @@ class TrainerPanelView extends StatelessWidget {
             if (panel.dueSoon.isNotEmpty)
               _section(
                 context,
-                title: 'Domaći ističe',
+                title: 'Homework due soon',
                 color: colors.warning,
                 count: panel.dueSoon.length,
                 children: [
@@ -99,7 +99,7 @@ class TrainerPanelView extends StatelessWidget {
             if (panel.stalled.isNotEmpty)
               _section(
                 context,
-                title: 'Domaći stoji',
+                title: 'Homework stalled',
                 color: colors.info,
                 count: panel.stalled.length,
                 children: [
@@ -109,7 +109,7 @@ class TrainerPanelView extends StatelessWidget {
             if (panel.idle.isNotEmpty)
               _section(
                 context,
-                title: 'Nije vežbao',
+                title: 'Inactive',
                 color: colors.textMuted,
                 children: [
                   for (final s in panel.idle) _idleRow(context, s),
@@ -244,8 +244,9 @@ class TrainerPanelView extends StatelessWidget {
   Widget _lessonRow(BuildContext context, PanelLesson lesson) {
     final colors = context.colors;
     final guests =
-        lesson.guests.isEmpty ? 'bez pozvanih' : lesson.guests.join(', ');
+        lesson.guests.isEmpty ? 'no invitees' : lesson.guests.join(', ');
 
+    final room = lesson.roomCode;
     return _card(
       context,
       filled: true,
@@ -259,10 +260,10 @@ class TrainerPanelView extends StatelessWidget {
       ),
       title: lesson.title,
       subtitle: guests,
-      note: 'soba ${lesson.roomCode}',
+      note: 'room $room',
       noteColor: colors.textSecondary,
-      action: 'Uđi',
-      onAction: () => onEnterLesson(lesson.roomCode),
+      action: 'Enter',
+      onAction: () => onEnterLesson(room),
     );
   }
 
@@ -272,9 +273,9 @@ class TrainerPanelView extends StatelessWidget {
       filled: true,
       title: '${a.studentName} · ${a.title}',
       subtitle:
-          '${a.solvedItems} od ${a.totalItems} tačno${_accuracy(a) ?? ''}',
-      note: 'predato ${_ago(a.completedAt)}',
-      action: 'Pregledaj',
+          '${a.solvedItems} of ${a.totalItems} correct${_accuracy(a) ?? ''}',
+      note: 'submitted ${_ago(a.completedAt)}',
+      action: 'Review',
       onAction: () => onOpenAssignment(a),
     );
   }
@@ -286,11 +287,11 @@ class TrainerPanelView extends StatelessWidget {
     return _card(
       context,
       title: '${a.studentName} · ${a.title}',
-      subtitle: '${a.attemptedItems} od ${a.totalItems} urađeno',
+      subtitle: '${a.attemptedItems} of ${a.totalItems} completed',
       note:
-          overdue ? 'rok je istekao ${_ago(a.dueAt)}' : 'rok ${_due(a.dueAt)}',
+          overdue ? 'deadline passed ${_ago(a.dueAt)}' : 'due ${_due(a.dueAt)}',
       noteColor: overdue ? colors.danger : colors.warning,
-      action: 'Otvori',
+      action: 'Open',
       onAction: () => onOpenAssignment(a),
     );
   }
@@ -307,12 +308,12 @@ class TrainerPanelView extends StatelessWidget {
       context,
       title: '${a.studentName} · ${a.title}',
       subtitle: never
-          ? 'nije ni otvoren · ${a.totalItems} zadataka'
-          : 'stao na ${a.attemptedItems} od ${a.totalItems}',
+          ? 'not even opened · ${a.totalItems} ${a.totalItems == 1 ? 'exercise' : 'exercises'}'
+          : 'stopped at ${a.attemptedItems} of ${a.totalItems}',
       note: a.dueAt == null
-          ? 'bez roka · ${_ago(a.lastMoveAt)}'
-          : 'rok ${_due(a.dueAt)} · ${_ago(a.lastMoveAt)}',
-      action: 'Otvori',
+          ? 'no deadline · ${_ago(a.lastMoveAt)}'
+          : 'due ${_due(a.dueAt)} · ${_ago(a.lastMoveAt)}',
+      action: 'Open',
       onAction: () => onOpenAssignment(a),
     );
   }
@@ -322,11 +323,11 @@ class TrainerPanelView extends StatelessWidget {
       context,
       title: s.name,
       // No open homework, by construction: a student with work outstanding is
-      // in "Domaći stoji" instead, where the sentence about them is useful.
+      // in "Homework stalled" instead, where the sentence about them is useful.
       subtitle: s.lastActiveAt == null
-          ? 'nema zadatog domaćeg · još nije rešio nijedan zadatak'
-          : 'nema zadatog domaćeg · poslednji put ${_ago(s.lastActiveAt)}',
-      action: 'Otvori',
+          ? 'no assigned homework · has not solved any exercises yet'
+          : 'no assigned homework · last active ${_ago(s.lastActiveAt)}',
+      action: 'Open',
       onAction: () => onOpenStudent(s.id, s.name),
     );
   }
@@ -348,22 +349,22 @@ String _hhmm(DateTime? at) {
 /// How long ago, in the words a person would use.
 ///
 /// Days rather than dates, because every one of these is recent by
-/// construction — the panel only shows what is current — and "pre 3 dana" is
+/// construction — the panel only shows what is current — and "3 days ago" is
 /// read faster than a date the reader has to subtract from today.
 String _ago(DateTime? at) {
-  if (at == null) return 'nepoznato kada';
+  if (at == null) return 'unknown';
   final days = DateTime.now().difference(at).inDays;
-  if (days <= 0) return 'danas';
-  if (days == 1) return 'juče';
-  return 'pre $days dana';
+  if (days <= 0) return 'today';
+  if (days == 1) return 'yesterday';
+  return '$days days ago';
 }
 
 /// When a deadline falls, for a deadline that has not passed yet.
 String _due(DateTime? at) {
-  if (at == null) return 'bez roka';
+  if (at == null) return 'no deadline';
   final now = DateTime.now();
   final days = at.difference(now).inDays;
-  if (at.day == now.day && days == 0) return 'danas u ${_hhmm(at)}';
-  if (days < 1) return 'sutra u ${_hhmm(at)}';
-  return 'za $days dana';
+  if (at.day == now.day && days == 0) return 'today at ${_hhmm(at)}';
+  if (days < 1) return 'tomorrow at ${_hhmm(at)}';
+  return 'in $days days';
 }

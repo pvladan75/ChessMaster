@@ -222,7 +222,7 @@ void main() {
       await tapSquare(tester, 'd2');
       expect(board(tester).drawingStartSquare, 'd2');
 
-      await tester.tap(find.byTooltip('Prethodni potez').last,
+      await tester.tap(find.byTooltip('Previous move').last,
           warnIfMissed: false);
       await tester.pump(const Duration(milliseconds: 100));
 

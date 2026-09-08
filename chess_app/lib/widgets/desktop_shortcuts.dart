@@ -143,8 +143,8 @@ class DesktopShortcuts extends StatelessWidget {
               if (event is KeyDownEvent &&
                   HardwareKeyboard.instance.isControlPressed) {
                 AppLogger.log(
-                    '[Prečice] Ctrl + logički ${event.logicalKey.keyLabel}'
-                    ' / fizički ${event.physicalKey.debugName}');
+                    '[Shortcuts] Ctrl + logical ${event.logicalKey.keyLabel}'
+                    ' / physical ${event.physicalKey.debugName}');
               }
               // Never swallowed: this only watches.
               return KeyEventResult.ignored;

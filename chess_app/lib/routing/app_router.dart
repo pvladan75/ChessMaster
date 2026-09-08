@@ -129,7 +129,7 @@ final List<RouteBase> appRouteTable = [
     builder: (context, state) {
       final id = int.tryParse(state.pathParameters['recordingId'] ?? '');
       if (id == null) {
-        return const _InvalidRouteScreen(detail: 'Neispravan ID snimka.');
+        return const _InvalidRouteScreen(detail: 'Invalid recording ID.');
       }
       return ReplayPlayerScreen(
         recordingId: id,
@@ -397,7 +397,7 @@ class _NothingLeftScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Zadatak')),
+      appBar: AppBar(title: const Text('Assignment')),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -405,12 +405,12 @@ class _NothingLeftScreen extends StatelessWidget {
             Icon(Icons.check_circle_outline,
                 size: 48, color: context.colors.success),
             const SizedBox(height: AppSpacing.md),
-            const Text('Ovaj zadatak je već završen.'),
+            const Text('This assignment is already completed.'),
             const SizedBox(height: AppSpacing.lg),
             FilledButton.icon(
               onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Nazad'),
+              label: const Text('Back'),
             ),
           ],
         ),
@@ -428,7 +428,7 @@ class _InvalidRouteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Stranica nije pronađena')),
+      appBar: AppBar(title: const Text('Page not found')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -439,7 +439,7 @@ class _InvalidRouteScreen extends StatelessWidget {
                   size: 48, color: context.colors.textSecondary),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'Ova putanja ne postoji.',
+                'This path does not exist.',
                 style: AppText.title,
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -453,7 +453,7 @@ class _InvalidRouteScreen extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: () => context.go(AppRoutes.home),
                 icon: const Icon(Icons.home),
-                label: const Text('Nazad na početnu'),
+                label: const Text('Back to home'),
               ),
             ],
           ),

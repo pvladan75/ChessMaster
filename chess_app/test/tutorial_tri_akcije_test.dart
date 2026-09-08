@@ -172,7 +172,7 @@ void main() {
       await play(tester, 'b8', 'c6');
 
       // Back to the position after 2. Nf3 and ask there.
-      await tester.tap(find.byTooltip('Prethodni potez'));
+      await tester.tap(find.byTooltip('Previous move'));
       await tester.pumpAndSettle();
       await press(tester, 'ask-move');
 

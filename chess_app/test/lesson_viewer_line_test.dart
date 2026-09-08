@@ -98,7 +98,7 @@ void main() {
     ));
     await tester.pump();
 
-    await tester.tap(find.byTooltip('Sledeći potez'));
+    await tester.tap(find.byTooltip('Next move'));
     await tester.pump();
 
     expect(find.text('Mat na osmom redu.'), findsOneWidget);
@@ -139,14 +139,14 @@ void main() {
 
     // And it belongs to the position it was written about: stepping onto the
     // move replaces it with that move's note rather than showing both.
-    await tester.tap(find.byTooltip('Sledeći potez'));
+    await tester.tap(find.byTooltip('Next move'));
     await tester.pump();
 
     expect(find.text('Crni kralj nema vazduha.'), findsNothing);
     expect(find.text('Mat na osmom redu.'), findsOneWidget);
 
     // Back to the diagram, and the note about it comes back.
-    await tester.tap(find.byTooltip('Prethodni potez'));
+    await tester.tap(find.byTooltip('Previous move'));
     await tester.pump();
 
     expect(find.text('Crni kralj nema vazduha.'), findsOneWidget);
@@ -190,7 +190,7 @@ void main() {
     ));
     await tester.pump();
 
-    expect(find.byTooltip('Sledeći potez'), findsNothing,
+    expect(find.byTooltip('Next move'), findsNothing,
         reason: 'there is no line to walk');
     expect(find.text('Zadnji red'), findsOneWidget);
   });
@@ -202,7 +202,7 @@ void main() {
     // note appears only once the student steps onto the move it belongs to.
     expect(find.text('Top ide na osmi red i to je mat.'), findsNothing);
 
-    await tester.tap(find.byTooltip('Sledeći potez'));
+    await tester.tap(find.byTooltip('Next move'));
     await tester.pump();
 
     expect(find.text('Top ide na osmi red i to je mat.'), findsOneWidget);

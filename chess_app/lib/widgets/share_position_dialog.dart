@@ -22,7 +22,7 @@ class ShareStudentPositionDialog extends StatelessWidget {
         children: [
           Icon(Icons.share, color: colors.warning),
           const SizedBox(width: AppSpacing.sm),
-          const Text('Prikaži poziciju treneru', style: AppText.title),
+          const Text('Show position to trainer', style: AppText.title),
         ],
       ),
       content: ConstrainedBox(
@@ -34,15 +34,14 @@ class ShareStudentPositionDialog extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Izaberite predavača u učionici kome želite da pošaljete vašu poziciju sa table na uvid:',
+                'Choose a trainer in the room to show your position to:',
                 style: AppText.body.copyWith(color: colors.textMuted),
               ),
               const SizedBox(height: AppSpacing.md),
               if (trainers.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: Text(
-                      'Trenutno nema prijavljenih trenera u ovoj učionici.',
+                  child: Text('No trainers currently in this room.',
                       style: AppText.body.copyWith(color: colors.warning)),
                 )
               else
@@ -50,14 +49,14 @@ class ShareStudentPositionDialog extends StatelessWidget {
                       dense: true,
                       leading: Icon(Icons.person, color: colors.warning),
                       title: Text(t['name'], style: AppText.bodyLargeBold),
-                      subtitle: const Text('Trener / Predavač'),
+                      subtitle: const Text('Trainer'),
                       trailing: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
                           onShareToMember(t);
                         },
                         icon: const Icon(Icons.send, size: 14),
-                        label: const Text('Prikaži treneru'),
+                        label: const Text('Show to trainer'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: colors.warning,
                           foregroundColor: colors.canvas,
@@ -71,7 +70,7 @@ class ShareStudentPositionDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Zatvori'),
+          child: const Text('Close'),
         ),
       ],
     );

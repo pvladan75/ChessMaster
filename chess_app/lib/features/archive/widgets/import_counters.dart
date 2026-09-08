@@ -20,29 +20,29 @@ class ImportCounters extends StatelessWidget {
   /// is an answer. The reasons are the whole reason the run counts four things
   /// instead of one.
   static String describeSkipped(int count, Map<String, int> reasons) {
-    if (count == 0 || reasons.isEmpty) return 'preskočeno $count';
+    if (count == 0 || reasons.isEmpty) return 'skipped $count';
 
     final translated = reasons.entries.map((e) {
       final reason = switch (e.key) {
-        'unparsable-pgn' => 'neispravan pgn',
-        'not-standard-variant' => 'nije standardni šah',
-        'unfinished-game' => 'nezavršena partija',
-        'subject-not-in-game' => 'igrač nije u partiji',
-        'no-moves' => 'bez poteza',
+        'unparsable-pgn' => 'invalid pgn',
+        'not-standard-variant' => 'not standard chess',
+        'unfinished-game' => 'unfinished game',
+        'subject-not-in-game' => 'player not in game',
+        'no-moves' => 'no moves',
         _ => e.key,
       };
       return '${e.value} $reason';
     }).join(', ');
-    return 'preskočeno $count: $translated';
+    return 'skipped $count: $translated';
   }
 
   @override
   Widget build(BuildContext context) {
     final style = AppText.body.copyWith(color: context.colors.textSecondary);
     final parts = [
-      'pročitano ${run.gamesRead}',
-      'upisano ${run.gamesStored}',
-      'već postojalo ${run.gamesDuplicate}',
+      'read ${run.gamesRead}',
+      'stored ${run.gamesStored}',
+      'already existed ${run.gamesDuplicate}',
       describeSkipped(run.gamesSkipped, run.skippedByReason),
     ];
 

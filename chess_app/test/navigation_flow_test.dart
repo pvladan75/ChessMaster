@@ -196,7 +196,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     await open(tester, '/ovoga-nema');
-    expect(find.textContaining('ne postoji'), findsOneWidget);
+    expect(find.textContaining('not found'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

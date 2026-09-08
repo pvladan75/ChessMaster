@@ -155,23 +155,22 @@ void main() {
 
     // The line carries the ply and the position's own success rate; the
     // exact-match finder that used to be here matched neither.
-    expect(find.textContaining('2. polupotez'), findsOneWidget);
-    expect(find.textContaining('uspeh 45.0%'), findsOneWidget);
-    expect(find.textContaining('c5 — 40 od 50 partija'), findsOneWidget);
+    expect(find.textContaining('Ply 2'), findsOneWidget);
+    expect(find.textContaining('score 45.0%'), findsOneWidget);
+    expect(find.textContaining('c5 — 40 of 50 games'), findsOneWidget);
     // Counted only, until someone asks: the verdict is not on screen yet.
-    expect(find.textContaining('Bolje je bilo e5.'), findsNothing);
+    expect(find.textContaining('Better was e5.'), findsNothing);
     expect(api.judgeAsked, [null]);
 
-    await tester.tap(find.text('Presudi poteze'));
+    await tester.tap(find.text('Judge moves'));
     await tester.pumpAndSettle();
 
     expect(api.judgeAsked, [null, true]);
-    expect(find.textContaining('Bolje je bilo e5.'), findsOneWidget);
-    expect(find.text('Sumnjiv potez'), findsOneWidget);
-    expect(find.text('Presudi poteze'), findsNothing);
+    expect(find.textContaining('Better was e5.'), findsOneWidget);
+    expect(find.text('Dubious move'), findsOneWidget);
+    expect(find.text('Judge moves'), findsNothing);
 
-    expect(
-        find.text('10 partija nije indeksirano za otvaranja.'), findsOneWidget);
-    expect(find.text('Indeksiraj stare partije'), findsOneWidget);
+    expect(find.text('10 games are not indexed for openings.'), findsOneWidget);
+    expect(find.text('Index older games'), findsOneWidget);
   });
 }

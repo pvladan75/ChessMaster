@@ -43,7 +43,7 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      AppFeedback.error(context, 'Greška pri učitavanju repertoara: $e');
+      AppFeedback.error(context, 'Error loading repertoire: $e');
     }
   }
 
@@ -52,13 +52,13 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
-        title: Text('Repertoar: ${widget.subject}'),
+        title: Text('Repertoire: ${widget.subject}'),
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _load,
-            tooltip: 'Osveži',
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -84,7 +84,7 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
         children: [
           Expanded(
             child: _TabButton(
-              title: 'Beli',
+              title: 'White',
               selected: _selectedColor == 'white',
               onTap: () {
                 setState(() => _selectedColor = 'white');
@@ -94,7 +94,7 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
           ),
           Expanded(
             child: _TabButton(
-              title: 'Crni',
+              title: 'Black',
               selected: _selectedColor == 'black',
               onTap: () {
                 setState(() => _selectedColor = 'black');
@@ -110,7 +110,7 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
   Widget _buildContent() {
     if (_diff == null) {
       return Center(
-        child: Text('Nema podataka.',
+        child: Text('No data.',
             style: AppText.body.copyWith(color: context.colors.textMuted)),
       );
     }
@@ -134,28 +134,28 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Pregled repertoara', style: AppText.title),
+                        Text('Repertoire overview', style: AppText.title),
                         const SizedBox(height: AppSpacing.sm),
                         Wrap(
                           spacing: AppSpacing.md,
                           runSpacing: AppSpacing.md,
                           children: [
                             _StatBox(
-                                label: 'Partija iz repertoara',
+                                label: 'Repertoire games',
                                 value: diff.coveredGames.toString()),
                             _StatBox(
-                                label: 'Praćen repertoar',
+                                label: 'Repertoire followed',
                                 value: diff.followedGames.toString()),
                             _StatBox(
-                                label: 'Napušten repertoar',
+                                label: 'Repertoire abandoned',
                                 value: diff.leftGames.toString()),
                           ],
                         ),
                         const SizedBox(height: AppSpacing.md),
                         Text(
-                          'Repertoar se gradi ručno, u treningu — ovaj izveštaj '
-                          'samo poredi partije sa onim što ste izgradili. '
-                          'Uvezene partije se u repertoar ne upisuju.',
+                          'The repertoire is built manually in drills — this report '
+                          'only compares games to what you have built. '
+                          'Imported games are not added to the repertoire.',
                           style: AppText.caption
                               .copyWith(color: context.colors.textMuted),
                         ),
@@ -164,7 +164,7 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Text('Odstupanja od repertoara',
+                Text('Deviations from repertoire',
                     style: AppText.title
                         .copyWith(color: context.colors.textPrimary)),
                 const SizedBox(height: AppSpacing.sm),
@@ -177,7 +177,7 @@ class _RepertoireDiffScreenState extends State<RepertoireDiffScreen> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.xl),
-                child: Text('Nema zabeleženih odstupanja.',
+                child: Text('No recorded deviations.',
                     style:
                         AppText.body.copyWith(color: context.colors.textMuted)),
               ),
@@ -244,9 +244,10 @@ class _PositionRow extends StatelessWidget {
                   color: context.colors.textSecondary,
                 ),
                 const SizedBox(width: AppSpacing.xs),
-                Text('Potez ${position.ply ~/ 2 + 1}', style: AppText.bodyBold),
+                Text('Move ${position.ply ~/ 2 + 1}', style: AppText.bodyBold),
                 const Spacer(),
-                Text('${position.leftGames} partija',
+                Text(
+                    '${position.leftGames} ${position.leftGames == 1 ? 'game' : 'games'}',
                     style: AppText.caption
                         .copyWith(color: context.colors.textSecondary)),
               ],
@@ -259,7 +260,7 @@ class _PositionRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Pripremljeno',
+                      Text('Prepared',
                           style: AppText.micro
                               .copyWith(color: context.colors.textMuted)),
                       if (position.prepared.isEmpty)
@@ -275,7 +276,7 @@ class _PositionRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Odigrano',
+                      Text('Played',
                           style: AppText.micro
                               .copyWith(color: context.colors.textMuted)),
                       if (position.played.isEmpty)

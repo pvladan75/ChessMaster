@@ -82,7 +82,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
             // overflow detector rather than say so.
             const Expanded(
               child: Text(
-                'Matrica Filter Labela',
+                'Label Filter Matrix',
                 style: AppText.bodyBold,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -112,7 +112,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
               IconButton(
                 icon: Icon(Icons.refresh, size: 16, color: colors.textMuted),
                 onPressed: resetFilters,
-                tooltip: 'Poništi filtere',
+                tooltip: 'Reset filters',
               ),
             Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
           ],
@@ -126,11 +126,11 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
               children: [
                 Row(
                   children: [
-                    Text('Režim uslova: ',
+                    Text('Match mode: ',
                         style:
                             AppText.caption.copyWith(color: colors.textMuted)),
                     ChoiceChip(
-                      label: const Text('SVE (AND)', style: AppText.micro),
+                      label: const Text('ALL (AND)', style: AppText.micro),
                       selected: widget.filterMatchMode == 'all',
                       onSelected: (val) {
                         if (val)
@@ -140,7 +140,7 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                     ),
                     const SizedBox(width: 6),
                     ChoiceChip(
-                      label: const Text('BILO KOJA (OR)', style: AppText.micro),
+                      label: const Text('ANY (OR)', style: AppText.micro),
                       selected: widget.filterMatchMode == 'any',
                       onSelected: (val) {
                         if (val)
@@ -152,12 +152,12 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Kliknite labelu jednom za [Sadrži (+)], drugi put za [Ne sadrži (-)]:',
+                  'Click a label once for [Include (+)], again for [Exclude (-)]:',
                   style: AppText.micro.copyWith(color: colors.textMuted),
                 ),
                 const SizedBox(height: 6),
                 if (widget.availableUserLabels.isEmpty)
-                  Text('Nema dostupnih labela u bazi.',
+                  Text('No labels available in database.',
                       style: AppText.caption.copyWith(color: colors.textMuted))
                 else
                   Wrap(

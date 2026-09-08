@@ -165,7 +165,7 @@ void main() {
           ['e4']);
       expect(tree(tester).activeNode.moveSan, 'e4');
 
-      await tapTooltip(tester, 'Prethodni potez');
+      await tapTooltip(tester, 'Previous move');
       expect(tree(tester).activeNode.fen, openingFen);
       expect(board(tester).controller.getFen().split(' ').first,
           openingFen.split(' ').first,
@@ -183,12 +183,12 @@ void main() {
       await open(tester, handover: TutorialHandover.position(openingFen));
 
       await play(tester, 'e2', 'e4');
-      await tapTooltip(tester, 'Prethodni potez');
+      await tapTooltip(tester, 'Previous move');
       await play(tester, 'd2', 'd4');
-      await tapTooltip(tester, 'Prethodni potez');
+      await tapTooltip(tester, 'Previous move');
 
-      await tapTooltip(tester, 'Sledeći potez');
-      expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget,
+      await tapTooltip(tester, 'Next move');
+      expect(find.text('Multiple lines from here — which one?'), findsOneWidget,
           reason: 'two moves out of one position means "forward" has two '
               'meanings, and the sheet is where that is asked');
       expect(find.text('e4'), findsWidgets);

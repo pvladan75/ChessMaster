@@ -152,7 +152,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Ko sme u sobu'),
+      title: const Text('Who can enter the room'),
       content: SizedBox(
         width: 460,
         child: _loading
@@ -169,10 +169,10 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                   children: [
                     Text(
                       _guests.isEmpty
-                          ? 'Spisak je prazan: soba je otvorena za sve vaše '
-                              'učenike. Čim dodate grupu ili nekoga poimence, '
-                              'ulaze samo oni.'
-                          : 'Ulaze samo oni sa ovog spiska.',
+                          ? 'The list is empty: the room is open to all your '
+                              'students. As soon as you add a group or someone by name, '
+                              'only they can enter.'
+                          : 'Only those on this list can enter.',
                       style: AppText.caption.copyWith(
                         color: _guests.isEmpty
                             ? context.colors.textMuted
@@ -182,8 +182,8 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                     if (_allowGuests == true) ...[
                       const SizedBox(height: 6),
                       Text(
-                        'Uz to, soba prima goste: ulazi i svako ko zna kod, '
-                        'kao posmatrač, bez obzira na spisak.',
+                        'In addition, the room allows guests: anyone who knows the code '
+                        'can enter as a spectator, regardless of the list.',
                         style: AppText.caption
                             .copyWith(color: context.colors.warning),
                       ),
@@ -204,12 +204,12 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                             size: 18),
                         title: Text(guest.name, style: AppText.body),
                         subtitle: guest.isGroup
-                            ? Text('cela grupa',
+                            ? Text('entire group',
                                 style: AppText.micro
                                     .copyWith(color: context.colors.textMuted))
                             : null,
                         trailing: IconButton(
-                          tooltip: 'Skini sa spiska',
+                          tooltip: 'Remove from list',
                           icon: const Icon(Icons.close, size: 16),
                           onPressed: () => _remove(guest),
                         ),
@@ -225,7 +225,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Gotovo'),
+          child: const Text('Done'),
         ),
       ],
     );
@@ -252,8 +252,8 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Ne znam da li soba prima goste — podešavanje nije moglo '
-                  'da se pročita.',
+                  'Unable to determine if room allows guests — setting could '
+                  'not be read.',
                   style: AppText.caption.copyWith(color: context.colors.danger),
                 ),
                 if (_guestError != null)
@@ -263,7 +263,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
               ],
             ),
           ),
-          TextButton(onPressed: _load, child: const Text('Pokušaj ponovo')),
+          TextButton(onPressed: _load, child: const Text('Try again')),
         ],
       );
     }
@@ -277,12 +277,12 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
           contentPadding: EdgeInsets.zero,
           value: open,
           onChanged: _savingGuests ? null : _setGuests,
-          title: Text('Soba prima goste', style: AppText.bodyBold),
+          title: Text('Room allows guests', style: AppText.bodyBold),
           subtitle: Text(
             open
-                ? 'Uključeno: ulazi svako ko zna kod sobe, i neprijavljen. Ako '
-                    'snimate čas, i on je u snimku.'
-                : 'Isključeno: ulaze samo prijavljeni koje ste pozvali.',
+                ? 'Enabled: anyone who knows the room code can enter, even unregistered. If '
+                    'you record the session, they are in the recording too.'
+                : 'Disabled: only registered users you invited can enter.',
             style: AppText.micro.copyWith(
               color: open ? context.colors.warning : context.colors.textMuted,
             ),
@@ -301,7 +301,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
 
     if (groups.isEmpty && students.isEmpty) {
       return Text(
-        'Nema više koga da se doda. Grupe se prave u „Ljudi → Grupe učenika".',
+        'No one left to add. Groups are created in "People → Student groups".',
         style: AppText.caption.copyWith(color: context.colors.textMuted),
       );
     }
@@ -310,7 +310,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (groups.isNotEmpty) ...[
-          Text('Pozovi grupu',
+          Text('Invite group',
               style: AppText.bodyBold.copyWith(color: context.colors.accent)),
           const SizedBox(height: AppSpacing.xs),
           Wrap(
@@ -328,7 +328,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
           const SizedBox(height: AppSpacing.md),
         ],
         if (students.isNotEmpty) ...[
-          Text('Pozovi pojedinačno',
+          Text('Invite individually',
               style: AppText.bodyBold.copyWith(color: context.colors.accent)),
           const SizedBox(height: AppSpacing.xs),
           Wrap(
@@ -338,7 +338,7 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
               for (final student in students)
                 ActionChip(
                   avatar: const Icon(Icons.person_add_alt, size: 16),
-                  label: Text(student['name']?.toString() ?? 'Učenik'),
+                  label: Text(student['name']?.toString() ?? 'Student'),
                   onPressed: () => _inviteStudent(student),
                 ),
             ],

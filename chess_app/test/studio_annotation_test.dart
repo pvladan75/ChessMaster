@@ -168,7 +168,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '1. e4 e5 2. Nf3 *');
-      await tester.tap(find.text('Učitaj'));
+      await tester.tap(find.text('Load'));
       await tester.pumpAndSettle();
 
       expect(pasted, '1. e4 e5 2. Nf3 *');
@@ -181,7 +181,7 @@ void main() {
         PgnImportDialog(onPickFile: () {}, onPasted: (_) => called = true),
       );
 
-      await tester.tap(find.text('Učitaj'));
+      await tester.tap(find.text('Load'));
       await tester.pumpAndSettle();
 
       expect(called, isFalse);
@@ -208,7 +208,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Ubaci kao varijaciju'));
+      await tester.tap(find.text('Insert as variation'));
       await tester.pumpAndSettle();
 
       expect(inserted?.sanMoveList, ['e4', 'e5', 'Nf3']);
@@ -221,7 +221,7 @@ void main() {
         EngineLineDialog(line: line(), orientation: PlayerColor.white),
       );
 
-      expect(find.text('Ubaci kao varijaciju'), findsNothing);
+      expect(find.text('Insert as variation'), findsNothing);
     });
   });
 }

@@ -197,7 +197,7 @@ class _SpeakableInfoState extends State<SpeakableInfo> {
           IconButton(
             // Said in the tooltip rather than only in the icon, because the two
             // states of a speaker glyph are exactly the pair somebody misses.
-            tooltip: on ? 'Pročitaj naglas' : 'Uključi čitanje naglas',
+            tooltip: on ? 'Read aloud' : 'Enable reading aloud',
             icon: Icon(
               on ? Icons.volume_up_outlined : Icons.volume_off_outlined,
               size: 20,
@@ -249,7 +249,7 @@ class _SpeechToggleButtonState extends State<SpeechToggleButton> {
   Widget build(BuildContext context) {
     final on = _settings.speechEnabled;
     return IconButton(
-      tooltip: on ? 'Isključi čitanje naglas' : 'Uključi čitanje naglas',
+      tooltip: on ? 'Disable reading aloud' : 'Enable reading aloud',
       icon: Icon(on ? Icons.volume_up : Icons.volume_off_outlined),
       onPressed: _toggle,
     );

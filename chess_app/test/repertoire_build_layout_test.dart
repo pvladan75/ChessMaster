@@ -637,7 +637,7 @@ void main() {
     await tester.tap(forward);
     await tester.pumpAndSettle();
 
-    expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget);
+    expect(find.text('Multiple lines from here — which one?'), findsOneWidget);
     await tester.tap(find.descendant(
       of: find.byType(ListTile),
       matching: find.textContaining('Nf3 20%'),

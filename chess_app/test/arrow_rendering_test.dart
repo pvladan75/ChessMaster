@@ -228,8 +228,8 @@ void main() {
       expect(initials.toSet().length, initials.length,
           reason: 'two swatches sharing a letter is two identical swatches: '
               '$initials');
-      expect(ArrowColorButton.initialOf(ArrowColor.p), 'Lj');
-      expect(ArrowColorButton.initialOf(ArrowColor.b), 'P');
+      expect(ArrowColorButton.initialOf(ArrowColor.p), 'P');
+      expect(ArrowColorButton.initialOf(ArrowColor.b), 'B');
     });
 
     testWidgets('a swatch draws its letter', (tester) async {

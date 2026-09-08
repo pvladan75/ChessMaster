@@ -49,7 +49,7 @@ void main() {
 
   test('the root itself is labelled as the start', () {
     final root = _rootAt(_startFen);
-    expect(formatMoveWithNumber(root, root), 'Početak');
+    expect(formatMoveWithNumber(root, root), 'Start');
   });
 
   test('numbering continues from the root position fullmove counter', () {

@@ -151,7 +151,7 @@ class LocalPuzzleExtractorService {
       id: 'local_${moment.plyIndex}_${DateTime.now().microsecondsSinceEpoch}',
       fen: moment.fenAfter,
       themeLabel: best?.description ??
-          'Protivnik je napravio grešku — pronađi najbolji nastavak',
+          'Opponent made a mistake — find the best continuation',
       themeKey:
           best?.motifs.isNotEmpty == true ? best!.motifs.first.name : null,
       swing: moment.swingForMover ?? 0,

@@ -131,8 +131,8 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
           const SizedBox(width: AppSpacing.sm),
           Text(
             widget.purpose == PickerPurpose.homework
-                ? 'Izaberi pozicije za domaći'
-                : 'Izaberi iz biblioteke',
+                ? 'Choose positions for homework'
+                : 'Choose from library',
             style: const TextStyle(fontSize: 16),
           ),
         ],
@@ -155,7 +155,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                 decoration: const InputDecoration(
                   isDense: true,
                   prefixIcon: Icon(Icons.search, size: 18),
-                  hintText: 'Traži po knjizi, zadatku ili temi',
+                  hintText: 'Search by book, exercise, or topic',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -164,7 +164,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                 spacing: 6,
                 children: [
                   ChoiceChip(
-                    label: const Text('sve'),
+                    label: const Text('all'),
                     selected: _kind == null,
                     onSelected: (_) {
                       setState(() => _kind = null);
@@ -191,11 +191,11 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _picked.isEmpty ? null : _confirm,
-          child: Text(_picked.isEmpty ? 'Dodaj' : 'Dodaj (${_picked.length})'),
+          child: Text(_picked.isEmpty ? 'Add' : 'Add (${_picked.length})'),
         ),
       ],
     );
@@ -221,10 +221,9 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
           children: [
             Icon(Icons.cloud_off, color: colors.textMuted),
             const SizedBox(height: AppSpacing.sm),
-            const Text('Nije moguće doći do servera.',
-                textAlign: TextAlign.center),
+            const Text('Cannot reach server.', textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.sm),
-            TextButton(onPressed: _load, child: const Text('Pokušaj opet')),
+            TextButton(onPressed: _load, child: const Text('Try again')),
           ],
         ),
       );
@@ -236,9 +235,9 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
         child: Text(
           _search.text.trim().isEmpty
-              ? 'Nema sačuvanih pozicija. Skenirajte dijagrame iz knjige ili '
-                  'sačuvajte poziciju iz Studija za analizu.'
-              : 'Ništa ne odgovara traženom.',
+              ? 'No saved positions. Scan diagrams from a book or '
+                  'save a position from Analysis.'
+              : 'Nothing matches your search.',
           textAlign: TextAlign.center,
           style: AppText.body.copyWith(color: colors.textSecondary),
         ),
@@ -277,7 +276,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
             // is the only thing the trainer needs to read on that row.
             usable
                 ? (entry.instruction ?? entry.subtitle)
-                : (entry.blockedReason ?? 'ne može se zadati'),
+                : (entry.blockedReason ?? 'cannot be assigned'),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppText.caption.copyWith(

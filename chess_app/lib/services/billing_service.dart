@@ -122,14 +122,14 @@ class BillingService {
     try {
       _storeAvailable = await InAppPurchase.instance.isAvailable();
       if (!_storeAvailable) {
-        AppLogger.log('[Billing] Play Store nije dostupan na ovom uređaju.');
+        AppLogger.log('[Billing] Play Store is not available on this device.');
         return;
       }
 
       _purchaseSubscription ??= InAppPurchase.instance.purchaseStream.listen(
         _onPurchasesUpdated,
         onError: (Object e) =>
-            AppLogger.log('[Billing] Greška u toku kupovine: $e'),
+            AppLogger.log('[Billing] Error during purchase: $e'),
       );
 
       await _loadProducts();
@@ -138,7 +138,7 @@ class BillingService {
       // verification did not finish last time.
       await InAppPurchase.instance.restorePurchases();
     } catch (e) {
-      AppLogger.log('[Billing] Inicijalizacija naplate nije uspela: $e');
+      AppLogger.log('[Billing] Billing initialization failed: $e');
       _storeAvailable = false;
     }
   }
@@ -146,8 +146,7 @@ class BillingService {
   Future<void> _loadProducts() async {
     _configuredProductIds = await _fetchConfiguredProductIds();
     if (_configuredProductIds.isEmpty) {
-      AppLogger.log(
-          '[Billing] Server nije prijavio nijedan proizvod za kupovinu.');
+      AppLogger.log('[Billing] Server reported no products for purchase.');
       return;
     }
 
@@ -157,7 +156,7 @@ class BillingService {
       // Usually means the product is not yet active in Play Console, or the
       // build's application id does not match the one the products live under.
       AppLogger.log(
-          '[Billing] Play ne prepoznaje proizvode: ${response.notFoundIDs.join(', ')}');
+          '[Billing] Play does not recognize products: ${response.notFoundIDs.join(', ')}');
     }
     _products = response.productDetails;
   }
@@ -175,7 +174,7 @@ class BillingService {
           .map((e) => e.toString())
           .toList();
     } catch (e) {
-      AppLogger.log('[Billing] Ne mogu da učitam konfiguraciju naplate: $e');
+      AppLogger.log('[Billing] Could not load billing configuration: $e');
       return const [];
     }
   }
@@ -195,7 +194,7 @@ class BillingService {
             EntitlementState.fromJson(jsonDecode(response.body));
       }
     } catch (e) {
-      AppLogger.log('[Billing] Ne mogu da učitam prava pristupa: $e');
+      AppLogger.log('[Billing] Could not load entitlements: $e');
     }
     return entitlements.value;
   }
@@ -212,7 +211,7 @@ class BillingService {
       );
       return started ? PurchaseOutcome.pending : PurchaseOutcome.failed;
     } catch (e) {
-      AppLogger.log('[Billing] Pokretanje kupovine nije uspelo: $e');
+      AppLogger.log('[Billing] Purchase launch failed: $e');
       purchaseInProgress.value = false;
       return PurchaseOutcome.failed;
     }
@@ -227,7 +226,7 @@ class BillingService {
 
         case PurchaseStatus.error:
           AppLogger.log(
-              '[Billing] Kupovina neuspešna: ${purchase.error?.message}');
+              '[Billing] Purchase failed: ${purchase.error?.message}');
           purchaseInProgress.value = false;
           break;
 
@@ -274,16 +273,16 @@ class BillingService {
         entitlements.value =
             EntitlementState.fromJson(jsonDecode(response.body));
         AppLogger.log(
-            '[Billing] Kupovina potvrđena — nivo: ${entitlements.value.tier}');
+            '[Billing] Purchase confirmed — tier: ${entitlements.value.tier}');
         return true;
       }
 
       final message = _errorMessage(response.body);
       AppLogger.log(
-          '[Billing] Server nije potvrdio kupovinu (${response.statusCode}): $message');
+          '[Billing] Server did not confirm purchase (${response.statusCode}): $message');
       return false;
     } catch (e) {
-      AppLogger.log('[Billing] Provera kupovine nije uspela: $e');
+      AppLogger.log('[Billing] Purchase verification failed: $e');
       return false;
     }
   }

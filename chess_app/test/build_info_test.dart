@@ -14,7 +14,7 @@ void main() {
     // string is identical across every APK made in a week of testing.
     expect(
       buildLabel(version: '1.1.0+2', commit: '', mode: '', time: ''),
-      'Mislisha • build nije označen',
+      'Mislisha • unstamped build',
     );
   });
 

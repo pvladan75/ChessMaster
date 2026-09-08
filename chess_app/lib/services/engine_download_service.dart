@@ -53,10 +53,10 @@ class EngineDownloadService {
       {EngineDownloadProgress? onProgress}) async {
     if (!Platform.isWindows) {
       throw UnsupportedError(
-          'Automatsko preuzimanje engine-a je trenutno podržano samo na Windows-u.');
+          'Automatic engine download is currently supported only on Windows.');
     }
     if (_busy) {
-      throw StateError('Preuzimanje je već u toku.');
+      throw StateError('Download is already in progress.');
     }
     _busy = true;
     final dir = await _engineDir();
@@ -67,22 +67,22 @@ class EngineDownloadService {
     try {
       for (final tier in _windowsBuildTiers) {
         try {
-          onProgress?.call('Preuzimanje ($tier)...', 0);
+          onProgress?.call('Downloading ($tier)...', 0);
           await _downloadFile('$_releaseBaseUrl/$tier.zip', zipPath, (p) {
-            onProgress?.call('Preuzimanje ($tier)...', p);
+            onProgress?.call('Downloading ($tier)...', p);
           });
 
-          onProgress?.call('Raspakivanje...', null);
+          onProgress?.call('Extracting...', null);
           final extracted = await _extractExe(zipPath, exePath);
           if (!extracted) {
-            errors.add('$tier: arhiva ne sadrži .exe fajl');
+            errors.add('$tier: archive does not contain a .exe file');
             continue;
           }
 
-          onProgress?.call('Provera engine-a...', null);
+          onProgress?.call('Verifying engine...', null);
           final works = await _verifyEngine(exePath);
           if (!works) {
-            errors.add('$tier: engine se ne pokreće na ovom računaru');
+            errors.add('$tier: engine does not run on this computer');
             continue;
           }
 
@@ -103,7 +103,7 @@ class EngineDownloadService {
       }
 
       throw Exception(
-          'Nijedna verzija engine-a nije uspela da se preuzme/pokrene:\n${errors.join('\n')}');
+          'Failed to download or run any engine version:\n${errors.join('\n')}');
     } finally {
       _busy = false;
     }
@@ -116,7 +116,7 @@ class EngineDownloadService {
       final request = http.Request('GET', Uri.parse(url));
       final response = await client.send(request);
       if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode} za $url');
+        throw Exception('HTTP ${response.statusCode} for $url');
       }
 
       final total = response.contentLength ?? 0;

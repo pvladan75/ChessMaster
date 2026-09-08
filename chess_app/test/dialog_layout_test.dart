@@ -137,7 +137,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('Nije moguće doći do servera'), findsOneWidget);
-    expect(find.textContaining('Nema sačuvanih pozicija'), findsNothing);
+    expect(find.textContaining('Cannot reach server'), findsOneWidget);
+    expect(find.textContaining('No saved positions'), findsNothing);
   });
 }

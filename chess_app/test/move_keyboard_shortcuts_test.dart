@@ -150,7 +150,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(cursor.index, 0, reason: 'na račvanju se ne ide bez pitanja');
-    expect(find.text('Odavde ide više linija — kojom?'), findsOneWidget);
+    expect(find.text('Multiple lines from here — which one?'), findsOneWidget);
 
     await tester.tap(find.text('Bc4'));
     await tester.pumpAndSettle();
@@ -183,7 +183,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
-    expect(find.text('Odavde ide više linija — kojom?'), findsNothing);
+    expect(find.text('Multiple lines from here — which one?'), findsNothing);
     expect(cursor.index, 1);
   });
 

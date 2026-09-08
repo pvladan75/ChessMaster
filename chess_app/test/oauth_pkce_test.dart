@@ -138,7 +138,7 @@ void main() {
           expectedState: 'STATE',
         ),
         throwsA(isA<OAuthRedirectException>()
-            .having((e) => e.message, 'message', contains('otkazana'))),
+            .having((e) => e.message, 'message', contains('cancelled'))),
       );
     });
 
@@ -157,6 +157,6 @@ void main() {
     // It is served from a socket that is closed a moment later, so anything it
     // tried to load would fail in front of the user.
     expect(oauthDonePage, isNot(contains('http')));
-    expect(oauthDonePage, contains('Prijava je gotova'));
+    expect(oauthDonePage, contains('Sign-in complete'));
   });
 }

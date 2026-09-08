@@ -99,7 +99,7 @@ void main() {
 
   Future<void> back(WidgetTester tester, [int times = 1]) async {
     for (var i = 0; i < times; i++) {
-      await tester.tap(find.byTooltip('Prethodni potez'));
+      await tester.tap(find.byTooltip('Previous move'));
       await tester.pumpAndSettle();
     }
   }

@@ -73,7 +73,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
               Icon(Icons.psychology, color: colors.accent),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                'Linija #${widget.line.multipv} (${widget.line.evaluation})',
+                'Line #${widget.line.multipv} (${widget.line.evaluation})',
                 style: AppText.title,
               ),
             ],
@@ -112,7 +112,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
                 child: SelectableText(
                   widget.line.continuationSan.isNotEmpty
                       ? widget.line.continuationSan
-                      : 'Nema dostupnih poteza.',
+                      : 'No moves available.',
                   style: AppText.bodyLarge
                       .copyWith(height: 1.4, color: colors.textPrimary),
                 ),
@@ -148,7 +148,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Zatvori'),
+          child: const Text('Close'),
         ),
         if (widget.onInsertLineAsVariation != null &&
             widget.line.sanMoveList.isNotEmpty)
@@ -158,7 +158,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
               Navigator.pop(context);
             },
             icon: const Icon(Icons.call_split, size: 16),
-            label: const Text('Ubaci kao varijaciju'),
+            label: const Text('Insert as variation'),
           ),
         if (widget.onLoadFenToMainBoard != null &&
             widget.line.fenList.isNotEmpty)
@@ -168,7 +168,7 @@ class _EngineLineDialogState extends State<EngineLineDialog> {
               Navigator.pop(context);
             },
             icon: const Icon(Icons.input, size: 16),
-            label: const Text('Učitaj ovaj poziciju na glavnu tablu'),
+            label: const Text('Load this position to main board'),
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.accent,
               foregroundColor: colors.canvas,

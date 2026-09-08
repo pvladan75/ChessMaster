@@ -38,7 +38,7 @@ String buildLabel({
   // nothing rather than something. A bare "1.1.0+2" would look like an answer
   // while naming a week's worth of different APKs - which is the whole reason
   // this line exists.
-  if (commit.isEmpty) return '$appName • build nije označen';
+  if (commit.isEmpty) return '$appName • unstamped build';
 
   final parts = [
     if (version.isNotEmpty) version,
