@@ -58,12 +58,24 @@ class HomeDashboardTab extends StatelessWidget {
                   padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Row(
                     children: [
+                      // Solid, with the initial in the canvas colour. It was a
+                      // brand tint at 22% alpha carrying brand-coloured text —
+                      // one token as both background and foreground, which
+                      // measures 3.69:1 where 4.5 is the bar. The tint could
+                      // have been lowered instead, and the arithmetic says
+                      // 10% would just clear it: a circle so faint that it is
+                      // no longer a coloured circle. Passing a contrast gate
+                      // by making a thing invisible is not passing it.
+                      //
+                      // 6.56:1 this way, and the difference is in lightness
+                      // rather than in hue, which is the only kind the reader
+                      // of this app can be relied on to see.
                       CircleAvatar(
                         radius: 26,
-                        backgroundColor: colors.brand.withValues(alpha: 0.22),
+                        backgroundColor: colors.brand,
                         child: Text(
                           userName.isNotEmpty ? userName[0].toUpperCase() : 'K',
-                          style: AppText.display.copyWith(color: colors.brand),
+                          style: AppText.display.copyWith(color: colors.canvas),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.lg),

@@ -126,7 +126,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
                         _SectionHeader(
                           title: '4. Buttons and Interactive Controls',
                           subtitle:
-                              'Child-friendly: minimum touch target of 48×48 dp',
+                              'Accessible: minimum touch target of 48×48 dp',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -212,7 +212,7 @@ class _IntroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Color, typography, spacing, and component system designed for children (ages 7–14) and chess trainers. '
+                  'Color, typography, spacing, and component system designed for players and chess trainers. '
                   'All interactive components respect the minimum touch target of 48×48 dp.',
                   style: AppText.body.copyWith(color: colors.textSecondary),
                 ),
