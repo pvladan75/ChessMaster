@@ -43,13 +43,13 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
           return Scaffold(
             backgroundColor: colors.canvas,
             appBar: AppBar(
-              title: const Text('Design Galerija — Mislisha'),
+              title: const Text('Design Gallery — Mislisha'),
               elevation: 0,
               actions: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Svetla',
+                    Text('Light',
                         style: AppText.caption
                             .copyWith(color: colors.textPrimary)),
                     Switch(
@@ -77,7 +77,7 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
                       child: Text(
                         isWideScreen
                             ? 'Desktop (>= 840dp)'
-                            : 'Mobilni (< 840dp)',
+                            : 'Mobile (< 840dp)',
                         style:
                             AppText.captionBold.copyWith(color: colors.brand),
                       ),
@@ -98,69 +98,68 @@ class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
                         _IntroBanner(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '1. Paleta boja (Tokeni & Kontrast)',
+                          title: '1. Color Palette (Tokens & Contrast)',
                           subtitle:
-                              '15 token uloga sa izmerenim WCAG AA/AAA kontrastnim odnosima',
+                              '15 token roles with measured WCAG AA/AAA contrast ratios',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _PaletteGrid(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '2. Tipografska skala',
-                          subtitle:
-                              'Skala veličina teksta definisana u AppText',
+                          title: '2. Typography Scale',
+                          subtitle: 'Text size scale defined in AppText',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _TypographySection(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '3. Skala razmaka i zaobljenja',
+                          title: '3. Spacing and Corner Radii Scale',
                           subtitle:
-                              'AppSpacing (4–32dp) i AppRadii (4–20dp, pill)',
+                              'AppSpacing (4–32dp) and AppRadii (4–20dp, pill)',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _SpacingAndRadiiSection(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '4. Dugmad i interaktivne kontrole',
+                          title: '4. Buttons and Interactive Controls',
                           subtitle:
-                              'Prilagođeno deci: minimalna dodirna površina 48×48 dp',
+                              'Child-friendly: minimum touch target of 48×48 dp',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _ButtonsSection(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '5. Kartice i površine',
-                          subtitle: 'Sistemski nivoi elevacije i granica',
+                          title: '5. Cards and Surfaces',
+                          subtitle: 'System elevation levels and borders',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _CardsSection(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '6. Unos teksta i forme',
-                          subtitle: 'Polja za unos, preklopnici i opcije',
+                          title: '6. Text Input and Forms',
+                          subtitle: 'Input fields, switches, and options',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _FormsSection(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '7. Šahovske komponente',
+                          title: '7. Chess Components',
                           subtitle:
-                              'Traka evaluacije, notacija poteza i panel analize',
+                              'Evaluation bar, move notation, and analysis panel',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _ChessComponentsSection(colors: colors),
                         const SizedBox(height: AppSpacing.xxl),
                         _SectionHeader(
-                          title: '8. Dijalozi i obaveštenja',
-                          subtitle: 'Stilizacija modalnih prozora',
+                          title: '8. Dialogs and Notifications',
+                          subtitle: 'Modal dialog styling',
                           colors: colors,
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -213,8 +212,8 @@ class _IntroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Sistem boja, tipografije, razmaka i komponenti prilagođen deci (7–14 god.) i šahovskim trenerima. '
-                  'Sve interaktivne komponente poštuju minimalni touch target od 48×48 dp.',
+                  'Color, typography, spacing, and component system designed for children (ages 7–14) and chess trainers. '
+                  'All interactive components respect the minimum touch target of 48×48 dp.',
                   style: AppText.body.copyWith(color: colors.textSecondary),
                 ),
               ],
@@ -264,21 +263,21 @@ class _PaletteGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final swatches = [
-      _SwatchData('canvas', colors.canvas, 'Pozadina ekrana'),
-      _SwatchData('surface', colors.surface, 'Kartice i paneli'),
-      _SwatchData('surfaceRaised', colors.surfaceRaised, 'Izdignuti redovi'),
-      _SwatchData('border', colors.border, 'Suptilne linije'),
-      _SwatchData('borderStrong', colors.borderStrong, 'Granice u fokusu'),
-      _SwatchData('textPrimary', colors.textPrimary, 'Naslovi i telo'),
-      _SwatchData('textSecondary', colors.textSecondary, 'Drugi red teksta'),
-      _SwatchData('textMuted', colors.textMuted, 'Prigušeno'),
-      _SwatchData('accent (Teal)', colors.accent, 'Motor, aktivno stanje'),
-      _SwatchData('accentAlt (Purple)', colors.accentAlt, 'Varijante'),
+      _SwatchData('canvas', colors.canvas, 'Screen background'),
+      _SwatchData('surface', colors.surface, 'Cards and panels'),
+      _SwatchData('surfaceRaised', colors.surfaceRaised, 'Elevated rows'),
+      _SwatchData('border', colors.border, 'Subtle borders'),
+      _SwatchData('borderStrong', colors.borderStrong, 'Focused borders'),
+      _SwatchData('textPrimary', colors.textPrimary, 'Titles and body'),
+      _SwatchData('textSecondary', colors.textSecondary, 'Secondary text'),
+      _SwatchData('textMuted', colors.textMuted, 'Muted'),
+      _SwatchData('accent (Teal)', colors.accent, 'Engine, active state'),
+      _SwatchData('accentAlt (Purple)', colors.accentAlt, 'Variations'),
       _SwatchData('brand (Violet)', colors.brand, 'Mislisha'),
-      _SwatchData('info (Sky)', colors.info, 'Info i pomoć'),
-      _SwatchData('warning (Amber)', colors.warning, 'Upozorenje'),
-      _SwatchData('danger (Rose)', colors.danger, 'Greška, mat'),
-      _SwatchData('success (Green)', colors.success, 'Tačan potez'),
+      _SwatchData('info (Sky)', colors.info, 'Info and help'),
+      _SwatchData('warning (Amber)', colors.warning, 'Warning'),
+      _SwatchData('danger (Rose)', colors.danger, 'Blunder, checkmate'),
+      _SwatchData('success (Green)', colors.success, 'Correct move'),
     ];
 
     return Wrap(
@@ -396,7 +395,7 @@ class _SwatchCard extends StatelessWidget {
           // wrong in a new way is not an improvement on one that is stale.
           if ((data.color.toARGB32() >> 24) == 0xFF)
             Text(
-              '${_contrastRatio(data.color, colors.surface).toStringAsFixed(2)}:1 na surface',
+              '${_contrastRatio(data.color, colors.surface).toStringAsFixed(2)}:1 on surface',
               style: AppText.micro.copyWith(color: colors.textMuted),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -415,60 +414,60 @@ class _TypographySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = [
-      ('AppText.display', '22px Bold', AppText.display, 'Pozicija 1. e4'),
+      ('AppText.display', '22px Bold', AppText.display, 'Position 1. e4'),
       (
         'AppText.headline',
         '18px Bold',
         AppText.headline,
-        'Šahovski trener i vežbe'
+        'Chess trainer and exercises'
       ),
       (
         'AppText.title',
         '16px Bold',
         AppText.title,
-        'Taktika i Repertoar otvaranja'
+        'Tactics and Opening Repertoire'
       ),
       (
         'AppText.subtitle',
         '14px Semibold',
         AppText.subtitle,
-        'Vežbajte osnovno matiranje protiv Stockfish-a'
+        'Practice basic checkmates against Stockfish'
       ),
       (
         'AppText.bodyLargeBold',
         '13px Bold',
         AppText.bodyLargeBold,
-        'Nf3 Sc6 3. Bc4 Bc5 (Giuoco Piano)'
+        'Nf3 Nc6 3. Bc4 Bc5 (Giuoco Piano)'
       ),
       (
         'AppText.bodyLarge',
         '13px Regular',
         AppText.bodyLarge,
-        'Preporučeni potez sa procenom +0.8'
+        'Recommended move with eval +0.8'
       ),
       (
         'AppText.bodyBold',
         '12px Bold',
         AppText.bodyBold,
-        'Mat u 2 poteza — Zagonetka #4120'
+        'Mate in 2 — Puzzle #4120'
       ),
       (
         'AppText.body',
         '12px Regular',
         AppText.body,
-        'Standardni tekst unutar kartica i panela za objašnjenja.'
+        'Standard text inside cards and explanation panels.'
       ),
       (
         'AppText.captionBold',
         '11px Bold',
         AppText.captionBold,
-        'Rejting: 1450 • Dubina: 18'
+        'Rating: 1450 • Depth: 18'
       ),
       (
         'AppText.caption',
         '11px Regular',
         AppText.caption,
-        'Poslednja izmena pre 2 sata • 35 zadataka'
+        'Last edited 2 hours ago • 35 tasks'
       ),
       (
         'AppText.micro',
@@ -597,7 +596,7 @@ class _SpacingAndRadiiSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Skala razmaka (AppSpacing)',
+              Text('Spacing scale (AppSpacing)',
                   style: AppText.subtitle.copyWith(color: colors.textPrimary)),
               const SizedBox(height: AppSpacing.md),
               Wrap(
@@ -639,7 +638,7 @@ class _SpacingAndRadiiSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Zaobljenja uglova (AppRadii)',
+              Text('Corner radii (AppRadii)',
                   style: AppText.subtitle.copyWith(color: colors.textPrimary)),
               const SizedBox(height: AppSpacing.md),
               Wrap(
@@ -689,7 +688,7 @@ class _ButtonsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Varijante dugmadi (Sva dugmad imaju min. visinu 48dp)',
+            'Button variants (All buttons have min. height of 48dp)',
             style: AppText.subtitle.copyWith(color: colors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -701,7 +700,7 @@ class _ButtonsSection extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.play_arrow),
-                label: const Text('Primarno'),
+                label: const Text('Primary'),
               ),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
@@ -713,33 +712,33 @@ class _ButtonsSection extends StatelessWidget {
                 ),
                 onPressed: () {},
                 icon: const Icon(Icons.menu_book_outlined),
-                label: const Text('Tonalno'),
+                label: const Text('Tonal'),
               ),
               ElevatedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.emoji_events_outlined),
-                label: const Text('Izdignuto'),
+                label: const Text('Elevated'),
               ),
               OutlinedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.filter_list),
-                label: const Text('Uokvireno'),
+                label: const Text('Outlined'),
               ),
               TextButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.refresh),
-                label: const Text('Tekstualno'),
+                label: const Text('Text'),
               ),
               IconButton(
                 onPressed: () {},
                 icon: const Icon(Icons.arrow_back),
-                tooltip: 'Nazad',
+                tooltip: 'Back',
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'Onemogućena stanja (Disabled)',
+            'Disabled states',
             style: AppText.caption.copyWith(color: colors.textMuted),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -750,16 +749,16 @@ class _ButtonsSection extends StatelessWidget {
               FilledButton.icon(
                 onPressed: null,
                 icon: const Icon(Icons.play_arrow),
-                label: const Text('Započni trening'),
+                label: const Text('Start training'),
               ),
               ElevatedButton.icon(
                 onPressed: null,
                 icon: const Icon(Icons.shield_outlined),
-                label: const Text('Održi remi'),
+                label: const Text('Hold a draw'),
               ),
               OutlinedButton(
                 onPressed: null,
-                child: const Text('Onemogućeno'),
+                child: const Text('Disabled'),
               ),
             ],
           ),
@@ -798,7 +797,7 @@ class _CardsSection extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Standardna kartica',
+                      'Standard card',
                       style: AppText.title.copyWith(color: colors.textPrimary),
                     ),
                   ),
@@ -806,7 +805,7 @@ class _CardsSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Boja pozadine je `context.colors.surface` sa suptilnim `border` obrubom.',
+                'Background color is `context.colors.surface` with subtle `border`.',
                 style: AppText.body.copyWith(color: colors.textSecondary),
               ),
             ],
@@ -830,7 +829,7 @@ class _CardsSection extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Izdignuta kartica',
+                      'Elevated card',
                       style: AppText.title.copyWith(color: colors.textPrimary),
                     ),
                   ),
@@ -838,7 +837,7 @@ class _CardsSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Boja pozadine je `context.colors.surfaceRaised` za isticanje važnih sekcija.',
+                'Background color is `context.colors.surfaceRaised` to emphasize key sections.',
                 style: AppText.body.copyWith(color: colors.textSecondary),
               ),
             ],
@@ -862,7 +861,7 @@ class _CardsSection extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Tematska kartica',
+                      'Themed card',
                       style: AppText.title.copyWith(color: colors.textPrimary),
                     ),
                   ),
@@ -870,7 +869,7 @@ class _CardsSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Istaknuti rub sa `accentAlt` ili `accent` bojom za tematske kategorije vežbi.',
+                'Accent border with `accentAlt` or `accent` color for themed exercise categories.',
                 style: AppText.body.copyWith(color: colors.textSecondary),
               ),
             ],
@@ -898,21 +897,21 @@ class _FormsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Polja za unos i statusi',
+          Text('Input fields and statuses',
               style: AppText.subtitle.copyWith(color: colors.textPrimary)),
           const SizedBox(height: AppSpacing.md),
           const TextField(
             decoration: InputDecoration(
-              labelText: 'Korisničko ime ili kod sobe',
-              hintText: 'npr. SOBA-1234',
+              labelText: 'Username or room code',
+              hintText: 'e.g. ROOM-1234',
               prefixIcon: Icon(Icons.person_outline),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           TextField(
             decoration: InputDecoration(
-              labelText: 'Neispravan FEN unos',
-              errorText: 'Pozicija nije validna šahovska notacija.',
+              labelText: 'Invalid FEN input',
+              errorText: 'Position is not valid chess notation.',
               prefixIcon: const Icon(Icons.error_outline),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.clear),
@@ -921,7 +920,7 @@ class _FormsSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Bedževi i statusne oznake',
+          Text('Badges and status indicators',
               style: AppText.subtitle.copyWith(color: colors.textPrimary)),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
@@ -929,22 +928,22 @@ class _FormsSection extends StatelessWidget {
             runSpacing: AppSpacing.sm,
             children: [
               _StatusBadge(
-                label: 'Tačan potez',
+                label: 'Correct move',
                 icon: Icons.check_circle_outline,
                 color: colors.success,
               ),
               _StatusBadge(
-                label: 'Previđanje (Blunder)',
+                label: 'Blunder',
                 icon: Icons.warning_amber_outlined,
                 color: colors.warning,
               ),
               _StatusBadge(
-                label: 'Greška (-3.2)',
+                label: 'Mistake (-3.2)',
                 icon: Icons.cancel_outlined,
                 color: colors.danger,
               ),
               _StatusBadge(
-                label: 'Dubina 24',
+                label: 'Depth 24',
                 icon: Icons.info_outline,
                 color: colors.info,
               ),
@@ -1015,7 +1014,7 @@ class _ChessComponentsSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Traka evaluacije (Eval Bar) i Notacija poteza',
+                'Evaluation bar (Eval Bar) and Move notation',
                 style: AppText.subtitle.copyWith(color: colors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -1129,7 +1128,7 @@ class _ChessComponentsSection extends StatelessWidget {
                         const SizedBox(width: AppSpacing.xs),
                         Flexible(
                           child: Text(
-                            'Stockfish 16 • Analiza',
+                            'Stockfish 16 • Analysis',
                             style: AppText.subtitle
                                 .copyWith(color: colors.textPrimary),
                             overflow: TextOverflow.ellipsis,
@@ -1149,7 +1148,7 @@ class _ChessComponentsSection extends StatelessWidget {
                       borderRadius: AppRadii.roundedXs,
                     ),
                     child: Text(
-                      'DUBINA 22',
+                      'DEPTH 22',
                       style: AppText.micro.copyWith(color: colors.accent),
                     ),
                   ),
@@ -1356,7 +1355,7 @@ class _DialogPreviewSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Pregled dijaloga (Modal Dialog)',
+            'Dialog preview (Modal Dialog)',
             style: AppText.subtitle.copyWith(color: colors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -1386,7 +1385,7 @@ class _DialogPreviewSection extends StatelessWidget {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          'Završi trening?',
+                          'End training?',
                           style:
                               AppText.title.copyWith(color: colors.textPrimary),
                         ),
@@ -1395,7 +1394,7 @@ class _DialogPreviewSection extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Da li ste sigurni da želite da prekinete trenutni trening? Vaš napredak će ostati sačuvan.',
+                    'Are you sure you want to stop the current training? Your progress will be saved.',
                     style: AppText.body.copyWith(color: colors.textSecondary),
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -1406,11 +1405,11 @@ class _DialogPreviewSection extends StatelessWidget {
                     children: [
                       OutlinedButton(
                         onPressed: () {},
-                        child: const Text('Nastavi'),
+                        child: const Text('Continue'),
                       ),
                       FilledButton(
                         onPressed: () {},
-                        child: const Text('Završi'),
+                        child: const Text('End'),
                       ),
                     ],
                   ),

@@ -104,7 +104,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   late io.Socket socket;
   bool isConnected = false;
   bool _isDisposing = false;
-  String gameStatus = "Spajanje na game server...";
+  String gameStatus = "Connecting to game server...";
 
   PlayerColor boardOrientation = PlayerColor.white;
   String boardControl = 'trainer_only';
@@ -344,7 +344,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         AppFeedback.show(
             context,
             () => SnackBar(
-                  content: Text('Motor ne može da računa: $reason'),
+                  content: Text('Engine cannot calculate: $reason'),
                   backgroundColor: context.colors.danger,
                 ));
       },
@@ -391,7 +391,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// mean a student sitting in silence not knowing there is anything to hear.
   List<String> get _voiceUsersOther => audioUsers
       .where((u) => u is Map && u['userId'] != widget.userSession.id)
-      .map<String>((u) => (u['userName'] ?? 'Učesnik').toString())
+      .map<String>((u) => (u['userName'] ?? 'Participant').toString())
       .toList();
 
   /// Enters the voice channel because somebody asked for it.
@@ -520,9 +520,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// needs answered by voice — and it is the reason this app is not a place
   /// where a child can be asked for their address.
   static const Map<String, String> _quickAnswers = {
-    'da': 'Da',
-    'ne': 'Ne',
-    'nejasno': 'Nisam razumeo/la',
+    'da': 'Yes',
+    'ne': 'No',
+    'nejasno': "I didn't understand",
   };
 
   String? _quickAnswerText(String? key) => _quickAnswers[key ?? ''];
@@ -557,7 +557,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         AppFeedback.show(
             context,
             () => SnackBar(
-                  content: Text(data['error']?.toString() ?? 'Nije uspelo.'),
+                  content: Text(data['error']?.toString() ?? 'Failed.'),
                   backgroundColor: context.colors.danger,
                 ));
         return;
@@ -566,8 +566,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           context,
           () => SnackBar(
                 content: Text(mayTalk
-                    ? 'Učenik je dobio mikrofon.'
-                    : 'Učeniku je oduzet mikrofon — i dalje sluša i odgovara na tabli.'),
+                    ? 'Student was given the microphone.'
+                    : "Student's microphone was taken away — they can still listen and respond on the board."),
                 backgroundColor:
                     mayTalk ? context.colors.success : context.colors.warning,
               ));
@@ -576,7 +576,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       AppFeedback.show(
           context,
           () => SnackBar(
-                content: Text('Server nije dostupan.'),
+                content: Text('Server is unavailable.'),
                 backgroundColor: context.colors.danger,
               ));
     }
@@ -675,7 +675,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       },
       onLoadFenToMainBoard: (fen) {
         loadLessonPosition(fen, null);
-        _showSuccess('Učitana pozicija iz linije analize!');
+        _showSuccess('Position loaded from analysis line!');
       },
       onInsertLineAsVariation:
           canDriveSharedBoard ? _insertEngineLineAsVariation : null,
@@ -784,13 +784,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
             setState(() {});
             if (undone) _publishArrows();
             if (undone) {
-              _showSuccess('Poslednja strelica je poništena.');
+              _showSuccess('Last arrow undone.');
             } else {
-              _showError('Nema strelice za poništavanje.');
+              _showError('No arrow to undo.');
             }
           },
           icon: const Icon(Icons.undo, size: 16),
-          label: const Text('Poništi strelicu', style: AppText.body),
+          label: const Text('Undo arrow', style: AppText.body),
         ),
         OutlinedButton.icon(
           onPressed: () {
@@ -804,7 +804,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             if (cleared) _publishArrows();
           },
           icon: const Icon(Icons.layers_clear, size: 16),
-          label: const Text('Izbriši sve strelice', style: AppText.body),
+          label: const Text('Clear all arrows', style: AppText.body),
         ),
       ],
     );
@@ -901,7 +901,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       final isStudio = widget.roomCode == 'STUDIO';
       setState(() {
         isConnected = true;
-        gameStatus = isStudio ? 'Priprema' : "Soba: ${widget.roomCode}";
+        gameStatus = isStudio ? 'Preparation' : "Room: ${widget.roomCode}";
       });
 
       // The studio is a local board, not a room: there is no `rooms` row named
@@ -937,7 +937,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (_isDisposing || !mounted) return;
       setState(() {
         isConnected = false;
-        gameStatus = "Prekinuta veza sa serverom";
+        gameStatus = "Disconnected from server";
       });
     });
 
@@ -947,7 +947,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (!mounted) return;
       final reason = (data is Map && data['reason'] != null)
           ? data['reason'].toString()
-          : 'Nemate ovlašćenje za ovu akciju.';
+          : 'You are not authorized for this action.';
       AppFeedback.show(
         context,
         () => SnackBar(
@@ -964,12 +964,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (!mounted) return;
       final reason = (data is Map ? data['reason']?.toString() : null) ?? '';
       const messages = {
-        'no-room': 'Ne postoji soba sa tim kodom.',
+        'no-room': 'No room with that code exists.',
         'guest-not-allowed':
-            'Ova soba ne prima goste — prijavite se ili tražite poziv.',
-        'not-invited': 'Niste na spisku za ovu sobu. Tražite poziv od trenera.',
+            'This room does not allow guests — sign in or request an invite.',
+        'not-invited':
+            'You are not on the list for this room. Ask the trainer for an invite.',
       };
-      final text = messages[reason] ?? 'Ulazak u sobu nije dozvoljen.';
+      final text = messages[reason] ?? 'Access to room is not allowed.';
       AppFeedback.show(
         context,
         () => SnackBar(
@@ -1009,7 +1010,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           context,
           () => SnackBar(
             content: Text(
-                'Dozvole table promenjene: ${_getPermissionLabel(boardControl)}'),
+                'Board permissions changed: ${_getPermissionLabel(boardControl)}'),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1027,7 +1028,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             currentEngineEval = "0.00";
             bestEngineMove = "-";
             engineLines.clear();
-            _showError('Trener je onemogućio kompjutersku analizu za učenike.');
+            _showError('Trainer disabled computer analysis for students.');
           }
         });
       }
@@ -1044,7 +1045,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           context,
           () => SnackBar(
             content: Text(
-                'Trener je okrenuo vašu tablu na: ${data['orientation'] == 'white' ? 'Beli' : 'Crni'}'),
+                'Trainer flipped your board to: ${data['orientation'] == 'white' ? 'White' : 'Black'}'),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1161,8 +1162,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
             () => SnackBar(
               content: Text(
                 newRole == 'trener'
-                    ? 'Promovisani ste u ulogu Trenera! Sada imate punu kontrolu nad tablom i sesijom.'
-                    : 'Vaša uloga je vraćena na Učenik.',
+                    ? 'You have been promoted to Trainer! You now have full control over the board and session.'
+                    : 'Your role was returned to Student.',
               ),
               backgroundColor: newRole == 'trener'
                   ? context.colors.accent
@@ -1191,7 +1192,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('recording_denied', (data) {
       if (data == null || !mounted) return;
       final reason = data['reason'] as String? ??
-          'Zvuk se snima samo dok ste sami u sobi.';
+          'Audio is only recorded while you are alone in the room.';
       setState(() {
         _recordingAllowed = false;
         _recordingBlockedReason = reason;
@@ -1205,7 +1206,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('recording_must_stop', (data) {
       if (data == null || !mounted) return;
       final reason = data['reason'] as String? ??
-          'Snimanje je zaustavljeno — u sobu je ušao još neko.';
+          'Recording stopped — someone else entered the room.';
       setState(() {
         _recordingAllowed = false;
         _recordingBlockedReason = reason;
@@ -1216,7 +1217,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         // ancestor", and the line below it — the one that actually stops
         // recording a child whose parent refused — never ran.
         unawaited(_stopRecording());
-        AppFeedback.warning(context, '$reason Snimanje je zaustavljeno.');
+        AppFeedback.warning(context, '$reason Recording stopped.');
       }
     });
 
@@ -1225,7 +1226,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         final status = data['status'];
         final startTimeMs = data['recordingStartTimeMs'];
         final isPaused = data['paused'] ?? false;
-        final updatedBy = data['updatedBy'] ?? 'Domaćin';
+        final updatedBy = data['updatedBy'] ?? 'Host';
 
         setState(() {
           if (status == 'started') {
@@ -1247,12 +1248,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
           context,
           () => SnackBar(
             content: Text(status == 'started'
-                ? '$updatedBy je započeo snimanje sesije.'
+                ? '$updatedBy started session recording.'
                 : (status == 'paused'
-                    ? '$updatedBy je pauzirao snimanje.'
+                    ? '$updatedBy paused recording.'
                     : (status == 'resumed'
-                        ? '$updatedBy je nastavio snimanje.'
-                        : '$updatedBy je zaustavio snimanje.'))),
+                        ? '$updatedBy resumed recording.'
+                        : '$updatedBy stopped recording.'))),
             duration: const Duration(seconds: 2),
             backgroundColor: status == 'started'
                 ? context.colors.danger
@@ -1264,8 +1265,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     socket.on('student_position_shared', (data) {
       if (data != null && mounted) {
-        final String studentName = data['studentName'] ?? 'Učenik';
-        final String title = data['title'] ?? 'Pozicija';
+        final String studentName = data['studentName'] ?? 'Student';
+        final String title = data['title'] ?? 'Position';
         final String fen = data['fen'];
         final String? pgn = data['pgn'];
 
@@ -1277,22 +1278,22 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 children: [
                   Icon(Icons.share, color: context.colors.warning),
                   const SizedBox(width: AppSpacing.sm),
-                  const Text('Predložena pozicija'),
+                  const Text('Suggested position'),
                 ],
               ),
               content: Text(
-                  'Učenik $studentName predlaže poziciju: "$title". Da li želite da je učitate na tablu?'),
+                  'Student $studentName suggests position: "$title". Do you want to load it onto the board?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Zatvori'),
+                  child: const Text('Close'),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(ctx);
                     loadLessonPosition(fen, pgn);
                   },
-                  child: const Text('Učitaj na tablu'),
+                  child: const Text('Load onto board'),
                 ),
               ],
             ),
@@ -1301,8 +1302,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           AppFeedback.show(
             context,
             () => SnackBar(
-              content:
-                  Text('Učenik $studentName je podelio poziciju: "$title"'),
+              content: Text('Student $studentName shared position: "$title"'),
               backgroundColor: context.colors.info,
             ),
           );
@@ -1342,12 +1342,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
         () => SnackBar(
           content: Text(mayTalk
               ? (voiceOn
-                  ? 'Trener vam je dao reč. Mikrofon je uključen.'
-                  : 'Trener vam je dao reč. Važi čim uključite glas.')
+                  ? 'Trainer gave you permission to speak. Microphone is on.'
+                  : 'Trainer gave you permission to speak. Active once you turn voice on.')
               : (voiceOn
-                  ? 'Trener je isključio vaš mikrofon. I dalje čujete čas i '
-                      'odgovarate na tabli.'
-                  : 'Trener je isključio vaš mikrofon.')),
+                  ? 'Trainer turned off your microphone. You can still hear the session and '
+                      'respond on the board.'
+                  : 'Trainer turned off your microphone.')),
           backgroundColor:
               mayTalk ? context.colors.success : context.colors.warning,
           duration: const Duration(seconds: 4),
@@ -1361,7 +1361,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // "jasno?" and gets an answer without anybody's voice being published.
     socket.on('quick_answer', (data) {
       if (!mounted || data is! Map) return;
-      final who = data['userName']?.toString() ?? 'Učenik';
+      final who = data['userName']?.toString() ?? 'Student';
       final said = _quickAnswerText(data['answer']?.toString());
       if (said == null) return;
       AppFeedback.show(
@@ -1388,7 +1388,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             context,
             () => SnackBar(
               content: Text(
-                  'Trener vas je utišao. Možete podići ruku ako želite reč.'),
+                  'Trainer muted you. You can raise your hand if you want to speak.'),
               backgroundColor: context.colors.warning,
               duration: Duration(seconds: 4),
             ),
@@ -1410,7 +1410,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           AppFeedback.show(
             context,
             () => SnackBar(
-              content: Text('Trener vam je dozvolio reč.'),
+              content: Text('Trainer gave you permission to speak.'),
               backgroundColor: context.colors.success,
               duration: Duration(seconds: 4),
             ),
@@ -1425,7 +1425,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         AppFeedback.show(
           context,
           () => SnackBar(
-            content: Text('Učenik $userName želi reč.'),
+            content: Text('Student $userName wants to speak.'),
             backgroundColor: context.colors.warning,
             duration: const Duration(seconds: 4),
           ),
@@ -1467,7 +1467,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       isRecordingPaused = false;
       recordingStartTimeMs = null;
     });
-    AppFeedback.warning(context, '$reason Snimak nije sačuvan.');
+    AppFeedback.warning(context, '$reason Recording was not saved.');
   }
 
   Future<void> _startRecording() async {
@@ -1479,7 +1479,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (!_recordingAllowed) {
       AppFeedback.warning(
         context,
-        _recordingBlockedReason ?? 'Zvuk se snima samo dok ste sami u sobi.',
+        _recordingBlockedReason ??
+            'Audio is only recorded while you are alone in the room.',
       );
       return;
     }
@@ -1518,7 +1519,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
 
     AppFeedback.warning(context,
-        'Snimanje časa i zvuka (glasa) je započeto! Svi potezi i govor se beleže.');
+        'Session and voice recording started! All moves and speech are being recorded.');
   }
 
   void _pauseRecording() {
@@ -1535,7 +1536,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text('Snimanje je pauzirano. Akcije se privremeno ne beleže.'),
+        content: Text(
+            'Recording paused. Actions are temporarily not being recorded.'),
         backgroundColor: context.colors.warning,
         duration: Duration(seconds: 2),
       ),
@@ -1557,7 +1559,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context,
       () => SnackBar(
         content: Text(
-            'Snimanje je nastavljeno! Svi sledstveni potezi se beleže u kombinovani snimak.'),
+            'Recording resumed! All subsequent moves are recorded into the combined recording.'),
         backgroundColor: context.colors.success,
         duration: Duration(seconds: 2),
       ),
@@ -1583,28 +1585,28 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     final titleController = TextEditingController(
         text:
-            'Materijal ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
+            'Material ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Završetak i čuvanje snimka'),
+        title: const Text('Finish and save recording'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Unesite naziv materijala:'),
+            const Text('Enter material name:'),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: titleController,
               decoration: const InputDecoration(
-                labelText: 'Naziv materijala',
+                labelText: 'Material name',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Ukupno zabeleženo događaja: ${_recorder.eventCount}',
+              'Total recorded events: ${_recorder.eventCount}',
               style: AppText.body.copyWith(color: context.colors.textMuted),
             ),
           ],
@@ -1612,14 +1614,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Prekini bez čuvanja'),
+            child: const Text('Cancel without saving'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.accent,
                 foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sačuvaj snimak'),
+            child: const Text('Save recording'),
           ),
         ],
       ),
@@ -1666,7 +1668,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         context,
         () => SnackBar(
           content: Text(
-              'Snimak časa je sačuvan na vašem uređaju! Sinhronizacija sa serverom se vrši u pozadini.'),
+              'Session recording saved to your device! Server synchronization in background.'),
           backgroundColor: context.colors.accent,
           duration: Duration(seconds: 4),
         ),
@@ -1697,8 +1699,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
           context,
           notices.length == 1
               ? notices.first
-              : '${notices.first} (još ${notices.length - 1} napomena servera '
-                  'je u dnevniku.)',
+              : '${notices.first} (${notices.length - 1} more server notes '
+                  'in the log.)',
         );
       }
     } catch (e) {
@@ -1707,7 +1709,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       AppFeedback.show(
         context,
         () => SnackBar(
-            content: Text('Greška pri čuvanju lokalnog snimka: $e'),
+            content: Text('Error saving local recording: $e'),
             backgroundColor: context.colors.danger),
       );
     } finally {
@@ -1723,13 +1725,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
   String _getPermissionLabel(String control) {
     switch (control) {
       case 'trainer_only':
-        return 'Samo Trener';
+        return 'Trainer only';
       case 'student_white':
-        return 'Učenik vuče samo Bele';
+        return 'Student moves White only';
       case 'student_black':
-        return 'Učenik vuče samo Crne';
+        return 'Student moves Black only';
       case 'student_both':
-        return 'Slobodna analiza';
+        return 'Free analysis';
       default:
         return control;
     }
@@ -1802,18 +1804,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final newTitle = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Preimenuj tutorijal'),
+        title: const Text('Rename tutorial'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Naziv tutorijala'),
+          decoration: const InputDecoration(labelText: 'Tutorial title'),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Otkaži')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('Sačuvaj')),
+              child: const Text('Save')),
         ],
       ),
     );
@@ -1835,7 +1837,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (error != null) {
       _showError(error);
     } else {
-      _showSuccess('Tutorijal preimenovan.');
+      _showSuccess('Tutorial renamed.');
       fetchLessons();
     }
   }
@@ -1844,11 +1846,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final newId = await _lessonApi.clone(id: lesson['id'] as int);
     if (!mounted) return;
     if (newId == null) {
-      _showError(_lessonApi.cloneError ?? 'Greška pri kopiranju.');
+      _showError(_lessonApi.cloneError ?? 'Error copying.');
       return;
     }
 
-    _showSuccess('Tutorijal sačuvan kao nova verzija.');
+    _showSuccess('Tutorial saved as new version.');
     await fetchLessons();
 
     if (!mounted) return;
@@ -1863,15 +1865,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Obriši tutorijal?'),
-        content: Text('"${lesson['title']}" će biti trajno obrisana.'),
+        title: const Text('Delete tutorial?'),
+        content: Text('"${lesson['title']}" will be permanently deleted.'),
         actions: [
           TextButton(
-              child: const Text('Otkaži'),
+              child: const Text('Cancel'),
               onPressed: () => Navigator.pop(ctx, false)),
           TextButton(
             child:
-                Text('Obriši', style: TextStyle(color: context.colors.danger)),
+                Text('Delete', style: TextStyle(color: context.colors.danger)),
             onPressed: () => Navigator.pop(ctx, true),
           ),
         ],
@@ -1885,7 +1887,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Tutorijal obrisan.');
+    _showSuccess('Tutorial deleted.');
     fetchLessons();
   }
 
@@ -1899,28 +1901,29 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Izmeni poziciju'),
+        title: const Text('Edit position'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Naziv'),
+              decoration: const InputDecoration(labelText: 'Title'),
             ),
             const SizedBox(height: AppSpacing.md),
             TextField(
               controller: descController,
-              decoration: const InputDecoration(labelText: 'Opis (opciono)'),
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
               maxLines: 2,
             ),
           ],
         ),
         actions: [
           TextButton(
-              child: const Text('Otkaži'),
+              child: const Text('Cancel'),
               onPressed: () => Navigator.pop(ctx, false)),
           ElevatedButton(
-              child: const Text('Sačuvaj'),
+              child: const Text('Save'),
               onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
@@ -1929,7 +1932,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     final title = titleController.text.trim();
     if (title.isEmpty) {
-      _showError('Unesite naziv.');
+      _showError('Enter a title.');
       return;
     }
 
@@ -1953,7 +1956,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Pozicija izmenjena.');
+    _showSuccess('Position updated.');
     fetchLessons();
   }
 
@@ -1972,7 +1975,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Tutorijal sa varijacijama je uspešno sačuvan!');
+    _showSuccess('Tutorial with variations saved successfully!');
     fetchLessons();
   }
 
@@ -2002,7 +2005,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           'pgn': pgn,
         });
 
-        _showSuccess('Tutorijal sa varijacijama je učitan!');
+        _showSuccess('Tutorial with variations loaded!');
         _triggerEngineAnalysis();
         return;
       }
@@ -2012,7 +2015,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       controller.loadFen(fen);
       moveTree = MoveTree(startingFen: fen);
       commentController.text = '';
-      moveHistory.add('Učitan tutorijal / FEN pozicija');
+      moveHistory.add('Loaded tutorial / FEN position');
     });
 
     socket.emit('move', {
@@ -2028,7 +2031,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'pgn': '',
     });
 
-    _showSuccess('Pozicija učitana i sinhronizovana!');
+    _showSuccess('Position loaded and synchronized!');
     _triggerEngineAnalysis();
   }
 
@@ -2041,7 +2044,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final step = items[newIndex];
     loadLessonPosition(step['fen'], step['pgn']);
     _showSuccess(
-        'Korak ${newIndex + 1}/${items.length}: "${step['title'] ?? _activeCourseTitle ?? ''}"');
+        'Step ${newIndex + 1}/${items.length}: "${step['title'] ?? _activeCourseTitle ?? ''}"');
   }
 
   Widget _buildCourseStepBar() {
@@ -2083,15 +2086,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// comment, in the bracketed form PGN readers already ignore as text.
   void _insertEvalIntoComment() {
     if (moveTree.current.parent == null) {
-      _showError('Komentar se dodaje na potez, ne na početnu poziciju.');
+      _showError('Comments are added to a move, not the starting position.');
       return;
     }
     if (!isEngineEnabled) {
-      _showError('Uključite evaluaciju da bi bilo šta bilo za upisati.');
+      _showError('Enable evaluation to record it.');
       return;
     }
 
-    final stamp = '[$currentEngineEval / dubina $_currentEvalDepth]';
+    final stamp = '[$currentEngineEval / depth $_currentEvalDepth]';
     final existing = commentController.text.trim();
     final merged = existing.isEmpty ? stamp : '$existing $stamp';
 
@@ -2101,7 +2104,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           TextSelection.collapsed(offset: merged.length);
       _setCurrentComment(merged);
     });
-    _showSuccess('Evaluacija je upisana u komentar.');
+    _showSuccess('Evaluation recorded in comment.');
   }
 
   /// Files an engine line in the tree as a variation off the current move,
@@ -2117,7 +2120,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         .toList();
 
     if (lanMoves.isEmpty) {
-      _showError('Linija analize je prazna.');
+      _showError('Analysis line is empty.');
       return;
     }
 
@@ -2126,15 +2129,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
       result = MoveTree.appendLine(moveTree.current, lanMoves);
       final head = result.head;
       if (result.added > 0 && head != null) {
-        final stamp = '[${line.evaluation} / dubina ${line.depth}]';
+        final stamp = '[${line.evaluation} / depth ${line.depth}]';
         head.comment = head.comment.isEmpty ? stamp : '${head.comment} $stamp';
       }
     });
 
     if (result.added == 0) {
       _showError(result.rejected
-          ? 'Linija ne odgovara trenutnoj poziciji.'
-          : 'Linija je već bila u stablu.');
+          ? 'Line does not match current position.'
+          : 'Line was already in the tree.');
       return;
     }
 
@@ -2142,7 +2145,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'roomId': widget.roomCode,
       'pgn': moveTree.exportToPgn(),
     });
-    _showSuccess('Ubačeno poteza u varijantu: ${result.added}.');
+    _showSuccess('Moves added to variation: ${result.added}.');
   }
 
   /// Makes the line the cursor is standing on the main line, all the way up.
@@ -2153,7 +2156,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   void _promoteCurrentLine() {
     var node = moveTree.current;
     if (node.parent == null) {
-      _showError('Početna pozicija nije varijanta.');
+      _showError('Starting position is not a variation.');
       return;
     }
 
@@ -2174,7 +2177,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
 
     if (!moved) {
-      _showError('Ovo je već glavna linija.');
+      _showError('This is already the main line.');
       return;
     }
 
@@ -2182,7 +2185,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'roomId': widget.roomCode,
       'pgn': moveTree.exportToPgn(),
     });
-    _showSuccess('Varijanta je postavljena kao glavna linija.');
+    _showSuccess('Variation set as main line.');
   }
 
   /// Cuts the current move and everything after it, and steps back to its
@@ -2191,13 +2194,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final node = moveTree.current;
     final parent = node.parent;
     if (parent == null) {
-      _showError('Početna pozicija se ne može obrisati.');
+      _showError('Starting position cannot be deleted.');
       return;
     }
 
     parent.children.remove(node);
     _selectNode(parent);
-    _showSuccess('Varijanta je obrisana.');
+    _showSuccess('Variation deleted.');
   }
 
   // Jump to specific MoveNode in active history and broadcast state
@@ -2229,9 +2232,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Odigran je novi potez'),
+          title: const Text('New move played'),
           content: const Text(
-              'Ovaj potez stvara novu granu (varijaciju). Kako želite da ga dodate?'),
+              'This move creates a new branch (variation). How would you like to add it?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -2250,7 +2253,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 });
                 _broadcastMoveAndState(from, to, newFen);
               },
-              child: const Text('Dodaj kao novu varijaciju'),
+              child: const Text('Add as new variation'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -2269,7 +2272,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 });
                 _broadcastMoveAndState(from, to, newFen);
               },
-              child: const Text('Postavi kao glavnu liniju'),
+              child: const Text('Set as main line'),
             ),
           ],
         );
@@ -2374,7 +2377,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   void _loadPgnText(String content) {
     final games = MoveTree.splitGames(content);
     if (games.isEmpty) {
-      _showError('Nalepljeni tekst ne sadrži važeću PGN partiju.');
+      _showError('Pasted text does not contain a valid PGN game.');
       return;
     }
     if (games.length == 1) {
@@ -2402,13 +2405,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
           final file = File(pickedFile.path!);
           content = await file.readAsString();
         } else {
-          _showError('Nemoguće pročitati sadržaj fajla.');
+          _showError('Unable to read file contents.');
           return;
         }
 
         final games = MoveTree.splitGames(content);
         if (games.isEmpty) {
-          _showError('Izabrani fajl ne sadrži važeće PGN partije.');
+          _showError('Selected file does not contain valid PGN games.');
           return;
         }
 
@@ -2419,7 +2422,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         }
       }
     } catch (e) {
-      _showError('Greška pri čitanju PGN fajla: $e');
+      _showError('Error reading PGN file: $e');
     }
   }
 
@@ -2463,10 +2466,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
         'pgn': moveTree.exportToPgn(),
       });
 
-      _showSuccess('Učitana partija: ${game.displayName}');
+      _showSuccess('Loaded game: ${game.displayName}');
       _triggerEngineAnalysis();
     } else {
-      _showError('Neuspešno parsiranje PGN partije.');
+      _showError('Failed to parse PGN game.');
     }
   }
 
@@ -2500,7 +2503,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             'fen': currentFen,
             'studentName': widget.userSession.name,
           });
-          _showSuccess('Pozicija poslana treneru (${member['name']})!');
+          _showSuccess('Position sent to trainer (${member['name']})!');
         },
       ),
     );
@@ -2526,7 +2529,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         initialFen: controller.getFen(),
         onPositionSet: (generatedFen) {
           loadLessonPosition(generatedFen, null);
-          _showSuccess('Postavljena pozicija učitana na tablu!');
+          _showSuccess('Setup position loaded onto board!');
         },
       ),
     );
@@ -2583,14 +2586,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
         final data = jsonDecode(res.body);
         friendsList = (data is Map ? data['friends'] : data) as List? ?? [];
       } else {
-        loadError = 'Spisak nije mogao da se učita (${res.statusCode}).';
+        loadError = 'Could not load list (${res.statusCode}).';
       }
     } catch (e) {
       // Not quiet any more. "I could not ask" must never come out as "you have
       // nobody" — the same three-answer rule the account guard and the
       // recording consent both needed.
-      loadError = 'Spisak nije mogao da se učita.';
-      print('[INVITE] Neuspelo dobavljanje spiska prijatelja: $e');
+      loadError = 'Could not load list.';
+      print('[INVITE] Failed to fetch friends list: $e');
     }
 
     if (!mounted) return;
@@ -2604,18 +2607,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
             children: [
               Icon(Icons.person_add, color: context.colors.accent),
               const SizedBox(width: AppSpacing.sm),
-              const Text('Pozovi prijatelje u sesiju', style: AppText.title),
+              const Text('Invite friends to session', style: AppText.title),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Soba: ${widget.roomCode}',
+              Text('Room: ${widget.roomCode}',
                   style:
                       AppText.bodyBold.copyWith(color: context.colors.accent)),
               const SizedBox(height: AppSpacing.sm),
-              const Text('Izaberite prijatelje koje želite da pozovete:',
+              const Text('Select friends you want to invite:',
                   style: AppText.body),
               const SizedBox(height: AppSpacing.md),
               if (loadError != null)
@@ -2629,8 +2632,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text(
-                      'Nemate nikoga na spisku. Na njemu su učenici i treneri '
-                      'sa prihvaćenom vezom.',
+                      'You have no one on the list. Accepted students and trainers '
+                      'appear here.',
                       style: AppText.caption
                           .copyWith(color: context.colors.textMuted)),
                 )
@@ -2644,7 +2647,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         final isSel = selectedFriendIds.contains(fId);
                         return CheckboxListTile(
                           dense: true,
-                          title: Text(f['name'] ?? 'Prijatelj',
+                          title: Text(f['name'] ?? 'Friend',
                               style: AppText.bodyBold),
                           subtitle: Text(f['email'] ?? '',
                               style: AppText.micro
@@ -2669,11 +2672,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Otkaži'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton.icon(
               icon: const Icon(Icons.send, size: 14),
-              label: Text('Pošalji pozivnice (${selectedFriendIds.length})'),
+              label: Text('Send invitations (${selectedFriendIds.length})'),
               style: ElevatedButton.styleFrom(
                   backgroundColor: context.colors.accent,
                   foregroundColor: context.colors.canvas),
@@ -2692,9 +2695,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       'roomCode': widget.roomCode
                     }),
                   );
-                  _showSuccess('Pozivnice uspešno poslate prijateljima!');
+                  _showSuccess('Invitations successfully sent to friends!');
                 } catch (e) {
-                  _showError('Greška pri slanju pozivnica.');
+                  _showError('Error sending invitations.');
                 }
               },
             ),
@@ -2753,7 +2756,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'Stablo poteza',
+          'Move tree',
           style: AppText.bodyLargeBold,
         ),
         const SizedBox(height: 6),
@@ -2776,20 +2779,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
               OutlinedButton.icon(
                 onPressed: onMove ? _promoteCurrentLine : null,
                 icon: const Icon(Icons.vertical_align_top, size: 16),
-                label: const Text('U glavnu liniju', style: AppText.body),
+                label: const Text('To main line', style: AppText.body),
               ),
               OutlinedButton.icon(
                 onPressed: onMove ? _deleteCurrentSubtree : null,
                 icon: const Icon(Icons.delete_outline, size: 16),
-                label: const Text('Obriši varijantu', style: AppText.body),
+                label: const Text('Delete variation', style: AppText.body),
               ),
             ],
           ),
         const SizedBox(height: AppSpacing.md),
         Text(
           onMove
-              ? 'Komentar uz potez ${formatMoveWithNumber(node, moveTree.root)}'
-              : 'Komentar (izaberite potez)',
+              ? 'Comment for move ${formatMoveWithNumber(node, moveTree.root)}'
+              : 'Comment (select a move)',
           style: AppText.bodyLargeBold,
         ),
         const SizedBox(height: 6),
@@ -2800,7 +2803,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           maxLines: 5,
           onChanged: _setCurrentComment,
           decoration: const InputDecoration(
-            hintText: 'Objašnjenje, plan, ocena pozicije...',
+            hintText: 'Explanation, plan, position evaluation...',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(
                 horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
@@ -2814,7 +2817,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             child: OutlinedButton.icon(
               onPressed: onMove ? _insertEvalIntoComment : null,
               icon: const Icon(Icons.speed, size: 16),
-              label: const Text('Ubaci evaluaciju u komentar',
+              label: const Text('Insert evaluation into comment',
                   style: AppText.body),
             ),
           ),
@@ -2888,7 +2891,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Tutorijali i pozicije',
+                'Tutorials and positions',
                 style: AppText.headline,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -2897,7 +2900,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 child: ElevatedButton.icon(
                   onPressed: _showBoardSetupDialog,
                   icon: const Icon(Icons.dashboard_customize, size: 16),
-                  label: const Text('Postavi poziciju (Board Setup)'),
+                  label: const Text('Set up position (Board Setup)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.accent,
                     foregroundColor: context.colors.canvas,
@@ -2910,7 +2913,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 child: ElevatedButton.icon(
                   onPressed: _showSaveDialog,
                   icon: const Icon(Icons.save, size: 16),
-                  label: const Text('Sačuvaj trenutnu poziciju'),
+                  label: const Text('Save current position'),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -2919,7 +2922,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 child: ElevatedButton.icon(
                   onPressed: _showPgnImportDialog,
                   icon: const Icon(Icons.file_open, size: 16),
-                  label: const Text('Uvezi PGN (fajl ili tekst)'),
+                  label: const Text('Import PGN (file or text)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.brand,
                     foregroundColor: context.colors.canvas,
@@ -2933,7 +2936,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   child: ElevatedButton.icon(
                     onPressed: _showCreateCourseDialog,
                     icon: const Icon(Icons.collections_bookmark, size: 16),
-                    label: const Text('Kreiraj tutorijal (više pozicija)'),
+                    label: const Text('Create tutorial (multiple positions)'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.colors.accentAlt,
                       foregroundColor: context.colors.canvas,
@@ -2948,7 +2951,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     child: TextField(
                       controller: fenPasteController,
                       decoration: const InputDecoration(
-                        hintText: 'Nalepi FEN string...',
+                        hintText: 'Paste FEN string...',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
@@ -2966,7 +2969,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       // prezivljava.
                       final fen = fenPasteController.text.trim();
                       if (fen.isEmpty) {
-                        _showError('Molimo vas zalepite ispravan FEN.');
+                        _showError('Please paste a valid FEN.');
                         return;
                       }
                       final razlog = fenIllegalReason(fen);
@@ -2977,13 +2980,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       loadLessonPosition(fen, null);
                       fenPasteController.clear();
                     },
-                    tooltip: 'Učitaj FEN',
+                    tooltip: 'Load FEN',
                   )
                 ],
               ),
               const Divider(height: 24),
               Text(
-                'Pretraga tutorijala',
+                'Search tutorials',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: context.colors.textMuted),
@@ -2992,7 +2995,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               TextField(
                 controller: searchController,
                 decoration: InputDecoration(
-                  hintText: 'Pretraži po nazivu ili tagu...',
+                  hintText: 'Search by title or tag...',
                   prefixIcon: const Icon(Icons.search, size: 18),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear, size: 18),
@@ -3019,7 +3022,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   child: ElevatedButton.icon(
                     onPressed: _showShareStudentPositionModal,
                     icon: const Icon(Icons.share, size: 16),
-                    label: const Text('Prikaži moju poziciju treneru'),
+                    label: const Text('Show my position to trainer'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           context.colors.warning.withValues(alpha: 0.2),
@@ -3036,26 +3039,26 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 runSpacing: 4,
                 children: [
                   Text(
-                    'Kategorija: ',
+                    'Category: ',
                     style: AppText.captionBold
                         .copyWith(color: context.colors.textMuted),
                   ),
                   ChoiceChip(
-                    label: const Text('Sve', style: AppText.micro),
+                    label: const Text('All', style: AppText.micro),
                     selected: _lessonCategoryFilter == 'all',
                     onSelected: (val) {
                       if (val) setState(() => _lessonCategoryFilter = 'all');
                     },
                   ),
                   ChoiceChip(
-                    label: const Text('Moje', style: AppText.micro),
+                    label: const Text('Mine', style: AppText.micro),
                     selected: _lessonCategoryFilter == 'mine',
                     onSelected: (val) {
                       if (val) setState(() => _lessonCategoryFilter = 'mine');
                     },
                   ),
                   ChoiceChip(
-                    label: const Text('Od trenera', style: AppText.micro),
+                    label: const Text('From trainer', style: AppText.micro),
                     selected: _lessonCategoryFilter == 'trainer',
                     onSelected: (val) {
                       if (val) {
@@ -3086,7 +3089,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           child: Padding(
                             padding: const EdgeInsets.all(AppSpacing.lg),
                             child: Text(
-                              'Nema sačuvanih tutorijala u ovoj kategoriji.',
+                              'No saved tutorials in this category.',
                               style: TextStyle(color: context.colors.textMuted),
                             ),
                           ),
@@ -3127,7 +3130,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 children: [
                                   if (isTrainerLesson)
                                     Text(
-                                      'Sačuvan tutorijal od trenera',
+                                      'Saved tutorial from trainer',
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: context.colors.warning,
@@ -3135,7 +3138,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     ),
                                   if (isCourse)
                                     Text(
-                                      'Tutorijal od ${positionList.length} pozicija',
+                                      'Tutorial with ${positionList.length} positions',
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: context.colors.brand,
@@ -3165,7 +3168,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                                 size: 18,
                                                 color:
                                                     context.colors.textMuted),
-                                            tooltip: 'Opcije',
+                                            tooltip: 'Options',
                                             onSelected: (value) {
                                               if (value == 'uredi') {
                                                 _openTutorialEditor(
@@ -3192,19 +3195,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                             itemBuilder: (context) => [
                                               const PopupMenuItem(
                                                   value: 'uredi',
-                                                  child:
-                                                      Text('Uredi tutorijal')),
+                                                  child: Text('Edit tutorial')),
                                               const PopupMenuItem(
                                                   value: 'preimenuj',
-                                                  child: Text('Preimenuj')),
+                                                  child: Text('Rename')),
                                               const PopupMenuItem(
                                                   value: 'pozicije',
                                                   child:
-                                                      Text('Izmeni pozicije')),
+                                                      Text('Edit positions')),
                                               const PopupMenuItem(
                                                   value: 'kloniraj',
                                                   child: Text(
-                                                      'Sačuvaj kao novu verziju')),
+                                                      'Save as new version')),
                                             ],
                                           )
                                         else
@@ -3213,7 +3215,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                                 size: 18,
                                                 color:
                                                     context.colors.textMuted),
-                                            tooltip: 'Izmeni',
+                                            tooltip: 'Edit',
                                             onPressed: () =>
                                                 _editSinglePosition(
                                                     Map<String, dynamic>.from(
@@ -3223,7 +3225,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                           icon: Icon(Icons.delete_outline,
                                               size: 18,
                                               color: context.colors.danger),
-                                          tooltip: 'Obriši',
+                                          tooltip: 'Delete',
                                           onPressed: () => _confirmDeleteLesson(
                                               Map<String, dynamic>.from(
                                                   lesson)),
@@ -3241,7 +3243,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   loadLessonPosition(
                                       firstPos['fen'], firstPos['pgn']);
                                   _showSuccess(
-                                      'Učitan korak 1/${positionList.length} iz tutorijala: „${firstPos['title'] ?? lesson['title']}"');
+                                      'Loaded step 1/${positionList.length} from tutorial: "${firstPos['title'] ?? lesson['title']}"');
                                 } else {
                                   setState(() => _activeCourseItems = null);
                                   loadLessonPosition(
@@ -3283,10 +3285,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
               children: [
                 Text(
                   isStudio
-                      ? 'Kontrole pripreme'
+                      ? 'Preparation controls'
                       : (isHost
-                          ? 'Host Kontrole & Istorija'
-                          : 'Kontrola i Istorija'),
+                          ? 'Host Controls & History'
+                          : 'Controls & History'),
                   style: AppText.headline,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -3294,7 +3296,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 if (isStudio) ...[
                   const Divider(height: 12),
                   const Text(
-                    'Crtanje strelica',
+                    'Arrow drawing',
                     style: AppText.bodyLargeBold,
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -3309,8 +3311,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ? Icons.check
                               : Icons.brush),
                           label: Text(_annotation.isDrawing
-                              ? 'Završi crtanje'
-                              : 'Nacrtaj strelicu'),
+                              ? 'Done drawing'
+                              : 'Draw arrow'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _annotation.isDrawing
                                 ? context.colors.warning
@@ -3341,7 +3343,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              'Samostalan rad — učionica je isključena',
+                              'Solo practice — classroom is off',
                               style: AppText.captionBold
                                   .copyWith(color: context.colors.textPrimary),
                             ),
@@ -3354,7 +3356,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   DropdownButtonFormField<String>(
                     initialValue: boardControl,
                     decoration: const InputDecoration(
-                      labelText: 'Dozvole za Učenika',
+                      labelText: 'Student permissions',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(
                           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -3362,22 +3364,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     items: const [
                       DropdownMenuItem(
                           value: 'trainer_only',
-                          child: Text('Samo ja (Trener)')),
+                          child: Text('Me only (Trainer)')),
                       DropdownMenuItem(
                           value: 'student_white',
-                          child: Text('Učenik igra kao Beli')),
+                          child: Text('Student plays as White')),
                       DropdownMenuItem(
                           value: 'student_black',
-                          child: Text('Učenik igra kao Crni')),
+                          child: Text('Student plays as Black')),
                       DropdownMenuItem(
-                          value: 'student_both',
-                          child: Text('Slobodna analiza')),
+                          value: 'student_both', child: Text('Free analysis')),
                     ],
                     onChanged: _changeStudentPermissions,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   SwitchListTile(
-                    title: const Text('Dozvoli učeniku Stockfish',
+                    title: const Text('Allow Stockfish for student',
                         style: TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w500)),
                     value: allowStudentEngine,
@@ -3395,7 +3396,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   const Text(
-                    'Prisili tablu učeniku na:',
+                    'Force student board to:',
                     style: AppText.bodyLargeBold,
                   ),
                   const SizedBox(height: 6),
@@ -3404,14 +3405,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => _forceStudentOrientation('white'),
-                          child: const Text('Beli'),
+                          child: const Text('White'),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => _forceStudentOrientation('black'),
-                          child: const Text('Crni'),
+                          child: const Text('Black'),
                         ),
                       ),
                     ],
@@ -3419,7 +3420,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   const SizedBox(height: AppSpacing.lg),
                   const Divider(height: 12),
                   const Text(
-                    'Crtanje strelica (Trener)',
+                    'Arrow drawing (Trainer)',
                     style: AppText.bodyLargeBold,
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -3442,8 +3443,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ? Icons.check
                               : Icons.gesture),
                           label: Text(_annotation.isDrawing
-                              ? 'Završi crtanje'
-                              : 'Crtaj strelice'),
+                              ? 'Done drawing'
+                              : 'Draw arrows'),
                         ),
                       ),
                     ],
@@ -3456,7 +3457,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   _buildArrowEditButtons(),
                 ] else ...[
                   Text(
-                    'Status dozvole: ${_getPermissionLabel(boardControl)}',
+                    'Permission status: ${_getPermissionLabel(boardControl)}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 15),
                   ),
@@ -3469,7 +3470,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            'Tabla je zaključana od strane trenera.',
+                            'Board is locked by the trainer.',
                             style: AppText.bodyLarge
                                 .copyWith(color: context.colors.warning),
                           ),
@@ -3485,10 +3486,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         Expanded(
                           child: Text(
                             boardControl == 'student_white'
-                                ? 'Možete vući samo bele figure.'
+                                ? 'You can only move white pieces.'
                                 : boardControl == 'student_black'
-                                    ? 'Možete vući samo crne figure.'
-                                    : 'Slobodna analiza omogućena.',
+                                    ? 'You can only move black pieces.'
+                                    : 'Free analysis enabled.',
                             style: AppText.bodyLarge
                                 .copyWith(color: context.colors.success),
                           ),
@@ -3513,7 +3514,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   color: context.colors.warning, size: 18),
                               const SizedBox(width: AppSpacing.sm),
                               const Text(
-                                'Prisutni u učionici',
+                                'Present in classroom',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -3521,7 +3522,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                           const SizedBox(height: AppSpacing.sm),
                           if (roomMembers.isEmpty)
                             Text(
-                              'Učitavanje prisutnih...',
+                              'Loading attendees...',
                               style: AppText.body
                                   .copyWith(color: context.colors.textMuted),
                             )
@@ -3541,7 +3542,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
-                                        '${member['name']} ${isMe ? "(Ja)" : ""} ${isMemberTrainer ? "[Trener]" : "[Učenik]"}',
+                                        '${member['name']} ${isMe ? "(Me)" : ""} ${isMemberTrainer ? "[Trainer]" : "[Student]"}',
                                         style: AppText.body,
                                       ),
                                     ),
@@ -3549,7 +3550,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       PopupMenuButton<String>(
                                         icon: const Icon(Icons.more_vert,
                                             size: 16),
-                                        tooltip: 'Promeni ulogu',
+                                        tooltip: 'Change role',
                                         onSelected: (newRole) {
                                           socket.emit('change_user_role', {
                                             'roomId': widget.roomCode,
@@ -3562,13 +3563,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                             const PopupMenuItem(
                                               value: 'host',
                                               child: Text(
-                                                  'Promoviši u Hosta (Co-host)',
+                                                  'Promote to Host (Co-host)',
                                                   style: AppText.body),
                                             )
                                           else
                                             const PopupMenuItem(
                                               value: 'korisnik',
-                                              child: Text('Vrati u Korisnika',
+                                              child: Text('Demote to User',
                                                   style: AppText.body),
                                             ),
                                         ],
@@ -3585,7 +3586,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               child: OutlinedButton.icon(
                                 onPressed: _showInSessionInviteFriendsDialog,
                                 icon: const Icon(Icons.person_add, size: 14),
-                                label: const Text('Pozovi prijatelje u sesiju',
+                                label: const Text('Invite friends to session',
                                     style: AppText.caption),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: context.colors.accent,
@@ -3617,7 +3618,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   Icon(Icons.mic, color: context.colors.info),
                                   const SizedBox(width: AppSpacing.sm),
                                   const Text(
-                                    'Audio Učionica',
+                                    'Audio Classroom',
                                     style:
                                         TextStyle(fontWeight: FontWeight.bold),
                                   ),
@@ -3685,9 +3686,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   Expanded(
                                     child: Text(
                                       _voiceUsersOther.isEmpty
-                                          ? 'Glas je isključen. Mikrofon se ne '
-                                              'otvara dok ga sami ne uključite.'
-                                          : 'U razgovoru: '
+                                          ? 'Voice is off. The microphone will not '
+                                              'open until you turn it on yourself.'
+                                          : 'In call: '
                                               '${_voiceUsersOther.join(', ')}.',
                                       style: AppText.caption,
                                     ),
@@ -3700,8 +3701,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               onPressed: _joinVoice,
                               icon: const Icon(Icons.headset_mic, size: 16),
                               label: Text(_voiceUsersOther.isEmpty
-                                  ? 'Uključi glas'
-                                  : 'Priključi se razgovoru'),
+                                  ? 'Turn on voice'
+                                  : 'Join conversation'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: context.colors.success
                                     .withValues(alpha: 0.2),
@@ -3735,8 +3736,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
-                                        'Slušate čas. Odgovarate dugmadima ispod '
-                                        'i potezima na tabli.',
+                                        'You are listening to the session. Respond using the buttons below '
+                                        'and moves on the board.',
                                         style: AppText.caption,
                                       ),
                                     ),
@@ -3753,8 +3754,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                           ? Icons.mic_off
                                           : Icons.mic),
                                       label: Text(isAudioMuted
-                                          ? 'Uključi mikrofon'
-                                          : 'Utišaj me'),
+                                          ? 'Turn on microphone'
+                                          : 'Mute me'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: isAudioMuted
                                             ? context.colors.danger
@@ -3802,7 +3803,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                             const SizedBox(height: AppSpacing.md),
                             Text(
-                              'Učesnici u audio razgovoru:',
+                              'Participants in audio call:',
                               style: AppText.captionBold
                                   .copyWith(color: context.colors.textMuted),
                             ),
@@ -3842,7 +3843,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     const SizedBox(width: AppSpacing.sm),
                                     Expanded(
                                       child: Text(
-                                        '${user['userName']} ${isMe ? "(Ja)" : ""} ${isUserTrainer ? "[Trener]" : ""}',
+                                        '${user['userName']} ${isMe ? "(Me)" : ""} ${isUserTrainer ? "[Trainer]" : ""}',
                                         style: AppText.body.copyWith(
                                             fontWeight: isUserTalking
                                                 ? FontWeight.bold
@@ -3871,8 +3872,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                             user['userId'] as int,
                                             !userMaySpeak),
                                         tooltip: userMaySpeak
-                                            ? 'Oduzmi mikrofon (ostaje da sluša)'
-                                            : 'Daj mikrofon',
+                                            ? 'Revoke microphone (remains listening)'
+                                            : 'Grant microphone',
                                       ),
                                     if (isTrener && !isMe && userMaySpeak)
                                       IconButton(
@@ -3895,8 +3896,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                           }
                                         },
                                         tooltip: isUserMuted
-                                            ? 'Oduzmi utišanje'
-                                            : 'Utišaj učenika',
+                                            ? 'Unmute'
+                                            : 'Mute student',
                                       ),
                                   ],
                                 ),
@@ -3904,7 +3905,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             }),
                             if (audioUsers.isEmpty)
                               Text(
-                                'Nema povezanih korisnika.',
+                                'No connected users.',
                                 style: AppText.caption
                                     .copyWith(color: context.colors.textMuted),
                               ),
@@ -3921,7 +3922,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       .withValues(alpha: 0.15),
                                   foregroundColor: context.colors.textPrimary,
                                 ),
-                                child: const Text('Utišaj sve učenike'),
+                                child: const Text('Mute all students'),
                               ),
                             ],
                             if (widget.userSession.role == 'ucenik' &&
@@ -3930,7 +3931,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               const SizedBox(height: AppSpacing.sm),
                               Center(
                                 child: Text(
-                                  'Utišani ste. Ruka je podignuta...',
+                                  'You are muted. Hand is raised...',
                                   style: AppText.caption
                                       .copyWith(color: context.colors.warning),
                                 ),
@@ -3941,7 +3942,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ElevatedButton.icon(
                                 onPressed: _raiseHand,
                                 icon: const Icon(Icons.pan_tool, size: 14),
-                                label: const Text('Podigni ruku za reč'),
+                                label: const Text('Raise hand to speak'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: context.colors.warning
                                       .withValues(alpha: 0.2),
@@ -3958,7 +3959,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             TextButton.icon(
                               onPressed: _leaveVoice,
                               icon: const Icon(Icons.call_end, size: 16),
-                              label: const Text('Isključi glas'),
+                              label: const Text('Leave voice'),
                               style: TextButton.styleFrom(
                                   foregroundColor: context.colors.danger),
                             ),
@@ -4000,9 +4001,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               Text(
                                 isRecording
                                     ? (isRecordingPaused
-                                        ? 'Snimanje PAUZIRANO'
-                                        : 'Snimanje U TOKU...')
-                                    : 'Snimanje časa (Timeline)',
+                                        ? 'Recording PAUSED'
+                                        : 'Recording IN PROGRESS...')
+                                    : 'Session recording (Timeline)',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isRecording
@@ -4038,9 +4039,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                             : Icons.pause,
                                         size: 14),
                                     label: Text(
-                                        isRecordingPaused
-                                            ? 'Nastavi'
-                                            : 'Pauziraj',
+                                        isRecordingPaused ? 'Resume' : 'Pause',
                                         style: AppText.body),
                                   ),
                                 ),
@@ -4054,8 +4053,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     ),
                                     icon: Icon(Icons.stop,
                                         color: context.colors.canvas, size: 14),
-                                    label: const Text('Sačuvaj',
-                                        style: AppText.body),
+                                    label:
+                                        const Text('Save', style: AppText.body),
                                   ),
                                 ),
                               ],
@@ -4070,7 +4069,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                               icon: Icon(Icons.fiber_manual_record,
                                   color: context.colors.canvas, size: 16),
-                              label: const Text('Započni snimanje'),
+                              label: const Text('Start recording'),
                             ),
                             // The reason stands under the button rather than
                             // waiting for it to be pressed: a disabled control
@@ -4122,7 +4121,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isConnected ? gameStatus : 'Uspostavljanje veze...'),
+          title: Text(isConnected ? gameStatus : 'Connecting...'),
           centerTitle: true,
           actions: [
             // Only the person whose room it is: the guest list decides who gets
@@ -4130,7 +4129,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             if (activeRole == 'trener' && widget.roomCode != 'STUDIO')
               IconButton(
                 icon: Icon(Icons.groups, color: context.colors.accent),
-                tooltip: 'Ko sme u sobu',
+                tooltip: 'Room access',
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) => RoomGuestsDialog(
@@ -4140,14 +4139,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ),
             IconButton(
               icon: Icon(Icons.biotech, color: context.colors.accent),
-              tooltip: 'Izvezi u Analizu 🔬',
+              tooltip: 'Export to Analysis 🔬',
               onPressed: () {
                 context.push(AppRoutes.analysisPath(fen: controller.getFen()));
               },
             ),
             IconButton(
               icon: Icon(Icons.settings, color: context.colors.textMuted),
-              tooltip: 'Podešavanja',
+              tooltip: 'Settings',
               onPressed: () async {
                 // Settings sits on top of the room; the socket and the audio
                 // channel keep running underneath instead of being torn down.
@@ -4158,7 +4157,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             if (widget.roomCode != 'STUDIO')
               IconButton(
                 icon: Icon(Icons.logout, color: context.colors.danger),
-                tooltip: 'Napusti sesiju',
+                tooltip: 'Leave session',
                 onPressed: _leaveSessionExplicitly,
               ),
             Icon(
@@ -4349,19 +4348,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Snimanje je u toku'),
+        title: const Text('Recording in progress'),
         content: Text(
-          'Napuštanjem sobe prekidate vezu i gubite ${_recorder.eventCount} zabeleženih događaja.\n\n'
-          'Da li želite prvo da zaustavite i sačuvate snimak?',
+          'Leaving the room disconnects you and you will lose ${_recorder.eventCount} recorded events.\n\n'
+          'Do you want to stop and save the recording first?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'cancel'),
-            child: const Text('Ostani u sobi'),
+            child: const Text('Stay in room'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: Text('Izađi bez čuvanja',
+            child: Text('Leave without saving',
                 style: TextStyle(color: context.colors.danger)),
           ),
           ElevatedButton(
@@ -4369,7 +4368,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 backgroundColor: context.colors.accent,
                 foregroundColor: context.colors.canvas),
             onPressed: () => Navigator.pop(ctx, 'save'),
-            child: const Text('Zaustavi i sačuvaj'),
+            child: const Text('Stop and save'),
           ),
         ],
       ),

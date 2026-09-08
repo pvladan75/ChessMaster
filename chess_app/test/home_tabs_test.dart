@@ -76,16 +76,16 @@ void main() {
 
     await openHome(tester);
 
-    for (final label in ['Trening', 'Časovi', 'Biblioteka', 'Ljudi']) {
+    for (final label in ['Training', 'Sessions', 'Library', 'People']) {
       expect(find.text(label), findsWidgets, reason: 'nema taba „$label"');
     }
     // Settings has a path of its own and opens over what is underneath. A tab
     // would be a place to live in, and nobody lives in settings.
-    expect(find.text('Podešavanja'), findsNothing);
+    expect(find.text('Settings'), findsNothing);
     // At least one way in, and which one depends on the layout: the foot of
     // the rail where there is a rail, the app bar where there is a bar. A
     // window that has both shows both, which costs nothing.
-    expect(find.byTooltip('Podešavanja'), findsWidgets,
+    expect(find.byTooltip('Settings'), findsWidgets,
         reason: 'nema nijednog ulaza u podešavanja');
   });
 
@@ -104,11 +104,11 @@ void main() {
     final rail = find.byType(NavigationRail);
     expect(rail, findsOneWidget);
     expect(
-      find.descendant(of: rail, matching: find.text('Trening')),
+      find.descendant(of: rail, matching: find.text('Training')),
       findsOneWidget,
       reason: 'rail mora da zove prvi tab isto kao donja traka',
     );
-    expect(find.text('Početna'), findsNothing);
+    expect(find.text('Home'), findsNothing);
   });
 
   testWidgets('the rail is still there after an exercise is closed',
@@ -158,7 +158,7 @@ void main() {
     final rail = find.byType(NavigationRail);
     expect(rail, findsOneWidget);
     expect(
-      find.descendant(of: rail, matching: find.byTooltip('Podešavanja')),
+      find.descendant(of: rail, matching: find.byTooltip('Settings')),
       findsOneWidget,
       reason: 'u rail-u nema ulaza u podešavanja',
     );
@@ -260,8 +260,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Snimljeni materijal'), findsOneWidget);
-    expect(find.text('Nemate sačuvanog materijala.'), findsOneWidget);
+    expect(find.text('Recorded material'), findsOneWidget);
+    expect(find.text('You have no saved material.'), findsOneWidget);
     expect(find.textContaining('Snimljeni časovi'), findsNothing,
         reason: 'kartica opet zove materijal snimljenim časom');
   });
@@ -297,15 +297,15 @@ void main() {
     // named once. Before the header existed, the first tab was named twice
     // (its own Scaffold brought an AppBar) and the other three once - which
     // is exactly the inconsistency that was reported.
-    expect(find.text('Trening'), findsNWidgets(2));
-    expect(find.text('Biblioteka'), findsOneWidget);
+    expect(find.text('Training'), findsNWidgets(2));
+    expect(find.text('Library'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.library_books_outlined));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Biblioteka'), findsNWidgets(2),
+    expect(find.text('Library'), findsNWidgets(2),
         reason: 'the header must follow the tab');
-    expect(find.text('Trening'), findsOneWidget);
+    expect(find.text('Training'), findsOneWidget);
   });
 
   testWidgets('the embedded hub does not bring a second title', (tester) async {

@@ -99,7 +99,7 @@ void main() {
   }
 
   Future<void> startDrawing(WidgetTester tester) =>
-      pressText(tester, 'Nacrtaj strelicu');
+      pressText(tester, 'Draw arrow');
 
   group('entering and leaving drawing mode', () {
     testWidgets('the button turns the board over to drawing and back',
@@ -110,10 +110,10 @@ void main() {
 
       await startDrawing(tester);
       expect(board(tester).isDrawingMode, isTrue);
-      expect(find.text('Završi crtanje'), findsOneWidget,
+      expect(find.text('Done drawing'), findsOneWidget,
           reason: 'the button still offers to start drawing while drawing');
 
-      await pressText(tester, 'Završi crtanje');
+      await pressText(tester, 'Done drawing');
       expect(board(tester).isDrawingMode, isFalse);
 
       await closeRoom(tester);
@@ -281,11 +281,11 @@ void main() {
       await tapSquare(tester, 'd4');
       expect(arrows(tester), ['Ge2e4', 'Gd2d4']);
 
-      await pressText(tester, 'Poništi strelicu');
+      await pressText(tester, 'Undo arrow');
 
       expect(arrows(tester), ['Ge2e4'],
           reason: 'the undo took the arrow drawn first rather than last');
-      expect(find.text('Poslednja strelica je poništena.'), findsOneWidget);
+      expect(find.text('Last arrow undone.'), findsOneWidget);
 
       await closeRoom(tester);
     });
@@ -299,9 +299,9 @@ void main() {
       await openRoom(tester);
       await startDrawing(tester);
 
-      await pressText(tester, 'Poništi strelicu');
+      await pressText(tester, 'Undo arrow');
 
-      expect(find.text('Nema strelice za poništavanje.'), findsOneWidget,
+      expect(find.text('No arrow to undo.'), findsOneWidget,
           reason: 'an empty undo said „done" over nothing');
 
       await closeRoom(tester);
@@ -316,7 +316,7 @@ void main() {
       await tapSquare(tester, 'd2');
       await tapSquare(tester, 'd4');
 
-      await pressText(tester, 'Izbriši sve strelice');
+      await pressText(tester, 'Clear all arrows');
 
       expect(arrows(tester), isEmpty);
 

@@ -40,7 +40,7 @@ import 'package:chess_app/features/trainer_panel/services/trainer_panel_api_serv
 /// one and the same screen, and only whichever layout you were looking at could
 /// tell you which. A name typed twice drifts; this one is read by the rail, the
 /// bottom bar and the header above the pages.
-const List<String> kTabNames = ['Trening', 'Časovi', 'Biblioteka', 'Ljudi'];
+const List<String> kTabNames = ['Training', 'Sessions', 'Library', 'People'];
 
 class HomeScreen extends StatefulWidget {
   final UserSession session;
@@ -330,8 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket.on('session_invite_received', (data) {
       if (!mounted) return;
       _fetchNotifications();
-      final senderName =
-          data['senderName'] ?? data['trainerName'] ?? 'Prijatelj';
+      final senderName = data['senderName'] ?? data['trainerName'] ?? 'Friend';
       final roomCode = data['roomCode'] ?? '';
       _showInviteDialog(roomCode, senderName);
     });
@@ -339,8 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket.on('lesson_invite', (data) {
       if (!mounted) return;
       _fetchNotifications();
-      final senderName =
-          data['trainerName'] ?? data['senderName'] ?? 'Prijatelj';
+      final senderName = data['trainerName'] ?? data['senderName'] ?? 'Friend';
       final roomCode = data['roomCode'] ?? '';
       _showInviteDialog(roomCode, senderName);
     });
@@ -386,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching students: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju učenika.');
+      if (mounted) AppFeedback.error(context, 'Error loading students.');
     } finally {
       if (mounted) setState(() => _isLoadingStudents = false);
     }
@@ -482,16 +480,17 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         AppFeedback.show(
           context,
-          () => SnackBar(content: Text(data['message'] ?? 'Sačuvano.')),
+          () => SnackBar(content: Text(data['message'] ?? 'Saved.')),
         );
         await _fetchStudents();
         return true;
       }
-      AppFeedback.error(context, data['error'] ?? 'Greška pri odgovoru.');
+      AppFeedback.error(
+          context, data['error'] ?? 'Error responding to request.');
       return false;
     } catch (e) {
       print("Error responding to request: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri odgovoru.');
+      if (mounted) AppFeedback.error(context, 'Error responding to request.');
       return false;
     }
   }
@@ -551,13 +550,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _fetchStudents();
         AppFeedback.show(
           context,
-          () =>
-              const SnackBar(content: Text('Prijatelj je uklonjen iz liste.')),
+          () => const SnackBar(content: Text('Friend removed from the list.')),
         );
       }
     } catch (e) {
       print("Error deleting friend: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri uklanjanju.');
+      if (mounted) AppFeedback.error(context, 'Error removing.');
     }
   }
 
@@ -587,19 +585,19 @@ class _HomeScreenState extends State<HomeScreen> {
         _studentEmailController.clear();
         AppFeedback.show(
           context,
-          () => SnackBar(content: Text(data['message'] ?? 'Učenik dodat.')),
+          () => SnackBar(content: Text(data['message'] ?? 'Student added.')),
         );
         _fetchStudents();
       } else {
         AppFeedback.show(
           context,
-          () => SnackBar(
-              content: Text(data['error'] ?? 'Greška pri dodavanju učenika.')),
+          () =>
+              SnackBar(content: Text(data['error'] ?? 'Error adding student.')),
         );
       }
     } catch (e) {
       print("Error adding student: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri dodavanju učenika.');
+      if (mounted) AppFeedback.error(context, 'Error adding student.');
     }
   }
 
@@ -617,7 +615,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print("Error fetching recordings: $e");
-      if (mounted) AppFeedback.error(context, 'Greška pri učitavanju snimaka.');
+      if (mounted) AppFeedback.error(context, 'Error loading recordings.');
     } finally {
       setState(() => _isLoadingRecordings = false);
     }
@@ -636,7 +634,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print("Error fetching friends: $e");
       if (mounted) {
-        AppFeedback.error(context, 'Greška pri učitavanju prijatelja.');
+        AppFeedback.error(context, 'Error loading friends.');
       }
     } finally {
       if (mounted) setState(() => _isLoadingFriends = false);
@@ -678,7 +676,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print("Error marking notification read: $e");
       if (mounted) {
-        AppFeedback.error(context, 'Greška pri ažuriranju obaveštenja.');
+        AppFeedback.error(context, 'Error updating notifications.');
       }
     }
   }
@@ -771,10 +769,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         _navigateToGame(roomCode, 'host');
       } else {
-        _showError(data['error'] ?? 'Neuspešno kreiranje sobe.');
+        _showError(data['error'] ?? 'Failed to create room.');
       }
     } catch (e) {
-      _showError('Greška pri kreiranju sobe.');
+      _showError('Error creating room.');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -827,13 +825,13 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = jsonDecode(res.body);
       if (res.statusCode == 201) {
         _fetchScheduledSessions();
-        _showScheduledSuccessDialog(data['message'] ?? 'Sesija zakazana!',
+        _showScheduledSuccessDialog(data['message'] ?? 'Session scheduled!',
             data['calendarUrl'], data['session']['room_code']);
       } else {
-        _showError(data['error'] ?? 'Greška pri zakazivanju.');
+        _showError(data['error'] ?? 'Error scheduling session.');
       }
     } catch (e) {
-      _showError('Greška na mreži pri zakazivanju.');
+      _showError('Network error while scheduling.');
     }
   }
 
@@ -849,7 +847,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     context.push(AppRoutes.studentProgressPath(
       id,
-      name: student['name']?.toString() ?? 'Učenik',
+      name: student['name']?.toString() ?? 'Student',
     ));
   }
 
@@ -899,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           () => SnackBar(
               content: Text(
-                  'Pozivnica poslata za sobu $createdRoomCode! Povezivanje...')),
+                  'Invitation sent for room $createdRoomCode! Connecting...')),
         );
 
         _socket.disconnect();
@@ -912,14 +910,14 @@ class _HomeScreenState extends State<HomeScreen> {
         AppFeedback.show(
           context,
           () => SnackBar(
-              content: Text(errorData['error'] ?? 'Greška pri kreiranju sobe')),
+              content: Text(errorData['error'] ?? 'Error creating room')),
         );
       }
     } catch (e) {
       if (!mounted) return;
       AppFeedback.show(
         context,
-        () => SnackBar(content: Text('Greška pri kreiranju sobe: $e')),
+        () => SnackBar(content: Text('Error creating room: $e')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -1157,7 +1155,7 @@ class _HomeScreenState extends State<HomeScreen> {
             appBar: isLandscape
                 ? null
                 : AppBar(
-                    title: const Text('Šahovski trener'),
+                    title: const Text('Chess Trainer'),
                     actions: [
                       if (widget.session.isGuest)
                         TextButton.icon(
@@ -1166,12 +1164,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                           icon: Icon(Icons.login,
                               color: context.colors.textPrimary),
-                          label: Text('Prijavi Se',
+                          label: Text('Sign In',
                               style:
                                   TextStyle(color: context.colors.textPrimary)),
                         ),
                       IconButton(
-                        tooltip: 'Podešavanja',
+                        tooltip: 'Settings',
                         icon: Icon(Icons.settings_outlined,
                             color: context.colors.textSecondary),
                         // Out of the tabs and into the bar. Settings is not a place
@@ -1181,7 +1179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () => context.push(AppRoutes.preferences),
                       ),
                       IconButton(
-                        tooltip: 'Notifikacije i Pozivnice',
+                        tooltip: 'Notifications and Invitations',
                         icon: Badge(
                           isLabelVisible: _unreadNotifications > 0,
                           label: Text('$_unreadNotifications'),
@@ -1229,7 +1227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.only(
                                     bottom: AppSpacing.md),
                                 child: IconButton(
-                                  tooltip: 'Podešavanja',
+                                  tooltip: 'Settings',
                                   icon: Icon(Icons.settings_outlined,
                                       color: context.colors.textSecondary),
                                   onPressed: () =>
@@ -1249,7 +1247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       top: AppSpacing.sm,
                                       bottom: AppSpacing.sm),
                                   child: IconButton(
-                                    tooltip: 'Notifikacije i Pozivnice',
+                                    tooltip: 'Notifications and Invitations',
                                     icon: Badge(
                                       isLabelVisible: _unreadNotifications > 0,
                                       label: Text('$_unreadNotifications'),
@@ -1361,7 +1359,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Aktivna sesija (kod: ${gs.roomCode}) — dodirnite da nastavite',
+                  'Active session (code: ${gs.roomCode}) — tap to resume',
                   style: TextStyle(
                       color: context.colors.onInfoContainer,
                       fontWeight: FontWeight.w600),
@@ -1372,7 +1370,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     .push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
                 style: TextButton.styleFrom(
                     foregroundColor: context.colors.onInfoContainer),
-                child: const Text('Nastavi sesiju'),
+                child: const Text('Resume session'),
               ),
             ],
           ),

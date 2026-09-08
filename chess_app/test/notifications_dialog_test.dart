@@ -109,11 +109,11 @@ void main() {
   });
 
   testWidgets('only a room invitation offers to join', (tester) async {
-    // "Pridruži se" on a request with no room would have nowhere to go.
+    // "Join" on a request with no room would have nowhere to go.
     await _open(tester, [_roomInvite, _studentRequest, _declined]);
 
-    expect(find.text('Pridruži se'), findsOneWidget);
-    expect(find.textContaining('Soba: 123456'), findsOneWidget);
+    expect(find.text('Join'), findsOneWidget);
+    expect(find.textContaining('Room: 123456'), findsOneWidget);
   });
 
   testWidgets('a waiting request is answered here, not somewhere else',
@@ -124,8 +124,8 @@ void main() {
     // The bell is the owner now. It used to point at the Prijatelji tab, and
     // the notification stayed unread for good because nothing tied the answer
     // back to it.
-    expect(find.text('Prihvati'), findsOneWidget);
-    expect(find.text('Odbij'), findsOneWidget);
+    expect(find.text('Accept'), findsOneWidget);
+    expect(find.text('Decline'), findsOneWidget);
     expect(find.text('Odgovorite u tabu Prijatelji.'), findsNothing);
   });
 
@@ -138,16 +138,16 @@ void main() {
     await _open(tester, const [], pending: const [_pending]);
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Prihvati'), findsOneWidget);
-    expect(find.text('Odbij'), findsOneWidget);
+    expect(find.text('Accept'), findsOneWidget);
+    expect(find.text('Decline'), findsOneWidget);
 
-    final line = tester.getRect(find.text('želi da vas upiše kao učenika'));
+    final line = tester.getRect(find.text('wants to add you as a student'));
     expect(line.width, greaterThan(180),
         reason: 'the sentence is squeezed into a column too narrow to read');
 
-    await tester.tap(find.text('Prihvati'));
+    await tester.tap(find.text('Accept'));
     await tester.pumpAndSettle();
-    expect(find.text('Zahtev je prihvaćen.'), findsOneWidget);
+    expect(find.text('Request accepted.'), findsOneWidget);
   });
 
   testWidgets('a request is offered once, not twice', (tester) async {
@@ -156,7 +156,8 @@ void main() {
 
     // The notification for a request that is still waiting would repeat the
     // same thing directly under the row that can answer it.
-    expect(find.textContaining('želi da vas upiše'), findsOneWidget);
+    expect(
+        find.textContaining('wants to add you as a student'), findsOneWidget);
   });
 
   testWidgets('a request outlives its notification', (tester) async {
@@ -165,8 +166,8 @@ void main() {
     await _open(tester, const [],
         pending: const [_pending], size: const Size(800, 600));
 
-    expect(find.text('Prihvati'), findsOneWidget);
-    expect(find.text('Nemate novih notifikacija.'), findsNothing);
+    expect(find.text('Accept'), findsOneWidget);
+    expect(find.text('You have no new notifications.'), findsNothing);
   });
 
   testWidgets('answering says what was decided, in place of the row',
@@ -181,15 +182,15 @@ void main() {
       return true;
     });
 
-    await tester.tap(find.text('Prihvati'));
+    await tester.tap(find.text('Accept'));
     await tester.pumpAndSettle();
 
     expect(answeredId, 8);
     expect(accepted, isTrue);
     // The dialog stays open and reports the outcome rather than vanishing from
     // under the finger that answered it.
-    expect(find.text('Zahtev je prihvaćen.'), findsOneWidget);
-    expect(find.text('Prihvati'), findsNothing);
+    expect(find.text('Request accepted.'), findsOneWidget);
+    expect(find.text('Accept'), findsNothing);
   });
 
   testWidgets('a refused answer leaves the request where it was',
@@ -199,12 +200,12 @@ void main() {
         size: const Size(800, 600),
         onRespond: (_, __) async => false);
 
-    await tester.tap(find.text('Prihvati'));
+    await tester.tap(find.text('Accept'));
     await tester.pumpAndSettle();
 
     // The server said no. Pretending otherwise would lose the request.
-    expect(find.text('Prihvati'), findsOneWidget);
-    expect(find.text('Zahtev je prihvaćen.'), findsNothing);
+    expect(find.text('Accept'), findsOneWidget);
+    expect(find.text('Request accepted.'), findsNothing);
   });
 
   testWidgets('an answered request is history, without buttons',
@@ -212,8 +213,8 @@ void main() {
     // Nothing pending: the notification is all that is left of it.
     await _open(tester, [_studentRequest]);
 
-    expect(find.text('Odgovoreno.'), findsOneWidget);
-    expect(find.text('Prihvati'), findsNothing);
+    expect(find.text('Answered.'), findsOneWidget);
+    expect(find.text('Accept'), findsNothing);
   });
 
   testWidgets('joining passes the room code along', (tester) async {
@@ -228,7 +229,7 @@ void main() {
       joinedRoom = room;
     });
 
-    await tester.tap(find.text('Pridruži se'));
+    await tester.tap(find.text('Join'));
     await tester.pumpAndSettle();
 
     expect(joinedId, 1);
@@ -238,7 +239,7 @@ void main() {
   testWidgets('an empty list says so instead of showing nothing',
       (tester) async {
     await _open(tester, const []);
-    expect(find.text('Nemate novih notifikacija.'), findsOneWidget);
+    expect(find.text('You have no new notifications.'), findsOneWidget);
   });
 
 // The bell's number counts two unlike things. Saying so is the whole point, and
@@ -246,28 +247,28 @@ void main() {
 
   test('the bell says what its number is made of', () {
     expect(badgeExplanation(waiting: 1, unread: 2),
-        '1 zahtev čeka vaš odgovor · 2 nova obaveštenja');
-    expect(badgeExplanation(waiting: 0, unread: 1), '1 novo obaveštenje');
-    expect(
-        badgeExplanation(waiting: 2, unread: 0), '2 zahteva čeka vaš odgovor');
+        '1 request awaiting your response · 2 new notifications');
+    expect(badgeExplanation(waiting: 0, unread: 1), '1 new notification');
+    expect(badgeExplanation(waiting: 2, unread: 0),
+        '2 requests awaiting your response');
     expect(badgeExplanation(waiting: 0, unread: 0), '');
   });
 
-  test('Serbian counts one, a few, and many — and the teens are many', () {
-    // 21 takes the singular and 11 does not, which is the trap in every
-    // hand-written plural.
-    expect(badgeExplanation(waiting: 0, unread: 5), '5 novih obaveštenja');
-    expect(badgeExplanation(waiting: 0, unread: 11), '11 novih obaveštenja');
-    expect(badgeExplanation(waiting: 0, unread: 12), '12 novih obaveštenja');
-    expect(badgeExplanation(waiting: 0, unread: 21), '21 novo obaveštenje');
-    expect(badgeExplanation(waiting: 0, unread: 22), '22 nova obaveštenja');
-    expect(badgeExplanation(waiting: 0, unread: 25), '25 novih obaveštenja');
+  test('counts singular and plural notifications', () {
+    expect(badgeExplanation(waiting: 0, unread: 1), '1 new notification');
+    expect(badgeExplanation(waiting: 0, unread: 5), '5 new notifications');
+    expect(badgeExplanation(waiting: 0, unread: 11), '11 new notifications');
+    expect(badgeExplanation(waiting: 0, unread: 12), '12 new notifications');
+    expect(badgeExplanation(waiting: 0, unread: 21), '21 new notifications');
+    expect(badgeExplanation(waiting: 0, unread: 22), '22 new notifications');
+    expect(badgeExplanation(waiting: 0, unread: 25), '25 new notifications');
   });
 
   testWidgets('the explanation is shown above the list', (tester) async {
     await _open(tester, [_studentRequest, _roomInvite],
         pending: const [_pending]);
 
-    expect(find.textContaining('1 zahtev čeka vaš odgovor'), findsOneWidget);
+    expect(find.textContaining('1 request awaiting your response'),
+        findsOneWidget);
   });
 }

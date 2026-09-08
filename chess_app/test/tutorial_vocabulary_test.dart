@@ -74,14 +74,14 @@ const _expected = <String, List<String>>{
     'zadati tutorijal',
   ],
   'lib/screens/chess_game_screen.dart': [
-    'Obriši tutorijal?',
-    'Tutorijal obrisan.',
-    'Tutorijal sa varijacijama je uspešno sačuvan!',
-    'Tutorijal sa varijacijama je učitan!',
-    'Pretraga tutorijala',
-    'Sačuvan tutorijal od trenera',
+    'Delete tutorial?',
+    'Tutorial deleted.',
+    'Tutorial with variations saved successfully!',
+    'Tutorial with variations loaded!',
+    'Search tutorials',
+    'Saved tutorial from trainer',
   ],
-  'lib/screens/shortcuts_screen.dart': ['tutorijal'],
+  'lib/screens/shortcuts_screen.dart': ['tutorial'],
   'lib/widgets/account_stats_card.dart': ['Sačuvani tutorijali / pozicije'],
   'lib/widgets/create_course_dialog.dart': [
     'Unesite naziv tutorijala.',
@@ -94,17 +94,17 @@ const _expected = <String, List<String>>{
     "'Tutorijal'",
   ],
   'lib/widgets/home/biblioteka_tab.dart': [
-    'Biblioteka pozicija i tutorijala',
-    'tutorijalima.',
+    'Library of positions and tutorials',
+    'tutorials.',
   ],
-  'lib/widgets/home/dashboard_tab.dart': ['Pozicije iz tutorijala'],
+  'lib/widgets/home/dashboard_tab.dart': ['Positions from tutorials'],
   'lib/widgets/home/home_dialogs.dart': [
     // Table B: the live session, which does **not** become a tutorial.
-    'Poziv na čas',
-    'poziva na čas',
-    'Naslov časa',
+    'Session Invitation',
+    'invites you to a session',
+    'Session title',
     // …and the one line in the same file that is the artefact.
-    'pozicija i tutorijala',
+    'saved positions and tutorials',
   ],
   'lib/widgets/save_position_dialog.dart': [
     'Sačuvaj trenutni tutorijal / poziciju',

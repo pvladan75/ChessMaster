@@ -22,21 +22,21 @@ void showInviteDialog(
     barrierDismissible: false,
     builder: (context) {
       return AlertDialog(
-        title: const Text('Poziv na čas'),
+        title: const Text('Session Invitation'),
         content: Text(
-          'Trener $trainerName vas poziva na čas. Da li želite da se pridružite?',
+          'Trainer $trainerName invites you to a session. Would you like to join?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Odbij'),
+            child: const Text('Decline'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               onJoin();
             },
-            child: const Text('Pridruži se'),
+            child: const Text('Join'),
           ),
         ],
       );
@@ -94,7 +94,7 @@ void showNotificationsDialog(
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Notifikacije i Pozivnice',
+                      'Notifications and Invitations',
                       style: AppText.title.copyWith(color: colors.textPrimary),
                     ),
                   ),
@@ -126,7 +126,7 @@ void showNotificationsDialog(
                   Padding(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Text(
-                      'Nemate novih notifikacija.',
+                      'You have no new notifications.',
                       style: AppText.body.copyWith(color: colors.textMuted),
                     ),
                   )
@@ -159,7 +159,7 @@ void showNotificationsDialog(
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Zatvori'),
+              child: const Text('Close'),
             ),
           ],
         );
@@ -204,8 +204,8 @@ Widget _requestCard(
                     ),
                     Text(
                       iAmStudent
-                          ? 'želi da vas upiše kao učenika'
-                          : 'želi da mu budete trener',
+                          ? 'wants to add you as a student'
+                          : 'wants you to be their trainer',
                       style:
                           AppText.caption.copyWith(color: colors.textSecondary),
                     ),
@@ -230,7 +230,7 @@ Widget _requestCard(
                 TextButton.icon(
                   icon: Icon(Icons.close, color: colors.danger),
                   label: Text(
-                    'Odbij',
+                    'Decline',
                     style: TextStyle(color: colors.danger),
                   ),
                   onPressed: () => onAnswer(false),
@@ -238,7 +238,7 @@ Widget _requestCard(
                 TextButton.icon(
                   icon: Icon(Icons.check, color: colors.success),
                   label: Text(
-                    'Prihvati',
+                    'Accept',
                     style: TextStyle(color: colors.success),
                   ),
                   onPressed: () => onAnswer(true),
@@ -264,7 +264,7 @@ Widget _answeredCard(BuildContext context, bool accepted) {
         color: accepted ? colors.success : colors.textMuted,
       ),
       title: Text(
-        accepted ? 'Zahtev je prihvaćen.' : 'Zahtev je odbijen.',
+        accepted ? 'Request accepted.' : 'Request declined.',
         style: AppText.body.copyWith(color: colors.textPrimary),
       ),
     ),
@@ -310,8 +310,8 @@ Widget _messageCard(
       ),
       subtitle: Text(
         canJoin
-            ? 'Soba: $roomCode'
-            : (kind == 'student_request' ? 'Odgovoreno.' : ''),
+            ? 'Room: $roomCode'
+            : (kind == 'student_request' ? 'Answered.' : ''),
         style: AppText.micro.copyWith(color: colors.textSecondary),
       ),
       trailing: canJoin
@@ -320,7 +320,7 @@ Widget _messageCard(
                 Navigator.pop(ctx);
                 onJoinFromNotification(notifId, roomCode);
               },
-              child: Text('Pridruži se', style: AppText.caption),
+              child: Text('Join', style: AppText.caption),
             )
           : null,
     ),
@@ -344,7 +344,7 @@ void showCreateRoomWithFriendsDialog(
             Icon(Icons.add_circle_outline, color: colors.accent),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              'Kreiranje sesije i Pozivanje',
+              'Create Session and Invite',
               style: AppText.title.copyWith(color: colors.textPrimary),
             ),
           ],
@@ -354,7 +354,7 @@ void showCreateRoomWithFriendsDialog(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Izaberite prijatelje koje želite da pozovete u novu sesiju:',
+              'Select friends you want to invite to a new session:',
               style: AppText.body.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -362,7 +362,7 @@ void showCreateRoomWithFriendsDialog(
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 child: Text(
-                  'Nemate dodatih prijatelja. Možete ih dodati u kartici "Lista prijatelja" ispod.',
+                  'You have no added friends. You can add them in the "People" tab.',
                   style: AppText.caption.copyWith(color: colors.textMuted),
                 ),
               )
@@ -377,7 +377,7 @@ void showCreateRoomWithFriendsDialog(
                       return CheckboxListTile(
                         dense: true,
                         title: Text(
-                          f['name'] ?? 'Prijatelj',
+                          f['name'] ?? 'Friend',
                           style: AppText.bodyLargeBold
                               .copyWith(color: colors.textPrimary),
                         ),
@@ -401,14 +401,14 @@ void showCreateRoomWithFriendsDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.rocket_launch, size: 16),
             label: Text(
               selectedFriendIds.isNotEmpty
-                  ? 'Kreiraj i Pozovi (${selectedFriendIds.length})'
-                  : 'Kreiraj sesiju',
+                  ? 'Create and Invite (${selectedFriendIds.length})'
+                  : 'Create session',
             ),
             onPressed: () {
               Navigator.pop(ctx);
@@ -444,7 +444,7 @@ void showScheduleSessionDialog(
             Icon(Icons.calendar_month, color: colors.warning),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              'Zakazivanje sesije unapred',
+              'Schedule a Session',
               style: AppText.title.copyWith(color: colors.textPrimary),
             ),
           ],
@@ -457,8 +457,8 @@ void showScheduleSessionDialog(
               TextField(
                 controller: titleCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Naslov časa',
-                  hintText: 'npr. Sicilijanska odbrana - Predavanje',
+                  labelText: 'Session title',
+                  hintText: 'e.g. Sicilian Defense - Lecture',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -466,7 +466,7 @@ void showScheduleSessionDialog(
               TextField(
                 controller: descCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Opis (opciono)',
+                  labelText: 'Description (optional)',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -517,14 +517,14 @@ void showScheduleSessionDialog(
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'Pozovi prijatelje na zakazani čas:',
+                'Invite friends to scheduled session:',
                 style:
                     AppText.bodyLargeBold.copyWith(color: colors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
               if (availableFriends.isEmpty)
                 Text(
-                  'Nemate dodatih prijatelja.',
+                  'You have no added friends.',
                   style: AppText.caption.copyWith(color: colors.textMuted),
                 )
               else
@@ -538,7 +538,7 @@ void showScheduleSessionDialog(
                         return CheckboxListTile(
                           dense: true,
                           title: Text(
-                            f['name'] ?? 'Prijatelj',
+                            f['name'] ?? 'Friend',
                             style: AppText.body
                                 .copyWith(color: colors.textPrimary),
                           ),
@@ -563,11 +563,11 @@ void showScheduleSessionDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.event_available),
-            label: const Text('Zakaži i Sačuvaj'),
+            label: const Text('Schedule and Save'),
             onPressed: () {
               final title = titleCtrl.text.trim();
               if (title.isEmpty) return;
@@ -606,7 +606,7 @@ void showScheduledSuccessDialog(
         children: [
           Icon(Icons.check_circle, color: colors.success),
           const SizedBox(width: AppSpacing.sm),
-          const Text('Zakazivanje Uspešno!'),
+          const Text('Scheduled Successfully!'),
         ],
       ),
       content: Column(
@@ -616,19 +616,19 @@ void showScheduledSuccessDialog(
           Text(message, style: AppText.body),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Kod sobe: $roomCode',
+            'Room code: $roomCode',
             style: AppText.bodyLargeBold.copyWith(color: colors.accent),
           ),
           const SizedBox(height: AppSpacing.md),
           if (calendarUrl != null) ...[
             Text(
-              'Sinhronizujte sa kalendarom:',
+              'Sync with calendar:',
               style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.xs),
             ElevatedButton.icon(
               icon: const Icon(Icons.edit_calendar),
-              label: const Text('Dodaj u Google Kalendar'),
+              label: const Text('Add to Google Calendar'),
               onPressed: () {
                 launchUrl(
                   Uri.parse(calendarUrl),
@@ -642,7 +642,7 @@ void showScheduledSuccessDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('U redu'),
+          child: const Text('OK'),
         ),
       ],
     ),
@@ -656,10 +656,10 @@ void showPremiumModal(
 }) {
   final colors = context.colors;
   const benefits = [
-    'Neograničeno sačuvanih pozicija i tutorijala (besplatno: do 20)',
-    'Neograničeno živih sesija mesečno (besplatno: do 5)',
-    'Izvoz snimljenih časova u MP4 video format',
-    'Veća mesečna kvota za AI komentare',
+    'Unlimited saved positions and tutorials (free: up to 20)',
+    'Unlimited live sessions per month (free: up to 5)',
+    'Export recorded sessions to MP4 video format',
+    'Higher monthly quota for AI feedback',
   ];
 
   showDialog(
@@ -679,7 +679,7 @@ void showPremiumModal(
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    'Šahovski trener Premium',
+                    'Chess Trainer Premium',
                     style: AppText.title.copyWith(color: colors.textPrimary),
                   ),
                 ),
@@ -692,8 +692,8 @@ void showPremiumModal(
                 children: [
                   Text(
                     isPaid
-                        ? 'Vaš nalog je aktivan (${state.tier}). Uključeno je:'
-                        : 'Premium nalog uklanja ograničenja besplatnog naloga:',
+                        ? 'Your account is active (${state.tier}). Included:'
+                        : 'Premium account removes free tier limitations:',
                     style:
                         AppText.bodyLarge.copyWith(color: colors.textSecondary),
                   ),
@@ -711,7 +711,7 @@ void showPremiumModal(
                   if (aiQuota != null && !aiQuota.isUnlimited) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'AI komentari ovog meseca: ${aiQuota.used} / ${aiQuota.limit}',
+                      'AI comments this month: ${aiQuota.used} / ${aiQuota.limit}',
                       style: AppText.body.copyWith(color: colors.textSecondary),
                     ),
                   ],
@@ -725,10 +725,10 @@ void showPremiumModal(
                       ),
                       child: Text(
                         BillingService.isSupportedPlatform
-                            ? 'Kupovina trenutno nije dostupna. Pokušajte kasnije '
-                                'ili nas kontaktirajte.'
-                            : 'Kupovina je dostupna u Android verziji aplikacije. '
-                                'Nalog kupljen tamo važi i ovde.',
+                            ? 'Purchases are currently unavailable. Please try again later '
+                                'or contact support.'
+                            : 'Purchases are available in the Android version of the app. '
+                                'An account purchased there is valid here too.',
                         style: AppText.caption.copyWith(color: colors.warning),
                       ),
                     ),
@@ -738,7 +738,7 @@ void showPremiumModal(
             actions: [
               TextButton(
                 onPressed: busy ? null : () => Navigator.pop(ctx),
-                child: const Text('Zatvori'),
+                child: const Text('Close'),
               ),
               if (!isPaid && billing.canPurchase)
                 for (final product in billing.products)
@@ -753,8 +753,8 @@ void showPremiumModal(
                               AppFeedback.show(
                                 ctx,
                                 () => SnackBar(
-                                  content: const Text(
-                                      'Kupovinu nije moguće pokrenuti.'),
+                                  content:
+                                      const Text('Unable to start purchase.'),
                                   backgroundColor: colors.danger,
                                 ),
                               );
@@ -791,21 +791,21 @@ void showActiveSessionBlockedDialog(
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Već imate aktivnu sesiju'),
+      title: const Text('You already have an active session'),
       content: Text(
-        'Već ste u sesiji (kod: $roomCode). Napustite je (dugme "Napusti sesiju" u sobi) pre nego što napravite ili se priključite drugoj.',
+        'You are already in a session (code: $roomCode). Leave it ("Leave session" button in the room) before creating or joining another.',
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Otkaži'),
+          child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: () {
             Navigator.pop(ctx);
             onGoToSession();
           },
-          child: const Text('Idi na sesiju'),
+          child: const Text('Go to session'),
         ),
       ],
     ),
@@ -815,24 +815,11 @@ void showActiveSessionBlockedDialog(
 String badgeExplanation({required int waiting, required int unread}) {
   final parts = <String>[
     if (waiting > 0)
-      '$waiting ${_plural(waiting, 'zahtev', 'zahteva', 'zahteva')} čeka vaš odgovor',
+      waiting == 1
+          ? '1 request awaiting your response'
+          : '$waiting requests awaiting your response',
     if (unread > 0)
-      '$unread ${_plural(unread, 'novo obaveštenje', 'nova obaveštenja', 'novih obaveštenja')}',
+      unread == 1 ? '1 new notification' : '$unread new notifications',
   ];
   return parts.join(' · ');
-}
-
-String _plural(int n, String one, String few, String many) {
-  final lastTwo = n % 100;
-  if (lastTwo >= 11 && lastTwo <= 14) return many;
-  switch (n % 10) {
-    case 1:
-      return one;
-    case 2:
-    case 3:
-    case 4:
-      return few;
-    default:
-      return many;
-  }
 }

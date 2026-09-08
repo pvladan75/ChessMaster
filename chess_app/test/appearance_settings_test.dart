@@ -231,7 +231,7 @@ void main() {
       // In a release build an overflowing Row is silently clipped; in a test
       // build it throws. That asymmetry is why this test exists at all.
       await pumpSettings(tester);
-      await tester.ensureVisible(find.text('Boja table:'));
+      await tester.ensureVisible(find.text('Board color:'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 

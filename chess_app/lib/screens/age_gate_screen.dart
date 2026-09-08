@@ -173,7 +173,7 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
     final value = int.tryParse(_year.text.trim());
     if (value == null || value < 1900 || value > thisYear) {
       setState(
-        () => _error = 'Unesite godinu rođenja, između 1900. i $thisYear.',
+        () => _error = 'Enter a birth year between 1900 and $thisYear.',
       );
       return;
     }
@@ -243,24 +243,23 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    'Godina rođenja',
+                    'Birth year',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineSmall,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Pitamo samo godinu, ne i datum — to je jedno polje manje '
-                    'o vama, a odgovara na jedino pitanje koje nam treba.',
+                    'We only ask for the year, not the date — one fewer detail '
+                    'about you, and it answers the only question we need.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     threshold == null
-                        ? 'Od nje zavisi da li je za nalog potrebna saglasnost '
-                            'roditelja.'
-                        : 'Za mlađe od $threshold godina potrebna je saglasnost '
-                            'roditelja.',
+                        ? 'It determines whether parental consent is required '
+                            'for the account.'
+                        : 'Parental consent is required for anyone under $threshold.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall,
                   ),
@@ -278,8 +277,8 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineSmall,
                     decoration: const InputDecoration(
-                      labelText: 'Godina rođenja',
-                      hintText: 'npr. 2014',
+                      labelText: 'Birth year',
+                      hintText: 'e.g. 2014',
                       border: OutlineInputBorder(),
                     ),
                     onSubmitted: (_) => _saving ? null : _save(),
@@ -303,13 +302,13 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                             width: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Sačuvaj'),
+                        : const Text('Save'),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   if (widget.canCancel)
                     TextButton(
                       onPressed: _saving ? null : () => Navigator.pop(context),
-                      child: const Text('Odustani'),
+                      child: const Text('Cancel'),
                     )
                   else
                     // The only way out of the gate, and it has to exist: a
@@ -322,7 +321,7 @@ class _BirthYearScreenState extends State<BirthYearScreen> {
                               await SessionService.instance.signOut();
                               _standing.forget();
                             },
-                      child: const Text('Odjavi se'),
+                      child: const Text('Sign out'),
                     ),
                 ],
               ),

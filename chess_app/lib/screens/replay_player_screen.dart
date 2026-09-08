@@ -104,7 +104,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               _audioPlayer
                   .setSourceUrl(resolveMediaUrl(rec.audioUrl!))
                   .catchError((Object e) {
-                debugPrint('[Replay] Zvuk se ne može učitati: $e');
+                debugPrint('[Replay] Audio could not be loaded: $e');
               });
             }
           }
@@ -114,10 +114,10 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           }
         });
       } else {
-        _showError('Neuspešno učitavanje snimka.');
+        _showError('Failed to load recording.');
       }
     } catch (e) {
-      _showError('Greška na mreži pri učitavanju snimka.');
+      _showError('Network error while loading recording.');
     }
   }
 
@@ -188,7 +188,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         await _audioPlayer.seek(Duration(milliseconds: positionMs));
       }
     } catch (e) {
-      debugPrint('[Replay] Zvuk se ne može reprodukovati: $e');
+      debugPrint('[Replay] Audio playback failed: $e');
       if (mounted) setState(() => isAudioAvailable = false);
     }
   }
@@ -198,7 +198,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   void _audioSafely(Future<void> Function() action) {
     if (!isAudioAvailable) return;
     action().catchError((Object e) {
-      debugPrint('[Replay] Greška zvuka: $e');
+      debugPrint('[Replay] Audio error: $e');
     });
   }
 
@@ -303,7 +303,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             children: [
               Icon(Icons.video_settings_rounded, color: context.colors.brand),
               const SizedBox(width: AppSpacing.sm),
-              const Text('Podešavanje videa', style: AppText.title),
+              const Text('Video Settings', style: AppText.title),
             ],
           ),
           content: SingleChildScrollView(
@@ -312,7 +312,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '1. Stil šahovskih figura:',
+                  '1. Chess piece style:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -326,14 +326,13 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   items: const [
                     DropdownMenuItem(
                         value: 'classic',
-                        child: Text(
-                            'Classic (Isto kao u aplikaciji) — Preporučeno')),
+                        child: Text('Classic (Same as in app) — Recommended')),
                     DropdownMenuItem(
                         value: 'alpha',
-                        child: Text('Alpha / Lichess (Oštre figure)')),
+                        child: Text('Alpha / Lichess (Sharp pieces)')),
                     DropdownMenuItem(
                         value: 'staunton',
-                        child: Text('Staunton (Tradicionalne)')),
+                        child: Text('Staunton (Traditional)')),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -343,7 +342,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  '2. Tema šahovske table:',
+                  '2. Chess board theme:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -357,13 +356,13 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   items: const [
                     DropdownMenuItem(
                         value: 'wood',
-                        child: Text('Klasično drvo (Smeđe / Krem)')),
+                        child: Text('Classic wood (Brown / Cream)')),
                     DropdownMenuItem(
                         value: 'green',
-                        child: Text('Turnirska (Zelena / Bela)')),
+                        child: Text('Tournament (Green / White)')),
                     DropdownMenuItem(
                         value: 'blue',
-                        child: Text('Moderna (Tamno plava / Siva)')),
+                        child: Text('Modern (Dark blue / Gray)')),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -373,7 +372,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  '3. Orijentacija table:',
+                  '3. Board orientation:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -387,7 +386,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                         child: RadioListTile<String>(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Bela (Trener)',
+                          title: const Text('White (Trainer)',
                               style: AppText.caption),
                           value: 'trainer',
                         ),
@@ -396,7 +395,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                         child: RadioListTile<String>(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Crna (Učenik)',
+                          title: const Text('Black (Student)',
                               style: AppText.caption),
                           value: 'student',
                         ),
@@ -406,13 +405,13 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const Divider(),
                 Text(
-                  '4. Prikaz elemenata na ekranu:',
+                  '4. Display elements on screen:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Naslov na vrhu',
+                  title: const Text('Show title at the top',
                       style: AppText.caption),
                   value: showTitle,
                   onChanged: (v) => setDialogState(() => showTitle = v ?? true),
@@ -420,7 +419,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Tajmer i Trajanje',
+                  title: const Text('Show timer and duration',
                       style: AppText.caption),
                   value: showTimer,
                   onChanged: (v) => setDialogState(() => showTimer = v ?? true),
@@ -428,7 +427,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Oznake Polja (A-H, 1-8)',
+                  title: const Text('Show board coordinates (A-H, 1-8)',
                       style: AppText.caption),
                   value: showCoords,
                   onChanged: (v) =>
@@ -437,7 +436,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Prikazi Tekst Zadnjeg Poteza na dnu',
+                  title: const Text('Show last move text at the bottom',
                       style: AppText.caption),
                   value: showMoveText,
                   onChanged: (v) =>
@@ -445,7 +444,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const Divider(),
                 Text(
-                  '5. Rezolucija i Kvalitet:',
+                  '5. Resolution and quality:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -459,14 +458,14 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   items: const [
                     DropdownMenuItem(
                         value: '1080p',
-                        child: Text('1080p (Full HD 1920x1080) - Ultra oštar')),
+                        child: Text('1080p (Full HD 1920x1080) - Ultra sharp')),
                     DropdownMenuItem(
                         value: '720p',
-                        child:
-                            Text('720p (HD 1280x720) - Balans (Preporučeno)')),
+                        child: Text(
+                            '720p (HD 1280x720) - Balanced (Recommended)')),
                     DropdownMenuItem(
                         value: '480p',
-                        child: Text('480p (SD 854x480) - Kompaktan fajl')),
+                        child: Text('480p (SD 854x480) - Compact file')),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -480,11 +479,11 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Otkaži'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton.icon(
               icon: const Icon(Icons.movie_creation_rounded, size: 16),
-              label: const Text('Renderuj Video'),
+              label: const Text('Render Video'),
               style: ElevatedButton.styleFrom(
                   backgroundColor: context.colors.brand,
                   foregroundColor: context.colors.canvas),
@@ -513,15 +512,15 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   if (res.statusCode == 200) {
                     final downloadUrl = resData['downloadUrl'];
                     _showVideoReadyDialog(
-                        resData['message'] ?? 'Izvoz završen.',
+                        resData['message'] ?? 'Export completed.',
                         downloadUrl == null
                             ? null
                             : resolveMediaUrl(downloadUrl));
                   } else {
-                    _showError(resData['error'] ?? 'Izvoz u MP4 nije uspeo.');
+                    _showError(resData['error'] ?? 'MP4 export failed.');
                   }
                 } catch (e) {
-                  _showError('Greška na mreži pri pokretanju MP4 izvoza.');
+                  _showError('Network error while starting MP4 export.');
                 }
               },
             ),
@@ -539,7 +538,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           children: [
             Icon(Icons.check_circle, color: context.colors.accent),
             const SizedBox(width: AppSpacing.sm),
-            const Text('MP4 Video spreman!'),
+            const Text('MP4 Video ready!'),
           ],
         ),
         content: Column(
@@ -549,7 +548,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             Text(message, style: AppText.bodyLarge),
             const SizedBox(height: AppSpacing.md),
             if (downloadUrl != null) ...[
-              Text('Direktan link za preuzimanje:',
+              Text('Direct download link:',
                   style: AppText.caption
                       .copyWith(color: context.colors.textMuted)),
               const SizedBox(height: AppSpacing.xs),
@@ -565,7 +564,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           if (downloadUrl != null)
             ElevatedButton.icon(
               icon: const Icon(Icons.download),
-              label: const Text('Preuzmi MP4 Video'),
+              label: const Text('Download MP4 Video'),
               style: ElevatedButton.styleFrom(
                   backgroundColor: context.colors.accent,
                   foregroundColor: context.colors.canvas),
@@ -576,7 +575,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Zatvori'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -603,7 +602,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Učitavanje snimka...')),
+        appBar: AppBar(title: const Text('Loading recording...')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -616,7 +615,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(rec.title, style: AppText.title),
-            Text('Predavač: ${rec.hostName}',
+            Text('Trainer: ${rec.hostName}',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted)),
           ],
@@ -624,7 +623,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.biotech, color: context.colors.accent),
-            tooltip: 'Izvezi u Analizu 🔬',
+            tooltip: 'Export to Analysis 🔬',
             onPressed: () {
               final fen = _boardController.getFen();
               context.push(AppRoutes.analysisPath(fen: fen));
@@ -632,15 +631,15 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           ),
           if (rec.videoUrl != null)
             IconButton(
-              tooltip: 'Preuzmi sačuvani MP4 Video',
+              tooltip: 'Download saved MP4 Video',
               icon: Icon(Icons.download_for_offline,
                   color: context.colors.accent),
               onPressed: () => _showVideoReadyDialog(
-                  'Sačuvani MP4 video je spreman za preuzimanje:',
+                  'Saved MP4 video is ready for download:',
                   resolveMediaUrl(rec.videoUrl!)),
             ),
           IconButton(
-            tooltip: 'Izvezi u MP4 Video',
+            tooltip: 'Export to MP4 Video',
             icon: Icon(Icons.video_call, color: context.colors.brand),
             onPressed: _showExportMp4Dialog,
           ),
@@ -739,8 +738,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                         const SizedBox(width: 6),
                         Text(
                           isAudioAvailable
-                              ? 'Audio zapis usklađen'
-                              : 'Sinhronizovana reprodukcija poteza i strelica',
+                              ? 'Audio track in sync'
+                              : 'Synchronized playback of moves and arrows',
                           style: (isPlaying
                                   ? AppText.captionBold
                                   : AppText.caption)

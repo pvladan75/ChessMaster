@@ -320,7 +320,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 children: [
                   Icon(Icons.wifi, color: context.colors.canvas),
                   SizedBox(width: AppSpacing.sm),
-                  Text('✅ Veza sa backend serverom je ponovo uspostavljena.',
+                  Text('✅ Connection to the backend server has been restored.',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -550,7 +550,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           // EARLY EXIT: Stockfish found mate M <= (N - k) -> ACCEPT USER MOVE!
           if (userMateScore != null && userMateScore <= remainingNeeded) {
             print(
-                '\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Nađen mat M$userMateScore <= $remainingNeeded! Potez prihvaćen!\n');
+                '\n[MATE_VERIFICATION] ✅ EARLY EXIT (Depth $depth): Found mate M$userMateScore <= $remainingNeeded! Move accepted!\n');
             _verificationTimeoutTimer?.cancel();
             _isVerifyingUserMove = false;
             _stockfishService.stopAnalysis();
@@ -577,7 +577,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             }
 
             print(
-                '\n[MATE_VERIFICATION] ❌ POTEZ ODBIJEN! (Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza). Potez vraćen, tabla otključana.\n');
+                '\n[MATE_VERIFICATION] ❌ MOVE REJECTED! (Stockfish at depth $depth did not find mate in $remainingNeeded moves). Move reverted, board unlocked.\n');
 
             await _sendBackendLog({
               'mode': _categoryDisplayName,
@@ -585,10 +585,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               'status': 'REJECTED',
               'eval': evaluation,
               'reason':
-                  'Stockfish na dubini $depth nije pronašao mat u $remainingNeeded poteza.',
+                  'Stockfish at depth $depth did not find mate in $remainingNeeded moves.',
             });
 
-            _showSnackBar('Netačan potez! Pokušajte sa drugim potezom.');
+            _showSnackBar('Incorrect move! Try another move.');
             return;
           }
         }
@@ -650,7 +650,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         AppFeedback.show(
             context,
             () => SnackBar(
-                  content: Text('Motor ne može da računa: $reason'),
+                  content: Text('Engine cannot calculate: $reason'),
                   backgroundColor: context.colors.danger,
                 ));
       },
@@ -710,7 +710,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // anything is worse, and the two look identical from the outside.
     _opponentMoveRetries = 0;
     setState(() => _isOpponentTurn = false);
-    _showSnackBar('Engine nije odgovorio. Odigrajte potez ponovo.');
+    _showSnackBar('Engine did not respond. Play your move again.');
   }
 
   void _playOpponentMove(String bestMove, String evaluation) {
@@ -776,7 +776,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 .startsWith(validMove.substring(0, 4)));
         if (!stillLegal) {
           print(
-              '[ENGINE_MOVE_TRIGGER] Potez $validMove više nije legalan - pozicija se promenila. Tražim nov odgovor.');
+              '[ENGINE_MOVE_TRIGGER] Move $validMove is no longer legal - position changed. Seeking new response.');
           _triggerOpponentBotResponse();
           return;
         }
@@ -802,7 +802,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           setState(() => _puzzleSolved = true);
           _showEndgameWinDialog();
         } else if (outcome == DrillOutcome.drawn) {
-          _showSnackBar('🤝 Pat / Remi u poziciji.');
+          _showSnackBar('🤝 Stalemate / Draw in the position.');
         } else {
           if (_selectedCategory != 'mate_puzzle' &&
               (_showEvaluation || _showEvalBar)) {
@@ -831,7 +831,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       final jsonResponseMove = _expectedMoves[_moveIndex];
       _moveIndex++;
       print(
-          '\n[OPPONENT_BOT_DEBUG] 🎯 Pronađen spreman odgovor u JSON rešenju: $jsonResponseMove\n');
+          '\n[OPPONENT_BOT_DEBUG] 🎯 Found prepared response in JSON solution: $jsonResponseMove\n');
       _stockfishService.stopAnalysis();
       // Not `_isOpponentTurn = false` here: the move below is played a
       // second later, and the board is inert only while this is set. See
@@ -850,7 +850,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _opponentMoveTimer = Timer(Duration(seconds: moveTimeSec), () {
       if (_isOpponentTurn && mounted) {
         _executeOpponentEngineMoveDueToTimeoutOrDepth(
-            'Vreme razmišljanja isteka ($moveTimeSec s)');
+            'Thinking time expired ($moveTimeSec s)');
       }
     });
 
@@ -867,11 +867,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void _showBlunderAlert(double evalDiff, double currentEval) {
     if (!mounted) return;
     final isCritical = currentEval <= 0.5;
-    final title =
-        isCritical ? '🚨 TEŠKA GREŠKA (BLUNDER)!' : '⚠️ NEPRECIZNOST!';
+    final title = isCritical ? '🚨 BLUNDER!' : '⚠️ INACCURACY!';
     final msg = isCritical
-        ? 'Ovim potezom ste izgubili dobitnu poziciju (Pad evaluacije: -${evalDiff.toStringAsFixed(1)}).'
-        : 'Napravili ste neprecizan potez, ali ste i dalje u prednosti (Pad: -${evalDiff.toStringAsFixed(1)}).';
+        ? 'This move lost the winning position (Eval drop: -${evalDiff.toStringAsFixed(1)}).'
+        : 'You made an inaccurate move, but still hold the advantage (Drop: -${evalDiff.toStringAsFixed(1)}).';
 
     AppFeedback.show(
       context,
@@ -1020,11 +1019,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   String get _categoryDisplayName {
     if (_selectedCategory == 'mate_puzzle')
-      return 'Zagonetke: Mat u $_selectedMateDepth poteza';
+      return 'Puzzles: Mate in $_selectedMateDepth';
     if (_selectedCategory == 'basic_mate')
-      return 'Vežbajte osnovno matiranje ($_selectedBasicMateType)';
-    if (_selectedCategory == 'winning_position') return 'Pronađite dobitni put';
-    return _selectedCategory ?? 'Trening';
+      return 'Practice basic checkmate ($_selectedBasicMateType)';
+    if (_selectedCategory == 'winning_position') return 'Find the winning path';
+    return _selectedCategory ?? 'Training';
   }
 
   Future<void> _loadBasicMatePreset(String difficulty) async {
@@ -1056,7 +1055,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
         print('\n==================================================');
         print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
-        print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
+        print('[TRAINING_LOG] 2) LOADED FEN: $fen');
         print('==================================================\n');
 
         _sendBackendLog({
@@ -1143,10 +1142,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
         print('\n==================================================');
         print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
-        print('[TRAINING_LOG] 2) UČITANI FEN: $fen');
-        print('[TRAINING_LOG] OČEKIVANI POTEZI (JSON): $moves');
+        print('[TRAINING_LOG] 2) LOADED FEN: $fen');
+        print('[TRAINING_LOG] EXPECTED MOVES (JSON): $moves');
         print(
-            '[TREE_VERIFICATION] 🌳 Stablo rešenja učitano (${_currentSolutionsNode?.keys.length ?? 0} grana)');
+            '[TREE_VERIFICATION] 🌳 Solution tree loaded (${_currentSolutionsNode?.keys.length ?? 0} branches)');
         print('==================================================\n');
 
         _sendBackendLog({
@@ -1174,10 +1173,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _stockfishService.analyzePosition(fen, depth: _analysisDepth);
         }
       } else {
-        _showSnackBar('Nije moguće učitati poziciju.');
+        _showSnackBar('Unable to load position.');
       }
     } catch (e) {
-      _showSnackBar('Greška pri učitavanju pozicije.');
+      _showSnackBar('Error loading position.');
     } finally {
       if (mounted) setState(() => _isLoadingPuzzle = false);
     }
@@ -1237,7 +1236,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       'initialFen': _initialPuzzleFen,
     });
 
-    _showSnackBar('🔄 Pozicija je vraćena na početno stanje.');
+    _showSnackBar('🔄 Position reset to initial state.');
   }
 
   Future<void> _handleSquareTap(String square) async {
@@ -1462,8 +1461,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // silence is indistinguishable from the engine having gone wrong.
     if (sidesSwapped) {
       _showSnackBar(_userColor == chess.Color.WHITE
-          ? '↔ Od ove pozicije igrate belim, Stockfish crnim.'
-          : '↔ Od ove pozicije igrate crnim, Stockfish belim.');
+          ? '↔ From this position you play White, Stockfish plays Black.'
+          : '↔ From this position you play Black, Stockfish plays White.');
     }
 
     final fromStr = userLan.substring(0, 2);
@@ -1489,7 +1488,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             DrillOutcome.readerWon &&
         _selectedCategory != 'mate_puzzle') {
       print('\n==================================================');
-      print('[TRAINING_LOG] 🏆 MAT NA TABLI! Korisnik je uspešno zadao mat!');
+      print(
+          '[TRAINING_LOG] 🏆 CHECKMATE ON BOARD! User successfully delivered mate!');
       print('==================================================\n');
 
       await _sendBackendLog({
@@ -1497,7 +1497,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         'dynamicFen': currentFen,
         'userMove': userLan,
         'status': 'SOLVED',
-        'reason': 'Korisnik je uspešno zadao mat na tabli!',
+        'reason': 'User successfully delivered checkmate on the board!',
       });
 
       if (_selectedCategory == 'basic_mate' ||
@@ -1560,9 +1560,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           'status': 'ACCEPTED',
           'validTreeKeys': _currentSolutionsNode?.keys.join(', '),
           'subBranch': subBranch == "CHECKMATE"
-              ? "CHECKMATE (Matni kraj)"
+              ? "CHECKMATE"
               : (subBranch is Map
-                  ? "Grana sa odgovora: ${subBranch.keys.join(', ')}"
+                  ? "Response branch: ${subBranch.keys.join(', ')}"
                   : subBranch.toString()),
         });
 
@@ -1607,7 +1607,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             final String nextOppMove =
                 pendingBP.pendingOpponentMoves.removeAt(0);
             print(
-                '[TREE_VERIFICATION] 🔁 Rešena linija do mata! Nastavak na drugu odbrambenu varijantu od tačke razgranjenja: $nextOppMove');
+                '[TREE_VERIFICATION] 🔁 Line solved to checkmate! Continuing to another defensive variation from branch point: $nextOppMove');
 
             _sendBackendLog({
               'type': 'branchReset',
@@ -1616,8 +1616,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               'remainingBranches': pendingBP.pendingOpponentMoves.length,
             });
 
-            _showSnackBar(
-                'Sjajno! Rešite i ostalu odbrambenu liniju protivnika.');
+            _showSnackBar('Great! Now solve the opponent\'s other defense.');
 
             // Reset board to the EXACT branching FEN (post-user-move position) and play next opponent variation
             _pause(const Duration(milliseconds: 600)).then((_) {
@@ -1659,7 +1658,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   _isOpponentTurn = false;
                 });
               } catch (e) {
-                print('Greška pri prelasku na sledeću varijantu: $e');
+                print('Error switching to next variation: $e');
               }
             });
             return;
@@ -1667,13 +1666,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
           // All variations completely solved!
           print(
-              '[TREE_VERIFICATION] 🎉 SVE VARIJANTE U POTPUNOSTI REŠENE! Zagonetka je uspešno rešena.');
+              '[TREE_VERIFICATION] 🎉 ALL VARIATIONS FULLY SOLVED! Puzzle successfully solved.');
           setState(() {
             _puzzleSolved = true;
             _gameState = PuzzleGameState.puzzleCompleted;
           });
           _submitPuzzleResult(true);
-          _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+          _showSnackBar('Congratulations! Puzzle solved! 🎉');
           return;
         }
 
@@ -1779,11 +1778,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     _gameState = PuzzleGameState.puzzleCompleted;
                   });
                   _submitPuzzleResult(true);
-                  _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+                  _showSnackBar('Congratulations! Puzzle solved! 🎉');
                 }
               }
             } catch (e) {
-              print('Greška pri odigravanju poteza protivnika: $e');
+              print('Error playing opponent move: $e');
               setState(() {
                 _gameState = PuzzleGameState.idle;
                 _isOpponentTurn = false;
@@ -1799,12 +1798,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _gameState = PuzzleGameState.puzzleCompleted;
         });
         _submitPuzzleResult(true);
-        _showSnackBar('Čestitamo! Zagonetka je uspešno rešena! 🎉');
+        _showSnackBar('Congratulations! Puzzle solved! 🎉');
         return;
       } else {
         // Move NOT in solution tree -> Show failure modal dialog with 3 choices!
         print(
-            '[TREE_VERIFICATION] ❌ Potez $userLan nije u stablu rešenja! Prikazivanje dijaloga za grešku.');
+            '[TREE_VERIFICATION] ❌ Move $userLan is not in the solution tree! Showing error dialog.');
         _sendBackendLog({
           'mode': _categoryDisplayName,
           'initialFen': _initialPuzzleFen,
@@ -1812,7 +1811,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           'userMove': '$userLan ($san)',
           'status': 'REJECTED',
           'validTreeKeys': _currentSolutionsNode?.keys.join(', '),
-          'reason': 'Potez nije u ugnježđenom stablu rešenja zagonetke',
+          'reason': 'Move is not in the puzzle solution tree',
         });
         _showFailureDialog();
         return;
@@ -1879,7 +1878,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (!mounted) return;
     _sendBackendLog({
       'type': 'buttonClick',
-      'button': 'Prikazan dijalog - Netačan Potez',
+      'button': 'Dialog Shown - Incorrect Move',
       'puzzleId': _currentPuzzle?['puzzle_id'],
       'fen': _puzzleGame?.fen,
     });
@@ -1918,13 +1917,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       size: isLandscape ? 36 : 48),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Netačan Potez!',
+                    'Incorrect Move!',
                     style: AppText.headline
                         .copyWith(color: context.colors.textPrimary),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Potez koji ste odigrali nije u stablu rešenja. Izaberite opciju:',
+                    'The move you played is not in the solution tree. Choose an option:',
                     textAlign: TextAlign.center,
                     style: AppText.bodyLarge
                         .copyWith(color: context.colors.textMuted),
@@ -1934,7 +1933,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Pokušaj Ponovo'),
+                      label: const Text('Try Again'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: context.colors.warning,
                         foregroundColor: context.colors.canvas,
@@ -1945,7 +1944,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         Navigator.pop(ctx);
                         _sendBackendLog({
                           'type': 'buttonClick',
-                          'button': 'Modal - Pokušaj Ponovo'
+                          'button': 'Modal - Try Again'
                         });
                         _undoIncorrectUserMove();
                       },
@@ -1957,7 +1956,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       Expanded(
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.lightbulb_outline),
-                          label: const Text('Prikaži Rešenje'),
+                          label: const Text('Show Solution'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: context.colors.accentAlt,
                             foregroundColor: context.colors.canvas,
@@ -1968,7 +1967,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             Navigator.pop(ctx);
                             _sendBackendLog({
                               'type': 'buttonClick',
-                              'button': 'Modal - Prikaži Rešenje'
+                              'button': 'Modal - Show Solution'
                             });
                             _playFullSolutionReplay();
                           },
@@ -1978,7 +1977,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       Expanded(
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.arrow_forward),
-                          label: const Text('Sledeća Zagonetka'),
+                          label: const Text('Next Puzzle'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: context.colors.accent,
                             foregroundColor: context.colors.canvas,
@@ -1989,7 +1988,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             Navigator.pop(ctx);
                             _sendBackendLog({
                               'type': 'buttonClick',
-                              'button': 'Modal - Sledeća Zagonetka'
+                              'button': 'Modal - Next Puzzle'
                             });
                             _fetchNextPuzzle();
                           },
@@ -2037,7 +2036,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (_initialPuzzleFen == null || _rootSolutionsTree.isEmpty) return;
     _sendBackendLog({
       'type': 'buttonClick',
-      'button': 'Akcija - Prikaži Rešenje (Auto Replay)',
+      'button': 'Action - Show Solution (Auto Replay)',
       'puzzleId': _currentPuzzle?['puzzle_id'],
       'fen': _initialPuzzleFen,
     });
@@ -2135,14 +2134,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           children: [
             Icon(Icons.flag, color: context.colors.danger, size: 28),
             const SizedBox(width: AppSpacing.sm),
-            const Text('Mat', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Checkmate',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text('Stockfish vam je zadao mat. Probajte ponovo.'),
+        content: const Text('Stockfish delivered checkmate. Try again.'),
         actions: [
           TextButton.icon(
             icon: const Icon(Icons.refresh),
-            label: const Text('Pokušaj ponovo'),
+            label: const Text('Try again'),
             onPressed: () {
               Navigator.pop(ctx);
               _resetCurrentPuzzle();
@@ -2150,7 +2150,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.arrow_forward),
-            label: const Text('Sledeća Pozicija'),
+            label: const Text('Next Position'),
             onPressed: () {
               Navigator.pop(ctx);
               if (_selectedCategory == 'basic_mate') {
@@ -2174,14 +2174,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           children: [
             Icon(Icons.emoji_events, color: context.colors.warning, size: 28),
             SizedBox(width: AppSpacing.sm),
-            Text('🎉 POBEDA!', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('🎉 VICTORY!', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text('Čestitamo! Uspešno ste zadali mat Stockfish-u!'),
+        content: const Text(
+            'Congratulations! You successfully checkmated Stockfish!'),
         actions: [
           ElevatedButton.icon(
             icon: const Icon(Icons.arrow_forward),
-            label: const Text('Sledeća Pozicija'),
+            label: const Text('Next Position'),
             style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.accentAlt,
                 foregroundColor: context.colors.canvas),
@@ -2203,7 +2204,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _resetEngineState();
     _sendBackendLog({
       'type': 'buttonClick',
-      'button': 'Akcija - Probaj Ponovo',
+      'button': 'Action - Try Again',
       'puzzleId': _currentPuzzle?['puzzle_id'],
       'fen': _initialPuzzleFen,
     });
@@ -2283,17 +2284,17 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   Icon(Icons.emoji_events,
                       color: context.colors.warning, size: 28),
                   SizedBox(width: AppSpacing.sm),
-                  Text('Zagonetka Rešena!',
+                  Text('Puzzle Solved!',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
               content: Text(
-                  'Bravo! Tačno ste odigrali sve poteze.\nNovi rejting: $newRating (${change >= 0 ? "+" : ""}$change)'),
+                  'Well done! You played all the moves correctly.\nNew rating: $newRating (${change >= 0 ? "+" : ""}$change)'),
               actions: [
                 OutlinedButton.icon(
                   icon: Icon(Icons.account_tree_outlined,
                       color: context.colors.accent, size: 18),
-                  label: Text('Prikaži Rešenje',
+                  label: Text('Show Solution',
                       style: AppText.bodyLarge
                           .copyWith(color: context.colors.accent)),
                   onPressed: () {
@@ -2305,8 +2306,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.arrow_forward, size: 18),
-                  label:
-                      const Text('Naredna Zagonetka', style: AppText.bodyLarge),
+                  label: const Text('Next Puzzle', style: AppText.bodyLarge),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: context.colors.accent,
                       foregroundColor: context.colors.canvas),
@@ -2403,7 +2403,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       const SizedBox(width: AppSpacing.sm),
                       Text(
                         _selectedCategory == null
-                            ? 'Šahovski trener i vežbe'
+                            ? 'Chess trainer and exercises'
                             : _getCategoryTitle(),
                         style: AppText.subtitle,
                       ),
@@ -2431,13 +2431,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   String _getCategoryTitle() {
     switch (_selectedCategory) {
       case 'mate_puzzle':
-        return 'Mat u 1, 2 ili 3 poteza';
+        return 'Mate in 1, 2, or 3';
       case 'basic_mate':
-        return 'Vežbanje osnovnog matiranja';
+        return 'Basic checkmate practice';
       case 'winning_position':
-        return 'Pronađite dobitni put';
+        return 'Find the winning path';
       default:
-        return 'Šahovski trener i vežbe';
+        return 'Chess trainer and exercises';
     }
   }
 
@@ -2482,10 +2482,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     final String headerGoal = _selectedCategory == 'mate_puzzle'
-        ? '${_puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Mat u $_selectedMateDepth ${_selectedMateDepth == '1' ? 'potez' : 'poteza'}'
+        ? '${_puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move - Mate in $_selectedMateDepth'
         : (_selectedCategory == 'basic_mate'
-            ? 'Vežbanje: $_selectedBasicMateType (Matirajte Stockfish-a)'
-            : '${_puzzleOrientation == PlayerColor.white ? "⚪ Beli" : "⚫ Crni"} na potezu - Pronađite dobitni put');
+            ? 'Practice: $_selectedBasicMateType (Checkmate Stockfish)'
+            : '${_puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move - Find the winning path');
 
     final backButtonCard = Card(
       elevation: 3,
@@ -2497,7 +2497,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.arrow_back, size: 16),
-              label: Text('Nazad na izbor', style: AppText.body),
+              label: Text('Back to selection', style: AppText.body),
               onPressed: () {
                 _resetEngineState();
                 setState(() {
@@ -2560,7 +2560,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       children: [
         ElevatedButton.icon(
           icon: const Icon(Icons.biotech, size: 16),
-          label: const Text('Analiza 🔬'),
+          label: const Text('Analysis 🔬'),
           style: ElevatedButton.styleFrom(
               backgroundColor: context.colors.accentAlt,
               foregroundColor: context.colors.canvas),
@@ -2568,7 +2568,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         ),
         ElevatedButton.icon(
           icon: const Icon(Icons.refresh, size: 16),
-          label: const Text('Probaj Ponovo'),
+          label: const Text('Try Again'),
           style: ElevatedButton.styleFrom(
               backgroundColor: context.colors.warning,
               foregroundColor: context.colors.canvas),
@@ -2576,7 +2576,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         ),
         ElevatedButton.icon(
           icon: const Icon(Icons.arrow_forward),
-          label: const Text('Naredna Pozicija'),
+          label: const Text('Next Position'),
           style: ElevatedButton.styleFrom(
               backgroundColor: context.colors.accent,
               foregroundColor: context.colors.canvas),
@@ -2613,8 +2613,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 icon: Icon(Icons.arrow_back,
                     size: 18, color: context.colors.textPrimary),
                 tooltip: widget.initialCategory != null
-                    ? 'Nazad na trening'
-                    : 'Nazad na izbor kategorije',
+                    ? 'Back to training'
+                    : 'Back to category selection',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 // Reported from the desktop build: this arrow set the category
@@ -2646,7 +2646,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             IconButton(
               icon: Icon(Icons.biotech,
                   size: 18, color: context.colors.accentAlt),
-              tooltip: 'Analiziraj u Tabli za Analizu 🔬',
+              tooltip: 'Analyze in Analysis Board 🔬',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: _exportToAnalysisStudio,
@@ -2655,7 +2655,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             IconButton(
               icon:
                   Icon(Icons.refresh, size: 16, color: context.colors.warning),
-              tooltip: 'Probaj Ponovo',
+              tooltip: 'Try Again',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: _restartCurrentPuzzle,
@@ -2664,7 +2664,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             IconButton(
               icon: Icon(Icons.arrow_forward,
                   size: 16, color: context.colors.accent),
-              tooltip: 'Naredna Pozicija',
+              tooltip: 'Next Position',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: () {
@@ -2733,7 +2733,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.biotech, size: 16),
-                                  label: const Text('Analiza 🔬',
+                                  label: const Text('Analysis 🔬',
                                       style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: context.colors.accentAlt,
@@ -2749,7 +2749,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               Expanded(
                                 child: ElevatedButton.icon(
                                   icon: const Icon(Icons.refresh, size: 16),
-                                  label: const Text('Probaj ponovo',
+                                  label: const Text('Try again',
                                       style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: context.colors.warning,
@@ -2766,7 +2766,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                                 child: ElevatedButton.icon(
                                   icon:
                                       const Icon(Icons.arrow_forward, size: 16),
-                                  label: const Text('Naredna pozicija',
+                                  label: const Text('Next position',
                                       style: AppText.captionBold),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: context.colors.accent,
@@ -3123,7 +3123,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         visible: visible,
         initialFen: _initialPuzzleFen,
         solutions: solutions,
-        mateDepthLabel: 'Mat u ${int.tryParse(_selectedMateDepth) ?? 1}',
+        mateDepthLabel: 'Mate in ${int.tryParse(_selectedMateDepth) ?? 1}',
         activeFen: _activeFen,
         selectedGroupedMoveIndices: _selectedGroupedMoveIndices,
         onNodesBuilt: (nodes) => _solutionGraphNodesCache = nodes,
@@ -3249,6 +3249,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         (moveIndex >= 0 && moveIndex < node.groupedOpponentMoves.length)
             ? node.groupedOpponentMoves[moveIndex]
             : selectedUci;
-    _showSnackBar('Prikazana pozicija za potez protivnika: $sanLabel');
+    _showSnackBar('Displayed position for opponent move: $sanLabel');
   }
 } // end _AiStudioScreenState

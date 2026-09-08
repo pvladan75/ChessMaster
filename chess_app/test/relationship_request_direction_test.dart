@@ -85,8 +85,8 @@ void main() {
       await tester
           .pumpWidget(_host(_tab(iAmTrainer: true, onRoleChanged: (_) {})));
 
-      expect(find.text('Ja sam trener'), findsOneWidget);
-      expect(find.text('Ja sam učenik'), findsOneWidget);
+      expect(find.text('I am a trainer'), findsOneWidget);
+      expect(find.text('I am a student'), findsOneWidget);
     });
 
     testWidgets('picking the student side reports it to the caller',
@@ -96,7 +96,7 @@ void main() {
         _host(_tab(iAmTrainer: true, onRoleChanged: (v) => chosen = v)),
       );
 
-      await tester.tap(find.text('Ja sam učenik'));
+      await tester.tap(find.text('I am a student'));
       await tester.pump();
 
       expect(chosen, isFalse, reason: 'the tap must set the sender to student');
@@ -108,13 +108,13 @@ void main() {
       // that stays "Email prijatelja" is the whole ambiguity restated.
       await tester
           .pumpWidget(_host(_tab(iAmTrainer: true, onRoleChanged: (_) {})));
-      expect(find.text('Email učenika'), findsOneWidget);
-      expect(find.text('Email trenera'), findsNothing);
+      expect(find.text("Student's email"), findsOneWidget);
+      expect(find.text("Trainer's email"), findsNothing);
 
       await tester
           .pumpWidget(_host(_tab(iAmTrainer: false, onRoleChanged: (_) {})));
-      expect(find.text('Email trenera'), findsOneWidget);
-      expect(find.text('Email učenika'), findsNothing);
+      expect(find.text("Trainer's email"), findsOneWidget);
+      expect(find.text("Student's email"), findsNothing);
     });
 
     testWidgets('an unanswered row offers no homework', (tester) async {
@@ -143,7 +143,7 @@ void main() {
         onDeleteStudent: (_) => deleted++,
       )));
 
-      expect(find.textContaining('Čeka potvrdu'), findsOneWidget);
+      expect(find.textContaining('Awaiting confirmation'), findsOneWidget);
       // The address used to stand in this row. It does not travel any more:
       // most of the people in these lists are children, and a list of people is
       // not the place for their emails. The field for *inviting* somebody by
@@ -207,9 +207,10 @@ void main() {
         ],
       )));
 
-      expect(find.text('Moji treneri'), findsOneWidget);
+      expect(find.text('My trainers'), findsOneWidget);
       expect(find.text('pavle'), findsOneWidget);
-      expect(find.textContaining('Još nemate'), findsNothing);
+      expect(
+          find.textContaining('neither students nor trainers'), findsNothing);
     });
 
     testWidgets('a trainer row offers no homework buttons', (tester) async {
@@ -260,9 +261,9 @@ void main() {
         ],
       )));
 
-      expect(find.text('Moji treneri'), findsOneWidget);
+      expect(find.text('My trainers'), findsOneWidget);
       expect(find.text('pavle'), findsOneWidget);
-      expect(find.textContaining('Odgovorite u zvoncetu'), findsOneWidget);
+      expect(find.textContaining('Respond in notifications'), findsOneWidget);
       // And no buttons: two places to answer one thing is what this removed.
       expect(find.byTooltip('Prihvati'), findsNothing);
     });
@@ -283,8 +284,8 @@ void main() {
         ],
       )));
 
-      expect(find.textContaining('Čeka potvrdu'), findsOneWidget);
-      expect(find.textContaining('zvoncetu'), findsNothing);
+      expect(find.textContaining('Awaiting confirmation'), findsOneWidget);
+      expect(find.textContaining('notifications'), findsNothing);
     });
 
     testWidgets('a request I sent stays visible while it waits',
@@ -303,8 +304,8 @@ void main() {
         ],
       )));
 
-      expect(find.text('Moji treneri'), findsOneWidget);
-      expect(find.textContaining('Čeka potvrdu'), findsOneWidget);
+      expect(find.text('My trainers'), findsOneWidget);
+      expect(find.textContaining('Awaiting confirmation'), findsOneWidget);
     });
 
     testWidgets('pulling down asks for fresh data', (tester) async {
@@ -319,7 +320,7 @@ void main() {
       )));
 
       await tester.fling(
-          find.text('Moji Prijatelji & Kontakti'), const Offset(0, 300), 1000);
+          find.text('Friends & Contacts'), const Offset(0, 300), 1000);
       await tester.pumpAndSettle();
 
       expect(refreshed, 1, reason: 'the pull gesture must reach the callback');
@@ -328,7 +329,8 @@ void main() {
     testWidgets('states in words which side teaches', (tester) async {
       await tester
           .pumpWidget(_host(_tab(iAmTrainer: false, onRoleChanged: (_) {})));
-      expect(find.text('Druga strana predaje, vi ste učenik.'), findsOneWidget);
+      expect(find.text('The other person teaches, you are a student.'),
+          findsOneWidget);
     });
   });
 }
