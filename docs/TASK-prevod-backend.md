@@ -92,11 +92,17 @@ file when you have a specific reason to.
 
 ## Done means
 
-* `cd chess_backend && npm test` → **964 passing**, run with `.env` moved aside:
+* `cd chess_backend && npm test` → **964 passing**.
 
 ```bash
-cd chess_backend && mv .env .env.off && npm test; mv .env.off .env
+cd chess_backend && npm test
 ```
+
+  **This worktree has no `.env`** — it is gitignored, so it was never copied in,
+  and that is exactly the environment CI has and the one this suite must pass
+  in. Do not create one. If `npm test` dies at import rather than failing a
+  test, say so and stop: `middleware/auth` calls `process.exit(1)` without
+  `JWT_SECRET`, and that has silently taken 895 tests down before.
 
 * No Serbian left in any string literal in the thirty files — neither a
   diacritic (`čćžšđ ČĆŽŠĐ`) nor a Serbian word written without one

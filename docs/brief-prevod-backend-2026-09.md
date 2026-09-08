@@ -205,13 +205,11 @@ old text across `chess_backend/test/` before moving on. You may edit any test
 file. You may **not** delete a test, weaken an assertion, or relax a matcher. If
 a test cannot be made green by translating it, stop and say so.
 
-**Run `npm test` with `.env` moved aside.** That is the environment CI has, and
-a test that reaches a route drags in `middleware/auth`, which exits without
-`JWT_SECRET`. Move it, run, move it back:
-
-```bash
-cd chess_backend && mv .env .env.off && npm test; mv .env.off .env
-```
+**`npm test` runs with no `.env`, and the worktree has none.** That is the
+environment CI has: a test that reaches a route drags in `middleware/auth`,
+which calls `process.exit(1)` without `JWT_SECRET` and has taken 895 tests down
+silently before. Do not create a `.env` to make something pass — if the suite
+dies at import rather than failing a test, that is a finding.
 
 **Translate the meaning, not the words.** „Nemate pravo na ovu sobu." is
 `You are not allowed in this room.`, and often the better sentence names who is:
