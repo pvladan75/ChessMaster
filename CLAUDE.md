@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1744 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1749 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 956 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -588,6 +588,36 @@ act on, one commit after a lesson about exactly that. **When a flag says
 „somebody else's", every list that draws actions has to read it**, and the way
 to find the readers is to grep the flag rather than to trust that the newest
 list was written knowing about it.
+
+**Five more with phase 1a of `docs/PLAN-ZAVRSNICA.md` — 1749, 1 skipped.** Two
+board-setup dialogs, two files with the same name, and the owner met the
+difference before the code admitted it. The survivor is the one that can open
+**on the position in front of you**; the room's own always came up on the
+standard opening, so setting a study up from the board you were looking at
+meant building it again from nothing. Three things came out of it.
+
+**Three of the five tabs were dead in one caller.** „PGN Uvoz", „Otvaranja" and
+„Chess.com/Lichess" hand their result over through `onPgnLoaded`, and the
+tutorial studio passes none — deliberately, because importing a PGN into a tree
+is the Analysis Studio's job. So picking „Najdorf" there closed the dialog and
+dropped the opening. Same shape as the tree menu two days earlier, and the
+third instance in a week: **a widget that takes optional callbacks must draw
+only what it was given.**
+
+**A test caught the change that a squeeze would have hidden.** Naming the
+castling rights („Beli O-O" instead of `K`) pushed the row onto a second line
+and overflowed a 320 dp phone by sixteen pixels — invisible in a release build,
+where the chips would simply have been unreachable, which is the exact bug that
+test file was written for. The fix is a branch, not a squeeze: on a tab too
+narrow or too short the column scrolls and the board is sized from the width.
+And the first threshold was wrong for a reason worth keeping — **controls that
+grow sideways pay for it in height**, so a height test alone let the phone
+through.
+
+**A source-reading gate reads by matching parentheses.** The one added here
+asserts every caller passes `initialFen:`, and its first version sliced 400
+characters — the same mistake as the 1600-character function slice this file
+already records. It also counted the dialog's own constructor as a caller.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
