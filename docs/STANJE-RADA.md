@@ -39,6 +39,7 @@ njega.
 | `flutter analyze` | 29 `info`, nijedno upozorenje, nijedna greška |
 | grana | `master`, pushovana 8.9.2026 |
 | srpski u `lib/` | **nema ga** — `gate_english_ui` čist nad svih 258 fajlova |
+| srpski na serveru | **nema ga u rečenicama koje idu na ekran** — 66a i 66b, 71 fajl; ostaju logovi, komentari, `routes/consent.js`, roditeljski mejl i vrednosti uloga |
 
 Faza 1 (zamrzavanje + dva reza) i faza 2 (jezgro videa) su gotove, i
 **engleski zaokret je zatvoren 8.9.2026**: batch-evi 62–65b spojeni, `docs/gates/`
@@ -213,9 +214,55 @@ govorio „ne diraj chess_backend" — što je bilo tačno za te batch-eve i to 
 ovo sakrilo. Merenje: 847 srpskih linija u 79 produkcionih fajlova.
 
 **66a je spojen** (`a5fc057`): 30 fajlova, 278 literala, 9 backend testova.
-`npm test` 964, `flutter test` 1762 — oba nepromenjena. **Ostaje 66b: 281
-linija u 41 fajlu** (zagonetke, repertoar, otvaranja, završnice, skener,
-arhiva).
+`npm test` 964, `flutter test` 1762 — oba nepromenjena.
+
+### I šahovska polovina — batch 66b, 9.9.2026
+
+**66b je spojen** (`8218c59`): 41 fajl, 466 linija, 12 test fajlova, svih
+dvanaest gate-ova zeleno iz prve. `npm test` 964, `flutter test` 1762 sa jednim
+preskočenim, analyze 29 — sve nepromenjeno, jer batch nije dirao Dart.
+**Time nijedna srpska rečenica više ne postoji nigde odakle server može da je
+pošalje na ekran.**
+
+Brojka „281 linija u 41 fajlu" iz prethodnog pasusa **bila je pogrešna** i
+ispravljena je pre briefa: nije brojala ni `.mjs` fajlove (skener je ESM, jer
+pdfjs nema CommonJS build) ni bilo šta unutar template literala koji se prelama
+u više redova. Tačna mera je 466 linija — 331 u jednorednim literalima i 135
+unutar sedam prelomljenih šablona.
+
+**Tri fajla nisu bila prevod.** `geminiService.js` je izgubio parametar
+`userLanguage = 'sr'` i svaku `isSr` granu — engleska aplikacija je tražila od
+modela srpski, i sama slala `'sr'` kao podrazumevano; oba prompta su sada
+engleska i traže engleski. `services/prepNarrative.js` je prompt iza kojeg stoji
+`narrativeGuard`, pa je svaki broj i svako pravilo o procentima prenet doslovno.
+`services/endgameCatalog.js` je bio gramatička mašina — nominativ, genitiv i
+množinska osnova, jer srpski traži padež posle „protiv"; engleski traži množinu,
+pa se dve tablice spajaju u jednu i `labelOf('KRPPvKR')` sada čita
+`rook and two pawns versus rook`. Nijedan ulaz iz testa nije izgubljen, samo su
+očekivanja preimenovana.
+
+**Tri niske su bile ugovor sa aplikacijom, ne tekst, i vođa ih je pomerio
+unapred** (`9b786a2`), u istom commitu sa oba kraja: `reason` iz
+`customPuzzleJudge.js` (aplikacija poredi „drugi mat, ali mat", a *netačne*
+verdikte crta detetu doslovno) i tri vrednosti `sideSource` iz
+`positionScanner/verify.mjs` (`needsReview` gori na `'nepoznato'` — prevod te
+jedne reči prestao bi da označava svaku poziciju kojoj se ne zna strana na
+potezu, tiho, uz zeleno oba paketa testova).
+
+**Dve pouke o harnessu iz ovog batch-a:**
+
+* `gate_english_backend` je gledao `` `[^`
+]*` `` — bez novog reda — pa
+  **prelomljen template literal nije video uopšte**. Tri najveća srpska bloka u
+  66b su baš takvog oblika: HTML roditeljskog izveštaja (55 redova) i dva
+  prompta (36 i 23). Popravljeno i dokazano mutacijom u oba smera.
+* `test/repertoire_route_wiring.test.js` čita rute kao tekst i nije umeo da
+  razlikuje parametar od reči u poruci. Batch je oboren zbog ispravne engleske
+  rečenice „Could not read color status." u `/color` ruti i **preformulisao je
+  poruke da prođe** — a gori je lažni prolaz koji je tu stajao od početka:
+  parametar koji se pročita iz zahteva i nigde ne prosledi računa se kao
+  upotrebljen čim ga bilo koja poruka pomene, što je tačno bug zbog kojeg taj
+  fajl postoji. Popravljeno (`bccc04e`), dokazano mutacijom, poruke vraćene.
 
 **Tri stvari su trajno van obima, sa razlogom:** `routes/consent.js` i
 roditeljski mejl u `services/mailService.js` nose formulaciju koju je advokat

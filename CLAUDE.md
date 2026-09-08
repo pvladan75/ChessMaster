@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1772 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1762 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 964 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -822,6 +822,75 @@ is already in the diff — so the remaining forty-one were finished by reading
 the test output and the worker's own diff rather than by inventing wording.
 Multi-line assertions are what a line-by-line pass misses, and they are the
 ones that were left.
+
+**The server speaks English too, as of 9.9.2026 — batches 66a and 66b, 71
+files.** The counts did not move: **1762 in the app with 1 skipped, 964 on the
+backend** with `.env` moved aside, analyze at 29 infos, all re-measured on
+`master` with nothing else running. A translation that changes no count is the
+correct result rather than a suspicious one. What stays Serbian is deliberate
+and short: server logs and code comments, `routes/consent.js` and the
+parent-consent mail (a lawyer's wording for Serbia), and the role values in
+`db.js`'s CHECK constraint.
+
+Five things from that pair are worth carrying, and only the first is about
+translation.
+
+**A string on the server is either a sentence or a value, and three of them
+were both.** `customPuzzleJudge.judgeAttempt` returns a `reason` that the
+tutorial viewer prints to a student verbatim when the answer is wrong — and that
+`custom_puzzle_solver_screen.dart` *compares*, character for character, to
+explain that a different mate still counted. `positionScanner/verify.mjs` wrote
+`sideSource = 'nepoznato'`, and `ScannedPosition.needsReview` fires on that
+word: it is the flag that puts a doubtful scan in front of the trainer, so
+translating the one word would have stopped flagging them, silently, with both
+suites green. **A batch told not to touch `chess_app/` cannot be handed a string
+like that** — the lead moved both ends in one commit first, and took those two
+files out of the batch's list.
+
+**A gate that matches a literal with no newline in it cannot see a document.**
+`gate_english_backend` matched a backtick template with no newline in it, so
+every template literal that
+wraps was invisible: the parent report's HTML, and both model prompts, 135 lines
+in all. A batch could have translated every one-line literal, left three whole
+documents in Serbian, and been told it was clean. Fourth entry in the family
+that already holds the 1600-character function slice, the `\s+` that could not
+match a warning at column 0, and the log-skip that compiled with a backspace
+byte where a word-boundary escape was meant. **When a check reads source as text, ask what shape
+of the thing it is reading it cannot represent.**
+
+**A source-reading test must strip strings, not just comments.**
+`repertoire_route_wiring.test.js` asks which request parameters a handler
+actually uses, and stripped comments only. While the messages were Serbian no
+sentence happened to contain `color`, so nothing showed; the English pivot made
+it ordinary and the batch was failed for writing „Could not read color status."
+inside the `/color` handler — then **reworded two messages to get past the
+check**, which is what a gate that cannot be satisfied always buys. The false
+pass was the worse half and had been there from the start: a parameter read out
+of the request and never passed on counts as used the moment any message names
+it, which is the exact bug that file was written to catch. A template literal is
+not blanked whole — `${color}` inside a sentence is a real use.
+
+**Two English words are not evidence of Serbian.** `table` and `figure` came out
+of the no-diacritic word list the moment the gate was pointed at a server:
+`table` is in every SQL statement and every `<table>` in the report, and the
+Serbian those entries existed for is carried by `tabla`, `tablu`, `tabli`,
+`figura` and `figuru` anyway. A gate that fires on `FROM user_games` is a gate
+the next round argues with.
+
+**Quote the written end into the brief, and then check the batch quoted it
+back.** `reportService.js`'s motif table is a hand-kept duplicate of the app's,
+which was already English, so the brief said copy it key for key — and the two
+tables now agree value for value, which was verified by comparing them rather
+than by reading the report's claim that they do. The same brief's vocabulary
+table said „vežbanje → practice" **without checking the app**, where every
+repertoire screen says *Drill*; the batch's report caught it. A vocabulary rule
+written from the outside is a guess until somebody greps the end that already
+exists.
+
+One more about reading a report: its per-file table was honest work and its
+stated total was not — the rows sum to 389 and the line above them says 328.
+Same family as the „true number under a false name" already in this file, and
+the same remedy: re-derive any number you are about to repeat.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
