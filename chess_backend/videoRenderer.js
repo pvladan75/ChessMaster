@@ -240,6 +240,62 @@ function captionBandHeight(lines, resolution = '720p') {
   return Math.round(cfg.fontSizeCaption * 1.35 * lines + cfg.fontSizeCaption);
 }
 
+/// One picture is drawn per second of film, and the file says 30 frames a
+/// second.
+///
+/// Those are two different numbers on purpose. **What the board shows only
+/// changes when a beat changes**, so drawing thirty times a second would be
+/// thirty identical pictures: measured on this machine, a three-minute film is
+/// 180 drawings and 4.7 seconds at 720p, and would be 5,400 drawings and 140
+/// seconds. The *container's* rate is a different question — a 1 fps file is
+/// unusual enough that players scrub it badly and some upload pipelines refuse
+/// it — and ffmpeg fills the gap by repeating a frame it has already encoded.
+/// Measured too: the same nineteen drawings came out as a normal 30 fps file
+/// for half a second of extra encoding and 62 KB.
+///
+/// The moment this stops being right is the moment something *moves* — a piece
+/// sliding, an arrow drawing itself. Then the frames between two beats are all
+/// different and have to be drawn, and this constant is the rate to draw them
+/// at.
+const OUTPUT_FPS = 30;
+
+/// The ffmpeg command line, as a value a test can read.
+///
+/// Split out for the same reason `applyEvent` was: everything else in this file
+/// can be checked by looking at a picture, and this cannot be checked at all
+/// without spawning a process — which is a test that fails on a machine with no
+/// ffmpeg on it.
+function ffmpegArgsFor({ audioFilePath = null, outputPath }) {
+  const args = [
+    '-y',
+    '-f', 'image2pipe',
+    '-vcodec', 'png',
+    // The rate the pictures arrive at: one per second of film.
+    '-framerate', '1',
+    '-i', 'pipe:0',
+  ];
+
+  if (audioFilePath) {
+    args.push('-i', audioFilePath);
+  } else {
+    args.push('-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo');
+  }
+
+  args.push(
+    // The rate the file claims, after both inputs and before the output, which
+    // is what makes it an *output* option. Written one input earlier it becomes
+    // an input option for the audio and silently does nothing — which is how
+    // the first attempt at this produced a byte-identical 1 fps file.
+    '-r', String(OUTPUT_FPS),
+    '-c:v', 'libx264',
+    '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac',
+  );
+  if (audioFilePath) args.push('-b:a', '192k');
+  args.push('-shortest', outputPath);
+  return args;
+}
+
 const OPENING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 /// The state of the picture before any event has been read.
@@ -532,23 +588,11 @@ async function renderRecordingToMP4({
     // Preload piece set
     await preloadPieceSet(pieceStyle);
 
-    // Build FFmpeg args
-    const ffmpegArgs = [
-      '-y',
-      '-f', 'image2pipe',
-      '-vcodec', 'png',
-      '-framerate', '1',
-      '-i', 'pipe:0'
-    ];
-
     const hasAudio = audioFilePath && fs.existsSync(audioFilePath);
-    if (hasAudio) {
-      ffmpegArgs.push('-i', audioFilePath, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', outputPath);
-    } else {
-      ffmpegArgs.push('-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', outputPath);
-    }
-
-    const ffmpeg = spawn('ffmpeg', ffmpegArgs);
+    const ffmpeg = spawn('ffmpeg', ffmpegArgsFor({
+      audioFilePath: hasAudio ? audioFilePath : null,
+      outputPath,
+    }));
 
     ffmpeg.stderr.on('data', (data) => {
       // Quiet stderr
@@ -619,6 +663,8 @@ module.exports = {
   // drawing that cannot be measured is a drawing nobody can grade.
   captionLines,
   captionBandLines,
+  ffmpegArgsFor,
+  OUTPUT_FPS,
   captionBandHeight,
   drawColorOf,
   getResolutionParams,

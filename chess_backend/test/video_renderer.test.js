@@ -26,6 +26,8 @@ const {
   getResolutionParams,
   applyEvent,
   initialFrameState,
+  ffmpegArgsFor,
+  OUTPUT_FPS,
 } = renderer;
 
 const FEN = 'r1bqkb1r/pp2pppp/2n2n2/3p4/3P4/2N2NP1/PP2PPBP/R1BQK2R w KQkq - 0 7';
@@ -301,6 +303,43 @@ test('the caption band is room the board actually gave up', async () => {
     }
   }
   assert.ok(inkBelow > 100, 'the sentence is drawn under the board, in its own band');
+});
+
+test('the file says 30 frames a second, whatever we drew', () => {
+  // Two different rates, and the whole point is that they differ: one drawing
+  // per second of film, a file that claims 30. A 1 fps file scrubs badly in
+  // players and some upload pipelines refuse it, and ffmpeg fills the gap by
+  // repeating a frame it has already encoded — half a second and 62 KB on a
+  // nineteen-second film, measured.
+  const silent = ffmpegArgsFor({ outputPath: 'out.mp4' });
+  const spoken = ffmpegArgsFor({ audioFilePath: 'voice.m4a', outputPath: 'out.mp4' });
+
+  for (const args of [silent, spoken]) {
+    assert.equal(args[args.indexOf('-framerate') + 1], '1',
+      'the pictures still arrive once a second');
+    assert.equal(args[args.indexOf('-r') + 1], String(OUTPUT_FPS));
+
+    // **After both inputs**, which is what makes it an output option. Written
+    // one input earlier it becomes an input option for the audio and silently
+    // does nothing — which is exactly what the first attempt did, producing a
+    // byte-identical 1 fps file that looked like a working change.
+    const lastInput = args.lastIndexOf('-i');
+    assert.ok(args.indexOf('-r') > lastInput,
+      '-r must come after every -i or it is not an output option');
+    assert.ok(args.indexOf('-r') < args.indexOf('-c:v'),
+      'and before the encoder it applies to');
+    assert.equal(args[args.length - 1], 'out.mp4', 'the output path stays last');
+  }
+});
+
+test('the audio input replaces the silent one rather than joining it', () => {
+  // `-shortest` with two audio inputs is a film as long as the shorter of them,
+  // and a silent track is exactly as long as the video. A voice-over that ran
+  // past the last beat would be cut; one that stopped early would end the film.
+  const spoken = ffmpegArgsFor({ audioFilePath: 'voice.m4a', outputPath: 'out.mp4' });
+  assert.ok(!spoken.includes('anullsrc=r=44100:cl=stereo'), 'no silent track beside the voice');
+  assert.equal(spoken.filter((a) => a === '-i').length, 2, 'the frames and the voice, nothing else');
+  assert.ok(spoken.includes('-shortest'));
 });
 
 test('a caption wraps on words and keeps the trainer\'s own line break', () => {
