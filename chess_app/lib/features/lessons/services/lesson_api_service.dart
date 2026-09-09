@@ -397,7 +397,40 @@ class LessonApiService {
   /// Why the last [clone] returned null. Null when it succeeded.
   String? cloneError;
 
-  /// Exports a tutorial as a silent MP4 video rendered by the backend.
+  /// Fetches available TTS narration voices from the backend.
+  Future<({bool available, List<Map<String, dynamic>> voices})>
+      fetchTtsVoices() async {
+    try {
+      final res = await _client
+          .get(
+            Uri.parse('$backendUrl/lessons/tts/voices'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body is Map) {
+          final available = body['available'] == true;
+          final rawVoices = body['voices'];
+          final voices = <Map<String, dynamic>>[];
+          if (rawVoices is List) {
+            for (final v in rawVoices) {
+              if (v is Map) {
+                voices.add(Map<String, dynamic>.from(v));
+              }
+            }
+          }
+          return (available: available, voices: voices);
+        }
+      }
+      return (available: false, voices: const <Map<String, dynamic>>[]);
+    } catch (e) {
+      AppLogger.log('[Lessons] Failed to fetch TTS voices: $e');
+      return (available: false, voices: const <Map<String, dynamic>>[]);
+    }
+  }
+
+  /// Exports a tutorial as an MP4 video rendered by the backend.
   Future<LessonExportVideoResult> exportVideo({
     required int lessonId,
     required List<Map<String, dynamic>> events,
@@ -406,6 +439,8 @@ class LessonApiService {
     String resolution = '720p',
     String pieceStyle = 'classic',
     String boardTheme = 'wood',
+    bool? narrate,
+    String? voice,
   }) async {
     try {
       final res = await _client
@@ -419,6 +454,8 @@ class LessonApiService {
               'resolution': resolution,
               'pieceStyle': pieceStyle,
               'boardTheme': boardTheme,
+              if (narrate != null) 'narrate': narrate,
+              if (voice != null) 'voice': voice,
             }),
           )
           .timeout(const Duration(minutes: 5));

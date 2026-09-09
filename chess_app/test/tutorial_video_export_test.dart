@@ -56,6 +56,8 @@ class _TestLessonApi extends LessonApiService {
         '{"message":"Video rendered successfully, saved, and ready for download!","jobId":"job_12_1","status":"completed","downloadUrl":"/recordings/export-download/tutorial_12.mp4?token=tok","filename":"tutorial_12.mp4"}',
     List<Map<String, dynamic>>? rows,
     Future<void> Function()? onExportVideo,
+    bool ttsAvailable = false,
+    List<Map<String, dynamic>>? ttsVoices,
   }) {
     final effectiveRows = rows ?? [_normalTutorialRow, _emptyTutorialRow];
     final client = MockClient((req) async {
@@ -63,6 +65,16 @@ class _TestLessonApi extends LessonApiService {
       if (req.method == 'GET' && req.url.path == '/lessons') {
         return http.Response(
           jsonEncode(effectiveRows),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (req.method == 'GET' && req.url.path == '/lessons/tts/voices') {
+        return http.Response(
+          jsonEncode({
+            'available': ttsAvailable,
+            'voices': ttsVoices ?? <Map<String, dynamic>>[],
+          }),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
@@ -336,5 +348,172 @@ void main() {
     // Dialog showing the result must appear with download action
     expect(find.text('Video ready!'), findsOneWidget);
     expect(find.text('Download'), findsOneWidget);
+  });
+
+  testWidgets(
+      '10. available: false -> no switch on screen, and no narrate in the request',
+      (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: false,
+    );
+
+    await openList(tester, api: api);
+
+    // No switch or narration controls on screen
+    expect(find.text('Narrate this video'), findsNothing);
+    expect(find.byType(Switch), findsNothing);
+
+    // Export video
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    final exportRequests =
+        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    expect(exportRequests, hasLength(1));
+
+    final body = jsonDecode(exportRequests.single.body) as Map<String, dynamic>;
+    expect(body.containsKey('narrate'), isFalse,
+        reason: 'narrate must be omitted when TTS is unavailable');
+    expect(body.containsKey('voice'), isFalse,
+        reason: 'voice must be omitted when TTS is unavailable');
+  });
+
+  testWidgets(
+      '11. available: true -> the switch and the chosen voice are in the request',
+      (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: [
+        {'id': 'sr-RS-Standard-A', 'name': 'Standard A'},
+        {'id': 'sr-RS-Standard-B', 'name': 'Standard B'},
+      ],
+    );
+
+    await openList(tester, api: api);
+
+    // Controls are visible
+    expect(find.text('Narrate this video'), findsOneWidget);
+    expect(find.text('A narrated export takes longer.'), findsOneWidget);
+    final switchFinder = find.byType(Switch);
+    expect(switchFinder, findsOneWidget);
+    expect(tester.widget<Switch>(switchFinder).value, isTrue);
+
+    // Select second voice via DropdownButton
+    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Standard B').last);
+    await tester.pumpAndSettle();
+
+    // Export video
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    final exportRequests =
+        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    expect(exportRequests, hasLength(1));
+
+    final body = jsonDecode(exportRequests.single.body) as Map<String, dynamic>;
+    expect(body['narrate'], isTrue,
+        reason: 'narrate must be true when switch is on');
+    expect(body['voice'], 'sr-RS-Standard-B',
+        reason: 'chosen voice id must be passed in the request');
+  });
+
+  testWidgets('12. the chosen voice survives reopening the sheet',
+      (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: [
+        {'id': 'sr-RS-Standard-A', 'name': 'Standard A'},
+        {'id': 'sr-RS-Standard-B', 'name': 'Standard B'},
+      ],
+    );
+
+    // First open
+    await openList(tester, api: api);
+
+    // Pick voice B
+    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Standard B').last);
+    await tester.pumpAndSettle();
+
+    // Close dialog
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // Reopen dialog
+    await tester.tap(find.text('Saved tutorials'));
+    await tester.pumpAndSettle();
+
+    // Verify switch is still on and voice B is still selected
+    final switchWidget = tester.widget<Switch>(find.byType(Switch));
+    expect(switchWidget.value, isTrue,
+        reason: 'Switch state must survive reopening the sheet');
+
+    expect(find.text('Standard B'), findsOneWidget,
+        reason: 'Chosen voice must survive reopening the sheet');
+  });
+
+  test(
+      '13. real transport: LessonApiService passes narrate and voice, fetchTtsVoices parses',
+      () async {
+    final requests = <http.Request>[];
+    final client = MockClient((req) async {
+      requests.add(req);
+      if (req.method == 'GET' && req.url.path == '/lessons/tts/voices') {
+        return http.Response(
+          jsonEncode({
+            'available': true,
+            'voices': [
+              {'id': 'sr-RS-Standard-A', 'name': 'Standard A'},
+            ],
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (req.method == 'POST' && req.url.path == '/lessons/15/export-video') {
+        return http.Response(
+          jsonEncode({
+            'message': 'ok',
+            'downloadUrl': '/download/15.mp4',
+            'filename': 'tutorial_15.mp4',
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      return http.Response('{"error":"Not found"}', 404);
+    });
+
+    final api = LessonApiService(authToken: 'test-token', client: client);
+
+    // 1. fetchTtsVoices
+    final ttsResult = await api.fetchTtsVoices();
+    expect(ttsResult.available, isTrue);
+    expect(ttsResult.voices, hasLength(1));
+    expect(ttsResult.voices[0]['id'], 'sr-RS-Standard-A');
+
+    // 2. exportVideo with narrate and voice
+    final exportResult = await api.exportVideo(
+      lessonId: 15,
+      events: [_normalTutorialRow],
+      seconds: 10,
+      narrate: true,
+      voice: 'sr-RS-Standard-A',
+    );
+    expect(exportResult.downloadUrl, '/download/15.mp4');
+
+    final postReq = requests.firstWhere((r) => r.method == 'POST');
+    final body = jsonDecode(postReq.body) as Map<String, dynamic>;
+    expect(body['narrate'], isTrue);
+    expect(body['voice'], 'sr-RS-Standard-A');
   });
 }

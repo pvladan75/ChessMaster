@@ -21,6 +21,8 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-sig
 const db = require('../db');
 const lessonsRouter = require('../routes/lessons');
 const videoRenderer = require('../videoRenderer');
+const tts = require('../services/tts');
+const tutorialNarration = require('../services/tutorialNarration');
 const { METRIC } = require('../services/entitlementService');
 
 const VALID_EVENTS = [
@@ -58,16 +60,33 @@ async function run({
   tier = 'premium',
   lesson = { id: 15, title: 'Slaba polja u centru' },
   renderError = null,
+  narrateResult = null,
+  narrateError = null,
 } = {}) {
   const queries = [];
   const originalQuery = db.pool.query;
   const originalRender = videoRenderer.renderRecordingToMP4;
+  const originalNarrateFilm = tutorialNarration.narrateFilm;
 
   const renderCalls = [];
+  const narrateCalls = [];
+
   videoRenderer.renderRecordingToMP4 = async (opts) => {
     renderCalls.push(opts);
     if (renderError) throw renderError;
     return opts.outputPath;
+  };
+
+  tutorialNarration.narrateFilm = async (opts) => {
+    narrateCalls.push(opts);
+    if (narrateError) throw narrateError;
+    if (narrateResult) return narrateResult;
+    return {
+      events: opts.events,
+      audioPath: null,
+      seconds: null,
+      spokenBeats: 0,
+    };
   };
 
   db.pool.query = async (text, values) => {
@@ -132,9 +151,58 @@ async function run({
   } finally {
     db.pool.query = originalQuery;
     videoRenderer.renderRecordingToMP4 = originalRender;
+    tutorialNarration.narrateFilm = originalNarrateFilm;
   }
 
-  return { res, queries, renderCalls };
+  return { res, queries, renderCalls, narrateCalls };
+}
+
+function getVoicesRouteStack() {
+  const layer = lessonsRouter.stack.find(
+    (l) => l.route && l.route.path === '/tts/voices' && l.route.methods.get
+  );
+  assert.ok(layer, 'GET /lessons/tts/voices must be mounted');
+  return layer.route.stack.map((s) => s.handle);
+}
+
+async function runVoices({
+  userId = 4,
+  available = false,
+  voicesList = [],
+} = {}) {
+  const originalAvailable = tts.narrationAvailable;
+  const originalVoices = tts.voices;
+
+  tts.narrationAvailable = () => available;
+  tts.voices = async () => voicesList;
+
+  const res = {
+    statusCode: 200,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
+  };
+
+  const req = {
+    user: { id: userId, role: 'trener' },
+  };
+
+  const handlers = getVoicesRouteStack();
+
+  try {
+    await handlers[1](req, res);
+  } finally {
+    tts.narrationAvailable = originalAvailable;
+    tts.voices = originalVoices;
+  }
+
+  return { res };
 }
 
 test('1. no entitlement -> refused, and the renderer is never called', async () => {
@@ -236,3 +304,175 @@ test('6. the answer carries a downloadUrl naming the file that was written', asy
   );
   assert.ok(res.body.downloadUrl.includes('token='), 'downloadUrl must carry a token');
 });
+
+test('7. narrate absent or false -> the narration door is never opened', async () => {
+  // Case A: absent
+  const resAbsent = await run({
+    body: {
+      events: VALID_EVENTS,
+      seconds: 4,
+    },
+  });
+  assert.equal(resAbsent.res.statusCode, 200);
+  assert.equal(resAbsent.narrateCalls.length, 0, 'narrateFilm must NOT be called when narrate is absent');
+  assert.equal(resAbsent.renderCalls.length, 1);
+  assert.equal(resAbsent.renderCalls[0].audioFilePath, null);
+  assert.deepEqual(resAbsent.renderCalls[0].timelineEvents, VALID_EVENTS);
+  assert.equal(resAbsent.renderCalls[0].durationSeconds, 4);
+
+  // Case B: false
+  const resFalse = await run({
+    body: {
+      events: VALID_EVENTS,
+      seconds: 4,
+      narrate: false,
+    },
+  });
+  assert.equal(resFalse.res.statusCode, 200);
+  assert.equal(resFalse.narrateCalls.length, 0, 'narrateFilm must NOT be called when narrate is false');
+  assert.equal(resFalse.renderCalls.length, 1);
+  assert.equal(resFalse.renderCalls[0].audioFilePath, null);
+  assert.deepEqual(resFalse.renderCalls[0].timelineEvents, VALID_EVENTS);
+  assert.equal(resFalse.renderCalls[0].durationSeconds, 4);
+});
+
+test('8. narrate: true -> the render gets narrated.events, narrated.seconds and narrated.audioPath', async () => {
+  const retimedEvents = [
+    ...VALID_EVENTS,
+    { timestampMs: 5000, eventType: 'caption', data: { text: 'Odlično' } },
+  ];
+  const fakeAudioPath = path.join(__dirname, '..', 'exports', 'fake.wav');
+
+  const { res, renderCalls, narrateCalls } = await run({
+    body: {
+      events: VALID_EVENTS,
+      seconds: 4,
+      narrate: true,
+      voice: 'sr-RS-Standard-B',
+    },
+    narrateResult: {
+      events: retimedEvents,
+      seconds: 14,
+      audioPath: fakeAudioPath,
+      spokenBeats: 1,
+    },
+  });
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(narrateCalls.length, 1, 'narrateFilm must be called once');
+  assert.equal(narrateCalls[0].voice, 'sr-RS-Standard-B');
+  assert.deepEqual(narrateCalls[0].events, VALID_EVENTS);
+
+  assert.equal(renderCalls.length, 1);
+  assert.deepEqual(renderCalls[0].timelineEvents, retimedEvents);
+  assert.equal(renderCalls[0].durationSeconds, 14);
+  assert.equal(renderCalls[0].audioFilePath, fakeAudioPath);
+});
+
+test('9. metering books the rendered duration, not the requested one', async () => {
+  const { res, queries } = await run({
+    body: {
+      events: VALID_EVENTS,
+      seconds: 6,
+      narrate: true,
+    },
+    narrateResult: {
+      events: VALID_EVENTS,
+      seconds: 24,
+      audioPath: null,
+      spokenBeats: 1,
+    },
+  });
+
+  assert.equal(res.statusCode, 200);
+  const secondsCounter = queries.find(
+    (q) => /INSERT INTO usage_counters/i.test(q.text) && q.values[1] === METRIC.MP4_RENDER_SECONDS
+  );
+  assert.ok(secondsCounter, 'must book MP4_RENDER_SECONDS');
+  assert.equal(secondsCounter.values[3], 24, 'metering must book 24 seconds, not the requested 6 seconds');
+});
+
+test('10. the narration wav is deleted after the render, and the mp4 is not', async () => {
+  const exportsDir = path.join(__dirname, '..', 'exports');
+  if (!fs.existsSync(exportsDir)) {
+    fs.mkdirSync(exportsDir, { recursive: true });
+  }
+  const dummyWav = path.join(exportsDir, 'test-narration-cleanup.wav');
+  fs.writeFileSync(dummyWav, 'dummy audio data');
+
+  const dummyMp4 = path.join(exportsDir, 'test-output.mp4');
+  fs.writeFileSync(dummyMp4, 'dummy mp4 data');
+
+  try {
+    const { res } = await run({
+      body: {
+        events: VALID_EVENTS,
+        seconds: 4,
+        narrate: true,
+      },
+      narrateResult: {
+        events: VALID_EVENTS,
+        audioPath: dummyWav,
+        seconds: 10,
+        spokenBeats: 1,
+      },
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(fs.existsSync(dummyWav), false, 'wav file must be deleted');
+    assert.equal(fs.existsSync(dummyMp4), true, 'mp4 file must not be deleted');
+  } finally {
+    if (fs.existsSync(dummyWav)) fs.unlinkSync(dummyWav);
+    if (fs.existsSync(dummyMp4)) fs.unlinkSync(dummyMp4);
+  }
+});
+
+test('11. narration that returns audioPath: null still answers 200 with a video', async () => {
+  const { res, renderCalls, narrateCalls } = await run({
+    body: {
+      events: VALID_EVENTS,
+      seconds: 4,
+      narrate: true,
+    },
+    narrateResult: {
+      events: VALID_EVENTS,
+      seconds: 4,
+      audioPath: null,
+      spokenBeats: 0,
+    },
+  });
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(narrateCalls.length, 1);
+  assert.equal(renderCalls.length, 1);
+  assert.equal(renderCalls[0].audioFilePath, null);
+  assert.ok(res.body.downloadUrl);
+  assert.ok(res.body.filename);
+});
+
+test('12. GET /lessons/tts/voices answers {available:false, voices:[]} when the provider is off, and resolves before GET /lessons/:id', async () => {
+  const off = await runVoices({ available: false, voicesList: [] });
+  assert.equal(off.res.statusCode, 200);
+  assert.deepEqual(off.res.body, { available: false, voices: [] });
+
+  const on = await runVoices({
+    available: true,
+    voicesList: [{ id: 'sr-RS-Standard-A', name: 'Standard A' }],
+  });
+  assert.equal(on.res.statusCode, 200);
+  assert.deepEqual(on.res.body, {
+    available: true,
+    voices: [{ id: 'sr-RS-Standard-A', name: 'Standard A' }],
+  });
+
+  const voicesIndex = lessonsRouter.stack.findIndex(
+    (l) => l.route && l.route.path === '/tts/voices'
+  );
+  const paramIdIndex = lessonsRouter.stack.findIndex(
+    (l) => l.route && l.route.path.startsWith('/:id')
+  );
+  assert.ok(voicesIndex !== -1, '/tts/voices must be in router stack');
+  assert.ok(paramIdIndex !== -1, '/:id routes must be in router stack');
+  assert.ok(voicesIndex < paramIdIndex, '/tts/voices must be mounted before any /:id route');
+});
+
