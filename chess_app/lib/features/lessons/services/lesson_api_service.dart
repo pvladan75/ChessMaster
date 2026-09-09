@@ -33,6 +33,21 @@ class LessonWriteResult {
   bool get ok => error == null;
 }
 
+/// The outcome of an MP4 video export request for a tutorial.
+class LessonExportVideoResult {
+  const LessonExportVideoResult({
+    required this.ok,
+    this.downloadUrl,
+    this.message,
+    this.error,
+  });
+
+  final bool ok;
+  final String? downloadUrl;
+  final String? message;
+  final String? error;
+}
+
 /// Everything the app does to `saved_lessons`, in one place.
 ///
 /// Phase 7a of `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`, and the reason it exists
@@ -381,4 +396,56 @@ class LessonApiService {
 
   /// Why the last [clone] returned null. Null when it succeeded.
   String? cloneError;
+
+  /// Exports a tutorial as a silent MP4 video rendered by the backend.
+  Future<LessonExportVideoResult> exportVideo({
+    required int lessonId,
+    required List<Map<String, dynamic>> events,
+    required int seconds,
+    String? title,
+    String resolution = '720p',
+    String pieceStyle = 'classic',
+    String boardTheme = 'wood',
+  }) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/lessons/$lessonId/export-video'),
+            headers: _headers,
+            body: jsonEncode({
+              'events': events,
+              'seconds': seconds,
+              if (title != null) 'title': title,
+              'resolution': resolution,
+              'pieceStyle': pieceStyle,
+              'boardTheme': boardTheme,
+            }),
+          )
+          .timeout(const Duration(minutes: 5));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body is Map) {
+          return LessonExportVideoResult(
+            ok: true,
+            downloadUrl: body['downloadUrl']?.toString(),
+            message: body['message']?.toString(),
+          );
+        }
+        return const LessonExportVideoResult(
+          ok: false,
+          error: 'Invalid response from server.',
+        );
+      }
+      return LessonExportVideoResult(
+        ok: false,
+        error: _errorFrom(res.body, 'Video export failed (${res.statusCode}).'),
+      );
+    } catch (e) {
+      AppLogger.log('[Lessons] Video export failed: $e');
+      return const LessonExportVideoResult(
+        ok: false,
+        error: 'Cannot connect to server.',
+      );
+    }
+  }
 }

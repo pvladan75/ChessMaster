@@ -1,8 +1,13 @@
+const path = require('path');
+const fs = require('fs');
 const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, signDownloadToken } = require('../middleware/auth');
+const { requireEntitlement } = require('../middleware/entitlements');
+const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
+const videoRenderer = require('../videoRenderer');
 const { acceptedTrainersOf } = require('../services/relationshipService');
 const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps');
 
@@ -292,6 +297,85 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Delete lesson error:', err);
     res.status(500).json({ error: 'Server error while deleting lesson' });
+  }
+});
+
+// POST /lessons/:id/export-video
+// Renders a saved tutorial as a silent MP4 video with moves, comments, arrows,
+// and highlighted squares.
+router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_EXPORT), async (req, res) => {
+  const lessonId = req.params.id;
+
+  try {
+    const lessonRes = await pool.query(
+      'SELECT id, title FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)',
+      [lessonId, req.user.id]
+    );
+    const lesson = lessonRes.rows[0];
+    if (!lesson) {
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to export it.' });
+    }
+
+    const {
+      events,
+      seconds,
+      title,
+      resolution,
+      pieceStyle,
+      boardTheme,
+    } = req.body;
+
+    if (!Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({ error: 'events must be a non-empty array.' });
+    }
+    if (!Number.isInteger(seconds) || seconds <= 0) {
+      return res.status(400).json({ error: 'seconds must be a positive integer.' });
+    }
+
+    const duration = Math.min(seconds, 3600);
+
+    const filename = `tutorial_${lessonId}_${pieceStyle || 'classic'}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
+    const exportsDir = path.join(__dirname, '..', 'exports');
+    if (!fs.existsSync(exportsDir)) {
+      fs.mkdirSync(exportsDir, { recursive: true });
+    }
+
+    const exportPath = path.join(exportsDir, filename);
+
+    await videoRenderer.renderRecordingToMP4({
+      title: title || lesson.title || 'Tutorial',
+      timelineEvents: events,
+      audioFilePath: null,
+      durationSeconds: duration,
+      perspective: 'trainer',
+      resolution: resolution || '720p',
+      pieceStyle: pieceStyle || 'classic',
+      boardTheme: boardTheme || 'wood',
+      showTitle: true,
+      showTimer: true,
+      showCoords: true,
+      showMoveText: false,
+      outputPath: exportPath,
+    });
+
+    const downloadToken = signDownloadToken(req.user.id, filename);
+    const downloadUrl =
+      `/recordings/export-download/${encodeURIComponent(filename)}` +
+      `?token=${encodeURIComponent(downloadToken)}`;
+
+    await recordUsage(pool, req.user.id, METRIC.MP4_RENDERS, 1);
+    await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, duration);
+
+    res.json({
+      message: 'Video rendered successfully, saved, and ready for download!',
+      jobId: `job_${lessonId}_${Date.now()}`,
+      status: 'completed',
+      downloadUrl: downloadUrl,
+      filename: filename,
+    });
+  } catch (err) {
+    logger.error('Error initiating video export:', err);
+    res.status(500).json({ error: 'Error initiating video export.' });
   }
 });
 
