@@ -47,9 +47,10 @@ async function voices() {
       const [name, culture] = line.split('|');
       return { id: name, name, language: culture || '' };
     })
-    // English only, and that is the owner's rule rather than a limitation of
-    // this provider: nothing in this app is spoken in another language.
-    .filter((voice) => voice.language.toLowerCase().startsWith('en'));
+    // Every language the machine has, since 9.9.2026: the trainer picks the
+    // voice whose language matches what they wrote, and this provider's list is
+    // whatever Windows was installed with.
+    .sort((a, b) => a.language.localeCompare(b.language) || a.id.localeCompare(b.id));
 }
 
 async function synthesize({ text, voice, outputPath }) {
