@@ -58,6 +58,25 @@ final Map<String, dynamic> _normalTutorialRow = {
   ],
 };
 
+/// A tutorial that has already been rendered once. `has_video` is what the
+/// list route says, and it is what decides whether the download button exists
+/// at all.
+final Map<String, dynamic> _renderedTutorialRow = {
+  'id': 12,
+  'title': 'Opozicija',
+  'has_video': true,
+  'video_rendered_at': '2026-09-09T20:00:00.000Z',
+  'position_list': [
+    {
+      'id': 's1',
+      'fen': _fen,
+      'title': 'Uvod',
+      'kind': 'show',
+      'pgn': '1. e4 {Beli zauzima centar.} e5',
+    },
+  ],
+};
+
 final Map<String, dynamic> _emptyTutorialRow = {
   'id': 14,
   'title': 'Prazan tutorijal',
@@ -85,6 +104,7 @@ class _TestLessonApi extends LessonApiService {
     int? progressEtaSeconds,
     int progressQueuedAhead = 0,
     int previewStatus = 200,
+    int videoLinkStatus = 200,
   }) {
     final effectiveRows = rows ?? [_normalTutorialRow, _emptyTutorialRow];
     final client = MockClient((req) async {
@@ -115,6 +135,33 @@ class _TestLessonApi extends LessonApiService {
             'queuedAhead': progressQueuedAhead,
           }),
           200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (req.method == 'GET' && req.url.path.endsWith('/video')) {
+        if (videoLinkStatus == 200) {
+          return http.Response(
+            jsonEncode({
+              'status': 'ready',
+              'filename': 'tutorial_12.mp4',
+              'downloadUrl':
+                  '/recordings/export-download/tutorial_12.mp4?token=fresh',
+              'renderedAt': '2026-09-09T20:00:00.000Z',
+              'resolution': '720p',
+              'narrated': false,
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'status': videoLinkStatus == 410 ? 'expired' : 'none',
+            'error': videoLinkStatus == 410
+                ? 'This video has been deleted to save space. Export it again.'
+                : 'This tutorial has no video yet.',
+          }),
+          videoLinkStatus,
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
@@ -353,6 +400,94 @@ void main() {
       requests.where((r) => r.url.path.contains('/export-video')),
       isEmpty,
     );
+  });
+
+  testWidgets('the download button is drawn only where there is a film',
+      (tester) async {
+    // An action offered on a row that cannot perform it is this repository's
+    // most frequent fault — the tree menu that drew „Delete this variation"
+    // with no callback, the sheet nobody could open.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      rows: [_renderedTutorialRow, _emptyTutorialRow],
+    );
+    await openList(tester, api: api);
+
+    expect(iconButtonOn('Opozicija', 'Download video'), findsOneWidget);
+    expect(iconButtonOn('Prazan tutorijal', 'Download video'), findsNothing);
+  });
+
+  testWidgets('Download video asks the server for a fresh link',
+      (tester) async {
+    // **The whole reason the tutorial keeps its filename.** The link handed out
+    // when a film is rendered carries a token that dies in thirty minutes, so
+    // this must be a new request rather than something the app remembered.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      rows: [_renderedTutorialRow],
+    );
+    await openList(tester, api: api);
+
+    await tester.tap(iconButtonOn('Opozicija', 'Download video'));
+    await tester.pumpAndSettle();
+
+    final asked = requests.where(
+      (r) => r.method == 'GET' && r.url.path.endsWith('/lessons/12/video'),
+    );
+    expect(asked, hasLength(1));
+    // And nothing was rendered to get it.
+    expect(
+      requests.where((r) => r.url.path.contains('/export-video')),
+      isEmpty,
+    );
+  });
+
+  testWidgets('a film that has aged out says so, and the button goes away',
+      (tester) async {
+    // „There is no film" and „the film was deleted to save space, export it
+    // again" lead to different buttons, so they must not read the same. And a
+    // row whose file the retention timer has taken must stop offering it.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      rows: [_renderedTutorialRow],
+      videoLinkStatus: 410,
+    );
+    await openList(tester, api: api);
+
+    await tester.tap(iconButtonOn('Opozicija', 'Download video'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('deleted to save space'), findsOneWidget);
+    expect(iconButtonOn('Opozicija', 'Download video'), findsNothing);
+  });
+
+  testWidgets('a row with a film still fits a 360 dp phone', (tester) async {
+    // The fourth icon on that row. The file this test lives in exists because
+    // the same row overflowed once already, and in a release build there are no
+    // stripes — the buttons past the edge are simply unreachable.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final longTitle = Map<String, dynamic>.from(_renderedTutorialRow)
+      ..['title'] = 'Pogledaj kako beli pesak na d5 oduzima polje konju i '
+          'zasto crni to ne sme da dozvoli';
+
+    final api = _TestLessonApi(requests: <http.Request>[], rows: [longTitle]);
+    await openList(tester, api: api);
+
+    expect(tester.takeException(), isNull);
+    // `takeException` alone is not a layout assertion — an overflow throws in a
+    // test build and paints nothing in a release one. What „unreachable" means
+    // is that the button is not inside the dialog.
+    final dialog = tester.getRect(find.byType(AlertDialog).last);
+    final button = tester
+        .getRect(iconButtonOn(longTitle['title'] as String, 'Download video'));
+    expect(button.right, lessThanOrEqualTo(dialog.right + 0.5),
+        reason: 'the download button is inside the dialog, not past its edge');
   });
 
   testWidgets('the row and the finished dialog both fit a 360 dp phone',

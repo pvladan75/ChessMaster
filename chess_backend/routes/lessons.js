@@ -501,6 +501,51 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       });
     }
 
+    // **The tutorial keeps its film.** Until this, the only reference to a
+    // rendered video was the link in this response, and its token dies in
+    // thirty minutes — so closing the „Video ready!" dialog meant rendering the
+    // whole thing again, while the file sat in `exports/` for a fortnight where
+    // nobody could reach it.
+    //
+    // The row is written **before** the old file is removed. A crash between
+    // the two leaves a file nothing points at, which the retention timer
+    // collects; the other order leaves a row pointing at a file that is gone,
+    // which is a trainer pressing „Download" and getting nothing.
+    let replaced = null;
+    try {
+      // Read, then write. A subquery inside `RETURNING` would also give the old
+      // value — by the statement's own snapshot — but that is a rule a reader
+      // has to know rather than one they can see, and only the render queue
+      // stops two exports of one tutorial overlapping here.
+      const before = await pool.query(
+        'SELECT video_filename FROM saved_lessons WHERE id = $1',
+        [lessonId]
+      );
+      replaced = before.rows[0] ? before.rows[0].video_filename : null;
+
+      await pool.query(
+        `UPDATE saved_lessons
+            SET video_filename = $1, video_rendered_at = NOW(),
+                video_resolution = $2, video_seconds = $3, video_narrated = $4
+          WHERE id = $5`,
+        [filename, resolution || '720p', renderDuration, narrate === true && !silentBecause, lessonId]
+      );
+    } catch (recordErr) {
+      // The film exists and the trainer is about to be handed a link to it.
+      // Failing the export because a bookkeeping write failed would throw away
+      // work that succeeded.
+      logger.error('Could not record the tutorial video:', recordErr);
+    }
+
+    if (replaced && replaced !== filename) {
+      const old = path.join(exportsDir, path.basename(replaced));
+      try {
+        if (fs.existsSync(old)) fs.unlinkSync(old);
+      } catch (cleanErr) {
+        logger.warn(`[RENDER] Could not remove the replaced video ${replaced}: ${cleanErr.message}`);
+      }
+    }
+
     const downloadToken = signDownloadToken(req.user.id, filename);
     const downloadUrl =
       `/recordings/export-download/${encodeURIComponent(filename)}` +
@@ -618,6 +663,62 @@ router.post('/:id/preview-frames', authenticateToken, requireEntitlement(ENT.MP4
   }
 });
 
+// GET /lessons/:id/video
+//
+// **A link, minted now.** The one from the export dialog expires in thirty
+// minutes and lives nowhere else, so this is how a trainer gets their film back
+// tomorrow — or on another device, or after closing the dialog without
+// pressing Download.
+//
+// Three answers, and telling them apart is the point: no film has been rendered
+// yet, a film was rendered and its file is gone (the retention timer takes an
+// export after a fortnight, because a film is reproducible), or here it is.
+router.get('/:id/video', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, title, video_filename, video_rendered_at, video_resolution,
+              video_seconds, video_narrated
+         FROM saved_lessons
+        WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)`,
+      [req.params.id, req.user.id]
+    );
+    const lesson = result.rows[0];
+    if (!lesson) {
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to open it.' });
+    }
+    if (!lesson.video_filename) {
+      return res.status(404).json({ error: 'This tutorial has no video yet.', status: 'none' });
+    }
+
+    const filename = path.basename(lesson.video_filename);
+    const filePath = path.join(__dirname, '..', 'exports', filename);
+    if (!fs.existsSync(filePath)) {
+      // Said rather than 404'd, because „it is gone" and „there never was one"
+      // lead a trainer to different buttons.
+      return res.status(410).json({
+        error: 'This video has been deleted to save space. Export it again — it takes as long as it did the first time.',
+        status: 'expired',
+      });
+    }
+
+    const token = signDownloadToken(req.user.id, filename);
+    res.json({
+      status: 'ready',
+      filename,
+      downloadUrl:
+        `/recordings/export-download/${encodeURIComponent(filename)}` +
+        `?token=${encodeURIComponent(token)}`,
+      renderedAt: lesson.video_rendered_at,
+      resolution: lesson.video_resolution,
+      seconds: lesson.video_seconds,
+      narrated: lesson.video_narrated === true,
+    });
+  } catch (err) {
+    logger.error('Fetch tutorial video error:', err);
+    res.status(500).json({ error: 'Server error while looking for the video.' });
+  }
+});
+
 // GET /lessons/labels
 router.get('/labels', authenticateToken, async (req, res) => {
   try {
@@ -644,6 +745,7 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     let query = `
       SELECT id, title, description, tags, fen, pgn, position_list, created_at,
+             (video_filename IS NOT NULL) AS has_video, video_rendered_at,
              (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson
       FROM saved_lessons 
       WHERE (user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))

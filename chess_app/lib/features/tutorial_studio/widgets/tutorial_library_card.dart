@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:chess_app/constants.dart';
 
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
@@ -427,6 +430,49 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
     setState(() => _busy = false);
   }
 
+  /// Whether this tutorial has a film waiting for it.
+  ///
+  /// The list says so (`has_video`), which is what lets the button be drawn
+  /// only where it can do something — an action offered on a row that cannot
+  /// perform it is this repository's most frequent fault.
+  bool _hasVideo(Map<String, dynamic> row) => row['has_video'] == true;
+
+  /// „Download video" — the film rendered earlier, fetched now.
+  ///
+  /// **This is the whole reason the tutorial keeps its filename.** The link
+  /// handed out when a film is rendered carries a token that dies in thirty
+  /// minutes, so closing that dialog used to mean rendering the film again.
+  Future<void> _downloadVideo(Map<String, dynamic> row) async {
+    final id = _idOf(row);
+    if (id == null || _busy) return;
+
+    setState(() => _busy = true);
+    final link = await widget.lessonApi.fetchTutorialVideo(id);
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    if (link.ok) {
+      await launchUrl(
+        Uri.parse(resolveMediaUrl(link.downloadUrl!)),
+        mode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+    // The server's own sentence: „there is no film" and „the film has been
+    // deleted to save space, export it again" are different answers, and only
+    // one of them means pressing the camera.
+    if (!mounted) return;
+    AppFeedback.info(
+      context,
+      link.error ?? 'This tutorial has no video yet.',
+    );
+    if (link.status == LessonVideoStatus.expired) {
+      // The row is stale now — the list said it had a film and the server says
+      // it is gone, so the next draw must not offer the same dead button.
+      setState(() => row['has_video'] = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -471,6 +517,16 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
                                   onPressed:
                                       _busy ? null : () => _exportVideo(row),
                                 ),
+                                if (_hasVideo(row))
+                                  IconButton(
+                                    icon: const Icon(
+                                        Icons.file_download_outlined,
+                                        size: 20),
+                                    tooltip: 'Download video',
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _downloadVideo(row),
+                                  ),
                                 IconButton(
                                   icon:
                                       const Icon(Icons.send_outlined, size: 20),

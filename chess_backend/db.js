@@ -145,6 +145,30 @@ async function initDB() {
       ALTER TABLE saved_lessons
       ADD COLUMN IF NOT EXISTS position_list JSONB;
     `);
+    // The tutorial's current video.
+    //
+    // **One per tutorial, and recorded.** Every export used to write a file
+    // named by a clock and tell nobody: the download link lived only in the
+    // HTTP response, whose token expires in thirty minutes, so a trainer who
+    // closed that dialog had to render the whole film again — while the file
+    // sat in `exports/` for a fortnight, unreachable, until the retention timer
+    // took it. Ten exports of one tutorial were ten orphans.
+    //
+    // A filename and **not** a URL: a URL carries a token, and a stored token
+    // is one that outlives its own expiry. The link is minted when somebody
+    // asks for it.
+    await client.query(`
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS video_filename VARCHAR(255);
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS video_rendered_at TIMESTAMP;
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS video_resolution VARCHAR(10);
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS video_seconds INTEGER;
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS video_narrated BOOLEAN;
+    `);
     logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 
     // Create saved_analyses table (Analysis Studio: save/load a variation tree,

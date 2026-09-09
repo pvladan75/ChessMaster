@@ -1157,6 +1157,31 @@ nothing, and the rule worth testing is that a wordless beat inside a talking
 film is still drawn with the caption column. The test that failed is what found
 the overstatement.
 
+**A tutorial keeps its film — 9.9.2026, 1790 in the app with 1 skipped and 1090
+on the backend.** Every export used to write a file named by a clock and tell
+nobody: the only reference was the link in the response, whose token expires in
+**thirty minutes**, so closing the „Video ready!" dialog meant rendering the
+whole film again — while the file sat in `exports/` for a fortnight,
+unreachable, until the retention timer took it. Ten exports of one tutorial were
+ten orphans. `saved_lessons` now carries the filename, and `GET /lessons/:id/
+video` mints a fresh link on demand.
+
+**A filename and not a URL**, because a URL carries a token and a stored token
+outlives its own expiry. **The row is written before the old file is deleted**:
+a crash between the two leaves a file nothing points at, which retention
+collects, while the other order leaves a row naming a file that is gone — a
+trainer pressing Download and getting nothing. And **the retention sweep clears
+the new column too**, or the list draws a download on a row whose file that same
+sweep just deleted.
+
+Three answers, told apart on purpose: no film yet (404), a film whose file has
+aged out (410, „export it again"), or here it is. They lead a trainer to
+different buttons, so they must not read the same.
+
+One lesson about an old test. `retention.test.js` asserted `queries.length ===
+1` — a claim about the sweep's *shape* rather than about what it clears, and
+false the moment a second table kept a filename. It finds its query by name now.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

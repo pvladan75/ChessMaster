@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **9.9.2026** — pregled pre renderovanja, i prekid
-renderovanja kad klijent ode
+Poslednje ažuriranje: **9.9.2026** — tutorijal pamti svoj film, pregled pre
+renderovanja, i prekid renderovanja kad klijent ode
 (odeljak „Render koji je klijent napustio se prekida"). Pre toga: „ODAKLE
 SUTRA — 8.9.2026" odmah ispod.
 
@@ -337,6 +337,86 @@ Ostaje **provera uživo** — stavka 133 u `docs/TODO-provera.md`.
 * Nove stavke provere uživo: **123–133** u `docs/TODO-provera.md`. Stavka 132
   je najveća: 71 fajl prevedenog servera nije viđen na ekranu ni jednom.
   Stavka 133 je video tutorijala — renderovanje je dokazano, dugme nije.
+
+---
+
+## Tutorijal pamti svoj film — 9.9.2026
+
+Pitanje vlasnika: „ako ne downloaduje odmah video, kako može to da uradi
+kasnije?" Do ovoga — **nikako.** Token za preuzimanje traje trideset minuta,
+link je postojao samo u odgovoru na izvoz i nigde se nije čuvao; ko zatvori
+dijalog „Video ready!" morao je da renderuje ceo film ponovo, dok je fajl stajao
+u `exports/` četrnaest dana, nedohvatljiv, dok ga retencija ne obriše. Deset
+izvoza jednog tutorijala bilo je deset siročića.
+
+`saved_lessons` sada nosi `video_filename`, `video_rendered_at`,
+`video_resolution`, `video_seconds` i `video_narrated`, a `GET
+/lessons/:id/video` **kuje svež link** kad neko pita. U aplikaciji je to ikonica
+za preuzimanje na redu u „Sačuvani tutorijali", i crta se **samo tamo gde film
+postoji** — akcija ponuđena na redu koji je ne može izvršiti je najčešća greška
+u ovom repozitorijumu.
+
+Četiri pravila iz toga:
+
+**Ime fajla, ne URL.** URL nosi token, a sačuvan token je token koji nadživi
+svoje isticanje: pola sata posle izvoza to je link koji vraća 401, čuvan
+četrnaest dana.
+
+**Red se upisuje pre nego što se stari fajl obriše.** Pad između to dvoje
+ostavlja fajl na koji niko ne pokazuje — njega retencija pokupi; obrnut redosled
+ostavlja red koji imenuje fajl kojeg nema, a to je trener koji pritisne
+„Download" i ne dobije ništa.
+
+**Retencija briše i novu kolonu.** Inače lista crta dugme na redu čiji je fajl
+taj isti prolaz upravo obrisao, pa bi odgovor „film je obrisan" — koji postoji
+za prozor između to dvoje — postao redovno stanje.
+
+**Tri odgovora se razlikuju:** nema filma (404), film je bio pa ga je retencija
+uzela (410, „izvezi ponovo"), ili evo ga (200). Vode trenera na različita
+dugmad, pa ne smeju da glase isto.
+
+Jedna pouka o starom testu: `retention.test.js` je tvrdio `queries.length === 1`
+— tvrdnja o **obliku** prolaza, a ne o tome šta briše, i netačna čim druga
+tabela zapamti ime fajla. Sada svoj upit traži po imenu.
+
+Brojke: **1790 u aplikaciji (1 preskočen), 1090 na backendu.** Ostaje stavka
+**136** u `docs/TODO-provera.md`.
+
+---
+
+## Pregled pre renderovanja — 9.9.2026
+
+Pitanje vlasnika: „da li ima smisla uvesti preview da ne bi korisnik renderovao
+samo da bi video kako izgleda video". Da, i to je najjeftinija stvar na spisku:
+`renderFrameBuffer` crta jedan kadar **bez ffmpeg-a**, pa pregled ne troši ni
+mesto u redu, ni fajl, ni kvotu.
+
+`POST /lessons/:id/preview-frames` vraća do četiri PNG-a u base64. Podrazumevano
+tri — početak, sredina i kraj — jer su to tri pitanja koja trener ima: kako film
+počinje, kako izgleda običan takt sa rečenicom i strelicama, i gde ostavlja
+dete. U aplikaciji je dugme **„Preview"** u dijalogu za izvoz, pored „Export":
+tu je trener već izabrao rezoluciju i naraciju, pa je to jedino mesto gde
+pregled odgovara na pravo pitanje.
+
+**To nije drugo crtanje.** Isti `applyEvent` koji koristi petlja renderera, isti
+`renderFrameBuffer`, isti raspored natpisa — inače bi pregled bio slika filma
+koji niko neće dobiti.
+
+Dve stvari koje su testovi našli, i obe su o tome šta test ume da vidi.
+
+**Tri kadra su se razlikovala po satu, ne po tabli.** Mutacija „uvek crtaj takt
+0" je prošla pored tvrdnje „kadrovi su različiti", jer sat u uglu piše 00:00,
+00:04, 00:09. Dodat je test u kome svi taktovi imaju **isti** `timestampMs`, pa
+je svaka razlika nužno pozicija. Ista porodica kao slova ispod table na koja su
+odgovorile figure sa prvog reda.
+
+**Komentar je tvrdio više nego što kod radi.** Napisao sam da je traka natpisa
+„visoka koliko najduža rečenica u filmu"; `renderFrameBuffer` je čita samo kao
+`captionBand > 0`. Pravilo koje stvarno postoji — i koje se testira — jeste da
+se **takt bez teksta unutar filma koji govori** ipak crta sa kolonom za natpis.
+Test koji je pao je ono što je našlo preterivanje.
+
+Ostaje: stavka **135** u `docs/TODO-provera.md`.
 
 ---
 

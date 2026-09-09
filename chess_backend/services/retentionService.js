@@ -50,6 +50,20 @@ async function cleanupOldExports(pool, { dir = EXPORTS_DIR, maxAgeDays = DEFAULT
       } catch (err) {
         logger.error(`[RETENTION] Failed to clear video_url for ${filename}: ${err.message}`);
       }
+
+      // A tutorial keeps the name of its current film, so the same sweep has to
+      // forget it here too. Without this the saved-tutorials list draws a
+      // „Download video" on a row whose file this loop has just deleted — and
+      // the route's „this video has been deleted" answer, which exists for the
+      // window between the two, would become the ordinary case.
+      try {
+        await pool.query(
+          'UPDATE saved_lessons SET video_filename = NULL WHERE video_filename = $1',
+          [filename]
+        );
+      } catch (err) {
+        logger.error(`[RETENTION] Failed to clear video_filename for ${filename}: ${err.message}`);
+      }
     }
   }
 

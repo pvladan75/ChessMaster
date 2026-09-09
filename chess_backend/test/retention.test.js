@@ -59,7 +59,37 @@ test('clears video_url for recordings pointing at a deleted export', async () =>
 
   await cleanupOldExports(fakePool, { dir, maxAgeDays: 14 });
 
-  assert.strictEqual(queries.length, 1);
-  assert.match(queries[0].sql, /UPDATE session_recordings SET video_url = NULL/);
-  assert.match(queries[0].params[0], /recording_42_classic_wood_720p_1234\.mp4/);
+  // Two now, one per table that names an export: a recorded lesson's
+  // `video_url` and a tutorial's `video_filename`. Found by name rather than by
+  // position, because „exactly one query" was an assertion about the sweep's
+  // shape rather than about what it clears — and the next table to keep a
+  // filename would break it again.
+  const cleared = queries.find((q) => /UPDATE session_recordings SET video_url = NULL/.test(q.sql));
+  assert.ok(cleared, 'the recording that named this export is cleared');
+  assert.match(cleared.params[0], /recording_42_classic_wood_720p_1234\.mp4/);
+});
+
+test('clears video_filename for tutorials pointing at a deleted export', async () => {
+  // A tutorial keeps the name of its current film. Left behind, the
+  // saved-tutorials list draws „Download video" on a row whose file this sweep
+  // has just deleted.
+  const dir = makeTempDir();
+  writeAged(dir, 'tutorial_12_wood_720p_1234_abcd.mp4', 30);
+
+  const queries = [];
+  const fakePool = {
+    query: async (sql, params) => {
+      queries.push({ sql, params });
+      return { rows: [] };
+    },
+  };
+
+  await cleanupOldExports(fakePool, { dir, maxAgeDays: 14 });
+
+  const cleared = queries.find((q) => /UPDATE saved_lessons SET video_filename = NULL/.test(q.sql));
+  assert.ok(cleared, 'the tutorial that named this export is cleared');
+  // The whole filename, not a `LIKE` over part of it: this column holds the
+  // name itself, and a pattern would match a second tutorial whose film is
+  // named with this one as a prefix.
+  assert.strictEqual(cleared.params[0], 'tutorial_12_wood_720p_1234_abcd.mp4');
 });

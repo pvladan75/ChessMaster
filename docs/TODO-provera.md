@@ -4889,3 +4889,25 @@ izvoz, pored „Export".
 6. [ ] **Slika je ono što će film biti.** Uporedi kadar iz pregleda sa istim
    taktom u gotovom videu: ista tabla, iste strelice, ista rečenica, isti
    raspored.
+
+## 136. Tutorijal pamti svoj film — 9.9.2026, nije viđeno uživo
+
+Do 9.9.2026 se renderovani video nigde nije pamtio: link je živeo samo u
+odgovoru na izvoz, a token mu traje trideset minuta. Sada `saved_lessons` nosi
+ime fajla, a red u „Sačuvani tutorijali" dobija ikonicu za preuzimanje — **samo
+ako film postoji**.
+
+1. [ ] **Izvezi pa zatvori dijalog.** Ne pritiskaj „Download". Zatvori spisak,
+   otvori ga ponovo: na tom redu stoji ikonica za preuzimanje i daje isti film.
+2. [ ] **Kasnije, ili sa drugog uređaja.** Isti nalog, drugi uređaj — dugme
+   radi, jer se link kuje u trenutku kad se pita.
+3. [ ] **Jedan film po tutorijalu.** Izvezi isti tutorijal drugi put pa
+   pogledaj `chess_backend/exports/`: stari fajl više ne postoji, novi je tu.
+   Do sada je svaki izvoz ostavljao svoj fajl.
+4. [ ] **Red bez filma nema to dugme.** Tutorijal koji nikad nije izvezen ima
+   samo kameru, „pošalji" i kantu.
+5. [ ] **Film koji je zastareo.** (Pre četrnaest dana se izaziva ručnim
+   brisanjem fajla iz `exports/`.) Poruka je „This video has been deleted to
+   save space. Export it again", i dugme **nestaje** sa reda.
+6. [ ] **Telefon od 360 dp.** Red sa filmom ima četiri ikonice i dug naslov —
+   proveri na uskom telefonu da su sve dohvatljive.

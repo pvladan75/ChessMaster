@@ -62,6 +62,7 @@ async function run({
   lesson = { id: 15, title: 'Slaba polja u centru' },
   renderError = null,
   narrateResult = null,
+  previousVideo = null,
   narrateError = null,
 } = {}) {
   const queries = [];
@@ -100,6 +101,11 @@ async function run({
     }
     if (/SELECT id, title FROM saved_lessons/i.test(text)) {
       return { rows: lesson ? [lesson] : [], rowCount: lesson ? 1 : 0 };
+    }
+    // The film this tutorial had before this render, read so the old file can
+    // be removed once the row names the new one.
+    if (/SELECT video_filename FROM saved_lessons/i.test(text)) {
+      return { rows: [{ video_filename: previousVideo }], rowCount: 1 };
     }
     if (/INSERT INTO usage_counters/i.test(text)) {
       return { rows: [{ used: values[3] }], rowCount: 1 };
@@ -663,3 +669,61 @@ test('12. GET /lessons/tts/voices answers {available:false, voices:[]} when the 
   assert.ok(voicesIndex < paramIdIndex, '/tts/voices must be mounted before any /:id route');
 });
 
+test('a finished export is recorded on the tutorial', async () => {
+  // The film used to exist only as a link in this response, whose token dies in
+  // thirty minutes. The row is what makes „Download video" possible tomorrow.
+  const { res, queries } = await run({
+    body: {
+      events: VALID_EVENTS,
+      seconds: 90,
+      title: 'Weak squares',
+      resolution: '1080p',
+      boardTheme: 'wood',
+    },
+  });
+
+  assert.strictEqual(res.statusCode, 200);
+  const recorded = queries.find((q) => /UPDATE saved_lessons/i.test(q.text));
+  assert.ok(recorded, 'the tutorial keeps the name of its film');
+  assert.match(recorded.text, /video_filename = \$1/);
+  assert.match(recorded.text, /video_rendered_at = NOW\(\)/);
+  assert.strictEqual(recorded.values[0], res.body.filename);
+  assert.strictEqual(recorded.values[1], '1080p');
+  assert.strictEqual(recorded.values[2], 90);
+  assert.strictEqual(recorded.values[4], '15');
+});
+
+test('the film it replaces is deleted, and the row is written first', async () => {
+  // **The order is the whole safety of it.** A crash between the two leaves a
+  // file nothing points at, which the retention timer collects. The other way
+  // round leaves a row naming a file that is gone — a trainer pressing
+  // „Download" and getting nothing.
+  const exportsDir = path.join(__dirname, '..', 'exports');
+  fs.mkdirSync(exportsDir, { recursive: true });
+  const stale = `tutorial_15_wood_720p_old_${Date.now()}.mp4`;
+  fs.writeFileSync(path.join(exportsDir, stale), 'the previous film');
+
+  const { res, queries } = await run({ previousVideo: stale });
+
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(
+    fs.existsSync(path.join(exportsDir, stale)), false,
+    'one video per tutorial: the one it replaces is gone',
+  );
+
+  const read = queries.findIndex((q) => /SELECT video_filename FROM saved_lessons/i.test(q.text));
+  const written = queries.findIndex((q) => /UPDATE saved_lessons/i.test(q.text));
+  assert.ok(read >= 0 && written > read, 'read the old name, then write the new one');
+});
+
+test('a render that failed records nothing', async () => {
+  // Same rule as the metering beside it: the trainer got no film, so the row
+  // must not claim one — least of all by deleting the film they already had.
+  const { res, queries } = await run({ renderError: new Error('ffmpeg died') });
+
+  assert.strictEqual(res.statusCode, 500);
+  assert.strictEqual(
+    queries.find((q) => /UPDATE saved_lessons/i.test(q.text)),
+    undefined,
+  );
+});

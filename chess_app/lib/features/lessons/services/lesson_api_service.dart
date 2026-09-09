@@ -34,6 +34,32 @@ class LessonWriteResult {
   bool get ok => error == null;
 }
 
+/// Which of the three answers `GET /lessons/:id/video` gave.
+enum LessonVideoStatus { ready, expired, none, failed }
+
+/// A link to a tutorial's current video, minted when it was asked for.
+class LessonVideoLink {
+  const LessonVideoLink({
+    required this.status,
+    this.downloadUrl,
+    this.renderedAt,
+    this.resolution,
+    this.narrated = false,
+    this.error,
+  });
+
+  final LessonVideoStatus status;
+  final String? downloadUrl;
+  final DateTime? renderedAt;
+  final String? resolution;
+  final bool narrated;
+
+  /// The server's own sentence, for everything that is not `ready`.
+  final String? error;
+
+  bool get ok => status == LessonVideoStatus.ready && downloadUrl != null;
+}
+
 /// Stills of a film that has not been rendered.
 class LessonPreviewFramesResult {
   const LessonPreviewFramesResult({this.frames = const [], this.error});
@@ -613,6 +639,57 @@ class LessonApiService {
       AppLogger.log('[Lessons] Preview failed: $e');
       return const LessonPreviewFramesResult(
           error: 'Cannot connect to server.');
+    }
+  }
+
+  /// The tutorial's current video, if it still has one.
+  ///
+  /// **The link is minted by this call.** A download token expires in thirty
+  /// minutes, so the one handed out when the film was rendered is no use
+  /// tomorrow; the server stores the filename and signs a fresh link when
+  /// somebody asks. Three answers, and they lead to different buttons: no film
+  /// has been rendered, one was and its file has since been deleted, or here it
+  /// is.
+  Future<LessonVideoLink> fetchTutorialVideo(int lessonId) async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/lessons/$lessonId/video'),
+              headers: _headers)
+          .timeout(const Duration(seconds: 20));
+      final body = jsonDecode(res.body);
+      final map = body is Map ? body : const {};
+      if (res.statusCode == 200) {
+        return LessonVideoLink(
+          status: LessonVideoStatus.ready,
+          downloadUrl: map['downloadUrl']?.toString(),
+          renderedAt: DateTime.tryParse(map['renderedAt']?.toString() ?? ''),
+          resolution: map['resolution']?.toString(),
+          narrated: map['narrated'] == true,
+        );
+      }
+      if (res.statusCode == 410) {
+        return LessonVideoLink(
+          status: LessonVideoStatus.expired,
+          error: map['error']?.toString(),
+        );
+      }
+      if (res.statusCode == 404 && map['status'] == 'none') {
+        return LessonVideoLink(
+          status: LessonVideoStatus.none,
+          error: map['error']?.toString(),
+        );
+      }
+      return LessonVideoLink(
+        status: LessonVideoStatus.failed,
+        error: _errorFrom(
+            res.body, 'Could not find the video (${res.statusCode}).'),
+      );
+    } catch (e) {
+      AppLogger.log('[Lessons] Video link failed: $e');
+      return const LessonVideoLink(
+        status: LessonVideoStatus.failed,
+        error: 'Cannot connect to server.',
+      );
     }
   }
 }
