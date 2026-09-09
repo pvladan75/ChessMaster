@@ -31,6 +31,12 @@ import 'package:chess_app/models/user_session.dart';
 
 const String _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+/// A real 1x1 PNG. The frames a preview draws are the server's business; what
+/// this file asks is whether the door exists and what goes through it, so the
+/// image only has to be something `Image.memory` can actually decode.
+const String _tinyPng =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
 // A part with a move and a sentence on it, which is what a tutorial is. The
 // fixture used to be a bare starting position with neither, and it passed only
 // because the list screen refused an export by looking at `position_list`
@@ -78,6 +84,7 @@ class _TestLessonApi extends LessonApiService {
     int? progressPercent,
     int? progressEtaSeconds,
     int progressQueuedAhead = 0,
+    int previewStatus = 200,
   }) {
     final effectiveRows = rows ?? [_normalTutorialRow, _emptyTutorialRow];
     final client = MockClient((req) async {
@@ -108,6 +115,18 @@ class _TestLessonApi extends LessonApiService {
             'queuedAhead': progressQueuedAhead,
           }),
           200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (req.method == 'POST' && req.url.path.contains('/preview-frames')) {
+        return http.Response(
+          jsonEncode({
+            'frames': [
+              {'beatIndex': 0, 'png': _tinyPng},
+              {'beatIndex': 1, 'png': _tinyPng},
+            ],
+          }),
+          previewStatus,
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
@@ -226,6 +245,115 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
   }
+
+  testWidgets('Preview draws stills without rendering anything',
+      (tester) async {
+    // **The point of the feature.** A film costs tens of seconds of the one
+    // render slot on the server; until this, finding out that a part stood the
+    // wrong way round meant rendering the whole thing and watching it.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests);
+    await openList(tester, api: api);
+
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('export-preview')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('preview-dialog')), findsOneWidget);
+
+    final preview =
+        requests.where((r) => r.url.path.contains('/preview-frames'));
+    expect(preview, hasLength(1), reason: 'one preview request went out');
+
+    // **Nothing was rendered.** A preview that quietly exported would be worse
+    // than no preview: it would spend the slot it exists to save.
+    expect(
+      requests.where((r) => r.url.path.contains('/export-video')),
+      isEmpty,
+    );
+
+    final body = jsonDecode(preview.first.body) as Map<String, dynamic>;
+    expect(body['resolution'], '720p');
+    expect((body['events'] as List), isNotEmpty);
+  });
+
+  testWidgets('the preview is drawn at the quality that is switched on',
+      (tester) async {
+    // A still at 720p answers nothing about a 1080p export: the caption text
+    // and the thin piece outlines are exactly what the two resolutions differ
+    // in, and they are why the switch exists.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests);
+    await openList(tester, api: api);
+
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(switchFor('Higher quality (1080p)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-preview')));
+    await tester.pumpAndSettle();
+
+    final preview =
+        requests.lastWhere((r) => r.url.path.contains('/preview-frames'));
+    expect(jsonDecode(preview.body)['resolution'], '1080p');
+  });
+
+  testWidgets('the export sheet is still standing when the preview closes',
+      (tester) async {
+    // A preview is a look, not a decision — closing it must leave the trainer
+    // where they were, with the switches they had set.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests);
+    await openList(tester, api: api);
+
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-preview')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('preview-close')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('preview-dialog')), findsNothing);
+    expect(find.text('Export video'), findsWidgets,
+        reason: 'the sheet the trainer was standing in is still open');
+    expect(find.byKey(const Key('export-preview')), findsOneWidget);
+  });
+
+  testWidgets('the frames can be paged through', (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests);
+    await openList(tester, api: api);
+
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-preview')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 / 2'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('preview-next')));
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
+  testWidgets('a preview the server refuses says so and renders nothing',
+      (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests, previewStatus: 500);
+    await openList(tester, api: api);
+
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-preview')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('preview-dialog')), findsNothing);
+    expect(
+      requests.where((r) => r.url.path.contains('/export-video')),
+      isEmpty,
+    );
+  });
 
   testWidgets('the row and the finished dialog both fit a 360 dp phone',
       (tester) async {

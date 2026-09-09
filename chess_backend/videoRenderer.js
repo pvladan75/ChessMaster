@@ -958,9 +958,95 @@ async function renderRecordingToMP4({
   });
 }
 
+/// One frame of the film that has not been rendered, drawn as a still.
+///
+/// **So a trainer can see what a film will look like without making one.** An
+/// export takes tens of seconds of a queue slot and, before this, the only way
+/// to find out that the board skin was wrong, or that the sentence is too long
+/// for the caption band, or that the part is standing the wrong way round, was
+/// to render the whole thing and watch it.
+///
+/// It is the film's own drawing and not a second one: the same `applyEvent`
+/// fold the loop uses, the same `renderFrameBuffer`, the same caption band
+/// measured over the same events. Nothing here spawns anything — no ffmpeg, no
+/// queue slot, no file — so a preview costs one frame's drawing and nothing
+/// else.
+///
+/// The sentence is drawn **whole** (`captionReveal: 1`). In the film it arrives
+/// at the speed it is read; a still is a question about layout, and half a
+/// sentence would answer it wrongly.
+async function renderPreviewFrame({
+  title,
+  timelineEvents,
+  beatIndex = 0,
+  durationSeconds,
+  perspective,
+  resolution = '720p',
+  boardTheme = 'wood',
+  showTitle = true,
+  showTimer = true,
+  showCoords = true,
+  showMoveText = false,
+  look = null,
+}) {
+  const events = Array.isArray(timelineEvents) ? timelineEvents : [];
+  if (events.length === 0) throw new Error('a preview needs at least one event');
+
+  const at = Math.max(0, Math.min(beatIndex, events.length - 1));
+  const totalDuration = Math.max(3, Math.min(3600, Math.ceil(durationSeconds || 10)));
+
+  await preloadPieceSet(lookOf(look));
+
+  let state = initialFrameState();
+  for (let i = 0; i <= at; i++) state = applyEvent(state, events[i]);
+
+  return renderFrameBuffer({
+    title,
+    fen: state.fen,
+    perspective: perspective || 'trainer',
+    orientation: state.orientation,
+    lastMove: state.lastMove,
+    caption: state.caption,
+    arrows: state.arrows,
+    squares: state.squares,
+    // Measured over **every** event, not over this one. `renderFrameBuffer`
+    // reads this as „does this film speak at all" (`captionBand > 0`), and a
+    // film that speaks is laid out with the caption column beside a smaller
+    // board — so a wordless beat inside a talking tutorial must be previewed
+    // with the column, or the preview shows a layout the film will never have.
+    captionBand: captionBandLines(events, { resolution }),
+    captionReveal: 1,
+    timestampSec: Math.floor((events[at].timestampMs || 0) / 1000),
+    totalDurationSec: totalDuration,
+    resolution,
+    boardTheme,
+    showTitle,
+    showTimer,
+    showCoords,
+    showMoveText,
+    look,
+  });
+}
+
+/// Which beats to show when nobody says: the opening, the middle, the end.
+///
+/// Three, because they are the three questions a trainer has — how the film
+/// opens, what an ordinary beat looks like with its sentence and its arrows,
+/// and where it leaves the child. Fewer for a film with fewer beats, and never
+/// the same beat twice.
+function previewBeatIndexes(beatCount, wanted = 3) {
+  if (beatCount <= 0) return [];
+  const picks = new Set([0]);
+  if (wanted >= 3 && beatCount > 2) picks.add(Math.floor((beatCount - 1) / 2));
+  if (wanted >= 2 && beatCount > 1) picks.add(beatCount - 1);
+  return [...picks].sort((a, b) => a - b).slice(0, wanted);
+}
+
 module.exports = {
   renderFrameBuffer,
   renderRecordingToMP4,
+  renderPreviewFrame,
+  previewBeatIndexes,
   // Exported for the tests, which read pixels out of a rendered frame: a
   // drawing that cannot be measured is a drawing nobody can grade.
   captionLines,

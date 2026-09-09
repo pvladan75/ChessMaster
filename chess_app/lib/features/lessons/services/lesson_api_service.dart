@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -31,6 +32,19 @@ class LessonWriteResult {
   final String? error;
 
   bool get ok => error == null;
+}
+
+/// Stills of a film that has not been rendered.
+class LessonPreviewFramesResult {
+  const LessonPreviewFramesResult({this.frames = const [], this.error});
+
+  /// One PNG per requested beat, in the order the server drew them.
+  final List<Uint8List> frames;
+
+  /// The server's own sentence, or null on success.
+  final String? error;
+
+  bool get ok => error == null && frames.isNotEmpty;
 }
 
 /// The outcome of an MP4 video export request for a tutorial.
@@ -531,6 +545,74 @@ class LessonApiService {
         ok: false,
         error: 'Cannot connect to server.',
       );
+    }
+  }
+
+  /// Stills of a film that has not been rendered, for the trainer to look at
+  /// before spending a render on it.
+  ///
+  /// Costs no queue slot on the server and writes no file — see
+  /// `POST /lessons/:id/preview-frames`. [beats] names which events to draw;
+  /// absent, the server picks the opening, a middle beat and the end.
+  ///
+  /// The PNGs come back base64-encoded inside the JSON, so this returns the
+  /// decoded bytes ready for `Image.memory`.
+  Future<LessonPreviewFramesResult> previewFrames({
+    required int lessonId,
+    required List<Map<String, dynamic>> events,
+    required int seconds,
+    String? title,
+    String resolution = '720p',
+    String boardTheme = 'wood',
+    Map<String, String>? look,
+    List<int>? beats,
+  }) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/lessons/$lessonId/preview-frames'),
+            headers: _headers,
+            body: jsonEncode({
+              'events': events,
+              'seconds': seconds,
+              if (title != null) 'title': title,
+              'resolution': resolution,
+              'boardTheme': boardTheme,
+              if (look != null) 'look': look,
+              if (beats != null) 'beats': beats,
+            }),
+          )
+          // Far shorter than an export's five minutes: a preview is one frame's
+          // drawing, and a trainer waiting a minute for one has been told
+          // something is wrong by the waiting itself.
+          .timeout(const Duration(seconds: 45));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        final raw = body is Map ? body['frames'] : null;
+        if (raw is List) {
+          final frames = <Uint8List>[];
+          for (final entry in raw) {
+            final png = entry is Map ? entry['png']?.toString() : null;
+            if (png != null && png.isNotEmpty) frames.add(base64Decode(png));
+          }
+          if (frames.isEmpty) {
+            return const LessonPreviewFramesResult(
+              error: 'The server sent no preview.',
+            );
+          }
+          return LessonPreviewFramesResult(frames: frames);
+        }
+        return const LessonPreviewFramesResult(
+          error: 'Invalid response from server.',
+        );
+      }
+      return LessonPreviewFramesResult(
+        error: _errorFrom(res.body, 'Preview failed (${res.statusCode}).'),
+      );
+    } catch (e) {
+      AppLogger.log('[Lessons] Preview failed: $e');
+      return const LessonPreviewFramesResult(
+          error: 'Cannot connect to server.');
     }
   }
 }

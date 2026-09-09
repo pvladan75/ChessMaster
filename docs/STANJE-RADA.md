@@ -15,7 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **9.9.2026** — prekid renderovanja kad klijent ode
+Poslednje ažuriranje: **9.9.2026** — pregled pre renderovanja, i prekid
+renderovanja kad klijent ode
 (odeljak „Render koji je klijent napustio se prekida"). Pre toga: „ODAKLE
 SUTRA — 8.9.2026" odmah ispod.
 

@@ -4867,3 +4867,25 @@ zatvara nginx, a ne klijent, i to nije isto** — zato ova stavka.
 6. [ ] **Naracija.** Sa instaliranim piperom prekini vezu **dok traje sinteza**
    (pre nego što traka krene) — piper proces mora da nestane. To je jedini deo
    prekida koji nije pokriven testom, nego samo konstrukcijom.
+
+## 135. Pregled pre renderovanja — 9.9.2026, nije viđeno uživo
+
+`renderFrameBuffer` crta jedan kadar bez ffmpeg-a, pa pregled ne troši mesto u
+redu za renderovanje, ne piše fajl i ne knjiži kvotu. Dugme je u dijalogu za
+izvoz, pored „Export".
+
+1. [ ] **Tri kadra.** „Preview" na tutorijalu sa više delova daje tri slike —
+   početak, sredina, kraj — kroz koje se prelazi strelicama.
+2. [ ] **Rezolucija se poštuje.** Uključi „Higher quality (1080p)" pa pusti
+   pregled: naslov kaže „Preview · 1080p", a tekst natpisa je vidno oštriji
+   nego na 720p.
+3. [ ] **Ništa nije renderovano.** Posle pregleda u `chess_backend/exports/`
+   nema novog fajla, a broj renderovanja na nalogu nije porastao.
+4. [ ] **Dijalog za izvoz ostaje.** Zatvaranje pregleda vraća trenera u isti
+   dijalog, sa prekidačima kako ih je ostavio.
+5. [ ] **Pregled odgovara i dok se nešto drugo renderuje.** Pusti dug izvoz sa
+   drugog naloga, pa u toku njega traži pregled — mora da stigne odmah, jer
+   pregled namerno **nije** u redu za renderovanje.
+6. [ ] **Slika je ono što će film biti.** Uporedi kadar iz pregleda sa istim
+   taktom u gotovom videu: ista tabla, iste strelice, ista rečenica, isti
+   raspored.

@@ -1132,6 +1132,31 @@ unproved is `ffmpeg.stdin.on('error')`: a faked pipe cannot break the way a real
 one does, and the line stays because an unhandled stream error takes the process
 down. It says so in the code.
 
+**A still of a film nobody has rendered — 9.9.2026, and the counts are 1786 in
+the app with 1 skipped and 1080 on the backend** with `.env` moved aside. Eleven
+of the backend's are the preview route, five of the app's the door to it.
+`renderPreviewFrame` folds the same `applyEvent` the render loop uses and calls
+the same `renderFrameBuffer`, so a preview is the film's own drawing rather than
+a second one — and it needs no ffmpeg, no queue slot and no file, which is what
+makes it answerable while somebody else's film is being drawn.
+
+**The app's count in this file had gone stale at 1779 while the suite was
+1781**, left behind by commits that added app tests without touching it. The
+delta was re-derived by counting test declarations against `HEAD` rather than
+by trusting either number — same rule as everywhere else here: re-derive a count
+before repeating it.
+
+Two things from it. **A preview's three frames differed by the clock, not the
+board.** „The frames are different" stayed true under a mutation that drew beat
+0 three times, because the timer overlay says 00:00, 00:04, 00:09. A second test
+gives every beat the same timestamp, so any difference at all is the position —
+same family as the file letters answered by the pieces standing on rank one.
+And **a comment claimed more than the code did**: `captionBand` reaches
+`renderFrameBuffer` only as `captionBand > 0`, so the line count changes
+nothing, and the rule worth testing is that a wordless beat inside a talking
+film is still drawn with the caption column. The test that failed is what found
+the overstatement.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

@@ -114,6 +114,15 @@ Future<bool> exportTutorialVideo({
     narrate: narrate,
     voice: voice,
     hd: hd,
+    onPreview: (wantsHd) => _showPreview(
+      context: context,
+      api: api,
+      lessonId: lessonId,
+      title: title,
+      video: video,
+      look: _lookOf(context),
+      resolution: wantsHd ? _highResolution : _standardResolution,
+    ),
   );
   if (chosen == null) return false; // cancelled, and nothing was sent
   hd = chosen.hd;
@@ -343,6 +352,101 @@ String remainingText(int? seconds) {
   return ' · about $minutes ${minutes == 1 ? 'minute' : 'minutes'} left';
 }
 
+/// Three stills of the film, drawn by the server without rendering one.
+///
+/// **Nothing here is a second drawing of anything.** The frames are the film's
+/// own — same events, same renderer, same caption layout — which is the only
+/// reason a preview can be trusted to answer „is this what I will get".
+Future<void> _showPreview({
+  required BuildContext context,
+  required LessonApiService api,
+  required int lessonId,
+  required String title,
+  required TutorialVideo video,
+  required Map<String, String> look,
+  required String resolution,
+}) async {
+  final result = await api.previewFrames(
+    lessonId: lessonId,
+    events: video.events,
+    seconds: video.seconds,
+    title: title,
+    look: look,
+    resolution: resolution,
+  );
+  if (!context.mounted) return;
+
+  if (!result.ok) {
+    AppFeedback.error(context, result.error ?? 'Preview failed.');
+    return;
+  }
+
+  var at = 0;
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => AlertDialog(
+        key: const Key('preview-dialog'),
+        title: Text('Preview · $resolution'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // The frame itself, sized by the dialog rather than by the image:
+            // a 1080p still is 1920 px wide and a phone is not.
+            Flexible(
+              child: InteractiveViewer(
+                child: Image.memory(
+                  result.frames[at],
+                  key: ValueKey('preview-frame-$at'),
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                ),
+              ),
+            ),
+            if (result.frames.length > 1) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    key: const Key('preview-back'),
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: at == 0 ? null : () => setLocal(() => at -= 1),
+                  ),
+                  Text('${at + 1} / ${result.frames.length}',
+                      style: AppText.body
+                          .copyWith(color: ctx.colors.textSecondary)),
+                  IconButton(
+                    key: const Key('preview-next'),
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: at == result.frames.length - 1
+                        ? null
+                        : () => setLocal(() => at += 1),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Stills of the opening, the middle and the end. Nothing was '
+              'rendered and nothing counted against your quota.',
+              style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            key: const Key('preview-close'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _ExportChoice {
   const _ExportChoice(this.narrate, this.voice, this.hd);
   final bool narrate;
@@ -361,10 +465,16 @@ Future<_ExportChoice?> _askAboutExport({
   required bool narrate,
   required String? voice,
   required bool hd,
+
+  /// Draws three stills of the film at the resolution now chosen, without
+  /// rendering anything. The sheet stays open behind it: a preview is a look,
+  /// not a decision.
+  required Future<void> Function(bool hd) onPreview,
 }) {
   var wants = narrate;
   var chosen = voice;
   var wantsHd = hd;
+  var previewing = false;
 
   return showDialog<_ExportChoice>(
     context: context,
@@ -453,6 +563,27 @@ Future<_ExportChoice?> _askAboutExport({
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
+          ),
+          // **Before the render, not after it.** A film costs tens of seconds
+          // of the one render slot, and until this the only way to find out
+          // that a part stood the wrong way round, or that a sentence is too
+          // long for the caption band, was to render the whole thing.
+          TextButton.icon(
+            key: const Key('export-preview'),
+            icon: const Icon(Icons.image_outlined),
+            label: const Text('Preview'),
+            onPressed: previewing
+                ? null
+                : () async {
+                    setLocal(() => previewing = true);
+                    try {
+                      await onPreview(wantsHd);
+                    } finally {
+                      // The sheet is still the one the trainer is standing in, so it
+                      // is still the one that has to stop saying „…".
+                      if (ctx.mounted) setLocal(() => previewing = false);
+                    }
+                  },
           ),
           FilledButton(
             onPressed: () =>

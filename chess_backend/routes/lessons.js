@@ -42,6 +42,10 @@ function buildOrReject(res, positionList) {
 const COPY_SUFFIX = ' (copy)';
 const MAX_LESSON_TITLE = 255;
 
+/// How many preview stills one request may ask for. Each comes back as a
+/// base64 PNG, so this is a cap on the answer's size as much as on the work.
+const MAX_PREVIEW_FRAMES = 4;
+
 function copyTitle(title) {
   const base = typeof title === 'string' ? title : '';
   const room = MAX_LESSON_TITLE - COPY_SUFFIX.length;
@@ -537,6 +541,81 @@ router.get('/export-video/:jobId/progress', authenticateToken, (req, res) => {
   const job = renderProgress.jobIdFrom(req.params.jobId);
   if (!job) return res.status(400).json({ error: 'Not a job id.' });
   res.json(renderProgress.statusOf(job));
+});
+
+// POST /lessons/:id/preview-frames
+//
+// **A still of the film that has not been made yet.** An export costs tens of
+// seconds of the one render slot, and until this the only way to find out that
+// the board skin was wrong, that a sentence is too long for the caption band,
+// or that a part stands the wrong way round was to render the whole film and
+// watch it.
+//
+// Deliberately **not** in the render queue: a preview is one frame's drawing
+// with no ffmpeg, no file and no metering, and the whole point of it is that it
+// answers while a film is being drawn for somebody else.
+router.post('/:id/preview-frames', authenticateToken, requireEntitlement(ENT.MP4_EXPORT), async (req, res) => {
+  try {
+    const lessonRes = await pool.query(
+      'SELECT id, title FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)',
+      [req.params.id, req.user.id]
+    );
+    const lesson = lessonRes.rows[0];
+    if (!lesson) {
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to preview it.' });
+    }
+
+    const { events, seconds, title, resolution, boardTheme, look, beats } = req.body;
+
+    if (!Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({ error: 'events must be a non-empty array.' });
+    }
+
+    // Which beats, and a hard ceiling on how many. Each frame is a PNG carried
+    // back as base64, so this is the one place where „a few more" is a
+    // megabyte more.
+    const asked = Array.isArray(beats) && beats.length > 0
+      ? beats
+      : videoRenderer.previewBeatIndexes(events.length);
+    if (asked.length > MAX_PREVIEW_FRAMES) {
+      return res.status(400).json({ error: `At most ${MAX_PREVIEW_FRAMES} preview frames at a time.` });
+    }
+    const wanted = [];
+    for (const raw of asked) {
+      const index = Number(raw);
+      if (!Number.isInteger(index) || index < 0 || index >= events.length) {
+        return res.status(400).json({ error: 'A preview beat must name an event of this film.' });
+      }
+      wanted.push(index);
+    }
+
+    const frames = [];
+    for (const beatIndex of wanted) {
+      const png = await videoRenderer.renderPreviewFrame({
+        title: title || lesson.title || 'Tutorial',
+        timelineEvents: events,
+        beatIndex,
+        durationSeconds: Number.isInteger(seconds) && seconds > 0 ? seconds : undefined,
+        perspective: 'trainer',
+        resolution: resolution || '720p',
+        boardTheme: boardTheme || 'wood',
+        showTitle: true,
+        showTimer: true,
+        showCoords: true,
+        showMoveText: false,
+        look,
+      });
+      frames.push({ beatIndex, png: png.toString('base64') });
+    }
+
+    // No `recordUsage`: nothing was rendered and nothing is downloadable. A
+    // preview that ate into a trainer's quota would push them back towards
+    // rendering blind, which is what it exists to stop.
+    res.json({ frames });
+  } catch (err) {
+    logger.error('Error rendering preview frames:', err);
+    res.status(500).json({ error: 'Error rendering the preview.' });
+  }
 });
 
 // GET /lessons/labels
