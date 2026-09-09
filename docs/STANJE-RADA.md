@@ -284,7 +284,8 @@ vlasnikova odluka, ne posao batch-a.
 * Prijava `n1788823148283`: organizacija ekrana. Uski zahvat je urađen (jedan
   dijalog, imena); širi — jedno mesto za sve što aplikacija proizvodi — je
   izričito van obima i odgovara mu priručnik iz faze 4.
-* Nove stavke provere uživo: **123–131** u `docs/TODO-provera.md`.
+* Nove stavke provere uživo: **123–132** u `docs/TODO-provera.md`. Stavka 132
+  je najveća: 71 fajl prevedenog servera nije viđen na ekranu ni jednom.
 
 ---
 

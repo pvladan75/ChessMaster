@@ -131,7 +131,6 @@ class PuzzleApiService {
   Future<Map<String, dynamic>?> explainPosition({
     required String fen,
     required Map<String, dynamic> evals,
-    String userLanguage = 'sr',
     required String userToken,
   }) async {
     try {
@@ -142,7 +141,6 @@ class PuzzleApiService {
             body: jsonEncode({
               'fen': fen,
               'evals': evals,
-              'userLanguage': userLanguage,
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -168,7 +166,6 @@ class PuzzleApiService {
     Map<String, dynamic>? engineAlternative,
     Map<String, dynamic>? nextMoveEval,
     List<Map<String, dynamic>>? siblingAlternatives,
-    String userLanguage = 'sr',
     required String userToken,
   }) async {
     try {
@@ -188,7 +185,6 @@ class PuzzleApiService {
               if (nextMoveEval != null) 'nextMoveEval': nextMoveEval,
               if (siblingAlternatives != null && siblingAlternatives.isNotEmpty)
                 'siblingAlternatives': siblingAlternatives,
-              'userLanguage': userLanguage,
             }),
           )
           .timeout(const Duration(seconds: 10));

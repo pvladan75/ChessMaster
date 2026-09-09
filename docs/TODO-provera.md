@@ -4729,3 +4729,40 @@ mestu.
 5. [ ] **Reč „studio"** se sreće još samo u „Studio za tutorijal".
 6. [ ] **Ništa se nije prelomilo** — proveri da naslovi staju u zaglavlje i na
    užem prozoru.
+
+## 132. Server govori engleski — 9.9.2026, nije viđeno uživo
+
+Batch-evi 66a i 66b preveli su 71 fajl u `chess_backend/`. **Nijedna od tih
+rečenica nije viđena na ekranu** — testovi ih porede sa nizovima, ne sa
+prozorom, a aplikacija veliki deo njih crta doslovno (`res.json({ error })`).
+Ovo je najveća količina neproverenog teksta u projektu.
+
+Vredi znati unapred: **stari redovi u `user_notifications` ostaju srpski.**
+Poruke upisane pre 8.9.2026 su podaci, ne kod; prevedeni generator menja samo
+ono što se piše od sada. Isto važi za naslov domaćeg „Iz tvojih partija" i za
+grešku zaustavljenog uvoza koja stoji u `user_game_imports`.
+
+1. [ ] **Obaveštenja i pozivnice.** Napravi novu vezu trener–učenik i pogledaj
+   šta piše u dijalogu: nova poruka mora biti engleska. Stare ostaju srpske i
+   to je očekivano.
+2. [ ] **Greške koje ekran crta doslovno.** Zadaj domaći bez izabranog učenika,
+   otvori tuđu sobu, pošalji prazan PGN — poruka je engleska rečenica, ne
+   „Instance of…" i ne prazan SnackBar.
+3. [ ] **Zagonetke i skener.** Otvori PDF koji nije knjiga sa dijagramima:
+   poruka mora reći **koja** od tri stvari nije u redu (nema teksta / nema
+   dijagrama / nepoznat font), na engleskom.
+4. [ ] **Završnice.** Katalog piše `rook and two pawns versus rook`, ne
+   `rooks` u jednini i ne srpski. Prođi kroz nekoliko kategorija — imena
+   familija su „Rook endgames", „Pawn endgames"…
+5. [ ] **Roditeljski izveštaj.** Otvori link izveštaja: naslov, legenda, imena
+   motiva („back-rank mate", „hanging piece") i „Coach's message" su engleski,
+   a brojevi i procenti nepromenjeni.
+6. [ ] **AI objašnjenje pozicije.** „Objasni poziciju" i AI komentar poteza sada
+   **odgovaraju na engleskom** — parametar `userLanguage` je obrisan sa oba
+   kraja. Ako se vrati srpski tekst, model ignoriše prompt i to je nalaz.
+7. [ ] **Repertoar.** „Vežbaj" liniju do greške (npr. potez koji nije u
+   repertoaru) — poruke su engleske i koriste reč **drill**, ne „practice".
+8. [ ] **Priprema protiv protivnika.** Pusti pripremu sa Lichess-a: rečenica o
+   protivniku je engleska, a **svaki procenat u njoj mora postojati u
+   podacima** — `narrativeGuard` odbija izmišljen broj, pa ako se rečenica ne
+   pojavi, pogledaj log servera pre nego što prijaviš da je pokvarena.
