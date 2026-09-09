@@ -77,6 +77,7 @@ class _TestLessonApi extends LessonApiService {
     List<Map<String, dynamic>>? ttsVoices,
     int? progressPercent,
     int? progressEtaSeconds,
+    int progressQueuedAhead = 0,
   }) {
     final effectiveRows = rows ?? [_normalTutorialRow, _emptyTutorialRow];
     final client = MockClient((req) async {
@@ -104,6 +105,7 @@ class _TestLessonApi extends LessonApiService {
             'percent': progressPercent ?? 0,
             'done': false,
             'etaSeconds': progressEtaSeconds,
+            'queuedAhead': progressQueuedAhead,
           }),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
@@ -731,6 +733,53 @@ void main() {
         .lastWhere((r) => r.url.path.contains('/export-video'))
         .body) as Map<String, dynamic>;
     expect(body['resolution'], '1080p');
+  });
+
+  testWidgets('a render that is waiting for the machine says so',
+      (tester) async {
+    // „Možda ispisati poruku „Vaš video će uskoro početi da se renderuje", a
+    // kad počne, onda ide onaj progres bar." The server draws one film at a
+    // time — two side by side share one CPU and finish together, both late — so
+    // an export can spend its first stretch waiting. „Starting…" over an empty
+    // bar is exactly what a render that had begun and frozen would show, which
+    // is why a queued one says something else.
+    final requests = <http.Request>[];
+    final completer = Completer<void>();
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: false,
+      onExportVideo: () => completer.future,
+      progressPercent: 0,
+      progressQueuedAhead: 2,
+    );
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija', settle: false);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    expect(
+        find.text(
+            'Your video will start rendering shortly — 2 videos ahead of it.'),
+        findsOneWidget);
+    final bar = tester
+        .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator));
+    expect(bar.value, isNull,
+        reason: 'a bar stuck at 0 % reads as a render that started and froze');
+
+    completer.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Video ready!'), findsOneWidget);
+  });
+
+  test('the wait is said in words, and one video is not two', () {
+    expect(waitingText(1),
+        'Your video will start rendering shortly — one video ahead of it.');
+    expect(waitingText(3),
+        'Your video will start rendering shortly — 3 videos ahead of it.');
+    // Its turn came between two polls: there is nothing in front of it any
+    // more, and the bar takes over from here.
+    expect(waitingText(0), 'Starting…');
   });
 
   test('the time left is said in words a person reads at a glance', () {

@@ -13,6 +13,7 @@ const { acceptedTrainersOf } = require('../services/relationshipService');
 const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps');
 const tts = require('../services/tts');
 const renderProgress = require('../services/renderProgress');
+const renderQueue = require('../services/renderQueue');
 const tutorialNarration = require('../services/tutorialNarration');
 
 /// Runs a submitted step list through the one builder, or answers the caller.
@@ -399,49 +400,73 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     let renderDuration = duration;
     let audioFilePath = null;
     let narrationAudioPath = null;
+    let queueFull = false;
     // Null unless a voice was asked for and none was heard. See `narrateFilm`:
     // a silent film that was supposed to speak must not come back wearing the
     // same „Video ready!" as one that spoke.
     let silentBecause = null;
 
-    if (narrate === true) {
-      const narrated = await tutorialNarration.narrateFilm({ events, voice, exportsDir, filename });
-      if (narrated) {
-        if (narrated.events) renderEvents = narrated.events;
-        if (narrated.seconds != null) renderDuration = Math.min(narrated.seconds, 3600);
-        narrationAudioPath = narrated.audioPath || null;
-        audioFilePath = narrated.audioPath || null;
-        silentBecause = narrated.silentBecause || null;
-      }
-    }
-
-    try {
-      await videoRenderer.renderRecordingToMP4({
-        title: title || lesson.title || 'Tutorial',
-        timelineEvents: renderEvents,
-        audioFilePath: audioFilePath,
-        durationSeconds: renderDuration,
-        perspective: 'trainer',
-        resolution: resolution || '720p',
-        boardTheme: boardTheme || 'wood',
-        showTitle: true,
-        showTimer: true,
-        showCoords: true,
-        showMoveText: false,
-      look,
-      onProgress: (drawn, total) => renderProgress.report(job, drawn, total),
-        outputPath: exportPath,
-      });
-    } finally {
-      if (narrationAudioPath) {
-        try {
-          if (fs.existsSync(narrationAudioPath)) {
-            fs.unlinkSync(narrationAudioPath);
-          }
-        } catch (cleanErr) {
-          logger.warn('[TTS] Failed to clean up narration audio file:', cleanErr);
+    // **One film at a time.** Two renders side by side share one CPU and finish
+    // together, both late; in a queue the first is done in its own time and the
+    // second no later than it would have been. The narration is inside the
+    // queue with the drawing, because synthesis is the same machine doing the
+    // same kind of work.
+    await renderQueue.run(job || filename, async () => {
+      if (narrate === true) {
+        const narrated = await tutorialNarration.narrateFilm({ events, voice, exportsDir, filename });
+        if (narrated) {
+          if (narrated.events) renderEvents = narrated.events;
+          if (narrated.seconds != null) renderDuration = Math.min(narrated.seconds, 3600);
+          narrationAudioPath = narrated.audioPath || null;
+          audioFilePath = narrated.audioPath || null;
+          silentBecause = narrated.silentBecause || null;
         }
       }
+
+      try {
+        await videoRenderer.renderRecordingToMP4({
+          title: title || lesson.title || 'Tutorial',
+          timelineEvents: renderEvents,
+          audioFilePath: audioFilePath,
+          durationSeconds: renderDuration,
+          perspective: 'trainer',
+          resolution: resolution || '720p',
+          boardTheme: boardTheme || 'wood',
+          showTitle: true,
+          showTimer: true,
+          showCoords: true,
+          showMoveText: false,
+        look,
+        onProgress: (drawn, total) => renderProgress.report(job, drawn, total),
+          outputPath: exportPath,
+        });
+      } finally {
+        if (narrationAudioPath) {
+          try {
+            if (fs.existsSync(narrationAudioPath)) {
+              fs.unlinkSync(narrationAudioPath);
+            }
+          } catch (cleanErr) {
+            logger.warn('[TTS] Failed to clean up narration audio file:', cleanErr);
+          }
+        }
+      }
+    }, (ahead) => renderProgress.queued(job, ahead)).catch((err) => {
+      if (err instanceof renderQueue.RenderQueueFull) {
+        queueFull = true;
+        return;
+      }
+      throw err;
+    });
+
+    if (queueFull) {
+      // Refused before any work was done, so nothing is metered and no file was
+      // written. 429 rather than 503: this is one client too many for a moment,
+      // not a server that is down.
+      renderProgress.finish(job, { ok: false });
+      return res.status(429).json({
+        error: 'The server is rendering other videos right now. Try again in a minute or two.',
+      });
     }
 
     const downloadToken = signDownloadToken(req.user.id, filename);

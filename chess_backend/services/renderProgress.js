@@ -40,6 +40,29 @@ function jobIdFrom(value) {
   return /^[A-Za-z0-9_-]{6,64}$/.test(id) ? id : null;
 }
 
+/// Note that [id] is waiting for the machine, with [ahead] films in front.
+///
+/// A queued render has drawn nothing and is not stuck: „Starting…" over an
+/// empty bar says the wrong thing, and a percentage says a wronger one. The
+/// screen wants to know that the film is in a queue and where — a place that
+/// never changes is indistinguishable from a queue that has stopped moving.
+function queued(id, ahead) {
+  if (!id) return;
+  const now = Date.now();
+  const job = jobs.get(id);
+  // Position 0 means „it is drawing now", and that is not news to a job that
+  // has already reported frames — the report itself says so.
+  if (job && job.percent > 0 && ahead === 0) return;
+  jobs.set(id, {
+    percent: 0,
+    done: false,
+    etaSeconds: null,
+    queuedAhead: Math.max(0, ahead),
+    touchedAt: now,
+  });
+  sweep(now);
+}
+
 /// Note that [id] has drawn [drawn] of [total] frames.
 ///
 /// **The estimate is measured, never assumed.** The rate is taken over the
@@ -71,14 +94,15 @@ function report(id, drawn, total) {
   // Never 100 from here: the frames are drawn well before ffmpeg has finished
   // writing the file, and a bar that sits full while the app still waits is
   // worse than one that stops at 99.
-  jobs.set(id, { percent, done: false, etaSeconds, first: from, touchedAt: now });
+  // A job that is drawing is no longer waiting, whatever it was told before.
+  jobs.set(id, { percent, done: false, etaSeconds, queuedAhead: 0, first: from, touchedAt: now });
   sweep();
 }
 
 /// The render answered, one way or the other.
 function finish(id, { ok = true } = {}) {
   if (!id) return;
-  jobs.set(id, { percent: 100, done: true, ok, etaSeconds: 0, touchedAt: Date.now() });
+  jobs.set(id, { percent: 100, done: true, ok, etaSeconds: 0, queuedAhead: 0, touchedAt: Date.now() });
   sweep();
 }
 
@@ -89,7 +113,7 @@ function finish(id, { ok = true } = {}) {
 /// something for the app to draw a failure about.
 function statusOf(id) {
   const job = jobs.get(id);
-  if (!job) return { percent: 0, done: false, known: false, etaSeconds: null };
+  if (!job) return { percent: 0, done: false, known: false, etaSeconds: null, queuedAhead: 0 };
   return {
     percent: job.percent,
     done: job.done,
@@ -97,7 +121,10 @@ function statusOf(id) {
     // Seconds, or null when there is nothing to base a number on. Null is „no
     // estimate yet" and the screen says nothing; it is not zero.
     etaSeconds: job.etaSeconds == null ? null : job.etaSeconds,
+    // Films in front of this one. 0 means it is being drawn now — or that this
+    // server never made it wait.
+    queuedAhead: job.queuedAhead || 0,
   };
 }
 
-module.exports = { report, finish, statusOf, jobIdFrom, TTL_MS, _jobs: jobs };
+module.exports = { report, finish, statusOf, queued, jobIdFrom, TTL_MS, _jobs: jobs };

@@ -243,6 +243,7 @@ Future<LessonExportVideoResult> _showProgressWhile({
 }) async {
   var percent = 0;
   int? etaSeconds;
+  var queuedAhead = 0;
   void Function(void Function())? refresh;
   var closed = false;
 
@@ -257,6 +258,7 @@ Future<LessonExportVideoResult> _showProgressWhile({
     refresh!(() {
       percent = at.percent;
       etaSeconds = at.etaSeconds;
+      queuedAhead = at.queuedAhead;
     });
   });
 
@@ -276,14 +278,19 @@ Future<LessonExportVideoResult> _showProgressWhile({
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               LinearProgressIndicator(
-                value: percent <= 0 ? null : percent / 100,
+                // Indeterminate while it waits: a bar at 0 % that is not moving
+                // says the render has begun and stalled, which is the one thing
+                // it has not done.
+                value: queuedAhead > 0 || percent <= 0 ? null : percent / 100,
                 minHeight: 6,
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                percent <= 0
-                    ? 'Starting…'
-                    : '$percent%${remainingText(etaSeconds)}',
+                queuedAhead > 0
+                    ? waitingText(queuedAhead)
+                    : (percent <= 0
+                        ? 'Starting…'
+                        : '$percent%${remainingText(etaSeconds)}'),
                 style: AppText.body.copyWith(color: ctx.colors.textSecondary),
               ),
             ],
@@ -303,6 +310,19 @@ Future<LessonExportVideoResult> _showProgressWhile({
       await dialog;
     }
   }
+}
+
+/// „Your video will start rendering shortly", and how many are in front of it.
+///
+/// The server draws one film at a time — two side by side share one CPU and
+/// finish together, both late — so an export can spend its first stretch
+/// waiting for the machine. That is not a stalled render and must not look like
+/// one: „Starting…" over an empty bar is exactly what a render that had begun
+/// and frozen would show.
+String waitingText(int ahead) {
+  if (ahead <= 0) return 'Starting…';
+  final films = ahead == 1 ? 'one video' : '$ahead videos';
+  return 'Your video will start rendering shortly — $films ahead of it.';
 }
 
 /// „about a minute left", or nothing at all.

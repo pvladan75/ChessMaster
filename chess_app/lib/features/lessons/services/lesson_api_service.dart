@@ -404,7 +404,13 @@ class LessonApiService {
   /// from, and null again on the last frame, when what is left is ffmpeg
   /// closing the file rather than a number of frames. Null means „no estimate",
   /// which the screen says nothing about; it does not mean zero.
-  Future<({int percent, int? etaSeconds})?> renderProgress(String jobId) async {
+  ///
+  /// `queuedAhead` is how many films are in front of this one. The server draws
+  /// one at a time, so an export can spend its first stretch waiting — and a
+  /// bar at „Starting…" looks identical to one that has begun. Zero means it is
+  /// this film's turn.
+  Future<({int percent, int? etaSeconds, int queuedAhead})?> renderProgress(
+      String jobId) async {
     try {
       final res = await _client
           .get(Uri.parse('$backendUrl/lessons/export-video/$jobId/progress'),
@@ -414,9 +420,11 @@ class LessonApiService {
       final body = jsonDecode(res.body);
       if (body is Map && body['percent'] is num) {
         final eta = body['etaSeconds'];
+        final ahead = body['queuedAhead'];
         return (
           percent: (body['percent'] as num).round(),
           etaSeconds: eta is num ? eta.round() : null,
+          queuedAhead: ahead is num ? ahead.round() : 0,
         );
       }
       return null;

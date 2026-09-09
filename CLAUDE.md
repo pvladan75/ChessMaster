@@ -1012,8 +1012,9 @@ sheet now opens for **every** export rather than only where the server can
 speak: a switch reachable only where piper happens to be installed is one half
 the trainers do not have.
 
-**Thirteen more on the backend the same day — 1050 — and they came from asking
-piper's own phonemiser a question instead of guessing at it.** „Vidi da li se
+**Twenty-one more on the backend the same day — 1058 — and they came from asking
+piper's own phonemiser a question instead of guessing at it, and then from
+asking what happens when two trainers press render at once.** „Vidi da li se
 potezi navedeni u komentaru izgovaraju dobro na drugim jezicima." Nothing
 anywhere expanded notation, so every voice spelled it:
 
@@ -1080,11 +1081,35 @@ ends with the right bytes in the right place — so that test watches
 `fs.copyFileSync` and asserts the cache path is never its destination. Same
 family as every other check in this file that could not fail.
 
-There is still **no limit on how many renders run at once**, and that is a
-decision waiting rather than an oversight: each one holds an ffmpeg process and
-a share of one CPU, so ten trainers at once means ten films each taking ten
-times as long. A cap needs a policy — wait, or refuse with a 429 — and nobody
-has been asked yet.
+**The answer to that was a queue** — „neko od korisnika će time svoj video
+dobiti pre, a ovaj drugi kasnije (kao što bi i dobio da rade paralelno)", which
+is exactly right: the same total, differently distributed, and the first
+trainer is served in their own time instead of everybody finishing late
+together. `services/renderQueue.js` draws one film at a time (`RENDER_CONCURRENCY`),
+narration included, since synthesis is the same machine doing the same work.
+
+**The waiting is bounded, and that is the part worth carrying.** The render
+happens inside the request the client already made, and that request has two
+ceilings above it: nginx closes a proxied request after 300 s (`deploy/
+app-setup.sh`) and the app's own HTTP timeout is five minutes. An unbounded
+queue turns „you are fourth" into a request that dies on the wire while the
+server carries on drawing a film nobody will collect — so a full queue
+(`RENDER_QUEUE_MAX`, two waiting) is refused at once with a 429 and a sentence,
+before any work is done and before anything is metered. **A queue is a promise
+about time, and a promise longer than the connection is a lie.**
+
+Two smaller things. The screen had to learn a third state: a queued render is
+not „Starting…" over an empty bar, because that is precisely what a render that
+began and froze looks like — it says how many films are in front of it, and the
+bar stays indeterminate until its turn. And the position is re-announced every
+time the queue moves, because a place that never changes is indistinguishable
+from a queue that has stopped.
+
+**A test's own hold can be the thing that hangs it.** The first version of the
+full-queue test released the one hold that existed, the next filler started and
+built a new one, and the queue never drained — the file timed out at fifteen
+seconds a test, in tests that had nothing to do with queues. One gate that every
+filler awaits, rather than a hold made inside each task.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -37,7 +37,7 @@ test('progress is what has been drawn, and never reaches 100 on its own', () => 
 
   progress.finish(id);
   assert.deepEqual(progress.statusOf(id),
-    { percent: 100, done: true, known: true, etaSeconds: 0 });
+    { percent: 100, done: true, known: true, etaSeconds: 0, queuedAhead: 0 });
 });
 
 test('a render that failed stops the bar rather than leaving it creeping', () => {
@@ -58,6 +58,7 @@ test('an unknown job is nothing to report, not an error', () => {
     done: false,
     known: false,
     etaSeconds: null,
+    queuedAhead: 0,
   });
 });
 
@@ -73,7 +74,7 @@ test('reporting on no job at all is ignored', () => {
   progress.report(null, 5, 10);
   progress.finish(null);
   assert.deepEqual(progress.statusOf(null),
-    { percent: 0, done: false, known: false, etaSeconds: null });
+    { percent: 0, done: false, known: false, etaSeconds: null, queuedAhead: 0 });
 });
 
 test('the time left is measured on this render, not assumed', () => {

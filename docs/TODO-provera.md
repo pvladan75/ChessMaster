@@ -4823,7 +4823,12 @@ lokalni backend sa `ffmpeg` u putanji.
 16. [ ] **Dva renderovanja u isto vreme.** Pokreni izvoz na dva naloga (ili dva
     puta isti tutorijal) i proveri da oba stignu, da su **dva različita fajla**
     i da se oba otvaraju. Do 9.9.2026 su dva izvoza istog tutorijala u istoj
-    milisekundi delila ime fajla.
+    milisekundi delila ime fajla. Drugi izvoz mora da kaže „Your video will
+    start rendering shortly — one video ahead of it." dok čeka, pa da pređe na
+    traku sa procentima kad dođe na red.
+16a. [ ] **Četvrti izvoz se odbija.** Sa tri u redu (jedan crta, dva čekaju),
+    četvrti dobija poruku „The server is rendering other videos right now. Try
+    again in a minute or two." i **ne troši kvotu**.
 17. [ ] **Potezi se izgovaraju, ne slovkaju.** Napiši u komentaru „Bd5", „O-O"
     i „Nxe5+" pa preslušaj: engleski glas kaže „bishop d five", nemački
     „Läufer d fünf", francuski „fou d cinq". Do 9.9.2026 je francuski čitao

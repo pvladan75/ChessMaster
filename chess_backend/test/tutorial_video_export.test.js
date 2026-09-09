@@ -23,6 +23,8 @@ const lessonsRouter = require('../routes/lessons');
 const videoRenderer = require('../videoRenderer');
 const tts = require('../services/tts');
 const tutorialNarration = require('../services/tutorialNarration');
+const renderQueue = require('../services/renderQueue');
+const renderProgress = require('../services/renderProgress');
 const { METRIC } = require('../services/entitlementService');
 
 const VALID_EVENTS = [
@@ -453,6 +455,96 @@ test('two renders that start in the same millisecond are two files', async () =>
   } finally {
     Date.now = realNow;
   }
+});
+
+test('a full queue is refused at once, and costs the trainer nothing', async () => {
+  // „Ja bih ih stavio u red" — and the waiting is bounded, because the render
+  // happens inside the request the client already made and nginx closes a
+  // proxied request after 300 s. „You are fourth" is a promise this server
+  // cannot keep, so it is not made: the refusal comes back before any work,
+  // which is why nothing is metered and no file is written.
+  // One gate for all three, because a hold created inside a task that has not
+  // started yet cannot be released: the first version of this test released the
+  // only hold that existed, the next filler started and made a new one, and the
+  // queue never drained.
+  let openGate;
+  const gate = new Promise((resolve) => { openGate = resolve; });
+  const filling = [0, 1, 2].map((i) => renderQueue.run(`filler-${i}`, () => gate));
+  await new Promise((r) => setImmediate(r));
+  assert.equal(renderQueue.snapshot().waiting, 2, 'one drawing, two waiting');
+
+  const { res, renderCalls, queries } = await run({
+    body: { events: VALID_EVENTS, seconds: 4, jobId: 'job-queue-full-1' },
+  });
+
+  assert.equal(res.statusCode, 429, 'one client too many for a moment, not a server that is down');
+  assert.match(res.body.error, /rendering other videos/i);
+  assert.equal(renderCalls.length, 0, 'nothing was drawn');
+  assert.equal(
+    queries.filter((q) => /INSERT INTO usage_events|usage/i.test(q.text)).length,
+    0,
+    'and nothing was metered',
+  );
+  assert.equal(renderProgress.statusOf('job-queue-full-1').done, true,
+    'the bar stops rather than creeping at 0');
+
+  openGate();
+  await Promise.all(filling);
+  assert.equal(renderQueue.snapshot().waiting, 0);
+});
+
+test('a render that waits says it is waiting, and where', async () => {
+  // What the screen shows while a film is in the queue: not „Starting…" over an
+  // empty bar, which is what a queued render looked like before — the number
+  // was 0 and the bar was indeterminate, exactly like a render that had begun.
+  const job = 'job-queued-1';
+  renderProgress.queued(job, 2);
+  assert.deepEqual(renderProgress.statusOf(job), {
+    percent: 0, done: false, known: true, etaSeconds: null, queuedAhead: 2,
+  });
+
+  // The queue moves, and the screen can see it move. A place that never changes
+  // is indistinguishable from a queue that has stopped.
+  renderProgress.queued(job, 1);
+  assert.equal(renderProgress.statusOf(job).queuedAhead, 1);
+
+  // Its turn comes, and from here the bar means what it always meant.
+  renderProgress.queued(job, 0);
+  assert.equal(renderProgress.statusOf(job).queuedAhead, 0);
+  renderProgress.report(job, 40, 80);
+  assert.equal(renderProgress.statusOf(job).percent, 50);
+  assert.equal(renderProgress.statusOf(job).queuedAhead, 0);
+
+  // And a job already drawing is not pushed back into the queue by a late
+  // position report from the queue it has already left.
+  renderProgress.queued(job, 0);
+  assert.equal(renderProgress.statusOf(job).percent, 50, 'the frames it drew are still drawn');
+});
+
+test('an export that has to wait reports its place through the progress route', async () => {
+  // End to end, which is the only way to see the wiring: the route hands the
+  // queue a callback, the queue calls it whenever the queue moves, and the poll
+  // the app is already making answers with a place rather than „Starting…".
+  let openGate;
+  const gate = new Promise((resolve) => { openGate = resolve; });
+  const filling = renderQueue.run('ahead-of-you', () => gate);
+  await new Promise((r) => setImmediate(r));
+
+  const job = 'job-waiting-1';
+  const exporting = run({ body: { events: VALID_EVENTS, seconds: 4, jobId: job } });
+  await new Promise((r) => setImmediate(r));
+
+  assert.equal(renderProgress.statusOf(job).queuedAhead, 1,
+    'one film in front of this one');
+  assert.equal(renderProgress.statusOf(job).percent, 0, 'and nothing drawn yet');
+
+  openGate();
+  const { res, renderCalls } = await exporting;
+  await filling;
+
+  assert.equal(res.statusCode, 200, 'and then it is rendered like any other');
+  assert.equal(renderCalls.length, 1);
+  assert.equal(renderProgress.statusOf(job).queuedAhead, 0);
 });
 
 test('9. metering books the rendered duration, not the requested one', async () => {

@@ -10,6 +10,7 @@ const { authenticateToken, signDownloadToken, authenticateDownloadToken } = requ
 const { requireEntitlement } = require('../middleware/entitlements');
 const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
+const renderQueue = require('../services/renderQueue');
 const { trimPauses } = require('../services/audioTrimmer');
 const realtime = require('../services/realtime');
 const { mayRecordRoom } = require('../services/recordingConsent');
@@ -334,7 +335,9 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       }
     }
 
-    await videoRenderer.renderRecordingToMP4({
+    // The same queue the tutorial export waits in: one machine, one film at a
+    // time, whichever door the render came through.
+    const rendered = await renderQueue.run(filename, () => videoRenderer.renderRecordingToMP4({
       title: recording ? recording.title : 'Session Recording',
       timelineEvents,
       audioFilePath,
@@ -347,7 +350,16 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       showCoords,
       showMoveText,
       outputPath: exportPath
+    })).catch((err) => {
+      if (err instanceof renderQueue.RenderQueueFull) return 'queue-full';
+      throw err;
     });
+
+    if (rendered === 'queue-full') {
+      return res.status(429).json({
+        error: 'The server is rendering other videos right now. Try again in a minute or two.',
+      });
+    }
 
     // The client hands this to the system browser, which cannot send an
     // Authorization header — so the grant travels as a short-lived token bound
