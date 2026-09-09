@@ -406,6 +406,9 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     let audioFilePath = null;
     let narrationAudioPath = null;
     let queueFull = false;
+    // This trainer's own share, which is a different refusal from a busy
+    // server and needs a different sentence.
+    let accountBusy = false;
     // The client gave up — the 300 s nginx ceiling, the app's five-minute
     // timeout, a closed laptop. Watched on 9.9.2026: the server drew for
     // minutes more and held the one render slot the whole time, so everyone
@@ -469,7 +472,11 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           }
         }
       }
-    }, (ahead) => renderProgress.queued(job, ahead)).catch((err) => {
+    }, (ahead) => renderProgress.queued(job, ahead), { owner: req.user.id }).catch((err) => {
+      if (err instanceof renderQueue.RenderAccountBusy) {
+        accountBusy = true;
+        return;
+      }
       if (err instanceof renderQueue.RenderQueueFull) {
         queueFull = true;
         return;
@@ -489,6 +496,17 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       renderProgress.finish(job, { ok: false });
       logger.info({ job }, '[RENDER] abandoned: client gone, drawing stopped, slot released');
       return;
+    }
+
+    if (accountBusy) {
+      // **Not „the server is busy".** The films in the way are this trainer's
+      // own, and telling them otherwise sends them off to wait for somebody
+      // else to finish. Nothing was drawn, so nothing is metered.
+      renderProgress.finish(job, { ok: false });
+      return res.status(429).json({
+        error: 'You already have a video rendering and another one waiting. '
+          + 'Wait for one of them to finish and try again.',
+      });
     }
 
     if (queueFull) {

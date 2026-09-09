@@ -727,3 +727,46 @@ test('a render that failed records nothing', async () => {
     undefined,
   );
 });
+
+test('the export competes for its own account share, not the whole machine', async () => {
+  // One trainer pressing Export three times used to fill the queue and refuse
+  // every other trainer with a 429. The queue cannot know who is asking unless
+  // the route tells it.
+  const seen = [];
+  const originalRun = renderQueue.run;
+  renderQueue.run = async (id, task, onPosition, options) => {
+    seen.push(options);
+    return originalRun(id, task, onPosition, options);
+  };
+
+  try {
+    const { res } = await run({ userId: 77 });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepEqual(seen, [{ owner: 77 }]);
+  } finally {
+    renderQueue.run = originalRun;
+  }
+});
+
+test('a trainer at their own share is told so, and not that the server is busy',
+  async () => {
+    // Two refusals, two sentences. „The server is rendering other videos" is a
+    // lie when the other videos are this trainer's own, and it sends them off
+    // to wait for somebody else.
+    const originalRun = renderQueue.run;
+    renderQueue.run = async () => {
+      throw new renderQueue.RenderAccountBusy(2);
+    };
+
+    try {
+      const { res, queries } = await run();
+      assert.strictEqual(res.statusCode, 429);
+      assert.match(res.body.error, /you already have/i);
+      assert.doesNotMatch(res.body.error, /server is rendering/i);
+      // Nothing was drawn, so nothing is metered and no film is recorded.
+      assert.strictEqual(queries.find((q) => /INSERT INTO usage_counters/i.test(q.text)), undefined);
+      assert.strictEqual(queries.find((q) => /UPDATE saved_lessons/i.test(q.text)), undefined);
+    } finally {
+      renderQueue.run = originalRun;
+    }
+  });

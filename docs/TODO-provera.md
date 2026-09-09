@@ -4911,3 +4911,21 @@ ako film postoji**.
    save space. Export it again", i dugme **nestaje** sa reda.
 6. [ ] **Telefon od 360 dp.** Red sa filmom ima četiri ikonice i dug naslov —
    proveri na uskom telefonu da su sve dohvatljive.
+
+## 137. Jedan trener ne zauzima ceo red — 9.9.2026, nije viđeno uživo
+
+Do 9.9.2026 je jedan nalog sa tri izvoza punio red i svi ostali su dobijali 429.
+Sada red ide **round-robin po nalogu**, a jedan nalog sme da ima najviše dva
+filma (jedan se crta, jedan čeka).
+
+1. [ ] **Tri izvoza sa istog naloga.** Treći mora da bude odbijen rečenicom
+   „You already have a video rendering and another one waiting…" — a **ne**
+   „The server is rendering other videos right now".
+2. [ ] **Drugi nalog i dalje prolazi.** Dok prvi trener ima svoja dva, sa
+   drugog naloga pusti izvoz: mora da uđe u red, ne da bude odbijen.
+3. [ ] **Red poštuje smenu.** Trener A pusti izvoz pa odmah još jedan; trener B
+   pusti svoj posle toga. Kad se prvi zavrsi, **B ide pre A-ovog drugog**.
+4. [ ] **Broj u traci je tačan.** Onaj ko čeka vidi mesto koje se obistini —
+   ako ga neko pretekne po pravilu smene, broj mu poraste, i to vidi.
+5. [ ] **Kvota nije potrošena na odbijanje.** Posle odbijenog trećeg izvoza broj
+   renderovanja na nalogu nije porastao.

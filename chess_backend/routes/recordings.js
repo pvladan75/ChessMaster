@@ -350,10 +350,21 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       showCoords,
       showMoveText,
       outputPath: exportPath
-    })).catch((err) => {
+    // The account, so this export competes for its own share rather than for
+    // the whole machine: the same queue serves tutorial films, and one user's
+    // three exports used to fill it for everybody.
+    }), () => {}, { owner: req.user.id }).catch((err) => {
+      if (err instanceof renderQueue.RenderAccountBusy) return 'account-busy';
       if (err instanceof renderQueue.RenderQueueFull) return 'queue-full';
       throw err;
     });
+
+    if (rendered === 'account-busy') {
+      return res.status(429).json({
+        error: 'You already have a video rendering and another one waiting. '
+          + 'Wait for one of them to finish and try again.',
+      });
+    }
 
     if (rendered === 'queue-full') {
       return res.status(429).json({

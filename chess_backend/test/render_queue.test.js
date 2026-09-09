@@ -20,6 +20,17 @@ function held() {
 /// Lets every already-scheduled microtask and timer callback run.
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 
+/// The two numbers these tests are about.
+///
+/// **Not the whole snapshot.** Comparing the object entire is a claim about its
+/// *shape*, and every field added to it for a log line — `accountMax`,
+/// `accounts` — failed four tests that had nothing to do with either. Same
+/// family as `retention.test.js` asserting „exactly one query".
+const busy = () => {
+  const { running, waiting } = queue.snapshot();
+  return { running, waiting };
+};
+
 test('the second film waits, and is told where it stands', async () => {
   const first = held();
   const second = held();
@@ -32,7 +43,7 @@ test('the second film waits, and is told where it stands', async () => {
   const queued = queue.run('job-b', second.task, (at) => seen.push(['b', at]));
   await settle();
 
-  assert.deepEqual(queue.snapshot(), { running: 1, waiting: 1, concurrency: 1, maxWaiting: 2 });
+  assert.deepEqual(busy(), { running: 1, waiting: 1 });
   assert.equal(queue.positionOf('job-b'), 1, 'one film in front of it');
   assert.deepEqual(seen, [['a', 0], ['b', 1]],
     'the first starts at once, the second is told it is one back');
@@ -45,7 +56,7 @@ test('the second film waits, and is told where it stands', async () => {
   second.release();
   await running;
   await queued;
-  assert.deepEqual(queue.snapshot(), { running: 0, waiting: 0, concurrency: 1, maxWaiting: 2 });
+  assert.deepEqual(busy(), { running: 0, waiting: 0 });
 });
 
 test('a queue that moves says so, so second becomes first', async () => {
@@ -111,7 +122,7 @@ test('a film that throws still lets the next one start', async () => {
   assert.deepEqual(seen, [0], 'the next film started immediately');
   second.release();
   await next;
-  assert.deepEqual(queue.snapshot(), { running: 0, waiting: 0, concurrency: 1, maxWaiting: 2 });
+  assert.deepEqual(busy(), { running: 0, waiting: 0 });
 });
 
 test('one at a time, and never two', async () => {

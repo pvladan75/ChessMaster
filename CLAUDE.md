@@ -1182,6 +1182,39 @@ One lesson about an old test. `retention.test.js` asserted `queries.length ===
 1` — a claim about the sweep's *shape* rather than about what it clears, and
 false the moment a second table kept a filename. It finds its query by name now.
 
+**One trainer could take the whole machine, and did — 9.9.2026, backend 1098.**
+With `RENDER_CONCURRENCY` 1 and `RENDER_QUEUE_MAX` 2, three renders is the
+number that fits, so pressing „Export" three times filled the queue and every
+other trainer was refused with a 429 until it drained. FIFO has no idea who is
+asking. Two rules now, and they answer different questions: **round-robin**
+decides order (the next film comes from the account that has gone longest
+without a turn), and **`RENDER_ACCOUNT_MAX`** decides admission (two per
+account, drawing plus waiting). A job with no owner is its own bucket, so
+nothing can block an unrelated job by sharing one.
+
+Three things worth carrying.
+
+**The number a trainer is told has to be the number that comes true.**
+Announcing an array index was right while the queue was first-come-first-served
+and became a lie the moment it was not — the place is computed by playing the
+rule forward over a copy of the queue.
+
+**Two refusals need two sentences.** „The server is rendering other videos" is
+false when the other videos are your own, and a trainer told that waits for
+somebody else to finish instead of for themselves. `RenderAccountBusy` is a
+separate class for exactly that reason.
+
+**A mutation reported „survived" when it had actually hung.** Deleting the cap
+does not make the third render fail — it makes it *queue*, so `assert.rejects`
+never settles and the file times out. Every refusal test races a deadline now,
+and the mutation harness prints HUNG rather than counting it as a pass. Second
+time in one day: a test that hangs is worse than one that fails.
+
+One old assertion changed rather than a fixture: `render_queue.test.js` compared
+the whole `snapshot()` object, so two fields added for a log line failed four
+tests about something else. It asks for `running` and `waiting` now — same
+family as `retention.test.js`'s „exactly one query".
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

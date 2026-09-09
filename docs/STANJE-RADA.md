@@ -340,6 +340,40 @@ Ostaje **provera uživo** — stavka 133 u `docs/TODO-provera.md`.
 
 ---
 
+## Jedan trener više ne zauzima celu mašinu — 9.9.2026
+
+Bio je **živ kvar, ne budući**: sa `RENDER_CONCURRENCY` 1 i `RENDER_QUEUE_MAX`
+2 staju tri renderovanja, pa je jedan trener sa tri pritiska na „Export" punio
+red, a svi ostali su dobijali 429 dok se ne isprazni. FIFO ne zna ko pita.
+
+Dva pravila, i odgovaraju na različita pitanja. **Round-robin** odlučuje o
+redosledu: sledeći film je onog naloga koji najduže nije bio na redu — pa
+dvanaest delova jednog velikog tutorijala ne mogu da preteknu kratak film koji
+je stigao kasnije. **`RENDER_ACCOUNT_MAX`** (podrazumevano 2) odlučuje o
+prijemu: dva filma po nalogu, jedan koji se crta i jedan koji čeka. Posao bez
+naloga je sam sebi grupa, da ne bi slučajno blokirao nešto sa čim nema veze.
+
+Tri stvari vredi zapamtiti.
+
+**Broj koji trener vidi mora da bude broj koji se obistini.** Objavljivati
+indeks u nizu bilo je tačno dok je red bio „ko pre devojci", i postalo je laž
+čim više nije — mesto se sada računa igranjem pravila unapred nad kopijom reda.
+Uz to, posao se obaveštava **samo kad mu se mesto stvarno promeni**.
+
+**Dva odbijanja traže dve rečenice.** „Server trenutno renderuje druge videe" je
+neistina kad su ti drugi videi tvoji; trener tako čeka pogrešnu stvar.
+`RenderAccountBusy` je zato zaseban tip, i ruta na njega odgovara drugom
+rečenicom.
+
+**Mutacija je prijavila „preživela" a zapravo je visila.** Brisanje ograničenja
+po nalogu ne obara treći render — ono ga *stavlja u red*, pa se `assert.rejects`
+nikad ne razreši i fajl istekne. Svaki test odbijanja sada trka sa rokom. Drugi
+put u jednom danu: test koji visi je gori od testa koji padne.
+
+Brojke: **1098 na backendu**; aplikacija nije dirana.
+
+---
+
 ## Snimanje glasa i red za renderovanje — plan, 9.9.2026
 
 `docs/PLAN-SNIMANJE.md`, u dva dela. **Prvi**: trener sam snima svoj glas u
