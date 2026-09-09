@@ -306,6 +306,17 @@ Serbian is materially worse to the ear, which is a thirty-second test and not a
 build. Its one genuine attraction is that it sends the trainer's own text and
 never a child's voice or name.
 
+**Superseded on 9.9.2026, and the supersession is the shorter rule.** The owner:
+*„srpski jezik u njoj je nebitan, važno je kako će izgledati na engleskom. Meni
+ne treba da se bilo šta izgovara na srpskom, samo na engleskom za sad."* So
+there is **no Serbian speech at all**, by any route, and the per-artefact
+language problem below is not a decision deferred — it is a decision made the
+other way. Everything spoken or synthesised is English until the owner says
+otherwise; a trainer who writes a Serbian sentence gets it read in an English
+voice, and that is accepted rather than worked around. What follows is kept
+because it is the reasoning that would have to be revisited if that ever
+changes.
+
 **Reading a user's own text in the language they wrote it in.** The owner's
 rule, given 8.9.2026 and recorded verbatim because it decides the shape: *the
 only other language in this app is a place the user made — writing a repertoire,
