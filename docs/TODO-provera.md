@@ -4817,7 +4817,14 @@ lokalni backend sa `ffmpeg` u putanji.
     drugo u aplikaciji (spisak tutorijala, zadaci) — mora da radi. Do 9.9.2026
     je ceo proces stajao dok se film crta, pa se ni traka napretka nije
     pomerala.
-15. [ ] **Potezi se izgovaraju, ne slovkaju.** Napiši u komentaru „Bd5", „O-O"
+15. [ ] **Video bez glasa to i kaže.** Ako je glas tražen a nije stigao (npr.
+    piper nije instaliran), dijalog „Video ready!" nosi rečenicu „It has no
+    narration: …". Do 9.9.2026 je takav izvoz izgledao kao svaki drugi.
+16. [ ] **Dva renderovanja u isto vreme.** Pokreni izvoz na dva naloga (ili dva
+    puta isti tutorijal) i proveri da oba stignu, da su **dva različita fajla**
+    i da se oba otvaraju. Do 9.9.2026 su dva izvoza istog tutorijala u istoj
+    milisekundi delila ime fajla.
+17. [ ] **Potezi se izgovaraju, ne slovkaju.** Napiši u komentaru „Bd5", „O-O"
     i „Nxe5+" pa preslušaj: engleski glas kaže „bishop d five", nemački
     „Läufer d fünf", francuski „fou d cinq". Do 9.9.2026 je francuski čitao
     „Bd5" kao *boulevard cinq*, a „+" kao „plus". **Natpis na ekranu ostaje

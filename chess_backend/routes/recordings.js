@@ -4,6 +4,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { pool } = require('../db');
 const { authenticateToken, signDownloadToken, authenticateDownloadToken } = require('../middleware/auth');
 const { requireEntitlement } = require('../middleware/entitlements');
@@ -302,7 +303,11 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       return res.status(404).json({ error: 'Recording not found.' });
     }
 
-    const filename = `recording_${recId}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
+    // A clock is not a name: two exports of one recording starting in the same
+    // millisecond used to agree on a filename, and the second overwrote the
+    // first while both download links pointed at it. See the tutorial export.
+    const filename = `recording_${recId}_${boardTheme || 'wood'}_${resolution || '720p'}`
+      + `_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.mp4`;
     const exportsDir = path.join(__dirname, '..', 'exports');
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });

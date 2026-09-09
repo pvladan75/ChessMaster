@@ -121,7 +121,32 @@ function assignOutputs(files, jobs) {
   if (files.length !== jobs.length) {
     throw new Error(`piper wrote ${files.length} files for ${jobs.length} sentences`);
   }
-  files.forEach((file, i) => fs.copyFileSync(file, jobs[i].outputPath));
+  files.forEach((file, i) => publish(file, jobs[i].outputPath));
+}
+
+/// Put a finished clip where the cache expects it, whole or not at all.
+///
+/// **Two films can be rendered at once, and they share this cache.** The key is
+/// the sentence and the voice, so two trainers narrating the same sentence at
+/// the same moment both find it missing, both synthesise it, and both write it
+/// — and a `copyFileSync` straight onto the final path truncates a file the
+/// other render may be measuring or feeding to ffmpeg. A clip read half-written
+/// is a beat with the wrong length, which is audio drifting out of step with the
+/// board for the rest of the film.
+///
+/// So the copy lands beside the target and is moved onto it, which is atomic on
+/// one filesystem. Windows refuses a rename onto an existing file, and that
+/// refusal is the good case: the cache key *is* the content, so a target that
+/// already exists is the same audio somebody else finished first.
+function publish(from, to) {
+  const temp = `${to}.${process.pid}.${Math.random().toString(36).slice(2, 8)}.part`;
+  fs.copyFileSync(from, temp);
+  try {
+    fs.renameSync(temp, to);
+  } catch (err) {
+    fs.rmSync(temp, { force: true });
+    if (!fs.existsSync(to)) throw err;
+  }
 }
 
 async function synthesize({ text, voice, outputPath }) {
@@ -200,6 +225,7 @@ function cleanup(dir) {
 }
 
 module.exports = {
+  publish,
   available,
   voices,
   synthesize,

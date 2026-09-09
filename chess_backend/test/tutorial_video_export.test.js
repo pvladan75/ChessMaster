@@ -368,6 +368,93 @@ test('8. narrate: true -> the render gets narrated.events, narrated.seconds and 
   assert.equal(renderCalls[0].audioFilePath, fakeAudioPath);
 });
 
+test('a film that was meant to speak and did not says so', async () => {
+  // „Trenutno se ne čuje, renderuje bez zvuka iako sam stavio jezik" — piper
+  // could not start on the owner's machine, the log said so, and the app said
+  // „Video ready!". A voice that was asked for and did not arrive is news: the
+  // film is still worth having, so this is a sentence on a **successful**
+  // export rather than a failure. Do the thing, then say what happened to it.
+  const { res } = await run({
+    body: { events: VALID_EVENTS, seconds: 4, narrate: true, voice: 'en_US-lessac-medium' },
+    narrateResult: {
+      events: VALID_EVENTS,
+      seconds: null,
+      audioPath: null,
+      spokenBeats: 0,
+      silentBecause: 'voice',
+    },
+  });
+
+  assert.equal(res.statusCode, 200, 'the video is finished and downloadable');
+  assert.ok(res.body.downloadUrl, 'and the file is still offered');
+  assert.equal(res.body.narration, 'failed', 'a word the app can act on');
+  assert.match(res.body.message, /no narration/i,
+    'and a sentence the trainer can read');
+});
+
+test('the four silences are told apart, and one of them is not news', async () => {
+  // A tutorial with nothing written in it is the one silence nobody needs to be
+  // told about: there was nothing to say. The other three are the engine
+  // missing, the voice producing nothing, and the clips failing to join — and
+  // saying „no narration" without saying which would send a trainer to check
+  // their own text when the server has no voices installed at all.
+  const silent = async (silentBecause) => {
+    const { res } = await run({
+      body: { events: VALID_EVENTS, seconds: 4, narrate: true, voice: 'en_US-lessac-medium' },
+      narrateResult: {
+        events: VALID_EVENTS,
+        seconds: null,
+        audioPath: null,
+        spokenBeats: 0,
+        silentBecause,
+      },
+    });
+    return res.body;
+  };
+
+  const nothingToSay = await silent(null);
+  assert.equal(nothingToSay.narration, undefined);
+  assert.doesNotMatch(nothingToSay.message, /no narration/i,
+    'a wordless tutorial is not a narration failure');
+
+  const unavailable = await silent('unavailable');
+  assert.match(unavailable.message, /no speech voices installed/i);
+
+  const track = await silent('track');
+  assert.match(track.message, /could not be joined/i);
+
+  const voice = await silent('voice');
+  assert.match(voice.message, /the voice produced nothing/i);
+  assert.match(voice.message, /log/i, 'and where to look');
+});
+
+test('two renders that start in the same millisecond are two files', async () => {
+  // „Šta se dešava ako dva ili više korisnika pošalju zahtev za renderovanje u
+  // isto vreme?" They interleave, which is fine — but the filename used to end
+  // at `Date.now()`, so two renders of one tutorial that started together
+  // agreed on it. The second overwrote the first while both download links
+  // pointed at that one name, and whoever clicked got a film they had not asked
+  // for. The signed token did not stop it: it is bound to a filename, and both
+  // tokens named the same one.
+  //
+  // The clock is frozen here so the test is about the name and not about how
+  // fast the machine runs.
+  const realNow = Date.now;
+  Date.now = () => 1788957059894;
+  try {
+    const first = await run({ body: { events: VALID_EVENTS, seconds: 4 } });
+    const second = await run({ body: { events: VALID_EVENTS, seconds: 4 } });
+    assert.equal(first.res.statusCode, 200);
+    assert.equal(second.res.statusCode, 200);
+    assert.notEqual(first.res.body.filename, second.res.body.filename,
+      'one tutorial, one millisecond, two files');
+    assert.notEqual(first.res.body.downloadUrl, second.res.body.downloadUrl,
+      'and two links, each naming its own');
+  } finally {
+    Date.now = realNow;
+  }
+});
+
 test('9. metering books the rendered duration, not the requested one', async () => {
   const { res, queries } = await run({
     body: {

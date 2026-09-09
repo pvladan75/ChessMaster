@@ -1012,7 +1012,7 @@ sheet now opens for **every** export rather than only where the server can
 speak: a switch reachable only where piper happens to be installed is one half
 the trainers do not have.
 
-**Eight more on the backend the same day — 1045 — and they came from asking
+**Thirteen more on the backend the same day — 1050 — and they came from asking
 piper's own phonemiser a question instead of guessing at it.** „Vidi da li se
 potezi navedeni u komentaru izgovaraju dobro na drugim jezicima." Nothing
 anywhere expanded notation, so every voice spelled it:
@@ -1045,6 +1045,46 @@ it**: piper hands the text to eSpeak-NG, and that is askable directly —
 from piper.phonemize_espeak import EspeakPhonemizer
 print(''.join(EspeakPhonemizer().phonemize('fr', 'Bd5')[0]))
 ```
+
+**And the server was the second writer of a rule the app already had.** The
+first version of `spokenMoves.js` was written from scratch, and
+`chess_app/lib/core/services/speech_text.dart` has been reading moves aloud
+correctly since long before the film could speak — better, too: it says the rank
+as a *word* („e six", not „e 6") because a digit before a full stop is read as
+an ordinal in more than one language, it keeps the file as a bare letter because
+spelling one out made the g-file come out as „dzh" in the Serbian build, and it
+names the pawn in a capture because „e takes d five" sounds like a piece whose
+name was swallowed. The server's module is that file's rules now, with five
+vocabularies instead of one, and the first test in `spoken_moves.test.js`
+asserts the **app's own expected strings** from `speech_text_test.dart`, so the
+two ends cannot drift. Look for the existing implementation before writing the
+second one — this file already records three cases where it existed and nobody
+found it, and here it was better than what replaced it.
+
+**„Šta se dešava ako dva ili više korisnika renderuju u isto vreme?"** They
+interleave, and that is only true since the yield: three concurrent renders took
+6.8 s against 2.4 s for one, and all three finished together rather than one
+starving the others. Two places where concurrent renders wrote to one path did
+not survive the question. **A clock is not a name** — the export filename ended
+at `Date.now()`, so two renders of one tutorial starting in the same millisecond
+agreed on it, the second overwrote the first, and both download links pointed at
+that one file; the signed token did not help, being bound to a filename that
+both tokens named. And **the TTS cache was written in place**: the key is the
+sentence and the voice, so two films narrating the same sentence at once both
+found it missing and both copied onto the final path, where a half-written clip
+is a beat with the wrong length and audio that drifts for the rest of the film.
+It lands beside the target and is renamed onto it now.
+
+**A before-and-after assertion cannot see atomicity** — a straight copy also
+ends with the right bytes in the right place — so that test watches
+`fs.copyFileSync` and asserts the cache path is never its destination. Same
+family as every other check in this file that could not fail.
+
+There is still **no limit on how many renders run at once**, and that is a
+decision waiting rather than an oversight: each one holds an ffmpeg process and
+a share of one CPU, so ten trainers at once means ten films each taking ten
+times as long. A cap needs a policy — wait, or refuse with a 429 — and nobody
+has been asked yet.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

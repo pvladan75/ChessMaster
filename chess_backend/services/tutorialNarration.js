@@ -25,22 +25,32 @@ const { buildNarrationTrack } = require('./narrationTrack');
 /**
  * Narrate a film.
  *
- * Returns `{ events, audioPath, seconds, spokenBeats }`. When narration is
- * unavailable, refused or empty it returns the events **untouched** and
- * `audioPath: null`, so the caller renders exactly the silent film it would
- * have rendered anyway. There is no half-narrated state: either the timestamps
- * came from the voice or they came from the app's reading-speed guess.
+ * Returns `{ events, audioPath, seconds, spokenBeats, silentBecause }`. When
+ * narration is unavailable, refused or empty it returns the events
+ * **untouched** and `audioPath: null`, so the caller renders exactly the silent
+ * film it would have rendered anyway. There is no half-narrated state: either
+ * the timestamps came from the voice or they came from the app's reading-speed
+ * guess.
+ *
+ * `silentBecause` is null when the film speaks, and otherwise says which of the
+ * four ways it came back silent — because **a trainer who asked for a voice and
+ * got a silent film has to be told why.** Piper failing to start looks exactly
+ * like a tutorial with nothing written in it from where the trainer sits, and
+ * on 9.9.2026 it was exactly that: the engine was missing on the owner's
+ * machine, the log said so, and the app said „Video ready!". The value is a
+ * word rather than a sentence, so the copy stays with the route that answers.
  */
 async function narrateFilm({ events, voice, exportsDir, filename }) {
   if (!tts.narrationAvailable()) {
-    return { events, audioPath: null, seconds: null, spokenBeats: 0 };
+    return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: 'unavailable' };
   }
 
   const captions = events.map((event) => (event && event.data ? event.data.text : '') || '');
   if (!captions.some((text) => text.trim())) {
     // Every beat is wordless. A voice has nothing to add and the film keeps the
-    // timings the app computed.
-    return { events, audioPath: null, seconds: null, spokenBeats: 0 };
+    // timings the app computed — and this is the one silence nobody needs to be
+    // told about, because there was nothing to say.
+    return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: null };
   }
 
   // Said, not spelled — and in the language of the voice, which is the one
@@ -52,7 +62,7 @@ async function narrateFilm({ events, voice, exportsDir, filename }) {
   const spokenBeats = clips.filter((c) => c.clipSeconds).length;
   if (spokenBeats === 0) {
     logger.warn('[TTS] narration was asked for and every beat came back silent');
-    return { events, audioPath: null, seconds: null, spokenBeats: 0 };
+    return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: 'voice' };
   }
 
   const plan = narrationPlan(clips);
@@ -66,7 +76,7 @@ async function narrateFilm({ events, voice, exportsDir, filename }) {
     // The clips exist and the track does not. Falling back to the app's timings
     // is the only honest answer: the retimed events are longer than the silent
     // film by exactly the pauses nobody will hear.
-    return { events, audioPath: null, seconds: null, spokenBeats: 0 };
+    return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: 'track' };
   }
 
   return {
@@ -74,6 +84,7 @@ async function narrateFilm({ events, voice, exportsDir, filename }) {
     audioPath,
     seconds: Math.ceil(plan.totalSeconds),
     spokenBeats,
+    silentBecause: null,
   };
 }
 

@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
@@ -317,6 +318,26 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /lessons/:id/export-video
+/// What to tell a trainer whose video is finished.
+///
+/// **A voice that was asked for and did not arrive is news**, and the render
+/// answering „Video ready!" is how a missing speech engine came to look like an
+/// ordinary export on 9.9.2026 — the log said piper could not start and the app
+/// said the video was ready. The film is still worth having, so this is a
+/// sentence on a successful export rather than a failure: do the thing, then
+/// say what happened to it.
+function messageFor(silentBecause) {
+  const ready = 'Video rendered successfully, saved, and ready for download!';
+  if (!silentBecause) return ready;
+  if (silentBecause === 'unavailable') {
+    return `${ready} It has no narration: this server has no speech voices installed.`;
+  }
+  if (silentBecause === 'track') {
+    return `${ready} It has no narration: the spoken clips could not be joined into one track.`;
+  }
+  return `${ready} It has no narration: the voice produced nothing. The server log says why.`;
+}
+
 // Renders a saved tutorial as a silent MP4 video with moves, comments, arrows,
 // and highlighted squares.
 router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_EXPORT), async (req, res) => {
@@ -360,7 +381,13 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     const duration = Math.min(seconds, 3600);
     const job = renderProgress.jobIdFrom(jobId);
 
-    const filename = `tutorial_${lessonId}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
+    // **A clock is not a name.** Two renders of one tutorial that start in the
+    // same millisecond — the same trainer twice, or a trainer and the student
+    // they share it with — used to agree on a filename, and the second one
+    // overwrote the first while both download links pointed at it. Whoever
+    // clicked got a film they had not asked for. Four random bytes end that.
+    const filename = `tutorial_${lessonId}_${boardTheme || 'wood'}_${resolution || '720p'}`
+      + `_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.mp4`;
     const exportsDir = path.join(__dirname, '..', 'exports');
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });
@@ -372,6 +399,10 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     let renderDuration = duration;
     let audioFilePath = null;
     let narrationAudioPath = null;
+    // Null unless a voice was asked for and none was heard. See `narrateFilm`:
+    // a silent film that was supposed to speak must not come back wearing the
+    // same „Video ready!" as one that spoke.
+    let silentBecause = null;
 
     if (narrate === true) {
       const narrated = await tutorialNarration.narrateFilm({ events, voice, exportsDir, filename });
@@ -380,6 +411,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         if (narrated.seconds != null) renderDuration = Math.min(narrated.seconds, 3600);
         narrationAudioPath = narrated.audioPath || null;
         audioFilePath = narrated.audioPath || null;
+        silentBecause = narrated.silentBecause || null;
       }
     }
 
@@ -422,9 +454,13 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
 
     renderProgress.finish(job);
     res.json({
-      message: 'Video rendered successfully, saved, and ready for download!',
+      message: messageFor(silentBecause),
       jobId: job,
       status: 'completed',
+      // A word the app can act on, beside a sentence a trainer can read. The
+      // film is still a film, so this is not an error and not a 4xx: the render
+      // succeeded and one part of it did not.
+      narration: silentBecause ? 'failed' : undefined,
       downloadUrl: downloadUrl,
       filename: filename,
     });
