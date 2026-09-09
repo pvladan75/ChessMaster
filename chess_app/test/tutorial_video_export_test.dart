@@ -6,7 +6,6 @@
 // 9. a normal tutorial sends the events and seconds tutorialVideoOf produces
 //    for that draft. Assert on the request.
 
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -22,16 +21,31 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
+import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
 const String _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+// A part with a move and a sentence on it, which is what a tutorial is. The
+// fixture used to be a bare starting position with neither, and it passed only
+// because the list screen refused an export by looking at `position_list`
+// being empty rather than at whether there was anything to film. There is one
+// rule for that now, and a part like the old fixture is correctly refused: two
+// seconds of an untouched board with nothing said over it is not a video
+// anybody wants, and the server would charge a render for it.
 final Map<String, dynamic> _normalTutorialRow = {
   'id': 12,
   'title': 'Opozicija',
   'position_list': [
-    {'id': 's1', 'fen': _fen, 'title': 'Uvod', 'kind': 'show'},
+    {
+      'id': 's1',
+      'fen': _fen,
+      'title': 'Uvod',
+      'kind': 'show',
+      'pgn': '1. e4 {Beli zauzima centar.} e5',
+    },
   ],
 };
 
@@ -241,53 +255,38 @@ void main() {
         reason: 'the download button is inside the dialog');
   });
 
-  testWidgets('7. the icon is on the row and disabled while it is busy',
+  testWidgets('7. the icon opens the export dialog, and nothing is sent yet',
       (tester) async {
+    // The options moved out of the list and into the moment of export, so that
+    // the same dialog can be opened from the studio where the tutorial is
+    // written. Pressing the icon asks; pressing Cancel sends nothing.
     final requests = <http.Request>[];
-    final completer = Completer<void>();
-
     final api = _TestLessonApi(
       requests: requests,
-      onExportVideo: () => completer.future,
+      ttsAvailable: true,
+      ttsVoices: [
+        {'id': 'en_US-lessac-medium', 'name': 'lessac', 'language': 'en-US'},
+      ],
     );
 
     await openList(tester, api: api);
-
-    // Both rows offer "Export video"
     expect(actionOn('Opozicija', 'Export video'), findsOneWidget);
     expect(actionOn('Prazan tutorijal', 'Export video'), findsOneWidget);
 
-    // Initial state: not busy
-    final btnBefore =
-        tester.widget<IconButton>(iconButtonOn('Opozicija', 'Export video'));
-    expect(btnBefore.onPressed, isNotNull);
-
-    // Trigger export, which makes row busy while waiting for completer
     await tester.tap(actionOn('Opozicija', 'Export video'));
-    await tester.pump(); // Advance frame to trigger setState(_busy = true)
-
-    final btnWhileBusy =
-        tester.widget<IconButton>(iconButtonOn('Opozicija', 'Export video'));
-    expect(btnWhileBusy.onPressed, isNull,
-        reason: 'Export video button must be disabled while row is busy');
-
-    final deleteWhileBusy =
-        tester.widget<IconButton>(iconButtonOn('Opozicija', 'Delete tutorial'));
-    expect(deleteWhileBusy.onPressed, isNull,
-        reason: 'Delete tutorial button must share the busy flag');
-
-    // Complete the in-flight export request
-    completer.complete();
     await tester.pumpAndSettle();
 
-    // Dialog shown and busy cleared
-    expect(find.text('Video ready!'), findsOneWidget);
-    await tester.tap(find.text('Close'));
-    await tester.pumpAndSettle();
+    expect(find.text('Export video'), findsWidgets,
+        reason: 'the dialog opened');
+    expect(find.text('Narrate this video'), findsOneWidget);
 
-    final btnAfter =
-        tester.widget<IconButton>(iconButtonOn('Opozicija', 'Export video'));
-    expect(btnAfter.onPressed, isNotNull);
+    // Scoped: the saved-tutorials dialog has a Cancel of its own, and an
+    // unscoped finder would be asking which of two screens to close.
+    await tester.tap(find.descendant(
+        of: find.byType(AlertDialog).last, matching: find.text('Cancel')));
+    await tester.pumpAndSettle();
+    expect(requests.where((r) => r.url.path.contains('/export-video')), isEmpty,
+        reason: 'cancelling asks for nothing');
   });
 
   testWidgets(
@@ -351,33 +350,26 @@ void main() {
   });
 
   testWidgets(
-      '10. available: false -> no switch on screen, and no narrate in the request',
+      '10. available: false -> no question asked, and no narrate in the request',
       (tester) async {
     final requests = <http.Request>[];
-    final api = _TestLessonApi(
-      requests: requests,
-      ttsAvailable: false,
-    );
+    final api = _TestLessonApi(requests: requests, ttsAvailable: false);
 
     await openList(tester, api: api);
-
-    // No switch or narration controls on screen
-    expect(find.text('Narrate this video'), findsNothing);
-    expect(find.byType(Switch), findsNothing);
-
-    // Export video
     await tester.tap(actionOn('Opozicija', 'Export video'));
     await tester.pumpAndSettle();
+
+    // Nothing to ask about, so nothing is asked: the export just runs.
+    expect(find.text('Narrate this video'), findsNothing);
+    expect(find.byType(Switch), findsNothing);
 
     final exportRequests =
         requests.where((r) => r.url.path.contains('/export-video')).toList();
     expect(exportRequests, hasLength(1));
-
     final body = jsonDecode(exportRequests.single.body) as Map<String, dynamic>;
     expect(body.containsKey('narrate'), isFalse,
-        reason: 'narrate must be omitted when TTS is unavailable');
-    expect(body.containsKey('voice'), isFalse,
-        reason: 'voice must be omitted when TTS is unavailable');
+        reason: 'narrate must be omitted when the server cannot speak');
+    expect(body.containsKey('voice'), isFalse);
   });
 
   testWidgets(
@@ -388,132 +380,119 @@ void main() {
       requests: requests,
       ttsAvailable: true,
       ttsVoices: [
-        {'id': 'sr-RS-Standard-A', 'name': 'Standard A'},
-        {'id': 'sr-RS-Standard-B', 'name': 'Standard B'},
+        {'id': 'en_US-lessac-medium', 'name': 'lessac', 'language': 'en-US'},
+        {
+          'id': 'de_DE-thorsten-medium',
+          'name': 'thorsten',
+          'language': 'de-DE'
+        },
       ],
     );
 
     await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
 
-    // Controls are visible
-    expect(find.text('Narrate this video'), findsOneWidget);
     expect(find.text('A narrated export takes longer.'), findsOneWidget);
     final switchFinder = find.byType(Switch);
     expect(switchFinder, findsOneWidget);
     expect(tester.widget<Switch>(switchFinder).value, isTrue);
 
-    // Select second voice via DropdownButton
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Standard B').last);
+    await tester.tap(find.textContaining('thorsten').last);
     await tester.pumpAndSettle();
 
-    // Export video
-    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
 
     final exportRequests =
         requests.where((r) => r.url.path.contains('/export-video')).toList();
     expect(exportRequests, hasLength(1));
-
     final body = jsonDecode(exportRequests.single.body) as Map<String, dynamic>;
-    expect(body['narrate'], isTrue,
-        reason: 'narrate must be true when switch is on');
-    expect(body['voice'], 'sr-RS-Standard-B',
-        reason: 'chosen voice id must be passed in the request');
+    expect(body['narrate'], isTrue);
+    expect(body['voice'], 'de_DE-thorsten-medium',
+        reason: 'the voice chosen in the dialog is the one that is sent');
   });
 
-  testWidgets('12. the chosen voice survives reopening the sheet',
+  testWidgets('12. the chosen voice is remembered for the next export',
       (tester) async {
     final requests = <http.Request>[];
     final api = _TestLessonApi(
       requests: requests,
       ttsAvailable: true,
       ttsVoices: [
-        {'id': 'sr-RS-Standard-A', 'name': 'Standard A'},
-        {'id': 'sr-RS-Standard-B', 'name': 'Standard B'},
+        {'id': 'en_US-lessac-medium', 'name': 'lessac', 'language': 'en-US'},
+        {
+          'id': 'de_DE-thorsten-medium',
+          'name': 'thorsten',
+          'language': 'de-DE'
+        },
       ],
     );
 
-    // First open
     await openList(tester, api: api);
 
-    // Pick voice B
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Standard B').last);
+    await tester.tap(find.textContaining('thorsten').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
-    // Close dialog
-    await tester.tap(find.text('Cancel'));
+    // Second time round, the dialog opens on the voice chosen the first time.
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
 
-    // Reopen dialog
-    await tester.tap(find.text('Saved tutorials'));
-    await tester.pumpAndSettle();
-
-    // Verify switch is still on and voice B is still selected
-    final switchWidget = tester.widget<Switch>(find.byType(Switch));
-    expect(switchWidget.value, isTrue,
-        reason: 'Switch state must survive reopening the sheet');
-
-    expect(find.text('Standard B'), findsOneWidget,
-        reason: 'Chosen voice must survive reopening the sheet');
+    final exportRequests =
+        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    expect(exportRequests, hasLength(2));
+    final second = jsonDecode(exportRequests.last.body) as Map<String, dynamic>;
+    expect(second['voice'], 'de_DE-thorsten-medium',
+        reason: 'a trainer chooses their voice once, not once per export');
   });
 
-  test(
-      '13. real transport: LessonApiService passes narrate and voice, fetchTtsVoices parses',
-      () async {
+  testWidgets('the studio exports the tutorial it is writing', (tester) async {
+    // „Dijalog za renderovanje premestimo tamo gde se tutorijal pravi." Same
+    // door, same dialog, one owner — `exportTutorialVideo` — so the two places
+    // cannot drift into being two features.
     final requests = <http.Request>[];
-    final client = MockClient((req) async {
-      requests.add(req);
-      if (req.method == 'GET' && req.url.path == '/lessons/tts/voices') {
-        return http.Response(
-          jsonEncode({
-            'available': true,
-            'voices': [
-              {'id': 'sr-RS-Standard-A', 'name': 'Standard A'},
-            ],
-          }),
-          200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
-        );
-      }
-      if (req.method == 'POST' && req.url.path == '/lessons/15/export-video') {
-        return http.Response(
-          jsonEncode({
-            'message': 'ok',
-            'downloadUrl': '/download/15.mp4',
-            'filename': 'tutorial_15.mp4',
-          }),
-          200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
-        );
-      }
-      return http.Response('{"error":"Not found"}', 404);
-    });
-
-    final api = LessonApiService(authToken: 'test-token', client: client);
-
-    // 1. fetchTtsVoices
-    final ttsResult = await api.fetchTtsVoices();
-    expect(ttsResult.available, isTrue);
-    expect(ttsResult.voices, hasLength(1));
-    expect(ttsResult.voices[0]['id'], 'sr-RS-Standard-A');
-
-    // 2. exportVideo with narrate and voice
-    final exportResult = await api.exportVideo(
-      lessonId: 15,
-      events: [_normalTutorialRow],
-      seconds: 10,
-      narrate: true,
-      voice: 'sr-RS-Standard-A',
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: [
+        {'id': 'en_US-lessac-medium', 'name': 'lessac', 'language': 'en-US'},
+      ],
     );
-    expect(exportResult.downloadUrl, '/download/15.mp4');
 
-    final postReq = requests.firstWhere((r) => r.method == 'POST');
-    final body = jsonDecode(postReq.body) as Map<String, dynamic>;
-    expect(body['narrate'], isTrue);
-    expect(body['voice'], 'sr-RS-Standard-A');
+    await tester.pumpWidget(MaterialApp(
+      home: TutorialStudioScreen(
+        session: session,
+        entry: TutorialEntry.saved(_normalTutorialRow),
+        lessonApi: api,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('export-video')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Narrate this video'), findsOneWidget,
+        reason: 'the same options as the list offers');
+
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final exportRequests =
+        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    expect(exportRequests, hasLength(1));
+    expect(exportRequests.single.url.path, '/lessons/12/export-video',
+        reason: 'the tutorial being written is the one exported');
   });
 }

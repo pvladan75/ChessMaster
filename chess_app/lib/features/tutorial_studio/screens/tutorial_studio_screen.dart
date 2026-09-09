@@ -26,6 +26,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_panel.dart';
@@ -618,6 +619,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Position setup',
             onPressed: _showSetupDialog,
           ),
+          IconButton(
+            key: const Key('export-video'),
+            icon: const Icon(Icons.videocam_outlined),
+            tooltip: 'Export video',
+            onPressed: _exportVideo,
+          ),
           TextButton(
             key: const Key('preview-as-student'),
             onPressed: _previewAsStudent,
@@ -966,6 +973,34 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// call locally: a trainer trying their own question does not mark a child's
   /// schedule, and a preview that wrote to the server would be a save nobody
   /// asked for.
+  /// Make a video of what is being written, from where it is being written.
+  ///
+  /// The owner asked for this door on 9.9.2026 — „dijalog za renderovanje
+  /// premestimo tamo gde se tutorijal pravi" — and it is the same door the
+  /// saved-tutorials list has: `exportTutorialVideo` owns the refusals, the
+  /// narration options, the request and the finished dialog, so the two places
+  /// cannot drift into being two features.
+  ///
+  /// **It needs a saved tutorial**, because the server renders a lesson by its
+  /// id and meters the render against the account that owns it. Offering it on
+  /// an unsaved draft would mean either a silent save nobody asked for or a
+  /// refusal two clicks later, so the answer is a sentence and the Save button
+  /// is right beside it.
+  Future<void> _exportVideo() async {
+    final id = _draft.lessonId;
+    if (id == null) {
+      AppFeedback.info(context, 'Save the tutorial first, then export it.');
+      return;
+    }
+    await exportTutorialVideo(
+      context: context,
+      api: _lessonApi,
+      lessonId: id,
+      title: _draft.title,
+      draft: _draft,
+    );
+  }
+
   void _previewAsStudent() {
     _syncSelectedSection();
     final steps = _draft.positionList;

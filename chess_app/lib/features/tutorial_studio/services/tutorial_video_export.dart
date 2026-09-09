@@ -1,0 +1,298 @@
+// tutorial_video_export.dart — one owner for „make a video of this tutorial".
+//
+// It is asked for from two places and they must not be two features: the saved
+// tutorials list, where a trainer who wants the file goes, and the studio,
+// where the tutorial is written and where the owner asked for it on 9.9.2026 —
+// „bilo bi dobro da dijalog za renderovanje premestimo tamo gde se tutorijal
+// pravi".
+//
+// So the refusals, the narration options, the request and the finished dialog
+// live here, and both screens call one function. The alternative is the same
+// sentence written twice and drifting apart on the third change.
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:chess_app/constants.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
+
+/// What the trainer last chose, kept per trainer rather than per tutorial.
+///
+/// **Per tutorial would be better and costs a column.** A trainer whose
+/// material is all in one language never notices the difference; one writing in
+/// two would, and the day that happens `saved_lessons` gains a
+/// `narration_voice` and this reads it as a default rather than as the answer.
+/// Written down so the next person meets a decision rather than an oversight.
+const _narrateKey = 'tutorial_video_narrate';
+const _voiceKey = 'tutorial_video_voice';
+
+/// Make a video of [draft], asking about the voice first when there is one.
+///
+/// Returns true when a file was produced. Every refusal is a sentence through
+/// `AppFeedback` and nothing is sent: an empty tutorial renders no frames, and
+/// ffmpeg given no frames fails with a message about a pipe rather than about a
+/// tutorial.
+Future<bool> exportTutorialVideo({
+  required BuildContext context,
+  required LessonApiService api,
+  required int lessonId,
+  required String title,
+  required TutorialDraft draft,
+}) async {
+  final video = tutorialVideoOf(draft);
+
+  if (!_hasSomethingToShow(draft) || !canRenderVideo(video)) {
+    AppFeedback.info(context, 'This tutorial has nothing to show yet.');
+    return false;
+  }
+  if (!fitsInOneFilm(video)) {
+    AppFeedback.info(
+      context,
+      'This tutorial is too long to render as one video (${video.seconds}s).',
+    );
+    return false;
+  }
+
+  // Asked before anything is drawn on screen: a switch the server cannot honour
+  // must not be offered, and a trainer who turns narration on and waits two
+  // minutes for a refusal has been lied to by the interface.
+  final tts = await api.fetchTtsVoices();
+  if (!context.mounted) return false;
+
+  var narrate = true;
+  String? voice;
+  if (tts.available && tts.voices.isNotEmpty) {
+    final prefs = await SharedPreferences.getInstance();
+    if (!context.mounted) return false;
+    narrate = prefs.getBool(_narrateKey) ?? true;
+    final saved = prefs.getString(_voiceKey);
+    final known =
+        tts.voices.any((v) => (v['id'] ?? v['name'])?.toString() == saved);
+    voice = known
+        ? saved
+        : (tts.voices.first['id'] ?? tts.voices.first['name'])?.toString();
+
+    final chosen = await _askAboutNarration(
+      context: context,
+      voices: tts.voices,
+      narrate: narrate,
+      voice: voice,
+    );
+    if (chosen == null) return false; // cancelled, and nothing was sent
+    narrate = chosen.narrate;
+    voice = chosen.voice;
+    await prefs.setBool(_narrateKey, narrate);
+    if (voice != null) await prefs.setString(_voiceKey, voice);
+  }
+
+  if (!context.mounted) return false;
+  AppFeedback.info(context, 'Exporting video...');
+
+  final result = await api.exportVideo(
+    lessonId: lessonId,
+    events: video.events,
+    seconds: video.seconds,
+    title: title,
+    narrate: tts.available ? narrate : null,
+    voice: tts.available ? voice : null,
+  );
+  if (!context.mounted) return false;
+
+  if (!result.ok) {
+    AppFeedback.error(context, result.error ?? 'Video export failed.');
+    return false;
+  }
+
+  await _showReady(
+    context,
+    result.message ??
+        'Video rendered successfully, saved, and ready for download!',
+    result.downloadUrl == null ? null : resolveMediaUrl(result.downloadUrl!),
+  );
+  return true;
+}
+
+/// Whether this tutorial has anything a film could be made of.
+///
+/// **Not the same question as `canRenderVideo`**, and the difference is a real
+/// one that was hiding in the saved-tutorials list as a special case for a row
+/// with no steps. A draft with a single untouched board still produces one
+/// `init` event and a two-second dwell, so the film is technically renderable —
+/// two seconds of an empty starting position with nothing said over it. Nobody
+/// wants that file, and the server would charge a render for it.
+///
+/// A part counts when it has moves, or words, or something drawn on it: „look
+/// at the d5 square" with an arrow and no moves is a whole tutorial.
+bool _hasSomethingToShow(TutorialDraft draft) {
+  return draft.sections.any((section) {
+    final root = section.root;
+    return root.children.isNotEmpty ||
+        root.comment.trim().isNotEmpty ||
+        root.arrows.isNotEmpty ||
+        root.squares.isNotEmpty ||
+        (section.instruction?.trim().isNotEmpty ?? false);
+  });
+}
+
+class _NarrationChoice {
+  const _NarrationChoice(this.narrate, this.voice);
+  final bool narrate;
+  final String? voice;
+}
+
+Future<_NarrationChoice?> _askAboutNarration({
+  required BuildContext context,
+  required List<Map<String, dynamic>> voices,
+  required bool narrate,
+  required String? voice,
+}) {
+  var wants = narrate;
+  var chosen = voice;
+
+  return showDialog<_NarrationChoice>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => AlertDialog(
+        title: const Text('Export video'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Narrate this video',
+                      style: AppText.bodyBold
+                          .copyWith(color: ctx.colors.textPrimary)),
+                ),
+                Switch(
+                  value: wants,
+                  activeThumbColor: ctx.colors.accent,
+                  onChanged: (v) => setLocal(() => wants = v),
+                ),
+              ],
+            ),
+            if (wants) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  Text('Voice',
+                      style: AppText.body
+                          .copyWith(color: ctx.colors.textSecondary)),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: chosen,
+                        dropdownColor: ctx.colors.surface,
+                        items: [
+                          for (final v in voices)
+                            DropdownMenuItem<String>(
+                              value: (v['id'] ?? v['name'])?.toString() ?? '',
+                              child: Text(
+                                _voiceLabel(v),
+                                style: AppText.body
+                                    .copyWith(color: ctx.colors.textPrimary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                        onChanged: (v) => setLocal(() => chosen = v),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text('A narrated export takes longer.',
+                  style: AppText.caption.copyWith(color: ctx.colors.textMuted)),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(ctx, _NarrationChoice(wants, chosen)),
+            child: const Text('Export'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// „en_US-lessac-medium" reads as „en-US · lessac (medium)".
+///
+/// The language first, because that is what a trainer is choosing: the voice
+/// has to match the language they wrote in, and nothing here detects it.
+String _voiceLabel(Map<String, dynamic> voice) {
+  final id = (voice['id'] ?? voice['name'])?.toString() ?? '';
+  final language = voice['language']?.toString() ?? '';
+  final tier = voice['tier']?.toString() ?? '';
+  final speaker = id.contains('-')
+      ? id.substring(id.indexOf('-') + 1).replaceAll('-$tier', '')
+      : id;
+  if (language.isEmpty) return id;
+  return tier.isEmpty ? '$language · $speaker' : '$language · $speaker ($tier)';
+}
+
+Future<void> _showReady(
+    BuildContext context, String message, String? downloadUrl) {
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle, color: ctx.colors.accent),
+          const SizedBox(width: AppSpacing.sm),
+          // Flexible: a dialog title is drawn in the theme's headline size and
+          // „Video ready!" at that size wants more width than a phone has.
+          const Flexible(child: Text('Video ready!')),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message, style: AppText.bodyLarge),
+          if (downloadUrl != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text('Direct download link:',
+                style: AppText.caption.copyWith(color: ctx.colors.textMuted)),
+            const SizedBox(height: AppSpacing.xs),
+            SelectableText(downloadUrl,
+                style: AppText.captionBold.copyWith(color: ctx.colors.accent)),
+          ],
+        ],
+      ),
+      actions: [
+        if (downloadUrl != null)
+          ElevatedButton.icon(
+            icon: const Icon(Icons.download),
+            label: const Text('Download'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ctx.colors.accent,
+              foregroundColor: ctx.colors.canvas,
+            ),
+            onPressed: () => launchUrl(Uri.parse(downloadUrl),
+                mode: LaunchMode.externalApplication),
+          ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+}

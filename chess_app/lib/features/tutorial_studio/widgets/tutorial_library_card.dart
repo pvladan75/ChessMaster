@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
-import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -296,52 +293,6 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   /// twice on a list that is about to change under it.
   bool _busy = false;
 
-  bool _ttsAvailable = false;
-  List<Map<String, dynamic>> _voices = const [];
-  String? _selectedVoice;
-  bool _narrate = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initTts();
-  }
-
-  Future<void> _initTts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedNarrate = prefs.getBool('tutorial_video_narrate') ?? true;
-    final savedVoice = prefs.getString('tutorial_video_voice');
-
-    final res = await widget.lessonApi.fetchTtsVoices();
-    if (!mounted) return;
-
-    setState(() {
-      _ttsAvailable = res.available;
-      _voices = res.voices;
-      _narrate = savedNarrate;
-      if (_voices.isNotEmpty) {
-        final hasSavedVoice = savedVoice != null &&
-            _voices.any((v) => (v['id'] ?? v['name']) == savedVoice);
-        _selectedVoice = hasSavedVoice
-            ? savedVoice
-            : (_voices.first['id'] ?? _voices.first['name'])?.toString();
-      }
-    });
-  }
-
-  Future<void> _setNarrate(bool value) async {
-    setState(() => _narrate = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('tutorial_video_narrate', value);
-  }
-
-  Future<void> _setVoice(String? voice) async {
-    if (voice == null) return;
-    setState(() => _selectedVoice = voice);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('tutorial_video_voice', voice);
-  }
-
   static int? _idOf(Map<String, dynamic> row) {
     final raw = row['id'];
     return raw is int ? raw : int.tryParse('$raw');
@@ -464,316 +415,82 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
     final id = _idOf(row);
     if (id == null || _busy) return;
 
-    final rawPosList = row['position_list'];
-    final bool hasNoSteps =
-        rawPosList == null || (rawPosList is List && rawPosList.isEmpty);
-
-    final draft = TutorialDraft.fromLesson(row);
-    final video = hasNoSteps
-        ? (events: const <Map<String, dynamic>>[], seconds: 0)
-        : tutorialVideoOf(draft);
-
-    if (!canRenderVideo(video)) {
-      AppFeedback.info(context, 'This tutorial has nothing to show yet.');
-      return;
-    }
-
-    if (!fitsInOneFilm(video)) {
-      AppFeedback.info(
-        context,
-        'This tutorial is too long to render as one video (${video.seconds}s).',
-      );
-      return;
-    }
-
     setState(() => _busy = true);
-    AppFeedback.info(context, 'Exporting video...');
-
-    final result = await widget.lessonApi.exportVideo(
+    await exportTutorialVideo(
+      context: context,
+      api: widget.lessonApi,
       lessonId: id,
-      events: video.events,
-      seconds: video.seconds,
       title: _titleOf(row),
-      narrate: _ttsAvailable ? _narrate : null,
-      voice: _ttsAvailable ? _selectedVoice : null,
+      draft: TutorialDraft.fromLesson(row),
     );
-
     if (!mounted) return;
     setState(() => _busy = false);
-
-    if (!result.ok) {
-      AppFeedback.error(context, result.error ?? 'Video export failed.');
-      return;
-    }
-
-    _showVideoReadyDialog(
-      result.message ??
-          'Video rendered successfully, saved, and ready for download!',
-      result.downloadUrl == null ? null : resolveMediaUrl(result.downloadUrl!),
-    );
-  }
-
-  void _showVideoReadyDialog(String message, String? downloadUrl) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle, color: ctx.colors.accent),
-            const SizedBox(width: AppSpacing.sm),
-            // Flexible, because a dialog title is drawn in the theme's headline
-            // size and „Video ready!" at that size wants 320 dp of a phone's
-            // 232. It overflowed by 88 px, which in a release build is not a
-            // stripe but a title clipped mid-word.
-            const Flexible(child: Text('Video ready!')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(message, style: AppText.bodyLarge),
-            const SizedBox(height: AppSpacing.md),
-            if (downloadUrl != null) ...[
-              Text(
-                'Direct download link:',
-                style: AppText.caption.copyWith(color: ctx.colors.textMuted),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              SelectableText(
-                downloadUrl,
-                style: AppText.captionBold.copyWith(color: ctx.colors.accent),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          if (downloadUrl != null)
-            ElevatedButton.icon(
-              icon: const Icon(Icons.download),
-              label: const Text('Download'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ctx.colors.accent,
-                foregroundColor: ctx.colors.canvas,
-              ),
-              onPressed: () {
-                launchUrl(
-                  Uri.parse(downloadUrl),
-                  mode: LaunchMode.externalApplication,
-                );
-              },
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNarrationControls(BuildContext context) {
-    if (!_ttsAvailable || _voices.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Narrate this video',
-                  style: AppText.bodyBold.copyWith(
-                    color: context.colors.textPrimary,
-                  ),
-                ),
-              ),
-              Switch(
-                value: _narrate,
-                activeThumbColor: context.colors.accent,
-                onChanged: _busy ? null : (val) => _setNarrate(val),
-              ),
-            ],
-          ),
-          if (_narrate) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Row(
-              children: [
-                Text(
-                  'Voice',
-                  style: AppText.body.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedVoice,
-                      dropdownColor: context.colors.surface,
-                      items: _voices.map((v) {
-                        final val = (v['id'] ?? v['name'])?.toString() ?? '';
-                        final label = (v['name'] ?? v['id'])?.toString() ?? val;
-                        return DropdownMenuItem<String>(
-                          value: val,
-                          child: Text(
-                            label,
-                            style: AppText.body.copyWith(
-                              color: context.colors.textPrimary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: _busy ? null : (val) => _setVoice(val),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'A narrated export takes longer.',
-              style: AppText.caption.copyWith(
-                color: context.colors.textMuted,
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.sm),
-          const Divider(height: 1),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final showNarration = _ttsAvailable && _voices.isNotEmpty;
-
     return AlertDialog(
       title: const Text('Saved tutorials'),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 400),
         child: SizedBox(
           width: double.maxFinite,
-          child: showNarration
-              ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildNarrationControls(context),
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: _rows.isEmpty
-                          ? const Center(
-                              child: Text('You have no saved tutorials.'))
-                          : ListView.separated(
-                              shrinkWrap: true,
-                              itemCount: _rows.length,
-                              separatorBuilder: (_, __) =>
-                                  const Divider(height: 1),
-                              itemBuilder: (ctx, index) {
-                                final row = _rows[index];
-                                return ListTile(
-                                  title: Text(
-                                    _titleOf(row),
-                                    // A tutorial is named by its first sentence, so this
-                                    // title is as long as a sentence and it shares the row
-                                    // with three actions. Without the ellipsis it pushes
-                                    // them off the right-hand edge of a 360 dp phone, where
-                                    // a release build draws no warning and the buttons are
-                                    // simply not there.
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  onTap: () => Navigator.of(context).pop(row),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                            Icons.videocam_outlined,
-                                            size: 20),
-                                        tooltip: 'Export video',
-                                        onPressed: _busy
-                                            ? null
-                                            : () => _exportVideo(row),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.send_outlined,
-                                            size: 20),
-                                        tooltip: 'Send to student',
-                                        onPressed:
-                                            _busy ? null : () => _send(row),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.delete_outline,
-                                            size: 20,
-                                            color: context.colors.danger),
-                                        tooltip: 'Delete tutorial',
-                                        onPressed:
-                                            _busy ? null : () => _delete(row),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                fit: FlexFit.loose,
+                child: _rows.isEmpty
+                    ? const Center(child: Text('You have no saved tutorials.'))
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _rows.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (ctx, index) {
+                          final row = _rows[index];
+                          return ListTile(
+                            title: Text(
+                              _titleOf(row),
+                              // A tutorial is named by its first sentence, so this
+                              // title is as long as a sentence and it shares the row
+                              // with three actions. Without the ellipsis it pushes
+                              // them off the right-hand edge of a 360 dp phone, where
+                              // a release build draws no warning and the buttons are
+                              // simply not there.
+                              overflow: TextOverflow.ellipsis,
                             ),
-                    ),
-                  ],
-                )
-              : _rows.isEmpty
-                  ? const Text('You have no saved tutorials.')
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: _rows.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (ctx, index) {
-                        final row = _rows[index];
-                        return ListTile(
-                          title: Text(
-                            _titleOf(row),
-                            // A tutorial is named by its first sentence, so this
-                            // title is as long as a sentence and it shares the row
-                            // with three actions. Without the ellipsis it pushes
-                            // them off the right-hand edge of a 360 dp phone, where
-                            // a release build draws no warning and the buttons are
-                            // simply not there.
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () => Navigator.of(context).pop(row),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.videocam_outlined,
-                                    size: 20),
-                                tooltip: 'Export video',
-                                onPressed:
-                                    _busy ? null : () => _exportVideo(row),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.send_outlined, size: 20),
-                                tooltip: 'Send to student',
-                                onPressed: _busy ? null : () => _send(row),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete_outline,
-                                    size: 20, color: context.colors.danger),
-                                tooltip: 'Delete tutorial',
-                                onPressed: _busy ? null : () => _delete(row),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            onTap: () => Navigator.of(context).pop(row),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.videocam_outlined,
+                                      size: 20),
+                                  tooltip: 'Export video',
+                                  onPressed:
+                                      _busy ? null : () => _exportVideo(row),
+                                ),
+                                IconButton(
+                                  icon:
+                                      const Icon(Icons.send_outlined, size: 20),
+                                  tooltip: 'Send to student',
+                                  onPressed: _busy ? null : () => _send(row),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete_outline,
+                                      size: 20, color: context.colors.danger),
+                                  tooltip: 'Delete tutorial',
+                                  onPressed: _busy ? null : () => _delete(row),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
