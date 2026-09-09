@@ -99,6 +99,119 @@ recorder tell us where it is in its own file?
 
 The spike is thrown away. What survives is a number and a yes/no.
 
+### Answered, 9.9.2026 — `tool/spike_recorder/main.dart`
+
+**`record` 7.1.1 exposes no position at all.** No getter, no stream, nothing:
+`start`, `startStream`, `stop`, `pause`, `resume`, `cancel`, `isRecording`,
+`isPaused`, `hasPermission`, `onStateChanged`, `onAmplitudeChanged`, `dispose`.
+So the fallback the plan named is not a fallback, it is the design:
+`startStream` hands out raw PCM (`AudioEncoder.pcm16bits`), and **bytes ÷ byte
+rate is the audio clock**.
+
+Measured on an Android 15 phone, 16 kHz mono, the owner speaking:
+
+| | |
+|---|---|
+| `startStream` returns after | 604 ms |
+| first sample after that | 146 ms — **750 ms after asking** |
+| byte clock vs wall clock, running | −36, +9, −29, −67, −25, −62 ms |
+| chunk size | 2560 bytes = 80 ms |
+| bytes arriving after `pause()` | 2560 — one chunk, then silence |
+| wall clock vs byte clock after a 3 s pause | **+2.6 s, and it stays there** |
+| byte clock at stop | 12480 ms |
+| `ffprobe` on the written wav | **12.480000 s** |
+| level | mean −30.6 dB, max −5.0 dB — speech, not silence |
+
+**Both rules in phase 1 are now measurements rather than predictions.** A
+wall-clock marker is 750 ms out on the very first beat, before anything has gone
+wrong; one three-second pause puts it 2.6 seconds out for the rest of the
+recording. The byte clock is accurate to one chunk — ±80 ms, oscillating, with
+no accumulation — and `ffprobe` agrees with it to the millisecond, which is the
+independent check that it is the file's own duration and not our arithmetic
+about it.
+
+`pause()` and `resume()` behave: one chunk of audio arrives after the pause is
+asked for, and none after that. Eighty milliseconds of overshoot is inside one
+chunk and inside the jitter, so the client does not have to correct for it.
+
+**Windows, after Visual Studio Build Tools 2022 (17.14.40) was installed:**
+
+| | Android 15 | Windows 11 |
+|---|---|---|
+| `startStream` returns after | 604 ms | 53 ms |
+| first sample after that | 146 ms | 615 ms |
+| **warm-up, from asking to audio** | **750 ms** | **668 ms** |
+| byte clock vs wall clock, running | −36…−67 ms | −15…−44 ms |
+| bytes arriving after `pause()` | 2560 (one chunk, 80 ms) | 0 |
+| wall vs byte clock after a 3 s pause | +2.6 s, constant | +3.1 s, constant |
+| byte clock at stop | 12480 ms | 11928 ms |
+| `ffprobe` on the written wav | 12.480000 s | 11.928063 s |
+
+Both targets agree with `ffprobe` to the millisecond. **The design is proved on
+both.**
+
+One snag on the way, worth writing down because it will happen to the next
+person: the first build after the toolchain change failed with `generator :
+Visual Studio 17 2022 does not match the generator used previously: Visual
+Studio 16 2019`. `build/windows` holds a CMake cache naming the old generator;
+deleting that directory is the whole fix.
+
+### The finding that was not on the list
+
+**The Windows recording was perfect digital silence — and everything else was
+perfect too.** −91 dB from end to end, while the byte clock, the wav header and
+`ffprobe` all agreed to the millisecond. The microphone was muted
+(`muted=True, level=82%`), and nothing anywhere said so: `hasPermission`
+returned true, a device was listed, chunks arrived at exactly the right rate.
+An `ffmpeg` capture through DirectShow, with Flutter entirely out of the
+picture, recorded the same silence — so this is the machine, not the package.
+
+**So a working clock proves nothing about the audio existing.** A trainer could
+rehearse a forty-minute tutorial into a muted microphone and every number this
+spike measures would look right. Phase 2 gains a rule because of it:
+
+* the rehearsal screen watches `onAmplitudeChanged` and says, while recording,
+  that it is hearing nothing;
+* a take whose level never rises above silence is refused at upload, with the
+  sentence naming the likely cause — the mute key, or the input device.
+
+Cheap, and it is the difference between finding out in ten seconds and finding
+out after an hour of talking.
+
+### The toolchain, for the record
+
+**Before Build Tools 2022 this did not build at all.**
+`record_windows` requires **CMake 3.23**; this machine has Visual Studio Build
+Tools 2019, whose bundled CMake is **3.20**, and the build fails at generation:
+
+    CMake 3.23 or higher is required. You are running version 3.20.21032501-MSVC_2
+
+`flutter doctor` is happy with Build Tools 2019 and the app's own Windows build
+is fine — this is one plugin asking for newer than what 2019 ships. **And the
+dependency breaks the Windows build of the whole app while it is in
+`pubspec.yaml`**, not just the spike, so it was taken out again: the studio has
+to keep running on Windows while this is decided.
+
+Three ways out, in the order they are worth trying:
+
+1. **Visual Studio Build Tools 2022** — free, ships CMake 3.29+, and is where
+   Flutter's Windows support has been heading anyway. One install, nothing else
+   changes. This is the recommendation.
+2. Pin an older `record_windows`. The changelog does not say which version
+   raised the requirement, and going back far enough reaches the 1.x line, which
+   drove an external `fmedia` binary rather than MediaFoundation. Not worth it.
+3. A different recorder on Windows only. Real work, and two implementations of
+   the thing the whole plan says must have one clock.
+
+**Resolved on 9.9.2026: Build Tools 2022 was installed and option 1 is what
+happened.** `flutter doctor` reports it, the plugin builds, and the whole app
+builds with it (`Built build/windows/x64/runner/Debug/Mislisha.exe`). The
+app's suite is unchanged at 1790 with the dependency in, and the analyzer at its
+usual 29 infos.
+
+**Phase 0 is closed. `record` 7.1.1 is the package, `startStream` with
+`AudioEncoder.pcm16bits` is the API, and bytes ÷ byte rate is the clock.**
+
 ## Phase 1 — the client records, and the markers come from the audio
 
 The trainer opens a tutorial in the studio, presses **Rehearse**, and talks. Each

@@ -10,6 +10,11 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
+  # Phase 0 of docs/PLAN-SNIMANJE.md: the microphone, on Android and Windows.
+  # `record_windows` needs CMake 3.23, which ships with Visual Studio 2022 —
+  # with Build Tools 2019 (CMake 3.20) the whole Windows build fails at
+  # generation, not just this plugin.
+  record: ^7.1.1
   socket_io_client: ^3.0.0
   flutter_chess_board: ^1.0.1
   chess_vectors_flutter: ^1.1.0
