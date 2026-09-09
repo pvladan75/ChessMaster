@@ -866,6 +866,21 @@ async function renderRecordingToMP4({
       // bar that counts frames it has not drawn yet is the same lie as a
       // progress dialog that reaches 100 % and then waits.
       report(frame + 1);
+
+      // **Back to the event loop between frames.** Everything above is
+      // synchronous — `canvas.toBuffer` draws the PNG on this thread and the
+      // piece set is cached after the first frame — so every `await` in the
+      // loop settles in a microtask and the whole render is one uninterrupted
+      // burst. Nothing else in this process is served for its duration: the
+      // progress poll the app makes while its own export request is in flight
+      // sits in the queue until the film is finished, and the bar it draws says
+      // „Starting…" until the video is ready. Reported live, and the number was
+      // being written correctly the whole time — nobody could read it.
+      //
+      // `setImmediate` is the check phase, which comes after poll, so an
+      // arriving request is handled before the next frame is drawn. Its cost is
+      // one loop turn per frame.
+      await new Promise(setImmediate);
     }
 
     ffmpeg.stdin.end();

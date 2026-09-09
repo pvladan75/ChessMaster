@@ -975,6 +975,43 @@ closing the file. **Null is „no estimate", never zero** — and under ten seco
 the words stop counting down and say „almost done", because a countdown to zero
 is a promise the frame count cannot keep.
 
+**1779 in the app with 1 skipped and 1037 on the backend, measured on `master`
+on 9.9.2026**, after the progress bar was reported live as never moving: it said
+„Starting…" from the first frame to the last and then the video appeared. The
+percentage was right, `renderProgress` held it, the route read it, the app
+polled every 900 ms — and **not one poll was answered until the render
+finished.**
+
+**Nothing in the frame loop returned to the event loop.** `canvas.toBuffer`
+draws the PNG on this thread, the piece set is cached after the first frame, and
+an `await` on an already-settled promise is a microtask: the whole render was
+one uninterrupted burst, and every request arriving during it waited behind the
+one being served. That is not only the poll — a render made the whole process
+unresponsive for its duration. One `await new Promise(setImmediate)` per frame
+fixes it, and `test/render_yields.test.js` proves it by counting how many times
+a `setImmediate` chain gets its turn during a twelve-frame render: eight or more
+with the yield, **exactly one** without it.
+
+Two things worth carrying. **Every layer can be right and the feature still
+dead** — this is the same shape as the arrows nothing wrote and the sheet nobody
+could open, except that here the broken part was not a layer at all but the
+runtime underneath them. And **the tests could not see it because each half was
+tested alone**: the backend suite calls `report` and `statusOf` directly, the
+widget test fakes the HTTP, and neither ever asks whether this process would
+answer while it is busy. When a feature is „A writes, B reads, while C runs",
+one of the tests has to run C.
+
+The film also got a 1080p switch, asked for live. Two resolutions, not three:
+720p is what a video watched on a phone wants, and 1080p is for YouTube — which
+gives a 720p upload a lower bitrate ladder, and the caption text and the thin
+piece outlines go first — or a projector. Measured on an eighteen-second film:
+1.2 s and 129 KB against 2.5 s and 192 KB. 480p is not offered, because it saves
+about 30 KB on that film — flat graphics on flat colour give h.264 almost
+nothing to compress — and pays for it in the caption a child reads. The export
+sheet now opens for **every** export rather than only where the server can
+speak: a switch reachable only where piper happens to be installed is one half
+the trainers do not have.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

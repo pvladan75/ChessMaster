@@ -4809,4 +4809,12 @@ lokalni backend sa `ffmpeg` u putanji.
 12. [ ] **Izvoz snimka časa nema više izbor kompleta figura** — u dijalogu su
     sada četiri stavke (tabla, orijentacija, elementi, rezolucija), a video
     izlazi u figurama iz aplikacije.
+13. [ ] **Prekidač „Higher quality (1080p)"** stoji u dijalogu pre renderovanja
+    (sada se taj dijalog otvara i kada server ne ume da govori). Isključen je
+    podrazumevano, pamti se za sledeći put, a uključen daje vidno oštriji tekst
+    — proveri na YouTube uploadu ili na projektoru.
+14. [ ] **Server odgovara dok renderuje.** Dok traje izvoz, otvori bilo šta
+    drugo u aplikaciji (spisak tutorijala, zadaci) — mora da radi. Do 9.9.2026
+    je ceo proces stajao dok se film crta, pa se ni traka napretka nije
+    pomerala.
 

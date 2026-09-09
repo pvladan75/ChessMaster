@@ -191,6 +191,40 @@ void main() {
         ),
       );
 
+  /// The export sheet's switch for [label], which is the one in its row.
+  ///
+  /// There are two switches in that sheet now — narration and quality — so a
+  /// bare `find.byType(Switch)` asks which of them without saying.
+  Finder switchFor(String label) => find.descendant(
+        of: find.ancestor(of: find.text(label), matching: find.byType(Row)),
+        matching: find.byType(Switch),
+      );
+
+  /// Press the row's export icon and then „Export" in the sheet.
+  ///
+  /// **The sheet opens for every export now**, not only where the server can
+  /// speak: the quality is a choice everywhere, and a switch reachable only
+  /// where piper happens to be installed is one half the trainers do not have.
+  /// Pass `settle: false` where the render is deliberately left in flight.
+  Future<void> startExport(
+    WidgetTester tester,
+    String title, {
+    bool settle = true,
+  }) async {
+    await tester.tap(actionOn(title, 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byType(AlertDialog).last,
+      matching: find.text('Export'),
+    ));
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
   testWidgets('the row and the finished dialog both fit a 360 dp phone',
       (tester) async {
     // Added by the lead while grading, after a throwaway probe at 360 dp found
@@ -262,8 +296,7 @@ void main() {
 
     // And the dialog the export ends in, which is where the overflow actually
     // was. It is reached by a tap, so no test that stops at the row can see it.
-    await tester.tap(actionOn(longTitle, 'Export video'));
-    await tester.pumpAndSettle();
+    await startExport(tester, longTitle);
     expect(find.text('Video ready!'), findsOneWidget);
     expect(tester.takeException(), isNull,
         reason: 'the finished dialog fits the phone it is drawn on');
@@ -344,8 +377,7 @@ void main() {
     final draft = TutorialDraft.fromLesson(_normalTutorialRow);
     final expectedVideo = tutorialVideoOf(draft);
 
-    await tester.tap(actionOn('Opozicija', 'Export video'));
-    await tester.pumpAndSettle();
+    await startExport(tester, 'Opozicija');
 
     // Assert on the request
     final exportRequests =
@@ -370,7 +402,7 @@ void main() {
   });
 
   testWidgets(
-      '10. available: false -> no question asked, and no narrate in the request',
+      '10. available: false -> nothing is asked about the voice, and no narrate in the request',
       (tester) async {
     final requests = <http.Request>[];
     final api = _TestLessonApi(requests: requests, ttsAvailable: false);
@@ -379,9 +411,19 @@ void main() {
     await tester.tap(actionOn('Opozicija', 'Export video'));
     await tester.pumpAndSettle();
 
-    // Nothing to ask about, so nothing is asked: the export just runs.
+    // A switch the server cannot honour is not drawn at all. The sheet still
+    // opens, because the quality is a choice everywhere.
     expect(find.text('Narrate this video'), findsNothing);
-    expect(find.byType(Switch), findsNothing);
+    expect(find.text('Voice'), findsNothing);
+    expect(switchFor('Higher quality (1080p)'), findsOneWidget);
+    expect(find.byType(Switch), findsOneWidget,
+        reason: 'the quality switch, and no narration one beside it');
+
+    await tester.tap(find.descendant(
+      of: find.byType(AlertDialog).last,
+      matching: find.text('Export'),
+    ));
+    await tester.pumpAndSettle();
 
     final exportRequests =
         requests.where((r) => r.url.path.contains('/export-video')).toList();
@@ -414,7 +456,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('A narrated export takes longer.'), findsOneWidget);
-    final switchFinder = find.byType(Switch);
+    final switchFinder = switchFor('Narrate this video');
     expect(switchFinder, findsOneWidget);
     expect(tester.widget<Switch>(switchFinder).value, isTrue);
 
@@ -535,7 +577,7 @@ void main() {
     await tester.tap(actionOn('Opozicija', 'Export video'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(Switch));
+    await tester.tap(switchFor('Narrate this video'));
     await tester.pumpAndSettle();
     expect(find.text('Voice'), findsNothing,
         reason: 'with narration off there is no voice to choose');
@@ -559,8 +601,7 @@ void main() {
     final api = _TestLessonApi(requests: requests, ttsAvailable: false);
 
     await openList(tester, api: api);
-    await tester.tap(actionOn('Opozicija', 'Export video'));
-    await tester.pumpAndSettle();
+    await startExport(tester, 'Opozicija');
 
     final body = jsonDecode(requests
         .lastWhere((r) => r.url.path.contains('/export-video'))
@@ -610,9 +651,7 @@ void main() {
     );
 
     await openList(tester, api: api);
-    await tester.tap(actionOn('Opozicija', 'Export video'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await startExport(tester, 'Opozicija', settle: false);
 
     expect(find.text('Exporting video'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
@@ -635,6 +674,63 @@ void main() {
     expect(find.text('Exporting video'), findsNothing,
         reason: 'the bar closes itself when the render answers');
     expect(find.text('Video ready!'), findsOneWidget);
+  });
+
+  testWidgets('1080p is asked for by a switch, and remembered', (tester) async {
+    // „A može uvodjenje prekidača za 1080p". Two resolutions rather than three:
+    // 720p is what a video watched on a phone wants, 1080p is for YouTube —
+    // which gives a 720p upload a lower bitrate ladder, and the caption text
+    // goes first — or a projector. 480p is not offered: it saves about 30 KB on
+    // an eighteen-second film, because this is flat graphics on flat colour,
+    // and it pays for it in the caption a child reads.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests, ttsAvailable: false);
+
+    await openList(tester, api: api);
+
+    // Off by default, and the ordinary export is the one nobody has to think
+    // about.
+    await startExport(tester, 'Opozicija');
+    var body = jsonDecode(requests
+        .lastWhere((r) => r.url.path.contains('/export-video'))
+        .body) as Map<String, dynamic>;
+    expect(body['resolution'], '720p');
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(switchFor('Higher quality (1080p)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byType(AlertDialog).last,
+      matching: find.text('Export'),
+    ));
+    await tester.pumpAndSettle();
+
+    body = jsonDecode(requests
+        .lastWhere((r) => r.url.path.contains('/export-video'))
+        .body) as Map<String, dynamic>;
+    expect(body['resolution'], '1080p',
+        reason: 'the switch is wired to the request, not to the dialog only');
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    // Remembered, for the same reason the voice is: a trainer who publishes to
+    // YouTube publishes to it every time.
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(switchFor('Higher quality (1080p)')).value,
+        isTrue);
+    await tester.tap(find.descendant(
+      of: find.byType(AlertDialog).last,
+      matching: find.text('Export'),
+    ));
+    await tester.pumpAndSettle();
+    body = jsonDecode(requests
+        .lastWhere((r) => r.url.path.contains('/export-video'))
+        .body) as Map<String, dynamic>;
+    expect(body['resolution'], '1080p');
   });
 
   test('the time left is said in words a person reads at a glance', () {
