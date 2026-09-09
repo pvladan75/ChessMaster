@@ -1012,6 +1012,40 @@ sheet now opens for **every** export rather than only where the server can
 speak: a switch reachable only where piper happens to be installed is one half
 the trainers do not have.
 
+**Eight more on the backend the same day — 1045 — and they came from asking
+piper's own phonemiser a question instead of guessing at it.** „Vidi da li se
+potezi navedeni u komentaru izgovaraju dobro na drugim jezicima." Nothing
+anywhere expanded notation, so every voice spelled it:
+
+    en-US  Bd5 → „bee dee five"     de  Bd5 → „beh deh fünf"
+    es     Bd5 → „be de cinco"      it  Bd5 → „bi di cinque"
+    fr     Bd5 → „boulevard cinq"   and O-O → „oh oh" in all five
+
+The French one is the argument in one line: espeak knows `Bd` as the
+abbreviation for *boulevard*, so a bishop move became a street. A `+` came out
+as „plus" and a `#` as „hash". `services/spokenMoves.js` writes a move out in
+the language of the voice — „Läufer d 5", „alfil d 5", „fou d 5" — and the
+expansions were phonemised back to check they land where they should.
+
+Three things worth carrying. **The caption and the voice are two texts now**:
+the screen keeps the trainer's „Bd5" and only what goes to the synthesiser is
+expanded, which is exactly what a trainer at a board does. **A rewriter that
+runs inside a trainer's sentence has to be strict** — a from-file with no piece
+letter is only legal in a capture, and without that rule a word like „be4"
+reads as a move; the guard is mutation-proved, as is the English fallback,
+because „bishop d 5" in the wrong accent is still a move and „boulevard cinq" is
+not. And **the notation read is English SAN and only that**: a German trainer's
+„Ld5" is left alone, because this app writes English SAN and the PGN standard
+stores it — one parser, not two disagreeing.
+
+**How to find out what a voice will do with a string, without listening to
+it**: piper hands the text to eSpeak-NG, and that is askable directly —
+
+```python
+from piper.phonemize_espeak import EspeakPhonemizer
+print(''.join(EspeakPhonemizer().phonemize('fr', 'Bd5')[0]))
+```
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

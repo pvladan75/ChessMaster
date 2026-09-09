@@ -4817,4 +4817,9 @@ lokalni backend sa `ffmpeg` u putanji.
     drugo u aplikaciji (spisak tutorijala, zadaci) — mora da radi. Do 9.9.2026
     je ceo proces stajao dok se film crta, pa se ni traka napretka nije
     pomerala.
+15. [ ] **Potezi se izgovaraju, ne slovkaju.** Napiši u komentaru „Bd5", „O-O"
+    i „Nxe5+" pa preslušaj: engleski glas kaže „bishop d five", nemački
+    „Läufer d fünf", francuski „fou d cinq". Do 9.9.2026 je francuski čitao
+    „Bd5" kao *boulevard cinq*, a „+" kao „plus". **Natpis na ekranu ostaje
+    „Bd5"** — menja se samo ono što se izgovara.
 

@@ -8,11 +8,18 @@
 // trainer wrote plus, on the last beat of a part that asks something, the task
 // — `tutorialVideoOf` in the app already composed that, and reading it here is
 // the difference between one sentence and two writers of it.
+//
+// One thing does happen to the text on its way to the voice: the notation in it
+// is written out (`spokenMoves`). „Bd5" is not language, and every voice spells
+// it — an English one says „bee dee five" and a French one „boulevard cinq".
+// The caption is untouched, so the screen still reads „Bd5" while the voice
+// says „bishop d 5", which is what a trainer at a board does.
 const path = require('path');
 
 const logger = require('./logger');
 const tts = require('./tts');
 const { narrationPlan, retimeEvents } = require('./narrationPlan');
+const { spokenMoves } = require('./spokenMoves');
 const { buildNarrationTrack } = require('./narrationTrack');
 
 /**
@@ -36,7 +43,12 @@ async function narrateFilm({ events, voice, exportsDir, filename }) {
     return { events, audioPath: null, seconds: null, spokenBeats: 0 };
   }
 
-  const clips = await tts.speakBeats(captions, { voice });
+  // Said, not spelled — and in the language of the voice, which is the one
+  // thing the voice id already tells us.
+  const clips = await tts.speakBeats(
+    captions.map((text) => spokenMoves(text, voice)),
+    { voice },
+  );
   const spokenBeats = clips.filter((c) => c.clipSeconds).length;
   if (spokenBeats === 0) {
     logger.warn('[TTS] narration was asked for and every beat came back silent');
