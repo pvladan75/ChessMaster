@@ -12,6 +12,12 @@
 node_modules/
 chess_backend/node_modules/
 chess_backend/exports/*.mp4
+chess_backend/exports/*.wav
+
+# Synthesised narration, keyed by the sentence that produced it. The opposite of
+# uploads/ in every way that matters: every file here can be made again from the
+# text, so deleting the whole directory costs a few seconds of synthesis.
+chess_backend/tts-cache/
 
 # Uploaded lesson audio. These are recordings of real lessons — user data, and
 # on this project often children's voices. They must never enter the repository.
