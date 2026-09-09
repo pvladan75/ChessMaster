@@ -20,6 +20,7 @@ const renderer = require('../videoRenderer');
 const {
   renderFrameBuffer,
   captionLines,
+  revealedLines,
   captionBandLines,
   drawColorOf,
   getResolutionParams,
@@ -359,6 +360,42 @@ test('the audio input replaces the silent one rather than joining it', () => {
   assert.ok(!spoken.includes('anullsrc=r=44100:cl=stereo'), 'no silent track beside the voice');
   assert.equal(spoken.filter((a) => a === '-i').length, 2, 'the frames and the voice, nothing else');
   assert.ok(spoken.includes('-shortest'));
+});
+
+test('the sentence is written as it is spoken, whole words at a time', () => {
+  const lines = ['Look at the d5 square, because both', 'white pieces are aiming at it.'];
+
+  assert.deepEqual(revealedLines(lines, 0), ['', ''], 'nothing before the voice starts');
+  assert.deepEqual(revealedLines(lines, 1), lines, 'all of it by the time it ends');
+  assert.deepEqual(revealedLines(lines, 2), lines, 'and never more than all of it');
+  assert.deepEqual(revealedLines(lines, -1), ['', '']);
+  assert.deepEqual(revealedLines(lines, NaN), lines, 'a film with no voice writes it at once');
+
+  // **Whole words.** Cutting mid-word writes „the knig" for a quarter of a
+  // second, which reads as a glitch rather than as typing.
+  for (let i = 0; i <= 20; i++) {
+    for (const line of revealedLines(lines, i / 20)) {
+      if (!line) continue;
+      const whole = lines.find((l) => l.startsWith(line));
+      assert.ok(whole, `„${line}" is not the start of any line`);
+      const next = whole[line.length];
+      assert.ok(next === undefined || next === ' ',
+        `„${line}" stops inside a word`);
+    }
+  }
+});
+
+test('the writing runs at one speed from the first word to the last', () => {
+  // Measured across the whole sentence rather than per line: per line, a short
+  // first line and a long second would be written at two different speeds and
+  // the reader would see it pause at the break.
+  const lines = ['Short.', 'A very much longer second line of the same sentence.'];
+  const at = (f) => revealedLines(lines, f).join(' ').trim().length;
+  assert.ok(at(0.25) < at(0.5) && at(0.5) < at(0.75), 'it only ever grows');
+  const early = at(0.5) - at(0.25);
+  const late = at(0.75) - at(0.5);
+  assert.ok(Math.abs(early - late) < lines.join('').length * 0.25,
+    `the two halves are written at about the same speed: ${early} then ${late}`);
 });
 
 test('a caption wraps on words and keeps the trainer\'s own line break', () => {

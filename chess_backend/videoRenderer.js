@@ -215,6 +215,53 @@ function captionLines(ctx, text, maxWidth, fontSize, maxLines) {
   return kept;
 }
 
+/// How much of a wrapped caption is on screen at [reveal] of the way through it.
+///
+/// Characters rather than words, and measured across the whole sentence rather
+/// than per line, so the writing runs at one speed from the first word to the
+/// last instead of pausing at every line break.
+///
+/// **Whole words on the way in.** Cutting mid-word writes „the knig" for a
+/// quarter of a second, which reads as a glitch rather than as typing; the
+/// partial word is held back until it is complete. The exception is a word
+/// longer than a line, which would otherwise never appear at all.
+function revealedLines(lines, reveal) {
+  const fraction = Number.isFinite(reveal) ? Math.min(1, Math.max(0, reveal)) : 1;
+  if (fraction >= 1) return lines;
+
+  const total = lines.reduce((sum, line) => sum + line.length, 0);
+  let budget = Math.floor(total * fraction);
+  const out = [];
+
+  for (const line of lines) {
+    if (budget <= 0) {
+      out.push('');
+      continue;
+    }
+    if (budget >= line.length) {
+      out.push(line);
+      budget -= line.length;
+      continue;
+    }
+    const cut = line.slice(0, budget);
+    const lastSpace = cut.lastIndexOf(' ');
+    if (lastSpace > 0) {
+      out.push(cut.slice(0, lastSpace));
+    } else if (line.includes(' ')) {
+      // Not one whole word yet. Nothing, rather than „Loo" — which is what the
+      // first version drew for the first quarter-second of every line, and
+      // reads as a glitch rather than as writing.
+      out.push('');
+    } else {
+      // One word longer than the whole line. Held back completely it would
+      // never appear at all, so this is the one place a partial word is right.
+      out.push(cut);
+    }
+    budget = 0;
+  }
+  return out;
+}
+
 /// The most lines any caption in [events] needs, measured once for the film.
 ///
 /// The band is one height for the whole video, and that is the point: the board
@@ -252,19 +299,28 @@ function captionBandLines(events, { resolution = '720p', maxLines = 4 } = {}) {
 /// at.
 const OUTPUT_FPS = 30;
 
+/// Drawings a second while a sentence is being written on screen.
+///
+/// Not `OUTPUT_FPS`: that is what the file claims and costs nothing, this is
+/// what the canvas actually draws and costs four times. Four is enough for the
+/// eye at reading speed — a word appears about every third of a second — and a
+/// film without captions is still drawn once a second.
+const CAPTION_FPS = 4;
+
 /// The ffmpeg command line, as a value a test can read.
 ///
 /// Split out for the same reason `applyEvent` was: everything else in this file
 /// can be checked by looking at a picture, and this cannot be checked at all
 /// without spawning a process — which is a test that fails on a machine with no
 /// ffmpeg on it.
-function ffmpegArgsFor({ audioFilePath = null, outputPath }) {
+function ffmpegArgsFor({ audioFilePath = null, outputPath, inputFps = 1 }) {
   const args = [
     '-y',
     '-f', 'image2pipe',
     '-vcodec', 'png',
-    // The rate the pictures arrive at: one per second of film.
-    '-framerate', '1',
+    // The rate the pictures arrive at, which is what the film's clock is made
+    // of. It is not the rate the file claims; see `-r` below.
+    '-framerate', String(inputFps),
     '-i', 'pipe:0',
   ];
 
@@ -357,6 +413,10 @@ async function renderFrameBuffer({
   orientation = null,
   lastMove,
   caption = '',
+  // How much of the sentence has been said, 0 to 1. The caption is written on
+  // screen at the speed it is spoken; 1 is the whole of it, which is what a
+  // film with no voice draws from its first frame of a beat onwards.
+  captionReveal = 1,
   arrows = [],
   squares = [],
   // Reserved for the caption band, in lines, for the whole film. See
@@ -558,16 +618,22 @@ async function renderFrameBuffer({
   if (captionColumn && captionWidth > cfg.fontSizeCaption * 4) {
     const lineHeight = cfg.fontSizeCaption * 1.4;
     const maxLines = Math.max(1, Math.floor((boardSize - lineHeight) / lineHeight));
+    // **Wrapped whole, then revealed.** Wrapping only what has been said so far
+    // would reflow the sentence as it arrives — a word jumping to the line above
+    // as the next one lands — and the block would move under the reader. The
+    // lines are the finished sentence's lines; the reveal only decides how much
+    // of each is drawn.
     const lines = captionLines(ctx, caption, captionWidth, cfg.fontSizeCaption, maxLines);
     const block = lines.length * lineHeight;
     const top = offsetY + Math.max(0, (boardSize - block) / 2);
+    const shown = revealedLines(lines, captionReveal);
 
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `${cfg.fontSizeCaption}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    lines.forEach((line, i) => {
-      ctx.fillText(line, captionLeft, top + i * lineHeight);
+    shown.forEach((line, i) => {
+      if (line) ctx.fillText(line, captionLeft, top + i * lineHeight);
     });
   }
 
@@ -602,6 +668,7 @@ async function renderRecordingToMP4({
     const ffmpeg = spawn('ffmpeg', ffmpegArgsFor({
       audioFilePath: hasAudio ? audioFilePath : null,
       outputPath,
+      inputFps: captionBandLines(events, { resolution }) > 0 ? CAPTION_FPS : 1,
     }));
 
     ffmpeg.stderr.on('data', (data) => {
@@ -621,22 +688,53 @@ async function renderRecordingToMP4({
       reject(err);
     });
 
-    // How tall the caption band is for this film, measured once over every
-    // event. A recording carries no captions and gets 0, which is the geometry
-    // this renderer has always drawn.
+    // Whether any beat says anything, which decides the layout and the rate.
     const captionBand = captionBandLines(events, { resolution });
 
-    // Write 1 frame per second to pipe:0
+    // **Frames a second, and why it is not one.**
+    //
+    // Nothing moves between beats when the sentence is simply printed, so one
+    // drawing a second was right and cheap. A sentence that *arrives as it is
+    // spoken* changes every frame while it is being read, so the film has to be
+    // drawn often enough for that to look like writing rather than like a
+    // slideshow of half-sentences. Four is enough for the eye at reading speed
+    // and costs four times the drawing — a three-minute film goes from about
+    // five seconds to twenty at 720p, measured on this machine.
+    //
+    // A film with no captions is still drawn once a second, exactly as it always
+    // was. The recorded-lesson export is verified live.
+    const fps = captionBand > 0 ? CAPTION_FPS : 1;
+    const frames = totalDuration * fps;
+
     let state = initialFrameState();
     let eventIdx = 0;
+    // When the sentence now on screen started being spoken, and for how long.
+    let captionStartMs = 0;
+    let captionSpokenMs = 0;
 
-    for (let sec = 0; sec <= totalDuration; sec++) {
-      const currentMs = sec * 1000;
+    for (let frame = 0; frame <= frames; frame++) {
+      const currentMs = Math.round((frame * 1000) / fps);
+      const sec = Math.floor(currentMs / 1000);
 
       while (eventIdx < events.length && (events[eventIdx].timestampMs || 0) <= currentMs) {
-        state = applyEvent(state, events[eventIdx]);
+        const event = events[eventIdx];
+        state = applyEvent(state, event);
+        captionStartMs = event.timestampMs || 0;
+        // `spokenMs` is written by `narrationPlan` when a voice read this beat:
+        // the sentence is then revealed at exactly the speed it is being said.
+        // Without it — a silent film — the reveal takes the beat's own length,
+        // less a breath, so the last words are on screen before it moves on.
+        captionSpokenMs = Number(event.data?.spokenMs) || 0;
         eventIdx++;
       }
+
+      const nextStart = eventIdx < events.length
+        ? (events[eventIdx].timestampMs || 0)
+        : totalDuration * 1000;
+      const revealOver = captionSpokenMs > 0
+        ? captionSpokenMs
+        : Math.max(1, (nextStart - captionStartMs) * 0.75);
+      const captionReveal = Math.min(1, Math.max(0, (currentMs - captionStartMs) / revealOver));
 
       const frameBuf = await renderFrameBuffer({
         title,
@@ -648,6 +746,7 @@ async function renderRecordingToMP4({
         arrows: state.arrows,
         squares: state.squares,
         captionBand,
+        captionReveal,
         timestampSec: sec,
         totalDurationSec: totalDuration,
         resolution,
@@ -672,9 +771,11 @@ module.exports = {
   // Exported for the tests, which read pixels out of a rendered frame: a
   // drawing that cannot be measured is a drawing nobody can grade.
   captionLines,
+  revealedLines,
   captionBandLines,
   ffmpegArgsFor,
   OUTPUT_FPS,
+  CAPTION_FPS,
   drawColorOf,
   getResolutionParams,
   applyEvent,

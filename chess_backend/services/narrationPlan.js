@@ -121,10 +121,20 @@ function narrationPlan(beats, options = {}) {
  * come out of the same call.
  */
 function retimeEvents(events, plan) {
-  return events.map((event, i) => ({
-    ...event,
-    timestampMs: plan.startMs[i] ?? event.timestampMs,
-  }));
+  return events.map((event, i) => {
+    // How long this beat's clip runs, for whoever draws the sentence: the
+    // renderer writes the caption on screen at the speed it is being spoken,
+    // and without this it would have to guess from the gap to the next beat —
+    // which includes the breath, so the writing would lag the voice by half a
+    // second and finish after it.
+    const clip = plan.segments.find((s) => s.kind === 'clip' && s.index === i);
+    const spokenMs = clip ? Math.round(clip.seconds * 1000) : 0;
+    return {
+      ...event,
+      timestampMs: plan.startMs[i] ?? event.timestampMs,
+      data: event.data ? { ...event.data, spokenMs } : event.data,
+    };
+  });
 }
 
 module.exports = {
