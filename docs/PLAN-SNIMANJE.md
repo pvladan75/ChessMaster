@@ -99,7 +99,7 @@ recorder tell us where it is in its own file?
 
 The spike is thrown away. What survives is a number and a yes/no.
 
-### Answered, 9.9.2026 — `tool/spike_recorder/main.dart`
+### Answered on the night of 9–10.9.2026 — `tool/spike_recorder/main.dart`
 
 **`record` 7.1.1 exposes no position at all.** No getter, no stream, nothing:
 `start`, `startStream`, `stop`, `pause`, `resume`, `cancel`, `isRecording`,
@@ -214,7 +214,7 @@ Three ways out, in the order they are worth trying:
 3. A different recorder on Windows only. Real work, and two implementations of
    the thing the whole plan says must have one clock.
 
-**Resolved on 9.9.2026: Build Tools 2022 was installed and option 1 is what
+**Resolved on 10.9.2026: Build Tools 2022 was installed and option 1 is what
 happened.** `flutter doctor` reports it, the plugin builds, and the whole app
 builds with it (`Built build/windows/x64/runner/Debug/Mislisha.exe`). The
 app's suite is unchanged at 1790 with the dependency in, and the analyzer at its

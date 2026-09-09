@@ -15,15 +15,95 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **9.9.2026** — tutorijal pamti svoj film, pregled pre
-renderovanja, i prekid renderovanja kad klijent ode
-(odeljak „Render koji je klijent napustio se prekida"). Pre toga: „ODAKLE
-SUTRA — 8.9.2026" odmah ispod.
+Poslednje ažuriranje: **10.9.2026** — vidi „ODAKLE SUTRA — 10.9.2026, video i
+snimanje" odmah ispod. Tog dana i noći pred njim: prekid napuštenog rendera,
+pregled pre renderovanja, jedan film po tutorijalu sa linkom na zahtev,
+pravednost reda po nalogu, i zatvorena faza 0 plana snimanja.
 
 Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## ODAKLE SUTRA — 10.9.2026, video i snimanje
+
+**Sutra počinje faza 1 iz `docs/PLAN-SNIMANJE.md`** — ekran za snimanje u
+studiju, markeri sa audio clock-a i lokalno preslušavanje. Faza 0 je zatvorena
+noćas i njen odgovor je jednoznačan; ne treba je ponavljati.
+
+### Šta je odlučeno u fazi 0, da se ne otvara ponovo
+
+`record` 7.1.1, `startStream` sa `AudioEncoder.pcm16bits`, 16 kHz mono, i
+**marker = bajtovi ÷ byte rate**. Paket **nema nijedan API za poziciju**, pa ono
+što je plan zvao rezervnim rešenjem jeste rešenje.
+
+Izmereno na Androidu 15 i na Windowsu 11, sa glasom vlasnika:
+
+* zagrevanje mikrofona: 750 ms na Androidu; na Windowsu **668 ms pa 100 ms** —
+  ista mašina, isti kod, par minuta razmaka. **Nije konstanta**, pa se ne može
+  ispraviti fiksnim pomerajem; zato je jedino ispravno čitanje ono iz samog
+  zvuka.
+* `pause()` zaustavlja i zvučni sat: 0 bajtova posle pauze na Windowsu, jedan
+  paket (80 ms) na Androidu.
+* posle jedne pauze od tri sekunde zidni sat je **2,6 s (Android) odnosno
+  3,0 s (Windows) ispred** i tu ostaje — to je tačno greška koju bi svaki
+  marker uzet iz `DateTime.now()` nosio do kraja snimka.
+* `ffprobe` se tri puta složio sa bajt-satom **u milisekundu** (12480/12.480000,
+  11928/11.928063, 12008/12.008063).
+
+Dve stvari koje su koštale vremena i neće ponovo:
+
+**Windows traži Visual Studio Build Tools 2022.** `record_windows` hoće CMake
+3.23, a Build Tools 2019 nose 3.20 — i dok je zavisnost u `pubspec.yaml`, **pada
+ceo Windows build**, ne samo plugin. Posle instalacije 2022 prvi build i dalje
+pada na starom CMake kešu („generator Visual Studio 17 2022 does not match …
+16 2019"); briše se `build/windows` i to je cela popravka.
+
+**Sat radi i kad zvuka nema.** Windows snimak je bio savršena tišina (−91 dB) uz
+besprekoran bajt-sat, tačan wav zaglavlje i tačan `ffprobe` — mikrofon je bio
+mutiran na nivou sistema, a ništa to nije reklo: `hasPermission` je vraćao
+`true`, uređaj je bio na spisku, paketi su stizali. Snimanje kroz `ffmpeg`
+(DirectShow, bez Fluttera) dalo je istu tišinu. Zato faza 2 dobija pravilo:
+gledati `onAmplitudeChanged` tokom snimanja, reći kad se ništa ne čuje, i
+odbiti slanje snimka koji nikad nije prešao prag tišine.
+
+`chess_app/tool/spike_recorder/main.dart` se sam pokreće i sam izlazi; čuva se
+dok faza 1 ne bude gotova, jer je to način da se Windows strana ponovo proveri
+posle svake promene alata.
+
+### Šta je od danas u kodu, a nije viđeno uživo
+
+Sve četiri stvari su merene i testirane, nijedna nije gledana kako radi:
+
+1. **Prekid napuštenog rendera** (stavka 134). Klijent ode, crtanje staje,
+   ffmpeg i piper se ubijaju, polufajl se briše, slot se vraća **odmah**.
+   Lokalno provereno pravim socketom; na dropletu vezu zatvara nginx i to je
+   jedini deo koji lokalno ne može da se proveri.
+2. **Pregled pre renderovanja** (stavka 135) — tri slike, bez ffmpeg-a, bez
+   mesta u redu, bez kvote.
+3. **Tutorijal pamti svoj film** (stavka 136) — jedan video po tutorijalu,
+   dugme za preuzimanje na redu u „Sačuvani tutorijali", svež link na zahtev.
+4. **Pravednost reda** (stavka 137) — round-robin po nalogu i najviše dva filma
+   po nalogu. **Ovo je bio živ kvar**: jedan trener sa tri izvoza je punio red i
+   svi ostali su dobijali 429.
+
+Za proveru postoje gotovi fixture-i u `mislisha-test/render-fixtures` (README
+tamo ima izmerene brojke i dva PowerShell skripta).
+
+### Brojke na `master` na kraju dana
+
+**1790 u aplikaciji (1 preskočen), 1098 na backendu** sa `.env` sklonjenim u
+stranu, `flutter analyze` na 29 info poruka bez ijednog upozorenja. Zavisnost
+`record` je unutra i Windows build prolazi sa njom.
+
+### Šta nije rađeno i zašto
+
+Tačke 4 i 5 iz `PLAN-SNIMANJE.md` (odbijanje prevelikog rendera i izlazak
+rendera iz zahteva) **nisu počete namerno** — 5 traži posao kao red u bazi, a 4
+bez 5 je privremena mera. Deljenje velikog filma na delove i odloženo („noćno")
+renderovanje idu uz njih. Redosled i zavisnosti su u tom planu, deo drugi.
 
 ---
 

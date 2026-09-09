@@ -1215,6 +1215,38 @@ the whole `snapshot()` object, so two fields added for a log line failed four
 tests about something else. It asks for `running` and `waiting` now — same
 family as `retention.test.js`'s „exactly one query".
 
+**The microphone spike, 10.9.2026 — `docs/PLAN-SNIMANJE.md` phase 0.** The app
+gained `record` 7.1.1 for a trainer's own narration; the counts did not move
+(1790 in the app, 1098 on the backend), because a dependency and a throwaway
+`tool/` entrypoint are not tests.
+
+Four things from it, and only the first is about audio.
+
+**`record` exposes no position at all**, so a marker is `bytes ÷ byte rate` from
+`startStream`'s PCM. Measured on both targets, with `ffprobe` agreeing to the
+millisecond three times over.
+
+**The microphone warm-up is not a constant** — 668 ms on one Windows run and
+100 ms on the next, same machine and code minutes apart. A latency that varies
+by half a second cannot be corrected with a fixed offset, which is what settles
+the question against a wall clock for good.
+
+**A working clock proves nothing about the audio existing.** The first Windows
+take was digital silence at −91 dB with a flawless byte clock, a correct wav
+header and a correct `ffprobe` duration; the microphone was muted at system
+level and `hasPermission` still returned true, the device still appeared in the
+list, and the chunks still arrived at the right rate. An `ffmpeg` DirectShow
+capture with Flutter out of the picture recorded the same silence. Same family
+as every check in this file that could not fail.
+
+**Adding one plugin broke the whole Windows build**, not just itself:
+`record_windows` requires CMake 3.23 and Build Tools 2019 ships 3.20, so the app
+stopped building on its main desktop target the moment the line was in
+`pubspec.yaml`. After installing Build Tools 2022 the first build still failed
+on a stale generator in `build/windows` — delete that directory. Worth knowing
+before adding any plugin with native code: check what it does to the *other*
+platform's build before believing it is additive.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
