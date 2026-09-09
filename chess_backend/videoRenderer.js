@@ -20,22 +20,107 @@ const stauntonPieceSvgs = {
   'k': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8" stroke="#fff"/><g fill="#333"><path d="M 22.5,25 C 22.5,25 27,17.5 27,14 C 27,11.5 25,9.5 22.5,9.5 C 20,9.5 18,11.5 18,14 C 18,17.5 22.5,25 22.5,25 z"/><path d="M 11.5,37 C 17,35.5 28,35.5 33.5,37 L 35.5,25 C 35.5,25 31,31 22.5,31 C 14,31 9.5,25 9.5,25 z"/><path d="M 11.5,37 L 33.5,37 L 33.5,40 L 11.5,40 z"/></g></g></svg>`
 };
 
+/// The app's own look, sent with an export so the film matches the screen the
+/// tutorial was written on.
+///
+/// **Colours rather than names**, and that is the whole design. The renderer
+/// used to take `boardTheme: 'wood'` and keep its own idea of what wood is,
+/// which drifts from the app's the first time either side retunes a square —
+/// and the app has five board skins, three piece skins and a light and a dark
+/// theme, none of which this file has ever heard of. What travels now is what
+/// the trainer is actually looking at.
+///
+/// Every field is optional and a missing one falls back to what this renderer
+/// has always drawn. The recorded-lesson export sends none of them.
+function lookOf(look) {
+  const hex = (value, fallback) =>
+    (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback);
+  const l = look || {};
+  return {
+    lightSquare: hex(l.lightSquare, null),
+    darkSquare: hex(l.darkSquare, null),
+    background: hex(l.background, null),
+    text: hex(l.text, null),
+    accent: hex(l.accent, null),
+    whiteFill: hex(l.whiteFill, null),
+    whiteStroke: hex(l.whiteStroke, null),
+    blackFill: hex(l.blackFill, null),
+    blackStroke: hex(l.blackStroke, null),
+    blackDecoration: hex(l.blackDecoration, null),
+  };
+}
+
+/// The Staunton set recoloured to a piece skin.
+///
+/// The app's three piece skins are five colours over one set of shapes, which
+/// is exactly what this does — so „Warm" in the app and „Warm" in the film are
+/// the same pieces rather than two designers' guesses.
+///
+/// **A `stroke=` is an outline and a `fill=` is a face**, which is what makes a
+/// black piece's decoration separable from its outline: on a black piece both
+/// are white in the source, and the knight's eye is a fill while its body is a
+/// stroke. Substituting by attribute rather than by colour is what keeps the
+/// knight looking like a knight.
+function recolouredPieces(look) {
+  const out = {};
+  for (const [key, svg] of Object.entries(stauntonPieceSvgs)) {
+    const white = key === key.toUpperCase();
+    let painted = svg;
+    if (white) {
+      if (look.whiteFill) {
+        // Both spellings: the pawn and the knight are written `#ffffff` and the
+        // rook, bishop, queen and king `#fff`. Substituting one of them left
+        // half the pieces in the source colour — visible immediately in a
+        // frame, invisible in any test that only asks whether the file exists.
+        painted = painted.split('fill="#ffffff"').join(`fill="${look.whiteFill}"`);
+        painted = painted.split('fill="#fff"').join(`fill="${look.whiteFill}"`);
+      }
+      if (look.whiteStroke) {
+        painted = painted.split('stroke="#000000"').join(`stroke="${look.whiteStroke}"`);
+        painted = painted.split('stroke="#000"').join(`stroke="${look.whiteStroke}"`);
+        painted = painted.split('fill="#000000"').join(`fill="${look.whiteStroke}"`);
+      }
+    } else {
+      if (look.blackFill) {
+        painted = painted.split('fill="#333333"').join(`fill="${look.blackFill}"`);
+        painted = painted.split('fill="#333"').join(`fill="${look.blackFill}"`);
+      }
+      if (look.blackStroke) {
+        painted = painted.split('stroke="#ffffff"').join(`stroke="${look.blackStroke}"`);
+        painted = painted.split('stroke="#fff"').join(`stroke="${look.blackStroke}"`);
+      }
+      if (look.blackDecoration) {
+        painted = painted.split('fill="#ffffff"').join(`fill="${look.blackDecoration}"`);
+      }
+    }
+    out[key] = painted;
+  }
+  return out;
+}
+
 const loadedPieceSets = {};
 
-async function preloadPieceSet(style = 'classic') {
+async function preloadPieceSet(style = 'classic', look = null) {
   const normalizedStyle = (style || 'classic').toLowerCase().trim();
-  if (loadedPieceSets[normalizedStyle]) return loadedPieceSets[normalizedStyle];
-  const dict = normalizedStyle === 'staunton'
-    ? stauntonPieceSvgs
-    : normalizedStyle === 'alpha'
-      ? alphaPieceSvgs
-      : classicPieceSvgs;
+  // A recoloured set is cached under its colours, so a film keeps one skin and
+  // two trainers with different skins do not share a cache entry.
+  const skin = look && look.whiteFill
+    ? `skin:${look.whiteFill}${look.whiteStroke}${look.blackFill}${look.blackStroke}${look.blackDecoration}`
+    : normalizedStyle;
+  if (loadedPieceSets[skin]) return loadedPieceSets[skin];
+  const dict = skin.startsWith('skin:')
+    ? recolouredPieces(look)
+    : normalizedStyle === 'staunton'
+      ? stauntonPieceSvgs
+      : normalizedStyle === 'alpha'
+        ? alphaPieceSvgs
+        : classicPieceSvgs;
   const loaded = {};
   for (const [key, svg] of Object.entries(dict)) {
     const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
     loaded[key] = await loadImage(dataUrl);
   }
-  loadedPieceSets[normalizedStyle] = loaded;
+  loadedPieceSets[skin] = loaded;
   return loaded;
 }
 
@@ -432,10 +517,23 @@ async function renderFrameBuffer({
   showTimer = true,
   showCoords = true,
   showMoveText = true,
+  // The app's own colours, when the export carried them. See `lookOf`.
+  look = null,
 }) {
-  const pieceImages = await preloadPieceSet(pieceStyle);
+  const skin = lookOf(look);
+  const pieceImages = await preloadPieceSet(pieceStyle, skin);
   const cfg = getResolutionParams(resolution);
-  const colors = getBoardColors(boardTheme);
+  const named = getBoardColors(boardTheme);
+  const colors = {
+    light: skin.lightSquare || named.light,
+    dark: skin.darkSquare || named.dark,
+    bg: skin.background || named.bg,
+  };
+  // Text and the clock. A light app theme has a light background, and white
+  // text on it is the one way this feature could produce a film nobody can
+  // read — so the colours travel together or not at all.
+  const inkColor = skin.text || '#FFFFFF';
+  const accentColor = skin.accent || '#00ADB5';
 
   const width = cfg.width;
   const height = cfg.height;
@@ -473,7 +571,7 @@ async function renderFrameBuffer({
 
   // Top Title Bar
   if (showTitle) {
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = inkColor;
     ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -486,7 +584,7 @@ async function renderFrameBuffer({
 
   // Timer & Status Badge
   if (showTimer) {
-    ctx.fillStyle = '#00ADB5';
+    ctx.fillStyle = accentColor;
     ctx.font = `bold ${cfg.fontSizeTimer}px sans-serif`;
     ctx.textAlign = 'right';
     // Against the right edge of whatever the frame is showing: the board when
@@ -602,7 +700,7 @@ async function renderFrameBuffer({
 
   // Footer Move Text
   if (showMoveText) {
-    ctx.fillStyle = '#EEEEEE';
+    ctx.fillStyle = inkColor;
     ctx.font = `${cfg.fontSizeMove}px sans-serif`;
     ctx.textAlign = 'center';
     const moveText = lastMove && lastMove.san ? `Last move: ${lastMove.san}` : 'Starting position';
@@ -628,7 +726,7 @@ async function renderFrameBuffer({
     const top = offsetY + Math.max(0, (boardSize - block) / 2);
     const shown = revealedLines(lines, captionReveal);
 
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = inkColor;
     ctx.font = `${cfg.fontSizeCaption}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
@@ -653,6 +751,9 @@ async function renderRecordingToMP4({
   showTimer = true,
   showCoords = true,
   showMoveText = true,
+  look = null,
+  /// Called with (drawn, total) after every frame, for whoever is waiting.
+  onProgress = null,
   outputPath
 }) {
   return new Promise(async (resolve, reject) => {
@@ -755,10 +856,15 @@ async function renderRecordingToMP4({
         showTitle,
         showTimer,
         showCoords,
-        showMoveText
+        showMoveText,
+        look
       });
 
       ffmpeg.stdin.write(frameBuf);
+      // After the write rather than before it: the number means „drawn", and a
+      // bar that counts frames it has not drawn yet is the same lie as a
+      // progress dialog that reaches 100 % and then waits.
+      if (onProgress) onProgress(frame + 1, frames + 1);
     }
 
     ffmpeg.stdin.end();
@@ -778,6 +884,8 @@ module.exports = {
   CAPTION_FPS,
   drawColorOf,
   getResolutionParams,
+  lookOf,
+  recolouredPieces,
   applyEvent,
   initialFrameState
 };

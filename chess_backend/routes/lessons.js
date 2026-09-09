@@ -11,6 +11,7 @@ const videoRenderer = require('../videoRenderer');
 const { acceptedTrainersOf } = require('../services/relationshipService');
 const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps');
 const tts = require('../services/tts');
+const renderProgress = require('../services/renderProgress');
 const tutorialNarration = require('../services/tutorialNarration');
 
 /// Runs a submitted step list through the one builder, or answers the caller.
@@ -338,6 +339,14 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       resolution,
       pieceStyle,
       boardTheme,
+      // The app's own colours: board skin, piece skin and the light or dark
+      // theme the trainer is actually looking at. Validated in the renderer,
+      // where a value that is not a colour is ignored rather than drawn.
+      look,
+      // The client names its own render so it can watch it: it polls
+      // `/lessons/export-video/:jobId/progress` while this very request is
+      // still in flight. See services/renderProgress.js.
+      jobId,
       narrate,
       voice,
     } = req.body;
@@ -350,6 +359,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     }
 
     const duration = Math.min(seconds, 3600);
+    const job = renderProgress.jobIdFrom(jobId);
 
     const filename = `tutorial_${lessonId}_${pieceStyle || 'classic'}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
     const exportsDir = path.join(__dirname, '..', 'exports');
@@ -388,6 +398,8 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         showTimer: true,
         showCoords: true,
         showMoveText: false,
+      look,
+      onProgress: (drawn, total) => renderProgress.report(job, drawn, total),
         outputPath: exportPath,
       });
     } finally {
@@ -410,17 +422,34 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     await recordUsage(pool, req.user.id, METRIC.MP4_RENDERS, 1);
     await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, renderDuration);
 
+    renderProgress.finish(job);
     res.json({
       message: 'Video rendered successfully, saved, and ready for download!',
-      jobId: `job_${lessonId}_${Date.now()}`,
+      jobId: job,
       status: 'completed',
       downloadUrl: downloadUrl,
       filename: filename,
     });
   } catch (err) {
+    // The bar has to stop either way. A render that failed and a bar that goes
+    // on creeping towards 99 % is the worst of both.
+    renderProgress.finish(renderProgress.jobIdFrom(req.body?.jobId), { ok: false });
     logger.error('Error initiating video export:', err);
     res.status(500).json({ error: 'Error initiating video export.' });
   }
+});
+
+// GET /lessons/export-video/:jobId/progress — how far along that render is.
+//
+// Polled by the app while its own export request is still in flight, which is
+// why this is a plain read with no side effects and no job queue behind it: the
+// render is happening in the request the client already made.
+//
+// Mounted above `/:id` for the same reason `/tts/voices` is.
+router.get('/export-video/:jobId/progress', authenticateToken, (req, res) => {
+  const job = renderProgress.jobIdFrom(req.params.jobId);
+  if (!job) return res.status(400).json({ error: 'Not a job id.' });
+  res.json(renderProgress.statusOf(job));
 });
 
 // GET /lessons/labels

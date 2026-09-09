@@ -9,6 +9,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:chess_app/services/app_settings_service.dart';
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -72,6 +74,7 @@ class _TestLessonApi extends LessonApiService {
     Future<void> Function()? onExportVideo,
     bool ttsAvailable = false,
     List<Map<String, dynamic>>? ttsVoices,
+    int? progressPercent,
   }) {
     final effectiveRows = rows ?? [_normalTutorialRow, _emptyTutorialRow];
     final client = MockClient((req) async {
@@ -93,6 +96,13 @@ class _TestLessonApi extends LessonApiService {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
+      if (req.method == 'GET' && req.url.path.contains('/progress')) {
+        return http.Response(
+          jsonEncode({'percent': progressPercent ?? 0, 'done': false}),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
       if (req.method == 'POST' && req.url.path.contains('/export-video')) {
         if (onExportVideo != null) {
           await onExportVideo();
@@ -108,6 +118,10 @@ class _TestLessonApi extends LessonApiService {
     return _TestLessonApi._(requests, client);
   }
 }
+
+/// The same `#rrggbb` the exporter sends, for comparing against a skin.
+String _hexOf(Color c) =>
+    '#${((c.a * 255).round() << 24 | (c.r * 255).round() << 16 | (c.g * 255).round() << 8 | (c.b * 255).round()).toRadixString(16).padLeft(8, '0').substring(2)}';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -494,5 +508,118 @@ void main() {
     expect(exportRequests, hasLength(1));
     expect(exportRequests.single.url.path, '/lessons/12/export-video',
         reason: 'the tutorial being written is the one exported');
+  });
+
+  testWidgets('the voice can be turned off, and then nothing is spoken',
+      (tester) async {
+    // A trainer writing in a language none of the installed voices speaks must
+    // be able to say no: „neki Indijac piše tutorijal na indijskom i nema
+    // opciju da isključi glas". The switch is the answer, and this is the test
+    // that it is wired to the request rather than to the dialog only.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: [
+        {'id': 'en_US-lessac-medium', 'name': 'lessac', 'language': 'en-US'},
+      ],
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(find.text('Voice'), findsNothing,
+        reason: 'with narration off there is no voice to choose');
+
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests
+        .lastWhere((r) => r.url.path.contains('/export-video'))
+        .body) as Map<String, dynamic>;
+    expect(body['narrate'], isFalse, reason: 'a silent film was asked for');
+  });
+
+  testWidgets('the export carries the board, pieces and theme the trainer uses',
+      (tester) async {
+    // „Renderovani video preuzima temu aplikacije, stil table i figura koje
+    // trener trenutno koristi." Colours rather than names: the app has five
+    // board skins, three piece skins and a light and a dark theme, and none of
+    // that survives being called „wood".
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests, ttsAvailable: false);
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests
+        .lastWhere((r) => r.url.path.contains('/export-video'))
+        .body) as Map<String, dynamic>;
+    final look = body['look'] as Map<String, dynamic>;
+
+    for (final key in [
+      'lightSquare',
+      'darkSquare',
+      'background',
+      'text',
+      'accent',
+      'whiteFill',
+      'whiteStroke',
+      'blackFill',
+      'blackStroke',
+      'blackDecoration',
+    ]) {
+      expect(look[key], matches(RegExp(r'^#[0-9a-fA-F]{6}$')),
+          reason: '$key must be a colour the renderer will accept');
+    }
+
+    // The board's own colours, from the skin Settings is showing.
+    expect(
+        look['lightSquare'],
+        equalsIgnoringCase(
+            _hexOf(AppSettingsService.instance.boardSkin.lightSquare)));
+    expect(
+        look['whiteFill'],
+        equalsIgnoringCase(
+            _hexOf(AppSettingsService.instance.pieceSkin.whiteFill)));
+  });
+
+  testWidgets('a render reports its progress, and the bar closes when it ends',
+      (tester) async {
+    // „Nema info o tome" — a render takes tens of seconds. The percentage is
+    // the server's own frame count rather than an animation pretending to be
+    // one, and the request carries the job id the app polls for.
+    final requests = <http.Request>[];
+    final completer = Completer<void>();
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: false,
+      onExportVideo: () => completer.future,
+      progressPercent: 42,
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Exporting video'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    final body = jsonDecode(requests
+        .lastWhere((r) => r.url.path.contains('/export-video'))
+        .body) as Map<String, dynamic>;
+    expect(body['jobId'], isNotNull,
+        reason: 'the client names its own render so it can watch it');
+
+    completer.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Exporting video'), findsNothing,
+        reason: 'the bar closes itself when the render answers');
+    expect(find.text('Video ready!'), findsOneWidget);
   });
 }

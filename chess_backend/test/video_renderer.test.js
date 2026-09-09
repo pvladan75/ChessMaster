@@ -24,6 +24,8 @@ const {
   captionBandLines,
   drawColorOf,
   getResolutionParams,
+  lookOf,
+  recolouredPieces,
   applyEvent,
   initialFrameState,
   ffmpegArgsFor,
@@ -396,6 +398,86 @@ test('the writing runs at one speed from the first word to the last', () => {
   const late = at(0.75) - at(0.5);
   assert.ok(Math.abs(early - late) < lines.join('').length * 0.25,
     `the two halves are written at about the same speed: ${early} then ${late}`);
+});
+
+test("the film takes the app's own colours when it is given them", async () => {
+  // The app has five board skins, three piece skins and a light and a dark
+  // theme, and the renderer had heard of none of them: it took a name like
+  // „wood" and kept its own idea of what wood is. Colours travel now, so the
+  // film is the screen the tutorial was written on.
+  const light = {
+    lightSquare: '#E9EDCC',
+    darkSquare: '#779556',
+    background: '#F7F8FA',
+    text: '#101418',
+    accent: '#0F766E',
+  };
+  // An empty board, so a probe lands on a square rather than on the rook
+  // standing on it — the first version of this sampled the middle of a8.
+  const frame = await pixels({
+    ...BASE,
+    fen: '8/8/8/8/8/8/8/8 w - - 0 1',
+    captionBand: 1,
+    caption: 'Beside.',
+    look: light,
+  });
+
+  assert.ok(distance(frame.at(4, 4), hexToRgb('#F7F8FA')) < 12,
+    "the background is the app theme, not this renderer's dark blue");
+
+  const geom = boardGeometry(null, { captionBand: 1 });
+  // A light square and a dark one, read off the board rather than computed.
+  // a8 is the light one, and a8 is where the board starts drawing.
+  const lightAt = frame.at(geom.offsetX + geom.tileSize * 0.5, geom.offsetY + geom.tileSize * 0.5);
+  const darkAt = frame.at(geom.offsetX + geom.tileSize * 1.5, geom.offsetY + geom.tileSize * 0.5);
+  assert.ok(distance(lightAt, hexToRgb('#E9EDCC')) < 20, "the light squares are the skin's");
+  assert.ok(distance(darkAt, hexToRgb('#779556')) < 20, 'and so are the dark ones');
+});
+
+test('a look that is not colours is ignored rather than drawn', () => {
+  // It arrives in a request body. Anything that is not `#rrggbb` falls back to
+  // what this renderer has always drawn, which is the difference between a
+  // malformed export and a film nobody can read.
+  const look = lookOf({
+    lightSquare: 'red',
+    darkSquare: '#12345',
+    background: '#F7F8FA',
+    text: 42,
+    accent: null,
+  });
+  assert.equal(look.lightSquare, null);
+  assert.equal(look.darkSquare, null, 'five digits is not a colour');
+  assert.equal(look.background, '#F7F8FA');
+  assert.equal(look.text, null);
+  assert.deepEqual(lookOf(null).accent, null);
+  assert.deepEqual(lookOf(undefined).lightSquare, null);
+});
+
+test('a piece skin repaints every piece, outline and decoration apart', () => {
+  // The app's piece skins are five colours over one set of shapes, which is
+  // what this does — so „High contrast" in the app and in the film are the same
+  // pieces rather than two designers' guesses.
+  //
+  // **A `stroke=` is an outline and a `fill=` is a face.** On a black piece
+  // both are white in the source, and the knight's eye is a fill while its body
+  // is a stroke: substituting by colour alone would paint the eye and the
+  // outline the same and stop a knight looking like a knight.
+  const set = recolouredPieces(lookOf({
+    whiteFill: '#FFFF00',
+    whiteStroke: '#000000',
+    blackFill: '#000000',
+    blackStroke: '#000000',
+    blackDecoration: '#FFFF00',
+  }));
+
+  for (const key of ['P', 'N', 'B', 'R', 'Q', 'K']) {
+    assert.ok(set[key].includes('fill="#FFFF00"'), `white ${key} takes the skin`);
+    // Both spellings are in the source — `#ffffff` on the pawn and knight,
+    // `#fff` on the rest — and substituting one left half the pieces white.
+    assert.ok(!/fill="#(fff|ffffff)"/.test(set[key]), `no unpainted white left in ${key}`);
+  }
+  assert.ok(set.n.includes('fill="#FFFF00"'), "the black knight's eye is the decoration");
+  assert.ok(set.n.includes('stroke="#000000"'), 'and its outline is the stroke colour');
 });
 
 test('a caption wraps on words and keeps the trainer\'s own line break', () => {

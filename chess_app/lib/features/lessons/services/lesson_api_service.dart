@@ -394,6 +394,28 @@ class LessonApiService {
     }
   }
 
+  /// How far along a render is, as a percentage, or null when nothing is known.
+  ///
+  /// Polled while the export request is still in flight — the render happens
+  /// inside that request, and this is a plain read beside it. A failed poll is
+  /// not a failed export: it answers null and the bar keeps whatever it had.
+  Future<int?> renderProgress(String jobId) async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/lessons/export-video/$jobId/progress'),
+              headers: _headers)
+          .timeout(const Duration(seconds: 5));
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      if (body is Map && body['percent'] is num) {
+        return (body['percent'] as num).round();
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Why the last [clone] returned null. Null when it succeeded.
   String? cloneError;
 
@@ -439,6 +461,14 @@ class LessonApiService {
     String resolution = '720p',
     String pieceStyle = 'classic',
     String boardTheme = 'wood',
+
+    /// The app's own colours, so the film matches the screen the tutorial was
+    /// written on. Absent means the renderer's own defaults, which is what the
+    /// recorded-lesson export sends.
+    Map<String, String>? look,
+    /// A name the client gives its own render so it can watch it. See
+    /// [renderProgress].
+    String? jobId,
     bool? narrate,
     String? voice,
   }) async {
@@ -454,6 +484,8 @@ class LessonApiService {
               'resolution': resolution,
               'pieceStyle': pieceStyle,
               'boardTheme': boardTheme,
+              if (look != null) 'look': look,
+              if (jobId != null) 'jobId': jobId,
               if (narrate != null) 'narrate': narrate,
               if (voice != null) 'voice': voice,
             }),

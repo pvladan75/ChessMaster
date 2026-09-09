@@ -9,12 +9,16 @@
 // So the refusals, the narration options, the request and the finished dialog
 // live here, and both screens call one function. The alternative is the same
 // sentence written twice and drifting apart on the third change.
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -91,15 +95,31 @@ Future<bool> exportTutorialVideo({
   }
 
   if (!context.mounted) return false;
-  AppFeedback.info(context, 'Exporting video...');
+  final look = _lookOf(context);
 
-  final result = await api.exportVideo(
+  // The client names its own render so it can watch it. The export request and
+  // the polling run side by side: the render happens *inside* that request, so
+  // there is no job queue behind this and nothing to clean up if the app is
+  // closed halfway.
+  final jobId = 'job${DateTime.now().millisecondsSinceEpoch}'
+      '${Random().nextInt(1 << 20)}';
+
+  final render = api.exportVideo(
     lessonId: lessonId,
     events: video.events,
     seconds: video.seconds,
     title: title,
+    look: look,
+    jobId: jobId,
     narrate: tts.available ? narrate : null,
     voice: tts.available ? voice : null,
+  );
+
+  final result = await _showProgressWhile(
+    context: context,
+    api: api,
+    jobId: jobId,
+    render: render,
   );
   if (!context.mounted) return false;
 
@@ -137,6 +157,110 @@ bool _hasSomethingToShow(TutorialDraft draft) {
         root.squares.isNotEmpty ||
         (section.instruction?.trim().isNotEmpty ?? false);
   });
+}
+
+/// The app's own look, as the renderer takes it.
+///
+/// **Colours, not names.** The server used to be told „wood" and keep its own
+/// idea of what wood is; the app has five board skins, three piece skins and a
+/// light and a dark theme, and none of that survives a name. What travels is
+/// what the trainer is looking at while they write, so the film they get back
+/// is the screen they wrote it on.
+///
+/// The theme comes from the widget's own colours rather than from
+/// `AppSettingsService.themeMode`, because `system` is not an answer — only the
+/// resolved theme knows whether this device is light or dark right now.
+Map<String, String> _lookOf(BuildContext context) {
+  final board = AppSettingsService.instance.boardSkin;
+  final pieces = AppSettingsService.instance.pieceSkin;
+  final colors = context.colors;
+
+  String hex(Color c) =>
+      '#${((c.a * 255).round() << 24 | (c.r * 255).round() << 16 | (c.g * 255).round() << 8 | (c.b * 255).round()).toRadixString(16).padLeft(8, '0').substring(2)}';
+
+  return {
+    'lightSquare': hex(board.lightSquare),
+    'darkSquare': hex(board.darkSquare),
+    'background': hex(colors.canvas),
+    'text': hex(colors.textPrimary),
+    'accent': hex(colors.accent),
+    'whiteFill': hex(pieces.whiteFill),
+    'whiteStroke': hex(pieces.whiteStroke),
+    'blackFill': hex(pieces.blackFill),
+    'blackStroke': hex(pieces.blackStroke),
+    'blackDecoration': hex(pieces.blackDecoration),
+  };
+}
+
+/// A modal bar that follows the render, and closes itself when it answers.
+///
+/// **Determinate, because the server actually knows.** The renderer draws a
+/// known number of frames and reports each one, so this is a real percentage
+/// rather than a spinner pretending to be one — „nema info o tome" was the
+/// report, and a bar that moves at a made-up speed would have been the same
+/// complaint with more pixels.
+///
+/// It stops at 99 until the export answers: the frames are drawn well before
+/// ffmpeg has finished writing the file, and a bar that sits full while the app
+/// still waits is worse than one that visibly has something left to do.
+Future<LessonExportVideoResult> _showProgressWhile({
+  required BuildContext context,
+  required LessonApiService api,
+  required String jobId,
+  required Future<LessonExportVideoResult> render,
+}) async {
+  var percent = 0;
+  void Function(void Function())? refresh;
+  var closed = false;
+
+  final poller = Timer.periodic(const Duration(milliseconds: 900), (_) async {
+    final at = await api.renderProgress(jobId);
+    if (at != null && at > percent && refresh != null) {
+      refresh!(() => percent = at);
+    }
+  });
+
+  // Not dismissible: cancelling the dialog would not cancel the render, and a
+  // screen that lets you dismiss work it cannot stop is lying about what the
+  // button does.
+  final dialog = showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) {
+        refresh = setLocal;
+        return AlertDialog(
+          title: const Text('Exporting video'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LinearProgressIndicator(
+                value: percent <= 0 ? null : percent / 100,
+                minHeight: 6,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                percent <= 0 ? 'Starting…' : '$percent%',
+                style: AppText.body.copyWith(color: ctx.colors.textSecondary),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+
+  try {
+    return await render;
+  } finally {
+    poller.cancel();
+    if (!closed && context.mounted) {
+      closed = true;
+      Navigator.of(context, rootNavigator: true).pop();
+      await dialog;
+    }
+  }
 }
 
 class _NarrationChoice {
