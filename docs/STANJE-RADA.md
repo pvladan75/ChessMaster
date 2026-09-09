@@ -340,6 +340,24 @@ Ostaje **provera uživo** — stavka 133 u `docs/TODO-provera.md`.
 
 ---
 
+## Snimanje glasa i red za renderovanje — plan, 9.9.2026
+
+`docs/PLAN-SNIMANJE.md`, u dva dela. **Prvi**: trener sam snima svoj glas u
+aplikaciji, klijent hvata markere **sa audio clock-a rekordera** (ne sa
+`DateTime.now()`, jer to klizi progresivno), lokalno preslušava, i tek na izvoz
+šalje gotov fajl — pa server samo muxuje kroz `ffmpegArgsFor`, bez pipera.
+Snimak je vezan za potpis liste taktova (`treeSignature` obrazac), jer izmena
+lekcije razvezuje markere u tišini. Piper ostaje kao fallback.
+
+**Drugi deo** su tačke 4 i 5 sa iste liste — odbijanje renderovanja koje ne
+može da stane u vezu, i izlazak rendera iz zahteva (202 + posao u bazi) — i
+vlasnikov hibrid: odloženo renderovanje „preko noći", **deljenje velikog filma
+na delove** (što daje tačke prekida, pa mali film čeka jedan deo umesto celog
+filma) i **round-robin po nalogu**, jer danas jedan korisnik sa tri izvoza puni
+red i svi ostali dobijaju 429.
+
+---
+
 ## Tutorijal pamti svoj film — 9.9.2026
 
 Pitanje vlasnika: „ako ne downloaduje odmah video, kako može to da uradi
