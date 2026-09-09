@@ -57,12 +57,12 @@ function getBoardColors(themeStr) {
 function getResolutionParams(resolutionStr) {
   switch (resolutionStr) {
     case '1080p':
-      return { width: 1920, height: 1080, boardSize: 840, offsetY: 120, fontSizeTitle: 32, fontSizeTimer: 26, fontSizeCoord: 18, fontSizeMove: 24, fontSizeCaption: 30 };
+      return { width: 1920, height: 1080, boardSize: 840, offsetY: 120, fontSizeTitle: 32, fontSizeTimer: 26, fontSizeCoord: 18, fontSizeMove: 24, fontSizeCaption: 40 };
     case '480p':
-      return { width: 854, height: 480, boardSize: 360, offsetY: 55, fontSizeTitle: 16, fontSizeTimer: 14, fontSizeCoord: 10, fontSizeMove: 14, fontSizeCaption: 16 };
+      return { width: 854, height: 480, boardSize: 360, offsetY: 55, fontSizeTitle: 16, fontSizeTimer: 14, fontSizeCoord: 10, fontSizeMove: 14, fontSizeCaption: 20 };
     case '720p':
     default:
-      return { width: 1280, height: 720, boardSize: 560, offsetY: 90, fontSizeTitle: 24, fontSizeTimer: 20, fontSizeCoord: 12, fontSizeMove: 16, fontSizeCaption: 22 };
+      return { width: 1280, height: 720, boardSize: 560, offsetY: 90, fontSizeTitle: 24, fontSizeTimer: 20, fontSizeCoord: 12, fontSizeMove: 16, fontSizeCaption: 28 };
   }
 }
 
@@ -233,13 +233,6 @@ function captionBandLines(events, { resolution = '720p', maxLines = 4 } = {}) {
   return most;
 }
 
-/// The pixels a band of [lines] takes, including the gap above it.
-function captionBandHeight(lines, resolution = '720p') {
-  if (!lines) return 0;
-  const cfg = getResolutionParams(resolution);
-  return Math.round(cfg.fontSizeCaption * 1.35 * lines + cfg.fontSizeCaption);
-}
-
 /// One picture is drawn per second of film, and the file says 30 frames a
 /// second.
 ///
@@ -386,21 +379,30 @@ async function renderFrameBuffer({
 
   const width = cfg.width;
   const height = cfg.height;
-  const bandHeight = captionBandHeight(captionBand, resolution);
-  // The board gives up height to the caption, down to a floor: past that the
-  // position stops being readable, and a video of a position nobody can read
-  // is not worth the sentence under it. A film with no caption anywhere gets
-  // exactly the geometry this renderer has always had — the recorded-lesson
-  // export is live-verified, and this must not move it by a pixel.
-  const boardSize = bandHeight === 0
-    ? cfg.boardSize
-    : Math.max(
-      Math.round(cfg.boardSize * 0.6),
-      Math.min(cfg.boardSize, height - cfg.offsetY - bandHeight - Math.round(cfg.offsetY * 0.3)),
-    );
-  const offsetX = (width - boardSize) / 2;
+  // **A film that speaks puts the sentence beside the board, not under it.**
+  //
+  // The frame is 16:9 and the board is square, so a centred board leaves 720
+  // unused pixels either side of it at 720p while the caption is squeezed into
+  // whatever height is left underneath. Moving the text into a column of its
+  // own buys it four times the room, keeps the board at full size, and — the
+  // reason the owner asked for it — means a longer sentence cannot move
+  // anything: the column is a fixed width and the text is centred inside it, so
+  // the board sits in the same place on every frame of the film whatever this
+  // beat says.
+  //
+  // A film with no caption anywhere keeps the centred layout exactly as it has
+  // always been drawn. The recorded-lesson export is verified live and must not
+  // move by a pixel.
+  const captionColumn = captionBand > 0;
+  const margin = Math.round(cfg.offsetY * 0.6);
+  const boardSize = Math.min(cfg.boardSize, height - cfg.offsetY - margin);
+  const offsetX = captionColumn ? margin : (width - boardSize) / 2;
   const offsetY = cfg.offsetY;
   const tileSize = boardSize / 8;
+
+  // What is left of the width, less a gap on either side of it.
+  const captionLeft = offsetX + boardSize + margin;
+  const captionWidth = Math.max(0, width - captionLeft - margin);
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -427,7 +429,13 @@ async function renderFrameBuffer({
     ctx.fillStyle = '#00ADB5';
     ctx.font = `bold ${cfg.fontSizeTimer}px sans-serif`;
     ctx.textAlign = 'right';
-    ctx.fillText(`${formatTime(timestampSec)} / ${formatTime(totalDurationSec)}`, offsetX + boardSize, offsetY / 2);
+    // Against the right edge of whatever the frame is showing: the board when
+    // that is all there is, and the caption column when there is one. Left at
+    // the board's edge it would sit in the middle of the frame with the
+    // sentence beside it, which reads as a label on the text rather than as the
+    // film's clock.
+    const timerRight = captionColumn ? captionLeft + captionWidth : offsetX + boardSize;
+    ctx.fillText(`${formatTime(timestampSec)} / ${formatTime(totalDurationSec)}`, timerRight, offsetY / 2);
   }
 
   // Draw 8x8 Board
@@ -541,23 +549,25 @@ async function renderFrameBuffer({
     ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
   }
 
-  // The caption, which for a tutorial is most of the teaching. The band is
-  // reserved for the whole film even on a frame whose beat says nothing, so a
-  // silent beat does not move the board.
-  if (bandHeight > 0) {
-    const lines = captionLines(ctx, caption, boardSize, cfg.fontSizeCaption, captionBand);
-    const lineHeight = cfg.fontSizeCaption * 1.35;
-    // A full line of air under the board before the sentence starts. Half of
-    // that put the first line against the bottom rank, where it read as part of
-    // the board rather than as something written about it.
-    const top = offsetY + boardSize + cfg.fontSizeCaption
-      + (showMoveText ? cfg.fontSizeMove + 15 : 0);
+  // The caption, which for a tutorial is most of the teaching.
+  //
+  // Left-aligned in its column and centred vertically against the board: a
+  // sentence set ragged-right is easier to read across many lines than a
+  // centred block, and a short one sits opposite the middle of the position it
+  // is about rather than floating at the top of an empty column.
+  if (captionColumn && captionWidth > cfg.fontSizeCaption * 4) {
+    const lineHeight = cfg.fontSizeCaption * 1.4;
+    const maxLines = Math.max(1, Math.floor((boardSize - lineHeight) / lineHeight));
+    const lines = captionLines(ctx, caption, captionWidth, cfg.fontSizeCaption, maxLines);
+    const block = lines.length * lineHeight;
+    const top = offsetY + Math.max(0, (boardSize - block) / 2);
+
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `${cfg.fontSizeCaption}px sans-serif`;
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     lines.forEach((line, i) => {
-      ctx.fillText(line, width / 2, top + i * lineHeight);
+      ctx.fillText(line, captionLeft, top + i * lineHeight);
     });
   }
 
@@ -665,7 +675,6 @@ module.exports = {
   captionBandLines,
   ffmpegArgsFor,
   OUTPUT_FPS,
-  captionBandHeight,
   drawColorOf,
   getResolutionParams,
   applyEvent,

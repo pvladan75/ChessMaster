@@ -21,7 +21,6 @@ const {
   renderFrameBuffer,
   captionLines,
   captionBandLines,
-  captionBandHeight,
   drawColorOf,
   getResolutionParams,
   applyEvent,
@@ -63,17 +62,30 @@ function distance(a, b) {
 
 /// Geometry the tests re-derive rather than import: if the renderer moves the
 /// board, these probes must fail rather than follow it.
+///
+/// Two layouts since 9.9.2026. A film that says nothing keeps the centred board
+/// this renderer has always drawn — the recorded-lesson export is verified live.
+/// A film with a caption anywhere puts the board on the left and the sentence in
+/// a column of its own, which is four times the room the old strip under the
+/// board had, and means a longer sentence cannot move the board.
 function boardGeometry(frame, { resolution = '720p', captionBand = 0, flipped = false } = {}) {
   const cfg = getResolutionParams(resolution);
-  const band = captionBandHeight(captionBand, resolution);
-  const boardSize = band === 0
-    ? cfg.boardSize
-    : Math.max(
-      Math.round(cfg.boardSize * 0.6),
-      Math.min(cfg.boardSize, cfg.height - cfg.offsetY - band - Math.round(cfg.offsetY * 0.3)),
-    );
-  const offsetX = (cfg.width - boardSize) / 2;
-  return { offsetX, offsetY: cfg.offsetY, tileSize: boardSize / 8, boardSize, flipped, cfg };
+  const captionColumn = captionBand > 0;
+  const margin = Math.round(cfg.offsetY * 0.6);
+  const boardSize = Math.min(cfg.boardSize, cfg.height - cfg.offsetY - margin);
+  const offsetX = captionColumn ? margin : (cfg.width - boardSize) / 2;
+  const captionLeft = offsetX + boardSize + margin;
+  return {
+    offsetX,
+    offsetY: cfg.offsetY,
+    tileSize: boardSize / 8,
+    boardSize,
+    captionColumn,
+    captionLeft,
+    captionWidth: Math.max(0, cfg.width - captionLeft - margin),
+    flipped,
+    cfg,
+  };
 }
 
 function centreOf(square, geom) {
@@ -181,47 +193,102 @@ test('a square that is not a square is ignored rather than drawn somewhere', asy
   assert.ok(worst < 12, 'nothing was drawn anywhere for a square that does not exist');
 });
 
-test('the board is the same size whatever this beat says', async () => {
-  // The band is reserved for the whole film, so a beat with nothing written
-  // must not let the board grow back. A board that resizes between two
-  // sentences is the reason the height is computed once and passed in.
-  const geom = boardGeometry(null, { captionBand: 3 });
+test('the board is in the same place whatever this beat says', async () => {
+  // The reason the caption moved beside the board rather than under it: the
+  // column is a fixed width and the text is centred inside it, so a long
+  // sentence and a silent beat draw the board in exactly the same place. Under
+  // the board, the height it needed had to be measured once for the whole film
+  // or the board grew and shrank between two sentences.
+  const geom = boardGeometry(null, { captionBand: 1 });
   const long = await pixels({
     ...BASE,
-    captionBand: 3,
-    caption: 'A sentence long enough to need three whole lines of the band under '
-      + 'the board, which is what the film reserved room for in the first place.',
+    captionBand: 1,
+    caption: 'A sentence long enough to need several whole lines of the column '
+      + 'beside the board, which is what the column is for.',
   });
-  const silent = await pixels({ ...BASE, captionBand: 3, caption: '' });
+  const silent = await pixels({ ...BASE, captionBand: 1, caption: '' });
 
-  // A pixel just inside the board's bottom-left corner is board on both frames,
-  // and background on both if the board shrank or grew.
   const probe = { x: geom.offsetX + 4, y: geom.offsetY + geom.boardSize - 4 };
-  assert.deepEqual(silent.at(probe.x, probe.y), long.at(probe.x, probe.y));
+  assert.deepEqual(silent.at(probe.x, probe.y), long.at(probe.x, probe.y),
+    'the same pixel is board on both');
+  const below = { x: geom.offsetX + 4, y: geom.offsetY + geom.boardSize + 8 };
+  assert.deepEqual(silent.at(below.x, below.y), long.at(below.x, below.y),
+    'and background on both');
+});
 
-  // And the row below the board is background on both.
-  const below = { x: geom.offsetX + 4, y: geom.offsetY + geom.boardSize + 4 };
-  assert.deepEqual(silent.at(below.x, below.y), long.at(below.x, below.y));
+test('the caption is drawn beside the board, never under it', async () => {
+  // What the owner asked for, and the reason: under the board the text pushed
+  // everything below it around as it grew. Beside it, the board is untouched.
+  const geom = boardGeometry(null, { captionBand: 1 });
+  const frame = await pixels({
+    ...BASE,
+    captionBand: 1,
+    caption: 'Look at the d5 square, because both white pieces are aiming at it.',
+  });
+  const bg = frame.at(4, 4);
+
+  assert.ok(geom.captionLeft > geom.offsetX + geom.boardSize,
+    'the column starts to the right of the board');
+  assert.ok(geom.captionWidth > geom.cfg.fontSizeCaption * 6,
+    'and is wide enough to hold a sentence');
+
+  // **Where the board actually is**, read off the picture. Without this, a
+  // renderer that kept the board centred passed everything below: the column's
+  // pixels would then be the board's own, and „there is ink beside the board"
+  // is satisfied by the board. A mutation found exactly that.
+  const row = Math.round(geom.offsetY + 10);
+  let boardLeft = null;
+  for (let x = 0; x < frame.width; x++) {
+    if (distance(frame.at(x, row), bg) > 20) { boardLeft = x; break; }
+  }
+  assert.ok(Math.abs(boardLeft - geom.offsetX) <= 2,
+    `the board starts at the margin, not centred; found ${boardLeft} wanted ${geom.offsetX}`);
+
+  let inkBeside = 0;
+  for (let x = Math.round(geom.captionLeft); x < geom.captionLeft + geom.captionWidth; x += 2) {
+    for (let y = geom.offsetY; y < geom.offsetY + geom.boardSize; y += 2) {
+      if (distance(frame.at(x, y), bg) > 40) inkBeside += 1;
+    }
+  }
+  assert.ok(inkBeside > 100, 'the sentence is in the column');
+
+  let inkBelow = 0;
+  for (let x = Math.round(geom.offsetX); x < geom.offsetX + geom.boardSize; x += 2) {
+    for (let y = Math.round(geom.offsetY + geom.boardSize + 6); y < frame.height; y += 2) {
+      if (distance(frame.at(x, y), bg) > 40) inkBelow += 1;
+    }
+  }
+  assert.equal(inkBelow, 0, 'and nothing at all is written under the board');
 });
 
 test('a film with no caption anywhere keeps the geometry it always had', async () => {
   // The recorded-lesson export is verified live and this phase must not move it
-  // by a pixel: no caption in any event means no band, and no band means the
-  // board is exactly the size this renderer has always drawn.
+  // by a pixel: no caption in any event means the centred board, full size.
   const cfg = getResolutionParams('720p');
   assert.equal(captionBandLines([
     { eventType: 'init', data: { fen: FEN } },
     { eventType: 'move', data: { fen: FEN, from: 'c3', to: 'd5', san: 'Nd5' } },
   ]), 0);
-  assert.equal(captionBandHeight(0), 0);
 
   const geom = boardGeometry(null, {});
+  assert.equal(geom.captionColumn, false);
   assert.equal(geom.boardSize, cfg.boardSize);
+  assert.equal(geom.offsetX, (cfg.width - cfg.boardSize) / 2, 'centred, as it always was');
 
   const frame = await pixels({ ...BASE, captionBand: 0 });
-  const inside = frame.at(geom.offsetX + 4, geom.offsetY + cfg.boardSize - 4);
-  const outside = frame.at(geom.offsetX + 4, geom.offsetY + cfg.boardSize + 8);
-  assert.notDeepEqual(inside, outside, 'the board ends exactly where it always did');
+  const bg = frame.at(4, 4);
+  // Symmetric: the same distance of background either side of the board.
+  const row = Math.round(geom.offsetY + 10);
+  let left = null;
+  let right = null;
+  for (let x = 0; x < frame.width; x++) {
+    if (distance(frame.at(x, row), bg) > 20) {
+      if (left === null) left = x;
+      right = x;
+    }
+  }
+  assert.ok(Math.abs(left - (frame.width - 1 - right)) <= 2, 'the board is centred');
+  assert.ok(Math.abs((right - left + 1) - cfg.boardSize) <= 2, 'and full size');
 });
 
 test('the file letters are readable, which they were not for a year', async () => {
@@ -255,54 +322,6 @@ test('the file letters are readable, which they were not for a year', async () =
   }
   assert.deepEqual(unreadable, [],
     'every file letter is drawn in a colour that is not its own square');
-});
-
-test('the caption band is room the board actually gave up', async () => {
-  // Reserving a band and then drawing the board at full size would put the
-  // sentence over the bottom rank, or off the frame. Nothing said otherwise
-  // until a mutation that ignored the band left every other test here green.
-  const cfg = getResolutionParams('720p');
-  const geom = boardGeometry(null, { captionBand: 3 });
-  assert.ok(geom.boardSize < cfg.boardSize, 'the board shrank to make the room');
-
-  const frame = await pixels({
-    ...BASE,
-    captionBand: 3,
-    caption: 'A sentence long enough to need three whole lines of the band under '
-      + 'the board, which is what the film reserved room for in the first place.',
-  });
-
-  // How wide the board came out, read off the picture rather than computed.
-  // The board is square and centred, so its width is its size — and unlike its
-  // bottom edge, the width cannot be confused with the caption drawn below it.
-  //
-  // **The first version of this measured the bottom edge and allowed the board
-  // to be lower than expected**, which is the one failure it existed to catch:
-  // a mutation drawing the board at full size under a reserved band passed it.
-  // An assertion with an escape clause is not an assertion.
-  const bg = frame.at(4, 4);
-  const row = Math.round(geom.offsetY + 10);
-  let left = null;
-  let right = null;
-  for (let x = 0; x < frame.width; x++) {
-    if (distance(frame.at(x, row), bg) > 20) {
-      if (left === null) left = x;
-      right = x;
-    }
-  }
-  const drawnSize = right - left + 1;
-  assert.ok(Math.abs(drawnSize - geom.boardSize) <= 2,
-    `the board is ${geom.boardSize}px, the size the band left it; drawn ${drawnSize}px`);
-  const boardBottom = geom.offsetY + geom.boardSize;
-
-  // And there is ink below the board: the caption is in the room, not over it.
-  let inkBelow = 0;
-  for (let y = Math.round(boardBottom + 4); y < frame.height; y++) {
-    for (let x = Math.round(geom.offsetX); x < geom.offsetX + geom.boardSize; x += 2) {
-      if (distance(frame.at(x, y), bg) > 40) inkBelow++;
-    }
-  }
-  assert.ok(inkBelow > 100, 'the sentence is drawn under the board, in its own band');
 });
 
 test('the file says 30 frames a second, whatever we drew', () => {
@@ -364,19 +383,16 @@ test('a caption too long for its band is cut with an ellipsis, not shrunk', () =
   assert.ok(lines[1].endsWith('…'), 'the reader is told something is missing');
 });
 
-test('the band is measured over every event, not over the first one', () => {
-  const band = captionBandLines([
-    { data: { text: 'Short.' } },
+test('one caption anywhere makes the film a narrated one', () => {
+  // The number decides the layout now rather than a height: any beat with words
+  // puts the board on the left and opens the column.
+  assert.ok(captionBandLines([
     { data: { fen: FEN } },
-    {
-      data: {
-        text: 'A much longer sentence about this position, long enough that it '
-          + 'has to wrap across more than one line of the band under the board.',
-      },
-    },
-  ]);
-  assert.ok(band >= 2, 'the tallest caption decides the band');
-  assert.ok(captionBandHeight(band) > captionBandHeight(1));
+    { data: { text: 'Short.' } },
+  ]) > 0, 'a caption on the second beat still counts');
+  assert.equal(captionBandLines([{ data: { fen: FEN } }, { data: {} }, null]), 0);
+  assert.equal(captionBandLines([]), 0);
+  assert.equal(captionBandLines(null), 0);
 });
 
 test('a new part clears the move that was lit under the old one', () => {
