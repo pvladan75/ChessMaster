@@ -555,12 +555,88 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              // **Two layouts, and the reason is the navigation strip.**
+              //
+              // What a step says — the task, the trainer's sentence, the fork's
+              // choices — used to sit between the board and the strip, so every
+              // step with a longer sentence pushed the strip somewhere else and
+              // the child had to find it again. Reported by the owner on
+              // 9.9.2026.
+              //
+              // Wide enough, and the words go beside the board, which is also
+              // what the exported video does. Otherwise the strip goes directly
+              // under the board and the words below *it*: the thing that grows
+              // is then the last thing on the screen, and it pushes nothing.
+              //
+              // 840 is this project's breakpoint everywhere else.
+              final wide = constraints.maxWidth >= 840;
               final heightBased =
                   (constraints.maxHeight - 250).clamp(200.0, 520.0);
-              final widthBased =
-                  (constraints.maxWidth - 24).clamp(180.0, 520.0);
+              final widthBased = wide
+                  // Half the width, less the gap and the column's own margin,
+                  // so the board never crowds the sentence beside it.
+                  ? (constraints.maxWidth * 0.5 - 32).clamp(180.0, 520.0)
+                  : (constraints.maxWidth - 24).clamp(180.0, 520.0);
               final boardSize =
                   heightBased < widthBased ? heightBased : widthBased;
+
+              // The board, and beside or below it the words about it. Built
+              // once and placed twice, so the two layouts cannot drift into
+              // being two screens.
+              final board = Center(
+                child: BoardWithCoordinates(
+                  size: boardSize,
+                  orientation: _orientation,
+                  builder: (size) => ChessBoardWithOverlay(
+                    controller: _board,
+                    boardOrientation: _orientation,
+                    boardSize: size,
+                    // Playable on show and ask_move, locked on ask_choice
+                    isAllowedToMove: _step.kind != LessonStepKind.askChoice,
+                    isDrawingMode: false,
+                    drawingStartSquare: null,
+                    arrows: _currentArrows,
+                    squares: _currentSquares,
+                    engineArrows: const [],
+                    onMove: (from, to, promotion) {
+                      if (_step.kind == LessonStepKind.askMove &&
+                          _verdict?.correct != true &&
+                          _reveal == null) {
+                        final san = _sanFor(_lessonFen, from, to, promotion);
+                        if (san != null) {
+                          submitMove(san);
+                        } else {
+                          _board.loadFen(_lessonFen);
+                        }
+                      } else {
+                        // The child has taken the board. Whatever was
+                        // being read is about a position they have just
+                        // left.
+                        _stopNarration();
+                        if (!_explored) setState(() => _explored = true);
+                      }
+                    },
+                    onSquareTapForDrawing: (_) {},
+                  ),
+                ),
+              );
+
+              // Everything this step has to say. On a phone it is the last
+              // thing on the screen, so it can grow without moving anything;
+              // on a wide window it is the column beside the board.
+              final said = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildStepTasks(),
+                  if (_explored) _buildRestore(),
+                  _buildMoveComment(),
+                  _buildBranchChoices(),
+                ],
+              );
+
+              final strip = _tree != null && _tree!.root.children.isNotEmpty
+                  ? _buildMoveControls()
+                  : const SizedBox.shrink();
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.md),
@@ -568,52 +644,25 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                   children: [
                     _buildHeader(done),
                     const SizedBox(height: 10),
-                    Center(
-                      child: BoardWithCoordinates(
-                        size: boardSize,
-                        orientation: _orientation,
-                        builder: (size) => ChessBoardWithOverlay(
-                          controller: _board,
-                          boardOrientation: _orientation,
-                          boardSize: size,
-                          // Playable on show and ask_move, locked on ask_choice
-                          isAllowedToMove:
-                              _step.kind != LessonStepKind.askChoice,
-                          isDrawingMode: false,
-                          drawingStartSquare: null,
-                          arrows: _currentArrows,
-                          squares: _currentSquares,
-                          engineArrows: const [],
-                          onMove: (from, to, promotion) {
-                            if (_step.kind == LessonStepKind.askMove &&
-                                _verdict?.correct != true &&
-                                _reveal == null) {
-                              final san =
-                                  _sanFor(_lessonFen, from, to, promotion);
-                              if (san != null) {
-                                submitMove(san);
-                              } else {
-                                _board.loadFen(_lessonFen);
-                              }
-                            } else {
-                              // The child has taken the board. Whatever was
-                              // being read is about a position they have just
-                              // left.
-                              _stopNarration();
-                              if (!_explored) setState(() => _explored = true);
-                            }
-                          },
-                          onSquareTapForDrawing: (_) {},
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildStepTasks(),
-                    if (_explored) _buildRestore(),
-                    _buildMoveComment(),
-                    _buildBranchChoices(),
-                    if (_tree != null && _tree!.root.children.isNotEmpty)
-                      _buildMoveControls(),
+                    if (wide)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Column(children: [
+                            board,
+                            const SizedBox(height: 10),
+                            strip
+                          ]),
+                          const SizedBox(width: AppSpacing.lg),
+                          Expanded(child: said),
+                        ],
+                      )
+                    else ...[
+                      board,
+                      const SizedBox(height: 10),
+                      strip,
+                      said,
+                    ],
                     const SizedBox(height: 10),
                     _buildStepControls(),
                   ],

@@ -73,9 +73,35 @@ void main() {
     await tester.pump();
   }
 
+  /// Press „Next move", and **prove the press landed**.
+  ///
+  /// Until 9.9.2026 the navigation strip sat under the step's words on an
+  /// 800x600 test window, which put it below the fold, and this tap hit
+  /// nothing: `findsNothing` for the sheet passed because the screen had not
+  /// moved, and the assertions after it were satisfied by the fork's *inline*
+  /// chooser, which is drawn whether the strip was pressed or not. Moving the
+  /// strip up to sit under the board is what exposed it.
+  ///
+  /// The label is the cheapest proof available: it names the move the cursor is
+  /// on, so a tap that did nothing leaves it where it was.
   Future<void> forward(WidgetTester tester) async {
+    final before = tester
+        .widgetList<Text>(find.textContaining('Move '))
+        .map((t) => t.data)
+        .toList();
     await tester.tap(find.byTooltip('Next move'));
     await tester.pumpAndSettle();
+    final after = tester
+        .widgetList<Text>(find.textContaining('Move '))
+        .map((t) => t.data)
+        .toList();
+    // Either the cursor moved, or a sheet opened to ask which way — at a fork
+    // „Next move" has two meanings and answering with a question is the whole
+    // feature. What must never happen is neither, which is what a tap that
+    // landed on nothing looks like.
+    final asked = find.byType(BottomSheet).evaluate().isNotEmpty;
+    expect(after != before || asked, isTrue,
+        reason: 'nothing happened, so "Next move" was never pressed');
   }
 
   group('a student can reach the line the trainer prepared', () {
@@ -99,11 +125,15 @@ void main() {
       expect(find.widgetWithText(ActionChip, 'Kc5'), findsOneWidget);
 
       await forward(tester); // the fork after 1.Kd3
-      expect(find.text('Multiple lines continue from here — which one?'),
-          findsOneWidget,
+      expect(find.byType(BottomSheet), findsOneWidget,
           reason: 'two replies means "forward" has two meanings');
-      expect(find.text('Ke5'), findsOneWidget);
-      expect(find.text('Kc5'), findsOneWidget);
+      for (final san in ['Ke5', 'Kc5']) {
+        expect(
+            find.descendant(
+                of: find.byType(BottomSheet), matching: find.text(san)),
+            findsOneWidget,
+            reason: 'the sheet offers $san rather than choosing for the child');
+      }
     });
 
     testWidgets('the sideline carries its own words and its own marks',
@@ -116,7 +146,8 @@ void main() {
 
       await forward(tester);
       await forward(tester);
-      await tester.tap(find.text('Kc5'));
+      await tester.tap(find.descendant(
+          of: find.byType(BottomSheet), matching: find.text('Kc5')));
       await tester.pumpAndSettle();
 
       expect(find.text(sideNote), findsOneWidget,
@@ -155,7 +186,8 @@ void main() {
 
       await forward(tester);
       await forward(tester);
-      await tester.tap(find.text('Kc5'));
+      await tester.tap(find.descendant(
+          of: find.byType(BottomSheet), matching: find.text('Kc5')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('Previous move'));
