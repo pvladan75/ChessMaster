@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -88,10 +92,12 @@ class TutorialLibraryCard extends StatelessWidget {
                     size: 28,
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  Text(
-                    'Interactive tutorials',
-                    style: AppText.headline
-                        .copyWith(color: context.colors.textPrimary),
+                  Expanded(
+                    child: Text(
+                      'Interactive tutorials',
+                      style: AppText.headline
+                          .copyWith(color: context.colors.textPrimary),
+                    ),
                   ),
                 ],
               ),
@@ -201,7 +207,15 @@ class TutorialLibraryCard extends StatelessWidget {
       if (item is! Map) continue;
       if (item['is_trainer_lesson'] == true) continue;
       final posList = item['position_list'];
-      if (posList is List && posList.isNotEmpty) {
+      // A list, empty or not — but never `null`, which is what a plain saved
+      // lesson has and what keeps those out of a sheet about tutorials.
+      //
+      // The empty ones used to be hidden too, which meant a tutorial whose
+      // parts had all been deleted could not be reached to be deleted itself,
+      // and the refusal below ("nothing to show yet") could never fire on
+      // anything. A feature that is complete, tested and unreachable is a
+      // shape this project has met before.
+      if (posList is List) {
         tutorials.add(Map<String, dynamic>.from(item));
       }
     }
@@ -399,6 +413,117 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
     AppFeedback.success(context, 'Tutorial sent to student.');
   }
 
+  Future<void> _exportVideo(Map<String, dynamic> row) async {
+    final id = _idOf(row);
+    if (id == null || _busy) return;
+
+    final rawPosList = row['position_list'];
+    final bool hasNoSteps =
+        rawPosList == null || (rawPosList is List && rawPosList.isEmpty);
+
+    final draft = TutorialDraft.fromLesson(row);
+    final video = hasNoSteps
+        ? (events: const <Map<String, dynamic>>[], seconds: 0)
+        : tutorialVideoOf(draft);
+
+    if (!canRenderVideo(video)) {
+      AppFeedback.info(context, 'This tutorial has nothing to show yet.');
+      return;
+    }
+
+    if (!fitsInOneFilm(video)) {
+      AppFeedback.info(
+        context,
+        'This tutorial is too long to render as one video (${video.seconds}s).',
+      );
+      return;
+    }
+
+    setState(() => _busy = true);
+    AppFeedback.info(context, 'Exporting video...');
+
+    final result = await widget.lessonApi.exportVideo(
+      lessonId: id,
+      events: video.events,
+      seconds: video.seconds,
+      title: _titleOf(row),
+    );
+
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    if (!result.ok) {
+      AppFeedback.error(context, result.error ?? 'Video export failed.');
+      return;
+    }
+
+    _showVideoReadyDialog(
+      result.message ??
+          'Video rendered successfully, saved, and ready for download!',
+      result.downloadUrl == null ? null : resolveMediaUrl(result.downloadUrl!),
+    );
+  }
+
+  void _showVideoReadyDialog(String message, String? downloadUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, color: ctx.colors.accent),
+            const SizedBox(width: AppSpacing.sm),
+            // Flexible, because a dialog title is drawn in the theme's headline
+            // size and „Video ready!" at that size wants 320 dp of a phone's
+            // 232. It overflowed by 88 px, which in a release build is not a
+            // stripe but a title clipped mid-word.
+            const Flexible(child: Text('Video ready!')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message, style: AppText.bodyLarge),
+            const SizedBox(height: AppSpacing.md),
+            if (downloadUrl != null) ...[
+              Text(
+                'Direct download link:',
+                style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              SelectableText(
+                downloadUrl,
+                style: AppText.captionBold.copyWith(color: ctx.colors.accent),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          if (downloadUrl != null)
+            ElevatedButton.icon(
+              icon: const Icon(Icons.download),
+              label: const Text('Download'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ctx.colors.accent,
+                foregroundColor: ctx.colors.canvas,
+              ),
+              onPressed: () {
+                launchUrl(
+                  Uri.parse(downloadUrl),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -416,11 +541,25 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
                   itemBuilder: (ctx, index) {
                     final row = _rows[index];
                     return ListTile(
-                      title: Text(_titleOf(row)),
+                      title: Text(
+                        _titleOf(row),
+                        // A tutorial is named by its first sentence, so this
+                        // title is as long as a sentence and it shares the row
+                        // with three actions. Without the ellipsis it pushes
+                        // them off the right-hand edge of a 360 dp phone, where
+                        // a release build draws no warning and the buttons are
+                        // simply not there.
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       onTap: () => Navigator.of(context).pop(row),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          IconButton(
+                            icon: const Icon(Icons.videocam_outlined, size: 20),
+                            tooltip: 'Export video',
+                            onPressed: _busy ? null : () => _exportVideo(row),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.send_outlined, size: 20),
                             tooltip: 'Send to student',
