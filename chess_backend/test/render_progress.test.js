@@ -36,7 +36,8 @@ test('progress is what has been drawn, and never reaches 100 on its own', () => 
   assert.equal(progress.statusOf(id).done, false);
 
   progress.finish(id);
-  assert.deepEqual(progress.statusOf(id), { percent: 100, done: true, known: true });
+  assert.deepEqual(progress.statusOf(id),
+    { percent: 100, done: true, known: true, etaSeconds: 0 });
 });
 
 test('a render that failed stops the bar rather than leaving it creeping', () => {
@@ -56,6 +57,7 @@ test('an unknown job is nothing to report, not an error', () => {
     percent: 0,
     done: false,
     known: false,
+    etaSeconds: null,
   });
 });
 
@@ -70,7 +72,53 @@ test('reporting on no job at all is ignored', () => {
   // — an export without a bar is an ordinary export.
   progress.report(null, 5, 10);
   progress.finish(null);
-  assert.deepEqual(progress.statusOf(null), { percent: 0, done: false, known: false });
+  assert.deepEqual(progress.statusOf(null),
+    { percent: 0, done: false, known: false, etaSeconds: null });
+});
+
+test('the time left is measured on this render, not assumed', () => {
+  // „i procenu vremena završetka". A film with captions is drawn four times a
+  // second and one without it once a second, so the only honest source for a
+  // number of seconds is the rate this render is actually going at.
+  const id = 'job-eta-1';
+  progress.report(id, 72, 721);
+  assert.equal(progress.statusOf(id).etaSeconds, null,
+    'one report is a point, not a rate');
+
+  // Reach into the store rather than sleeping: the arithmetic is what is under
+  // test, not the clock. Four seconds for the first tenth.
+  progress._jobs.get(id).first.at = Date.now() - 4000;
+  progress.report(id, 144, 721);
+  // 4 s for 72 frames is 55.6 ms each, and 577 are left: 33 s.
+  assert.equal(progress.statusOf(id).etaSeconds, 33);
+
+  progress._jobs.get(id).first.at = Date.now() - 40000;
+  progress.report(id, 648, 721);
+  // 576 more frames in 40 s is 69.4 ms each, and 73 are left: 6 s. The estimate
+  // falls as the render goes; it is not fixed at the first reading.
+  assert.equal(progress.statusOf(id).etaSeconds, 6);
+
+  // The last frame is drawn and ffmpeg is still closing the file. „0 s left" on
+  // a render that is still running is the same lie as a bar sitting at 100 %.
+  progress.report(id, 721, 721);
+  assert.equal(progress.statusOf(id).etaSeconds, null);
+  assert.equal(progress.statusOf(id).percent, 99);
+});
+
+test('a render that starts a second time is estimated from its own start', () => {
+  // A client that retries reuses its job id. The rate must be measured from
+  // the second render's own opening frame: carrying the first one's forward
+  // puts the whole of a finished render into the estimate for a new one.
+  const id = 'job-eta-2';
+  progress.report(id, 5, 100);
+  progress.finish(id);
+
+  progress.report(id, 10, 100);
+  progress._jobs.get(id).first.at = Date.now() - 1000;
+  progress.report(id, 20, 100);
+  // 10 frames in a second, 80 left: 8 s. Measured from the first render's
+  // opening frame it would be 15 frames in that second, and 6.
+  assert.equal(progress.statusOf(id).etaSeconds, 8);
 });
 
 test('old jobs are swept, so a tab left open cannot hold an entry', () => {

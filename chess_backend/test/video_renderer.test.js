@@ -26,6 +26,7 @@ const {
   getResolutionParams,
   lookOf,
   recolouredPieces,
+  tenPercentReporter,
   applyEvent,
   initialFrameState,
   ffmpegArgsFor,
@@ -453,31 +454,94 @@ test('a look that is not colours is ignored rather than drawn', () => {
   assert.deepEqual(lookOf(undefined).lightSquare, null);
 });
 
+test('the film draws the app\'s own pieces and no others', () => {
+  // „Nije isti set, ovaj drugi set ne postoji" — the video came back in pieces
+  // that exist nowhere in the app. This file used to hold a „Staunton" set and
+  // pieceThemes.js an „Alpha" one, neither of them drawn by any board in the
+  // app, and the skin recolouring reached for the Staunton one: a trainer who
+  // had chosen nothing got a set they had never seen.
+  //
+  // The shapes are the `chess_vectors_flutter` vectors, pixel for pixel, and
+  // this asserts on the path data rather than on a name — a set swapped
+  // underneath keeps whatever name it is given.
+  const themes = require('../pieceThemes');
+  assert.deepEqual(Object.keys(themes), ['classicPieceSvgs'], "one set, and it is the app's");
+
+  const set = recolouredPieces(lookOf({}));
+  // The knight's head and the king's base: two paths that differ between any
+  // two sets anybody would substitute here.
+  assert.ok(set.N.includes('M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18'));
+  assert.ok(set.K.includes('M 11.5,37 C 17,40.5 27,40.5 32.5,37'));
+});
+
 test('a piece skin repaints every piece, outline and decoration apart', () => {
   // The app's piece skins are five colours over one set of shapes, which is
   // what this does — so „High contrast" in the app and in the film are the same
   // pieces rather than two designers' guesses.
   //
-  // **A `stroke=` is an outline and a `fill=` is a face.** On a black piece
-  // both are white in the source, and the knight's eye is a fill while its body
-  // is a stroke: substituting by colour alone would paint the eye and the
-  // outline the same and stop a knight looking like a knight.
+  // Which colour means what is read off `chess_vectors_flutter`'s own
+  // parameters rather than guessed: on a white piece the black `fill=` is the
+  // knight's eye and nostril, which the app paints with `strokeColor`; on a
+  // black piece a white `stroke=` is an inlay — the rook's lines, the king's
+  // cross — which the app paints with `decorationColor`. Painting all of them
+  // the outline colour would stop a knight looking like a knight.
   const set = recolouredPieces(lookOf({
     whiteFill: '#FFFF00',
-    whiteStroke: '#000000',
-    blackFill: '#000000',
-    blackStroke: '#000000',
+    whiteStroke: '#112233',
+    blackFill: '#445566',
+    blackStroke: '#778899',
     blackDecoration: '#FFFF00',
   }));
 
   for (const key of ['P', 'N', 'B', 'R', 'Q', 'K']) {
     assert.ok(set[key].includes('fill="#FFFF00"'), `white ${key} takes the skin`);
-    // Both spellings are in the source — `#ffffff` on the pawn and knight,
-    // `#fff` on the rest — and substituting one left half the pieces white.
-    assert.ok(!/fill="#(fff|ffffff)"/.test(set[key]), `no unpainted white left in ${key}`);
+    assert.ok(!/fill="#(fff|ffffff)"/i.test(set[key]), `no unpainted white left in ${key}`);
+    assert.ok(!/stroke="#(000|000000)"/i.test(set[key]), `no unpainted outline left in ${key}`);
+  }
+  assert.ok(set.N.includes('fill="#112233"'), "the white knight's eye is drawn in the outline colour");
+
+  for (const key of ['p', 'n', 'b', 'r', 'q', 'k']) {
+    assert.ok(set[key].includes('fill="#445566"'), `black ${key} takes the skin`);
+    assert.ok(!/="#(fff|ffffff)"/i.test(set[key]), `no unpainted decoration left in ${key}`);
   }
   assert.ok(set.n.includes('fill="#FFFF00"'), "the black knight's eye is the decoration");
-  assert.ok(set.n.includes('stroke="#000000"'), 'and its outline is the stroke colour');
+  assert.ok(set.r.includes('stroke="#FFFF00"'), "and the rook's inlay is the decoration too");
+  assert.ok(set.n.includes('stroke="#778899"'), 'while the outline is the stroke colour');
+});
+
+test('a skin whose fill is the decoration colour is not painted twice', () => {
+  // A chain of substitutions cannot do this: it turns the fill into the new
+  // colour and then, when that colour happens to be one a later rule looks for,
+  // paints it again. One pass over the attributes is what stops it.
+  const set = recolouredPieces(lookOf({
+    blackFill: '#FFFFFF',
+    blackStroke: '#000000',
+    blackDecoration: '#FF0000',
+  }));
+  assert.ok(set.p.includes('fill="#FFFFFF"'), 'the fill is the fill');
+  assert.ok(!set.p.includes('fill="#FF0000"'), 'and not the decoration painted over it');
+});
+
+test('the bar is told every ten per cent, and on the last frame', () => {
+  // „Nek šalje na svakih 10 procenata osvežavanje". A three-minute film at 4 fps
+  // is 720 frames; reporting each of them moves a bar the reader sees change
+  // ten times, since the client polls every 900 ms.
+  const seen = [];
+  const report = tenPercentReporter(
+    (drawn, total) => seen.push(Math.round((drawn / total) * 100)), 721);
+  for (let frame = 1; frame <= 721; frame++) report(frame);
+  assert.deepEqual(seen, [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+
+  // A film short enough that every frame is its own step still reports each one
+  // — and never the same one twice.
+  const few = [];
+  const short = tenPercentReporter((drawn) => few.push(drawn), 4);
+  for (let frame = 1; frame <= 4; frame++) short(frame);
+  assert.deepEqual(few, [1, 2, 3, 4]);
+
+  // No callback is an ordinary export with nobody watching.
+  assert.doesNotThrow(() => tenPercentReporter(null, 10)(1));
+  assert.doesNotThrow(() => tenPercentReporter(() => {}, 0)(1));
 });
 
 test('a caption wraps on words and keeps the trainer\'s own line break', () => {

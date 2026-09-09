@@ -2,23 +2,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const { alphaPieceSvgs, classicPieceSvgs } = require('./pieceThemes');
-
-// Standard Staunton SVG definitions
-const stauntonPieceSvgs = {
-  'P': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22.5,9 C 20.29,9 18.5,10.79 18.5,13 C 18.5,13.89 18.79,14.71 19.28,15.38 C 17.33,16.5 16,18.59 16,21 C 16,23.03 16.94,24.84 18.41,26.03 C 15.41,27.09 11,31.58 11,39.5 L 34,39.5 C 34,31.58 29.59,27.09 26.59,26.03 C 28.06,24.84 29,23.03 29,21 C 29,18.59 27.67,16.5 25.72,15.38 C 26.21,14.71 26.5,13.89 26.5,13 C 26.5,10.79 24.71,9 22.5,9 z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-  'N': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,24 C 21.5,17.5 13,18 13,18 C 13,18 16.5,13 22,10 z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linecap="round"/><circle cx="27" cy="16" r="1.5" fill="#000000"/></svg>`,
-  'B': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g fill="#fff"><path d="M 9,36 C 12.39,35.03 19.11,36.46 22.5,34 C 25.89,36.46 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,39.5 36,39.5 L 9,39.5 C 7.65,39.5 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,22 30,22 C 30.5,20.5 32,18 32,15.5 C 32,13 30,8.5 22.5,8.5 C 15,8.5 13,13 13,15.5 C 13,18 14.5,20.5 15,22 C 15,22 14.5,30.5 15,32 z"/><circle cx="22.5" cy="6" r="2"/></g><path d="M 17.5,26 L 27.5,26 M 22.5,21 L 22.5,31" stroke="#000"/></g></svg>`,
-  'R': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#fff" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 z"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 z"/><path d="M 12,14 L 33,14 L 31,32 L 14,32 z"/></g></svg>`,
-  'Q': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#fff" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 22.5,11 L 14,25 L 7,14 z"/><path d="M 9,26 L 36,26 L 36,36 L 9,36 z"/><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="6" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/></g></svg>`,
-  'K': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8" stroke="#000"/><g fill="#fff"><path d="M 22.5,25 C 22.5,25 27,17.5 27,14 C 27,11.5 25,9.5 22.5,9.5 C 20,9.5 18,11.5 18,14 C 18,17.5 22.5,25 22.5,25 z"/><path d="M 11.5,37 C 17,35.5 28,35.5 33.5,37 L 35.5,25 C 35.5,25 31,31 22.5,31 C 14,31 9.5,25 9.5,25 z"/><path d="M 11.5,37 L 33.5,37 L 33.5,40 L 11.5,40 z"/></g></g></svg>`,
-  'p': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22.5,9 C 20.29,9 18.5,10.79 18.5,13 C 18.5,13.89 18.79,14.71 19.28,15.38 C 17.33,16.5 16,18.59 16,21 C 16,23.03 16.94,24.84 18.41,26.03 C 15.41,27.09 11,31.58 11,39.5 L 34,39.5 C 34,31.58 29.59,27.09 26.59,26.03 C 28.06,24.84 29,23.03 29,21 C 29,18.59 27.67,16.5 25.72,15.38 C 26.21,14.71 26.5,13.89 26.5,13 C 26.5,10.79 24.71,9 22.5,9 z" fill="#333333" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-  'n': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,24 C 21.5,17.5 13,18 13,18 C 13,18 16.5,13 22,10 z" fill="#333333" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><circle cx="27" cy="16" r="1.5" fill="#ffffff"/></svg>`,
-  'b': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g fill="#333"><path d="M 9,36 C 12.39,35.03 19.11,36.46 22.5,34 C 25.89,36.46 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,39.5 36,39.5 L 9,39.5 C 7.65,39.5 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,22 30,22 C 30.5,20.5 32,18 32,15.5 C 32,13 30,8.5 22.5,8.5 C 15,8.5 13,13 13,15.5 C 13,18 14.5,20.5 15,22 C 15,22 14.5,30.5 15,32 z"/><circle cx="22.5" cy="6" r="2"/></g><path d="M 17.5,26 L 27.5,26 M 22.5,21 L 22.5,31" stroke="#fff"/></g></svg>`,
-  'r': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#333" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 z"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14 z"/><path d="M 12,14 L 33,14 L 31,32 L 14,32 z"/></g></svg>`,
-  'q': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="#333" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 22.5,11 L 14,25 L 7,14 z"/><path d="M 9,26 L 36,26 L 36,36 L 9,36 z"/><path d="M 9,39 L 36,39 L 36,36 L 9,36 z"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="22.5" cy="6" r="2"/><circle cx="31" cy="9" r="2"/><circle cx="39" cy="12" r="2"/></g></svg>`,
-  'k': `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><g fill="none" fill-rule="evenodd" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8" stroke="#fff"/><g fill="#333"><path d="M 22.5,25 C 22.5,25 27,17.5 27,14 C 27,11.5 25,9.5 22.5,9.5 C 20,9.5 18,11.5 18,14 C 18,17.5 22.5,25 22.5,25 z"/><path d="M 11.5,37 C 17,35.5 28,35.5 33.5,37 L 35.5,25 C 35.5,25 31,31 22.5,31 C 14,31 9.5,25 9.5,25 z"/><path d="M 11.5,37 L 33.5,37 L 33.5,40 L 11.5,40 z"/></g></g></svg>`
-};
+const { classicPieceSvgs } = require('./pieceThemes');
 
 /// The app's own look, sent with an export so the film matches the screen the
 /// tutorial was written on.
@@ -50,77 +34,78 @@ function lookOf(look) {
   };
 }
 
-/// The Staunton set recoloured to a piece skin.
+/// The app's own set, recoloured to a piece skin.
 ///
-/// The app's three piece skins are five colours over one set of shapes, which
-/// is exactly what this does — so „Warm" in the app and „Warm" in the film are
-/// the same pieces rather than two designers' guesses.
+/// The app's three piece skins are five colours over one set of shapes — the
+/// `chess_vectors_flutter` vectors every board in the app draws — which is
+/// exactly what this does, so „High contrast" in the app and „High contrast" in
+/// the film are the same pieces rather than two designers' guesses.
 ///
-/// **A `stroke=` is an outline and a `fill=` is a face**, which is what makes a
-/// black piece's decoration separable from its outline: on a black piece both
-/// are white in the source, and the knight's eye is a fill while its body is a
-/// stroke. Substituting by attribute rather than by colour is what keeps the
-/// knight looking like a knight.
+/// **Which colour means what is read off the package's own parameters**, not
+/// guessed from the attribute. On a white piece the black `fill=` is the
+/// knight's eye and nostril, which the app paints with `strokeColor`; on a
+/// black piece a white `stroke=` is an inlay — the rook's lines, the king's
+/// cross, the queen's bands — which the app paints with `decorationColor`.
+/// Painting all of those the outline colour would stop a knight looking like a
+/// knight.
+function repaint(svg, map) {
+  // One pass over the attributes, so no colour is painted twice. A chain of
+  // substitutions cannot do this: on a black piece `fill="#000000"` becomes the
+  // skin's fill, and if that fill happens to be white the next rule in the
+  // chain would repaint it as a decoration.
+  return svg.replace(/(fill|stroke)="(#[0-9a-fA-F]{3,6})"/g, (whole, attr, colour) => {
+    const to = map[`${attr}:${colour.toLowerCase()}`];
+    return to ? `${attr}="${to}"` : whole;
+  });
+}
+
 function recolouredPieces(look) {
   const out = {};
-  for (const [key, svg] of Object.entries(stauntonPieceSvgs)) {
+  for (const [key, svg] of Object.entries(classicPieceSvgs)) {
     const white = key === key.toUpperCase();
-    let painted = svg;
+    const map = {};
     if (white) {
-      if (look.whiteFill) {
-        // Both spellings: the pawn and the knight are written `#ffffff` and the
-        // rook, bishop, queen and king `#fff`. Substituting one of them left
-        // half the pieces in the source colour — visible immediately in a
-        // frame, invisible in any test that only asks whether the file exists.
-        painted = painted.split('fill="#ffffff"').join(`fill="${look.whiteFill}"`);
-        painted = painted.split('fill="#fff"').join(`fill="${look.whiteFill}"`);
-      }
+      if (look.whiteFill) map['fill:#ffffff'] = look.whiteFill;
       if (look.whiteStroke) {
-        painted = painted.split('stroke="#000000"').join(`stroke="${look.whiteStroke}"`);
-        painted = painted.split('stroke="#000"').join(`stroke="${look.whiteStroke}"`);
-        painted = painted.split('fill="#000000"').join(`fill="${look.whiteStroke}"`);
+        map['stroke:#000000'] = look.whiteStroke;
+        map['fill:#000000'] = look.whiteStroke;
       }
     } else {
-      if (look.blackFill) {
-        painted = painted.split('fill="#333333"').join(`fill="${look.blackFill}"`);
-        painted = painted.split('fill="#333"').join(`fill="${look.blackFill}"`);
-      }
-      if (look.blackStroke) {
-        painted = painted.split('stroke="#ffffff"').join(`stroke="${look.blackStroke}"`);
-        painted = painted.split('stroke="#fff"').join(`stroke="${look.blackStroke}"`);
-      }
+      if (look.blackFill) map['fill:#000000'] = look.blackFill;
+      if (look.blackStroke) map['stroke:#000000'] = look.blackStroke;
       if (look.blackDecoration) {
-        painted = painted.split('fill="#ffffff"').join(`fill="${look.blackDecoration}"`);
+        map['fill:#ffffff'] = look.blackDecoration;
+        map['stroke:#ffffff'] = look.blackDecoration;
       }
     }
-    out[key] = painted;
+    out[key] = repaint(svg, map);
   }
   return out;
 }
 
 const loadedPieceSets = {};
 
-async function preloadPieceSet(style = 'classic', look = null) {
-  const normalizedStyle = (style || 'classic').toLowerCase().trim();
+/// The pieces the film draws, loaded once.
+///
+/// **There is one set of shapes and it is the app's.** This file used to carry
+/// two more that exist nowhere in the app — „Alpha" and „Staunton" — and a
+/// `pieceStyle` naming them, and the recolouring reached for the wrong one: a
+/// trainer who had chosen nothing got a film in pieces they had never seen.
+/// A skin is colours over the one set, which is what the app itself does.
+async function preloadPieceSet(look = null) {
+  const l = look || {};
+  const skinColours = [l.whiteFill, l.whiteStroke, l.blackFill, l.blackStroke, l.blackDecoration];
   // A recoloured set is cached under its colours, so a film keeps one skin and
   // two trainers with different skins do not share a cache entry.
-  const skin = look && look.whiteFill
-    ? `skin:${look.whiteFill}${look.whiteStroke}${look.blackFill}${look.blackStroke}${look.blackDecoration}`
-    : normalizedStyle;
-  if (loadedPieceSets[skin]) return loadedPieceSets[skin];
-  const dict = skin.startsWith('skin:')
-    ? recolouredPieces(look)
-    : normalizedStyle === 'staunton'
-      ? stauntonPieceSvgs
-      : normalizedStyle === 'alpha'
-        ? alphaPieceSvgs
-        : classicPieceSvgs;
+  const key = skinColours.some(Boolean) ? `skin:${skinColours.join('|')}` : 'classic';
+  if (loadedPieceSets[key]) return loadedPieceSets[key];
+  const dict = key === 'classic' ? classicPieceSvgs : recolouredPieces(l);
   const loaded = {};
-  for (const [key, svg] of Object.entries(dict)) {
+  for (const [name, svg] of Object.entries(dict)) {
     const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-    loaded[key] = await loadImage(dataUrl);
+    loaded[name] = await loadImage(dataUrl);
   }
-  loadedPieceSets[skin] = loaded;
+  loadedPieceSets[key] = loaded;
   return loaded;
 }
 
@@ -511,7 +496,6 @@ async function renderFrameBuffer({
   timestampSec,
   totalDurationSec,
   resolution = '720p',
-  pieceStyle = 'classic',
   boardTheme = 'wood',
   showTitle = true,
   showTimer = true,
@@ -521,7 +505,7 @@ async function renderFrameBuffer({
   look = null,
 }) {
   const skin = lookOf(look);
-  const pieceImages = await preloadPieceSet(pieceStyle, skin);
+  const pieceImages = await preloadPieceSet(skin);
   const cfg = getResolutionParams(resolution);
   const named = getBoardColors(boardTheme);
   const colors = {
@@ -738,6 +722,24 @@ async function renderFrameBuffer({
   return canvas.toBuffer('image/png');
 }
 
+/// A progress callback that speaks every ten per cent, and on the last frame.
+///
+/// „Nek šalje na svakih 10 procenata osvežavanje". A three-minute film at 4 fps
+/// is 720 frames, and reporting every one of them writes 720 entries to move a
+/// bar that changes ten times: the client polls every 900 ms and can only draw
+/// what it happens to catch. The last frame is always reported, because that is
+/// the 99 the bar rests on while ffmpeg finishes writing the file.
+function tenPercentReporter(onProgress, total) {
+  if (typeof onProgress !== 'function' || !(total > 0)) return () => {};
+  let reported = -1;
+  return (drawn) => {
+    const tenth = Math.floor((drawn / total) * 10);
+    if (tenth === reported && drawn !== total) return;
+    reported = tenth;
+    onProgress(drawn, total);
+  };
+}
+
 async function renderRecordingToMP4({
   title,
   timelineEvents,
@@ -745,7 +747,6 @@ async function renderRecordingToMP4({
   durationSeconds,
   perspective,
   resolution = '720p',
-  pieceStyle = 'classic',
   boardTheme = 'wood',
   showTitle = true,
   showTimer = true,
@@ -760,10 +761,10 @@ async function renderRecordingToMP4({
     const totalDuration = Math.max(3, Math.min(3600, Math.ceil(durationSeconds || 10)));
     const events = Array.isArray(timelineEvents) ? timelineEvents : [];
 
-    console.log(`[VIDEO_RENDER] Rendering ${resolution} MP4 (${pieceStyle}/${boardTheme}): ${totalDuration}s, ${events.length} events, audio: ${audioFilePath}`);
+    console.log(`[VIDEO_RENDER] Rendering ${resolution} MP4 (${boardTheme}): ${totalDuration}s, ${events.length} events, audio: ${audioFilePath}`);
 
-    // Preload piece set
-    await preloadPieceSet(pieceStyle);
+    // Preload the pieces, in the skin this film was asked for.
+    await preloadPieceSet(lookOf(look));
 
     const hasAudio = audioFilePath && fs.existsSync(audioFilePath);
     const ffmpeg = spawn('ffmpeg', ffmpegArgsFor({
@@ -809,6 +810,7 @@ async function renderRecordingToMP4({
 
     let state = initialFrameState();
     let eventIdx = 0;
+    const report = tenPercentReporter(onProgress, frames + 1);
     // When the sentence now on screen started being spoken, and for how long.
     let captionStartMs = 0;
     let captionSpokenMs = 0;
@@ -851,7 +853,6 @@ async function renderRecordingToMP4({
         timestampSec: sec,
         totalDurationSec: totalDuration,
         resolution,
-        pieceStyle,
         boardTheme,
         showTitle,
         showTimer,
@@ -864,7 +865,7 @@ async function renderRecordingToMP4({
       // After the write rather than before it: the number means „drawn", and a
       // bar that counts frames it has not drawn yet is the same lie as a
       // progress dialog that reaches 100 % and then waits.
-      if (onProgress) onProgress(frame + 1, frames + 1);
+      report(frame + 1);
     }
 
     ffmpeg.stdin.end();
@@ -886,6 +887,7 @@ module.exports = {
   getResolutionParams,
   lookOf,
   recolouredPieces,
+  tenPercentReporter,
   applyEvent,
   initialFrameState
 };

@@ -210,14 +210,22 @@ Future<LessonExportVideoResult> _showProgressWhile({
   required Future<LessonExportVideoResult> render,
 }) async {
   var percent = 0;
+  int? etaSeconds;
   void Function(void Function())? refresh;
   var closed = false;
 
   final poller = Timer.periodic(const Duration(milliseconds: 900), (_) async {
     final at = await api.renderProgress(jobId);
-    if (at != null && at > percent && refresh != null) {
-      refresh!(() => percent = at);
-    }
+    if (at == null || refresh == null) return;
+    // The bar never walks backwards: a poll that answers with an older reading
+    // than the one on screen is a poll that raced, not a render that undid
+    // itself. The estimate does follow the newest reading, because it is
+    // supposed to fall as the render goes.
+    if (at.percent < percent) return;
+    refresh!(() {
+      percent = at.percent;
+      etaSeconds = at.etaSeconds;
+    });
   });
 
   // Not dismissible: cancelling the dialog would not cancel the render, and a
@@ -241,7 +249,9 @@ Future<LessonExportVideoResult> _showProgressWhile({
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                percent <= 0 ? 'Starting…' : '$percent%',
+                percent <= 0
+                    ? 'Starting…'
+                    : '$percent%${remainingText(etaSeconds)}',
                 style: AppText.body.copyWith(color: ctx.colors.textSecondary),
               ),
             ],
@@ -261,6 +271,24 @@ Future<LessonExportVideoResult> _showProgressWhile({
       await dialog;
     }
   }
+}
+
+/// „about a minute left", or nothing at all.
+///
+/// Rounded to something a person reads at a glance, and never precise: the
+/// number comes from the frames drawn so far, and a render that says „37 s" and
+/// takes 50 has been more wrong than one that said „about a minute". Under ten
+/// seconds it stops counting down and says the work is nearly done, because a
+/// last-second countdown is a promise the ffmpeg tail cannot keep.
+String remainingText(int? seconds) {
+  if (seconds == null || seconds <= 0) return '';
+  if (seconds < 10) return ' · almost done';
+  // Rounded first and compared afterwards: 59 s rounds to 60, and „about 60 s
+  // left" is a number nobody writes.
+  final tenSeconds = (seconds / 10).round() * 10;
+  if (tenSeconds < 60) return ' · about $tenSeconds s left';
+  final minutes = (seconds / 60).round();
+  return ' · about $minutes ${minutes == 1 ? 'minute' : 'minutes'} left';
 }
 
 class _NarrationChoice {

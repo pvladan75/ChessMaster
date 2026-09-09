@@ -4797,4 +4797,16 @@ lokalni backend sa `ffmpeg` u putanji.
    geometriju.
 9. [ ] **Kvota.** Posle izvoza, „Moj nalog" prikazuje potrošenu MP4 kvotu; izvoz
    koji padne ne sme da je potroši.
+10. [ ] **Figure su iste kao u aplikaciji.** Uporedi kadar iz videa sa
+    Studijom za tutorijal: isti oblici, ista tabla, ista tema. Do 9.9.2026 su
+    na serveru živela tri kompleta („Alpha", „Staunton" i onaj iz aplikacije),
+    a bojenje po koži je posezalo za pogrešnim — pa je video stizao u
+    figurama koje trener nigde u aplikaciji nije video. Sada postoji jedan
+    komplet i to je onaj iz aplikacije.
+11. [ ] **Traka napretka se pomera u koracima od 10 %** i pored procenta piše
+    procena („about 40 s left", „about 2 minutes left"). Procena pada kako
+    render odmiče, a na kraju kaže „almost done" umesto da broji do nule.
+12. [ ] **Izvoz snimka časa nema više izbor kompleta figura** — u dijalogu su
+    sada četiri stavke (tabla, orijentacija, elementi, rezolucija), a video
+    izlazi u figurama iz aplikacije.
 

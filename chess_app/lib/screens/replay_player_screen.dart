@@ -288,7 +288,6 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   void _showExportMp4Dialog() {
     String selectedPerspective = 'trainer';
     String selectedResolution = '720p';
-    String selectedPieceStyle = 'classic';
     String selectedBoardTheme = 'wood';
     bool showTitle = true;
     bool showTimer = true;
@@ -312,37 +311,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '1. Chess piece style:',
-                  style: AppText.bodyBold.copyWith(color: context.colors.brand),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedPieceStyle,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                        horizontal: 10, vertical: AppSpacing.sm),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'classic',
-                        child: Text('Classic (Same as in app) — Recommended')),
-                    DropdownMenuItem(
-                        value: 'alpha',
-                        child: Text('Alpha / Lichess (Sharp pieces)')),
-                    DropdownMenuItem(
-                        value: 'staunton',
-                        child: Text('Staunton (Traditional)')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() => selectedPieceStyle = val);
-                    }
-                  },
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  '2. Chess board theme:',
+                  '1. Chess board theme:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -372,7 +341,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  '3. Board orientation:',
+                  '2. Board orientation:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -405,7 +374,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const Divider(),
                 Text(
-                  '4. Display elements on screen:',
+                  '3. Display elements on screen:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 CheckboxListTile(
@@ -444,7 +413,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 ),
                 const Divider(),
                 Text(
-                  '5. Resolution and quality:',
+                  '4. Resolution and quality:',
                   style: AppText.bodyBold.copyWith(color: context.colors.brand),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -500,7 +469,6 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                     body: jsonEncode({
                       'perspective': selectedPerspective,
                       'resolution': selectedResolution,
-                      'pieceStyle': selectedPieceStyle,
                       'boardTheme': selectedBoardTheme,
                       'showTitle': showTitle,
                       'showTimer': showTimer,

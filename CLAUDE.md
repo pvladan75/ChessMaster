@@ -937,6 +937,44 @@ build and paints nothing in a release one, so a test that asks only for the
 exception passes the moment the widget tree is disposed differently. Ask whether
 the button is inside the dialog: that is what „unreachable" actually means.
 
+**Measured on `master` on 9.9.2026: 1778 in the app with 1 skipped, and 1036 on
+the backend with `.env` moved aside**, after the video renderer stopped carrying
+pieces the app does not draw. Three sets lived on the server — an „Alpha", a
+„Staunton" and the app's own — named by a `pieceStyle` on the wire and offered
+by a dropdown in the replay export dialog, and **the piece-skin recolouring
+iterated the Staunton one**. So a trainer who had chosen nothing got a film in
+shapes they had never seen, one commit after the export was taught to wear the
+app's colours. Two sets and the wire value are deleted; a skin is colours over
+the one set, which is what the app itself does.
+
+Three things from it are worth carrying.
+
+**A colour substitution must be one pass over the attributes, not a chain.** The
+classic skin fills a black piece `#000000` and outlines it `#000000`; a chain
+that turns the fill into the new colour and then looks for the decoration's
+colour can paint the same attribute twice, and the skin that triggers it is the
+default one. `repaint()` rewrites each `fill=`/`stroke=` at most once.
+
+**Which colour means what is read off `chess_vectors_flutter`'s own
+parameters.** On a white piece the black `fill=` is the knight's eye, which the
+app paints with `strokeColor`; on a black piece a white `stroke=` is an inlay —
+the rook's lines, the king's cross — which it paints with `decorationColor`.
+Guessing from the attribute alone would have painted the eye and the outline the
+same and stopped a knight looking like a knight.
+
+**The test asserts on path data, not on a name.** „`pieceStyle: 'classic'`" was
+true in every request all along; the file it named held a different set. A guard
+that reads the knight's own curve is the one a swapped set cannot pass.
+
+The bar the app draws now moves in ten-point steps and says how long is left —
+both asked for live. The estimate is a rate measured over this render, from its
+own first reading, so a captioned film at 4 fps and a silent one at 1 fps are
+each timed by their own frames; it is null until there are two readings to take
+a rate from, and null again on the last frame, where what is left is ffmpeg
+closing the file. **Null is „no estimate", never zero** — and under ten seconds
+the words stop counting down and say „almost done", because a countdown to zero
+is a promise the frame count cannot keep.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

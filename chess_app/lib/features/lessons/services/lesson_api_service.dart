@@ -394,12 +394,17 @@ class LessonApiService {
     }
   }
 
-  /// How far along a render is, as a percentage, or null when nothing is known.
+  /// How far along a render is, and how long it looks like having left.
   ///
   /// Polled while the export request is still in flight — the render happens
   /// inside that request, and this is a plain read beside it. A failed poll is
   /// not a failed export: it answers null and the bar keeps whatever it had.
-  Future<int?> renderProgress(String jobId) async {
+  ///
+  /// `etaSeconds` is null until the server has two readings to take a rate
+  /// from, and null again on the last frame, when what is left is ffmpeg
+  /// closing the file rather than a number of frames. Null means „no estimate",
+  /// which the screen says nothing about; it does not mean zero.
+  Future<({int percent, int? etaSeconds})?> renderProgress(String jobId) async {
     try {
       final res = await _client
           .get(Uri.parse('$backendUrl/lessons/export-video/$jobId/progress'),
@@ -408,7 +413,11 @@ class LessonApiService {
       if (res.statusCode != 200) return null;
       final body = jsonDecode(res.body);
       if (body is Map && body['percent'] is num) {
-        return (body['percent'] as num).round();
+        final eta = body['etaSeconds'];
+        return (
+          percent: (body['percent'] as num).round(),
+          etaSeconds: eta is num ? eta.round() : null,
+        );
       }
       return null;
     } catch (_) {
@@ -459,13 +468,13 @@ class LessonApiService {
     required int seconds,
     String? title,
     String resolution = '720p',
-    String pieceStyle = 'classic',
     String boardTheme = 'wood',
 
     /// The app's own colours, so the film matches the screen the tutorial was
     /// written on. Absent means the renderer's own defaults, which is what the
     /// recorded-lesson export sends.
     Map<String, String>? look,
+
     /// A name the client gives its own render so it can watch it. See
     /// [renderProgress].
     String? jobId,
@@ -482,7 +491,6 @@ class LessonApiService {
               'seconds': seconds,
               if (title != null) 'title': title,
               'resolution': resolution,
-              'pieceStyle': pieceStyle,
               'boardTheme': boardTheme,
               if (look != null) 'look': look,
               if (jobId != null) 'jobId': jobId,

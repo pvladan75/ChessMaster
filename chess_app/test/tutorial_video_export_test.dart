@@ -22,6 +22,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
@@ -75,6 +76,7 @@ class _TestLessonApi extends LessonApiService {
     bool ttsAvailable = false,
     List<Map<String, dynamic>>? ttsVoices,
     int? progressPercent,
+    int? progressEtaSeconds,
   }) {
     final effectiveRows = rows ?? [_normalTutorialRow, _emptyTutorialRow];
     final client = MockClient((req) async {
@@ -98,7 +100,11 @@ class _TestLessonApi extends LessonApiService {
       }
       if (req.method == 'GET' && req.url.path.contains('/progress')) {
         return http.Response(
-          jsonEncode({'percent': progressPercent ?? 0, 'done': false}),
+          jsonEncode({
+            'percent': progressPercent ?? 0,
+            'done': false,
+            'etaSeconds': progressEtaSeconds,
+          }),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
@@ -600,6 +606,7 @@ void main() {
       ttsAvailable: false,
       onExportVideo: () => completer.future,
       progressPercent: 42,
+      progressEtaSeconds: 95,
     );
 
     await openList(tester, api: api);
@@ -616,10 +623,35 @@ void main() {
     expect(body['jobId'], isNotNull,
         reason: 'the client names its own render so it can watch it');
 
+    // The bar is refreshed from a poll, which the server answers every ten per
+    // cent with an estimate of what is left. „Nek šalje na svakih 10 procenata
+    // osvežavanje i procenu vremena završetka".
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(find.text('42% · about 2 minutes left'), findsOneWidget);
+
     completer.complete();
     await tester.pumpAndSettle();
     expect(find.text('Exporting video'), findsNothing,
         reason: 'the bar closes itself when the render answers');
     expect(find.text('Video ready!'), findsOneWidget);
+  });
+
+  test('the time left is said in words a person reads at a glance', () {
+    // The number comes from the frames drawn so far, so a render that says
+    // „37 s" and takes fifty has been more wrong than one that said „about a
+    // minute". Under ten seconds it stops counting down: the last of the work
+    // is ffmpeg closing the file, which the frame count knows nothing about.
+    expect(remainingText(null), '');
+    expect(remainingText(0), '');
+    expect(remainingText(-4), '');
+    expect(remainingText(3), ' · almost done');
+    expect(remainingText(9), ' · almost done');
+    expect(remainingText(12), ' · about 10 s left');
+    expect(remainingText(38), ' · about 40 s left');
+    expect(remainingText(59), ' · about 1 minute left');
+    expect(remainingText(60), ' · about 1 minute left');
+    expect(remainingText(95), ' · about 2 minutes left');
+    expect(remainingText(600), ' · about 10 minutes left');
   });
 }

@@ -53,7 +53,6 @@ async function run({
     seconds: 4,
     title: 'Slaba polja u centru',
     resolution: '720p',
-    pieceStyle: 'classic',
     boardTheme: 'wood',
   },
   userId = 4,

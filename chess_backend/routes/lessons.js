@@ -337,7 +337,6 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       seconds,
       title,
       resolution,
-      pieceStyle,
       boardTheme,
       // The app's own colours: board skin, piece skin and the light or dark
       // theme the trainer is actually looking at. Validated in the renderer,
@@ -361,7 +360,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     const duration = Math.min(seconds, 3600);
     const job = renderProgress.jobIdFrom(jobId);
 
-    const filename = `tutorial_${lessonId}_${pieceStyle || 'classic'}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
+    const filename = `tutorial_${lessonId}_${boardTheme || 'wood'}_${resolution || '720p'}_${Date.now()}.mp4`;
     const exportsDir = path.join(__dirname, '..', 'exports');
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });
@@ -392,7 +391,6 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         durationSeconds: renderDuration,
         perspective: 'trainer',
         resolution: resolution || '720p',
-        pieceStyle: pieceStyle || 'classic',
         boardTheme: boardTheme || 'wood',
         showTitle: true,
         showTimer: true,
