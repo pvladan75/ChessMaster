@@ -43,8 +43,11 @@ apt-get -y install \
 log "Piper (tutorial narration)"
 # The voice that reads a tutorial's sentences over its video. Self-hosted on
 # purpose: Google Cloud does not accept an individual payments profile in
-# Serbia, and this needs no account, no card and no per-character bill - and it
-# is the only engine with a Serbian voice, which is what the trainers write in.
+# Serbia, and this needs no account, no card and no per-character bill.
+#
+# Its English is good. Its Serbian was tried on 9.9.2026 and dropped by the
+# owner - „veoma lose, skoro kao da cita srpski tekst engleskim modelom" - so
+# the languages here are the ones the material will actually be written in.
 #
 # A virtualenv rather than --break-system-packages: Ubuntu marks its Python
 # externally managed, and a pip install into the system interpreter is the kind
@@ -54,9 +57,18 @@ log "Piper (tutorial narration)"
 # model already on disk is not downloaded again.
 PIPER_HOME="/opt/piper"
 PIPER_VOICES="${PIPER_HOME}/voices"
-# One English voice and one Serbian, about 140 MB together. More can be added
-# with the same command later; the backend offers whatever is in the directory.
-PIPER_VOICE_NAMES=(en_US-lessac-medium sr_RS-serbski_institut-medium)
+# Two English and one each of German, Spanish, Italian and French: about 380 MB
+# together, and every one of them a `medium` model, which is the quality the
+# owner judged good. More can be added with the same command later; the backend
+# offers whatever is in the directory and the app groups it by language.
+PIPER_VOICE_NAMES=(
+  en_US-lessac-medium
+  en_GB-alan-medium
+  de_DE-thorsten-medium
+  es_ES-davefx-medium
+  it_IT-serena-medium
+  fr_FR-siwis-medium
+)
 
 if [[ ! -x "${PIPER_HOME}/bin/piper" ]]; then
   python3 -m venv "${PIPER_HOME}"

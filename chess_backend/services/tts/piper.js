@@ -12,11 +12,14 @@
 // profile, no per-character bill, and nothing leaves the machine. It runs on the
 // droplet's CPU at about real time.
 //
-// **And it is the only engine in the comparison with a Serbian voice.** Read
-// out of its own catalogue rather than remembered: 176 voices, 57 languages,
-// `sr_RS-serbski_institut-medium` present — and no Croatian at all, which is the
-// exact inverse of Google. So Serbian text is read in Serbian here, rather than
-// by a Croatian voice standing in for it.
+// **176 voices across 57 languages**, read out of its own catalogue rather than
+// remembered. It was chosen partly because it was the only engine here with a
+// Serbian voice — and that voice was tried on 9.9.2026 and rejected by the
+// owner, who described it as reading Serbian with an English model. So the
+// installed set is English, German, Spanish, Italian and French, whose models
+// are good, and Serbian is not offered at all rather than offered badly. The
+// engine's own reason for being here stands without it: no account, no card, no
+// bill, and nothing leaves the machine.
 //
 // **Licence.** The maintained distribution (`OHF-Voice/piper1-gpl`, installed
 // with `pip install piper-tts`) is GPL-3.0. This server calls it as a separate
