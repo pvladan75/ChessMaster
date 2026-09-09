@@ -140,7 +140,7 @@ chunk and inside the jitter, so the client does not have to correct for it.
 |---|---|---|
 | `startStream` returns after | 604 ms | 53 ms |
 | first sample after that | 146 ms | 615 ms |
-| **warm-up, from asking to audio** | **750 ms** | **668 ms** |
+| **warm-up, from asking to audio** | **750 ms** | **668 ms, then 100 ms** |
 | byte clock vs wall clock, running | −36…−67 ms | −15…−44 ms |
 | bytes arriving after `pause()` | 2560 (one chunk, 80 ms) | 0 |
 | wall vs byte clock after a 3 s pause | +2.6 s, constant | +3.1 s, constant |
@@ -149,6 +149,17 @@ chunk and inside the jitter, so the client does not have to correct for it.
 
 Both targets agree with `ffprobe` to the millisecond. **The design is proved on
 both.**
+
+**The warm-up is not a constant**, which is the part that matters. Windows
+measured 668 ms on one run and 100 ms on the next — same machine, same code,
+minutes apart. So it cannot be corrected for with a fixed offset the way a
+known latency could be; the only reading that is right on every run is the one
+taken from the audio itself.
+
+Re-run once the microphone was unmuted: 12008 ms on the byte clock,
+`12.008063 s` from `ffprobe`, and **mean −46.2 dB with a −22.3 dB peak** —
+speech, at last, on the machine that had produced a flawless clock over
+nothing.
 
 One snag on the way, worth writing down because it will happen to the next
 person: the first build after the toolchain change failed with `generator :
