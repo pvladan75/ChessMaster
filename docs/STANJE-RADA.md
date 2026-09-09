@@ -15,7 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **8.9.2026** — vidi odeljak „ODAKLE SUTRA" odmah ispod.
+Poslednje ažuriranje: **9.9.2026** — prekid renderovanja kad klijent ode
+(odeljak „Render koji je klijent napustio se prekida"). Pre toga: „ODAKLE
+SUTRA — 8.9.2026" odmah ispod.
 
 Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
@@ -334,6 +336,101 @@ Ostaje **provera uživo** — stavka 133 u `docs/TODO-provera.md`.
 * Nove stavke provere uživo: **123–133** u `docs/TODO-provera.md`. Stavka 132
   je najveća: 71 fajl prevedenog servera nije viđen na ekranu ni jednom.
   Stavka 133 je video tutorijala — renderovanje je dokazano, dugme nije.
+
+---
+
+## Render koji je klijent napustio se prekida — 9.9.2026
+
+**Nalaz je izmeren, ne pretpostavljen.** Za brzo pravljenje velikih tutorijala
+napravljen je set fixtura (`mislisha-test/render-fixtures`, u QA folderu van
+gita) i format za LLM (`docs/PGN-TUTORIAL-FORMAT.md`). Sa njima su ispaljena
+četiri istovremena renderovanja na lokalni backend, pa jedno preveliko sa
+klijentskim tajmautom od 300 s — koliko nginx daje proksiranom zahtevu na
+dropletu (`deploy/app-setup.sh`).
+
+Red je odradio svoje: četvrti zahtev je odbijen za **0,9 s**, pre ijednog
+nacrtanog frejma, a tri koja su stala u red su završila na 16,0 / 31,4 / 52,1 s.
+Ali film od 36 minuta je pokazao rupu: klijent je odustao na 300,1 s, a **server
+je nastavio da crta**, napisao MP4 od 14,4 MB čiji je link za preuzimanje bio u
+odgovoru koji niko nije primio — i, što je gore, **držao jedini slot za
+renderovanje do kraja tog filma**. Svaki drugi trener u tom prozoru čekao je iza
+filma koji niko neće pokupiti, ili je dobijao 429.
+
+To je tačno ona rečenica zbog koje `services/renderQueue.js` i postoji.
+`RENDER_QUEUE_MAX` ograničava **red**; ne kaže ništa o jednom renderu koji
+nadživi svoju vezu. Nigde u lancu nije bilo obrade prekinute veze — ni
+`routes/lessons.js`, ni `renderQueue.js`, ni `videoRenderer.js`.
+
+### Rešenje
+
+`services/renderAbort.js`, jedan `AbortSignal` provučen kroz ceo lanac:
+
+* `abortOnDisconnect(res)` sluša `res.on('close')` i pali signal **samo ako
+  `writableFinished` nije tačno**. To je cela ispravnost tog mesta: i uspešan
+  odgovor emituje `close`, pa bi slušalac bez tog pitanja gasio svaki render u
+  trenutku kad uspe — bezopasno danas samo zato što tada ništa više ne radi.
+* `videoRenderer` proverava signal na vrhu frejm-petlje (koja ionako popušta
+  event loop jednom po frejmu), ubija ffmpeg sa **SIGKILL** i briše polufajl.
+  SIGTERM ne valja: ffmpeg zamoljen lepo dovrši fajl koji ovo baš i sprečava.
+* Narracija je unutar reda zajedno sa crtanjem, pa i ona mora da stane:
+  `narrateFilm` → `tts.speakBeats` → `piper.run` ubija piper proces, a
+  `narrationTrack` svoj ffmpeg; polu-napisan `.wav` u `exports/` se briše.
+  `speakBeats` je do sada gutao svaku grešku sinteze (film bez glasa je i dalje
+  film) — **prekid je jedini izuzetak**, jer bi inače nastavio da crta ceo nemi
+  film za klijenta koga nema.
+* Ruta ne šalje odgovor (socket je zatvoren), **ne knjiži potrošnju** i vraća
+  slot. Trener nije dobio film, pa ništa nije ni naplaćeno.
+
+Živa provera, pravi socket i pravi ffmpeg (`render-fixtures/abort-live-check.js`):
+klijent prekida na 3,0 s, server javlja prekid na 3,5 s, fajl obrisan, red na
+`{running: 0, waiting: 0}`, **sledeći posao krenuo za 0,00 s**.
+
+### Šta su testovi pokazali, a šta nisu
+
+`test/render_abort.test.js`, 11 testova, ffmpeg lažiran kao u
+`render_yields.test.js`. **Backend suite: 1069, sve zelene**, sa `.env` sklonjen
+u stranu (1058 pre ovoga). Aplikacija nije dirana.
+
+Devet mutacija je uhvaćeno; dve su preživele i obe su nešto naučile.
+
+**Dve provere u istoj petlji ne mogu da se dokažu.** Brisanje provere na vrhu
+petlje ostavljalo je suite zelenim — jer je druga, pred samim upisom frejma,
+zaustavljala render, i obrnuto. Ostala je **jedna** provera, koja sada pada na
+mutaciju („5 frejmova u trenutku odbijanja, 12 sada"); cena je jedan frejm
+viška kad prekid stigne usred crtanja. Provera koju nijedna mutacija ne može da
+dosegne je provera za koju niko ne zna da radi.
+
+**Prva verzija testa nije umela da vidi da petlja i dalje crta.** Brojala je
+frejmove u trenutku odbijanja obećanja — a između `kill` i odbijanja prođu dva
+turnusa, pa je i petlja koja prekid potpuno ignoriše tada tek nekoliko frejmova
+dalje. Sada se broji dvaput, sa pauzom između.
+
+**Test koji visi umesto da padne.** Mutacija „`killOnAbort` ne ubija" je
+zaglavila ceo suite na 300 s bez ijedne poruke. Svako pitanje u ovom fajlu je o
+tome da nešto **stane**, a to se kvari tako što se obećanje nikad ne razreši —
+zato sada sve ide kroz `withDeadline`.
+
+**Jedna zaštita nije dokazana i to je zapisano u kodu.** `ffmpeg.stdin.on
+('error', …)` hvata EPIPE koji pravi ffmpeg digne kad se u njegov stdin upiše
+posle `kill` — a `error` na streamu bez slušaoca ruši ceo proces. Lažni ffmpeg
+ne ume da pukne kao pravi, pa mutacija koja tu liniju obriše prolazi. Ostaje,
+jer je rizik nesimetričan: nedosežna zaštita košta jedan red, njeno odsustvo
+košta proces. Živa provera je prošla bez pada.
+
+**Dve postojeće fixture su proširene, tvrdnje nisu dirane.**
+`render_yields.test.js` je imao lažni `stdin` bez `on`, a
+`tutorial_video_export.test.js` lažni `res` bez `on`/`off` — prvi je visio 60 s,
+drugi je vraćao 500 na svaku tvrdnju. Obe su dobile ono što pravi objekat
+oduvek ima. („Prolazi bez izmene" je i dalje pogrešna formulacija: tvrdnje su
+nepromenjene, fixture su se pomerile.)
+
+### Ostaje
+
+* **Prekid nad TTS lancem nije proveren od kraja do kraja** — traži instaliran
+  piper; pokriven je konstrukcijom (`killOnAbort` + `throwIfAborted`), ne
+  testom.
+* Stavka **134** u `docs/TODO-provera.md` — živa provera na dropletu, gde je
+  nginx taj koji zatvara vezu.
 
 ---
 

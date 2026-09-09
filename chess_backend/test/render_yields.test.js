@@ -33,6 +33,13 @@ child.spawn = () => {
       proc.stdin.frames += 1;
       return true;
     },
+    // A real stdin is a stream, and since the abort landed (9.9.2026) the
+    // renderer listens on it for the EPIPE a killed ffmpeg raises. A fake
+    // without this throws inside the promise executor, where the throw is
+    // swallowed — so the render never settles and this file hangs for as long
+    // as the runner allows rather than failing. **The assertions below are
+    // unchanged**; only the fixture grew a method the real object always had.
+    on() {},
     // ffmpeg answers when its input closes; a real one takes far longer, and
     // the point here is only that the render's own loop has finished.
     end() {

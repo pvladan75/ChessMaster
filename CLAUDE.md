@@ -1111,6 +1111,27 @@ built a new one, and the queue never drained — the file timed out at fifteen
 seconds a test, in tests that had nothing to do with queues. One gate that every
 filler awaits, rather than a hold made inside each task.
 
+**Eleven more on the backend on 9.9.2026 — 1069 with `.env` moved aside** — and
+they are about a render stopping. A client that hit the 300 s ceiling went away
+and the server drew for minutes more, wrote a 14 MB MP4 whose download link was
+in the response nobody received, and **held the one render slot** for the rest
+of that film, so every other trainer queued behind it or got a 429.
+`RENDER_QUEUE_MAX` bounds the queue and says nothing about one render outliving
+its own connection. `services/renderAbort.js` is one `AbortSignal` from
+`res.on('close')` down to piper and ffmpeg, both killed with SIGKILL.
+
+Three things from it. **`writableFinished` is the whole correctness of that
+listener** — a successful response also emits `close`, so without that question
+every render would be cancelled at the moment it succeeded. **Two checks in one
+loop cannot be proved**: deleting either left the other stopping the render, so
+one was deleted and the survivor now fails on mutation. And **a test that hangs
+is worse than one that fails** — the mutation „`killOnAbort` does not kill" took
+the whole suite to a 300 s stall with no message, which is why every question in
+`render_abort.test.js` goes through a deadline. The one guard that stays
+unproved is `ffmpeg.stdin.on('error')`: a faked pipe cannot break the way a real
+one does, and the line stays because an unhandled stream error takes the process
+down. It says so in the code.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

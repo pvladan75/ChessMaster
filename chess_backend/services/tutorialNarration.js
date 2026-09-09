@@ -21,6 +21,7 @@ const tts = require('./tts');
 const { narrationPlan, retimeEvents } = require('./narrationPlan');
 const { spokenMoves } = require('./spokenMoves');
 const { buildNarrationTrack } = require('./narrationTrack');
+const { throwIfAborted } = require('./renderAbort');
 
 /**
  * Narrate a film.
@@ -40,7 +41,12 @@ const { buildNarrationTrack } = require('./narrationTrack');
  * machine, the log said so, and the app said „Video ready!". The value is a
  * word rather than a sentence, so the copy stays with the route that answers.
  */
-async function narrateFilm({ events, voice, exportsDir, filename }) {
+async function narrateFilm({ events, voice, exportsDir, filename, signal = null }) {
+  // Narration is inside the render queue with the drawing, so a client that has
+  // already gone must not be synthesised for either — a twenty-five beat
+  // tutorial is a minute of piper holding the one slot.
+  throwIfAborted(signal);
+
   if (!tts.narrationAvailable()) {
     return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: 'unavailable' };
   }
@@ -57,8 +63,12 @@ async function narrateFilm({ events, voice, exportsDir, filename }) {
   // thing the voice id already tells us.
   const clips = await tts.speakBeats(
     captions.map((text) => spokenMoves(text, voice)),
-    { voice },
+    { voice, signal },
   );
+  // Between the two long phases. Synthesis of a whole tutorial is the longest
+  // stretch of a narrated export, and the track that follows it is written into
+  // `exports/`.
+  throwIfAborted(signal);
   const spokenBeats = clips.filter((c) => c.clipSeconds).length;
   if (spokenBeats === 0) {
     logger.warn('[TTS] narration was asked for and every beat came back silent');
@@ -70,7 +80,13 @@ async function narrateFilm({ events, voice, exportsDir, filename }) {
     segments: plan.segments,
     clips,
     outputPath: path.join(exportsDir, `${filename}.wav`),
+    signal,
   });
+  // `buildNarrationTrack` returns null for a track its ffmpeg did not finish,
+  // and a killed ffmpeg is exactly that — but „no track" and „no client" are
+  // different answers, and only one of them should be reported as a silent
+  // film. Asked after the call so the partial file is already gone.
+  throwIfAborted(signal);
 
   if (!audioPath) {
     // The clips exist and the track does not. Falling back to the app's timings

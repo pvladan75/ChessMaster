@@ -14,6 +14,7 @@ const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps')
 const tts = require('../services/tts');
 const renderProgress = require('../services/renderProgress');
 const renderQueue = require('../services/renderQueue');
+const { RenderAborted, abortOnDisconnect, throwIfAborted } = require('../services/renderAbort');
 const tutorialNarration = require('../services/tutorialNarration');
 
 /// Runs a submitted step list through the one builder, or answers the caller.
@@ -401,6 +402,12 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     let audioFilePath = null;
     let narrationAudioPath = null;
     let queueFull = false;
+    // The client gave up — the 300 s nginx ceiling, the app's five-minute
+    // timeout, a closed laptop. Watched on 9.9.2026: the server drew for
+    // minutes more and held the one render slot the whole time, so everyone
+    // else queued behind a film that could never be collected.
+    let abandoned = false;
+    const disconnect = abortOnDisconnect(res);
     // Null unless a voice was asked for and none was heard. See `narrateFilm`:
     // a silent film that was supposed to speak must not come back wearing the
     // same „Video ready!" as one that spoke.
@@ -412,8 +419,14 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     // queue with the drawing, because synthesis is the same machine doing the
     // same kind of work.
     await renderQueue.run(job || filename, async () => {
+      // Its turn came and there is nobody to give it to. Checked before any
+      // work so the slot passes straight to the next trainer.
+      throwIfAborted(disconnect.signal);
+
       if (narrate === true) {
-        const narrated = await tutorialNarration.narrateFilm({ events, voice, exportsDir, filename });
+        const narrated = await tutorialNarration.narrateFilm({
+          events, voice, exportsDir, filename, signal: disconnect.signal,
+        });
         if (narrated) {
           if (narrated.events) renderEvents = narrated.events;
           if (narrated.seconds != null) renderDuration = Math.min(narrated.seconds, 3600);
@@ -438,6 +451,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           showMoveText: false,
         look,
         onProgress: (drawn, total) => renderProgress.report(job, drawn, total),
+          signal: disconnect.signal,
           outputPath: exportPath,
         });
       } finally {
@@ -456,8 +470,22 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         queueFull = true;
         return;
       }
+      if (err instanceof RenderAborted) {
+        abandoned = true;
+        return;
+      }
       throw err;
-    });
+    }).finally(() => disconnect.dispose());
+
+    if (abandoned) {
+      // No response: the socket this would be written to is already closed, and
+      // an answer nobody can read is not worth pretending about. Nothing is
+      // metered either — the trainer got no film, so they are charged for none,
+      // and the partial file was removed by whichever stage was interrupted.
+      renderProgress.finish(job, { ok: false });
+      logger.info({ job }, '[RENDER] abandoned: client gone, drawing stopped, slot released');
+      return;
+    }
 
     if (queueFull) {
       // Refused before any work was done, so nothing is metered and no file was

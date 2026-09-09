@@ -110,6 +110,15 @@ async function run({
   const res = {
     statusCode: 200,
     body: null,
+    // Since the abort landed (9.9.2026) the export route watches the response
+    // for the client hanging up — `services/renderAbort.js`. A fake with no
+    // listeners throws inside the handler, and every assertion in this file
+    // then reads 500 instead of what it is about. **The assertions are
+    // unchanged**; the fixture grew two methods a real `ServerResponse` has
+    // always had.
+    writableFinished: false,
+    on() { return this; },
+    off() { return this; },
     status(code) {
       this.statusCode = code;
       return this;

@@ -30,6 +30,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const { RenderAborted, killOnAbort } = require('../renderAbort');
 
 const logger = require('../logger');
 
@@ -149,8 +150,8 @@ function publish(from, to) {
   }
 }
 
-async function synthesize({ text, voice, outputPath }) {
-  await run(modelPathFor(voice), [text], (files) => assignOutputs(files, [{ outputPath }]));
+async function synthesize({ text, voice, outputPath, signal = null }) {
+  await run(modelPathFor(voice), [text], (files) => assignOutputs(files, [{ outputPath }]), signal);
   return outputPath;
 }
 
@@ -170,29 +171,43 @@ async function synthesize({ text, voice, outputPath }) {
  * beat's sentence on another beat's board is exactly the silent fault this
  * project keeps finding.
  */
-async function synthesizeBatch({ jobs, voice }) {
+async function synthesizeBatch({ jobs, voice, signal = null }) {
   if (jobs.length === 0) return;
-  await run(modelPathFor(voice), jobs.map((job) => job.text), (files) => assignOutputs(files, jobs));
+  await run(modelPathFor(voice), jobs.map((job) => job.text), (files) => assignOutputs(files, jobs), signal);
 }
 
 /// One piper process, its output collected from a directory of its own.
-function run(model, texts, collect) {
+///
+/// [signal] is the export's own: a client that has gone must not leave a
+/// 61 MB model being read for a film nobody will watch. The killed process
+/// closes with a non-zero code, and its temp directory is removed by the same
+/// `cleanup` that runs for every other exit.
+function run(model, texts, collect, signal = null) {
   return new Promise((resolve, reject) => {
+    if (signal && signal.aborted) return reject(new RenderAborted());
+
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'piper-'));
     const proc = spawn(
       python(),
       ['-m', 'piper', '-m', model, '-d', dir, '--output-dir-naming', 'timestamp'],
       { timeout: TIMEOUT_MS },
     );
+    const stopKilling = killOnAbort(proc, signal);
 
     let stderr = '';
     proc.stderr.on('data', (d) => { stderr += d.toString(); });
     proc.on('error', (err) => {
+      stopKilling();
       cleanup(dir);
       reject(err);
     });
     proc.on('close', (code) => {
+      stopKilling();
       try {
+        // Killed rather than failed, and the caller must be able to tell:
+        // a synthesiser that fell over gives a silent film, a client that
+        // left gives no film at all.
+        if (signal && signal.aborted) throw new RenderAborted();
         if (code !== 0) throw new Error(`piper exited ${code}: ${stderr.slice(-300)}`);
         // Timestamps of equal length, so lexicographic order is the order they
         // were written, which is the order the sentences were fed in.

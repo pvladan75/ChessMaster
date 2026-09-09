@@ -4835,3 +4835,35 @@ lokalni backend sa `ffmpeg` u putanji.
     „Bd5" kao *boulevard cinq*, a „+" kao „plus". **Natpis na ekranu ostaje
     „Bd5"** — menja se samo ono što se izgovara.
 
+
+## 134. Napušten render se prekida — 9.9.2026, nije viđeno uživo na dropletu
+
+Do 9.9.2026 je render koji je klijent napustio nastavljao da crta do kraja i
+**držao jedini slot** — mereno lokalno: klijent je odustao na 300 s, film od 36
+minuta je dovršen, a MP4 od 14,4 MB je ostao u `exports/` sa linkom koji niko
+nije dobio. Zbog toga su drugi treneri u tom prozoru čekali iza filma koji niko
+neće pokupiti, ili dobijali 429. Rešenje je opisano u `docs/STANJE-RADA.md`,
+odeljak „Render koji je klijent napustio se prekida".
+
+Lokalno je provereno pravim socketom i pravim ffmpeg-om
+(`mislisha-test/render-fixtures/abort-live-check.js`): prekid na 3,0 s, server
+stao na 3,5 s, fajl obrisan, sledeći posao krenuo za 0,00 s. **Na dropletu vezu
+zatvara nginx, a ne klijent, i to nije isto** — zato ova stavka.
+
+1. [ ] **Zatvori aplikaciju usred izvoza.** Pokreni izvoz dugog tutorijala i
+   ubij aplikaciju (ili isključi mrežu) dok traka stoji na pola. U logu servera
+   mora da se pojavi `[RENDER] abandoned: client gone, drawing stopped, slot
+   released`, i to **u roku od nekoliko sekundi**, ne na kraju filma.
+2. [ ] **Nijedan fajl ne ostaje.** Posle toga u `chess_backend/exports/` ne sme
+   da bude novog MP4 za taj tutorijal, ni polovičnog `.wav` iz naracije.
+3. [ ] **Sledeći trener odmah dolazi na red.** Dok prvi izvoz još „traje", sa
+   drugog naloga pokreni svoj — čim prvi klijent ode, drugi mora da krene, a ne
+   da čeka do kraja napuštenog filma.
+4. [ ] **Kvota nije potrošena.** Napušteni izvoz se **ne knjiži** — proveri da
+   broj renderovanja na nalogu nije porastao.
+5. [ ] **Nginx tajmaut, ne samo zatvoren laptop.** Isto ponovi tako što pustiš
+   izvoz duži od 300 s na dropletu: vezu zatvara nginx, server mora da stane
+   isto kao gore. Ovo je jedini deo koji lokalno ne može da se proveri.
+6. [ ] **Naracija.** Sa instaliranim piperom prekini vezu **dok traje sinteza**
+   (pre nego što traka krene) — piper proces mora da nestane. To je jedini deo
+   prekida koji nije pokriven testom, nego samo konstrukcijom.

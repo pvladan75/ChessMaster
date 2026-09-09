@@ -3,6 +3,20 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { classicPieceSvgs } = require('./pieceThemes');
+const { RenderAborted, killOnAbort } = require('./services/renderAbort');
+
+/// Removes a file ffmpeg was part way through writing.
+///
+/// Quiet about a file that is not there: ffmpeg killed before it opened the
+/// output leaves nothing behind, and that is the same success as removing it.
+function removePartial(outputPath) {
+  try {
+    if (outputPath && fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+  } catch {
+    // A file the process cannot delete is a file left in `exports/`, where the
+    // retention timer will take it. Not worth failing an abort over.
+  }
+}
 
 /// The app's own look, sent with an export so the film matches the screen the
 /// tutorial was written on.
@@ -755,9 +769,18 @@ async function renderRecordingToMP4({
   look = null,
   /// Called with (drawn, total) after every frame, for whoever is waiting.
   onProgress = null,
+  /// Fires when the client that asked for this film has gone. See
+  /// `services/renderAbort.js`: the drawing stops, ffmpeg is killed, the
+  /// half-written file is removed, and the queue slot goes to the next trainer
+  /// instead of being held for a film nobody will collect.
+  signal = null,
   outputPath
 }) {
   return new Promise(async (resolve, reject) => {
+    // Before anything is spawned or preloaded. A render that waited its turn
+    // behind two others is the one whose client is likeliest to have given up.
+    if (signal && signal.aborted) return reject(new RenderAborted());
+
     const totalDuration = Math.max(3, Math.min(3600, Math.ceil(durationSeconds || 10)));
     const events = Array.isArray(timelineEvents) ? timelineEvents : [];
 
@@ -773,11 +796,41 @@ async function renderRecordingToMP4({
       inputFps: captionBandLines(events, { resolution }) > 0 ? CAPTION_FPS : 1,
     }));
 
+    // **Killed, not asked.** ffmpeg told to stop politely finishes writing the
+    // file it was given, which is the file this exists not to leave behind.
+    const stopKilling = killOnAbort(ffmpeg, signal);
+    let aborted = false;
+    const onAbort = () => { aborted = true; };
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+
     ffmpeg.stderr.on('data', (data) => {
       // Quiet stderr
     });
 
+    // A killed ffmpeg closes its stdin under the loop, and the write that lands
+    // in the gap — the abort arrives while `renderFrameBuffer` is awaiting, and
+    // the next statement is a write — raises EPIPE on a stream. An `error` on a
+    // stream with no listener is an uncaught exception, which takes the whole
+    // server down, so this one line is the difference between an abandoned
+    // render and a crash.
+    //
+    // **Not proved by mutation, and that is stated rather than hidden.**
+    // `render_abort.test.js` fakes ffmpeg, and a fake pipe cannot break the way
+    // a real one does; removing this line leaves the suite green. It stays
+    // because the risk is asymmetric — an unreachable guard costs a line, and
+    // its absence costs the process.
+    ffmpeg.stdin.on('error', () => {});
+
     ffmpeg.on('close', (code) => {
+      stopKilling();
+      if (signal) signal.removeEventListener('abort', onAbort);
+      if (aborted) {
+        // Half a film is not a film. Removed here rather than by the caller,
+        // because this is the only place that knows ffmpeg has let go of it.
+        removePartial(outputPath);
+        console.log('[VIDEO_RENDER] Aborted: the client is gone, partial file removed');
+        return reject(new RenderAborted());
+      }
       if (code === 0) {
         console.log(`[VIDEO_RENDER] Success! Custom MP4 saved to ${outputPath}`);
         resolve(outputPath);
@@ -787,6 +840,12 @@ async function renderRecordingToMP4({
     });
 
     ffmpeg.on('error', (err) => {
+      stopKilling();
+      if (signal) signal.removeEventListener('abort', onAbort);
+      if (aborted) {
+        removePartial(outputPath);
+        return reject(new RenderAborted());
+      }
       reject(err);
     });
 
@@ -816,6 +875,11 @@ async function renderRecordingToMP4({
     let captionSpokenMs = 0;
 
     for (let frame = 0; frame <= frames; frame++) {
+      // The client left while the previous frame was being drawn. Stop here:
+      // ffmpeg has already been killed by `killOnAbort`, and its `close`
+      // handler removes the file and settles this promise.
+      if (aborted) return;
+
       const currentMs = Math.round((frame * 1000) / fps);
       const sec = Math.floor(currentMs / 1000);
 
@@ -861,6 +925,13 @@ async function renderRecordingToMP4({
         look
       });
 
+      // Written even when the abort landed inside `renderFrameBuffer` above:
+      // ffmpeg is already dead by then and this is the EPIPE the `stdin` error
+      // handler swallows. **A second guard here was deleted rather than kept**
+      // — with two checks in the loop neither one could be proved, because
+      // removing either left the other stopping the render, and a check no
+      // mutation can reach is a check nobody knows is working. One check, at
+      // the top of the loop, one frame of overshoot.
       ffmpeg.stdin.write(frameBuf);
       // After the write rather than before it: the number means „drawn", and a
       // bar that counts frames it has not drawn yet is the same lie as a

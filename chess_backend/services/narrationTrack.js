@@ -17,6 +17,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const logger = require('./logger');
+const { killOnAbort } = require('./renderAbort');
 
 /// The sample rate and shape every segment is normalised to.
 ///
@@ -35,7 +36,7 @@ const CHANNELS = 1;
  * when there is nothing to say at all — a film with no narration keeps the
  * silent track the renderer already generates for itself.
  */
-async function buildNarrationTrack({ segments, clips, outputPath }) {
+async function buildNarrationTrack({ segments, clips, outputPath, signal = null }) {
   const spoken = segments.filter((s) => s.kind === 'clip' && clips[s.index]?.path);
   if (spoken.length === 0) return null;
 
@@ -60,7 +61,7 @@ async function buildNarrationTrack({ segments, clips, outputPath }) {
       const key = segment.seconds.toFixed(3);
       if (!silences.has(key)) {
         const file = path.join(os.tmpdir(), `silence_${key.replace('.', '_')}_${process.pid}.wav`);
-        await makeSilence(file, segment.seconds);
+        await makeSilence(file, segment.seconds, signal);
         silences.set(key, file);
       }
       lines.push(`file '${silences.get(key).replace(/\\/g, '/')}'`);
@@ -76,13 +77,17 @@ async function buildNarrationTrack({ segments, clips, outputPath }) {
       '-ar', String(RATE),
       '-ac', String(CHANNELS),
       outputPath,
-    ]);
+    ], signal);
     return outputPath;
   } catch (err) {
     // A film without its voice is still a film. This is the one place where
     // failing loudly would be worse than carrying on: the pictures are already
     // drawn by the time anything here runs.
     logger.error({ err: err.message }, '[TTS] narration track could not be built');
+    // A killed ffmpeg leaves a part of a wav in `exports/`, which is not a
+    // track and is not cleaned by anything else — `narrateFilm` never learns
+    // its name, because this returned null.
+    if (signal && signal.aborted) safeUnlink(outputPath);
     return null;
   } finally {
     safeUnlink(listFile);
@@ -90,23 +95,26 @@ async function buildNarrationTrack({ segments, clips, outputPath }) {
   }
 }
 
-function makeSilence(file, seconds) {
+function makeSilence(file, seconds, signal = null) {
   return ffmpeg([
     '-y',
     '-f', 'lavfi',
     '-i', `anullsrc=r=${RATE}:cl=mono`,
     '-t', seconds.toFixed(3),
     file,
-  ]);
+  ], signal);
 }
 
-function ffmpeg(args) {
+function ffmpeg(args, signal = null) {
   return new Promise((resolve, reject) => {
     const proc = spawn('ffmpeg', args);
+    // The client left: this ffmpeg dies with the render it belongs to.
+    const stopKilling = killOnAbort(proc, signal);
     let stderr = '';
     proc.stderr.on('data', (d) => { stderr += d.toString(); });
-    proc.on('error', reject);
+    proc.on('error', (err) => { stopKilling(); reject(err); });
     proc.on('close', (code) => {
+      stopKilling();
       if (code === 0) return resolve();
       reject(new Error(`ffmpeg exited ${code}: ${stderr.slice(-400)}`));
     });
