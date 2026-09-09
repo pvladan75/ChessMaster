@@ -152,4 +152,16 @@ void main() {
     expect(onLong.top, closeTo(onShort.top, 1),
         reason: 'the strip is in the same place whatever the step says');
   });
+
+  testWidgets('a child reading alone gets the whole sentence at once',
+      (tester) async {
+    // The typewriter belongs to the narrated walk. Making a child wait for
+    // letters they could already have read is a worse screen, not a prettier
+    // one — so with nobody reading aloud, the sentence is simply there.
+    await openAt(tester, const Size(400, 900));
+    await forward(tester);
+
+    expect(find.text(note), findsOneWidget,
+        reason: 'the whole sentence, not a slice of it');
+  });
 }

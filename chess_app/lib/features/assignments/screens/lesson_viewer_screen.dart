@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -102,6 +103,10 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     // walk rather than letting it go on talking to nobody.
     _narrationRun += 1;
     _narrating = false;
+    // Before `super.dispose()`, and it matters: a periodic timer that outlives
+    // the widget calls `setState` on a dead element. This project has already
+    // paid once for a timer that fired after the thing it belonged to was gone.
+    _typing?.cancel();
     _speech.stop();
     _board.dispose();
     super.dispose();
@@ -357,6 +362,25 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// True while the step's line is walking itself, a sentence at a time.
   bool _narrating = false;
 
+  /// How much of the current sentence has been written on screen, 0 to 1.
+  ///
+  /// **Only while the voice is reading.** A child reading at their own pace
+  /// gets the whole sentence at once: making them wait for letters they could
+  /// already have read is a worse screen, not a prettier one.
+  double _typed = 1;
+  Timer? _typing;
+
+  /// Characters a second, the same rate the exported video writes at.
+  ///
+  /// The device voice does not say how far through a sentence it is —
+  /// `flutter_tts` reports word ranges on Android and iOS and nothing at all on
+  /// Windows, which is where a trainer checks their own material — so the
+  /// writing runs at a fixed reading speed and is completed the moment `speak`
+  /// returns. It can therefore finish early and never finishes late, which is
+  /// the right way round: text still arriving after the voice has stopped is
+  /// what reads as broken.
+  static const double _typedCharsPerSecond = 14;
+
   /// Bumped to end whatever loop is running. A run that finds the number
   /// changed underneath it stops without touching the screen — cheaper and
   /// safer than trying to cancel a chain of futures.
@@ -430,7 +454,9 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         // `force`, because two moves in a row can carry the same sentence and
         // the service otherwise says it once — which here would not just skip
         // the words, it would skip the wait.
+        _startTyping(text);
         await _speech.speak(text, force: true);
+        _finishTyping();
       }
 
       if (!mounted || !_narrating || run != _narrationRun) return;
@@ -497,6 +523,10 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   void _stopNarration() {
     if (!_narrating) return;
     _narrationRun += 1;
+    // Stopping the voice completes the sentence rather than freezing it
+    // half-written: the child stopped the reading, not the reading of *this*
+    // sentence, and half a sentence on screen is a bug wearing an animation.
+    _finishTyping();
     _speech.stop();
     if (mounted) setState(() => _narrating = false);
   }
@@ -749,6 +779,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   Widget _buildMoveComment() {
     final comment = _node?.comment ?? '';
     if (comment.isEmpty) return const SizedBox.shrink();
+    final shown = _typedSlice(comment);
 
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.sm),
@@ -767,15 +798,30 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: SpeakableInfo(
+                // The speaker button reads the whole sentence, not the part of
+                // it that happens to be drawn.
                 text: comment,
                 autoSpeak: false,
-                child: Text(comment, style: AppText.bodyLarge),
+                child: Text(shown, style: AppText.bodyLarge),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// As much of [text] as the voice has read, cut on a word.
+  ///
+  /// Whole words for the same reason the video does it: „the knig" for a tenth
+  /// of a second reads as a glitch rather than as writing.
+  String _typedSlice(String text) {
+    if (_typed >= 1) return text;
+    final upTo = (text.length * _typed).floor();
+    if (upTo <= 0) return '';
+    final cut = text.substring(0, upTo);
+    final lastSpace = cut.lastIndexOf(' ');
+    return lastSpace > 0 ? cut.substring(0, lastSpace) : '';
   }
 
   /// The moves that leave this position, when there is more than one.
@@ -997,6 +1043,33 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       }),
       trailing: [_buildNarrationButton()],
     );
+  }
+
+  /// Begin writing [text] on screen at reading speed.
+  void _startTyping(String text) {
+    _typing?.cancel();
+    if (text.isEmpty) return;
+    final started = DateTime.now();
+    setState(() => _typed = 0);
+    _typing = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final seconds = DateTime.now().difference(started).inMilliseconds / 1000;
+      final done = (seconds * _typedCharsPerSecond) / text.length;
+      setState(() => _typed = done.clamp(0.0, 1.0));
+      if (_typed >= 1) timer.cancel();
+    });
+  }
+
+  /// The voice has stopped, so the sentence is whole however far the writing
+  /// had got. Called on the way out of every path, including the ones that
+  /// leave the walk early.
+  void _finishTyping() {
+    _typing?.cancel();
+    _typing = null;
+    if (mounted && _typed != 1) setState(() => _typed = 1);
   }
 
   /// Starts and stops the narrated walk through the tutorial.
