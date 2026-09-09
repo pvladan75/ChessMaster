@@ -37,8 +37,49 @@ apt-get -y full-upgrade
 # binary; fonts-dejavu-core so canvas text renders as text, not tofu.
 apt-get -y install \
   ca-certificates curl gnupg git ufw ffmpeg \
-  build-essential python3 fonts-dejavu-core \
+  build-essential python3 python3-pip python3-venv fonts-dejavu-core \
   unattended-upgrades
+
+log "Piper (tutorial narration)"
+# The voice that reads a tutorial's sentences over its video. Self-hosted on
+# purpose: Google Cloud does not accept an individual payments profile in
+# Serbia, and this needs no account, no card and no per-character bill - and it
+# is the only engine with a Serbian voice, which is what the trainers write in.
+#
+# A virtualenv rather than --break-system-packages: Ubuntu marks its Python
+# externally managed, and a pip install into the system interpreter is the kind
+# of thing that works today and breaks an unrelated apt upgrade in six months.
+#
+# Idempotent like everything else here: an existing venv is left alone, and a
+# model already on disk is not downloaded again.
+PIPER_HOME="/opt/piper"
+PIPER_VOICES="${PIPER_HOME}/voices"
+# One English voice and one Serbian, about 140 MB together. More can be added
+# with the same command later; the backend offers whatever is in the directory.
+PIPER_VOICE_NAMES=(en_US-lessac-medium sr_RS-serbski_institut-medium)
+
+if [[ ! -x "${PIPER_HOME}/bin/piper" ]]; then
+  python3 -m venv "${PIPER_HOME}"
+  "${PIPER_HOME}/bin/pip" install --quiet --upgrade pip
+  "${PIPER_HOME}/bin/pip" install --quiet piper-tts
+else
+  echo "piper already installed in ${PIPER_HOME}"
+fi
+
+mkdir -p "${PIPER_VOICES}"
+for voice in "${PIPER_VOICE_NAMES[@]}"; do
+  if [[ -f "${PIPER_VOICES}/${voice}.onnx" && -f "${PIPER_VOICES}/${voice}.onnx.json" ]]; then
+    echo "voice ${voice} already present"
+    continue
+  fi
+  "${PIPER_HOME}/bin/python" -m piper.download_voices --download-dir "${PIPER_VOICES}" "${voice}"
+done
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${PIPER_HOME}" 2>/dev/null || true
+
+# What the backend needs in its .env to use it:
+#   TTS_PROVIDER=piper
+#   PIPER_PYTHON=/opt/piper/bin/python
+#   PIPER_VOICES_DIR=/opt/piper/voices
 
 log "Node.js"
 # Prefer the distribution's own Node when it is new enough — fewer third-party
