@@ -57,13 +57,238 @@ function getBoardColors(themeStr) {
 function getResolutionParams(resolutionStr) {
   switch (resolutionStr) {
     case '1080p':
-      return { width: 1920, height: 1080, boardSize: 840, offsetY: 120, fontSizeTitle: 32, fontSizeTimer: 26, fontSizeCoord: 18, fontSizeMove: 24 };
+      return { width: 1920, height: 1080, boardSize: 840, offsetY: 120, fontSizeTitle: 32, fontSizeTimer: 26, fontSizeCoord: 18, fontSizeMove: 24, fontSizeCaption: 30 };
     case '480p':
-      return { width: 854, height: 480, boardSize: 360, offsetY: 55, fontSizeTitle: 16, fontSizeTimer: 14, fontSizeCoord: 10, fontSizeMove: 14 };
+      return { width: 854, height: 480, boardSize: 360, offsetY: 55, fontSizeTitle: 16, fontSizeTimer: 14, fontSizeCoord: 10, fontSizeMove: 14, fontSizeCaption: 16 };
     case '720p':
     default:
-      return { width: 1280, height: 720, boardSize: 560, offsetY: 90, fontSizeTitle: 24, fontSizeTimer: 20, fontSizeCoord: 12, fontSizeMove: 16 };
+      return { width: 1280, height: 720, boardSize: 560, offsetY: 90, fontSizeTitle: 24, fontSizeTimer: 20, fontSizeCoord: 12, fontSizeMove: 16, fontSizeCaption: 22 };
   }
+}
+
+/// The five colours a trainer can draw with, and the grey for anything else.
+///
+/// Copied by value from `chess_app/lib/theme/arrow_colors.dart`, which is where
+/// they were chosen and where the reasoning lives — hue *and* luminance are
+/// spread on purpose, because the person who signs this work off is colourblind
+/// and reads shape and lightness rather than hue.
+///
+/// The fallback is grey on purpose and must stay grey: green *means* something
+/// in this vocabulary, so drawing an unrecognised code green would be a
+/// statement rather than a default.
+const DRAW_COLORS = {
+  R: '#FF2929',
+  O: '#FF9429',
+  G: '#85FF85',
+  B: '#00188F',
+  P: '#910FB3',
+};
+const DRAW_FALLBACK = '#9E9E9E';
+
+function drawColorOf(code) {
+  return DRAW_COLORS[String(code || '').toUpperCase()] || DRAW_FALLBACK;
+}
+
+/// Where a square sits on the drawn board, or null when it is not a square.
+function squareTopLeft(square, { offsetX, offsetY, tileSize, flipped }) {
+  const name = String(square || '').trim().toLowerCase();
+  if (!/^[a-h][1-8]$/.test(name)) return null;
+  const col = name.charCodeAt(0) - 97;
+  const row = 8 - parseInt(name[1], 10);
+  const c = flipped ? 7 - col : col;
+  const r = flipped ? 7 - row : row;
+  return { x: offsetX + c * tileSize, y: offsetY + r * tileSize };
+}
+
+function squareCenter(square, geom) {
+  const at = squareTopLeft(square, geom);
+  if (!at) return null;
+  return { x: at.x + geom.tileSize / 2, y: at.y + geom.tileSize / 2 };
+}
+
+/// `[%csl]` — the same three rings the app draws, in the same order.
+///
+/// Black halo, white halo, then the colour. Two neutral rings under a coloured
+/// one is what makes the mark readable on a light square and on a dark one
+/// without knowing which it landed on; a filled square would be cheaper and
+/// would hide the piece standing on it, which is usually the piece being talked
+/// about.
+function drawSquareMark(ctx, square, code, geom) {
+  const centre = squareCenter(square, geom);
+  if (!centre) return;
+  const side = geom.tileSize;
+  const core = side * 0.055;
+  const light = core * 1.8;
+  const shade = core * 2.8;
+  const radius = side / 2 - shade / 2 - side * 0.03;
+  if (radius <= 0) return;
+
+  const ring = (colour, width) => {
+    ctx.beginPath();
+    ctx.arc(centre.x, centre.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  };
+  ring('#000000', shade);
+  ring('#FFFFFF', light);
+  ring(drawColorOf(code), core);
+}
+
+/// `[%cal]` — a line from the middle of one square to the middle of another,
+/// with a head, stopping short of the far centre so the head sits inside the
+/// square it points at rather than over the piece standing there.
+function drawArrow(ctx, from, to, code, geom) {
+  const a = squareCenter(from, geom);
+  const b = squareCenter(to, geom);
+  if (!a || !b) return;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const length = Math.hypot(dx, dy);
+  if (length < 1) return;
+
+  const ux = dx / length;
+  const uy = dy / length;
+  const head = geom.tileSize * 0.38;
+  const shaftWidth = geom.tileSize * 0.16;
+  // The tail leaves the edge of its own square rather than its centre: an arrow
+  // that starts under the piece it is about hides the piece.
+  const start = { x: a.x + ux * geom.tileSize * 0.22, y: a.y + uy * geom.tileSize * 0.22 };
+  const tip = { x: b.x - ux * geom.tileSize * 0.12, y: b.y - uy * geom.tileSize * 0.12 };
+  const neck = { x: tip.x - ux * head, y: tip.y - uy * head };
+  if (Math.hypot(neck.x - start.x, neck.y - start.y) < 1) return;
+
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  ctx.strokeStyle = drawColorOf(code);
+  ctx.fillStyle = drawColorOf(code);
+  ctx.lineWidth = shaftWidth;
+  ctx.lineCap = 'butt';
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(neck.x, neck.y);
+  ctx.stroke();
+
+  const wing = head * 0.55;
+  ctx.beginPath();
+  ctx.moveTo(tip.x, tip.y);
+  ctx.lineTo(neck.x - uy * wing, neck.y + ux * wing);
+  ctx.lineTo(neck.x + uy * wing, neck.y - ux * wing);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/// How many lines the caption needs, and what they are.
+///
+/// Wrapped on words, with a hard split for a word longer than the line — a FEN
+/// pasted into a sentence must not run off the frame. `\n` in the text is the
+/// trainer's own break: a part that asks something carries its task on the line
+/// under what was written, and the two are not one paragraph.
+function captionLines(ctx, text, maxWidth, fontSize, maxLines) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return [];
+  ctx.font = `${fontSize}px sans-serif`;
+
+  const lines = [];
+  for (const paragraph of trimmed.split('\n')) {
+    let line = '';
+    for (const word of paragraph.trim().split(/\s+/)) {
+      if (!word) continue;
+      const candidate = line ? `${line} ${word}` : word;
+      if (ctx.measureText(candidate).width <= maxWidth || !line) {
+        line = candidate;
+        continue;
+      }
+      lines.push(line);
+      line = word;
+    }
+    if (line) lines.push(line);
+  }
+
+  if (lines.length <= maxLines) return lines;
+  // Truncated rather than shrunk: a caption that shrinks to fit is a caption
+  // nobody can read, and the dwell time was computed from the whole sentence
+  // anyway. The ellipsis says something is missing.
+  const kept = lines.slice(0, maxLines);
+  kept[maxLines - 1] = `${kept[maxLines - 1].replace(/\s+\S*$/, '')}…`;
+  return kept;
+}
+
+/// The most lines any caption in [events] needs, measured once for the film.
+///
+/// The band is one height for the whole video, and that is the point: the board
+/// is sized around it, so a per-frame height would make the board grow and
+/// shrink under the viewer between one sentence and the next.
+function captionBandLines(events, { resolution = '720p', maxLines = 4 } = {}) {
+  const cfg = getResolutionParams(resolution);
+  const probe = createCanvas(cfg.width, cfg.height).getContext('2d');
+  let most = 0;
+  for (const event of Array.isArray(events) ? events : []) {
+    const text = event && event.data ? event.data.text : null;
+    if (!text) continue;
+    const lines = captionLines(probe, text, cfg.boardSize, cfg.fontSizeCaption, maxLines);
+    if (lines.length > most) most = lines.length;
+  }
+  return most;
+}
+
+/// The pixels a band of [lines] takes, including the gap above it.
+function captionBandHeight(lines, resolution = '720p') {
+  if (!lines) return 0;
+  const cfg = getResolutionParams(resolution);
+  return Math.round(cfg.fontSizeCaption * 1.35 * lines + cfg.fontSizeCaption);
+}
+
+const OPENING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+/// The state of the picture before any event has been read.
+function initialFrameState() {
+  return {
+    fen: OPENING_FEN,
+    lastMove: null,
+    caption: '',
+    arrows: [],
+    squares: [],
+    orientation: null,
+  };
+}
+
+/// One event applied to [state], as a new state.
+///
+/// Pulled out of the render loop so it can be tested without ffmpeg, and
+/// because two of its rules are easy to get wrong and impossible to see in a
+/// finished MP4 without watching the whole thing:
+///
+///   * **`init` clears the last move.** A new part opens on a position nothing
+///     arrived at. Left uncleared, the previous part's move stays lit under a
+///     board it has nothing to do with — harmless in a recording, where `init`
+///     happens once, and wrong at every join of a tutorial.
+///   * **Marks and the sentence belong to their beat.** Every event replaces
+///     them and an event that says nothing clears them, so an arrow cannot
+///     outlive the position it was drawn about.
+///
+/// Orientation is the exception: it persists until an event says otherwise,
+/// because it is a property of the part rather than of the beat.
+function applyEvent(state, event) {
+  const next = { ...state };
+  const data = (event && event.data) || null;
+
+  if (event && event.eventType === 'init' && data && data.fen) {
+    next.fen = data.fen;
+    next.lastMove = null;
+  } else if (event && event.eventType === 'move' && data) {
+    if (data.fen) next.fen = data.fen;
+    next.lastMove = { from: data.from, to: data.to, san: data.san };
+  }
+
+  if (data) {
+    next.caption = data.text || '';
+    next.arrows = Array.isArray(data.arrows) ? data.arrows : [];
+    next.squares = Array.isArray(data.squares) ? data.squares : [];
+    if (data.orientation) next.orientation = data.orientation;
+  }
+  return next;
 }
 
 function formatTime(sec) {
@@ -76,7 +301,19 @@ async function renderFrameBuffer({
   title,
   fen,
   perspective,
+  // A colour, and it wins over `perspective` when it is given. The two say the
+  // same thing in different vocabularies: `perspective` spells the sides
+  // „trainer" and „student", which is what a recorded lesson has, while a
+  // tutorial is written from White's side or Black's and says so per part.
+  orientation = null,
   lastMove,
+  caption = '',
+  arrows = [],
+  squares = [],
+  // Reserved for the caption band, in lines, for the whole film. See
+  // `captionBandLines`: one height throughout, so the board does not resize
+  // under the viewer between two sentences.
+  captionBand = 0,
   timestampSec,
   totalDurationSec,
   resolution = '720p',
@@ -93,7 +330,18 @@ async function renderFrameBuffer({
 
   const width = cfg.width;
   const height = cfg.height;
-  const boardSize = cfg.boardSize;
+  const bandHeight = captionBandHeight(captionBand, resolution);
+  // The board gives up height to the caption, down to a floor: past that the
+  // position stops being readable, and a video of a position nobody can read
+  // is not worth the sentence under it. A film with no caption anywhere gets
+  // exactly the geometry this renderer has always had — the recorded-lesson
+  // export is live-verified, and this must not move it by a pixel.
+  const boardSize = bandHeight === 0
+    ? cfg.boardSize
+    : Math.max(
+      Math.round(cfg.boardSize * 0.6),
+      Math.min(cfg.boardSize, height - cfg.offsetY - bandHeight - Math.round(cfg.offsetY * 0.3)),
+    );
   const offsetX = (width - boardSize) / 2;
   const offsetY = cfg.offsetY;
   const tileSize = boardSize / 8;
@@ -111,7 +359,11 @@ async function renderFrameBuffer({
     ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`♟ ${title || 'Session recording'}`, offsetX, offsetY / 2);
+    // No pawn glyph in front of it. `@napi-rs/canvas` on this server has no
+    // font with U+265F in it, so every frame of every export ever rendered has
+    // carried a tofu box where the pawn was meant to be — found by looking at
+    // a frame, which no test here had ever done.
+    ctx.fillText(`${title || 'Session recording'}`, offsetX, offsetY / 2);
   }
 
   // Timer & Status Badge
@@ -123,7 +375,9 @@ async function renderFrameBuffer({
   }
 
   // Draw 8x8 Board
-  const isBlackPerspective = perspective === 'student';
+  const isBlackPerspective = orientation
+    ? String(orientation).toLowerCase() === 'black'
+    : perspective === 'student';
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const displayR = isBlackPerspective ? 7 - r : r;
@@ -154,12 +408,23 @@ async function renderFrameBuffer({
   // Draw Rank/File Coordinates
   if (showCoords) {
     ctx.font = `bold ${cfg.fontSizeCoord}px sans-serif`;
+    // The title block left the baseline on `middle`, which centred the file
+    // letters on the board's own bottom edge and cut every one of them in half.
+    ctx.textBaseline = 'alphabetic';
     for (let i = 0; i < 8; i++) {
       const fileLabel = isBlackPerspective ? String.fromCharCode(104 - i) : String.fromCharCode(97 + i);
       const rankLabel = isBlackPerspective ? (i + 1).toString() : (8 - i).toString();
 
-      // Files at bottom
-      ctx.fillStyle = i % 2 === 0 ? colors.dark : colors.light;
+      // Files at bottom.
+      //
+      // The parity is the opposite of the ranks', and that is not a typo: a
+      // label has to be painted in the colour its square is *not*. The bottom
+      // row and the left column start on opposite colours, so one expression
+      // cannot serve both — and this one served the ranks, which is why the
+      // rank numbers have always been readable and **not one file letter has
+      // ever been drawn in any export**: dark on dark, then light on light,
+      // eight times. Found by looking at a frame.
+      ctx.fillStyle = i % 2 === 0 ? colors.light : colors.dark;
       ctx.textAlign = 'right';
       ctx.fillText(fileLabel, offsetX + (i + 1) * tileSize - 4, offsetY + boardSize - 4);
 
@@ -200,6 +465,17 @@ async function renderFrameBuffer({
     }
   }
 
+  // The trainer's drawings, over the pieces rather than under them — the same
+  // order the app's overlay painter uses, and for the same reason: an arrow
+  // about a piece that is drawn beneath it is an arrow about nothing.
+  const geom = { offsetX, offsetY, tileSize, flipped: isBlackPerspective };
+  for (const mark of Array.isArray(squares) ? squares : []) {
+    if (mark) drawSquareMark(ctx, mark.square, mark.color, geom);
+  }
+  for (const arrow of Array.isArray(arrows) ? arrows : []) {
+    if (arrow) drawArrow(ctx, arrow.from, arrow.to, arrow.color, geom);
+  }
+
   // Footer Move Text
   if (showMoveText) {
     ctx.fillStyle = '#EEEEEE';
@@ -207,6 +483,26 @@ async function renderFrameBuffer({
     ctx.textAlign = 'center';
     const moveText = lastMove && lastMove.san ? `Last move: ${lastMove.san}` : 'Starting position';
     ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
+  }
+
+  // The caption, which for a tutorial is most of the teaching. The band is
+  // reserved for the whole film even on a frame whose beat says nothing, so a
+  // silent beat does not move the board.
+  if (bandHeight > 0) {
+    const lines = captionLines(ctx, caption, boardSize, cfg.fontSizeCaption, captionBand);
+    const lineHeight = cfg.fontSizeCaption * 1.35;
+    // A full line of air under the board before the sentence starts. Half of
+    // that put the first line against the bottom rank, where it read as part of
+    // the board rather than as something written about it.
+    const top = offsetY + boardSize + cfg.fontSizeCaption
+      + (showMoveText ? cfg.fontSizeMove + 15 : 0);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `${cfg.fontSizeCaption}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    lines.forEach((line, i) => {
+      ctx.fillText(line, width / 2, top + i * lineHeight);
+    });
   }
 
   return canvas.toBuffer('image/png');
@@ -271,30 +567,33 @@ async function renderRecordingToMP4({
       reject(err);
     });
 
+    // How tall the caption band is for this film, measured once over every
+    // event. A recording carries no captions and gets 0, which is the geometry
+    // this renderer has always drawn.
+    const captionBand = captionBandLines(events, { resolution });
+
     // Write 1 frame per second to pipe:0
-    let currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-    let lastMove = null;
+    let state = initialFrameState();
     let eventIdx = 0;
 
     for (let sec = 0; sec <= totalDuration; sec++) {
       const currentMs = sec * 1000;
 
       while (eventIdx < events.length && (events[eventIdx].timestampMs || 0) <= currentMs) {
-        const ev = events[eventIdx];
-        if (ev.eventType === 'init' && ev.data && ev.data.fen) {
-          currentFen = ev.data.fen;
-        } else if (ev.eventType === 'move' && ev.data) {
-          if (ev.data.fen) currentFen = ev.data.fen;
-          lastMove = { from: ev.data.from, to: ev.data.to, san: ev.data.san };
-        }
+        state = applyEvent(state, events[eventIdx]);
         eventIdx++;
       }
 
       const frameBuf = await renderFrameBuffer({
         title,
-        fen: currentFen,
+        fen: state.fen,
         perspective: perspective || 'trainer',
-        lastMove,
+        orientation: state.orientation,
+        lastMove: state.lastMove,
+        caption: state.caption,
+        arrows: state.arrows,
+        squares: state.squares,
+        captionBand,
         timestampSec: sec,
         totalDurationSec: totalDuration,
         resolution,
@@ -315,5 +614,14 @@ async function renderRecordingToMP4({
 
 module.exports = {
   renderFrameBuffer,
-  renderRecordingToMP4
+  renderRecordingToMP4,
+  // Exported for the tests, which read pixels out of a rendered frame: a
+  // drawing that cannot be measured is a drawing nobody can grade.
+  captionLines,
+  captionBandLines,
+  captionBandHeight,
+  drawColorOf,
+  getResolutionParams,
+  applyEvent,
+  initialFrameState
 };
