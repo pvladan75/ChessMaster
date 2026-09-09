@@ -10,6 +10,8 @@ const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
 const { acceptedTrainersOf } = require('../services/relationshipService');
 const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps');
+const tts = require('../services/tts');
+const tutorialNarration = require('../services/tutorialNarration');
 
 /// Runs a submitted step list through the one builder, or answers the caller.
 ///
@@ -92,6 +94,19 @@ function sentPositionList(body) {
     && body.positionList !== null
     && body.positionList !== undefined;
 }
+
+// GET /lessons/tts/voices — available voices for tutorial video narration.
+// Mounted before any /:id route so ':id' cannot swallow 'tts'.
+router.get('/tts/voices', authenticateToken, async (req, res) => {
+  try {
+    const available = tts.narrationAvailable();
+    const voices = await tts.voices();
+    res.json({ available, voices });
+  } catch (err) {
+    logger.error('Fetch TTS voices error:', err);
+    res.status(500).json({ error: 'Server error while fetching TTS voices' });
+  }
+});
 
 // PUT /lessons/:id — update a lesson you own (either creator or the trainer who shared it)
 router.put('/:id', authenticateToken, async (req, res) => {
@@ -323,6 +338,8 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       resolution,
       pieceStyle,
       boardTheme,
+      narrate,
+      voice,
     } = req.body;
 
     if (!Array.isArray(events) || events.length === 0) {
@@ -342,21 +359,48 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
 
     const exportPath = path.join(exportsDir, filename);
 
-    await videoRenderer.renderRecordingToMP4({
-      title: title || lesson.title || 'Tutorial',
-      timelineEvents: events,
-      audioFilePath: null,
-      durationSeconds: duration,
-      perspective: 'trainer',
-      resolution: resolution || '720p',
-      pieceStyle: pieceStyle || 'classic',
-      boardTheme: boardTheme || 'wood',
-      showTitle: true,
-      showTimer: true,
-      showCoords: true,
-      showMoveText: false,
-      outputPath: exportPath,
-    });
+    let renderEvents = events;
+    let renderDuration = duration;
+    let audioFilePath = null;
+    let narrationAudioPath = null;
+
+    if (narrate === true) {
+      const narrated = await tutorialNarration.narrateFilm({ events, voice, exportsDir, filename });
+      if (narrated) {
+        if (narrated.events) renderEvents = narrated.events;
+        if (narrated.seconds != null) renderDuration = Math.min(narrated.seconds, 3600);
+        narrationAudioPath = narrated.audioPath || null;
+        audioFilePath = narrated.audioPath || null;
+      }
+    }
+
+    try {
+      await videoRenderer.renderRecordingToMP4({
+        title: title || lesson.title || 'Tutorial',
+        timelineEvents: renderEvents,
+        audioFilePath: audioFilePath,
+        durationSeconds: renderDuration,
+        perspective: 'trainer',
+        resolution: resolution || '720p',
+        pieceStyle: pieceStyle || 'classic',
+        boardTheme: boardTheme || 'wood',
+        showTitle: true,
+        showTimer: true,
+        showCoords: true,
+        showMoveText: false,
+        outputPath: exportPath,
+      });
+    } finally {
+      if (narrationAudioPath) {
+        try {
+          if (fs.existsSync(narrationAudioPath)) {
+            fs.unlinkSync(narrationAudioPath);
+          }
+        } catch (cleanErr) {
+          logger.warn('[TTS] Failed to clean up narration audio file:', cleanErr);
+        }
+      }
+    }
 
     const downloadToken = signDownloadToken(req.user.id, filename);
     const downloadUrl =
@@ -364,7 +408,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       `?token=${encodeURIComponent(downloadToken)}`;
 
     await recordUsage(pool, req.user.id, METRIC.MP4_RENDERS, 1);
-    await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, duration);
+    await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, renderDuration);
 
     res.json({
       message: 'Video rendered successfully, saved, and ready for download!',
