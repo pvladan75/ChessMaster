@@ -277,6 +277,53 @@ tabela, pa su poruke sa vlasnikovog snimka **već upisani redovi**. Prevod
 generatora menja šta se piše od sada i ništa što postoji. Briše li se to —
 vlasnikova odluka, ne posao batch-a.
 
+### Tutorijal je postao video — faza 2 zatvorena, 9.9.2026
+
+**Sva četiri dela faze 2 su gotova.** Jezgro (`tutorialVideoOf`, `dwellSecondsFor`)
+je bilo gotovo ranije; 9.9.2026 su došla preostala dva.
+
+**Renderer crta ono što se uči** (`401ad0f`, vođa). `videoRenderer.js` sada prima
+`caption`, `arrows`, `squares` i `orientation` po događaju. `[%csl]` se crta kao
+ista tri prstena kao u aplikaciji — crni oreol, beli oreol, boja — jer to je ono
+što se čita i na svetlom i na tamnom polju, a puno polje bi sakrilo figuru o
+kojoj se priča. Pet boja je prepisano po vrednosti iz `arrow_colors.dart`, a
+nepoznat kod ostaje siv: zeleno ovde **znači** nešto.
+
+**Traka za rečenicu meri se jednom za ceo film** i tabla se smanjuje oko nje —
+visina po kadru bi tablu terala da raste i da se smanjuje između dve rečenice.
+Film bez ijedne rečenice ne rezerviše ništa i dobija geometriju koju je renderer
+oduvek crtao; izvoz snimka je proveren uživo i ne sme da se pomeri ni za piksel.
+
+**Dva kvara su bila u svakom ikada renderovanom izvozu**, i našao ih je jedan
+probni kadar: naslov je nosio `♟`, koji nijedan font na tom serveru nema, pa je
+svaki kadar prikazivao praznu kutijicu; i **nijedno slovo kolone nikada nije
+nacrtano** — bila su obojena bojom polja na kome stoje, osam puta zaredom, jer
+je parnost koja važi za redove obrnuta za kolone a izraz je bio jedan.
+
+**Izvoz i vrata** (`0c9cb0f`, batch 67): `POST /lessons/:id/export-video` pored
+izvoza snimka, i treća ikonica u spisku sačuvanih tutorijala. Ruta proverava
+pravo pre bilo kakvog posla, razrešava red uslovom `(user_id = $2 OR trainer_id
+= $2)`, seče trajanje na 3600 umesto da odbije, i knjiži potrošnju tek pošto je
+render uspeo. Preuzimanje ide kroz **postojeću** rutu snimaka — jedno mesto koje
+mora da brani `exports/` lakše je držati ispravnim nego dva.
+
+Tri stvari iz ocenjivanja, dve od njih ispravke moje prve dijagnoze:
+
+* Probni test na 360 dp našao je prelivanje od 88 px. **Pročitao sam ga
+  pogrešno** kao tri ikonice u redu i zbio ih; merenje je pokazalo da je red bio
+  u redu, a da se prelivao dijalog „Video ready!", čiji je naslov u headline
+  veličini tražio 320 dp od telefonskih 232. Vidi se tek posle klika, pa ga
+  nijedan test koji staje na redu ne može videti.
+* **Naslov bez elipse zaista gura akcije preko ivice** — tutorijal se imenuje
+  svojom prvom rečenicom, pa `'Opozicija'` nije bio pošten uzorak.
+* **Test napisan za sve to nije dokazivao ništa, dvaput.** `takeException`
+  prolazi i sa vraćenim prelivanjem; pitanje o redu u mirovanju promašuje
+  dijalog do kog se stiže klikom. Sada meri da li je svako dugme unutar
+  dijaloga, na redu sa dugim naslovom, i obe popravke su mutirane da se vidi
+  kako pada.
+
+Ostaje **provera uživo** — stavka 133 u `docs/TODO-provera.md`.
+
 ### Otvoreno, nije rađeno
 
 * Tri pitanja o dizajnu iz prijava od 7.9.2026: orijentacija kao svojstvo niza
@@ -284,8 +331,9 @@ vlasnikova odluka, ne posao batch-a.
 * Prijava `n1788823148283`: organizacija ekrana. Uski zahvat je urađen (jedan
   dijalog, imena); širi — jedno mesto za sve što aplikacija proizvodi — je
   izričito van obima i odgovara mu priručnik iz faze 4.
-* Nove stavke provere uživo: **123–132** u `docs/TODO-provera.md`. Stavka 132
+* Nove stavke provere uživo: **123–133** u `docs/TODO-provera.md`. Stavka 132
   je najveća: 71 fajl prevedenog servera nije viđen na ekranu ni jednom.
+  Stavka 133 je video tutorijala — renderovanje je dokazano, dugme nije.
 
 ---
 

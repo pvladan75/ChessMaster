@@ -4766,3 +4766,35 @@ grešku zaustavljenog uvoza koja stoji u `user_game_imports`.
    protivniku je engleska, a **svaki procenat u njoj mora postojati u
    podacima** — `narrativeGuard` odbija izmišljen broj, pa ako se rečenica ne
    pojavi, pogledaj log servera pre nego što prijaviš da je pokvarena.
+
+## 133. Tutorijal kao video — 9.9.2026, nije viđeno uživo
+
+Faza 2 `PLAN-ZAVRSNICA.md`. Renderovanje je dokazano na mašini vođe (dvodelni
+tutorijal, strelice, obojena polja, rečenice i okrenuta tabla u drugom delu, 19
+sekundi MP4-a), ali **niko još nije pritisnuo dugme u aplikaciji**.
+
+Za ovo treba nalog kome je uključen `mp4_export` (plaćeno pravo) i pokrenut
+lokalni backend sa `ffmpeg` u putanji.
+
+1. [ ] **Vrata.** „Sačuvani tutorijali" → svaki red ima tri ikonice: video,
+   pošalji, obriši. Na telefonu (ne na Windows prozoru!) proveri da se sve tri
+   vide i da se svaka može pogoditi prstom, i kod tutorijala sa dugim imenom.
+2. [ ] **Prazan tutorijal** kaže „This tutorial has nothing to show yet." i
+   **ne** šalje ništa serveru.
+3. [ ] **Običan tutorijal** javi „Exporting video…", pa posle nekoliko desetina
+   sekundi otvori „Video ready!" sa linkom. Dijalog mora da stane na ekran
+   telefona.
+4. [ ] **Fajl se otvara.** Dugme „Download" otvara sistemski pregledač i video
+   se pušta.
+5. [ ] **U videu:** rečenica ispod table je čitljiva do kraja; strelice i
+   obojena polja stoje na potezu kome pripadaju; drugi deo tutorijala počinje
+   **bez** osvetljenog poteza iz prvog; deo pisan sa crne strane je okrenut.
+6. [ ] **Slova kolona (a–h) se vide** duž donje ivice table. To je ispravka iz
+   ove faze — do 9.9.2026 nijedno nije bilo nacrtano ni u jednom izvozu.
+7. [ ] **Naslov nema praznu kutijicu** ispred sebe.
+8. [ ] **Izvoz snimka časa** (`Replay` → izvoz MP4) i dalje izgleda isto kao
+   pre. Ovo je regresiona provera: film bez rečenica ne sme da promeni
+   geometriju.
+9. [ ] **Kvota.** Posle izvoza, „Moj nalog" prikazuje potrošenu MP4 kvotu; izvoz
+   koji padne ne sme da je potroši.
+

@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1762 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1766 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 964 tests, all green
+cd chess_backend && npm test          # node --test, 985 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -891,6 +891,51 @@ One more about reading a report: its per-file table was honest work and its
 stated total was not — the rows sum to 389 and the line above them says 328.
 Same family as the „true number under a false name" already in this file, and
 the same remedy: re-derive any number you are about to repeat.
+
+**Phase 2 of `docs/PLAN-ZAVRSNICA.md` closed on 9.9.2026 — a tutorial exports as
+a video — and the counts are 1766 in the app with 1 skipped and 985 on the
+backend**, both measured on `master` with nothing else running. Twenty-one of
+the backend's are the renderer's first tests ever, and they read pixels out of a
+rendered frame.
+
+**Nobody had ever looked at a frame**, and one trial render found two faults
+that were in every export this project has produced. The title carried `♟`,
+which no font on that server has, so every frame has shown a tofu box. And not
+one file letter has ever been drawn: they were painted in the colour of the
+square they stand on, eight times over — the parity that is right for the ranks
+is inverted for the files, and one expression served both. The feature was
+verified live, twice, by people watching the video; nobody looked at a *frame*.
+**When a feature's output is a picture, look at the picture.**
+
+Four things about the tests written for it, and three are about tests that
+proved nothing.
+
+**A pixel probe can be answered by the wrong thing.** „The file letters are
+readable" asked whether anything in the strip along the bottom edge differed
+from the square above it — and the pieces standing on rank one answered yes on
+their own, so putting the bug back left it green. The board is empty in that
+test now and the question is asked per file: is there ink on this square that is
+not the colour of this square?
+
+**An assertion with an escape clause is not an assertion.** „The board is the
+size the caption band left it" was written as *within 6 px, or bigger* — and
+bigger is the exact failure it existed to catch. It measures the board's width
+now, which cannot be confused with the caption drawn below it.
+
+**A layout fault can be one tap away from where you are looking.** A throwaway
+probe at 360 dp reported an 88 px overflow on the saved-tutorials row, and I
+read it as three icons crowding the row. Measuring said the row was fine: the
+overflow was the „Video ready!" dialog, whose title is drawn in the theme's
+headline size, and it appears only *after* the export finishes. The compact
+buttons I had already written were reverted — **churn a measurement does not
+support** — and what was real was the missing ellipsis on a row title, because a
+tutorial is named by its first sentence and the test fixture was a single word.
+**A fixture that is shorter than the real thing is a fixture that cannot fail.**
+
+**And `takeException` is not a layout assertion.** An overflow throws in a test
+build and paints nothing in a release one, so a test that asks only for the
+exception passes the moment the widget tree is disposed differently. Ask whether
+the button is inside the dialog: that is what „unreachable" actually means.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
