@@ -201,6 +201,42 @@ async function initDB() {
     `);
     logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 
+    // A tutorial's film being drawn, or what became of it — item 5 of part two
+    // of docs/PLAN-SNIMANJE.md, services/renderJobs.js.
+    //
+    // The render used to happen inside the POST, so its state could live in
+    // memory and die with the request. It is drawn after the answer now, and a
+    // film that outlives its request needs a state that outlives the process:
+    // „it failed because the server stopped" is something a trainer has to be
+    // told, and a map cannot tell it because it is gone.
+    //
+    // The id is minted by the server (a UUID), not by the client: it is the key
+    // a trainer polls and cancels by, and a client-chosen key is one another
+    // client can choose too.
+    //
+    // **One running render per tutorial and trainer, enforced here** by a
+    // partial unique index rather than by a SELECT first — two presses of
+    // Export a millisecond apart would both find nothing running. A second
+    // render of the same tutorial would replace the first film the moment it
+    // finished, and the app shows the running one instead.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tutorial_render_jobs (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        lesson_id INTEGER NOT NULL REFERENCES saved_lessons(id) ON DELETE CASCADE,
+        status VARCHAR(10) NOT NULL DEFAULT 'running'
+          CHECK (status IN ('running', 'done', 'failed', 'cancelled')),
+        message TEXT,
+        error TEXT,
+        filename VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        finished_at TIMESTAMPTZ
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS ux_tutorial_render_jobs_running
+        ON tutorial_render_jobs(lesson_id, user_id) WHERE status = 'running';
+    `);
+    logger.info('Verified database table & indexes: tutorial_render_jobs');
+
     // Create saved_analyses table (Analysis Studio: save/load a variation tree,
     // readable from any device the user logs into).
     await client.query(`

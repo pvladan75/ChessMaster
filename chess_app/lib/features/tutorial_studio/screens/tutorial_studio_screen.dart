@@ -1055,12 +1055,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       return;
     }
     _syncSelectedSection();
+    // Asked, not assumed: the server derives the longest take from its render
+    // budget. When it cannot be asked the screen stops at the shorter fallback,
+    // because a take cut early is always accepted and one cut late is not.
+    final maxMs = await _lessonApi.narrationMaxMs(id) ?? narrationFallbackMaxMs;
+    if (!mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => TutorialNarrationScreen(
         lessonId: id,
         title: _titleController.text.trim(),
         draft: _draft,
         store: _narrationStore,
+        maxMs: maxMs,
       ),
     ));
     // A trainer who recorded again has answered the banner, and one who did not

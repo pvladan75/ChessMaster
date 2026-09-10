@@ -1,4 +1,4 @@
-// renderAbort.js — a film nobody is waiting for stops being drawn.
+// renderAbort.js — a film nobody wants any more stops being drawn.
 //
 // Measured on 9.9.2026: a client whose request hit the 300 s ceiling went away
 // and the server drew for minutes more, wrote a 14 MB MP4 whose download URL
@@ -6,8 +6,13 @@
 // the one render slot for the whole of it, so every other trainer was queued
 // behind a film that would never be collected, or turned away with a 429.
 //
-// `RENDER_QUEUE_MAX` bounds the *queue*; it says nothing about one render that
-// outlives its own connection. That is what this file is for.
+// **Who fires the signal changed with item 5 of part two of
+// docs/PLAN-SNIMANJE.md.** It used to be the client hanging up
+// (`abortOnDisconnect`, deleted with that item). A tutorial's film is drawn
+// after its request has been answered now, so the socket closes with the 202,
+// and „the client is gone" would stop every render at birth. The trainer's own
+// „Cancel render" fires it (`services/renderJobs.js`); everything below — the
+// frame loop's check, the piper kill, the ffmpeg kill — is as it was.
 //
 // **Why a signal rather than a flag.** Three things have to stop: the frame
 // loop, the piper process synthesising the narration, and the ffmpeg joining
@@ -15,50 +20,23 @@
 // standard library already spells this with — one object passed down, one
 // `abort` event, no polling.
 
-/// Thrown when the client that asked for a render has gone.
+/// Thrown when the film being drawn is no longer wanted.
 ///
-/// A distinct type because it is **not** an error to report: there is nobody to
-/// report it to. The route swallows it deliberately, and anything that catches
-/// broadly must not turn it into a 500 for a socket that is already closed.
+/// A distinct type because it is **not** an error to report: the trainer asked
+/// for it. The route records it as a cancelled job, and anything that catches
+/// broadly must not turn it into a failed film.
 class RenderAborted extends Error {
-  constructor(message = 'render aborted: the client is gone') {
+  constructor(message = 'render aborted: nobody wants this film any more') {
     super(message);
     this.name = 'RenderAborted';
   }
 }
 
-/// The signal for one export request, fired when its client disconnects.
+/// Stops here when the render has already been cancelled.
 ///
-/// **`writableFinished` is the whole of the correctness here.** A response that
-/// completed normally also emits `close`, so a listener that aborts on every
-/// `close` would abort every successful render the instant it answered — which
-/// is harmless today only because nothing is running by then, and would become
-/// a silent cancellation the first time anything is. Asked of the response
-/// rather than of the request, because `req`'s own `close` fires when the
-/// request *body* has been read, which for a POST is long before the render.
-function abortOnDisconnect(res) {
-  const controller = new AbortController();
-  const onClose = () => {
-    if (!res.writableFinished) controller.abort();
-  };
-  res.on('close', onClose);
-  return {
-    signal: controller.signal,
-    /// Stops listening. The response object outlives the handler, so a listener
-    /// left on it is a listener that fires after everything it could have
-    /// stopped is over.
-    dispose() {
-      res.off('close', onClose);
-    },
-  };
-}
-
-/// Stops here when the client has already gone.
-///
-/// Called at the top of the queued task as well as inside it: a render that
-/// waited its turn behind two others is exactly the one whose client is most
-/// likely to have given up, and starting to draw for it would hold the slot
-/// for a full film.
+/// Called at the top of the queued task as well as inside it: a film cancelled
+/// while it waited its turn must not start drawing, because starting would hold
+/// the slot for a whole film.
 function throwIfAborted(signal) {
   if (signal && signal.aborted) throw new RenderAborted();
 }
@@ -81,7 +59,7 @@ function killOnAbort(proc, signal) {
       proc.kill('SIGKILL');
     } catch {
       // Already gone. Nothing to stop, and nothing to report: this is the
-      // ordinary race between a process exiting and a client leaving.
+      // ordinary race between a process exiting and a render being cancelled.
     }
   };
 
@@ -96,4 +74,4 @@ function killOnAbort(proc, signal) {
   return off;
 }
 
-module.exports = { RenderAborted, abortOnDisconnect, throwIfAborted, killOnAbort };
+module.exports = { RenderAborted, throwIfAborted, killOnAbort };

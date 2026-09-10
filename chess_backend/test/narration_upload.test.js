@@ -134,14 +134,55 @@ test('a silent take is refused, and a quiet room is not silence', () => {
   assert.equal(quiet.ok, true, quiet.error);
 });
 
-test('fifteen minutes is the most one recording may be', () => {
-  const over = judge({ ms: 15 * 60 * 1000 + 40, peak: 0, markers: [0], beats: 1 });
-  assert.equal(over.ok, false);
-  assert.equal(over.status, 413);
-  assert.match(over.error, /15:00 long.*at most 15 minutes/);
+/// Runs [fn] with the render budget's settings set to exactly [vars], so a
+/// `.env` on the machine running the tests cannot decide what the cap is.
+function withBudget(vars, fn) {
+  const keys = ['RENDER_MAX_DRAW_SECONDS', 'RENDER_DRAW_FPS_720P', 'RENDER_DRAW_FPS_1080P'];
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  for (const k of keys) delete process.env[k];
+  Object.assign(process.env, vars);
+  try {
+    return fn();
+  } finally {
+    for (const k of keys) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  }
+}
 
-  assert.ok(narrationUpload.NARRATION_MAX_BYTES > 15 * 60 * BYTE_RATE,
-    'the multer limit must leave room for a whole fifteen-minute take');
+test('the longest recording is the longest captioned film one render may draw', () => {
+  // Thirty minutes at the defaults since item 5 of part two: 600 s of drawing
+  // at twelve frames a second is 7200 frames, four to a second of captioned
+  // film. It was a fixed fifteen while the film was drawn inside a request.
+  withBudget({}, () => {
+    const maxSeconds = narrationUpload.narrationMaxSeconds();
+    assert.equal(maxSeconds, 30 * 60);
+
+    const over = judge({ ms: maxSeconds * 1000 + 40, peak: 0, markers: [0], beats: 1 });
+    assert.equal(over.ok, false);
+    assert.equal(over.status, 413);
+    assert.match(over.error, /30:00 long.*at most 30 minutes/);
+
+    assert.ok(narrationUpload.narrationMaxBytes() > maxSeconds * BYTE_RATE,
+      'the multer limit must leave room for a whole take at the cap');
+  });
+});
+
+test('the cap follows the render budget, so the two cannot disagree', () => {
+  // A take accepted here is a take the export will draw. Set the ceiling back
+  // to 300 s and the cap is fifteen minutes again, with nothing else changed.
+  withBudget({ RENDER_MAX_DRAW_SECONDS: '300' }, () => {
+    assert.equal(narrationUpload.narrationMaxSeconds(), 15 * 60);
+    const over = judge({ ms: 15 * 60 * 1000 + 40, peak: 0, markers: [0], beats: 1 });
+    assert.equal(over.status, 413);
+    assert.match(over.error, /at most 15 minutes/);
+  });
+  // And a slower machine records less, rather than recording what it then
+  // refuses to draw.
+  withBudget({ RENDER_DRAW_FPS_720P: '6' }, () => {
+    assert.equal(narrationUpload.narrationMaxSeconds(), 15 * 60);
+  });
 });
 
 // ---------------------------------------------------------------- the consent
@@ -325,13 +366,60 @@ test('who may record is asked before a byte is written', async () => {
   }
 });
 
-test('over fifteen minutes is refused while it arrives, and leaves nothing', async () => {
+test('over the cap is refused while it arrives, and leaves nothing', async () => {
+  // The cap is whatever this server derives from its render budget — thirty
+  // minutes at the defaults — so it is read rather than written into the test.
   clearKept();
-  const tooBig = Buffer.alloc(narrationUpload.NARRATION_MAX_BYTES + 4096);
+  const tooBig = Buffer.alloc(narrationUpload.narrationMaxBytes() + 4096);
   const { status, body } = await withRoute({}, formOf({ audio: tooBig }));
   assert.equal(status, 413);
-  assert.match(body.error, /longer than 15 minutes/);
+  assert.match(body.error,
+    new RegExp(`longer than ${Math.floor(narrationUpload.narrationMaxSeconds() / 60)} minutes`));
   assert.deepEqual(filesKept(), []);
+});
+
+test('the app is told the cap rather than keeping a copy of it', async () => {
+  // Item 5 of part two: the app had its own fifteen, kept in step with this
+  // one by a comment. Both answers carry it, and the first matters most — a
+  // tutorial nobody has recorded over is exactly the one about to be recorded.
+  const layer = lessonsRouter.stack.find(
+    (l) => l.route && l.route.path === '/:id/narration' && l.route.methods.get
+  );
+  assert.ok(layer, 'GET /lessons/:id/narration must be mounted');
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle;
+
+  const answers = [];
+  for (const row of [
+    { narration_filename: null },
+    {
+      narration_filename: 'narration_12_00000000000000ab.wav',
+      narration_take_id: 'ab12',
+      narration_ms: 1000,
+      narration_markers: [0],
+      narration_recorded_at: null,
+    },
+  ]) {
+    const originalQuery = db.pool.query;
+    db.pool.query = async () => ({ rows: [row], rowCount: 1 });
+    const res = {
+      statusCode: 200,
+      body: null,
+      status(code) { this.statusCode = code; return this; },
+      json(payload) { this.body = payload; return this; },
+    };
+    try {
+      await handler({ params: { id: '12' }, user: { id: 4 } }, res);
+    } finally {
+      db.pool.query = originalQuery;
+    }
+    answers.push(res.body);
+  }
+
+  const expected = narrationUpload.narrationMaxSeconds() * 1000;
+  assert.equal(answers[0].status, 'none');
+  assert.equal(answers[0].maxMs, expected);
+  assert.equal(answers[1].status, 'ready');
+  assert.equal(answers[1].maxMs, expected);
 });
 
 test('a new take is written to the row before the old one is deleted', async () => {
@@ -494,7 +582,11 @@ test('the server says which take it holds, and says none plainly', async () => {
 
   const none = await ask([{ narration_filename: null }]);
   assert.equal(none.statusCode, 200);
-  assert.deepEqual(none.body, { status: 'none' });
+  // Since item 5 of part two the answer also says how long a take may be, so
+  // an app about to record asks rather than keeping a copy. Still compared
+  // whole: an answer that grows without anybody deciding it should is what
+  // this assertion is for.
+  assert.deepEqual(none.body, { status: 'none', maxMs: narrationUpload.narrationMaxSeconds() * 1000 });
 
   const ready = await ask([{
     narration_filename: 'narration_12_x.wav',

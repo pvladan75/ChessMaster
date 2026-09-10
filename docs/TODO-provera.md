@@ -5078,3 +5078,62 @@ veza posle 300 s ne pukne. Tutorijali za proveru su u
    renderovanja, uzmi sporije merenje sa marginom i upiši ga u `.env` kao
    `RENDER_DRAW_FPS_720P` i `RENDER_DRAW_FPS_1080P`. Dok se to ne uradi,
    podrazumevane vrednosti (12 i 6) su procena o drugoj mašini.
+
+Posle tačke 5 (stavka 143) ova stavka se menja na tri mesta:
+
+* **Plafon je 600 s crtanja po filmu** (`RENDER_MAX_DRAW_SECONDS`, odluka
+  vlasnika 10.9.2026), ne 300. Korak 1 važi i dalje — `big-40-parts` (36 min) na
+  720p je oko 720 s crtanja, pa je odbijen. Koraci 2 i 3 **ne važe kako su
+  napisani**: `medium-12-parts` na 1080p je oko 420 s i sada prolazi, a isto i
+  desetominutni snimak na 1080p. Za njih treba tutorijal od dvadesetak minuta
+  na 1080p (oko 800 s, odbijen; na 720p oko 400 s, prolazi).
+* **Koraci 4 i 5 ne važe za tutorijal**: nijedna veza ne čeka njegov film, pa
+  „Try again in about N minutes" tutorijal više ne dobija — film iza dugačkog
+  samo čeka svoj red. Tu rečenicu sada dobija samo izvoz snimljenog časa (korak
+  10 stavke 143).
+* Snimak glasa sme da traje do 30 minuta (izvedeno iz plafona), ne 15.
+
+## 143. Render izlazi iz zahteva — 10.9.2026, nije viđeno uživo
+
+Tačka 5 drugog dela `docs/PLAN-SNIMANJE.md`. Izvoz tutorijala odgovara čim
+server prihvati film (202 i id posla), a film se crta posle odgovora. Traka može
+da se sakrije („Hide") ili da prekine render („Cancel render"); kad se film
+završi ili padne, stiže obaveštenje na zvonce. Tutorijali za proveru su u
+`mislisha-test/render-fixtures`.
+
+1. [ ] **Ekran se više ne zamrzava.** Izvezi `medium-12-parts`. Traka ima dva
+   dugmeta. Pritisni „Hide": dijalog se zatvori, poruka kaže da se video i dalje
+   renderuje, a aplikacija radi normalno dok server crta.
+2. [ ] **Pronađi ga ponovo.** Otvori „Saved tutorials" dok se film crta: red tog
+   tutorijala umesto kamere ima ikonu filma („Rendering — show progress"). Klik
+   otvara istu traku, sa pravim procentom.
+3. [ ] **Obaveštenje.** Kad se film završi, na zvoncetu je „Your video of … is
+   ready" sa ikonom filma, a „Download video" na redu radi.
+4. [ ] **Drugi izvoz istog tutorijala.** Dok se film crta, u studiju pritisni
+   „Export video" za isti tutorijal: posle „Export" stiže poruka da se tutorijal
+   već renderuje i prikazuje se traka tog filma — drugi se ne pokreće.
+5. [ ] **Prekid.** Pokreni izvoz i pritisni „Cancel render": dugme kaže
+   „Cancelling…", traka se zatvori sa „Video export cancelled.", u `exports/` nema
+   novog fajla, broj renderovanja na nalogu nije porastao, i nema obaveštenja.
+6. [ ] **Prekid dok čeka u redu.** Sa naloga A pusti dugačak film, sa naloga B
+   kratak, koji čeka iza njega, pa ga B prekine: B-ov film odmah nestaje iz reda
+   (A-ov ide dalje), i B može odmah da izveze ponovo.
+7. [ ] **Restart servera usred rendera.** Pusti film, pa zaustavi i ponovo pokreni
+   backend. Trener dobije obaveštenje „… could not be rendered. The server stopped
+   rendering this video before it was finished. Export it again.", a traka koja je
+   bila otvorena kaže to isto umesto da stoji.
+8. [ ] **Telefon na 360 dp.** Traka sa oba dugmeta staje na ekran (ovo važi tek kad
+   tutorijali budu dostupni i na telefonu — vidi „What the live check changed" u
+   planu).
+9. [ ] **Snimak od 30 minuta.** U studiju otvori „Record narration": studio prvo
+   pita server za granicu (`GET /lessons/:id/narration` sada vraća `maxMs`).
+   Snimanje staje samo na 29:59 i kaže „30 minutes is the most one recording may
+   be"; slanje (oko 57 MB) prolazi, a izvoz tog snimka na 720p se nacrta (oko
+   600 s na podrazumevanoj brzini). Kad server ne može da se pita, ekran staje na
+   14:59 — namerno kraće, jer se kraći snimak uvek prima.
+10. [ ] **Snimljeni čas i dugačak tutorijal.** Sa naloga A pusti izvoz dugačkog
+    tutorijala (nekoliko minuta crtanja), pa odmah sa naloga B izvezi snimljeni
+    čas. Dok tutorijal još **čeka** u redu, čas ide ispred njega. Dok se tutorijal
+    već **crta** i ostalo mu je više vremena nego što čas ima, čas odmah dobija
+    „… could not finish it before the connection closes. Try again in about N
+    minutes" — umesto da visi 300 s dok ga nginx ne preseče.

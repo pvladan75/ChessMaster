@@ -338,11 +338,17 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
 
     // The same queue the tutorial export waits in: one machine, one film at a
     // time, whichever door the render came through.
-    // How long this film will take to draw, so a tutorial export arriving
-    // behind it is judged by the work actually in front of it. **No deadline
-    // and no refusal here**: this export is verified live as it is, and item 4
-    // of docs/PLAN-SNIMANJE.md is about tutorials. Its absence is written down
-    // there rather than hidden: a newcomer may still go in front of it.
+    //
+    // **This export is still drawn inside the request that asked for it**, so
+    // its client stops waiting when nginx closes that request
+    // (`requestSeconds`, 300 s). It tells the queue so, with a deadline: a job
+    // with one goes in front of every tutorial film waiting in the background,
+    // and one the queue cannot finish in time is refused with a sentence now,
+    // rather than cut off by the proxy later (item 5 of part two of
+    // docs/PLAN-SNIMANJE.md). A film already being drawn is not interrupted —
+    // one slot draws one film — so the time left of it counts against this one.
+    // The estimate is what the queue judges that by.
+    const arrivedAt = Date.now();
     const size = resolution || '720p';
     const estimateMs = renderBudget.drawSeconds({
       seconds: duration,
@@ -366,9 +372,15 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
     // The account, so this export competes for its own share rather than for
     // the whole machine: the same queue serves tutorial films, and one user's
     // three exports used to fill it for everybody.
-    }), () => {}, { owner: req.user.id, estimateMs }).catch((err) => {
+    }), () => {}, {
+      owner: req.user.id,
+      estimateMs,
+      deadline: arrivedAt + renderBudget.requestSeconds() * 1000,
+    }).catch((err) => {
       if (err instanceof renderQueue.RenderAccountBusy) return 'account-busy';
       if (err instanceof renderQueue.RenderQueueFull) return 'queue-full';
+      // No time rather than no room — at the door, or at its turn.
+      if (err instanceof renderQueue.RenderWontFit) return err;
       throw err;
     });
 
@@ -383,6 +395,13 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       return res.status(429).json({
         error: 'The server is rendering other videos right now. Try again in a minute or two.',
       });
+    }
+
+    if (rendered instanceof renderQueue.RenderWontFit) {
+      // Room in the queue, not time: what is in front of this film would leave
+      // it unfinished when the proxy closes this request. Said now, while the
+      // trainer is still connected to read it; nothing was drawn or metered.
+      return res.status(429).json({ error: renderBudget.retrySentence(rendered.waitMs) });
     }
 
     // The client hands this to the system browser, which cannot send an

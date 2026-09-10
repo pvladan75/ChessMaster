@@ -137,6 +137,63 @@ test('a film too long to finish even alone is left to the route', async () => {
   assert.equal(await long, 'drawn');
 });
 
+test('a film whose client waits on its connection goes before films drawn in the background', async () => {
+  // Item 5 of part two: a tutorial's film is drawn after its request and has no
+  // deadline; the recorded-lesson export is still drawn inside its request and
+  // has one. Behind 500 s of background film it could not finish in its 300;
+  // in front of it, it can — and the background film loses only a minute.
+  const drawing = held();
+  const first = queue.run('lane-a', drawing.task, () => {}, { owner: 1, estimateMs: 10 * SECOND });
+  await settle();
+  const background = queue.run('lane-b', async () => 'drawn', () => {}, { owner: 2, estimateMs: 500 * SECOND });
+  await settle();
+  const connected = queue.run('lane-c', async () => 'drawn', () => {}, {
+    owner: 3, estimateMs: 60 * SECOND, deadline: Date.now() + 300 * SECOND,
+  });
+  connected.catch(() => {});
+  await settle();
+  try {
+    assert.equal(queue.positionOf('lane-c'), 1, 'the film whose client is waiting is next');
+    assert.equal(queue.positionOf('lane-b'), 2);
+  } finally {
+    drawing.release();
+    await first;
+  }
+  assert.equal(await within(connected), 'drawn');
+  assert.equal(await within(background), 'drawn');
+});
+
+test('a film its client waits for is refused at its turn when the queue made it late', async () => {
+  // Admitted on the estimate of the film in front of it — which then drew for
+  // 80 s rather than 10. Started now it would be cut off by the proxy half-way,
+  // with the slot spent for nothing, so it is told while its client is still
+  // connected. The clock is the queue's own, frozen and moved by hand.
+  const realNow = Date.now;
+  let now = realNow();
+  Date.now = () => now;
+  try {
+    const drawing = held();
+    const first = queue.run('turn-a', drawing.task, () => {}, { owner: 1, estimateMs: 10 * SECOND });
+    await settle();
+    let drawn = false;
+    const late = queue.run('turn-b', async () => { drawn = true; }, () => {}, {
+      owner: 2, estimateMs: 60 * SECOND, deadline: now + 100 * SECOND,
+    });
+    late.catch(() => {});
+    await settle();
+    assert.equal(queue.snapshot().waiting, 1, 'admitted: 10 s in front, 60 of its own, 100 to do both');
+
+    now += 80 * SECOND;
+    drawing.release();
+    await first;
+    await assert.rejects(within(late), queue.RenderWontFit);
+    assert.equal(drawn, false, 'a film that would be cut off half-way was started');
+    assert.equal(queue.snapshot().running, 0, 'and the slot was not spent on it');
+  } finally {
+    Date.now = realNow;
+  }
+});
+
 test('a film with no deadline is counted in front of others, and never refused for time', async () => {
   // The recorded-lesson export: it says how long it will take, so a tutorial
   // behind it is judged by the real work in front of it, and it has no

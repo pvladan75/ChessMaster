@@ -96,11 +96,20 @@ class TutorialNarrationScreen extends StatefulWidget {
     this.sourceFactory,
     this.store,
     this.player,
-    this.stopAtMs = narrationStopAtMs,
-  });
+    this.maxMs = narrationFallbackMaxMs,
+    int? stopAtMs,
+    // `narrationStopAtFor(maxMs)`, written out: a const constructor cannot
+    // call a function.
+  }) : stopAtMs = stopAtMs ?? maxMs - 1000;
 
-  /// Where a take is stopped because the server would refuse anything longer.
-  /// A parameter only so a test need not record fifteen minutes.
+  /// The longest take the server accepts. The studio asks the server for it
+  /// before this screen opens (`LessonApiService.narrationMaxMs`); the default
+  /// is the fallback for when it could not be asked.
+  final int maxMs;
+
+  /// Where a take is stopped because the server would refuse anything longer:
+  /// a second before [maxMs]. Given on its own only so a test need not record
+  /// for minutes.
   final int stopAtMs;
 
   /// The saved tutorial the take is kept under.
@@ -322,7 +331,7 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
       AppFeedback.info(
         context,
         'The recording stopped at ${narrationClockOf(take.durationMs)}: '
-        '${narrationMaxMs ~/ 60000} minutes is the most one recording may be.',
+        '${widget.maxMs ~/ 60000} minutes is the most one recording may be.',
       );
     }
   }

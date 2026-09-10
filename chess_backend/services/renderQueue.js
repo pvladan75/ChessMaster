@@ -140,9 +140,18 @@ class RenderWontFit extends Error {
 /// An account that is not in [ticks] has never been served and therefore goes
 /// first; strict `<` keeps arrival order among equals.
 function nextIndex(entries, ticks) {
+  // **A client waiting on its connection goes first.** An export still drawn
+  // inside its request — the recorded lesson's — has a deadline, the moment
+  // nginx closes that request; a tutorial film drawn in the background since
+  // item 5 of part two of docs/PLAN-SNIMANJE.md has none. Behind a queue of
+  // ten-minute tutorials the first would be cut off by the proxy, while the
+  // tutorials lose only minutes. So while any job with a deadline waits, only
+  // those are chosen from, and round-robin decides among them.
+  const urgent = entries.some(hasDeadline);
   let best = -1;
   let bestTick = Infinity;
   entries.forEach((entry, index) => {
+    if (urgent && !hasDeadline(entry)) return;
     const served = ticks.has(entry.key) ? ticks.get(entry.key) : -1;
     if (served < bestTick) {
       bestTick = served;
@@ -278,9 +287,37 @@ function release(job) {
   if (inFlightFor(job.key) === 0) servedAt.delete(job.key);
 }
 
+/// Whether [entry]'s client is waiting on its connection: it has a moment after
+/// which the film is worth nothing.
+function hasDeadline(entry) {
+  return entry.deadline !== null && entry.deadline !== undefined;
+}
+
+/// Whether [job], starting at [now], would finish after its deadline **because
+/// it waited** — it would have fitted had it started when it arrived.
+///
+/// A job too long to finish even alone is not the queue's to refuse, here as at
+/// admission ([admits]): its sentence is „split the tutorial", and only the
+/// route knows the ways out of it.
+function lateAtItsTurn(job, now) {
+  if (!hasDeadline(job)) return false;
+  const estimate = job.estimateMs || 0;
+  return now + estimate > job.deadline && job.arrivedAt + estimate <= job.deadline;
+}
+
 function pump() {
   while (running < concurrency() && waiting.length > 0) {
     const [next] = waiting.splice(nextIndex(waiting, servedAt), 1);
+    // **A deadline is enforced at its turn as well as at the door.** Admission
+    // judged it on the estimates of the films in front, and a film that drew
+    // slower than it said can have eaten the time since. Started now, it would
+    // be cut off by the proxy half-way, with the slot spent for nothing; so it
+    // is refused while its client is still connected to be told.
+    if (lateAtItsTurn(next, Date.now())) {
+      if (inFlightFor(next.key) === 0) servedAt.delete(next.key);
+      next.stop(new RenderWontFit(0));
+      continue;
+    }
     claim(next);
     next.start();
   }
@@ -296,6 +333,27 @@ function revise(id, remainingMs) {
   const job = runningJobs.get(id);
   if (!job) return;
   job.estimateMs = Date.now() - job.startedAt + remainingMs;
+}
+
+/// Takes a job that has not started out of the queue, and rejects its [run]
+/// with [reason]. Returns whether it was waiting.
+///
+/// Its trainer cancelled it (item 5 of part two of docs/PLAN-SNIMANJE.md). Left
+/// to wait for its turn and then stop there, it would hold a place somebody
+/// else waits behind, and count against its own account's share the whole time
+/// — so a trainer who cancels to change the resolution could be refused the
+/// film they meant instead. A job being drawn is not touched here: its own
+/// signal stops it, and the slot comes back when it has.
+function withdraw(id, reason) {
+  const index = waiting.findIndex((entry) => entry.id === id);
+  if (index === -1) return false;
+  const [entry] = waiting.splice(index, 1);
+  // Forgotten the way `release` forgets an account: fairness is about who is
+  // competing now.
+  if (inFlightFor(entry.key) === 0) servedAt.delete(entry.key);
+  entry.stop(reason);
+  announce();
+  return true;
 }
 
 /// Run [task] when it is this job's turn.
@@ -316,7 +374,9 @@ async function run(id, task, onPosition = () => {}, {
   deadline = null,
 } = {}) {
   const key = ownerKey(owner, id);
-  const job = { id, key, estimateMs, deadline };
+  // When it arrived: what [lateAtItsTurn] asks whether it would have fitted
+  // from, had nothing been in front of it.
+  const job = { id, key, estimateMs, deadline, arrivedAt: Date.now() };
 
   // **This account's own share, asked first.** Before the queue's ceiling,
   // because the two refusals need different sentences and the account's own is
@@ -341,7 +401,7 @@ async function run(id, task, onPosition = () => {}, {
     if (!verdict.ok) {
       throw new RenderWontFit(verdict.waitMs);
     }
-    await new Promise((start) => {
+    await new Promise((start, stop) => {
       waiting.push({
         ...job,
         onPosition,
@@ -349,6 +409,9 @@ async function run(id, task, onPosition = () => {}, {
           onPosition(0);
           start();
         },
+        // [withdraw]: the job leaves without ever holding a slot, so there is
+        // nothing for `release` to give back.
+        stop,
       });
       // Everyone is told again, not just the arrival: a job that joins can
       // change where the others stand, because the order is round-robin and the
@@ -381,6 +444,7 @@ function snapshot() {
 module.exports = {
   run,
   revise,
+  withdraw,
   positionOf,
   snapshot,
   RenderQueueFull,

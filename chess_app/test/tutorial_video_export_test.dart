@@ -10,7 +10,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:chess_app/services/app_settings_service.dart';
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -83,30 +82,67 @@ final Map<String, dynamic> _emptyTutorialRow = {
   'position_list': <Map<String, dynamic>>[],
 };
 
+/// The one render the fake server runs, as its progress route describes it.
+///
+/// Mutable on purpose. Since item 5 of part two of `docs/PLAN-SNIMANJE.md` the
+/// export request is answered before the film is drawn, and the dialog learns
+/// that the film has ended from this route — so a test moves the render along
+/// by changing it, the way the server would.
+class _Render {
+  String status = 'done';
+  int percent = 0;
+  int? etaSeconds;
+  int queuedAhead = 0;
+  String? error;
+
+  Map<String, dynamic> toJson() => {
+        'status': status,
+        'percent': status == 'done' ? 100 : percent,
+        'done': status != 'running',
+        'etaSeconds': etaSeconds,
+        'queuedAhead': queuedAhead,
+        if (status == 'done') ...{
+          'message':
+              'Video rendered successfully, saved, and ready for download!',
+          'downloadUrl':
+              '/recordings/export-download/tutorial_12.mp4?token=fresh',
+        },
+        if (error != null) 'error': error,
+      };
+}
+
+/// The export request itself — not a poll of its progress, whose path carries
+/// the same words, and not a cancel.
+bool _isExport(http.Request r) =>
+    r.method == 'POST' && r.url.path.endsWith('/export-video');
+
+bool _isProgress(http.Request r) => r.url.path.endsWith('/progress');
+
 class _TestLessonApi extends LessonApiService {
   _TestLessonApi._(
     this.requests,
+    this.render,
     http.Client client,
   ) : super(authToken: 'tok', client: client);
 
   final List<http.Request> requests;
+  final _Render render;
 
   factory _TestLessonApi({
     required List<http.Request> requests,
-    int status = 200,
-    String responseBody =
-        '{"message":"Video rendered successfully, saved, and ready for download!","jobId":"job_12_1","status":"completed","downloadUrl":"/recordings/export-download/tutorial_12.mp4?token=tok","filename":"tutorial_12.mp4"}',
+    // Accepted: the server names the job and draws the film behind the answer.
+    int status = 202,
+    String responseBody = '{"jobId":"job-12","status":"running"}',
     List<Map<String, dynamic>>? rows,
     Future<void> Function()? onExportVideo,
     bool ttsAvailable = false,
     List<Map<String, dynamic>>? ttsVoices,
-    int? progressPercent,
-    int? progressEtaSeconds,
-    int progressQueuedAhead = 0,
+    _Render? render,
     int previewStatus = 200,
     int videoLinkStatus = 200,
   }) {
     final effectiveRows = rows ?? [_normalTutorialRow, _emptyTutorialRow];
+    final job = render ?? _Render();
     final client = MockClient((req) async {
       requests.add(req);
       if (req.method == 'GET' && req.url.path == '/lessons') {
@@ -126,15 +162,20 @@ class _TestLessonApi extends LessonApiService {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
-      if (req.method == 'GET' && req.url.path.contains('/progress')) {
+      if (req.method == 'GET' && _isProgress(req)) {
         return http.Response(
-          jsonEncode({
-            'percent': progressPercent ?? 0,
-            'done': false,
-            'etaSeconds': progressEtaSeconds,
-            'queuedAhead': progressQueuedAhead,
-          }),
+          jsonEncode(job.toJson()),
           200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (req.method == 'DELETE' &&
+          req.url.path.startsWith('/lessons/export-video/')) {
+        // Stopped; its row says so by the next poll, as the real one does.
+        job.status = 'cancelled';
+        return http.Response(
+          '{"status":"cancelling"}',
+          202,
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
@@ -177,7 +218,7 @@ class _TestLessonApi extends LessonApiService {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
-      if (req.method == 'POST' && req.url.path.contains('/export-video')) {
+      if (_isExport(req)) {
         if (onExportVideo != null) {
           await onExportVideo();
         }
@@ -189,7 +230,7 @@ class _TestLessonApi extends LessonApiService {
       }
       return http.Response('{"error":"Not found"}', 404);
     });
-    return _TestLessonApi._(requests, client);
+    return _TestLessonApi._(requests, job, client);
   }
 }
 
@@ -317,7 +358,7 @@ void main() {
     // **Nothing was rendered.** A preview that quietly exported would be worse
     // than no preview: it would spend the slot it exists to save.
     expect(
-      requests.where((r) => r.url.path.contains('/export-video')),
+      requests.where((r) => _isExport(r)),
       isEmpty,
     );
 
@@ -397,7 +438,7 @@ void main() {
 
     expect(find.byKey(const Key('preview-dialog')), findsNothing);
     expect(
-      requests.where((r) => r.url.path.contains('/export-video')),
+      requests.where((r) => _isExport(r)),
       isEmpty,
     );
   });
@@ -439,7 +480,7 @@ void main() {
     expect(asked, hasLength(1));
     // And nothing was rendered to get it.
     expect(
-      requests.where((r) => r.url.path.contains('/export-video')),
+      requests.where((r) => _isExport(r)),
       isEmpty,
     );
   });
@@ -603,7 +644,7 @@ void main() {
     await tester.tap(find.descendant(
         of: find.byType(AlertDialog).last, matching: find.text('Cancel')));
     await tester.pumpAndSettle();
-    expect(requests.where((r) => r.url.path.contains('/export-video')), isEmpty,
+    expect(requests.where((r) => _isExport(r)), isEmpty,
         reason: 'cancelling asks for nothing');
   });
 
@@ -623,8 +664,7 @@ void main() {
     expect(find.text('This tutorial has nothing to show yet.'), findsOneWidget);
 
     // Assert on the request: NO export request was sent
-    final exportRequests =
-        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    final exportRequests = requests.where((r) => _isExport(r)).toList();
     expect(exportRequests, isEmpty,
         reason:
             'Empty tutorial must be refused client-side without sending an API request');
@@ -645,8 +685,7 @@ void main() {
     await startExport(tester, 'Opozicija');
 
     // Assert on the request
-    final exportRequests =
-        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    final exportRequests = requests.where((r) => _isExport(r)).toList();
     expect(exportRequests, hasLength(1),
         reason: 'Exactly one export-video request must be sent');
 
@@ -692,8 +731,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    final exportRequests =
-        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    final exportRequests = requests.where((r) => _isExport(r)).toList();
     expect(exportRequests, hasLength(1));
     final body = jsonDecode(exportRequests.single.body) as Map<String, dynamic>;
     expect(body.containsKey('narrate'), isFalse,
@@ -735,8 +773,7 @@ void main() {
     await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
 
-    final exportRequests =
-        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    final exportRequests = requests.where((r) => _isExport(r)).toList();
     expect(exportRequests, hasLength(1));
     final body = jsonDecode(exportRequests.single.body) as Map<String, dynamic>;
     expect(body['narrate'], isTrue);
@@ -779,8 +816,7 @@ void main() {
     await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
 
-    final exportRequests =
-        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    final exportRequests = requests.where((r) => _isExport(r)).toList();
     expect(exportRequests, hasLength(2));
     final second = jsonDecode(exportRequests.last.body) as Map<String, dynamic>;
     expect(second['voice'], 'de_DE-thorsten-medium',
@@ -818,8 +854,7 @@ void main() {
     await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
 
-    final exportRequests =
-        requests.where((r) => r.url.path.contains('/export-video')).toList();
+    final exportRequests = requests.where((r) => _isExport(r)).toList();
     expect(exportRequests, hasLength(1));
     expect(exportRequests.single.url.path, '/lessons/12/export-video',
         reason: 'the tutorial being written is the one exported');
@@ -852,9 +887,8 @@ void main() {
     await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
 
-    final body = jsonDecode(requests
-        .lastWhere((r) => r.url.path.contains('/export-video'))
-        .body) as Map<String, dynamic>;
+    final body = jsonDecode(requests.lastWhere((r) => _isExport(r)).body)
+        as Map<String, dynamic>;
     expect(body['narrate'], isFalse, reason: 'a silent film was asked for');
   });
 
@@ -870,9 +904,8 @@ void main() {
     await openList(tester, api: api);
     await startExport(tester, 'Opozicija');
 
-    final body = jsonDecode(requests
-        .lastWhere((r) => r.url.path.contains('/export-video'))
-        .body) as Map<String, dynamic>;
+    final body = jsonDecode(requests.lastWhere((r) => _isExport(r)).body)
+        as Map<String, dynamic>;
     final look = body['look'] as Map<String, dynamic>;
 
     for (final key in [
@@ -906,15 +939,17 @@ void main() {
       (tester) async {
     // „Nema info o tome" — a render takes tens of seconds. The percentage is
     // the server's own frame count rather than an animation pretending to be
-    // one, and the request carries the job id the app polls for.
+    // one. Since item 5 of part two the export is answered before the film is
+    // drawn, so the bar also learns from its poll that the film has ended.
     final requests = <http.Request>[];
-    final completer = Completer<void>();
+    final render = _Render()
+      ..status = 'running'
+      ..percent = 42
+      ..etaSeconds = 95;
     final api = _TestLessonApi(
       requests: requests,
       ttsAvailable: false,
-      onExportVideo: () => completer.future,
-      progressPercent: 42,
-      progressEtaSeconds: 95,
+      render: render,
     );
 
     await openList(tester, api: api);
@@ -923,11 +958,11 @@ void main() {
     expect(find.text('Exporting video'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
 
-    final body = jsonDecode(requests
-        .lastWhere((r) => r.url.path.contains('/export-video'))
-        .body) as Map<String, dynamic>;
-    expect(body['jobId'], isNotNull,
-        reason: 'the client names its own render so it can watch it');
+    // The server names the job now: a key the client chooses is one another
+    // client can choose too.
+    final body =
+        jsonDecode(requests.lastWhere(_isExport).body) as Map<String, dynamic>;
+    expect(body.containsKey('jobId'), isFalse);
 
     // The bar is refreshed from a poll, which the server answers every ten per
     // cent with an estimate of what is left. „Nek šalje na svakih 10 procenata
@@ -935,12 +970,18 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump();
     expect(find.text('42% · about 2 minutes left'), findsOneWidget);
+    expect(requests.where(_isProgress).map((r) => r.url.path).toSet(),
+        {'/lessons/export-video/job-12/progress'},
+        reason: 'the job the server named is the one watched');
 
-    completer.complete();
+    render.status = 'done';
+    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(find.text('Exporting video'), findsNothing,
-        reason: 'the bar closes itself when the render answers');
+        reason: 'the bar closes itself when the render ends');
     expect(find.text('Video ready!'), findsOneWidget);
+    expect(find.textContaining('token=fresh'), findsOneWidget,
+        reason: 'the link is the one the progress route minted just now');
   });
 
   testWidgets('1080p is asked for by a switch, and remembered', (tester) async {
@@ -958,9 +999,8 @@ void main() {
     // Off by default, and the ordinary export is the one nobody has to think
     // about.
     await startExport(tester, 'Opozicija');
-    var body = jsonDecode(requests
-        .lastWhere((r) => r.url.path.contains('/export-video'))
-        .body) as Map<String, dynamic>;
+    var body = jsonDecode(requests.lastWhere((r) => _isExport(r)).body)
+        as Map<String, dynamic>;
     expect(body['resolution'], '720p');
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
@@ -975,9 +1015,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    body = jsonDecode(requests
-        .lastWhere((r) => r.url.path.contains('/export-video'))
-        .body) as Map<String, dynamic>;
+    body = jsonDecode(requests.lastWhere((r) => _isExport(r)).body)
+        as Map<String, dynamic>;
     expect(body['resolution'], '1080p',
         reason: 'the switch is wired to the request, not to the dialog only');
     await tester.tap(find.text('Close'));
@@ -994,9 +1033,8 @@ void main() {
       matching: find.text('Export'),
     ));
     await tester.pumpAndSettle();
-    body = jsonDecode(requests
-        .lastWhere((r) => r.url.path.contains('/export-video'))
-        .body) as Map<String, dynamic>;
+    body = jsonDecode(requests.lastWhere((r) => _isExport(r)).body)
+        as Map<String, dynamic>;
     expect(body['resolution'], '1080p');
   });
 
@@ -1009,13 +1047,13 @@ void main() {
     // bar is exactly what a render that had begun and frozen would show, which
     // is why a queued one says something else.
     final requests = <http.Request>[];
-    final completer = Completer<void>();
+    final render = _Render()
+      ..status = 'running'
+      ..queuedAhead = 2;
     final api = _TestLessonApi(
       requests: requests,
       ttsAvailable: false,
-      onExportVideo: () => completer.future,
-      progressPercent: 0,
-      progressQueuedAhead: 2,
+      render: render,
     );
 
     await openList(tester, api: api);
@@ -1032,7 +1070,8 @@ void main() {
     expect(bar.value, isNull,
         reason: 'a bar stuck at 0 % reads as a render that started and froze');
 
-    completer.complete();
+    render.status = 'done';
+    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(find.text('Video ready!'), findsOneWidget);
   });
@@ -1063,5 +1102,218 @@ void main() {
     expect(remainingText(60), ' · about 1 minute left');
     expect(remainingText(95), ' · about 2 minutes left');
     expect(remainingText(600), ' · about 10 minutes left');
+  });
+
+  // ------------------------------------------------ item 5: after the request
+  //
+  // „Ne mogu da pošaljem sa istog naloga, jer se ekran zamrzne kad pošaljem na
+  // renderovanje." The film is drawn after its request since item 5 of part two
+  // of docs/PLAN-SNIMANJE.md, so the bar can be put away, found again, and
+  // stopped.
+
+  testWidgets('Hide puts the bar away, and the film goes on rendering',
+      (tester) async {
+    final requests = <http.Request>[];
+    final render = _Render()
+      ..status = 'running'
+      ..percent = 10;
+    final api =
+        _TestLessonApi(requests: requests, ttsAvailable: false, render: render);
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija', settle: false);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Exporting video'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('render-hide')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Exporting video'), findsNothing);
+    expect(find.textContaining('keeps rendering'), findsOneWidget);
+    expect(requests.where((r) => r.method == 'DELETE'), isEmpty,
+        reason: 'hiding is not stopping');
+
+    // The row shows the render rather than offering a second one.
+    expect(iconButtonOn('Opozicija', 'Rendering — show progress'),
+        findsOneWidget);
+    expect(iconButtonOn('Opozicija', 'Export video'), findsNothing);
+
+    // And nothing goes on asking once the bar is gone.
+    final polls = requests.where(_isProgress).length;
+    await tester.pump(const Duration(seconds: 3));
+    expect(requests.where(_isProgress).length, polls,
+        reason: 'a hidden bar kept polling');
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+      'a render running on a row is shown again, and nothing new is started',
+      (tester) async {
+    // A hidden render has to be somewhere a trainer can find it again. The list
+    // says which tutorial has one (`render_job_id`).
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      rows: [
+        {..._normalTutorialRow, 'render_job_id': 'job-7'},
+      ],
+    );
+    await openList(tester, api: api);
+
+    expect(iconButtonOn('Opozicija', 'Export video'), findsNothing);
+    await tester.tap(iconButtonOn('Opozicija', 'Rendering — show progress'));
+    await tester.pumpAndSettle();
+
+    expect(requests.where(_isExport), isEmpty,
+        reason: 'shown again, not started again');
+    final watched = requests.where(_isProgress).map((r) => r.url.path);
+    expect(watched, isNotEmpty);
+    expect(watched, everyElement('/lessons/export-video/job-7/progress'));
+    expect(find.text('Video ready!'), findsOneWidget);
+
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    expect(iconButtonOn('Opozicija', 'Download video'), findsOneWidget,
+        reason: 'the film it made is on the row now');
+    expect(iconButtonOn('Opozicija', 'Export video'), findsOneWidget);
+  });
+
+  testWidgets('Cancel render stops it on the server, and the bar says so',
+      (tester) async {
+    final requests = <http.Request>[];
+    final render = _Render()
+      ..status = 'running'
+      ..percent = 30;
+    final api =
+        _TestLessonApi(requests: requests, ttsAvailable: false, render: render);
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija', settle: false);
+    await tester.pump(const Duration(seconds: 1));
+
+    await tester.tap(find.byKey(const Key('render-cancel')));
+    await tester.pump();
+    // The bar stays until the render says it has stopped: a film finished in
+    // the same moment is still a film.
+    expect(find.text('Cancelling…'), findsOneWidget);
+    expect(find.text('Exporting video'), findsOneWidget);
+    final cancels = requests.where((r) => r.method == 'DELETE').toList();
+    expect(cancels, hasLength(1));
+    expect(cancels.single.url.path, '/lessons/export-video/job-12');
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('Exporting video'), findsNothing);
+    expect(find.text('Video export cancelled.'), findsOneWidget);
+    expect(find.text('Video ready!'), findsNothing);
+    expect(iconButtonOn('Opozicija', 'Export video'), findsOneWidget,
+        reason: 'a cancelled render leaves the row free to export again');
+  });
+
+  testWidgets('a render that failed says why, in the server\'s words',
+      (tester) async {
+    final requests = <http.Request>[];
+    final render = _Render()
+      ..status = 'failed'
+      ..error = 'With narration, this video would take about 12 minutes to '
+          'render. Export it without narration.';
+    final api =
+        _TestLessonApi(requests: requests, ttsAvailable: false, render: render);
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija');
+
+    expect(find.textContaining('about 12 minutes to render'), findsOneWidget);
+    expect(find.text('Video ready!'), findsNothing);
+    expect(find.text('Exporting video'), findsNothing);
+  });
+
+  testWidgets(
+      'a tutorial already rendering shows that render rather than starting another',
+      (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      status: 409,
+      responseBody: '{"error":"This tutorial is already being rendered.",'
+          '"jobId":"job-7","alreadyRendering":true}',
+    );
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija');
+
+    expect(find.textContaining('already rendering'), findsOneWidget,
+        reason: 'the choices just made are not what it is drawn with — said');
+    expect(requests.where(_isProgress).map((r) => r.url.path).toSet(),
+        {'/lessons/export-video/job-7/progress'});
+    expect(find.text('Video ready!'), findsOneWidget);
+  });
+
+  testWidgets('a refusal is said at once, and nothing is watched',
+      (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      status: 422,
+      responseBody: '{"error":"This video would take about 40 minutes to '
+          'render.","tooLong":true}',
+    );
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija');
+
+    expect(find.textContaining('about 40 minutes to render'), findsOneWidget);
+    expect(requests.where(_isProgress), isEmpty);
+    expect(find.text('Exporting video'), findsNothing);
+  });
+
+  testWidgets('the bar and both its buttons fit a 360 dp phone',
+      (tester) async {
+    // Measured, not assumed: a release build clips an overflow without a word,
+    // and a button past the edge of this dialog is a render nobody can stop.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final render = _Render()
+      ..status = 'running'
+      ..percent = 40
+      ..etaSeconds = 95;
+    final api = _TestLessonApi(requests: <http.Request>[], render: render);
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: TutorialLibraryCard(
+            session: session,
+            api: api,
+            assignmentApi: AssignmentApiService(authToken: 'tok'),
+            groupApi: GroupApiService(),
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Saved tutorials'));
+    await tester.pumpAndSettle();
+    await startExport(tester, 'Opozicija', settle: false);
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(tester.takeException(), isNull);
+    final dialog = tester.getRect(find.ancestor(
+        of: find.text('Exporting video'), matching: find.byType(AlertDialog)));
+    for (final key in ['render-hide', 'render-cancel']) {
+      final button = tester.getRect(find.byKey(Key(key)));
+      expect(button.left, greaterThanOrEqualTo(dialog.left),
+          reason: '$key starts inside the dialog');
+      expect(button.right, lessThanOrEqualTo(dialog.right),
+          reason: '$key ends inside the dialog');
+      expect(button.bottom, lessThanOrEqualTo(dialog.bottom),
+          reason: '$key is not cut off below it');
+    }
+
+    render.status = 'done';
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
   });
 }

@@ -842,7 +842,7 @@ async function renderRecordingToMP4({
         // Half a film is not a film. Removed here rather than by the caller,
         // because this is the only place that knows ffmpeg has let go of it.
         removePartial(outputPath);
-        console.log('[VIDEO_RENDER] Aborted: the client is gone, partial file removed');
+        console.log('[VIDEO_RENDER] Aborted: the render was cancelled, partial file removed');
         return reject(new RenderAborted());
       }
       if (code === 0) {

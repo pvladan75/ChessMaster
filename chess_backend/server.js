@@ -37,6 +37,7 @@ const realtime = require('./services/realtime');
 const { mayJoinRoom, maySpeakInRoom } = require('./services/roomAccess');
 const { mayRecordRoom } = require('./services/recordingConsent');
 const { cleanupOldExports } = require('./services/retentionService');
+const renderJobs = require('./services/renderJobs');
 const { createOpponentPrep } = require('./services/opponentPrep');
 const { createArchiveImporter } = require('./services/gameArchiveImport');
 const { corsVerdict, parseAllowedOrigins } = require('./services/corsPolicy');
@@ -734,6 +735,16 @@ async function startServer() {
     server.listen(PORT, () => {
       logger.info(`Server is listening on port ${PORT}`);
     });
+
+    // A tutorial's film is drawn after its request has been answered, so a
+    // render this process was holding when it stopped left a row that says
+    // 'running' and never will be. Each is failed and its trainer told, rather
+    // than left for them to find as a bar that never moves.
+    renderJobs.reapInterrupted(pool)
+      .then((count) => {
+        if (count > 0) logger.warn(`[RENDER] ${count} render(s) interrupted by the restart were marked failed`);
+      })
+      .catch((err) => logger.error(`[RENDER] Could not mark interrupted renders: ${err.message}`));
 
     // exports/ holds rendered MP4s, which are always reproducible from the
     // recording that made them — unlike uploads/ audio, they are safe to age

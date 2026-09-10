@@ -453,7 +453,7 @@ void main() {
         ' · 42 s left');
     expect(narrationRemainingText(narrationStopAtMs, narrationStopAtMs),
         ' · 0 s left');
-    expect(narrationStopAtMs, lessThan(narrationMaxMs),
+    expect(narrationStopAtMs, lessThan(narrationFallbackMaxMs),
         reason: 'a take stopped at the cap can end a chunk past it');
   });
 
@@ -744,6 +744,52 @@ void main() {
           find.byType(TutorialNarrationScreen));
       expect(screen.lessonId, 41);
       expect(screen.draft.sections, hasLength(1));
+      // This server answers nothing, so the screen stops at the shorter
+      // fallback: a take cut early is always accepted, and one cut at a guessed
+      // longer cap could be refused after it was spoken.
+      expect(screen.maxMs, narrationFallbackMaxMs);
+      expect(screen.stopAtMs, narrationStopAtMs);
+    });
+
+    testWidgets(
+        'the recording screen stops where the server says, not where the app guesses',
+        (tester) async {
+      // Item 5 of part two of docs/PLAN-SNIMANJE.md: the server derives the
+      // longest take from its render budget — thirty minutes at the defaults —
+      // and says so on `GET /lessons/:id/narration`. The app kept its own
+      // fifteen until then, in step with the server's by a comment alone.
+      final asked = <String>[];
+      final server = LessonApiService(
+        authToken: 'tok',
+        client: MockClient((req) async {
+          asked.add('${req.method} ${req.url.path}');
+          if (req.method == 'GET' && req.url.path == '/lessons/41/narration') {
+            return http.Response('{"status":"none","maxMs":1800000}', 200);
+          }
+          return http.Response('{}', 404);
+        }),
+      );
+      tester.view.physicalSize = const Size(1600, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        home: TutorialStudioScreen(
+          session: session,
+          entry: savedEntry(),
+          lessonApi: server,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('record-narration')));
+      await tester.pumpAndSettle();
+
+      expect(asked, contains('GET /lessons/41/narration'));
+      final screen = tester.widget<TutorialNarrationScreen>(
+          find.byType(TutorialNarrationScreen));
+      expect(screen.maxMs, 30 * 60 * 1000);
+      expect(screen.stopAtMs, narrationStopAtFor(30 * 60 * 1000),
+          reason: 'a second before the cap, so a last chunk cannot cross it');
     });
   });
 }

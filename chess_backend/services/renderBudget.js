@@ -1,25 +1,50 @@
-// renderBudget.js — whether a film can be drawn inside the request that asks
-// for it, answered before anything is drawn. Item 4 of part two of
-// docs/PLAN-SNIMANJE.md.
+// renderBudget.js — whether a film is short enough to draw in one go, answered
+// before anything is drawn. Item 4 of part two of docs/PLAN-SNIMANJE.md.
 //
-// The render happens inside the POST, and that request has a ceiling: nginx
-// closes a proxied request after 300 s (deploy/app-setup.sh) and the app's own
-// HTTP timeout is five minutes. A film that needed longer used to be drawn
-// anyway until the connection went and the abort stopped it — a trainer
-// watching a bar for five minutes and getting nothing. The arithmetic was there
-// the whole time: the number of frames is known before the first one is drawn.
+// It was written while the render happened inside the POST, and that request
+// had a ceiling: nginx closes a proxied request after 300 s. A film that needed
+// longer used to be drawn anyway until the connection went and the abort
+// stopped it — a trainer watching a bar for five minutes and getting nothing.
+// The arithmetic was there the whole time: the number of frames is known before
+// the first one is drawn.
 //
-// **Temporary by design.** When the render leaves the request (item 5), „too
-// long for one request" stops being a refusal and becomes the choice of a lane,
-// made by this same arithmetic.
+// **Since item 5 a tutorial's film is drawn after its request**, so its ceiling
+// is not the connection's any more and was raised to 600 s by the owner on
+// 10.9.2026. It is still a ceiling, for the reason the owner gave for the
+// hybrid: „ne bih dozvolio da jedan veliki render koči nekoliko manjih duže
+// vreme." One slot draws one film at a time, and until a long film is drawn in
+// chunks that other films can go between, the longest film is the longest
+// anybody else waits behind it. When chunking lands, „too long" stops being a
+// refusal and becomes the choice of a lane, made by this same arithmetic.
+//
+// The connection's own number is still here, because one export is still drawn
+// inside its request — the recorded lesson's — and the queue has to know when
+// that client stops waiting.
 
-/// How long one request may take, in seconds.
+/// How long a request may take before nginx closes it, in seconds.
 ///
-/// Default 300: nginx's `proxy_read_timeout` in deploy/app-setup.sh, which is
-/// the lower of the two ceilings. Change the two together.
+/// Default 300: `proxy_read_timeout` in deploy/app-setup.sh — change the two
+/// together. Read only for an export still drawn inside its request
+/// (`routes/recordings.js`), to tell the queue when its client stops waiting.
 function requestSeconds() {
   const n = Number(process.env.RENDER_REQUEST_SECONDS);
   return Number.isFinite(n) && n > 0 ? n : 300;
+}
+
+/// The longest one film may take to draw, in seconds.
+///
+/// Default 600 — the owner's decision of 10.9.2026, once the tutorial film had
+/// left the request: about thirty minutes of captioned film at 720p on the
+/// default rate. Not nginx's number, since nothing waits on a connection for
+/// it; it is the longest one film holds the one render slot, which is what
+/// every other trainer waits behind. Raising it lets longer films through and
+/// makes shorter ones wait longer behind them.
+///
+/// **The longest recorded narration follows from it** (`narrationUpload.js`),
+/// so the two cannot be set to disagree.
+function maxDrawSeconds() {
+  const n = Number(process.env.RENDER_MAX_DRAW_SECONDS);
+  return Number.isFinite(n) && n > 0 ? n : 600;
 }
 
 /// Frames drawn per second of wall clock, at [resolution], on this machine.
@@ -30,8 +55,8 @@ function requestSeconds() {
 /// eight runs — a factor of two on identical input. So the default is the slow
 /// end with a margin, and 1080p is half of it: a still costs 2.1 times as much
 /// there (1.2 s against 2.5 s for the same film). The droplet's own numbers are
-/// unknown until somebody measures them there. Too high lets a film start that
-/// the connection will not see finish; too low refuses films that would have
+/// unknown until somebody measures them there. Too high admits a film that holds
+/// the slot longer than the ceiling says; too low refuses films that would have
 /// fitted.
 ///
 /// 480p, which only the recorded-lesson export offers, is judged at the 720p
@@ -51,10 +76,10 @@ function drawSeconds({ seconds, fps, resolution }) {
   return Math.ceil((seconds * fps) / drawRate(resolution));
 }
 
-/// The longest film, in seconds, that one request can draw at [fps] and
+/// The longest film, in seconds, that can be drawn in one go at [fps] and
 /// [resolution]. Rounded down, for the same reason.
 function longestFilmSeconds({ fps, resolution }) {
-  return Math.floor((requestSeconds() * drawRate(resolution)) / fps);
+  return Math.floor((maxDrawSeconds() * drawRate(resolution)) / fps);
 }
 
 function aboutMinutes(seconds) {
@@ -64,7 +89,7 @@ function aboutMinutes(seconds) {
 
 const PARTS = ['', 'one', 'two', 'three', 'four', 'five'];
 
-/// The refusal for a film that no single request can draw, and the ways out.
+/// The refusal for a film too long to draw in one go, and the ways out.
 ///
 /// **It says what to do.** A refusal with no door is a bug report from the
 /// trainer's side. Splitting is always a door — into as many tutorials as the
@@ -74,7 +99,7 @@ const PARTS = ['', 'one', 'two', 'three', 'four', 'five'];
 /// second refusal waiting to happen.
 function tooLongSentence({ drawSeconds: needed, fps, resolution, doors = [], narrated = false }) {
   const fits = Math.floor(longestFilmSeconds({ fps, resolution }) / 60);
-  const parts = Math.max(2, Math.ceil(needed / requestSeconds()));
+  const parts = Math.max(2, Math.ceil(needed / maxDrawSeconds()));
   const ways = [`split the tutorial into ${PARTS[parts] || parts} shorter ones`, ...doors];
   const last = ways.pop();
   const list = ways.length ? `${ways.join(', ')}, or ${last}` : last;
@@ -86,20 +111,21 @@ function tooLongSentence({ drawSeconds: needed, fps, resolution, doors = [], nar
 /// The refusal for a film that would fit on its own but not behind the ones
 /// already here — and when there will be room. Not „the server is busy", which
 /// is `RenderQueueFull`'s sentence: this server has a place in the queue, just
-/// not enough time in front of this film before the connection closes.
+/// not enough time in front of this film before the connection closes. Only an
+/// export still drawn inside its request can be told this.
 function retrySentence(waitMs) {
   const when = waitMs <= 60_000 ? 'in a minute or two' : `in ${aboutMinutes(waitMs / 1000)}`;
   return 'The server has other videos to render before this one and could not finish it '
     + `before the connection closes. Try again ${when}.`;
 }
 
-/// Thrown at a film's turn when it can no longer be drawn before its client
-/// stops waiting: the synthesised voice made it longer than the length it was
-/// admitted on, or the films in front of it took longer than they said.
-class RenderOutOfTime extends Error {
+/// Thrown at a film's turn when it turns out too long to draw in one go: a
+/// synthesised voice made it longer than the length it was accepted on, and
+/// that length is known only once the voice has spoken.
+class RenderTooLong extends Error {
   constructor({ drawSeconds: needed, fps, narrated = false }) {
-    super(`render needs ${needed}s and the request has less than that left`);
-    this.name = 'RenderOutOfTime';
+    super(`render needs ${needed}s, more than one film may take`);
+    this.name = 'RenderTooLong';
     this.drawSeconds = needed;
     this.fps = fps;
     this.narrated = narrated;
@@ -108,10 +134,11 @@ class RenderOutOfTime extends Error {
 
 module.exports = {
   requestSeconds,
+  maxDrawSeconds,
   drawRate,
   drawSeconds,
   longestFilmSeconds,
   tooLongSentence,
   retrySentence,
-  RenderOutOfTime,
+  RenderTooLong,
 };

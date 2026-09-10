@@ -24,6 +24,8 @@ const path = require('path');
 const crypto = require('crypto');
 const logger = require('./logger');
 const { wavInfo } = require('./tts/wav');
+const renderBudget = require('./renderBudget');
+const videoRenderer = require('../videoRenderer');
 
 /// The one format the app records in: 16 kHz mono 16-bit PCM
 /// (`narration_take.dart`). Anything else did not come from this app's
@@ -32,23 +34,37 @@ const NARRATION_SAMPLE_RATE = 16000;
 const NARRATION_CHANNELS = 1;
 const NARRATION_BITS = 16;
 
-/// The longest recording accepted — fifteen minutes, the owner's decision of
-/// 10.9.2026.
+/// The longest recording accepted, in seconds.
 ///
-/// **It is a consequence of where the render runs, not a judgement about
-/// lessons.** The film is still drawn inside the export request, and nginx ends
-/// a proxied request after 300 s (`deploy/app-setup.sh`). A recorded film draws
-/// at roughly a quarter of real time, so fifteen minutes of voice is about four
-/// minutes of drawing, which fits with a margin; twenty would not. When step 5
-/// of the plan's part two takes the render out of the request, this cap has no
-/// reason left and goes with it.
-const NARRATION_MAX_SECONDS = 15 * 60;
+/// **A consequence of what the server can draw, not a judgement about lessons
+/// — and derived rather than set.** A recorded film is drawn with its captions,
+/// four frames to a second of film at most, and one film may take at most
+/// `RENDER_MAX_DRAW_SECONDS` to draw (`renderBudget.js`). So the longest
+/// recording is the longest captioned film one render may be: thirty minutes at
+/// the defaults since item 5 of part two of docs/PLAN-SNIMANJE.md. It was a
+/// fixed fifteen while the film was drawn inside the 300 s of an export request.
+///
+/// Derived, so the recording cap and the render ceiling cannot be set to
+/// disagree — a take accepted here is always a take the export will draw at
+/// 720p. The app asks for it (`GET /lessons/:id/narration`, `maxMs`) rather than
+/// keeping a copy, which is how the two fifteens stayed in step by comment
+/// alone until now.
+function narrationMaxSeconds() {
+  // Read at the call, not at load: videoRenderer is the one place the caption
+  // frame rate is written, and a value copied at require time is one a cycle
+  // could leave undefined.
+  return renderBudget.longestFilmSeconds({ fps: videoRenderer.CAPTION_FPS, resolution: '720p' });
+}
 
 /// The most bytes an upload may carry: the cap's worth of audio, and room for a
 /// header. Given to multer, so a file over the cap is refused while it arrives
-/// rather than after it has been written out whole.
-const NARRATION_MAX_BYTES = NARRATION_MAX_SECONDS * NARRATION_SAMPLE_RATE
-  * NARRATION_CHANNELS * (NARRATION_BITS / 8) + 64 * 1024;
+/// rather than after it has been written out whole. Multer is built when the
+/// route is, so this is read once, with the environment the server started
+/// with.
+function narrationMaxBytes() {
+  return narrationMaxSeconds() * NARRATION_SAMPLE_RATE
+    * NARRATION_CHANNELS * (NARRATION_BITS / 8) + 64 * 1024;
+}
 
 /// Above this the microphone was live — the app's `liveMicrophoneDbfs`, for the
 /// same reason: a muted microphone on the development machine recorded −91 dB
@@ -162,9 +178,10 @@ function judgeNarration({ file, markersMs, durationMs, beats }) {
   }
 
   const measuredMs = Math.floor(info.dataBytes * 1000 / info.byteRate);
-  if (measuredMs > NARRATION_MAX_SECONDS * 1000) {
+  const maxSeconds = narrationMaxSeconds();
+  if (measuredMs > maxSeconds * 1000) {
     return refuse(413, `This recording is ${clockOf(measuredMs)} long, and one recording may be at `
-      + `most ${NARRATION_MAX_SECONDS / 60} minutes. Split the tutorial into two, or record a shorter narration.`);
+      + `most ${Math.floor(maxSeconds / 60)} minutes. Split the tutorial into two, or record a shorter narration.`);
   }
   if (!Number.isInteger(durationMs)) {
     return refuse(400, 'The app did not say how long the recording is. Upload it again.');
@@ -301,8 +318,8 @@ module.exports = {
   SIGNATURE,
   recordingForFilm,
   LIVE_MICROPHONE_DBFS,
-  NARRATION_MAX_BYTES,
-  NARRATION_MAX_SECONDS,
+  narrationMaxBytes,
+  narrationMaxSeconds,
   judgeNarration,
   narrationDir,
   narrationFilename,

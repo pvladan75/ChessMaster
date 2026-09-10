@@ -16,7 +16,7 @@ Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla
 ako ga nema ovde, u arhivi je.
 
 Poslednje ažuriranje: **10.9.2026** — faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
-tačka 4 („Render koji ne može da stane" niže):
+tačke 4 i 5 („Render izlazi iz zahteva" i „Render koji ne može da stane" niže):
 trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
 kojim taktovima pripada („Snimanje glasa: faza 6", „faza 5" i „faza 4" niže), a „ODAKLE
 SUTRA — 10.9.2026, video i snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
@@ -27,6 +27,63 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Render izlazi iz zahteva — tačka 5 drugog dela plana snimanja, 10.9.2026, nije viđeno uživo
+
+Izvoz tutorijala sada odgovara **čim server prihvati film** (`202` i id posla), a
+film se crta posle odgovora. Ekran se više ne zamrzava: traka ima „Hide" (film se
+crta dalje, a kad bude gotov stiže obaveštenje na zvonce) i „Cancel render".
+Sakriven render se nalazi ponovo na redu tutorijala u „Saved tutorials" (ikona
+filma), a drugi izvoz istog tutorijala prikazuje onaj koji već radi umesto da
+pokrene novi.
+
+Posao je **red u bazi** (`tutorial_render_jobs`, `services/renderJobs.js`), ne
+zapis u memoriji. Server bira id; jedan render po tutorijalu i treneru čuva
+jedinstveni indeks; a red koji kaže `running`, a iza njega nema ničega (restart
+servera), proglašava se neuspelim — pri pokretanju, uz obaveštenje, i kad god ga
+neko pogleda. Sve što odbija film i dalje odgovara u samom zahtevu (404, 400,
+409, 422, 429).
+
+**Četiri dopune vlasnika iste večeri**, pre commit-a:
+
+1. Plafon za jedan film je **600 s crtanja** (`RENDER_MAX_DRAW_SECONDS`), oko 30
+   minuta tutorijala na 720p. `RENDER_REQUEST_SECONDS` (300, nginx) se vratio i
+   znači samo vezu.
+2. Snimak glasa sme do **30 minuta**, i to više nije poseban broj: izvodi se iz
+   plafona (najduži film sa natpisima koji jedan render sme da nacrta na 720p).
+   `GET /lessons/:id/narration` ga vraća kao `maxMs`, a studio pita pre nego što
+   otvori ekran za snimanje. Kad server ne može da se pita, ekran staje na starih
+   15 minuta — namerno kraće, jer se kraći snimak uvek prima.
+3. **Izvoz snimljenog časa ide ispred tutorijala koji čekaju**, jer se on i dalje
+   crta u zahtevu (300 s). Film koji se već crta ne može da prekine — jedan slot
+   crta jedan film — pa ako mu ostatak tog filma pojede vreme, odmah dobija 429
+   sa „Try again in about N minutes", umesto da ga nginx preseče. Proverava se i
+   na ulazu i kad dođe na red.
+4. `abortOnDisconnect` je obrisan sa svoja tri testa; signal pali trenerovo
+   „Cancel".
+
+Namerno nije urađeno: deljenje filma na komade (dugačak film i dalje drži slot
+do deset minuta), noćni red, čišćenje starih redova poslova, i prekid izvoza
+snimljenog časa (nije ga imao ni ranije). Detalji i razlozi su u planu, pod
+„5 — the render leaves the request".
+
+Trideset četiri mutacije, sve uhvaćene testom na koji su ciljale. Usput je jedan
+test koji je zaboravio da otvori svoju kapiju oborio još deset — a pravilo
+„jedan render po tutorijalu" je svaki put radilo kako treba. Test
+„3. empty events", poznat kao nestabilan, sada broji samo fajlove svog tutorijala.
+
+Brojke, merene sa ovim izmenama bez ičega drugog uz to: **1884 u aplikaciji** (1
+preskočen), **1172 na backendu** sa `.env` sklonjenim u stranu, analyze 29
+infos, bez upozorenja. Provera uživo: `TODO-provera.md`, stavka **143**; stavka
+142 je dopunjena, jer se njeni koraci 2–5 menjaju sa novim plafonom.
+
+Van koda: `chess_backend/.env` je od 9.9. stajao kao `.env.aside` — ranija
+sesija ga je sklonila za merenje kao na CI-ju i nije ga vratila, a to ime nije
+u `.gitignore`, pa je jedan `git add` delio tajne od javnog repozitorijuma.
+Vraćen je 10.9.2026, a merenja sa `.env` u stranu sada rade sa `trap`-om koji ga
+vraća i kad test padne.
 
 ---
 

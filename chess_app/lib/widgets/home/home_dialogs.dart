@@ -299,6 +299,11 @@ Widget _messageCard(
           'assignment_note' => Icons.chat_bubble_outline,
           'awaiting_parent' => Icons.family_restroom,
           'student_stated_minor_age' => Icons.family_restroom,
+          // A film rendered after its export was answered — item 5 of part two
+          // of docs/PLAN-SNIMANJE.md. Both icons are already drawn elsewhere
+          // in the app, so a stale Windows icon font cannot leave these blank.
+          'video_ready' => Icons.movie,
+          'video_failed' => Icons.error_outline,
           _ => Icons.star,
         },
         color: isRead ? colors.textMuted : colors.warning,

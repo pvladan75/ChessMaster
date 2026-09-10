@@ -15,7 +15,8 @@ const tts = require('../services/tts');
 const renderProgress = require('../services/renderProgress');
 const renderQueue = require('../services/renderQueue');
 const renderBudget = require('../services/renderBudget');
-const { RenderAborted, abortOnDisconnect, throwIfAborted } = require('../services/renderAbort');
+const renderJobs = require('../services/renderJobs');
+const { RenderAborted, throwIfAborted } = require('../services/renderAbort');
 const tutorialNarration = require('../services/tutorialNarration');
 const multer = require('multer');
 const narrationUpload = require('../services/narrationUpload');
@@ -382,7 +383,9 @@ const narrationMulter = multer({
       cb(null, narrationUpload.narrationFilename(req.params.id));
     },
   }),
-  limits: { fileSize: narrationUpload.NARRATION_MAX_BYTES, files: 1, fields: 8 },
+  // The derived cap, read once as the route is built — which is when the
+  // environment it is derived from is read.
+  limits: { fileSize: narrationUpload.narrationMaxBytes(), files: 1, fields: 8 },
 });
 
 /// The file, received — or a sentence rather than Express's HTML error page.
@@ -392,7 +395,7 @@ function receiveNarration(req, res, next) {
     if (req.file) narrationUpload.removeQuietly(req.file.path);
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({
-        error: `This recording is longer than ${narrationUpload.NARRATION_MAX_SECONDS / 60} minutes, `
+        error: `This recording is longer than ${Math.floor(narrationUpload.narrationMaxSeconds() / 60)} minutes, `
           + 'which is the most one recording may be. Split the tutorial into two, or record a shorter narration.',
       });
     }
@@ -500,9 +503,14 @@ router.get('/:id/narration', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Tutorial not found or you do not have permission to see it.' });
     }
     const row = result.rows[0];
-    if (!row.narration_filename) return res.json({ status: 'none' });
+    // The longest take this server accepts, in both answers. The app asks
+    // before recording rather than keeping a copy of a number the server
+    // derives from its render budget (`narrationUpload.narrationMaxSeconds`).
+    const maxMs = narrationUpload.narrationMaxSeconds() * 1000;
+    if (!row.narration_filename) return res.json({ status: 'none', maxMs });
     return res.json({
       status: 'ready',
+      maxMs,
       takeId: row.narration_take_id,
       ms: row.narration_ms,
       beats: Array.isArray(row.narration_markers) ? row.narration_markers.length : 0,
@@ -544,8 +552,34 @@ function messageFor(silentBecause) {
   return `${ready} It has no narration: the voice produced nothing. The server log says why.`;
 }
 
-// Renders a saved tutorial as a silent MP4 video with moves, comments, arrows,
-// and highlighted squares.
+/// What a trainer is told about a render that failed for a reason nobody
+/// planned for — one sentence, shared with the job's own last resort.
+const { RENDER_FAILED } = renderJobs;
+
+/// Where rendered films are written. They are reproducible, so the retention
+/// timer ages them out (services/retentionService.js).
+const EXPORTS_DIR = path.join(__dirname, '..', 'exports');
+
+/// A link to [filename] in exports/, signed for [userId] now.
+///
+/// A filename is what is stored and a link is what is handed out, because a
+/// stored token is one that outlives its own expiry.
+function downloadUrlFor(userId, filename) {
+  return `/recordings/export-download/${encodeURIComponent(filename)}`
+    + `?token=${encodeURIComponent(signDownloadToken(userId, filename))}`;
+}
+
+// Renders a saved tutorial as an MP4 video with moves, comments, arrows and
+// highlighted squares.
+//
+// **Answered before it is drawn** — item 5 of part two of docs/PLAN-SNIMANJE.md.
+// Everything that can refuse a film is still asked here, inside the request, so
+// a refusal is a sentence the trainer reads at once: the tutorial, the
+// recording, the length, a render of it already running, the queue. A film that
+// is accepted is answered 202 with a job id, and drawn behind the answer
+// (`services/renderJobs.js`). The app polls `/lessons/export-video/:jobId/
+// progress`, whose last answer carries the download link, and the trainer is
+// notified either way.
 router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_EXPORT), async (req, res) => {
   const lessonId = req.params.id;
 
@@ -569,10 +603,6 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       // theme the trainer is actually looking at. Validated in the renderer,
       // where a value that is not a colour is ignored rather than drawn.
       look,
-      // The client names its own render so it can watch it: it polls
-      // `/lessons/export-video/:jobId/progress` while this very request is
-      // still in flight. See services/renderProgress.js.
-      jobId,
       narrate,
       voice,
       // The trainer's own recorded voice instead of a synthesised one — phase 4
@@ -593,7 +623,6 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     }
 
     const duration = Math.min(seconds, 3600);
-    const job = renderProgress.jobIdFrom(jobId);
 
     // Looked up and judged before the queue, so a recording that cannot be used
     // is a sentence now rather than a render slot spent finding out.
@@ -617,21 +646,22 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     }
 
     // **Refused before drawing, not after** — item 4 of part two of
-    // docs/PLAN-SNIMANJE.md. The frames are countable now, and a film that no
-    // request can draw used to be drawn until the connection went: a trainer
-    // watching a bar for five minutes and getting nothing. A recorded film is
-    // as long as its recording, so that is the length judged; a synthesised
-    // voice's length is not known until it has spoken, so that film is judged
-    // on the app's reading-speed length here and again at its turn.
-    const arrivedAt = Date.now();
+    // docs/PLAN-SNIMANJE.md. The frames are countable now, and a film too long
+    // to draw used to be drawn until the connection went: a trainer watching a
+    // bar for five minutes and getting nothing. Since item 5 no connection is
+    // waiting, and the ceiling is the longest one film may hold the render slot
+    // (`maxDrawSeconds`). A recorded film is as long as its recording, so that
+    // is the length judged; a synthesised voice's length is not known until it
+    // has spoken, so that film is judged on the app's reading-speed length here
+    // and again at its turn.
     const size = resolution || '720p';
     const filmSeconds = recording ? Math.min(recording.seconds, 3600) : duration;
     const fps = videoRenderer.framesPerSecondOf(recording ? recording.events : events, { resolution: size });
     const draw = renderBudget.drawSeconds({ seconds: filmSeconds, fps, resolution: size });
-    if (draw > renderBudget.requestSeconds()) {
+    if (draw > renderBudget.maxDrawSeconds()) {
       // Only the ways out that were checked would fit.
-      const fitsAt = (seconds, fpsOf, at) => renderBudget.drawSeconds({ seconds, fps: fpsOf, resolution: at })
-        <= renderBudget.requestSeconds();
+      const fitsAt = (secs, fpsOf, at) => renderBudget.drawSeconds({ seconds: secs, fps: fpsOf, resolution: at })
+        <= renderBudget.maxDrawSeconds();
       const doors = [];
       if (size === '1080p' && fitsAt(filmSeconds, fps, '720p')) doors.push('export it at 720p');
       if (recording && fitsAt(duration, videoRenderer.framesPerSecondOf(events, { resolution: size }), size)) {
@@ -642,7 +672,6 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         tooLong: true,
       });
     }
-    const deadline = arrivedAt + renderBudget.requestSeconds() * 1000;
 
     // **A clock is not a name.** Two renders of one tutorial that start in the
     // same millisecond — the same trainer twice, or a trainer and the student
@@ -651,32 +680,42 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     // clicked got a film they had not asked for. Four random bytes end that.
     const filename = `tutorial_${lessonId}_${boardTheme || 'wood'}_${resolution || '720p'}`
       + `_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.mp4`;
-    const exportsDir = path.join(__dirname, '..', 'exports');
+    const exportsDir = EXPORTS_DIR;
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });
     }
 
     const exportPath = path.join(exportsDir, filename);
 
+    // **The job, before the queue.** Its row is what the trainer polls and
+    // cancels by, and what says how the film ended once this request is long
+    // gone — so it exists before anything can start drawing.
+    let job;
+    try {
+      job = await renderJobs.create(pool, { userId: req.user.id, lessonId });
+    } catch (err) {
+      if (err instanceof renderJobs.RenderAlreadyRunning) {
+        // Not a refusal to try again later: the film the trainer wants is
+        // already being made, and the app shows that one rather than start a
+        // second that would replace it the moment it finished.
+        return res.status(409).json({
+          error: 'This tutorial is already being rendered.',
+          jobId: err.jobId,
+          alreadyRendering: true,
+        });
+      }
+      throw err;
+    }
+    const jobId = job.id;
+    // Fired by the trainer's „Cancel" (the DELETE route below), never by the
+    // connection: this request is answered before the first frame, and a socket
+    // that closes with its answer would otherwise stop every render at birth.
+    const { signal } = job;
+
     let renderEvents = events;
     let renderDuration = duration;
     let audioFilePath = null;
     let narrationAudioPath = null;
-    let queueFull = false;
-    // This trainer's own share, which is a different refusal from a busy
-    // server and needs a different sentence.
-    let accountBusy = false;
-    // No time rather than no room: the queue would leave this film unfinished
-    // when the connection closes (`RenderWontFit`), or at its turn it can no
-    // longer finish (`RenderOutOfTime`). Each needs its own sentence.
-    let wontFit = null;
-    let outOfTime = null;
-    // The client gave up — the 300 s nginx ceiling, the app's five-minute
-    // timeout, a closed laptop. Watched on 9.9.2026: the server drew for
-    // minutes more and held the one render slot the whole time, so everyone
-    // else queued behind a film that could never be collected.
-    let abandoned = false;
-    const disconnect = abortOnDisconnect(res);
     // Null unless a voice was asked for and none was heard. See `narrateFilm`:
     // a silent film that was supposed to speak must not come back wearing the
     // same „Video ready!" as one that spoke.
@@ -687,11 +726,10 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     // second no later than it would have been. The narration is inside the
     // queue with the drawing, because synthesis is the same machine doing the
     // same kind of work.
-    const queueId = job || filename;
-    await renderQueue.run(queueId, async () => {
-      // Its turn came and there is nobody to give it to. Checked before any
-      // work so the slot passes straight to the next trainer.
-      throwIfAborted(disconnect.signal);
+    const drawFilm = async () => {
+      // Cancelled while it waited. Checked before any work, so the slot passes
+      // straight to the next trainer.
+      throwIfAborted(signal);
 
       if (recording) {
         // The recording's own timing replaces the app's reading-speed guess,
@@ -703,7 +741,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         audioFilePath = recording.audioPath;
       } else if (narrate === true) {
         const narrated = await tutorialNarration.narrateFilm({
-          events, voice, exportsDir, filename, signal: disconnect.signal,
+          events, voice, exportsDir, filename, signal,
         });
         if (narrated) {
           if (narrated.events) renderEvents = narrated.events;
@@ -716,17 +754,13 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
 
       try {
         // **Asked again at its turn, with what is known now.** A synthesised
-        // voice's real length arrives only after it has spoken, and a film that
-        // waited may have waited longer than the queue guessed. Inside the `try`
-        // so a synthesised track is still removed by the `finally` below.
-        // Whole seconds on both sides, as before the queue: a film admitted at
-        // exactly the ceiling must not be refused for the milliseconds a
-        // database round trip took.
+        // voice's real length arrives only after it has spoken. Inside the
+        // `try` so a synthesised track is still removed by the `finally` below.
         const fpsNow = videoRenderer.framesPerSecondOf(renderEvents, { resolution: size });
         const drawNow = renderBudget.drawSeconds({ seconds: renderDuration, fps: fpsNow, resolution: size });
-        renderQueue.revise(queueId, drawNow * 1000);
-        if (Math.floor((Date.now() - arrivedAt) / 1000) + drawNow > renderBudget.requestSeconds()) {
-          throw new renderBudget.RenderOutOfTime({
+        renderQueue.revise(jobId, drawNow * 1000);
+        if (drawNow > renderBudget.maxDrawSeconds()) {
+          throw new renderBudget.RenderTooLong({
             drawSeconds: drawNow, fps: fpsNow, narrated: narrationAudioPath !== null,
           });
         }
@@ -737,15 +771,15 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           audioFilePath: audioFilePath,
           durationSeconds: renderDuration,
           perspective: 'trainer',
-          resolution: resolution || '720p',
+          resolution: size,
           boardTheme: boardTheme || 'wood',
           showTitle: true,
           showTimer: true,
           showCoords: true,
           showMoveText: false,
-        look,
-        onProgress: (drawn, total) => renderProgress.report(job, drawn, total),
-          signal: disconnect.signal,
+          look,
+          onProgress: (drawn, total) => renderProgress.report(jobId, drawn, total),
+          signal,
           outputPath: exportPath,
         });
       } finally {
@@ -759,96 +793,10 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           }
         }
       }
-    }, (ahead) => renderProgress.queued(job, ahead), {
-      owner: req.user.id,
-      estimateMs: draw * 1000,
-      deadline,
-    }).catch((err) => {
-      if (err instanceof renderQueue.RenderAccountBusy) {
-        accountBusy = true;
-        return;
-      }
-      if (err instanceof renderQueue.RenderQueueFull) {
-        queueFull = true;
-        return;
-      }
-      if (err instanceof renderQueue.RenderWontFit) {
-        wontFit = err;
-        return;
-      }
-      if (err instanceof renderBudget.RenderOutOfTime) {
-        outOfTime = err;
-        return;
-      }
-      if (err instanceof RenderAborted) {
-        abandoned = true;
-        return;
-      }
-      throw err;
-    }).finally(() => disconnect.dispose());
-
-    if (abandoned) {
-      // No response: the socket this would be written to is already closed, and
-      // an answer nobody can read is not worth pretending about. Nothing is
-      // metered either — the trainer got no film, so they are charged for none,
-      // and the partial file was removed by whichever stage was interrupted.
-      renderProgress.finish(job, { ok: false });
-      logger.info({ job }, '[RENDER] abandoned: client gone, drawing stopped, slot released');
-      return;
-    }
-
-    if (accountBusy) {
-      // **Not „the server is busy".** The films in the way are this trainer's
-      // own, and telling them otherwise sends them off to wait for somebody
-      // else to finish. Nothing was drawn, so nothing is metered.
-      renderProgress.finish(job, { ok: false });
-      return res.status(429).json({
-        error: 'You already have a video rendering and another one waiting. '
-          + 'Wait for one of them to finish and try again.',
-      });
-    }
-
-    if (queueFull) {
-      // Refused before any work was done, so nothing is metered and no file was
-      // written. 429 rather than 503: this is one client too many for a moment,
-      // not a server that is down.
-      renderProgress.finish(job, { ok: false });
-      return res.status(429).json({
-        error: 'The server is rendering other videos right now. Try again in a minute or two.',
-      });
-    }
-
-    if (wontFit) {
-      // Room in the queue, but not time: the films in front of this one would
-      // leave it unfinished when the connection closes. Nothing was drawn and
-      // nothing is metered, and the sentence says when there will be time.
-      renderProgress.finish(job, { ok: false });
-      return res.status(429).json({ error: renderBudget.retrySentence(wontFit.waitMs) });
-    }
-
-    if (outOfTime) {
-      renderProgress.finish(job, { ok: false });
-      if (outOfTime.drawSeconds > renderBudget.requestSeconds()) {
-        // Too long for any request, found only at its turn — which only a
-        // synthesised voice can do: the check before the queue passed on the
-        // app's reading-speed length, and the voice took longer. The film
-        // without it is the length that passed, so that door is a real one.
-        return res.status(422).json({
-          error: renderBudget.tooLongSentence({
-            drawSeconds: outOfTime.drawSeconds,
-            fps: outOfTime.fps,
-            resolution: size,
-            narrated: outOfTime.narrated,
-            doors: outOfTime.narrated ? ['export it without narration'] : [],
-          }),
-          tooLong: true,
-        });
-      }
-      return res.status(429).json({ error: renderBudget.retrySentence(0) });
-    }
+    };
 
     // **The tutorial keeps its film.** Until this, the only reference to a
-    // rendered video was the link in this response, and its token dies in
+    // rendered video was the link in the response, and its token dies in
     // thirty minutes — so closing the „Video ready!" dialog meant rendering the
     // whole thing again, while the file sat in `exports/` for a fortnight where
     // nobody could reach it.
@@ -857,81 +805,217 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     // the two leaves a file nothing points at, which the retention timer
     // collects; the other order leaves a row pointing at a file that is gone,
     // which is a trainer pressing „Download" and getting nothing.
-    let replaced = null;
-    try {
-      // Read, then write. A subquery inside `RETURNING` would also give the old
-      // value — by the statement's own snapshot — but that is a rule a reader
-      // has to know rather than one they can see, and only the render queue
-      // stops two exports of one tutorial overlapping here.
-      const before = await pool.query(
-        'SELECT video_filename FROM saved_lessons WHERE id = $1',
-        [lessonId]
-      );
-      replaced = before.rows[0] ? before.rows[0].video_filename : null;
-
-      await pool.query(
-        `UPDATE saved_lessons
-            SET video_filename = $1, video_rendered_at = NOW(),
-                video_resolution = $2, video_seconds = $3, video_narrated = $4
-          WHERE id = $5`,
-        [filename, resolution || '720p', renderDuration, recording !== null || (narrate === true && !silentBecause), lessonId]
-      );
-    } catch (recordErr) {
-      // The film exists and the trainer is about to be handed a link to it.
-      // Failing the export because a bookkeeping write failed would throw away
-      // work that succeeded.
-      logger.error('Could not record the tutorial video:', recordErr);
-    }
-
-    if (replaced && replaced !== filename) {
-      const old = path.join(exportsDir, path.basename(replaced));
+    const keepFilm = async () => {
+      let replaced = null;
       try {
-        if (fs.existsSync(old)) fs.unlinkSync(old);
-      } catch (cleanErr) {
-        logger.warn(`[RENDER] Could not remove the replaced video ${replaced}: ${cleanErr.message}`);
+        // Read, then write. A subquery inside `RETURNING` would also give the
+        // old value — by the statement's own snapshot — but that is a rule a
+        // reader has to know rather than one they can see, and only the render
+        // queue and the one-running-render index stop two exports of one
+        // tutorial overlapping here.
+        const before = await pool.query(
+          'SELECT video_filename FROM saved_lessons WHERE id = $1',
+          [lessonId]
+        );
+        replaced = before.rows[0] ? before.rows[0].video_filename : null;
+
+        await pool.query(
+          `UPDATE saved_lessons
+              SET video_filename = $1, video_rendered_at = NOW(),
+                  video_resolution = $2, video_seconds = $3, video_narrated = $4
+            WHERE id = $5`,
+          [filename, size, renderDuration, recording !== null || (narrate === true && !silentBecause), lessonId]
+        );
+      } catch (recordErr) {
+        // The film exists and the trainer is about to be told so. Failing the
+        // export because a bookkeeping write failed would throw away work that
+        // succeeded.
+        logger.error('Could not record the tutorial video:', recordErr);
       }
+
+      if (replaced && replaced !== filename) {
+        const old = path.join(exportsDir, path.basename(replaced));
+        try {
+          if (fs.existsSync(old)) fs.unlinkSync(old);
+        } catch (cleanErr) {
+          logger.warn(`[RENDER] Could not remove the replaced video ${replaced}: ${cleanErr.message}`);
+        }
+      }
+
+      // Metered once there is a film to charge for. A metering write that
+      // fails is logged and does not undo the film: the trainer has it either
+      // way, and a 500 used to say otherwise.
+      try {
+        await recordUsage(pool, req.user.id, METRIC.MP4_RENDERS, 1);
+        await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, renderDuration);
+      } catch (meterErr) {
+        logger.error('Could not meter the tutorial video:', meterErr);
+      }
+
+      renderProgress.finish(jobId);
+      return { status: 'done', message: messageFor(silentBecause), filename };
+    };
+
+    // Every other ending, as the outcome its row records. Nothing is metered
+    // and no film is recorded on the tutorial: the trainer got none.
+    const endingOf = (err) => {
+      // The bar has to stop either way. A render that failed and a bar that
+      // goes on creeping towards 99 % is the worst of both.
+      renderProgress.finish(jobId, { ok: false });
+      if (err instanceof RenderAborted) {
+        // The trainer cancelled it. The partial file was removed by whichever
+        // stage was interrupted, and the slot is already the next trainer's.
+        logger.info({ job: jobId }, '[RENDER] cancelled: drawing stopped, slot released');
+        return { status: 'cancelled' };
+      }
+      if (err instanceof renderBudget.RenderTooLong) {
+        // Too long only once the voice had spoken — the check before the queue
+        // passed on the app's reading-speed length. The film without the voice
+        // is the length that passed, so that door is a real one.
+        return {
+          status: 'failed',
+          error: renderBudget.tooLongSentence({
+            drawSeconds: err.drawSeconds,
+            fps: err.fps,
+            resolution: size,
+            narrated: err.narrated,
+            doors: err.narrated ? ['export it without narration'] : [],
+          }),
+        };
+      }
+      logger.error('Tutorial video render failed:', err);
+      return { status: 'failed', error: RENDER_FAILED };
+    };
+
+    // **Admission is still answered in the request.** The queue refuses a film
+    // before it starts — this account's share, or a full queue — and those are
+    // sentences a trainer can act on now, so the answer waits until the queue
+    // has either taken the film or turned it away. It says it took it by
+    // telling the film its place, which it does at once, drawing or waiting.
+    let admitted;
+    const accepted = new Promise((resolve) => { admitted = resolve; });
+    const drawing = renderQueue.run(jobId, drawFilm, (ahead) => {
+      admitted();
+      renderProgress.queued(jobId, ahead);
+    }, {
+      owner: req.user.id,
+      // No deadline: nothing waits on a connection any more, so there is no
+      // moment after which the film is worthless. The estimate still says how
+      // long this film will hold the slot.
+      estimateMs: draw * 1000,
+    });
+
+    try {
+      await Promise.race([accepted, drawing]);
+    } catch (err) {
+      // Refused before any work: nothing drawn, nothing metered, no file
+      // written, and no row left behind to say otherwise.
+      await renderJobs.discard(pool, jobId);
+      if (err instanceof renderQueue.RenderAccountBusy) {
+        // **Not „the server is busy".** The films in the way are this trainer's
+        // own, and telling them otherwise sends them off to wait for somebody
+        // else to finish.
+        return res.status(429).json({
+          error: 'You already have a video rendering and another one waiting. '
+            + 'Wait for one of them to finish and try again.',
+        });
+      }
+      if (err instanceof renderQueue.RenderQueueFull) {
+        // 429 rather than 503: this is one client too many for a moment, not a
+        // server that is down.
+        return res.status(429).json({
+          error: 'The server is rendering other videos right now. Try again in a minute or two.',
+        });
+      }
+      throw err;
     }
 
-    const downloadToken = signDownloadToken(req.user.id, filename);
-    const downloadUrl =
-      `/recordings/export-download/${encodeURIComponent(filename)}` +
-      `?token=${encodeURIComponent(downloadToken)}`;
-
-    await recordUsage(pool, req.user.id, METRIC.MP4_RENDERS, 1);
-    await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, renderDuration);
-
-    renderProgress.finish(job);
-    res.json({
-      message: messageFor(silentBecause),
-      jobId: job,
-      status: 'completed',
-      // A word the app can act on, beside a sentence a trainer can read. The
-      // film is still a film, so this is not an error and not a 4xx: the render
-      // succeeded and one part of it did not.
-      narration: silentBecause ? 'failed' : undefined,
-      downloadUrl: downloadUrl,
-      filename: filename,
+    renderJobs.detach(pool, jobId, drawing.then(keepFilm, endingOf), {
+      userId: req.user.id,
+      lessonId,
+      title: title || lesson.title || 'Tutorial',
     });
+
+    return res.status(202).json({ jobId, status: 'running' });
   } catch (err) {
-    // The bar has to stop either way. A render that failed and a bar that goes
-    // on creeping towards 99 % is the worst of both.
-    renderProgress.finish(renderProgress.jobIdFrom(req.body?.jobId), { ok: false });
     logger.error('Error initiating video export:', err);
     res.status(500).json({ error: 'Error initiating video export.' });
   }
 });
 
-// GET /lessons/export-video/:jobId/progress — how far along that render is.
+// GET /lessons/export-video/:jobId/progress — how far along that render is, and
+// what it came to.
 //
-// Polled by the app while its own export request is still in flight, which is
-// why this is a plain read with no side effects and no job queue behind it: the
-// render is happening in the request the client already made.
+// Polled by the app while it shows the bar. The row says whether the film is
+// still being made, was made, failed or was cancelled — the part that has to
+// outlive the process — and while it is being made, the numbers come from
+// `renderProgress`, which only the drawing process has. A finished film's
+// answer carries a link minted now, so the app needs no second request for it.
 //
 // Mounted above `/:id` for the same reason `/tts/voices` is.
-router.get('/export-video/:jobId/progress', authenticateToken, (req, res) => {
+router.get('/export-video/:jobId/progress', authenticateToken, async (req, res) => {
   const job = renderProgress.jobIdFrom(req.params.jobId);
   if (!job) return res.status(400).json({ error: 'Not a job id.' });
-  res.json(renderProgress.statusOf(job));
+
+  try {
+    // Scoped to the account: a render's state, and above all its download
+    // link, are nobody else's — the id alone must not be a way in.
+    const row = await renderJobs.find(pool, { id: job, userId: req.user.id });
+    if (!row) {
+      return res.status(404).json({ error: 'There is no such video render.', status: 'unknown' });
+    }
+    if (row.status === 'running') {
+      return res.json({ ...renderProgress.statusOf(job), status: 'running' });
+    }
+
+    const answer = {
+      status: row.status,
+      done: true,
+      known: true,
+      percent: row.status === 'done' ? 100 : 0,
+      etaSeconds: null,
+      queuedAhead: 0,
+    };
+    if (row.status === 'done') {
+      answer.message = row.message;
+      const name = row.filename ? path.basename(row.filename) : null;
+      // Absent when the file has aged out since: a „Download" on a file that
+      // is gone is a button that does nothing.
+      if (name && fs.existsSync(path.join(EXPORTS_DIR, name))) {
+        answer.downloadUrl = downloadUrlFor(req.user.id, name);
+      }
+    }
+    if (row.status === 'failed') answer.error = row.error;
+    return res.json(answer);
+  } catch (err) {
+    logger.error('Render progress error:', err);
+    return res.status(500).json({ error: 'Server error while reading the render.' });
+  }
+});
+
+// DELETE /lessons/export-video/:jobId — stop a render.
+//
+// The trigger the disconnect abort used to be (services/renderAbort.js). With a
+// 202 the socket closes the moment the answer is sent, so „the client is gone"
+// can no longer mean „stop"; the trainer's own button does. A film still waiting
+// leaves the queue at once, and one being drawn stops at its next frame — its
+// row says so when that has happened, which is why this answers 202.
+router.delete('/export-video/:jobId', authenticateToken, async (req, res) => {
+  const job = renderProgress.jobIdFrom(req.params.jobId);
+  if (!job) return res.status(400).json({ error: 'Not a job id.' });
+
+  try {
+    const row = await renderJobs.find(pool, { id: job, userId: req.user.id });
+    if (!row) return res.status(404).json({ error: 'There is no such video render.' });
+    if (row.status !== 'running') {
+      return res.status(409).json({ error: 'This video is no longer rendering.', status: row.status });
+    }
+    renderJobs.cancel(job);
+    return res.status(202).json({ status: 'cancelling' });
+  } catch (err) {
+    logger.error('Render cancel error:', err);
+    return res.status(500).json({ error: 'Server error while cancelling the render.' });
+  }
 });
 
 // POST /lessons/:id/preview-frames
@@ -1037,7 +1121,7 @@ router.get('/:id/video', authenticateToken, async (req, res) => {
     }
 
     const filename = path.basename(lesson.video_filename);
-    const filePath = path.join(__dirname, '..', 'exports', filename);
+    const filePath = path.join(EXPORTS_DIR, filename);
     if (!fs.existsSync(filePath)) {
       // Said rather than 404'd, because „it is gone" and „there never was one"
       // lead a trainer to different buttons.
@@ -1047,13 +1131,10 @@ router.get('/:id/video', authenticateToken, async (req, res) => {
       });
     }
 
-    const token = signDownloadToken(req.user.id, filename);
     res.json({
       status: 'ready',
       filename,
-      downloadUrl:
-        `/recordings/export-download/${encodeURIComponent(filename)}` +
-        `?token=${encodeURIComponent(token)}`,
+      downloadUrl: downloadUrlFor(req.user.id, filename),
       renderedAt: lesson.video_rendered_at,
       resolution: lesson.video_resolution,
       seconds: lesson.video_seconds,
@@ -1092,6 +1173,13 @@ router.get('/', authenticateToken, async (req, res) => {
     let query = `
       SELECT id, title, description, tags, fen, pgn, position_list, created_at,
              (video_filename IS NOT NULL) AS has_video, video_rendered_at,
+             -- A film this account has being drawn right now, so the list can
+             -- offer its progress rather than a second render (item 5 of part
+             -- two of docs/PLAN-SNIMANJE.md).
+             (SELECT j.id FROM tutorial_render_jobs j
+               WHERE j.lesson_id = saved_lessons.id AND j.user_id = $1
+                 AND j.status = 'running'
+               LIMIT 1) AS render_job_id,
              (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson
       FROM saved_lessons 
       WHERE (user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))

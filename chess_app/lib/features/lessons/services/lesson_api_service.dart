@@ -74,19 +74,69 @@ class LessonPreviewFramesResult {
   bool get ok => error == null && frames.isNotEmpty;
 }
 
-/// The outcome of an MP4 video export request for a tutorial.
+/// What `POST /lessons/:id/export-video` answered.
+///
+/// **Not the film.** Since item 5 of part two of `docs/PLAN-SNIMANJE.md` the
+/// server answers as soon as it has accepted the render, with the id of the
+/// job, and draws the film behind that answer. What the film came to is read
+/// from [LessonApiService.renderStatus].
 class LessonExportVideoResult {
   const LessonExportVideoResult({
-    required this.ok,
-    this.downloadUrl,
-    this.message,
+    this.jobId,
+    this.alreadyRendering = false,
     this.error,
   });
 
-  final bool ok;
-  final String? downloadUrl;
-  final String? message;
+  /// The render to watch: the one just started or, with [alreadyRendering],
+  /// the one of this tutorial that was already running.
+  final String? jobId;
+
+  /// The server refused a second render of this tutorial because one is
+  /// running, and named it. One film per tutorial: a second render would
+  /// replace the first the moment it finished.
+  final bool alreadyRendering;
+
+  /// The server's own sentence when it refused, or null.
   final String? error;
+
+  bool get ok => error == null && jobId != null;
+}
+
+/// Where a render is. `unknown` is a job the server does not have — never
+/// started, somebody else's, or its tutorial deleted since.
+enum RenderJobState { running, done, failed, cancelled, unknown }
+
+/// One answer of `GET /lessons/export-video/:jobId/progress`.
+class RenderJobStatus {
+  const RenderJobStatus({
+    required this.state,
+    this.percent = 0,
+    this.etaSeconds,
+    this.queuedAhead = 0,
+    this.message,
+    this.downloadUrl,
+    this.error,
+  });
+
+  final RenderJobState state;
+  final int percent;
+
+  /// Null until the server has two readings to take a rate from, and again on
+  /// the last frame. Null is „no estimate", never zero.
+  final int? etaSeconds;
+
+  /// Films in front of this one; zero once it is being drawn.
+  final int queuedAhead;
+
+  /// For a finished film: the sentence to show, and a link minted when this
+  /// answer was — absent if the file has aged out since.
+  final String? message;
+  final String? downloadUrl;
+
+  /// For a render that failed or that the server does not have, its sentence.
+  final String? error;
+
+  bool get finished => state != RenderJobState.running;
 }
 
 /// What the server said to a trainer's recorded narration.
@@ -455,11 +505,18 @@ class LessonApiService {
     }
   }
 
-  /// How far along a render is, and how long it looks like having left.
+  /// Where render [jobId] is, and how long it looks like having left.
   ///
-  /// Polled while the export request is still in flight — the render happens
-  /// inside that request, and this is a plain read beside it. A failed poll is
-  /// not a failed export: it answers null and the bar keeps whatever it had.
+  /// Polled while the progress dialog is open. Since item 5 of part two of
+  /// `docs/PLAN-SNIMANJE.md` the film is drawn after the export request has
+  /// been answered, so this is also how the app learns what it came to: the
+  /// last answer is `done` with a download link, `failed` with the server's
+  /// sentence, or `cancelled`.
+  ///
+  /// Null when the server could not be asked — a failed poll is not a failed
+  /// render, and the dialog keeps what it had. A job the server does not have
+  /// is [RenderJobState.unknown], which is an answer rather than a failure to
+  /// get one.
   ///
   /// `etaSeconds` is null until the server has two readings to take a rate
   /// from, and null again on the last frame, when what is left is ffmpeg
@@ -470,27 +527,58 @@ class LessonApiService {
   /// one at a time, so an export can spend its first stretch waiting — and a
   /// bar at „Starting…" looks identical to one that has begun. Zero means it is
   /// this film's turn.
-  Future<({int percent, int? etaSeconds, int queuedAhead})?> renderProgress(
-      String jobId) async {
+  Future<RenderJobStatus?> renderStatus(String jobId) async {
     try {
       final res = await _client
           .get(Uri.parse('$backendUrl/lessons/export-video/$jobId/progress'),
               headers: _headers)
           .timeout(const Duration(seconds: 5));
-      if (res.statusCode != 200) return null;
       final body = jsonDecode(res.body);
-      if (body is Map && body['percent'] is num) {
-        final eta = body['etaSeconds'];
-        final ahead = body['queuedAhead'];
-        return (
-          percent: (body['percent'] as num).round(),
-          etaSeconds: eta is num ? eta.round() : null,
-          queuedAhead: ahead is num ? ahead.round() : 0,
+      if (body is! Map) return null;
+      if (res.statusCode == 404) {
+        return RenderJobStatus(
+          state: RenderJobState.unknown,
+          error: body['error']?.toString(),
         );
       }
-      return null;
+      if (res.statusCode != 200) return null;
+      final percent = body['percent'];
+      final eta = body['etaSeconds'];
+      final ahead = body['queuedAhead'];
+      return RenderJobStatus(
+        state: switch (body['status']) {
+          'done' => RenderJobState.done,
+          'failed' => RenderJobState.failed,
+          'cancelled' => RenderJobState.cancelled,
+          _ => RenderJobState.running,
+        },
+        percent: percent is num ? percent.round() : 0,
+        etaSeconds: eta is num ? eta.round() : null,
+        queuedAhead: ahead is num ? ahead.round() : 0,
+        message: body['message']?.toString(),
+        downloadUrl: body['downloadUrl']?.toString(),
+        error: body['error']?.toString(),
+      );
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Asks the server to stop render [jobId]. True when it agreed to.
+  ///
+  /// **The render says it has stopped, not this.** The dialog keeps polling
+  /// [renderStatus], because a film that finished in the same moment is still a
+  /// film, and „cancelled" over a video the trainer now has would be a lie.
+  Future<bool> cancelRender(String jobId) async {
+    try {
+      final res = await _client
+          .delete(Uri.parse('$backendUrl/lessons/export-video/$jobId'),
+              headers: _headers)
+          .timeout(const Duration(seconds: 10));
+      return res.statusCode == 202;
+    } catch (e) {
+      AppLogger.log('[Lessons] Could not cancel render $jobId: $e');
+      return false;
     }
   }
 
@@ -530,7 +618,14 @@ class LessonApiService {
     }
   }
 
-  /// Exports a tutorial as an MP4 video rendered by the backend.
+  /// Asks the server to render a tutorial as an MP4 video.
+  ///
+  /// **Answered when the render is accepted, not when it is drawn** — item 5
+  /// of part two of `docs/PLAN-SNIMANJE.md`. Every refusal still comes back
+  /// here as the server's sentence (the recording does not match, the film is
+  /// too long, the queue is full); an accepted film comes back as the id of
+  /// its job, to watch with [renderStatus]. So thirty seconds rather than the
+  /// five minutes this call used to wait for a whole render.
   Future<LessonExportVideoResult> exportVideo({
     required int lessonId,
     required List<Map<String, dynamic>> events,
@@ -543,10 +638,6 @@ class LessonApiService {
     /// written on. Absent means the renderer's own defaults, which is what the
     /// recorded-lesson export sends.
     Map<String, String>? look,
-
-    /// A name the client gives its own render so it can watch it. See
-    /// [renderProgress].
-    String? jobId,
     bool? narrate,
     String? voice,
 
@@ -573,7 +664,6 @@ class LessonApiService {
               'resolution': resolution,
               'boardTheme': boardTheme,
               if (look != null) 'look': look,
-              if (jobId != null) 'jobId': jobId,
               if (narrate != null) 'narrate': narrate,
               if (voice != null) 'voice': voice,
               if (useRecording == true) 'useRecording': true,
@@ -581,29 +671,28 @@ class LessonApiService {
               if (signature != null) 'signature': signature,
             }),
           )
-          .timeout(const Duration(minutes: 5));
-      if (res.statusCode == 200) {
+          .timeout(const Duration(seconds: 30));
+      // 202 is the render accepted; 409 with a job id is one of this tutorial
+      // already running, which is the render to show. A 409 without one is a
+      // refusal like any other — a recording that does not match — and falls
+      // through to its sentence.
+      if (res.statusCode == 202 || res.statusCode == 409) {
         final body = jsonDecode(res.body);
-        if (body is Map) {
+        final jobId = body is Map ? body['jobId']?.toString() : null;
+        if (jobId != null &&
+            (res.statusCode == 202 || body['alreadyRendering'] == true)) {
           return LessonExportVideoResult(
-            ok: true,
-            downloadUrl: body['downloadUrl']?.toString(),
-            message: body['message']?.toString(),
+            jobId: jobId,
+            alreadyRendering: res.statusCode == 409,
           );
         }
-        return const LessonExportVideoResult(
-          ok: false,
-          error: 'Invalid response from server.',
-        );
       }
       return LessonExportVideoResult(
-        ok: false,
         error: _errorFrom(res.body, 'Video export failed (${res.statusCode}).'),
       );
     } catch (e) {
       AppLogger.log('[Lessons] Video export failed: $e');
       return const LessonExportVideoResult(
-        ok: false,
         error: 'Cannot connect to server.',
       );
     }
@@ -700,6 +789,29 @@ class LessonApiService {
       return null;
     } catch (e) {
       AppLogger.log('[Lessons] Could not ask for the narration: $e');
+      return null;
+    }
+  }
+
+  /// The longest recording the server accepts over [lessonId], in milliseconds,
+  /// or null when it could not be asked — or is a server that does not say.
+  ///
+  /// Asked rather than written here: since item 5 of part two of
+  /// `docs/PLAN-SNIMANJE.md` the server derives it from its render budget, so
+  /// it follows the drawing rate that server was configured with, and a copy in
+  /// the app would be a second number that drifts from the first.
+  Future<int?> narrationMaxMs(int lessonId) async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/lessons/$lessonId/narration'),
+              headers: _headers)
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      final max = body is Map ? body['maxMs'] : null;
+      return max is num && max > 0 ? max.toInt() : null;
+    } catch (e) {
+      AppLogger.log('[Lessons] Could not ask for the narration limit: $e');
       return null;
     }
   }

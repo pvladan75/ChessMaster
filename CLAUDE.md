@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1876 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1884 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 1146 tests, all green
+cd chess_backend && npm test          # node --test, 1172 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1395,6 +1395,43 @@ by the budget, and it is pinned.
 mutation looked caught by the full suite — by test 3, which counts files in the
 shared `exports/` while other test files run in parallel. It was a flake, and the
 mutation had in fact survived. Read *which* test failed before believing it.
+
+**Item 5 of part two the same day — the render leaves the request — 1884 in the
+app with 1 skipped, 1172 on the backend** with `.env` moved aside; analyze at 29
+infos. A tutorial export answers 202 and its film is drawn behind the answer;
+the job is a row (`tutorial_render_jobs`, `services/renderJobs.js`). With the
+owner's four follow-ups the same evening: the film ceiling is 600 s, the
+narration cap is derived from it and served to the app as `maxMs`, a job with a
+deadline (the recorded-lesson export, still drawn inside its request) goes first
+and is refused at its turn when the queue made it late, and `abortOnDisconnect`
+is gone. Thirty-four mutations, all caught. Live check: `TODO-provera.md`, item
+143.
+
+**A number kept in two places by a comment is two numbers.** The narration cap
+was fifteen minutes in `narrationUpload.js` and fifteen in `narration_take.dart`,
+each pointing at the other. It is derived on the server now and asked for by the
+app, and the app's fallback fails safe: when the server cannot be asked it stops
+*earlier*, because a take cut short is always accepted.
+
+**Priority cannot preempt.** One slot draws one film, so „give the synchronous
+export priority" means in front of the films waiting, not in front of the one
+being drawn. Its deadline is enforced at the door and again at its turn, and the
+turn check refuses only lateness the queue caused.
+
+**A middleware that calls `next()` without returning its promise ends a test
+early.** `requireEntitlement` does, so awaiting it asserts on a response the
+handler has not written yet — 200 read where the route answered 429. Capture the
+handler's own promise.
+
+**One test that forgets to open its gate can fail ten others.** A fake renderer
+left „drawing" held the one-running-render index for the rest of the file, and
+every later export of that tutorial got its correct 409. Read the first failure
+before the other ten.
+
+**`.env.aside` is not covered by `.gitignore`.** An earlier session moved `.env`
+aside to measure like CI and never put it back; for a day the only copy of the
+secrets was an untracked file one `git add` from a public repository. Move it
+aside with a `trap` that restores it in the same command.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

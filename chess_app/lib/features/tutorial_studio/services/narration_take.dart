@@ -55,18 +55,31 @@ const double silenceFloorDbfs = -96.0;
 /// there at all, and a trainer pausing to think is never told they are silent.
 const double liveMicrophoneDbfs = -70.0;
 
-/// The longest recording the server accepts — fifteen minutes,
-/// `NARRATION_MAX_SECONDS` in `chess_backend/services/narrationUpload.js`,
-/// which says why: the film is still drawn inside the export request.
-const int narrationMaxMs = 15 * 60 * 1000;
+/// The longest recording assumed when the server cannot be asked.
+///
+/// **Not the cap.** The server says what it accepts — `maxMs` from
+/// `GET /lessons/:id/narration`, derived there from the render budget
+/// (`narrationUpload.js`), so it follows the drawing rate that server was
+/// configured with: thirty minutes at the defaults since item 5 of part two of
+/// `docs/PLAN-SNIMANJE.md`. A second copy of that number here would be the two
+/// copies this project keeps finding apart. This is only what is used when the
+/// server does not answer, and it is the old, shorter fifteen minutes on
+/// purpose: a take stopped early is always accepted, and one stopped at a
+/// guessed longer cap could be refused after the trainer has spoken for half an
+/// hour.
+const int narrationFallbackMaxMs = 15 * 60 * 1000;
 
-/// Where a take is stopped so that it still fits: one second before the cap.
+/// Where a take of at most [maxMs] is stopped so that it still fits: one second
+/// before the cap.
 ///
 /// Audio arrives in whole chunks — 80 ms on Android, and nobody has measured
 /// the largest a Windows device hands over — so a take stopped *at* the cap can
 /// end a chunk past it and be refused by a server counting to the millisecond.
 /// A second is several chunks of margin and costs the trainer nothing.
-const int narrationStopAtMs = narrationMaxMs - 1000;
+int narrationStopAtFor(int maxMs) => maxMs - 1000;
+
+/// [narrationStopAtFor] the fallback, for a screen given no cap.
+const int narrationStopAtMs = narrationFallbackMaxMs - 1000;
 
 /// „1:07" — a take's length, or where it is. Here rather than on the screen
 /// because the export dialog says it too.

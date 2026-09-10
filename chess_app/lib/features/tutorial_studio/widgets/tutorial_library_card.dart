@@ -419,15 +419,55 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
     if (id == null || _busy) return;
 
     setState(() => _busy = true);
-    await exportTutorialVideo(
+    final state = await exportTutorialVideo(
       context: context,
       api: widget.lessonApi,
       lessonId: id,
       title: _titleOf(row),
       draft: TutorialDraft.fromLesson(row),
+      // Marked the moment the server accepts it, so a render the trainer hides
+      // stays on its row — the place they will look for it.
+      onStarted: (jobId) => row['render_job_id'] = jobId,
     );
     if (!mounted) return;
-    setState(() => _busy = false);
+    setState(() {
+      _busy = false;
+      _settleRender(row, state);
+    });
+  }
+
+  /// Whether a film of this tutorial is being drawn for this account.
+  ///
+  /// The list says so (`render_job_id`) and this dialog says so the moment it
+  /// starts one — item 5 of part two of `docs/PLAN-SNIMANJE.md`. A render the
+  /// trainer hid has to be somewhere they can find it again, and the row they
+  /// started it from is where they will look.
+  bool _isRendering(Map<String, dynamic> row) => row['render_job_id'] != null;
+
+  /// What a render's end means for its row: a film to download, and no render
+  /// running. A hidden one is still running and keeps its place.
+  void _settleRender(Map<String, dynamic> row, RenderJobState? state) {
+    if (state == null || state == RenderJobState.running) return;
+    row['render_job_id'] = null;
+    if (state == RenderJobState.done) row['has_video'] = true;
+  }
+
+  /// The render running for this row, shown again.
+  Future<void> _watchRender(Map<String, dynamic> row) async {
+    final jobId = row['render_job_id']?.toString();
+    if (jobId == null || _busy) return;
+
+    setState(() => _busy = true);
+    final state = await watchTutorialRender(
+      context: context,
+      api: widget.lessonApi,
+      jobId: jobId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _settleRender(row, state);
+    });
   }
 
   /// Whether this tutorial has a film waiting for it.
@@ -510,13 +550,28 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.videocam_outlined,
-                                      size: 20),
-                                  tooltip: 'Export video',
-                                  onPressed:
-                                      _busy ? null : () => _exportVideo(row),
-                                ),
+                                // A film being drawn for this row is shown,
+                                // rather than offered a second time: one film
+                                // per tutorial, and a hidden render has to be
+                                // somewhere a trainer can find it again. A
+                                // still icon, not a spinner — its shape says
+                                // it, and an animation on a row never settles.
+                                if (_isRendering(row))
+                                  IconButton(
+                                    icon: Icon(Icons.movie,
+                                        size: 20, color: context.colors.accent),
+                                    tooltip: 'Rendering — show progress',
+                                    onPressed:
+                                        _busy ? null : () => _watchRender(row),
+                                  )
+                                else
+                                  IconButton(
+                                    icon: const Icon(Icons.videocam_outlined,
+                                        size: 20),
+                                    tooltip: 'Export video',
+                                    onPressed:
+                                        _busy ? null : () => _exportVideo(row),
+                                  ),
                                 if (_hasVideo(row))
                                   IconButton(
                                     icon: const Icon(

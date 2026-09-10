@@ -118,15 +118,22 @@ class FakeServer {
         'narration': {'ms': 800, 'beats': 3},
       }, 201);
     }
+    // Since item 5 of part two of docs/PLAN-SNIMANJE.md the export is answered
+    // with a job id and the film's end is read from its progress. This
+    // server's films are always already drawn.
     if (path.contains('/progress')) {
-      return json({'percent': 0, 'done': false, 'queuedAhead': 0});
-    }
-    if (path == '/lessons/12/export-video') {
       return json({
+        'status': 'done',
+        'percent': 100,
+        'done': true,
+        'queuedAhead': 0,
         'message':
             'Video rendered successfully, saved, and ready for download!',
         'downloadUrl': '/recordings/export-download/x.mp4?token=t',
       });
+    }
+    if (path == '/lessons/12/export-video') {
+      return json({'jobId': 'job-12', 'status': 'running'}, 202);
     }
     return json({'error': 'Not found'}, 404);
   }

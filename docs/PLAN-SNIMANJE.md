@@ -600,6 +600,12 @@ this document.
    change that limit; what the documents record is step 5 of part two — the
    render leaves the request — which removes the ceiling rather than moving it,
    and is not built. When it is, this cap has no reason left.
+   **Changed 10.9.2026, with step 5: thirty minutes, and no longer a number of
+   its own.** The ceiling was moved rather than removed: once the film left the
+   request the owner set it to 600 s of drawing, because one slot still draws
+   one film at a time. The cap is now derived from that ceiling — the longest
+   captioned film one render may draw at 720p — and served to the app as
+   `maxMs`, so moving the ceiling or the drawing rate moves the cap with it.
 
 ## What this does not solve
 
@@ -747,6 +753,104 @@ What changes:
    already reaches the app, which is the whole of the "you will get it later"
    half.
 
+### Built on 10.9.2026 — not yet watched running
+
+Live check: `docs/TODO-provera.md`, item 143.
+
+* **The job is a row.** `tutorial_render_jobs` (`db.js`) has a server-minted
+  UUID, so a key a client chooses is not one another client can choose too,
+  and a partial unique index allowing one running render per tutorial and
+  trainer. `services/renderJobs.js` creates the row, settles it, and fails a row
+  that says `running` with nothing behind it: at startup (`reapInterrupted`,
+  one notification per trainer), and whenever anybody looks at it. Same shape
+  as `user_game_imports`.
+* **Everything that can refuse a film still answers inside the request**: 404,
+  400, 409 for a recording that does not match, 422 too long, 429 for the queue
+  or the account, and a new 409 naming the render of the same tutorial already
+  running. An accepted film is `202 { jobId }`, and the request waits only until
+  the queue has taken it or turned it away.
+* **Every ending is written as an outcome, never thrown.** A film kept and
+  metered is `done`. A cancel is `cancelled`, and nobody is told, because the
+  trainer pressed the button. Too long once the voice has spoken is `failed`
+  with the too-long sentence; anything else is `failed` with a generic sentence
+  and the log. The row is written before the notification, and a notification
+  that fails cannot fail the film.
+* **The progress route** reads the row, and while the film is being drawn the
+  in-memory numbers. A finished film's answer carries a link minted then. It is
+  scoped to the account, so an id alone is not a way in. **`DELETE`** cancels: a
+  waiting film leaves the queue at once (`renderQueue.withdraw`), and one being
+  drawn stops at its next frame.
+* **The app.** The dialog has „Hide" and „Cancel render" and polls until the
+  render ends. „Hide" leaves it rendering and says a notification will come.
+  The saved-tutorials row shows a running render (`render_job_id` from
+  `GET /lessons`) and reopens it. A second export of the same tutorial shows the
+  one already running. The bell draws `video_ready` and `video_failed`.
+
+**The four follow-ups the owner asked for the same evening**, before it was
+committed:
+
+1. **The ceiling is 600 s** (`RENDER_MAX_DRAW_SECONDS`), about thirty minutes of
+   captioned film at 720p. It was nginx's 300 while the film was drawn inside
+   the request; now it is the longest one film holds the slot, so a short film
+   can wait up to ten minutes behind a long one until chunking exists.
+   `RENDER_REQUEST_SECONDS` (300) is back, and means only the connection.
+2. **The narration cap is derived, not set.** It is the longest captioned film
+   one render may draw at 720p: thirty minutes at the defaults
+   (`narrationUpload.narrationMaxSeconds`). `GET /lessons/:id/narration` returns
+   it as `maxMs` in both of its answers, and the studio asks before it opens the
+   recording screen, which stops a second before the cap. When the server cannot
+   be asked, the app uses the old fifteen, on purpose: a take cut early is
+   always accepted. The two fifteens had been kept in step by a comment in each
+   file; there is one number now, and it is asked for. Thirty minutes of 16 kHz
+   mono is 57.6 MB, inside nginx's `client_max_body_size 120m`. **Open decision 3
+   is answered by this.**
+3. **A client waiting on its connection goes first.** The recorded-lesson export
+   (`routes/recordings.js`) is still drawn inside its request, so it passes a
+   deadline. A job with a deadline is chosen before any job without one, and a
+   job the queue made late is refused at its turn as well as at the door: a 429
+   saying when to try again, while the trainer is still connected to read it.
+   **Priority cannot interrupt a film already being drawn.** One slot draws one
+   film, so a recorded lesson arriving behind a ten-minute tutorial that is
+   mid-draw is refused with the wait rather than cut off by the proxy. The rule
+   at its turn refuses only lateness the queue caused; a film too long even on
+   its own is still the route's to refuse.
+4. **`abortOnDisconnect` is deleted** with its three tests. The trainer's cancel
+   fires the signal.
+
+What it does not do, on purpose:
+
+* **Chunking.** A long film still holds the slot for its whole length, now up
+  to ten minutes. That is the hybrid's other half.
+* **A deferred lane.** „Tonight" does not exist yet, and a film too long for
+  600 s is still refused with its ways out.
+* **A sweep of job rows.** A finished row is a few hundred bytes and is kept.
+  The film itself still ages out, and the progress route stops offering a link
+  to one that has.
+* **The recorded-lesson export has no cancel and no disconnect abort**, and it
+  never had either. A client that hangs up still leaves its film drawing; the
+  deadline makes it refuse rather than start late, which is the half that was
+  asked for. Nor is a recorded lesson whose own drawing exceeds 300 s refused by
+  anything: the queue leaves that to the route, and that route checks no length.
+  Both unchanged from before.
+* **`narration: 'failed'`**, the word beside the sentence in the old success
+  response, is gone. Nothing in the app read it; the sentence travels in the
+  job's message.
+
+Thirty-four mutations, twenty-five on the job model and the route and nine on
+the follow-ups, all caught by the test they were aimed at; three of them hung
+a test, which the per-test timeout cut off and counted. Two things came out of
+writing the tests rather than the code:
+
+* **One test that forgot to open its gate failed ten others, and the rule was
+  right every time.** Its `onAccepted` threw before releasing the fake renderer,
+  so that film stayed „drawing" for the rest of the file, and every later export
+  of the same tutorial got the 409 the one-running-render index exists to give.
+  Eleven red tests, one fault, and the fault was in the test.
+* **`requireEntitlement` calls `next()` without handing back its promise.** A
+  route test that awaits the middleware asserts on a response the handler has
+  not written yet; the first recorded-lesson test did, and read 200 where the
+  route answered 429. Capture the handler's own promise.
+
 ## The hybrid — the owner's proposal, and the part that makes it work
 
 > "kada je opterećenost servera veća, onda se korisniku kaže da će renderovanje
@@ -842,9 +946,10 @@ Three states, and the app already draws two of them:
    a trainer waiting five minutes for nothing — with arithmetic that already
    exists. **Built 10.9.2026**; the droplet's drawing rate is what it still
    needs.
-2. **5** turns that refusal into a routing decision, and needs the job row. It
-   depends on "one video per tutorial", which is done. **Next**, and the live
-   check below is the strongest argument for it.
+2. **5** takes the render out of the request, and needs the job row. It
+   depends on "one video per tutorial", which is done. **Built 10.9.2026**, with
+   the owner's four follow-ups (under item 5 above). „Too long" is still a
+   refusal, at 600 s now, because the lane it would route to comes with 3.
 3. **Chunking** comes with the deferred lane, because that is where twelve jobs
    from one film stop being a problem and start being the mechanism.
    **Fairness** did not wait for it and was built on 9.9.2026.

@@ -20,48 +20,18 @@ const { EventEmitter } = require('events');
 
 const {
   RenderAborted,
-  abortOnDisconnect,
   throwIfAborted,
   killOnAbort,
 } = require('../services/renderAbort');
 const renderQueue = require('../services/renderQueue');
 
 // ---------------------------------------------------------------- the wiring
-
-/// A response object as far as this mechanism is concerned.
-function fakeRes({ finished = false } = {}) {
-  const res = new EventEmitter();
-  res.writableFinished = finished;
-  res.off = res.removeListener;
-  return res;
-}
-
-test('a response that closes unfinished aborts the render', () => {
-  const res = fakeRes();
-  const { signal } = abortOnDisconnect(res);
-  assert.equal(signal.aborted, false);
-  res.emit('close');
-  assert.equal(signal.aborted, true);
-});
-
-test('a response that finished normally does not abort anything', () => {
-  // Every successful render answers and *then* closes. A listener that did not
-  // ask this question would cancel every render at the moment it succeeded —
-  // harmless only while nothing is still running by then, and a silent
-  // cancellation the first time something is.
-  const res = fakeRes({ finished: true });
-  const { signal } = abortOnDisconnect(res);
-  res.emit('close');
-  assert.equal(signal.aborted, false);
-});
-
-test('dispose stops listening, so a later close cannot abort', () => {
-  const res = fakeRes();
-  const { signal, dispose } = abortOnDisconnect(res);
-  dispose();
-  res.emit('close');
-  assert.equal(signal.aborted, false);
-});
+//
+// The three tests of `abortOnDisconnect` went with it in item 5 of part two of
+// docs/PLAN-SNIMANJE.md: the tutorial export answers 202 before it draws, so a
+// socket closing is no longer a reason to stop, and the trainer's cancel fires
+// the signal instead (`render_jobs.test.js`, `tutorial_video_export.test.js`).
+// What the signal stops, below, is unchanged.
 
 test('throwIfAborted throws RenderAborted, and nothing when there is no signal', () => {
   const controller = new AbortController();

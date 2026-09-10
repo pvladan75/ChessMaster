@@ -195,3 +195,32 @@ test('the list says which tutorials have a film', async () => {
   assert.equal(res.statusCode, 200);
   assert.match(queries[0].sql, /video_filename IS NOT NULL\) AS has_video/);
 });
+
+test('the list says which tutorial has a film being drawn for this account', async () => {
+  // Item 5 of part two of docs/PLAN-SNIMANJE.md: a hidden render is found
+  // again on its row. Only the asker's own, and only one still running — a
+  // render that ended long ago must not draw a spinner for ever.
+  const queries = [];
+  const originalQuery = db.pool.query;
+  db.pool.query = async (sql, values) => {
+    queries.push({ sql, values });
+    return { rows: [], rowCount: 0 };
+  };
+  const res = {
+    statusCode: 200,
+    body: null,
+    status(code) { this.statusCode = code; return this; },
+    json(payload) { this.body = payload; return this; },
+  };
+  try {
+    const stack = routeHandlers('/');
+    await stack[stack.length - 1]({ query: {}, user: { id: 4 } }, res);
+  } finally {
+    db.pool.query = originalQuery;
+  }
+
+  const sql = queries[0].sql.replace(/\s+/g, ' ');
+  assert.match(sql, /\(SELECT j\.id FROM tutorial_render_jobs j .*\) AS render_job_id/);
+  assert.match(sql, /j\.user_id = \$1/, 'another account\'s render of a shared tutorial is theirs');
+  assert.match(sql, /j\.status = 'running'/);
+});

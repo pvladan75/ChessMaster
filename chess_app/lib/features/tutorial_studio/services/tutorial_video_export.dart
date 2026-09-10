@@ -10,7 +10,6 @@
 // live here, and both screens call one function. The alternative is the same
 // sentence written twice and drifting apart on the third change.
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -59,11 +58,16 @@ const _highResolution = '1080p';
 
 /// Make a video of [draft], asking about the voice first when there is one.
 ///
-/// Returns true when a file was produced. Every refusal is a sentence through
-/// `AppFeedback` and nothing is sent: an empty tutorial renders no frames, and
-/// ffmpeg given no frames fails with a message about a pipe rather than about a
-/// tutorial.
-Future<bool> exportTutorialVideo({
+/// Returns where the render was left, or null when none was started — the
+/// trainer cancelled the sheet, or it was refused. Every refusal is a sentence
+/// through `AppFeedback`, and nothing is sent where the app can already tell:
+/// an empty tutorial renders no frames, and ffmpeg given no frames fails with a
+/// message about a pipe rather than about a tutorial. [RenderJobState.running]
+/// is a render the trainer hid, still being drawn.
+///
+/// [onStarted] is told the job's id the moment the server has accepted it, so
+/// a list can show that tutorial as rendering after the dialog is put away.
+Future<RenderJobState?> exportTutorialVideo({
   required BuildContext context,
   required LessonApiService api,
   required int lessonId,
@@ -73,19 +77,20 @@ Future<bool> exportTutorialVideo({
   /// Where this device keeps recorded takes. Null means the app's own place;
   /// tests hand in a directory.
   NarrationTakeStore? narrationStore,
+  ValueChanged<String>? onStarted,
 }) async {
   final video = tutorialVideoOf(draft);
 
   if (!_hasSomethingToShow(draft) || !canRenderVideo(video)) {
     AppFeedback.info(context, 'This tutorial has nothing to show yet.');
-    return false;
+    return null;
   }
   if (!fitsInOneFilm(video)) {
     AppFeedback.info(
       context,
       'This tutorial is too long to render as one video (${video.seconds}s).',
     );
-    return false;
+    return null;
   }
 
   // The trainer's own recording, if this device has one for this tutorial —
@@ -113,11 +118,11 @@ Future<bool> exportTutorialVideo({
   // must not be offered, and a trainer who turns narration on and waits two
   // minutes for a refusal has been lied to by the interface.
   final tts = await api.fetchTtsVoices();
-  if (!context.mounted) return false;
+  if (!context.mounted) return null;
 
   final canSpeak = tts.available && tts.voices.isNotEmpty;
   final prefs = await SharedPreferences.getInstance();
-  if (!context.mounted) return false;
+  if (!context.mounted) return null;
 
   var narrate = true;
   String? voice;
@@ -152,7 +157,7 @@ Future<bool> exportTutorialVideo({
       resolution: wantsHd ? _highResolution : _standardResolution,
     ),
   );
-  if (chosen == null) return false; // cancelled, and nothing was sent
+  if (chosen == null) return null; // cancelled, and nothing was sent
   hd = chosen.hd;
   await prefs.setBool(_hdKey, hd);
   if (canSpeak) {
@@ -174,7 +179,7 @@ Future<bool> exportTutorialVideo({
   // request.
   final mine = chosen.recording;
   if (mine != null) {
-    if (!context.mounted) return false;
+    if (!context.mounted) return null;
     final sent = await _sendRecordingIfNeeded(
       context: context,
       api: api,
@@ -182,27 +187,22 @@ Future<bool> exportTutorialVideo({
       stored: mine,
       signature: signature,
     );
-    if (!sent) return false;
+    if (!sent) return null;
   }
 
-  if (!context.mounted) return false;
+  if (!context.mounted) return null;
   final look = _lookOf(context);
 
-  // The client names its own render so it can watch it. The export request and
-  // the polling run side by side: the render happens *inside* that request, so
-  // there is no job queue behind this and nothing to clean up if the app is
-  // closed halfway.
-  final jobId = 'job${DateTime.now().millisecondsSinceEpoch}'
-      '${Random().nextInt(1 << 20)}';
-
-  final render = api.exportVideo(
+  // **Answered when accepted, not when drawn** — item 5 of part two of
+  // `docs/PLAN-SNIMANJE.md`. The server names the job; the film is drawn after
+  // this request has come back, and the bar below follows it.
+  final started = await api.exportVideo(
     lessonId: lessonId,
     events: video.events,
     seconds: video.seconds,
     title: title,
     look: look,
     resolution: hd ? _highResolution : _standardResolution,
-    jobId: jobId,
     // The recording and a synthesised voice are two answers to one question,
     // and a film is never sent both.
     narrate: mine == null && canSpeak ? narrate : null,
@@ -214,27 +214,75 @@ Future<bool> exportTutorialVideo({
     // beats that have moved since. See `recordingForFilm`.
     signature: mine == null ? null : signature,
   );
+  if (!context.mounted) return null;
 
-  final result = await _showProgressWhile(
-    context: context,
-    api: api,
-    jobId: jobId,
-    render: render,
-  );
-  if (!context.mounted) return false;
-
-  if (!result.ok) {
-    AppFeedback.error(context, result.error ?? 'Video export failed.');
-    return false;
+  if (!started.ok) {
+    AppFeedback.error(context, started.error ?? 'Video export failed.');
+    return null;
   }
+  final jobId = started.jobId!;
+  onStarted?.call(jobId);
+  if (started.alreadyRendering) {
+    // Pressed again, or on another device, while a film of this tutorial was
+    // being drawn. One film per tutorial, so the one already running is shown
+    // — and the choices just made are not what it is being drawn with, which
+    // is why this is said rather than left to be discovered.
+    AppFeedback.info(
+      context,
+      'This tutorial is already rendering, so here is that video. Cancel it to '
+      'render with different settings.',
+    );
+  }
+  return watchTutorialRender(context: context, api: api, jobId: jobId);
+}
 
-  await _showReady(
-    context,
-    result.message ??
-        'Video rendered successfully, saved, and ready for download!',
-    result.downloadUrl == null ? null : resolveMediaUrl(result.downloadUrl!),
-  );
-  return true;
+/// Follows render [jobId] until it ends or the trainer hides it, and then says
+/// what became of it: the finished dialog with its link, the server's sentence
+/// for a failure, or that it was cancelled.
+///
+/// Returns the state it was left in — [RenderJobState.running] when hidden. Also
+/// how a list reopens a render it found running.
+Future<RenderJobState> watchTutorialRender({
+  required BuildContext context,
+  required LessonApiService api,
+  required String jobId,
+}) async {
+  final ending = await _showProgress(context: context, api: api, jobId: jobId);
+  if (ending == null) {
+    if (context.mounted) {
+      AppFeedback.info(
+        context,
+        'The video keeps rendering. You will get a notification when it is '
+        'ready.',
+      );
+    }
+    return RenderJobState.running;
+  }
+  if (!context.mounted) return ending.state;
+
+  switch (ending.state) {
+    case RenderJobState.done:
+      await _showReady(
+        context,
+        ending.message ??
+            'Video rendered successfully, saved, and ready for download!',
+        ending.downloadUrl == null
+            ? null
+            : resolveMediaUrl(ending.downloadUrl!),
+      );
+    case RenderJobState.cancelled:
+      AppFeedback.info(context, 'Video export cancelled.');
+    case RenderJobState.failed:
+      AppFeedback.error(context, ending.error ?? 'Video export failed.');
+    case RenderJobState.unknown:
+      AppFeedback.error(
+        context,
+        ending.error ?? 'This video render is no longer on the server.',
+      );
+    case RenderJobState.running:
+      break;
+  }
+  return ending.state;
 }
 
 /// Whether this tutorial has anything a film could be made of.
@@ -292,7 +340,7 @@ Map<String, String> _lookOf(BuildContext context) {
   };
 }
 
-/// A modal bar that follows the render, and closes itself when it answers.
+/// A bar that follows render [jobId], and closes itself when the render ends.
 ///
 /// **Determinate, because the server actually knows.** The renderer draws a
 /// known number of frames and reports each one, so this is a real percentage
@@ -300,39 +348,57 @@ Map<String, String> _lookOf(BuildContext context) {
 /// report, and a bar that moves at a made-up speed would have been the same
 /// complaint with more pixels.
 ///
-/// It stops at 99 until the export answers: the frames are drawn well before
+/// It stops at 99 until the render ends: the frames are drawn well before
 /// ffmpeg has finished writing the file, and a bar that sits full while the app
 /// still waits is worse than one that visibly has something left to do.
-Future<LessonExportVideoResult> _showProgressWhile({
+///
+/// **And it can be put away** — item 5 of part two of `docs/PLAN-SNIMANJE.md`.
+/// It used to hold the whole screen for the whole render, because the render
+/// happened inside the request and closing the dialog could not cancel
+/// anything: „ekran se zamrzne kad pošaljem na renderovanje". The film is drawn
+/// after its request now, so „Hide" leaves it rendering and the trainer is
+/// notified, and „Cancel render" stops it.
+///
+/// Returns the render's last answer, or null when it was hidden.
+Future<RenderJobStatus?> _showProgress({
   required BuildContext context,
   required LessonApiService api,
   required String jobId,
-  required Future<LessonExportVideoResult> render,
 }) async {
   var percent = 0;
   int? etaSeconds;
   var queuedAhead = 0;
+  var cancelling = false;
   void Function(void Function())? refresh;
-  var closed = false;
+  final ending = Completer<RenderJobStatus?>();
+  var asking = false;
 
-  final poller = Timer.periodic(const Duration(milliseconds: 900), (_) async {
-    final at = await api.renderProgress(jobId);
-    if (at == null || refresh == null) return;
+  Future<void> poll() async {
+    // One question at a time: a slow answer overtaken by the next poll would
+    // otherwise be two readings racing for the same bar.
+    if (asking || ending.isCompleted) return;
+    asking = true;
+    final at = await api.renderStatus(jobId);
+    asking = false;
+    if (at == null || ending.isCompleted) return;
+    if (at.finished) {
+      ending.complete(at);
+      return;
+    }
     // The bar never walks backwards: a poll that answers with an older reading
     // than the one on screen is a poll that raced, not a render that undid
     // itself. The estimate does follow the newest reading, because it is
     // supposed to fall as the render goes.
     if (at.percent < percent) return;
-    refresh!(() {
+    refresh?.call(() {
       percent = at.percent;
       etaSeconds = at.etaSeconds;
       queuedAhead = at.queuedAhead;
     });
-  });
+  }
 
-  // Not dismissible: cancelling the dialog would not cancel the render, and a
-  // screen that lets you dismiss work it cannot stop is lying about what the
-  // button does.
+  // The barrier stays: „Hide" is a decision, and a tap beside the dialog is
+  // not one.
   final dialog = showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -361,23 +427,59 @@ Future<LessonExportVideoResult> _showProgressWhile({
                         : '$percent%${remainingText(etaSeconds)}'),
                 style: AppText.body.copyWith(color: ctx.colors.textSecondary),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'You can hide this and keep working. You will get a '
+                'notification when the video is ready.',
+                style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+              ),
             ],
           ),
+          actions: [
+            TextButton(
+              key: const Key('render-cancel'),
+              onPressed: cancelling
+                  ? null
+                  : () async {
+                      setLocal(() => cancelling = true);
+                      final ok = await api.cancelRender(jobId);
+                      // Accepted: the next poll says so, and that is what
+                      // closes this — a film finished in the same moment is
+                      // still a film. Refused or unreachable: the render goes
+                      // on, and so does this bar.
+                      if (!ok && ctx.mounted) {
+                        setLocal(() => cancelling = false);
+                        AppFeedback.error(
+                            ctx, 'The render could not be cancelled.');
+                      }
+                    },
+              child: Text(cancelling ? 'Cancelling…' : 'Cancel render'),
+            ),
+            FilledButton(
+              key: const Key('render-hide'),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Hide'),
+            ),
+          ],
         );
       },
     ),
   );
+  // Closed by „Hide", or by a back button: either way the film goes on.
+  unawaited(dialog.then((_) {
+    if (!ending.isCompleted) ending.complete(null);
+  }));
 
-  try {
-    return await render;
-  } finally {
-    poller.cancel();
-    if (!closed && context.mounted) {
-      closed = true;
-      Navigator.of(context, rootNavigator: true).pop();
-      await dialog;
-    }
+  unawaited(poll());
+  final poller =
+      Timer.periodic(const Duration(milliseconds: 900), (_) => poll());
+  final result = await ending.future;
+  poller.cancel();
+  if (result != null && context.mounted) {
+    Navigator.of(context, rootNavigator: true).pop();
+    await dialog;
   }
+  return result;
 }
 
 /// „Your video will start rendering shortly", and how many are in front of it.
