@@ -5199,3 +5199,32 @@ i srpski koji je vraćen a ne preveden" u `docs/STANJE-RADA.md`.
    id (i ne afrikans, koji je prvi na sortiranoj listi od 655).
 7. [ ] **Piper i dalje radi.** Vrati `TTS_PROVIDER=piper`, restartuj backend,
    izvezi film sa naracijom: govori kao pre. Rezerva mora da ostane rezerva.
+
+## 146. Slova se čuju i vide, i glas se sluša pre renderovanja — 11.9.2026, delimično provereno
+
+Četiri prijave od 11.9.2026, vidi „Četiri prijave uživo: slova, glas i uzorak"
+u `docs/STANJE-RADA.md`.
+
+1. [x] **Srpski izgovor slova kolone.** ✅ Sintetizovano pravim glasom
+   11.9.2026: `node scripts/tts-probe.js "Odigraj Bc4, pa O-O."
+   sr-Latn-RS-NicholasNeural` → „Odigraj lovac ce četiri, pa mala rokada",
+   2,86 s u `exports/tts-probe.wav`. **Ostaje da se odsluša** i potvrdi da se
+   „ce" sada čuje jasno.
+2. [ ] **Ćirilički glas.** `node scripts/tts-probe.js "Odigraj Bc4."
+   sr-RS-NicholasNeural` — dodate reči su na ćirilici („ловац це четири"), a
+   trenerova rečenica ostaje kako je napisana. Pitanje na koje samo uho
+   odgovara: čita li ćirilički glas uopšte latinicu kojom su natpisi pisani?
+   Ako ne, `sr-Latn-RS` je jedini upotrebljiv za ovaj projekat i to treba
+   zapisati.
+3. [ ] **Dijakritike u filmu.** Izvezi tutorijal čiji natpis ima č, ć, š, đ i ž
+   („Ovo je početak partije"): u filmu se vide sva slova, i u naslovu i u
+   natpisu. Ranije je svako bilo kvadratić.
+4. [ ] **Brojevi redova na tabli.** U istom filmu, uz levu ivicu table stoje
+   brojevi 1–8, a uz donju slova a–h. Brojevi su nedostajali od 9.9.2026.
+5. [ ] **Slušanje glasa pre renderovanja.** U izvoznom listu, pored padajuće
+   liste glasova, dugme sa zvučnikom: pritisak pušta jednu rečenicu tim glasom
+   („Odigraj Bc4…"), dugme se pretvori u spinner dok traje, i **ništa se ne
+   renderuje**. Promeni glas pa pritisni ponovo — čuje se novi glas.
+6. [ ] **Glas koji server nema.** (Za onoga ko dira `.env`.) Sa `TTS_PROVIDER`
+   na piperu, uzorak radi za piperove glasove; Azure id više nije u listi i ne
+   može da se izabere.

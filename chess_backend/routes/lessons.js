@@ -12,6 +12,7 @@ const videoRenderer = require('../videoRenderer');
 const { acceptedTrainersOf } = require('../services/relationshipService');
 const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps');
 const tts = require('../services/tts');
+const { sampleFor } = require('../services/spokenMoves');
 const renderProgress = require('../services/renderProgress');
 const renderQueue = require('../services/renderQueue');
 const renderBudget = require('../services/renderBudget');
@@ -118,6 +119,46 @@ router.get('/tts/voices', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Fetch TTS voices error:', err);
     res.status(500).json({ error: 'Server error while fetching TTS voices' });
+  }
+});
+
+// GET /lessons/tts/sample?voice=… — one sentence, so a trainer can hear a voice
+// before spending a render on it.
+//
+// **„Ili da se pusti sample sa glasom da čuje, da ne ide odmah u
+// renderovanje"** — 11.9.2026, after a real account answered with 655 voices.
+// Auditioning by exporting is minutes per voice and a queue slot each time;
+// this is one sentence, cached by `tts.speak` like every other, so the second
+// press of the same voice costs nothing at all.
+//
+// Mounted beside `/tts/voices` and before any `/:id` route, for the same reason.
+router.get('/tts/sample', authenticateToken, async (req, res) => {
+  try {
+    const voice = String(req.query.voice || '').trim();
+    if (!voice) return res.status(400).json({ error: 'A voice is required' });
+
+    // **Only a voice this server itself listed.** An unchecked string reaches
+    // the provider as a voice name, where Azure answers 400 and piper quietly
+    // synthesises with a different model — a trainer auditioning voices would
+    // be hearing the wrong one and choosing by it.
+    const offered = await tts.voices();
+    if (!offered.some((one) => one.id === voice)) {
+      return res.status(404).json({ error: 'This server does not have that voice' });
+    }
+
+    const clip = await tts.speak({ text: sampleFor(voice), voice });
+    if (!clip) {
+      return res.status(503).json({ error: 'The voice produced nothing. The server log says why.' });
+    }
+
+    res.set('Content-Type', 'audio/wav');
+    // A sample is the same bytes for as long as the voice exists, and it is
+    // pressed again the moment a trainer compares two voices.
+    res.set('Cache-Control', 'private, max-age=3600');
+    return res.sendFile(clip.path);
+  } catch (err) {
+    logger.error('TTS sample error:', err);
+    return res.status(500).json({ error: 'Server error while speaking the sample' });
   }
 });
 

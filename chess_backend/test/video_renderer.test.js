@@ -328,6 +328,37 @@ test('the file letters are readable, which they were not for a year', async () =
     'every file letter is drawn in a colour that is not its own square');
 });
 
+test('the rank numbers are readable, which they stopped being when the files were fixed', async () => {
+  // The other half of the same two lines. Fixing the file letters on 9.9.2026
+  // set `fillStyle` for the files and left the ranks reading it - so from that
+  // day the numbers were the invisible ones, painted in the colour of their own
+  // square eight times over. Reported on 11.9.2026 off a still of a film.
+  //
+  // Written as the file test's twin on purpose: same empty board, same
+  // question per label, opposite parity. Neither line owns a parity any more -
+  // both ask the board's own expression - so this pair cannot be half-fixed
+  // again.
+  const geom = boardGeometry(null, {});
+  const frame = await pixels({ ...BASE, fen: '8/8/8/8/8/8/8/8 w - - 0 1', showCoords: true });
+  const board = { light: { r: 0xF0, g: 0xD9, b: 0xB5 }, dark: { r: 0xB5, g: 0x88, b: 0x63 } };
+
+  const unreadable = [];
+  for (let row = 0; row < 8; row++) {
+    // Left column, drawn at column 0: light when the row is even.
+    const squareColour = row % 2 === 0 ? board.light : board.dark;
+    const top = geom.offsetY + row * geom.tileSize;
+    let ink = 0;
+    for (let x = Math.round(geom.offsetX + 2); x < Math.round(geom.offsetX + 20); x++) {
+      for (let y = Math.round(top + 2); y < Math.round(top + 22); y++) {
+        if (distance(frame.at(x, y), squareColour) > 30) ink++;
+      }
+    }
+    if (ink < 8) unreadable.push(8 - row);
+  }
+  assert.deepEqual(unreadable, [],
+    'every rank number is drawn in a colour that is not its own square');
+});
+
 test('the file says 30 frames a second, whatever we drew', () => {
   // Two different rates, and the whole point is that they differ: one drawing
   // per second of film, a file that claims 30. A 1 fps file scrubs badly in

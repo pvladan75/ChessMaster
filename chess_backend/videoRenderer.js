@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { classicPieceSvgs } = require('./pieceThemes');
+const { fontFamily } = require('./services/renderFont');
 const { RenderAborted, killOnAbort } = require('./services/renderAbort');
 
 /// Removes a file ffmpeg was part way through writing.
@@ -272,7 +273,7 @@ function drawArrow(ctx, from, to, code, geom) {
 function captionLines(ctx, text, maxWidth, fontSize, maxLines) {
   const trimmed = String(text || '').trim();
   if (!trimmed) return [];
-  ctx.font = `${fontSize}px sans-serif`;
+  ctx.font = `${fontSize}px ${fontFamily()}`;
 
   const lines = [];
   for (const paragraph of trimmed.split('\n')) {
@@ -584,7 +585,7 @@ async function renderFrameBuffer({
   // Top Title Bar
   if (showTitle) {
     ctx.fillStyle = inkColor;
-    ctx.font = `bold ${cfg.fontSizeTitle}px sans-serif`;
+    ctx.font = `bold ${cfg.fontSizeTitle}px ${fontFamily()}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     // No pawn glyph in front of it. `@napi-rs/canvas` on this server has no
@@ -597,7 +598,7 @@ async function renderFrameBuffer({
   // Timer & Status Badge
   if (showTimer) {
     ctx.fillStyle = accentColor;
-    ctx.font = `bold ${cfg.fontSizeTimer}px sans-serif`;
+    ctx.font = `bold ${cfg.fontSizeTimer}px ${fontFamily()}`;
     ctx.textAlign = 'right';
     // Against the right edge of whatever the frame is showing: the board when
     // that is all there is, and the caption column when there is one. Left at
@@ -639,9 +640,16 @@ async function renderFrameBuffer({
     } catch (e) {}
   }
 
+  /// What a label at this drawing position has to be painted, which is
+  /// whatever its square is not. The square's own colour is
+  /// `(row + column) % 2`, the same expression the board is painted with above
+  /// — flipping the board for Black flips both indices and so leaves the parity
+  /// alone, which is why this needs no perspective of its own.
+  const inkOn = (row, col) => ((row + col) % 2 === 0 ? colors.dark : colors.light);
+
   // Draw Rank/File Coordinates
   if (showCoords) {
-    ctx.font = `bold ${cfg.fontSizeCoord}px sans-serif`;
+    ctx.font = `bold ${cfg.fontSizeCoord}px ${fontFamily()}`;
     // The title block left the baseline on `middle`, which centred the file
     // letters on the board's own bottom edge and cut every one of them in half.
     ctx.textBaseline = 'alphabetic';
@@ -649,20 +657,23 @@ async function renderFrameBuffer({
       const fileLabel = isBlackPerspective ? String.fromCharCode(104 - i) : String.fromCharCode(97 + i);
       const rankLabel = isBlackPerspective ? (i + 1).toString() : (8 - i).toString();
 
-      // Files at bottom.
+      // Files at bottom (drawn on row 7), ranks at the left (drawn in column
+      // 0), and each label painted in the colour its own square is *not*.
       //
-      // The parity is the opposite of the ranks', and that is not a typo: a
-      // label has to be painted in the colour its square is *not*. The bottom
-      // row and the left column start on opposite colours, so one expression
-      // cannot serve both — and this one served the ranks, which is why the
-      // rank numbers have always been readable and **not one file letter has
-      // ever been drawn in any export**: dark on dark, then light on light,
-      // eight times. Found by looking at a frame.
-      ctx.fillStyle = i % 2 === 0 ? colors.light : colors.dark;
+      // **Both parities come from the board's own expression, and that is the
+      // whole fix.** The bottom row and the left column start on opposite
+      // colours, so one hand-written parity cannot serve both. It served the
+      // ranks until 9.9.2026, when it turned out that not one file letter had
+      // ever been drawn — and the fix that day set the files' colour on the
+      // line above without giving the ranks their own, so the numbers went
+      // invisible in its place. Reported on 11.9.2026 off a still: eight
+      // numbers, none of them there. Second time on the same two lines, and
+      // this time neither owns a parity.
+      ctx.fillStyle = inkOn(7, i);
       ctx.textAlign = 'right';
       ctx.fillText(fileLabel, offsetX + (i + 1) * tileSize - 4, offsetY + boardSize - 4);
 
-      // Ranks at left
+      ctx.fillStyle = inkOn(i, 0);
       ctx.textAlign = 'left';
       ctx.fillText(rankLabel, offsetX + 4, offsetY + i * tileSize + cfg.fontSizeCoord + 2);
     }
@@ -713,7 +724,7 @@ async function renderFrameBuffer({
   // Footer Move Text
   if (showMoveText) {
     ctx.fillStyle = inkColor;
-    ctx.font = `${cfg.fontSizeMove}px sans-serif`;
+    ctx.font = `${cfg.fontSizeMove}px ${fontFamily()}`;
     ctx.textAlign = 'center';
     const moveText = lastMove && lastMove.san ? `Last move: ${lastMove.san}` : 'Starting position';
     ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
@@ -739,7 +750,7 @@ async function renderFrameBuffer({
     const shown = revealedLines(lines, captionReveal);
 
     ctx.fillStyle = inkColor;
-    ctx.font = `${cfg.fontSizeCaption}px sans-serif`;
+    ctx.font = `${cfg.fontSizeCaption}px ${fontFamily()}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     shown.forEach((line, i) => {

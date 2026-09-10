@@ -1553,6 +1553,65 @@ are two dropdowns now. Both are scoped to keys rather than weakened to
 `findsWidgets` — the fifth time this repository has met a finder that stopped
 being unique because the screen grew.
 
+**Four live findings on 11.9.2026, all from one evening with a real Azure
+account — 1893 in the app with 1 skipped, 1202 on the backend** with `.env`
+moved aside, analyze at 29 infos and zero warnings. Twenty-four mutations, all
+caught.
+
+**A rule this file was proud of had the opposite answer in another language.**
+„Kad izgovara poteze Bc4, ovo c se skoro i ne čuje." Files have been bare
+letters everywhere since the app's Serbian build spelled „ge" and had it read by
+an English table as „dzh" — so the rule became „never spell a file". With a
+Serbian voice reading Serbian that is wrong: a lone consonant is a sound and not
+a word. What the old fault was really about is a voice reading a language that
+is not its own, so the table belongs to the **language**: `files` is absent from
+the five vocabularies whose voices already say the letter properly and present
+in the two Serbian ones (be, ce, de, ef, ge, ha). Verified against the real
+voice, not only in a test.
+
+**Serbian has two scripts and Azure has both.** `sr-Latn-RS` is the Latin locale
+and a plain `sr-RS` is Cyrillic, and the id is the only thing that says which,
+so there are two Serbian vocabularies. What a trainer wrote is untouched either
+way; only the words *added* on the way to the voice are written in the voice's
+own script.
+
+**`sans-serif` is not a font.** It is whatever the machine hands back, and on the
+owner's Windows box it was a family with no Latin Extended-A — so every š, đ, č,
+ć and ž in every caption of every film has been a box, since the renderer was
+written. The family is not named in the fix either: it is **chosen by drawing
+with it**, because `č` and `ć` are two glyphs and a font that has neither draws
+the same box twice. `services/renderFont.js` compares the two, and `ж`/`ф` for
+Cyrillic. **The existing pixel test could not have caught this: it asked whether
+there was ink, and a box is ink.**
+
+**The rank numbers had been invisible since the file letters were fixed.** The
+9.9.2026 fix set `fillStyle` for the files and left the ranks reading it, so the
+parity that was wrong for one became wrong for the other — eight numbers, none
+of them drawn, two days. Both labels now ask the board's own `(row + col) % 2`
+rather than a hand-written parity, and the rank test is written as the file
+test's twin so the pair cannot be half-fixed again. **A fix that moves a fault
+from one line to the next is what a shared `ctx` state does.**
+
+**655 voices means a trainer needs to hear one before spending a film on it.**
+„Ili da se pusti sample sa glasom da čuje, da ne ide odmah u renderovanje."
+`GET /lessons/tts/sample?voice=…` speaks one sentence — through `spokenMoves`,
+so what is heard is the treatment a beat will get, „lovac ce četiri" and all —
+and it is refused for a voice this server did not itself list, because an
+unchecked name reaches Azure as a 400 and piper as a *different model*, which
+would have a trainer choosing by a voice they never heard.
+
+Two things about testing it, both about platform channels.
+
+**A spinner never settles.** `pumpAndSettle` after tapping a button that shows a
+`CircularProgressIndicator` times out with no useful message — pump frames
+explicitly, and hold the answer in a `Completer` so the button can be caught
+mid-sentence. A fake that answers at once cannot show a spinner at all.
+
+**Both halves of playing a sound are plugins**, and in a widget test neither
+answers: the button spun for ever. `debugPlayVoiceSample` is the seam, in the
+shape `debugTutorialStudioAvailable` already had — and the test's fake still
+makes the real HTTP request, so everything but the sound is proved.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

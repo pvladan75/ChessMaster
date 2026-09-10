@@ -10,13 +10,17 @@
 // live here, and both screens call one function. The alternative is the same
 // sentence written twice and drifting apart on the third change.
 import 'dart:async';
+import 'dart:io';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
@@ -153,6 +157,7 @@ Future<RenderJobState?> exportTutorialVideo({
     narrate: narrate,
     voice: voice,
     hd: hd,
+    onSample: (voice) => (debugPlayVoiceSample ?? _playSample)(api, voice),
     onPreview: (wantsHd) => _showPreview(
       context: context,
       api: api,
@@ -775,6 +780,13 @@ Future<_ExportChoice?> _askAboutExport({
   /// rendering anything. The sheet stays open behind it: a preview is a look,
   /// not a decision.
   required Future<void> Function(bool hd) onPreview,
+
+  /// Speaks one sentence in a voice, so it can be heard before a film is spent
+  /// on it. Answers false when the server had nothing to play.
+  ///
+  /// A callback rather than a player, so the sheet's tests never open an audio
+  /// device — the same reason `NarrationPlayer` is an interface.
+  required Future<bool> Function(String voice) onSample,
 }) {
   var answer = voices.isNotEmpty && narrate ? _Voice.synthesised : _Voice.none;
   var chosen = voice;
@@ -797,6 +809,7 @@ Future<_ExportChoice?> _askAboutExport({
   }
   var wantsHd = hd;
   var previewing = false;
+  var sampling = false;
   // The take, once the lookup answers. Chosen by default where there is one to
   // use: a trainer who recorded their voice over a tutorial and exports it
   // wants that voice.
@@ -954,6 +967,42 @@ Future<_ExportChoice?> _askAboutExport({
                         style: AppText.body
                             .copyWith(color: ctx.colors.textSecondary)),
                     const SizedBox(width: AppSpacing.md),
+                    // **Hear it before spending a render on it.** Auditioning by
+                    // export is minutes and a queue slot per voice, and a cloud
+                    // account offers hundreds — so one sentence, spoken by the
+                    // voice under the cursor. The server says the same sentence
+                    // a beat of that language would say, move and all: a sample
+                    // of prose would not answer the question a trainer is
+                    // actually asking, which is how this voice reads „Bc4".
+                    IconButton(
+                      key: const Key('export-voice-sample'),
+                      tooltip: 'Hear this voice',
+                      visualDensity: VisualDensity.compact,
+                      icon: sampling
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: ctx.colors.accent),
+                            )
+                          : Icon(Icons.volume_up, color: ctx.colors.accent),
+                      onPressed: sampling || chosen == null
+                          ? null
+                          : () async {
+                              final voice = chosen!;
+                              setLocal(() => sampling = true);
+                              final heard = await onSample(voice);
+                              // The sheet may be gone by the time a voice
+                              // answers — a trainer who pressed Export while it
+                              // was fetching is not waiting for this.
+                              if (closed) return;
+                              setLocal(() => sampling = false);
+                              if (!heard && ctx.mounted) {
+                                AppFeedback.error(ctx,
+                                    'That voice could not be played. The server log says why.');
+                              }
+                            },
+                    ),
                     Expanded(
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
@@ -1045,6 +1094,47 @@ Future<_ExportChoice?> _askAboutExport({
       },
     ),
   ).whenComplete(() => closed = true);
+}
+
+/// One sentence in one voice, fetched and played on this device.
+///
+/// **A file rather than the bytes**: `audioplayers` plays a device file on
+/// every target this app ships to, and its byte source does not — the same
+/// reason `NarrationPlayer` plays a path. The file is overwritten by the next
+/// sample and never grows: a trainer auditioning twenty voices leaves one file
+/// behind, not twenty.
+///
+/// Answers false when there was nothing to play, and says nothing itself: the
+/// sheet owns the sentence, because it owns the screen the trainer is looking
+/// at.
+/// The one thing a widget test cannot do: open an audio device.
+///
+/// Both halves of playing a sample are platform channels — `path_provider` for
+/// somewhere to put the file and `audioplayers` to play it — and in a test
+/// neither answers, so the button that waits for them spins for ever. A test
+/// sets this to something that fetches and reports, which is everything about
+/// the sample except the sound.
+///
+/// Same shape as `debugTutorialStudioAvailable`, and null in a real build.
+Future<bool> Function(LessonApiService api, String voice)? debugPlayVoiceSample;
+
+Future<bool> _playSample(LessonApiService api, String voice) async {
+  final bytes = await api.fetchVoiceSample(voice);
+  if (bytes == null || bytes.isEmpty) return false;
+  try {
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/voice-sample.wav');
+    await file.writeAsBytes(bytes, flush: true);
+    final player = AudioPlayer();
+    // Released when the sentence ends: a player per sample that is never
+    // disposed is an audio session per voice a trainer auditions.
+    player.onPlayerComplete.first.then((_) => player.dispose());
+    await player.play(DeviceFileSource(file.path));
+    return true;
+  } catch (e) {
+    AppLogger.log('[Export] Could not play a voice sample: $e');
+    return false;
+  }
 }
 
 /// The id the server knows a voice by, which is what travels in the request.

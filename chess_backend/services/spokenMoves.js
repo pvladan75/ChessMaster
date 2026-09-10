@@ -50,10 +50,24 @@
 /// sixth". A word cannot be read as an ordinal, which ends the question rather
 /// than working around it.
 ///
-/// **A file is a bare letter.** A one-letter token is read from the voice's own
-/// letter-name table, which is exactly what a player says. Spelling it out is
-/// what caused the trouble in the app's Serbian build — written „ge", the
-/// g-file went through an English table and came out as „dzh".
+/// **A file is a bare letter, unless the language says otherwise.** A
+/// one-letter token is read from the voice's own letter-name table, which in
+/// English is exactly what a player says: ay, bee, see, dee.
+///
+/// It is not what a Serbian voice does. Reported live on 11.9.2026 against an
+/// Azure `sr-Latn-RS` voice: „Bc4" came out with the `c` almost inaudible,
+/// because a lone consonant letter is a sound and not a word. The Serbian
+/// vocabularies spell the consonants — be, ce, de, ef, ge, ha — which is what a
+/// trainer at a board says.
+///
+/// **This is the same question that once had the opposite answer, and both
+/// answers were right.** The app's Serbian build had „ge" read by an *English*
+/// letter table and come out as „dzh", so the rule then became „never spell a
+/// file". What that fault was really about is a voice reading a language that
+/// is not its own; with a Serbian voice reading Serbian, spelling it is
+/// correct. So the table belongs to the language, not to the code — `files` is
+/// absent from the four vocabularies whose voices already say the letter
+/// properly, and present where they do not.
 const VOCABULARIES = {
   // Verbatim from `serbianSpeech` as it stood in `speech_text.dart` before the
   // English pivot deleted it — commit `ce012c0^`, and it was read aloud by
@@ -69,6 +83,12 @@ const VOCABULARIES = {
   // own Serbian build.
   sr: {
     pieces: { K: 'kralj', Q: 'dama', R: 'top', B: 'lovac', N: 'skakač' },
+    // The consonants are words and the vowels are themselves. „a" and „e" are
+    // whole sounds a voice already says; „c" alone is not, which is what was
+    // reported.
+    files: {
+      a: 'a', b: 'be', c: 'ce', d: 'de', e: 'e', f: 'ef', g: 'ge', h: 'ha',
+    },
     ranks: ['jedan', 'dva', 'tri', 'četiri', 'pet', 'šest', 'sedam', 'osam'],
     pawn: 'pešak',
     captures: 'uzima',
@@ -79,6 +99,27 @@ const VOCABULARIES = {
     mate: 'mat',
     shortCastle: 'mala rokada',
     longCastle: 'velika rokada',
+  },
+  // The same words in the other script, for a voice whose locale is written in
+  // it — Azure's `sr-RS` is Serbian (Cyrillic) and its `sr-Latn-RS` twin is the
+  // Latin one. A caption is still the trainer's own text in whatever script
+  // they wrote it; only what is *added* on the way to the voice is written to
+  // match the voice's own.
+  'sr-cyrl': {
+    pieces: { K: 'краљ', Q: 'дама', R: 'топ', B: 'ловац', N: 'скакач' },
+    files: {
+      a: 'а', b: 'бе', c: 'це', d: 'де', e: 'е', f: 'еф', g: 'ге', h: 'ха',
+    },
+    ranks: ['један', 'два', 'три', 'четири', 'пет', 'шест', 'седам', 'осам'],
+    pawn: 'пешак',
+    captures: 'узима',
+    from: 'са',
+    to: 'на',
+    promotesTo: 'постаје',
+    check: 'шах',
+    mate: 'мат',
+    shortCastle: 'мала рокада',
+    longCastle: 'велика рокада',
   },
   // Verbatim from `englishSpeech` in speech_text.dart. Do not retune one side.
   en: {
@@ -154,9 +195,17 @@ const VOCABULARIES = {
 /// nothing new travels on the wire for this. A language with no vocabulary
 /// falls back to English rather than to notation, because „bishop d five" in
 /// the wrong accent is still a move and „boulevard cinq" is not.
+///
+/// Serbian is the one language here with two scripts, and the id is what says
+/// which: `sr-Latn-RS-…` is the Latin one and a plain `sr-RS-…` is Azure's
+/// Cyrillic. piper's `sr_RS-…` lands on Cyrillic by the same rule — its Serbian
+/// model is not installed (it was tried and rejected on 9.9.2026), so nothing
+/// turns on it today.
 function languageOf(voiceOrTag) {
-  const first = String(voiceOrTag || '').toLowerCase().match(/^[a-z]+/);
+  const named = String(voiceOrTag || '').toLowerCase();
+  const first = named.match(/^[a-z]+/);
   const key = first ? first[0] : '';
+  if (key === 'sr') return named.includes('latn') ? 'sr' : 'sr-cyrl';
   return VOCABULARIES[key] ? key : 'en';
 }
 
@@ -178,6 +227,9 @@ function sayMove(match, v) {
   if (whole === 'O-O-O' || whole === '0-0-0') return v.longCastle;
 
   const rankWord = (digit) => v.ranks[Number(digit) - 1];
+  // The letter itself where the voice says it properly, and the language's own
+  // name for it where it does not.
+  const fileWord = (letter) => (v.files ? v.files[letter] || letter : letter);
   const words = [];
   if (piece) {
     words.push(v.pieces[piece]);
@@ -190,7 +242,8 @@ function sayMove(match, v) {
   // A disambiguated move is the one place where the square in front matters,
   // and running the two squares together („knight b d seven") is exactly the
   // ambiguity the notation was disambiguating.
-  const origin = [fromFile || '', fromRank ? rankWord(fromRank) : ''].filter(Boolean).join(' ');
+  const origin = [fromFile ? fileWord(fromFile) : '', fromRank ? rankWord(fromRank) : '']
+    .filter(Boolean).join(' ');
   if (origin) {
     words.push(!piece && capture ? v.from : `${v.from} ${origin}`);
     if (!piece && capture) words.push(origin);
@@ -202,7 +255,7 @@ function sayMove(match, v) {
     words.push(v.to);
   }
 
-  words.push(`${file} ${rankWord(rank)}`);
+  words.push(`${fileWord(file)} ${rankWord(rank)}`);
 
   if (promotion) words.push(`${v.promotesTo} ${v.pieces[promotion]}`);
   if (suffix === '+') words.push(`, ${v.check}`);
@@ -257,4 +310,33 @@ function spokenMoves(text, voice) {
     .trim();
 }
 
-module.exports = { spokenMoves, languageOf, VOCABULARIES };
+/// What a voice says when a trainer asks to hear it.
+///
+/// **Every one of them carries a move**, because the notation is the whole
+/// question: a voice that reads „Bc4" as „bee see four" is the wrong voice, and
+/// that is inaudible in a sentence of prose. Short, because it is listened to
+/// once per voice and a trainer auditioning six of them is waiting six times.
+///
+/// The move stays English SAN in every language, exactly as it does in a
+/// tutorial: this app writes SAN and the PGN standard stores it.
+const SAMPLES = {
+  en: 'Play Bc4. This is how your video will sound.',
+  sr: 'Odigraj Bc4. Ovako će zvučati tvoj video.',
+  'sr-cyrl': 'Одиграј Bc4. Овако ће звучати твој видео.',
+  de: 'Spiele Bc4. So wird dein Video klingen.',
+  es: 'Juega Bc4. Así sonará tu vídeo.',
+  it: 'Gioca Bc4. Ecco come suonerà il tuo video.',
+  fr: 'Joue Bc4. Voilà comment ta vidéo va sonner.',
+};
+
+/// The sample sentence for [voice], already written out for the synthesiser.
+///
+/// Goes through `spokenMoves` like any other beat, so what a trainer hears is
+/// the same treatment their tutorial will get — including the file letter that
+/// started all this: „lovac ce četiri", not „lovac c četiri".
+function sampleFor(voice) {
+  const language = languageOf(voice);
+  return spokenMoves(SAMPLES[language] || SAMPLES.en, voice);
+}
+
+module.exports = { spokenMoves, languageOf, sampleFor, VOCABULARIES, SAMPLES };

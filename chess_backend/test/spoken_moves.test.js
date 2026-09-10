@@ -116,22 +116,25 @@ test('the film says in Serbian what the app said before the English pivot', () =
   // listened to those exact words for weeks. The inputs are the English test's
   // inputs above, so the two vocabularies are held to one set of rules.
   const app = {
-    'd4': 'd četiri',
-    'Kf2': 'kralj f dva',
-    'Rd3': 'top d tri',
-    'Rxd3': 'top uzima d tri',
-    'exd5': 'pešak sa e uzima d pet',
-    'Nbd7': 'skakač sa b na d sedam',
+    'd4': 'de četiri',
+    'Kf2': 'kralj ef dva',
+    'Rd3': 'top de tri',
+    'Rxd3': 'top uzima de tri',
+    'exd5': 'pešak sa e uzima de pet',
+    'Nbd7': 'skakač sa be na de sedam',
     'R1e2': 'top sa jedan na e dva',
-    'Qg3+': 'dama g tri, šah',
-    'Qf1#': 'dama f jedan, mat',
+    'Qg3+': 'dama ge tri, šah',
+    'Qf1#': 'dama ef jedan, mat',
     'e8=Q': 'e osam postaje dama',
     'a1=N+': 'a jedan postaje skakač, šah',
     'O-O': 'mala rokada',
     'O-O-O': 'velika rokada',
     '0-0-0': 'velika rokada',
-    // The owner's own example when he asked for this.
-    'Bd5': 'lovac d pet',
+    // The owner's own examples, on two different days: „Bd5" when he asked for
+    // Serbian at all, and „Bc4" when he reported that the `c` in it was almost
+    // inaudible. A lone consonant is a sound and not a word.
+    'Bd5': 'lovac de pet',
+    'Bc4': 'lovac ce četiri',
   };
   for (const [written, said] of Object.entries(app)) {
     assert.equal(spokenMoves(written, 'sr-Latn-RS-NicholasNeural'), said, JSON.stringify(written));
@@ -143,22 +146,64 @@ test('the film says in Serbian what the app said before the English pivot', () =
   // knows the sound of. Grammar is a change to both files or to neither.
   assert.equal(
     spokenMoves('Odigraj Bd5, pa O-O.', 'sr-Latn-RS-SophieNeural'),
-    'Odigraj lovac d pet, pa mala rokada.',
+    'Odigraj lovac de pet, pa mala rokada.',
   );
 
   // The ordinal rule reads Serbian capitals too, so a sentence that ends on a
   // real number still loses its full stop while one that ends on a move keeps
   // it.
-  assert.equal(spokenMoves('Pronađeno 3 od 12.', 'sr'), 'Pronađeno 3 od 12');
-  assert.equal(spokenMoves('Odigrao je e6.', 'sr'), 'Odigrao je e šest.');
+  assert.equal(spokenMoves('Pronađeno 3 od 12.', 'sr-Latn-RS-SophieNeural'),
+      'Pronađeno 3 od 12');
+  assert.equal(spokenMoves('Odigrao je e6.', 'sr-Latn-RS-SophieNeural'),
+      'Odigrao je e šest.');
 });
 
-test('both spellings of a Serbian voice name find the Serbian words', () => {
-  // Azure writes the locale with its script in the middle (`sr-Latn-RS-…`) and
-  // piper writes `sr_RS-…`; the language is read off the front, so neither
-  // needs a rule of its own.
-  for (const named of ['sr-Latn-RS-NicholasNeural', 'sr_RS-serbski_institut-medium', 'sr-RS', 'sr']) {
-    assert.equal(languageOf(named), 'sr', named);
+test('the vowels stay themselves, and only the consonants become words', () => {
+  // „a" and „e" are whole sounds a Serbian voice already says; „b", „c", „d",
+  // „f", „g" and „h" alone are not, and „Bc4" came back with the c almost
+  // inaudible. Every file, so a table with one letter missing is a test
+  // failure rather than a beat nobody can hear.
+  const said = [
+    ['a4', 'a četiri'],
+    ['b4', 'be četiri'],
+    ['c4', 'ce četiri'],
+    ['d4', 'de četiri'],
+    ['e4', 'e četiri'],
+    ['f4', 'ef četiri'],
+    ['g4', 'ge četiri'],
+    ['h4', 'ha četiri'],
+  ];
+  for (const [written, spoken] of said) {
+    assert.equal(spokenMoves(written, 'sr-Latn-RS-NicholasNeural'), spoken, written);
+  }
+
+  // And English keeps the bare letter, which is what „ay, bee, see" already is.
+  // The rule belongs to the language: spelling „ge" for a voice reading by an
+  // English table is what once made the g-file come out as „dzh".
+  assert.equal(spokenMoves('g4', 'en_US-lessac-medium'), 'g four');
+  assert.equal(spokenMoves('c4', 'de_DE-thorsten-medium'), 'c vier');
+});
+
+test('a Cyrillic voice is given Cyrillic words', () => {
+  // Azure has Serbian in both scripts — `sr-Latn-RS` and a plain `sr-RS` — and
+  // the id is the only thing that says which. What the trainer wrote is
+  // untouched either way; only what is added on the way to the voice is
+  // written in the voice's own script.
+  assert.equal(languageOf('sr-RS-NicholasNeural'), 'sr-cyrl');
+  assert.equal(languageOf('sr-Latn-RS-NicholasNeural'), 'sr');
+  assert.equal(spokenMoves('Bc4', 'sr-RS-NicholasNeural'), 'ловац це четири');
+  assert.equal(spokenMoves('O-O', 'sr-RS-SophieNeural'), 'мала рокада');
+  assert.equal(spokenMoves('Qxf7#', 'sr-RS-SophieNeural'), 'дама узима еф седам, мат');
+});
+
+test('both spellings of a Serbian voice name find Serbian words', () => {
+  // Azure writes the Latin locale with its script in the middle
+  // (`sr-Latn-RS-…`) and the Cyrillic one without (`sr-RS-…`); piper writes
+  // `sr_RS-…`, whose model is not installed. Every one of them lands on a
+  // Serbian vocabulary; which script is a second question, answered above.
+  for (const named of ['sr-Latn-RS-NicholasNeural', 'sr_RS-serbski_institut-medium',
+    'sr-RS', 'sr']) {
+    assert.match(languageOf(named), /^sr/, named);
   }
 });
 

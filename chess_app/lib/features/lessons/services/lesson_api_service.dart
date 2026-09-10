@@ -618,6 +618,31 @@ class LessonApiService {
     }
   }
 
+  /// One spoken sentence in [voice], so a trainer can hear it before spending
+  /// a render on it.
+  ///
+  /// **The alternative was exporting a film per voice** — minutes each, a queue
+  /// slot each, and a cloud account offers hundreds of them. Null when the
+  /// server has no such voice or could not speak; the caller says so and
+  /// nothing plays.
+  Future<Uint8List?> fetchVoiceSample(String voice) async {
+    try {
+      final res = await _client
+          .get(
+            Uri.parse('$backendUrl/lessons/tts/sample'
+                '?voice=${Uri.encodeQueryComponent(voice)}'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) return res.bodyBytes;
+      AppLogger.log('[Lessons] Voice sample refused: ${res.statusCode}');
+      return null;
+    } catch (e) {
+      AppLogger.log('[Lessons] Failed to fetch a voice sample: $e');
+      return null;
+    }
+  }
+
   /// Asks the server to render a tutorial as an MP4 video.
   ///
   /// **Answered when the render is accepted, not when it is drawn** — item 5

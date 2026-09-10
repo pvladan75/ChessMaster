@@ -6,6 +6,7 @@
 // 9. a normal tutorial sends the events and seconds tutorialVideoOf produces
 //    for that draft. Assert on the request.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -137,6 +138,7 @@ class _TestLessonApi extends LessonApiService {
     Future<void> Function()? onExportVideo,
     bool ttsAvailable = false,
     List<Map<String, dynamic>>? ttsVoices,
+    int sampleStatus = 200,
     _Render? render,
     int previewStatus = 200,
     int videoLinkStatus = 200,
@@ -150,6 +152,22 @@ class _TestLessonApi extends LessonApiService {
           jsonEncode(effectiveRows),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (req.method == 'GET' && req.url.path == '/lessons/tts/sample') {
+        if (sampleStatus != 200) {
+          return http.Response(
+            jsonEncode({'error': 'This server does not have that voice'}),
+            sampleStatus,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+        // A wav header and nothing after it: what the test is about is which
+        // voice was asked for, and no test opens an audio device.
+        return http.Response.bytes(
+          <int>[0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45],
+          200,
+          headers: {'content-type': 'audio/wav'},
         );
       }
       if (req.method == 'GET' && req.url.path == '/lessons/tts/voices') {
@@ -1019,6 +1037,96 @@ void main() {
         as Map<String, dynamic>;
     expect(body['voice'], 'en-US-JennyNeural',
         reason: 'a voice in no language is not one the sheet can offer');
+  });
+
+  testWidgets('a voice can be heard before a film is spent on it',
+      (tester) async {
+    // „Ili da se pusti sample sa glasom da čuje, da ne ide odmah u
+    // renderovanje" — auditioning by export is minutes and a queue slot per
+    // voice, and this account offers 655 of them.
+    //
+    // What is asserted is the request: playing it needs an audio device and a
+    // temporary directory, neither of which a widget test has, and the
+    // question a trainer is asking is which voice speaks.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+    );
+    // Everything the button does except the sound: the fetch is real and goes
+    // through the fake server, and only the audio device is left out. The gate
+    // holds the answer so the button can be caught mid-sentence — a fake that
+    // answers at once is a fake that cannot show a spinner.
+    final gate = Completer<bool>();
+    debugPlayVoiceSample = (api, voice) async {
+      await api.fetchVoiceSample(voice);
+      return gate.future;
+    };
+    addTearDown(() => debugPlayVoiceSample = null);
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('export-voice-language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Serbian (Latin, Serbia)').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-voice-sample')));
+    // Frames, not `pumpAndSettle`: while the sample is being fetched the button
+    // is a spinner, and a spinner never settles.
+    await tester.pump();
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('export-voice-sample')),
+            matching: find.byType(CircularProgressIndicator)),
+        findsOneWidget,
+        reason: 'the button says it is working');
+    gate.complete(true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final sample = requests.where((r) => r.url.path == '/lessons/tts/sample');
+    expect(sample, hasLength(1));
+    expect(
+        sample.single.url.queryParameters['voice'], 'sr-Latn-RS-NicholasNeural',
+        reason: 'the voice under the cursor, not the one the sheet opened on');
+
+    // And nothing was rendered by pressing it: this is the whole point.
+    expect(requests.where(_isExport), isEmpty);
+
+    // The spinner goes back to being a button, or a second voice can never be
+    // heard.
+    expect(
+        find.descendant(
+            of: find.byKey(const Key('export-voice-sample')),
+            matching: find.byType(CircularProgressIndicator)),
+        findsNothing);
+  });
+
+  testWidgets('a voice that cannot be played says so', (tester) async {
+    // The server refuses a voice it does not have, and a trainer who pressed a
+    // button and heard nothing must not be left wondering whether their
+    // speakers are off.
+    final api = _TestLessonApi(
+      requests: <http.Request>[],
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+      sampleStatus: 404,
+    );
+    debugPlayVoiceSample =
+        (api, voice) async => (await api.fetchVoiceSample(voice)) != null;
+    addTearDown(() => debugPlayVoiceSample = null);
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-voice-sample')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.textContaining('could not be played'), findsOneWidget);
   });
 
   testWidgets('one language on offer is not a question', (tester) async {

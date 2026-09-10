@@ -15,9 +15,10 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Izbor glasa: prvo jezik, pa
-glas" odmah ispod ove glave, pa „Azure Speech, i srpski koji je vraćen a ne
-preveden" i „Glas koji ne može da progovori se sada zna pre crtanja"; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Četiri prijave uživo: slova,
+glas i uzorak" odmah ispod ove glave, pa „Izbor glasa: prvo jezik, pa glas",
+„Azure Speech, i srpski koji je vraćen a ne preveden" i „Glas koji ne može da
+progovori se sada zna pre crtanja"; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
 tačke 4 i 5 („Render izlazi iz zahteva" i „Render koji ne može da stane" niže):
 trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
 kojim taktovima pripada („Snimanje glasa: faza 6", „faza 5" i „faza 4" niže), a „ODAKLE
@@ -31,6 +32,55 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Četiri prijave uživo: slova, glas i uzorak — 11.9.2026, delimično provereno
+
+Jedno veče sa pravim Azure nalogom, četiri prijave, sve četiri zatvorene u kodu.
+Aplikacija: **1893 testa** (1 preskočen), backend: **1202**, analyze na 29 info i
+nula upozorenja. Dvadeset četiri mutacije, sve uhvaćene.
+
+**1. „Kad izgovara poteze Bc4, ovo c se skoro i ne čuje."** Polja su svuda bila
+gola slova, i to je bilo pravilo sa razlogom: u srpskoj verziji aplikacije
+„ge" je pročitala engleska tabela kao „dzh". Ali sa srpskim glasom koji čita
+srpski, usamljen suglasnik je glas a ne reč. Ono o čemu je stara greška zapravo
+bila jeste glas koji čita jezik koji nije njegov — pa tabela pripada **jeziku**:
+`files` nema u pet rečnika čiji glasovi slovo ionako izgovaraju kako treba, a
+ima ga u dva srpska (be, ce, de, ef, ge, ha). Provereno na pravom glasu, ne samo
+u testu: `exports/tts-probe.wav`, „Odigraj lovac ce četiri, pa mala rokada".
+
+**Srpski ima dva pisma i Azure ima oba.** `sr-Latn-RS` je latinički lokalitet, a
+goli `sr-RS` ćirilički, i jedino id kaže koji je — pa postoje dva srpska rečnika.
+Ono što je trener napisao se ne dira ni u jednom slučaju; u pismu glasa se piše
+samo ono što se **dodaje** na putu do sintetizatora.
+
+**2. „u renderovanom videu slova č, ć se ne vide."** `sans-serif` nije font nego
+šta god mašina vrati, a na vlasnikovom Windowsu je to bila porodica bez Latin
+Extended-A — dakle svako š, đ, č, ć i ž u svakom natpisu svakog filma je bilo
+kvadratić, otkad je render napisan. Ni ispravka ne imenuje porodicu: ona se
+**bira crtanjem**, jer su „č" i „ć" dva različita znaka, a font koji nema nijedan
+nacrta isti kvadratić dvaput (`services/renderFont.js`). Stari test nad
+pikselima ovo nije mogao da uhvati — pitao je ima li mastila, a kvadratić jeste
+mastilo.
+
+**3. Brojevi redova su bili nevidljivi od popravke slova kolona.** Popravka od
+9.9.2026. je postavila `fillStyle` za kolone i ostavila redove da ga naslede, pa
+je parnost koja je bila pogrešna za jedno postala pogrešna za drugo: osam
+brojeva, nijedan nacrtan, dva dana. Sada oba natpisa pitaju tablin sopstveni
+izraz `(row + col) % 2`, a test za redove je napisan kao blizanac testa za
+kolone da par ne bi mogao ponovo da se popravi na pola.
+
+**4. „Kako da se u Preview for students takođe bira glas… ili da se pusti sample
+da čuje."** Uzorak, ne pregled: pregled je nem po prirodi (tri slike, bez
+ffmpeg-a i bez reda čekanja), pa dodavanje izbora glasa tamo ne bi dalo da se
+išta **čuje**. `GET /lessons/tts/sample?voice=…` izgovori jednu rečenicu, kroz
+`spokenMoves` — dakle onako kako će zvučati i takt — i odbija glas koji ovaj
+server nije sam ponudio: neprovereno ime stiže do Azurea kao 400, a do pipera
+kao **drugi model**, pa bi trener birao po glasu koji nikad nije čuo. Dugme je
+pored padajuće liste glasova u izvoznom listu.
+
+Sitnica koju treba znati: u `.env` sada stoje **dva** reda `TTS_PROVIDER` (stari
+`piper` i novi `azure`). Poslednji pobeđuje, ali to je detalj implementacije
+dotenv-a, a ne pravilo — obrisati stari red.
 
 ## Izbor glasa: prvo jezik, pa glas — 11.9.2026, nije viđeno uživo
 
