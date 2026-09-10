@@ -11,6 +11,7 @@ const { requireEntitlement } = require('../middleware/entitlements');
 const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
 const renderQueue = require('../services/renderQueue');
+const renderBudget = require('../services/renderBudget');
 const { trimPauses } = require('../services/audioTrimmer');
 const realtime = require('../services/realtime');
 const { mayRecordRoom } = require('../services/recordingConsent');
@@ -337,6 +338,18 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
 
     // The same queue the tutorial export waits in: one machine, one film at a
     // time, whichever door the render came through.
+    // How long this film will take to draw, so a tutorial export arriving
+    // behind it is judged by the work actually in front of it. **No deadline
+    // and no refusal here**: this export is verified live as it is, and item 4
+    // of docs/PLAN-SNIMANJE.md is about tutorials. Its absence is written down
+    // there rather than hidden: a newcomer may still go in front of it.
+    const size = resolution || '720p';
+    const estimateMs = renderBudget.drawSeconds({
+      seconds: duration,
+      fps: videoRenderer.framesPerSecondOf(timelineEvents, { resolution: size }),
+      resolution: size,
+    }) * 1000;
+
     const rendered = await renderQueue.run(filename, () => videoRenderer.renderRecordingToMP4({
       title: recording ? recording.title : 'Session Recording',
       timelineEvents,
@@ -353,7 +366,7 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
     // The account, so this export competes for its own share rather than for
     // the whole machine: the same queue serves tutorial films, and one user's
     // three exports used to fill it for everybody.
-    }), () => {}, { owner: req.user.id }).catch((err) => {
+    }), () => {}, { owner: req.user.id, estimateMs }).catch((err) => {
       if (err instanceof renderQueue.RenderAccountBusy) return 'account-busy';
       if (err instanceof renderQueue.RenderQueueFull) return 'queue-full';
       throw err;

@@ -15,7 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **10.9.2026** — faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo:
+Poslednje ažuriranje: **10.9.2026** — faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
+tačka 4 („Render koji ne može da stane" niže):
 trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
 kojim taktovima pripada („Snimanje glasa: faza 6", „faza 5" i „faza 4" niže), a „ODAKLE
 SUTRA — 10.9.2026, video i snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
@@ -26,6 +27,53 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Render koji ne može da stane se odbija pre crtanja — tačka 4 drugog dela plana snimanja, 10.9.2026, nije viđeno uživo
+
+Server sada pre prvog frejma računa koliko bi film trajao
+(`services/renderBudget.js`): frejmove po istom pravilu po kom ih renderer crta
+(`framesPerSecondOf`), podeljene brzinom crtanja iz `.env`. Film koji ne može da
+stane ni u jedan zahtev (300 s, koliko nginx daje) odbija se **odmah**, sa 422 i
+rečenicom koja kaže koliko bi trajalo, koliko server može u jednom komadu, i
+samo one izlaze za koje je provereno da staju: podeli na N tutorijala, 720p
+umesto 1080p, film bez snimka.
+
+**Red je postao obećanje o vremenu.** Svaki posao nosi procenu i rok; novi se
+odbija kad bi on zakasnio iza drugih (a sam bi stao), ili kad bi zbog njega
+zakasnio film koji već čeka — round-robin to može, jer nalog koji još nije
+služen ide napred. Taj odgovor je 429 sa „Try again in about N minutes", a ne
+rečenica o punom redu: server ima mesta, nema vremena. Film sa sintetizovanim
+glasom meri se **ponovo kad dođe na red**, jer mu se prava dužina zna tek kad
+glas progovori.
+
+Podrazumevane brzine su 12 i 6 frejmova u sekundi (720p / 1080p) — sporiji kraj
+razvojne mašine sa marginom. **Brzina dropleta nije izmerena**; to je korak 6
+stavke 142. Petnaestominutni snimak na 720p je po podrazumevanoj brzini tačno
+jedan zahtev, i test to drži: granica snimka i ovaj budžet su sada jedna odluka.
+
+Osamnaest mutacija, sedamnaest pada. Dve su najpre preživele i obe su nalaz:
+ruta nije imala test da posle glasa **javlja redu** novu procenu (`revise` je bio
+dokazan samo u samom redu), a **pravilo „natpis → 4 frejma u sekundi"** nije
+imalo nijedan test u celom paketu — mutacija koja svaki film crta jednom u
+sekundi prolazila je sve, a budžet se sada na to pravilo oslanja. Oba sada imaju
+test. Preživljava namerno samo izvoz snimljenog časa (`routes/recordings.js`)
+koji redu javlja svoju procenu: ta ruta nema test izvoza ni pre ni posle.
+
+Usput: test „3. empty events" u `tutorial_video_export.test.js` je nestabilan —
+broji fajlove u pravom `exports/` dok drugi test fajlovi rade paralelno. Pao je
+jednom u punom prolazu, nevezano za ovu promenu, i ponuđen je kao zaseban
+zadatak.
+
+Iz provere uživo 10.9. (beleške i prijave): ekran se zamrzava za ceo render, što
+je najjači argument za tačku 5; tutorijali postoje samo na Windowsu, pa koraci
+za telefon u stavkama 136 i 141 ne mogu kako su napisani (141.6 je
+preformulisan); i „Moji materijali" sa kvotom po nalogu. Sve troje je upisano u
+plan, odeljak „What the live check changed".
+
+Brojke: **1146 na backendu** sa `.env` sklonjenim u stranu, aplikacija nedirnuta
+na 1876. Provera uživo: `TODO-provera.md`, stavka **142**.
 
 ---
 

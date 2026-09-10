@@ -14,6 +14,7 @@ const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps')
 const tts = require('../services/tts');
 const renderProgress = require('../services/renderProgress');
 const renderQueue = require('../services/renderQueue');
+const renderBudget = require('../services/renderBudget');
 const { RenderAborted, abortOnDisconnect, throwIfAborted } = require('../services/renderAbort');
 const tutorialNarration = require('../services/tutorialNarration');
 const multer = require('multer');
@@ -615,6 +616,34 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       recording = judged;
     }
 
+    // **Refused before drawing, not after** — item 4 of part two of
+    // docs/PLAN-SNIMANJE.md. The frames are countable now, and a film that no
+    // request can draw used to be drawn until the connection went: a trainer
+    // watching a bar for five minutes and getting nothing. A recorded film is
+    // as long as its recording, so that is the length judged; a synthesised
+    // voice's length is not known until it has spoken, so that film is judged
+    // on the app's reading-speed length here and again at its turn.
+    const arrivedAt = Date.now();
+    const size = resolution || '720p';
+    const filmSeconds = recording ? Math.min(recording.seconds, 3600) : duration;
+    const fps = videoRenderer.framesPerSecondOf(recording ? recording.events : events, { resolution: size });
+    const draw = renderBudget.drawSeconds({ seconds: filmSeconds, fps, resolution: size });
+    if (draw > renderBudget.requestSeconds()) {
+      // Only the ways out that were checked would fit.
+      const fitsAt = (seconds, fpsOf, at) => renderBudget.drawSeconds({ seconds, fps: fpsOf, resolution: at })
+        <= renderBudget.requestSeconds();
+      const doors = [];
+      if (size === '1080p' && fitsAt(filmSeconds, fps, '720p')) doors.push('export it at 720p');
+      if (recording && fitsAt(duration, videoRenderer.framesPerSecondOf(events, { resolution: size }), size)) {
+        doors.push('export it without your recording');
+      }
+      return res.status(422).json({
+        error: renderBudget.tooLongSentence({ drawSeconds: draw, fps, resolution: size, doors }),
+        tooLong: true,
+      });
+    }
+    const deadline = arrivedAt + renderBudget.requestSeconds() * 1000;
+
     // **A clock is not a name.** Two renders of one tutorial that start in the
     // same millisecond — the same trainer twice, or a trainer and the student
     // they share it with — used to agree on a filename, and the second one
@@ -637,6 +666,11 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     // This trainer's own share, which is a different refusal from a busy
     // server and needs a different sentence.
     let accountBusy = false;
+    // No time rather than no room: the queue would leave this film unfinished
+    // when the connection closes (`RenderWontFit`), or at its turn it can no
+    // longer finish (`RenderOutOfTime`). Each needs its own sentence.
+    let wontFit = null;
+    let outOfTime = null;
     // The client gave up — the 300 s nginx ceiling, the app's five-minute
     // timeout, a closed laptop. Watched on 9.9.2026: the server drew for
     // minutes more and held the one render slot the whole time, so everyone
@@ -653,7 +687,8 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     // second no later than it would have been. The narration is inside the
     // queue with the drawing, because synthesis is the same machine doing the
     // same kind of work.
-    await renderQueue.run(job || filename, async () => {
+    const queueId = job || filename;
+    await renderQueue.run(queueId, async () => {
       // Its turn came and there is nobody to give it to. Checked before any
       // work so the slot passes straight to the next trainer.
       throwIfAborted(disconnect.signal);
@@ -680,6 +715,22 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       }
 
       try {
+        // **Asked again at its turn, with what is known now.** A synthesised
+        // voice's real length arrives only after it has spoken, and a film that
+        // waited may have waited longer than the queue guessed. Inside the `try`
+        // so a synthesised track is still removed by the `finally` below.
+        // Whole seconds on both sides, as before the queue: a film admitted at
+        // exactly the ceiling must not be refused for the milliseconds a
+        // database round trip took.
+        const fpsNow = videoRenderer.framesPerSecondOf(renderEvents, { resolution: size });
+        const drawNow = renderBudget.drawSeconds({ seconds: renderDuration, fps: fpsNow, resolution: size });
+        renderQueue.revise(queueId, drawNow * 1000);
+        if (Math.floor((Date.now() - arrivedAt) / 1000) + drawNow > renderBudget.requestSeconds()) {
+          throw new renderBudget.RenderOutOfTime({
+            drawSeconds: drawNow, fps: fpsNow, narrated: narrationAudioPath !== null,
+          });
+        }
+
         await videoRenderer.renderRecordingToMP4({
           title: title || lesson.title || 'Tutorial',
           timelineEvents: renderEvents,
@@ -708,13 +759,25 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           }
         }
       }
-    }, (ahead) => renderProgress.queued(job, ahead), { owner: req.user.id }).catch((err) => {
+    }, (ahead) => renderProgress.queued(job, ahead), {
+      owner: req.user.id,
+      estimateMs: draw * 1000,
+      deadline,
+    }).catch((err) => {
       if (err instanceof renderQueue.RenderAccountBusy) {
         accountBusy = true;
         return;
       }
       if (err instanceof renderQueue.RenderQueueFull) {
         queueFull = true;
+        return;
+      }
+      if (err instanceof renderQueue.RenderWontFit) {
+        wontFit = err;
+        return;
+      }
+      if (err instanceof renderBudget.RenderOutOfTime) {
+        outOfTime = err;
         return;
       }
       if (err instanceof RenderAborted) {
@@ -753,6 +816,35 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       return res.status(429).json({
         error: 'The server is rendering other videos right now. Try again in a minute or two.',
       });
+    }
+
+    if (wontFit) {
+      // Room in the queue, but not time: the films in front of this one would
+      // leave it unfinished when the connection closes. Nothing was drawn and
+      // nothing is metered, and the sentence says when there will be time.
+      renderProgress.finish(job, { ok: false });
+      return res.status(429).json({ error: renderBudget.retrySentence(wontFit.waitMs) });
+    }
+
+    if (outOfTime) {
+      renderProgress.finish(job, { ok: false });
+      if (outOfTime.drawSeconds > renderBudget.requestSeconds()) {
+        // Too long for any request, found only at its turn — which only a
+        // synthesised voice can do: the check before the queue passed on the
+        // app's reading-speed length, and the voice took longer. The film
+        // without it is the length that passed, so that door is a real one.
+        return res.status(422).json({
+          error: renderBudget.tooLongSentence({
+            drawSeconds: outOfTime.drawSeconds,
+            fps: outOfTime.fps,
+            resolution: size,
+            narrated: outOfTime.narrated,
+            doors: outOfTime.narrated ? ['export it without narration'] : [],
+          }),
+          tooLong: true,
+        });
+      }
+      return res.status(429).json({ error: renderBudget.retrySentence(0) });
     }
 
     // **The tutorial keeps its film.** Until this, the only reference to a

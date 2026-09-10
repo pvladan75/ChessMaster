@@ -22,7 +22,7 @@ several rules below.
 ```bash
 cd chess_app && flutter test          # 1876 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 1126 tests, all green
+cd chess_backend && npm test          # node --test, 1146 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1371,6 +1371,30 @@ and the voice dropdown it was 49 px taller than 360 × 640, and the test's tap o
 „Higher quality (1080p)" landed on the button bar: in a release build, where an
 overflow paints nothing, the switch sat under Export. The test asks for 1080p in
 the request, which is what „reachable" means.
+
+**Item 4 of part two the same day — a render that cannot finish is refused
+before drawing — 1146 on the backend** with `.env` moved aside; the app is
+untouched at 1876. `services/renderBudget.js` counts the frames by the
+renderer's own rule and divides by a configured drawing rate; the queue carries
+each job's estimate and deadline and refuses a newcomer only for lateness the
+queue itself causes. Eighteen mutations, seventeen caught. Live check:
+`TODO-provera.md`, item 142.
+
+**A proved function is not a proved caller.** `revise` was mutation-proved in the
+queue's own tests, and deleting the one line of the route that calls it left
+everything green. The route's half needed its own test, with a harness hook to
+act while the fake renderer is „drawing".
+
+**The rule a budget reads must be tested where it lives.** „Captions → four frames
+a second" had no test anywhere: a mutation drawing every film once a second
+passed the whole backend suite, and that rule now decides whether a film is
+refused. `framesPerSecondOf` is the one reading of it, called by the renderer and
+by the budget, and it is pinned.
+
+**A red under a mutation is not a catch until it is the right red.** That same
+mutation looked caught by the full suite — by test 3, which counts files in the
+shared `exports/` while other test files run in parallel. It was a flake, and the
+mutation had in fact survived. Read *which* test failed before believing it.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

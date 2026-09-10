@@ -652,6 +652,62 @@ Three rules for the refusal:
   not a refusal at all — it is a routing decision, and the same arithmetic picks
   the lane instead of the error.
 
+### Built on 10.9.2026 — not yet watched running
+
+Live check: `docs/TODO-provera.md`, item 142.
+
+* **`services/renderBudget.js`** holds the arithmetic and the two sentences.
+  The frames are counted by `videoRenderer.framesPerSecondOf` — the renderer's
+  own rule, now one function the renderer calls as well — so the budget cannot
+  count frames the renderer does not draw.
+* **Three settings in `.env.example`**: `RENDER_REQUEST_SECONDS` (300, nginx's)
+  and `RENDER_DRAW_FPS_720P` / `_1080P` (12 and 6 — the development machine's
+  slow end of 15.6 with a margin, and 1080p at about half). **The droplet's rate
+  is still unmeasured**, so these defaults are a guess about a different
+  machine, and the comment beside them says which way a wrong guess fails.
+* **A film no request can draw is refused before the queue**: 422, and a
+  sentence naming the minutes, how much one request can draw, and only the ways
+  out that were checked to fit — split into as many tutorials as the arithmetic
+  says (not „two" when two would still be too long), 720p where 1080p was asked
+  and 720p fits, the film without the recording where the recording is what
+  makes it long.
+* **The queue became a promise about time.** A job carries its estimate and its
+  deadline, and admission plays the round-robin order forward. It refuses only
+  what the queue causes: a newcomer that would have fitted alone but not behind
+  the others, or a newcomer that would push a film *already waiting* past its
+  deadline — which round-robin can do, since an account not yet served goes
+  first. That refusal is 429 with „try again in about N minutes", a number
+  played forward from the estimates, and not the full-queue sentence: the server
+  has room, it lacks time.
+* **Asked again at the film's turn.** A synthesised voice's length is known only
+  after it has spoken, so a piper film is admitted on the app's reading-speed
+  length and judged again before its first frame, and its estimate is revised
+  for the films behind it. Too long with the voice is 422 offering the film
+  without narration — the length that passed. The synthesised track is removed
+  either way.
+* **A fifteen-minute recording at 720p is exactly one request at the default
+  rate**, and a test pins it: the narration cap (open decision 3) and this
+  budget are one decision now, and moving either is moving both.
+
+What it does not do, on purpose:
+
+* **The recorded-lesson export only reports its estimate.** `routes/recordings.js`
+  carries no deadline and is never refused for time — its behaviour is verified
+  live and unchanged — so a tutorial export can still go in front of it under
+  round-robin. No test covers that route's export, before or after this.
+* **Synthesis time is not estimated.** A piper film spends up to a minute
+  synthesising before its first frame, and the films arriving behind it are
+  judged without that minute until it has spoken and revised its estimate.
+
+Eighteen mutations, seventeen caught. Two survived at first, and both were
+findings rather than noise. The route's call to `revise` had no test of its own
+— the queue's `revise` did, and a proved function is not a proved caller. And
+the renderer's „captions → four frames a second" had no test anywhere in the
+suite: a mutation drawing every film once a second passed all of it, and that
+rule is now what decides whether a film is refused. Both have tests now. The
+survivor that stays is the recorded-lesson export's estimate, for the reason
+above.
+
 ## 5 — the render leaves the request
 
 Today the render happens inside the POST, which is why there is a ceiling at
@@ -740,13 +796,15 @@ Four rules it needs:
   Cutting a recording into twelve pieces to match twelve chunks rebuilds the
   drift problem from part one on purpose.
 
-### Fairness, which today does not exist
+### Fairness — built on 9.9.2026
 
 > "šta ako jedan korisnik pošalje više tutorijala na renderovanje?"
 
-Today: `RENDER_CONCURRENCY` is 1 and `RENDER_QUEUE_MAX` is 2, so **one trainer
-pressing Export three times fills the queue and everybody else is refused with a
-429.** FIFO has no idea who is asking. This is a live problem, not a future one.
+When this was written: `RENDER_CONCURRENCY` was 1 and `RENDER_QUEUE_MAX` 2, so
+**one trainer pressing Export three times filled the queue and everybody else
+was refused with a 429.** FIFO had no idea who was asking. It was a live problem,
+and it was fixed the same day; the section is kept as the reason, with how it
+was built below the list.
 
 Two changes, both small and both inside `renderQueue.js`:
 
@@ -757,6 +815,14 @@ Two changes, both small and both inside `renderQueue.js`:
 * **A cap per account** — one drawing, one waiting. A trainer who queues five
   tutorials slows only themselves, and the fifth goes to the deferred lane
   instead of taking somebody else's turn.
+
+**As built.** Round-robin exactly as described. The cap is `RENDER_ACCOUNT_MAX`,
+two per account counting drawing and waiting together, and over it the trainer
+is refused with a sentence about their own films (`RenderAccountBusy`) rather
+than the full-queue one — there is no deferred lane yet to send the fifth to.
+Live check: `TODO-provera.md`, item 137, of which only the first step has been
+tried, and that one could not be done as written (see „What the live check
+changed" below).
 
 ### What the trainer sees
 
@@ -774,11 +840,51 @@ Three states, and the app already draws two of them:
 
 1. **4** is the cheap interim and can land alone. It stops the worst outcome —
    a trainer waiting five minutes for nothing — with arithmetic that already
-   exists.
+   exists. **Built 10.9.2026**; the droplet's drawing rate is what it still
+   needs.
 2. **5** turns that refusal into a routing decision, and needs the job row. It
-   depends on "one video per tutorial", which is done.
-3. **Chunking** and **fairness** come with the deferred lane, because that is
-   where twelve jobs from one film stop being a problem and start being the
-   mechanism.
+   depends on "one video per tutorial", which is done. **Next**, and the live
+   check below is the strongest argument for it.
+3. **Chunking** comes with the deferred lane, because that is where twelve jobs
+   from one film stop being a problem and start being the mechanism.
+   **Fairness** did not wait for it and was built on 9.9.2026.
 4. **Part one** — the recording — can be built at any point after phase 0, and
    is independent of all of the above. It makes them more necessary, not less.
+   **Built 10.9.2026, phases 0 to 6.**
+
+## What the live check changed — 10.9.2026
+
+Three things the owner reported while checking items 134 to 138 bear on what
+is left of this plan. The rest of that day's reports are about other parts of
+the app and are not repeated here.
+
+**The export holds the whole screen for the whole render** (item 137, step 1:
+„ne mogu da pošaljem sa istog naloga, jer se ekran zamrzne kad pošaljem na
+renderovanje"). The progress dialog is modal and cannot be dismissed on purpose
+— inside the request, dismissing it could not cancel anything — so a trainer can
+do nothing else in the app until the film answers, and a second export from the
+same account cannot even be started. That is item 5's case made by a user rather
+than by a measurement: with a 202 and a job row the dialog can close, and the
+film arrives by notification. Item 5 should make it dismissible and put running
+renders somewhere a trainer can find them again.
+
+**Tutorials exist only on Windows** (items 136 step 6 and 137 step 1: „nemam
+odakle da dođem do tutorijala sa telefona"). `isTutorialStudioAvailable` is
+`Platform.isWindows`, and the saved-tutorials card — the only door to export,
+to recording and to a film's download — is drawn only there. So every export in
+this plan is made on a desktop, the phone checks in items 136 and 141 cannot be
+done as written, and phase 0's Android measurements are for a recorder no
+Android user can reach. Whether a phone should reach saved tutorials — to
+download a film, to send one, to export — is a product question; it is recorded
+here and not decided.
+
+**„My materials", and storage per account** (the report of 10.9.2026, which picks
+up the one of 8.9.2026 about material being scattered across screens): one place
+listing what a trainer keeps on the server — rendered films, recordings,
+tutorials, positions, analyses, repertoires — with deleting, the space it takes,
+and a cap per account and per tier. Two rules of this plan meet it. A recording
+is deleted only by somebody's explicit act, and this is where that act would
+live. And the deferred lane of item 5 writes films nobody is watching being
+made, which is when a cap per account stops being hypothetical. Left, as the
+owner asked, for after publishing — recorded here so item 5 is designed knowing
+it is coming.

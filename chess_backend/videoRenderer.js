@@ -391,6 +391,20 @@ const OUTPUT_FPS = 30;
 /// film without captions is still drawn once a second.
 const CAPTION_FPS = 4;
 
+/// Frames of film a second for a caption band of [captionBand] lines: four when
+/// anything is said, one when nothing is. See the frame loop for why.
+function fpsForCaptionBand(captionBand) {
+  return captionBand > 0 ? CAPTION_FPS : 1;
+}
+
+/// The same rule read from the events — **the one reading of it**, used by the
+/// renderer and by `services/renderBudget.js`, which decides before anything is
+/// drawn whether a film fits in one request. A budget with its own idea of the
+/// rate would count frames the renderer does not draw.
+function framesPerSecondOf(events, { resolution } = {}) {
+  return fpsForCaptionBand(captionBandLines(events, { resolution }));
+}
+
 /// The ffmpeg command line, as a value a test can read.
 ///
 /// Split out for the same reason `applyEvent` was: everything else in this file
@@ -793,7 +807,7 @@ async function renderRecordingToMP4({
     const ffmpeg = spawn('ffmpeg', ffmpegArgsFor({
       audioFilePath: hasAudio ? audioFilePath : null,
       outputPath,
-      inputFps: captionBandLines(events, { resolution }) > 0 ? CAPTION_FPS : 1,
+      inputFps: framesPerSecondOf(events, { resolution }),
     }));
 
     // **Killed, not asked.** ffmpeg told to stop politely finishes writing the
@@ -864,7 +878,7 @@ async function renderRecordingToMP4({
     //
     // A film with no captions is still drawn once a second, exactly as it always
     // was. The recorded-lesson export is verified live.
-    const fps = captionBand > 0 ? CAPTION_FPS : 1;
+    const fps = fpsForCaptionBand(captionBand);
     const frames = totalDuration * fps;
 
     let state = initialFrameState();
@@ -1052,6 +1066,7 @@ module.exports = {
   captionLines,
   revealedLines,
   captionBandLines,
+  framesPerSecondOf,
   ffmpegArgsFor,
   OUTPUT_FPS,
   CAPTION_FPS,

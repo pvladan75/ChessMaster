@@ -69,6 +69,10 @@ async function run({
   narrateError = null,
   // The tutorial's stored recording, for an export that asks for it.
   narrationRow = null,
+  // Called while the fake renderer is „drawing" — the one moment the film is
+  // in the queue's slot, which is when a newcomer's arrival can be judged
+  // against it. A fixture, added with item 4; nothing that existed uses it.
+  duringRender = null,
 } = {}) {
   const queries = [];
   const originalQuery = db.pool.query;
@@ -80,6 +84,7 @@ async function run({
 
   videoRenderer.renderRecordingToMP4 = async (opts) => {
     renderCalls.push(opts);
+    if (duringRender) await duringRender(opts);
     if (renderError) throw renderError;
     return opts.outputPath;
   };
@@ -748,9 +753,23 @@ test('the export competes for its own account share, not the whole machine', asy
   };
 
   try {
+    const before = Date.now();
     const { res } = await run({ userId: 77 });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepEqual(seen, [{ owner: 77 }]);
+    // Field by field rather than the whole object: item 4 gave the options an
+    // estimate and a deadline, and `deepEqual` against `{ owner: 77 }` was a
+    // claim about the object's shape — the same family as render_queue.test.js
+    // comparing a whole snapshot. **The claim is unchanged**: the queue is told
+    // who is asking.
+    assert.strictEqual(seen.length, 1);
+    assert.strictEqual(seen[0].owner, 77);
+    // And, since item 4, how long the film will take and when its client stops
+    // waiting — without them the queue cannot tell a film that fits from one
+    // that will be cut off by the connection. Four seconds with nothing said is
+    // four frames, one second of drawing at the default rate.
+    assert.strictEqual(seen[0].estimateMs, 1000);
+    assert.ok(seen[0].deadline >= before + 300_000 && seen[0].deadline <= Date.now() + 300_000,
+      'the deadline is the request\'s own 300 s');
   } finally {
     renderQueue.run = originalRun;
   }
@@ -867,4 +886,171 @@ test('a recording that does not fit is refused before the queue, and nothing is 
     assert.strictEqual(res.body.recording, code);
     assert.strictEqual(renderCalls.length, 0, `${code} was drawn anyway`);
   }
+});
+
+// ------------------------------------------ item 4: refused before drawing
+//
+// Part two of docs/PLAN-SNIMANJE.md. The render happens inside this request and
+// nginx closes it after 300 s, so a film that cannot be drawn in that time is
+// refused with a sentence — not drawn until the connection goes.
+
+const BUDGET_KEYS = ['RENDER_REQUEST_SECONDS', 'RENDER_DRAW_FPS_720P', 'RENDER_DRAW_FPS_1080P'];
+
+/// Runs [fn] with the drawing rate set to [vars], and puts it back: a rate
+/// left behind would decide every export test after this one.
+async function withRate(vars, fn) {
+  const saved = Object.fromEntries(BUDGET_KEYS.map((k) => [k, process.env[k]]));
+  Object.assign(process.env, vars);
+  try {
+    return await fn();
+  } finally {
+    for (const k of BUDGET_KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  }
+}
+
+/// A refusal costs the trainer nothing: no frame, no quota, no film recorded.
+function nothingHappened({ renderCalls, queries }, what) {
+  assert.strictEqual(renderCalls.length, 0, `${what} was drawn anyway`);
+  assert.strictEqual(queries.find((q) => /INSERT INTO usage_counters/i.test(q.text)), undefined,
+    `${what} was metered`);
+  assert.strictEqual(queries.find((q) => /UPDATE saved_lessons/i.test(q.text)), undefined,
+    `${what} was recorded as the tutorial's film`);
+}
+
+test('a film no request can draw is refused before the queue, and says how to split it', async () => {
+  // Thirty minutes with nothing said, drawn at one frame a second: 1800 s of
+  // drawing against a request's 300.
+  await withRate({ RENDER_DRAW_FPS_720P: '1' }, async () => {
+    const result = await run({ body: { events: VALID_EVENTS, seconds: 1800 } });
+    assert.strictEqual(result.res.statusCode, 422, JSON.stringify(result.res.body));
+    assert.strictEqual(result.res.body.tooLong, true);
+    assert.match(result.res.body.error, /would take about 30 minutes to render/);
+    assert.match(result.res.body.error, /Split the tutorial into 6 shorter ones\.$/);
+    nothingHappened(result, 'a film too long for any request');
+  });
+});
+
+test('a film too long at 1080p is offered 720p, and only where 720p fits', async () => {
+  await withRate({ RENDER_DRAW_FPS_1080P: '1' }, async () => {
+    const result = await run({ body: { events: VALID_EVENTS, seconds: 1800, resolution: '1080p' } });
+    assert.strictEqual(result.res.statusCode, 422, JSON.stringify(result.res.body));
+    // 1800 frames at the default 720p rate of twelve a second is 150 s.
+    assert.match(result.res.body.error, /, or export it at 720p\.$/);
+    nothingHappened(result, 'a 1080p film too long for a request');
+  });
+  await withRate({ RENDER_DRAW_FPS_1080P: '1', RENDER_DRAW_FPS_720P: '1' }, async () => {
+    const { res } = await run({ body: { events: VALID_EVENTS, seconds: 1800, resolution: '1080p' } });
+    assert.strictEqual(res.statusCode, 422);
+    assert.doesNotMatch(res.body.error, /720p/, 'a way out that would be refused too was offered');
+  });
+});
+
+test('a recording is judged by its own length, and the film without it is offered', async () => {
+  // The app says 4 s; the recording is 7.3 s, drawn as 8. At a fiftieth of a
+  // frame a second those are 200 s and 400 s of drawing — only the recording
+  // is too long, so only the recording's length can have refused it.
+  const row = keptRecording('narration_15_0000000000000b01.wav');
+  await withRate({ RENDER_DRAW_FPS_720P: '0.02' }, async () => {
+    const result = await run({ body: recordedBody(), narrationRow: row });
+    assert.strictEqual(result.res.statusCode, 422, JSON.stringify(result.res.body));
+    assert.match(result.res.body.error, /, or export it without your recording\.$/);
+    nothingHappened(result, 'a recording too long for a request');
+  });
+  assert.ok(fs.existsSync(path.join(NARRATION_DIR, row.narration_filename)),
+    'a refusal deleted the trainer\'s voice');
+});
+
+test('a voice that made the film too long is refused at its turn, and its track removed', async () => {
+  // Admitted on the app's 4 s; the voice took thirty minutes. That is known
+  // only once it has spoken, so the film is asked again at its turn — before a
+  // single frame, which is the whole point of item 4.
+  const track = path.join(require('node:os').tmpdir(), `narration-too-long-${Date.now()}.wav`);
+  fs.writeFileSync(track, 'synthesised');
+  await withRate({ RENDER_DRAW_FPS_720P: '1' }, async () => {
+    const result = await run({
+      body: { events: VALID_EVENTS, seconds: 4, narrate: true },
+      narrateResult: { events: VALID_EVENTS, audioPath: track, seconds: 1800, spokenBeats: 2 },
+    });
+    assert.strictEqual(result.res.statusCode, 422, JSON.stringify(result.res.body));
+    assert.strictEqual(result.narrateCalls.length, 1, 'the voice spoke, which is how its length was learnt');
+    assert.match(result.res.body.error, /^With narration, this video would take/);
+    assert.match(result.res.body.error, /, or export it without narration\.$/);
+    nothingHappened(result, 'a narrated film too long for a request');
+  });
+  assert.ok(!fs.existsSync(track), 'the synthesised track was left behind');
+});
+
+test('a film that would not finish behind the queue is told when to try again', async () => {
+  // Room in the queue, but not time: 295 s of somebody else's film in front of
+  // it, 10 s of its own, and 300 s to do both in.
+  let openGate;
+  const gate = new Promise((resolve) => { openGate = resolve; });
+  const ahead = renderQueue.run('long-ahead', () => gate, () => {}, { owner: 999, estimateMs: 295_000 });
+  await new Promise((r) => setImmediate(r));
+  try {
+    // Raced: a refusal that is deleted makes the export *queue* behind the
+    // gate, and a test that waits for it hangs the file with no message.
+    let timer;
+    const result = await Promise.race([
+      run({ body: { events: VALID_EVENTS, seconds: 120, jobId: 'job-no-time-1' } }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('HUNG: queued instead of refused')), 3000);
+      }),
+    ]).finally(() => clearTimeout(timer));
+    assert.strictEqual(result.res.statusCode, 429, JSON.stringify(result.res.body));
+    assert.match(result.res.body.error, /Try again in a minute or two\.$/);
+    assert.doesNotMatch(result.res.body.error, /rendering other videos right now/,
+      'the queue had room; the full-queue sentence sends a trainer to wait for the wrong thing');
+    nothingHappened(result, 'a film with no time left');
+    assert.strictEqual(renderProgress.statusOf('job-no-time-1').done, true,
+      'the bar stops rather than creeping at 0');
+  } finally {
+    openGate();
+    await ahead;
+  }
+});
+
+test('a voice that made the film longer tells the queue, and a newcomer is judged by that', async () => {
+  // Admitted on the app's 4 s — four seconds of drawing at one frame a second —
+  // and 250 s once the voice has spoken, which still fits. A newcomer arriving
+  // while it draws has to be judged on the 250, or it is let in behind a film
+  // that will leave it no time. Found by a mutation that survived: the queue's
+  // `revise` was proved, the route calling it was not.
+  let refused = null;
+  await withRate({ RENDER_DRAW_FPS_720P: '1' }, async () => {
+    const { res, renderCalls } = await run({
+      body: { events: VALID_EVENTS, seconds: 4, narrate: true, jobId: 'job-revised-1' },
+      narrateResult: { events: VALID_EVENTS, audioPath: null, seconds: 250, spokenBeats: 2 },
+      duringRender: async () => {
+        renderQueue.run('behind-the-voice', async () => {}, () => {}, {
+          owner: 555, estimateMs: 100_000, deadline: Date.now() + 300_000,
+        }).catch((err) => { refused = err; });
+        await new Promise((r) => setImmediate(r));
+      },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(renderCalls[0].durationSeconds, 250, 'drawn at the voice\'s length');
+  });
+  assert.ok(refused instanceof renderQueue.RenderWontFit,
+    'the newcomer was judged on the 4 s the film was admitted on, not the 250 it has');
+});
+
+test('a film with something said is counted at four frames a second', async () => {
+  // The renderer draws a captioned film four times a second and a silent one
+  // once, and the budget has to count the frames that will be drawn. 400 s of
+  // film at two frames drawn a second: 200 s silent, 800 s with captions.
+  const said = VALID_EVENTS.map((event, i) => ({
+    ...event,
+    data: { ...event.data, text: i === 0 ? 'White takes the centre.' : 'Black answers.' },
+  }));
+  await withRate({ RENDER_DRAW_FPS_720P: '2' }, async () => {
+    const silent = await run({ body: { events: VALID_EVENTS, seconds: 400 } });
+    assert.strictEqual(silent.res.statusCode, 200, JSON.stringify(silent.res.body));
+    const captioned = await run({ body: { events: said, seconds: 400 } });
+    assert.strictEqual(captioned.res.statusCode, 422, JSON.stringify(captioned.res.body));
+    assert.match(captioned.res.body.error, /about 14 minutes to render/);
+  });
 });

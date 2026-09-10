@@ -5045,7 +5045,36 @@ this video") postala su jedno pitanje „Narration" sa tri odgovora: „My recor
 5. [ ] **Nema pitanja sa jednim odgovorom.** Bez snimka i bez pipera nema
    „Narration" uopšte — samo 1080p. Sa nevažećim snimkom i bez pipera stoji
    samo rečenica zašto snimak ne važi.
-6. [ ] **Telefon.** Sa sva tri odgovora i izabranim „Synthesised voice",
-   skroluj dijalog do „Higher quality (1080p)" i uključi ga; film je 1080p.
-   Izmereno u testu: bez skrolovanja je dijalog 49 px viši od telefona 360 × 640,
-   i prekidač bi stajao ispod dugmadi.
+6. [ ] **Nizak prozor.** Tutorijali postoje samo na Windowsu (stavka 136, korak
+   6), pa telefon ovde ne dolazi u obzir: smanji **visinu** Windows prozora dok
+   dijalog ne prestane da staje, pa sa sva tri odgovora i izabranim „Synthesised
+   voice" skroluj do „Higher quality (1080p)" i uključi ga; film je 1080p.
+   Izmereno u testu: bez skrolovanja je dijalog 49 px viši od 360 × 640, i
+   prekidač bi stajao ispod dugmadi.
+
+## 142. Render koji ne može da stane se odbija pre crtanja — 10.9.2026, nije viđeno uživo
+
+Tačka 4 drugog dela `docs/PLAN-SNIMANJE.md`. Server sada pre crtanja računa
+koliko bi film trajao i odbija ga **odmah**, sa rečenicom, umesto da crta dok
+veza posle 300 s ne pukne. Tutorijali za proveru su u
+`mislisha-test/render-fixtures` (README tamo ima i PowerShell skripte).
+
+1. [ ] **Predug tutorijal.** Izvezi `big-40-parts` (36 minuta) na 720p: odgovor
+   stiže za sekundu, i kaže koliko bi renderovanje trajalo, koliko server može u
+   jednom komadu, i „Split the tutorial into … shorter ones". U `exports/` nema
+   novog fajla i broj renderovanja na nalogu nije porastao.
+2. [ ] **1080p.** `medium-12-parts` (10,5 minuta) na 1080p: odbijen, a rečenica
+   nudi „export it at 720p". Isti na 720p prolazi.
+3. [ ] **Snimak.** Tutorijal sa snimkom od desetak minuta, izvezen na 1080p:
+   odbijen, i nudi 720p — a „without your recording" samo ako bi film bez
+   snimka stao.
+4. [ ] **Red bez vremena.** Pusti `medium-12-parts` sa jednog naloga, pa odmah
+   sa drugog naloga još jedan `medium-12-parts`: drugi dobija „Try again in about
+   N minutes", **ne** „The server is rendering other videos right now".
+5. [ ] **Kratak i dalje ulazi.** Dok se `medium-12-parts` renderuje, pusti
+   `concurrent-a` (2 minuta) sa drugog naloga: ulazi u red i završi se.
+6. [ ] **Droplet: izmeri brzinu.** Na dropletu izrenderuj `medium-12-parts`
+   jednom na 720p i jednom na 1080p, podeli 2528 frejmova sa sekundama
+   renderovanja, uzmi sporije merenje sa marginom i upiši ga u `.env` kao
+   `RENDER_DRAW_FPS_720P` i `RENDER_DRAW_FPS_1080P`. Dok se to ne uradi,
+   podrazumevane vrednosti (12 i 6) su procena o drugoj mašini.
