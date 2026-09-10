@@ -218,6 +218,14 @@ function judgeNarration({ file, markersMs, durationMs, beats }) {
 /// a path, but a value that is only ever hex cannot become one.
 const TAKE_ID = /^[0-9a-f]{8,64}$/;
 
+/// The signature of the beat list a take was recorded against — phase 5 of
+/// `docs/PLAN-SNIMANJE.md`, a sha256 hex digest from `filmSignatureOf` in the
+/// app. This server never computes one: the beats live in the app, which is
+/// also where the tutorial's `pgn` is read, and a second implementation here
+/// would be a second opinion about what a trainer wrote. It is stored, and it
+/// is compared with the one the export sends.
+const SIGNATURE = /^[0-9a-f]{64}$/;
+
 /// The film's events on a stored recording's own timing, or why they cannot be.
 ///
 /// Phase 4. The markers replace the app's reading-speed guess — the same
@@ -229,7 +237,7 @@ const TAKE_ID = /^[0-9a-f]{8,64}$/;
 /// Refused rather than bent: a recording made for another number of beats names
 /// beats that are not in this film, and a film drawn against it is wrong from
 /// the first place the two disagree.
-function recordingForFilm({ row, takeId, events }) {
+function recordingForFilm({ row, takeId, events, signature }) {
   if (!row || !row.narration_filename) {
     return { ok: false, code: 'none', error: 'This tutorial has no recording on the server. Export again to send it.' };
   }
@@ -238,6 +246,25 @@ function recordingForFilm({ row, takeId, events }) {
       ok: false,
       code: 'other',
       error: 'The recording on the server is not the one on this device. Export again to send this one.',
+    };
+  }
+  // **The beats the recording was made over, not how many there were.** A
+  // sentence rewritten, a move replaced or two parts swapped leaves the count
+  // exactly where it was, and every marker after the edit then names a beat it
+  // was never recorded against — a film that is right at the start and wrong in
+  // the middle, which is the half nobody re-checks.
+  //
+  // Both sides have to have one. A recording made before phase 5 carries none,
+  // and it is a real recording that was judged by its beat count until today;
+  // refusing it would be an hour of a trainer's voice thrown away for a
+  // question it was never asked. The count below still catches the commonest
+  // edit for those, which is what they have always been judged by.
+  if (row.narration_signature && signature && row.narration_signature !== signature) {
+    return {
+      ok: false,
+      code: 'edited',
+      error: 'The tutorial has been edited since this recording was made, so the recording no longer '
+        + 'follows it. Record it again, or export without your voice.',
     };
   }
   const markers = Array.isArray(row.narration_markers) ? row.narration_markers : [];
@@ -271,6 +298,7 @@ function recordingForFilm({ row, takeId, events }) {
 
 module.exports = {
   TAKE_ID,
+  SIGNATURE,
   recordingForFilm,
   LIVE_MICROPHONE_DBFS,
   NARRATION_MAX_BYTES,

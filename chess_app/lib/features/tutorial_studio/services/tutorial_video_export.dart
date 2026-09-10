@@ -97,10 +97,15 @@ Future<bool> exportTutorialVideo({
   // for the app's folder in front of the dialog, and a dialog that waits on a
   // folder it may not need is one that does not open when that call does not
   // return — which is exactly what a widget test's clock does to it.
+  //
+  // The signature is walked once here and travels with everything that judges
+  // the take: the dialog, the upload, and the render request.
+  final signature = filmSignatureOf(filmBeatsOf(draft));
   final recording = _recordingFor(
     narrationStore ?? deviceNarrationStore(),
     lessonId,
     video.events.length,
+    signature,
   );
 
   // Asked before anything is drawn on screen: a switch the server cannot honour
@@ -167,6 +172,7 @@ Future<bool> exportTutorialVideo({
       api: api,
       lessonId: lessonId,
       stored: mine,
+      signature: signature,
     );
     if (!sent) return false;
   }
@@ -195,6 +201,10 @@ Future<bool> exportTutorialVideo({
     voice: mine == null && canSpeak ? voice : null,
     useRecording: mine == null ? null : true,
     takeId: mine?.takeId,
+    // Asked of the server as well, and for a reason this dialog cannot cover:
+    // the take on the server may have been recorded on another device, against
+    // beats that have moved since. See `recordingForFilm`.
+    signature: mine == null ? null : signature,
   );
 
   final result = await _showProgressWhile(
@@ -510,7 +520,7 @@ class _Recording {
 /// This tutorial's take on this device, or null when there is none — or no
 /// directory to look in, which is not this dialog's fault to report.
 Future<_Recording?> _recordingFor(
-    NarrationTakeStore store, int lessonId, int beats) async {
+    NarrationTakeStore store, int lessonId, int beats, String signature) async {
   final NarrationLoad load;
   try {
     load = await store.load(lessonId);
@@ -525,23 +535,24 @@ Future<_Recording?> _recordingFor(
   final stored = load.stored;
   if (stored == null) return null;
 
+  // One decision, in `takeMismatchOf`, so this dialog and the recording screen
+  // cannot come to disagree about whether a take is still the right one.
   final take = stored.take;
-  if (!take.heardAnything) {
-    return const _Recording.unusable(
+  return switch (takeMismatchOf(take, beats: beats, signature: signature)) {
+    TakeMismatch.none => _Recording.usable(stored),
+    TakeMismatch.silent => const _Recording.unusable(
         'Your recording is silent — nothing reached the microphone. Record '
-        'it again.');
-  }
-  if (take.eventCount != beats) {
-    return _Recording.unusable(
+        'it again.'),
+    TakeMismatch.beatsChanged => _Recording.unusable(
         'Your recording was made when the tutorial had ${take.eventCount} '
-        'beats, and it has $beats now. Record it again.');
-  }
-  if (!take.isComplete) {
-    return _Recording.unusable(
+        'beats, and it has $beats now. Record it again.'),
+    TakeMismatch.edited => const _Recording.unusable(
+        'The tutorial has been edited since your recording was made, so it no '
+        'longer follows it. Record it again, or export without your voice.'),
+    TakeMismatch.incomplete => _Recording.unusable(
         'Your recording stops at beat ${take.markersMs.length} of '
-        '${take.eventCount}. Record it again to the end.');
-  }
-  return _Recording.usable(stored);
+        '${take.eventCount}. Record it again to the end.'),
+  };
 }
 
 /// Uploads [stored] unless the server already holds this very take.
@@ -556,6 +567,7 @@ Future<bool> _sendRecordingIfNeeded({
   required LessonApiService api,
   required int lessonId,
   required StoredNarration stored,
+  required String signature,
 }) async {
   final local = stored.takeId;
   final onServer = await api.serverTakeId(lessonId);
@@ -592,6 +604,7 @@ Future<bool> _sendRecordingIfNeeded({
       durationMs: stored.take.durationMs,
       beats: stored.take.eventCount,
       takeId: local,
+      signature: signature,
     );
   } finally {
     if (context.mounted) {

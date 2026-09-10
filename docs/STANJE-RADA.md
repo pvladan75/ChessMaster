@@ -29,6 +29,43 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Snimanje glasa: faza 5, snimak zna kojim taktovima pripada — 10.9.2026, nije viđeno uživo
+
+Prepravi rečenicu, dodaj deo, zameni dva mesta — i markeri imenuju taktove nad
+kojima nisu snimljeni. Ćutke, i film je pogrešan negde od sredine, što je
+polovina koju niko ne proverava. Broj taktova, koji je to čuvao do sada, vidi
+dodat i obrisan takt i **ne vidi prepravljenu rečenicu**.
+
+Snimak sada nosi **potpis liste taktova** nad kojom je napravljen —
+`filmSignatureOf`, sha256 nad `filmBeatsOf`, dakle nad istom šetnjom po
+tutorijalu koju film crta. Kad se potpis tutorijala razlikuje, studio to kaže
+**tamo gde je izmena i napravljena**, sa dva izlaza: „Record again" i „Export
+without your voice". Isti odgovor daje ekran za snimanje, dijalog za izvoz i
+server — jedna odluka (`takeMismatchOf`), tri rečenice.
+
+Šta **nije** u potpisu, i to je pola faze: ime tutorijala, ime dela, strelice,
+obojena polja i okrenuta tabla. Sve to menja šta je nacrtano na taktu, a ne koji
+je takt niti koliko dugo se o njemu priča — sat vremena snimanja ne sme da
+propadne zbog naslova.
+
+**Snimak bez potpisa nije snimak koji se slaže.** Napravljen je starijom
+verzijom aplikacije, stoji na trenerovim uređajima i na serveru, i sudi se po
+broju taktova kao i pre; server odbija tek kad **obe** strane imaju potpis.
+Odsustvo je treći odgovor, po treći put u ovom projektu.
+
+Dva nalaza, oba iz mutacija koje su preživele. **Potez nije u potpisu** — bio je
+u prvoj verziji, i brisanje mu ništa nije oborilo: fen takta već odgovara za
+potez koji ga je napravio, jer se dve linije koje se razlikuju u jednom potezu
+razlikuju u svakoj poziciji posle njega. Polje koje nijedan test ne može da
+obori je polje u koje će se verovati a da ga niko nije pročitao. I **fikstura
+može da dokazuje pogrešnu stvar**: „deo koji počinje na drugoj poziciji" je
+najpre menjao i broj taktova, pa nije govorio o fenu ništa; sada je isti
+tutorijal na tabli bez dama.
+
+Provera uživo: `TODO-provera.md`, stavka **140**.
+
+---
+
 ## Snimanje glasa: faza 4, video u trenerovom glasu — 10.9.2026, nije viđeno uživo
 
 U „Export video" prvi red je sada **„Use my recording (m:ss)"**, uključen kad

@@ -442,6 +442,58 @@ whole draft: renaming the tutorial must not invalidate an hour of narration. And
 the mismatch is shown in the studio, where it can be fixed, rather than at
 export, where it is a refusal.
 
+### Built on 10.9.2026 — not yet watched running
+
+Live check: `docs/TODO-provera.md`, item 140. Twenty-seven tests in the app and
+five on the backend; fifteen mutations, and the two that survived are the two
+findings below.
+
+* **`filmSignatureOf` is a sha256 over `filmBeatsOf`**, which is already the one
+  walk of a tutorial as a film, so the signature and the markers cannot come to
+  disagree about what a beat is. It travels with the take on the device
+  (`take.json`), with the upload, and with the export request;
+  `saved_lessons.narration_signature` is where the server keeps it, beside the
+  four columns phase 3 added.
+* **One decision with three voices.** `takeMismatchOf` answers „can this take
+  make this film" — silent, beats changed, edited, incomplete, or none — and the
+  recording screen, the export dialog and the studio banner each write their own
+  sentence from it. Three sentences are right; three answers is how the export
+  comes to offer a switch the render then refuses.
+* **Absence is a third answer, again.** A take with no signature — one recorded
+  by an earlier version of this app, on a trainer's device and on the server
+  right now — is judged by its beat count exactly as it was. Refusing them all
+  is an hour of a trainer's voice thrown away for a question it was never asked;
+  passing them all is the silent wrong film this phase exists to prevent. The
+  count still catches a beat added or removed, which is what those takes have
+  always been judged by. The server needs **both** sides to have one before it
+  refuses.
+* **The banner is in the studio and says only what editing caused.** A silent or
+  half-finished take is the recording screen's to talk about: it is not this
+  screen's doing and not something it can put right, and a warning a trainer
+  cannot act on where they are standing is a warning they learn to ignore.
+
+Two findings, both from mutations that survived.
+
+**The move is not in the signature, and that is the finding.** It was in the
+first version — position, move, sentence — and deleting it from `filmSignatureOf`
+left every test in `narration_signature_test.dart` green. A beat's fen already
+answers for the move that made it: two lines that differ in one move differ in
+every position after it. So it is gone rather than kept, because a field no test
+can fail is a field that will be believed without ever having been read.
+
+**A fixture can prove the wrong component.** „A part opening on another position
+is a different beat list" first used a part starting after 1. e4 with one move
+instead of two — which changes the *number* of beats, so it said nothing about
+the fen at all, and the mutation deleting the fen survived it. It is the same
+tutorial on a board without queens now: same sentences, same two moves, and
+nothing but the position different. Same family as the file letters answered by
+the pieces standing on rank one.
+
+One about the harness rather than the code. The app's mutation runs go through
+`flutter test` on Windows, whose output is not cp1250 — reading it without an
+explicit encoding crashed the runner in the middle of the batch and would have
+lost every verdict after it. Read a subprocess as UTF-8 with `errors='replace'`.
+
 ## Phase 6 — piper stays
 
 Two producers, one event list, one renderer. The narrated-by-piper path is not

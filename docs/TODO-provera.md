@@ -4995,3 +4995,32 @@ stavku 138 (snimak postoji na uređaju).
 Poznato i otvoreno: brisanje tutorijala **ne briše snimak na uređaju**, samo na
 serveru.
 
+## 140. Snimak zna kojim taktovima pripada — 10.9.2026, nije viđeno uživo
+
+Faza 5 iz `docs/PLAN-SNIMANJE.md`. Broj taktova vidi dodat i obrisan takt, ali ne
+vidi **prepravljenu rečenicu** — a marker imenuje takt po redu, pa posle takve
+izmene film ima pravu sliku i pogrešan glas, negde od sredine. Sada svaki snimak
+nosi potpis liste taktova nad kojom je napravljen. Pretpostavlja stavke 138 i 139.
+
+1. [ ] **Prepravljena rečenica.** Snimi ceo tutorijal, pa u studiju **izmeni
+   jednu rečenicu** i ne diraj ništa drugo. Odmah, bez zatvaranja ekrana, iznad
+   spiska delova stoji traka „This tutorial has been edited since your recording
+   was made…" sa dva dugmeta.
+2. [ ] **Broj taktova je isti.** Na ekranu za snimanje piše i dalje „N of N
+   beats" — dakle brojanje ne bi ništa primetilo — a ispod stoji „The tutorial
+   has been edited since this was recorded".
+3. [ ] **„Record again".** Dugme iz trake otvara ekran za snimanje. Snimi ponovo
+   do kraja i vrati se: **traka je nestala**.
+4. [ ] **„Export without your voice".** Iz trake otvara dijalog za izvoz; umesto
+   prekidača „Use my recording" stoji rečenica o izmeni. Film se napravi tih ili
+   sintetizovan.
+5. [ ] **Preimenovanje ništa ne košta.** Preimenuj **tutorijal** i preimenuj
+   **deo**: traka se ne pojavljuje, prekidač u izvozu ostaje uključen. Ovo je
+   pola faze — sat vremena snimanja ne sme da propadne zbog naslova.
+6. [ ] **Strelica i krug ništa ne koštaju.** Nacrtaj strelicu i oboj polje na
+   nekom taktu: traka se ne pojavljuje, izvoz i dalje nudi snimak.
+7. [ ] **Stariji snimak.** Snimak napravljen pre ove verzije (nema potpis) sudi
+   se po broju taktova kao i ranije — ne sme da bude odbijen na pravom
+   tutorijalu.
+8. [ ] **Server ne pušta.** Ako se izmena nekako provuče do izvoza, server
+   odgovara 409 sa rečenicom o izmeni i **ne troši slot za renderovanje**.

@@ -75,6 +75,14 @@ const _silentTake =
     'Nothing reached the microphone during this recording, so it is silent. '
     'Check the mute key and the input device, then record again.';
 
+/// Said when the beats still number the same and no longer say the same — a
+/// sentence rewritten, a move replaced, two parts swapped. Phase 5's whole
+/// reason: no count can see any of those, and the film would simply be wrong
+/// somewhere in the middle.
+const _editedSinceTake =
+    'The tutorial has been edited since this was recorded, so the recording '
+    'no longer follows it. Record it again, or export without your voice.';
+
 const _unreadableTake =
     'The recording kept on this device could not be read, so it is gone. '
     'Record it again.';
@@ -118,6 +126,10 @@ class TutorialNarrationScreen extends StatefulWidget {
 
 class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
   late final List<FilmBeat> _stops = filmBeatsOf(widget.draft);
+
+  /// What the beat list says now. Stamped on a take as it is recorded, and
+  /// compared with the stored one — phase 5.
+  late final String _signature = filmSignatureOf(_stops);
   late final NarrationTakeStore _store = widget.store ?? deviceNarrationStore();
   final ChessBoardController _board = ChessBoardController();
   final FocusNode _keys = FocusNode(debugLabel: 'narration-keys');
@@ -202,6 +214,7 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
       source: (widget.sourceFactory ?? RecordPcmSource.new)(),
       sink: WavFileSink(path),
       eventCount: _stops.length,
+      signature: _signature,
     )..addListener(_onRecorderChanged);
     if (!mounted) {
       await recorder.cancel();
@@ -685,17 +698,22 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
 
   List<Widget> _summaryOf(NarrationTake take) {
     final colors = context.colors;
-    final problems = [
-      if (!take.heardAnything) _silentTake,
-      // Phase 5 replaces this count with a signature over the beats; a count
-      // already catches a beat added or removed, which is the commonest edit.
-      if (take.eventCount != _stops.length)
-        'This recording was made when the tutorial had ${take.eventCount} '
-            'beats, and it has ${_stops.length} now. Record it again.'
-      else if (!take.isComplete)
-        'It stops at beat ${take.markersMs.length} of ${take.eventCount}. '
-            'A video needs a recording that reaches the last beat.',
-    ];
+    // One decision, in `takeMismatchOf`; the sentence is this screen's, which
+    // speaks about the recording it is showing rather than about „yours".
+    final problems = switch (
+        takeMismatchOf(take, beats: _stops.length, signature: _signature)) {
+      TakeMismatch.none => const <String>[],
+      TakeMismatch.silent => const [_silentTake],
+      TakeMismatch.beatsChanged => [
+          'This recording was made when the tutorial had ${take.eventCount} '
+              'beats, and it has ${_stops.length} now. Record it again.'
+        ],
+      TakeMismatch.edited => const [_editedSinceTake],
+      TakeMismatch.incomplete => [
+          'It stops at beat ${take.markersMs.length} of ${take.eventCount}. '
+              'A video needs a recording that reaches the last beat.'
+        ],
+    };
 
     return [
       Text(

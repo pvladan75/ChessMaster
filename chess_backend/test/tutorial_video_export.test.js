@@ -829,6 +829,31 @@ test('the recording survives the export that used it', async () => {
     'the export deleted the trainer\'s voice with the synthesised track');
 });
 
+test('a recording made against beats that have moved is refused, and nothing is drawn', async () => {
+  // Phase 5, through the route: the beats the app sends now against the ones
+  // the recording was made over. The count is the same in both, which is what
+  // makes this the case the phase exists for.
+  const row = { ...keptRecording('narration_15_0000000000000a11.wav'), narration_signature: 'a'.repeat(64) };
+
+  const { res, renderCalls, queries } = await run({
+    body: recordedBody({ signature: 'b'.repeat(64) }),
+    narrationRow: row,
+  });
+  assert.strictEqual(res.statusCode, 409, JSON.stringify(res.body));
+  assert.strictEqual(res.body.recording, 'edited');
+  assert.strictEqual(renderCalls.length, 0, 'an edited tutorial was drawn over its old voice');
+
+  // Asked of the statement, because the fake hands back the whole row whatever
+  // is selected: a SELECT that forgets the column would leave this refusal
+  // green here and never fire against a database.
+  const read = queries.find((q) => /FROM saved_lessons WHERE id/i.test(q.text) && /narration_filename/.test(q.text));
+  assert.match(read.text, /narration_signature/, 'the row is read without the column it is judged by');
+
+  const same = await run({ body: recordedBody({ signature: 'a'.repeat(64) }), narrationRow: row });
+  assert.strictEqual(same.res.statusCode, 200, JSON.stringify(same.res.body));
+  assert.strictEqual(same.renderCalls.length, 1);
+});
+
 test('a recording that does not fit is refused before the queue, and nothing is drawn', async () => {
   const row = keptRecording('narration_15_00000000000000ff.wav');
   const cases = [

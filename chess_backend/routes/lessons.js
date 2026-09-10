@@ -414,6 +414,19 @@ async function saveNarration(req, res) {
     return res.status(400).json({ error: 'The recording arrived with a name this server does not accept. Upload it again.' });
   }
 
+  // The beats this was recorded against, signed by the app (phase 5). Optional:
+  // a take is a real recording whether or not it carries one, and the column
+  // being NULL is what says an older app made it. A value of the wrong shape is
+  // not the same as none — it is a client this server does not recognise, and
+  // storing it would leave a signature nothing can ever match.
+  const signature = typeof req.body.signature === 'string' && req.body.signature !== ''
+    ? req.body.signature
+    : null;
+  if (signature !== null && !narrationUpload.SIGNATURE.test(signature)) {
+    narrationUpload.removeQuietly(file.path);
+    return res.status(400).json({ error: 'The recording arrived with a beat signature this server does not accept. Upload it again.' });
+  }
+
   const judged = narrationUpload.judgeNarration({
     file: file.path,
     markersMs: req.body.markersMs,
@@ -435,10 +448,12 @@ async function saveNarration(req, res) {
       `WITH old AS (SELECT narration_filename FROM saved_lessons WHERE id = $1 FOR UPDATE)
        UPDATE saved_lessons
           SET narration_filename = $2, narration_ms = $3, narration_markers = $4,
-              narration_recorded_at = NOW(), narration_take_id = $6
+              narration_recorded_at = NOW(), narration_take_id = $6,
+              narration_signature = $7
         WHERE id = $1 AND (user_id = $5 OR trainer_id = $5)
     RETURNING (SELECT narration_filename FROM old) AS replaced, narration_recorded_at`,
-      [lessonId, file.filename, judged.durationMs, JSON.stringify(judged.markers), req.user.id, takeId]
+      [lessonId, file.filename, judged.durationMs, JSON.stringify(judged.markers), req.user.id, takeId,
+        signature]
     );
   } catch (err) {
     narrationUpload.removeQuietly(file.path);
@@ -563,6 +578,10 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       // of docs/PLAN-SNIMANJE.md — and the id of the take the app holds.
       useRecording,
       takeId,
+      // What the beats say now (phase 5). The recording was made against a beat
+      // list, and one that has moved makes every marker after the edit name a
+      // beat it was not recorded against.
+      signature,
     } = req.body;
 
     if (!Array.isArray(events) || events.length === 0) {
@@ -580,13 +599,14 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     let recording = null;
     if (useRecording === true) {
       const stored = await pool.query(
-        `SELECT narration_filename, narration_ms, narration_markers, narration_take_id
+        `SELECT narration_filename, narration_ms, narration_markers, narration_take_id, narration_signature
            FROM saved_lessons WHERE id = $1`,
         [lessonId]
       );
       const judged = narrationUpload.recordingForFilm({
         row: stored.rows[0],
         takeId: typeof takeId === 'string' ? takeId : null,
+        signature: typeof signature === 'string' ? signature : null,
         events,
       });
       if (!judged.ok) {

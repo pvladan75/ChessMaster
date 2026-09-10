@@ -177,6 +177,14 @@ async function initDB() {
     // the video beside it, the file cannot be made again, so nothing clears
     // these columns on a timer — only the tutorial's own deletion and a new
     // take replacing this one.
+    //
+    // narration_signature is what the tutorial's beats said when the recording
+    // was made (phase 5): a sha256 of the positions, moves and sentences the
+    // trainer talked over. Markers name beats by index, so a beat list that has
+    // moved makes every marker after the edit name a beat it was not recorded
+    // against, and the film is wrong somewhere in the middle, silently. NULL
+    // means a take from before phase 5, judged by its beat count as it always
+    // was.
     await client.query(`
       ALTER TABLE saved_lessons
       ADD COLUMN IF NOT EXISTS narration_filename VARCHAR(255);
@@ -188,6 +196,8 @@ async function initDB() {
       ADD COLUMN IF NOT EXISTS narration_recorded_at TIMESTAMP;
       ALTER TABLE saved_lessons
       ADD COLUMN IF NOT EXISTS narration_take_id VARCHAR(64);
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS narration_signature VARCHAR(64);
     `);
     logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 

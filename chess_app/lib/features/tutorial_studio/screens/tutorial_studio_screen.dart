@@ -23,9 +23,12 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
+import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
+import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_narration_screen.dart';
@@ -90,6 +93,7 @@ class TutorialStudioScreen extends StatefulWidget {
     required this.session,
     required this.entry,
     this.lessonApi,
+    this.narrationStore,
   });
 
   final UserSession session;
@@ -107,6 +111,13 @@ class TutorialStudioScreen extends StatefulWidget {
   /// test ever passes it.
   final LessonApiService? lessonApi;
 
+  /// Where this device keeps recorded takes. Null means the app's own place.
+  ///
+  /// One seam for the three readers on this screen — the banner, the recording
+  /// screen and the export — because a store passed to one of them and not the
+  /// others is a test that watches a take nothing else can see.
+  final NarrationTakeStore? narrationStore;
+
   @override
   State<TutorialStudioScreen> createState() => _TutorialStudioScreenState();
 }
@@ -118,6 +129,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   late final LessonApiService _lessonApi =
       widget.lessonApi ?? LessonApiService(authToken: widget.session.token);
+
+  late final NarrationTakeStore _narrationStore =
+      widget.narrationStore ?? deviceNarrationStore();
+
+  /// The take this device holds for this tutorial, when it holds one. Read once
+  /// on the way in and again whenever the recording screen closes — phase 5.
+  NarrationTake? _narrationTake;
 
   late TutorialDraft _draft;
   PlayerColor _orientation = PlayerColor.white;
@@ -204,6 +222,29 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // `test/tutorial_reopen_test.dart`.
     _loadSelectedSection();
     unawaited(_adoptStoredDraft());
+    unawaited(_loadNarrationTake());
+  }
+
+  /// This device's take for the open tutorial, for [_narrationBanner].
+  ///
+  /// **Started, never awaited by anything that draws.** It asks the platform
+  /// for the app's own folder, and a screen that waits on a folder it may not
+  /// need is a screen that does not open when that call does not return — which
+  /// is what a widget test's clock does to it, and what cost the export dialog
+  /// twelve tests in phase 4. Nothing here is a failure worth a sentence: no
+  /// folder, no take, no banner.
+  Future<void> _loadNarrationTake() async {
+    final id = _draft.lessonId;
+    NarrationTake? take;
+    if (id != null) {
+      try {
+        take = (await _narrationStore.load(id)).stored?.take;
+      } catch (_) {
+        take = null;
+      }
+    }
+    if (!mounted) return;
+    setState(() => _narrationTake = take);
   }
 
   @override
@@ -994,6 +1035,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       lessonId: id,
       title: _draft.title,
       draft: _draft,
+      narrationStore: _narrationStore,
     );
   }
 
@@ -1018,8 +1060,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         lessonId: id,
         title: _titleController.text.trim(),
         draft: _draft,
+        store: _narrationStore,
       ),
     ));
+    // A trainer who recorded again has answered the banner, and one who did not
+    // is still owed it. Read rather than assumed: the screen may have kept a
+    // take, replaced one, or left the old one exactly where it was.
+    await _loadNarrationTake();
   }
 
   /// The tutorial as a child will meet it, without saving anything.
@@ -1354,6 +1401,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         children: [
           _titleField(),
           _leakBanner(),
+          _narrationBanner(),
           const SizedBox(height: AppSpacing.sm),
           Expanded(
             key: const Key('sections-half'),
@@ -1380,6 +1428,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       children: [
         _titleField(),
         _leakBanner(),
+        _narrationBanner(),
         const SizedBox(height: AppSpacing.md),
         _sectionsPanel(),
         const SizedBox(height: AppSpacing.md),
@@ -1424,6 +1473,97 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   style: AppText.body
                       .copyWith(color: context.colors.onDangerContainer),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Said when this device's recording no longer follows the tutorial —
+  /// phase 5 of `docs/PLAN-SNIMANJE.md`.
+  ///
+  /// **Here rather than at the export, and that is the whole point of the
+  /// phase.** Edit a sentence, add a part, reorder two, and the markers name
+  /// beats they were not recorded against; the export can only refuse, which
+  /// is a trainer told at the end that the last hour is gone. The screen that
+  /// caused it is the screen that can undo it, and the two doors are the two
+  /// answers: record it again, or make the film without the voice.
+  ///
+  /// **A take that is merely silent or short is not this banner's business.**
+  /// The recording screen says both of those about the take it is showing, and
+  /// neither is caused by editing — a banner over the editor for them would be
+  /// a warning about something this screen cannot do anything about.
+  Widget _narrationBanner() {
+    final take = _narrationTake;
+    if (take == null) return const SizedBox.shrink();
+    // Walked only where there is a take to judge, which is the rare case: for
+    // every tutorial nobody has recorded this costs nothing at all.
+    final stops = filmBeatsOf(_draft);
+    if (stops.isEmpty) return const SizedBox.shrink();
+    final mismatch = takeMismatchOf(
+      take,
+      beats: stops.length,
+      signature: filmSignatureOf(stops),
+    );
+    final said = switch (mismatch) {
+      TakeMismatch.beatsChanged =>
+        'Your recording was made when this tutorial had ${take.eventCount} '
+            'beats, and it has ${stops.length} now.',
+      TakeMismatch.edited =>
+        'This tutorial has been edited since your recording was made, so the '
+            'recording no longer follows it.',
+      // Both are the recording screen's to say, and neither is this screen's
+      // doing. `none` is the ordinary state of a tutorial with a good take.
+      TakeMismatch.none ||
+      TakeMismatch.silent ||
+      TakeMismatch.incomplete =>
+        null,
+    };
+    if (said == null) return const SizedBox.shrink();
+
+    return Padding(
+      key: const Key('narration-stale-banner'),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Material(
+        color: context.colors.infoContainer,
+        borderRadius: AppRadii.roundedSm,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.mic_off_outlined,
+                      size: 18, color: context.colors.onInfoContainer),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      said,
+                      style: AppText.body
+                          .copyWith(color: context.colors.onInfoContainer),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                spacing: AppSpacing.sm,
+                children: [
+                  TextButton(
+                    key: const Key('narration-stale-record'),
+                    onPressed: _recordNarration,
+                    child: const Text('Record again'),
+                  ),
+                  TextButton(
+                    key: const Key('narration-stale-export'),
+                    onPressed: _exportVideo,
+                    child: const Text('Export without your voice'),
+                  ),
+                ],
               ),
             ],
           ),

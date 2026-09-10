@@ -26,20 +26,24 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 /// Three beats: the opening position, e4 and e5.
-TutorialDraft draftOf() => TutorialDraft(
+TutorialDraft draftOf({
+  String pgn = '{ White takes the centre. } 1. e4 { Black answers. } e5',
+}) =>
+    TutorialDraft(
       lessonId: 12,
       title: 'Centre',
       sections: [
         TutorialSection(
           root: readStepTree(
             fen: _start,
-            pgn: '{ White takes the centre. } 1. e4 { Black answers. } e5',
+            pgn: pgn,
           ).root,
           title: 'Part',
           kind: LessonStepKind.show,
@@ -142,6 +146,11 @@ late NarrationTakeStore _store;
 Future<StoredNarration> keepTake({
   int eventCount = 3,
   List<int> markers = const [0, 400, 600],
+
+  /// The beats it was recorded against — phase 5. Null is a take from before
+  /// phase 5, which is what every other test in this file uses and which is
+  /// judged by its count as it always was.
+  String? signature,
 }) async {
   final path = await _store.newRecordingPath(12);
   final sink = WavFileSink(path);
@@ -157,6 +166,7 @@ Future<StoredNarration> keepTake({
       eventCount: eventCount,
       peakDbfs: -12,
       recordedAt: DateTime(2026, 9, 10),
+      signature: signature,
     ),
     path,
   );
@@ -294,6 +304,64 @@ void main() {
 
     await pressExport(tester);
     expect(server.calls.where((c) => c.contains('/narration')), isEmpty);
+  });
+
+  testWidgets('a take of the same beats saying something else is not offered',
+      (tester) async {
+    // Phase 5, and the case no count can see: three beats before, three now,
+    // and the middle one about another sentence. The switch must not be there
+    // at all — a take offered and then refused by the render is the worst of
+    // both.
+    await keepTake(
+        signature: filmSignatureOf(filmBeatsOf(draftOf(
+      pgn: '{ White takes the middle. } 1. e4 { Black answers. } e5',
+    ))));
+    final server = FakeServer();
+    await openExport(tester, server);
+
+    expect(find.byKey(const Key('export-use-recording')), findsNothing);
+    expect(find.textContaining('has been edited'), findsOneWidget);
+
+    await pressExport(tester);
+    expect(server.calls.where((c) => c.contains('/narration')), isEmpty);
+  });
+
+  testWidgets('the beats travel with the take and with the film',
+      (tester) async {
+    // Both ends, because they answer different questions. The upload's is what
+    // the server stores beside the recording; the export's is what the server
+    // compares it with — and the take on the server may have come from another
+    // device, against beats that have moved since.
+    final signature = filmSignatureOf(filmBeatsOf(draftOf()));
+    await keepTake(signature: signature);
+    final server = FakeServer();
+    await openExport(tester, server);
+    await pressExport(tester);
+
+    final upload = server.requests.lastWhere(
+        (r) => r.url.path.endsWith('/narration') && r.method == 'POST');
+    // Read as bytes: the body carries a wav, so decoding it as text throws.
+    // Asked as a whole multipart field rather than as a substring anywhere in
+    // it — a digest sent under some other field's name is not the same request.
+    expect(latin1.decode(upload.bodyBytes),
+        contains('name="signature"\r\n\r\n$signature'),
+        reason: 'the server would store a recording it cannot judge again');
+    expect(server.exportBody['signature'], signature);
+  });
+
+  testWidgets('a film without the recording carries no beats to compare',
+      (tester) async {
+    // The signature answers one question — „is this recording still the right
+    // one" — and a film that is not asking it must not send an answer.
+    await keepTake(signature: filmSignatureOf(filmBeatsOf(draftOf())));
+    final server = FakeServer();
+    await openExport(tester, server);
+
+    await tester.tap(find.byKey(const Key('export-use-recording')));
+    await tester.pumpAndSettle();
+    await pressExport(tester);
+
+    expect(server.exportBody.containsKey('signature'), isFalse);
   });
 
   testWidgets('a refused upload stops the export, and says why',

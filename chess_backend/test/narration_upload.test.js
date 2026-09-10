@@ -224,9 +224,12 @@ async function withRoute({ owns = true, birthYear = 1980, replaced = null, onUpd
   }
 }
 
-function formOf({ audio, markers = [0, 400], durationMs = 1000, beats = 2, takeId }) {
+const SIGNATURE = 'a'.repeat(64);
+
+function formOf({ audio, markers = [0, 400], durationMs = 1000, beats = 2, takeId, signature }) {
   const form = new FormData();
   if (takeId !== undefined) form.append('takeId', takeId);
+  if (signature !== undefined) form.append('signature', signature);
   form.append('markersMs', JSON.stringify(markers));
   form.append('durationMs', String(durationMs));
   form.append('beats', String(beats));
@@ -259,6 +262,45 @@ test('a whole take is kept, and the row names it with its markers', async () => 
   assert.equal(update.values[2], 1000);
   assert.equal(update.values[3], '[0,400]');
   assert.match(update.sql, /FOR UPDATE/, 'the old name is read with the row locked');
+});
+
+test('the beats a take was recorded against are kept beside it', async () => {
+  // Phase 5. Markers name beats by index, so a beat list that has moved makes
+  // every marker after the edit name a beat it was never recorded against —
+  // and the count in the row cannot see a sentence being rewritten.
+  clearKept();
+  const { status, queries } = await withRoute({},
+    formOf({ audio: wavOf({ ms: 1000 }), signature: SIGNATURE }));
+
+  assert.equal(status, 201);
+  const update = queries.find((q) => /UPDATE saved_lessons/.test(q.sql));
+  assert.match(update.sql, /narration_signature = \$7/);
+  assert.equal(update.values[6], SIGNATURE);
+});
+
+test('a take with no signature is kept, and the column says so', async () => {
+  // A recording from an older app is a real recording. NULL is what marks it as
+  // one that was never asked this question, and `recordingForFilm` judges those
+  // by their beat count as it always did.
+  clearKept();
+  const { status, queries } = await withRoute({}, formOf({ audio: wavOf({ ms: 1000 }) }));
+
+  assert.equal(status, 201);
+  const update = queries.find((q) => /UPDATE saved_lessons/.test(q.sql));
+  assert.equal(update.values[6], null);
+});
+
+test('a signature of the wrong shape is refused, and the file with it', async () => {
+  // Not the same as none: it is a client this server does not recognise, and
+  // storing it would leave a signature nothing can ever match — a recording
+  // refused for ever, with no way to say why.
+  clearKept();
+  const { status, body } = await withRoute({},
+    formOf({ audio: wavOf({ ms: 1000 }), signature: 'not-a-digest' }));
+
+  assert.equal(status, 400);
+  assert.match(body.error, /beat signature/);
+  assert.deepEqual(filesKept(), [], 'a refused signature left a recording behind');
 });
 
 test('a refused take leaves nothing behind', async () => {
@@ -496,6 +538,35 @@ test('a recording retimes the film: each beat where it was spoken', () => {
   assert.equal(judged.events[0].data.text, 'One.');
   assert.equal(FILM[1].timestampMs, 2000, 'the request\'s own events were rewritten in place');
   assert.equal(FILM[1].data.spokenMs, undefined);
+});
+
+test('a recording made against beats that have since moved is refused', () => {
+  // The case no count can see, and the reason the column exists: three beats
+  // before, three beats now, and one of them about another sentence. Both sides
+  // must have a signature — a recording from before phase 5 carries none, and
+  // it is judged by its beat count as it always was rather than thrown away for
+  // a question it was never asked.
+  const row = { ...storedTake(), narration_signature: 'a'.repeat(64) };
+
+  const moved = narrationUpload.recordingForFilm({
+    row, takeId: 'ab12', events: FILM, signature: 'b'.repeat(64),
+  });
+  assert.equal(moved.ok, false);
+  assert.equal(moved.code, 'edited');
+  assert.match(moved.error, /edited since this recording was made/);
+
+  const same = narrationUpload.recordingForFilm({
+    row, takeId: 'ab12', events: FILM, signature: 'a'.repeat(64),
+  });
+  assert.equal(same.ok, true, same.error);
+
+  const older = narrationUpload.recordingForFilm({
+    row: storedTake(), takeId: 'ab12', events: FILM, signature: 'b'.repeat(64),
+  });
+  assert.equal(older.ok, true, 'a recording from before phase 5 was thrown away');
+
+  const unasked = narrationUpload.recordingForFilm({ row, takeId: 'ab12', events: FILM });
+  assert.equal(unasked.ok, true, 'an app that sends no signature cannot be judged on one');
 });
 
 test('a recording that does not fit this film is refused, each for its own reason', () => {

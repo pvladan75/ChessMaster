@@ -1322,6 +1322,32 @@ not speak, so `narrate` was absent either way, and „a recorded film is marked
 narrated" checked only in the one test that also sent `narrate: true`. Both were
 fixed before the script ran.
 
+**Phase 5 the same day — a recording knows which beats it was made over —
+1873 in the app with 1 skipped, 1126 on the backend**, measured one after the
+other with nothing else running; analyze at 29 infos, zero warnings. The
+arithmetic, because a moving count is where a suite quietly stops running half
+of itself: +16 for `filmSignatureOf` and `takeMismatchOf`, +8 for the recording
+screen and the studio's banner, +3 for the export dialog, +5 on the backend.
+Fifteen mutations, and the two that survived are the two findings. Live check:
+`TODO-provera.md`, item 140.
+
+**A field no test can fail is a field nobody has read.** The signature was
+position, move and sentence; deleting the move left every test green, because a
+beat's fen already answers for the move that made it — two lines differing in
+one move differ in every position after it. It is gone rather than kept.
+
+**A fixture can prove the wrong component.** The test for „a part opening on
+another position" used a part starting one ply later, which also changes the
+number of beats — so it said nothing about the fen, and the mutation deleting
+the fen survived it. It is the same tutorial on a board without queens now: same
+sentences, same moves, nothing but the position different. Same family as the
+file letters answered by the pieces standing on rank one.
+
+And one about the harness: a mutation runner reading `flutter test`'s output on
+Windows without an explicit encoding died on a `cp1250` decode **in the middle
+of the batch**, which would have lost every verdict after it. Read a subprocess
+as UTF-8 with `errors='replace'`.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

@@ -31,6 +31,7 @@ import 'package:chess_app/features/tutorial_studio/services/narration_player.dar
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 
@@ -91,8 +92,8 @@ class FakePlayer implements NarrationPlayer {
   Future<void> dispose() async {}
 }
 
-TutorialDraft draftOf() {
-  final read = readStepTree(fen: _start, pgn: _pgn);
+TutorialDraft draftOf({String pgn = _pgn}) {
+  final read = readStepTree(fen: _start, pgn: pgn);
   return TutorialDraft(
     lessonId: 31,
     title: 'Centre',
@@ -471,6 +472,63 @@ void main() {
         reason: 'half a recording must not outlive the screen that made it');
   });
 
+  testWidgets('a take is stamped with the beats it was recorded against',
+      (tester) async {
+    // Phase 5. Without this the take on disk says only how many beats there
+    // were, and a rewritten sentence leaves that number exactly where it was.
+    final rig = await open(tester);
+    await startRecording(tester, rig);
+    await deliver(tester, rig, 4);
+    await tester.tap(find.byKey(const Key('narration-stop')));
+    await tester.pumpAndSettle();
+
+    final kept = (await rig.store.load(31)).stored!;
+    expect(kept.take.signature, filmSignatureOf(filmBeatsOf(draftOf())));
+  });
+
+  testWidgets('an edited tutorial says so over the take it no longer follows',
+      (tester) async {
+    final rig = await open(tester);
+    await startRecording(tester, rig);
+    // All four beats, so nothing but the signature can be wrong with it.
+    for (var beat = 0; beat < 3; beat++) {
+      await deliver(tester, rig, 2);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+    }
+    await deliver(tester, rig, 2);
+    await tester.tap(find.byKey(const Key('narration-stop')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('4 of 4 beats'), findsOneWidget);
+    expect(find.textContaining('has been edited'), findsNothing,
+        reason: 'the take was just made against these very beats');
+
+    // The screen closed and opened again on an edited tutorial: the same four
+    // beats, one of them about something else, which is exactly what no count
+    // can see. Closed first because the take is read on the way in — and
+    // because `_stops` is fixed when the screen is built, as it is in the app,
+    // where this screen is always pushed fresh.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(MaterialApp(
+      home: TutorialNarrationScreen(
+        lessonId: 31,
+        title: 'Centre',
+        draft:
+            draftOf(pgn: _pgn.replaceFirst('Black answers.', 'Black is fine.')),
+        sourceFactory: () => rig.source,
+        store: rig.store,
+        player: rig.player,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('4 of 4 beats'), findsOneWidget,
+        reason: 'the count is unchanged, which is the point');
+    expect(find.textContaining('has been edited since this was recorded'),
+        findsOneWidget);
+  });
+
   group('the door in the studio', () {
     final session = UserSession(
       token: 'tok',
@@ -484,15 +542,80 @@ void main() {
       client: MockClient((_) async => http.Response('{}', 404)),
     );
 
-    Future<void> openStudio(WidgetTester tester, TutorialEntry entry) async {
+    Future<void> openStudio(WidgetTester tester, TutorialEntry entry,
+        {NarrationTakeStore? store}) async {
       tester.view.physicalSize = const Size(1600, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(MaterialApp(
         home: TutorialStudioScreen(
-            session: session, entry: entry, lessonApi: api),
+            session: session,
+            entry: entry,
+            lessonApi: api,
+            narrationStore: store),
       ));
       await tester.pumpAndSettle();
+    }
+
+    /// The saved tutorial the banner tests are written against: four beats,
+    /// lesson 41.
+    TutorialEntry savedEntry({String pgn = _pgn}) => TutorialEntry.saved({
+          'id': 41,
+          'title': 'Centre',
+          'position_list': [
+            {
+              'id': 's1',
+              'fen': _start,
+              'title': 'Part',
+              'kind': 'show',
+              'pgn': pgn,
+            },
+          ],
+        });
+
+    /// Puts a finished take of [draft]'s beats in [store], for lesson 41.
+    Future<void> keepTakeOf(NarrationTakeStore store,
+        {required TutorialDraft draft, int peak = 8000}) async {
+      final path = await store.newRecordingPath(41);
+      final sink = WavFileSink(path);
+      for (var i = 0; i < 10; i++) {
+        sink.add(chunkOf(peak: peak));
+      }
+      await sink.finish();
+      final beats = filmBeatsOf(draft);
+      await store.keep(
+        41,
+        NarrationTake(
+          markersMs: [for (var i = 0; i < beats.length; i++) i * 100],
+          durationMs: 800,
+          eventCount: beats.length,
+          peakDbfs: peak == 0 ? -96 : -12,
+          recordedAt: DateTime(2026, 9, 10),
+          signature: filmSignatureOf(beats),
+        ),
+        path,
+      );
+    }
+
+    /// A store of its own, in a real directory that goes with the test.
+    NarrationTakeStore storeIn(WidgetTester tester) {
+      final dir = Directory.systemTemp.createTempSync('studio_banner_');
+      addTearDown(() {
+        try {
+          dir.deleteSync(recursive: true);
+        } catch (_) {
+          // A handle Windows still holds; the temp directory is the OS's.
+        }
+      });
+      return NarrationTakeStore(() async => dir);
+    }
+
+    /// A store already holding a finished take of [draft].
+    Future<NarrationTakeStore> takeOf(WidgetTester tester,
+        {required TutorialDraft draft}) async {
+      final store = storeIn(tester);
+      await keepTakeOf(store, draft: draft);
+      return store;
     }
 
     testWidgets('an unsaved tutorial is told to save first', (tester) async {
@@ -503,6 +626,98 @@ void main() {
       expect(find.text('Save the tutorial first, then record it.'),
           findsOneWidget);
       expect(find.byType(TutorialNarrationScreen), findsNothing);
+    });
+
+    testWidgets('a take that still follows the tutorial says nothing',
+        (tester) async {
+      // The banner is a warning, and one that is up whenever a recording exists
+      // is a warning nobody reads.
+      final store = await takeOf(tester, draft: draftOf());
+      await openStudio(tester, savedEntry(), store: store);
+
+      expect(find.byKey(const Key('narration-stale-banner')), findsNothing);
+    });
+
+    testWidgets('an edited tutorial says so where it was edited',
+        (tester) async {
+      // Phase 5's whole point: the screen that caused it is the screen that can
+      // undo it. At the export this could only ever be a refusal.
+      final store = await takeOf(tester, draft: draftOf());
+      await openStudio(
+        tester,
+        savedEntry(pgn: _pgn.replaceFirst('Black answers.', 'Black is fine.')),
+        store: store,
+      );
+
+      expect(find.byKey(const Key('narration-stale-banner')), findsOneWidget);
+      expect(find.textContaining('has been edited'), findsOneWidget);
+      expect(find.byKey(const Key('narration-stale-record')), findsOneWidget);
+      expect(find.byKey(const Key('narration-stale-export')), findsOneWidget);
+    });
+
+    testWidgets('a beat added is named as a count, and the door still opens',
+        (tester) async {
+      final store = await takeOf(tester, draft: draftOf());
+      await openStudio(tester, savedEntry(pgn: '$_pgn { And on. } Nc6'),
+          store: store);
+
+      expect(
+          find.textContaining('had 4 beats, and it has 5 now'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('narration-stale-record')));
+      await tester.pumpAndSettle();
+      expect(find.byType(TutorialNarrationScreen), findsOneWidget);
+    });
+
+    testWidgets('with no take on this device there is no banner',
+        (tester) async {
+      final dir = Directory.systemTemp.createTempSync('studio_banner_none_');
+      addTearDown(() {
+        try {
+          dir.deleteSync(recursive: true);
+        } catch (_) {
+          // As above.
+        }
+      });
+      await openStudio(tester, savedEntry(),
+          store: NarrationTakeStore(() async => dir));
+
+      expect(find.byKey(const Key('narration-stale-banner')), findsNothing);
+    });
+
+    testWidgets(
+        'a silent take is for the recording screen to say, not this one',
+        (tester) async {
+      // The banner is about what editing did, and it is drawn beside the
+      // controls that did it. A microphone that was muted is neither this
+      // screen's doing nor something it can put right, and a warning here for
+      // it would be a warning the trainer cannot act on where they are.
+      final store = storeIn(tester);
+      await keepTakeOf(store, draft: draftOf(), peak: 0);
+      await openStudio(tester, savedEntry(), store: store);
+
+      expect(find.byKey(const Key('narration-stale-banner')), findsNothing);
+    });
+
+    testWidgets('recording again answers the banner', (tester) async {
+      // The take is read on the way in, and a screen that never reads it again
+      // leaves the trainer looking at a warning they have just dealt with —
+      // which teaches them to ignore the next one.
+      final store = await takeOf(tester, draft: draftOf());
+      final edited = _pgn.replaceFirst('Black answers.', 'Black is fine.');
+      await openStudio(tester, savedEntry(pgn: edited), store: store);
+      expect(find.byKey(const Key('narration-stale-banner')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('narration-stale-record')));
+      await tester.pumpAndSettle();
+      expect(find.byType(TutorialNarrationScreen), findsOneWidget);
+
+      // What the recording screen would leave behind, without a microphone in
+      // the test: a take of the beats as they are now.
+      await keepTakeOf(store, draft: draftOf(pgn: edited));
+      Navigator.of(tester.element(find.byType(TutorialNarrationScreen))).pop();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('narration-stale-banner')), findsNothing);
     });
 
     testWidgets('a saved tutorial opens the recording screen', (tester) async {

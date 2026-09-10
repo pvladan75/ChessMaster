@@ -101,6 +101,7 @@ class NarrationTake {
     required this.eventCount,
     required this.peakDbfs,
     required this.recordedAt,
+    this.signature,
   }) : markersMs = List.unmodifiable(markersMs);
 
   final List<int> markersMs;
@@ -118,6 +119,15 @@ class NarrationTake {
   /// When it was recorded. Metadata for a sentence on screen and nothing more:
   /// no marker is ever derived from a clock.
   final DateTime recordedAt;
+
+  /// `filmSignatureOf` over the beats this was recorded against — phase 5.
+  ///
+  /// **Null is „this take never carried one", not „it matches".** Takes
+  /// recorded before phase 5 are on trainers' devices and on the server, and
+  /// they are perfectly good recordings; they fall back to the beat count,
+  /// which is what judged them before. Reading a missing signature as agreement
+  /// would be the same mistake in the other direction — see [takeMismatchOf].
+  final String? signature;
 
   /// Whether every beat of the film has a place in the audio.
   bool get isComplete => markersMs.length == eventCount;
@@ -153,6 +163,7 @@ class NarrationTake {
         'eventCount': eventCount,
         'peakDbfs': peakDbfs,
         'recordedAt': recordedAt.toUtc().toIso8601String(),
+        if (signature != null) 'signature': signature,
       };
 
   factory NarrationTake.fromJson(Map<String, dynamic> json) => NarrationTake(
@@ -163,7 +174,63 @@ class NarrationTake {
         eventCount: (json['eventCount'] as num).toInt(),
         peakDbfs: (json['peakDbfs'] as num).toDouble(),
         recordedAt: DateTime.parse(json['recordedAt'] as String).toLocal(),
+        signature: json['signature'] as String?,
       );
+}
+
+/// Why a take cannot be the voice of the film in front of it.
+///
+/// **One decision, read in three places**, which is the reason it is here and
+/// not written out where it is shown: the recording screen says it about „this
+/// recording", the export dialog about „your recording", and the server about
+/// the one it holds. Three sentences are fine — three answers to „is this take
+/// still the right one" is how the export comes to offer a switch the render
+/// then refuses.
+enum TakeMismatch {
+  /// It can.
+  none,
+
+  /// Nothing ever reached the microphone: silence with a working clock, which
+  /// is exactly what a muted input produces.
+  silent,
+
+  /// Recorded against a different number of beats — the commonest edit, and
+  /// the one phase 1 could already see.
+  beatsChanged,
+
+  /// The same number of beats, saying something else: a sentence rewritten, a
+  /// move replaced, a part reordered or opened on another position. This is
+  /// what phase 5 exists for, and no count can see it.
+  edited,
+
+  /// Stopped part-way: the last beats have no place in the audio.
+  incomplete,
+}
+
+/// Whether [take] can be the voice of a film of [beats] beats whose beat list
+/// signs as [signature].
+///
+/// The order is what a trainer can act on: a silent take is worth saying before
+/// anything about beats, because it is wrong whatever the tutorial says now.
+///
+/// **A take with no signature is judged by the count, as it was before phase
+/// 5.** It is a real recording made by an earlier version of this app, and a
+/// missing signature must not read as either answer to a question it was never
+/// asked — refusing every one of them is a trainer told to re-record an hour
+/// for nothing, and passing them all is the silent wrong film phase 5 exists to
+/// prevent. The count still catches the commonest edit, which is what those
+/// takes have always been judged by.
+TakeMismatch takeMismatchOf(
+  NarrationTake take, {
+  required int beats,
+  required String signature,
+}) {
+  if (!take.heardAnything) return TakeMismatch.silent;
+  if (take.eventCount != beats) return TakeMismatch.beatsChanged;
+  final signed = take.signature;
+  if (signed != null && signed != signature) return TakeMismatch.edited;
+  if (!take.isComplete) return TakeMismatch.incomplete;
+  return TakeMismatch.none;
 }
 
 /// The microphone, as this file needs it. `RecordPcmSource` is the real one.
@@ -231,6 +298,7 @@ class NarrationRecorder extends ChangeNotifier {
     required this.source,
     required this.sink,
     required this.eventCount,
+    this.signature,
   }) : assert(eventCount > 0);
 
   final PcmSource source;
@@ -238,6 +306,10 @@ class NarrationRecorder extends ChangeNotifier {
 
   /// How many beats the film has. The take is complete when each has a marker.
   final int eventCount;
+
+  /// What the beat list said when this take was started — `filmSignatureOf`.
+  /// Stamped on the take at [stop], and read back by [takeMismatchOf].
+  final String? signature;
 
   NarrationState _state = NarrationState.idle;
   StreamSubscription<Uint8List>? _subscription;
@@ -373,6 +445,7 @@ class NarrationRecorder extends ChangeNotifier {
       eventCount: eventCount,
       peakDbfs: _peak,
       recordedAt: DateTime.now(),
+      signature: signature,
     );
   }
 

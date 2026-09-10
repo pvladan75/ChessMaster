@@ -23,7 +23,11 @@
 /// teaching something the tutorial does not say.
 library;
 
+import 'dart:convert';
 import 'dart:math' as math;
+
+import 'package:crypto/crypto.dart';
+
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart'
     show LessonStepKind;
@@ -84,6 +88,59 @@ List<FilmBeat> filmBeatsOf(TutorialDraft draft) {
     }
   }
   return stops;
+}
+
+/// A comparable rendering of the beats a narration was recorded against —
+/// phase 5 of `docs/PLAN-SNIMANJE.md`.
+///
+/// **A recording is markers into a beat list, and a beat list that has moved
+/// makes the markers name beats they were not recorded against.** Edit a
+/// sentence, add a part, reorder two, and the film is wrong somewhere in the
+/// middle — silently, which is the half nobody re-checks. So a take carries
+/// the signature of the list it was made over, and the studio says so when the
+/// tutorial's own signature is no longer that one.
+///
+/// The pattern and the reasoning are `treeSignature`'s, which
+/// [TutorialSection] uses to know whether its cached `pgn` still says what its
+/// tree says: **a signature rather than a `bool edited`, because a flag is the
+/// version of this that one mutator forgets to set.**
+///
+/// **Over the beats, not over the draft.** What is in it is what the trainer
+/// talks over: the position on the board and the sentence read out.
+///
+/// The move that arrived at the position is deliberately **not** in it, and
+/// that is a finding rather than an omission: a mutation deleting the move from
+/// the signature survived every test in `narration_signature_test.dart`,
+/// because a beat's fen already answers for the move that made it. Two lines
+/// that differ in one move differ in every position after it, so the moves buy
+/// nothing the fens do not already say — and a field no test can fail is a
+/// field that will be believed without ever having been read.
+///
+/// Also out of it is everything a trainer can change without changing a word
+/// they said —
+///
+///   * the **tutorial's name**, which the plan names outright: renaming it
+///     must not cost an hour of narration;
+///   * a part's **title**, which is a label in a list and never on the film;
+///   * **arrows, rings and the board's orientation**, which change what is
+///     drawn on a beat and not which beat it is, nor how long it is spoken
+///     over. A trainer who highlights the weak square they were already
+///     talking about has not made their voice wrong.
+///
+/// A part's kind and its task are in it through [FilmBeat.caption], which is
+/// where a task is read out.
+String filmSignatureOf(List<FilmBeat> stops) {
+  final out = StringBuffer();
+  for (final stop in stops) {
+    out
+      // The position, which for the first beat of a part is the part's own
+      // starting position and is derived from nothing else.
+      ..write(stop.beat.node.fen)
+      ..write('|')
+      ..write(stop.caption)
+      ..write(';');
+  }
+  return sha256.convert(utf8.encode(out.toString())).toString();
 }
 
 /// Every part of [draft], in order, as one film.

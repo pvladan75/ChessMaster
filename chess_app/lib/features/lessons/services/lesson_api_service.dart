@@ -555,6 +555,11 @@ class LessonApiService {
     /// other.
     bool? useRecording,
     String? takeId,
+
+    /// The beat list the film is drawn from, signed (`filmSignatureOf`) — phase
+    /// 5. The server compares it with the one the recording was made against
+    /// and refuses a film whose beats have moved since.
+    String? signature,
   }) async {
     try {
       final res = await _client
@@ -573,6 +578,7 @@ class LessonApiService {
               if (voice != null) 'voice': voice,
               if (useRecording == true) 'useRecording': true,
               if (takeId != null) 'takeId': takeId,
+              if (signature != null) 'signature': signature,
             }),
           )
           .timeout(const Duration(minutes: 5));
@@ -623,6 +629,10 @@ class LessonApiService {
     /// The take's own id (`take-<id>.wav` on this device). The server keeps it
     /// beside the recording, which is how [serverTakeId] can answer.
     String? takeId,
+
+    /// The beat list this was recorded against, signed. Kept beside the
+    /// recording so the export can refuse a film whose beats have moved.
+    String? signature,
   }) async {
     try {
       final request = http.MultipartRequest(
@@ -634,6 +644,7 @@ class LessonApiService {
       request.fields['durationMs'] = '$durationMs';
       request.fields['beats'] = '$beats';
       if (takeId != null) request.fields['takeId'] = takeId;
+      if (signature != null) request.fields['signature'] = signature;
       // Read whole and at once: fifteen minutes is under 30 MB, and a file
       // streamed from disk is asynchronous I/O that a widget test's clock never
       // lets finish — the upload would work everywhere but under test.
