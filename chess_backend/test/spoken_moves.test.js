@@ -126,10 +126,13 @@ test('the voice is given the words and the film keeps the trainer\'s text', asyn
     { timestampMs: 2000, eventType: 'move', data: { fen: 'y', text: 'Then O-O.' } },
   ];
 
-  const originalAvailable = tts.narrationAvailable;
+  // `narrateFilm` asks for the *reason* it cannot narrate rather than for a
+  // boolean, so that „no voices installed" and „the engine will not start" can
+  // be two sentences. Null is „nothing is in the way".
+  const originalBlockedBy = tts.narrationBlockedBy;
   const originalSpeak = tts.speakBeats;
   const spoken = [];
-  tts.narrationAvailable = () => true;
+  tts.narrationBlockedBy = async () => null;
   tts.speakBeats = async (texts) => {
     spoken.push(...texts);
     // No audio: `narrateFilm` then returns the silent film untouched, which is
@@ -149,7 +152,7 @@ test('the voice is given the words and the film keeps the trainer\'s text', asyn
       'the caption on the film is the trainer\'s own text');
     assert.equal(film.events[1].data.text, 'Then O-O.');
   } finally {
-    tts.narrationAvailable = originalAvailable;
+    tts.narrationBlockedBy = originalBlockedBy;
     tts.speakBeats = originalSpeak;
   }
 });

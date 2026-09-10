@@ -5137,3 +5137,27 @@ završi ili padne, stiže obaveštenje na zvonce. Tutorijali za proveru su u
     već **crta** i ostalo mu je više vremena nego što čas ima, čas odmah dobija
     „… could not finish it before the connection closes. Try again in about N
     minutes" — umesto da visi 300 s dok ga nginx ne preseče.
+
+## 144. Film progovara, a nemi film kaže zašto — 10.9.2026, nije viđeno uživo
+
+Posle prijave od 10.9.2026 („renderuje video bez glasa iako sam stavio jezik").
+Dve izmene: piper je na razvojnoj mašini prešao u virtualenv
+(`PIPER_PYTHON=C:/Users/Admin/.piper/env/Scripts/python.exe`), i server sada
+pita **da li motor uopšte može da se pokrene** pre nego što ponudi glas. Vidi
+„Glas koji ne može da progovori se sada zna pre crtanja" u `docs/STANJE-RADA.md`.
+
+1. [ ] **Naracija zaista govori.** Izvezi bilo koji tutorijal sa „Narrate this
+   video" i izabranim glasom: film ima glas, a poruka na kraju je obična „Video
+   rendered successfully…" bez ijedne rečenice o naraciji.
+2. [ ] **Kad motora nema, prekidača nema.** Privremeno pokvari `PIPER_PYTHON` u
+   `.env` (npr. `PIPER_PYTHON=nema-ovoga`) i restartuj backend. U izvoznom listu
+   pitanja o zvuku više nema — nudi se samo nem film (i sopstveni snimak, ako
+   postoji), jer server ne nudi nijedan glas. U logu stoji jedna `WARN` rečenica:
+   „piper voices are installed but the engine cannot start".
+3. [ ] **Rečenica koja razlikuje dva kvara.** Sa pokvarenim `PIPER_PYTHON`
+   izvezi tutorijal (naracija se ne može tražiti iz aplikacije — ovo je provera
+   servera, npr. `curl`-om sa `narrate: true`): odgovor kaže „the speech engine
+   could not start", a **ne** „no speech voices installed". Vrati `.env` na
+   venv putanju i restartuj.
+4. [ ] **Vraćanje u normalu.** Posle vraćanja `.env`-a prekidač „Narrate this
+   video" je opet tu, sa punim spiskom glasova.

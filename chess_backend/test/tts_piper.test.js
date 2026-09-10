@@ -17,6 +17,7 @@ const path = require('path');
 
 const piper = require('../services/tts/piper');
 const tts = require('../services/tts');
+const { narrateFilm } = require('../services/tutorialNarration');
 
 // `async` and `await`, and the first version of this was neither: `finally`
 // runs when the `try` block *returns*, so a returned promise had its fixture
@@ -141,12 +142,112 @@ test('the same sentence twice is synthesised once', async () => {
   assert.equal(keys.size, 2);
 });
 
+test('a probe says yes to a clean exit and to nothing else', () => {
+  // **Anything but a clean exit is a no.** A provider that read „no answer" as
+  // „yes" would put the whole render back where it started: the switch drawn,
+  // the film drawn, and the silence found a minute later.
+  assert.equal(piper.probeSaysReady({ status: 0 }), true);
+  assert.equal(piper.probeSaysReady({ status: 1 }), false, 'no module named piper');
+  assert.equal(piper.probeSaysReady({ error: new Error('spawn ENOENT') }), false,
+    'no interpreter at all');
+  assert.equal(piper.probeSaysReady({ status: null }), false, 'killed on the timeout');
+  assert.equal(piper.probeSaysReady(null), false);
+});
+
+test('the engine is asked once per interpreter and remembered', async () => {
+  // One interpreter start is a quarter of a second on a thread that is also
+  // drawing somebody's film, and the answer cannot change while the process
+  // lives — so it is asked once. The cost of that trade is written down where
+  // `engineReady` is: installing piper under a running server needs a restart.
+  const saved = process.env.PIPER_PYTHON;
+  try {
+    piper.forgetEngine();
+    let asked = 0;
+    const probe = async () => { asked += 1; return true; };
+
+    process.env.PIPER_PYTHON = 'one-interpreter';
+    assert.equal(await piper.engineReady(probe), true);
+    assert.equal(await piper.engineReady(probe), true);
+    assert.equal(asked, 1, 'remembered rather than asked again');
+
+    process.env.PIPER_PYTHON = 'another-interpreter';
+    assert.equal(await piper.engineReady(probe), true);
+    assert.equal(asked, 2, 'a different interpreter is a different question');
+
+    piper.forgetEngine();
+    await piper.engineReady(probe);
+    assert.equal(asked, 3, 'and the answer can be forgotten');
+  } finally {
+    piper.forgetEngine();
+    if (saved === undefined) delete process.env.PIPER_PYTHON;
+    else process.env.PIPER_PYTHON = saved;
+  }
+});
+
+test('voices on disk and an engine that will not start is its own answer', async () => {
+  // The fault of 10.9.2026, in one test. Six models sat in the voices
+  // directory, `available()` said yes, the app drew the narration switch, the
+  // server accepted `narrate: true` — and piper answered „No module named
+  // piper" a minute later, so the film came back silent and was announced as
+  // ready. „Installed" and „reachable from this process" are two questions.
+  const saved = { provider: process.env.TTS_PROVIDER, python: process.env.PIPER_PYTHON };
+  try {
+    process.env.TTS_PROVIDER = 'piper';
+    process.env.PIPER_PYTHON = path.join(os.tmpdir(), 'no-such-interpreter-here');
+    piper.forgetEngine();
+
+    await withVoicesDir(
+      ['en_US-lessac-medium.onnx', 'en_US-lessac-medium.onnx.json'],
+      async () => {
+        assert.equal(piper.available(), true, 'the voices really are installed');
+        assert.equal(await piper.engineReady(), false, 'and nothing can read them');
+        assert.equal(await tts.narrationBlockedBy(), 'engine',
+          'which is a different sentence from „no voices installed"');
+        assert.equal(await tts.narrationAvailable(), false);
+        assert.deepEqual(await tts.voices(), [],
+          'and the picker offers none, so the switch is never drawn');
+      },
+    );
+  } finally {
+    piper.forgetEngine();
+    if (saved.provider === undefined) delete process.env.TTS_PROVIDER;
+    else process.env.TTS_PROVIDER = saved.provider;
+    if (saved.python === undefined) delete process.env.PIPER_PYTHON;
+    else process.env.PIPER_PYTHON = saved.python;
+  }
+});
+
+test('the reason a film is silent is carried out of the narrator, not renamed', async () => {
+  // Found by mutation: `narrateFilm` answering a hard-coded „unavailable" for
+  // both refusals left every test green, and it is the answer a trainer reads.
+  // „This server has no speech voices installed" sends somebody to install
+  // models that are already sitting there, which is the wrong hour to lose.
+  const saved = tts.narrationBlockedBy;
+  const film = async (blocked) => {
+    tts.narrationBlockedBy = async () => blocked;
+    return narrateFilm({
+      events: [{ timestampMs: 0, eventType: 'init', data: { fen: 'x', text: 'Look at d5.' } }],
+      voice: 'en_US-lessac-medium',
+      exportsDir: 'unused',
+      filename: 'unused',
+    });
+  };
+  try {
+    assert.equal((await film('engine')).silentBecause, 'engine');
+    assert.equal((await film('unavailable')).silentBecause, 'unavailable');
+  } finally {
+    tts.narrationBlockedBy = saved;
+  }
+});
+
 test('an unconfigured server speaks nothing rather than throwing', async () => {
   const saved = { provider: process.env.TTS_PROVIDER, dir: process.env.PIPER_VOICES_DIR };
   try {
     process.env.TTS_PROVIDER = 'piper';
     process.env.PIPER_VOICES_DIR = 'D:/nothing/here';
-    assert.equal(tts.narrationAvailable(), false);
+    assert.equal(await tts.narrationAvailable(), false);
+    assert.equal(await tts.narrationBlockedBy(), 'unavailable',
+      'no voices, and the engine is not even asked');
     assert.deepEqual(await tts.voices(), []);
     const beats = await tts.speakBeats(['One.', 'Two.'], { voice: 'en_US-lessac-medium' });
     assert.deepEqual(beats, [{ clipSeconds: null }, { clipSeconds: null }],

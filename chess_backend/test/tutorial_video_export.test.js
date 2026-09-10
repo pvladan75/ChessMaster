@@ -586,12 +586,13 @@ test('a film that was meant to speak and did not says so', async () => {
     'and a sentence the trainer can read');
 });
 
-test('the four silences are told apart, and one of them is not news', async () => {
+test('the five silences are told apart, and one of them is not news', async () => {
   // A tutorial with nothing written in it is the one silence nobody needs to be
-  // told about: there was nothing to say. The other three are the engine
-  // missing, the voice producing nothing, and the clips failing to join — and
-  // saying „no narration" without saying which would send a trainer to check
-  // their own text when the server has no voices installed at all.
+  // told about: there was nothing to say. The other four are no voices
+  // installed, an engine that will not start, the voice producing nothing, and
+  // the clips failing to join — and saying „no narration" without saying which
+  // would send a trainer to check their own text when the server has no voices
+  // installed at all.
   const silent = async (silentBecause) => {
     const { outcome } = await run({
       body: { events: VALID_EVENTS, seconds: 4, narrate: true, voice: 'en_US-lessac-medium' },
@@ -612,6 +613,14 @@ test('the four silences are told apart, and one of them is not news', async () =
 
   const unavailable = await silent('unavailable');
   assert.match(unavailable.message, /no speech voices installed/i);
+
+  // Told apart from the one above on purpose: the voices *are* installed and
+  // the thing that reads them will not start, which is what „No module named
+  // piper" looked like from a trainer's seat on 10.9.2026.
+  const engine = await silent('engine');
+  assert.match(engine.message, /engine could not start/i);
+  assert.doesNotMatch(engine.message, /no speech voices installed/i);
+  assert.match(engine.message, /log/i, 'and where to look');
 
   const track = await silent('track');
   assert.match(track.message, /could not be joined/i);

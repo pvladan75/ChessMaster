@@ -23,8 +23,9 @@ const OUT = path.join(__dirname, '..', 'exports', 'tts-probe.wav');
   const [, , text, voice] = process.argv;
 
   console.log(`provider : ${tts.providerName()}`);
-  console.log(`available: ${tts.narrationAvailable()}`);
-  if (!tts.narrationAvailable()) {
+  const blockedBy = await tts.narrationBlockedBy();
+  console.log(`available: ${blockedBy === null}${blockedBy ? ` (${blockedBy})` : ''}`);
+  if (blockedBy) {
     console.log('\nNothing is configured. Set TTS_PROVIDER=google and point');
     console.log('GOOGLE_TTS_CREDENTIALS at a service-account JSON key file.');
     process.exit(1);

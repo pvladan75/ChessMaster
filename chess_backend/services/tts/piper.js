@@ -36,6 +36,21 @@ const logger = require('../logger');
 
 const TIMEOUT_MS = 120000;
 
+/// How long the engine gets to answer whether it exists. Measured at 250-430 ms
+/// on a developer's Windows machine, and at 1.5 s the first time after an
+/// install, so ten seconds is „the interpreter is not coming back" rather than
+/// „it is slow today".
+const PROBE_TIMEOUT_MS = 10000;
+
+/// The question `-m piper` asks, asked without running anything: is there a
+/// `piper.__main__` this interpreter can find? `find_spec` imports the package
+/// to look inside it and imports no module of its own, so the answer costs one
+/// interpreter start and nothing else.
+const PROBE_ARGS = [
+  '-c',
+  'import importlib.util as u, sys; sys.exit(0 if u.find_spec("piper.__main__") else 1)',
+];
+
 function python() {
   return process.env.PIPER_PYTHON || 'python';
 }
@@ -58,8 +73,93 @@ function modelFiles() {
     .map((name) => path.join(dir, name));
 }
 
+/// Whether the **voices** are installed. Not whether anything can read them.
+///
+/// See `engineReady` below for the other half of the question, and read the two
+/// together before offering a trainer a switch.
 function available() {
   return modelFiles().length > 0;
+}
+
+/// Whether the engine itself can start, cached per interpreter.
+///
+/// **„Installed" and „reachable from this process" are two questions**, and on
+/// 10.9.2026 the difference cost a trainer a whole 120-second render: six
+/// models sat in the voices directory, `available()` said yes, the app drew the
+/// narration switch, the server accepted `narrate: true` — and piper answered
+/// `No module named piper` a minute later, so the film came back silent.
+///
+/// **What made that one spawn fail was never established** — the process's own
+/// environment, read afterwards, could see the package — and that is the
+/// argument for asking rather than assuming. An interpreter is found through
+/// PATH and its packages through `sys.path`, both of which belong to whoever
+/// started the server; `available()` above can see neither.
+///
+/// Asynchronous on purpose. One interpreter start is a quarter of a second of a
+/// thread that is also drawing somebody's film, and this project has already
+/// paid once for a render loop that never returned to the event loop.
+///
+/// The answer is remembered for the life of the process, so **installing piper
+/// under a running server needs a restart** — which is the honest trade for not
+/// spawning a probe on every request.
+const engineAnswers = new Map();
+
+function engineReady(probe = probeEngine) {
+  const interpreter = python();
+  if (!engineAnswers.has(interpreter)) engineAnswers.set(interpreter, probe(interpreter));
+  return engineAnswers.get(interpreter);
+}
+
+/// Forget what the probe answered. For tests, and for anything that changes
+/// `PIPER_PYTHON` while the process is alive.
+function forgetEngine() {
+  engineAnswers.clear();
+}
+
+/// What a finished probe means. **Anything but a clean exit is a no**: a
+/// missing interpreter never starts (`error`), a missing module exits 1, and a
+/// probe that hit `PROBE_TIMEOUT_MS` was killed and carries a signal. A
+/// provider that read „no answer" as „yes" would put the whole render back
+/// where it started.
+function probeSaysReady(result) {
+  if (!result || result.error) return false;
+  return result.status === 0;
+}
+
+function probeEngine(interpreter) {
+  return new Promise((resolve) => {
+    const proc = spawn(interpreter, PROBE_ARGS, { timeout: PROBE_TIMEOUT_MS });
+    let stderr = '';
+    // An interpreter that is not there emits `error` **and** `close`, and the
+    // second one must not write the same warning to the log twice.
+    let answered = false;
+    const answer = (result) => {
+      if (answered) return;
+      answered = true;
+      resolve(report(interpreter, result, stderr));
+    };
+    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+    proc.on('error', (error) => answer({ error }));
+    proc.on('close', (status) => answer({ status }));
+  });
+}
+
+/// Said once per interpreter, and said loudly: a server that cannot narrate is
+/// something the operator has to be able to find out from the log rather than
+/// from a trainer's silent film.
+function report(interpreter, result, stderr) {
+  const ready = probeSaysReady(result);
+  if (!ready) {
+    logger.warn(
+      {
+        interpreter,
+        err: result.error ? result.error.message : `exited ${result.status}`,
+        detail: stderr.trim().slice(-300),
+      },
+      '[TTS] piper voices are installed but the engine cannot start; narration is not offered',
+    );
+  }
+  return ready;
 }
 
 /// `sr_RS-serbski_institut-medium` → `sr-RS`, so a voice sorts and groups the
@@ -242,6 +342,10 @@ function cleanup(dir) {
 module.exports = {
   publish,
   available,
+  engineReady,
+  forgetEngine,
+  probeEngine,
+  probeSaysReady,
   voices,
   synthesize,
   synthesizeBatch,

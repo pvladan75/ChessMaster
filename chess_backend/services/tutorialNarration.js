@@ -34,7 +34,7 @@ const { throwIfAborted } = require('./renderAbort');
  * guess.
  *
  * `silentBecause` is null when the film speaks, and otherwise says which of the
- * four ways it came back silent — because **a trainer who asked for a voice and
+ * ways it came back silent — because **a trainer who asked for a voice and
  * got a silent film has to be told why.** Piper failing to start looks exactly
  * like a tutorial with nothing written in it from where the trainer sits, and
  * on 9.9.2026 it was exactly that: the engine was missing on the owner's
@@ -47,8 +47,12 @@ async function narrateFilm({ events, voice, exportsDir, filename, signal = null 
   // tutorial is a minute of piper holding the one slot.
   throwIfAborted(signal);
 
-  if (!tts.narrationAvailable()) {
-    return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: 'unavailable' };
+  // Asked for a reason rather than a boolean: „no voice is installed" and „the
+  // engine will not start" send a trainer to two different places, and the
+  // route turns each into its own sentence.
+  const blocked = await tts.narrationBlockedBy();
+  if (blocked) {
+    return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: blocked };
   }
 
   const captions = events.map((event) => (event && event.data ? event.data.text : '') || '');

@@ -106,13 +106,13 @@ test('an unconfigured server offers nothing and says so', async () => {
   try {
     process.env.TTS_PROVIDER = 'google';
     process.env.GOOGLE_TTS_CREDENTIALS = '';
-    assert.equal(tts.narrationAvailable(), false);
+    assert.equal(await tts.narrationAvailable(), false);
     assert.deepEqual(await tts.voices(), []);
     assert.equal(await tts.speak({ text: 'Hello.', voice: 'en-US-Neural2-F' }), null,
       'and speaking answers null rather than throwing into the middle of a render');
 
     process.env.TTS_PROVIDER = 'nonesuch';
-    assert.equal(tts.narrationAvailable(), false);
+    assert.equal(await tts.narrationAvailable(), false);
     assert.deepEqual(await tts.voices(), []);
   } finally {
     if (saved === undefined) delete process.env.TTS_PROVIDER;

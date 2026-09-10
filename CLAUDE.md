@@ -1433,6 +1433,46 @@ aside to measure like CI and never put it back; for a day the only copy of the
 secrets was an untracked file one `git add` from a public repository. Move it
 aside with a `trap` that restores it in the same command.
 
+**Four more on the backend the same day — 1176 with `.env` moved aside; the app
+is untouched at 1884.** „Renderuje video bez glasa iako sam stavio jezik": piper
+answered `No module named piper`, the film was drawn silent, and it was
+announced as ready. Two changes, and only the second is code.
+
+**A capability check that asks about the artefacts is not a capability check.**
+`piper.available()` was `modelFiles().length > 0` — is there a `.onnx` in the
+voices directory — which says nothing about whether anything can read one. So
+the app drew the narration switch, the server accepted `narrate: true`, and the
+answer arrived a minute later, after the whole film had been drawn.
+`engineReady()` is the other half: one `find_spec("piper.__main__")` per
+interpreter, asynchronous because 250-430 ms belongs to a thread that is also
+drawing somebody's film, cached for the life of the process. A dead engine now
+means an empty voice list, so the switch is never drawn at all.
+
+**„Installed" and „reachable from this process" are two questions.** The install
+was `pip install --user`, which lives in `%APPDATA%\Python\PythonXYsite-packages` and is on `sys.path` only while the spawning environment carries
+the right `APPDATA` — and `PIPER_PYTHON` was empty, meaning `python` resolved
+through PATH. Two guesses, both resolved at spawn time. It is a venv now, whose
+`pyvenv.cfg` sits beside its own executable: proved by removing `APPDATA` from
+the environment, where the `--user` install fails and the venv imports fine. The
+droplet already had this (`deploy/provision.sh` builds `/opt/piper`); the wrong
+thing was the developer machine and the `.env.example` line recommending it.
+
+**The log is UTC and the diagnosis turned on that.** `translateTime` without a
+`SYS:` prefix means pino-pretty prints UTC, so `21:15:18` was `23:15:18` local —
+one minute *after* the still-running server had started, not before it. Its
+environment, read out of the PEB twelve minutes later, was correct in every
+respect that could hide the module, and the package had not been touched since
+the day before. Three ways to produce that exact message were reproduced and
+none of them was what happened. **So the class of fault is gone and the trigger
+of that one spawn is not explained** — which is worth saying rather than
+rounding off, because the first draft of this entry blamed the environment on a
+timestamp read an hour wrong.
+
+And one from the mutation run: „`narrateFilm` says `unavailable` whatever the
+reason" survived at first. Nothing tested the sentence a trainer actually reads,
+and the two refusals send them to different places — one to install voices that
+are already there. A test was written after the mutation asked the question.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

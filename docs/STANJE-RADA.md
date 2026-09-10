@@ -15,7 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **10.9.2026** — faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
+Poslednje ažuriranje: **10.9.2026** — najnovije je „Glas koji ne može da
+progovori se sada zna pre crtanja" odmah ispod ove glave; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
 tačke 4 i 5 („Render izlazi iz zahteva" i „Render koji ne može da stane" niže):
 trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
 kojim taktovima pripada („Snimanje glasa: faza 6", „faza 5" i „faza 4" niže), a „ODAKLE
@@ -29,6 +30,58 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Glas koji ne može da progovori se sada zna pre crtanja — 10.9.2026, nije viđeno uživo
+
+Prijava vlasnika te večeri: izvoz tutorijala se renderuje bez glasa iako je
+jezik izabran. U logu: `piper exited 1: ...python.exe: No module named piper`,
+zatim `[TTS] narration was asked for and every beat came back silent`, pa
+uredan `Success!` i film — nem.
+
+**Dve izmene, obe tražene tog dana.**
+
+*Prva je konfiguracija.* Piper je na razvojnoj mašini bio instaliran sa
+`pip install --user`, dakle u `%APPDATA%\Python\Python313\site-packages`, a
+`PIPER_PYTHON` je bio prazan — što znači `python`, razrešen kroz PATH. Oba
+oslonca zavise od okruženja procesa koji ga pokreće: korisnički `site-packages`
+je na `sys.path` samo dok proces nosi ispravan `APPDATA`. Sada postoji
+virtualenv (`C:/Users/Admin/.piper/env`) i `PIPER_PYTHON` pokazuje na njegov
+interpreter punom putanjom; venv razrešava svoje pakete iz `pyvenv.cfg` pored
+sopstvenog `python.exe`, pa mu ni PATH ni APPDATA ne mogu ništa. Provereno:
+isti `import piper` prolazi i kad se `APPDATA` obriše iz okruženja, dok je pod
+`--user` instalacijom padao. Droplet je to ionako već imao — `deploy/
+provision.sh` pravi venv u `/opt/piper`; pogrešna je bila samo razvojna mašina i
+uputstvo u `.env.example`, koje je to preporučivalo.
+
+*Druga je kod, i ona je važnija.* `piper.available()` je odgovarao na pitanje o
+**modelima** — „ima li `.onnx` fajlova u direktorijumu" — a ne o **motoru**.
+Zato je aplikacija ponudila prekidač za naraciju, server prihvatio `narrate:
+true`, i tek posle celog crtanja film ispao nem. „Instalirano" i „dohvatljivo iz
+ovog procesa" su dva pitanja: `piper.engineReady()` je sada drugo od njih —
+jedan `find_spec("piper.__main__")` po interpreteru, asinhrono (250-430 ms na
+niti koja crta nečiji film), zapamćen za život procesa. Posledica: motor koji ne
+može da se pokrene znači **praznu listu glasova**, pa se prekidač uopšte ne
+crta, a ako neko ipak pošalje `narrate: true`, trener dobija svoju rečenicu —
+„the speech engine could not start", odvojenu od „no speech voices installed",
+jer te dve šalju čoveka na dva različita mesta.
+
+**Šta nije utvrđeno, i to treba da stoji.** Log je u UTC (`translateTime` bez
+`SYS:`), pa je `21:15:18` zapravo `23:15:18` po lokalnom vremenu — minut posle
+pokretanja servera u `23:14:11`. Okruženje **tog istog procesa** je pročitano iz
+PEB-a dvanaest minuta kasnije i bilo je ispravno: `APPDATA` na mestu, bez
+`PYTHONNOUSERSITE`, `PYTHONPATH` i `PYTHONHOME`, Python313 prvi na PATH-u, a
+paket u korisničkom `site-packages` neizmenjen od 9.9. u 11:28. Tri načina da se
+ista poruka izazove su reprodukovana (bez `APPDATA`, sa `PYTHONNOUSERSITE=1`, sa
+tuđim `APPDATA`), ali nijedan od njih se u tom procesu nije desio. Dakle: klasa
+greške je uklonjena, konkretan okidač tog jednog pokretanja nije objašnjen — i
+zato je druga izmena ona koja nosi težinu, jer se **svaka** takva greška sada
+vidi pre crtanja, a ne minut posle njega.
+
+Backend: **1176 testova** (bilo 1172), sa `.env` sklonjenim u stranu. Šest
+mutacija, sve uhvaćene — a jedna je isprva preživela: `narrateFilm` koji
+uvek kaže „unavailable" umesto stvarnog razloga ostavljao je sve zeleno, iako je
+to rečenica koju trener čita. Test za nju je napisan pošto ju je mutacija
+otkrila.
 
 ## Render izlazi iz zahteva — tačka 5 drugog dela plana snimanja, 10.9.2026, nije viđeno uživo
 

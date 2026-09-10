@@ -112,7 +112,7 @@ function sentPositionList(body) {
 // Mounted before any /:id route so ':id' cannot swallow 'tts'.
 router.get('/tts/voices', authenticateToken, async (req, res) => {
   try {
-    const available = tts.narrationAvailable();
+    const available = await tts.narrationAvailable();
     const voices = await tts.voices();
     res.json({ available, voices });
   } catch (err) {
@@ -545,6 +545,12 @@ function messageFor(silentBecause) {
   if (!silentBecause) return ready;
   if (silentBecause === 'unavailable') {
     return `${ready} It has no narration: this server has no speech voices installed.`;
+  }
+  if (silentBecause === 'engine') {
+    // The voices are on disk and the thing that reads them will not start —
+    // which is what „No module named piper" looked like from a trainer's seat
+    // on 10.9.2026, when the video simply came back quiet.
+    return `${ready} It has no narration: the speech engine could not start. The server log says why.`;
   }
   if (silentBecause === 'track') {
     return `${ready} It has no narration: the spoken clips could not be joined into one track.`;
