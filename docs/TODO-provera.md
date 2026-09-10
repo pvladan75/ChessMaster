@@ -5161,3 +5161,35 @@ pita **da li motor uopšte može da se pokrene** pre nego što ponudi glas. Vidi
    venv putanju i restartuj.
 4. [ ] **Vraćanje u normalu.** Posle vraćanja `.env`-a prekidač „Narrate this
    video" je opet tu, sa punim spiskom glasova.
+
+## 145. Azure Speech govori, i srpski se izgovara kao srpski — 11.9.2026, nije viđeno uživo
+
+Traži vlasnikov ključ i region, pa se ne može proveriti bez njega. U `.env`:
+`TTS_PROVIDER=azure`, `AZURE_SPEECH_KEY=<ključ iz portala>`,
+`AZURE_SPEECH_REGION=<npr. northeurope>` — region kao kratko ime, ne URL. Ključ
+nikad ne ide u repozitorijum, u dokument ni u poruku komita. Vidi „Azure Speech,
+i srpski koji je vraćen a ne preveden" u `docs/STANJE-RADA.md`.
+
+1. [ ] **Nalog odgovara.** `node scripts/tts-probe.js "Look at the d5 square."`
+   ispiše `provider: azure`, broj glasova i jezika, pa napravi
+   `exports/tts-probe.wav` — poslušaj ga. Ako je odgovor 401, ključ je pogrešan;
+   403 znači da region ne odgovara resursu.
+2. [ ] **Ima li srpskog glasa.** U istom ispisu pogledaj redove `sr-RS` i
+   `sr-Latn-RS`. **Ovo je pitanje na koje niko još nije odgovorio protiv Azurove
+   liste** — u tri fajla je godinama stajalo da srpskog glasa nema. Zapiši broj
+   i imena.
+3. [ ] **Srpski izgovor poteza.** Ako srpski glas postoji:
+   `node scripts/tts-probe.js "Odigraj Bd5, pa O-O." <id tog glasa>` — voice
+   mora reći „lovac d pet" i „mala rokada", a ne da slovka „be de pet".
+4. [ ] **Film sa Azure glasom.** Izvezi tutorijal sa „Narrate this video" i
+   izabranim Azure glasom: film govori, dužina taktova prati glas, a poruka na
+   kraju je obična „Video rendered successfully…" bez rečenice o naraciji.
+5. [ ] **Rečenica sa `&` ili `<`.** Napiši u nekom taktu „Nimzo & Bogo" ili
+   „1 < 2" pa izvezi: glas te reči izgovori normalno, ništa se ne odbija, i u
+   logu nema `Azure refused`.
+6. [ ] **Koliko glasova stigne u padajuću listu.** Otvori izvozni list sa Azure
+   provajderom: ako je lista u stotinama, izbor glasa je neupotrebljiv i treba
+   filter po jeziku (aplikacija u ovom poslu nije dirana — vidi kraj odeljka u
+   `STANJE-RADA.md`).
+7. [ ] **Piper i dalje radi.** Vrati `TTS_PROVIDER=piper`, restartuj backend,
+   izvezi film sa naracijom: govori kao pre. Rezerva mora da ostane rezerva.

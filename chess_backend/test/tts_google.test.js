@@ -44,7 +44,9 @@ test('the price tier is read off the name, because nothing else shows it', () =>
 test('the voice list is every language, sorted so a picker can group it', () => {
   // Every language, since 9.9.2026: the trainer picks the voice whose language
   // matches what they wrote, and Serbian text is read by a Croatian voice
-  // because neither Google nor Azure has a Serbian one.
+  // because Google has no Serbian one. (That used to say „neither Google nor
+  // Azure", which was never checked against Azure's own list — ask
+  // scripts/tts-probe.js with a key rather than a comment.)
   const voices = google.toVoices({
     voices: [
       { name: 'en-US-Neural2-F', languageCodes: ['en-US'], ssmlGender: 'FEMALE' },

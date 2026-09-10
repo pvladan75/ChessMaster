@@ -100,10 +100,66 @@ test('a move inside a sentence is expanded and the sentence is not', () => {
 
 test('an unknown language is spoken in English rather than in notation', () => {
   // „bishop d five" in the wrong accent is still a move; „boulevard cinq" is not.
-  assert.equal(languageOf('sr_RS-serbski_institut-medium'), 'en');
-  assert.equal(spokenMoves('Bd5', 'sr_RS-serbski_institut-medium'), 'bishop d five');
+  //
+  // Serbian stood here as the example of a language with no vocabulary until
+  // 11.9.2026, when Azure brought one — see the two tests below. The claim is
+  // unchanged and needed a language that really has none.
+  assert.equal(languageOf('pl_PL-darkman-medium'), 'en');
+  assert.equal(spokenMoves('Bd5', 'pl_PL-darkman-medium'), 'bishop d five');
   assert.equal(spokenMoves('Bd5', null), 'bishop d five');
   assert.equal(spokenMoves('Bd5', ''), 'bishop d five');
+});
+
+test('the film says in Serbian what the app said before the English pivot', () => {
+  // The Serbian words are `serbianSpeech` as it stood in `speech_text.dart`
+  // before the pivot deleted it (`ce012c0^`), not a fresh translation: trainers
+  // listened to those exact words for weeks. The inputs are the English test's
+  // inputs above, so the two vocabularies are held to one set of rules.
+  const app = {
+    'd4': 'd četiri',
+    'Kf2': 'kralj f dva',
+    'Rd3': 'top d tri',
+    'Rxd3': 'top uzima d tri',
+    'exd5': 'pešak sa e uzima d pet',
+    'Nbd7': 'skakač sa b na d sedam',
+    'R1e2': 'top sa jedan na e dva',
+    'Qg3+': 'dama g tri, šah',
+    'Qf1#': 'dama f jedan, mat',
+    'e8=Q': 'e osam postaje dama',
+    'a1=N+': 'a jedan postaje skakač, šah',
+    'O-O': 'mala rokada',
+    'O-O-O': 'velika rokada',
+    '0-0-0': 'velika rokada',
+    // The owner's own example when he asked for this.
+    'Bd5': 'lovac d pet',
+  };
+  for (const [written, said] of Object.entries(app)) {
+    assert.equal(spokenMoves(written, 'sr-Latn-RS-NicholasNeural'), said, JSON.stringify(written));
+  }
+
+  // A move inside a Serbian sentence, and the sentence untouched around it. The
+  // piece keeps its dictionary form — „odigraj lovac d pet" rather than
+  // „lovca" — which is what the app has always said and what a trainer already
+  // knows the sound of. Grammar is a change to both files or to neither.
+  assert.equal(
+    spokenMoves('Odigraj Bd5, pa O-O.', 'sr-Latn-RS-SophieNeural'),
+    'Odigraj lovac d pet, pa mala rokada.',
+  );
+
+  // The ordinal rule reads Serbian capitals too, so a sentence that ends on a
+  // real number still loses its full stop while one that ends on a move keeps
+  // it.
+  assert.equal(spokenMoves('Pronađeno 3 od 12.', 'sr'), 'Pronađeno 3 od 12');
+  assert.equal(spokenMoves('Odigrao je e6.', 'sr'), 'Odigrao je e šest.');
+});
+
+test('both spellings of a Serbian voice name find the Serbian words', () => {
+  // Azure writes the locale with its script in the middle (`sr-Latn-RS-…`) and
+  // piper writes `sr_RS-…`; the language is read off the front, so neither
+  // needs a rule of its own.
+  for (const named of ['sr-Latn-RS-NicholasNeural', 'sr_RS-serbski_institut-medium', 'sr-RS', 'sr']) {
+    assert.equal(languageOf(named), 'sr', named);
+  }
 });
 
 test('a voice id, a language tag and a bare language all name one language', () => {

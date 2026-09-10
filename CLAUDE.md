@@ -1473,6 +1473,50 @@ reason" survived at first. Nothing tested the sentence a trainer actually reads,
 and the two refusals send them to different places — one to install voices that
 are already there. A test was written after the mutation asked the question.
 
+**Ten more on the backend on 11.9.2026 — 1186 with `.env` moved aside; the app
+is untouched at 1884.** Azure Speech is the fourth provider and the first cloud
+voice this project can pay for: a subscription key and a region, no OAuth, no
+key file, and none of the business payments profile that has kept `google.js`
+written and unreachable since 9.9.2026. Piper stays installed as the fallback —
+`TTS_PROVIDER` picks. Nine mutations, all caught. Live check: `TODO-provera.md`,
+item 145, which needs the owner's own key.
+
+**A trainer's sentence becomes part of an XML document, and that is the whole
+risk in this provider.** Google's endpoint takes plain text, and `google.js`
+says in as many words why it sends prose rather than SSML: a sentence with a
+stray `<` in it is not markup that failed, it is a sentence that would be
+refused. Azure's `cognitiveservices/v1` takes SSML and nothing else, so the
+choice is not available — `ssmlFor` escapes and is tested, ampersand first,
+because escaping `&` last turns the four escapes written before it into „and a
+m p semicolon".
+
+**A locale is not always two parts, and Serbian is why.** Azure writes Serbian
+`sr-Latn-RS`, with its script in the middle, and a few regional Chinese voices
+carry a third segment of their own. `languageOf` takes everything before the
+**last** hyphen; the two-part reading that `google.js` uses would have sent
+`xml:lang="sr-Latn"` and grouped every Serbian voice under a language that does
+not exist.
+
+**The Serbian words were recovered, not written.** `spokenMoves.js` gained an
+`sr` vocabulary so „Bd5" is read „lovac d pet" rather than spelled — and the
+words are `serbianSpeech` exactly as it stood in `speech_text.dart` before the
+English pivot deleted it (`ce012c0^`), which trainers listened to for weeks.
+This file already records three cases of a second implementation being written
+because nobody looked for the first, and one of them was better than what
+replaced it. `git log -S` found it in a minute.
+
+**„Neither Google nor Azure has a Serbian voice" was repeated in three files and
+had been checked against one list.** It is written in `google.js`'s header, in a
+test comment, and in `tts/index.js`. Whether Azure has one is now answered by
+`scripts/tts-probe.js`, which prints the list the account really has — the
+comments say what was checked and against what. **A fact repeated in three
+places is a fact nobody rechecks.**
+
+One consequence not yet dealt with, and it is the app's: the voice dropdown
+draws one `DropdownMenuItem` per voice, which is right for piper's six and
+unusable for a cloud list of several hundred. The probe prints the count; a
+language filter in the export sheet is the fix if it is as large as expected.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

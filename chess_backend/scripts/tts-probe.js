@@ -40,10 +40,13 @@ const OUT = path.join(__dirname, '..', 'exports', 'tts-probe.wav');
   }
   console.log(`languages: ${byLanguage.size}`);
 
-  // The two that decide this project's answer: English for what is written in
-  // English, Croatian for what is written in Serbian, because neither Google
-  // nor Azure has a Serbian voice.
-  for (const code of ['en-US', 'en-GB', 'hr-HR', 'sr-RS']) {
+  // The languages that decide this project's answer: English for what is
+  // written in English, and whatever is on offer for what is written in
+  // Serbian. Azure writes that locale with its script in the middle
+  // (`sr-Latn-RS`) while piper writes `sr-RS`, so both are asked for — and the
+  // answer is read off this list rather than remembered in a comment, which is
+  // how „neither has a Serbian voice" came to be repeated in three files.
+  for (const code of ['en-US', 'en-GB', 'hr-HR', 'sr-RS', 'sr-Latn-RS']) {
     const some = list.filter((v) => v.language === code);
     console.log(`  ${code}: ${some.length ? some.slice(0, 6).map((v) => `${v.id} (${v.tier})`).join(', ') : 'none'}`);
   }

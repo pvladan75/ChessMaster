@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **10.9.2026** — najnovije je „Glas koji ne može da
-progovori se sada zna pre crtanja" odmah ispod ove glave; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Azure Speech, i srpski koji
+je vraćen a ne preveden" odmah ispod ove glave, pa „Glas koji ne može da
+progovori se sada zna pre crtanja"; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
 tačke 4 i 5 („Render izlazi iz zahteva" i „Render koji ne može da stane" niže):
 trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
 kojim taktovima pripada („Snimanje glasa: faza 6", „faza 5" i „faza 4" niže), a „ODAKLE
@@ -30,6 +31,56 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Azure Speech, i srpski koji je vraćen a ne preveden — 11.9.2026, nije viđeno uživo
+
+Vlasnik je 11.9.2026. uzeo ključ i region za Azure Speech, pa `services/tts/
+azure.js` postoji: četvrti provajder i **prvi oblak koji ovaj projekat može da
+plati**. Google Cloud stoji napisan i nedostupan od 9.9.2026. jer ne prima
+individualni platni profil iz Srbije; Azure traži pretplatni ključ i region i
+ništa drugo. Piper ostaje instaliran kao rezerva — bira se `TTS_PROVIDER`-om, i
+dalje radi bez naloga, bez kartice i bez mreže.
+
+**Ključ ne ulazi u repozitorijum.** `.env.example` nosi samo imena
+(`AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`); vrednosti idu u `.env` na mašini
+kojoj trebaju. Resurs ima dva ključa upravo zato da se jedan može poništiti bez
+prekida.
+
+**Region, a ne URL.** Oba endpointa se grade od regiona
+(`https://<region>.tts.speech.microsoft.com`), pa provajder odbija sve što nije
+slovo ili cifra — inače se od nalepljenog URL-a gradi `https://https://…` i kvar
+stiže kao poruka o hostu umesto kao poruka o konfiguraciji.
+
+**SSML je jedina prava razlika u odnosu na Google.** Googleov endpoint prima
+običan tekst i `google.js` piše zašto ga baš tako šalje: rečenica sa `<` u sebi
+nije pokvaren markup nego rečenica koju bi SSML odbio. Azurov `cognitiveservices/
+v1` prima isključivo SSML, pa taj izbor ne postoji — `ssmlFor` escapuje i ima
+test, sa ampersandom **prvim**, jer escapovanje `&` na kraju pretvori četiri
+ranija escapea u „and a m p semicolon".
+
+**Lokalitet nije uvek dvodelan, i srpski je razlog.** Azure piše srpski kao
+`sr-Latn-RS`, sa pismom u sredini. `languageOf` uzima sve do **poslednje** crte;
+dvodelno čitanje kakvo koristi `google.js` poslalo bi `xml:lang="sr-Latn"` i
+svrstalo sve srpske glasove pod jezik koji ne postoji.
+
+**Srpske reči su vraćene, ne prevedene.** `spokenMoves.js` je dobio `sr` rečnik,
+pa se „Bd5" izgovara „lovac d pet" umesto da se slovka — a reči su `serbianSpeech`
+tačno onakav kakav je stajao u `speech_text.dart` pre engleskog zaokreta
+(`ce012c0^`), dakle ono što su treneri slušali nedeljama. Pravilo je staro i u
+`CLAUDE.md`: potraži postojeću implementaciju pre nego što napišeš drugu.
+
+**„Ni Google ni Azure nemaju srpski glas" je stajalo u tri fajla, a provereno je
+protiv jedne liste.** Sada na to pitanje odgovara `node scripts/tts-probe.js`,
+koji ispiše listu glasova koju nalog stvarno ima, grupisanu po jeziku, i traži i
+`sr-RS` i `sr-Latn-RS`.
+
+**Šta ostaje, i nije u ovom poslu.** Padajuća lista glasova u izvoznom listu
+crta jednu stavku po glasu. To je tačno za piperovih šest i neupotrebljivo za
+oblak sa nekoliko stotina; probe skript ispiše koliko ih zaista ima, a popravka
+je filter po jeziku u samom listu. Aplikacija u ovom poslu nije dirana.
+
+Backend: **1186 testova** (bilo 1176), sa `.env` sklonjenim u stranu. Devet
+mutacija, sve uhvaćene.
 
 ## Glas koji ne može da progovori se sada zna pre crtanja — 10.9.2026, nije viđeno uživo
 

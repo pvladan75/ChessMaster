@@ -1,14 +1,15 @@
 // spokenMoves.js — a move written on the board's terms, said in the voice's.
 //
-// **This is the five-language sibling of `chess_app/lib/core/services/
+// **This is the six-language sibling of `chess_app/lib/core/services/
 // speech_text.dart`, and that file is the original.** The app has read moves
 // aloud correctly since long before the film could speak; the server was the
 // half that had never been taught. So the rules here are that file's rules —
-// its pattern, its word order, its reasons — with the vocabulary in five
+// its pattern, its word order, its reasons — with the vocabulary in six
 // languages instead of one, because the film's voice can be German, Spanish,
-// Italian or French. English is pinned to the app's own wording, verbatim, so
-// a trainer who hears a tutorial in the app and then watches the film hears the
-// same sentence twice. Change one of the two files and change the other.
+// Italian, French or (since Azure, 11.9.2026) Serbian. English is pinned to the
+// app's own wording, verbatim, so a trainer who hears a tutorial in the app and
+// then watches the film hears the same sentence twice. Change one of the two
+// files and change the other.
 //
 // The measurement that started it, taken with piper's own phonemiser on
 // 9.9.2026 — which is what piper hands the text to:
@@ -18,6 +19,9 @@
 //   es      Bd5 → „be de cinco"         O-O → „o o"
 //   it      Bd5 → „bi di cinque"        O-O → „o o"
 //   fr      Bd5 → „boulevard cinq"      O-O → „o o"
+//
+// Serbian was added on 11.9.2026 with the Azure provider, and its words are the
+// app's own from before the English pivot rather than a fresh translation.
 //
 // The French one is the whole argument in one line: espeak knows `Bd` as the
 // abbreviation for *boulevard*, so a bishop move became a street. A `+` came
@@ -51,6 +55,31 @@
 /// what caused the trouble in the app's Serbian build — written „ge", the
 /// g-file went through an English table and came out as „dzh".
 const VOCABULARIES = {
+  // Verbatim from `serbianSpeech` as it stood in `speech_text.dart` before the
+  // English pivot deleted it — commit `ce012c0^`, and it was read aloud by
+  // trainers for weeks before that. **Recovered rather than written**: this
+  // repository has three cases on record of a second implementation being
+  // written because nobody looked for the first, and one of them was better
+  // than what replaced it.
+  //
+  // Here for Azure, which unlike piper and Google may offer a Serbian voice
+  // (`sr-Latn-RS-…`); `languageOf` reads the `sr` off the front either way. The
+  // ranks are words for the same reason as everywhere else, and the files stay
+  // bare letters because that is what fixed „dž" for the g-file in the app's
+  // own Serbian build.
+  sr: {
+    pieces: { K: 'kralj', Q: 'dama', R: 'top', B: 'lovac', N: 'skakač' },
+    ranks: ['jedan', 'dva', 'tri', 'četiri', 'pet', 'šest', 'sedam', 'osam'],
+    pawn: 'pešak',
+    captures: 'uzima',
+    from: 'sa',
+    to: 'na',
+    promotesTo: 'postaje',
+    check: 'šah',
+    mate: 'mat',
+    shortCastle: 'mala rokada',
+    longCastle: 'velika rokada',
+  },
   // Verbatim from `englishSpeech` in speech_text.dart. Do not retune one side.
   en: {
     pieces: { K: 'king', Q: 'queen', R: 'rook', B: 'bishop', N: 'knight' },
