@@ -16,6 +16,9 @@ const renderProgress = require('../services/renderProgress');
 const renderQueue = require('../services/renderQueue');
 const { RenderAborted, abortOnDisconnect, throwIfAborted } = require('../services/renderAbort');
 const tutorialNarration = require('../services/tutorialNarration');
+const multer = require('multer');
+const narrationUpload = require('../services/narrationUpload');
+const { mayRecordNarration } = require('../services/recordingConsent');
 
 /// Runs a submitted step list through the one builder, or answers the caller.
 ///
@@ -307,21 +310,163 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
 });
 
 // DELETE /lessons/:id — delete a lesson you own
+//
+// **The recording goes with it**, after the row. A recorded voice lives under
+// `uploads/`, which no timer sweeps, so if this route did not delete it nothing
+// ever would: the file would outlive the only row that could reach it. The row
+// first, because the other order leaves a tutorial naming a file that is gone.
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'DELETE FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2) RETURNING id',
+      'DELETE FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2) RETURNING id, narration_filename',
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Tutorial not found or you do not have permission to delete it.' });
     }
+    narrationUpload.removeNarrationFile(result.rows[0].narration_filename);
     res.json({ success: true });
   } catch (err) {
     logger.error('Delete lesson error:', err);
     res.status(500).json({ error: 'Server error while deleting lesson' });
   }
 });
+
+// POST /lessons/:id/narration — the trainer's own recorded voice over a
+// tutorial. Phase 3 of docs/PLAN-SNIMANJE.md; see services/narrationUpload.js
+// for what is checked and why.
+//
+// Three stages, in this order on purpose: who may record over this tutorial is
+// asked **before** multer accepts a byte, so a refusal never writes anything
+// into `uploads/`; the file is received with the cap as multer's own limit; and
+// only then is it judged and kept.
+
+/// Whether this account may record over this tutorial at all.
+async function narrationGate(req, res, next) {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || String(id) !== String(req.params.id)) {
+    return res.status(400).json({ error: 'Unknown tutorial.' });
+  }
+  try {
+    const found = await pool.query(
+      'SELECT id FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)',
+      [id, req.user.id]
+    );
+    if (found.rowCount === 0) {
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to record over it.' });
+    }
+    const consent = await mayRecordNarration(pool, req.user.id);
+    if (!consent.allowed) {
+      return res.status(403).json({ error: consent.reason });
+    }
+    return next();
+  } catch (err) {
+    logger.error('[NARRATION] Gate failed:', err);
+    return res.status(500).json({ error: 'Server error while checking the recording.' });
+  }
+}
+
+const narrationMulter = multer({
+  storage: multer.diskStorage({
+    destination(req, file, cb) {
+      const dir = narrationUpload.narrationDir();
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      } catch (err) {
+        cb(err);
+      }
+    },
+    filename(req, file, cb) {
+      cb(null, narrationUpload.narrationFilename(req.params.id));
+    },
+  }),
+  limits: { fileSize: narrationUpload.NARRATION_MAX_BYTES, files: 1, fields: 8 },
+});
+
+/// The file, received — or a sentence rather than Express's HTML error page.
+function receiveNarration(req, res, next) {
+  narrationMulter.single('audio')(req, res, (err) => {
+    if (!err) return next();
+    if (req.file) narrationUpload.removeQuietly(req.file.path);
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        error: `This recording is longer than ${narrationUpload.NARRATION_MAX_SECONDS / 60} minutes, `
+          + 'which is the most one recording may be. Split the tutorial into two, or record a shorter narration.',
+      });
+    }
+    logger.error('[NARRATION] Upload failed:', err);
+    return res.status(400).json({ error: 'The recording could not be received. Upload it again.' });
+  });
+}
+
+/// Judged, and kept — or deleted, with the reason.
+async function saveNarration(req, res) {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ error: 'No recording was sent.' });
+  }
+  const lessonId = Number.parseInt(req.params.id, 10);
+
+  const judged = narrationUpload.judgeNarration({
+    file: file.path,
+    markersMs: req.body.markersMs,
+    durationMs: Number(req.body.durationMs),
+    beats: Number(req.body.beats),
+  });
+  if (!judged.ok) {
+    narrationUpload.removeQuietly(file.path);
+    return res.status(judged.status).json({ error: judged.error });
+  }
+
+  // The old name is read in the same statement that writes the new one, with
+  // the row locked, so two uploads racing each other each learn which file the
+  // other left behind — and the old file is deleted only after the row stops
+  // naming it. The other order leaves a tutorial naming a file that is gone.
+  let result;
+  try {
+    result = await pool.query(
+      `WITH old AS (SELECT narration_filename FROM saved_lessons WHERE id = $1 FOR UPDATE)
+       UPDATE saved_lessons
+          SET narration_filename = $2, narration_ms = $3, narration_markers = $4,
+              narration_recorded_at = NOW()
+        WHERE id = $1 AND (user_id = $5 OR trainer_id = $5)
+    RETURNING (SELECT narration_filename FROM old) AS replaced, narration_recorded_at`,
+      [lessonId, file.filename, judged.durationMs, JSON.stringify(judged.markers), req.user.id]
+    );
+  } catch (err) {
+    narrationUpload.removeQuietly(file.path);
+    logger.error('[NARRATION] Could not keep the recording:', err);
+    return res.status(500).json({ error: 'Server error while keeping the recording.' });
+  }
+  if (result.rowCount === 0) {
+    // Deleted between the gate and now.
+    narrationUpload.removeQuietly(file.path);
+    return res.status(404).json({ error: 'Tutorial not found or you do not have permission to record over it.' });
+  }
+
+  const replaced = result.rows[0].replaced;
+  if (replaced && replaced !== file.filename) {
+    narrationUpload.removeNarrationFile(replaced);
+  }
+
+  return res.status(201).json({
+    narration: {
+      ms: judged.durationMs,
+      beats: judged.markers.length,
+      recordedAt: result.rows[0].narration_recorded_at,
+    },
+  });
+}
+
+router.post(
+  '/:id/narration',
+  authenticateToken,
+  requireEntitlement(ENT.MP4_EXPORT),
+  narrationGate,
+  receiveNarration,
+  saveNarration,
+);
 
 // POST /lessons/:id/export-video
 /// What to tell a trainer whose video is finished.

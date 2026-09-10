@@ -53,6 +53,16 @@ String narrationClockOf(int ms) {
   return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
 }
 
+/// „ · 42 s left" in the last minute before a take stops itself, and nothing
+/// before that: a countdown for the whole take would be a clock nobody asked
+/// for, and one that appears only at the end is the one that gets read.
+String narrationRemainingText(int positionMs, int stopAtMs) {
+  final left = stopAtMs - positionMs;
+  if (left > 60000) return '';
+  final seconds = (left / 1000).ceil().clamp(0, 60);
+  return ' · $seconds s left';
+}
+
 const _months = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -90,7 +100,12 @@ class TutorialNarrationScreen extends StatefulWidget {
     this.sourceFactory,
     this.store,
     this.player,
+    this.stopAtMs = narrationStopAtMs,
   });
+
+  /// Where a take is stopped because the server would refuse anything longer.
+  /// A parameter only so a test need not record fifteen minutes.
+  final int stopAtMs;
 
   /// The saved tutorial the take is kept under.
   final int lessonId;
@@ -247,6 +262,15 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
     final recorder = _recorder;
     if (recorder == null || !mounted) return;
     setState(() => _show(recorder.beat));
+    // A take past the server's cap could never be sent, so it stops here,
+    // still whole, rather than being refused after the trainer has talked
+    // past it for however long. Asked of the recorder's own state, which
+    // `stop()` changes before it awaits anything, so no chunk after this one
+    // can stop the take a second time.
+    if (recorder.state == NarrationState.recording &&
+        recorder.positionMs >= widget.stopAtMs) {
+      _stop(atCap: true);
+    }
   }
 
   void _next() => _recorder?.next();
@@ -262,7 +286,7 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
   }
 
   /// Ends the take and keeps it — then says what is wrong with it, if anything.
-  Future<void> _stop() async {
+  Future<void> _stop({bool atCap = false}) async {
     final recorder = _recorder;
     final path = _recordingPath;
     if (recorder == null || path == null) return;
@@ -292,7 +316,15 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
       _load = NarrationLoad.found(stored);
       _show(0);
     });
-    if (!take.heardAnything) AppFeedback.warning(context, _silentTake);
+    if (!take.heardAnything) {
+      AppFeedback.warning(context, _silentTake);
+    } else if (atCap) {
+      AppFeedback.info(
+        context,
+        'The recording stopped at ${narrationClockOf(take.durationMs)}: '
+        '${narrationMaxMs ~/ 60000} minutes is the most one recording may be.',
+      );
+    }
   }
 
   Future<void> _discard() async {
@@ -543,7 +575,8 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
       NarrationState.warmingUp => 'Waiting for the microphone…',
       NarrationState.paused =>
         'Paused · ${narrationClockOf(recorder.positionMs)}',
-      _ => 'Recording · ${narrationClockOf(recorder.positionMs)}',
+      _ => 'Recording · ${narrationClockOf(recorder.positionMs)}'
+          '${narrationRemainingText(recorder.positionMs, widget.stopAtMs)}',
     };
     final silent = state == NarrationState.recording &&
         recorder.silentMs >= silenceWarningMs;

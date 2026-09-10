@@ -169,6 +169,24 @@ async function initDB() {
       ALTER TABLE saved_lessons
       ADD COLUMN IF NOT EXISTS video_narrated BOOLEAN;
     `);
+    // The trainer's own recorded narration — phase 3 of docs/PLAN-SNIMANJE.md.
+    //
+    // A filename under uploads/narration, never a URL: the recording is read by
+    // the renderer from disk and is not served. The markers are where each beat
+    // of the film begins in the audio, in milliseconds, one per event. Unlike
+    // the video beside it, the file cannot be made again, so nothing clears
+    // these columns on a timer — only the tutorial's own deletion and a new
+    // take replacing this one.
+    await client.query(`
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS narration_filename VARCHAR(255);
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS narration_ms INTEGER;
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS narration_markers JSONB;
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS narration_recorded_at TIMESTAMP;
+    `);
     logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 
     // Create saved_analyses table (Analysis Studio: save/load a variation tree,

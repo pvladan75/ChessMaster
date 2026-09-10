@@ -90,8 +90,11 @@ app.use('/recordings', express.json({ limit: '100mb' }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
-// Serve static uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static uploads — all of it except the folders named private in
+// middleware/uploadsStatic.js. A trainer's recorded narration is read by the
+// renderer from disk and is never fetched by URL.
+const { serveUploads } = require('./middleware/uploadsStatic');
+serveUploads(app, path.join(__dirname, 'uploads'));
 
 // CORS headers middleware
 app.use((req, res, next) => {

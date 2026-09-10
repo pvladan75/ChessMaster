@@ -15,9 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **10.9.2026** — faze 1 i 2 plana snimanja su u kodu
-(„Snimanje glasa: faze 1 i 2" odmah ispod), a „ODAKLE SUTRA — 10.9.2026, video i
-snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
+Poslednje ažuriranje: **10.9.2026** — faze 1, 2 i 3 plana snimanja su u kodu
+(„Snimanje glasa: faza 3" i „… faze 1 i 2" odmah ispod), a „ODAKLE SUTRA —
+10.9.2026, video i snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
 pregled pre renderovanja, jedan film po tutorijalu sa linkom na zahtev,
 pravednost reda po nalogu, i zatvorena faza 0 plana snimanja.
 
@@ -25,6 +25,56 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Snimanje glasa: faza 3, slanje na server — 10.9.2026, testirano, bez dugmeta
+
+`POST /lessons/:id/narration` prima trenerov snimak, a
+`LessonApiService.uploadNarration` ga šalje. **Ništa u aplikaciji još ne zove
+slanje** — to radi opcija „tvoj snimak" u izvozu, koja je faza 4. Zato ovde nema
+stavke za proveru uživo: nema dugmeta koje bi se pritisnulo.
+
+Tri odluke vlasnika od 10.9.2026: server čuva **wav kako je snimljen**; klon
+tutorijala **počinje bez glasa**; jedan snimak je najviše **15 minuta**. Vlasnik
+se sećao dogovora da se ograničenje od 300 s promeni — u dokumentima je
+zapisano nešto drugo: korak 5 drugog dela plana (render izlazi iz zahteva), koji
+plafon ukida umesto da ga pomera, i koji nije urađen. Kad bude, ograničenje od
+15 minuta nema više razloga. Aplikacija sama zaustavlja snimanje sekund pre
+toga, jer zvuk stiže u celim paketima.
+
+**Server čita fajl, a ne opis fajla.** Format i dužina iz zaglavlja wav-a
+(`wav.js` je dobio `wavInfo`; `ffprobe` bi pročitao isto zaglavlje, drugim
+procesom), nivo iz samih uzoraka. Markeri moraju da počnu od 0, samo da rastu,
+da se završe pre kraja zvuka i da ih bude koliko i taktova. Odbijen fajl se
+briše. **Ko sme da snima pita se pre nego što multer primi ijedan bajt** —
+`mayRecordNarration`, isto pravilo kao u sobi: 18 godina, a nepoznata godina je
+odbijanje. Red u bazi se piše pre nego što se stari snimak obriše, a brisanje
+tutorijala briše i snimak.
+
+Tri stvari vredi zapamtiti.
+
+**`uploads/` je javan, i to od ranije.** `server.js` ga služi preko
+`express.static`, bez prijave — ko zna ime fajla, skida snimak iz sobe.
+Snimci glasa za tutorijale su zato u `uploads/narration/`, koji se nikad ne
+služi (`middleware/uploadsStatic.js`); ostatak je zaseban zadatak, predložen
+kao posebna sesija.
+
+**Test koji šalje URL preko `fetch` ne vidi `..`.** WHATWG URL razreši `.` i
+`..` (i `%2E%2E`) pre nego što zahtev ode, pa je mutacija koja briše
+normalizaciju putanje preživela. Test sada šalje putanje doslovno kroz
+`http.get`, i tek tada mutacija pada.
+
+**Tri mutacije se nisu ni primenile**, jer `routes/lessons.js` ima Windows
+kraj reda, a regex je tražio `\n`. „NOT APPLIED" nije „caught" — skripta to
+razlikuje, i zato je to uopšte primećeno.
+
+Otvoreno: **brisanje naloga mora da obriše snimke.** Ruta za brisanje naloga
+danas ne postoji (`DELETE FROM users` je samo povratak neuspele registracije),
+ali `saved_lessons` se briše kaskadno sa nalogom, a kaskada ne briše fajlove.
+
+Brojke: **1836 u aplikaciji (1 preskočen), 1114 na backendu** sa `.env`
+sklonjenim u stranu; obe mereno jedna za drugom, bez ičeg drugog pokrenutog.
 
 ---
 

@@ -104,8 +104,10 @@ TutorialDraft draftOf() {
 }
 
 class Rig {
-  Rig(this.dir) : store = NarrationTakeStore(() async => dir);
+  Rig(this.dir, {this.stopAtMs = narrationStopAtMs})
+      : store = NarrationTakeStore(() async => dir);
   final Directory dir;
+  final int stopAtMs;
   final NarrationTakeStore store;
   final source = FakeSource();
   final player = FakePlayer();
@@ -117,6 +119,7 @@ class Rig {
         sourceFactory: () => source,
         store: store,
         player: player,
+        stopAtMs: stopAtMs,
       );
 
   List<FileSystemEntity> filesLeft() {
@@ -411,6 +414,46 @@ void main() {
 
     expect(find.byType(TutorialNarrationScreen), findsNothing);
     expect(rig.filesLeft(), isEmpty);
+  });
+
+  testWidgets('a take stops itself before the cap, and is kept whole',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final dir = Directory.systemTemp.createTempSync('narration_cap_');
+    // The real cap is fifteen minutes; the rule is the same at 800 ms.
+    final rig = Rig(dir, stopAtMs: 800);
+    await tester.pumpWidget(MaterialApp(home: rig.screen()));
+    await tester.pumpAndSettle();
+
+    await startRecording(tester, rig);
+    await deliver(tester, rig, 9); // 720 ms
+    expect(find.byKey(const Key('narration-status')), findsOneWidget);
+
+    await deliver(tester, rig, 1); // 800 ms
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('narration-status')), findsNothing,
+        reason: 'the take is still running past the cap');
+    final kept = (await rig.store.load(31)).stored!;
+    expect(kept.take.durationMs, 800);
+    expect(find.textContaining('is the most one recording may be'),
+        findsOneWidget);
+  });
+
+  test('the last minute is counted down, and nothing before it', () {
+    expect(narrationRemainingText(0, narrationStopAtMs), '');
+    expect(narrationRemainingText(narrationStopAtMs - 60001, narrationStopAtMs),
+        '');
+    expect(narrationRemainingText(narrationStopAtMs - 60000, narrationStopAtMs),
+        ' · 60 s left');
+    expect(narrationRemainingText(narrationStopAtMs - 41500, narrationStopAtMs),
+        ' · 42 s left');
+    expect(narrationRemainingText(narrationStopAtMs, narrationStopAtMs),
+        ' · 0 s left');
+    expect(narrationStopAtMs, lessThan(narrationMaxMs),
+        reason: 'a take stopped at the cap can end a chunk past it');
   });
 
   testWidgets('a screen torn down in the middle of a take keeps nothing',

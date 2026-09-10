@@ -55,6 +55,19 @@ const double silenceFloorDbfs = -96.0;
 /// there at all, and a trainer pausing to think is never told they are silent.
 const double liveMicrophoneDbfs = -70.0;
 
+/// The longest recording the server accepts — fifteen minutes,
+/// `NARRATION_MAX_SECONDS` in `chess_backend/services/narrationUpload.js`,
+/// which says why: the film is still drawn inside the export request.
+const int narrationMaxMs = 15 * 60 * 1000;
+
+/// Where a take is stopped so that it still fits: one second before the cap.
+///
+/// Audio arrives in whole chunks — 80 ms on Android, and nobody has measured
+/// the largest a Windows device hands over — so a take stopped *at* the cap can
+/// end a chunk past it and be refused by a server counting to the millisecond.
+/// A second is several chunks of margin and costs the trainer nothing.
+const int narrationStopAtMs = narrationMaxMs - 1000;
+
 /// The loudest sample in [pcm], in dBFS.
 double peakDbfsOf(Uint8List pcm) {
   final data = ByteData.sublistView(pcm);

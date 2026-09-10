@@ -88,6 +88,26 @@ class LessonExportVideoResult {
   final String? error;
 }
 
+/// What the server said to a trainer's recorded narration.
+class NarrationUploadResult {
+  const NarrationUploadResult({
+    required this.ok,
+    this.error,
+    this.ms,
+    this.beats,
+  });
+
+  final bool ok;
+
+  /// The server's own sentence when it refused — it names the fault (a silent
+  /// take, one cut short on the wire, one past the cap) and what to do.
+  final String? error;
+
+  /// How long the server measured the audio to be, from the file itself.
+  final int? ms;
+  final int? beats;
+}
+
 /// Everything the app does to `saved_lessons`, in one place.
 ///
 /// Phase 7a of `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`, and the reason it exists
@@ -568,6 +588,62 @@ class LessonApiService {
     } catch (e) {
       AppLogger.log('[Lessons] Video export failed: $e');
       return const LessonExportVideoResult(
+        ok: false,
+        error: 'Cannot connect to server.',
+      );
+    }
+  }
+
+  /// Sends the trainer's own recorded narration of [lessonId] — phase 3 of
+  /// `docs/PLAN-SNIMANJE.md`.
+  ///
+  /// The server judges the file itself (`services/narrationUpload.js`): its
+  /// length from the wav's own header, compared with [durationMs]; the level
+  /// from the samples; and [markersMs] against both. So a refusal comes back as
+  /// the server's sentence, and nothing here tries to second-guess it.
+  ///
+  /// Five minutes, like the export: fifteen minutes of 16 kHz mono is under
+  /// 30 MB, and a slow uplink is the one thing that makes this take long.
+  Future<NarrationUploadResult> uploadNarration({
+    required int lessonId,
+    required String audioPath,
+    required List<int> markersMs,
+    required int durationMs,
+    required int beats,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$backendUrl/lessons/$lessonId/narration'));
+      if (authToken.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $authToken';
+      }
+      request.fields['markersMs'] = jsonEncode(markersMs);
+      request.fields['durationMs'] = '$durationMs';
+      request.fields['beats'] = '$beats';
+      request.files.add(await http.MultipartFile.fromPath('audio', audioPath,
+          filename: 'take.wav'));
+
+      final streamed =
+          await _client.send(request).timeout(const Duration(minutes: 5));
+      final res = await http.Response.fromStream(streamed);
+      if (res.statusCode == 201) {
+        final body = jsonDecode(res.body);
+        final narration = body is Map ? body['narration'] : null;
+        return NarrationUploadResult(
+          ok: true,
+          ms: narration is Map ? (narration['ms'] as num?)?.toInt() : null,
+          beats:
+              narration is Map ? (narration['beats'] as num?)?.toInt() : null,
+        );
+      }
+      return NarrationUploadResult(
+        ok: false,
+        error: _errorFrom(res.body,
+            'The recording could not be uploaded (${res.statusCode}).'),
+      );
+    } catch (e) {
+      AppLogger.log('[Lessons] Narration upload failed: $e');
+      return const NarrationUploadResult(
         ok: false,
         error: 'Cannot connect to server.',
       );

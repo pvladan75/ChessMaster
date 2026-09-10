@@ -1273,6 +1273,29 @@ Studio" inside a sentence. The copy was reworded rather than the gate widened:
 the gate exists so that „studio" keeps naming one screen, and a sentence that
 does not need the word is cheaper than an allowance that has to be argued.
 
+**Phase 3 the same day — the upload — 1836 in the app with 1 skipped, 1114 on the
+backend** with `.env` moved aside, both measured one after the other with
+nothing else running. `POST /lessons/:id/narration` judges the file itself (the
+wav's own header, the samples, the markers against both), asks who may record
+before multer accepts a byte, and keeps the recording under `uploads/narration/`
+— which is never served by URL. Nothing in the app calls it until phase 4.
+
+**`uploads/` is served to anyone with a filename**, and has been since the room
+could record: `express.static`, no authentication. Found in passing and flagged
+as its own task rather than folded into this one; the narration folder is
+refused in `middleware/uploadsStatic.js`.
+
+**A test that sends a URL through `fetch` cannot send `..`.** A WHATWG URL
+resolves `.`, `..` and `%2E%2E` before the request leaves, so a mutation
+deleting the path normalisation survived a test that listed `a/../narration`
+among its cases. It sends raw paths through `http.get` now. Same family as
+every check in this file that could not fail: the client tidied the input the
+guard existed for.
+
+**„NOT APPLIED" is not „caught".** Three mutations never touched the file,
+because `routes/lessons.js` has CRLF line endings and the patterns asked for
+`\n`. A harness that only counted red runs would have reported them as proof.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

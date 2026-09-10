@@ -130,6 +130,31 @@ async function mayRecordRoom(pool, { roomCode, userIds }) {
   return { allowed: true, blocked: [], reason: null };
 }
 
+/// Whether this account may record its own voice over a tutorial — phase 3 of
+/// `docs/PLAN-SNIMANJE.md`, and the same rule as a room's, re-expressed.
+///
+/// **The studio has no room**, so the roster half of `mayRecordRoom` has
+/// nothing to ask: the recording is made on the trainer's own device, and
+/// nobody else is connected to it. What must not be assumed is that the rest
+/// goes with it. The owner half stays, with both of its edges: **eighteen, not
+/// `AGE_OF_CONSENT`**, and **an unknown age refuses** — this is permission to
+/// put into `uploads/` the one artefact that cannot be taken back, and „we
+/// never asked" must not read as „yes".
+async function mayRecordNarration(pool, userId) {
+  const owner = await ageStatus(pool, userId);
+  if (!owner.known) {
+    return {
+      allowed: false,
+      reason: 'Recording requires entering your birth year — only adults may '
+        + 'record their voice.',
+    };
+  }
+  if (owner.age < ADULT_AGE) {
+    return { allowed: false, reason: 'Recording is only available to adult users.' };
+  }
+  return { allowed: true, reason: null };
+}
+
 /// What the trainer is told when somebody else is in the room.
 ///
 /// One sentence that says the rule as well as the fact, because "Mila is in the
@@ -143,6 +168,7 @@ function refusalSentence(blocked) {
 module.exports = {
   ADULT_AGE,
   blockedForRecording,
+  mayRecordNarration,
   mayRecordRoom,
   othersInRoom,
   refusalSentence,

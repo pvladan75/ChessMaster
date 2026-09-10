@@ -315,6 +315,54 @@ local take.
   the tutorial's own delete path and on „record again". An export can age out on
   a timer because it can be re-rendered; a performance cannot.
 
+### Built on 10.9.2026 — tested, not reachable from a button yet
+
+`POST /lessons/:id/narration` and `LessonApiService.uploadNarration` exist and
+are proved by mutation; nothing in the app calls the upload until phase 4's
+export option does, so there is no live check to run until then.
+
+The owner's three decisions of 10.9.2026: the server keeps **the wav as
+recorded** (exact, no conversion step, about 1.9 MB a minute); a clone **starts
+silent**, which is also what `clone` already does, because it copies only the
+columns it names; and one recording is at most **fifteen minutes** — see
+„Open decisions" below for why that number, and why it is temporary.
+
+* **Not `ffprobe`: the wav's own header.** The plan said `ffprobe` decides the
+  duration; what it would read for a wav is the header, and
+  `services/tts/wav.js` already reads it without a second process. It gained
+  `wavInfo`, so the format is checked from the same walk — 16 kHz mono 16-bit
+  PCM, or refused. The length is bytes ÷ byte rate, the app's own arithmetic,
+  so a take that arrived whole agrees to the millisecond and one cut short on
+  the wire is refused rather than corrected.
+* **Checked cheapest first**, in `services/narrationUpload.js`: format, cap,
+  length against the app's claim, the markers (start at 0, strictly
+  increasing, last before the end, one per beat), and the samples last — a
+  take whose level never rises above −70 dBFS is refused with the same sentence
+  the app shows.
+* **Who may record is asked before multer accepts a byte**:
+  `mayRecordNarration` in `recordingConsent.js`, the room's rule re-expressed —
+  eighteen, and an unknown age refuses. The route's stage order is tested from
+  the router itself, because a test that arranged the stages could not see the
+  router arranging them otherwise.
+* **The row is written before the old file goes.** One statement reads the old
+  filename with the row locked and writes the new one; only then is the old
+  recording deleted. `DELETE /lessons/:id` returns the filename and deletes the
+  file after the row.
+* **`uploads/narration/` is never served by URL.** `uploads/` as a whole is
+  public (`express.static`, no authentication) — a pre-existing fault, flagged
+  as its own task. `middleware/uploadsStatic.js` refuses the narration folder
+  on the path the file server will read: decoded, normalised, lower-cased. The
+  test sends its paths verbatim with `http.get`, because `fetch` resolves `.`
+  and `..` before the request leaves and a mutation deleting the normalisation
+  survived for exactly that reason.
+
+The app stops a take one second before the cap, since audio arrives in whole
+chunks and a take stopped *at* the cap can end one chunk past it.
+
+**An account deletion must delete its recordings.** None exists today —
+`DELETE FROM users` appears only as a registration rollback — but
+`saved_lessons` cascades with the account, and a cascade does not delete files.
+
 ## Phase 4 — the export, which is the part that barely changes
 
 `POST /lessons/:id/export-video` gains one branch. When the tutorial has a
@@ -417,9 +465,16 @@ this document.
    `POST /lessons/:id/clone` mints fresh step ids on purpose. The voice should
    probably follow the clone — but a copy of a file whose only copy is on this
    server doubles the thing that cannot be reproduced.
+   **Decided 10.9.2026: the copy starts silent.** A new version usually
+   changes its beats, which would make the old recording mismatch anyway.
 3. **A cap on narration length**, if any. The queue's ceilings are about
    drawing, and a 40-minute recording is a 10-minute render — which is over the
    300 s connection budget and therefore waits on the deferred lane.
+   **Decided 10.9.2026: fifteen minutes**, about four minutes of drawing and so
+   inside the 300 s nginx gives a request. The owner remembered agreeing to
+   change that limit; what the documents record is step 5 of part two — the
+   render leaves the request — which removes the ceiling rather than moving it,
+   and is not built. When it is, this cap has no reason left.
 
 ## What this does not solve
 
