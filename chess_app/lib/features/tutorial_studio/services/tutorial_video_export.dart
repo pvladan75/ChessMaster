@@ -131,9 +131,15 @@ Future<RenderJobState?> exportTutorialVideo({
     final saved = prefs.getString(_voiceKey);
     final known =
         tts.voices.any((v) => (v['id'] ?? v['name'])?.toString() == saved);
-    voice = known
-        ? saved
-        : (tts.voices.first['id'] ?? tts.voices.first['name'])?.toString();
+    // **Null rather than the first voice on the list, and the sheet picks.**
+    // The list is sorted by language, so „the first" was Afrikaans the moment a
+    // cloud provider answered with 154 of them - a first-time trainer opened on
+    // a language they had never heard of. `_openingLanguage` knows which
+    // language to open on and takes the first voice of that one.
+    //
+    // Null also covers a remembered voice the server no longer offers, which is
+    // what switching TTS_PROVIDER does to every id at once.
+    voice = known ? saved : null;
   }
   var hd = prefs.getBool(_hdKey) ?? false;
 
@@ -772,6 +778,23 @@ Future<_ExportChoice?> _askAboutExport({
 }) {
   var answer = voices.isNotEmpty && narrate ? _Voice.synthesised : _Voice.none;
   var chosen = voice;
+  var language = _openingLanguage(voices, chosen);
+  // **The sheet opens on a voice of the language it opens on.** Nothing
+  // remembered - or nothing the server still offers, which is what the caller
+  // sends null for - and the sheet picks rather than passing null on: piper
+  // quietly took its first model when the voice was absent, while a cloud
+  // provider refuses the request, which is a silent film for the want of a
+  // default nobody wrote.
+  //
+  // It is written as „is the voice in this language's list" rather than „is it
+  // null", because `DropdownButton` throws on a value that names no item, and a
+  // voice whose entry carries no language at all is not in any list. A guard on
+  // the control instead of a rule here was unreachable - a mutation deleting it
+  // changed nothing, which is this repository's own test of whether a check is
+  // a check.
+  if (!_voicesIn(voices, language).any((v) => _idOf(v) == chosen)) {
+    chosen = _firstVoiceOf(voices, language);
+  }
   var wantsHd = hd;
   var previewing = false;
   // The take, once the lookup answers. Chosen by default where there is one to
@@ -800,6 +823,8 @@ Future<_ExportChoice?> _askAboutExport({
         ];
         final body = AppText.body.copyWith(color: ctx.colors.textPrimary);
         final note = AppText.caption.copyWith(color: ctx.colors.textMuted);
+        final languages = _languagesOf(voices);
+        final spoken = _voicesIn(voices, language);
         return AlertDialog(
           title: const Text('Export video'),
           // Measured, not assumed: with all three answers and the voice
@@ -874,6 +899,55 @@ Future<_ExportChoice?> _askAboutExport({
               ],
               if (answer == _Voice.synthesised) ...[
                 const SizedBox(height: AppSpacing.xs),
+                // **The language is its own control, and it comes first.** A
+                // real Azure account answered with 655 voices across 154
+                // languages on 11.9.2026; one dropdown of 655 is a list nobody
+                // can scroll to the end of, and the language is what a trainer
+                // is actually choosing - the voice has to match what they
+                // wrote, and nothing anywhere detects that.
+                //
+                // Drawn only where there is more than one, by the same rule as
+                // the narration question above: a question with one answer is
+                // not a question. With piper's six voices in six languages it
+                // appears; with one installed voice it does not.
+                if (languages.length > 1)
+                  Row(
+                    children: [
+                      Text('Language',
+                          style: AppText.body
+                              .copyWith(color: ctx.colors.textSecondary)),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            key: const Key('export-voice-language'),
+                            isExpanded: true,
+                            value: language,
+                            dropdownColor: ctx.colors.surface,
+                            items: [
+                              for (final code in languages)
+                                DropdownMenuItem<String>(
+                                  value: code,
+                                  child: Text(
+                                    _languageLabel(voices, code),
+                                    style: AppText.body.copyWith(
+                                        color: ctx.colors.textPrimary),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (code) => setLocal(() {
+                              language = code!;
+                              // The voice follows the language it is in, or the
+                              // sheet keeps one the list no longer shows and
+                              // sends it anyway.
+                              chosen = _firstVoiceOf(voices, language);
+                            }),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 Row(
                   children: [
                     Text('Voice',
@@ -883,13 +957,14 @@ Future<_ExportChoice?> _askAboutExport({
                     Expanded(
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
+                          key: const Key('export-voice-voice'),
                           isExpanded: true,
                           value: chosen,
                           dropdownColor: ctx.colors.surface,
                           items: [
-                            for (final v in voices)
+                            for (final v in spoken)
                               DropdownMenuItem<String>(
-                                value: (v['id'] ?? v['name'])?.toString() ?? '',
+                                value: _idOf(v),
                                 child: Text(
                                   _voiceLabel(v),
                                   style: AppText.body
@@ -972,19 +1047,111 @@ Future<_ExportChoice?> _askAboutExport({
   ).whenComplete(() => closed = true);
 }
 
-/// „en_US-lessac-medium" reads as „en-US · lessac (medium)".
+/// The id the server knows a voice by, which is what travels in the request.
+String _idOf(Map<String, dynamic> voice) =>
+    (voice['id'] ?? voice['name'])?.toString() ?? '';
+
+String _languageOf(Map<String, dynamic> voice) =>
+    voice['language']?.toString() ?? '';
+
+/// What to call a language in the picker.
 ///
-/// The language first, because that is what a trainer is choosing: the voice
-/// has to match the language they wrote in, and nothing here detects it.
+/// The name the server sent where it sent one - Azure does, and „Serbian
+/// (Latin, Serbia)" is the difference between choosing and guessing at
+/// `sr-Latn-RS`. piper and Google send none and the code is what they have
+/// always shown, so nothing here invents a table of 154 names.
+String _languageLabel(List<Map<String, dynamic>> voices, String language) {
+  for (final voice in voices) {
+    if (_languageOf(voice) != language) continue;
+    final named = voice['languageName']?.toString() ?? '';
+    if (named.isNotEmpty) return named;
+  }
+  return language;
+}
+
+/// Every language on offer, in the order a person reads them.
+///
+/// Sorted by the label rather than by the code, because that is what the eye
+/// scans down: „Serbian (Latin, Serbia)" sits under S, not under sr.
+List<Map<String, dynamic>> _byLanguage(List<Map<String, dynamic>> voices) =>
+    voices.where((v) => _languageOf(v).isNotEmpty).toList();
+
+List<String> _languagesOf(List<Map<String, dynamic>> voices) {
+  final codes =
+      <String>{for (final v in _byLanguage(voices)) _languageOf(v)}.toList()
+        ..sort((a, b) {
+          final byName = _languageLabel(voices, a)
+              .toLowerCase()
+              .compareTo(_languageLabel(voices, b).toLowerCase());
+          return byName != 0 ? byName : a.compareTo(b);
+        });
+  return codes;
+}
+
+/// The voices of one language, which is the whole of what the second control
+/// lists.
+List<Map<String, dynamic>> _voicesIn(
+        List<Map<String, dynamic>> voices, String language) =>
+    voices.where((v) => _languageOf(v) == language).toList();
+
+/// The first voice of [language], which is what a change of language selects.
+String? _firstVoiceOf(List<Map<String, dynamic>> voices, String language) {
+  for (final voice in voices) {
+    if (_languageOf(voice) == language) return _idOf(voice);
+  }
+  return voices.isEmpty ? null : _idOf(voices.first);
+}
+
+/// Which language the sheet opens on.
+///
+/// The remembered voice decides it where there is one, because a trainer who
+/// chose „Nicholas" last time is not choosing Serbian again. Otherwise the
+/// app's own language, then any other English, and only then the top of the
+/// list - which is alphabetical, and would open a first-time trainer on
+/// Afrikaans.
+String _openingLanguage(List<Map<String, dynamic>> voices, String? chosen) {
+  for (final voice in voices) {
+    if (_idOf(voice) == chosen && _languageOf(voice).isNotEmpty) {
+      return _languageOf(voice);
+    }
+  }
+  final languages = _languagesOf(voices);
+  if (languages.contains('en-US')) return 'en-US';
+  for (final code in languages) {
+    if (code.startsWith('en')) return code;
+  }
+  return languages.isEmpty ? '' : languages.first;
+}
+
+/// „Nicholas (Neural)" - the speaker, and not the language.
+///
+/// The language is the control above this one since 11.9.2026, so repeating it
+/// on every row spends the width a name needs. Where the server sends only an
+/// id, as piper does, the language is cut off the front of it: „en_US-lessac-
+/// medium" is „lessac (medium)".
 String _voiceLabel(Map<String, dynamic> voice) {
-  final id = (voice['id'] ?? voice['name'])?.toString() ?? '';
-  final language = voice['language']?.toString() ?? '';
+  final id = _idOf(voice);
+  final name = voice['name']?.toString() ?? '';
   final tier = voice['tier']?.toString() ?? '';
-  final speaker = id.contains('-')
-      ? id.substring(id.indexOf('-') + 1).replaceAll('-$tier', '')
-      : id;
-  if (language.isEmpty) return id;
-  return tier.isEmpty ? '$language · $speaker' : '$language · $speaker ($tier)';
+  var label = name.isNotEmpty && name != id ? name : _speakerOf(voice);
+  if (label.isEmpty) label = id;
+  if (tier.isEmpty || label.toLowerCase().contains(tier.toLowerCase())) {
+    return label;
+  }
+  return '$label ($tier)';
+}
+
+String _speakerOf(Map<String, dynamic> voice) {
+  final id = _idOf(voice);
+  final language = _languageOf(voice);
+  final tier = voice['tier']?.toString() ?? '';
+  var speaker = id;
+  if (language.isNotEmpty && id.startsWith('$language-')) {
+    speaker = id.substring(language.length + 1);
+  } else if (id.contains('-')) {
+    speaker = id.substring(id.indexOf('-') + 1);
+  }
+  return tier.isEmpty ? speaker : speaker.replaceAll('-$tier', '');
 }
 
 Future<void> _showReady(

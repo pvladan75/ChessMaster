@@ -7,11 +7,13 @@
 // under four cents at the Neural2 rate — and nothing at all the second time,
 // because `../tts` caches by the sentence.
 //
-// **Neither Google nor Azure has a Serbian voice.** Checked against both voice
-// lists on 9.9.2026 rather than remembered. The answer for Serbian text is
-// `hr-HR` — Croatian is close enough phonetically that it reads as an accent
-// rather than as a mistake — and that is a choice the trainer makes by picking
-// the voice, not something this file decides for them.
+// **Google has no Serbian voice**, which is what was actually checked on
+// 9.9.2026. This said „neither Google nor Azure" for two days on the strength
+// of one list; a real Azure account answered on 11.9.2026 with four Serbian
+// voices, in both scripts (`sr-RS-` and `sr-Latn-RS-`). The answer for Serbian
+// text *here* is `hr-HR` — Croatian is close enough phonetically that it reads
+// as an accent rather than as a mistake — and that is a choice the trainer
+// makes by picking the voice, not something this file decides for them.
 //
 // **Authentication is OAuth, not an API key.** The REST reference lists the
 // `cloud-platform` scope and no key parameter, and the droplet is not a Google

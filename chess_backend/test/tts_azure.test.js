@@ -75,7 +75,11 @@ test('the voice list is every language, sorted so a picker can group it', () => 
       ShortName: 'en-US-JennyNeural', DisplayName: 'Jenny', Locale: 'en-US', Gender: 'Female',
     },
     {
-      ShortName: 'sr-Latn-RS-NicholasNeural', DisplayName: 'Nicholas', Locale: 'sr-Latn-RS', Gender: 'Male',
+      ShortName: 'sr-Latn-RS-NicholasNeural',
+      DisplayName: 'Nicholas',
+      Locale: 'sr-Latn-RS',
+      LocaleName: 'Serbian (Latin, Serbia)',
+      Gender: 'Male',
     },
     null,
     {
@@ -94,9 +98,12 @@ test('the voice list is every language, sorted so a picker can group it', () => 
   assert.equal(voices[3].language, 'sr-Latn-RS');
   assert.equal(voices[3].gender, 'male', 'lowercased, like every other provider');
   assert.equal(voices[2].language, 'hr-HR', 'read off the name when the locale is missing');
-  assert.match(voices[0].name, /Ryan/);
-  assert.match(voices[0].name, /en-GB-RyanNeural/,
-    'and the id too, or two languages\' Ryan are one entry in the picker');
+  assert.equal(voices[0].name, 'Ryan',
+    'the speaker alone: the language is its own control in the sheet now');
+  assert.equal(voices[3].languageName, 'Serbian (Latin, Serbia)',
+    'and what a person calls that language, for a picker of 154 of them');
+  assert.equal(voices[2].languageName, '',
+    'empty rather than absent where Azure sends none');
 });
 
 test('a trainer\'s sentence reaches the voice as text, never as markup', () => {

@@ -15,9 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Azure Speech, i srpski koji
-je vraćen a ne preveden" odmah ispod ove glave, pa „Glas koji ne može da
-progovori se sada zna pre crtanja"; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Izbor glasa: prvo jezik, pa
+glas" odmah ispod ove glave, pa „Azure Speech, i srpski koji je vraćen a ne
+preveden" i „Glas koji ne može da progovori se sada zna pre crtanja"; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
 tačke 4 i 5 („Render izlazi iz zahteva" i „Render koji ne može da stane" niže):
 trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
 kojim taktovima pripada („Snimanje glasa: faza 6", „faza 5" i „faza 4" niže), a „ODAKLE
@@ -31,6 +31,34 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Izbor glasa: prvo jezik, pa glas — 11.9.2026, nije viđeno uživo
+
+Vlasnikov Azure nalog je 11.9.2026. odgovorio sa **655 glasova u 154 jezika**
+(`node scripts/tts-probe.js`). Jedna padajuća lista od 655 stavki je lista do
+čijeg kraja niko ne skroluje, pa izvozni list sada pita **prvo jezik** — imenom
+koji server pošalje („Serbian (Latin, Serbia)"), a ne šifrom — a lista glasova
+je lista tog jezika. Kontrola za jezik se crta samo kad ih ima više od jednog,
+po istom pravilu po kom se crta i pitanje o naraciji: pitanje sa jednim
+odgovorom nije pitanje.
+
+**I odgovor na staro pitanje: Azure ima srpski glas.** Četiri, u oba pisma —
+`sr-RS-NicholasNeural` i `sr-RS-SophieNeural`, sa `sr-Latn-RS-` blizancima. U tri
+fajla je stajalo da ga nema, a provereno je bilo protiv Googleove liste. Za
+tekst pisan latinicom treba `sr-Latn-RS` glas; `sr-RS` je ćirilički lokalitet.
+Komentari sada kažu šta je provereno i protiv čega.
+
+**„Prvi glas sa liste" prestaje da bude razuman podrazumevani izbor.** Lista je
+sortirana po jeziku, pa je prvi glas od 655 bio afrikans — a pozivalac je baš to
+slao kad ništa nije zapamćeno. Sada šalje null, a list bira: jezik zapamćenog
+glasa, pa jezik same aplikacije, pa vrh liste. Null pokriva i zapamćen glas koji
+server više ne nudi, što je tačno ono što promena `TTS_PROVIDER`-a uradi svim
+id-jevima odjednom.
+
+Aplikacija: **1891 test** (bilo 1884), 1 preskočen, `flutter analyze` na 29 info
+i nula upozorenja. Sedam mutacija, sve uhvaćene — jedna je isprva preživela i
+otkrila stražu koju ništa nije moglo da dosegne; zamenjena je pravilom na ulazu
+u list, koje test sa glasom bez jezika stvarno dohvati.
 
 ## Azure Speech, i srpski koji je vraćen a ne preveden — 11.9.2026, nije viđeno uživo
 

@@ -5170,14 +5170,15 @@ Traži vlasnikov ključ i region, pa se ne može proveriti bez njega. U `.env`:
 nikad ne ide u repozitorijum, u dokument ni u poruku komita. Vidi „Azure Speech,
 i srpski koji je vraćen a ne preveden" u `docs/STANJE-RADA.md`.
 
-1. [ ] **Nalog odgovara.** `node scripts/tts-probe.js "Look at the d5 square."`
-   ispiše `provider: azure`, broj glasova i jezika, pa napravi
-   `exports/tts-probe.wav` — poslušaj ga. Ako je odgovor 401, ključ je pogrešan;
-   403 znači da region ne odgovara resursu.
-2. [ ] **Ima li srpskog glasa.** U istom ispisu pogledaj redove `sr-RS` i
-   `sr-Latn-RS`. **Ovo je pitanje na koje niko još nije odgovorio protiv Azurove
-   liste** — u tri fajla je godinama stajalo da srpskog glasa nema. Zapiši broj
-   i imena.
+1. [x] **Nalog odgovara.** ✅ Vlasnik, 11.9.2026: `provider: azure`,
+   **655 glasova u 154 jezika**, i `exports/tts-probe.wav` je napisan za 678 ms.
+   Ostaje samo da se odsluša — ako ikad odgovori 401, ključ je pogrešan; 403
+   znači da region ne odgovara resursu.
+2. [x] **Ima li srpskog glasa.** ✅ Vlasnik, 11.9.2026: **ima, četiri** —
+   `sr-RS-NicholasNeural` i `sr-RS-SophieNeural`, plus `sr-Latn-RS-` blizanci.
+   U tri fajla je stajalo da ga nema, a provereno je bilo protiv Googleove
+   liste; komentari su ispravljeni. Za tekst pisan latinicom uzmi `sr-Latn-RS`
+   glas — `sr-RS` je ćirilički lokalitet.
 3. [ ] **Srpski izgovor poteza.** Ako srpski glas postoji:
    `node scripts/tts-probe.js "Odigraj Bd5, pa O-O." <id tog glasa>` — voice
    mora reći „lovac d pet" i „mala rokada", a ne da slovka „be de pet".
@@ -5187,9 +5188,14 @@ i srpski koji je vraćen a ne preveden" u `docs/STANJE-RADA.md`.
 5. [ ] **Rečenica sa `&` ili `<`.** Napiši u nekom taktu „Nimzo & Bogo" ili
    „1 < 2" pa izvezi: glas te reči izgovori normalno, ništa se ne odbija, i u
    logu nema `Azure refused`.
-6. [ ] **Koliko glasova stigne u padajuću listu.** Otvori izvozni list sa Azure
-   provajderom: ako je lista u stotinama, izbor glasa je neupotrebljiv i treba
-   filter po jeziku (aplikacija u ovom poslu nije dirana — vidi kraj odeljka u
-   `STANJE-RADA.md`).
+6. [ ] **Filter po jeziku.** Otvori izvozni list sa Azure provajderom: prvo se
+   bira **jezik** (imenom, „Serbian (Latin, Serbia)"), pa glas — i lista glasova
+   drži samo taj jezik. Promena jezika povlači i glas za sobom. Sa piperom, gde
+   svih šest glasova ima svoj jezik, kontrola za jezik takođe postoji; sa jednim
+   instaliranim glasom je nema. Vidi „Izbor glasa: prvo jezik, pa glas" u
+   `docs/STANJE-RADA.md`.
+6b. [ ] **Prvi izvoz posle promene provajdera.** Zapamćen piperov glas više ne
+   postoji na Azureu: list se otvara na engleskom i šalje Azure glas, a ne stari
+   id (i ne afrikans, koji je prvi na sortiranoj listi od 655).
 7. [ ] **Piper i dalje radi.** Vrati `TTS_PROVIDER=piper`, restartuj backend,
    izvezi film sa naracijom: govori kao pre. Rezerva mora da ostane rezerva.

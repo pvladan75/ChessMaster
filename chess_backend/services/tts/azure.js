@@ -18,6 +18,13 @@
 // escaping is done in `ssmlFor` and tested: whatever the trainer wrote reaches
 // the voice as text and never as markup.
 //
+// **655 voices across 154 languages**, from a real account on 11.9.2026 — and
+// four of them Serbian, `sr-RS-NicholasNeural` and `sr-RS-SophieNeural` with
+// their `sr-Latn-RS-` twins, which is the thing three files in this project
+// said did not exist. That list is also why the export sheet asks for a
+// language before it asks for a voice: one dropdown of 655 is a list nobody
+// scrolls to the end of.
+//
 // Piper stays installed and stays the fallback — `TTS_PROVIDER` picks. It needs
 // no account, no card and no network, which is worth keeping whatever the
 // billing does next.
@@ -97,10 +104,15 @@ function toVoices(payload) {
     .filter(Boolean)
     .map((voice) => ({
       id: voice.ShortName,
-      // The display name alone is „Nicholas", which is not enough to tell two
-      // languages' Nicholas apart in one list.
-      name: voice.DisplayName ? `${voice.DisplayName} (${voice.ShortName})` : voice.ShortName,
+      name: voice.DisplayName || voice.ShortName,
       language: voice.Locale || languageOf(voice.ShortName),
+      // **What a person calls that language.** 655 voices across 154 languages
+      // came back from a real account on 11.9.2026, which is a picker nobody
+      // can use without narrowing it first — and „Serbian (Latin, Serbia)" is
+      // the difference between narrowing it and guessing at `sr-Latn-RS`.
+      // Azure is the only provider that sends this; the app falls back to the
+      // code, which is what piper and Google have always shown.
+      languageName: voice.LocaleName || '',
       gender: String(voice.Gender || '').toLowerCase(),
       tier: tierOf(voice.ShortName),
     }))

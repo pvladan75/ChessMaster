@@ -1517,6 +1517,42 @@ draws one `DropdownMenuItem` per voice, which is right for piper's six and
 unusable for a cloud list of several hundred. The probe prints the count; a
 language filter in the export sheet is the fix if it is as large as expected.
 
+**Seven more in the app on 11.9.2026 — 1891 with 1 skipped, 29 infos and zero
+warnings; the backend stays at 1186.** The owner's own Azure account answered
+with **655 voices across 154 languages**, which turned the export sheet's voice
+dropdown into a list nobody scrolls to the end of. It asks for a language first
+now, and the voice list is that language's. Seven mutations, all caught.
+
+**The probe settled a fact three files had asserted from one list.** „Neither
+Google nor Azure has a Serbian voice" was written in `google.js`'s header, in a
+test comment and in `tts/index.js`, and had only ever been checked against
+Google. Azure has four — `sr-RS-NicholasNeural` and `sr-RS-SophieNeural`, with
+their `sr-Latn-RS-` twins, in both scripts. The comments say what was checked
+and against what now. **A fact repeated in three places is a fact nobody
+rechecks**, and one command answered it.
+
+**„The first voice on the list" stopped being a sane default the moment a
+provider had 154 languages.** The caller fell back to `tts.voices.first` when
+nothing was remembered, and the list is sorted by language — so a first-time
+trainer opened on Afrikaans. It sends null now and the sheet picks: the language
+of the remembered voice, else the app's own, else the top. Null also covers a
+remembered voice the server no longer offers, which is what switching
+`TTS_PROVIDER` does to every id at once.
+
+**A guard on a control that nothing can reach is not a guard.** The voice
+dropdown's `value` was written as „the chosen one if the list has it, else
+null", and a mutation deleting that changed nothing — because every path already
+kept the two in step. It is a rule at the door instead („the sheet opens on a
+voice of the language it opens on"), which a fixture with a languageless voice
+reaches and a mutation fails. Same family as every other check in this file that
+could not fail.
+
+**One existing assertion changed rather than a fixture, and that was right.**
+`find.byType(DropdownButton<String>)` was `findsOneWidget` in two tests; there
+are two dropdowns now. Both are scoped to keys rather than weakened to
+`findsWidgets` — the fifth time this repository has met a finder that stopped
+being unique because the screen grew.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

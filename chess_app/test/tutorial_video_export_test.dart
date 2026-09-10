@@ -762,10 +762,18 @@ void main() {
 
     expect(find.text('A narrated export takes longer.'), findsOneWidget);
     expect(find.byKey(const Key('export-voice-synthesised')), findsOneWidget);
-    expect(find.byType(DropdownButton<String>), findsOneWidget,
+    expect(find.byKey(const Key('export-voice-voice')), findsOneWidget,
         reason: 'a synthesised voice is the default where the server has one');
 
-    await tester.tap(find.byType(DropdownButton<String>));
+    // Two languages on offer, so the language is asked first - and the voice
+    // follows it, because a voice of the language nobody chose must not stay
+    // selected. `find.byType` was enough here while the sheet had one dropdown;
+    // it is scoped rather than weakened now that it has two.
+    await tester.tap(find.byKey(const Key('export-voice-language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('de-DE').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-voice-voice')));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('thorsten').last);
     await tester.pumpAndSettle();
@@ -801,18 +809,22 @@ void main() {
 
     await tester.tap(actionOn('Opozicija', 'Export video'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.tap(find.byKey(const Key('export-voice-language')));
     await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('thorsten').last);
+    await tester.tap(find.text('de-DE').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
-    // Second time round, the dialog opens on the voice chosen the first time.
+    // Second time round, the dialog opens on the voice chosen the first time -
+    // and therefore on its language, or the trainer would have to find German
+    // again every time they exported.
     await tester.tap(actionOn('Opozicija', 'Export video'));
     await tester.pumpAndSettle();
+    expect(find.text('de-DE'), findsOneWidget,
+        reason: 'the sheet opens on the language of the remembered voice');
     await tester.tap(find.text('Export'));
     await tester.pumpAndSettle();
 
@@ -821,6 +833,251 @@ void main() {
     final second = jsonDecode(exportRequests.last.body) as Map<String, dynamic>;
     expect(second['voice'], 'de_DE-thorsten-medium',
         reason: 'a trainer chooses their voice once, not once per export');
+  });
+
+  // A cloud account's list, in miniature. The real one answered with 655 voices
+  // across 154 languages on 11.9.2026, which is what these tests are about: one
+  // dropdown of 655 is a list nobody scrolls to the end of.
+  final cloudVoices = <Map<String, dynamic>>[
+    {
+      'id': 'af-ZA-AdriNeural',
+      'name': 'Adri',
+      'language': 'af-ZA',
+      'languageName': 'Afrikaans (South Africa)',
+      'tier': 'Neural',
+    },
+    {
+      'id': 'de-DE-KatjaNeural',
+      'name': 'Katja',
+      'language': 'de-DE',
+      'languageName': 'German (Germany)',
+      'tier': 'Neural',
+    },
+    {
+      'id': 'en-US-JennyNeural',
+      'name': 'Jenny',
+      'language': 'en-US',
+      'languageName': 'English (United States)',
+      'tier': 'Neural',
+    },
+    {
+      'id': 'sr-Latn-RS-NicholasNeural',
+      'name': 'Nicholas',
+      'language': 'sr-Latn-RS',
+      'languageName': 'Serbian (Latin, Serbia)',
+      'tier': 'Neural',
+    },
+    {
+      'id': 'sr-Latn-RS-SophieNeural',
+      'name': 'Sophie',
+      'language': 'sr-Latn-RS',
+      'languageName': 'Serbian (Latin, Serbia)',
+      'tier': 'Neural',
+    },
+  ];
+
+  testWidgets('the voice list is only the language that was chosen',
+      (tester) async {
+    final api = _TestLessonApi(
+      requests: <http.Request>[],
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    // The language a person reads, not the code: „Serbian (Latin, Serbia)" is
+    // the difference between choosing and guessing at `sr-Latn-RS`.
+    await tester.tap(find.byKey(const Key('export-voice-language')));
+    await tester.pumpAndSettle();
+    expect(find.text('Serbian (Latin, Serbia)'), findsWidgets);
+    await tester.tap(find.text('Serbian (Latin, Serbia)').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('export-voice-voice')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Nicholas'), findsWidgets);
+    expect(find.textContaining('Sophie'), findsWidgets);
+    expect(find.textContaining('Katja'), findsNothing,
+        reason: 'a voice of another language is not in this list');
+    expect(find.textContaining('Jenny'), findsNothing);
+  });
+
+  testWidgets('the second voice of a language is the one that is sent',
+      (tester) async {
+    // The filter has to narrow the list and change nothing about what travels:
+    // the request carries the id the trainer picked, not the first of the
+    // language they picked it in.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('export-voice-language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Serbian (Latin, Serbia)').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-voice-voice')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Sophie').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['voice'], 'sr-Latn-RS-SophieNeural');
+  });
+
+  testWidgets('a first export opens on English, not on the top of the list',
+      (tester) async {
+    // The list is sorted by language, so „the first voice" was Afrikaans the
+    // moment a provider answered with 154 of them. A trainer who has chosen
+    // nothing gets the app's own language, and a real voice id in the request
+    // rather than none at all - which a cloud provider refuses outright.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    expect(find.text('English (United States)'), findsOneWidget);
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['voice'], 'en-US-JennyNeural');
+  });
+
+  testWidgets('a remembered voice the server no longer offers is not sent',
+      (tester) async {
+    // What switching TTS_PROVIDER does: every id on the server changes at once,
+    // and the one in this trainer's preferences names a piper model that is no
+    // longer installed. Sending it would be answered with a message about the
+    // voice, and the film would come back silent.
+    SharedPreferences.setMockInitialValues(
+        {'tutorial_video_voice': 'de_DE-thorsten-medium'});
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['voice'], 'en-US-JennyNeural',
+        reason:
+            'the stale id is dropped, and English is where the sheet opens');
+  });
+
+  testWidgets('a voice with no language of its own does not break the sheet',
+      (tester) async {
+    // Reachable, and that is the point of it: this is the state where a value
+    // names no item in the dropdown, which is what `DropdownButton` throws on.
+    // The server's own providers all drop a voice with no language, so nothing
+    // shipped produces this - a proxy, a cache or a hand-written fixture can,
+    // and a red screen in a trainer's face is not the way to find out.
+    SharedPreferences.setMockInitialValues(
+        {'tutorial_video_voice': 'mystery-voice'});
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: [
+        {'id': 'mystery-voice', 'name': 'Mystery'},
+        ...cloudVoices,
+      ],
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['voice'], 'en-US-JennyNeural',
+        reason: 'a voice in no language is not one the sheet can offer');
+  });
+
+  testWidgets('one language on offer is not a question', (tester) async {
+    // The same rule the narration question above follows: an answer that cannot
+    // be chosen is not drawn. A server with one installed voice, or six of one
+    // language, asks about the voice and not about the language.
+    final api = _TestLessonApi(
+      requests: <http.Request>[],
+      ttsAvailable: true,
+      ttsVoices: [
+        {'id': 'en_US-lessac-medium', 'name': 'lessac', 'language': 'en-US'},
+        {'id': 'en_US-amy-medium', 'name': 'amy', 'language': 'en-US'},
+      ],
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('export-voice-language')), findsNothing);
+    expect(find.byKey(const Key('export-voice-voice')), findsOneWidget);
+  });
+
+  testWidgets('both voice controls are reachable on a 360 dp phone',
+      (tester) async {
+    // Measured, not assumed. This sheet has been 49 px too tall for a phone
+    // once already, and a release build clips that without a word - the control
+    // under the fold is not „off screen", it is a tap that presses Export. The
+    // proof is the request: a language and a voice chosen at 360 x 640 arrive
+    // in it.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('export-voice-language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Serbian (Latin, Serbia)').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-voice-voice')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Sophie').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['voice'], 'sr-Latn-RS-SophieNeural');
   });
 
   testWidgets('the studio exports the tutorial it is writing', (tester) async {
@@ -1135,8 +1392,8 @@ void main() {
         reason: 'hiding is not stopping');
 
     // The row shows the render rather than offering a second one.
-    expect(iconButtonOn('Opozicija', 'Rendering — show progress'),
-        findsOneWidget);
+    expect(
+        iconButtonOn('Opozicija', 'Rendering — show progress'), findsOneWidget);
     expect(iconButtonOn('Opozicija', 'Export video'), findsNothing);
 
     // And nothing goes on asking once the bar is gone.
