@@ -186,6 +186,8 @@ async function initDB() {
       ADD COLUMN IF NOT EXISTS narration_markers JSONB;
       ALTER TABLE saved_lessons
       ADD COLUMN IF NOT EXISTS narration_recorded_at TIMESTAMP;
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS narration_take_id VARCHAR(64);
     `);
     logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 

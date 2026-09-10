@@ -20,6 +20,8 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
+import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -67,6 +69,10 @@ Future<bool> exportTutorialVideo({
   required int lessonId,
   required String title,
   required TutorialDraft draft,
+
+  /// Where this device keeps recorded takes. Null means the app's own place;
+  /// tests hand in a directory.
+  NarrationTakeStore? narrationStore,
 }) async {
   final video = tutorialVideoOf(draft);
 
@@ -81,6 +87,21 @@ Future<bool> exportTutorialVideo({
     );
     return false;
   }
+
+  // The trainer's own recording, if this device has one for this tutorial —
+  // judged here the way the server will judge it, so a take that cannot be used
+  // is explained beside the switch rather than refused after an upload.
+  //
+  // **Started, not awaited.** The dialog opens at once and the row appears when
+  // the answer does, a few milliseconds later. Awaiting it put a platform call
+  // for the app's folder in front of the dialog, and a dialog that waits on a
+  // folder it may not need is one that does not open when that call does not
+  // return — which is exactly what a widget test's clock does to it.
+  final recording = _recordingFor(
+    narrationStore ?? deviceNarrationStore(),
+    lessonId,
+    video.events.length,
+  );
 
   // Asked before anything is drawn on screen: a switch the server cannot honour
   // must not be offered, and a trainer who turns narration on and waits two
@@ -110,6 +131,7 @@ Future<bool> exportTutorialVideo({
   // trainers do not have.
   final chosen = await _askAboutExport(
     context: context,
+    recording: recording,
     voices: canSpeak ? tts.voices : const [],
     narrate: narrate,
     voice: voice,
@@ -134,6 +156,21 @@ Future<bool> exportTutorialVideo({
     if (voice != null) await prefs.setString(_voiceKey, voice);
   }
 
+  // Sent once per take: the server keeps the take's id beside the file, so the
+  // export of a tutorial whose recording is already there sends only the
+  // request.
+  final mine = chosen.recording;
+  if (mine != null) {
+    if (!context.mounted) return false;
+    final sent = await _sendRecordingIfNeeded(
+      context: context,
+      api: api,
+      lessonId: lessonId,
+      stored: mine,
+    );
+    if (!sent) return false;
+  }
+
   if (!context.mounted) return false;
   final look = _lookOf(context);
 
@@ -152,8 +189,12 @@ Future<bool> exportTutorialVideo({
     look: look,
     resolution: hd ? _highResolution : _standardResolution,
     jobId: jobId,
-    narrate: canSpeak ? narrate : null,
-    voice: canSpeak ? voice : null,
+    // The recording and a synthesised voice are two answers to one question,
+    // and a film is never sent both.
+    narrate: mine == null && canSpeak ? narrate : null,
+    voice: mine == null && canSpeak ? voice : null,
+    useRecording: mine == null ? null : true,
+    takeId: mine?.takeId,
   );
 
   final result = await _showProgressWhile(
@@ -448,10 +489,125 @@ Future<void> _showPreview({
 }
 
 class _ExportChoice {
-  const _ExportChoice(this.narrate, this.voice, this.hd);
+  const _ExportChoice(this.narrate, this.voice, this.hd, this.recording);
   final bool narrate;
   final String? voice;
   final bool hd;
+
+  /// The trainer's own take, when that is the voice chosen — the take itself
+  /// rather than a yes, so what is sent is what the dialog showed.
+  final StoredNarration? recording;
+}
+
+/// A take on this device, and whether a film can be made of it.
+class _Recording {
+  const _Recording.usable(StoredNarration this.stored) : unusable = null;
+  const _Recording.unusable(String this.unusable) : stored = null;
+  final StoredNarration? stored;
+  final String? unusable;
+}
+
+/// This tutorial's take on this device, or null when there is none — or no
+/// directory to look in, which is not this dialog's fault to report.
+Future<_Recording?> _recordingFor(
+    NarrationTakeStore store, int lessonId, int beats) async {
+  final NarrationLoad load;
+  try {
+    load = await store.load(lessonId);
+  } catch (e) {
+    debugPrint('[Export] Could not look for a recording: $e');
+    return null;
+  }
+  if (load.unreadable) {
+    return const _Recording.unusable(
+        'Your recording on this device could not be read. Record it again.');
+  }
+  final stored = load.stored;
+  if (stored == null) return null;
+
+  final take = stored.take;
+  if (!take.heardAnything) {
+    return const _Recording.unusable(
+        'Your recording is silent — nothing reached the microphone. Record '
+        'it again.');
+  }
+  if (take.eventCount != beats) {
+    return _Recording.unusable(
+        'Your recording was made when the tutorial had ${take.eventCount} '
+        'beats, and it has $beats now. Record it again.');
+  }
+  if (!take.isComplete) {
+    return _Recording.unusable(
+        'Your recording stops at beat ${take.markersMs.length} of '
+        '${take.eventCount}. Record it again to the end.');
+  }
+  return _Recording.usable(stored);
+}
+
+/// Uploads [stored] unless the server already holds this very take.
+///
+/// Asked by the take's id rather than remembered on this device: the server
+/// may have lost it, another device may have replaced it, and „I sent it once"
+/// is the version of this that goes stale. When the server cannot be asked the
+/// take is sent — a second upload replaces the first and costs bandwidth, where
+/// guessing wrong the other way costs a film without the voice.
+Future<bool> _sendRecordingIfNeeded({
+  required BuildContext context,
+  required LessonApiService api,
+  required int lessonId,
+  required StoredNarration stored,
+}) async {
+  final local = stored.takeId;
+  final onServer = await api.serverTakeId(lessonId);
+  if (local != null && onServer == local) return true;
+  if (!context.mounted) return false;
+
+  final dialog = showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Uploading your recording'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const LinearProgressIndicator(minHeight: 6),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            '${narrationClockOf(stored.take.durationMs)} of audio. It is sent '
+            'once for each recording.',
+            style: AppText.body.copyWith(color: ctx.colors.textSecondary),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  final NarrationUploadResult result;
+  try {
+    result = await api.uploadNarration(
+      lessonId: lessonId,
+      audioPath: stored.audioPath,
+      markersMs: stored.take.markersMs,
+      durationMs: stored.take.durationMs,
+      beats: stored.take.eventCount,
+      takeId: local,
+    );
+  } finally {
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+      await dialog;
+    }
+  }
+
+  if (!result.ok) {
+    if (context.mounted) {
+      AppFeedback.error(
+          context, result.error ?? 'Your recording could not be uploaded.');
+    }
+    return false;
+  }
+  return true;
 }
 
 /// What to ask before a render: the voice, where there is one, and the quality.
@@ -461,6 +617,11 @@ class _ExportChoice {
 /// The sheet still opens, because the quality is a choice everywhere.
 Future<_ExportChoice?> _askAboutExport({
   required BuildContext context,
+
+  /// The lookup for this device's take: offered when it can be used, explained
+  /// when it cannot, and neither while the lookup has not answered or found
+  /// nothing.
+  required Future<_Recording?> recording,
   required List<Map<String, dynamic>> voices,
   required bool narrate,
   required String? voice,
@@ -475,125 +636,187 @@ Future<_ExportChoice?> _askAboutExport({
   var chosen = voice;
   var wantsHd = hd;
   var previewing = false;
+  // The take, once the lookup answers. On by default where there is one to
+  // use: a trainer who recorded their voice over a tutorial and exports it
+  // wants that voice.
+  _Recording? found;
+  var useMine = false;
+  void Function(void Function())? refresh;
+  var closed = false;
+  unawaited(recording.then((answer) {
+    if (closed) return;
+    found = answer;
+    useMine = answer?.stored != null;
+    refresh?.call(() {});
+  }));
 
   return showDialog<_ExportChoice>(
     context: context,
     builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setLocal) => AlertDialog(
-        title: const Text('Export video'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (voices.isNotEmpty)
+      builder: (ctx, setLocal) {
+        refresh = setLocal;
+        return AlertDialog(
+          title: const Text('Export video'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (found?.stored != null) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                          'Use my recording '
+                          '(${narrationClockOf(found!.stored!.take.durationMs)})',
+                          style: AppText.bodyBold
+                              .copyWith(color: ctx.colors.textPrimary)),
+                    ),
+                    Switch(
+                      key: const Key('export-use-recording'),
+                      value: useMine,
+                      activeThumbColor: ctx.colors.accent,
+                      onChanged: (v) => setLocal(() => useMine = v),
+                    ),
+                  ],
+                ),
+                Text(
+                  useMine
+                      ? 'Your own voice, and the board moves where you pressed '
+                          'Space.'
+                      : 'The video goes out without your recording.',
+                  style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+                ),
+              ],
+              if (found?.unusable != null)
+                Row(
+                  key: const Key('export-recording-unusable'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: ctx.colors.warning, size: 18),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(found!.unusable!,
+                          style: AppText.body
+                              .copyWith(color: ctx.colors.textPrimary)),
+                    ),
+                  ],
+                ),
+              if (found != null && voices.isNotEmpty && !useMine)
+                const Divider(),
+              if (voices.isNotEmpty && !useMine)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Narrate this video',
+                          style: AppText.bodyBold
+                              .copyWith(color: ctx.colors.textPrimary)),
+                    ),
+                    Switch(
+                      value: wants,
+                      activeThumbColor: ctx.colors.accent,
+                      onChanged: (v) => setLocal(() => wants = v),
+                    ),
+                  ],
+                ),
+              if (voices.isNotEmpty && wants && !useMine) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Row(
+                  children: [
+                    Text('Voice',
+                        style: AppText.body
+                            .copyWith(color: ctx.colors.textSecondary)),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: chosen,
+                          dropdownColor: ctx.colors.surface,
+                          items: [
+                            for (final v in voices)
+                              DropdownMenuItem<String>(
+                                value: (v['id'] ?? v['name'])?.toString() ?? '',
+                                child: Text(
+                                  _voiceLabel(v),
+                                  style: AppText.body
+                                      .copyWith(color: ctx.colors.textPrimary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged: (v) => setLocal(() => chosen = v),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text('A narrated export takes longer.',
+                    style:
+                        AppText.caption.copyWith(color: ctx.colors.textMuted)),
+              ],
+              if (found != null || voices.isNotEmpty) const Divider(),
               Row(
                 children: [
                   Expanded(
-                    child: Text('Narrate this video',
+                    child: Text('Higher quality (1080p)',
                         style: AppText.bodyBold
                             .copyWith(color: ctx.colors.textPrimary)),
                   ),
                   Switch(
-                    value: wants,
+                    value: wantsHd,
                     activeThumbColor: ctx.colors.accent,
-                    onChanged: (v) => setLocal(() => wants = v),
+                    onChanged: (v) => setLocal(() => wantsHd = v),
                   ),
                 ],
               ),
-            if (voices.isNotEmpty && wants) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Row(
-                children: [
-                  Text('Voice',
-                      style: AppText.body
-                          .copyWith(color: ctx.colors.textSecondary)),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: chosen,
-                        dropdownColor: ctx.colors.surface,
-                        items: [
-                          for (final v in voices)
-                            DropdownMenuItem<String>(
-                              value: (v['id'] ?? v['name'])?.toString() ?? '',
-                              child: Text(
-                                _voiceLabel(v),
-                                style: AppText.body
-                                    .copyWith(color: ctx.colors.textPrimary),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                        ],
-                        onChanged: (v) => setLocal(() => chosen = v),
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                wantsHd
+                    ? 'For YouTube or a projector. Slower to render, larger file.'
+                    : '720p, which is what a video watched on a phone wants.',
+                style: AppText.caption.copyWith(color: ctx.colors.textMuted),
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Text('A narrated export takes longer.',
-                  style: AppText.caption.copyWith(color: ctx.colors.textMuted)),
             ],
-            if (voices.isNotEmpty) const Divider(),
-            Row(
-              children: [
-                Expanded(
-                  child: Text('Higher quality (1080p)',
-                      style: AppText.bodyBold
-                          .copyWith(color: ctx.colors.textPrimary)),
-                ),
-                Switch(
-                  value: wantsHd,
-                  activeThumbColor: ctx.colors.accent,
-                  onChanged: (v) => setLocal(() => wantsHd = v),
-                ),
-              ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
             ),
-            Text(
-              wantsHd
-                  ? 'For YouTube or a projector. Slower to render, larger file.'
-                  : '720p, which is what a video watched on a phone wants.',
-              style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+            // **Before the render, not after it.** A film costs tens of seconds
+            // of the one render slot, and until this the only way to find out
+            // that a part stood the wrong way round, or that a sentence is too
+            // long for the caption band, was to render the whole thing.
+            TextButton.icon(
+              key: const Key('export-preview'),
+              icon: const Icon(Icons.image_outlined),
+              label: const Text('Preview'),
+              onPressed: previewing
+                  ? null
+                  : () async {
+                      setLocal(() => previewing = true);
+                      try {
+                        await onPreview(wantsHd);
+                      } finally {
+                        // The sheet is still the one the trainer is standing in, so it
+                        // is still the one that has to stop saying „…".
+                        if (ctx.mounted) setLocal(() => previewing = false);
+                      }
+                    },
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                  ctx,
+                  _ExportChoice(
+                      wants, chosen, wantsHd, useMine ? found?.stored : null)),
+              child: const Text('Export'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          // **Before the render, not after it.** A film costs tens of seconds
-          // of the one render slot, and until this the only way to find out
-          // that a part stood the wrong way round, or that a sentence is too
-          // long for the caption band, was to render the whole thing.
-          TextButton.icon(
-            key: const Key('export-preview'),
-            icon: const Icon(Icons.image_outlined),
-            label: const Text('Preview'),
-            onPressed: previewing
-                ? null
-                : () async {
-                    setLocal(() => previewing = true);
-                    try {
-                      await onPreview(wantsHd);
-                    } finally {
-                      // The sheet is still the one the trainer is standing in, so it
-                      // is still the one that has to stop saying „…".
-                      if (ctx.mounted) setLocal(() => previewing = false);
-                    }
-                  },
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(ctx, _ExportChoice(wants, chosen, wantsHd)),
-            child: const Text('Export'),
-          ),
-        ],
-      ),
+        );
+      },
     ),
-  );
+  ).whenComplete(() => closed = true);
 }
 
 /// „en_US-lessac-medium" reads as „en-US · lessac (medium)".

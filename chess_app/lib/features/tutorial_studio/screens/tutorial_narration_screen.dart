@@ -19,16 +19,15 @@
 //     refuses a beat the clock has not moved past, which is the second line of
 //     defence and the only one a fast double press meets.
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_player.dart';
+import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/record_pcm_source.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
@@ -46,12 +45,6 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 /// fires for the muted Windows microphone the spike met and not for somebody
 /// thinking between two sentences.
 const int silenceWarningMs = 3000;
-
-/// „1:07" — a take's length, or where it is.
-String narrationClockOf(int ms) {
-  final seconds = ms ~/ 1000;
-  return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
-}
 
 /// „ · 42 s left" in the last minute before a take stops itself, and nothing
 /// before that: a countdown for the whole take would be a clock nobody asked
@@ -72,11 +65,6 @@ String _dateOf(DateTime at) {
   final hh = at.hour.toString().padLeft(2, '0');
   final mm = at.minute.toString().padLeft(2, '0');
   return '${at.day} ${_months[at.month - 1]} ${at.year}, $hh:$mm';
-}
-
-Future<Directory> _narrationRoot() async {
-  final support = await getApplicationSupportDirectory();
-  return Directory('${support.path}${Platform.pathSeparator}narration');
 }
 
 const _silentWhileRecording =
@@ -130,8 +118,7 @@ class TutorialNarrationScreen extends StatefulWidget {
 
 class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
   late final List<FilmBeat> _stops = filmBeatsOf(widget.draft);
-  late final NarrationTakeStore _store =
-      widget.store ?? NarrationTakeStore(_narrationRoot);
+  late final NarrationTakeStore _store = widget.store ?? deviceNarrationStore();
   final ChessBoardController _board = ChessBoardController();
   final FocusNode _keys = FocusNode(debugLabel: 'narration-keys');
 

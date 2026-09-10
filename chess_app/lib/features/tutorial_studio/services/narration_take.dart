@@ -68,6 +68,13 @@ const int narrationMaxMs = 15 * 60 * 1000;
 /// A second is several chunks of margin and costs the trainer nothing.
 const int narrationStopAtMs = narrationMaxMs - 1000;
 
+/// „1:07" — a take's length, or where it is. Here rather than on the screen
+/// because the export dialog says it too.
+String narrationClockOf(int ms) {
+  final seconds = ms ~/ 1000;
+  return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+}
+
 /// The loudest sample in [pcm], in dBFS.
 double peakDbfsOf(Uint8List pcm) {
   final data = ByteData.sublistView(pcm);
@@ -477,6 +484,12 @@ class StoredNarration {
   const StoredNarration({required this.take, required this.audioPath});
   final NarrationTake take;
   final String audioPath;
+
+  /// The random part of `take-<id>.wav`. The server keeps it beside the
+  /// recording, so the app can tell whether the take there is this one without
+  /// sending it again.
+  String? get takeId =>
+      RegExp(r'take-([0-9a-f]+)\.wav$').firstMatch(audioPath)?.group(1);
 }
 
 /// The answer to „does this tutorial have a take here", which has three.
@@ -515,11 +528,14 @@ class NarrationTakeStore {
 
   static const _index = 'take.json';
 
-  Future<Directory> _dirOf(int lessonId) async {
+  /// Only recording creates the folder. Looking for a take — which every
+  /// export does — must not leave an empty folder behind for every tutorial
+  /// that was ever exported.
+  Future<Directory> _dirOf(int lessonId, {bool create = true}) async {
     final root = await _root();
     final dir =
         Directory('${root.path}${Platform.pathSeparator}lesson_$lessonId');
-    if (!dir.existsSync()) dir.createSync(recursive: true);
+    if (create && !dir.existsSync()) dir.createSync(recursive: true);
     return dir;
   }
 
@@ -568,7 +584,7 @@ class NarrationTakeStore {
 
   /// This tutorial's take, checked against its own audio before it is trusted.
   Future<NarrationLoad> load(int lessonId) async {
-    final dir = await _dirOf(lessonId);
+    final dir = await _dirOf(lessonId, create: false);
     final sep = Platform.pathSeparator;
     final index = File('${dir.path}$sep$_index');
     if (!index.existsSync()) return const NarrationLoad.none();
@@ -602,7 +618,7 @@ class NarrationTakeStore {
 
   /// Deletes this tutorial's take. Only ever somebody's explicit act.
   Future<void> delete(int lessonId) async {
-    final dir = await _dirOf(lessonId);
+    final dir = await _dirOf(lessonId, create: false);
     if (dir.existsSync()) dir.deleteSync(recursive: true);
   }
 }

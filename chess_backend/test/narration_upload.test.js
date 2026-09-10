@@ -224,8 +224,9 @@ async function withRoute({ owns = true, birthYear = 1980, replaced = null, onUpd
   }
 }
 
-function formOf({ audio, markers = [0, 400], durationMs = 1000, beats = 2 }) {
+function formOf({ audio, markers = [0, 400], durationMs = 1000, beats = 2, takeId }) {
   const form = new FormData();
+  if (takeId !== undefined) form.append('takeId', takeId);
   form.append('markersMs', JSON.stringify(markers));
   form.append('durationMs', String(durationMs));
   form.append('beats', String(beats));
@@ -404,4 +405,112 @@ test('nothing under uploads/narration is served, however it is spelt', async () 
   assert.equal(isPrivateUpload('/narration/x.wav'), true);
   assert.equal(isPrivateUpload('/%E0%A4%A'), true, 'a path that does not decode is not guessed about');
   assert.equal(isPrivateUpload('/recording_1.aac'), false);
+});
+
+// ---------------------------------------------------------------- phase 4
+
+test('a take keeps its id, and a name that is not one is refused', async () => {
+  clearKept();
+  const kept = await withRoute({}, formOf({ audio: wavOf({ ms: 1000 }), takeId: 'ab12cd34ef567890' }));
+  assert.equal(kept.status, 201, JSON.stringify(kept.body));
+  assert.equal(kept.body.narration.takeId, 'ab12cd34ef567890');
+  const update = kept.queries.find((q) => /UPDATE saved_lessons/.test(q.sql));
+  assert.equal(update.values[5], 'ab12cd34ef567890');
+
+  clearKept();
+  const refused = await withRoute({}, formOf({ audio: wavOf({ ms: 1000 }), takeId: '../../x' }));
+  assert.equal(refused.status, 400);
+  assert.deepEqual(filesKept(), []);
+});
+
+test('the server says which take it holds, and says none plainly', async () => {
+  const layer = lessonsRouter.stack.find(
+    (l) => l.route && l.route.path === '/:id/narration' && l.route.methods.get,
+  );
+  assert.ok(layer, 'GET /:id/narration must be mounted');
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle;
+
+  async function ask(rows) {
+    const original = db.pool.query;
+    db.pool.query = async () => ({ rows, rowCount: rows.length });
+    const res = {
+      statusCode: 200,
+      body: null,
+      status(code) { this.statusCode = code; return this; },
+      json(payload) { this.body = payload; return this; },
+    };
+    try {
+      await handler({ params: { id: '12' }, user: { id: 4 } }, res);
+    } finally {
+      db.pool.query = original;
+    }
+    return res;
+  }
+
+  const notYours = await ask([]);
+  assert.equal(notYours.statusCode, 404);
+
+  const none = await ask([{ narration_filename: null }]);
+  assert.equal(none.statusCode, 200);
+  assert.deepEqual(none.body, { status: 'none' });
+
+  const ready = await ask([{
+    narration_filename: 'narration_12_x.wav',
+    narration_ms: 9100,
+    narration_markers: [0, 3500, 7000],
+    narration_take_id: 'ab12',
+    narration_recorded_at: 't',
+  }]);
+  assert.equal(ready.body.status, 'ready');
+  assert.equal(ready.body.takeId, 'ab12');
+  assert.equal(ready.body.beats, 3);
+  assert.equal(ready.body.filename, undefined, 'the file stays the server\'s business');
+});
+
+const FILM = [
+  { timestampMs: 0, eventType: 'init', data: { fen: 'a', text: 'One.' } },
+  { timestampMs: 2000, eventType: 'move', data: { fen: 'b' } },
+  { timestampMs: 4000, eventType: 'move', data: { fen: 'c' } },
+];
+
+function storedTake(name = 'narration_12_00000000000000cc.wav') {
+  fs.writeFileSync(path.join(NARRATION_DIR, name), 'a take');
+  return {
+    narration_filename: name,
+    narration_ms: 9100,
+    narration_markers: [0, 3500, 7000],
+    narration_take_id: 'ab12',
+  };
+}
+
+test('a recording retimes the film: each beat where it was spoken', () => {
+  const row = storedTake();
+  const judged = narrationUpload.recordingForFilm({ row, takeId: 'ab12', events: FILM });
+
+  assert.equal(judged.ok, true, judged.error);
+  assert.deepEqual(judged.events.map((e) => e.timestampMs), [0, 3500, 7000]);
+  assert.deepEqual(judged.events.map((e) => e.data.spokenMs), [3500, 3500, 2100],
+    'each caption is revealed across the time actually spent on its beat');
+  assert.equal(judged.seconds, 10);
+  assert.equal(judged.audioPath, path.join(NARRATION_DIR, row.narration_filename));
+  assert.equal(judged.events[0].data.text, 'One.');
+  assert.equal(FILM[1].timestampMs, 2000, 'the request\'s own events were rewritten in place');
+  assert.equal(FILM[1].data.spokenMs, undefined);
+});
+
+test('a recording that does not fit this film is refused, each for its own reason', () => {
+  const row = storedTake();
+  const cases = [
+    [{ row: null }, 'none'],
+    [{ row: { ...row, narration_filename: null } }, 'none'],
+    [{ row, takeId: 'ffff' }, 'other'],
+    [{ row, events: FILM.slice(0, 2) }, 'beats'],
+    [{ row: { ...row, narration_filename: 'narration_12_gone.wav' } }, 'gone'],
+  ];
+  for (const [options, code] of cases) {
+    const judged = narrationUpload.recordingForFilm({ takeId: 'ab12', events: FILM, ...options });
+    assert.equal(judged.ok, false, `${code} was accepted`);
+    assert.equal(judged.code, code);
+    assert.ok(judged.error.length > 20, `${code} has no sentence`);
+  }
 });

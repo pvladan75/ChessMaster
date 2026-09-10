@@ -4966,3 +4966,32 @@ urađeno. Samo Windows — studio ne postoji na Androidu.
     (`getApplicationSupportDirectory`), podfolder `narration\lesson_<id>`, stoji
     jedan `take-….wav` i `take.json`. Wav se otvara u običnom plejeru, a
     `ffprobe` daje isto trajanje koje piše na ekranu.
+
+## 139. Video u trenerovom glasu — 10.9.2026, nije viđeno uživo
+
+Faze 3 i 4 iz `docs/PLAN-SNIMANJE.md`: snimak odlazi na server pri izvozu, i
+film se crta po markerima snimka umesto po procenjenoj brzini čitanja. Pretpostavlja
+stavku 138 (snimak postoji na uređaju).
+
+1. [ ] **Prekidač.** Posle celog snimka, „Export video" u studiju ili u „Sačuvani
+   tutorijali": prvi red je „Use my recording (m:ss)" i **uključen je**.
+2. [ ] **Prvi izvoz.** Pojavi se „Uploading your recording", pa traka
+   renderovanja. Film ima tvoj glas, a tabla se menja tamo gde si pritiskao
+   razmak — proveri početak, sredinu i **poslednja tri takta**.
+3. [ ] **Drugi izvoz bez novog snimka.** Nema „Uploading" — server već ima baš
+   taj snimak.
+4. [ ] **Novi snimak, pa izvoz.** „Uploading" se opet pojavi, i film ima novi
+   glas.
+5. [ ] **Isključen prekidač.** Film ide bez tvog glasa — tih, ili sintetizovan
+   ako server ima piper — a **nikad sa oba**.
+6. [ ] **Izmenjen tutorijal.** Dodaj potez, pa „Export video": umesto prekidača
+   stoji „Your recording was made when the tutorial had N beats…".
+7. [ ] **Brisanje.** Obriši tutorijal iz biblioteke: fajl u
+   `chess_backend/uploads/narration/` nestaje.
+8. [ ] **Nije javno.** `…/uploads/narration/<ime>.wav` u pregledaču daje 404.
+9. [ ] **Petnaest minuta.** Snimanje blizu granice samo stane na 14:59 i kaže
+   zašto; izvoz tog snimka prolazi.
+
+Poznato i otvoreno: brisanje tutorijala **ne briše snimak na uređaju**, samo na
+serveru.
+

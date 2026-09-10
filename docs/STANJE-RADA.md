@@ -15,9 +15,10 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **10.9.2026** — faze 1, 2 i 3 plana snimanja su u kodu
-(„Snimanje glasa: faza 3" i „… faze 1 i 2" odmah ispod), a „ODAKLE SUTRA —
-10.9.2026, video i snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
+Poslednje ažuriranje: **10.9.2026** — faze 1 do 5 plana snimanja su u kodu:
+trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
+kojim taktovima pripada („Snimanje glasa: faza 5" i „faza 4" niže), a „ODAKLE
+SUTRA — 10.9.2026, video i snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
 pregled pre renderovanja, jedan film po tutorijalu sa linkom na zahtev,
 pravednost reda po nalogu, i zatvorena faza 0 plana snimanja.
 
@@ -25,6 +26,55 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Snimanje glasa: faza 4, video u trenerovom glasu — 10.9.2026, nije viđeno uživo
+
+U „Export video" prvi red je sada **„Use my recording (m:ss)"**, uključen kad
+uređaj ima upotrebljiv snimak tog tutorijala. Aplikacija pita server koji snimak
+ima (`GET /lessons/:id/narration`), šalje ga **samo ako server nema baš taj**, i
+server crta film po markerima snimka: takt počinje tamo gde je trener pritisnuo
+razmak, natpis se otkriva kroz vreme koje je stvarno proveo na tom taktu, a zvuk
+se ubacuje kakav jeste. Provera uživo: `TODO-provera.md`, stavka **139** — ovo
+je prva faza koju vlasnik može da pritisne, pa je i faza 3 tek sad vidljiva.
+
+Snimak koji ne može da napravi ovaj film se **objasni umesto prekidača**
+(nem, nedovršen, ili snimljen kad je tutorijal imao drugi broj taktova). Kad je
+prekidač uključen, redovi za sintetizovani glas se ne crtaju — film nikad ne ide
+sa oba glasa. Server na isto pitanje odgovara pre reda za renderovanje: nema
+snimka, drugi snimak, drugi broj taktova, ili fajl nestao — četiri 409 sa četiri
+rečenice, bez potrošenog slota.
+
+Tri stvari vredi zapamtiti.
+
+**Snimak je stajao pored koda koji briše zvuk.** Ruta za izvoz u `finally`
+briše `narrationAudioPath` — sintetizovanu traku — kad se film nacrta. Da je
+snimak prošao kroz tu promenljivu, jedan izvoz bi zauvek obrisao trenerov glas.
+Ide samo kao `audioFilePath`, a test proverava da je fajl i dalje tu posle
+izvoza; mutacija koja ga provlači kroz pogrešnu promenljivu pada.
+
+**Dijalog koji čeka platformu je dijalog koji se ne otvara.** Prva verzija je
+čekala da nađe snimak pre nego što otvori dijalog, a `path_provider` na Windowsu
+pravi folder pravim asinhronim I/O-om, koji lažni sat widget testa nikad ne
+pusti da se završi — dvanaest postojećih testova izvoza prestalo je da vidi
+dijalog. Sada se dijalog otvara odmah, a red se pojavi kad stigne odgovor;
+kasni odgovor posle zatvorenog dijaloga ne dira ništa (i to ima test). Slanje
+čita fajl ceo, iz istog razloga.
+
+**Dve mutacije bi preživele iz pogrešnog razloga, i nađene su pre pokretanja.**
+„Nikad oba glasa" nije moglo da se vidi dok lažni server nije umeo da govori,
+jer tada `narrate` ionako nikad nije u zahtevu; a „film u trenerovom glasu je
+označen kao ozvučen" proveravao je jedini test koji šalje i `narrate: true`, što
+zastavicu postavlja samo po sebi. Oba testa su popravljena pre nego što je
+skripta pokrenuta, i svih 22 mutacija pada.
+
+Otvoreno: faza 5 (potpis umesto broja taktova), i brisanje **lokalnog** snimka
+kad se tutorijal obriše.
+
+Brojke: **1846 u aplikaciji (1 preskočen), 1121 na backendu** sa `.env`
+sklonjenim u stranu, `flutter analyze` na 29 info poruka; sve mereno jedno za
+drugim, bez ičeg drugog pokrenutog.
 
 ---
 

@@ -17,6 +17,9 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-signing-0123456789';
+// A recording is read from here by a recorded export; never the real uploads/.
+const NARRATION_DIR = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'export-narration-'));
+process.env.NARRATION_DIR = NARRATION_DIR;
 
 const db = require('../db');
 const lessonsRouter = require('../routes/lessons');
@@ -64,6 +67,8 @@ async function run({
   narrateResult = null,
   previousVideo = null,
   narrateError = null,
+  // The tutorial's stored recording, for an export that asks for it.
+  narrationRow = null,
 } = {}) {
   const queries = [];
   const originalQuery = db.pool.query;
@@ -106,6 +111,9 @@ async function run({
     // be removed once the row names the new one.
     if (/SELECT video_filename FROM saved_lessons/i.test(text)) {
       return { rows: [{ video_filename: previousVideo }], rowCount: 1 };
+    }
+    if (/SELECT narration_filename, narration_ms, narration_markers, narration_take_id/i.test(text)) {
+      return { rows: narrationRow ? [narrationRow] : [], rowCount: narrationRow ? 1 : 0 };
     }
     if (/INSERT INTO usage_counters/i.test(text)) {
       return { rows: [{ used: values[3] }], rowCount: 1 };
@@ -770,3 +778,68 @@ test('a trainer at their own share is told so, and not that the server is busy',
       renderQueue.run = originalRun;
     }
   });
+
+// ------------------------------------------ phase 4: the trainer's own voice
+//
+// The export with a recording is the one place a trainer's voice — which exists
+// nowhere else — is handed to code that deletes audio files when it is done.
+
+function keptRecording(name) {
+  fs.writeFileSync(path.join(NARRATION_DIR, name), 'a trainer\'s voice');
+  return {
+    narration_filename: name,
+    narration_ms: 7300,
+    narration_markers: [0, 4100],
+    narration_take_id: 'ab12',
+  };
+}
+
+function recordedBody(extra = {}) {
+  return { events: VALID_EVENTS, seconds: 4, title: 'x', useRecording: true, takeId: 'ab12', ...extra };
+}
+
+test('a recorded export is drawn on the recording\'s own timing, with its audio', async () => {
+  const row = keptRecording('narration_15_00000000000000dd.wav');
+  const { res, renderCalls, narrateCalls, queries } = await run({
+    body: recordedBody({ narrate: true }),
+    narrationRow: row,
+  });
+
+  assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+  assert.strictEqual(narrateCalls.length, 0, 'a synthesised voice was asked for over a recording');
+  const call = renderCalls[0];
+  assert.strictEqual(call.audioFilePath, path.join(NARRATION_DIR, row.narration_filename));
+  assert.deepStrictEqual(call.timelineEvents.map((e) => e.timestampMs), [0, 4100]);
+  assert.deepStrictEqual(call.timelineEvents.map((e) => e.data.spokenMs), [4100, 3200]);
+  assert.strictEqual(call.durationSeconds, 8);
+
+  const recorded = queries.find((q) => /UPDATE saved_lessons/i.test(q.text) && /video_filename/.test(q.text));
+  assert.strictEqual(recorded.values[3], true, 'a film in the trainer\'s voice is a narrated film');
+});
+
+test('the recording survives the export that used it', async () => {
+  const row = keptRecording('narration_15_00000000000000ee.wav');
+  const { res, queries } = await run({ body: recordedBody(), narrationRow: row });
+  assert.strictEqual(res.statusCode, 200);
+  // Asked here, with no synthesised voice in the request, because the test
+  // above also sends `narrate: true` — which would set the flag on its own.
+  const recorded = queries.find((q) => /UPDATE saved_lessons/i.test(q.text) && /video_filename/.test(q.text));
+  assert.strictEqual(recorded.values[3], true, 'a film in the trainer\'s voice is a narrated film');
+  assert.ok(fs.existsSync(path.join(NARRATION_DIR, row.narration_filename)),
+    'the export deleted the trainer\'s voice with the synthesised track');
+});
+
+test('a recording that does not fit is refused before the queue, and nothing is drawn', async () => {
+  const row = keptRecording('narration_15_00000000000000ff.wav');
+  const cases = [
+    [{ body: recordedBody({ takeId: 'ffff' }), narrationRow: row }, 'other'],
+    [{ body: recordedBody({ events: [VALID_EVENTS[0]] }), narrationRow: row }, 'beats'],
+    [{ body: recordedBody(), narrationRow: null }, 'none'],
+  ];
+  for (const [options, code] of cases) {
+    const { res, renderCalls } = await run(options);
+    assert.strictEqual(res.statusCode, 409, code);
+    assert.strictEqual(res.body.recording, code);
+    assert.strictEqual(renderCalls.length, 0, `${code} was drawn anyway`);
+  }
+});

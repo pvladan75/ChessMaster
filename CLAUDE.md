@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1766 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1873 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 985 tests, all green
+cd chess_backend && npm test          # node --test, 1126 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1295,6 +1295,32 @@ guard existed for.
 **„NOT APPLIED" is not „caught".** Three mutations never touched the file,
 because `routes/lessons.js` has CRLF line endings and the patterns asked for
 `\n`. A harness that only counted red runs would have reported them as proof.
+
+**Phase 4 the same day — a film in the trainer's voice — 1846 in the app with 1
+skipped, 1121 on the backend**, measured one after the other with nothing else
+running; analyze at 29 infos. The export dialog offers the device's own take,
+uploads it only when the server holds a different one, and the server draws the
+film on the take's markers. Twenty-two mutations, all caught. Live check:
+`TODO-provera.md`, item 139.
+
+**Look at what a new path sits next to.** The export route's `finally` deletes
+`narrationAudioPath`, the synthesised track, once a film is drawn. Routing a
+trainer's recording through that variable — the obvious reuse — would have
+deleted the only copy of their voice on the first export. It travels as
+`audioFilePath` alone, and a test asserts the file is still there afterwards.
+
+**A dialog that awaits the platform is a dialog that does not open in a test.**
+Awaiting the take lookup before the export dialog put `path_provider` in front of
+it, and on Windows that is real asynchronous I/O the fake clock never finishes:
+twelve existing export tests stopped seeing the dialog. It opens at once now and
+the row arrives with the answer — which is also better for a trainer — and a
+late answer after the dialog is gone touches nothing, with a test.
+
+**Read a test for the mutation that would survive it before running the
+mutation.** Two would have: „never both voices" against a fake server that could
+not speak, so `narrate` was absent either way, and „a recorded film is marked
+narrated" checked only in the one test that also sent `narrate: true`. Both were
+fixed before the script ran.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

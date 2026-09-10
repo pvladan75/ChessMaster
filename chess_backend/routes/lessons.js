@@ -408,6 +408,12 @@ async function saveNarration(req, res) {
   }
   const lessonId = Number.parseInt(req.params.id, 10);
 
+  const takeId = typeof req.body.takeId === 'string' && req.body.takeId !== '' ? req.body.takeId : null;
+  if (takeId !== null && !narrationUpload.TAKE_ID.test(takeId)) {
+    narrationUpload.removeQuietly(file.path);
+    return res.status(400).json({ error: 'The recording arrived with a name this server does not accept. Upload it again.' });
+  }
+
   const judged = narrationUpload.judgeNarration({
     file: file.path,
     markersMs: req.body.markersMs,
@@ -429,10 +435,10 @@ async function saveNarration(req, res) {
       `WITH old AS (SELECT narration_filename FROM saved_lessons WHERE id = $1 FOR UPDATE)
        UPDATE saved_lessons
           SET narration_filename = $2, narration_ms = $3, narration_markers = $4,
-              narration_recorded_at = NOW()
+              narration_recorded_at = NOW(), narration_take_id = $6
         WHERE id = $1 AND (user_id = $5 OR trainer_id = $5)
     RETURNING (SELECT narration_filename FROM old) AS replaced, narration_recorded_at`,
-      [lessonId, file.filename, judged.durationMs, JSON.stringify(judged.markers), req.user.id]
+      [lessonId, file.filename, judged.durationMs, JSON.stringify(judged.markers), req.user.id, takeId]
     );
   } catch (err) {
     narrationUpload.removeQuietly(file.path);
@@ -454,10 +460,43 @@ async function saveNarration(req, res) {
     narration: {
       ms: judged.durationMs,
       beats: judged.markers.length,
+      takeId,
       recordedAt: result.rows[0].narration_recorded_at,
     },
   });
 }
+
+// GET /lessons/:id/narration — which take the server holds for this tutorial.
+//
+// The app asks before an export so a take already here is not sent again. Two
+// answers that must not read alike: a tutorial that is not yours is a 404, and
+// one of yours with no recording is `none` — the second is the ordinary state
+// of every tutorial nobody has recorded over.
+router.get('/:id/narration', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT narration_filename, narration_ms, narration_markers, narration_take_id, narration_recorded_at
+         FROM saved_lessons
+        WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)`,
+      [req.params.id, req.user.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Tutorial not found or you do not have permission to see it.' });
+    }
+    const row = result.rows[0];
+    if (!row.narration_filename) return res.json({ status: 'none' });
+    return res.json({
+      status: 'ready',
+      takeId: row.narration_take_id,
+      ms: row.narration_ms,
+      beats: Array.isArray(row.narration_markers) ? row.narration_markers.length : 0,
+      recordedAt: row.narration_recorded_at,
+    });
+  } catch (err) {
+    logger.error('[NARRATION] Could not read the recording:', err);
+    return res.status(500).json({ error: 'Server error while reading the recording.' });
+  }
+});
 
 router.post(
   '/:id/narration',
@@ -520,6 +559,10 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       jobId,
       narrate,
       voice,
+      // The trainer's own recorded voice instead of a synthesised one — phase 4
+      // of docs/PLAN-SNIMANJE.md — and the id of the take the app holds.
+      useRecording,
+      takeId,
     } = req.body;
 
     if (!Array.isArray(events) || events.length === 0) {
@@ -531,6 +574,26 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
 
     const duration = Math.min(seconds, 3600);
     const job = renderProgress.jobIdFrom(jobId);
+
+    // Looked up and judged before the queue, so a recording that cannot be used
+    // is a sentence now rather than a render slot spent finding out.
+    let recording = null;
+    if (useRecording === true) {
+      const stored = await pool.query(
+        `SELECT narration_filename, narration_ms, narration_markers, narration_take_id
+           FROM saved_lessons WHERE id = $1`,
+        [lessonId]
+      );
+      const judged = narrationUpload.recordingForFilm({
+        row: stored.rows[0],
+        takeId: typeof takeId === 'string' ? takeId : null,
+        events,
+      });
+      if (!judged.ok) {
+        return res.status(409).json({ error: judged.error, recording: judged.code });
+      }
+      recording = judged;
+    }
 
     // **A clock is not a name.** Two renders of one tutorial that start in the
     // same millisecond — the same trainer twice, or a trainer and the student
@@ -575,7 +638,15 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       // work so the slot passes straight to the next trainer.
       throwIfAborted(disconnect.signal);
 
-      if (narrate === true) {
+      if (recording) {
+        // The recording's own timing replaces the app's reading-speed guess,
+        // and the file is muxed as it is. **Never `narrationAudioPath`**: that
+        // is the synthesised track, deleted in the `finally` below once the
+        // film is drawn — and a trainer's voice exists nowhere else.
+        renderEvents = recording.events;
+        renderDuration = Math.min(recording.seconds, 3600);
+        audioFilePath = recording.audioPath;
+      } else if (narrate === true) {
         const narrated = await tutorialNarration.narrateFilm({
           events, voice, exportsDir, filename, signal: disconnect.signal,
         });
@@ -691,7 +762,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
             SET video_filename = $1, video_rendered_at = NOW(),
                 video_resolution = $2, video_seconds = $3, video_narrated = $4
           WHERE id = $5`,
-        [filename, resolution || '720p', renderDuration, narrate === true && !silentBecause, lessonId]
+        [filename, resolution || '720p', renderDuration, recording !== null || (narrate === true && !silentBecause), lessonId]
       );
     } catch (recordErr) {
       // The film exists and the trainer is about to be handed a link to it.

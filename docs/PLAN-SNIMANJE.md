@@ -385,6 +385,43 @@ The clamps that exist for a *guessed* pace stop applying: `dwellSecondsFor`'s
 2-to-12-second window is a reading-speed estimate, and a trainer who dwells
 forty seconds on one position gets forty seconds.
 
+### Built on 10.9.2026 — not yet watched running
+
+Live check: `docs/TODO-provera.md`, item 139. This is the phase that puts the
+recording behind a button, so it is also where phase 3 becomes visible.
+
+* **One branch in the export route, as planned**: `useRecording` with the
+  take's id. The stored recording is looked up and judged **before the queue**
+  (`recordingForFilm`) — no recording, another take, another number of beats,
+  or a file the disk no longer has are four 409s with four sentences, and no
+  slot is spent on any of them. Then the markers become the events'
+  `timestampMs`, `spokenMs` is each beat's gap to the next marker, the
+  duration is the recording's own, and the file is muxed as it is.
+* **The trap this branch sat next to.** The route's `finally` deletes
+  `narrationAudioPath`, the synthesised track, once the film is drawn. The
+  recording travels only as `audioFilePath`, and a test proves the file is
+  still there after an export — the one mutation that would have made a
+  single export delete a trainer's voice.
+* **A take has an identity.** The app names a take `take-<id>.wav`; the upload
+  sends that id and `saved_lessons.narration_take_id` keeps it;
+  `GET /lessons/:id/narration` says which take the server holds. The app sends
+  a take only when the server holds a different one, and sends it when the
+  server cannot be asked — a second upload costs bandwidth, where assuming it
+  is there costs a film with no voice.
+* **The export dialog gains a switch rather than phase 6's one question.**
+  „Use my recording (m:ss)" is on by default where this device has a usable
+  take; a take that cannot make this film is explained where the switch would
+  be; and with it on, the synthesised-voice rows are not drawn, so a film is
+  never sent both. Phase 6 folds the two into one question with three answers.
+* **The dialog does not wait for the lookup.** It opens at once and the row
+  appears when the answer does. Awaiting it put a platform call for the app's
+  folder in front of the dialog — real asynchronous I/O, which a widget test's
+  clock never lets finish, and twelve existing export tests stopped seeing the
+  dialog at all. The upload reads the take whole for the same reason.
+
+Phase 5's signature is still a beat count; phase 4 refuses on it rather than
+waiting for the signature.
+
 ## Phase 5 — the recording is bound to the lesson it was made against
 
 Edit a sentence, add a part, reorder two — and the markers no longer name the

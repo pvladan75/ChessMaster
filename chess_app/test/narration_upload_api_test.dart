@@ -47,6 +47,7 @@ void main() {
       markersMs: [0, 480, 880],
       durationMs: 1200,
       beats: 3,
+      takeId: 'ab12',
     );
 
     expect(result.ok, isTrue);
@@ -61,6 +62,7 @@ void main() {
     expect(body, contains('[0,480,880]'));
     expect(body, contains('name="durationMs"'));
     expect(body, contains('name="beats"'));
+    expect(body, contains('name="takeId"'));
     expect(body, contains('name="audio"; filename="take.wav"'));
   });
 

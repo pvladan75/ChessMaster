@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -548,6 +549,12 @@ class LessonApiService {
     String? jobId,
     bool? narrate,
     String? voice,
+
+    /// The trainer's own recording instead of a synthesised voice, and the id
+    /// of the take this device holds — the server refuses a film against any
+    /// other.
+    bool? useRecording,
+    String? takeId,
   }) async {
     try {
       final res = await _client
@@ -564,6 +571,8 @@ class LessonApiService {
               if (jobId != null) 'jobId': jobId,
               if (narrate != null) 'narrate': narrate,
               if (voice != null) 'voice': voice,
+              if (useRecording == true) 'useRecording': true,
+              if (takeId != null) 'takeId': takeId,
             }),
           )
           .timeout(const Duration(minutes: 5));
@@ -610,6 +619,10 @@ class LessonApiService {
     required List<int> markersMs,
     required int durationMs,
     required int beats,
+
+    /// The take's own id (`take-<id>.wav` on this device). The server keeps it
+    /// beside the recording, which is how [serverTakeId] can answer.
+    String? takeId,
   }) async {
     try {
       final request = http.MultipartRequest(
@@ -620,7 +633,12 @@ class LessonApiService {
       request.fields['markersMs'] = jsonEncode(markersMs);
       request.fields['durationMs'] = '$durationMs';
       request.fields['beats'] = '$beats';
-      request.files.add(await http.MultipartFile.fromPath('audio', audioPath,
+      if (takeId != null) request.fields['takeId'] = takeId;
+      // Read whole and at once: fifteen minutes is under 30 MB, and a file
+      // streamed from disk is asynchronous I/O that a widget test's clock never
+      // lets finish — the upload would work everywhere but under test.
+      request.files.add(http.MultipartFile.fromBytes(
+          'audio', File(audioPath).readAsBytesSync(),
           filename: 'take.wav'));
 
       final streamed =
@@ -647,6 +665,31 @@ class LessonApiService {
         ok: false,
         error: 'Cannot connect to server.',
       );
+    }
+  }
+
+  /// The id of the take the server holds for [lessonId], or null when it holds
+  /// none — or could not be asked.
+  ///
+  /// Those two are deliberately one answer here. Its only caller uploads when
+  /// the answer is not the take it has, and uploading when unsure costs
+  /// bandwidth, where assuming the server has the take costs a film with no
+  /// voice.
+  Future<String?> serverTakeId(int lessonId) async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/lessons/$lessonId/narration'),
+              headers: _headers)
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      if (body is Map && body['status'] == 'ready') {
+        return body['takeId']?.toString();
+      }
+      return null;
+    } catch (e) {
+      AppLogger.log('[Lessons] Could not ask for the narration: $e');
+      return null;
     }
   }
 

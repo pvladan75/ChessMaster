@@ -212,7 +212,66 @@ function judgeNarration({ file, markersMs, durationMs, beats }) {
   return { ok: true, durationMs: measuredMs, markers, peakDbfs: peak };
 }
 
+/// The name the app gives a take (`take-<id>.wav` on the device), kept beside
+/// the recording so the app can tell whether the take on the server is the one
+/// it holds without sending it again. Hex only: it is compared, never used as
+/// a path, but a value that is only ever hex cannot become one.
+const TAKE_ID = /^[0-9a-f]{8,64}$/;
+
+/// The film's events on a stored recording's own timing, or why they cannot be.
+///
+/// Phase 4. The markers replace the app's reading-speed guess — the same
+/// substitution `retimeEvents` makes for a synthesised voice, from another
+/// source — and `spokenMs` is the gap to the next marker, so the caption is
+/// revealed across the time the trainer actually spent on that beat. The
+/// request's own events are copied, never rewritten in place.
+///
+/// Refused rather than bent: a recording made for another number of beats names
+/// beats that are not in this film, and a film drawn against it is wrong from
+/// the first place the two disagree.
+function recordingForFilm({ row, takeId, events }) {
+  if (!row || !row.narration_filename) {
+    return { ok: false, code: 'none', error: 'This tutorial has no recording on the server. Export again to send it.' };
+  }
+  if (takeId && row.narration_take_id && takeId !== row.narration_take_id) {
+    return {
+      ok: false,
+      code: 'other',
+      error: 'The recording on the server is not the one on this device. Export again to send this one.',
+    };
+  }
+  const markers = Array.isArray(row.narration_markers) ? row.narration_markers : [];
+  if (!Array.isArray(events) || markers.length !== events.length) {
+    return {
+      ok: false,
+      code: 'beats',
+      error: `The recording was made for ${markers.length} beats, and the tutorial has `
+        + `${Array.isArray(events) ? events.length : 0} now. Record it again, or export without your voice.`,
+    };
+  }
+  const audioPath = path.join(narrationDir(), path.basename(String(row.narration_filename)));
+  if (!fs.existsSync(audioPath)) {
+    // A voice the row names and the disk does not have. It cannot be made
+    // again, so this is worth a line in the log as well as a sentence.
+    logger.error(`[NARRATION] A tutorial names ${path.basename(audioPath)}, which is not on disk`);
+    return { ok: false, code: 'gone', error: 'The recording is missing on the server. Record it again.' };
+  }
+
+  const durationMs = Number(row.narration_ms) || 0;
+  const timed = events.map((event, i) => {
+    const next = i + 1 < markers.length ? markers[i + 1] : durationMs;
+    return {
+      ...event,
+      timestampMs: markers[i],
+      data: { ...(event && event.data ? event.data : {}), spokenMs: Math.max(0, next - markers[i]) },
+    };
+  });
+  return { ok: true, events: timed, audioPath, seconds: Math.ceil(durationMs / 1000) };
+}
+
 module.exports = {
+  TAKE_ID,
+  recordingForFilm,
   LIVE_MICROPHONE_DBFS,
   NARRATION_MAX_BYTES,
   NARRATION_MAX_SECONDS,
