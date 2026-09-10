@@ -7,8 +7,13 @@
 *.sln
 *.sw?
 .DS_Store
-.env
+# Every env file, not only `.env`: on 10.9.2026 `chess_backend/.env` was found
+# renamed to `.env.aside` by a test run that moved it out of the way and never
+# moved it back — the only copy of the secrets, untracked and one `git add` from
+# a public repository. The template is the one env file that belongs in git.
+.env*
 *.env
+!.env.example
 node_modules/
 chess_backend/node_modules/
 chess_backend/exports/*.mp4
