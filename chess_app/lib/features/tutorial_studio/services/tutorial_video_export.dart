@@ -90,7 +90,8 @@ Future<bool> exportTutorialVideo({
 
   // The trainer's own recording, if this device has one for this tutorial —
   // judged here the way the server will judge it, so a take that cannot be used
-  // is explained beside the switch rather than refused after an upload.
+  // is explained where it would have been offered rather than refused after an
+  // upload.
   //
   // **Started, not awaited.** The dialog opens at once and the row appears when
   // the answer does, a few milliseconds later. Awaiting it put a platform call
@@ -155,9 +156,16 @@ Future<bool> exportTutorialVideo({
   hd = chosen.hd;
   await prefs.setBool(_hdKey, hd);
   if (canSpeak) {
-    narrate = chosen.narrate;
+    // **The recording is not remembered, and choosing it forgets nothing.** It
+    // is the default wherever there is one to use, so picking it says nothing
+    // about what the trainer wants when there is none — the tutorial edited
+    // after recording, the next one not yet recorded — and must not overwrite
+    // the answer they gave then.
+    if (chosen.answer != _Voice.recording) {
+      narrate = chosen.answer == _Voice.synthesised;
+      await prefs.setBool(_narrateKey, narrate);
+    }
     voice = chosen.voice;
-    await prefs.setBool(_narrateKey, narrate);
     if (voice != null) await prefs.setString(_voiceKey, voice);
   }
 
@@ -498,9 +506,19 @@ Future<void> _showPreview({
   );
 }
 
+/// What a film sounds like — phase 6 of `docs/PLAN-SNIMANJE.md`.
+///
+/// **One question with three answers, not two switches.** Two switches can both
+/// be on, and a film is never sent a recording and a synthesised voice; the
+/// phase 4 sheet kept that true by hiding one switch while the other was on,
+/// which is the same rule written as a layout. A radio cannot hold two answers.
+enum _Voice { recording, synthesised, none }
+
 class _ExportChoice {
-  const _ExportChoice(this.narrate, this.voice, this.hd, this.recording);
-  final bool narrate;
+  const _ExportChoice(this.answer, this.voice, this.hd, this.recording);
+  final _Voice answer;
+
+  /// The synthesised voice in the dropdown, sent only when [answer] asks for it.
   final String? voice;
   final bool hd;
 
@@ -623,11 +641,14 @@ Future<bool> _sendRecordingIfNeeded({
   return true;
 }
 
-/// What to ask before a render: the voice, where there is one, and the quality.
+/// What to ask before a render: what the film sounds like, and the quality.
 ///
-/// An empty [voices] means the server cannot speak, and then the narration half
-/// is not drawn at all — a switch that cannot be honoured must not be offered.
-/// The sheet still opens, because the quality is a choice everywhere.
+/// The sound is one question with up to three answers — the trainer's own
+/// recording where this device has one that matches, a synthesised voice where
+/// the server has one, and none — and it is drawn only when there are at least
+/// two: an answer that cannot be honoured must not be offered, and a question
+/// with one answer is not a question. The sheet still opens, because the
+/// quality is a choice everywhere.
 Future<_ExportChoice?> _askAboutExport({
   required BuildContext context,
 
@@ -636,6 +657,8 @@ Future<_ExportChoice?> _askAboutExport({
   /// nothing.
   required Future<_Recording?> recording,
   required List<Map<String, dynamic>> voices,
+
+  /// The synthesised voice's last answer, remembered per trainer.
   required bool narrate,
   required String? voice,
   required bool hd,
@@ -645,21 +668,20 @@ Future<_ExportChoice?> _askAboutExport({
   /// not a decision.
   required Future<void> Function(bool hd) onPreview,
 }) {
-  var wants = narrate;
+  var answer = voices.isNotEmpty && narrate ? _Voice.synthesised : _Voice.none;
   var chosen = voice;
   var wantsHd = hd;
   var previewing = false;
-  // The take, once the lookup answers. On by default where there is one to
+  // The take, once the lookup answers. Chosen by default where there is one to
   // use: a trainer who recorded their voice over a tutorial and exports it
   // wants that voice.
   _Recording? found;
-  var useMine = false;
   void Function(void Function())? refresh;
   var closed = false;
-  unawaited(recording.then((answer) {
+  unawaited(recording.then((take) {
     if (closed) return;
-    found = answer;
-    useMine = answer?.stored != null;
+    found = take;
+    if (take?.stored != null) answer = _Voice.recording;
     refresh?.call(() {});
   }));
 
@@ -668,38 +690,27 @@ Future<_ExportChoice?> _askAboutExport({
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setLocal) {
         refresh = setLocal;
+        final mine = found?.stored;
+        final answers = [
+          if (mine != null) _Voice.recording,
+          if (voices.isNotEmpty) _Voice.synthesised,
+          _Voice.none,
+        ];
+        final body = AppText.body.copyWith(color: ctx.colors.textPrimary);
+        final note = AppText.caption.copyWith(color: ctx.colors.textMuted);
         return AlertDialog(
           title: const Text('Export video'),
+          // Measured, not assumed: with all three answers and the voice
+          // dropdown, the sheet is 49 px taller than a 360 × 640 phone, and a
+          // release build clips that without a word — the quality switch sat
+          // under the buttons, where a tap on it pressed Export.
+          scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (found?.stored != null) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                          'Use my recording '
-                          '(${narrationClockOf(found!.stored!.take.durationMs)})',
-                          style: AppText.bodyBold
-                              .copyWith(color: ctx.colors.textPrimary)),
-                    ),
-                    Switch(
-                      key: const Key('export-use-recording'),
-                      value: useMine,
-                      activeThumbColor: ctx.colors.accent,
-                      onChanged: (v) => setLocal(() => useMine = v),
-                    ),
-                  ],
-                ),
-                Text(
-                  useMine
-                      ? 'Your own voice, and the board moves where you pressed '
-                          'Space.'
-                      : 'The video goes out without your recording.',
-                  style: AppText.caption.copyWith(color: ctx.colors.textMuted),
-                ),
-              ],
+              // Where the recording would be offered, and in its place: a take
+              // that cannot make this film is not an answer to choose.
               if (found?.unusable != null)
                 Row(
                   key: const Key('export-recording-unusable'),
@@ -708,31 +719,58 @@ Future<_ExportChoice?> _askAboutExport({
                     Icon(Icons.warning_amber_rounded,
                         color: ctx.colors.warning, size: 18),
                     const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(found!.unusable!,
-                          style: AppText.body
-                              .copyWith(color: ctx.colors.textPrimary)),
-                    ),
+                    Expanded(child: Text(found!.unusable!, style: body)),
                   ],
                 ),
-              if (found != null && voices.isNotEmpty && !useMine)
-                const Divider(),
-              if (voices.isNotEmpty && !useMine)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('Narrate this video',
-                          style: AppText.bodyBold
-                              .copyWith(color: ctx.colors.textPrimary)),
-                    ),
-                    Switch(
-                      value: wants,
-                      activeThumbColor: ctx.colors.accent,
-                      onChanged: (v) => setLocal(() => wants = v),
-                    ),
-                  ],
+              if (answers.length > 1) ...[
+                if (found?.unusable != null)
+                  const SizedBox(height: AppSpacing.sm),
+                Text('Narration',
+                    style: AppText.bodyBold
+                        .copyWith(color: ctx.colors.textPrimary)),
+                // `RadioGroup` rather than a `groupValue` on every tile, which
+                // is deprecated — see `breadth_dialog.dart`.
+                RadioGroup<_Voice>(
+                  groupValue: answer,
+                  onChanged: (v) => setLocal(() => answer = v!),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (mine != null)
+                        RadioListTile<_Voice>(
+                          key: const Key('export-voice-recording'),
+                          value: _Voice.recording,
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                              'My recording '
+                              '(${narrationClockOf(mine.take.durationMs)})',
+                              style: body),
+                          subtitle: Text(
+                              'Your own voice, and the board moves where you '
+                              'pressed Space.',
+                              style: note),
+                        ),
+                      if (voices.isNotEmpty)
+                        RadioListTile<_Voice>(
+                          key: const Key('export-voice-synthesised'),
+                          value: _Voice.synthesised,
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Synthesised voice', style: body),
+                        ),
+                      RadioListTile<_Voice>(
+                        key: const Key('export-voice-none'),
+                        value: _Voice.none,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('No voice', style: body),
+                      ),
+                    ],
+                  ),
                 ),
-              if (voices.isNotEmpty && wants && !useMine) ...[
+              ],
+              if (answer == _Voice.synthesised) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
@@ -821,8 +859,8 @@ Future<_ExportChoice?> _askAboutExport({
             FilledButton(
               onPressed: () => Navigator.pop(
                   ctx,
-                  _ExportChoice(
-                      wants, chosen, wantsHd, useMine ? found?.stored : null)),
+                  _ExportChoice(answer, chosen, wantsHd,
+                      answer == _Voice.recording ? found?.stored : null)),
               child: const Text('Export'),
             ),
           ],

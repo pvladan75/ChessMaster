@@ -4973,8 +4973,9 @@ Faze 3 i 4 iz `docs/PLAN-SNIMANJE.md`: snimak odlazi na server pri izvozu, i
 film se crta po markerima snimka umesto po procenjenoj brzini čitanja. Pretpostavlja
 stavku 138 (snimak postoji na uređaju).
 
-1. [ ] **Prekidač.** Posle celog snimka, „Export video" u studiju ili u „Sačuvani
-   tutorijali": prvi red je „Use my recording (m:ss)" i **uključen je**.
+1. [ ] **Pitanje.** Posle celog snimka, „Export video" u studiju ili u „Sačuvani
+   tutorijali": pod „Narration" je **izabrano** „My recording (m:ss)". (Do faze 6
+   ovo je bio prekidač „Use my recording"; vidi stavku 141.)
 2. [ ] **Prvi izvoz.** Pojavi se „Uploading your recording", pa traka
    renderovanja. Film ima tvoj glas, a tabla se menja tamo gde si pritiskao
    razmak — proveri početak, sredinu i **poslednja tri takta**.
@@ -4982,10 +4983,11 @@ stavku 138 (snimak postoji na uređaju).
    taj snimak.
 4. [ ] **Novi snimak, pa izvoz.** „Uploading" se opet pojavi, i film ima novi
    glas.
-5. [ ] **Isključen prekidač.** Film ide bez tvog glasa — tih, ili sintetizovan
-   ako server ima piper — a **nikad sa oba**.
-6. [ ] **Izmenjen tutorijal.** Dodaj potez, pa „Export video": umesto prekidača
-   stoji „Your recording was made when the tutorial had N beats…".
+5. [ ] **Drugi odgovor.** Izaberi „No voice", ili „Synthesised voice" ako server
+   ima piper: film ide bez tvog glasa — tih, odnosno sintetizovan — a **nikad sa
+   oba**.
+6. [ ] **Izmenjen tutorijal.** Dodaj potez, pa „Export video": umesto odgovora
+   „My recording" stoji „Your recording was made when the tutorial had N beats…".
 7. [ ] **Brisanje.** Obriši tutorijal iz biblioteke: fajl u
    `chess_backend/uploads/narration/` nestaje.
 8. [ ] **Nije javno.** `…/uploads/narration/<ime>.wav` u pregledaču daje 404.
@@ -5012,10 +5014,10 @@ nosi potpis liste taktova nad kojom je napravljen. Pretpostavlja stavke 138 i 13
 3. [ ] **„Record again".** Dugme iz trake otvara ekran za snimanje. Snimi ponovo
    do kraja i vrati se: **traka je nestala**.
 4. [ ] **„Export without your voice".** Iz trake otvara dijalog za izvoz; umesto
-   prekidača „Use my recording" stoji rečenica o izmeni. Film se napravi tih ili
-   sintetizovan.
+   odgovora „My recording" stoji rečenica o izmeni, a biraju se „Synthesised
+   voice" ili „No voice". Film se napravi sintetizovan ili tih.
 5. [ ] **Preimenovanje ništa ne košta.** Preimenuj **tutorijal** i preimenuj
-   **deo**: traka se ne pojavljuje, prekidač u izvozu ostaje uključen. Ovo je
+   **deo**: traka se ne pojavljuje, izvoz i dalje bira „My recording". Ovo je
    pola faze — sat vremena snimanja ne sme da propadne zbog naslova.
 6. [ ] **Strelica i krug ništa ne koštaju.** Nacrtaj strelicu i oboj polje na
    nekom taktu: traka se ne pojavljuje, izvoz i dalje nudi snimak.
@@ -5024,3 +5026,26 @@ nosi potpis liste taktova nad kojom je napravljen. Pretpostavlja stavke 138 i 13
    tutorijalu.
 8. [ ] **Server ne pušta.** Ako se izmena nekako provuče do izvoza, server
    odgovara 409 sa rečenicom o izmeni i **ne troši slot za renderovanje**.
+
+## 141. Jedno pitanje za zvuk filma — 10.9.2026, nije viđeno uživo
+
+Faza 6 iz `docs/PLAN-SNIMANJE.md`. Dva prekidača („Use my recording" i „Narrate
+this video") postala su jedno pitanje „Narration" sa tri odgovora: „My recording
+(m:ss)", „Synthesised voice" i „No voice". Pretpostavlja stavke 138 i 139.
+
+1. [ ] **Sva tri.** Tutorijal sa snimkom, server sa piperom: pod „Narration" su
+   tri odgovora, izabran je „My recording", i nema liste glasova.
+2. [ ] **„Synthesised voice".** Izaberi ga: pojavi se lista glasova i „A narrated
+   export takes longer." Film ima sintetizovan glas i ništa tvoje.
+3. [ ] **„No voice" je tih film** i kad server ima piper — ranije je isključen
+   snimak na takvom serveru značio sintetizovan glas.
+4. [ ] **Pamti se ono što nije snimak.** Izvezi jednom sa „Synthesised voice",
+   pa jednom sa snimkom, pa izmeni jednu rečenicu (snimak više ne važi) i otvori
+   izvoz: izabran je „Synthesised voice", a ne „No voice".
+5. [ ] **Nema pitanja sa jednim odgovorom.** Bez snimka i bez pipera nema
+   „Narration" uopšte — samo 1080p. Sa nevažećim snimkom i bez pipera stoji
+   samo rečenica zašto snimak ne važi.
+6. [ ] **Telefon.** Sa sva tri odgovora i izabranim „Synthesised voice",
+   skroluj dijalog do „Higher quality (1080p)" i uključi ga; film je 1080p.
+   Izmereno u testu: bez skrolovanja je dijalog 49 px viši od telefona 360 × 640,
+   i prekidač bi stajao ispod dugmadi.

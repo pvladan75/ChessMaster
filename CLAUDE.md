@@ -20,7 +20,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1873 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1876 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1126 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1347,6 +1347,30 @@ And one about the harness: a mutation runner reading `flutter test`'s output on
 Windows without an explicit encoding died on a `cp1250` decode **in the middle
 of the batch**, which would have lost every verdict after it. Read a subprocess
 as UTF-8 with `errors='replace'`.
+
+**Phase 6 the same day — one question for the film's sound — 1876 in the app
+with 1 skipped; the backend is untouched at 1126**, analyze at 29 infos, zero
+warnings. The export sheet's two switches, „Use my recording" and „Narrate this
+video", are one `RadioGroup` with three answers, each drawn only where it can be
+honoured, and the question only where there are two. Eight mutations, all
+caught. Live check: `TODO-provera.md`, item 141.
+
+**A switch that hides another is a radio written as a layout.** Phase 4 kept
+„never both voices" by not drawing the synthesised switch while the recording's
+was on; a radio cannot hold two answers, so the rule is structural now rather
+than a condition three widgets had to agree on.
+
+**A default is not a preference.** The recording is chosen wherever it can be
+used and is deliberately not remembered — and choosing it must not overwrite the
+synthesised-or-silent answer, because that answer is for exactly the films the
+recording cannot make. The test asserts on the stored preference, not on the
+screen.
+
+**Measure the sheet on a phone before believing it fits.** With three answers
+and the voice dropdown it was 49 px taller than 360 × 640, and the test's tap on
+„Higher quality (1080p)" landed on the button bar: in a release build, where an
+overflow paints nothing, the switch sat under Export. The test asks for 1080p in
+the request, which is what „reachable" means.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -596,7 +596,7 @@ void main() {
 
     expect(find.text('Export video'), findsWidgets,
         reason: 'the dialog opened');
-    expect(find.text('Narrate this video'), findsOneWidget);
+    expect(find.byKey(const Key('export-voice-synthesised')), findsOneWidget);
 
     // Scoped: the saved-tutorials dialog has a Cancel of its own, and an
     // unscoped finder would be asking which of two screens to close.
@@ -676,9 +676,11 @@ void main() {
     await tester.tap(actionOn('Opozicija', 'Export video'));
     await tester.pumpAndSettle();
 
-    // A switch the server cannot honour is not drawn at all. The sheet still
-    // opens, because the quality is a choice everywhere.
-    expect(find.text('Narrate this video'), findsNothing);
+    // An answer the server cannot honour is not drawn, and with no recording
+    // either, „No voice" is the only one left — which is not a question. The
+    // sheet still opens, because the quality is a choice everywhere.
+    expect(find.byWidgetPredicate((w) => w is RadioListTile), findsNothing,
+        reason: 'a question with one answer was asked');
     expect(find.text('Voice'), findsNothing);
     expect(switchFor('Higher quality (1080p)'), findsOneWidget);
     expect(find.byType(Switch), findsOneWidget,
@@ -721,9 +723,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('A narrated export takes longer.'), findsOneWidget);
-    final switchFinder = switchFor('Narrate this video');
-    expect(switchFinder, findsOneWidget);
-    expect(tester.widget<Switch>(switchFinder).value, isTrue);
+    expect(find.byKey(const Key('export-voice-synthesised')), findsOneWidget);
+    expect(find.byType(DropdownButton<String>), findsOneWidget,
+        reason: 'a synthesised voice is the default where the server has one');
 
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
@@ -810,7 +812,7 @@ void main() {
     await tester.tap(find.byKey(const Key('export-video')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Narrate this video'), findsOneWidget,
+    expect(find.byKey(const Key('export-voice-synthesised')), findsOneWidget,
         reason: 'the same options as the list offers');
 
     await tester.tap(find.text('Export'));
@@ -827,7 +829,7 @@ void main() {
       (tester) async {
     // A trainer writing in a language none of the installed voices speaks must
     // be able to say no: „neki Indijac piše tutorijal na indijskom i nema
-    // opciju da isključi glas". The switch is the answer, and this is the test
+    // opciju da isključi glas". „No voice" is the answer, and this is the test
     // that it is wired to the request rather than to the dialog only.
     final requests = <http.Request>[];
     final api = _TestLessonApi(
@@ -842,7 +844,7 @@ void main() {
     await tester.tap(actionOn('Opozicija', 'Export video'));
     await tester.pumpAndSettle();
 
-    await tester.tap(switchFor('Narrate this video'));
+    await tester.tap(find.byKey(const Key('export-voice-none')));
     await tester.pumpAndSettle();
     expect(find.text('Voice'), findsNothing,
         reason: 'with narration off there is no voice to choose');

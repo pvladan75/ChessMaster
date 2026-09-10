@@ -508,6 +508,42 @@ The export sheet asks one question with three answers — the trainer's own
 recording (where one exists and matches), a synthesised voice (where the server
 has one), or silence.
 
+### Built on 10.9.2026 — not yet watched running
+
+Live check: `docs/TODO-provera.md`, item 141 (and the wording of items 139 and
+140, which described the switch). Nothing on the server changed: the route
+already took `useRecording` before `narrate`, so this phase is the sheet.
+
+* **„Narration" is one `RadioGroup`** — „My recording (m:ss)", „Synthesised
+  voice", „No voice" — in place of the phase 4 switch and the „Narrate this
+  video" switch under it. Phase 4 kept „never both voices" true by *hiding* one
+  switch while the other was on; that is the same rule written as a layout, and
+  a radio cannot hold two answers.
+* **An answer is drawn only where it can be honoured, and the question only
+  where there are two.** No recording on this device, or one that no longer
+  matches, is no first answer — the second case keeps its sentence where the
+  answer would be. No voice on the server is no second. With neither, „No
+  voice" is all that is left, and a question with one answer is not drawn.
+* **The recording is the default and is not remembered.** It is chosen wherever
+  it can be used; choosing it does not overwrite the synthesised-or-silent
+  answer the trainer gave last time, because that answer is for exactly the
+  films this one cannot make — the tutorial edited after recording, the next
+  one not yet recorded.
+* **A silent film is one tap, on any server.** Before, turning the recording
+  off where piper is installed brought the synthesised switch back as it was
+  last left — on, by default — so a silent film there usually took two.
+
+**The sheet was measured on a phone, and it did not fit.** With all three
+answers, the voice dropdown and its note, it is 49 px taller than 360 × 640. A
+release build clips that without a word, and the test that found it is the
+useful kind: its tap aimed at „Higher quality (1080p)" landed on the button bar
+instead — on a phone, the switch sat under Export. `scrollable: true` on the
+sheet, and the test asks the switch to *work* (the request says 1080p) rather
+than asking whether anything threw.
+
+Eight mutations, all eight caught, and every pattern was checked to apply
+exactly once before it was believed.
+
 ## The rules this is built under
 
 **This is the first thing since 26.8.2026 to put a human voice back on the

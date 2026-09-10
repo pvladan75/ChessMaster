@@ -15,9 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **10.9.2026** — faze 1 do 5 plana snimanja su u kodu:
+Poslednje ažuriranje: **10.9.2026** — faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo:
 trener snima svoj glas preko tutorijala, izvozi video u tom glasu, i snimak zna
-kojim taktovima pripada („Snimanje glasa: faza 5" i „faza 4" niže), a „ODAKLE
+kojim taktovima pripada („Snimanje glasa: faza 6", „faza 5" i „faza 4" niže), a „ODAKLE
 SUTRA — 10.9.2026, video i snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
 pregled pre renderovanja, jedan film po tutorijalu sa linkom na zahtev,
 pravednost reda po nalogu, i zatvorena faza 0 plana snimanja.
@@ -26,6 +26,40 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Snimanje glasa: faza 6, jedno pitanje za zvuk filma — 10.9.2026, nije viđeno uživo
+
+U „Export video" su dva prekidača — „Use my recording" i „Narrate this video" —
+postala jedno pitanje **„Narration" sa tri odgovora**: „My recording (m:ss)",
+„Synthesised voice" i „No voice". Odgovor se crta samo tamo gde može da se
+ispuni (snimak samo ako postoji na uređaju i slaže se sa taktovima, sintetizovan
+glas samo ako ga server ima), a pitanje samo kad postoje bar dva odgovora. Server
+se nije menjao: ruta je već gledala `useRecording` pre `narrate`.
+
+**Snimak je podrazumevan i ne pamti se.** Kad ga trener izabere, ne briše se ono
+što je prošli put izabrao između sintetizovanog glasa i tišine — taj odgovor
+važi baš za filmove koje snimak ne može da napravi: tutorijal izmenjen posle
+snimanja, sledeći koji još nije snimljen. Test to proverava na sačuvanoj
+postavci, ne na ekranu.
+
+**Dijalog nije stao na telefon.** Sa sva tri odgovora i listom glasova viši je
+za 49 px od 360 × 640, a release build to odseče bez reči: test koji je tapnuo
+„Higher quality (1080p)" pogodio je red sa dugmadima, dakle na telefonu je
+prekidač stajao ispod „Export". Sada dijalog skroluje, a test traži da prekidač
+**radi** — zahtev kaže 1080p — umesto da pita da li je nešto bacilo izuzetak.
+
+Osam mutacija, svih osam pada. Provera uživo: `TODO-provera.md`, stavka **141**;
+koraci u stavkama 139 i 140 koji su opisivali prekidač su preformulisani.
+
+Time je **ceo prvi deo `PLAN-SNIMANJE.md` u kodu**. Ostaje drugi deo (tačke 4 i
+5 — odbijanje prevelikog rendera i izlazak rendera iz zahteva), i dalje
+otvoreno brisanje **lokalnog** snimka kad se tutorijal obriše.
+
+Brojke: **1876 u aplikaciji (1 preskočen)**, backend nedirnut na 1126;
+`flutter analyze` 29 info poruka, bez upozorenja i grešaka — mereno na `master`,
+bez ičeg drugog pokrenutog.
 
 ---
 

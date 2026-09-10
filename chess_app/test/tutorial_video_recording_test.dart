@@ -1,4 +1,4 @@
-// The trainer's own recording in the export dialog — phase 4 of
+// The trainer's own recording in the export dialog — phases 4 and 6 of
 // `docs/PLAN-SNIMANJE.md`. Driven through `exportTutorialVideo` with a fake
 // server and a real directory of takes.
 //
@@ -7,7 +7,9 @@
 //   * send a take the server already holds;
 //   * export over a recording the server refused, or say nothing about why;
 //   * send a recording and a synthesised voice for the same film;
-//   * offer a take that cannot make this film, without saying why not.
+//   * offer a take that cannot make this film, without saying why not;
+//   * forget what the trainer wants when there is no recording, because they
+//     chose the recording when there was one.
 
 import 'dart:async';
 import 'dart:convert';
@@ -184,8 +186,12 @@ Future<void> keepTakeIn(Directory dir) async {
   }
 }
 
-Future<void> openExport(WidgetTester tester, FakeServer server) async {
-  tester.view.physicalSize = const Size(1400, 1000);
+Future<void> openExport(
+  WidgetTester tester,
+  FakeServer server, {
+  Size size = const Size(1400, 1000),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
@@ -237,11 +243,10 @@ void main() {
     final server = FakeServer();
     await openExport(tester, server);
 
-    final toggle =
-        tester.widget<Switch>(find.byKey(const Key('export-use-recording')));
-    expect(toggle.value, isTrue, reason: 'a recorded take is the default');
-    expect(find.textContaining('Use my recording (0:00)'), findsOneWidget);
+    expect(find.byKey(const Key('export-voice-recording')), findsOneWidget);
+    expect(find.textContaining('My recording (0:00)'), findsOneWidget);
 
+    // Nothing is touched: what goes out is the default.
     await pressExport(tester);
 
     expect(server.calls, [
@@ -250,7 +255,8 @@ void main() {
       'POST /lessons/12/narration',
       'POST /lessons/12/export-video',
     ]);
-    expect(server.exportBody['useRecording'], isTrue);
+    expect(server.exportBody['useRecording'], isTrue,
+        reason: 'a recorded take is the default');
     expect(server.exportBody['takeId'], kept.takeId);
     expect(server.exportBody.containsKey('narrate'), isFalse,
         reason: 'a film is never sent a recording and a synthesised voice');
@@ -278,12 +284,12 @@ void main() {
     expect(server.calls, contains('POST /lessons/12/narration'));
   });
 
-  testWidgets('switched off, the film goes without it', (tester) async {
+  testWidgets('answered „No voice", the film goes without it', (tester) async {
     await keepTake();
     final server = FakeServer();
     await openExport(tester, server);
 
-    await tester.tap(find.byKey(const Key('export-use-recording')));
+    await tester.tap(find.byKey(const Key('export-voice-none')));
     await tester.pumpAndSettle();
     await pressExport(tester);
 
@@ -298,7 +304,7 @@ void main() {
     final server = FakeServer();
     await openExport(tester, server);
 
-    expect(find.byKey(const Key('export-use-recording')), findsNothing);
+    expect(find.byKey(const Key('export-voice-recording')), findsNothing);
     expect(
         find.textContaining('had 5 beats, and it has 3 now'), findsOneWidget);
 
@@ -319,7 +325,7 @@ void main() {
     final server = FakeServer();
     await openExport(tester, server);
 
-    expect(find.byKey(const Key('export-use-recording')), findsNothing);
+    expect(find.byKey(const Key('export-voice-recording')), findsNothing);
     expect(find.textContaining('has been edited'), findsOneWidget);
 
     await pressExport(tester);
@@ -357,7 +363,7 @@ void main() {
     final server = FakeServer();
     await openExport(tester, server);
 
-    await tester.tap(find.byKey(const Key('export-use-recording')));
+    await tester.tap(find.byKey(const Key('export-voice-none')));
     await tester.pumpAndSettle();
     await pressExport(tester);
 
@@ -385,8 +391,8 @@ void main() {
     final server = FakeServer(canSpeak: true);
     await openExport(tester, server);
 
-    expect(find.text('Narrate this video'), findsNothing,
-        reason: 'two voices were offered for one film');
+    expect(find.byType(DropdownButton<String>), findsNothing,
+        reason: 'a synthesised voice was being chosen beside the recording');
     await pressExport(tester);
 
     expect(server.exportBody['useRecording'], isTrue);
@@ -394,15 +400,15 @@ void main() {
     expect(server.exportBody.containsKey('voice'), isFalse);
   });
 
-  testWidgets('with the recording switched off, the synthesised voice is back',
+  testWidgets('answered „Synthesised voice", the recording stays behind',
       (tester) async {
     await keepTake();
     final server = FakeServer(canSpeak: true);
     await openExport(tester, server);
 
-    await tester.tap(find.byKey(const Key('export-use-recording')));
+    await tester.tap(find.byKey(const Key('export-voice-synthesised')));
     await tester.pumpAndSettle();
-    expect(find.text('Narrate this video'), findsOneWidget);
+    expect(find.byType(DropdownButton<String>), findsOneWidget);
     await pressExport(tester);
 
     expect(server.exportBody['narrate'], isTrue);
@@ -418,7 +424,7 @@ void main() {
     await keepTakeIn(_dir);
     final server = FakeServer();
     await openExport(tester, server);
-    expect(find.byKey(const Key('export-use-recording')), findsNothing);
+    expect(find.byKey(const Key('export-voice-recording')), findsNothing);
 
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
@@ -434,11 +440,78 @@ void main() {
     final server = FakeServer();
     await openExport(tester, server);
 
-    expect(find.byKey(const Key('export-use-recording')), findsNothing);
+    expect(find.byKey(const Key('export-voice-recording')), findsNothing);
     expect(find.byKey(const Key('export-recording-unusable')), findsNothing);
     await pressExport(tester);
     expect(server.calls.where((c) => c.contains('/narration')), isEmpty);
     expect(_dir.listSync(), isEmpty,
         reason: 'looking for a take left a folder behind');
+  });
+
+  testWidgets('one question, three answers, and „No voice" is a silent film',
+      (tester) async {
+    // Phase 6. Every answer the sheet can give is drawn, and the one that
+    // turns both voices down is not the absence of the other two: with piper
+    // installed, a film with nothing chosen used to be a synthesised one.
+    await keepTake();
+    final server = FakeServer(canSpeak: true);
+    await openExport(tester, server);
+
+    expect(find.byKey(const Key('export-voice-recording')), findsOneWidget);
+    expect(find.byKey(const Key('export-voice-synthesised')), findsOneWidget);
+    expect(find.byKey(const Key('export-voice-none')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('export-voice-none')));
+    await tester.pumpAndSettle();
+    await pressExport(tester);
+
+    expect(server.exportBody['narrate'], isFalse,
+        reason: 'a silent film was asked for');
+    expect(server.exportBody.containsKey('useRecording'), isFalse);
+    expect(server.calls.where((c) => c.contains('/narration')), isEmpty);
+  });
+
+  testWidgets('choosing the recording keeps the answer given without one',
+      (tester) async {
+    // The recording is the default wherever there is one, so choosing it says
+    // nothing about the tutorial edited after recording or the next one not
+    // yet recorded — and those must still open on the synthesised voice the
+    // trainer asked for last time.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('tutorial_video_narrate', true);
+    await keepTake();
+    final server = FakeServer(canSpeak: true);
+    await openExport(tester, server);
+    await pressExport(tester);
+
+    expect(server.exportBody['useRecording'], isTrue);
+    expect(prefs.getBool('tutorial_video_narrate'), isTrue,
+        reason: 'exporting with the recording turned the synthesised voice off '
+            'for every film without one');
+  });
+
+  testWidgets('on a phone, the quality can still be reached', (tester) async {
+    // The tallest the sheet gets: all three answers, the voice dropdown and
+    // its note, and the quality under them. A release build clips an overflow
+    // without a word, so what is asked is whether the switch at the bottom
+    // still works — not whether something threw.
+    await keepTake();
+    final server = FakeServer(canSpeak: true);
+    await openExport(tester, server, size: const Size(360, 640));
+
+    await tester.tap(find.byKey(const Key('export-voice-synthesised')));
+    await tester.pumpAndSettle();
+    final quality = find.descendant(
+      of: find.ancestor(
+          of: find.text('Higher quality (1080p)'), matching: find.byType(Row)),
+      matching: find.byType(Switch),
+    );
+    await tester.ensureVisible(quality);
+    await tester.pumpAndSettle();
+    await tester.tap(quality);
+    await tester.pumpAndSettle();
+    await pressExport(tester);
+
+    expect(server.exportBody['resolution'], '1080p');
   });
 }
