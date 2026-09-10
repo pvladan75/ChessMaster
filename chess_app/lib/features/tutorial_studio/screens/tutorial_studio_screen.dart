@@ -28,6 +28,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_servi
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
+import 'package:chess_app/features/tutorial_studio/screens/tutorial_narration_screen.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
@@ -620,6 +621,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             onPressed: _showSetupDialog,
           ),
           IconButton(
+            key: const Key('record-narration'),
+            icon: const Icon(Icons.mic_none),
+            tooltip: 'Record narration',
+            onPressed: _recordNarration,
+          ),
+          IconButton(
             key: const Key('export-video'),
             icon: const Icon(Icons.videocam_outlined),
             tooltip: 'Export video',
@@ -962,17 +969,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _persist();
   }
 
-  /// The tutorial as a child will meet it, without saving anything.
-  ///
-  /// It was buried in `LessonStepEditorPanel`, which D8 retires on Windows, and
-  /// it is the fastest answer to „does this feel right" that this screen can
-  /// give — so it comes across rather than being lost with the panel.
-  ///
-  /// **Nothing is sent.** The draft is projected into an `AssignmentDetail` and
-  /// the viewer is handed `PreviewAssignmentApiService`, which answers every
-  /// call locally: a trainer trying their own question does not mark a child's
-  /// schedule, and a preview that wrote to the server would be a save nobody
-  /// asked for.
   /// Make a video of what is being written, from where it is being written.
   ///
   /// The owner asked for this door on 9.9.2026 — „dijalog za renderovanje
@@ -1001,6 +997,42 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
+  /// The trainer's own voice over this tutorial — phase 1 of
+  /// `docs/PLAN-SNIMANJE.md`.
+  ///
+  /// **A saved tutorial only**, for the same reason as the export beside it: a
+  /// take is kept under the tutorial's id, and a draft that has never been
+  /// saved has none — a take keyed to nothing is a file nobody can reach.
+  ///
+  /// The part being written is synced first, so the beats the trainer talks
+  /// over are the ones on screen rather than the ones last saved.
+  Future<void> _recordNarration() async {
+    final id = _draft.lessonId;
+    if (id == null) {
+      AppFeedback.info(context, 'Save the tutorial first, then record it.');
+      return;
+    }
+    _syncSelectedSection();
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => TutorialNarrationScreen(
+        lessonId: id,
+        title: _titleController.text.trim(),
+        draft: _draft,
+      ),
+    ));
+  }
+
+  /// The tutorial as a child will meet it, without saving anything.
+  ///
+  /// It was buried in `LessonStepEditorPanel`, which D8 retires on Windows, and
+  /// it is the fastest answer to „does this feel right" that this screen can
+  /// give — so it comes across rather than being lost with the panel.
+  ///
+  /// **Nothing is sent.** The draft is projected into an `AssignmentDetail` and
+  /// the viewer is handed `PreviewAssignmentApiService`, which answers every
+  /// call locally: a trainer trying their own question does not mark a child's
+  /// schedule, and a preview that wrote to the server would be a save nobody
+  /// asked for.
   void _previewAsStudent() {
     _syncSelectedSection();
     final steps = _draft.positionList;

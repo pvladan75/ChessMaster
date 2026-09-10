@@ -55,6 +55,37 @@ const int _minBeatSeconds = 2;
 const int _maxBeatSeconds = 12;
 const int _charsPerSecond = 12;
 
+/// One stop of the film: the beat, the part it belongs to, and what is written
+/// under the board while it is on screen.
+typedef FilmBeat = ({
+  TutorialSection section,
+  TutorialBeat beat,
+  String caption
+});
+
+/// Every beat of [draft], in the order the film shows them.
+///
+/// **This is the one walk of a tutorial as a film**, and there are two readers
+/// of it: [tutorialVideoOf], which turns each stop into an event, and the
+/// recording screen, which shows each stop while the trainer talks over it.
+/// A recorded marker names an event by its index, so the two must agree on the
+/// index by construction rather than by two loops that happen to match today.
+List<FilmBeat> filmBeatsOf(TutorialDraft draft) {
+  final stops = <FilmBeat>[];
+  for (final section in draft.sections) {
+    final beats = beatsOf(section.root, section.root);
+    for (var i = 0; i < beats.length; i++) {
+      stops.add((
+        section: section,
+        beat: beats[i],
+        caption:
+            _captionOf(section, beats[i], isLastBeat: i == beats.length - 1),
+      ));
+    }
+  }
+  return stops;
+}
+
 /// Every part of [draft], in order, as one film.
 ///
 /// A part contributes one event per beat of its main line. The first of them
@@ -69,52 +100,46 @@ TutorialVideo tutorialVideoOf(TutorialDraft draft) {
   final events = <Map<String, dynamic>>[];
   var atMs = 0;
 
-  for (final section in draft.sections) {
-    final beats = beatsOf(section.root, section.root);
-    final orientation = section.blackOrientation ? 'black' : 'white';
+  for (final stop in filmBeatsOf(draft)) {
+    final node = stop.beat.node;
+    final opensPart = stop.beat.index == 0;
+    final caption = stop.caption;
 
-    for (var i = 0; i < beats.length; i++) {
-      final beat = beats[i];
-      final node = beat.node;
-      final caption =
-          _captionOf(section, beat, isLastBeat: i == beats.length - 1);
-
-      events.add({
-        'timestampMs': atMs,
-        'eventType': i == 0 ? 'init' : 'move',
-        'data': {
-          'fen': node.fen,
-          // Asked of the beat's place on the line, not of the node's fields:
-          // the opening position of a part is a position, and nothing arrived
-          // at it. `MoveTree` calls its own root „Root", which is a
-          // placeholder a reader must never be shown.
-          if (i > 0) ...{
-            if (node.moveSan != null) 'san': node.moveSan!,
-            ..._fromTo(node),
-          },
-          if (caption.isNotEmpty) 'text': caption,
-          if (node.arrows.isNotEmpty)
-            'arrows': [
-              for (final arrow in node.arrows)
-                {'from': arrow.from, 'to': arrow.to, 'color': arrow.colorCode},
-            ],
-          if (node.squares.isNotEmpty)
-            'squares': [
-              for (final square in node.squares)
-                {'square': square.square, 'color': square.colorCode},
-            ],
-          // Per event, because a tutorial may be written from one side in one
-          // part and the other in the next — the field already travels to the
-          // child, and a film that ignored it would show a board the trainer
-          // never wrote from. Not the renderer's own `perspective`, which
-          // spells the two sides „trainer" and „student"; a colour is what
-          // this actually is.
-          'orientation': orientation,
+    events.add({
+      'timestampMs': atMs,
+      'eventType': opensPart ? 'init' : 'move',
+      'data': {
+        'fen': node.fen,
+        // Asked of the beat's place on the line, not of the node's fields:
+        // the opening position of a part is a position, and nothing arrived
+        // at it. `MoveTree` calls its own root „Root", which is a
+        // placeholder a reader must never be shown.
+        if (!opensPart) ...{
+          if (node.moveSan != null) 'san': node.moveSan!,
+          ..._fromTo(node),
         },
-      });
+        if (caption.isNotEmpty) 'text': caption,
+        if (node.arrows.isNotEmpty)
+          'arrows': [
+            for (final arrow in node.arrows)
+              {'from': arrow.from, 'to': arrow.to, 'color': arrow.colorCode},
+          ],
+        if (node.squares.isNotEmpty)
+          'squares': [
+            for (final square in node.squares)
+              {'square': square.square, 'color': square.colorCode},
+          ],
+        // Per event, because a tutorial may be written from one side in one
+        // part and the other in the next — the field already travels to the
+        // child, and a film that ignored it would show a board the trainer
+        // never wrote from. Not the renderer's own `perspective`, which
+        // spells the two sides „trainer" and „student"; a colour is what
+        // this actually is.
+        'orientation': stop.section.blackOrientation ? 'black' : 'white',
+      },
+    });
 
-      atMs += dwellSecondsFor(caption) * 1000;
-    }
+    atMs += dwellSecondsFor(caption) * 1000;
   }
 
   return (events: events, seconds: atMs ~/ 1000);

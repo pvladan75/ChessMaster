@@ -4929,3 +4929,40 @@ filma (jedan se crta, jedan čeka).
    ako ga neko pretekne po pravilu smene, broj mu poraste, i to vidi.
 5. [ ] **Kvota nije potrošena na odbijanje.** Posle odbijenog trećeg izvoza broj
    renderovanja na nalogu nije porastao.
+
+## 138. Snimanje glasa preko tutorijala — 10.9.2026, nije viđeno uživo
+
+Faze 1 i 2 iz `docs/PLAN-SNIMANJE.md`: trener priča preko tutorijala, razmak
+pomera takt, a marker je **pozicija u samom zvuku** (bajtovi ÷ byte rate), ne
+sat na zidu. Snimak ostaje na uređaju; slanje na server je faza 3 i nije
+urađeno. Samo Windows — studio ne postoji na Androidu.
+
+1. [ ] **Vrata.** U studiju, na **sačuvanom** tutorijalu, ikonica mikrofona
+   pored „Export video" otvara ekran „Record narration". Na nesačuvanom kaže
+   „Save the tutorial first, then record it." i ništa ne otvara.
+2. [ ] **Snimanje.** „Record", pričaj, razmak za svaki sledeći takt. Tabla i
+   rečenica prate; red „Next: …" tačno kaže šta će razmak postaviti.
+3. [ ] **Pauza nema rupu.** Pauziraj pet sekundi, **pritisni razmak dok je
+   pauzirano**, nastavi. Na preslušavanju takt se menja tačno tamo gde glas
+   nastavlja, bez tišine od pet sekundi.
+4. [ ] **Utišan mikrofon.** Utišaj mikrofon u Windowsu i pritisni „Record": za
+   oko tri sekunde mora da se pojavi „Nothing is reaching the microphone".
+   Uključi mikrofon — poruka nestaje. Snimak koji je ceo bio utišan posle „Stop"
+   kaže da je nem.
+5. [ ] **Kraj se ne razilazi.** Snimi ceo tutorijal od bar dva minuta sa jednom
+   ili dve pauze, pa preslušaj **poslednja tri takta**: tabla se menja kad glas
+   kaže, ne pola sekunde ili tri sekunde ranije. To je polovina koju niko ne
+   proverava, i baš tu bi zidni sat pogrešio.
+6. [ ] **Ponovno otvaranje.** Zatvori ekran i otvori ga opet: „Recorded … ·
+   m:ss · N of M beats" i „Listen" radi.
+7. [ ] **Novi pokušaj i odbacivanje.** „Record again" pa „Discard": stari snimak
+   je i dalje tu. „Record again" pa „Stop": novi je zamenio stari.
+8. [ ] **Izlazak usred snimanja.** Strelica nazad dok se snima pita „Discard this
+   recording?"; „Discard and leave" izlazi i ništa ne ostaje.
+9. [ ] **Držanje razmaka.** Drži razmak dve sekunde: pomera se **jedan** takt.
+10. [ ] **Izmenjen tutorijal.** Posle snimka dodaj potez u studiju i otvori ekran:
+    mora da kaže „This recording was made when the tutorial had N beats…".
+11. [ ] **Fajl.** U direktorijumu podrške aplikacije
+    (`getApplicationSupportDirectory`), podfolder `narration\lesson_<id>`, stoji
+    jedan `take-….wav` i `take.json`. Wav se otvara u običnom plejeru, a
+    `ffprobe` daje isto trajanje koje piše na ekranu.

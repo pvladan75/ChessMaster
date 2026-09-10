@@ -88,6 +88,13 @@ const kShortcutGroups = <ShortcutGroup>[
     ],
   ),
   ShortcutGroup(
+    'Recording narration',
+    'On the Record narration screen, while your voice is being recorded.',
+    [
+      AppShortcut(['Space'], 'Next beat.'),
+    ],
+  ),
+  ShortcutGroup(
     'Move tree',
     'In Analysis, only after clicking inside the tree itself — while focus is not in it, '
         'arrow keys belong to the move strip below the board.',

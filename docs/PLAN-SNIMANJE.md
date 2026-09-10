@@ -256,6 +256,41 @@ trainer has already seen that the timing is right.
 The take lives in the app's own storage until it is exported, the way
 `LocalRecordingService` already keeps a room recording.
 
+### Built on 10.9.2026, with phase 1 — not yet watched running
+
+Phases 1 and 2 landed together, because „listen to the take" is the only way to
+check phase 1 and it is phase 2. Live check: `docs/TODO-provera.md`, item 138.
+
+* **The core is `services/narration_take.dart`** and knows no plugin, file layout
+  or widget. `NarrationRecorder` is driven by the chunks the microphone hands
+  over: every byte is written to the sink *and* counted in the same place, so
+  the file and the markers cannot disagree about the length of the audio. It
+  refuses a „next" before the first sample, a „next" the clock has not moved
+  past (a held key, a double press inside one chunk), and allows one during a
+  pause, which lands exactly on the seam.
+* **One walk of the tutorial for both readers.** `filmBeatsOf(draft)` is lifted
+  out of `tutorialVideoOf`, and the recording screen reads the same list, so
+  marker `i` names event `i` by construction rather than by two loops that
+  happen to agree.
+* **Silence is read from the samples, not from `onAmplitudeChanged`** — a
+  deliberate change from phase 0's wording. The PCM is already in hand, so the
+  level comes from the same source as the clock, needs no second platform
+  call, and is testable. The threshold is −70 dBFS, set against the −91 dB a
+  muted microphone produced: it detects a dead microphone, not a quiet trainer.
+  The screen says so after three seconds of *audio* with nothing in it.
+* **A take on disk** is `take-<random>.wav` plus a `take.json` naming it, under
+  the app's support directory, one folder per tutorial. A retake is written
+  beside the old one, the index is replaced, and only then is the old audio
+  deleted; the index is read back against the wav's own length before it is
+  trusted, and a disagreement is reported as a lost recording, not as none.
+* **A take recorded against a different number of beats says so.** That is a
+  count, not phase 5's signature; it catches a beat added or removed, which is
+  the commonest edit, and phase 5 replaces it.
+
+Still open from these two phases: the refusal of a silent take is phase 3's
+(the server's), and a tutorial deleted from the library does not yet delete its
+local take.
+
 ## Phase 3 — the upload, and what the server checks
 
 `POST /lessons/:id/narration`, multipart, alongside the marker list.

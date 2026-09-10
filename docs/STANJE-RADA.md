@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **10.9.2026** — vidi „ODAKLE SUTRA — 10.9.2026, video i
-snimanje" odmah ispod. Tog dana i noći pred njim: prekid napuštenog rendera,
+Poslednje ažuriranje: **10.9.2026** — faze 1 i 2 plana snimanja su u kodu
+(„Snimanje glasa: faze 1 i 2" odmah ispod), a „ODAKLE SUTRA — 10.9.2026, video i
+snimanje" ispod toga. Tog dana i noći pred njim: prekid napuštenog rendera,
 pregled pre renderovanja, jedan film po tutorijalu sa linkom na zahtev,
 pravednost reda po nalogu, i zatvorena faza 0 plana snimanja.
 
@@ -24,6 +25,64 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Snimanje glasa: faze 1 i 2 — 10.9.2026, nije viđeno uživo
+
+Trener u studiju pritisne ikonicu mikrofona (samo na **sačuvanom** tutorijalu,
+kao i „Export video"), pritisne „Record" i priča; razmak postavlja sledeći
+takt. Tabla i rečenica tog takta stoje pred njim kao sufler, a red „Next: …"
+kaže šta će razmak postaviti. Posle „Stop" snimak ostaje **na uređaju**, i
+„Listen" ga pušta dok tabla prati glas. Slanje na server je faza 3 i nije
+početo. Provera uživo: `TODO-provera.md`, stavka 138.
+
+**Marker je broj bajtova ÷ byte rate, nikad sat na zidu** — to je odgovor faze
+0 i sad je kod. Zagrevanje mikrofona i pauze zato ne pomeraju ništa: pauza
+zaustavlja i zvuk i sat, a takt pomeren tokom pauze pada tačno na šav. Utišan
+mikrofon se čita iz samih uzoraka (prag −70 dBFS naspram izmerenih −91) i ekran
+to kaže posle tri sekunde **zvuka** bez ičega, dok se snima — ne posle sat
+vremena pričanja.
+
+Gde je šta: jezgro je `services/narration_take.dart` (bez plugina i widgeta),
+plugin je `record_pcm_source.dart`, ekran `tutorial_narration_screen.dart`.
+`filmBeatsOf` je izvučen iz `tutorialVideoOf`, pa film i snimanje čitaju **jednu**
+šetnju tutorijala — marker `i` je događaj `i` po konstrukciji, a ne zato što se
+dve petlje danas slažu.
+
+Tri stvari vredi zapamtiti.
+
+**`await` na `StreamSubscription.cancel()` visi pod lažnim satom widget testa.**
+Budućnost koju vraća već je završena u root zoni, i pod `fake_async` nastavak
+nikad ne dođe — „Stop" i „Discard" su visili u četiri testa ekrana, dok su
+jedinični testovi jezgra prolazili jer nemaju lažni sat. Otkazivanje deluje u
+trenutku poziva, pa se ne čeka.
+
+**Četiri straže su obrisane jer nijedna nije mogla da padne**, i sve je našla
+mutacija: provera stanja u `_onChunk` (pretplata je već otkazana pre nje),
+`existsSync` u `load` (otvaranje fajla koji ne postoji baca, i `catch` već
+odgovara), te `ExcludeFocus` i `requestFocus` oko dugmadi. Za poslednje dve
+odgovor je dala **proba**, a ne zaključivanje: prečica za razmak stoji iznad
+svih kontrola pa je čuje pre fokusiranog dugmeta, a kad dugme „Record" nestane
+sa fokusom na sebi, opseg sam vraća fokus čvoru koji ga je imao pre. Test „take
+started from the keyboard" ostaje — on ne dokazuje `requestFocus`, nego
+`autofocus`, bez koga ne bi bilo prethodnog čvora, i pada kad se `autofocus`
+obriše.
+
+**Snimak na disku ima svoje ime, a indeks ga imenuje.** Novi pokušaj se snima
+pored starog, `take.json` se zameni, i tek onda se stari zvuk briše; pri
+čitanju se indeks proverava prema dužini samog wav-a. Neslaganje se prijavljuje
+kao **izgubljen** snimak, ne kao da ga nema — izgubljen snimak prijavljen kao
+uspeh je najstariji oblik greške u ovom repozitorijumu.
+
+Otvoreno: faza 3 (slanje, `ffprobe` na serveru, odbijanje nemog snimka), faza 5
+(potpis umesto broja taktova — sad se hvata samo dodat ili obrisan takt), i
+**brisanje lokalnog snimka kad se tutorijal obriše iz biblioteke**, što još ne
+postoji. Alat `tool/spike_recorder` se čuva do provere uživo.
+
+Brojke: **1832 u aplikaciji (1 preskočen)**, mereno na `master` bez ičeg drugog
+pokrenutog — 1790 + 28 testova jezgra + 14 testova ekrana. Backend nije diran
+(1098). `flutter analyze` na 29 info poruka, bez upozorenja.
 
 ---
 

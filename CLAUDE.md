@@ -1247,6 +1247,32 @@ on a stale generator in `build/windows` — delete that directory. Worth knowing
 before adding any plugin with native code: check what it does to the *other*
 platform's build before believing it is additive.
 
+**A trainer's voice over a tutorial — phases 1 and 2 of `docs/PLAN-SNIMANJE.md`,
+10.9.2026: 1832 in the app with 1 skipped**, measured on `master` with nothing
+else running; the backend is untouched at 1098. Forty-two tests — twenty-eight
+on the core (`narration_take.dart`), fourteen on the screen — and every guard
+left in either was proved by mutation. Four that could not fail were deleted
+rather than kept. Not yet watched running: `TODO-provera.md`, item 138.
+
+**`await subscription.cancel()` hangs a widget test.** A `StreamController`
+with no `onCancel` returns a future already completed in the root zone, and
+under `fake_async` the continuation never runs — so Stop and Discard hung in
+four screen tests while the core's own tests, which have no fake clock, were
+green. A cancel takes effect when it is called; there is nothing to wait for.
+
+**A focus guard was measured, not reasoned about.** `ExcludeFocus` around the
+controls and a `requestFocus` after Record both survived mutation, and a
+throwaway probe said why: the Space binding sits above every control, so it is
+heard before a focused button is asked, and when the Record button disappears
+with the focus on it the scope hands the focus back to the node that had it
+before. Both were deleted. The keyboard test stays, because it fails without
+`autofocus` — which is what actually carries that path.
+
+And `screen_names_en_test.dart` failed the shortcuts page for writing „Tutorial
+Studio" inside a sentence. The copy was reworded rather than the gate widened:
+the gate exists so that „studio" keeps naming one screen, and a sentence that
+does not need the word is cheaper than an allowance that has to be argued.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
