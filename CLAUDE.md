@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2082 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2083 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1234 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1929,6 +1929,15 @@ merged keystrokes by `DateTime.now`. It reads `package:clock` now, the test's
 fake time inside `testWidgets`. The proof was a copy of the test that sleeps
 1.5 s of real time between letters: it passes on `clock` and fails on
 `DateTime.now`.
+
+**When the test font and the real one disagree, pick the width where both
+agree.** Phase 4 of the same plan put „Preview tutorial" back as words, at the
+owner's request. On Windows they fit at 700 dp; in a widget test the label is
+squares and overflowed 700 by 77 px, and that test is the only overflow guard
+CI has. So the words show from `Breakpoints.wide` (840), where they fit in
+both, with an icon of the same name below. Weakening the test would have
+removed the guard; forcing the words everywhere would have failed it for a
+layout that is fine.
 
 **A notation the parser refuses is a test's own mistake first.** The test's
 first fixture wrote `2. Ra6+`, which is not check: the knight on b6 blocks the

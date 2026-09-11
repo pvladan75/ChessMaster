@@ -145,7 +145,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('preview-as-student')));
+    await tester.tap(find.byKey(const Key('preview-tutorial')));
     await tester.pumpAndSettle();
 
     final viewer =
@@ -161,7 +161,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('example-sentence')), sentence);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('preview-as-student')));
+    await tester.tap(find.byKey(const Key('preview-tutorial')));
     await tester.pumpAndSettle();
 
     expect(find.byType(LessonViewerScreen), findsOneWidget);

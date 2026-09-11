@@ -38,7 +38,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Istorija u studiju — plan 11.9.2026; faze 1–3 gotove, faza 4 (uputstvo i provera uživo) ostaje
+## Istorija u studiju — plan 11.9.2026; sve četiri faze gotove, čeka proveru uživo (TODO-provera 151)
 
 `docs/PLAN-STUDIO-ISTORIJA.md`. Vlasnik je obrisao deo, nije sačuvao, i kad je
 ponovo otvorio tutorijal deo je i dalje bio obrisan: studio tiho uzima lokalni
@@ -106,7 +106,18 @@ menjano, a da li lista treba da bude gušća je pitanje za vlasnika. Tabela je u
 **Isto veče:** `splitForQuestion` više ne gubi step id kad se pitanje postavi
 na početnu poziciju dela — nastavak (koji nosi celu originalnu liniju) zadržava
 id i ime, a bez nastavka ga zadržava samo pitanje. Test čita zahtev za čuvanje;
-6 mutacija uhvaćeno. Aplikacija 2082 (1 preskočen), backend nepromenjen 1234.
+6 mutacija uhvaćeno.
+
+**Faza 4, 11.9.2026:** uputstvo (`UPUTSTVO-STUDIO.md`, odeljci 2 i 7) i stavka
+151 u `TODO-provera.md`. Uz to, po vlasnikovoj odluci: dugme za pregled je
+ponovo rečima, sad **„Preview tutorial"** (ne „as student" — tutorijal može da
+piše i neko ko nema učenika); od 840 dp rečima, ispod toga ikonica kape sa
+istim imenom, jer u testovima, gde je tekst dugmeta kvadratić, reči na 700 dp
+prelivaju traku. Uputstvo kaže da „Preview tutorial" **nije izgled videa** —
+film ima svoj „Preview" u dijalogu „Export video". Usput ispravljena netačna
+rečenica u odeljku 5 uputstva: prelazak na drugi takt **gasi** crtanje (od
+7.9.2026). Lista delova ostaje kakva je — vlasnikova odluka. Aplikacija 2083
+(1 preskočen), backend nepromenjen 1234.
 
 ## Jezik glasa — 11.9.2026; svih šest faza gotovo, čeka proveru uživo
 

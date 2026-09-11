@@ -50,6 +50,28 @@ postaje nov deo na toj poziciji, a ono što je u liniji išlo dalje nastavlja se
 iza pitanja. Deo bez poteza se ne deli, nego sam postaje pitanje. Pregledač te
 delove spaja na **jednoj tabli**, bez resetovanja, pa dete ne vidi šav.
 
+**Druga linija iz iste pozicije — „Insert a line here".** Primer: iz pozicije
+`8/3k4/1n3b2/8/8/8/2PK4/2R5 w` demonstracija ide `1. Ra1 Kc6 2. Ra6 Bb2 3. c3
+Kb5`, a posle `Kc6` hoćeš da pokažeš i `2. Ra8 Bb2`. U panelu **„Flow"** stani
+na takt posle `Kc6`; na njegovoj kartici, pored „Delete this move", je ikonica
+račvanja puta — **„Insert a line here"**. Deo se deli na tri:
+
+1. **do `Kc6`** — ostaje stari deo, sa svojim imenom i sa istom oznakom na
+   serveru, pa ono što je dete već uradilo na tom delu ostaje vezano za njega;
+2. **nova linija** od pozicije posle `Kc6` — studio te ostavlja na njenoj prvoj
+   poziciji, pa samo odigraš `2. Ra8 Bb2`;
+3. **stari nastavak** `2. Ra6 Bb2 3. c3 Kb5` od iste pozicije.
+
+Svi komentari, strelice i polja ostaju gde su bili. Strelice i polja sa takta
+na kome si sekao prelaze i na početak nove linije i na početak nastavka, jer
+dete tu poziciju vidi ponovo. Ako si drugu liniju već odigrao kao varijantu na
+tom taktu, ona sama postaje nova linija. Ikonica se pojavljuje samo na taktu na
+kome stojiš, i samo u demonstraciji koja ima poteze. Pogrešan rez vraća jedan
+Ctrl+Z.
+
+Kad dete prolazi tutorijal, prvi deo i nova linija su jedna tabla; nastavak
+ponovo postavlja poziciju posle `Kc6`, kao kad se okrene strana.
+
 ## 3. Zašto pitanje ne sme da nosi liniju
 
 Linija dela **nije sakrivena** od deteta — ona *jeste* lekcija, i dete može da je
@@ -102,8 +124,8 @@ ili „c-pešak": glas to čita „ha linija", „ce pešak".
 * polje se označava jednim klikom; ponovni klik ga briše;
 * **brisanje ne gleda boju** — ispravlja se „pogrešna strelica", ne „pogrešna
   boja";
-* prelazak na drugi takt zaboravlja započetu strelicu, a režim crtanja ostaje
-  uključen.
+* prelazak na drugi takt zaboravlja započetu strelicu i **isključuje crtanje**,
+  da prvi klik na novom taktu ne bi nacrtao polje umesto da pomeri figuru.
 
 ## 6. Tab „PGN" — tekst dela
 
@@ -167,15 +189,47 @@ kursor na taj potez i uključe crtanje **na tabli**.
 4. Nov deo: **„New demonstration"** za sledeći primer — „From here" ga počinje
    na poziciji gde se linija otvorenog dela završava, „New board" iz osnovne
    pozicije; **„Find the move"** ili **„Choose the answer"** za pitanje na
-   taktu na kome stojiš (odeljak 2).
-5. **„Preview as student"** — otvara tutorijal onako kako ga dete vidi.
-   **Ništa ne šalje na server**; odgovori u pregledu se ne beleže.
+   taktu na kome stojiš; **„Insert a line here"** za drugu liniju iz iste
+   pozicije (odeljak 2).
+5. **„Preview tutorial"** — otvara tutorijal onako kako ga prolazi onaj ko ga
+   čita u aplikaciji: dugmad, glas, pitanja. **Ništa ne šalje na server**;
+   odgovori u pregledu se ne beleže. Na uskom prozoru je to ikonica kape sa
+   istim imenom.
 6. **„Save tutorial"** — jedan upis, na kraju. Svaki sledeći pritisak menja
    **isti** tutorijal, ne pravi nov.
+
+**„Preview tutorial" nije izgled videa.** Video koji izvoziš ima svoj
+raspored: tablu, tekst komentara uz nju (ako ga u dijalogu ne isključiš) i glas
+koji biraš pri izvozu (odeljak 8). Kako će film izgledati vidiš u dijalogu **„Export video"**
+(ikonica kamere), dugmetom **„Preview"** — pokazuje nekoliko slika iz filma pre
+nego što se ceo renderuje.
 
 Tutorijal mora da ima naziv. Poslednji deo se ne može obrisati. Nedovršen rad se
 sam čuva na računaru; kad sledeći put otvoriš nov tutorijal, pitaće te
 („Cancel" / „New" / „Continue") — **„New" briše nezavršeni**.
+
+### Vraćanje unazad i sačuvana verzija
+
+**Undo i Redo** su dve strelice gore desno, ili **Ctrl+Z** i **Ctrl+Y** (i
+Ctrl+Shift+Z). Pamti se **100 poslednjih izmena**, dok je studio otvoren;
+zatvaranjem studija istorija se briše. Rečenica otkucana bez pauze je jedna
+izmena, ne slovo po slovo. Ctrl+Z radi i dok je kursor u polju za tekst — vraća
+poslednju izmenu tutorijala, bila to rečenica ili potez. Prelazak na drugi
+takt ili deo nije izmena.
+
+**„Discard changes"** (ikonica sata sa strelicom, pored Undo i Redo) vraća
+tutorijal na poslednju sačuvanu verziju. I to je jedna izmena, pa ako si
+pogrešio, Ctrl+Z vraća tvoje izmene. Ikonica je siva kad nema šta da se odbaci.
+
+**Kad otvoriš sačuvan tutorijal koji na ovom računaru ima nesačuvane izmene**,
+studio ih uporedi sa verzijom na serveru. Ako se razlikuju po sadržaju (a ne
+samo po tome gde si stajao), pita: **„This tutorial has changes you have not
+saved"** — **„Continue with my changes"** ili **„Open the saved version"**. Ni
+jedan odgovor ništa ne gubi dok je studio otvoren: posle „Open the saved
+version" Ctrl+Z vraća izmene. Pita samo dok još ništa nisi promenio; ako si
+počeo da radiš pre nego što je server odgovorio, ne prekida te, nego samo
+upali „Discard changes". Ako server ne odgovori, tutorijal se otvara sa tvojim
+izmenama i to piše na dnu ekrana.
 
 ---
 
@@ -215,7 +269,7 @@ je bolje izabrati jezik. Ako uređaj nema nijedan upotrebljiv glas, dugme ▶ se
 uopšte ne crta, a tutorijal se prolazi dugmadima.
 
 **Na tvom računaru i na detetovom telefonu čuju se različiti glasovi.**
-„Preview as student" čita glasom *tvog* uređaja — na Windows-u hrvatskim
+„Preview tutorial" čita glasom *tvog* uređaja — na Windows-u hrvatskim
 Matejem — a dete na Androidu čuje Googleov srpski glas. Oba čitaju isti tekst
 istim pravilima.
 

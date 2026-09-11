@@ -231,7 +231,7 @@ void main() {
     await open(tester, row(language: null));
 
     await pick(tester, 'Italian');
-    await tester.tap(find.byKey(const Key('preview-as-student')));
+    await tester.tap(find.byKey(const Key('preview-tutorial')));
     await tester.pumpAndSettle();
 
     final viewer =

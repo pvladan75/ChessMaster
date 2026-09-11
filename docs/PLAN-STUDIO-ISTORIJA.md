@@ -1,6 +1,6 @@
 # Undo, the saved version, and a line inserted into a part
 
-Written 11.9.2026. Phase 1 is built; phases 2–4 are not.
+Written 11.9.2026. All four phases are built; the live check is item 151 of `TODO-provera.md`.
 
 ## The request
 
@@ -73,8 +73,8 @@ splitting a part are both undoable from the day they arrive.
 - **„Preview as student" is an icon now**, with its name as the tooltip. The
   measurement that decided it was wrong, and so was the conclusion (corrected
   the same day, see „The measurements were wrong" below). As Windows draws
-  the bar, the words take 147 px and fit: no overflow at 700 dp. Whether the
-  words come back is the owner's call.
+  the bar, the words take 147 px and fit: no overflow at 700 dp. The owner
+  asked for words back, and they came back in phase 4 as „Preview tutorial".
 - **Step ids survive an undo past a save.** Each part carries a key of its own
   on this device (`TutorialSection.localKey`), the studio learns which step id
   each key was given, and a restored part gets its id back; the lesson id never
@@ -272,6 +272,25 @@ time between letters: it passes on `clock` and fails on `DateTime.now`.
   boundaries as it crosses every other.
 
 ## Phase 4 — documents and the live check
+
+**Built 11.9.2026.** `UPUTSTVO-STUDIO.md` sections 2 and 7, and item 151 in
+`TODO-provera.md`. With it, three things:
+
+- **„Preview tutorial" is words again**, at the owner's request, and no longer
+  „as student": whoever writes a tutorial may have no students. It is words
+  from 840 dp, where the studio splits into two panes, and an icon with the
+  same name below that. On Windows the words would fit at 700, but a widget
+  test draws a button label in squares, and there they overflowed 700 dp by
+  77 px. At 840 they fit in both fonts. A test pins all three widths.
+- **The guide says the preview is not the video.** The owner, the same day:
+  „Preview tutorial" shows the tutorial as a reader walks through it in the
+  app; the film has its own „Preview" in the „Export video" dialog.
+- **Section 5 of the guide was wrong since 7.9.2026.** It said drawing stays
+  on when the trainer moves to another beat; it has been turned off there
+  since the owner's report that day.
+
+The parts list stays as it is — the owner's decision after the corrected
+measurement (1.8 rows of a 14-part tutorial at 1366 × 768).
 
 - `UPUTSTVO-STUDIO.md`: undo and redo, „Discard changes" and the question on
   open (section 7), and „Insert a line here" (section 2).

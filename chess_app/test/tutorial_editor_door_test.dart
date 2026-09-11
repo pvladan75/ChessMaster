@@ -149,7 +149,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('preview-as-student')));
+      await tester.tap(find.byKey(const Key('preview-tutorial')));
       await tester.pumpAndSettle();
 
       expect(find.byType(LessonViewerScreen), findsOneWidget);
@@ -158,6 +158,38 @@ void main() {
               'being written');
 
       await close(tester);
+    });
+
+    testWidgets('is said in words where there is room, and named everywhere',
+        (tester) async {
+      // The owner, 11.9.2026: words are clearer for a trainer, and „Preview
+      // tutorial" because whoever writes one may have no students.
+      for (final (size, words) in [
+        (const Size(1600, 1200), true),
+        (const Size(840, 900), true),
+        (const Size(700, 1000), false),
+      ]) {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1.0;
+        await tester.pumpWidget(MaterialApp(
+          home: TutorialStudioScreen(
+            session: session,
+            entry: TutorialEntry.saved(lesson),
+            lessonApi: api(),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull, reason: '$size');
+        expect(find.widgetWithText(TextButton, 'Preview tutorial'),
+            words ? findsOneWidget : findsNothing,
+            reason: '$size');
+        expect(find.byTooltip('Preview tutorial'),
+            words ? findsNothing : findsOneWidget,
+            reason: 'the icon carries the same name, $size');
+        await close(tester);
+      }
+      tester.view.reset();
     });
 
     testWidgets('sends nothing', (tester) async {
@@ -182,7 +214,7 @@ void main() {
       // docs/PLAN-STUDIO-ISTORIJA.md). What is asked here is the preview.
       sent.clear();
 
-      await tester.tap(find.byKey(const Key('preview-as-student')));
+      await tester.tap(find.byKey(const Key('preview-tutorial')));
       await tester.pumpAndSettle();
 
       final viewer =

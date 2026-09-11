@@ -5331,7 +5331,7 @@ telefonu.
    za naziv još može normalno da se kuca. Izaberi „Serbian (Latin)", „Save
    tutorial", zatvori, otvori ponovo iz „Saved tutorials" — i dalje piše
    „Serbian (Latin)".
-2. [ ] **Windows, hrvatski glas `Matej`.** „Preview as student", pa ▶: čita
+2. [ ] **Windows, hrvatski glas `Matej`.** „Preview tutorial", pa ▶: čita
    Matej, i potezi se čuju na srpskom („lovac ce četiri"). **Presudi na uho**
    da li je „lovac ce četiri" dobro, ili bi „lovac c četiri" (samo slovo) bilo
    bolje — zadržava se ono što zvuči prirodno. Od druge rečenice ispis i govor
@@ -5341,7 +5341,7 @@ telefonu.
    tački 2.
 4. [ ] **Uređaj bez glasa za taj jezik.** Najlakše bez brisanja glasova:
    prebaci tutorijal na „German" (ili drugi jezik čiji glas nemaš), sačuvaj,
-   „Preview as student". Umesto ▶ stoji prekriženi zvučnik („No voice for this
+   „Preview tutorial". Umesto ▶ stoji prekriženi zvučnik („No voice for this
    tutorial's language"); dodir kaže da uređaj nema glas i šta da se instalira.
    Dugmad za poteze rade normalno, i ništa se ne čuje engleskim glasom.
 5. [ ] **Ćirilica traži srpski glas.** Tutorijal na „Serbian (Cyrillic)" na
@@ -5363,3 +5363,53 @@ telefonu.
     h-liniju, a c-pešak je slab." treba da se čuje kao „ha liniju" i „ce pešak".
     Redni brojevi se ne ispravljaju u kodu: piše se „sedmi red", ne „7. red"
     (`UPUTSTVO-STUDIO.md`, odeljak 5).
+
+## 151. Istorija u studiju: undo, sačuvana verzija i nova linija — 11.9.2026, nije viđeno uživo
+
+`docs/PLAN-STUDIO-ISTORIJA.md`, faze 1–3. Uputstvo: `docs/UPUTSTVO-STUDIO.md`,
+odeljak 2 („Insert a line here") i odeljak 7 („Vraćanje unazad i sačuvana
+verzija"). Da deo vraćen undo-om i deo posle reza zadržavaju svoju oznaku na
+serveru (pa rad đaka ostaje vezan za njih) proverava se u testovima, jer se na
+ekranu ne vidi.
+
+**Priprema:** jedan sačuvan tutorijal sa bar dva dela, na Windows-u.
+
+1. [ ] **Obrisan deo se vraća.** Obriši deo, pa Undo (zakrivljena strelica gore
+   desno, ili Ctrl+Z): deo je ponovo na istom mestu. „Save tutorial", zatvori,
+   otvori ponovo — deo je tu.
+2. [ ] **Rečenica je jedan korak.** Otkucaj rečenicu u komentar bez pauze: jedan
+   Ctrl+Z briše celu rečenicu, ne slovo po slovo. Pa otkucaj rečenicu, odigraj
+   potez dok je kursor još u polju, i pritisni Ctrl+Z: vraća se potez, rečenica
+   ostaje.
+3. [ ] **Redo.** Ctrl+Y vraća ono što je Undo uklonio. Nova izmena posle Undo-a
+   gasi Redo.
+4. [ ] **Pitanje pri otvaranju.** Obriši deo, **ne čuvaj**, zatvori studio.
+   Otvori isti tutorijal iz „Saved tutorials": pita „This tutorial has changes
+   you have not saved". **„Open the saved version"** → deo je tu; Ctrl+Z → opet
+   ga nema. Zatvori, otvori ponovo, pa **„Continue with my changes"** → deo
+   nema, a „Discard changes" (sat sa strelicom, pored Undo/Redo) svetli.
+5. [ ] **Bez izmena nema pitanja.** Otvori sačuvan tutorijal, prošetaj po
+   taktovima i delovima bez menjanja, zatvori, otvori ponovo: ništa ne pita, a
+   „Discard changes" je siva.
+6. [ ] **Discard changes.** Odigraj potez, pa „Discard changes": potez nestaje;
+   Ctrl+Z ga vraća. Posle „Save tutorial" dugme je sivo.
+7. [ ] **Vlasnikov primer.** Pozicija `8/3k4/1n3b2/8/8/8/2PK4/2R5 w - - 0 1`,
+   linija `1. Ra1 Kc6 2. Ra6 Bb2 3. c3 Kb5`, sa komentarom, strelicom i poljem
+   na nekoliko poteza. U „Flow" stani na karticu „after 1... Kc6" i pritisni
+   ikonicu račvanja („Insert a line here"): nastaju tri dela, a studio stoji na
+   početku nove linije. Odigraj `2. Ra8 Bb2`. Sačuvaj, pa „Preview tutorial":
+   prvi deo i nova linija su jedna tabla, nastavak ponovo postavlja poziciju
+   posle `Kc6`, i svaki komentar i oznaka su na svom potezu.
+8. [ ] **Rez se vraća.** Ponovi rez, pa jedan Ctrl+Z: opet je jedan deo, sa
+   celom linijom.
+9. [ ] **Ikonica je samo gde ima smisla.** Na kartici takta na kome stojiš — da;
+   na ostalim karticama, na delu bez poteza i na pitanju — ne.
+10. [ ] **„Preview tutorial" rečima.** Na širokom prozoru stoji dugme sa rečima;
+    na uskom (ispod 840) ikonica kape sa istim imenom. Ikonice Undo, Redo i
+    Discard (`Icons.redo` i `Icons.restore` su nove) se vide — ako je neka
+    prazna, obriši `chess_app/build/flutter_assets/fonts/MaterialIcons-Regular.otf`
+    i builduj ponovo (CLAUDE.md, „stale icon font").
+11. [ ] **Prečice su zapisane.** F1 → „Keyboard Shortcuts" ima grupu „Tutorial
+    Studio" sa Ctrl+Z, Ctrl+Y i Ctrl+Shift+Z.
+12. [ ] **Uputstvo govori istinu.** `docs/UPUTSTVO-STUDIO.md`, odeljci 2, 5
+    (crtanje se gasi na novom taktu) i 7 opisuju baš ovo što si video.

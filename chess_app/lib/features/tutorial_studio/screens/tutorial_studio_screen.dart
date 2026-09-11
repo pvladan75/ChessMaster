@@ -1018,18 +1018,29 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Export video',
             onPressed: _exportVideo,
           ),
-          // An icon, with its name as the tooltip, since undo and redo arrived
-          // (11.9.2026). The measurement that decided it was wrong: it read the
-          // label in the test font's squares, because a button's text style
-          // has no font family, and flutter_test draws that as squares where
-          // Windows draws Segoe UI. As Windows draws it, the words take 147 px
-          // and fit: no overflow at 700 dp, the title whole from about 710.
-          IconButton(
-            key: const Key('preview-as-student'),
-            icon: const Icon(Icons.school_outlined),
-            tooltip: 'Preview as student',
-            onPressed: _previewAsStudent,
-          ),
+          // Words where there is room — the owner's call, 11.9.2026: clearer
+          // for a trainer. „Preview tutorial" rather than „as student",
+          // because whoever writes a tutorial may have no students at all.
+          //
+          // From [Breakpoints.wide], where the studio splits into two panes,
+          // and an icon with the same name below it. As Windows draws the bar
+          // (Segoe UI) the words fit even at 700 dp; a widget test draws a
+          // button label in squares, and there they overflowed 700 dp by
+          // 77 px. At 840 they fit in both, so the rule holds in the font CI
+          // tests with and in the one a trainer sees.
+          if (Breakpoints.isWide(context))
+            TextButton(
+              key: const Key('preview-tutorial'),
+              onPressed: _previewAsStudent,
+              child: const Text('Preview tutorial'),
+            )
+          else
+            IconButton(
+              key: const Key('preview-tutorial'),
+              icon: const Icon(Icons.school_outlined),
+              tooltip: 'Preview tutorial',
+              onPressed: _previewAsStudent,
+            ),
           FilledButton(
             onPressed: _saveTutorial,
             child: const Text('Save tutorial'),
