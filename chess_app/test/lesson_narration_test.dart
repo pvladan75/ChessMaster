@@ -87,6 +87,24 @@ class VoicelessTts implements TtsEngine {
   Future<void> stop() async {}
 }
 
+/// A service that notices when the screen asks how fast it reads.
+///
+/// The one thing a test can say about the writing on screen is whether it is
+/// driven by *this* voice or by a number the screen made up. Before this, a
+/// fixed 14 characters a second meant a fast voice stopped talking with a third
+/// of the sentence still unwritten, and nothing could see it.
+class CountingSpeech extends SpeechService {
+  CountingSpeech(super.engine) : super.forSubclass();
+
+  int asked = 0;
+
+  @override
+  double get charsPerSecond {
+    asked += 1;
+    return super.charsPerSecond;
+  }
+}
+
 void main() {
   const startFen = '8/8/8/3k4/8/8/3PK3/8 w - - 0 1';
   const afterKd3 = '8/8/8/3k4/8/3K4/3P4/8 b - - 1 1';
@@ -174,6 +192,45 @@ void main() {
   }
 
   group('the line is walked at the speed of the voice', () {
+    testWidgets('the writing is driven by the voice, not by a constant',
+        (tester) async {
+      // The reported fault: the voice finished and the rest of the sentence
+      // then arrived in one jump, because the letters ran on a fixed clock that
+      // knew neither which voice was installed nor the reader's rate slider.
+      final tts = FakeTts();
+      final speech = CountingSpeech(tts);
+      await speech.init(enabled: true, rate: 0.5, engine: tts);
+      expect(speech.state, SpeechState.ready);
+
+      await open(
+        tester,
+        lesson(const [
+          LessonStep(title: 'Opozicija', fen: startFen, pgn: oppositionPgn),
+        ]),
+        speech,
+      );
+
+      expect(speech.asked, 0, reason: 'nista se ne pise dok se ne pritisne');
+      await tester.tap(find.byTooltip('Play tutorial'));
+      await tester.pump();
+
+      // Nothing is written about the opening position, so the first beat is a
+      // silent pause and no sentence is being written yet.
+      expect(speech.asked, 0, reason: 'nema recenice, nema ni pisanja');
+
+      await tester.pump(const Duration(milliseconds: 1400));
+      await tester.pump();
+
+      expect(tts.spoken, isNotEmpty, reason: 'prva recenica je krenula');
+      expect(speech.asked, greaterThan(0),
+          reason: 'ekran pita glas koliko brzo cita, umesto da pretpostavi');
+
+      // Leave nothing running behind the test.
+      tts.finish();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byTooltip('Stop reading'));
+      await tester.pump();
+    });
     testWidgets('a move waits for the sentence in front of it to end',
         (tester) async {
       final tts = FakeTts();

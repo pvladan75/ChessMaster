@@ -145,7 +145,36 @@ sam čuva na računaru; kad sledeći put otvoriš nov tutorijal, pitaće te
 
 ---
 
-## 8. Ako materijal priprema program (prompt za model)
+## 8. Glas koji čita tutorijal
+
+**Tutorijal čita glas sa uređaja na kome se sluša, ne sa servera.** To je
+sistemski glas Androida ili Windowsa. Glasovi koje biraš pri **izvozu videa**
+su nešto sasvim drugo — oni postoje samo u snimku, i tamo ti kao trener biraš
+jezik i glas za sve koji taj snimak gledaju.
+
+Iz toga slede tri stvari koje **trener i đak podešavaju sami, svako na svom
+uređaju**. Nijedna od njih nije greška u aplikaciji:
+
+1. **Glas i brzinu bira vlasnik uređaja**, u Podešavanjima. „Pregledaj kao
+   učenik" koristi *tvoj* glas i tvoju brzinu; dete će čuti ono što je
+   podešeno na njegovom telefonu.
+2. **Jezik komentara i jezik glasa moraju da se poklope.** Ako pišeš na
+   srpskom a na uređaju je instaliran samo engleski glas, rečenica će biti
+   pročitana engleskim izgovorom. Aplikacija to ne ispravlja sama, i to je
+   namerno: glas koji čita jezik koji nije njegov ne prijavi grešku nego zvuči
+   kao da radi. Rešenje je instalirati glas za taj jezik u podešavanjima
+   operativnog sistema i izabrati ga u Podešavanjima aplikacije.
+3. **Ako uređaj nema nijedan upotrebljiv glas**, dugme ▶ se uopšte ne crta.
+   Tutorijal se i dalje prolazi dugmadima — to je isti tutorijal, ne slabiji.
+
+**Tekst se ispisuje u ritmu glasa.** Brzina se ne pretpostavlja nego se meri iz
+rečenica koje je taj glas već pročitao, pa prati i izabrani glas i položaj
+klizača za brzinu. Prva rečenica u sesiji ide na procenu, jer se dotad nema šta
+izmeriti; od druge se ispis i govor poklapaju.
+
+---
+
+## 9. Ako materijal priprema program (prompt za model)
 
 Ovaj odeljak je namenjen da se prosledi modelu koji iz knjige ili PDF-a pravi
 gradivo. Sve ostalo iznad važi i za njega.

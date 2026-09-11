@@ -5269,3 +5269,25 @@ Popravljeni fajlovi su u `fixed/` podfolderu onog u kome su tutorijali.
 9. [ ] **Dete vidi tutorijal.** Pošalji jedan uvezen tutorijal đaku („pošalji"
    na redu liste) i prođi ga kao dete: delovi se smenjuju, pitanje traži potez,
    i **odgovor se ne vidi unapred** ni na jednom pitanju.
+
+
+## 148. Ispis prati glas — 11.9.2026, nije viđeno uživo
+
+Prijava od 11.9.2026. 11:11: u „Pregledaj kao učenik", na ▶, govor se završi
+pre nego što se rečenica ispiše do kraja, pa ostatak stigne odjednom.
+
+1. [ ] **Ispis i govor se završavaju zajedno.** Otvori tutorijal sa dužim
+   komentarima, „Pregledaj kao učenik", pa ▶. Prva rečenica sme da se razmine
+   (dotad se nema šta izmeriti); od druge nadalje poslednje slovo stiže kad i
+   poslednja reč. Ne sme da se desi da glas ućuti a trećina rečenice skoči
+   odjednom.
+2. [ ] **Klizač za brzinu govora se poštuje.** Podešavanja → brzina na
+   maksimum, pa isti tutorijal: ispis je brži tačno onoliko koliko i glas. Pa
+   na minimum — ispis je sporiji. Ranije je išao istom brzinom u oba slučaja,
+   i to je bila polovina greške.
+3. [ ] **Promena glasa ne vuče staru brzinu.** Ako uređaj ima dva glasa: pusti
+   tutorijal jednim, promeni glas u Podešavanjima, pusti ponovo — od druge
+   rečenice ispis se poklapa sa **novim** glasom.
+4. [ ] **Uputstvo govori istinu.** `docs/UPUTSTVO-STUDIO.md`, odeljak 8: bez
+   ijednog upotrebljivog glasa na uređaju dugme ▶ se ne crta, a tutorijal se i
+   dalje prolazi dugmadima.

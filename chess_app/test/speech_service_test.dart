@@ -426,4 +426,157 @@ void main() {
     await service.setRate(0.8);
     expect(tts.rate, 0.8);
   });
+
+  group('how fast the voice reads', () {
+    // A sentence long enough to be measured, in plain prose: `speakable`
+    // rewrites notation on the way to the engine, so what is timed is what the
+    // engine was handed and the tests read the length back off it.
+    const recenica =
+        'The bishop stands on a long open diagonal and eyes the weak square.';
+
+    /// Speaks [text], lets [took] pass on the clock, and ends the utterance.
+    Future<void> izgovori(SpeechService service, SlowTts tts, String text,
+        Duration took, void Function(Duration) advance) async {
+      unawaited(service.speak(text, force: true));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      advance(took);
+      tts.finish();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+
+    test('before anything is said it is the seed, not zero', () async {
+      final service = await ready(FakeTts(['en-US']));
+      expect(service.charsPerSecond, SpeechService.seedCharsPerSecond);
+    });
+
+    test('a finished sentence is what sets the speed', () async {
+      final tts = SlowTts(['en-US']);
+      final service = await ready(tts);
+      var now = DateTime(2026, 9, 11);
+      service.debugClock = () => now;
+
+      await izgovori(service, tts, recenica, const Duration(seconds: 4),
+          (d) => now = now.add(d));
+
+      // Read off what the engine was actually given, so a change in
+      // `speakable` cannot quietly make this assertion about a different text.
+      expect(service.charsPerSecond, closeTo(tts.spoken.first.length / 4, 0.01),
+          reason: 'duzina podeljena trajanjem, i nista drugo');
+      expect(service.charsPerSecond,
+          isNot(closeTo(SpeechService.seedCharsPerSecond, 0.01)));
+    });
+
+    test('a short sentence teaches nothing', () async {
+      // "Correct." is three words and half a second of the engine clearing its
+      // throat: a rate taken from it describes the start-up, not the reading.
+      final tts = SlowTts(['en-US']);
+      final service = await ready(tts);
+      var now = DateTime(2026, 9, 11);
+      service.debugClock = () => now;
+
+      await izgovori(service, tts, 'Correct.', const Duration(seconds: 4),
+          (d) => now = now.add(d));
+
+      expect(service.charsPerSecond, SpeechService.seedCharsPerSecond);
+    });
+
+    test('a clock that did not move teaches nothing', () async {
+      final tts = SlowTts(['en-US']);
+      final service = await ready(tts);
+      final now = DateTime(2026, 9, 11);
+      service.debugClock = () => now;
+
+      await izgovori(service, tts, recenica, Duration.zero, (_) {});
+
+      expect(service.charsPerSecond, SpeechService.seedCharsPerSecond,
+          reason: 'deljenje nulom nije brzina citanja');
+    });
+
+    test('an impossible speed teaches nothing', () async {
+      final tts = SlowTts(['en-US']);
+      final service = await ready(tts);
+      var now = DateTime(2026, 9, 11);
+      service.debugClock = () => now;
+
+      // The whole sentence in a tenth of a second: an engine that returned
+      // before it spoke, not a voice anybody could follow.
+      await izgovori(service, tts, recenica, const Duration(milliseconds: 100),
+          (d) => now = now.add(d));
+      expect(service.charsPerSecond, SpeechService.seedCharsPerSecond);
+
+      // And the other end: one sentence over a minute is a machine that slept.
+      await izgovori(service, tts, recenica, const Duration(seconds: 90),
+          (d) => now = now.add(d));
+      expect(service.charsPerSecond, SpeechService.seedCharsPerSecond);
+    });
+
+    test('a sentence the reader cut off teaches nothing', () async {
+      // The elapsed time of a stopped sentence is how long the reader listened
+      // for, which is not how long the voice needed.
+      final tts = SlowTts(['en-US']);
+      final service = await ready(tts);
+      var now = DateTime(2026, 9, 11);
+      service.debugClock = () => now;
+
+      unawaited(service.speak(recenica, force: true));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      // Three seconds in: long enough that the rate it would imply is an
+      // entirely believable one. Cut off after 400ms instead and the sample is
+      // refused for being impossible, which proves the wrong guard - the
+      // question here is whether an interrupted sentence is learned from at
+      // all, not whether a silly number is.
+      now = now.add(const Duration(seconds: 3));
+      await service.stop();
+      tts.finish();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(service.charsPerSecond, SpeechService.seedCharsPerSecond);
+    });
+
+    test('a second sentence moves the estimate, it does not replace it',
+        () async {
+      final tts = SlowTts(['en-US']);
+      final service = await ready(tts);
+      var now = DateTime(2026, 9, 11);
+      service.debugClock = () => now;
+
+      await izgovori(service, tts, recenica, const Duration(seconds: 4),
+          (d) => now = now.add(d));
+      final poslePrve = service.charsPerSecond;
+
+      await izgovori(service, tts, recenica, const Duration(seconds: 8),
+          (d) => now = now.add(d));
+      final posleDruge = service.charsPerSecond;
+
+      final druga = tts.spoken.last.length / 8;
+      expect(posleDruge, lessThan(poslePrve), reason: 'sporija, pa je povukla');
+      expect(posleDruge, greaterThan(druga),
+          reason: 'jedna recenica pomera procenu, ne brise je');
+    });
+
+    test('changing the voice or the rate forgets what was measured', () async {
+      // A rate belongs to one voice at one setting. Carrying it across is how
+      // the writing ends up following a voice that is no longer speaking.
+      for (final promena in ['rate', 'language']) {
+        final tts = SlowTts(['en-US', 'de-DE']);
+        final service = await ready(tts);
+        var now = DateTime(2026, 9, 11);
+        service.debugClock = () => now;
+
+        await izgovori(service, tts, recenica, const Duration(seconds: 4),
+            (d) => now = now.add(d));
+        expect(service.charsPerSecond,
+            isNot(closeTo(SpeechService.seedCharsPerSecond, 0.01)));
+
+        if (promena == 'rate') {
+          await service.setRate(0.9);
+        } else {
+          await service.setLanguage('de-DE');
+        }
+
+        expect(service.charsPerSecond, SpeechService.seedCharsPerSecond,
+            reason: 'posle promene "$promena" procena vise ne vazi');
+      }
+    });
+  });
 }

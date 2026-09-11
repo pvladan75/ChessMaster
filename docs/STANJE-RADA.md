@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Tutorijal iz fajla, i
-oznake koje su oduvek postojale" odmah ispod ove glave, pa „Četiri prijave
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Ispis prati glas, a ne
+sat" odmah ispod ove glave, pa „Tutorijal iz fajla, i oznake koje su oduvek
+postojale", pa „Četiri prijave
 uživo: slova, glas i uzorak", pa „Izbor glasa: prvo jezik, pa glas",
 „Azure Speech, i srpski koji je vraćen a ne preveden" i „Glas koji ne može da
 progovori se sada zna pre crtanja"; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
@@ -33,6 +34,65 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Ispis prati glas, a ne sat — 11.9.2026, nije viđeno uživo
+
+Prijava vlasnika (11.9.2026. 11:11): u „Pregledaj kao učenik" pritisak na ▶
+istovremeno čita i ispisuje komentar, ali se govor završi pre nego što se ceo
+tekst ispiše.
+
+Uzrok je bila jedna konstanta u `lesson_viewer_screen.dart`:
+`_typedCharsPerSecond = 14`. Slova su išla fiksnom brzinom, a `_finishTyping()`
+je na kraju govora dopisao ostatak odjednom — što je tačno ono što se videlo.
+Iza nje su stajale dve greške koje se isplati zapamtiti odvojeno od ove
+popravke. **Ta brzina nije znala za klizač za brzinu govora u Podešavanjima**,
+pa je svako ko ga je pomerio dobio veći raskorak, i to takav koji se sam ne
+ispravlja. I **komentar iznad konstante je tvrdio da je to „ista brzina kojom
+piše izvezeni video", a video piše 12** (`tutorial_video.dart`) — broj koji se
+drži na dva mesta preko komentara su dva broja, greška koju ovaj projekat već
+ima zapisanu.
+
+Sada `SpeechService` **meri** koliko taj glas stvarno čita: dužina rečenice
+podeljena njenim trajanjem, i to samo iz rečenica koje su došle do kraja. Ekran
+pita servis, pa ispis prati i izabrani glas i klizač. Brzina pripada **jednom
+glasu na jednom podešenju**, pa se zaboravlja čim se promeni bilo koje od to
+dvoje — inače bi se pisalo u ritmu glasa koji više ne govori.
+
+Uzorak se odbija u tri slučaja: prekratka rečenica („Correct." je pola sekunde
+zaleta motora, ne brzina čitanja), neverovatna brzina, i rečenica koja **nije
+došla do kraja** — ona koju je čitalac prekinuo, ili za koju platforma nikad
+nije javila kraj. Za to poslednje je dovoljan `_speaking`: i watchdog i `stop()`
+ga gase, pa jedna provera pokriva oba.
+
+**Osam mutacija, dve su preživele, i obe su bile nalaz.** „Obriši proveru za
+nulto trajanje" je preživela zato što je ta provera **suvišna**: deljenje nulom
+daje beskonačno, a opseg verovatnoće to ionako odbija. Provera je obrisana, po
+pravilu koje već stoji u ovom projektu — dve provere u jednoj petlji se ne mogu
+dokazati, pa ostaje ona koja pada na mutaciju. Druga je važnija: „uči i iz
+prekinute rečenice" je preživela zato što je **test prekidao posle 400 ms**, pa
+je uzorak ispao 165 znakova u sekundi i odbio ga je *opseg*, a ne provera koja
+se testira. Prekid je sada posle tri sekunde, što je sasvim verovatna brzina.
+Ista porodica kao slova fajlova na koja su odgovorile figure na prvom redu:
+**fixture je dokazivao pogrešnu komponentu.**
+
+Da se ekran zaista pita glas, a ne opet neki broj, pazi `CountingSpeech` u
+`lesson_narration_test.dart` — mutacija koja vrati fiksnih 14 pada na njemu.
+Zbog njega je `SpeechService.forSubclass` dodat pored `forTesting`: klasa sa
+samo privatnim konstruktorom se ne može naslediti, pa se nijedan njen odgovor
+ne može osmotriti.
+
+Drugo pitanje iz iste prijave — „kojim glasom se čita, i šta ako nemamo piper
+za taj jezik" — nije greška nego nesporazum o tome šta gde radi, pa je odgovor
+otišao u uputstvo a ne u kod. **Tutorijal čita sistemski glas uređaja
+(`flutter_tts`); piper i Azure postoje samo u izvezenom videu.** Novi odeljak 8
+u `docs/UPUTSTVO-STUDIO.md` to kaže i imenuje ono što je na treneru i đaku:
+glas i brzinu bira vlasnik uređaja, jezik komentara i jezik glasa moraju da se
+poklope, a bez ijednog upotrebljivog glasa se ▶ uopšte ne crta. Zapisano baš
+zato da se ne čita kao greška u aplikaciji.
+
+Suite **1951** (+9: osam za merenje brzine, jedan za to da ekran pita servis),
+1 preskočen, analyze 29 infoa i nula upozorenja. Backend nije diran.
+Ostaje da se vidi uživo, tačka 148 u `docs/TODO-provera.md`.
 
 ## Tutorijal iz fajla, i oznake koje su oduvek postojale — 11.9.2026, nije viđeno uživo
 

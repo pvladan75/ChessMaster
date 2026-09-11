@@ -370,17 +370,6 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   double _typed = 1;
   Timer? _typing;
 
-  /// Characters a second, the same rate the exported video writes at.
-  ///
-  /// The device voice does not say how far through a sentence it is —
-  /// `flutter_tts` reports word ranges on Android and iOS and nothing at all on
-  /// Windows, which is where a trainer checks their own material — so the
-  /// writing runs at a fixed reading speed and is completed the moment `speak`
-  /// returns. It can therefore finish early and never finishes late, which is
-  /// the right way round: text still arriving after the voice has stopped is
-  /// what reads as broken.
-  static const double _typedCharsPerSecond = 14;
-
   /// Bumped to end whatever loop is running. A run that finds the number
   /// changed underneath it stops without touching the screen — cheaper and
   /// safer than trying to cancel a chain of futures.
@@ -1045,10 +1034,20 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     );
   }
 
-  /// Begin writing [text] on screen at reading speed.
+  /// Begin writing [text] on screen at the speed the voice actually reads.
+  ///
+  /// The rate comes from `SpeechService`, which measures it from the sentences
+  /// this voice has already finished, so the writing follows the voice instead
+  /// of a constant that knew nothing about it - not which voice is installed,
+  /// and not the reader's own rate slider in Settings. A fixed 14 characters a
+  /// second was what made a fast voice fall silent with a third of the sentence
+  /// still unwritten, which then arrived in one jump.
   void _startTyping(String text) {
     _typing?.cancel();
     if (text.isEmpty) return;
+    // Read once, here, and not inside the tick: an estimate that changed
+    // mid-sentence would make the letters accelerate under the reader's eye.
+    final charsPerSecond = _speech.charsPerSecond;
     final started = DateTime.now();
     setState(() => _typed = 0);
     _typing = Timer.periodic(const Duration(milliseconds: 80), (timer) {
@@ -1057,7 +1056,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         return;
       }
       final seconds = DateTime.now().difference(started).inMilliseconds / 1000;
-      final done = (seconds * _typedCharsPerSecond) / text.length;
+      final done = (seconds * charsPerSecond) / text.length;
       setState(() => _typed = done.clamp(0.0, 1.0));
       if (_typed >= 1) timer.cancel();
     });

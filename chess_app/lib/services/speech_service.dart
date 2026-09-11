@@ -79,10 +79,16 @@ class SpeechService extends ChangeNotifier {
 
   /// Replaces the engine and resets what was learned about it. Tests only.
   @visibleForTesting
-  static SpeechService forTesting(TtsEngine engine) {
-    final service = SpeechService._internal();
-    service._engine = engine;
-    return service;
+  static SpeechService forTesting(TtsEngine engine) =>
+      SpeechService.forSubclass(engine);
+
+  /// The same thing, as a constructor, so a test can subclass this and watch
+  /// one answer. The only other way in is a private constructor, and a service
+  /// nothing can extend means a screen that reads one of its getters has no way
+  /// of being asked whether it read it.
+  @visibleForTesting
+  SpeechService.forSubclass(TtsEngine engine) {
+    _engine = engine;
   }
 
   TtsEngine? _engine;
@@ -102,6 +108,68 @@ class SpeechService extends ChangeNotifier {
 
   double _rate = 0.5;
   double get rate => _rate;
+
+  /// How fast this voice actually reads, in characters a second.
+  ///
+  /// Measured, not assumed. A screen that writes a sentence out while it is
+  /// being read has to move at the voice's speed, and no platform will say what
+  /// that speed is: `flutter_tts` reports word ranges on Android and nothing at
+  /// all on Windows, which is where a trainer checks their own material. What
+  /// every platform does report is that a sentence has finished - and a
+  /// sentence whose length and duration are both known is a rate.
+  ///
+  /// It describes **this voice at this rate setting**, so changing either
+  /// forgets it. A slider moved from 0.5 to 0.9 leaves every sample describing
+  /// a voice that no longer exists.
+  double get charsPerSecond => _charsPerSecond ?? seedCharsPerSecond;
+  double? _charsPerSecond;
+
+  /// Where the estimate starts, before this voice has said anything.
+  ///
+  /// Only the first sentence of a session is written at this speed; from the
+  /// second on, measurement has taken over. Deliberately **not** shared with
+  /// the exported video's rate: that one writes captions into a film at a fixed
+  /// frame rate and can measure nothing. A comment here used to claim the two
+  /// were one number while they were 14 and 12.
+  static const double seedCharsPerSecond = 14;
+
+  /// Under this many characters a sample says more about the engine's start-up
+  /// than about its reading speed: "Correct." is three words and half a second
+  /// of latency.
+  static const int _minSampleChars = 40;
+
+  /// Outside this range it is not a reading speed, it is a measurement that
+  /// went wrong - a clock that did not move, an engine that returned before it
+  /// spoke, a machine that slept mid-sentence.
+  static const double _slowestPlausible = 2;
+  static const double _fastestPlausible = 40;
+
+  /// The clock, so a test can state two instants instead of waiting for them.
+  @visibleForTesting
+  DateTime Function() debugClock = DateTime.now;
+
+  /// Folds one finished sentence into the estimate.
+  void _learnRate(String text, Duration took) {
+    if (text.length < _minSampleChars) return;
+    final seconds = took.inMilliseconds / 1000;
+    // No separate guard for a clock that did not move, or moved backwards:
+    // dividing by zero gives infinity and by a negative gives a negative, and
+    // the plausible range below refuses both. A second check that cannot be
+    // made to fail on its own is not a second check.
+    final sample = text.length / seconds;
+    if (sample < _slowestPlausible || sample > _fastestPlausible) return;
+    // Weighted towards what is already known, so one odd sentence - a word the
+    // voice spells out, a notification taking the audio focus - moves the
+    // estimate rather than replacing it.
+    _charsPerSecond = _charsPerSecond == null
+        ? sample
+        : _charsPerSecond! * 0.6 + sample * 0.4;
+    // No notifyListeners, for the reason given on _startSpeaking: this runs
+    // inside an utterance, and a screen asks for the rate when it starts
+    // writing rather than being told that it changed.
+  }
+
+  void _forgetRate() => _charsPerSecond = null;
 
   bool _enabled = false;
   bool get enabled => _enabled;
@@ -224,6 +292,7 @@ class SpeechService extends ChangeNotifier {
   }) async {
     _enabled = enabled;
     _rate = rate;
+    _forgetRate();
 
     try {
       // Built inside the guard, not before it. Creating the plugin object is
@@ -311,6 +380,7 @@ class SpeechService extends ChangeNotifier {
   Future<void> setLanguage(String language) async {
     _language = language;
     _lastSpoken = '';
+    _forgetRate();
     // Hopeful, then corrected: a voice that turns out not to be installed puts
     // the state back to noVoice from inside _apply.
     if (_state == SpeechState.noVoice) {
@@ -322,6 +392,7 @@ class SpeechService extends ChangeNotifier {
 
   Future<void> setRate(double rate) async {
     _rate = rate;
+    _forgetRate();
     await _apply();
     notifyListeners();
   }
@@ -360,6 +431,7 @@ class SpeechService extends ChangeNotifier {
 
   /// One sentence, start to finish, and whatever was waiting behind it.
   Future<void> _utter(String spoken) async {
+    final startedAt = debugClock();
     try {
       // Marked as speaking before anything is awaited, not after: the board's
       // timers ask this between frames, and a gap where it reads false is a
@@ -367,6 +439,12 @@ class SpeechService extends ChangeNotifier {
       _startSpeaking(spoken);
       _spokeAtLeastOnce = true;
       await _engine?.speak(spoken);
+      // `_speaking` is the whole guard, and it answers two questions at once:
+      // the watchdog clears it when a platform never reported the end, and
+      // [stop] clears it when the reader cut the sentence off. Neither elapsed
+      // time is this voice reading this sentence through, and a rate learned
+      // from either is worse than having no rate at all.
+      if (_speaking) _learnRate(spoken, debugClock().difference(startedAt));
     } catch (e) {
       AppLogger.log('[Govor] Neuspelo izgovaranje: $e');
     } finally {
