@@ -5293,22 +5293,23 @@ pre nego što se rečenica ispiše do kraja, pa ostatak stigne odjednom.
    dalje prolazi dugmadima.
 
 
-## 149. Video bez komentara pored table — 11.9.2026, nije viđeno uživo
+## 149. Video bez komentara pored table — ✅ provereno uživo 11.9.2026
 
-Vidi „Video bez komentara pored table" u `docs/STANJE-RADA.md`. Tutorijal sa
+Potvrdio vlasnik 11.9.2026: „super sve radi". Vidi „Video bez komentara pored
+table" u `docs/STANJE-RADA.md`. Tutorijal sa
 komentarima, izvoz iz „Sačuvani tutorijali" ili iz studija.
 
-1. [ ] **Pregled pokazuje izbor.** U dijalogu za izvoz isključi „Comments
+1. [x] **Pregled pokazuje izbor.** U dijalogu za izvoz isključi „Comments
    beside the board", pa „Preview": tabla je na sredini kadra, pored nje nema
    teksta. Uključi ga i opet „Preview" — kolona sa rečenicom je tu, tabla levo.
-2. [ ] **Film je samo tabla, a glas i dalje čita.** Isključi komentare, izaberi
+2. [x] **Film je samo tabla, a glas i dalje čita.** Isključi komentare, izaberi
    neki glas u naraciji, izvezi. U videu nema teksta pored table, a glas
    izgovara svaku rečenicu u trenutku kad je takt na ekranu.
-3. [ ] **„No voice" daje nemi film bez teksta.** Isto, ali sa „No voice":
+3. [x] **„No voice" daje nemi film bez teksta.** Isto, ali sa „No voice":
    taktovi i dalje stoje onoliko dugo koliko bi trebalo za čitanje — ne
    protrče.
-4. [ ] **Izbor se pamti.** Zatvori i ponovo otvori dijalog za izvoz: prekidač
+4. [x] **Izbor se pamti.** Zatvori i ponovo otvori dijalog za izvoz: prekidač
    je isključen, kako je ostavljen. Uključi ga, izvezi, i sledeći put je opet
    uključen.
-5. [ ] **Telefon.** Na Androidu (360 dp) prekidač se vidi i može da se
+5. [x] **Telefon.** Na Androidu (360 dp) prekidač se vidi i može da se
    pritisne, a dugme „Export" ga ne pokriva.

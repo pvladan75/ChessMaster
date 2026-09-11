@@ -36,7 +36,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Video bez komentara pored table — 11.9.2026, nije viđeno uživo
+## Video bez komentara pored table — 11.9.2026, ✅ provereno uživo istog dana
 
 Na zahtev vlasnika: izvezeni video može da bude **samo tabla**, bez rečenica u
 koloni pored nje. U dijalogu za izvoz je prekidač „Comments beside the board",
@@ -80,8 +80,8 @@ stoji u svojoj koloni, bez njih je tabla centrirana, iste veličine, i pored nje
 nema ničega.
 
 Suite **1956** (+5), 1 preskočen, analyze 29 infoa i nula upozorenja; backend
-**1213** (+7) sa `.env` sklonjenim. Ostaje da se vidi uživo, tačka 149 u
-`docs/TODO-provera.md`.
+**1213** (+7) sa `.env` sklonjenim. Proverio vlasnik uživo 11.9.2026, tačka 149
+u `docs/TODO-provera.md`.
 
 **Nije urađeno, i namerno odvojeno:** kvadratni izlaz (tabla preko celog
 kadra, npr. za kratke klipove). To je novi format a ne podešavanje, i treba ga
