@@ -25,6 +25,7 @@ import 'dart:convert';
 
 import 'package:chess/chess.dart' as chess;
 
+import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/lessons/models/lesson_labels.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/services/fen_legality.dart';
@@ -71,6 +72,7 @@ class ImportedTutorial {
     required this.tags,
     required this.positionList,
     required this.problems,
+    this.language,
     this.fileName,
   });
 
@@ -89,6 +91,12 @@ class ImportedTutorial {
   final String title;
   final String? description;
   final List<String> tags;
+
+  /// One of the seven codes of [TutorialLanguage], or null for **not said** —
+  /// a file without the field, and a file whose code this app cannot read
+  /// aloud, which is reported and dropped rather than sent: the server would
+  /// refuse the whole tutorial over it. `docs/PLAN-JEZIK-GLASA.md`.
+  final String? language;
 
   /// The steps, in the shape `TutorialDraft.fromLesson` reads and the shape
   /// `POST /lessons/save` takes.
@@ -122,6 +130,9 @@ class ImportedTutorial {
         'title': title,
         if (description != null) 'description': description,
         'tags': tags,
+        // Always present, null included: an imported tutorial is new, so it
+        // knows its answer even when the answer is „not said".
+        'language': language,
         'position_list': positionList,
       };
 
@@ -133,6 +144,7 @@ class ImportedTutorial {
         tags: normaliseLabels([...tags, ...labels]),
         positionList: positionList,
         problems: problems,
+        language: language,
         fileName: fileName,
       );
 }
@@ -194,6 +206,25 @@ ImportedTutorial readTutorialJson(String text, {String? fileName}) {
     _ => const <String>[],
   });
 
+  // The language the file says it is in. A code this app cannot read aloud is
+  // not a reason to refuse the tutorial, and not a thing to send either — the
+  // server refuses a code outside the seven with the whole save — so it is
+  // dropped, and said.
+  final rawLanguage = json['language'];
+  String? language;
+  final said = rawLanguage is String ? rawLanguage.trim() : rawLanguage;
+  if (said != null && said != '') {
+    language = said is String ? TutorialLanguage.of(said)?.code : null;
+    if (language == null) {
+      problems.add(ImportProblem(
+        fault: ImportFault.damaged,
+        message: 'The file says it is in "$said", which this app cannot read '
+            'aloud. It is imported without a language; the languages are '
+            '${TutorialLanguage.all.map((l) => l.code).join(', ')}.',
+      ));
+    }
+  }
+
   final positionList = <Map<String, dynamic>>[];
   for (var i = 0; i < rawList.length; i++) {
     final raw = rawList[i];
@@ -224,6 +255,7 @@ ImportedTutorial readTutorialJson(String text, {String? fileName}) {
     tags: tags,
     positionList: positionList,
     problems: problems,
+    language: language,
     fileName: fileName,
   );
 }

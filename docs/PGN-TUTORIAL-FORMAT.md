@@ -39,6 +39,7 @@ SHAPE
   "title": "<the tutorial's name, under 200 characters>",
   "description": "<one sentence about what it teaches>",
   "tags": ["<one or two words the trainer will filter by, e.g. endgame>"],
+  "language": "<the language the sentences are written in: one of en, sr-Latn, sr-Cyrl, de, es, it, fr>",
   "positionList": [ <step>, <step>, ... ]
 }
 
@@ -189,6 +190,7 @@ Read through `readTutorialJson` on 11.9.2026: three parts, **no problems**.
   "title": "The weak square f7",
   "description": "Why every beginner game is decided on one square.",
   "tags": ["opening", "beginner"],
+  "language": "en",
   "positionList": [
     {
       "title": "Deo 1",
@@ -298,9 +300,19 @@ Per step, from `buildLessonStep`:
 | `acceptedSans` | up to 6 further correct moves, `ask_move` only |
 | `choices` | 2–4 of `{text, correct}`, `ask_choice` only, at least one `correct` |
 
-On the tutorial itself: `title` (required), `description`, and `tags` — the
+On the tutorial itself: `title` (required), `description`, `tags` — the
 labels the trainer filters the saved list by, and the reason to write one or two
-even for a test file.
+even for a test file — and `language`.
+
+`language` is one of seven codes — `en`, `sr-Latn`, `sr-Cyrl`, `de`, `es`,
+`it`, `fr` — and it decides which voice reads the tutorial aloud: a Serbian
+(Latin) one is read by a Serbian voice, or a Croatian one where the device has
+no Serbian, and never by an English one (`docs/PLAN-JEZIK-GLASA.md`). Leave it
+out and the tutorial is read by the voice the reader chose in Settings, as every
+tutorial was before the field existed. **The server refuses any other code with
+the whole save**; the import drops one it cannot read, keeps the tutorial, and
+says so. `sr` alone is not a code — it does not say which script, and the two
+are read by different voices.
 
 A `pgn` written for JSON needs no `[FEN]` header of its own: the step's `fen` is
 passed to the parser and wins over any header in the text.
@@ -404,12 +416,18 @@ film — rather than one enormous one.
 # 9. Translating a tutorial
 
     cd tools/tutorial_translate
-    python translate.py run D:/chess/tutorijal/fixed D:/chess/tutorijal/sr --language "Serbian (Latin script)"
+    python translate.py run D:/chess/tutorijal/fixed D:/chess/tutorijal/sr --language "Serbian (Latin script)" --code sr-Latn
 
 One tutorial file or a folder of them in, one translated file per tutorial out,
 plus `REPORT.txt` and a `_work/` folder. The translated files are imported like
 any other (section 4): „Import from a file", and the labels field there can mark
 the whole set, e.g. `sr`. `--tag sr` writes that label into the files instead.
+
+**`--code` marks every translated tutorial with its language** (section 5), so
+the app reads it with a voice for that language. Without it the field is
+**removed**, not kept: a source that said `en` and was translated into Serbian
+would otherwise still say `en`, and be read aloud by an English voice — the one
+thing the language field exists to prevent.
 
 **The model never sees a move.** `translate.py` pulls every piece of prose out
 of the tutorial into a flat list of `{id, text}` — the title, the description,

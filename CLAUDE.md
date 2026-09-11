@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1971 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1983 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1226 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1736,6 +1736,24 @@ that wrote the Cyrillic range as escapes into two regexes put the characters
 worked, so only reading the bytes showed it — and the same decoding then broke
 the script meant to fix it. Build the backslash with `chr(92)` when a literal
 escape has to land in a file.
+
+**A tutorial's language on its way through the app — 11.9.2026, app 1983
+with 1 skipped; the backend is untouched at 1226.** Phase 3 of
+`docs/PLAN-JEZIK-GLASA.md`. Fifteen mutations, all caught.
+
+**Three answers need a type, not a nullable.** The server keeps a column the
+request does not mention, clears it on null and stores a value — and the API's
+`if (x != null) 'x': x` can say only two of those. A draft kept on this device
+before the field existed does not know the language, and sending „not said"
+from it would wipe one set elsewhere. `LanguageWrite` (`silent`, `unsaid`, a
+code) defaults to `silent`, so every caller written before sends exactly what it
+sent before. Same rule as `positionList` and `description`, one level further
+out: **absence is a third answer, all the way to the wire.**
+
+**A translation must not inherit the label of the language it came from.**
+Without `--code`, `translate.py` removes the field rather than copying it — an
+English source translated into Serbian would otherwise still say `en`, and be
+read by exactly the wrong voice.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

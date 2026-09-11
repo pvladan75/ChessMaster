@@ -69,6 +69,9 @@ Future<List<ImportOutcome>> saveImportedTutorials(
       description: tutorial.description,
       tags: tutorial.tags,
       positionList: tutorial.positionList,
+      // Stated either way: a new tutorial knows its answer, „not said"
+      // included. A code the file got wrong was already dropped by the reader.
+      language: LanguageWrite.of(tutorial.language),
     );
 
     outcomes.add(ImportOutcome(

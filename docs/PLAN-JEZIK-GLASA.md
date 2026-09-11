@@ -169,6 +169,19 @@ test per voice, and it goes in the live check rather than being argued here.
 
 ## Phase 3 — the model, the import and the script
 
+**Done 11.9.2026** — app **1983** with 1 skipped (+12, all in
+`test/tutorial_language_draft_test.dart`, every one reading the request),
+backend untouched at **1226**, analyze 29 infos. Fifteen mutations, all caught.
+The three states travel as `LanguageWrite` (`silent`, `unsaid`, a code) in
+`lesson_api_service.dart`, because a nullable string can say only two of them;
+it defaults to `silent`, so every caller written before sends what it sent
+before. Checked end to end with the real Serbian translation from section 9 of
+`PGN-TUTORIAL-FORMAT.md`: `translate.py merge --code sr-Latn` → the file →
+`readTutorialJson` → a draft in `sr-Latn`, clean, four parts of four. One rule
+the plan did not have: **without `--code` the script removes the field** rather
+than keeping the source's — an English source translated into Serbian would
+otherwise still say `en`, and be read by an English voice.
+
 - `TutorialDraft.language`: read by `fromLesson`, written by the draft's own
   JSON (the local draft the studio flushes on dispose) and sent by
   `commitDraft`.

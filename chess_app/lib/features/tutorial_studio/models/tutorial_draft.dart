@@ -509,9 +509,13 @@ class TutorialDraft {
     this.title = '',
     this.description,
     List<String>? tags,
+    String? language,
+    bool languageKnown = true,
     List<TutorialSection>? sections,
     int selected = 0,
   })  : tags = tags == null ? <String>[] : normaliseLabels(tags),
+        _language = language,
+        _languageKnown = languageKnown,
         sections = (sections == null || sections.isEmpty)
             ? [TutorialSection.blank(fen: startFen)]
             : sections,
@@ -540,6 +544,27 @@ class TutorialDraft {
   /// It is a tutorial's only sorting handle: a trainer with forty of them has
   /// a list nobody scrolls to the end of.
   final List<String> tags;
+
+  /// The language this tutorial says it is written in — one of the seven codes
+  /// of `TutorialLanguage`, or null for **not said**, which is read by the
+  /// voice chosen in Settings exactly as before. `docs/PLAN-JEZIK-GLASA.md`.
+  String? get language => _language;
+  String? _language;
+
+  /// Whether this draft knows its language at all.
+  ///
+  /// False only for a draft read from somewhere that predates the field: a
+  /// draft kept on this device before 11.9.2026, or a row from a server that
+  /// does not send the column. Such a draft **must not send „not said"** — it
+  /// would wipe a language set elsewhere — so a save from it does not mention
+  /// the language. Setting [language] makes it known.
+  bool get languageKnown => _languageKnown;
+  bool _languageKnown;
+
+  set language(String? code) {
+    _language = code;
+    _languageKnown = true;
+  }
 
   /// Deo 1, Deo 2, … in the order the child meets them. Never empty: `PUT`
   /// writes `position_list = NULL` for an empty list, so a tutorial emptied
@@ -577,6 +602,10 @@ class TutorialDraft {
       tags: [
         for (final tag in (lesson['tags'] as List?) ?? const []) tag.toString(),
       ],
+      // A row that carries the key knows the answer, even when the answer is
+      // „not said"; a row without it is from before the column existed.
+      language: lesson['language']?.toString(),
+      languageKnown: lesson.containsKey('language'),
       sections: [
         for (final entry in raw is List ? raw : const [])
           if (entry is Map)
@@ -650,6 +679,9 @@ class TutorialDraft {
         'title': title,
         if (description != null) 'description': description,
         if (tags.isNotEmpty) 'tags': tags,
+        // Written, null included, only when known — so a draft that did not
+        // know comes back not knowing, rather than as „not said".
+        if (_languageKnown) 'language': _language,
         'selected': _selected,
         'sections': [for (final section in sections) section.toLocalJson()],
       };
@@ -670,6 +702,8 @@ class TutorialDraft {
         tags: [
           for (final tag in (json['tags'] as List?) ?? const []) tag.toString(),
         ],
+        language: json['language']?.toString(),
+        languageKnown: json.containsKey('language'),
         sections: [
           for (final raw in modern)
             if (raw is Map)
@@ -679,8 +713,10 @@ class TutorialDraft {
       );
     }
 
+    // The slot's shape from before P1 cannot know a language.
     return TutorialDraft(
       title: json['title']?.toString() ?? '',
+      languageKnown: false,
       sections: [
         for (final raw in (json['examples'] as List?) ?? const [])
           if (raw is Map)

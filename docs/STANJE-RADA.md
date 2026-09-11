@@ -38,7 +38,16 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Jezik glasa — plan, 11.9.2026; faze 1 i 2 gotove
+## Jezik glasa — plan, 11.9.2026; faze 1, 2 i 3 gotove
+
+**Faza 3 je u kodu** (aplikacija 1983, 1 preskočen; backend 1226): nacrt
+tutorijala nosi jezik i šalje ga pri čuvanju — ali nacrt sačuvan na uređaju pre
+ove izmene **ne šalje ništa**, da ne bi obrisao jezik postavljen negde drugde;
+JSON uvoz čita `"language"` (nepoznat kod se prijavi i izbaci, tutorijal se
+ipak uveze); `translate.py --code sr-Latn` upisuje jezik, a bez `--code` ga
+**briše** umesto da ostavi jezik izvora. Provereno do kraja sa pravim srpskim
+prevodom: skripta → fajl → uvoz u aplikaciji → nacrt na `sr-Latn`, čist.
+
 
 **Faza 2 je u kodu** (aplikacija 1971, 1 preskočen; backend 1226): sedam
 jezika sa glasovima uređaja u redosledu (`core/services/tutorial_language.dart`,

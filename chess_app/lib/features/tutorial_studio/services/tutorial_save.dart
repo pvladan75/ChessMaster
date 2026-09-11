@@ -36,12 +36,21 @@ Future<String?> commitDraft(TutorialDraft draft, LessonApiService api) async {
   final tags = draft.tags;
   final description = draft.description;
 
+  // The language travels whenever the draft knows it — „not said" included, so
+  // a trainer who clears it clears it. A draft that does not know (one kept on
+  // this device from before the field existed) says nothing, and the server
+  // keeps what it has; see [LanguageWrite].
+  final language = draft.languageKnown
+      ? LanguageWrite.of(draft.language)
+      : LanguageWrite.silent;
+
   final result = draft.lessonId == null
       ? await api.saveTutorial(
           title: draft.title.trim(),
           description: description,
           tags: tags,
           positionList: positionList,
+          language: language,
         )
       : await api.updateTutorial(
           id: draft.lessonId!,
@@ -49,6 +58,7 @@ Future<String?> commitDraft(TutorialDraft draft, LessonApiService api) async {
           description: description,
           tags: tags,
           positionList: positionList,
+          language: language,
         );
 
   if (!result.ok) return result.error;

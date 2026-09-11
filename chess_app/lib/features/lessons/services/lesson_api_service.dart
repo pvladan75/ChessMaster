@@ -35,6 +35,35 @@ class LessonWriteResult {
   bool get ok => error == null;
 }
 
+/// What a save says about the tutorial's language — `docs/PLAN-JEZIK-GLASA.md`.
+///
+/// **Three answers, and a nullable string can only give two.** The server
+/// leaves `saved_lessons.language` alone when a request does not mention it,
+/// clears it on an explicit null, and stores a code. A draft written on this
+/// device before the field existed does not know the language, and if it sent
+/// `null` it would wipe one set elsewhere — so „I do not know" has to be a
+/// value of its own rather than the absence of one.
+class LanguageWrite {
+  const LanguageWrite._(this.mentioned, this.code);
+
+  /// Say nothing; the server keeps what it has. The default, so every caller
+  /// written before this sends exactly what it sent before.
+  static const silent = LanguageWrite._(false, null);
+
+  /// The tutorial has not said what language it is in.
+  static const unsaid = LanguageWrite._(true, null);
+
+  /// One of the seven codes in `TutorialLanguage`.
+  const LanguageWrite.code(String this.code) : mentioned = true;
+
+  final bool mentioned;
+  final String? code;
+
+  /// [code] said, or [unsaid] for none.
+  factory LanguageWrite.of(String? code) =>
+      code == null ? unsaid : LanguageWrite.code(code);
+}
+
 /// Which of the three answers `GET /lessons/:id/video` gave.
 enum LessonVideoStatus { ready, expired, none, failed }
 
@@ -301,6 +330,7 @@ class LessonApiService {
     String? fen,
     String? pgn,
     List<Map<String, dynamic>>? positionList,
+    LanguageWrite language = LanguageWrite.silent,
   }) async {
     try {
       final res = await _client
@@ -311,6 +341,7 @@ class LessonApiService {
               'title': title,
               if (description != null) 'description': description,
               if (tags != null) 'tags': tags,
+              if (language.mentioned) 'language': language.code,
               if (fen != null) 'fen': fen,
               if (pgn != null) 'pgn': pgn,
               if (positionList != null) 'positionList': positionList,
@@ -395,6 +426,7 @@ class LessonApiService {
     String? fen,
     String? pgn,
     List<Map<String, dynamic>>? positionList,
+    LanguageWrite language = LanguageWrite.silent,
   }) async {
     try {
       final res = await _client
@@ -405,6 +437,7 @@ class LessonApiService {
               'title': title,
               if (description != null) 'description': description,
               if (tags != null) 'tags': tags,
+              if (language.mentioned) 'language': language.code,
               if (fen != null) 'fen': fen,
               if (pgn != null) 'pgn': pgn,
               if (positionList != null) 'positionList': positionList,

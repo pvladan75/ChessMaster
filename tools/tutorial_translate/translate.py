@@ -65,6 +65,12 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROMPT_FILE = os.path.join(HERE, 'prompt.md')
 
+# The seven languages a tutorial may say it is written in — the app's
+# `TutorialLanguage` and the server's `services/tutorialLanguage.js`. A code
+# outside them is refused by the server with the whole save, so it is refused
+# here before a single request is made.
+TUTORIAL_LANGUAGES = ('en', 'sr-Latn', 'sr-Cyrl', 'de', 'es', 'it', 'fr')
+
 COMMENT = re.compile(r'\{([^}]*)\}')
 COMMAND = re.compile(r'\[%[^\]]*\]')
 
@@ -131,9 +137,18 @@ def extract(tutorial):
     return out
 
 
-def merge(tutorial, tr, tags=None):
-    """[tutorial] with every string [tr] names replaced, and step ids dropped."""
+def merge(tutorial, tr, tags=None, code=None):
+    """[tutorial] with every string [tr] names replaced, and step ids dropped.
+
+    [code] is the language the translation is in. Without one the field is
+    **removed**, not kept: a source that said „en" and was translated into
+    Serbian would otherwise still say „en", and be read aloud in English.
+    """
     new = copy.deepcopy(tutorial)
+    if code:
+        new['language'] = code
+    else:
+        new.pop('language', None)
     if 'title' in tr:
         new['title'] = tr['title']
     if 'description' in tr:
@@ -355,7 +370,7 @@ def one(path, args, offline, report):
         return False
 
     translated = merge(tutorial, {k: v for k, v in tr.items() if k in src and k not in faults},
-                       tags=args.tag)
+                       tags=args.tag, code=args.code)
     prove_untouched(tutorial, translated)
     save_json(target, translated)
     report.append('%s %s - %d strings%s' % (
@@ -372,6 +387,11 @@ def main():
     parser.add_argument('out', help='the folder the translations are written to')
     parser.add_argument('--language', required=True,
                         help='the target language, in words: "Serbian (Latin script)"')
+    parser.add_argument('--code', choices=TUTORIAL_LANGUAGES,
+                        help='the language code written into every translated tutorial, '
+                             'so the app reads it with a voice for it (docs/PLAN-JEZIK-GLASA.md). '
+                             'Without it the field is removed: a translation must not keep '
+                             'the code of the language it was translated from')
     parser.add_argument('--model', default='gemini-3.8-flash-high')
     parser.add_argument('--tag', action='append',
                         help='a label to add to every translated tutorial (repeatable)')
@@ -382,7 +402,13 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(os.path.join(args.out, '_work'), exist_ok=True)
-    report = ['Translation into %s, model %s' % (args.language, args.model), '']
+    report = ['Translation into %s, model %s' % (args.language, args.model)]
+    if args.code:
+        report.append('Every tutorial is marked "language": "%s".' % args.code)
+    else:
+        report.append('No --code: the translated tutorials say no language, and the '
+                      'app reads them with the voice chosen in Settings.')
+    report.append('')
     ok = 0
     files = sources(args.src)
     for path in files:
