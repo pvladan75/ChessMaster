@@ -3,6 +3,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -381,6 +382,12 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// appears and is gone before it is seen.
   static const _silentStep = Duration(milliseconds: 1400);
 
+  /// The language this tutorial says it is written in, or null when it has
+  /// not said — in which case everything below is exactly what it was before
+  /// the tutorial could say (`docs/PLAN-JEZIK-GLASA.md`).
+  TutorialLanguage? get _tutorialLanguage =>
+      TutorialLanguage.of(widget.detail.lessonLanguage);
+
   /// Whether the machine can actually read the step out.
   ///
   /// Not "is speech switched on": a reader with speech off is offered the
@@ -388,9 +395,36 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   /// `SpeakableInfo` follows. A machine with no voice at all is a different
   /// answer — there the button is not drawn, because a control that cannot
   /// work is worse than no control.
-  bool get _canNarrate =>
-      _speech.state != SpeechState.noVoice &&
-      _speech.state != SpeechState.failed;
+  ///
+  /// For a tutorial in a language of its own the question is about **that**
+  /// language: a Serbian tutorial on a machine with only an English voice is
+  /// not read at all, rather than read in English phonetics — the owner's rule
+  /// of 11.9.2026.
+  bool get _canNarrate => _speech.canRead(_tutorialLanguage);
+
+  /// Says why the tutorial is not being read, and what would fix it.
+  void _sayWhyNotReading() {
+    final language = _tutorialLanguage;
+    AppFeedback.show(
+      context,
+      () => SnackBar(
+        content: Text(language == null
+            ? 'No voice on this device — navigate with buttons.'
+            : noVoiceSentence(language)),
+      ),
+    );
+  }
+
+  /// A voice that was offered and then refused by the engine — Windows lists
+  /// languages it has no voice for. The walk stops and says so, rather than
+  /// racing on in silence: `speak` returns at once when it has nothing to
+  /// speak with, which would play every move with no wait.
+  bool _lostTheVoice() {
+    final language = _tutorialLanguage;
+    if (language == null || _speech.canRead(language)) return false;
+    _sayWhyNotReading();
+    return true;
+  }
 
   /// Walks the line the way it is taught: the sentence about the position is
   /// read out, and the next move is played when the voice has finished it.
@@ -418,12 +452,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       await _speech.setEnabled(true);
       if (!mounted) return;
     }
-    if (_speech.state != SpeechState.ready) {
-      AppFeedback.show(
-        context,
-        () => const SnackBar(
-            content: Text('No voice on this device — navigate with buttons.')),
-      );
+    if (!_speech.canSpeakNow(_tutorialLanguage)) {
+      _sayWhyNotReading();
       return;
     }
 
@@ -434,7 +464,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       // The reader can switch speech off from anywhere while this runs. Without
       // this the loop would race to the end of the line in silence, since
       // `speak` returns at once when it has nothing to speak with.
-      if (!_speech.enabled || _speech.state != SpeechState.ready) break;
+      if (!_speech.canSpeakNow(_tutorialLanguage)) break;
 
       final text = _node?.comment ?? '';
       if (text.isEmpty) {
@@ -444,8 +474,9 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         // the service otherwise says it once — which here would not just skip
         // the words, it would skip the wait.
         _startTyping(text);
-        await _speech.speak(text, force: true);
+        await _speech.speak(text, force: true, language: _tutorialLanguage);
         _finishTyping();
+        if (_lostTheVoice()) break;
       }
 
       if (!mounted || !_narrating || run != _narrationRun) return;
@@ -498,7 +529,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
         // changed is whose turn it is to act.
         final question = _step.instruction;
         if (question != null && question.isNotEmpty) {
-          await _speech.speak(question, force: true);
+          await _speech.speak(question,
+              force: true, language: _tutorialLanguage);
         }
         break;
       }
@@ -1047,7 +1079,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     if (text.isEmpty) return;
     // Read once, here, and not inside the tick: an estimate that changed
     // mid-sentence would make the letters accelerate under the reader's eye.
-    final charsPerSecond = _speech.charsPerSecond;
+    final charsPerSecond = _speech.charsPerSecondFor(_tutorialLanguage);
     final started = DateTime.now();
     setState(() => _typed = 0);
     _typing = Timer.periodic(const Duration(milliseconds: 80), (timer) {
@@ -1087,7 +1119,22 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     return AnimatedBuilder(
       animation: _speech,
       builder: (context, _) {
-        if (!_canNarrate) return const SizedBox.shrink();
+        if (!_canNarrate) {
+          // A tutorial in a language this device has no voice for gets a
+          // reason where its button would be, and a tap says what to install.
+          // A button that silently vanished would read as a bug; the old case
+          // — no voice at all for the app — keeps drawing nothing, as before.
+          if (_tutorialLanguage == null ||
+              _speech.state == SpeechState.failed) {
+            return const SizedBox.shrink();
+          }
+          return IconButton(
+            key: const Key('tutorial-no-voice'),
+            icon: const Icon(Icons.volume_off),
+            tooltip: 'No voice for this tutorial\'s language',
+            onPressed: _sayWhyNotReading,
+          );
+        }
         return IconButton(
           icon: Icon(_narrating ? Icons.stop : Icons.play_arrow),
           tooltip: _narrating ? 'Stop reading' : 'Play tutorial',

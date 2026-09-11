@@ -322,11 +322,19 @@ class AssignmentDetail {
   /// homework was set from their own shelf rather than from the Lichess set.
   final List<CustomPosition> customPositions;
 
+  /// The language the tutorial says it is written in, as the server stores it
+  /// — one of the seven codes of `TutorialLanguage`, or null for not said and
+  /// for anything that is not a tutorial. `GET /assignments/:id` sends it as
+  /// `lessonLanguage`, and the tutorial screen reads the tutorial with a voice
+  /// for it. `docs/PLAN-JEZIK-GLASA.md`.
+  final String? lessonLanguage;
+
   const AssignmentDetail({
     required this.assignment,
     required this.items,
     this.steps = const [],
     this.customPositions = const [],
+    this.lessonLanguage,
   });
 
   /// True when this homework is made of the trainer's own positions.
@@ -364,6 +372,7 @@ class AssignmentDetail {
         customPositions: ((json['customPositions'] as List?) ?? const [])
             .map((e) => CustomPosition.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
+        lessonLanguage: json['lessonLanguage']?.toString(),
       );
 }
 

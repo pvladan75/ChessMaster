@@ -169,6 +169,7 @@ Future<RenderJobState?> exportTutorialVideo({
     voices: canSpeak ? tts.voices : const [],
     narrate: narrate,
     voice: voice,
+    tutorialLanguage: draft.language,
     hd: hd,
     captions: captions,
     onSample: (voice) => (debugPlayVoiceSample ?? _playSample)(api, voice),
@@ -800,6 +801,10 @@ Future<_ExportChoice?> _askAboutExport({
   /// The synthesised voice's last answer, remembered per trainer.
   required bool narrate,
   required String? voice,
+
+  /// The language the tutorial says it is in, which the sheet opens on when
+  /// the server has a voice for it. `docs/PLAN-JEZIK-GLASA.md`.
+  String? tutorialLanguage,
   required bool hd,
   required bool captions,
 
@@ -817,7 +822,7 @@ Future<_ExportChoice?> _askAboutExport({
 }) {
   var answer = voices.isNotEmpty && narrate ? _Voice.synthesised : _Voice.none;
   var chosen = voice;
-  var language = _openingLanguage(voices, chosen);
+  var language = _openingLanguage(voices, chosen, tutorialLanguage);
   // **The sheet opens on a voice of the language it opens on.** Nothing
   // remembered - or nothing the server still offers, which is what the caller
   // sends null for - and the sheet picks rather than passing null on: piper
@@ -1250,7 +1255,26 @@ String? _firstVoiceOf(List<Map<String, dynamic>> voices, String language) {
 /// app's own language, then any other English, and only then the top of the
 /// list - which is alphabetical, and would open a first-time trainer on
 /// Afrikaans.
-String _openingLanguage(List<Map<String, dynamic>> voices, String? chosen) {
+String _openingLanguage(
+  List<Map<String, dynamic>> voices,
+  String? chosen, [
+  String? tutorialLanguage,
+]) {
+  // **The tutorial's own language first**, when it has said one and the
+  // server speaks it: a Serbian tutorial opens on Serbian voices even for a
+  // trainer whose last film was English. The remembered voice still wins
+  // inside that language — choosing „Sophie" last time is still a choice.
+  if (tutorialLanguage != null) {
+    for (final voice in voices) {
+      if (_idOf(voice) == chosen &&
+          _speaksTutorialLanguage(_languageOf(voice), tutorialLanguage)) {
+        return _languageOf(voice);
+      }
+    }
+    for (final code in _languagesOf(voices)) {
+      if (_speaksTutorialLanguage(code, tutorialLanguage)) return code;
+    }
+  }
   for (final voice in voices) {
     if (_idOf(voice) == chosen && _languageOf(voice).isNotEmpty) {
       return _languageOf(voice);
@@ -1262,6 +1286,29 @@ String _openingLanguage(List<Map<String, dynamic>> voices, String? chosen) {
     if (code.startsWith('en')) return code;
   }
   return languages.isEmpty ? '' : languages.first;
+}
+
+/// Whether a film voice's language [voiceLanguage] is the tutorial language
+/// [code].
+///
+/// **Stricter than the device rule, on purpose.** On a device a Croatian voice
+/// reads a Serbian (Latin) tutorial, because the app says the moves in Serbian
+/// words before the voice sees them. The film's words come from the server's
+/// `spokenMoves.js`, which has no Croatian vocabulary and would hand a
+/// Croatian voice the moves in English — so for the film only a real Serbian
+/// voice counts. Azure writes Serbian Latin `sr-Latn-RS` and Serbian Cyrillic
+/// a plain `sr-RS`.
+bool _speaksTutorialLanguage(String voiceLanguage, String code) {
+  final tag = voiceLanguage.toLowerCase().replaceAll('_', '-');
+  switch (code) {
+    case 'sr-Latn':
+      return tag.startsWith('sr-latn');
+    case 'sr-Cyrl':
+      return tag == 'sr' || tag == 'sr-rs' || tag.startsWith('sr-cyrl');
+    default:
+      final wanted = code.toLowerCase();
+      return tag == wanted || tag.startsWith('$wanted-');
+  }
 }
 
 /// „Nicholas (Neural)" - the speaker, and not the language.

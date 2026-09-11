@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1983 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2009 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1226 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1754,6 +1754,29 @@ out: **absence is a third answer, all the way to the wire.**
 Without `--code`, `translate.py` removes the field rather than copying it — an
 English source translated into Serbian would otherwise still say `en`, and be
 read by exactly the wrong voice.
+
+**A tutorial read in its own voice — 11.9.2026, app 2009 with 1 skipped;
+backend untouched at 1226.** Phase 4 of `docs/PLAN-JEZIK-GLASA.md`.
+Twenty-one mutations, all caught.
+
+**Read a test for the mutation that would survive it, before running the
+mutations.** Two gaps were found that way and closed first: nothing asked
+which voice's reading speed the writing used, and the test tutorial had no
+question part, so a question read without its language would have passed.
+Cheaper than a survivor, and the same lesson this file already records for
+phase 4 of the recording plan.
+
+**A test that fails can fail its neighbour.** Under one mutation the studio
+preview test failed at its expectation, never reached `close`, and left the
+studio mounted to flush its draft into the one slot the next test reads — so
+two tests went red for one fault. It closes in `addTearDown` now. A red under a
+mutation is only the right red when it is the only one.
+
+**A feature that must never fall back needs a test where falling back would
+look fine.** The walk on a Windows that lists Croatian and has none: `speak`
+returned at once, and without the check after each sentence the tutorial
+played its moves with no voice and no wait. The test watches that the walk
+stops, that it says why, and that nothing was spoken in English instead.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

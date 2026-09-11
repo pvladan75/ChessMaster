@@ -81,6 +81,23 @@ class TutorialLanguage {
   String toString() => code;
 }
 
+/// What the tutorial screen says in place of its play button when this device
+/// has no voice for [language] — why, and what to install.
+///
+/// The owner's rule of 11.9.2026 is „no reading rather than the wrong voice",
+/// and a button that silently disappeared would read as a bug. So the reason is
+/// said, with the one install that actually answers it: Windows ships no
+/// Serbian voice, and Croatian reads Serbian in Latin script correctly — but
+/// not Cyrillic, which needs a Serbian voice itself.
+String noVoiceSentence(TutorialLanguage language) {
+  final install = identical(language, TutorialLanguage.serbianLatin)
+      ? 'On Windows, add the Croatian voice, which reads Serbian in Latin '
+          'script: Settings → Time & language → Speech → Add voices.'
+      : 'Add a ${language.label} voice in the device\'s speech settings.';
+  return 'This tutorial is in ${language.label}, and this device has no voice '
+      'for it. $install The tutorial works without it — use the buttons.';
+}
+
 /// The installed device language that should read [language], or null when
 /// this device has none.
 ///

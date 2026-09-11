@@ -987,6 +987,78 @@ void main() {
     expect(body['voice'], 'en-US-JennyNeural');
   });
 
+  // --- The tutorial's own language (docs/PLAN-JEZIK-GLASA.md, phase 4) -------
+
+  Future<String?> exportedVoice(
+    WidgetTester tester, {
+    required String? language,
+    List<Map<String, dynamic>>? voices,
+  }) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: voices ?? cloudVoices,
+      rows: [
+        {..._normalTutorialRow, 'language': language},
+        _emptyTutorialRow,
+      ],
+    );
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    return body['voice'] as String?;
+  }
+
+  testWidgets('a Serbian tutorial opens on a Serbian voice', (tester) async {
+    expect(await exportedVoice(tester, language: 'sr-Latn'),
+        'sr-Latn-RS-NicholasNeural');
+  });
+
+  testWidgets('a remembered voice still wins inside the tutorial\'s language',
+      (tester) async {
+    SharedPreferences.setMockInitialValues(
+        {'tutorial_video_voice': 'sr-Latn-RS-SophieNeural'});
+    expect(await exportedVoice(tester, language: 'sr-Latn'),
+        'sr-Latn-RS-SophieNeural');
+  });
+
+  testWidgets(
+      'but not across languages: last time\'s English voice does not '
+      'read a Serbian tutorial', (tester) async {
+    SharedPreferences.setMockInitialValues(
+        {'tutorial_video_voice': 'en-US-JennyNeural'});
+    expect(await exportedVoice(tester, language: 'sr-Latn'),
+        'sr-Latn-RS-NicholasNeural');
+  });
+
+  testWidgets(
+      'a server with no voice for the language opens as it always did, '
+      'and a Croatian voice is not a Serbian one for the film', (tester) async {
+    // The device may read Serbian with Croatian, because the app says the
+    // moves in Serbian words first. The film's words come from the server,
+    // which has no Croatian vocabulary and would say the moves in English.
+    final withoutSerbian = [
+      for (final voice in cloudVoices)
+        if (!(voice['language'] as String).startsWith('sr')) voice,
+      {
+        'id': 'hr-HR-SreckoNeural',
+        'name': 'Srecko',
+        'language': 'hr-HR',
+        'languageName': 'Croatian (Croatia)',
+        'tier': 'Neural',
+      },
+    ];
+    expect(
+        await exportedVoice(tester,
+            language: 'sr-Latn', voices: withoutSerbian),
+        'en-US-JennyNeural');
+  });
+
   testWidgets('a remembered voice the server no longer offers is not sent',
       (tester) async {
     // What switching TTS_PROVIDER does: every id on the server changes at once,

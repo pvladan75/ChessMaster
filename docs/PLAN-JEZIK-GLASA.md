@@ -198,6 +198,32 @@ otherwise still say `en`, and be read by an English voice.
 
 ## Phase 4 — the voice, per sentence
 
+**Done 11.9.2026** — app **2009** with 1 skipped (+26), backend untouched at
+**1226**, analyze 29 infos. Twenty-one mutations, all caught. Built as planned,
+with four things the plan did not say:
+
+- **In place of the ▶ there is a reason, not nothing.** A tutorial in a language
+  this device cannot read shows a „no voice" icon whose tap says why and what to
+  install — the Croatian voice for Serbian in Latin script, a Serbian one for
+  Cyrillic. A tutorial that has not said its language still draws nothing on a
+  machine with no voice, as it always did.
+- **A machine with no English voice can still read a Serbian tutorial.** Its
+  language is the only question it asks.
+- **The film is stricter than the device.** For the export sheet a Croatian
+  voice is not a Serbian one: the server's `spokenMoves.js` has no Croatian
+  vocabulary and would hand it the moves in English. Where the server has no
+  real Serbian voice, the sheet opens as it always did.
+- **All reading speeds are forgotten when the rate slider or the Settings voice
+  changes**, not only that voice's. A superset of what the plan said, and
+  simpler: a speed is re-measured from the next sentence.
+
+Two tests were added before the mutation run, found by reading rather than by
+running: nothing checked that the writing asks for the **tutorial voice's**
+speed, and the test tutorial had no question part, so the question being read
+without the language would have passed. And one test was made to close the
+studio even when it fails — under a mutation it had left the studio mounted and
+failed the test after it, through the one draft slot both share.
+
 `SpeechService`:
 
 - `speak(text, {language})`. No language → today's voice, unchanged, for every

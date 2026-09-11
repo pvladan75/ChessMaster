@@ -38,7 +38,19 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Jezik glasa — plan, 11.9.2026; faze 1, 2 i 3 gotove
+## Jezik glasa — plan, 11.9.2026; faze 1 do 4 gotove
+
+**Faza 4 je u kodu** (aplikacija 2009, 1 preskočen; backend 1226) — ovo je deo
+koji se čuje. Ekran tutorijala čita trenerove rečenice glasom jezika tutorijala:
+srpska latinica srpskim glasom, na Windows-u hrvatskim `Matej`, i potezima na
+srpskom („lovac ce četiri"); nikad engleskim glasom. Gde uređaj nema glas za taj
+jezik, umesto ▶ stoji ikonica „nema glasa", i dodir kaže zašto i šta da se
+instalira. Glas koji Windows navede a nema ga, zaustavlja čitanje sa istom
+porukom umesto da tutorijal protrči bez glasa. Brzina ispisa prati **glas koji
+čita**. „Pregledaj kao učenik" u studiju čita istim glasom, a dijalog za izvoz
+se otvara na glasovima jezika tutorijala. Ostaje faza 5 (izbor jezika u studiju)
+i provera uživo.
+
 
 **Faza 3 je u kodu** (aplikacija 1983, 1 preskočen; backend 1226): nacrt
 tutorijala nosi jezik i šalje ga pri čuvanju — ali nacrt sačuvan na uređaju pre

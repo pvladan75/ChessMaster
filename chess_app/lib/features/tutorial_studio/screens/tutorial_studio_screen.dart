@@ -1117,6 +1117,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               AssignmentItem(puzzleId: null, position: i, attemptedAt: null),
           ],
           steps: steps.map(LessonStep.fromJson).toList(),
+          // The trainer hears what the child will hear, in the voice of the
+          // language the tutorial says it is in.
+          lessonLanguage: _draft.language,
         ),
         api: PreviewAssignmentApiService(),
       ),

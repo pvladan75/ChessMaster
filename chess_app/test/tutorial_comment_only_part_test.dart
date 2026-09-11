@@ -108,6 +108,51 @@ void main() {
     );
   });
 
+  testWidgets('the preview is read in the language the tutorial says it is in',
+      (tester) async {
+    // docs/PLAN-JEZIK-GLASA.md, phase 4. The trainer hears what the child will
+    // hear — so the viewer the studio opens has to be told the language, or a
+    // Serbian tutorial is previewed in the Settings voice and sounds fine to
+    // the one person who could have caught it.
+    tester.view.physicalSize = const Size(1600, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    // Closed even when an expectation below fails: a studio left mounted
+    // flushes its draft into the one slot the next test reads.
+    addTearDown(() => close(tester));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TutorialStudioScreen(
+          session: trainer,
+          // A fresh id: the studio adopts a stored draft whose id matches.
+          entry: TutorialEntry.saved({
+            'id': 9101,
+            'title': 'Opozicija',
+            'language': 'sr-Latn',
+            'position_list': [
+              {
+                'id': 's1',
+                'fen': startFen,
+                'title': 'Uvod',
+                'kind': 'show',
+                'pgn': '{ $sentence } *'
+              },
+            ],
+          }),
+          lessonApi: recordingApi(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('preview-as-student')));
+    await tester.pumpAndSettle();
+
+    final viewer =
+        tester.widget<LessonViewerScreen>(find.byType(LessonViewerScreen));
+    expect(viewer.detail.lessonLanguage, 'sr-Latn');
+  });
+
   testWidgets('and „Pregledaj kao učenik" reads it back on the board', (
     tester,
   ) async {

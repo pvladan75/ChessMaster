@@ -82,6 +82,24 @@ void main() {
     });
   });
 
+  group('the sentence in place of the play button', () {
+    test('names the language, and the install that actually answers it', () {
+      final latin = noVoiceSentence(TutorialLanguage.serbianLatin);
+      expect(latin, contains('Serbian (Latin)'));
+      expect(latin, contains('Croatian voice'),
+          reason: 'Windows has no Serbian voice; Croatian reads Latin Serbian');
+
+      // Recommending Croatian for Cyrillic would send a reader to install a
+      // voice that still cannot read their tutorial.
+      final cyrillic = noVoiceSentence(TutorialLanguage.serbianCyrillic);
+      expect(cyrillic, contains('Serbian (Cyrillic)'));
+      expect(cyrillic, isNot(contains('Croatian')));
+
+      expect(
+          noVoiceSentence(TutorialLanguage.german), contains('German voice'));
+    });
+  });
+
   group('the seven codes', () {
     test('are the ones the server stores, one of each', () {
       // `services/tutorialLanguage.js` holds the same seven; the shared

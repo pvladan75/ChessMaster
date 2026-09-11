@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import 'package:chess_app/core/services/speech_text.dart';
+import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/services/app_logger.dart';
 
 /// Everything the app needs from a synthesiser, and nothing else.
@@ -121,8 +122,26 @@ class SpeechService extends ChangeNotifier {
   /// It describes **this voice at this rate setting**, so changing either
   /// forgets it. A slider moved from 0.5 to 0.9 leaves every sample describing
   /// a voice that no longer exists.
-  double get charsPerSecond => _charsPerSecond ?? seedCharsPerSecond;
-  double? _charsPerSecond;
+  ///
+  /// This is the Settings voice's rate. A tutorial in its own language is read
+  /// by another voice, which reads at its own speed - see [charsPerSecondFor].
+  double get charsPerSecond => _rateOf(_language);
+
+  /// How fast the voice that reads a tutorial in [language] actually reads.
+  ///
+  /// **Kept per voice** (`docs/PLAN-JEZIK-GLASA.md`). One number for two voices
+  /// would apply the Serbian voice's measurement to the English one, and the
+  /// writing that follows the voice would quietly stop following either. A
+  /// tutorial that has not said its language asks [charsPerSecond] itself, so
+  /// anything that watches that getter still sees the question.
+  double charsPerSecondFor(TutorialLanguage? language) =>
+      language == null ? charsPerSecond : _rateOf(_voiceFor(language));
+
+  double _rateOf(String? voice) =>
+      (voice == null ? null : _rates[voice]) ?? seedCharsPerSecond;
+
+  /// Measured reading speeds, by the voice that read.
+  final Map<String, double> _rates = {};
 
   /// Where the estimate starts, before this voice has said anything.
   ///
@@ -148,8 +167,8 @@ class SpeechService extends ChangeNotifier {
   @visibleForTesting
   DateTime Function() debugClock = DateTime.now;
 
-  /// Folds one finished sentence into the estimate.
-  void _learnRate(String text, Duration took) {
+  /// Folds one finished sentence into [voice]'s estimate.
+  void _learnRate(String text, Duration took, String voice) {
     if (text.length < _minSampleChars) return;
     final seconds = took.inMilliseconds / 1000;
     // No separate guard for a clock that did not move, or moved backwards:
@@ -161,15 +180,58 @@ class SpeechService extends ChangeNotifier {
     // Weighted towards what is already known, so one odd sentence - a word the
     // voice spells out, a notification taking the audio focus - moves the
     // estimate rather than replacing it.
-    _charsPerSecond = _charsPerSecond == null
-        ? sample
-        : _charsPerSecond! * 0.6 + sample * 0.4;
+    final known = _rates[voice];
+    _rates[voice] = known == null ? sample : known * 0.6 + sample * 0.4;
     // No notifyListeners, for the reason given on _startSpeaking: this runs
     // inside an utterance, and a screen asks for the rate when it starts
     // writing rather than being told that it changed.
   }
 
-  void _forgetRate() => _charsPerSecond = null;
+  /// Every voice's, because it is the rate setting that changed - or the
+  /// machine was asked again what it has.
+  void _forgetRate() => _rates.clear();
+
+  /// The voice the engine is set to now, so a sentence in another language
+  /// switches it and the next one in the same language does not.
+  String? _engineVoice;
+
+  /// Voices this session found listed and could not use.
+  ///
+  /// Windows answers `getLanguages` from the languages the system knows about,
+  /// not the voices installed (see [_apply]), so a Serbian tutorial can be
+  /// offered a Croatian voice that throws on the first sentence. That voice is
+  /// set aside for the session and the next in the language's order is tried -
+  /// never the Settings voice, which is a different language. [refresh] forgets
+  /// the list, because installing the voice is how a reader answers it.
+  final Set<String> _unusable = {};
+
+  /// The installed voice that should read [language], leaving out the ones
+  /// that failed. Null when there is none - see [voiceFor].
+  String? _voiceFor(TutorialLanguage language) => voiceFor(language, [
+        for (final voice in _available)
+          if (!_unusable.contains(voice)) voice,
+      ]);
+
+  /// Whether a tutorial in [language] can be read aloud on this machine at
+  /// all, whether or not speech is switched on right now. Decides whether the
+  /// play button is drawn.
+  ///
+  /// A tutorial that has not said its language asks the old question: is
+  /// there a voice for the app's own text. One that has asks only about its
+  /// own language - an English voice on the machine is no answer to a Serbian
+  /// tutorial, and no English voice is no obstacle to one.
+  bool canRead(TutorialLanguage? language) {
+    if (_state == SpeechState.failed) return false;
+    if (language == null) return _state != SpeechState.noVoice;
+    return _voiceFor(language) != null;
+  }
+
+  /// Whether a sentence in [language] would be spoken if asked for now.
+  bool canSpeakNow(TutorialLanguage? language) {
+    if (!_enabled) return false;
+    if (language == null) return _state == SpeechState.ready;
+    return _state != SpeechState.failed && _voiceFor(language) != null;
+  }
 
   bool _enabled = false;
   bool get enabled => _enabled;
@@ -293,6 +355,8 @@ class SpeechService extends ChangeNotifier {
     _enabled = enabled;
     _rate = rate;
     _forgetRate();
+    _unusable.clear();
+    _engineVoice = null;
 
     try {
       // Built inside the guard, not before it. Creating the plugin object is
@@ -360,10 +424,12 @@ class SpeechService extends ChangeNotifier {
     try {
       await engine.setLanguage(language);
       await engine.setSpeechRate(_rate);
+      _engineVoice = language;
       return true;
     } catch (e) {
       AppLogger.log('[Speech] Voice "$language" is not usable: $e');
       _state = SpeechState.noVoice;
+      _engineVoice = null;
       return false;
     }
   }
@@ -403,7 +469,7 @@ class SpeechService extends ChangeNotifier {
   /// the older of the two is already out of date and nobody wants to hear a
   /// backlog. What must not happen is losing the newest, which is the one that
   /// describes the board as it now stands.
-  String? _queued;
+  ({String text, String voice})? _queued;
 
   /// Says a sentence the screen is showing.
   ///
@@ -415,28 +481,74 @@ class SpeechService extends ChangeNotifier {
   ///
   /// [force] is for the settings screen's test button, which has to speak even
   /// though it is saying the same thing every time.
-  Future<void> speak(String? text, {bool force = false}) async {
-    if (!_enabled || _state != SpeechState.ready) return;
-    final spoken = speakable(text);
+  ///
+  /// [language] is a tutorial's own (`docs/PLAN-JEZIK-GLASA.md`): the sentence
+  /// is read by a voice for that language, with its moves said in that
+  /// language's words, or **not at all** - never by the Settings voice, which
+  /// would read it in the wrong phonetics and sound as if it worked. Without
+  /// one, this is exactly what it always was.
+  Future<void> speak(
+    String? text, {
+    bool force = false,
+    TutorialLanguage? language,
+  }) async {
+    if (!canSpeakNow(language)) return;
+    final voice = language == null ? _language : _voiceFor(language);
+    if (voice == null) return;
+    final spoken = language == null
+        ? speakable(text)
+        : speakable(text, vocabulary: language.vocabulary);
     if (spoken.isEmpty) return;
     if (!force && spoken == _lastSpoken) return;
 
     if (_speaking) {
-      _queued = spoken;
+      _queued = (text: spoken, voice: voice);
       return;
     }
     _lastSpoken = spoken;
-    await _utter(spoken);
+    await _utter(spoken, voice);
+  }
+
+  /// Puts the engine on [voice], unless it is there already.
+  ///
+  /// False when the engine refused it. A tutorial's voice is then set aside
+  /// for the session and the screen asking is told it cannot read, rather than
+  /// the sentence being handed to whatever the engine was set to before. The
+  /// listeners hear about it a microtask later: this can run under a build, and
+  /// a notifier that fires there is refused by Flutter.
+  Future<bool> _useVoice(String voice) async {
+    if (voice == _engineVoice) return true;
+    final engine = _engine;
+    if (engine == null) return false;
+    try {
+      await engine.setLanguage(voice);
+      await engine.setSpeechRate(_rate);
+      _engineVoice = voice;
+      return true;
+    } catch (e) {
+      AppLogger.log('[Speech] Voice "$voice" is not usable: $e');
+      _engineVoice = null;
+      if (voice == _language) {
+        _state = SpeechState.noVoice;
+      } else {
+        _unusable.add(voice);
+      }
+      scheduleMicrotask(notifyListeners);
+      return false;
+    }
   }
 
   /// One sentence, start to finish, and whatever was waiting behind it.
-  Future<void> _utter(String spoken) async {
-    final startedAt = debugClock();
+  Future<void> _utter(String spoken, String voice) async {
     try {
       // Marked as speaking before anything is awaited, not after: the board's
       // timers ask this between frames, and a gap where it reads false is a
       // move played under a sentence.
       _startSpeaking(spoken);
+      if (!await _useVoice(voice)) return;
+      // Timed from here rather than from the call: switching voices is not
+      // reading, and a rate that counted it would describe neither.
+      final startedAt = debugClock();
       _spokeAtLeastOnce = true;
       await _engine?.speak(spoken);
       // `_speaking` is the whole guard, and it answers two questions at once:
@@ -444,7 +556,9 @@ class SpeechService extends ChangeNotifier {
       // [stop] clears it when the reader cut the sentence off. Neither elapsed
       // time is this voice reading this sentence through, and a rate learned
       // from either is worse than having no rate at all.
-      if (_speaking) _learnRate(spoken, debugClock().difference(startedAt));
+      if (_speaking) {
+        _learnRate(spoken, debugClock().difference(startedAt), voice);
+      }
     } catch (e) {
       AppLogger.log('[Govor] Neuspelo izgovaranje: $e');
     } finally {
@@ -454,9 +568,9 @@ class SpeechService extends ChangeNotifier {
     final next = _queued;
     _queued = null;
     if (next == null) return;
-    if (!_enabled || _state != SpeechState.ready) return;
-    _lastSpoken = next;
-    await _utter(next);
+    if (!_enabled || _state == SpeechState.failed) return;
+    _lastSpoken = next.text;
+    await _utter(next.text, next.voice);
   }
 
   // Neither of these notifies, on purpose, and it is not an oversight to be
