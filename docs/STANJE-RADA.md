@@ -38,6 +38,18 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Istorija u studiju — plan 11.9.2026, ništa još nije napravljeno
+
+`docs/PLAN-STUDIO-ISTORIJA.md`. Vlasnik je obrisao deo, nije sačuvao, i kad je
+ponovo otvorio tutorijal deo je i dalje bio obrisan: studio tiho uzima lokalni
+nacrt istog tutorijala, i nema puta nazad do verzije sa servera. Tri stvari,
+četiri faze: **undo/redo** (100 koraka, dok je studio otvoren, kucanje je jedan
+korak po pauzi), **sačuvana verzija** (pitanje pri otvaranju kad postoje
+nesačuvane izmene, „Discard changes", nova ruta `GET /lessons/:id`), i
+**„Insert a line here"** — deo se seče na taktu u tri dela (do takta, nova
+linija, stari nastavak), sa svim komentarima, strelicama i poljima. Vlasnikov
+primer iz `8/3k4/1n3b2/8/8/8/2PK4/2R5 w` je test.
+
 ## Jezik glasa — 11.9.2026; svih šest faza gotovo, čeka proveru uživo
 
 **Faza 6 je gotova** (samo dokumenti): `UPUTSTVO-STUDIO.md`, odeljak 8,
