@@ -63,6 +63,10 @@ An item whose notation differs is rejected and sent back.
   Capablanca, Tarrasch, Carlsbad), spelled the way {language} normally spells
   them.
 - Never write `{`, `}` or `[%` in a translation.
+- Write ordinal numbers in the sentence as words - „the seventh rank", „on
+  move twelve" - never as a digit with a full stop, which a voice reads as a
+  number that ends the sentence. This is prose, not notation: a move number in
+  front of a move (`12. Nf3`) is copied as it is.
 
 ## Only when {language} is Serbian
 
@@ -72,6 +76,9 @@ Filidor, Loli, Vančura, Kapablanka, Taraš, Kohren, Rauzer.
 
 The sides are written in lower case in the middle of a sentence, as Serbian
 writes them: „beli je na potezu", „crni se brani" - not „Crni".
+
+Ordinal numbers are words, declined as the sentence needs them: „sedmi red",
+„na sedmom redu", „u dvanaestom potezu" - not „7. red", „u 12. potezu".
 
 These are the words this app already uses, and a tutorial must agree with them:
 

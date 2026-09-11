@@ -458,6 +458,25 @@ String _noOrdinalStops(String text) => text.replaceAllMapped(
       (m) => '${m[1]}${m[2]}',
     );
 
+/// A file named by its letter and joined to a word: „h-linija", „c-pešak",
+/// „the h-file", „die h-Linie".
+///
+/// Reported live on 11.9.2026 with the Croatian voice: „h-linija" came out as
+/// „minus linija" — the hyphen read as an arithmetic sign, and the lone „h"
+/// not read at all. So the hyphen goes, and the letter is said the way the
+/// language says a file — „ha linija" — through the same [SpeechVocabulary.files]
+/// a move uses, which keeps the letter a bare letter where the voice already
+/// names it properly.
+///
+/// Only a letter standing alone: „Rh-faktor" is left as it is, because the
+/// letter before the hyphen is part of a word. And only before a letter, so a
+/// score or a range of numbers keeps its hyphen.
+final _fileWithHyphen =
+    RegExp(r'(?<![\p{L}\p{N}])([a-h])-(?=\p{L})', unicode: true);
+
+String _fileNames(String text, SpeechVocabulary v) =>
+    text.replaceAllMapped(_fileWithHyphen, (m) => '${v.files[m[1]]!} ');
+
 String _plainPunctuation(String text) {
   return text
       .replaceAll('„', '')
@@ -484,8 +503,10 @@ String speakable(String? text, {SpeechVocabulary vocabulary = englishSpeech}) {
   // runs there is no digit left in `e6.` for it to act on and the sentence
   // keeps its full stop. What is left for that rule is the numbers that really
   // are numbers - a rating, a count - where the stop has to go.
-  final spoken = _noOrdinalStops(_plainPunctuation(text)
-          .replaceAllMapped(_movePattern, (m) => _sayMove(m, vocabulary)))
+  final spoken = _noOrdinalStops(_fileNames(
+          _plainPunctuation(text)
+              .replaceAllMapped(_movePattern, (m) => _sayMove(m, vocabulary)),
+          vocabulary))
       // Runs of whitespace, including the newlines the panel wraps at, are one
       // pause rather than several.
       .replaceAll(RegExp(r'\s+'), ' ')

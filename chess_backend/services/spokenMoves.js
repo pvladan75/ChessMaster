@@ -220,6 +220,12 @@ const MOVE = new RegExp(
   'g',
 );
 
+/// The letter itself where the voice says it properly, and the language's own
+/// name for it where it does not.
+function fileWordIn(v, letter) {
+  return v.files ? v.files[letter] || letter : letter;
+}
+
 /// Reads one matched move out loud. The app's `_sayMove`, word for word.
 function sayMove(match, v) {
   const [whole, piece, fromFile, fromRank, capture, file, rank, promotion, suffix] = match;
@@ -227,9 +233,7 @@ function sayMove(match, v) {
   if (whole === 'O-O-O' || whole === '0-0-0') return v.longCastle;
 
   const rankWord = (digit) => v.ranks[Number(digit) - 1];
-  // The letter itself where the voice says it properly, and the language's own
-  // name for it where it does not.
-  const fileWord = (letter) => (v.files ? v.files[letter] || letter : letter);
+  const fileWord = (letter) => fileWordIn(v, letter);
   const words = [];
   if (piece) {
     words.push(v.pieces[piece]);
@@ -280,6 +284,16 @@ function plainPunctuation(text) {
     .replace(/[—–]/g, ',');
 }
 
+/// A file named by its letter and joined to a word: „h-linija", „c-pešak",
+/// „the h-file". Reported live on 11.9.2026: the hyphen was read as „minus" and
+/// the lone „h" not at all. The app's `_fileNames`, rule for rule — a letter
+/// standing alone („Rh-faktor" is left as it is), and only before a letter.
+const FILE_WITH_HYPHEN = /(?<![\p{L}\p{N}])([a-h])-(?=\p{L})/gu;
+
+function fileNames(text, v) {
+  return text.replace(FILE_WITH_HYPHEN, (m, letter) => `${fileWordIn(v, letter)} `);
+}
+
 /// A full stop straight after a digit, where it would be read as an ordinal.
 ///
 /// „Found 3 of 12." comes out as „twelfth" in more than one language. Where the
@@ -308,9 +322,10 @@ function spokenMoves(text, voice) {
   // runs there is no digit left in `e6.` for it to act on and the sentence
   // keeps its full stop. What is left for that rule is the numbers that really
   // are numbers — a rating, a count — where the stop has to go.
-  return noOrdinalStops(
+  return noOrdinalStops(fileNames(
     plainPunctuation(source).replace(MOVE, (...match) => sayMove(match, v)),
-  )
+    v,
+  ))
     .replace(/\s+/g, ' ')
     .trim();
 }

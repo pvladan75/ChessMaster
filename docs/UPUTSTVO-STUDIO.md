@@ -16,13 +16,12 @@ navedeni onako kako stoje na ekranu — „Save tutorial", „Flow" i tako dalje
 
 ## 1. Dve reči koje treba razlikovati
 
-**Takt** (na ekranu *beat*) je jedan trenutak: jedna pozicija, rečenica o njoj, i ono što je na njoj
-nacrtano. Takt nastaje sam od sebe — čim povučeš potez na tabli, dobio si sledeći
-takt.
+**Takt** (na ekranu *beat*) je jedan trenutak: jedna pozicija, rečenica o
+njoj, i ono što je na njoj nacrtano. Takt nastaje sam od sebe — čim povučeš
+potez na tabli, dobio si sledeći takt.
 
 **Deo** (na ekranu *part*) je jedna celina: **jedan tip zadatka i jedna
-polazna pozicija.** Deo ima
-onoliko taktova koliko poteza u njemu odigraš.
+polazna pozicija.** Deo ima onoliko taktova koliko poteza u njemu odigraš.
 
 **Zlatno pravilo:**
 
@@ -90,6 +89,11 @@ poteza koji odlazi.
 
 Ako hoćeš da nešto kažeš „posle poteza", to je rečenica **sledećeg takta** — ne
 druga rečenica na istom.
+
+**Redne brojeve piši rečima:** „sedmi red", „na sedmom redu", „u dvanaestom
+potezu" — ne „7. red". Glas broj sa tačkom čita kao broj kojim se rečenica
+završava, pa napravi pauzu usred rečenice. Linije slobodno piši kao „h-linija"
+ili „c-pešak": glas to čita „ha linija", „ce pešak".
 
 **Crtanje** je traka ispod table: **„Arrow"**, **„Square"**, krugovi sa bojama,
 **„Clear marks"**.
@@ -262,6 +266,9 @@ Pravila koja model najčešće prekrši:
    njega — aplikacija odbija ceo tekst čim jedan ne može.
 6. **Komentar ide na potez posle kog se čita**, ne na potez o kome govori
    unazad.
+7. **Redni brojevi rečima** — „sedmi red", „u dvanaestom potezu", nikako
+   „7. red". Broj sa tačkom glas čita kao kraj rečenice. Brojevi poteza
+   ispred samog poteza u `PGN` ostaju kakvi jesu.
 
 Provera pre isporuke: svaki `PGN` provuci kroz program koji ume da odigra poteze
 iz datog `FEN`-a. Tekst koji se ne odigra ne treba ni slati — aplikacija ga

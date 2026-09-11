@@ -5358,3 +5358,8 @@ telefonu.
    otvorenog tutorijala.
 9. [ ] **Uputstvo govori istinu.** `docs/UPUTSTVO-STUDIO.md`, odeljak 8 opisuje
    baš ovo što si video.
+10. [ ] **„h-linija" se čita „ha linija".** Prijava vlasnika od 11.9.2026: crtica
+    se čitala kao „minus", a samo „h" se nije čulo. Komentar „Top ide na
+    h-liniju, a c-pešak je slab." treba da se čuje kao „ha liniju" i „ce pešak".
+    Redni brojevi se ne ispravljaju u kodu: piše se „sedmi red", ne „7. red"
+    (`UPUTSTVO-STUDIO.md`, odeljak 5).

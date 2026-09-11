@@ -84,6 +84,13 @@
     { "language": "fr", "written": "Bd5", "spoken": "fou d cinq" },
     { "language": "fr", "written": "d5", "spoken": "d cinq" },
     { "language": "fr", "written": "exd5", "spoken": "pion de e prend d cinq" },
-    { "language": "fr", "written": "O-O-O", "spoken": "grand roque" }
+    { "language": "fr", "written": "O-O-O", "spoken": "grand roque" },
+
+    { "language": "sr-Latn", "written": "Top ide na h-liniju.", "spoken": "Top ide na ha liniju." },
+    { "language": "sr-Latn", "written": "c-pešak je slab.", "spoken": "ce pešak je slab." },
+    { "language": "sr-Latn", "written": "Rh-faktor nije šah.", "spoken": "Rh-faktor nije šah." },
+    { "language": "sr-Cyrl", "written": "Топ на h-линији.", "spoken": "Топ на ха линији." },
+    { "language": "en", "written": "The h-file is open.", "spoken": "The h file is open." },
+    { "language": "de", "written": "Die h-Linie ist offen.", "spoken": "Die h Linie ist offen." }
   ]
 }

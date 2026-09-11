@@ -153,6 +153,11 @@ drawn under the board: full sentences in plain words, 40 to 140 characters,
 no move notation inside the words unless you mean it to be spoken — "Bd5" is
 read out as "bishop d five".
 
+Write ordinal numbers as words: "the seventh rank", "sedmi red", "on move
+twelve", "u dvanaestom potezu". Never a digit with a full stop in a sentence
+("7. red", "u 12. potezu"): a voice reads it as a number that ends the
+sentence. Move numbers in front of a move inside a "pgn" stay as they are.
+
 A tutorial is 4 to 10 steps. A demonstration is 3 to 8 moves. Prefer more short
 steps to one long line: a wrong move ruins the step it is in, not the tutorial.
 
