@@ -1,246 +1,365 @@
-# Generating a tutorial for testing: PGN to paste, or JSON to POST
+# Writing a tutorial outside the app
 
-Written 9.9.2026, to make large tutorials cheaply for testing the video
-renderer and the render queue. Every rule below was measured against the app's
-own reader (`MoveTree.parsePgn` → `LessonStepLine` → `readStepTree`) and the
-server's own validator (`services/lessonSteps.js`) on that date, not read off
-the PGN standard.
+Written 9.9.2026 to make large tutorials cheaply for testing the video renderer;
+rewritten 11.9.2026, after twenty-seven tutorials were generated from the first
+version of it and **thirteen of them had a fault in them**. Every rule below was
+measured against the app's own reader (`MoveTree.parsePgn` → `LessonStepLine` →
+`readStepTree`) and the server's own validator (`services/lessonSteps.js`), not
+read off the PGN standard.
 
-Two routes, and they answer different questions:
+There is one file format — the body of `POST /lessons/save` — and two ways in:
 
-| | PGN paste | JSON POST |
+| | Imported in the app | POSTed with curl |
 |---|---|---|
-| Makes | **one part** per paste | a **whole tutorial** in one request |
-| Goes through | the studio's „PGN" tab, `LessonStepLine` | `POST /lessons/save`, `buildLessonSteps` |
-| Validates the line | yes — refuses a text that does not replay | **no** — the server has no PGN reader |
-| Can set kind, task, answers | no | yes |
-| Good for | writing a real tutorial, checking the parser | 40-part films, concurrent-render tests |
+| Where | Library → Interactive tutorials → **Import from a file** | `POST /lessons/save` |
+| Checks the line | **yes**, per part, before anything is written | **no** — the server has no PGN reader |
+| Good for | everything a person does | load tests, forty-part films |
 
-Use JSON for load testing. Use PGN when you want the app itself in the loop.
+**Import it in the app.** The server stores a `pgn` as opaque text: a line that
+does not replay is written without complaint and shows up months later as a
+child getting a shorter lesson than the file holds. The import reads every line
+through the same parser the child's screen uses and says which part is wrong
+before anything is saved.
 
 ---
 
-# A. PGN to paste
+# 1. The prompt
 
-## What one paste is
-
-One PGN text is one part — one „Deo", one `position_list` entry, one
-`LessonStep`. There is no import that splits a text into several parts.
-
-1. Windows build → **Studio za tutorijal** → new tutorial („Deo 1" opens on the
-   standard position).
-2. „PGN" tab → paste → **Apply**.
-3. For the next part: „Delovi tutorijala" → **New demonstration** → **New
-   board** → „PGN" tab → paste → **Apply**.
-4. **Sačuvaj tutorijal.**
-
-A text whose `[FEN]` differs from the part's position raises a dialog — answer
-**Use that position**. One click per part, and it is the only interaction the
-paste needs.
-
-## The prompt
+Copy the whole block. It is written to be pasted into a generator with nothing
+else; every rule it needs is inside it, because the model will not see this
+document.
 
 ```text
-Write a chess tutorial as annotated PGN. Output ONLY the PGN text, nothing else.
+Write a chess tutorial as a single JSON object. Output ONLY the JSON — no prose,
+no explanation, no code fence.
 
-Format, exactly:
+SHAPE
 
-[Event "Tutorial"]
-[SetUp "1"]
-[FEN "<starting position of the lesson, full FEN with all six fields>"]
+{
+  "title": "<the tutorial's name, under 200 characters>",
+  "description": "<one sentence about what it teaches>",
+  "tags": ["<one or two words the trainer will filter by, e.g. endgame>"],
+  "positionList": [ <step>, <step>, ... ]
+}
 
-{ A sentence about the starting position, before move 1. [%csl Ge4,Gd4] }
-1. e4 { A sentence about this move. [%cal Ge2e4] }
-e5 { A sentence about this move. }
-2. Nf3 { A sentence. [%cal Gf3e5] [%csl Re5] }
-*
+A step is one of two kinds.
 
-Rules:
+A demonstration — a position and a line of moves with a sentence on each move:
 
-1. Moves are English SAN: N B R Q K, O-O, O-O-O, exd5, e8=Q, +, #. Never use
-   the piece letters of another language (S, L, T, D...).
-2. Every move must be legal from the [FEN] you wrote. Replay the whole line
-   before answering: one illegal move makes the entire text unusable.
-3. NO variations. Do not use parentheses at all. One main line only.
-4. A comment { } belongs to the move immediately before it. A comment placed
-   before move 1 belongs to the starting position, and that is where the
-   lesson's opening sentence goes.
-5. At most one [%cal ...] and one [%csl ...] per comment, both inside the same
-   braces, after the words. Several arrows or squares are comma-separated:
-   [%cal Ge2e4,Rd8h4] [%csl Rf7,Gd5].
-6. Colours are single letters: G green, R red, B blue, O orange, P purple.
-   An arrow is colour + from + to (5 characters: Ge2e4).
-   A square is colour + square (3 characters: Rf7).
-7. Never nest a { } comment, and never write square brackets in the words of a
-   comment: [ ] is only for [%cal] and [%csl].
-8. Write a sentence on almost every move. Each sentence is read aloud to a
-   child and drawn under the board, so use full sentences in plain words, 40
-   to 140 characters. Avoid move notation inside the words unless you mean it
-   to be spoken: "Bd5" is read out as "bishop d five".
-9. Close with a single * on its own line.
-10. Write no other headers. [Event], [SetUp] and [FEN] only.
+{
+  "title": "Deo <n>",
+  "fen": "<full FEN, six fields>",
+  "kind": "show",
+  "pgn": "<annotated PGN as one JSON string, newlines escaped as \n>"
+}
 
-Topic: <what the lesson should teach>
-Length: <how many moves>
+A question — a position, a task, and the answer. IT HAS NO MOVES:
+
+{
+  "title": "Deo <n>",
+  "fen": "<full FEN, six fields>",
+  "kind": "ask_move",
+  "instruction": "<what the student has to do, one sentence>",
+  "solutionSan": "<the single correct move in SAN>",
+  "pgn": ""
+}
+
+A multiple-choice question — a position, a task, and two to four answers, of
+which at least one is marked correct. IT ALSO HAS NO MOVES:
+
+{
+  "title": "Deo <n>",
+  "fen": "<full FEN, six fields>",
+  "kind": "ask_choice",
+  "instruction": "<the question, one sentence>",
+  "choices": [
+    {"text": "<an answer in words>", "correct": true},
+    {"text": "<another answer>", "correct": false}
+  ],
+  "pgn": ""
+}
+
+Optional on any step: "blackOrientation": true draws the board from Black's
+side. Leave it out and the app decides from whose turn it is.
+
+HARD RULES. Each of these makes the tutorial be refused or silently broken.
+
+1. THE FEN MUST BE A REAL POSITION. Six fields. Piece letters are only
+   K Q R B N P k q r b n p — a letter like "c" in the board field makes the
+   whole tutorial be refused. Exactly one king of each colour, no pawn on the
+   first or the eighth rank, and the side that is NOT to move must not be in
+   check. Build the FEN by playing the moves out from a position you are sure
+   of; do not write one from a mental picture of the board.
+
+2. EVERY MOVE MUST BE LEGAL FROM THAT FEN. Replay the whole line before you
+   answer. A move that cannot be played is skipped, and the student gets a
+   lesson with holes in it. If you are not certain of a long line, write a
+   SHORT one: four correct moves are worth more than twelve invented ones.
+
+3. NOTHING MAY BE GLUED TO A MOVE. No !, ?, !?, ?!, +-, -+, =, N, ∞.
+        WRONG: Kb6+-      WRONG: Be8!+-      WRONG: Rh2!=
+        RIGHT: Kb6        RIGHT: Be8         RIGHT: Rh2
+   Put the assessment in the sentence: "White is winning now."
+
+4. WRITE + ONLY WHEN THE MOVE REALLY GIVES CHECK, AND # ONLY WHEN IT IS REALLY
+   MATE. A + on a move that gives no check is refused exactly like an illegal
+   move. If you are not certain, write neither: Bd6 is always safe, Bd6+ is
+   not.
+
+5. MOVES ARE ENGLISH SAN: N B R Q K, O-O, O-O-O, exd5, e8=Q. Never the piece
+   letters of another language (S, L, T, D, C, A, F...).
+
+6. NO VARIATIONS. Do not use parentheses anywhere. One main line per step.
+
+7. A { } COMMENT BELONGS TO THE MOVE BEFORE IT. A comment written before move 1
+   belongs to the starting position, and that is where the opening sentence of
+   the step goes. Never nest comments.
+
+8. ARROWS AND SQUARES GO INSIDE THE BRACES, AFTER THE WORDS.
+        WRONG: 1. h4 [%cal Gh2h4] { White starts the attack. }
+        RIGHT: 1. h4 { White starts the attack. [%cal Gh2h4] }
+   An annotation outside the braces is read as a move and destroys the line.
+   At most one [%cal ...] and one [%csl ...] per comment, several of each
+   comma-separated inside: [%cal Ge2e4,Rd8h4] [%csl Rf7,Gd5].
+   An arrow is colour + from-square + to-square, five characters: Ge2e4.
+   A square is colour + square, three characters: Rf7.
+   Colours are G green, R red, B blue, O orange, P purple.
+   Square brackets are for these two tags and nothing else: never write [ or ]
+   in the words of a comment.
+
+9. A QUESTION CARRIES NO MOVES. A step with "kind": "ask_move" or
+   "kind": "ask_choice" must have "pgn": "". The app draws the line for the
+   student with a "Next move" button, so a question that carries its own answer
+   shows it, and the app refuses to save it. Put the answer in the NEXT step,
+   as a "show" step on the same FEN.
+
+10. "solutionSan" MUST BE LEGAL IN THAT STEP'S OWN FEN, PLAYED BY THE SIDE THAT
+    IS TO MOVE THERE. If the answer is a black move, the FEN must say "b".
+    Replay it before you answer.
+
+11. "choices" IS TWO TO FOUR ANSWERS AND AT LEAST ONE OF THEM HAS
+    "correct": true. One answer, five answers, or none marked correct is
+    refused. Only "ask_choice" has choices; no other kind may carry them.
+
+12. NEVER WRITE AN "id" FIELD ON A STEP. The server mints those.
+
+13. Every "pgn" of a demonstration ends with a space and a *.
+
+SENTENCES
+
+Write a sentence on almost every move. Each one is read aloud to a child and
+drawn under the board: full sentences in plain words, 40 to 140 characters,
+no move notation inside the words unless you mean it to be spoken — "Bd5" is
+read out as "bishop d five".
+
+A tutorial is 4 to 10 steps. A demonstration is 3 to 8 moves. Prefer more short
+steps to one long line: a wrong move ruins the step it is in, not the tutorial.
+
+BEFORE YOU ANSWER — do this silently, and output nothing about it:
+
+  a. Replay every "pgn" from its step's "fen", move by move. Delete or correct
+     any move that does not play, and shorten the line if you are unsure.
+  b. Check every + and every # against the position. Remove the ones you cannot
+     prove.
+  c. Check every "solutionSan" the same way, including whose turn it is.
+  d. Read every question step and confirm its "pgn" is "".
+  e. Count the answers of every "ask_choice" and confirm one is correct.
+  f. Search your own output for [%cal and [%csl and confirm each one is inside
+     a { } comment.
+  g. Confirm the JSON parses and no step has an "id".
+
+Topic: <what the tutorial should teach>
+Level: <who it is for>
+Language of the sentences: <any language; the narration voice is chosen later>
 ```
 
-Add the side the board is written from, the child's level, or the language of
-the sentences — any language works, the narration voice is chosen at export.
+Everything after `Topic:` is yours to fill in. Any language works for the
+sentences — the film's voice is chosen at export — but the **moves are always
+English SAN**, because that is what the PGN standard stores and what this app
+writes.
 
-## Why each rule is there
+---
+
+# 2. A worked example, verified
+
+Read through `readTutorialJson` on 11.9.2026: three parts, **no problems**.
+
+```json
+{
+  "title": "The weak square f7",
+  "description": "Why every beginner game is decided on one square.",
+  "tags": ["opening", "beginner"],
+  "positionList": [
+    {
+      "title": "Deo 1",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "kind": "show",
+      "pgn": "{ We start from the opening position. Watch the two squares in the middle: whoever controls them decides where the pieces will go. [%csl Ge4,Gd4] }\n1. e4 { The king pawn takes a central square and opens lines for the bishop and the queen at once. [%cal Ge2e4] }\ne5 { Black answers in the same way and claims an equal share of the centre. }\n2. Nf3 { The knight develops and attacks the pawn on e5 straight away. [%cal Gf3e5] [%csl Re5] }\nNc6 { Black defends the pawn and brings a piece towards the middle of the board. }\n3. Bc4 { The bishop takes the long diagonal and looks straight at f7, the weakest square in the black camp because only the king defends it. [%cal Gc4f7] [%csl Rf7] }\n*"
+    },
+    {
+      "title": "Deo 2",
+      "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3",
+      "kind": "ask_move",
+      "blackOrientation": true,
+      "instruction": "Black to move. Develop a piece and attack the pawn on e4 at the same time.",
+      "solutionSan": "Nf6",
+      "pgn": ""
+    },
+    {
+      "title": "Deo 3",
+      "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3",
+      "kind": "show",
+      "blackOrientation": true,
+      "pgn": "{ Here is the answer, and what White tries next. [%csl Rf7] }\n3... Nf6 { The knight develops and attacks the pawn on e4, so White has no time for slow plans. [%cal Gf6e4] }\n4. Ng5 { White attacks f7 with a second piece. Two attackers against one defender is the arithmetic that wins material. [%cal Gg5f7,Gc4f7] [%csl Rf7] }\nd5 { The only move. Black blocks the diagonal by hitting back in the centre, and the game goes on. [%cal Gd5c4] }\n*"
+    }
+  ]
+}
+```
+
+Steps 2 and 3 are the shape rule 9 asks for: the question stands on a position,
+and the line that answers it is the part after it, on the same position. That is
+also what the studio's own „Traži potez na tabli" produces, so an imported
+tutorial and one written by hand come out the same shape.
+
+---
+
+# 3. The mistakes that were actually made
+
+Twenty-seven tutorials, generated 10.9.2026 from the previous version of this
+document. Thirteen had at least one of these. They are ordered by how often.
+
+| Fault | Example, as written | What the app does |
+|---|---|---|
+| A glyph glued to a move | `Kb6+-`, `Be8!+-`, `Rh2!=` | the move is not played; the rest of the line follows from the wrong position |
+| `+` on a move that gives no check | `Bd6+` where d6 does not attack the king | the same — refused like an illegal move |
+| A question carrying its own answer | `"kind": "ask_move"` with a `pgn` | the child sees the answer under „Sledeći potez"; the studio refuses to save it |
+| `solutionSan` illegal in its own FEN | `Rxe1#` with the FEN saying `w` | the whole tutorial is refused, 422 |
+| A line that does not replay | 12 of 17 moves impossible | stored as it is; the child gets what survived |
+| `[%cal]` outside the braces | `1. h4 [%cal Gh2h4] { … }` | every annotation is read as a move — 20 rejected moves in one step |
+| A piece that does not exist | `2c2n2` in the board field | the whole tutorial is refused |
+
+Two of them are worth a sentence each, because they are not obvious.
+
+**The check mark is part of the move.** Two chess libraries disagree here: the
+one used to *write* these files accepts `Bd6+` on a move that gives no check,
+and the one the app *reads* them with does not. A file can therefore replay
+perfectly wherever it was generated and lose four moves in the app. That is why
+rule 4 says to write neither mark when in doubt: a move with no suffix is always
+accepted, and the app draws the check on the board anyway.
+
+**The side to move is half of the question.** Three of the four files that could
+not be saved at all asked for a black move from a position whose FEN said White
+to move. Nothing about the sentence or the instruction gives this away; only
+replaying the answer does.
+
+---
+
+# 4. What the app says, and what it means
+
+The import reports per part, and it separates two things.
+
+**Refused — nothing is written until it is fixed:**
+
+| The sentence | The cause |
+|---|---|
+| „the starting position cannot be read — …" | the `fen` is not a position |
+| „the solution … cannot be played in this position" | `solutionSan`, rule 10 |
+| „it asks for a move and gives no solution" | `ask_move` with no `solutionSan` |
+| „a multiple-choice question needs between two and four answers" | `choices` |
+| „none of the offered answers is marked as the correct one" | no `correct: true` |
+| „… is not a kind of step" | `kind` is not `show`, `ask_move` or `ask_choice` |
+
+**Damaged — it would be stored, and it would be wrong:**
+
+| The sentence | The cause |
+|---|---|
+| „the line has N moves that cannot be played …" | rules 2, 3, 4, 8 |
+| „it asks for a move and carries the line that answers it" | rule 9 |
+
+A damaged file can still be opened in the studio and fixed there, which is what
+the single-file import is for. A refused one cannot be saved at all.
+
+---
+
+# 5. The fields, and what the server does with each
+
+Per step, from `buildLessonStep`:
+
+| Field | Rule |
+|---|---|
+| `fen` | **required**, validated by `chess.js`, refused with 422 if unloadable |
+| `title` | ≤ 200 characters, defaults to „Position" |
+| `pgn` | ≤ 100000 characters, stored opaquely, **not validated by the server** |
+| `kind` | `show`, `ask_move` or `ask_choice`; absent means `show`; an unknown value is refused rather than downgraded |
+| `instruction` | ≤ 500 characters — the task, drawn on the last beat of a question |
+| `blackOrientation` | boolean, and **absent is a third answer**: leave it out and the viewer works the side out from whose turn it is |
+| `id` | `[A-Za-z0-9_-]{1,16}`. **Never write one.** It names a schedule row and a recorded answer, so two tutorials carrying one id is a child's progress appearing in the wrong copy. The import drops it; a curl POST does not |
+| `solutionSan` | only for `ask_move`, and validated against that step's `fen` |
+| `acceptedSans` | up to 6 further correct moves, `ask_move` only |
+| `choices` | 2–4 of `{text, correct}`, `ask_choice` only, at least one `correct` |
+
+On the tutorial itself: `title` (required), `description`, and `tags` — the
+labels the trainer filters the saved list by, and the reason to write one or two
+even for a test file.
+
+A `pgn` written for JSON needs no `[FEN]` header of its own: the step's `fen` is
+passed to the parser and wins over any header in the text.
+
+## Why the PGN rules are what they are
 
 | Rule | The reason in the code |
 |---|---|
-| Headers on their own lines | `parsePgn` strips headers line by line with `^\s*\[[^%][^\]]*\]\s*$`. A header sharing a line with a move is not stripped. `[%cal]` survives because of the `[^%]`. |
-| Only `[FEN]` matters | `fenHeaderOf` reads it and everything else is discarded. `[SetUp "1"]` is convention; nothing reads it. No `[FEN]` means the standard opening position. |
-| Legal moves only | `parsePgn` **skips** a move it cannot play, counting it in `rejectedMoves`; „Apply" then refuses the whole text. Deliberate — a line must never come back silently shorter. |
-| No variations | Parentheses parse and are stored, but a fork **stops** the narrated walk and the film: `beatsOf` and `tutorialVideoOf` follow first children, and the child gets a branch chooser. In a render test that is a film that ends early. |
-| A comment binds backwards | The parser attaches a comment to the node it is standing on, which is the move just played. Before move 1 that is the root — the only place a note about a still position can live. |
-| One `[%cal]`, one `[%csl]` | `parsePgnArrows` and `parsePgnSquares` use `firstMatch`, so a second group of the same kind is ignored — and `cleanPgnComment` strips every group from the words, so it vanishes rather than showing up in the sentence. |
-| 5 and 3 characters | A token of any other length is skipped rather than guessed at. |
-| Colour letters | `ArrowColor.all` is `R O G B P`. An unknown letter draws grey (`ArrowColor.fallback`). |
-| No brackets in words | Whatever is not `[%cal]`/`[%csl]` survives into the caption and is read aloud. |
-| `*` on its own line | A marker glued to the last move (`Nxb4*`) is handled now, but a space in front of it is the shape the exporter writes. |
+| Legal moves only | `parsePgn` **skips** a move it cannot play and counts it in `rejectedMoves`. Deliberate — a line must never come back silently shorter without somebody being told |
+| No variations | Parentheses parse and are stored, but a fork **stops** the narrated walk and the film: `beatsOf` and `tutorialVideoOf` follow first children, and the child gets a branch chooser instead of the rest of the lesson |
+| A comment binds backwards | The parser attaches a comment to the node it is standing on, which is the move just played. Before move 1 that is the root — the only place a note about a still position can live, and the exporter writes it ahead of move one so „look at d5" can travel |
+| One `[%cal]`, one `[%csl]` | `parsePgnArrows` and `parsePgnSquares` use `firstMatch`, so a second group of the same kind is ignored — and `cleanPgnComment` strips every group from the words, so it vanishes rather than being read aloud |
+| 5 and 3 characters | A token of any other length is skipped rather than guessed at |
+| Colour letters | `ArrowColor.all` is `R O G B P`. An unknown letter draws grey |
+| No brackets in the words | Whatever is not `[%cal]`/`[%csl]` survives into the caption and is spoken |
+| `*` at the end | A marker glued to the last move (`Nxb4*`) is handled, but a space in front of it is the shape the app's own exporter writes |
 
-## Worked example, measured
+---
 
-Read through `readStepTree` on 9.9.2026: **0 rejected moves**, 6 and 4 beats,
-10 events, **111 seconds** of silent film.
+# 6. The other route: one part pasted as PGN
+
+For a single part, with the app itself in the loop: Windows build → **Studio za
+tutorijal** → „PGN" tab → paste → **Apply**. A text whose `[FEN]` differs from
+the part's position raises a dialog; answer **Use that position**.
+
+The paste takes headers, and only `[FEN]` is read:
 
 ```
 [Event "Tutorial"]
 [SetUp "1"]
 [FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]
 
-{ We start from the initial position. Watch the two central squares: whoever controls them decides where the pieces will go later in the game. [%csl Ge4,Gd4] }
-1. e4 { The king pawn takes one central square and opens lines for the bishop and the queen at the same time. That is why it is the most popular first move in chess. [%cal Ge2e4] }
-e5 { Black answers symmetrically and claims an equal share of the centre. Now both sides have one pawn on the fourth rank and the fight is about who develops faster. [%cal Ge7e5] }
-2. Nf3 { The knight develops and attacks the pawn on e5 immediately. A developing move that also contains a threat is worth two ordinary moves. [%cal Gf3e5] [%csl Re5] }
-Nc6 { Black defends the pawn and develops a piece towards the centre. Notice that both players are bringing knights out before bishops. }
-3. Bc4 { The bishop takes the long diagonal and looks straight at f7, the weakest square in Black's camp because only the king defends it. [%cal Gc4f7] [%csl Rf7] }
+{ A sentence about the starting position. [%csl Ge4,Gd4] }
+1. e4 { A sentence about this move. [%cal Ge2e4] }
+e5 { A sentence about this move. }
 *
 ```
 
-Second part, pasted into a part added with „New demonstration" → „New board",
-answering **Use that position**:
-
-```
-[SetUp "1"]
-[FEN "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3"]
-
-{ Here is the same position again, but now it is Black to move and we look at the mistake that decides thousands of beginner games. [%csl Rf7] }
-3... Nf6 { The best answer: Black develops and attacks the pawn on e4, so White has no time for slow plans. [%cal Gf6e4] }
-4. Ng5 { White attacks f7 with a second piece. Two attackers against one defender is the arithmetic that wins material. [%cal Gg5f7,Gc4f7] [%csl Rf7] }
-d5 { The only move. Black blocks the bishop's diagonal by counterattacking in the centre, and the game continues with a fight rather than a loss. [%cal Gd5c4] }
-*
-```
+Every rule in section 1 that is about the PGN string applies here too. A paste
+makes a **demonstration** and nothing else: the kind, the task, the offered
+answers and the recorded solution are fields of the step rather than of the
+line, and only the studio writes them. Headers must be on their own lines —
+`parsePgn` strips them line by line, and one sharing a line with a move is not
+stripped.
 
 Comments may span lines — the parser splits on whitespace — so a wrapped answer
-from an LLM is fine.
+from a generator is fine.
 
-## What a paste cannot carry
+Unlike the server, „Apply" **refuses** a text that does not replay, and says how
+many moves it could not play. It is the cheapest way to check one line.
 
-It makes a **demonstration** (`show`). The kind, the task sentence, the offered
-answers and the recorded solution are fields of the step rather than of the
-line, and only the studio writes them. That is also why a paste is safe: the
-studio refuses to save a question that carries a line, because the line would
-show the child the answer.
-
-Orientation is not in the PGN either. A part read back adopts „Black to move
-means Black at the bottom"; turn it in the studio if the lesson needs it.
+Orientation is not in a PGN. A part read back adopts „Black to move means Black
+at the bottom"; turn it in the studio, or write `blackOrientation` in the JSON.
 
 ---
 
-# B. JSON to POST — the fast path for load tests
+# 7. Posting the file instead of importing it
 
-`POST /lessons/save` takes the whole tutorial in one body. The server validates
-every FEN through `chess.js` and refuses the request if one is unloadable, but
-it has **no PGN reader**: a `pgn` that does not replay from its step's `fen` is
-stored without complaint and shows up only when the app reads it back. So the
-FEN and the line must agree, and the way to check is to open the tutorial in
-the studio once.
-
-## The request
-
-```json
-{
-  "title": "Render test 01",
-  "description": "generated",
-  "positionList": [
-    {
-      "title": "Deo 1",
-      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-      "kind": "show",
-      "pgn": "{ A sentence about the starting position. [%csl Ge4,Gd4] }\n1. e4 { A sentence about this move. [%cal Ge2e4] }\ne5 { A sentence. }\n*"
-    },
-    {
-      "title": "Deo 2",
-      "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3",
-      "kind": "show",
-      "blackOrientation": true,
-      "pgn": "{ Another sentence. [%csl Rf7] }\n3... Nf6 { A sentence. [%cal Gf6e4] }\n*"
-    }
-  ]
-}
-```
-
-Per step, what `buildLessonStep` accepts and what it does with it:
-
-| Field | Rule |
-|---|---|
-| `fen` | **required**, validated by `chess.js`, refused with 422 if unloadable |
-| `title` | ≤ 200 chars, defaults to „Position" |
-| `pgn` | ≤ 100000 chars, stored opaquely, **not validated** |
-| `kind` | `show`, `ask_move` or `ask_choice`; absent means `show`; an unknown value is refused rather than downgraded |
-| `instruction` | ≤ 500 chars — the task, drawn on the last beat of a question part |
-| `blackOrientation` | boolean, and **absent is a third answer**: leave it out and the viewer works the side out from whose turn it is |
-| `id` | `[A-Za-z0-9_-]{1,16}`; omit it and the server mints one. Never reuse an id across two tutorials — it names a schedule row and a recorded answer |
-| `solutionSan`, `acceptedSans` (≤ 6), `choices` (2–4, `{text, correct}`) | only for the question kinds; `ask_move` has its solution validated against the FEN |
-
-A `pgn` written for JSON does not need its own `[FEN]` header: the step's `fen`
-is passed to the parser explicitly and wins over any header in the text. All the
-PGN grammar rules from part A still apply to the string.
-
-## The prompt
-
-```text
-Output ONLY a JSON object, no prose, no code fence. Shape:
-
-{
-  "title": "<tutorial name>",
-  "description": "generated",
-  "positionList": [ <step>, <step>, ... ]
-}
-
-A step is:
-
-{
-  "title": "Deo <n>",
-  "fen": "<full FEN, six fields>",
-  "kind": "show",
-  "pgn": "<annotated PGN as a single JSON string, newlines escaped as \\n>"
-}
-
-Rules for the pgn string:
-
-1. No headers at all — no [Event], no [FEN]. The step's own "fen" field is the
-   starting position, and every move must be legal from it.
-2. Moves in English SAN. No variations, no parentheses.
-3. A { } comment belongs to the move before it; a comment written before move 1
-   belongs to the starting position.
-4. At most one [%cal ...] and one [%csl ...] per comment, comma-separated
-   inside: [%cal Ge2e4,Rd8h4] [%csl Rf7]. Arrow = colour + from + to (Ge2e4),
-   square = colour + square (Rf7), colours G R B O P.
-5. A sentence on almost every move, 40 to 140 characters, plain words, spoken
-   aloud to a child.
-6. End with a space and a *.
-
-Produce <N> steps of <M> moves each. Each step starts from a position that
-follows on from the previous step, or from a fresh one — say which in the
-first sentence either way.
-```
-
-## Posting it (PowerShell 7)
+For a load test, where nobody is going to read the tutorial (PowerShell 7):
 
 ```powershell
 $api = 'http://localhost:3000'
@@ -250,11 +369,13 @@ Invoke-RestMethod "$api/lessons/save" -Method Post -ContentType 'application/jso
 ```
 
 It then appears under „Sačuvani tutorijali", opens in the studio, and exports to
-video like any other.
+video like any other. **Nothing checks the lines on this path** — the server has
+no PGN reader — and an `id` written into a step is stored as it stands, so this
+is for files you do not intend a child to see.
 
 ---
 
-# Sizing a film
+# 8. Sizing a film
 
 Without narration `dwellSecondsFor` decides: **12 characters a second, minimum
 2 s, maximum 12 s per beat.** A beat is the starting position plus every move of
@@ -264,22 +385,17 @@ full 12 s and anything longer is free.
     film seconds ≈ (1 + moves) × dwell
     50 moves at 12 s ≈ 10 minutes
 
-The renderer draws **4 frames per second when there is a caption band** (1 fps
+The renderer draws **4 frames a second when there is a caption band** (1 fps
 without one), so a ten-minute captioned film is about 2400 drawn PNGs. Duration
-is clamped to 3600 s.
+is clamped to 3600 s, and a render whose estimate will not fit is refused before
+it starts drawing.
 
 **With narration the app's timestamps are replaced** by the voice's own
 durations (`narrationPlan` / `retimeEvents`): each beat runs `ceil(spoken +
 breath)` whole seconds, and a clip longer than 60 s is dropped rather than
-trimmed. So narration makes the film longer than the estimate above and adds one
-TTS call per sentence — which is what actually loads the queue.
+trimmed. So narration makes a film longer than the estimate above and adds one
+TTS call per sentence — which is what actually loads the render queue.
 
-Two ceilings the render sits inside: nginx closes a proxied request after
-**300 s** (`deploy/app-setup.sh`) and the app's HTTP timeout is five minutes.
-`RENDER_CONCURRENCY` films are drawn at a time, `RENDER_QUEUE_MAX` may wait, and
-a fuller queue is refused at once with a 429 rather than left to die on the wire.
-
-**For the concurrency test** the useful shape is several films each long enough
-to still be rendering when the next request arrives — a minute or two of
-captioned film — rather than one enormous one. A film whose render plus queue
-wait exceeds 300 s is testing nginx, not the queue.
+For a concurrency test the useful shape is several films each long enough to
+still be rendering when the next request arrives — a minute or two of captioned
+film — rather than one enormous one.
