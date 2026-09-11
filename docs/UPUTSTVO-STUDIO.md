@@ -9,15 +9,19 @@ je za trenere koji ga koriste, kao i pravni tekstovi. Ne prevoditi.
 Studio postoji samo na Windows-u. Na telefonu se tutorijal i dalje uređuje
 starim editorom koraka, koji je zamrznut.
 
+**Aplikacija je na engleskom**, pa su nazivi dugmadi i polja u ovom uputstvu
+navedeni onako kako stoje na ekranu — „Save tutorial", „Flow" i tako dalje.
+
 ---
 
 ## 1. Dve reči koje treba razlikovati
 
-**Takt** je jedan trenutak: jedna pozicija, rečenica o njoj, i ono što je na njoj
+**Takt** (na ekranu *beat*) je jedan trenutak: jedna pozicija, rečenica o njoj, i ono što je na njoj
 nacrtano. Takt nastaje sam od sebe — čim povučeš potez na tabli, dobio si sledeći
 takt.
 
-**Deo** je jedna celina: **jedan tip zadatka i jedna polazna pozicija.** Deo ima
+**Deo** (na ekranu *part*) je jedna celina: **jedan tip zadatka i jedna
+polazna pozicija.** Deo ima
 onoliko taktova koliko poteza u njemu odigraš.
 
 **Zlatno pravilo:**
@@ -30,29 +34,34 @@ deset tabli umesto jedne priče.
 
 ## 2. Tri tipa dela
 
-Bira se u polju **„Tip zadatka"**, i važi za **ceo deo**:
+Bira se u polju **„Task type"**, i važi za **ceo deo**:
 
 | Tip | Šta dete radi |
 |---|---|
-| **Samo prikaži** | Gleda i sluša. Prolazi potez po potez kroz liniju koju si napisao. |
-| **Traži potez na tabli** | Vidi poziciju i mora da odigra potez. Tačan potez zadaješ tako što ga **odigraš na tabli** dok je ovaj tip izabran. |
-| **Traži odgovor iz liste** | Vidi poziciju i bira jedan od ponuđenih odgovora. |
+| **Show only** | Gleda i sluša. Prolazi potez po potez kroz liniju koju si napisao. |
+| **Ask for move on board** | Vidi poziciju i mora da odigra potez. Tačan potez zadaješ tako što ga **odigraš na tabli** dok je ovaj tip izabran. |
+| **Ask for answer from list** | Vidi poziciju i bira jedan od ponuđenih odgovora. |
 
 **Pitanje se uvek postavlja o polaznoj poziciji dela.** Ako hoćeš da pitaš nešto
 posle tri poteza demonstracije, ta tri poteza su jedan deo, a pitanje je sledeći
-deo — napravljen preko **„+ Dodaj deo" → „Nastavi odavde"**. Pregledač ta dva
-spaja na **jednoj tabli**, bez resetovanja, pa dete ne vidi šav.
+deo. Ne praviš ga ručno: stani na takt posle trećeg poteza i u panelu
+**„Tutorial contents"** pritisni **„Find the move"** ili **„Choose the
+answer"**. Studio sam deli deo — demonstracija ostaje u delu ispred, pitanje
+postaje nov deo na toj poziciji, a ono što je u liniji išlo dalje nastavlja se
+iza pitanja. Deo bez poteza se ne deli, nego sam postaje pitanje. Pregledač te
+delove spaja na **jednoj tabli**, bez resetovanja, pa dete ne vidi šav.
 
 ## 3. Zašto pitanje ne sme da nosi liniju
 
 Linija dela **nije sakrivena** od deteta — ona *jeste* lekcija, i dete može da je
-prolista dugmetom „Sledeći potez". Zato deo koji traži potez a nosi liniju
+prolista dugmetom „Next move". Zato deo koji traži potez a nosi liniju
 pokazuje detetu sopstveni odgovor.
 
 Aplikacija to odbija sama, na tri mesta:
 
-* kad izabereš „Traži potez na tabli" nad delom koji ima poteze, pita te
-  („Dete bi videlo odgovor") i nudi da liniju ukloni;
+* kad u „Task type" izabereš „Ask for move on board" nad delom koji ima
+  poteze, pita te („The student would see the answer") i nudi da liniju ukloni
+  („Remove line and ask question");
 * ako otvoriš stariji tutorijal koji je već takav, gore stoji crvena traka koja
   **imenuje** te delove;
 * čuvanje se odbija dok takav deo postoji.
@@ -76,14 +85,14 @@ Ne piši `!` i `??` u tekst odgovora — dete ih vidi, pa je pitanje rešeno bez
 
 **Komentar pripada taktu i čita se pre poteza koji odlazi iz njega.** Redosled
 koji dete dobija je: vidi poziciju → čuje šta se o njoj kaže → odigra se sledeći
-potez. Zato panel **„Tok"** i crta rečenicu **između** poteza koji je stigao i
+potez. Zato panel **„Flow"** i crta rečenicu **između** poteza koji je stigao i
 poteza koji odlazi.
 
 Ako hoćeš da nešto kažeš „posle poteza", to je rečenica **sledećeg takta** — ne
 druga rečenica na istom.
 
-**Crtanje** je traka ispod table: **„Strelica"**, **„Polje"**, krugovi sa bojama,
-**„Obriši oznake"**.
+**Crtanje** je traka ispod table: **„Arrow"**, **„Square"**, krugovi sa bojama,
+**„Clear marks"**.
 
 * strelica se crta klikom na dva polja; **isti par klikova je briše**;
 * polje se označava jednim klikom; ponovni klik ga briše;
@@ -94,7 +103,7 @@ druga rečenica na istom.
 
 ## 6. Tab „PGN" — tekst dela
 
-Treći tab pored „Tok" i „Stablo" pokazuje deo kao tekst i prima tekst spolja.
+Treći tab pored „Flow" i „Tree" pokazuje deo kao tekst i prima tekst spolja.
 Ovo su jedina vrata kroz koja anotirana partija (iz knjige, iz motora, iz
 programa koji čita PDF) ulazi u tutorijal **sa svojim komentarima i oznakama**.
 
@@ -113,37 +122,40 @@ Format je standardni PGN, isti koji pišu Lichess i šahovski programi:
 **Slova boja:** `G` zelena · `R` crvena · `B` plava · `O` narandžasta ·
 `P` ljubičasta. (Nema žute.)
 
-**Kucanje ništa ne menja dok ne pritisneš „Primeni".** Dok tekst nije primenjen,
-pored dugmeta piše „izmenjeno".
+**Kucanje ništa ne menja dok ne pritisneš „Apply".** Dok tekst nije primenjen,
+pored dugmeta piše „edited".
 
-**Šta „Primeni" odbija:**
+**Šta „Apply" odbija:**
 
 * tekst u kome neki potez ne može da se odigra — odbija se **ceo**, uz broj
   takvih poteza. Deo ostaje netaknut;
 * ako nalepljeni tekst nosi svoju polaznu poziciju (`[FEN]`) različitu od
-  pozicije dela, pita se: **„Uzmi tu poziciju"** (deo se premešta na nju),
-  **„Zadrži postojeću"** (tekst se odbija) ili **„Odustani"**.
+  pozicije dela, pita se: **„Use that position"** (deo se premešta na nju),
+  **„Keep existing"** (tekst se odbija) ili **„Cancel"**.
 
-Kursor u tekstu bira potez: tabla i „Tok" idu za njim. **Desni klik** na potez
-nudi „Dodaj strelicu", „Označi polje" i „Dodaj komentar" — prve dve postave
+Kursor u tekstu bira potez: tabla i „Flow" idu za njim. **Desni klik** na potez
+nudi „Add arrow", „Mark square" i „Add comment" — prve dve postave
 kursor na taj potez i uključe crtanje **na tabli**.
 
 ## 7. Redosled rada i čuvanje
 
 1. **Naziv i jezik** („Language") — jezik odlučuje kojim glasom se tutorijal
    čita (odeljak 8).
-2. **„Unos pozicije"** ako deo ne počinje iz osnovne pozicije.
+2. **„Position setup"** (ikonica klizača gore desno) ako deo ne počinje iz
+   osnovne pozicije.
 3. Povuci poteze i piši komentare po taktovima.
-4. **„+ Dodaj deo"** kad menjaš tip ili poziciju („Nastavi odavde" zadržava
-   poziciju na kojoj si stao).
-5. **„Pregledaj kao učenik"** — otvara tutorijal onako kako ga dete vidi.
+4. Nov deo: **„New demonstration"** za sledeći primer — „From here" ga počinje
+   na poziciji gde se linija otvorenog dela završava, „New board" iz osnovne
+   pozicije; **„Find the move"** ili **„Choose the answer"** za pitanje na
+   taktu na kome stojiš (odeljak 2).
+5. **„Preview as student"** — otvara tutorijal onako kako ga dete vidi.
    **Ništa ne šalje na server**; odgovori u pregledu se ne beleže.
-6. **„Sačuvaj tutorijal"** — jedan upis, na kraju. Svaki sledeći pritisak menja
+6. **„Save tutorial"** — jedan upis, na kraju. Svaki sledeći pritisak menja
    **isti** tutorijal, ne pravi nov.
 
 Tutorijal mora da ima naziv. Poslednji deo se ne može obrisati. Nedovršen rad se
 sam čuva na računaru; kad sledeći put otvoriš nov tutorijal, pitaće te
-(„Odustajem" / „Nov" / „Nastavi") — **„Nov" briše nezavršeni**.
+(„Cancel" / „New" / „Continue") — **„New" briše nezavršeni**.
 
 ---
 
