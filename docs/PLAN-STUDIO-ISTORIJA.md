@@ -1,6 +1,6 @@
 # Undo, the saved version, and a line inserted into a part
 
-Written 11.9.2026. Nothing in it is built yet.
+Written 11.9.2026. Phase 1 is built; phases 2–4 are not.
 
 ## The request
 
@@ -62,6 +62,41 @@ The owner, the same day:
 
 First, because it is the safety net for the other two: discarding changes and
 splitting a part are both undoable from the day they arrive.
+
+**Built 11.9.2026**, with four things the plan below did not have:
+
+- **Ctrl+Z is the studio's inside text fields too.** The plan left it to a
+  focused field. On Windows a field keeps its focus while a piece is dragged on
+  the board, so after a sentence and a move, the field's own undo would have
+  taken back letters and left the move standing. The studio's history holds
+  typing, one step per pause, so one undo covers both.
+- **„Preview as student" is an icon now**, with its name as the tooltip. With
+  the real Windows font the words took 266 px, and with the two new buttons the
+  app bar ran 23 px past a 700 dp window and left the title 85 px at 840. As an
+  icon the actions take 477 px instead of 599 before this phase, and the title
+  is whole from 800 dp up.
+- **Step ids survive an undo past a save.** Each part carries a key of its own
+  on this device (`TutorialSection.localKey`), the studio learns which step id
+  each key was given, and a restored part gets its id back; the lesson id never
+  goes back to none. Without it, an undo past the first save followed by a
+  second save created a second tutorial.
+- **The task and the answers now record their changes.** They never called
+  `_persist()`, so an edit to them would have been undone together with the
+  next unrelated change.
+- **The shortcuts are on the „Keyboard Shortcuts" page**, as its own gate
+  demands of every key the app binds.
+
+Twenty-seven tests, and 26 mutations, all caught. Two more survived the first
+run and were both findings: the task field had no test, and the seal on a redo
+was a line no test could fail — a redo only follows an undo, which has already
+sealed, so it was deleted. Chasing that one found the real gap: nothing asked
+that typing merges again once the trainer carries on after an undo, which
+without it would have come back one letter per undo for the rest of the
+session.
+
+Measured on the 40-part, 200-move render fixture: a snapshot is 100 KB plus a
+38 KB content signature, and recording one takes about 2 ms — about 14 MB for
+a full history of the largest tutorial there is.
 
 - **A pure history** (`services/draft_history.dart`): a list of encoded draft
   snapshots with a cursor, 100 steps, the redo half cleared by any new change.

@@ -38,7 +38,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Istorija u studiju — plan 11.9.2026, ništa još nije napravljeno
+## Istorija u studiju — plan 11.9.2026; faza 1 (undo/redo) gotova, faze 2–4 nisu počete
 
 `docs/PLAN-STUDIO-ISTORIJA.md`. Vlasnik je obrisao deo, nije sačuvao, i kad je
 ponovo otvorio tutorijal deo je i dalje bio obrisan: studio tiho uzima lokalni
@@ -49,6 +49,20 @@ nesačuvane izmene, „Discard changes", nova ruta `GET /lessons/:id`), i
 **„Insert a line here"** — deo se seče na taktu u tri dela (do takta, nova
 linija, stari nastavak), sa svim komentarima, strelicama i poljima. Vlasnikov
 primer iz `8/3k4/1n3b2/8/8/8/2PK4/2R5 w` je test.
+
+**Faza 1, 11.9.2026:** „Undo" i „Redo" u traci studija, Ctrl+Z / Ctrl+Y (i
+Ctrl+Shift+Z), 100 koraka. Istorija je spisak celih nacrta
+(`services/draft_history.dart`), beleži se u `_persist()`; kucanje u jednom
+polju bez pauze od 1,2 s je jedan korak. Ctrl+Z pripada studiju i u tekstualnom
+polju, jer na Windowsu polje zadržava fokus dok se figura vuče po tabli. Deo
+vraćen undo-om nosi svoj stari step id i posle čuvanja (`localKey` po delu).
+„Preview as student" je sada ikonica, da bi traka stala u 700 dp. Zadatak i
+odgovori ranije nisu zvali `_persist()` — sada zovu. Prečice su na strani
+„Keyboard Shortcuts". 27 testova; 26 mutacija uhvaćeno, a 27. je pokazala
+suvišan red, koji je obrisan. Stavka za proveru
+uživo dolazi u fazi 4, po planu. `Icons.redo` je nova ikonica u aplikaciji — ako
+na Windows buildu ispadne prazna, to je zastareli `MaterialIcons-Regular.otf`
+(vidi CLAUDE.md).
 
 ## Jezik glasa — 11.9.2026; svih šest faza gotovo, čeka proveru uživo
 

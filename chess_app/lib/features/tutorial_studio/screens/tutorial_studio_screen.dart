@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/services/legal_moves.dart';
@@ -27,6 +29,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
+import 'package:chess_app/features/tutorial_studio/services/draft_history.dart';
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
@@ -89,6 +92,14 @@ enum _DraftChoice { resume, fresh, cancel }
 /// What to do with the position a pasted PGN brought with it.
 enum _PastedPosition { take, keep, cancel }
 
+class _UndoIntent extends Intent {
+  const _UndoIntent();
+}
+
+class _RedoIntent extends Intent {
+  const _RedoIntent();
+}
+
 class TutorialStudioScreen extends StatefulWidget {
   const TutorialStudioScreen({
     super.key,
@@ -141,6 +152,21 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   late TutorialDraft _draft;
   PlayerColor _orientation = PlayerColor.white;
+
+  /// Undo and redo — phase 1 of `docs/PLAN-STUDIO-ISTORIJA.md`. Fed by
+  /// [_persist], the one place every change passes through.
+  final DraftHistory _history = DraftHistory();
+
+  /// The step id each part has been given, by [TutorialSection.localKey].
+  ///
+  /// Learned from the draft on screen before every restore — a save has put
+  /// its ids there by then — and handed back to a part an undo restores
+  /// without one. Kept across restores, so a part undone out of existence and
+  /// back still finds its id. Without it, an
+  /// undo past a save followed by another save would send the part with no id,
+  /// the server would mint a new one, and every schedule row and recorded
+  /// answer naming the old id would point at nothing, silently.
+  final Map<String, String> _stepIdsByKey = {};
 
   String? _lastMoveFrom;
   String? _lastMoveTo;
@@ -227,6 +253,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // turned it into a plain position, silently. See
     // `test/tutorial_reopen_test.dart`.
     _loadSelectedSection();
+    _startHistory();
     unawaited(_adoptStoredDraft());
     unawaited(_loadNarrationTake());
   }
@@ -309,6 +336,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           _draft.section.storedPgn = null;
           _loadSelectedSection();
         });
+        _startHistory();
 
       case TutorialEntrySaved():
         // A draft that never belonged to a tutorial, or belonged to a different
@@ -320,6 +348,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           _draft = stored;
           _loadSelectedSection();
         });
+        _startHistory();
 
       case TutorialEntryImported():
         // Nothing to adopt. The trainer asked for *this file*, and a draft left
@@ -339,6 +368,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               _draft = stored;
               _loadSelectedSection();
             });
+            _startHistory();
           case _DraftChoice.fresh:
             // Thrown away rather than left behind: a draft the trainer has
             // just declined must not be waiting for them the next time they
@@ -463,8 +493,83 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       ]);
   }
 
-  void _persist() {
+  /// Writes the open part back, keeps the draft on this device, and records
+  /// the change for undo.
+  ///
+  /// [typingIn] names the text field a change came from, so that a sentence
+  /// typed without a pause is one undo step rather than one per letter.
+  void _persist({String? typingIn}) {
     _syncSelectedSection();
+    TutorialDraftService.instance.scheduleSave(_draft);
+    _recordHistory(typingIn: typingIn);
+  }
+
+  void _recordHistory({String? typingIn}) {
+    final couldUndo = _history.canUndo;
+    final couldRedo = _history.canRedo;
+    _history.record(
+      jsonEncode(_draft.toJson()),
+      _draft.contentSignature(),
+      typingIn: typingIn,
+    );
+    // Only the two buttons depend on this, and most calls change neither.
+    if (mounted &&
+        (couldUndo != _history.canUndo || couldRedo != _history.canRedo)) {
+      setState(() {});
+    }
+  }
+
+  /// The draft this screen now holds is where undo stops.
+  void _startHistory() {
+    _history.start(jsonEncode(_draft.toJson()), _draft.contentSignature());
+  }
+
+  void _rememberStepIds(TutorialDraft draft) {
+    for (final section in draft.sections) {
+      final id = section.stepId;
+      if (id != null) _stepIdsByKey[section.localKey] = id;
+    }
+  }
+
+  void _undo() => _restore(_history.undo());
+
+  void _redo() => _restore(_history.redo());
+
+  /// Puts a snapshot back as the draft being written.
+  ///
+  /// Not through [_persist]: a restore is not a change, and recording it would
+  /// make the next undo undo the undo. The on-device slot is still written, so
+  /// closing the window keeps what is on screen.
+  void _restore(String? snapshot) {
+    if (snapshot == null) return;
+    final restored = TutorialDraft.fromJson(
+        Map<String, dynamic>.from(jsonDecode(snapshot) as Map));
+
+    // **The identities a save handed out survive going back past it.** A
+    // snapshot from before the first save has no lesson id, and restoring it
+    // as it is would make the next save create a second tutorial. Its parts
+    // have no step ids either; each gets back the one its key was given, unless
+    // another part already holds it.
+    restored.lessonId ??= _draft.lessonId;
+    _rememberStepIds(_draft);
+    final held = {
+      for (final s in restored.sections)
+        if (s.stepId != null) s.stepId!,
+    };
+    for (final section in restored.sections) {
+      if (section.stepId != null) continue;
+      final id = _stepIdsByKey[section.localKey];
+      if (id != null && held.add(id)) section.stepId = id;
+    }
+
+    setState(() {
+      _annotationController.stop();
+      _draft = restored;
+      // Every field of the open part, from the part — the lesson of 7.9.2026:
+      // a field left at its default is a default written back over the part on
+      // the next change.
+      _loadSelectedSection();
+    });
     TutorialDraftService.instance.scheduleSave(_draft);
   }
 
@@ -665,13 +770,60 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
+  /// Ctrl+Z and Ctrl+Y (and Ctrl+Shift+Z) are the studio's, **inside text
+  /// fields too**.
+  ///
+  /// The plan first left Ctrl+Z to a focused field. It was changed for a reason
+  /// only the platform shows: on Windows a text field keeps its focus when the
+  /// trainer then drags a piece on the board, so after writing a sentence and
+  /// playing a move, Ctrl+Z would have gone to the field's own letter-by-letter
+  /// history and left the move standing. The studio's history holds typing too,
+  /// one step per pause, so one undo is enough for both. These shortcuts sit
+  /// nearer the fields than the app's text-editing ones, which is what makes
+  /// them win.
   @override
   Widget build(BuildContext context) {
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.keyZ, control: true): _UndoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyY, control: true): _RedoIntent(),
+        SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true):
+            _RedoIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _UndoIntent: CallbackAction<_UndoIntent>(onInvoke: (_) {
+            _undo();
+            return null;
+          }),
+          _RedoIntent: CallbackAction<_RedoIntent>(onInvoke: (_) {
+            _redo();
+            return null;
+          }),
+        },
+        child: _buildScreen(context),
+      ),
+    );
+  }
+
+  Widget _buildScreen(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tutorial Studio',
             overflow: TextOverflow.ellipsis, maxLines: 1, style: AppText.title),
         actions: [
+          IconButton(
+            key: const Key('tutorial-undo'),
+            icon: const Icon(Icons.undo),
+            tooltip: 'Undo (Ctrl+Z)',
+            onPressed: _history.canUndo ? _undo : null,
+          ),
+          IconButton(
+            key: const Key('tutorial-redo'),
+            icon: const Icon(Icons.redo),
+            tooltip: 'Redo (Ctrl+Y)',
+            onPressed: _history.canRedo ? _redo : null,
+          ),
           IconButton(
             icon: Icon(Icons.tune, color: context.colors.accent),
             tooltip: 'Position setup',
@@ -689,10 +841,16 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Export video',
             onPressed: _exportVideo,
           ),
-          TextButton(
+          // An icon rather than the words since undo and redo arrived, and
+          // measured rather than chosen: with the real Windows font the words
+          // took 266 px of an app bar that ran 23 px past a 700 dp window once
+          // two more buttons stood in it, and left the title 85 px at 840. Its
+          // three neighbours were icons already, with their names as tooltips.
+          IconButton(
             key: const Key('preview-as-student'),
+            icon: const Icon(Icons.school_outlined),
+            tooltip: 'Preview as student',
             onPressed: _previewAsStudent,
-            child: const Text('Preview as student'),
           ),
           FilledButton(
             onPressed: _saveTutorial,
@@ -1398,7 +1556,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       // is what made it invisible.
       onChanged: (value) {
         _draft.title = value;
-        _persist();
+        _persist(typingIn: 'title');
       },
     );
   }
@@ -1429,7 +1587,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         _draft.tags
           ..clear()
           ..addAll(normaliseLabels(value.split(',')));
-        _persist();
+        _persist(typingIn: 'labels');
       },
     );
   }
@@ -1826,6 +1984,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 controller: _instructionController,
                 decoration:
                     const InputDecoration(labelText: 'Task for student'),
+                onChanged: (_) => _persist(typingIn: 'instruction'),
                 // Same reason as the sentence on a beat card: a question a
                 // child reads is longer than one line, and a field that scrolls
                 // sideways hides its own beginning. It **grows** with the text
@@ -1852,7 +2011,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               // which the brief named.
               RadioGroup<int>(
                 groupValue: _currentCorrectChoice,
-                onChanged: (val) => setState(() => _currentCorrectChoice = val),
+                onChanged: (val) {
+                  setState(() => _currentCorrectChoice = val);
+                  _persist();
+                },
                 child: Column(
                   children: [
                     for (int i = 0; i < _choiceControllers.length; i++)
@@ -1863,6 +2025,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                             child: TextField(
                               key: Key('example-choice-$i'),
                               controller: _choiceControllers[i],
+                              onChanged: (_) => _persist(typingIn: 'choice:$i'),
                             ),
                           ),
                           IconButton(
@@ -1879,6 +2042,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                                       _currentCorrectChoice! - 1;
                                 }
                               });
+                              _persist();
                             },
                           )
                         ],
@@ -1891,6 +2055,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   setState(() {
                     _choiceControllers.add(TextEditingController());
                   });
+                  _persist();
                 },
                 child: const Text('Add answer'),
               ),
@@ -1945,7 +2110,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 // controllers and focus nodes, so rebuilding them under the
                 // caret costs a frame and changes nothing the trainer sees.
                 setState(() => node.comment = text);
-                _persist();
+                _persist(typingIn: 'comment:${node.id}');
               },
               question: _questionCard(),
               onDelete: _deleteNode,

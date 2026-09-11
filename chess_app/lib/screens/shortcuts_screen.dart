@@ -95,6 +95,17 @@ const kShortcutGroups = <ShortcutGroup>[
     ],
   ),
   ShortcutGroup(
+    'Tutorial Studio',
+    'While a tutorial is being edited — also with the cursor in a text field, '
+        'where Ctrl+Z takes back the last change to the tutorial, a whole '
+        'sentence or a move, rather than one letter.',
+    [
+      AppShortcut(['Ctrl', 'Z'], 'Undo the last change.'),
+      AppShortcut(['Ctrl', 'Y'], 'Redo it.'),
+      AppShortcut(['Ctrl', 'Shift', 'Z'], 'Redo, same as Ctrl+Y.'),
+    ],
+  ),
+  ShortcutGroup(
     'Move tree',
     'In Analysis, only after clicking inside the tree itself — while focus is not in it, '
         'arrow keys belong to the move strip below the board.',

@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2024 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2051 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1226 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1830,6 +1830,32 @@ grep the old word in the tests; running them is not enough.
 every mutation caught, but one edited test file did not compile, and
 `flutter test` with several files fails all of them to load together. The
 harness now refuses to judge mutations until the untouched tree is green.
+
+**Undo and redo in the tutorial studio — 11.9.2026, app 2051 with 1 skipped;
+the backend is untouched.** Phase 1 of `docs/PLAN-STUDIO-ISTORIJA.md`, and
+analyze stays at 29 infos. Twenty-six mutations were caught; a twenty-seventh
+showed a line no test could fail, and the line was deleted.
+
+**The history holds snapshots, not operations.** Every change already went
+through `_persist()`, which already encoded the whole draft for the device
+slot. Keeping those encodings is the whole mechanism, so no action needs an
+inverse written for it.
+
+**A snapshot from before a save knows no ids.** Restored as it was, the next
+save would have created a second tutorial and new step ids. Each part carries
+a `localKey` on the device; the studio learns which step id each key was
+given, and the lesson id never goes back to null. The test reads the request.
+
+**Two guards that prove the same thing prove neither.** A `_sealed` flag and
+two position checks both stopped typing from merging after an undo. Deleting
+any one of them left the tests green, so the position checks went. Chasing the
+one survivor found a real gap: nothing asked that typing merges again after
+the trainer carries on from an undo.
+
+**A field that never called `_persist()` is a change undo cannot see.** The
+task and the answers were edited through their controllers alone. They were
+saved correctly, but an undo would have taken them back together with the next
+unrelated change.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

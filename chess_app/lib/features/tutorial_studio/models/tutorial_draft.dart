@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart'
@@ -68,8 +70,10 @@ class TutorialSection {
     this.blackOrientation = false,
     this.storedPgn,
     this.rejectedMoves = 0,
+    String? localKey,
   })  : choices = choices ?? [],
-        acceptedSans = acceptedSans ?? [] {
+        acceptedSans = acceptedSans ?? [],
+        localKey = localKey ?? _mintLocalKey() {
     cursorNode = cursor ?? root;
     // Recorded against the tree as it arrived. Any edit changes the signature
     // and [storedPgn] stops being used — see [toJson].
@@ -137,6 +141,26 @@ class TutorialSection {
   /// length, so the guard cannot fire the moment a part is added or removed,
   /// which is the whole point of the screen this model is for.
   String? stepId;
+
+  /// This part's identity on this device, which [stepId] cannot be: a part
+  /// has no step id until its first save, and an undo that goes back past that
+  /// save brings the part back without one.
+  ///
+  /// Kept in the on-device slot and never sent. The studio remembers which
+  /// step id each key was given, and a restored part gets its id back — so an
+  /// undo across a save cannot make the next save mint a new id and cut a
+  /// student's progress off from the part it belongs to. Phase 1 of
+  /// `docs/PLAN-STUDIO-ISTORIJA.md`.
+  final String localKey;
+
+  static int _minted = 0;
+
+  /// Unique on this device: the clock keeps it apart from the keys of a slot
+  /// written in an earlier session, the counter from keys minted in the same
+  /// microsecond.
+  static String _mintLocalKey() =>
+      'k${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}'
+      '${(_minted++).toRadixString(36)}';
 
   /// The line, and everything written on it.
   AnalysisNode root;
@@ -387,6 +411,7 @@ class TutorialSection {
   /// so a restored part can never write a line the trainer has already edited.
   Map<String, dynamic> toLocalJson() => {
         if (stepId != null) 'id': stepId,
+        'key': localKey,
         'title': title,
         'tree': root.toJson(),
         'cursor': _pathTo(root, cursorNode),
@@ -431,6 +456,7 @@ class TutorialSection {
       ],
       blackOrientation: json['blackOrientation'] == true,
       storedPgn: json['storedPgn']?.toString(),
+      localKey: json['key'] is String ? json['key'] as String : null,
     );
     section.cursorNode = _resolve(root,
         ((json['cursor'] as List?) ?? const []).whereType<int>().toList());
@@ -658,6 +684,44 @@ class TutorialDraft {
     sections.insert(index + 1, sections[index].copy());
     _selected = index + 1;
   }
+
+  /// Everything the trainer wrote, and nothing about where they are standing.
+  ///
+  /// What undo asks „did anything change?" with, and what the saved version is
+  /// compared with in phase 2 of `docs/PLAN-STUDIO-ISTORIJA.md`. **Not the
+  /// encoded slot**: that carries the cursor, the selected part and node ids,
+  /// which change without an edit — [AnalysisNode.fromJson] mints fresh ids on
+  /// every read, so two readings of one draft never encode the same.
+  ///
+  /// The ids the server hands out are left out as well: a save changes them and
+  /// changes nothing a trainer wrote. A part is named by [TutorialSection.label],
+  /// the name the list shows and the save sends, so a part the server calls by
+  /// its first sentence and the same part here with no name of its own read the
+  /// same. And the starting position is in it, which [treeSignature] leaves out
+  /// on purpose — a part moved onto another position with no moves on it is
+  /// still an edit.
+  String contentSignature() => jsonEncode({
+        'title': title,
+        'description': description,
+        'tags': tags,
+        'language': _languageKnown ? _language : '?',
+        'parts': [
+          for (var i = 0; i < sections.length; i++)
+            {
+              'name': sections[i].label(i),
+              'kind': TutorialSection._wire[sections[i].kind],
+              'task': sections[i].instruction,
+              'answers': [
+                for (final c in sections[i].choices) [c.text, c.correct],
+              ],
+              'solution': sections[i].solutionSan,
+              'accepted': sections[i].acceptedSans,
+              'black': sections[i].blackOrientation,
+              'fen': sections[i].root.fen,
+              'tree': treeSignature(sections[i].root),
+            },
+        ],
+      });
 
   Map<String, dynamic> toJson() => {
         if (lessonId != null) 'lessonId': lessonId,
