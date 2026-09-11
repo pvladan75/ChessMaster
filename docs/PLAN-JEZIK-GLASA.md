@@ -268,6 +268,26 @@ draw the ▶ without asking.
 
 ## Phase 5 — the control in the studio
 
+**Done 11.9.2026** — app **2018** with 1 skipped (+9, all in
+`test/tutorial_language_studio_test.dart`), backend untouched at **1226**,
+analyze 29 infos. Eight mutations, all caught. Measured with Segoe UI loaded
+into a throwaway probe, because the test font draws every letter as a square
+and makes „Serbian (Cyrillic)" 288 px wide instead of 116:
+
+| At 840 dp | title | labels | language text | shortest window |
+|---|---|---|---|---|
+| before | 271 | 181 | — | 768 |
+| a row of its own | 271 | 181 | whole | +56 px — overflows 840 × 800 (measured in the test font only) |
+| a third equal share of the row | 190 | 127 | 63 of 116, „Serbia…" | 768 |
+| **its own width, the rest 3 : 2** | **159** | **106** | **whole** | **768** |
+
+The last is built. The part's settings were not tried: the language belongs to
+the tutorial, not to a part. Below 840 it is one more field in the stacked
+column; the studio's existing overflow at 360 dp is 267 px before and after.
+Two decisions the plan did not have: it is a `DropdownButton` and not a form
+field, because the studio adopts a stored draft after its first frame, and a
+code this build does not know shows „Not set" but is sent back untouched.
+
 A „Language" dropdown — „Not set" plus the seven. **Where it goes is measured,
 not chosen**: the authoring pane's title row already overflowed the 840 dp
 window by 24 px once when the labels field arrived (CLAUDE.md, 11.9.2026), and

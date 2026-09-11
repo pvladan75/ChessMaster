@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2009 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2018 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1226 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1777,6 +1777,30 @@ look fine.** The walk on a Windows that lists Croatian and has none: `speak`
 returned at once, and without the check after each sentence the tutorial
 played its moves with no voice and no wait. The test watches that the walk
 stops, that it says why, and that nothing was spoken in English instead.
+
+**The trainer picks it — 11.9.2026, app 2018 with 1 skipped; backend
+untouched at 1226.** Phase 5 of `docs/PLAN-JEZIK-GLASA.md`, a „Language"
+dropdown in the studio's title row. Eight mutations, all caught.
+
+**Measure text with the font that will draw it.** A widget test draws every
+glyph as a square one font-size wide, so „Serbian (Cyrillic)" measures 288 px
+there and 116 px in Segoe UI. The placement probe loaded
+`C:/Windows/Fonts/segoeui.ttf` through `FontLoader` as `Roboto` and measured
+the real row: a third equal share left the label 63 px and cut both Serbian
+entries to „Serbia…", and a row of its own cost 56 px and overflowed
+840 × 800. The dropdown takes its own width now. A probe like that cannot be a
+committed test, since CI has no Windows fonts, which is why the numbers are in
+the comment on `_headerFields`.
+
+**A form field keeps the value it was built with.** The studio swaps in a
+stored draft of the same tutorial one frame after it opens, so a
+`DropdownButtonFormField` would have gone on showing the language of a draft
+that was no longer there. It is a `DropdownButton` reading the draft on every
+build, and a test adopts a stored draft to prove it.
+
+**A closed dropdown builds every entry.** „German is shown" found German
+whichever language was chosen, so the assertion could not fail. The tests ask
+for the button's `value`.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

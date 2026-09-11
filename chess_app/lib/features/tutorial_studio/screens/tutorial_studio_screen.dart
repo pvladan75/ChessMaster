@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/services/legal_moves.dart';
+import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
@@ -1432,7 +1433,52 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// The two fields that belong to the tutorial rather than to a part.
+  /// The language this tutorial is written in, which decides the voice that
+  /// reads it to the child — `docs/PLAN-JEZIK-GLASA.md`, phase 5.
+  ///
+  /// A plain `DropdownButton` under an `InputDecorator`, **not** a
+  /// `DropdownButtonFormField`: a form field keeps the value it was built with,
+  /// and this screen swaps in a stored draft after its first frame — so a form
+  /// field would go on showing the language of a draft that is no longer here.
+  /// This one reads the draft on every build.
+  Widget _languageField() {
+    return InputDecorator(
+      decoration: const InputDecoration(labelText: 'Language'),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          key: const Key('tutorial-language'),
+          isDense: true,
+          isExpanded: true,
+          // A code this build does not know reads as „Not set" rather than
+          // being guessed at — and is sent back untouched unless the trainer
+          // picks something.
+          value: TutorialLanguage.of(_draft.language)?.code,
+          items: [
+            const DropdownMenuItem<String?>(
+              value: null,
+              child: Text('Not set', overflow: TextOverflow.ellipsis),
+            ),
+            for (final language in TutorialLanguage.all)
+              DropdownMenuItem<String?>(
+                value: language.code,
+                child: Text(language.label, overflow: TextOverflow.ellipsis),
+              ),
+          ],
+          onChanged: (code) {
+            // A menu calls back for the answer it already shows too. Picking
+            // „Not set" on a draft that never knew its language must not turn
+            // silence into „not said", which would clear a language set
+            // elsewhere — the three states `LanguageWrite` exists for.
+            if (code == _draft.language) return;
+            setState(() => _draft.language = code);
+            _persist();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// The three fields that belong to the tutorial rather than to a part.
   ///
   /// **Side by side, and that is a height decision rather than a taste.** The
   /// wide pane ends in a parts list held against the bottom of the window, and
@@ -1442,6 +1488,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// release build draws as a parts list with its last row simply missing.
   /// In one row the labels cost nothing: the row is as tall as the title field
   /// already was.
+  ///
+  /// The language joined them on 11.9.2026, measured with the real Windows
+  /// font rather than the test font, which draws every letter as a square. A
+  /// row of its own under these two cost 56 px and overflowed 840 × 800. A
+  /// third equal share of this row left „Serbian (Cyrillic)" 63 px of the 116
+  /// it needs, so both Serbian entries read „Serbia…" — the one pair the menu
+  /// exists to tell apart. So it takes **its own width** and the title and
+  /// labels share the rest: 159 and 106 px at 840, against 271 and 181 before,
+  /// and the shortest window that lays out is unchanged. The cap keeps a large
+  /// text scale from squeezing the title to nothing; at an ordinary scale it
+  /// never binds.
   Widget _headerFields() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1449,6 +1506,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         Expanded(flex: 3, child: _titleField()),
         const SizedBox(width: AppSpacing.sm),
         Expanded(flex: 2, child: _labelsField()),
+        const SizedBox(width: AppSpacing.sm),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          // An `isExpanded` dropdown asks for a bounded width, and a Row gives
+          // a child that is not flexible none — so it is sized to its widest
+          // entry first, and that width is what it gets.
+          child: IntrinsicWidth(child: _languageField()),
+        ),
       ],
     );
   }
@@ -1503,6 +1568,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       children: [
         _titleField(),
         _labelsField(),
+        _languageField(),
         _leakBanner(),
         _narrationBanner(),
         const SizedBox(height: AppSpacing.md),
