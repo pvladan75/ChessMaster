@@ -5313,3 +5313,48 @@ komentarima, izvoz iz „Sačuvani tutorijali" ili iz studija.
    uključen.
 5. [x] **Telefon.** Na Androidu (360 dp) prekidač se vidi i može da se
    pritisne, a dugme „Export" ga ne pokriva.
+
+
+## 150. Tutorijal se čita glasom svog jezika — 11.9.2026, nije viđeno uživo
+
+`docs/PLAN-JEZIK-GLASA.md`, faze 1–5. Tutorijal kaže na kom je jeziku (jedan od
+sedam), i čita ga glas tog jezika sa uređaja — ili niko. Nikad glas drugog
+jezika. Tekst same aplikacije i dalje čita engleski glas.
+
+**Priprema:** jedan tutorijal sa srpskim komentarima u kojima se pominju potezi
+(„Posle Bc4 beli preti f7"). Jezik mu se bira u studiju, u polju „Language"
+pored naziva. Za tačke 2 i 3 tutorijal treba dodeliti đaku ili ga otvoriti na
+telefonu.
+
+1. [ ] **Studio: izbor jezika.** Polje „Language" stoji u redu sa nazivom i
+   oznakama; „Serbian (Latin)" i „Serbian (Cyrillic)" se čitaju cela, a u polje
+   za naziv još može normalno da se kuca. Izaberi „Serbian (Latin)", „Save
+   tutorial", zatvori, otvori ponovo iz „Saved tutorials" — i dalje piše
+   „Serbian (Latin)".
+2. [ ] **Windows, hrvatski glas `Matej`.** „Preview as student", pa ▶: čita
+   Matej, i potezi se čuju na srpskom („lovac ce četiri"). **Presudi na uho**
+   da li je „lovac ce četiri" dobro, ili bi „lovac c četiri" (samo slovo) bilo
+   bolje — zadržava se ono što zvuči prirodno. Od druge rečenice ispis i govor
+   se završavaju zajedno.
+3. [ ] **Android.** Isti tutorijal na telefonu, kod đaka: čita Googleov srpski
+   glas (ili hrvatski, ako srpskog nema), potezi na srpskom, isto pitanje kao u
+   tački 2.
+4. [ ] **Uređaj bez glasa za taj jezik.** Najlakše bez brisanja glasova:
+   prebaci tutorijal na „German" (ili drugi jezik čiji glas nemaš), sačuvaj,
+   „Preview as student". Umesto ▶ stoji prekriženi zvučnik („No voice for this
+   tutorial's language"); dodir kaže da uređaj nema glas i šta da se instalira.
+   Dugmad za poteze rade normalno, i ništa se ne čuje engleskim glasom.
+5. [ ] **Ćirilica traži srpski glas.** Tutorijal na „Serbian (Cyrillic)" na
+   Windows-u koji ima samo hrvatski: nema ▶, stoji prekriženi zvučnik.
+6. [ ] **Bez jezika je kao pre.** Vrati tutorijal na „Not set", sačuvaj: čita
+   ga glas iz Podešavanja, kao ranije. Isto za neki stari tutorijal koji nikad
+   nije dobio jezik, i za jedan na „English".
+7. [ ] **Izvoz videa.** Za tutorijal na „Serbian (Latin)" dijalog za izvoz se
+   otvara na srpskim glasovima, ako ih server ima (Azure). Hrvatski glas se tu
+   **ne** nudi kao srpski. Sa piper-om, koji nema srpski glas, dijalog se
+   otvara kao ranije.
+8. [ ] **Aplikacija i dalje govori engleski.** Tamo gde aplikacija čita svoj
+   tekst (ne trenerov), to je i dalje engleski glas, bez obzira na jezik
+   otvorenog tutorijala.
+9. [ ] **Uputstvo govori istinu.** `docs/UPUTSTVO-STUDIO.md`, odeljak 8 opisuje
+   baš ovo što si video.

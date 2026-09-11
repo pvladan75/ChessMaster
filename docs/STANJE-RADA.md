@@ -38,7 +38,14 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Jezik glasa — plan, 11.9.2026; faze 1 do 5 gotove
+## Jezik glasa — 11.9.2026; svih šest faza gotovo, čeka proveru uživo
+
+**Faza 6 je gotova** (samo dokumenti): `UPUTSTVO-STUDIO.md`, odeljak 8,
+prepisan — tutorijal kaže jezik, uređaj bira glas tog jezika ili niko; bez
+jezika je kao ranije. **Provera uživo je `TODO-provera.md`, stavka 150.**
+Usput nađeno i ostavljeno: ostatak uputstva i dalje imenuje dugmad studija na
+srpskom („Sačuvaj tutorijal", „+ Dodaj deo"), a aplikacija je od prelaska na
+engleski sve to preimenovala.
 
 **Faza 5 je u kodu** (aplikacija 2018, 1 preskočen; backend 1226): trener bira
 jezik u studiju — padajući meni „Language" („Not set" i sedam jezika) u istom
@@ -47,7 +54,7 @@ fontom: poseban red ispod košta 56 px i preliva prozor 840 × 800, a treći jed
 deo reda bi oba srpska unosa skratio na „Serbia…". Meni zato uzima svoju
 širinu, a naziv i oznake dele ostatak (159 i 106 px na 840, umesto 271 i 181).
 „Not set" šalje `null` samo kad je trener zaista promenio izbor; tutorijal koji
-nikad nije znao jezik ostaje nem. Ostaje faza 6: dokumenti i provera uživo.
+nikad nije znao jezik ostaje nem.
 
 **Faza 4 je u kodu** (aplikacija 2009, 1 preskočen; backend 1226) — ovo je deo
 koji se čuje. Ekran tutorijala čita trenerove rečenice glasom jezika tutorijala:

@@ -130,13 +130,15 @@ kursor na taj potez i uključe crtanje **na tabli**.
 
 ## 7. Redosled rada i čuvanje
 
-1. **„Unos pozicije"** ako deo ne počinje iz osnovne pozicije.
-2. Povuci poteze i piši komentare po taktovima.
-3. **„+ Dodaj deo"** kad menjaš tip ili poziciju („Nastavi odavde" zadržava
+1. **Naziv i jezik** („Language") — jezik odlučuje kojim glasom se tutorijal
+   čita (odeljak 8).
+2. **„Unos pozicije"** ako deo ne počinje iz osnovne pozicije.
+3. Povuci poteze i piši komentare po taktovima.
+4. **„+ Dodaj deo"** kad menjaš tip ili poziciju („Nastavi odavde" zadržava
    poziciju na kojoj si stao).
-4. **„Pregledaj kao učenik"** — otvara tutorijal onako kako ga dete vidi.
+5. **„Pregledaj kao učenik"** — otvara tutorijal onako kako ga dete vidi.
    **Ništa ne šalje na server**; odgovori u pregledu se ne beleže.
-5. **„Sačuvaj tutorijal"** — jedan upis, na kraju. Svaki sledeći pritisak menja
+6. **„Sačuvaj tutorijal"** — jedan upis, na kraju. Svaki sledeći pritisak menja
    **isti** tutorijal, ne pravi nov.
 
 Tutorijal mora da ima naziv. Poslednji deo se ne može obrisati. Nedovršen rad se
@@ -147,30 +149,58 @@ sam čuva na računaru; kad sledeći put otvoriš nov tutorijal, pitaće te
 
 ## 8. Glas koji čita tutorijal
 
-**Tutorijal čita glas sa uređaja na kome se sluša, ne sa servera.** To je
-sistemski glas Androida ili Windowsa. Glasovi koje biraš pri **izvozu videa**
-su nešto sasvim drugo — oni postoje samo u snimku, i tamo ti kao trener biraš
-jezik i glas za sve koji taj snimak gledaju.
+**Tutorijal kaže na kom je jeziku, i to biraš ti.** Polje **„Language"** stoji u
+redu sa nazivom i oznakama: **„Not set"** ili jedan od sedam jezika — English,
+Serbian (Latin), Serbian (Cyrillic), German, Spanish, Italian, French. Samo tih
+sedam, jer su to jezici čije poteze aplikacija ume da izgovori; jezik čiji bi
+potezi bili pročitani engleskim rečima se ne nudi.
 
-Iz toga slede tri stvari koje **trener i đak podešavaju sami, svako na svom
-uređaju**. Nijedna od njih nije greška u aplikaciji:
+Čita ga **glas sa uređaja na kome se sluša**, ne sa servera — sistemski glas
+Androida ili Windowsa. Video je posebna priča, niže.
 
-1. **Glas i brzinu bira vlasnik uređaja**, u Podešavanjima. „Pregledaj kao
-   učenik" koristi *tvoj* glas i tvoju brzinu; dete će čuti ono što je
-   podešeno na njegovom telefonu.
-2. **Jezik komentara i jezik glasa moraju da se poklope.** Ako pišeš na
-   srpskom a na uređaju je instaliran samo engleski glas, rečenica će biti
-   pročitana engleskim izgovorom. Aplikacija to ne ispravlja sama, i to je
-   namerno: glas koji čita jezik koji nije njegov ne prijavi grešku nego zvuči
-   kao da radi. Rešenje je instalirati glas za taj jezik u podešavanjima
-   operativnog sistema i izabrati ga u Podešavanjima aplikacije.
-3. **Ako uređaj nema nijedan upotrebljiv glas**, dugme ▶ se uopšte ne crta.
-   Tutorijal se i dalje prolazi dugmadima — to je isti tutorijal, ne slabiji.
+**Kad je jezik izabran:**
 
-**Tekst se ispisuje u ritmu glasa.** Brzina se ne pretpostavlja nego se meri iz
-rečenica koje je taj glas već pročitao, pa prati i izabrani glas i položaj
-klizača za brzinu. Prva rečenica u sesiji ide na procenu, jer se dotad nema šta
-izmeriti; od druge se ispis i govor poklapaju.
+1. **Uređaj sam bira glas tog jezika.** Za srpsku latinicu: srpski glas, a ako
+   ga nema hrvatski, pa bosanski. Windows nema srpski glas, a hrvatski
+   („Microsoft Matej") čita srpsku latinicu ispravno — zato je on dovoljan. Za
+   **ćirilicu** važi samo srpski glas, jer hrvatski ćirilicu ne ume da pročita.
+2. **Potezi u komentaru se izgovaraju na tom jeziku.** „Bc4" postaje „lovac ce
+   četiri", a ne „bishop c four". Ono što si napisao se ne menja — menja se samo
+   ono što glas dobija.
+3. **Nikad glasom drugog jezika.** Ako uređaj nema glas za taj jezik, umesto ▶
+   stoji ikonica prekriženog zvučnika; dodir na nju kaže zašto i šta treba
+   instalirati. Za srpsku latinicu na Windows-u: *Settings → Time & language →
+   Speech → Add voices*, pa hrvatski. Tutorijal se i dalje prolazi dugmadima —
+   to je isti tutorijal, ne slabiji.
+4. **Windows ponekad navede jezik za koji nema glas.** Tada se čitanje zaustavi
+   na prvoj rečenici, sa istom porukom, umesto da tutorijal protrči bez zvuka.
+
+**Kad je jezik „Not set"** — a takvi su svi tutorijali sačuvani pre 11.9.2026,
+dok im ne izabereš jezik — sve je kao ranije: čita glas izabran u Podešavanjima
+aplikacije, i jezik komentara i jezik glasa moraju da se poklope ručno. Srpski
+tekst pročitan engleskim glasom ne prijavi grešku nego zvuči kao da radi; zato
+je bolje izabrati jezik. Ako uređaj nema nijedan upotrebljiv glas, dugme ▶ se
+uopšte ne crta, a tutorijal se prolazi dugmadima.
+
+**Na tvom računaru i na detetovom telefonu čuju se različiti glasovi.**
+„Preview as student" čita glasom *tvog* uređaja — na Windows-u hrvatskim
+Matejem — a dete na Androidu čuje Googleov srpski glas. Oba čitaju isti tekst
+istim pravilima.
+
+**Brzinu govora bira vlasnik uređaja**, klizačem u Podešavanjima. **Tekst se
+ispisuje u ritmu glasa koji čita:** brzina se ne pretpostavlja nego meri iz
+rečenica koje je *taj* glas već pročitao, za svaki glas posebno. Prva rečenica
+svakog glasa u sesiji ide na procenu; od druge se ispis i govor poklapaju.
+
+**Video je drugačiji.** Glas za **izvoz videa** biraš ti, i on važi za sve koji
+snimak gledaju. Dijalog za izvoz se otvara na glasovima jezika tutorijala. Za
+video hrvatski glas **ne važi** kao srpski: server nema hrvatski rečnik poteza,
+pa bi potezi bili izgovoreni engleskim rečima. Ako server nema srpski glas,
+dijalog se otvara kao ranije.
+
+**Tutorijal koji ne pišeš u studiju** — JSON fajl ili prevod — nosi jezik u
+polju `"language"` (`docs/PGN-TUTORIAL-FORMAT.md`, odeljak 9), a
+`tools/tutorial_translate/translate.py --code sr-Latn` ga upisuje sam.
 
 ---
 

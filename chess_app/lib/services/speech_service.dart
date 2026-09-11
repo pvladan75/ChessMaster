@@ -308,18 +308,20 @@ class SpeechService extends ChangeNotifier {
   ///
   /// **This is the app's language, not the user's material.** A trainer may
   /// write a tutorial, a repertoire comment or a task in any language they
-  /// like, and text like that must not be read by an English voice. Today the
-  /// answer is the voice picker in Settings, which is the reader's choice for
-  /// everything at once; the per-artefact answer is written down and
-  /// deliberately not built - see `docs/STANJE-RADA.md`.
+  /// like, and text like that must not be read by an English voice. A
+  /// tutorial says its language since 11.9.2026 and is read by a voice for it
+  /// or not at all - `speak(language:)`, `canRead`, and
+  /// `core/services/tutorial_language.dart`, per `docs/PLAN-JEZIK-GLASA.md`.
+  /// Everything else a user writes, and a tutorial that has not said, is still
+  /// read by the voice picked in Settings.
   static const preferredLanguages = ['en'];
 
   /// Whether a voice reads the app's own text as it is written.
   ///
   /// Used to mark the list in settings rather than to censor it. Any voice can
-  /// be chosen - somebody whose tutorials are in Serbian wants a Serbian one
-  /// and should have it - but which ones are meant for the interface should not
-  /// have to be guessed from a tag.
+  /// be chosen - somebody whose repertoire comments are in Serbian wants a
+  /// Serbian one and should have it - but which ones are meant for the
+  /// interface should not have to be guessed from a tag.
   static bool fitsAppLanguage(String language) {
     final tag = language.toLowerCase().replaceAll('_', '-');
     return preferredLanguages

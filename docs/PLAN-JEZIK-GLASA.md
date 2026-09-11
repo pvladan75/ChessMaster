@@ -1,6 +1,7 @@
 # A tutorial read in its own language
 
-Written 11.9.2026. Nothing in it is built yet.
+Written 11.9.2026, and all six phases were built the same day. What is left is
+the live check, `TODO-provera.md` item 150.
 
 ## The decision
 
@@ -299,6 +300,18 @@ Tests: the choice reaches the save request; reopening shows it; „Not set" send
 `null` only when the trainer changed it.
 
 ## Phase 6 — documents and the live check
+
+**Done 11.9.2026**, documents only — the counts do not move (app 2018 with 1
+skipped, backend 1226). Section 8 of `UPUTSTVO-STUDIO.md` is rewritten and
+section 7 gains the language as its first step; the `preferredLanguages`
+comment and `PLAN-ZAVRSNICA.md` point here; the live check is
+`TODO-provera.md` item 150, which adds the studio's dropdown (phase 5) to the
+seven checks below and replaces „Windows without Croatian" with a tutorial set
+to a language the machine has no voice for, which exercises the same path
+without uninstalling a voice. Found on the way and left alone: the rest of
+`UPUTSTVO-STUDIO.md` still names the studio's buttons in Serbian („Sačuvaj
+tutorijal", „+ Dodaj deo"), which the app has not said since the English pivot.
+The new text uses the labels the app shows.
 
 - `UPUTSTVO-STUDIO.md` section 8 („Glas koji čita tutorijal") is rewritten: it
   currently says the device's voice reads everything and the trainer must match

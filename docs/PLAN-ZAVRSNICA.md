@@ -321,7 +321,9 @@ changes.
 tutorial may now say which of seven languages it is written in, and its
 sentences are read with a voice for that language, or not at all. The app's own
 text, and a tutorial that has not said, stay exactly as this paragraph
-describes. The per-artefact field below is the version being built.
+describes. The per-artefact field below is built for tutorials (phases 1–5,
+11.9.2026) and awaits its live check, `TODO-provera.md` item 150; repertoire
+comments and other text a user writes are still out of scope.
 
 **Reading a user's own text in the language they wrote it in.** The owner's
 rule, given 8.9.2026 and recorded verbatim because it decides the shape: *the
