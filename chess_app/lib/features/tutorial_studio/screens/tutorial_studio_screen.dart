@@ -89,6 +89,10 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 /// an unfinished tutorial without a word.
 enum _DraftChoice { resume, fresh, cancel }
 
+/// What the trainer answered when a tutorial opened with changes this device
+/// kept and the server never received.
+enum _UnsavedChoice { mine, saved }
+
 /// What to do with the position a pasted PGN brought with it.
 enum _PastedPosition { take, keep, cancel }
 
@@ -167,6 +171,23 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// the server would mint a new one, and every schedule row and recorded
   /// answer naming the old id would point at nothing, silently.
   final Map<String, String> _stepIdsByKey = {};
+
+  /// The saved version — phase 2 of `docs/PLAN-STUDIO-ISTORIJA.md`: the row
+  /// fetched from the server when the studio opened, replaced by what each
+  /// successful save sent. Null while it is not known, which is also when
+  /// „Discard changes" is not offered: a version nobody could read is not one
+  /// to go back to.
+  ///
+  /// Kept as a snapshot to restore and a [TutorialDraft.contentSignature] to
+  /// compare, never compared as encoded text — the encoding carries the cursor
+  /// and node ids, which change without anybody editing anything.
+  String? _savedSnapshot;
+  String? _savedSignature;
+
+  /// Whether the draft on screen differs from [_savedSnapshot] in anything the
+  /// trainer wrote. Refreshed where the draft changes, not computed while
+  /// building: a signature of a large tutorial is 38 KB of JSON.
+  bool _hasUnsavedChanges = false;
 
   String? _lastMoveFrom;
   String? _lastMoveTo;
@@ -320,11 +341,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   ///   the trainer is asked, by name. Silence is what made this feel haunted.
   Future<void> _adoptStoredDraft() async {
     final stored = await TutorialDraftService.instance.load();
-    if (!mounted || stored == null) return;
+    if (!mounted) return;
 
     switch (widget.entry) {
       case TutorialEntryFromAnalysis(:final intoOpenDraft):
-        if (!intoOpenDraft) return;
+        if (stored == null || !intoOpenDraft) return;
         final handover = _handover!;
         setState(() {
           _draft = stored;
@@ -341,14 +362,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       case TutorialEntrySaved():
         // A draft that never belonged to a tutorial, or belonged to a different
         // one, says nothing about this one.
-        if (stored.lessonId == null || stored.lessonId != _draft.lessonId) {
-          return;
-        }
-        setState(() {
-          _draft = stored;
-          _loadSelectedSection();
-        });
-        _startHistory();
+        final mine = stored != null &&
+                stored.lessonId != null &&
+                stored.lessonId == _draft.lessonId
+            ? stored
+            : null;
+        if (mine != null) _adopt(mine);
+        await _compareWithSaved(keptOnDevice: mine != null);
 
       case TutorialEntryImported():
         // Nothing to adopt. The trainer asked for *this file*, and a draft left
@@ -359,7 +379,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         return;
 
       case TutorialEntryBlank():
-        if (_isEmptyDraft(stored)) return;
+        if (stored == null || _isEmptyDraft(stored)) return;
         final choice = await _askAboutStoredDraft(stored);
         if (!mounted) return;
         switch (choice) {
@@ -435,6 +455,142 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   static String _partsWord(int count) => count == 1 ? 'part' : 'parts';
 
+  /// Makes [draft] the one being written, and the place undo stops.
+  ///
+  /// Called before the saved version is known, or with the saved version
+  /// itself, so the draft never differs from it here.
+  void _adopt(TutorialDraft draft) {
+    setState(() {
+      _draft = draft;
+      _loadSelectedSection();
+    });
+    _startHistory();
+  }
+
+  /// Reads the saved version of the open tutorial and holds the draft on
+  /// screen against it — phase 2 of `docs/PLAN-STUDIO-ISTORIJA.md`.
+  ///
+  /// Until then a draft this device kept of the same tutorial was adopted
+  /// without a word. That was deliberate, since work survives a closed window,
+  /// and it is how a part deleted and never saved was still deleted the next
+  /// time the tutorial opened: nothing told „changes you made" from „what is
+  /// saved", and nothing led back.
+  ///
+  /// **The draft is adopted before this is asked, not after.** The answer is a
+  /// network round trip of up to twenty seconds, and a trainer who starts
+  /// writing in that time must not have their work swapped out from under
+  /// them when it arrives. So the question is asked only while nothing has
+  /// changed since the studio opened; after that, the saved version is only
+  /// remembered, and „Discard changes" leads back to it.
+  Future<void> _compareWithSaved({required bool keptOnDevice}) async {
+    final id = _draft.lessonId;
+    if (id == null) return;
+    final row = await _lessonApi.fetchTutorial(id);
+    if (!mounted) return;
+
+    if (row == null) {
+      // A question that cannot be answered correctly is not asked. The draft
+      // opens as it always did, and the trainer is told why nothing was asked.
+      if (keptOnDevice) {
+        AppFeedback.info(
+          context,
+          'Could not reach the server to compare this tutorial with its saved '
+          'version. It opened with the changes kept on this device.',
+        );
+      }
+      return;
+    }
+
+    final saved = TutorialDraft.fromLesson(row);
+    final untouched = !_history.canUndo && !_history.canRedo;
+    // A draft kept from before the language field says nothing about it, and
+    // saving it says nothing either — the server keeps its own. It reads as the
+    // server's here, rather than as a change nobody made, and not as a step
+    // undo could take back to „not known".
+    if (!_draft.languageKnown && saved.languageKnown) {
+      _draft.language = saved.language;
+      if (untouched) _startHistory();
+    }
+    _savedSnapshot = jsonEncode(saved.toJson());
+    _savedSignature = saved.contentSignature();
+    final differs = _differsFromSaved();
+
+    if (!differs || !untouched) {
+      setState(() => _hasUnsavedChanges = differs);
+      return;
+    }
+    if (!keptOnDevice) {
+      // Nothing of the trainer's is on screen, only the row the library list
+      // handed over — which is older than the last save when that save was
+      // made elsewhere. The saved version is simply the tutorial.
+      _adopt(saved);
+      return;
+    }
+    setState(() => _hasUnsavedChanges = true);
+    final choice = await _askAboutUnsavedChanges();
+    if (!mounted) return;
+    if (choice == _UnsavedChoice.saved) _discardChanges();
+  }
+
+  /// „This tutorial has changes you have not saved": continue with them, or
+  /// open the saved version.
+  ///
+  /// Neither answer loses anything for as long as the studio is open: the saved
+  /// version is put on screen as an undoable change, exactly as „Discard
+  /// changes" puts it, so Ctrl+Z brings the changes back. That is why the
+  /// question can be asked plainly rather than as a warning.
+  Future<_UnsavedChoice> _askAboutUnsavedChanges() async {
+    final title = _draft.title.trim();
+    final name = title.isEmpty ? 'This tutorial' : '"$title"';
+    final answer = await showDialog<_UnsavedChoice>(
+      context: context,
+      // Not dismissible, for the reason [_askAboutStoredDraft] gives.
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('This tutorial has changes you have not saved'),
+        content: Text(
+          '$name was changed on this device and not saved. Continue with '
+          'those changes, or open the version saved on the server? Undo '
+          'brings the changes back until you close the tutorial.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(_UnsavedChoice.saved),
+            child: const Text('Open the saved version'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(_UnsavedChoice.mine),
+            child: const Text('Continue with my changes'),
+          ),
+        ],
+      ),
+    );
+    // Unanswered is the answer that changes nothing on screen.
+    return answer ?? _UnsavedChoice.mine;
+  }
+
+  /// „Discard changes": the saved version, put back as a change of its own.
+  ///
+  /// Recorded like any other change, so a mistaken press is one Ctrl+Z away —
+  /// which is also what makes it safe to offer beside the undo buttons.
+  void _discardChanges() {
+    final snapshot = _savedSnapshot;
+    if (snapshot == null) return;
+    final saved = TutorialDraft.fromJson(
+        Map<String, dynamic>.from(jsonDecode(snapshot) as Map));
+    _giveBackIds(saved);
+    setState(() {
+      _annotationController.stop();
+      _draft = saved;
+      _loadSelectedSection();
+    });
+    _persist();
+  }
+
+  bool _differsFromSaved([String? signature]) =>
+      _savedSignature != null &&
+      (signature ?? _draft.contentSignature()) != _savedSignature;
+
   /// Fills the fields from the part that is open. Every write in this direction
   /// bumps [_fieldsEpoch].
   void _loadSelectedSection() {
@@ -507,14 +663,19 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   void _recordHistory({String? typingIn}) {
     final couldUndo = _history.canUndo;
     final couldRedo = _history.canRedo;
+    final hadUnsaved = _hasUnsavedChanges;
+    final signature = _draft.contentSignature();
     _history.record(
       jsonEncode(_draft.toJson()),
-      _draft.contentSignature(),
+      signature,
       typingIn: typingIn,
     );
-    // Only the two buttons depend on this, and most calls change neither.
+    _hasUnsavedChanges = _differsFromSaved(signature);
+    // Only three buttons depend on this, and most calls change none of them.
     if (mounted &&
-        (couldUndo != _history.canUndo || couldRedo != _history.canRedo)) {
+        (couldUndo != _history.canUndo ||
+            couldRedo != _history.canRedo ||
+            hadUnsaved != _hasUnsavedChanges)) {
       setState(() {});
     }
   }
@@ -544,12 +705,27 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     if (snapshot == null) return;
     final restored = TutorialDraft.fromJson(
         Map<String, dynamic>.from(jsonDecode(snapshot) as Map));
+    _giveBackIds(restored);
 
-    // **The identities a save handed out survive going back past it.** A
-    // snapshot from before the first save has no lesson id, and restoring it
-    // as it is would make the next save create a second tutorial. Its parts
-    // have no step ids either; each gets back the one its key was given, unless
-    // another part already holds it.
+    setState(() {
+      _annotationController.stop();
+      _draft = restored;
+      // Every field of the open part, from the part — the lesson of 7.9.2026:
+      // a field left at its default is a default written back over the part on
+      // the next change.
+      _loadSelectedSection();
+      _hasUnsavedChanges = _differsFromSaved();
+    });
+    TutorialDraftService.instance.scheduleSave(_draft);
+  }
+
+  /// **The identities a save handed out survive going back past it.**
+  ///
+  /// A snapshot from before the first save has no lesson id, and restoring it
+  /// as it is would make the next save create a second tutorial. Its parts
+  /// have no step ids either; each gets back the one its key was given, unless
+  /// another part already holds it.
+  void _giveBackIds(TutorialDraft restored) {
     restored.lessonId ??= _draft.lessonId;
     _rememberStepIds(_draft);
     final held = {
@@ -561,16 +737,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       final id = _stepIdsByKey[section.localKey];
       if (id != null && held.add(id)) section.stepId = id;
     }
-
-    setState(() {
-      _annotationController.stop();
-      _draft = restored;
-      // Every field of the open part, from the part — the lesson of 7.9.2026:
-      // a field left at its default is a default written back over the part on
-      // the next change.
-      _loadSelectedSection();
-    });
-    TutorialDraftService.instance.scheduleSave(_draft);
   }
 
   /// The one cursor this screen is walked by — the strip's buttons and the
@@ -823,6 +989,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             icon: const Icon(Icons.redo),
             tooltip: 'Redo (Ctrl+Y)',
             onPressed: _history.canRedo ? _redo : null,
+          ),
+          // Beside undo and redo because it is one of them: back to the saved
+          // version, and itself undoable. Measured with the real Windows font
+          // and the app's theme: nothing overflows at 700 dp, and the title is
+          // whole from 840 — the width the layout splits at — where it was
+          // whole from 800 before this button; 215 of its 240 px at 800.
+          IconButton(
+            key: const Key('discard-changes'),
+            icon: const Icon(Icons.restore),
+            tooltip: 'Discard changes',
+            onPressed: _hasUnsavedChanges ? _discardChanges : null,
           ),
           IconButton(
             icon: Icon(Icons.tune, color: context.colors.accent),
@@ -1527,10 +1704,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     }
 
     _draft.title = _titleController.text.trim();
+    // What is sent, taken before it is sent: a trainer can type while the
+    // request is out, and those words are not saved just because the answer
+    // arrived after them. Its ids are handed back by [_giveBackIds] if it is
+    // ever restored.
+    final sentSnapshot = jsonEncode(_draft.toJson());
+    final sentSignature = _draft.contentSignature();
     final error = await commitDraft(_draft, _lessonApi);
 
     if (!mounted) return;
     if (error == null) {
+      _savedSnapshot = sentSnapshot;
+      _savedSignature = sentSignature;
       // The draft now knows its lesson id and every step id, so the next press
       // of this button edits this tutorial instead of making a second one.
       _persist();

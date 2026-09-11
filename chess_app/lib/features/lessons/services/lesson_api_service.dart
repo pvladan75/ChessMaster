@@ -278,6 +278,35 @@ class LessonApiService {
     }
   }
 
+  /// One tutorial as the server holds it now, or null when it could not be
+  /// read — unreachable, refused, or an answer that is not that tutorial.
+  ///
+  /// Phase 2 of `docs/PLAN-STUDIO-ISTORIJA.md`. The studio is opened with the
+  /// row the library list handed it, which can be older than the last save;
+  /// this is the saved version it compares a device's draft against. One
+  /// answer for every failure, because the studio does one thing with all of
+  /// them: it does not ask a question it cannot answer correctly.
+  ///
+  /// An answer is taken only when it names the tutorial that was asked for and
+  /// carries its step list — a row without steps would read as a tutorial with
+  /// none, and a trainer offered that as „the saved version" could choose it.
+  Future<Map<String, dynamic>?> fetchTutorial(int id) async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/lessons/$id'), headers: _headers)
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      if (body is! Map || body['id'] != id || body['position_list'] is! List) {
+        return null;
+      }
+      return Map<String, dynamic>.from(body);
+    } catch (e) {
+      AppLogger.log('[Lessons] Could not load tutorial $id: $e');
+      return null;
+    }
+  }
+
   /// The labels this user has used, for the filter panel.
   Future<List<String>> fetchLabels() async {
     try {

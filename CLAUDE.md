@@ -21,9 +21,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2051 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2066 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 1226 tests, all green
+cd chess_backend && npm test          # node --test, 1234 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1856,6 +1856,34 @@ the trainer carries on from an undo.
 task and the answers were edited through their controllers alone. They were
 saved correctly, but an undo would have taken them back together with the next
 unrelated change.
+
+**The saved version of a tutorial — 11.9.2026, app 2066 with 1 skipped,
+backend 1234** with `.env` moved aside; analyze at 29 infos. Phase 2 of
+`docs/PLAN-STUDIO-ISTORIJA.md`: `GET /lessons/:id`, the question on open, and
+„Discard changes". Twenty-four mutations were caught, one of them only after a
+test was added for it.
+
+**A single-row route shares the list's access rule; it does not copy it.**
+`READER_COLUMNS` and `READABLE_BY_READER` are one constant each, used by both
+queries. The test asserts that the single-row query holds the list's condition
+character for character, plus `AND id = $2`. With no database in the tests,
+that is what proves „another trainer's tutorial" and „an invitation not
+accepted" without a fake that pretends to be one.
+
+**Do not wait on the network for something the user can already see.** The
+draft kept on the device is adopted at once, and the server's answer is
+compared when it arrives. Asking first would have held the studio for up to
+twenty seconds and swapped out anything written in that time. So the question
+is asked only while nothing has changed.
+
+**What a save counts as saved is taken before the request goes out.** Taken
+from the answer, it would mark words typed during the request as saved. A
+held `Completer` in the test is what shows the difference.
+
+**A guess about layout was measured and was wrong.** Windows defaults to
+compact density, so the app bar's icon buttons were expected to be narrower
+there than in a test. They are 48 px on both. Nothing overflows at 700 dp; the
+title is now whole from 840 dp, where it was whole from 800.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -1289,23 +1289,43 @@ router.get('/labels', authenticateToken, async (req, res) => {
   }
 });
 
+/// What a reader of a tutorial is given, with the reader's id as `$1`.
+///
+/// Written once for the list and for one tutorial (`GET /lessons/:id`, phase 2
+/// of docs/PLAN-STUDIO-ISTORIJA.md): the studio compares the row it fetches
+/// with what the list handed it, and two column lists are two answers to that
+/// comparison.
+const READER_COLUMNS = `
+  id, title, description, tags, fen, pgn, position_list, language, created_at,
+  (video_filename IS NOT NULL) AS has_video, video_rendered_at,
+  -- A film this account has being drawn right now, so the list can
+  -- offer its progress rather than a second render (item 5 of part
+  -- two of docs/PLAN-SNIMANJE.md).
+  (SELECT j.id FROM tutorial_render_jobs j
+    WHERE j.lesson_id = saved_lessons.id AND j.user_id = $1
+      AND j.status = 'running'
+    LIMIT 1) AS render_job_id,
+  (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson`;
+
+/// Who may read a tutorial, with the reader's id as `$1`: their own, one they
+/// are the trainer of, or one saved by a trainer who teaches them.
+///
+/// **One condition for the list and for a single tutorial.** Three hand-written
+/// copies of one access rule is how `status = 'accepted'` was lost before, and
+/// a single-row route that asked a looser question than the list would hand
+/// out by id what the list never shows. `test/lesson_fetch_one.test.js` fails
+/// if the two queries stop sharing it.
+const READABLE_BY_READER =
+  `(user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))`;
+
 // GET /lessons
 router.get('/', authenticateToken, async (req, res) => {
   const { search, includeTags, excludeTags, matchMode } = req.query;
   try {
     let query = `
-      SELECT id, title, description, tags, fen, pgn, position_list, language, created_at,
-             (video_filename IS NOT NULL) AS has_video, video_rendered_at,
-             -- A film this account has being drawn right now, so the list can
-             -- offer its progress rather than a second render (item 5 of part
-             -- two of docs/PLAN-SNIMANJE.md).
-             (SELECT j.id FROM tutorial_render_jobs j
-               WHERE j.lesson_id = saved_lessons.id AND j.user_id = $1
-                 AND j.status = 'running'
-               LIMIT 1) AS render_job_id,
-             (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson
-      FROM saved_lessons 
-      WHERE (user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))
+      SELECT ${READER_COLUMNS}
+      FROM saved_lessons
+      WHERE ${READABLE_BY_READER}
     `;
     const params = [req.user.id];
 
@@ -1341,6 +1361,40 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Fetch lessons error:', err);
     res.status(500).json({ error: 'Server error while fetching lessons' });
+  }
+});
+
+// GET /lessons/:id — one tutorial, as the list would show it.
+//
+// Phase 2 of docs/PLAN-STUDIO-ISTORIJA.md. The studio opens a tutorial from
+// the row the library list handed it, which can be older than the last save,
+// and it needs the version on the server to tell a trainer whether the draft on
+// their device holds changes they have not saved. Registered last, so the
+// one-segment routes above (`/labels`) are matched before it.
+router.get('/:id', authenticateToken, async (req, res) => {
+  // A tutorial id is a positive `INTEGER`. Anything else is a tutorial that
+  // does not exist rather than a query the driver refuses with a 500.
+  const id = /^[1-9][0-9]{0,9}$/.test(String(req.params.id)) ? Number(req.params.id) : null;
+  if (id === null || id > 2147483647) {
+    return res.status(404).json({ error: 'Tutorial not found.' });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT ${READER_COLUMNS}
+         FROM saved_lessons
+        WHERE ${READABLE_BY_READER} AND id = $2`,
+      [req.user.id, id]
+    );
+    const lesson = result.rows[0];
+    if (!lesson) {
+      // One answer for „no such tutorial" and „not yours": telling them apart
+      // would say which ids exist.
+      return res.status(404).json({ error: 'Tutorial not found.' });
+    }
+    res.json(lesson);
+  } catch (err) {
+    logger.error('Fetch one lesson error:', err);
+    res.status(500).json({ error: 'Server error while fetching the tutorial.' });
   }
 });
 

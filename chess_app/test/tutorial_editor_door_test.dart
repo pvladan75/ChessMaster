@@ -178,6 +178,9 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
+      // Opening a saved tutorial reads its saved version (phase 2 of
+      // docs/PLAN-STUDIO-ISTORIJA.md). What is asked here is the preview.
+      sent.clear();
 
       await tester.tap(find.byKey(const Key('preview-as-student')));
       await tester.pumpAndSettle();

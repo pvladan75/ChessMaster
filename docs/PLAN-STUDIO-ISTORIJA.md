@@ -136,6 +136,32 @@ merge, the redo clear, the limit, `_loadSelectedSection` on restore.
 
 ## Phase 2 — the saved version
 
+**Built 11.9.2026**, with three things the plan below did not have:
+
+- **The draft on the device is adopted at once, and compared when the server
+  answers.** Waiting for the answer first would have held the studio for up
+  to twenty seconds on a slow line, and swapped out anything written in that
+  time. So the question is asked only while nothing has changed since the
+  studio opened; after that the saved version is only remembered, and
+  „Discard changes" leads back to it.
+- **„Open the saved version" is an undoable change**, the same one „Discard
+  changes" makes, so neither answer to the question loses anything while the
+  studio is open, and the question says so rather than warning.
+- **A list row older than the last save** — saved from another device — is
+  replaced by the server's version when nothing of the trainer's is on screen.
+  The plan named that row as a problem and gave it no fix.
+
+Two smaller rules. What a save counts as saved is taken **before** the request
+goes out, so words typed while it is out are still unsaved when it returns. A
+draft kept from before the language field takes on the server's language rather
+than reading as a change.
+
+Placement, measured with the real Windows font and the app's theme: the button
+sits beside undo and redo. Nothing overflows at 700 dp; the title is whole from
+840, the width the layout splits at, where it was whole from 800 before. (The
+guess that Windows draws the app bar's icon buttons compact, and so narrower
+than a test, was measured and is wrong: they are 48 px there too.)
+
 - **Server: `GET /lessons/:id`**, returning one row with the columns the list
   returns, to exactly the accounts the list shows it to — the list's own
   condition, not a second one written beside it, because three hand-written

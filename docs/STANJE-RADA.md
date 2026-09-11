@@ -38,7 +38,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Istorija u studiju — plan 11.9.2026; faza 1 (undo/redo) gotova, faze 2–4 nisu počete
+## Istorija u studiju — plan 11.9.2026; faze 1 i 2 gotove, faze 3–4 nisu počete
 
 `docs/PLAN-STUDIO-ISTORIJA.md`. Vlasnik je obrisao deo, nije sačuvao, i kad je
 ponovo otvorio tutorijal deo je i dalje bio obrisan: studio tiho uzima lokalni
@@ -63,6 +63,21 @@ suvišan red, koji je obrisan. Stavka za proveru
 uživo dolazi u fazi 4, po planu. `Icons.redo` je nova ikonica u aplikaciji — ako
 na Windows buildu ispadne prazna, to je zastareli `MaterialIcons-Regular.otf`
 (vidi CLAUDE.md).
+
+**Faza 2, 11.9.2026:** nova ruta `GET /lessons/:id` — isti uslov pristupa i
+iste kolone kao lista, iz jedne konstante, pa ne može da da po id-u ono što
+lista ne pokazuje. Kad se otvori sačuvan tutorijal čiji nacrt je na ovom
+uređaju, studio uzme nacrt odmah (kao do sada), pa ga uporedi sa verzijom sa
+servera; ako se razlikuju **po sadržaju** (ne po kursoru), pita „This tutorial
+has changes you have not saved" — **Continue with my changes** ili **Open the
+saved version**. Pita samo dok trener još ništa nije promenio; posle toga samo
+upali „Discard changes" (ikonica pored undo/redo), koje vraća sačuvanu verziju
+i samo je jedan Ctrl+Z. I „Open the saved version" je undo-korak. Ako server ne
+odgovori, studio otvori nacrt i kaže da nije mogao da proveri. Red iz liste
+stariji od poslednjeg čuvanja (sačuvano sa drugog uređaja) zameni se verzijom
+sa servera kad trener nema ništa svoje na ekranu. `Icons.restore` je nova
+ikonica — ista napomena o fontu kao za `Icons.redo`. Aplikacija 2066 (1
+preskočen), backend 1234 sa sklonjenim `.env`, 24 mutacije uhvaćene.
 
 ## Jezik glasa — 11.9.2026; svih šest faza gotovo, čeka proveru uživo
 
