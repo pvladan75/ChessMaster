@@ -1385,3 +1385,43 @@ test('a film with something said is counted at four frames a second', async () =
     assert.match(captioned.res.body.error, /about 14 minutes to render/);
   });
 });
+
+test('the budget counts a film without comments at one frame a second', async () => {
+  // The same 400 s of talking film as above, at two frames drawn a second: 800 s
+  // of drawing with the comments, 200 s without. A budget that ignored the flag
+  // would refuse a film that fits, for the cost of a layout nobody asked for.
+  const said = VALID_EVENTS.map((event, i) => ({
+    ...event,
+    data: { ...event.data, text: i === 0 ? 'White takes the centre.' : 'Black answers.' },
+  }));
+  await withRate({ RENDER_DRAW_FPS_720P: '2' }, async () => {
+    const captioned = await run({ body: { events: said, seconds: 400 } });
+    assert.strictEqual(captioned.res.statusCode, 422, JSON.stringify(captioned.res.body));
+    assert.match(captioned.res.body.error, /, or export it without the comments beside the board\.$/,
+      'a way out the server checked, offered where it fits');
+
+    const plain = await run({ body: { events: said, seconds: 400, captions: false } });
+    assert.strictEqual(plain.res.statusCode, 202, JSON.stringify(plain.res.body));
+
+    // **Offered only where it is a way out.** 1300 s is 650 s of drawing even
+    // at one frame a second, over the 600 s ceiling — so saying „without the
+    // comments" there is a second refusal waiting to happen.
+    const tooLong = await run({ body: { events: said, seconds: 1300 } });
+    assert.strictEqual(tooLong.res.statusCode, 422, JSON.stringify(tooLong.res.body));
+    assert.doesNotMatch(tooLong.res.body.error, /comments/);
+  });
+});
+
+test('the captions flag reaches the drawing, and absent still means yes', async () => {
+  // Read off the options the renderer was actually called with. The route owns
+  // the default, and an older app that says nothing must keep getting the film
+  // it has always got.
+  const asked = await run({ body: { events: VALID_EVENTS, seconds: 30, captions: false } });
+  assert.equal(asked.res.statusCode, 202);
+  assert.equal(asked.renderCalls.length, 1);
+  assert.equal(asked.renderCalls[0].captions, false);
+
+  const silent = await run({ body: { events: VALID_EVENTS, seconds: 30 } });
+  assert.equal(silent.renderCalls[0].captions, true,
+    'saying nothing is the request every client made before this field existed');
+});

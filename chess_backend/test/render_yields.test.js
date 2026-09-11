@@ -112,3 +112,51 @@ test('the event loop gets a turn between frames, so a poll is answered', async (
   assert.ok(turns >= 8,
     `the loop turned ${turns} times during a twelve-frame render; a starved one turns once`);
 });
+
+test('asking for the board alone is a quarter of the drawing, in a real render',
+  async () => {
+    // **The one place the flag can be watched doing its work.** Everything else
+    // about it is checked where a fake renderer records its options; this runs
+    // `render` itself and counts the frames that reached the encoder. A film
+    // whose sentences are written is drawn four times a second so the writing
+    // looks like writing; with them hidden there is nothing moving between
+    // beats, so it is drawn once — which is most of why hiding them is worth
+    // offering at all.
+    const talking = [
+      {
+        timestampMs: 0,
+        eventType: 'init',
+        data: {
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          text: 'We begin from the opening position and look at the centre, '
+            + 'because that is where the first fight of every game happens.',
+        },
+      },
+    ];
+    const common = {
+      title: 'Captions',
+      timelineEvents: talking,
+      audioFilePath: null,
+      durationSeconds: 6,
+      perspective: 'trainer',
+      resolution: '480p',
+      boardTheme: 'wood',
+      showMoveText: false,
+      outputPath: 'unused-by-the-fake.mp4',
+    };
+
+    const before = spawned.length;
+    await renderer.renderRecordingToMP4({ ...common });
+    const withCaptions = spawned[spawned.length - 1].stdin.frames;
+
+    await renderer.renderRecordingToMP4({ ...common, captions: false });
+    const without = spawned[spawned.length - 1].stdin.frames;
+
+    // One more than `seconds * fps` in each: the film's last instant is drawn
+    // too, the same way the silent eleven-second render above writes twelve.
+    assert.equal(spawned.length - before, 2, 'two renders, two encoders');
+    assert.equal(withCaptions, 25, 'six seconds at four frames a second');
+    assert.equal(without, 7, 'and six at one');
+    assert.ok(withCaptions > without * 3,
+      'the saving is the whole reason this is offered');
+  });

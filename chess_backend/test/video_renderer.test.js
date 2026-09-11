@@ -655,3 +655,85 @@ test('orientation survives a beat that does not mention it', () => {
   state = applyEvent(state, { eventType: 'init', data: { fen: FEN, orientation: 'white' } });
   assert.equal(state.orientation, 'white', 'and the next part may turn the board round');
 });
+
+// --- The trainer chooses whether the sentences are written beside the board ---
+//
+// The drawing of both layouts is already covered above; what is new is that a
+// flag can pick between them without touching the text, which the voice reads
+// and which decides how long a silent beat holds the screen.
+
+const TALKING = [
+  { eventType: 'init', timestampMs: 0, data: { fen: FEN, text: 'Look at the d5 square, because both white pieces are aiming at it and the knight cannot be driven away.' } },
+];
+
+test('turning the captions off empties the band without touching the text', () => {
+  assert.ok(captionBandLines(TALKING, { resolution: '720p' }) > 0,
+    'the sentence needs a band when it is drawn');
+  assert.equal(captionBandLines(TALKING, { resolution: '720p', captions: false }), 0,
+    'and none when the trainer asked for the board alone');
+
+  // The event is untouched: the same text still reaches the voice and still
+  // decides the beat's length. Hiding the caption by sending no text would mute
+  // the film and race it at the same time.
+  assert.ok(TALKING[0].data.text.length > 0);
+});
+
+test('a film without captions is drawn once a second, not four times', () => {
+  assert.equal(renderer.framesPerSecondOf(TALKING, { resolution: '720p' }), 4);
+  assert.equal(renderer.framesPerSecondOf(TALKING, { resolution: '720p', captions: false }), 1,
+    'a quarter of the drawing, which is what makes it worth offering');
+});
+
+test('the preview shows the layout the film will have, not the other one', async () => {
+  // The preview exists so a trainer sees the film's own drawing before spending
+  // a render on it, so it has to answer to the same flag. Read off the picture
+  // rather than off the flag: a preview that passed the flag on and drew the
+  // column anyway would satisfy anything less.
+  const withText = await pixels({
+    ...BASE,
+    captionBand: captionBandLines(TALKING, { resolution: '720p' }),
+    caption: TALKING[0].data.text,
+  });
+  const without = await pixels({
+    ...BASE,
+    captionBand: captionBandLines(TALKING, { resolution: '720p', captions: false }),
+    caption: TALKING[0].data.text,
+  });
+
+  const cfg = getResolutionParams('720p');
+  const bg = without.at(4, 4);
+  const centred = boardGeometry(null, {});
+
+  // **Probed to the right of where a centred board ends**, and not over the
+  // caption column itself. A centred board runs into that column's pixels, so
+  // „there is no ink beside the board" would be answered by the board — which
+  // is the same trap, in mirror image, that a mutation found for the test
+  // above. This strip is background in one layout and text in the other.
+  const stripLeft = Math.round(centred.offsetX + centred.boardSize + 6);
+  const inkRightOfCentre = (frame) => {
+    let n = 0;
+    for (let x = stripLeft; x < frame.width - 4; x += 2) {
+      for (let y = centred.offsetY; y < centred.offsetY + centred.boardSize; y += 2) {
+        if (distance(frame.at(x, y), bg) > 40) n += 1;
+      }
+    }
+    return n;
+  };
+  assert.ok(inkRightOfCentre(withText) > 100,
+    'the sentence reaches past where a centred board would end');
+  assert.equal(inkRightOfCentre(without), 0,
+    'and nothing at all is drawn there when the captions are off');
+
+  // And the board moved back to the middle, at full size.
+  const row = Math.round(cfg.offsetY + 10);
+  let left = null;
+  let right = null;
+  for (let x = 0; x < without.width; x++) {
+    if (distance(without.at(x, row), bg) > 20) {
+      if (left === null) left = x;
+      right = x;
+    }
+  }
+  assert.ok(Math.abs(left - (without.width - 1 - right)) <= 2, 'the board is centred');
+  assert.ok(Math.abs((right - left + 1) - cfg.boardSize) <= 2, 'and full size');
+});

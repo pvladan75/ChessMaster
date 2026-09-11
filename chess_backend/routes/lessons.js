@@ -695,6 +695,9 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       // list, and one that has moved makes every marker after the edit name a
       // beat it was not recorded against.
       signature,
+      // Whether the sentences are written beside the board. Absent means yes,
+      // which is what every client before this one meant by saying nothing.
+      captions,
     } = req.body;
 
     if (!Array.isArray(events) || events.length === 0) {
@@ -738,7 +741,15 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
     // and again at its turn.
     const size = resolution || '720p';
     const filmSeconds = recording ? Math.min(recording.seconds, 3600) : duration;
-    const fps = videoRenderer.framesPerSecondOf(recording ? recording.events : events, { resolution: size });
+    // A film with the text hidden is drawn once a second instead of four times,
+    // so it is a quarter of the work. The budget has to read the same flag the
+    // drawing does, or a film that fits is refused for the cost of one nobody
+    // asked for.
+    const drawCaptions = captions !== false;
+    const fps = videoRenderer.framesPerSecondOf(
+      recording ? recording.events : events,
+      { resolution: size, captions: drawCaptions },
+    );
     const draw = renderBudget.drawSeconds({ seconds: filmSeconds, fps, resolution: size });
     if (draw > renderBudget.maxDrawSeconds()) {
       // Only the ways out that were checked would fit.
@@ -746,8 +757,15 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         <= renderBudget.maxDrawSeconds();
       const doors = [];
       if (size === '1080p' && fitsAt(filmSeconds, fps, '720p')) doors.push('export it at 720p');
-      if (recording && fitsAt(duration, videoRenderer.framesPerSecondOf(events, { resolution: size }), size)) {
+      if (recording && fitsAt(duration, videoRenderer.framesPerSecondOf(events, { resolution: size, captions: drawCaptions }), size)) {
         doors.push('export it without your recording');
+      }
+      // Offered only when it is actually a way out, like the two above it:
+      // hiding the text drops the film to one drawing a second.
+      if (drawCaptions
+        && fitsAt(filmSeconds, videoRenderer.framesPerSecondOf(
+          recording ? recording.events : events, { resolution: size, captions: false }), size)) {
+        doors.push('export it without the comments beside the board');
       }
       return res.status(422).json({
         error: renderBudget.tooLongSentence({ drawSeconds: draw, fps, resolution: size, doors }),
@@ -838,7 +856,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         // **Asked again at its turn, with what is known now.** A synthesised
         // voice's real length arrives only after it has spoken. Inside the
         // `try` so a synthesised track is still removed by the `finally` below.
-        const fpsNow = videoRenderer.framesPerSecondOf(renderEvents, { resolution: size });
+        const fpsNow = videoRenderer.framesPerSecondOf(renderEvents, { resolution: size, captions: drawCaptions });
         const drawNow = renderBudget.drawSeconds({ seconds: renderDuration, fps: fpsNow, resolution: size });
         renderQueue.revise(jobId, drawNow * 1000);
         if (drawNow > renderBudget.maxDrawSeconds()) {
@@ -859,6 +877,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           showTimer: true,
           showCoords: true,
           showMoveText: false,
+          captions: drawCaptions,
           look,
           onProgress: (drawn, total) => renderProgress.report(jobId, drawn, total),
           signal,
@@ -1122,7 +1141,7 @@ router.post('/:id/preview-frames', authenticateToken, requireEntitlement(ENT.MP4
       return res.status(404).json({ error: 'Tutorial not found or you do not have permission to preview it.' });
     }
 
-    const { events, seconds, title, resolution, boardTheme, look, beats } = req.body;
+    const { events, seconds, title, resolution, boardTheme, look, beats, captions } = req.body;
 
     if (!Array.isArray(events) || events.length === 0) {
       return res.status(400).json({ error: 'events must be a non-empty array.' });
@@ -1156,6 +1175,10 @@ router.post('/:id/preview-frames', authenticateToken, requireEntitlement(ENT.MP4
         perspective: 'trainer',
         resolution: resolution || '720p',
         boardTheme: boardTheme || 'wood',
+        // The preview exists to show the film's own drawing, so it has to be
+        // told which of the two layouts this film will have. Without it a
+        // trainer turning the text off would still be shown the column.
+        captions: captions !== false,
         showTitle: true,
         showTimer: true,
         showCoords: true,

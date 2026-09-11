@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Ispis prati glas, a ne
-sat" odmah ispod ove glave, pa „Tutorijal iz fajla, i oznake koje su oduvek
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Video bez komentara pored
+table" odmah ispod ove glave, pa „Ispis prati glas, a ne
+sat", pa „Tutorijal iz fajla, i oznake koje su oduvek
 postojale", pa „Četiri prijave
 uživo: slova, glas i uzorak", pa „Izbor glasa: prvo jezik, pa glas",
 „Azure Speech, i srpski koji je vraćen a ne preveden" i „Glas koji ne može da
@@ -34,6 +35,57 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Video bez komentara pored table — 11.9.2026, nije viđeno uživo
+
+Na zahtev vlasnika: izvezeni video može da bude **samo tabla**, bez rečenica u
+koloni pored nje. U dijalogu za izvoz je prekidač „Comments beside the board",
+podrazumevano uključen i zapamćen za sledeći film, kao i 1080p. **Glas i dalje
+čita** — to je bila odluka vlasnika: ko hoće nemi film, bira „No voice" u
+pitanju o naraciji iznad.
+
+**To je zastavica za crtanje, a ne izmena teksta.** `data.text` putuje u svakom
+slučaju: to je i scenario koji glas čita, i — u filmu bez glasa — ono što
+određuje koliko dugo takt stoji na ekranu. Sakriti komentare tako što se tekst
+ne pošalje bi istovremeno utišalo film i ubrzalo ga.
+
+Ulazi na jednom mestu, u `captionBandLines`: bez komentara je traka nula
+redova, a nula redova je već ceo odgovor — `renderFrameBuffer` centrira tablu,
+film se crta jednom u sekundi umesto četiri puta, i `renderBudget` broji
+frejmove istim čitanjem. Da je zabrana išla niže, u samo crtanje, druga dva bi
+i dalje verovala u kolonu koje nema. U `renderRecordingToMP4` se traka sada čita
+**jednom**, pre ffmpeg-a, i ista vrednost ide i u crtanje i u brzinu koju ffmpeg
+dobija; ranije se čitala dvaput. Pregled pre renderovanja dobija istu
+zastavicu, jer pregled postoji da pokaže film koji će biti nacrtan.
+
+Posledica koja se isplati: film bez komentara je **četvrtina crtanja**, pa
+kad je film predugačak za jedan render, odbijanje sada nudi i „export it
+without the comments beside the board" — ali samo kad bi to zaista stalo, kao
+i ostala dva izlaza. Odsutno polje na serveru znači „da", što je tačno ono što
+je svaki klijent pre ovoga mislio kad nije ništa rekao; aplikacija zato šalje
+polje samo kad je `false`.
+
+**Sedamnaest mutacija, sve uhvaćene — ali dve tek posle dva dopisana testa.**
+Da ruta budžet računa sa zastavicom nije proveravao nijedan test (film koji ne
+staje sa komentarima a staje bez njih), i da se izbor **zapisuje** u
+podešavanja takođe ne — test „otvara se sa prošlim odgovorom" je taj odgovor
+sam upisivao. Oba su dopisana i gledana kako padaju na svojoj mutaciji. Jedna
+pogrešna pretpostavka u samom testu je popravljena usput: `find.byType(Switch)`
+**findsOneWidget** je značilo „nema prekidača za naraciju", i palo je čim je
+dodat drugi prekidač — šesti put u ovom repozitorijumu da tražilica prestane da
+bude jedinstvena jer je ekran porastao. Pita za prekidač po imenu sada.
+
+Pogledana su i dva prava frejma, 720p, ista pozicija: sa komentarima rečenica
+stoji u svojoj koloni, bez njih je tabla centrirana, iste veličine, i pored nje
+nema ničega.
+
+Suite **1956** (+5), 1 preskočen, analyze 29 infoa i nula upozorenja; backend
+**1213** (+7) sa `.env` sklonjenim. Ostaje da se vidi uživo, tačka 149 u
+`docs/TODO-provera.md`.
+
+**Nije urađeno, i namerno odvojeno:** kvadratni izlaz (tabla preko celog
+kadra, npr. za kratke klipove). To je novi format a ne podešavanje, i treba ga
+prvo oceniti na jednom nacrtanom frejmu pre nego što se gradi.
 
 ## Ispis prati glas, a ne sat — 11.9.2026, nije viđeno uživo
 

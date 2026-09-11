@@ -634,7 +634,12 @@ class LessonApiService {
             headers: _headers,
           )
           .timeout(const Duration(seconds: 30));
-      if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) return res.bodyBytes;
+      // Braced because `dart format` wrapped this onto two lines the moment the
+      // file was formatted, and an unbraced `if` over two lines is the one info
+      // this project counts. The line was 82 characters before.
+      if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+        return res.bodyBytes;
+      }
       AppLogger.log('[Lessons] Voice sample refused: ${res.statusCode}');
       return null;
     } catch (e) {
@@ -676,6 +681,11 @@ class LessonApiService {
     /// 5. The server compares it with the one the recording was made against
     /// and refuses a film whose beats have moved since.
     String? signature,
+
+    /// Whether the sentences are written beside the board. Null and true are
+    /// the same request, and the same one every client sent before this field
+    /// existed.
+    bool? captions,
   }) async {
     try {
       final res = await _client
@@ -691,6 +701,7 @@ class LessonApiService {
               if (look != null) 'look': look,
               if (narrate != null) 'narrate': narrate,
               if (voice != null) 'voice': voice,
+              if (captions == false) 'captions': false,
               if (useRecording == true) 'useRecording': true,
               if (takeId != null) 'takeId': takeId,
               if (signature != null) 'signature': signature,
@@ -859,6 +870,10 @@ class LessonApiService {
     String boardTheme = 'wood',
     Map<String, String>? look,
     List<int>? beats,
+
+    /// Whether the preview is drawn with the sentences beside the board. The
+    /// preview exists to show the film's own drawing, so it has to be told.
+    bool? captions,
   }) async {
     try {
       final res = await _client
@@ -872,6 +887,7 @@ class LessonApiService {
               'resolution': resolution,
               'boardTheme': boardTheme,
               if (look != null) 'look': look,
+              if (captions == false) 'captions': false,
               if (beats != null) 'beats': beats,
             }),
           )

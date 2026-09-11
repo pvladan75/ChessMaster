@@ -288,3 +288,34 @@ test('a later beat is a later position, not just a later clock', async () => {
   assert.equal(first.equals(second), false,
     'beat 1 must draw the position beat 1 is on');
 });
+
+test('the route draws the preview the trainer asked for, captions and all', async () => {
+  // The flag has to travel the whole way: a route that reads it and forgets to
+  // hand it on would show the caption column for a film that will not have one,
+  // which is exactly the thing a preview exists to prevent.
+  const withText = await run({ body: { events: EVENTS, seconds: 12, resolution: '480p', boardTheme: 'wood', beats: [1] } });
+  const without = await run({ body: { events: EVENTS, seconds: 12, resolution: '480p', boardTheme: 'wood', beats: [1], captions: false } });
+
+  assert.equal(withText.res.statusCode, 200);
+  assert.equal(without.res.statusCode, 200);
+
+  const pngOf = (r) => Buffer.from(r.res.body.frames[0].png, 'base64');
+  assert.equal(pngOf(withText).equals(pngOf(without)), false,
+    'the two layouts are not the same picture');
+
+  // **Equal to the renderer asked directly**, not merely different from the
+  // other one: „different" is also satisfied by a route that passed something
+  // else along, or nothing at all.
+  const reference = await videoRenderer.renderPreviewFrame({
+    title: 'Weak squares',
+    timelineEvents: EVENTS,
+    beatIndex: 1,
+    durationSeconds: 12,
+    perspective: 'trainer',
+    resolution: '480p',
+    boardTheme: 'wood',
+    captions: false,
+  });
+  assert.ok(pngOf(without).equals(reference),
+    'the frame is the one the renderer draws with the captions off');
+});

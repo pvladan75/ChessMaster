@@ -740,8 +740,15 @@ void main() {
         reason: 'a question with one answer was asked');
     expect(find.text('Voice'), findsNothing);
     expect(switchFor('Higher quality (1080p)'), findsOneWidget);
-    expect(find.byType(Switch), findsOneWidget,
-        reason: 'the quality switch, and no narration one beside it');
+    expect(switchFor('Comments beside the board'), findsOneWidget,
+        reason: 'how the film looks is a choice wherever the server is');
+    // **Named, not counted.** This asked for exactly one Switch on the whole
+    // screen to mean „no narration switch", and went red the moment a second
+    // control about the picture was added - the sixth finder in this repository
+    // to stop being unique because the screen grew. What it is actually about is
+    // the narration one.
+    expect(switchFor('Narrate this video'), findsNothing,
+        reason: 'an answer the server cannot honour is not drawn');
 
     await tester.tap(find.descendant(
       of: find.byType(AlertDialog).last,
@@ -1186,6 +1193,144 @@ void main() {
     final body = jsonDecode(requests.where(_isExport).single.body)
         as Map<String, dynamic>;
     expect(body['voice'], 'sr-Latn-RS-SophieNeural');
+  });
+
+  testWidgets('with the comments left on, the request says nothing about them',
+      (tester) async {
+    // An absent field means „yes" on the server, which is what every client
+    // before this switch existed meant by saying nothing at all. Sending the
+    // default would make an old server and a new one disagree about a film.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests, ttsAvailable: false);
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body.containsKey('captions'), isFalse);
+  });
+
+  testWidgets(
+      'turning the comments off asks for the board alone, and keeps '
+      'the voice', (tester) async {
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests, ttsAvailable: false);
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+    await tester.tap(switchFor('Comments beside the board'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['captions'], isFalse);
+
+    // **The sentence is untouched by it.** That text is also the script the
+    // server reads out, and on a silent film it is what decides how long a beat
+    // holds the screen — so hiding the writing must not quietly mute the film
+    // or race it. A trainer who wants neither picks „No voice".
+    final events = body['events'] as List<dynamic>;
+    expect(
+      events.any((e) =>
+          ((e as Map<String, dynamic>)['data'] as Map<String, dynamic>?)
+              ?.containsKey('text') ==
+          true),
+      isTrue,
+      reason: 'the sentences still travel, drawn or not',
+    );
+
+    // And it is kept for the next film. The test below starts from a stored
+    // answer; this is the half that writes it.
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('tutorial_video_captions'), isFalse);
+  });
+
+  testWidgets('the sheet opens on the answer the trainer gave last time',
+      (tester) async {
+    // A remembered preference nothing reads back is a preference that does not
+    // exist: the trainer turns the writing off, exports, and the next film has
+    // it again. Proved through the request rather than the switch, because the
+    // switch being drawn off and the request saying nothing is the same bug.
+    SharedPreferences.setMockInitialValues({'tutorial_video_captions': false});
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests, ttsAvailable: false);
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    expect(
+        tester.widget<Switch>(find.byKey(const Key('export-captions'))).value,
+        isFalse,
+        reason: 'the sheet opens where it was left');
+
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['captions'], isFalse, reason: 'and nothing had to be touched');
+  });
+
+  testWidgets('the preview is drawn the way the film will be', (tester) async {
+    // The preview exists so a trainer sees the film's own drawing before
+    // spending a render on it. Asking for the board alone and being shown the
+    // caption column would be a preview of a film nobody is making.
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(requests: requests, ttsAvailable: false);
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(switchFor('Comments beside the board'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export-preview')));
+    await tester.pumpAndSettle();
+
+    final preview =
+        requests.where((r) => r.url.path.endsWith('preview-frames'));
+    expect(preview, hasLength(1));
+    final body = jsonDecode(preview.single.body) as Map<String, dynamic>;
+    expect(body['captions'], isFalse);
+  });
+
+  testWidgets('the comments switch is reachable on a 360 dp phone',
+      (tester) async {
+    // Measured, not assumed — this sheet has been 49 px too tall for a phone
+    // once already, and a release build clips that without a word: the control
+    // under the fold is not „off screen", it is a tap that presses Export. The
+    // proof is the request, which is what „reachable" means.
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final requests = <http.Request>[];
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: true,
+      ttsVoices: cloudVoices,
+    );
+
+    await openList(tester, api: api);
+    await tester.tap(actionOn('Opozicija', 'Export video'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(switchFor('Comments beside the board'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+
+    final body = jsonDecode(requests.where(_isExport).single.body)
+        as Map<String, dynamic>;
+    expect(body['captions'], isFalse);
   });
 
   testWidgets('the studio exports the tutorial it is writing', (tester) async {

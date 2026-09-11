@@ -44,6 +44,18 @@ const _voiceKey = 'tutorial_video_voice';
 /// voice is: a trainer who publishes to YouTube publishes to it every time.
 const _hdKey = 'tutorial_video_hd';
 
+/// Whether the last export wrote the sentences beside the board.
+///
+/// Remembered, and on by default: a tutorial's words are most of its teaching,
+/// so a trainer who wants the board alone is choosing something and a trainer
+/// who has never thought about it should get the film this app has always made.
+///
+/// **The voice is not part of this question.** The text still travels either
+/// way - it is the script the voice reads and, in a silent film, what decides
+/// how long a beat holds the screen - so turning the writing off leaves a
+/// narrated film narrated. A trainer who wants neither picks „No voice".
+const _captionsKey = 'tutorial_video_captions';
+
 /// The two resolutions offered, and why there are two rather than three.
 ///
 /// 720p is what a video watched on a phone wants, and it is the default. 1080p
@@ -146,6 +158,7 @@ Future<RenderJobState?> exportTutorialVideo({
     voice = known ? saved : null;
   }
   var hd = prefs.getBool(_hdKey) ?? false;
+  var captions = prefs.getBool(_captionsKey) ?? true;
 
   // Asked even where the server cannot speak: the quality is always a choice,
   // and a switch reachable only where piper is installed is a switch half the
@@ -157,8 +170,11 @@ Future<RenderJobState?> exportTutorialVideo({
     narrate: narrate,
     voice: voice,
     hd: hd,
+    captions: captions,
     onSample: (voice) => (debugPlayVoiceSample ?? _playSample)(api, voice),
-    onPreview: (wantsHd) => _showPreview(
+    // Both answers, because the preview exists to show the film that will be
+    // drawn and the writing is now half of what that film looks like.
+    onPreview: (wantsHd, wantsCaptions) => _showPreview(
       context: context,
       api: api,
       lessonId: lessonId,
@@ -166,11 +182,14 @@ Future<RenderJobState?> exportTutorialVideo({
       video: video,
       look: _lookOf(context),
       resolution: wantsHd ? _highResolution : _standardResolution,
+      captions: wantsCaptions,
     ),
   );
   if (chosen == null) return null; // cancelled, and nothing was sent
   hd = chosen.hd;
   await prefs.setBool(_hdKey, hd);
+  captions = chosen.captions;
+  await prefs.setBool(_captionsKey, captions);
   if (canSpeak) {
     // **The recording is not remembered, and choosing it forgets nothing.** It
     // is the default wherever there is one to use, so picking it says nothing
@@ -214,6 +233,7 @@ Future<RenderJobState?> exportTutorialVideo({
     title: title,
     look: look,
     resolution: hd ? _highResolution : _standardResolution,
+    captions: captions,
     // The recording and a synthesised voice are two answers to one question,
     // and a film is never sent both.
     narrate: mine == null && canSpeak ? narrate : null,
@@ -537,6 +557,7 @@ Future<void> _showPreview({
   required TutorialVideo video,
   required Map<String, String> look,
   required String resolution,
+  required bool captions,
 }) async {
   final result = await api.previewFrames(
     lessonId: lessonId,
@@ -545,6 +566,7 @@ Future<void> _showPreview({
     title: title,
     look: look,
     resolution: resolution,
+    captions: captions,
   );
   if (!context.mounted) return;
 
@@ -628,12 +650,16 @@ Future<void> _showPreview({
 enum _Voice { recording, synthesised, none }
 
 class _ExportChoice {
-  const _ExportChoice(this.answer, this.voice, this.hd, this.recording);
+  const _ExportChoice(
+      this.answer, this.voice, this.hd, this.captions, this.recording);
   final _Voice answer;
 
   /// The synthesised voice in the dropdown, sent only when [answer] asks for it.
   final String? voice;
   final bool hd;
+
+  /// Whether the sentences are written beside the board.
+  final bool captions;
 
   /// The trainer's own take, when that is the voice chosen — the take itself
   /// rather than a yes, so what is sent is what the dialog showed.
@@ -775,11 +801,12 @@ Future<_ExportChoice?> _askAboutExport({
   required bool narrate,
   required String? voice,
   required bool hd,
+  required bool captions,
 
   /// Draws three stills of the film at the resolution now chosen, without
   /// rendering anything. The sheet stays open behind it: a preview is a look,
   /// not a decision.
-  required Future<void> Function(bool hd) onPreview,
+  required Future<void> Function(bool hd, bool captions) onPreview,
 
   /// Speaks one sentence in a voice, so it can be heard before a film is spent
   /// on it. Answers false when the server had nothing to play.
@@ -808,6 +835,7 @@ Future<_ExportChoice?> _askAboutExport({
     chosen = _firstVoiceOf(voices, language);
   }
   var wantsHd = hd;
+  var wantsCaptions = captions;
   var previewing = false;
   var sampling = false;
   // The take, once the lookup answers. Chosen by default where there is one to
@@ -1054,6 +1082,29 @@ Future<_ExportChoice?> _askAboutExport({
                     : '720p, which is what a video watched on a phone wants.',
                 style: AppText.caption.copyWith(color: ctx.colors.textMuted),
               ),
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Comments beside the board',
+                        style: AppText.bodyBold
+                            .copyWith(color: ctx.colors.textPrimary)),
+                  ),
+                  Switch(
+                    key: const Key('export-captions'),
+                    value: wantsCaptions,
+                    activeThumbColor: ctx.colors.accent,
+                    onChanged: (v) => setLocal(() => wantsCaptions = v),
+                  ),
+                ],
+              ),
+              Text(
+                wantsCaptions
+                    ? 'Each sentence is written beside the board as it is read.'
+                    : 'The board alone, centred. The voice still reads — pick '
+                        '„No voice" above for a silent film.',
+                style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+              ),
             ],
           ),
           actions: [
@@ -1074,7 +1125,7 @@ Future<_ExportChoice?> _askAboutExport({
                   : () async {
                       setLocal(() => previewing = true);
                       try {
-                        await onPreview(wantsHd);
+                        await onPreview(wantsHd, wantsCaptions);
                       } finally {
                         // The sheet is still the one the trainer is standing in, so it
                         // is still the one that has to stop saying „…".
@@ -1085,7 +1136,7 @@ Future<_ExportChoice?> _askAboutExport({
             FilledButton(
               onPressed: () => Navigator.pop(
                   ctx,
-                  _ExportChoice(answer, chosen, wantsHd,
+                  _ExportChoice(answer, chosen, wantsHd, wantsCaptions,
                       answer == _Voice.recording ? found?.stored : null)),
               child: const Text('Export'),
             ),

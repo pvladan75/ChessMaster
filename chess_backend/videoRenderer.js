@@ -352,7 +352,21 @@ function revealedLines(lines, reveal) {
 /// The band is one height for the whole video, and that is the point: the board
 /// is sized around it, so a per-frame height would make the board grow and
 /// shrink under the viewer between one sentence and the next.
-function captionBandLines(events, { resolution = '720p', maxLines = 4 } = {}) {
+function captionBandLines(events, { resolution = '720p', maxLines = 4, captions = true } = {}) {
+  // **The trainer asked for a film without the text beside the board.**
+  //
+  // It enters here rather than at the drawing, because a band of zero lines is
+  // already the whole answer: `renderFrameBuffer` centres the board on it,
+  // `fpsForCaptionBand` drops the film to one drawing a second, and
+  // `renderBudget` counts the frames through the same reading. Refusing to draw
+  // the caption further down would have left the other two believing in a
+  // column that is not there.
+  //
+  // What it does **not** touch is the sentence itself. `data.text` is also the
+  // script the voice reads (`services/tutorialNarration.js`) and, on a silent
+  // film, what decides how long a beat holds the screen. Hiding the captions by
+  // sending no text would mute the film and race it at the same time.
+  if (!captions) return 0;
   const cfg = getResolutionParams(resolution);
   const probe = createCanvas(cfg.width, cfg.height).getContext('2d');
   let most = 0;
@@ -402,8 +416,8 @@ function fpsForCaptionBand(captionBand) {
 /// renderer and by `services/renderBudget.js`, which decides before anything is
 /// drawn whether a film fits in one request. A budget with its own idea of the
 /// rate would count frames the renderer does not draw.
-function framesPerSecondOf(events, { resolution } = {}) {
-  return fpsForCaptionBand(captionBandLines(events, { resolution }));
+function framesPerSecondOf(events, { resolution, captions = true } = {}) {
+  return fpsForCaptionBand(captionBandLines(events, { resolution, captions }));
 }
 
 /// The ffmpeg command line, as a value a test can read.
@@ -791,6 +805,10 @@ async function renderRecordingToMP4({
   showTimer = true,
   showCoords = true,
   showMoveText = true,
+  /// Whether the sentences are written beside the board. Off gives the centred
+  /// board the recorded-lesson export has always used, and the voice still
+  /// reads: the text travels either way.
+  captions = true,
   look = null,
   /// Called with (drawn, total) after every frame, for whoever is waiting.
   onProgress = null,
@@ -809,6 +827,30 @@ async function renderRecordingToMP4({
     const totalDuration = Math.max(3, Math.min(3600, Math.ceil(durationSeconds || 10)));
     const events = Array.isArray(timelineEvents) ? timelineEvents : [];
 
+    // Whether any beat says anything **and the trainer asked for it to be
+    // written**, which decides the layout and the rate together.
+    //
+    // Read once, here, and used both by the drawing and by the rate ffmpeg is
+    // told about. It was read twice — once for each — and the second reading
+    // could be made to disagree with the first by a mutation no test could
+    // catch, because the only thing that can see this path is a real render
+    // with a real ffmpeg. One reading cannot disagree with itself.
+    const captionBand = captionBandLines(events, { resolution, captions });
+
+    // **Frames a second, and why it is not one.**
+    //
+    // Nothing moves between beats when the sentence is simply printed, so one
+    // drawing a second was right and cheap. A sentence that *arrives as it is
+    // spoken* changes every frame while it is being read, so the film has to be
+    // drawn often enough for that to look like writing rather than like a
+    // slideshow of half-sentences. Four is enough for the eye at reading speed
+    // and costs four times the drawing — a three-minute film goes from about
+    // five seconds to twenty at 720p, measured on this machine.
+    //
+    // A film with no captions is drawn once a second, exactly as a wordless one
+    // always was — which is most of why hiding them is worth offering.
+    const fps = fpsForCaptionBand(captionBand);
+
     console.log(`[VIDEO_RENDER] Rendering ${resolution} MP4 (${boardTheme}): ${totalDuration}s, ${events.length} events, audio: ${audioFilePath}`);
 
     // Preload the pieces, in the skin this film was asked for.
@@ -818,7 +860,7 @@ async function renderRecordingToMP4({
     const ffmpeg = spawn('ffmpeg', ffmpegArgsFor({
       audioFilePath: hasAudio ? audioFilePath : null,
       outputPath,
-      inputFps: framesPerSecondOf(events, { resolution }),
+      inputFps: fps,
     }));
 
     // **Killed, not asked.** ffmpeg told to stop politely finishes writing the
@@ -874,22 +916,6 @@ async function renderRecordingToMP4({
       reject(err);
     });
 
-    // Whether any beat says anything, which decides the layout and the rate.
-    const captionBand = captionBandLines(events, { resolution });
-
-    // **Frames a second, and why it is not one.**
-    //
-    // Nothing moves between beats when the sentence is simply printed, so one
-    // drawing a second was right and cheap. A sentence that *arrives as it is
-    // spoken* changes every frame while it is being read, so the film has to be
-    // drawn often enough for that to look like writing rather than like a
-    // slideshow of half-sentences. Four is enough for the eye at reading speed
-    // and costs four times the drawing — a three-minute film goes from about
-    // five seconds to twenty at 720p, measured on this machine.
-    //
-    // A film with no captions is still drawn once a second, exactly as it always
-    // was. The recorded-lesson export is verified live.
-    const fps = fpsForCaptionBand(captionBand);
     const frames = totalDuration * fps;
 
     let state = initialFrameState();
@@ -1012,6 +1038,7 @@ async function renderPreviewFrame({
   showTimer = true,
   showCoords = true,
   showMoveText = false,
+  captions = true,
   look = null,
 }) {
   const events = Array.isArray(timelineEvents) ? timelineEvents : [];
@@ -1039,7 +1066,7 @@ async function renderPreviewFrame({
     // film that speaks is laid out with the caption column beside a smaller
     // board — so a wordless beat inside a talking tutorial must be previewed
     // with the column, or the preview shows a layout the film will never have.
-    captionBand: captionBandLines(events, { resolution }),
+    captionBand: captionBandLines(events, { resolution, captions }),
     captionReveal: 1,
     timestampSec: Math.floor((events[at].timestampMs || 0) / 1000),
     totalDurationSec: totalDuration,

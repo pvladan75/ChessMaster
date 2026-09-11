@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1942 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1956 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 1206 tests, all green
+cd chess_backend && npm test          # node --test, 1213 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1672,6 +1672,26 @@ the labels cost no height at all. And two gates failed the copy rather than the
 code — „Open in the studio" against the rule that *studio* names one screen, and
 „missing from the lesson" against the Lesson/Tutorial split. Both were reworded,
 which is cheaper than an allowance that has to be argued.
+
+**A film can be the board alone — 11.9.2026, 1956 in the app with 1 skipped and
+1213 on the backend** with `.env` moved aside, analyze at 29 infos and zero
+warnings. (The app's count here had stayed at 1942 while the suite was 1951 —
+„the writing follows the voice" added nine and did not touch this file.)
+Seventeen mutations, all caught. Live check: `TODO-provera.md`, item 149.
+
+**Hiding the words is a drawing flag, never a text change.** `data.text` is also
+the script the voice reads and, in a silent film, what decides how long a beat
+holds the screen — so a film sent without its sentences would be muted and
+raced at once. The flag enters at `captionBandLines`, because a band of zero
+lines is already the whole answer: the layout, the frame rate and the render
+budget all read it from there, and a flag applied further down would have left
+two of the three believing in a column that is not drawn.
+
+**Two of the seventeen were caught only by tests written after the harness
+was drafted.** Nothing asserted that the route's budget reads the flag, and
+nothing asserted that the choice is *written* to preferences — the test that
+the sheet opens on last time's answer seeded that answer itself. **A test that
+seeds the state it checks cannot catch the code that was meant to write it.**
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
