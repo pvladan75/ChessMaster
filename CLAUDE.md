@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1956 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1971 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1226 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1710,6 +1710,32 @@ missing.** The first fake pool returned `language` whatever the `SELECT`
 named, so deleting the column from the student route's query left every test
 green. It returns only what was selected now. Same family as every check in
 this file that could not fail.
+
+**Seven languages in the app's voice core — 11.9.2026, app 1971 with 1
+skipped, backend 1226.** Phase 2 of `docs/PLAN-JEZIK-GLASA.md`. Fifteen
+mutations, all caught.
+
+**One file of expected outputs, read by both suites**, replaced a list of the
+app's English expectations hand-copied into `spoken_moves.test.js` —
+`chess_backend/test/fixtures/spoken_moves_cases.json`. Writing it found the two
+ends already disagreeing: the server's end-of-sentence rule knew Š and Č as
+capitals, the app's knew only A–Z, and neither knew Cyrillic. **A copied list
+checks only what was copied.**
+
+**A gate taught a new alphabet the day the alphabet arrived.**
+`vocabulary_en_test.dart` knew only the Latin Serbian letters, so a Cyrillic
+label on a screen would have passed — unnoticed only because `lib/` held no
+Cyrillic. It knows Cyrillic now, and exempts voice vocabulary **by structure**
+(inside a `SpeechVocabulary(...)`) rather than by file, because a file
+allowance also hides next year's label. Proved with four probes, one of them a
+Serbian string on the line after a vocabulary closes.
+
+**A backslash-u escape in a tool's input arrives as the character.** The edit
+that wrote the Cyrillic range as escapes into two regexes put the characters
+Ѐ–Я there instead, because the tool input is JSON-decoded; the regex still
+worked, so only reading the bytes showed it — and the same decoding then broke
+the script meant to fix it. Build the backslash with `chr(92)` when a literal
+escape has to land in a file.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

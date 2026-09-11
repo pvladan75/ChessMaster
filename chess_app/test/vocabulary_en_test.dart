@@ -39,7 +39,13 @@ const _allowedLesson = <String>[
 
 /// Serbian letters. Any of them inside a string literal means the sweep has not
 /// reached that line.
-final _serbian = RegExp(r'[čćžšđČĆŽŠĐ]');
+///
+/// **Cyrillic too, since 11.9.2026.** Until then this knew only the Latin
+/// letters, so a Cyrillic string on a screen would have passed unseen — and
+/// nobody noticed because there was no Cyrillic in `lib/` to notice. The first
+/// arrived with the Serbian (Cyrillic) voice vocabulary of
+/// `docs/PLAN-JEZIK-GLASA.md`, which is exactly when the gate had to learn it.
+final _serbian = RegExp(r'[čćžšđČĆŽŠĐ\u0400-\u04FF]');
 
 /// A Dart string literal, single or double quoted, no escapes worth the
 /// trouble — the point is to find copy, not to parse Dart.
@@ -107,8 +113,22 @@ void main() {
   test('no string a reader sees is still in Serbian', () {
     final offenders = <String>[];
     for (final entry in sources.entries) {
+      // Inside a `SpeechVocabulary(...)`: the words a voice says a move with,
+      // in a tutorial that says it is written in Serbian — the owner's
+      // decision of 11.9.2026, `docs/PLAN-JEZIK-GLASA.md`. Heard, never shown.
+      //
+      // **Exempted by what the code is, not by where it is.** A file on an
+      // allowance list would also hide the Serbian label somebody adds to that
+      // file next year; a vocabulary is, by its type, words for a synthesiser,
+      // and the moment a line leaves the constructor it is scanned again.
+      var inVocabulary = false;
       for (var i = 0; i < entry.value.length; i++) {
         final line = entry.value[i];
+        if (line.contains('= SpeechVocabulary(')) inVocabulary = true;
+        if (inVocabulary) {
+          if (line.trim() == ');') inVocabulary = false;
+          continue;
+        }
         if (_isComment(line)) continue;
         for (final match in _literal.allMatches(line)) {
           if (_serbian.hasMatch(match.group(0)!)) {

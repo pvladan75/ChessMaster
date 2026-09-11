@@ -286,8 +286,13 @@ function plainPunctuation(text) {
 /// stop belongs to the number itself — „See 3. diagram" — it has to stay, and
 /// the two are told apart by what follows: a stop that ends a sentence is
 /// followed by a capital or by nothing at all.
+///
+/// The capitals include Cyrillic (U+0400–U+042F, which holds Ђ Ј Љ Њ Ћ Џ as
+/// well as А–Я), since a tutorial may now be written in Serbian Cyrillic. The
+/// app's `_noOrdinalStops` carries the same class, and
+/// `test/fixtures/spoken_moves_cases.json` holds the two to it.
 function noOrdinalStops(text) {
-  return text.replace(/(\d)\.(\s+(?=[A-ZČĆŠĐŽÄÖÜÉÈÀÁÍÓÚÑ])|$)/g, (m, digit, tail) => `${digit}${tail}`);
+  return text.replace(/(\d)\.(\s+(?=[A-ZČĆŠĐŽÄÖÜÉÈÀÁÍÓÚÑ\u0400-\u042F])|$)/g, (m, digit, tail) => `${digit}${tail}`);
 }
 
 /// [text] with every move in it written out in the language of [voice].

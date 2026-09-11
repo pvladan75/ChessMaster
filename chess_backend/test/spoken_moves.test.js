@@ -16,49 +16,38 @@
 // **The app had solved this already** — `speakable` in `chess_app/lib/core/
 // services/speech_text.dart`, pinned by `chess_app/test/speech_text_test.dart`
 // — and the server was the half that had never been taught. So the first test
-// below is the important one: it holds the two ends to one wording, by asserting
-// on the app's own expected strings, copied from that file.
+// below is the important one: it holds the two ends to one wording.
+//
+// **Since 11.9.2026 that wording is one file both suites read**,
+// `test/fixtures/spoken_moves_cases.json`, in all seven languages a tutorial
+// may be written in. It replaced a list of the app's English expectations
+// copied into this file by hand — which held the two ends together only for as
+// long as nobody edited one of the copies.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
 
 const { spokenMoves, languageOf } = require('../services/spokenMoves');
 const tts = require('../services/tts');
 const { narrateFilm } = require('../services/tutorialNarration');
+const { TUTORIAL_LANGUAGES } = require('../services/tutorialLanguage');
 
-test('the film says in English exactly what the app says', () => {
-  // Every one of these is an expectation copied from
-  // `chess_app/test/speech_text_test.dart`. A trainer who hears a tutorial read
-  // aloud in the app and then watches the film must hear the same sentence, and
-  // two vocabularies drifting apart is what this repository has paid for before.
-  const app = {
-    'd4': 'd four',
-    'Kf2': 'king f two',
-    'Rd3': 'rook d three',
-    'Rxd3': 'rook takes d three',
-    'exd5': 'pawn from e takes d five',
-    'Nbd7': 'knight from b to d seven',
-    'R1e2': 'rook from one to e two',
-    'Qg3+': 'queen g three, check',
-    'Qf1#': 'queen f one, mate',
-    'e8=Q': 'e eight promotes to queen',
-    'a1=N+': 'a one promotes to knight, check',
-    'O-O': 'castles kingside',
-    'O-O-O': 'castles queenside',
-    '0-0-0': 'castles queenside',
-    'Be a good sport.': 'Be a good sport.',
-    'A rating of 2400 is high': 'A rating of 2400 is high',
-    'It played e6.': 'It played e six.',
-    'It held with Kf2.': 'It held with king f two.',
-    'Found 3 of 12.': 'Found 3 of 12',
-    'A rating of 2400.': 'A rating of 2400',
-    '1.e4': '1.e four',
-    'Correct. Try another move.': 'Correct. Try another move.',
-    'Checking the tablebases…': 'Checking the tablebases,',
-    'First line\n  second line': 'First line second line',
-  };
-  for (const [written, said] of Object.entries(app)) {
-    assert.equal(spokenMoves(written, 'en_US-lessac-medium'), said, JSON.stringify(written));
+const SHARED = JSON.parse(fs.readFileSync(
+  path.join(__dirname, 'fixtures', 'spoken_moves_cases.json'), 'utf8')).cases;
+
+test('the film says what the app says, in every language a tutorial may be in', () => {
+  // A trainer who hears a tutorial read aloud in the app and then watches the
+  // film must hear the same sentence, and two vocabularies drifting apart is
+  // what this repository has paid for before.
+  for (const { language, written, spoken } of SHARED) {
+    assert.equal(spokenMoves(written, language), spoken, `${language}: ${JSON.stringify(written)}`);
   }
+  // Every language is in the file, or one of them is judged by nothing.
+  assert.deepEqual(
+    [...new Set(SHARED.map((c) => c.language))].sort(),
+    [...TUTORIAL_LANGUAGES].sort(),
+  );
 });
 
 test('a move is expanded into the words of the voice speaking it', () => {

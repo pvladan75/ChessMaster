@@ -38,7 +38,19 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Jezik glasa — plan, 11.9.2026; faza 1 (server) gotova
+## Jezik glasa — plan, 11.9.2026; faze 1 i 2 gotove
+
+**Faza 2 je u kodu** (aplikacija 1971, 1 preskočen; backend 1226): sedam
+jezika sa glasovima uređaja u redosledu (`core/services/tutorial_language.dart`,
+`voiceFor` — srpska latinica: srpski, pa hrvatski, pa bosanski; ćirilica samo
+srpski; nikad engleski), i šest rečnika u `speech_text.dart` prenetih iz
+`spokenMoves.js`. Oba suite-a sada čitaju **isti fajl od 76 očekivanih
+izgovora** (`chess_backend/test/fixtures/spoken_moves_cases.json`). Usput:
+server i aplikacija se već nisu slagali oko velikih slova posle kraja rečenice
+(Š, Č, ćirilica) — sad je jedno pravilo. Kapija za srpski tekst u aplikaciji je
+naučila ćirilicu, a rečnik glasa izuzima po strukturi, ne po fajlu. Ekrani još
+ništa ne koriste — to su faze 3 do 5.
+
 
 **Faza 1 je u kodu** (backend 1226, sa `.env` sklonjenim): kolona `language`,
 jedan spisak od sedam kodova (`services/tutorialLanguage.js`), čuvanje, izmena

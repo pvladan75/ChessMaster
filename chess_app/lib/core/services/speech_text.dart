@@ -112,6 +112,242 @@ const englishSpeech = SpeechVocabulary(
   longCastle: 'castles queenside',
 );
 
+// --- The six other languages a tutorial may be written in -------------------
+//
+// Phase 2 of `docs/PLAN-JEZIK-GLASA.md`. Ported word for word from
+// `chess_backend/services/spokenMoves.js`, which was itself ported from this
+// file — so this is the words coming home, not a third implementation. Both
+// ends are judged by one file, `chess_backend/test/fixtures/
+// spoken_moves_cases.json`; change a word here and it fails until the server
+// says the same.
+
+/// A bare letter, for the languages whose voices already say the letter's
+/// name properly. The reason is on [englishSpeech.files].
+const _bareFiles = {
+  'a': 'a',
+  'b': 'b',
+  'c': 'c',
+  'd': 'd',
+  'e': 'e',
+  'f': 'f',
+  'g': 'g',
+  'h': 'h',
+};
+
+/// Serbian, Latin script.
+///
+/// `serbianSpeech` as it stood before the English pivot deleted it
+/// (`ce012c0^`), with one change made live on 11.9.2026 against a real Serbian
+/// voice: the consonant files are **words** — be, ce, de, ef, ge, ha — because
+/// „Bc4" came back with the `c` almost inaudible. A lone consonant is a sound,
+/// not a word. The vowels stay themselves. What the old „dzh" fault on
+/// [englishSpeech.files] was really about is a voice reading a language that is
+/// not its own; a Serbian voice reading Serbian spells correctly.
+///
+/// Whether that is also right for Croatian `Matej` on Windows, which reads
+/// this table when a device has no Serbian voice, is the live check in the
+/// plan — it was proved on Azure, and a device voice is a different ear.
+const serbianLatinSpeech = SpeechVocabulary(
+  pieces: {
+    'K': 'kralj',
+    'Q': 'dama',
+    'R': 'top',
+    'B': 'lovac',
+    'N': 'skakač',
+  },
+  files: {
+    'a': 'a',
+    'b': 'be',
+    'c': 'ce',
+    'd': 'de',
+    'e': 'e',
+    'f': 'ef',
+    'g': 'ge',
+    'h': 'ha',
+  },
+  ranks: {
+    '1': 'jedan',
+    '2': 'dva',
+    '3': 'tri',
+    '4': 'četiri',
+    '5': 'pet',
+    '6': 'šest',
+    '7': 'sedam',
+    '8': 'osam',
+  },
+  pawn: 'pešak',
+  captures: 'uzima',
+  from: 'sa',
+  to: 'na',
+  promotesTo: 'postaje',
+  check: 'šah',
+  mate: 'mat',
+  shortCastle: 'mala rokada',
+  longCastle: 'velika rokada',
+);
+
+/// Serbian, Cyrillic script: the same words, written as a Cyrillic tutorial's
+/// voice reads them. What the trainer wrote is untouched; only what is added on
+/// the way to the voice is in the voice's script.
+const serbianCyrillicSpeech = SpeechVocabulary(
+  pieces: {
+    'K': 'краљ',
+    'Q': 'дама',
+    'R': 'топ',
+    'B': 'ловац',
+    'N': 'скакач',
+  },
+  files: {
+    'a': 'а',
+    'b': 'бе',
+    'c': 'це',
+    'd': 'де',
+    'e': 'е',
+    'f': 'еф',
+    'g': 'ге',
+    'h': 'ха',
+  },
+  ranks: {
+    '1': 'један',
+    '2': 'два',
+    '3': 'три',
+    '4': 'четири',
+    '5': 'пет',
+    '6': 'шест',
+    '7': 'седам',
+    '8': 'осам',
+  },
+  pawn: 'пешак',
+  captures: 'узима',
+  from: 'са',
+  to: 'на',
+  promotesTo: 'постаје',
+  check: 'шах',
+  mate: 'мат',
+  shortCastle: 'мала рокада',
+  longCastle: 'велика рокада',
+);
+
+const germanSpeech = SpeechVocabulary(
+  pieces: {
+    'K': 'König',
+    'Q': 'Dame',
+    'R': 'Turm',
+    'B': 'Läufer',
+    'N': 'Springer',
+  },
+  files: _bareFiles,
+  ranks: {
+    '1': 'eins',
+    '2': 'zwei',
+    '3': 'drei',
+    '4': 'vier',
+    '5': 'fünf',
+    '6': 'sechs',
+    '7': 'sieben',
+    '8': 'acht',
+  },
+  pawn: 'Bauer',
+  captures: 'schlägt',
+  from: 'von',
+  to: 'nach',
+  promotesTo: 'Umwandlung in',
+  check: 'Schach',
+  mate: 'schachmatt',
+  shortCastle: 'kurze Rochade',
+  longCastle: 'lange Rochade',
+);
+
+const spanishSpeech = SpeechVocabulary(
+  pieces: {
+    'K': 'rey',
+    'Q': 'dama',
+    'R': 'torre',
+    'B': 'alfil',
+    'N': 'caballo',
+  },
+  files: _bareFiles,
+  ranks: {
+    '1': 'uno',
+    '2': 'dos',
+    '3': 'tres',
+    '4': 'cuatro',
+    '5': 'cinco',
+    '6': 'seis',
+    '7': 'siete',
+    '8': 'ocho',
+  },
+  pawn: 'peón',
+  captures: 'toma',
+  from: 'desde',
+  to: 'a',
+  promotesTo: 'corona',
+  check: 'jaque',
+  mate: 'jaque mate',
+  shortCastle: 'enroque corto',
+  longCastle: 'enroque largo',
+);
+
+const italianSpeech = SpeechVocabulary(
+  pieces: {
+    'K': 're',
+    'Q': 'donna',
+    'R': 'torre',
+    'B': 'alfiere',
+    'N': 'cavallo',
+  },
+  files: _bareFiles,
+  ranks: {
+    '1': 'uno',
+    '2': 'due',
+    '3': 'tre',
+    '4': 'quattro',
+    '5': 'cinque',
+    '6': 'sei',
+    '7': 'sette',
+    '8': 'otto',
+  },
+  pawn: 'pedone',
+  captures: 'prende',
+  from: 'da',
+  to: 'a',
+  promotesTo: 'promuove a',
+  check: 'scacco',
+  mate: 'scacco matto',
+  shortCastle: 'arrocco corto',
+  longCastle: 'arrocco lungo',
+);
+
+const frenchSpeech = SpeechVocabulary(
+  pieces: {
+    'K': 'roi',
+    'Q': 'dame',
+    'R': 'tour',
+    'B': 'fou',
+    'N': 'cavalier',
+  },
+  files: _bareFiles,
+  ranks: {
+    '1': 'un',
+    '2': 'deux',
+    '3': 'trois',
+    '4': 'quatre',
+    '5': 'cinq',
+    '6': 'six',
+    '7': 'sept',
+    '8': 'huit',
+  },
+  pawn: 'pion',
+  captures: 'prend',
+  from: 'de',
+  to: 'à',
+  promotesTo: 'promotion en',
+  check: 'échec',
+  mate: 'échec et mat',
+  shortCastle: 'petit roque',
+  longCastle: 'grand roque',
+);
+
 /// A move in algebraic notation, wherever it sits inside a sentence.
 ///
 /// Anchored on a destination square, because that is the one part every move
@@ -210,8 +446,15 @@ String _sayMove(Match m, SpeechVocabulary v) {
 ///
 /// Moves need none of this - their rank is already a word by the time this
 /// runs - and "1.e4" is untouched either way, having no space after the stop.
+///
+/// A capital is any the seven tutorial languages start a sentence with: the
+/// Latin diacritics („Pronađeno 3 od 12. Šta sada?") and the whole Cyrillic
+/// capital block, U+0400 to U+042F, which holds Ђ Ј Љ Њ Ћ Џ as well as А to Я.
+/// `spokenMoves.js` carries the same class, and the shared fixture holds the
+/// two to it.
 String _noOrdinalStops(String text) => text.replaceAllMapped(
-      RegExp(r'(\d)\.(\s+(?=[A-Z])|$)'),
+      RegExp(
+          r'(\d)\.(\s+(?=[A-Z\u010C\u0106\u0160\u0110\u017DÄÖÜÉÈÀÁÍÓÚÑ\u0400-\u042F])|$)'),
       (m) => '${m[1]}${m[2]}',
     );
 

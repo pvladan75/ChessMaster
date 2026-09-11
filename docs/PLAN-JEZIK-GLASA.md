@@ -110,6 +110,29 @@ column.
 
 ## Phase 2 — the pure core, in the app
 
+**Done 11.9.2026** — app **1971** with 1 skipped (+15), backend unchanged at
+**1226**, analyze 29 infos and zero warnings. `core/services/
+tutorial_language.dart` and six vocabularies in `speech_text.dart`; the shared
+cases are `chess_backend/test/fixtures/spoken_moves_cases.json` (76 of them,
+all seven languages). Fifteen mutations, all caught. Three things came out of
+it:
+
+- **The two ends already disagreed**, before any of this: the server's
+  end-of-sentence rule knew Serbian capitals (Š, Č…) and the app's knew only
+  A–Z, and neither knew Cyrillic. Both carry one class now, and the shared file
+  has a case for each.
+- **`vocabulary_en_test.dart` failed the Serbian vocabulary**, correctly by its
+  own rule and wrongly by its contract — those words are heard, not shown. It
+  exempts lines inside a `SpeechVocabulary(...)` now, by structure rather than
+  by file, and was **taught Cyrillic** at the same moment, since it had never
+  known it and this was the first Cyrillic in `lib/`. Four probes prove it still
+  fails on real copy, including a Serbian string on the line after a vocabulary
+  closes.
+- **One backend run of five failed two tests and was not repeatable**; which
+  two is unknown, because that run printed only the totals. It fits the
+  shared-`exports/` flake CLAUDE.md already records, which is a guess and not a
+  finding.
+
 The lead's own commit, before any screen touches it (CLAUDE.md, batch 59: „where
 a batch has a pure core, land it as the lead's own commit").
 
