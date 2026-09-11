@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Prevod tutorijala, van
-aplikacije" odmah ispod ove glave, pa „Video bez komentara pored
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Jezik glasa — plan"
+odmah ispod ove glave, pa „Prevod tutorijala, van
+aplikacije", pa „Video bez komentara pored
 table", pa „Ispis prati glas, a ne
 sat", pa „Tutorijal iz fajla, i oznake koje su oduvek
 postojale", pa „Četiri prijave
@@ -36,6 +37,20 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Jezik glasa — plan, 11.9.2026, ništa još nije građeno
+
+`docs/PLAN-JEZIK-GLASA.md`. Vlasnik se složio sa sve tri preporuke: tutorijal
+**kaže na kom je jeziku** (polje, ne pogađanje), bira se samo od **sedam
+jezika** čije poteze aplikacija ume da izgovori, i gde uređaj nema glas za taj
+jezik **ne čita se ništa** — ▶ se ne crta, ekran kaže šta da se instalira, a
+tutorijal radi dugmadima. To sužava odluku od 9.9.2026 da se ništa ne izgovara
+na srpskom: ona i dalje važi za tekst same aplikacije i za tutorijal koji nije
+rekao jezik. Šest faza: kolona na serveru (uključujući put do deteta, preko
+`assignmentReview.js`), čisto jezgro u aplikaciji sa rečnicima prenetim iz
+`spokenMoves.js` i jednim fajlom očekivanih izgovora koji čitaju oba suite-a,
+model i uvoz, glas po rečenici sa brzinom po glasu, kontrola u studiju, pa
+dokumenti i provera uživo.
 
 ## Prevod tutorijala, van aplikacije — 11.9.2026
 

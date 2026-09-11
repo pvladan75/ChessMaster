@@ -317,6 +317,12 @@ voice, and that is accepted rather than worked around. What follows is kept
 because it is the reasoning that would have to be revisited if that ever
 changes.
 
+**Narrowed on 11.9.2026 — see `docs/PLAN-JEZIK-GLASA.md`.** It changed: a
+tutorial may now say which of seven languages it is written in, and its
+sentences are read with a voice for that language, or not at all. The app's own
+text, and a tutorial that has not said, stay exactly as this paragraph
+describes. The per-artefact field below is the version being built.
+
 **Reading a user's own text in the language they wrote it in.** The owner's
 rule, given 8.9.2026 and recorded verbatim because it decides the shape: *the
 only other language in this app is a place the user made — writing a repertoire,
