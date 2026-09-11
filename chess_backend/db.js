@@ -145,6 +145,15 @@ async function initDB() {
       ALTER TABLE saved_lessons
       ADD COLUMN IF NOT EXISTS position_list JSONB;
     `);
+    // The language the tutorial is written in, so its sentences are read by a
+    // voice for that language — docs/PLAN-JEZIK-GLASA.md. One of the seven
+    // codes in services/tutorialLanguage.js, or NULL for **not said**, which is
+    // every tutorial written before this column and means the reader's own
+    // voice from Settings, exactly as before. NULL is not English.
+    await client.query(`
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS language VARCHAR(16);
+    `);
     // The tutorial's current video.
     //
     // **One per tutorial, and recorded.** Every export used to write a file

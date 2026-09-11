@@ -72,6 +72,14 @@ Croatian voice cannot read Cyrillic.
 
 ## Phase 1 — the column, on the server
 
+**Done 11.9.2026** — backend **1226** with `.env` moved aside (+13, all in
+`test/tutorial_language.test.js`), fourteen mutations, all caught. One survived
+at first, and it was the one that mattered: deleting `language` from the
+student route's `SELECT` left every test green, because the fake pool handed
+the column back whether or not the query asked for it. The fake now returns
+only what was selected, as a database does — **a fake that answers a question
+nobody asked cannot see the question go missing.**
+
 - `db.js`: `ALTER TABLE saved_lessons ADD COLUMN IF NOT EXISTS language
   VARCHAR(16);` with a comment saying NULL means not said.
 - One reader of the seven codes on the server (`services/tutorialLanguage.js`,
@@ -85,9 +93,12 @@ Croatian voice cannot read Cyrillic.
   copy.
 - `GET /lessons` names it in its column list, which is explicit rather than
   `*`.
-- **The child's route**: `services/assignmentReview.js` reads `title, fen, pgn,
-  position_list` for an assignment's steps and must read `language` too, and the
-  response must carry it. This is the one that decides whether the feature
+- **The child's route**: `GET /assignments/:id` → `getAssignmentDetail` in
+  `services/assignmentService.js` reads `title, fen, pgn, position_list` for an
+  assignment's steps and must read `language` too, and the response must carry
+  it (`lessonLanguage`). Not `assignmentReview.js` — that is the trainer's
+  review of the same assignment, and this plan named it first by mistake; the
+  student's viewer never calls it. This is the one that decides whether the feature
   reaches the reader it exists for, and it is the one easiest to forget — the
   trainer's list working proves nothing about it.
 

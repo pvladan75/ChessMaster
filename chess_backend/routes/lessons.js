@@ -22,6 +22,7 @@ const tutorialNarration = require('../services/tutorialNarration');
 const multer = require('multer');
 const narrationUpload = require('../services/narrationUpload');
 const { mayRecordNarration } = require('../services/recordingConsent');
+const { readTutorialLanguage } = require('../services/tutorialLanguage');
 
 /// Runs a submitted step list through the one builder, or answers the caller.
 ///
@@ -66,6 +67,11 @@ router.post('/save', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Title and either FEN or positionList are required' });
   }
 
+  // Absent is „not said", like null. Refused before anything is built, so a
+  // bad code never leaves half a tutorial behind.
+  const language = readTutorialLanguage(req.body.language ?? null);
+  if (!language.ok) return res.status(400).json({ error: language.error });
+
   const initialFen = fen || (positionList && positionList.length > 0 ? positionList[0].fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
   // Every step gets its id here, once, and keeps it for the rest of its life.
@@ -74,8 +80,8 @@ router.post('/save', authenticateToken, async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn, position_list) VALUES ($1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [req.user.id, title, description || null, tags || null, initialFen, pgn || null, steps.length > 0 ? JSON.stringify(steps) : null]
+      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn, position_list, language) VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [req.user.id, title, description || null, tags || null, initialFen, pgn || null, steps.length > 0 ? JSON.stringify(steps) : null, language.value]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -189,6 +195,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Title and either FEN or positionList are required' });
   }
 
+  // Judged only when mentioned, and written only then: silence leaves the
+  // column alone, like the description and the labels below.
+  const touchesLanguage = mentions(req.body, 'language');
+  const language = touchesLanguage ? readTutorialLanguage(req.body.language) : null;
+  if (language && !language.ok) return res.status(400).json({ error: language.error });
+
   const initialFen = fen || (positionList && positionList.length > 0 ? positionList[0].fen : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
   const steps = touchesSteps ? buildOrReject(res, positionList) : [];
@@ -229,7 +241,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // on every save.
     //
     // Built from a list of clauses rather than as hand-written statements: with
-    // three optional columns that is eight of them, and the one that would be
+    // four optional columns that is sixteen of them, and the one that would be
     // wrong is always the one nobody read. `title` and `fen` are not optional —
     // the route refuses a request without a title above.
     const columns = ['title', 'fen', 'pgn'];
@@ -241,6 +253,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (mentions(req.body, 'tags')) {
       columns.push('tags');
       values.push(tags || null);
+    }
+    if (touchesLanguage) {
+      columns.push('language');
+      values.push(language.value);
     }
     if (touchesSteps) {
       columns.push('position_list');
@@ -350,7 +366,7 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
 
   try {
     const found = await pool.query(
-      `SELECT title, description, tags, fen, pgn, position_list
+      `SELECT title, description, tags, fen, pgn, position_list, language
          FROM saved_lessons
         WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)`,
       [id, req.user.id]
@@ -376,9 +392,11 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
       steps = built.entries;
     }
 
+    // The language travels with the copy: a new version of a Serbian tutorial
+    // is still Serbian, and one that said nothing still says nothing.
     const result = await pool.query(
-      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn, position_list) VALUES ($1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [req.user.id, title, source.description || null, source.tags || null, source.fen, source.pgn || null, steps ? JSON.stringify(steps) : null]
+      'INSERT INTO saved_lessons (user_id, trainer_id, title, description, tags, fen, pgn, position_list, language) VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [req.user.id, title, source.description || null, source.tags || null, source.fen, source.pgn || null, steps ? JSON.stringify(steps) : null, source.language ?? null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -1276,7 +1294,7 @@ router.get('/', authenticateToken, async (req, res) => {
   const { search, includeTags, excludeTags, matchMode } = req.query;
   try {
     let query = `
-      SELECT id, title, description, tags, fen, pgn, position_list, created_at,
+      SELECT id, title, description, tags, fen, pgn, position_list, language, created_at,
              (video_filename IS NOT NULL) AS has_video, video_rendered_at,
              -- A film this account has being drawn right now, so the list can
              -- offer its progress rather than a second render (item 5 of part

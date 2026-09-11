@@ -644,13 +644,20 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
   // viewer needs one request rather than a second lookup against a lesson they
   // may not otherwise be allowed to read.
   let steps = null;
+  // The language the tutorial is written in, so the student's screen reads it
+  // with a voice for that language (docs/PLAN-JEZIK-GLASA.md). **This is the
+  // route that decides whether that feature reaches the reader it is for** —
+  // the trainer's own list carrying the column proves nothing about it. Null
+  // when the tutorial has not said, and for anything that is not a tutorial.
+  let lessonLanguage = null;
   if (assignment.kind === 'lesson' && assignment.lesson_id) {
     const lessonRes = await pool.query(
-      'SELECT title, fen, pgn, position_list FROM saved_lessons WHERE id = $1',
+      'SELECT title, fen, pgn, position_list, language FROM saved_lessons WHERE id = $1',
       [assignment.lesson_id]
     );
     const lesson = lessonRes.rows[0];
     if (lesson) {
+      lessonLanguage = lesson.language ?? null;
       steps = stepsOfLesson({
         positionList: lesson.position_list,
         title: lesson.title,
@@ -689,7 +696,7 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
     customPositions = positions.rows;
   }
 
-  return { ...assignment, items: items.rows, steps, customPositions };
+  return { ...assignment, items: items.rows, steps, customPositions, lessonLanguage };
 }
 
 /// Turns raw attempt rows into the summary a trainer reads.

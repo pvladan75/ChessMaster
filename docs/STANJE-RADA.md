@@ -38,7 +38,18 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Jezik glasa — plan, 11.9.2026, ništa još nije građeno
+## Jezik glasa — plan, 11.9.2026; faza 1 (server) gotova
+
+**Faza 1 je u kodu** (backend 1226, sa `.env` sklonjenim): kolona `language`,
+jedan spisak od sedam kodova (`services/tutorialLanguage.js`), čuvanje, izmena
+(ćutanje ne dira kolonu, `null` briše, nepoznat kod je 400), klon koji nosi
+jezik, lista, i — ono najvažnije — **đakov put** `GET /assignments/:id`
+(`getAssignmentDetail`) vraća `lessonLanguage`. Plan je u prvoj verziji
+imenovao pogrešan fajl za taj put (`assignmentReview.js`, trenerov pregled);
+ispravljeno pre kodiranja. Četrnaest mutacija, sve uhvaćene; jedna je prvo
+preživela jer je lažna baza vraćala kolonu i kad je upit nije tražio.
+Aplikacija još ništa ne zna o tome — to su faze 2 do 5.
+
 
 `docs/PLAN-JEZIK-GLASA.md`. Vlasnik se složio sa sve tri preporuke: tutorijal
 **kaže na kom je jeziku** (polje, ne pogađanje), bira se samo od **sedam

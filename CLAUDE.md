@@ -23,7 +23,7 @@ several rules below.
 ```bash
 cd chess_app && flutter test          # 1956 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 1213 tests, all green
+cd chess_backend && npm test          # node --test, 1226 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1693,6 +1693,23 @@ was drafted.** Nothing asserted that the route's budget reads the flag, and
 nothing asserted that the choice is *written* to preferences — the test that
 the sheet opens on last time's answer seeded that answer itself. **A test that
 seeds the state it checks cannot catch the code that was meant to write it.**
+
+**A tutorial says its language, on the server — 11.9.2026, backend 1226** with
+`.env` moved aside; the app is untouched at 1956. Phase 1 of
+`docs/PLAN-JEZIK-GLASA.md`. Fourteen mutations, all caught.
+
+**The route that matters is the one the reader uses, and the plan named the
+wrong one.** It said `assignmentReview.js`; the student's viewer is fed by
+`getAssignmentDetail` in `assignmentService.js`, and the review is the
+trainer's. Found by reading the app's call before writing the server's half —
+grep the client for the URL, then follow it, rather than trusting a name that
+sounds right.
+
+**A fake that answers a question nobody asked cannot see the question go
+missing.** The first fake pool returned `language` whatever the `SELECT`
+named, so deleting the column from the student route's query left every test
+green. It returns only what was selected now. Same family as every check in
+this file that could not fail.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
