@@ -128,10 +128,26 @@ pored dugmeta piše „edited".
 **Šta „Apply" odbija:**
 
 * tekst u kome neki potez ne može da se odigra — odbija se **ceo**, uz broj
-  takvih poteza. Deo ostaje netaknut;
-* ako nalepljeni tekst nosi svoju polaznu poziciju (`[FEN]`) različitu od
-  pozicije dela, pita se: **„Use that position"** (deo se premešta na nju),
-  **„Keep existing"** (tekst se odbija) ili **„Cancel"**.
+  takvih poteza. Deo ostaje netaknut.
+
+**Kad tekst počinje sa druge pozicije, pita pre nego što odbije.** Dva slučaja,
+ista tri odgovora:
+
+* **Tekst nosi svoju polaznu poziciju** (`[FEN]`), različitu od pozicije dela —
+  „Text starts from a different position". **„Use that position"** premešta
+  deo na tu poziciju.
+* **Tekst nema `[FEN]`**, a potezi ne mogu da se odigraju od pozicije dela, ali
+  mogu **svi** od osnovne pozicije — „Text does not start from here". To je
+  obično partija nalepljena od prvog poteza u deo koji stoji na, recimo,
+  dvanaestom. **„Use starting position"** premešta deo na osnovnu poziciju.
+
+U oba slučaja **„Keep existing"** čita tekst od pozicije dela (i odbija ga ako
+se potezi odatle ne mogu odigrati), a **„Cancel"** ne menja ništa. Dete otvara
+deo na poziciji koju si izabrao, zato se to pita, a ne pretpostavlja.
+
+Ako tekst bez `[FEN]` ne može da se odigra ni od pozicije dela ni od osnovne
+pozicije, ništa se ne pita: odbija se, uz napomenu da tekst nema polaznu
+poziciju, pa se ne vidi odakle počinje.
 
 Kursor u tekstu bira potez: tabla i „Flow" idu za njim. **Desni klik** na potez
 nudi „Add arrow", „Mark square" i „Add comment" — prve dve postave
