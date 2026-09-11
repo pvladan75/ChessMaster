@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Video bez komentara pored
-table" odmah ispod ove glave, pa „Ispis prati glas, a ne
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Prevod tutorijala, van
+aplikacije" odmah ispod ove glave, pa „Video bez komentara pored
+table", pa „Ispis prati glas, a ne
 sat", pa „Tutorijal iz fajla, i oznake koje su oduvek
 postojale", pa „Četiri prijave
 uživo: slova, glas i uzorak", pa „Izbor glasa: prvo jezik, pa glas",
@@ -35,6 +36,51 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Prevod tutorijala, van aplikacije — 11.9.2026
+
+Pitanje vlasnika: može li aplikacija da prevede tutorijal na drugi jezik preko
+LLM-a. **Odgovor je: ne u aplikaciji, za sada** — i to iz dva razloga koja
+nisu tehnička. Backend-ov `GEMINI_API_KEY` je na **besplatnom nivou**:
+`gemini-flash-latest` je tog dana pokazivao na `gemini-3.8-flash`, sa **20
+zahteva dnevno**, i uz to je stalno vraćao 503. Proba je potrošila dnevnu kvotu
+za taj model, pa su AI komentari u aplikaciji tog dana išli na mehanički
+rezervni tekst. Isti ključ nosi AI komentare, pa kvote u `entitlementService.js`
+(500 i 2000 mesečno) na njemu **ne mogu da se ispune** — to važi nezavisno od
+prevoda i treba ga rešiti pre objave. Drugi razlog je pravni:
+`politika-privatnosti.md` 5.2 obećava da Gemini dobija **samo šahovske
+podatke**, a tekst tutorijala je slobodan tekst trenera koji može da imenuje
+dete.
+
+Vlasnik je odlučio: prevod ide **kao batch van aplikacije**. Stari `gemini` CLI
+se više ne prijavljuje (Google je lične naloge prebacio na Antigravity), pa
+batch ide preko `agy`, isto kao radnički batch-evi.
+
+`tools/tutorial_translate/translate.py` i `prompt.md`; uputstvo je odeljak 9 u
+`docs/PGN-TUTORIAL-FORMAT.md`. **Model nikad ne vidi potez**: skripta izvuče
+sav tekst u ravnu listu `{id, text}`, pošalje samo nju, i vrati prevode na ista
+mesta — pa posle upisa **dokazuje** da je svaki `pgn` bez komentara identičan
+izvornom, bajt za bajt, i da se nijedno polje koje nije tekst nije promenilo.
+Svaki prevedeni string se proverava pre upisa: notacija token po token (`Lc4`
+umesto `Bc4` pada), bez `{`, `}` i `[%` u komentaru, bez ćirilice u latinici.
+Odbijen string ide nazad jednom sa razlogom; ako padne opet, tutorijal se ne
+piše i izveštaj imenuje string.
+
+Izmereno: povratni prolaz preko svih 27 fajlova iz `fixed/` (703 stringa, 1134
+tokena notacije) bez ijednog lažnog alarma; deset ubačenih vrsta greške, svih
+deset uhvaćeno. Jedan pravi prevod (`adv_endgame_tarrasch_rule_active_rook`,
+na srpski) prošao je sve provere iz prve i aplikacijin `readTutorialJson` ga
+čita kao **čist**, četiri dela od četiri. Srpski je bio dobar; dve omaške
+(„lekcija" umesto tutorijal, i „Crni" velikim slovom usred rečenice) su ušle u
+rečnik u `prompt.md`.
+
+**Otvoreno, i nije posao ove skripte:** aplikacija čita tutorijal naglas
+**samo engleskim glasom** (`SpeechService.preferredLanguages = ['en']` od
+prelaska na engleski), a ne zna na kom je jeziku rečenica — pa srpski
+tutorijal na ▶ u aplikaciji čita engleski glas. To važi i za tutorijal koji
+trener napiše na srpskom, ne samo za preveden. Izvezeni video je u redu, jer
+dijalog za izvoz bira svoj glas. I: tutorijal napisan u studiju nema izvoz u
+fajl, pa batch radi samo nad fajlovima napisanim van aplikacije.
 
 ## Video bez komentara pored table — 11.9.2026, ✅ provereno uživo istog dana
 

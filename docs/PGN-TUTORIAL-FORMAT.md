@@ -386,7 +386,8 @@ full 12 s and anything longer is free.
     50 moves at 12 s ≈ 10 minutes
 
 The renderer draws **4 frames a second when there is a caption band** (1 fps
-without one), so a ten-minute captioned film is about 2400 drawn PNGs. Duration
+without one, and without one when the export sheet's „Comments beside the
+board" is off), so a ten-minute captioned film is about 2400 drawn PNGs. Duration
 is clamped to 3600 s, and a render whose estimate will not fit is refused before
 it starts drawing.
 
@@ -399,3 +400,67 @@ TTS call per sentence — which is what actually loads the render queue.
 For a concurrency test the useful shape is several films each long enough to
 still be rendering when the next request arrives — a minute or two of captioned
 film — rather than one enormous one.
+
+# 9. Translating a tutorial
+
+    cd tools/tutorial_translate
+    python translate.py run D:/chess/tutorijal/fixed D:/chess/tutorijal/sr --language "Serbian (Latin script)"
+
+One tutorial file or a folder of them in, one translated file per tutorial out,
+plus `REPORT.txt` and a `_work/` folder. The translated files are imported like
+any other (section 4): „Import from a file", and the labels field there can mark
+the whole set, e.g. `sr`. `--tag sr` writes that label into the files instead.
+
+**The model never sees a move.** `translate.py` pulls every piece of prose out
+of the tutorial into a flat list of `{id, text}` — the title, the description,
+each part's title, instruction and answers, and the words of each `{ }` comment
+with its `[%cal]`/`[%csl]` taken out — and sends only that to `agy`, with
+`prompt.md` in front of it. The translations are written back into the same
+places. Moves, arrows, positions and which answer is right never leave the
+script, and after writing it proves it: each part's `pgn` with the comments
+removed must be byte-identical to the source's, and every field that is not
+prose must be equal. Nothing in the script parses a move; the app has one PGN
+reader and this is not a second one.
+
+**Every string is checked before anything is written**: every id back once and
+none invented; the chess notation identical token for token (`Lc4` for `Bc4`
+fails, so does `Bxf7 +`, so does a dropped `6...`); no `{`, `}` or `[%` inside a
+comment; no Cyrillic in a Latin-script language. A rejected string is sent back
+once with its reason. If it fails again the tutorial is **not written** and the
+report names the id — fix `_work/<name>.tr.json` by hand and run `merge` with
+the same arguments, which uses the strings already there and calls nothing.
+Unchanged strings and strings much shorter or longer than their source are
+reported as warnings, which is what a skipped sentence or an added explanation
+look like.
+
+`run` skips a tutorial already in the output folder, so an interrupted batch is
+resumed by running it again; `--redo` starts over. `--model` picks one of
+`agy models`; the default is `gemini-3.8-flash-high`.
+
+**What was measured, 11.9.2026.** The extraction and the write-back were run
+over all 27 files in `fixed/` with each tutorial's own text as its
+„translation": 703 strings, 1134 notation tokens, no false alarm, and the
+proof passes on every part — the only byte that moves is a space between two
+commands in one comment. Ten kinds of fault were injected and all ten were
+caught with the right reason. One real run —
+`adv_endgame_tarrasch_rule_active_rook.json` into Serbian — passed every check
+first time and reads **clean** through the app's own `readTutorialJson`, four
+parts of four. Its Serbian was good; its two slips („lekcija" for tutorial, and
+„Crni" capitalised mid-sentence) are why the glossary in `prompt.md` has those
+two lines.
+
+Three things that are true and not the script's to fix:
+
+- **The app reads a tutorial aloud in English only.** `SpeechService.
+  preferredLanguages` is `['en']` since the English pivot, and it deliberately
+  asks for no other. It does not know what language a sentence is in, so a
+  Serbian tutorial's ▶ in the app is **read by an English voice** — the
+  wrong-language reading that rule was written to prevent, arriving by another
+  door. An exported film is different: the export sheet chooses its own voice,
+  and Azure has Serbian in both scripts.
+- **A tutorial written in the studio has no file.** There is an import and no
+  export, so the batch runs on files written outside the app, like the 27.
+- **The old `gemini` CLI no longer signs in** (Google moved individual accounts
+  to Antigravity), and the backend's `GEMINI_API_KEY` is on the free tier —
+  twenty requests a day, shared with the app's AI comments. `agy` uses the
+  Antigravity account and neither of those.

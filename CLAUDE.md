@@ -16,6 +16,7 @@ several rules below.
 | `docs/` | Handoff and planning docs — read `STANJE-RADA.md` first |
 | `deploy/` | Server provisioning scripts, idempotent, run as root |
 | `puzzles/` | One-off import tooling and datasets, not part of the app |
+| `tools/` | Reusable tooling run by hand, not part of the app — `tutorial_translate/` translates tutorial files through `agy` (`docs/PGN-TUTORIAL-FORMAT.md`, section 9) |
 
 ## Commands
 
