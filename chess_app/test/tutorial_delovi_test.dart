@@ -57,7 +57,8 @@
 //
 // **„Deo" replaces „Primer" in this screen, and only in this screen.** That is
 // D7, and it lands here because the panel is the surface that names a part.
-// The screen's generated titles become 'Deo 1', 'Deo 2', … The rest of D7 —
+// The screen's generated titles become 'Deo 1', 'Deo 2', … (and 'Part 1',
+// 'Part 2', … since 11.9.2026, when the English pivot reached them). The rest of D7 —
 // anywhere else the word appears — is a separate vocabulary batch with a table,
 // the way batch 51 was done. **Do not rename anything outside
 // `lib/features/tutorial_studio/`.**
@@ -193,13 +194,13 @@ void main() {
     testWidgets('every part is listed, numbered, by its name', (tester) async {
       await open(tester);
       expect(find.text('Tutorial contents'), findsOneWidget);
-      expect(find.text('Deo 1'), findsOneWidget);
+      expect(find.text('Part 1'), findsOneWidget);
 
       await play(tester, 'e2', 'e4');
       await addPart(tester);
 
-      expect(find.text('Deo 1'), findsOneWidget);
-      expect(find.text('Deo 2'), findsOneWidget);
+      expect(find.text('Part 1'), findsOneWidget);
+      expect(find.text('Part 2'), findsOneWidget);
       await close(tester);
     });
 
@@ -274,7 +275,7 @@ void main() {
       await tester.pumpAndSettle();
       await tapText(tester, 'Cancel');
 
-      expect(find.text('Deo 2'), findsNothing);
+      expect(find.text('Part 2'), findsNothing);
       await close(tester);
     });
   });
@@ -343,7 +344,7 @@ void main() {
       expect(find.text('Delete part'), findsOneWidget);
       await tapText(tester, 'Cancel');
 
-      expect(find.text('Deo 2'), findsOneWidget);
+      expect(find.text('Part 2'), findsOneWidget);
       await close(tester);
     });
 
@@ -354,8 +355,8 @@ void main() {
       await tapTooltip(tester, 'Delete part');
       await tapText(tester, 'Delete');
 
-      expect(find.text('Deo 2'), findsNothing);
-      expect(find.text('Deo 1'), findsOneWidget);
+      expect(find.text('Part 2'), findsNothing);
+      expect(find.text('Part 1'), findsOneWidget);
       await close(tester);
     });
 
@@ -368,7 +369,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('The last part cannot be deleted.'), findsOneWidget);
-      expect(find.text('Deo 1'), findsOneWidget);
+      expect(find.text('Part 1'), findsOneWidget);
       await close(tester);
     });
   });

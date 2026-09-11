@@ -1,6 +1,6 @@
 // What a part is called, on the screen and on the child's.
 //
-// „Deo 1, Deo 2, Deo 3" is a list that says nothing about a tutorial, and the
+// „Part 1, Part 2, Part 3" is a list that says nothing about a tutorial, and the
 // word is an idea the trainer should not have to hold: they write a
 // demonstration, ask a question, start a new position. So a part is called by
 // what it says, and the trainer may overrule that by typing a name.
@@ -71,8 +71,8 @@ void main() {
 
     test('a part with no words at all falls back on the number', () {
       // Rare — a part almost always carries either a sentence or a task — and
-      // the only place the word „Deo" is still read.
-      expect(partWith('1. e4').label(2), 'Deo 3');
+      // the only place the word „Part" is still read.
+      expect(partWith('1. e4').label(2), 'Part 3');
     });
 
     test('a generated name from an older tutorial is not a name', () {

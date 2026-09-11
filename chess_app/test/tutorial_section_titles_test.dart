@@ -75,24 +75,42 @@ void main() {
 
   group('the rule about a generated name', () {
     test('a studio-written name is one word and a number', () {
-      expect(isGeneratedSectionTitle('Deo 1'), isTrue);
-      expect(isGeneratedSectionTitle('Deo 12'), isTrue);
+      expect(isGeneratedSectionTitle('Part 1'), isTrue);
+      expect(isGeneratedSectionTitle('Part 12'), isTrue);
+      expect(isGeneratedSectionTitle('  Part 2  '), isTrue);
       // Tutorials written before the word changed are still on the server, and
-      // reordering one must renumber it rather than leave „Primer 3" second.
+      // reordering one must renumber it rather than leave „Primer 3" or
+      // „Deo 3" standing second.
+      expect(isGeneratedSectionTitle('Deo 1'), isTrue);
       expect(isGeneratedSectionTitle('Primer 3'), isTrue);
       expect(isGeneratedSectionTitle('  Deo 2  '), isTrue);
     });
 
     test('a name the trainer wrote is never renumbered over', () {
       expect(isGeneratedSectionTitle('Matni motiv'), isFalse);
+      expect(isGeneratedSectionTitle('Part'), isFalse);
+      expect(isGeneratedSectionTitle('Part 3a'), isFalse);
+      expect(isGeneratedSectionTitle('Part of the plan'), isFalse);
       expect(isGeneratedSectionTitle('Deo'), isFalse);
       expect(isGeneratedSectionTitle('Deo 3a'), isFalse);
       expect(isGeneratedSectionTitle('Primer sa damom'), isFalse);
     });
 
-    test('the name is one-based, the index is not', () {
-      expect(generatedSectionTitle(0), 'Deo 1');
-      expect(generatedSectionTitle(4), 'Deo 5');
+    test('the name is one-based, the index is not, and English', () {
+      expect(generatedSectionTitle(0), 'Part 1');
+      expect(generatedSectionTitle(4), 'Part 5');
+    });
+
+    test("a stored name is shown in the app's words, for where it stands", () {
+      // „Deo 2" saved before the English pivot, now third after a reorder the
+      // server never saw renumbered — the number is the position.
+      expect(shownPartTitle('Deo 2', 2), 'Part 3');
+      expect(shownPartTitle('Primer 1', 0), 'Part 1');
+      expect(shownPartTitle('Part 4', 1), 'Part 2');
+      expect(shownPartTitle('Matni motiv', 1), 'Matni motiv');
+      // No name at all is left to the caller's own fallback.
+      expect(shownPartTitle(null, 0), isNull);
+      expect(shownPartTitle('   ', 0), isNull);
     });
   });
 

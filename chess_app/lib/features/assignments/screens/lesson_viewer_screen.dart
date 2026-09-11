@@ -6,6 +6,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
+import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/move_tree.dart';
@@ -920,9 +921,10 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    _step.title.isEmpty
-                        ? 'Part ${_stepIndex + 1}'
-                        : _step.title,
+                    // „Deo 2" stored before the English pivot is shown in
+                    // this app's words — see [shownPartTitle].
+                    shownPartTitle(_step.title, _stepIndex) ??
+                        generatedSectionTitle(_stepIndex),
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold),
                   ),

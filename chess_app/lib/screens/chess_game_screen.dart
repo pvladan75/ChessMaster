@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
 
+import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
@@ -2044,7 +2045,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final step = items[newIndex];
     loadLessonPosition(step['fen'], step['pgn']);
     _showSuccess(
-        'Step ${newIndex + 1}/${items.length}: "${step['title'] ?? _activeCourseTitle ?? ''}"');
+        'Step ${newIndex + 1}/${items.length}: "${shownPartTitle(step['title']?.toString(), newIndex) ?? _activeCourseTitle ?? ''}"');
   }
 
   Widget _buildCourseStepBar() {
@@ -3243,7 +3244,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   loadLessonPosition(
                                       firstPos['fen'], firstPos['pgn']);
                                   _showSuccess(
-                                      'Loaded step 1/${positionList.length} from tutorial: "${firstPos['title'] ?? lesson['title']}"');
+                                      'Loaded step 1/${positionList.length} from tutorial: "${shownPartTitle(firstPos['title']?.toString(), 0) ?? lesson['title']}"');
                                 } else {
                                   setState(() => _activeCourseItems = null);
                                   loadLessonPosition(

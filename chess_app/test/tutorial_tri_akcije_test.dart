@@ -242,7 +242,7 @@ void main() {
       await type(tester, 'example-sentence', 'Zauzimamo centar.');
 
       expect(find.text('Zauzimamo centar.'), findsWidgets);
-      expect(find.text('Deo 1'), findsNothing);
+      expect(find.text('Part 1'), findsNothing);
 
       await close(tester);
     });
@@ -295,7 +295,7 @@ void main() {
       await open(tester);
       await play(tester, 'e2', 'e4');
 
-      expect(find.text('Deo 1'), findsOneWidget,
+      expect(find.text('Part 1'), findsOneWidget,
           reason: 'the fallback is the one place that word is still read');
 
       await close(tester);

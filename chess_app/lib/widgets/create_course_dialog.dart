@@ -9,6 +9,7 @@ import 'package:chess_app/features/library/widgets/position_picker_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/features/lessons/models/part_titles.dart';
 
 class CreateCourseDialog extends StatefulWidget {
   final UserSession userSession;
@@ -302,7 +303,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
                               size: 18,
                             ),
                             title: Text(
-                              '${index + 1}. ${item['title'] ?? ''}',
+                              '${index + 1}. ${shownPartTitle(item['title']?.toString(), index) ?? ''}',
                               style: AppText.bodyBold,
                             ),
                             subtitle: Text(

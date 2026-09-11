@@ -41,7 +41,8 @@
 // The running list shows the part being written too, not only the finished
 // ones — a screen that opens with an empty list is a screen on which the
 // trainer's first part is nowhere until they leave it. So a fresh screen reads
-// „Deo 1", and after one „+ Dodaj deo" it reads „Deo 1" and „Deo 2".
+// „Part 1", and after one added part it reads „Part 1" and „Part 2" („Deo"
+// until 11.9.2026, the one Serbian word the English pivot left in the studio).
 //
 // **Batch 57 moved two things in this file and nothing else**: the taps that
 // commit a part (into `addPart`, because the button gained a question), and
@@ -369,15 +370,15 @@ void main() {
     testWidgets('the examples are numbered as they are written',
         (tester) async {
       await open(tester);
-      expect(find.text('Deo 1'), findsOneWidget);
-      expect(find.text('Deo 2'), findsNothing);
+      expect(find.text('Part 1'), findsOneWidget);
+      expect(find.text('Part 2'), findsNothing);
 
       await play(tester, 'e2', 'e4');
       await addPart(tester);
 
-      expect(find.text('Deo 1'), findsOneWidget,
+      expect(find.text('Part 1'), findsOneWidget,
           reason: 'the example just committed left the list');
-      expect(find.text('Deo 2'), findsOneWidget);
+      expect(find.text('Part 2'), findsOneWidget);
       await close(tester);
     });
 

@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2018 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2024 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1226 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1801,6 +1801,30 @@ build, and a test adopts a stored draft to prove it.
 **A closed dropdown builds every entry.** „German is shown" found German
 whichever language was chosen, so the assertion could not fail. The tests ask
 for the button's `value`.
+
+**„Deo 3" became „Part 3" — 11.9.2026, app 2024 with 1 skipped.** The one
+Serbian word the English pivot left in the studio: a part's generated name. The
+gates never saw it because it has no Serbian letter. The rule lives in
+`features/lessons/models/part_titles.dart` now. Eleven mutations caught, and
+one survived because nothing can observe it.
+
+**A word stored on the server outlives the code that wrote it.** Every
+tutorial saved before this still says „Deo 2", and the studio rewrites it only
+when that tutorial is saved again. So every screen that shows a stored part name
+reads it through `shownPartTitle`: the child's viewer, the room's two messages
+and its step menu, and the course editor. The number shown is where the part
+stands, not the one stored. The frozen phone step editor is left alone,
+because its title field edits the stored text itself.
+
+**Four assertions of absence went vacuous with the rename.** A test saying
+`find.text('Deo 2'), findsNothing` still passes once „Deo 2" cannot appear at
+all. They were changed along with the ones that went red. After a rename,
+grep the old word in the tests; running them is not enough.
+
+**A mutation harness has to prove the baseline first.** Its first run reported
+every mutation caught, but one edited test file did not compile, and
+`flutter test` with several files fails all of them to load together. The
+harness now refuses to judge mutations until the untouched tree is green.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

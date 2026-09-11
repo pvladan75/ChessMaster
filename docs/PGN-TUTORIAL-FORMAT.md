@@ -48,7 +48,7 @@ A step is one of two kinds.
 A demonstration — a position and a line of moves with a sentence on each move:
 
 {
-  "title": "Deo <n>",
+  "title": "Part <n>",
   "fen": "<full FEN, six fields>",
   "kind": "show",
   "pgn": "<annotated PGN as one JSON string, newlines escaped as \n>"
@@ -57,7 +57,7 @@ A demonstration — a position and a line of moves with a sentence on each move:
 A question — a position, a task, and the answer. IT HAS NO MOVES:
 
 {
-  "title": "Deo <n>",
+  "title": "Part <n>",
   "fen": "<full FEN, six fields>",
   "kind": "ask_move",
   "instruction": "<what the student has to do, one sentence>",
@@ -69,7 +69,7 @@ A multiple-choice question — a position, a task, and two to four answers, of
 which at least one is marked correct. IT ALSO HAS NO MOVES:
 
 {
-  "title": "Deo <n>",
+  "title": "Part <n>",
   "fen": "<full FEN, six fields>",
   "kind": "ask_choice",
   "instruction": "<the question, one sentence>",
@@ -193,13 +193,13 @@ Read through `readTutorialJson` on 11.9.2026: three parts, **no problems**.
   "language": "en",
   "positionList": [
     {
-      "title": "Deo 1",
+      "title": "Part 1",
       "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       "kind": "show",
       "pgn": "{ We start from the opening position. Watch the two squares in the middle: whoever controls them decides where the pieces will go. [%csl Ge4,Gd4] }\n1. e4 { The king pawn takes a central square and opens lines for the bishop and the queen at once. [%cal Ge2e4] }\ne5 { Black answers in the same way and claims an equal share of the centre. }\n2. Nf3 { The knight develops and attacks the pawn on e5 straight away. [%cal Gf3e5] [%csl Re5] }\nNc6 { Black defends the pawn and brings a piece towards the middle of the board. }\n3. Bc4 { The bishop takes the long diagonal and looks straight at f7, the weakest square in the black camp because only the king defends it. [%cal Gc4f7] [%csl Rf7] }\n*"
     },
     {
-      "title": "Deo 2",
+      "title": "Part 2",
       "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3",
       "kind": "ask_move",
       "blackOrientation": true,
@@ -208,7 +208,7 @@ Read through `readTutorialJson` on 11.9.2026: three parts, **no problems**.
       "pgn": ""
     },
     {
-      "title": "Deo 3",
+      "title": "Part 3",
       "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3",
       "kind": "show",
       "blackOrientation": true,
@@ -431,7 +431,9 @@ thing the language field exists to prevent.
 
 **The model never sees a move.** `translate.py` pulls every piece of prose out
 of the tutorial into a flat list of `{id, text}` — the title, the description,
-each part's title, instruction and answers, and the words of each `{ }` comment
+each part's title (except a generated „Part 3", which the app shows in its own
+words and which would come back as a name it takes for the trainer's),
+instruction and answers, and the words of each `{ }` comment
 with its `[%cal]`/`[%csl]` taken out — and sends only that to `agy`, with
 `prompt.md` in front of it. The translations are written back into the same
 places. Moves, arrows, positions and which answer is right never leave the

@@ -198,13 +198,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       TutorialEntryBlank(:final title) => TutorialDraft(
           title: title,
           sections: [
-            TutorialSection.blank(fen: TutorialDraft.startFen, title: 'Deo 1'),
+            TutorialSection.blank(
+                fen: TutorialDraft.startFen, title: generatedSectionTitle(0)),
           ],
         ),
       TutorialEntryFromAnalysis() => TutorialDraft(sections: [
           TutorialSection.blank(
             fen: handover?.root.fen ?? TutorialDraft.startFen,
-            title: 'Deo 1',
+            title: generatedSectionTitle(0),
           ),
         ]),
     };
@@ -1579,9 +1580,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// „Deo 2" and „Deo 4", quoted, for a sentence that names what is wrong.
-  static String _namesOf(List<TutorialSection> sections) => sections
-      .map((s) => '"${s.title.trim().isEmpty ? 'Deo' : s.title}"')
+  /// The parts, quoted, for a sentence that names what is wrong — by the
+  /// names the list of parts shows, so the trainer can find them there.
+  ///
+  /// It used to quote the stored title, which is „Part 2" for a part the list
+  /// calls by its first sentence, and was „Deo 2" before that.
+  String _namesOf(List<TutorialSection> sections) => sections
+      .map((s) => '"${s.label(_draft.sections.indexOf(s))}"')
       .join(', ');
 
   /// Said on the way in, about parts that were already saved this way.

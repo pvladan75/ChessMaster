@@ -9,7 +9,8 @@ file, a `_work/` folder with the strings, and `REPORT.txt`.
 
 **The model never sees a move.** Every piece of prose is pulled out of the
 tutorial into a flat list of `{id, text}` - the title, the description, each
-part's title, instruction and answers, and the words inside each `{ }` comment
+part's title (unless it is a generated „Part 3"), instruction and answers, and
+the words inside each `{ }` comment
 of a part's `pgn` with its `[%cal]`/`[%csl]` commands taken out. Only that list
 goes to the model, and the translations are written back into the same places.
 The moves, the arrows, the positions and which answer is correct never leave
@@ -71,6 +72,13 @@ PROMPT_FILE = os.path.join(HERE, 'prompt.md')
 # here before a single request is made.
 TUTORIAL_LANGUAGES = ('en', 'sr-Latn', 'sr-Cyrl', 'de', 'es', 'it', 'fr')
 
+# A part title the app generated — „Part 3", or „Deo 3" from before its English
+# pivot. Not prose: the app shows it in its own words, so it is left out of the
+# translation, and a „Teil 3" coming back would read to the app as a name the
+# trainer chose. The same rule as `isGeneratedSectionTitle` in
+# chess_app/lib/features/lessons/models/part_titles.dart.
+GENERATED_PART_TITLE = re.compile(r'^(Part|Deo|Primer)\s+\d+$')
+
 COMMENT = re.compile(r'\{([^}]*)\}')
 COMMAND = re.compile(r'\[%[^\]]*\]')
 
@@ -128,7 +136,10 @@ def extract(tutorial):
     put('title', tutorial.get('title'))
     put('description', tutorial.get('description'))
     for i, step in enumerate(tutorial.get('positionList') or [], 1):
-        put('p%d.title' % i, step.get('title'))
+        title = step.get('title')
+        if not (isinstance(title, str)
+                and GENERATED_PART_TITLE.match(title.strip())):
+            put('p%d.title' % i, title)
         put('p%d.instruction' % i, step.get('instruction'))
         for k, choice in enumerate(step.get('choices') or [], 1):
             put('p%d.choice%d' % (i, k), choice.get('text'))

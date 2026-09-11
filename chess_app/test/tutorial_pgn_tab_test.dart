@@ -272,7 +272,9 @@ void main() {
 
       final step = (saves.single['positionList'] as List).single as Map;
       expect(step['id'], 'step-77');
-      expect(step['title'], 'Deo 1');
+      // Stored as „Deo 1": a generated name is written back in the app's
+      // words, which is how old tutorials lose the Serbian one.
+      expect(step['title'], 'Part 1');
 
       await close(tester);
     });

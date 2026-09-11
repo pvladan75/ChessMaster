@@ -148,7 +148,9 @@ void main() {
 
     // Part one is turned round, part two is left alone.
     await flip(tester);
-    await tester.tap(find.text('Deo 2'));
+    // Stored as „Deo 2", as tutorials were before 11.9.2026, and listed in
+    // the app's own words.
+    await tester.tap(find.text('Part 2'));
     await tester.pumpAndSettle();
 
     final sent = await save(tester, api);

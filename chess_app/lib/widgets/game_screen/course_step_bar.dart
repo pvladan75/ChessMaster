@@ -1,3 +1,4 @@
+import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +38,8 @@ class CourseStepBar extends StatelessWidget {
               onSelected: onGoToStep,
               itemBuilder: (ctx) => List.generate(items.length, (i) {
                 final stepTitle =
-                    items[i]['title']?.toString() ?? 'Step ${i + 1}';
+                    shownPartTitle(items[i]['title']?.toString(), i) ??
+                        'Step ${i + 1}';
                 return PopupMenuItem<int>(
                   value: i,
                   child: Row(

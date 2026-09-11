@@ -3,7 +3,12 @@ import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.d
 import 'package:chess_app/features/assignments/models/assignment.dart'
     show LessonStepKind;
 import 'package:chess_app/features/lessons/models/lesson_labels.dart';
+import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+
+// The part-naming rule moved out so the child's viewer can read it too;
+// re-exported so every caller of this file keeps it.
+export 'package:chess_app/features/lessons/models/part_titles.dart';
 
 /// One offered answer of an `ask_choice` section.
 ///
@@ -26,27 +31,6 @@ class TutorialChoice {
       );
 }
 
-/// The name the studio gives a part the trainer has not named itself.
-///
-/// One rule in one place, because batch 57 wrote it in five: the same
-/// `RegExp(r'^(Deo|Primer)\s+\d+$')` stood in four mutation methods of
-/// `TutorialStudioScreen` and once more in `TutorialSectionsPanel`, each
-/// compiling it inside a loop over the parts. Three hand-written copies of one
-/// condition is how the `status = 'accepted'` bug got in, and this one decides
-/// which of a trainer's titles it is allowed to overwrite.
-String generatedSectionTitle(int index) => 'Deo ${index + 1}';
-
-/// Whether [title] is a name the studio generated rather than one the trainer
-/// wrote — the only kind [generatedSectionTitle] may renumber over.
-///
-/// „Primer" is here and not only „Deo" because tutorials written before the
-/// word changed are still on the server, and reordering one of those must
-/// renumber it rather than leave „Primer 3" standing second.
-bool isGeneratedSectionTitle(String title) =>
-    _generatedSectionTitle.hasMatch(title.trim());
-
-final RegExp _generatedSectionTitle = RegExp(r'^(Deo|Primer)\s+\d+$');
-
 /// Whether Black is to move in [fen].
 ///
 /// Only ever a guess about the *orientation* — it is what the child's viewer
@@ -60,7 +44,7 @@ bool blackToMoveIn(String fen) {
   return fields.length > 1 && fields[1].toLowerCase() == 'b';
 }
 
-/// One part of a tutorial — „Deo" to the trainer, one `position_list` entry to
+/// One part of a tutorial — „Part" to the trainer, one `position_list` entry to
 /// the server, one `LessonStep` to the child.
 ///
 /// **It holds a tree, not a PGN.** That is decision D1 of
@@ -297,7 +281,7 @@ class TutorialSection {
 
   /// What this part is called — in the list, and on the child's screen.
   ///
-  /// „Deo 1, Deo 2, Deo 3" is a table of contents that says nothing about a
+  /// „Part 1, Part 2, Part 3" is a table of contents that says nothing about a
   /// tutorial, and the word is an idea a trainer should not have to hold: they
   /// write a demonstration, ask a question, start a new position. So a part is
   /// called by what it says, and a trainer who wants a name types one.
@@ -305,10 +289,11 @@ class TutorialSection {
   ///  1. the name the trainer typed, if they typed one;
   ///  2. the first sentence the part carries — about its starting position,
   ///     else the first one written along its line, else the task it sets;
-  ///  3. „Deo N", which is the only place that word is still read.
+  ///  3. „Part N", which is the only place that word is still read.
   ///
-  /// A title stored as „Deo 2" or „Primer 2" is **not** the trainer's own:
-  /// every tutorial written before this was named that way, and reading those
+  /// A title stored as „Part 2", „Deo 2" or „Primer 2" is **not** the
+  /// trainer's own: every tutorial written before this was named that way, and
+  /// reading those
   /// as chosen names would pin a list of numbers over a tutorial with plenty
   /// to say for itself. [isGeneratedSectionTitle] is the one place that rule
   /// lives.
@@ -566,7 +551,7 @@ class TutorialDraft {
     _languageKnown = true;
   }
 
-  /// Deo 1, Deo 2, … in the order the child meets them. Never empty: `PUT`
+  /// Part 1, Part 2, … in the order the child meets them. Never empty: `PUT`
   /// writes `position_list = NULL` for an empty list, so a tutorial emptied
   /// here would lose every step with nothing left to join on and complain.
   final List<TutorialSection> sections;

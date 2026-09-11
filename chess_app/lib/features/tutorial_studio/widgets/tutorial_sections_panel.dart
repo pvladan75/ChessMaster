@@ -15,7 +15,7 @@ import 'package:chess_app/theme/app_typography.dart';
 /// through the screen, which owns the draft, the board controller and the text
 /// fields.
 ///
-/// **What a trainer reads here is not „Deo 1, Deo 2, Deo 3".** A tutorial is
+/// **What a trainer reads here is not „Part 1, Part 2, Part 3".** A tutorial is
 /// written by playing moves and saying things about them, and the parts it
 /// falls into are the *consequence* of asking a question — not a thing to plan.
 /// So a row is called by what it says ([TutorialSection.label]) and the three

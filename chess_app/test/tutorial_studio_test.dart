@@ -296,7 +296,7 @@ void main() {
       expect(example.toJson(), {
         'fen': openingFen,
         'pgn': '1. e4',
-        'title': 'Deo 1',
+        'title': 'Part 1',
         'kind': 'show',
         'blackOrientation': false,
       });
