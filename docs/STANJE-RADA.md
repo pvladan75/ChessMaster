@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Četiri prijave uživo: slova,
-glas i uzorak" odmah ispod ove glave, pa „Izbor glasa: prvo jezik, pa glas",
+Poslednje ažuriranje: **11.9.2026** — najnovije je „Tutorijal iz fajla, i
+oznake koje su oduvek postojale" odmah ispod ove glave, pa „Četiri prijave
+uživo: slova, glas i uzorak", pa „Izbor glasa: prvo jezik, pa glas",
 „Azure Speech, i srpski koji je vraćen a ne preveden" i „Glas koji ne može da
 progovori se sada zna pre crtanja"; pre toga, faze 1 do 6 plana snimanja su u kodu, dakle ceo prvi deo, a od drugog dela
 tačke 4 i 5 („Render izlazi iz zahteva" i „Render koji ne može da stane" niže):
@@ -30,6 +31,79 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Tutorijal iz fajla, i oznake koje su oduvek postojale — 11.9.2026, nije viđeno uživo
+
+Gemini je napisao dvadeset sedam tutorijala kao JSON fajlove po
+`PGN-TUTORIAL-FORMAT.md`, u folderu van repozitorijuma, i nije
+postojao način da se učitaju osim `curl`-om. Sada postoje dva: **Biblioteka →
+Interaktivni tutorijali → „Import from a file"**. Aplikacija: **1942 testa**
+(1 preskočen), backend: **1206**, analyze na 29 info i nula upozorenja. Deset
+mutacija, sve uhvaćene.
+
+**Jedan fajl se otvara u studiju i ne čuva se usput.** To je ono što je traženo:
+prvo se pogleda na tabli, popravi ono što ne valja, pa se pritisne „Sačuvaj
+tutorijal" — sa svim odbijanjima koja taj ekran već pravi, uključujući ono o
+pitanju koje nosi svoj odgovor. **Više fajlova** ide pravo u biblioteku, jer
+otvaranje dvanaest fajlova jedan po jedan u ekranu za pisanje nije provera nego
+posao koji se preskoči.
+
+**Čitač je `TutorialSection.fromStep`, ništa novo.** `positionList` iz fajla je
+isti oblik kao `position_list` iz baze, pa se fajl čita kroz `readStepTree` →
+`LessonStepLine`, dakle kroz parser koji dete koristi. Novo je samo pitanje koje
+taj čitač ne može sam da postavi: **vredi li ovaj fajl otvoriti**, i ako ne — u
+kom delu i zašto. `readTutorialJson` razlikuje dve vrste greške: ono što bi
+server odbio (nečitljiv FEN, rešenje koje se ne može odigrati, loš broj
+ponuđenih odgovora) i ono što bi bilo **sačuvano i pogrešno** (linija koja se ne
+odigrava iz svoje pozicije, pitanje koje nosi odgovor). Prvo se ne šalje uopšte;
+drugo se prijavi i trener odlučuje.
+
+**`id` koraka se uvek odbacuje.** Korak po tom id-u nalazi red rasporeda i
+zapamćen odgovor, pa bi isti fajl uvezen dvaput imao iste id-eve u dva
+tutorijala — dečji napredak u pogrešnoj kopiji, bez ijedne poruke, jer se ni na
+šta ne spaja.
+
+**Oznake (labels) su već postojale na svakom sloju osim na ovom.**
+`saved_lessons.tags` je u šemi, `GET /lessons/labels` ih vraća,
+`GET /lessons?includeTags=&excludeTags=&matchMode=` filtrira, `SavePositionDialog`
+ih piše a `MatrixFilterPanel` ih crta — samo tutorijal nikad nije stigao do
+njih. Sada: polje „Labels" u studiju pored naziva, polje u dijalogu za uvoz koje
+označi ceo skup fajlova odjednom, i u „Sačuvani tutorijali" traka čipova plus
+pretraga po imenu. Čipovi se čitaju **iz samih redova**, ne iz
+`GET /lessons/labels`: taj kraj vraća i oznake sačuvanih pozicija, a čip koji
+prazni listu kad se pritisne je čip koji se ne pritisne drugi put.
+
+**Uz to je izašla greška koja je tiho brisala opis.** `PUT /lessons/:id` je
+pisao `description = $2, tags = $3` na **svakom** zahtevu, iz `body.x || null`,
+a `commitDraft` ne pominje nijedno — pa je otvaranje sačuvanog tutorijala i
+pritisak na „Sačuvaj tutorijal" brisao opis, ćutke. Niko to nije video jer u
+aplikaciji ništa nikada nije pisalo opis tutorijala — do uvoza, koji je stigao
+istog dana. Server sada ostavlja kolonu na miru kad je zahtev ne pomene (isto
+pravilo koje `positionList` već ima), a `commitDraft` šalje ono što nacrt drži.
+Prazna lista i dalje briše — „ovaj tutorijal više nema oznake" mora da ostane
+izgovorljivo.
+
+**Dvadeset tri od dvadeset sedam fajlova sada prolaze čisto** (bilo je
+četrnaest). Popravka je jednokratna skripta koja: skida ocene zalepljene za
+potez (`Kb6+-`, `Be8!+-`), **prepisuje potez kanonskim SAN-om** — `Bd6+` gde
+nema šaha aplikacijin parser odbija, a python-chess ga prima, pa se neslaganje
+vidi tek kad trener otvori tutorijal i nađe četiri poteza manje — vraća
+`[%cal]` unutar vitičastih zagrada, i pitanju koje nosi odgovor izdvaja liniju u
+zaseban `show` deo posle njega. Popravljeni fajlovi su u `fixed/`, originali
+nisu dirani. **Četiri su ostala za čoveka**: `solutionSan` koji nije legalan u
+svom FEN-u (`adv_endgame_queen_vs_rook_and_pawn` 3, `attack_focal_points_f7_g7_h7`
+4, `positional_space_advantage_restriction` 4, `pvladan_vs_kvobetis_london` 4) —
+u tri slučaja izgleda kao greška u strani koja je na potezu, a to je pogađanje o
+šahu, ne o notaciji, pa nije rađeno automatski.
+
+`PGN-TUTORIAL-FORMAT.md` je dopunjen pravilima koja su nedostajala (ništa
+zalepljeno za potez, `+` samo kad stvarno ima šaha, `[%cal]` unutar zagrada,
+pitanje bez linije, `solutionSan` legalan u svom FEN-u, opcioni `tags`) i ima
+odeljak C o uvozu u aplikaciji.
+
+Provera uživo: `docs/TODO-provera.md`, stavka 147.
 
 ---
 

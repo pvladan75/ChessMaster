@@ -5228,3 +5228,44 @@ u `docs/STANJE-RADA.md`.
 6. [ ] **Glas koji server nema.** (Za onoga ko dira `.env`.) Sa `TTS_PROVIDER`
    na piperu, uzorak radi za piperove glasove; Azure id više nije u listi i ne
    može da se izabere.
+
+## 147. Tutorijal se učitava iz fajla, i oznake filtriraju listu — 11.9.2026, nije viđeno uživo
+
+Vidi „Tutorijal iz fajla, i oznake koje su oduvek postojale" u
+`docs/STANJE-RADA.md`. Radi se na Windows build-u, jer je studio tamo.
+Popravljeni fajlovi su u `fixed/` podfolderu onog u kome su tutorijali.
+
+1. [ ] **Jedan fajl, pogled pre čuvanja.** Biblioteka → Interaktivni tutorijali
+   → „Import from a file" → izaberi jedan **čist** fajl (npr.
+   `01_direktna_opozicija...`). Dijalog kaže koliko delova ima i da nema
+   primedbi. „Open for editing" otvara studio sa naslovom i svim delovima, a
+   tabla pokazuje prvi. **Ništa još nije sačuvano**: zatvori studio bez čuvanja,
+   otvori „Sačuvani tutorijali" — tutorijala nema.
+2. [ ] **Isti fajl, pa sačuvan.** Ponovi, ali u studiju pritisni „Sačuvaj
+   tutorijal". Sada je u „Sačuvani tutorijali", otvara se ponovo i delovi su
+   isti.
+3. [ ] **Fajl sa greškom.** Izaberi `pawn_struct_isolated_queens_pawn.json` iz
+   **originalnog** foldera (ne iz `fixed/`): dijalog imenuje deo i kaže da se
+   sedam poteza ne može odigrati. Fajl se i dalje može otvoriti — u studiju se
+   vidi da linija nije cela.
+4. [ ] **Fajl koji server ne bi primio.** `adv_endgame_queen_vs_rook_and_pawn.json`
+   iz `fixed/`: dijalog kaže da se rešenje „Qe5+" ne može odigrati u toj
+   poziciji. (Jedan fajl se i dalje može otvoriti da bi se popravio.)
+5. [ ] **Više fajlova odjednom.** Izaberi svih 27 iz `fixed/` (Ctrl+A u
+   biraču). Dijalog kaže koliko ih može da se sačuva i koliko ne, i imenuje
+   one koje ne može. Upiši „endgame" u polje za oznake i pritisni „Save … to
+   the library". Poruka kaže koliko ih je uvezeno.
+6. [ ] **Oznake filtriraju.** Otvori „Sačuvani tutorijali": iznad liste stoji
+   pretraga i čip „endgame", a svaki red ispod naslova piše svoje oznake.
+   Pritisak na čip ostavlja samo te tutorijale; drugi pritisak ih vraća.
+   Ukucaj deo imena u pretragu — lista se suzi.
+7. [ ] **Oznaka iz studija.** Otvori jedan tutorijal, u polju „Labels" dopiši
+   „, rook", sačuvaj, vrati se na listu: čip „rook" postoji i taj tutorijal je
+   pod njim.
+8. [ ] **Opis preživi čuvanje.** (Ovo je greška koja je popravljena usput.)
+   Uvezen tutorijal ima opis iz fajla. Otvori ga u studiju, pritisni „Sačuvaj
+   tutorijal" bez ijedne izmene, pa ga otvori ponovo — opis i oznake su i dalje
+   tu. Ranije bi oboje nestalo.
+9. [ ] **Dete vidi tutorijal.** Pošalji jedan uvezen tutorijal đaku („pošalji"
+   na redu liste) i prođi ga kao dete: delovi se smenjuju, pitanje traži potez,
+   i **odgovor se ne vidi unapred** ni na jednom pitanju.

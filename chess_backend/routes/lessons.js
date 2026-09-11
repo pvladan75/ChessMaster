@@ -109,6 +109,24 @@ function sentPositionList(body) {
     && body.positionList !== undefined;
 }
 
+/// The same question for a column that is not a list: was it mentioned?
+///
+/// `description` and `tags` were written on **every** `PUT`, out of `body.x ||
+/// null`, so a request that never mentioned them cleared them. The tutorial
+/// studio's save is exactly such a request — `commitDraft` sends a title and a
+/// position list and nothing else — so opening a saved tutorial and pressing
+/// "Save tutorial" erased its description, silently, and would have taken its
+/// labels with it the day tutorials got labels. Found on 11.9.2026 while
+/// wiring those labels; it is the rule above applied to two more columns
+/// rather than a new idea.
+///
+/// An explicit `null` still clears — that is how a trainer removes every
+/// label. Only *silence* leaves the column alone.
+function mentions(body, field) {
+  return Object.prototype.hasOwnProperty.call(body || {}, field)
+    && body[field] !== undefined;
+}
+
 // GET /lessons/tts/voices — available voices for tutorial video narration.
 // Mounted before any /:id route so ':id' cannot swallow 'tts'.
 router.get('/tts/voices', authenticateToken, async (req, res) => {
@@ -203,26 +221,43 @@ router.put('/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    // A request that said nothing about the steps leaves the column alone. It
-    // is written as two statements rather than one clever `CASE`, because the
-    // thing being protected here is a list that cannot be reconstructed once it
-    // is gone, and the reader of this file should be able to see which
-    // statement runs without evaluating an expression in their head.
-    const result = touchesSteps
-      ? await pool.query(
-        `UPDATE saved_lessons
-         SET title = $1, description = $2, tags = $3, fen = $4, pgn = $5, position_list = $6
-         WHERE id = $7 AND (user_id = $8 OR trainer_id = $8)
-         RETURNING *`,
-        [title, description || null, tags || null, initialFen, pgn || null, steps.length > 0 ? JSON.stringify(steps) : null, req.params.id, req.user.id]
-      )
-      : await pool.query(
-        `UPDATE saved_lessons
-         SET title = $1, description = $2, tags = $3, fen = $4, pgn = $5
-         WHERE id = $6 AND (user_id = $7 OR trainer_id = $7)
-         RETURNING *`,
-        [title, description || null, tags || null, initialFen, pgn || null, req.params.id, req.user.id]
-      );
+    // A request that said nothing about a column leaves that column alone.
+    //
+    // The steps are why the rule exists — a list that cannot be reconstructed
+    // once it is gone — and `description` and `tags` follow it too now, because
+    // the one caller that writes tutorials sends neither and was clearing both
+    // on every save.
+    //
+    // Built from a list of clauses rather than as hand-written statements: with
+    // three optional columns that is eight of them, and the one that would be
+    // wrong is always the one nobody read. `title` and `fen` are not optional —
+    // the route refuses a request without a title above.
+    const columns = ['title', 'fen', 'pgn'];
+    const values = [title, initialFen, pgn || null];
+    if (mentions(req.body, 'description')) {
+      columns.push('description');
+      values.push(description || null);
+    }
+    if (mentions(req.body, 'tags')) {
+      columns.push('tags');
+      values.push(tags || null);
+    }
+    if (touchesSteps) {
+      columns.push('position_list');
+      values.push(steps.length > 0 ? JSON.stringify(steps) : null);
+    }
+    const assignments = columns.map((column, i) => `${column} = $${i + 1}`).join(', ');
+    values.push(req.params.id, req.user.id);
+    const lessonParam = `$${values.length - 1}`;
+    const ownerParam = `$${values.length}`;
+
+    const result = await pool.query(
+      `UPDATE saved_lessons
+       SET ${assignments}
+       WHERE id = ${lessonParam} AND (user_id = ${ownerParam} OR trainer_id = ${ownerParam})
+       RETURNING *`,
+      values
+    );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Tutorial not found or you do not have permission to edit it.' });
     }

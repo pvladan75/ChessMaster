@@ -20,9 +20,9 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 1884 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 1942 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 1172 tests, all green
+cd chess_backend && npm test          # node --test, 1206 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1611,6 +1611,67 @@ mid-sentence. A fake that answers at once cannot show a spinner at all.
 answers: the button spun for ever. `debugPlayVoiceSample` is the seam, in the
 shape `debugTutorialStudioAvailable` already had — and the test's fake still
 makes the real HTTP request, so everything but the sound is proved.
+
+**A tutorial written outside the app can be opened inside it — 11.9.2026, and
+the counts are 1942 in the app with 1 skipped and 1206 on the backend** with
+`.env` moved aside, analyze at 29 infos and zero warnings. Ten mutations, all
+caught. Twenty-seven tutorials had been generated as JSON against
+`PGN-TUTORIAL-FORMAT.md` and there was no way to get one in but `curl`. Live
+check: `TODO-provera.md`, item 147.
+
+**The reader was already there, and that is why this is small.** A file's
+`positionList` is the shape `position_list` already has, so
+`TutorialDraft.fromLesson` reads it and `readStepTree` → `LessonStepLine` parses
+the line — the child's own parser. What `readTutorialJson` adds is the question
+that parser cannot ask: **is this file worth opening**, and if not, in which
+part. It tells two faults apart, and the difference is the whole design: what
+the server would **refuse** (an unloadable FEN, a solution that cannot be
+played) is never sent, and what would be **stored and wrong** (a line that does
+not replay, a question carrying its own answer) is reported and left to the
+trainer. One file opens in the studio unsaved; several go to the library at
+once, because opening twelve in an authoring screen one at a time is a chore
+that gets skipped.
+
+**The label was in the database the whole time and reachable from nowhere a
+tutorial goes.** `saved_lessons.tags`, `GET /lessons/labels`, the
+`includeTags`/`excludeTags` filter, `SavePositionDialog`'s chip field and
+`MatrixFilterPanel` all existed; the studio simply never wrote the column. Same
+shape as the arrows nothing wrote and the sheet nobody could open. Asked „should
+we add a label field", the answer was to *reach* the one that was there.
+
+**And wiring it woke a fault that had been silent because nothing exercised
+it.** `PUT /lessons/:id` wrote `description = $2, tags = $3` on every request
+out of `body.x || null`, and `commitDraft` mentions neither — so opening a saved
+tutorial and pressing „Save tutorial" erased its description. Nothing in the app
+had ever written a tutorial's description, so nobody had seen it; the JSON
+import writes one, and it would have been lost on the first save. The rule
+`positionList` already had now covers three columns: **a request that says
+nothing about a column leaves it alone**, and an explicit `null` still clears.
+Fourth time a dormant fault woke when the feature it depends on shipped.
+
+**A parser that is lenient where the app's is strict is a repair that breaks
+lines.** The one-off repair script replayed every line with python-chess, which
+accepts `Bd6+` on a move that gives no check — `MoveTree.parsePgn` refuses it,
+so a file that „replayed cleanly" lost four moves in the app. Writing each move
+back as the board's own SAN settles wrong check marks and wrong disambiguation
+in one step, and it took the clean files from 14 of 27 to 23. **When two parsers
+must agree, make one of them write what the other reads.**
+
+**A test that passes for an afternoon can be reading the test before it.** The
+labels file gave every fixture lesson 31; the studio adopts a stored draft whose
+`lessonId` matches and flushes on dispose, asynchronously — so one test read
+labels the previous one had typed. It passed until a layout change moved the
+timing. Mint an id per test; CLAUDE.md already said so and the file still did
+it.
+
+**One new field in the authoring pane overflowed the 840 dp window by 24 px.**
+That pane ends in a parts list held against the bottom, and batch 58 had already
+squeezed the panel's own header to fit; a release build would have drawn a parts
+list with its last row missing. The title and the labels share one row now, so
+the labels cost no height at all. And two gates failed the copy rather than the
+code — „Open in the studio" against the rule that *studio* names one screen, and
+„missing from the lesson" against the Lesson/Tutorial split. Both were reworded,
+which is cheaper than an allowance that has to be argued.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

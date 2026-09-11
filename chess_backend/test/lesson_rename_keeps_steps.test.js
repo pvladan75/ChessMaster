@@ -84,6 +84,24 @@ async function run(body) {
 
 const updateOf = (queries) => queries.find((q) => /UPDATE saved_lessons/.test(q.text));
 
+/// The value written to one column of the UPDATE, found **by name**.
+///
+/// The statement is built from a list of clauses now — only the columns the
+/// request mentioned are in it — so a column's position is not fixed and an
+/// assertion on `params[5]` is an assertion about the shape of the SET clause
+/// rather than about what was stored. Same family as `retention.test.js`'s
+/// "exactly one query".
+function writtenTo(update, column) {
+  // No regex: a `` written into a JS template literal is a backspace byte,
+  // not a word boundary, and this repository has already shipped one of those.
+  const marker = `${column} = $`;
+  const at = update.text.indexOf(marker);
+  assert.ok(at >= 0, `${column} must be written by this statement`);
+  const digits = update.text.slice(at + marker.length).match(/^[0-9]+/);
+  assert.ok(digits, `${column} must be written from a parameter`);
+  return update.params[Number(digits[0]) - 1];
+}
+
 test('a rename that never mentions the steps leaves the column alone', async () => {
   // What the app sends when a trainer renames a saved position.
   const { queries, answered } = await run({
@@ -120,8 +138,8 @@ test('an empty list sent on purpose still clears them', async () => {
 
   assert.equal(answered.status, 200);
   const update = updateOf(queries);
-  assert.match(update.text, /position_list = \$6/);
-  assert.equal(update.params[5], null, 'an empty list is stored as NULL, as before');
+  assert.equal(writtenTo(update, 'position_list'), null,
+    'an empty list is stored as NULL, as before');
 });
 
 test('a real list is written, and every id it arrived with survives', async () => {
@@ -135,7 +153,7 @@ test('a real list is written, and every id it arrived with survives', async () =
   });
 
   assert.equal(answered.status, 200);
-  const written = JSON.parse(updateOf(queries).params[5]);
+  const written = JSON.parse(writtenTo(updateOf(queries), 'position_list'));
   assert.deepEqual(written.map((s) => s.id), ['a3f9c1d2', 'b7e2d4a1']);
 });
 

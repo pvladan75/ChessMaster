@@ -21,6 +21,7 @@ import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart
 import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/lessons/models/lesson_labels.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
@@ -144,6 +145,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   String? _lastMoveTo;
 
   final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _labelsController = TextEditingController();
   final TextEditingController _instructionController = TextEditingController();
   LessonStepKind _currentKind = LessonStepKind.show;
   final List<TextEditingController> _choiceControllers = [];
@@ -190,6 +192,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       // until it has said which tutorial it belongs to — see
       // [_adoptStoredDraft].
       TutorialEntrySaved(:final lesson) => TutorialDraft.fromLesson(lesson),
+      // The same reader, and no id: the first "Save tutorial" creates it.
+      TutorialEntryImported(:final lesson) => TutorialDraft.fromLesson(lesson),
       TutorialEntryBlank(:final title) => TutorialDraft(
           title: title,
           sections: [
@@ -250,6 +254,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   @override
   void dispose() {
     _titleController.dispose();
+    _labelsController.dispose();
     _instructionController.dispose();
     for (final c in _choiceControllers) {
       c.dispose();
@@ -313,6 +318,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           _draft = stored;
           _loadSelectedSection();
         });
+
+      case TutorialEntryImported():
+        // Nothing to adopt. The trainer asked for *this file*, and a draft left
+        // in the slot is some other tutorial's unfinished business — the same
+        // answer a saved tutorial gives to a draft that is not its own. It is
+        // not offered either: a question about an unrelated draft, asked at the
+        // moment a file was picked, is the haunting P3b removed.
+        return;
 
       case TutorialEntryBlank():
         if (_isEmptyDraft(stored)) return;
@@ -396,6 +409,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _annotationController.cancelPending();
     final section = _draft.section;
     _titleController.text = _draft.title;
+    _labelsController.text = _draft.tags.join(', ');
     _instructionController.text = section.instruction ?? '';
     _currentKind = section.kind;
     for (final c in _choiceControllers) {
@@ -1384,6 +1398,58 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
+  /// The labels this tutorial will be found by.
+  ///
+  /// Comma-separated text rather than the chip editor
+  /// `SavePositionDialog` draws, and that is a decision rather than a shortcut:
+  /// this pane is 460 px wide with a board beside it, and a chip field that
+  /// grows by a row per label pushes the parts list off the bottom. The rule
+  /// about what a label may be is not written twice either way —
+  /// [normaliseLabels] is the one reading of it.
+  Widget _labelsField() {
+    return TextField(
+      key: const Key('tutorial-labels'),
+      controller: _labelsController,
+      // The comma convention is taught by the hint rather than said in a
+      // `helperText`, which would be a second line of height.
+      decoration: const InputDecoration(
+        labelText: 'Labels',
+        hintText: 'endgame, rook',
+      ),
+      onChanged: (value) {
+        // Normalised into the draft and **not** back into the field: rewriting
+        // the text under the caret would delete the comma the trainer has just
+        // typed, every time. The field holds what was typed; the draft holds
+        // what it means.
+        _draft.tags
+          ..clear()
+          ..addAll(normaliseLabels(value.split(',')));
+        _persist();
+      },
+    );
+  }
+
+  /// The two fields that belong to the tutorial rather than to a part.
+  ///
+  /// **Side by side, and that is a height decision rather than a taste.** The
+  /// wide pane ends in a parts list held against the bottom of the window, and
+  /// the panel's own header is as short as batch 58 could make it — it
+  /// overflowed an 840 dp window by two pixels when its buttons were two rows.
+  /// A second full-width field above it overflowed by another 24, which a
+  /// release build draws as a parts list with its last row simply missing.
+  /// In one row the labels cost nothing: the row is as tall as the title field
+  /// already was.
+  Widget _headerFields() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: 3, child: _titleField()),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(flex: 2, child: _labelsField()),
+      ],
+    );
+  }
+
   /// The table of contents, wired to the screen that owns the draft.
   Widget _sectionsPanel() {
     return TutorialSectionsPanel(
@@ -1405,7 +1471,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _titleField(),
+          _headerFields(),
           _leakBanner(),
           _narrationBanner(),
           const SizedBox(height: AppSpacing.sm),
@@ -1433,6 +1499,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _titleField(),
+        _labelsField(),
         _leakBanner(),
         _narrationBanner(),
         const SizedBox(height: AppSpacing.md),

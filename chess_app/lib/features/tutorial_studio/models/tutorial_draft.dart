@@ -2,6 +2,7 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart'
     show LessonStepKind;
+import 'package:chess_app/features/lessons/models/lesson_labels.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 
 /// One offered answer of an `ask_choice` section.
@@ -506,9 +507,12 @@ class TutorialDraft {
   TutorialDraft({
     this.lessonId,
     this.title = '',
+    this.description,
+    List<String>? tags,
     List<TutorialSection>? sections,
     int selected = 0,
-  })  : sections = (sections == null || sections.isEmpty)
+  })  : tags = tags == null ? <String>[] : normaliseLabels(tags),
+        sections = (sections == null || sections.isEmpty)
             ? [TutorialSection.blank(fen: startFen)]
             : sections,
         _selected = selected {
@@ -523,6 +527,19 @@ class TutorialDraft {
   int? lessonId;
 
   String title;
+
+  /// What the tutorial is about, in a sentence. Written by the JSON import and
+  /// by nothing else today; it is carried rather than displayed so that a save
+  /// does not throw away what the import stored.
+  String? description;
+
+  /// The labels this tutorial is found by — `saved_lessons.tags`.
+  ///
+  /// The same column the saved-position dialog has always written and the same
+  /// one `GET /lessons/labels` and the `includeTags`/`excludeTags` filter read.
+  /// It is a tutorial's only sorting handle: a trainer with forty of them has
+  /// a list nobody scrolls to the end of.
+  final List<String> tags;
 
   /// Deo 1, Deo 2, … in the order the child meets them. Never empty: `PUT`
   /// writes `position_list = NULL` for an empty list, so a tutorial emptied
@@ -546,12 +563,20 @@ class TutorialDraft {
       ];
 
   /// A saved tutorial, opened for editing.
+  ///
+  /// Also the reader for an imported one: a file that has never been saved
+  /// arrives here without an `id`, which is what makes the first press of
+  /// „Save tutorial" create it rather than edit something.
   factory TutorialDraft.fromLesson(Map<String, dynamic> lesson) {
     final raw = lesson['position_list'];
     final rawId = lesson['id'];
     return TutorialDraft(
       lessonId: rawId is int ? rawId : int.tryParse('$rawId'),
       title: lesson['title']?.toString() ?? '',
+      description: lesson['description']?.toString(),
+      tags: [
+        for (final tag in (lesson['tags'] as List?) ?? const []) tag.toString(),
+      ],
       sections: [
         for (final entry in raw is List ? raw : const [])
           if (entry is Map)
@@ -623,6 +648,8 @@ class TutorialDraft {
   Map<String, dynamic> toJson() => {
         if (lessonId != null) 'lessonId': lessonId,
         'title': title,
+        if (description != null) 'description': description,
+        if (tags.isNotEmpty) 'tags': tags,
         'selected': _selected,
         'sections': [for (final section in sections) section.toLocalJson()],
       };
@@ -639,6 +666,10 @@ class TutorialDraft {
       return TutorialDraft(
         lessonId: json['lessonId'] is int ? json['lessonId'] as int : null,
         title: json['title']?.toString() ?? '',
+        description: json['description']?.toString(),
+        tags: [
+          for (final tag in (json['tags'] as List?) ?? const []) tag.toString(),
+        ],
         sections: [
           for (final raw in modern)
             if (raw is Map)

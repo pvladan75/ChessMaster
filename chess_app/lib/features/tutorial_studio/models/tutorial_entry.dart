@@ -9,9 +9,11 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart
 /// unconditionally, and a handover replaced only the working tree, so the title
 /// and every finished part came back whatever the trainer had asked for.
 ///
-/// There is no fourth case and deliberately no default. A screen that can be
-/// opened without saying why is a screen that has to guess, and guessing is
-/// what this type replaces.
+/// There is deliberately no default. A screen that can be opened without saying
+/// why is a screen that has to guess, and guessing is what this type replaces.
+/// It is `sealed` so that a new reason — [TutorialEntry.imported] was the
+/// fourth, on 11.9.2026 — makes the compiler name every place that has to
+/// decide about it.
 sealed class TutorialEntry {
   const TutorialEntry();
 
@@ -31,6 +33,19 @@ sealed class TutorialEntry {
   /// different tutorial and is left alone.
   const factory TutorialEntry.saved(Map<String, dynamic> lesson) =
       TutorialEntrySaved;
+
+  /// „Import from a file" — a tutorial written outside the app, read by
+  /// `readTutorialJson` and **not yet saved anywhere**.
+  ///
+  /// It is not a [TutorialEntry.saved] with the id left out, though the draft it
+  /// builds is the same one. The difference is what happens to the stored draft
+  /// slot: a saved tutorial adopts a draft of itself, and an import has nothing
+  /// to adopt — it was never anything before this moment. Saying so here is
+  /// cheaper than a reader working it out from a null id.
+  const factory TutorialEntry.imported(
+    Map<String, dynamic> lesson, {
+    String? sourceName,
+  }) = TutorialEntryImported;
 
   /// The Analysis Studio's door: a position, or a whole line, worked out with
   /// the engine and sent here rather than retyped.
@@ -53,6 +68,18 @@ class TutorialEntryBlank extends TutorialEntry {
 class TutorialEntrySaved extends TutorialEntry {
   const TutorialEntrySaved(this.lesson);
   final Map<String, dynamic> lesson;
+}
+
+class TutorialEntryImported extends TutorialEntry {
+  const TutorialEntryImported(this.lesson, {this.sourceName});
+
+  /// The same shape [TutorialEntrySaved] carries — `title`, `description`,
+  /// `tags`, `position_list` — with no `id`, which is what makes the first save
+  /// create the tutorial.
+  final Map<String, dynamic> lesson;
+
+  /// The file it was read from, for a screen that wants to say so.
+  final String? sourceName;
 }
 
 class TutorialEntryFromAnalysis extends TutorialEntry {

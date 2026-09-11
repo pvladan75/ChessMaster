@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,7 +13,10 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_import_dialog.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -47,6 +54,12 @@ Future<bool?> askTutorialDestination(BuildContext context) {
 /// The front door to the Tutorial Studio on the Library tab.
 ///
 /// Draws itself only when [isTutorialStudioAvailable] is true.
+/// A file the trainer picked, read.
+typedef PickedTutorialFile = ({String name, String text});
+
+/// How the card asks for files. Answers an empty list when nothing was picked.
+typedef TutorialFilePicker = Future<List<PickedTutorialFile>> Function();
+
 class TutorialLibraryCard extends StatelessWidget {
   const TutorialLibraryCard({
     super.key,
@@ -54,6 +67,7 @@ class TutorialLibraryCard extends StatelessWidget {
     this.api,
     this.assignmentApi,
     this.groupApi,
+    this.pickFiles,
   });
 
   final UserSession session;
@@ -67,6 +81,11 @@ class TutorialLibraryCard extends StatelessWidget {
   /// but a test ever passes them.
   final AssignmentApiService? assignmentApi;
   final GroupApiService? groupApi;
+
+  /// The file chooser, which is a platform channel and therefore the one part
+  /// of the import a widget test cannot drive. Defaulted to the real one, like
+  /// every other seam on this card, so only a test ever passes it.
+  final TutorialFilePicker? pickFiles;
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +140,17 @@ class TutorialLibraryCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
+                key: const Key('import-tutorial'),
+                icon: const Icon(Icons.file_upload_outlined),
+                label: const Text('Import from a file'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  padding: AppSpacing.buttonPadding,
+                ),
+                onPressed: () => _onImport(context),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
                 icon: const Icon(Icons.folder_open),
                 label: const Text('Saved tutorials'),
                 style: OutlinedButton.styleFrom(
@@ -154,6 +184,145 @@ class TutorialLibraryCard extends StatelessWidget {
         entry: TutorialEntry.blank(name),
       ),
     ));
+  }
+
+  /// „Import from a file" — one or more JSON tutorials written outside the app.
+  ///
+  /// Two doors out of one report, and which one is drawn depends on how many
+  /// files were picked. One file opens in the studio **unsaved**, which is the
+  /// flow a trainer checking a generated tutorial asked for: look at it on a
+  /// board, fix what is wrong, then press „Save tutorial". Several files are
+  /// written straight to the library, because opening a dozen in an authoring
+  /// screen one at a time is a chore that gets skipped.
+  Future<void> _onImport(BuildContext context) async {
+    final picked = await (pickFiles ?? _pickJsonFiles)();
+    if (!context.mounted || picked.isEmpty) return;
+
+    final read = [
+      for (final file in picked)
+        readTutorialJson(file.text, fileName: file.name),
+    ];
+
+    final choice = await showTutorialImportDialog(context, read);
+    if (!context.mounted || choice == null) return;
+
+    switch (choice) {
+      case ImportChoiceOpen(:final tutorial):
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => TutorialStudioScreen(
+            session: session,
+            // No id: the studio's own save creates it, with every refusal that
+            // screen makes — the answer leak among them.
+            entry: TutorialEntry.imported(
+              tutorial.asLesson,
+              sourceName: tutorial.fileName,
+            ),
+          ),
+        ));
+
+      case ImportChoiceSave(:final tutorials):
+        await _saveImported(context, tutorials);
+    }
+  }
+
+  /// Writes the batch and says what became of it.
+  Future<void> _saveImported(
+    BuildContext context,
+    List<ImportedTutorial> tutorials,
+  ) async {
+    final service = api ?? LessonApiService(authToken: session.token);
+    final outcomes = await saveImportedTutorials(tutorials, service);
+    if (!context.mounted) return;
+
+    final failed = outcomes.where((o) => !o.saved).toList();
+    final saved = outcomes.length - failed.length;
+
+    if (failed.isEmpty) {
+      AppFeedback.success(
+        context,
+        '$saved ${saved == 1 ? 'tutorial' : 'tutorials'} imported.',
+      );
+      return;
+    }
+
+    // Named rather than counted. A batch told „3 failed" has to be imported
+    // again from the beginning to find out which three.
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import finished'),
+        content: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$saved saved, ${failed.length} not.'),
+              const SizedBox(height: AppSpacing.sm),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final outcome in failed)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                          child: Text(
+                            '${outcome.name}: ${outcome.error}',
+                            style: AppText.caption
+                                .copyWith(color: ctx.colors.danger),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The real chooser. JSON only, several at a time.
+  ///
+  /// A file that cannot be read from disk is dropped here rather than carried
+  /// as an empty string: „the file is not valid JSON" would be the wrong
+  /// sentence for a file the operating system would not open.
+  static Future<List<PickedTutorialFile>> _pickJsonFiles() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      allowMultiple: true,
+    );
+    if (result == null) return const [];
+
+    final files = <PickedTutorialFile>[];
+    for (final file in result.files) {
+      // The bytes are there on the web and on some Android pickers; the path is
+      // there on Windows. Either is enough.
+      final bytes = file.bytes;
+      if (bytes != null) {
+        files.add(
+            (name: file.name, text: utf8.decode(bytes, allowMalformed: true)));
+        continue;
+      }
+      final path = file.path;
+      if (path == null) continue;
+      try {
+        files.add((name: file.name, text: await File(path).readAsString()));
+      } catch (_) {
+        // Unreadable on disk. Nothing to import and nothing to say about its
+        // contents.
+      }
+    }
+    return files;
   }
 
   Future<void> _onOpenSavedTutorial(BuildContext context) async {
@@ -296,6 +465,10 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   /// twice on a list that is about to change under it.
   bool _busy = false;
 
+  /// How many tutorials there have to be before a search box is worth the
+  /// height it takes.
+  static const int _filterFrom = 6;
+
   static int? _idOf(Map<String, dynamic> row) {
     final raw = row['id'];
     return raw is int ? raw : int.tryParse('$raw');
@@ -303,6 +476,60 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
 
   static String _titleOf(Map<String, dynamic> row) =>
       row['title']?.toString() ?? '';
+
+  static List<String> _labelsOf(Map<String, dynamic> row) => [
+        for (final tag in (row['tags'] as List?) ?? const []) tag.toString(),
+      ];
+
+  /// What the trainer has typed into the search box.
+  String _query = '';
+
+  /// Which labels are being filtered by. Empty means „every tutorial".
+  final Set<String> _selectedLabels = {};
+
+  /// Every label in the list, in the order they are first met.
+  ///
+  /// Read off the rows rather than from `GET /lessons/labels`: that endpoint
+  /// answers with the labels of everything this account can see — saved
+  /// positions included — and a chip for a label no tutorial here carries is a
+  /// chip that empties the list when it is pressed. These rows are all in
+  /// memory anyway.
+  List<String> get _availableLabels {
+    final labels = <String>[];
+    final seen = <String>{};
+    for (final row in _rows) {
+      for (final label in _labelsOf(row)) {
+        if (seen.add(label.toLowerCase())) labels.add(label);
+      }
+    }
+    labels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return labels;
+  }
+
+  /// The rows that survive the search box and the chips.
+  ///
+  /// A tutorial matches a selection when it carries **any** of the chosen
+  /// labels, not all of them: most tutorials carry one label, and an
+  /// intersection of two is empty almost every time — a filter that answers
+  /// „nothing" to an obvious question is a filter nobody presses twice.
+  List<Map<String, dynamic>> get _visibleRows {
+    final query = _query.trim().toLowerCase();
+    return [
+      for (final row in _rows)
+        if (_matches(row, query)) row,
+    ];
+  }
+
+  bool _matches(Map<String, dynamic> row, String query) {
+    if (query.isNotEmpty) {
+      final haystack =
+          '${_titleOf(row)} ${row['description'] ?? ''}'.toLowerCase();
+      if (!haystack.contains(query)) return false;
+    }
+    if (_selectedLabels.isEmpty) return true;
+    final labels = _labelsOf(row).map((l) => l.toLowerCase()).toSet();
+    return _selectedLabels.any((l) => labels.contains(l.toLowerCase()));
+  }
 
   Future<void> _delete(Map<String, dynamic> row) async {
     final id = _idOf(row);
@@ -525,16 +752,60 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // The search box and the chips are drawn only where they can do
+              // something. A trainer with four tutorials does not need a filter
+              // above them, and the list this dialog can show is short enough
+              // that the controls would be taller than the thing they filter.
+              if (_rows.length > _filterFrom) ...[
+                TextField(
+                  key: const Key('tutorial-search'),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    prefixIcon: Icon(Icons.search, size: 18),
+                    hintText: 'Search by name',
+                  ),
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              if (_availableLabels.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      for (final label in _availableLabels)
+                        FilterChip(
+                          label: Text(label, style: AppText.caption),
+                          selected: _selectedLabels.contains(label),
+                          onSelected: (on) => setState(() {
+                            if (on) {
+                              _selectedLabels.add(label);
+                            } else {
+                              _selectedLabels.remove(label);
+                            }
+                          }),
+                        ),
+                    ],
+                  ),
+                ),
               Flexible(
                 fit: FlexFit.loose,
-                child: _rows.isEmpty
-                    ? const Center(child: Text('You have no saved tutorials.'))
+                child: _visibleRows.isEmpty
+                    ? Center(
+                        child: Text(
+                          _rows.isEmpty
+                              ? 'You have no saved tutorials.'
+                              : 'No tutorial matches that.',
+                        ),
+                      )
                     : ListView.separated(
                         shrinkWrap: true,
-                        itemCount: _rows.length,
+                        itemCount: _visibleRows.length,
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (ctx, index) {
-                          final row = _rows[index];
+                          final row = _visibleRows[index];
                           return ListTile(
                             title: Text(
                               _titleOf(row),
@@ -546,6 +817,17 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
                               // simply not there.
                               overflow: TextOverflow.ellipsis,
                             ),
+                            // Its labels, so the chips above are answerable:
+                            // a filter whose result does not say why a row is
+                            // in it is a filter that has to be trusted.
+                            subtitle: _labelsOf(row).isEmpty
+                                ? null
+                                : Text(
+                                    _labelsOf(row).join(', '),
+                                    style: AppText.caption.copyWith(
+                                        color: context.colors.textSecondary),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                             onTap: () => Navigator.of(context).pop(row),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,

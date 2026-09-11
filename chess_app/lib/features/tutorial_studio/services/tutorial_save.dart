@@ -27,14 +27,27 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 Future<String?> commitDraft(TutorialDraft draft, LessonApiService api) async {
   final positionList = draft.positionList;
 
+  // The description and the labels travel on every save, not only on the
+  // create. The server leaves a column alone when the request says nothing
+  // about it — but that rule is one release old (11.9.2026), and before it a
+  // save that omitted them cleared them. Sending what the draft holds is the
+  // half of that fix which lives here: it is also what makes editing a label
+  // in the studio reach the database at all.
+  final tags = draft.tags;
+  final description = draft.description;
+
   final result = draft.lessonId == null
       ? await api.saveTutorial(
           title: draft.title.trim(),
+          description: description,
+          tags: tags,
           positionList: positionList,
         )
       : await api.updateTutorial(
           id: draft.lessonId!,
           title: draft.title.trim(),
+          description: description,
+          tags: tags,
           positionList: positionList,
         );
 
