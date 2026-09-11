@@ -239,6 +239,32 @@ void main() {
       expect(parts[2].stepId, isNull);
     });
 
+    test('with nothing in front, the continuation keeps the id and the name',
+        () {
+      // A question placed at the part's own starting position: the
+      // continuation carries the whole original line, so it is the step a
+      // child's schedule and answers name. Until 11.9.2026 no part kept it.
+      final part = italian();
+      final parts = splitForQuestion(part, part.root);
+
+      expect(parts.map((p) => p.stepId), [null, 'aaaa1111']);
+      expect(parts[1].title, 'Deo 1');
+      expect(parts[0].title, isEmpty);
+    });
+
+    test('with nothing in front or after, the question is the whole part', () {
+      final part = TutorialSection(
+        root: AnalysisNode(fen: _start),
+        title: 'Pogledaj centar',
+        stepId: 'cccc3333',
+      );
+      final parts = splitForQuestion(part, part.root);
+
+      expect(parts, hasLength(1));
+      expect(parts.single.stepId, 'cccc3333');
+      expect(parts.single.title, 'Pogledaj centar');
+    });
+
     test('no part is written back as the text of the part it came from', () {
       // The trap this is written for: `TutorialSection` decides „untouched" by
       // comparing `treeSignature` against the tree it holds, and it takes that

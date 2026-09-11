@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2066 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2082 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1234 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1882,8 +1882,58 @@ held `Completer` in the test is what shows the difference.
 
 **A guess about layout was measured and was wrong.** Windows defaults to
 compact density, so the app bar's icon buttons were expected to be narrower
-there than in a test. They are 48 px on both. Nothing overflows at 700 dp; the
-title is now whole from 840 dp, where it was whole from 800.
+there than in a test. They are 48 px on both. (The title widths first written
+here were measured on squares; see the entry after the next.)
+
+**„Insert a line here" — 11.9.2026, app 2079 with 1 skipped; the backend is
+untouched at 1234.** Phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`. Of nineteen
+mutations, eighteen were caught; the nineteenth showed a line nothing could
+observe, and the line was deleted.
+
+**A probe that loads a font measures only the text that asks for it.** Every
+„real Windows font" number from phases 1–3 for the app bar and the parts panel
+was measured on squares, and one of them turned a button into an icon. The
+probe loaded Segoe UI as `Roboto` and `Segoe UI`, which reaches text that
+inherits the theme's font family. But this app's theme hands buttons, the app
+bar title, dialogs, chips, input labels and tooltips `AppText` styles, which
+name **no** family, and a button uses its style's text style as the whole
+default rather than merging it with the theme. On Windows the engine draws a
+null family in Segoe UI; `flutter_test` draws it in the square test font.
+Loading a font under the test font's own name changes nothing. „Choose the
+answer" measured 221 px as a button label and 121 px as a plain `Text` beside
+it, and „Tutorial Studio" measured exactly 15 squares of 16 px.
+
+**Before believing a probe, print the font family of the text it measures.** A
+width that equals the number of characters times the font size is squares. A
+faithful probe gives those null-family styles `fontFamily: 'Segoe UI'` in a
+`ThemeData.copyWith`, which is exactly what the Windows engine does, and
+changes nothing else. Measured that way: the title is 111 px and whole down to
+~610 dp; „Preview as student" as words is 147 px and fits at 700; the parts
+list is 114 px at 1366 × 768 and 840 × 700 does not overflow. A task was
+spawned to fix a „cramped panel" that did not exist. The table is in
+`docs/PLAN-STUDIO-ISTORIJA.md`, „The measurements were wrong". The
+voice-language plan's dropdown measurement stands: its entries inherit the
+theme's family.
+
+**What exposed it was arithmetic, one task later.** The spawned task's prompt
+quoted a 17-character button as ~287 px wide, and 17 × 14 plus an icon and
+padding is 287. A panel that had shipped for a week and was „already cramped
+to 26 px" on an ordinary laptop was a number worth doubting on its own. Measured
+correctly, a fourth action in the parts panel costs a row of icons, 44 px of
+list; on the current beat's card in „Flow" the button costs nothing, so that is
+where it went.
+
+**A test that reads the wall clock is a test of the machine's load.** Phase 1's
+typing test passed alone and failed in the full suite, because the history
+merged keystrokes by `DateTime.now`. It reads `package:clock` now, the test's
+fake time inside `testWidgets`. The proof was a copy of the test that sleeps
+1.5 s of real time between letters: it passes on `clock` and fails on
+`DateTime.now`.
+
+**A notation the parser refuses is a test's own mistake first.** The test's
+first fixture wrote `2. Ra6+`, which is not check: the knight on b6 blocks the
+rank. `MoveTree.parsePgn` refused it and the move after it, as it is meant to.
+The owner's line had it right.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

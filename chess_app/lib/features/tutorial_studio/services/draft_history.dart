@@ -10,14 +10,21 @@
 ///
 /// Pure, with the clock injected, so every rule below is tested without a
 /// screen.
+///
+/// The default is `package:clock`, not `DateTime.now`: the typing merge is
+/// decided by time, and inside `testWidgets` only `clock` follows the test's
+/// fake time. On the wall clock, a studio test typing six letters merged them
+/// only when the machine was idle, and failed under the load of the full suite.
 library;
+
+import 'package:clock/clock.dart';
 
 class DraftHistory {
   DraftHistory({
     this.limit = 100,
     this.typingPause = const Duration(milliseconds: 1200),
     DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+  }) : _now = now ?? clock.now;
 
   /// How many changes can be undone. The owner's number, 11.9.2026.
   ///

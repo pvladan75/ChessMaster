@@ -38,7 +38,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Istorija u studiju — plan 11.9.2026; faze 1 i 2 gotove, faze 3–4 nisu počete
+## Istorija u studiju — plan 11.9.2026; faze 1–3 gotove, faza 4 (uputstvo i provera uživo) ostaje
 
 `docs/PLAN-STUDIO-ISTORIJA.md`. Vlasnik je obrisao deo, nije sačuvao, i kad je
 ponovo otvorio tutorijal deo je i dalje bio obrisan: studio tiho uzima lokalni
@@ -56,7 +56,9 @@ Ctrl+Shift+Z), 100 koraka. Istorija je spisak celih nacrta
 polju bez pauze od 1,2 s je jedan korak. Ctrl+Z pripada studiju i u tekstualnom
 polju, jer na Windowsu polje zadržava fokus dok se figura vuče po tabli. Deo
 vraćen undo-om nosi svoj stari step id i posle čuvanja (`localKey` po delu).
-„Preview as student" je sada ikonica, da bi traka stala u 700 dp. Zadatak i
+„Preview as student" je sada ikonica — na osnovu merenja koje je bilo pogrešno
+(vidi fazu 3): kako Windows crta traku, reči staju i na 700 dp, pa je vlasnikova
+odluka da li se vraćaju. Zadatak i
 odgovori ranije nisu zvali `_persist()` — sada zovu. Prečice su na strani
 „Keyboard Shortcuts". 27 testova; 26 mutacija uhvaćeno, a 27. je pokazala
 suvišan red, koji je obrisan. Stavka za proveru
@@ -78,6 +80,33 @@ stariji od poslednjeg čuvanja (sačuvano sa drugog uređaja) zameni se verzijom
 sa servera kad trener nema ništa svoje na ekranu. `Icons.restore` je nova
 ikonica — ista napomena o fontu kao za `Icons.redo`. Aplikacija 2066 (1
 preskočen), backend 1234 sa sklonjenim `.env`, 24 mutacije uhvaćene.
+
+**Faza 3, 11.9.2026:** „Insert a line here" — ikonica na kartici trenutnog
+takta u „Flow" (samo na trenutnom taktu, i samo kad deo ima liniju). Deo se
+seče na tri: do takta (zadržava step id i ime), nova linija od te pozicije
+(trener ostaje na njenoj prvoj poziciji da je odigra; varijanta već odigrana na
+tom taktu ide u nju), i stari nastavak sa svim komentarima, strelicama i
+poljima. Jedan Ctrl+Z vraća sve. Vlasnikov primer je test, pročitan kroz
+`LessonStepLine`. Mesto dugmeta je izmereno: u panelu delova četvrto dugme
+spušta ikonice u treći red, pa lista delova pada sa 114 na 70 px na 1366 × 768;
+na kartici takta ne košta ništa. Usput popravljen nestabilan test iz faze 1
+(istorija sad čita `package:clock`). 19 mutacija: 18 uhvaćeno, jedna je pokazala
+suvišan red.
+
+**Merenja „sa pravim Windows fontom" iz faza 1–3 su bila pogrešna.** Sonda je
+učitala Segoe UI, ali dugmad, naslov trake, dijalozi i oznake polja dobijaju iz
+teme `AppText` stil bez porodice fonta; Windows to crta u Segoe UI, a
+`flutter_test` u kvadratima. Izmereno ponovo kako Windows crta: naslov je 111 px
+(ne 240) i ceo je do ~610 dp; „Preview as student" rečima je 147 px i staje na
+700 dp; lista delova je 114 px na 1366 × 768 (1,8 reda), a 840 × 700 se ne
+preliva. Zadatak „daj listi delova mesta" je tako izgubio premisu: ništa nije
+menjano, a da li lista treba da bude gušća je pitanje za vlasnika. Tabela je u
+`docs/PLAN-STUDIO-ISTORIJA.md`, „The measurements were wrong".
+
+**Isto veče:** `splitForQuestion` više ne gubi step id kad se pitanje postavi
+na početnu poziciju dela — nastavak (koji nosi celu originalnu liniju) zadržava
+id i ime, a bez nastavka ga zadržava samo pitanje. Test čita zahtev za čuvanje;
+6 mutacija uhvaćeno. Aplikacija 2082 (1 preskočen), backend nepromenjen 1234.
 
 ## Jezik glasa — 11.9.2026; svih šest faza gotovo, čeka proveru uživo
 

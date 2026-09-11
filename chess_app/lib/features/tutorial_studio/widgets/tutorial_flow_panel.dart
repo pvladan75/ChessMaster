@@ -27,6 +27,7 @@ class TutorialFlowPanel extends StatelessWidget {
     required this.onCommentChanged,
     required this.question,
     this.onDelete,
+    this.onInsertLine,
   });
 
   final AnalysisNode root;
@@ -42,6 +43,14 @@ class TutorialFlowPanel extends StatelessWidget {
   /// throwing that away. The screen owns what deleting means, including
   /// whether to ask first; this only says which move was pointed at.
   final void Function(AnalysisNode)? onDelete;
+
+  /// „Insert a line here" — cut the part at the current beat and start a new
+  /// line from it (phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`).
+  ///
+  /// Drawn on the current beat only, because „here" is where the trainer is
+  /// standing, and only when given: the screen passes none when the part has
+  /// no line to cut.
+  final VoidCallback? onInsertLine;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +68,7 @@ class TutorialFlowPanel extends StatelessWidget {
             onSelect: onSelect,
             onCommentChanged: onCommentChanged,
             onDelete: onDelete,
+            onInsertLine: onInsertLine,
           ),
         ],
         const SizedBox(height: AppSpacing.xs),
@@ -75,12 +85,14 @@ class _BeatCard extends StatefulWidget {
     required this.onSelect,
     required this.onCommentChanged,
     this.onDelete,
+    this.onInsertLine,
   });
 
   final TutorialBeat beat;
   final void Function(AnalysisNode) onSelect;
   final void Function(AnalysisNode, String) onCommentChanged;
   final void Function(AnalysisNode)? onDelete;
+  final VoidCallback? onInsertLine;
 
   @override
   State<_BeatCard> createState() => _BeatCardState();
@@ -169,6 +181,15 @@ class _BeatCardState extends State<_BeatCard> {
                   // a move could be deleted was the „PGN" tab, by retyping the
                   // line — the tree's own menu drew the action and did
                   // nothing.
+                  if (widget.onInsertLine != null && beat.isCurrent)
+                    IconButton(
+                      key: const Key('insert-line'),
+                      icon: const Icon(Icons.alt_route, size: 16),
+                      color: context.colors.textMuted,
+                      tooltip: 'Insert a line here',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: widget.onInsertLine,
+                    ),
                   if (widget.onDelete != null && beat.arrivedBy != null)
                     IconButton(
                       key: Key('beat-delete-${beat.index}'),

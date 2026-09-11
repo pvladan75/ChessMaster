@@ -10,6 +10,11 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
+  # Already in the build through flutter_test; named here because the studio's
+  # undo history reads it. `clock.now()` is the wall clock in the app and the
+  # test's fake time inside `testWidgets`, so „typing without a pause" is not
+  # decided by how busy the machine running the suite is.
+  clock: ^1.1.2
   # Phase 0 of docs/PLAN-SNIMANJE.md: the microphone, on Android and Windows.
   # `record_windows` needs CMake 3.23, which ships with Visual Studio 2022 —
   # with Build Tools 2019 (CMake 3.20) the whole Windows build fails at

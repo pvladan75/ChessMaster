@@ -991,10 +991,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             onPressed: _history.canRedo ? _redo : null,
           ),
           // Beside undo and redo because it is one of them: back to the saved
-          // version, and itself undoable. Measured with the real Windows font
-          // and the app's theme: nothing overflows at 700 dp, and the title is
-          // whole from 840 — the width the layout splits at — where it was
-          // whole from 800 before this button; 215 of its 240 px at 800.
+          // version, and itself undoable. Measured as Windows draws the bar
+          // (Segoe UI, the app's theme): the actions take 453 px, nothing
+          // overflows at 600 dp, and the title's 111 px are whole down to
+          // about 610.
           IconButton(
             key: const Key('discard-changes'),
             icon: const Icon(Icons.restore),
@@ -1018,11 +1018,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Export video',
             onPressed: _exportVideo,
           ),
-          // An icon rather than the words since undo and redo arrived, and
-          // measured rather than chosen: with the real Windows font the words
-          // took 266 px of an app bar that ran 23 px past a 700 dp window once
-          // two more buttons stood in it, and left the title 85 px at 840. Its
-          // three neighbours were icons already, with their names as tooltips.
+          // An icon, with its name as the tooltip, since undo and redo arrived
+          // (11.9.2026). The measurement that decided it was wrong: it read the
+          // label in the test font's squares, because a button's text style
+          // has no font family, and flutter_test draws that as squares where
+          // Windows draws Segoe UI. As Windows draws it, the words take 147 px
+          // and fit: no overflow at 700 dp, the title whole from about 710.
           IconButton(
             key: const Key('preview-as-student'),
             icon: const Icon(Icons.school_outlined),
@@ -1304,6 +1305,35 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     setState(() {});
     _persist();
     AppFeedback.success(context, 'Question placed at this position.');
+  }
+
+  /// „Insert a line here" — phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`.
+  ///
+  /// The part is cut at the beat the trainer is standing on, and they are left
+  /// on the new line's first position, to play it. [splitForLine] decides what
+  /// goes where; the screen only puts the parts in place. Undoable like every
+  /// other change, which is what makes a cut in the wrong place cheap.
+  ///
+  /// Reached only from the current beat's card in „Flow", which draws the
+  /// button only when [canSplitForLine] holds — beside „Delete this move", so
+  /// it costs no height. In the parts panel, measured as Windows draws it, a
+  /// fourth action pushes the icon buttons onto a third row: the list of
+  /// parts goes from 114 px to 70 at 1366 × 768 and from 87 to 43 at
+  /// 840 × 700, which is one row of parts.
+  void _insertLine() {
+    _syncSelectedSection();
+    final cut = splitForLine(_draft.section, _current);
+    setState(() {
+      _annotationController.stop();
+      _draft.replaceSelected(cut.parts);
+      _draft.selected = _draft.sections.indexOf(cut.line);
+    });
+    // No renumbering: [TutorialSection.label] names a part with no name of its
+    // own by where it stands, on screen and on the wire alike.
+    _loadSelectedSection();
+    setState(() {});
+    _persist();
+    AppFeedback.success(context, 'New line inserted. Play it on the board.');
   }
 
   /// „Preimenuj" — the trainer's own name for a part, or none.
@@ -2299,6 +2329,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               },
               question: _questionCard(),
               onDelete: _deleteNode,
+              // None when there is no line to cut, so the button is not drawn
+              // at all rather than drawn to do nothing.
+              onInsertLine:
+                  canSplitForLine(_draft.section) ? _insertLine : null,
             ),
             AnalysisMoveTreeWidget(
               rootNode: _root,

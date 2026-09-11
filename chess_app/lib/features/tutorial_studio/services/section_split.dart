@@ -26,6 +26,13 @@ import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 ///    and everything after it, sidelines included. Omitted when the cursor is
 ///    the end of the line and there is nothing to continue with.
 ///
+/// **The step id stays with the original line.** A step id is what a child's
+/// schedule and recorded answers name a step by, and a part sent without one
+/// is given a new id by the server. So A keeps it; with no A, C *is* the
+/// original part and keeps it, with the part's name; with neither, B is the
+/// whole part. Until 11.9.2026 a question placed at the part's own starting
+/// position left no part holding the id.
+///
 /// Every part stands on a position that joins the one before it, which is what
 /// makes this one board on the child's screen rather than three: the viewer
 /// crosses a join without reloading the pieces.
@@ -56,7 +63,11 @@ List<TutorialSection> splitForQuestion(
   final hasBefore = path.isNotEmpty;
   final hasAfter = tail.isNotEmpty;
 
+  // With nothing in front and nothing after, the question is the whole part.
+  final wholePart = !hasBefore && !hasAfter;
   final question = TutorialSection(
+    stepId: wholePart ? part.stepId : null,
+    title: wholePart ? part.title : '',
     root: AnalysisNode(
       fen: cursor.fen,
       // The marks travel because the board does not reload across a join: a
@@ -111,6 +122,10 @@ List<TutorialSection> splitForQuestion(
       afterRoot.children.add(child);
     }
     out.add(TutorialSection(
+      // With no demonstration in front, this is the original line: the step a
+      // child's progress names.
+      stepId: hasBefore ? null : part.stepId,
+      title: hasBefore ? '' : part.title,
       root: afterRoot,
       blackOrientation: part.blackOrientation,
     ));
@@ -126,6 +141,102 @@ List<TutorialSection> splitForQuestion(
 /// position a question wants — the kind dropdown is the way to turn that one
 /// into a question.
 bool canSplitForQuestion(TutorialSection part) =>
+    part.kind == LessonStepKind.show && part.root.children.isNotEmpty;
+
+/// „Insert a line here" — phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`: one part
+/// becomes a demonstration up to [cursor], a new line from it, and the original
+/// continuation.
+///
+/// The owner's example, 11.9.2026: `1. Ra1 Kc6 2. Ra6 Bb2 3. c3 Kb5` from
+/// `8/3k4/1n3b2/8/8/8/2PK4/2R5 w`, and a second line `2. Ra8 Bb2` to be shown
+/// from the position after `Kc6`. Until now the only way was to rebuild the
+/// part by hand. The parts come back in order:
+///
+///  * **A** — the tree as it was, cut at [cursor], with every sentence, arrow
+///    and square on it. It keeps the part's step id and name. Omitted when the
+///    cursor is the part's own starting position.
+///  * **B** — the new line, [line]: a demonstration on the cursor's position.
+///    Its first position carries the cursor's arrows and squares, because the
+///    board does not reload across the join from A; not its sentence, which A
+///    has just read out — unless there is no A. Any sideline already played at
+///    the cursor becomes B's line, so a trainer who played it first loses
+///    nothing by cutting afterwards.
+///  * **C** — the original continuation from the cursor's position, with
+///    everything written on it. The board reloads here, after B's line, so the
+///    cursor's marks are drawn again. Omitted when nothing followed the cursor.
+///    When there is no A, C *is* the original part, and it keeps the step id:
+///    a step id is what a child's schedule and recorded answers name a step by,
+///    and cutting a line in front of a part must not cut them off from it.
+///
+/// The original is not modified. The caller replaces it with [parts].
+({List<TutorialSection> parts, TutorialSection line}) splitForLine(
+  TutorialSection part,
+  AnalysisNode cursor,
+) {
+  final path = _pathTo(part.root, cursor);
+  final beforeRoot = copyTree(part.root);
+  final beforeCursor = _resolve(beforeRoot, path);
+  // A trainer standing on a sideline is cutting that sideline: A has to end
+  // where B begins.
+  _promotePath(beforeCursor);
+
+  final tail = [...beforeCursor.children];
+  beforeCursor.children.clear();
+  final hasBefore = path.isNotEmpty;
+  final continuation = tail.isEmpty ? null : tail.first;
+  final sidelines = tail.skip(1).toList();
+
+  AnalysisNode rootOn(List<AnalysisNode> children, {String comment = ''}) {
+    final root = AnalysisNode(
+      fen: cursor.fen,
+      comment: comment,
+      arrows: [...beforeCursor.arrows],
+      squares: [...beforeCursor.squares],
+    );
+    for (final child in children) {
+      child.parent = root;
+      root.children.add(child);
+    }
+    return root;
+  }
+
+  final line = TutorialSection(
+    root: rootOn(sidelines, comment: hasBefore ? '' : beforeCursor.comment),
+    blackOrientation: part.blackOrientation,
+  );
+
+  final out = <TutorialSection>[];
+  if (hasBefore) {
+    out.add(TutorialSection(
+      stepId: part.stepId,
+      root: beforeRoot,
+      title: part.title,
+      instruction: part.instruction,
+      solutionSan: part.solutionSan,
+      acceptedSans: [...part.acceptedSans],
+      blackOrientation: part.blackOrientation,
+      // Not `part.storedPgn`, for the reason [splitForQuestion] gives: the
+      // tree is shorter now, and a part holding the old text would send it.
+      storedPgn: null,
+    ));
+  }
+  out.add(line);
+  if (continuation != null) {
+    out.add(TutorialSection(
+      stepId: hasBefore ? null : part.stepId,
+      title: hasBefore ? '' : part.title,
+      root: rootOn([continuation]),
+      blackOrientation: part.blackOrientation,
+    ));
+  }
+  return (parts: out, line: line);
+}
+
+/// Whether „Insert a line here" has a line to cut: a demonstration with at
+/// least one move. A question carries no line — that is the rule
+/// [TutorialSection.leaksAnswer] enforces — and a part with no moves is
+/// already where a new demonstration would start.
+bool canSplitForLine(TutorialSection part) =>
     part.kind == LessonStepKind.show && part.root.children.isNotEmpty;
 
 /// Makes the line from the root down to [node] the main line of its tree.

@@ -70,11 +70,11 @@ splitting a part are both undoable from the day they arrive.
   the board, so after a sentence and a move, the field's own undo would have
   taken back letters and left the move standing. The studio's history holds
   typing, one step per pause, so one undo covers both.
-- **„Preview as student" is an icon now**, with its name as the tooltip. With
-  the real Windows font the words took 266 px, and with the two new buttons the
-  app bar ran 23 px past a 700 dp window and left the title 85 px at 840. As an
-  icon the actions take 477 px instead of 599 before this phase, and the title
-  is whole from 800 dp up.
+- **„Preview as student" is an icon now**, with its name as the tooltip. The
+  measurement that decided it was wrong, and so was the conclusion (corrected
+  the same day, see „The measurements were wrong" below). As Windows draws
+  the bar, the words take 147 px and fit: no overflow at 700 dp. Whether the
+  words come back is the owner's call.
 - **Step ids survive an undo past a save.** Each part carries a key of its own
   on this device (`TutorialSection.localKey`), the studio learns which step id
   each key was given, and a restored part gets its id back; the lesson id never
@@ -156,11 +156,12 @@ goes out, so words typed while it is out are still unsaved when it returns. A
 draft kept from before the language field takes on the server's language rather
 than reading as a change.
 
-Placement, measured with the real Windows font and the app's theme: the button
-sits beside undo and redo. Nothing overflows at 700 dp; the title is whole from
-840, the width the layout splits at, where it was whole from 800 before. (The
-guess that Windows draws the app bar's icon buttons compact, and so narrower
-than a test, was measured and is wrong: they are 48 px there too.)
+Placement: the button sits beside undo and redo. As Windows draws the bar the
+actions take 453 px, nothing overflows at 600 dp, and the title's 111 px are
+whole down to about 610. (The first measurement said the title was whole only
+from 840; it read squares — see „The measurements were wrong" below. The guess
+that Windows draws the app bar's icon buttons compact, and so narrower than a
+test, was measured and is wrong: they are 48 px there too.)
 
 - **Server: `GET /lessons/:id`**, returning one row with the columns the list
   returns, to exactly the accounts the list shows it to — the list's own
@@ -189,6 +190,61 @@ parts and sends them on the next save; discarding is undoable; a failed fetch
 opens the draft and says so; the route's access rules.
 
 ## Phase 3 — „Insert a line here"
+
+**Built 11.9.2026.** `splitForLine` in `services/section_split.dart`, and an
+„Insert a line here" icon on the **current beat's card in „Flow"**. Four things
+the plan below did not settle:
+
+- **Where the button went was decided by measuring.** In the parts panel, as
+  Windows draws it, a fourth action pushes the panel's icon buttons onto a
+  third row, and the list of parts goes from 114 px to 70 at 1366 × 768 and
+  from 87 to 43 at 840 × 700 — one row of parts. On the beat card the icon
+  shares a header row with „Delete this move", so a move's card grows by
+  nothing. It is drawn on the current beat only, because „here" is where the
+  trainer stands, and not at all when the part has no line to cut.
+- **When the cut is at the part's own starting position, the continuation
+  keeps the step id and the name**, because it *is* the original part. The
+  question cut beside it lost the id in that case; it keeps it now too, with a
+  test on the save request (the same day, as its own change).
+- **The continuation's first position carries the cursor's arrows and squares
+  too.** The board reloads there after the new line, and those marks belong to
+  that position.
+- **A sideline at the cursor goes to the new line and is not left in the
+  continuation as well.**
+
+### The measurements were wrong
+
+Every „real Windows font" number this plan gave for the app bar and the parts
+panel before this section was measured on squares. The probe loaded Segoe UI
+as `Roboto` and `Segoe UI`, which reaches text that inherits the theme's font
+family. But the app's theme hands buttons, the app bar title, dialogs, chips,
+input labels and tooltips `AppText` styles, which name no family. On Windows
+the engine draws a null family in Segoe UI; `flutter_test` draws it in the
+square test font, and loading a font under the test font's own name does not
+change that. „Choose the answer" measured 221 px as a label and 121 px as a
+plain `Text` beside it.
+
+Measured again with those styles given Segoe UI — exactly what the engine does
+on Windows:
+
+| | as first reported | as Windows draws it |
+|---|---|---|
+| title „Tutorial Studio" | 240 px, whole from 840 dp | 111 px, whole from ~610 |
+| „Preview as student" as words | 266 px, bar overflowed 700 dp by 23 | 147 px, no overflow at 700 |
+| parts panel's action buttons | a row each | two rows for three |
+| list of parts at 1366 × 768 | 26 px | 114 px (1.8 rows) |
+| 840 × 700 | overflowed 0.8 px | no overflow, list 87 px |
+
+The icon-button widths (48 px) do not depend on a font and stand. The
+voice-language plan's dropdown measurement stands too: its entries inherit the
+theme's family, which is why that probe read 116 px against 288 on squares.
+
+Also fixed here: phase 1's typing test depended on real time. The history
+read `DateTime.now`, so six letters typed by a test merged into one step only
+while the machine was idle, and the test failed under the load of the full
+suite. The history reads `package:clock` now, which is the test's fake time
+inside `testWidgets`. Proved with a copy of the test that sleeps 1.5 s of real
+time between letters: it passes on `clock` and fails on `DateTime.now`.
 
 - **A pure cut** beside `splitForQuestion`, sharing its path and copy helpers,
   from a `show` part with at least one move, at the cursor:
