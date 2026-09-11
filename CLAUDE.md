@@ -1583,7 +1583,12 @@ written. The family is not named in the fix either: it is **chosen by drawing
 with it**, because `č` and `ć` are two glyphs and a font that has neither draws
 the same box twice. `services/renderFont.js` compares the two, and `ж`/`ф` for
 Cyrillic. **The existing pixel test could not have caught this: it asked whether
-there was ink, and a box is ink.**
+there was ink, and a box is ink.** And the test written for it failed CI for a
+day, because it asserted the reported fault itself — that `sans-serif` cannot
+draw č. That was true of the owner's Windows machine, and false on Ubuntu, where
+`sans-serif` is DejaVu. It asks with two unassigned code points now, which every
+font lacks. **A test that reproduces a fault by naming what one machine has
+installed is a test of that machine.**
 
 **The rank numbers had been invisible since the file letters were fixed.** The
 9.9.2026 fix set `fillStyle` for the files and left the ranks reading it, so the

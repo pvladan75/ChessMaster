@@ -38,14 +38,24 @@ async function withFontEnv({ family = '', file = '' }, run) {
   }
 }
 
-test('two letters that differ only in the diacritic tell a font from a box', () => {
-  // The whole mechanism, on its own. `sans-serif` is the state that shipped:
-  // every accented letter is the same box, so the three stamps collapse to
-  // two - and a font that really has them draws three different things.
-  assert.equal(renderFont.draws(renderFont.LATIN, 'sans-serif'), false,
-    'this is the fault that was reported, reproduced');
-  assert.equal(renderFont.draws(['c'], 'sans-serif'), true,
-    'and it is only the accented letters: plain c was always fine');
+test('two letters a font does not have come out as the same box', () => {
+  // The whole mechanism, on its own: a font without a letter draws its box,
+  // and it draws the same box for every letter it lacks.
+  //
+  // **Asked with code points no font has, not with `sans-serif`.** The first
+  // version asserted that `sans-serif` cannot draw č and ć — which was the
+  // reported fault on the owner's Windows machine, and false on CI's Ubuntu,
+  // where `sans-serif` is DejaVu and draws both. A test about what one machine
+  // has installed is not a test of this code, and it failed CI for a day.
+  // U+0378 and U+0379 are unassigned, so every family on every machine lacks
+  // them.
+  const unassigned = [String.fromCodePoint(0x0378), String.fromCodePoint(0x0379)];
+  for (const family of ['DejaVu Sans', 'sans-serif', 'NoSuchFamily']) {
+    assert.equal(renderFont.draws(unassigned, family), false,
+      `${family}: two missing letters are one box`);
+    assert.equal(renderFont.draws(['c', 'd'], family), true,
+      `${family}: two letters it has are two pictures`);
+  }
 });
 
 test('the family chosen draws Serbian, in both scripts', async () => {
