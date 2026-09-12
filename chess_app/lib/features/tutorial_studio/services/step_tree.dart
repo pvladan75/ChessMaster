@@ -75,6 +75,11 @@ AnalysisNode _convert(MoveNode source, {String? fen}) {
     moveSan: san,
     moveUci: san == null ? null : _uciOf(source),
     comment: source.comment,
+    // The assessment, which until 12.9.2026 stopped here: the exporter wrote
+    // `c5??` and the parser dropped the glyph, so a reopened part lost every
+    // one of them and the next save wrote the line back without them. A root
+    // carries none — there is no move to assess.
+    nag: isRoot ? null : source.nag,
     // Copied rather than shared: the parsed tree is thrown away as soon as this
     // returns, but a list handed on by reference is the kind of sharing that
     // turns into two screens editing one object a year later.

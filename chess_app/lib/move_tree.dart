@@ -31,12 +31,44 @@ class SquareMark {
   String toString() => '$colorCode$square';
 }
 
+/// The numeric NAGs that have a glyph in this app's vocabulary.
+///
+/// `AnalysisNode.nag` holds one of `!!`, `!`, `?`, `??`, `!?`, `!□`, so only
+/// the codes that map onto those are read. `$10` („drawish") and the rest of
+/// the standard's two hundred have nowhere to go here, and inventing a glyph
+/// for them would put a mark on a move that no part of this app can draw or
+/// mean.
+const Map<int, String> _numericNags = {
+  1: '!',
+  2: '?',
+  3: '!!',
+  4: '??',
+  5: '!?',
+  6: '?!',
+};
+
 class MoveNode {
   final String san;
   final String fen;
   final String from;
   final String to;
   String comment;
+
+  /// `!`, `??`, `!?` — the assessment written on the move.
+  ///
+  /// Added 12.9.2026, and it is a repair rather than a feature.
+  /// [AnalysisNode.nag] has existed since the Analysis Studio was built and
+  /// `PgnExporterService` has always written it, but **nothing ever read one
+  /// back**: this parser stripped the glyphs to get at the move and threw them
+  /// away. So „Review entire game" wrote `c5??`, the file kept it, and the
+  /// first time a trainer reopened that part and touched anything the re-export
+  /// wrote `c5`. Same family as `acceptedSans` missing from the model — a field
+  /// one end writes and no end reads is a field nobody notices losing.
+  ///
+  /// Mutable, because a numeric NAG (`$4`) arrives as its own token *after* the
+  /// move it belongs to.
+  String? nag;
+
   MoveNode? parent;
   final List<MoveNode> children = [];
   List<ChessArrow> arrows = [];
@@ -48,6 +80,7 @@ class MoveNode {
     required this.from,
     required this.to,
     this.comment = '',
+    this.nag,
     this.parent,
     List<ChessArrow>? arrows,
     List<SquareMark>? squares,
@@ -454,7 +487,6 @@ class MoveTree {
         // a rejected token cost nothing; it is not invisible now that
         // [rejectedMoves] is read as "this line does not belong to this
         // position".
-        cleanedToken = cleanedToken.replaceAll(RegExp(r'[!?□]+$'), '');
         // A result marker written without a space in front of it. The whole
         // text is swept for results above, but that sweep asks for a word
         // boundary on **both** sides of the marker and `*` is not a word
@@ -466,11 +498,35 @@ class MoveTree {
         cleanedToken =
             cleanedToken.replaceAll(RegExp(r'(1-0|0-1|1/2-1/2|\*)$'), '');
 
+        // **After** the result marker, and that order is the whole of it. Both
+        // patterns are anchored to the end of the token, so in `Nf3!*` the
+        // glyph is not last and the star is — the glyph survived the strip
+        // meant for it, reached `chess` still attached, and the move was
+        // counted as one that cannot be played. That is the 7.9.2026 `Nxb4*`
+        // fault again, one character further along, and it was invisible until
+        // something wanted the glyph rather than only wanting rid of it.
+        //
+        // Kept, not only removed: the glyph is the move's assessment, and this
+        // is the one place a PGN is read. See [MoveNode.nag] for what losing it
+        // cost.
+        final glyphs = RegExp(r'[!?□]+$').firstMatch(cleanedToken)?.group(0);
+        cleanedToken = cleanedToken.replaceAll(RegExp(r'[!?□]+$'), '');
+
         if (cleanedToken.isEmpty) continue;
 
         // A numeric NAG annotates the move before it. It is not a move, so not
-        // playing it is not a rejection.
-        if (RegExp(r'^\$\d+$').hasMatch(cleanedToken)) continue;
+        // playing it is not a rejection — and the six that have a glyph in this
+        // app's vocabulary are written onto that move, because a game annotated
+        // anywhere but here says `$4` where „Review entire game" says `??`.
+        // A glyph already on the move wins: it was written next to it.
+        final numeric = RegExp(r'^\$(\d+)$').firstMatch(cleanedToken);
+        if (numeric != null) {
+          final glyph = _numericNags[int.parse(numeric.group(1)!)];
+          if (glyph != null && currentNode.parent != null) {
+            currentNode.nag ??= glyph;
+          }
+          continue;
+        }
 
         // Skip purely numeric/result tokens
         if (RegExp(r'^\d+(\.+)?$').hasMatch(cleanedToken) ||
@@ -494,6 +550,7 @@ class MoveTree {
               fen: tempGame.fen,
               from: lastMove.fromAlgebraic,
               to: lastMove.toAlgebraic,
+              nag: glyphs,
               parent: currentNode,
             );
             currentNode.children.add(newNode);

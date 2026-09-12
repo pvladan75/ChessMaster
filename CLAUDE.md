@@ -2005,6 +2005,31 @@ written twice on one platform and not at all on another. `debugSavePgnFile` is
 the seam, in the shape `debugPlayVoiceSample` already had. Five mutations, all
 five caught.
 
+**2190 the same day, and nine of them are a field one end wrote and no end ever
+read.** `AnalysisNode.nag` has existed since the Analysis Studio was built and
+`PgnExporterService` has always written it — but `MoveTree.parsePgn` stripped
+`!` and `?` to get at the move and threw them away, `MoveNode` had nowhere to
+put them, and `readStepTree` could not carry across what it was never given. So
+„Review entire game" wrote `c5??`, the file kept it, and the first time a
+trainer reopened that part and touched anything the re-export wrote `c5`: the
+blunder marks of a whole game, silently. **Same family as `acceptedSans`
+missing from the model, and found the same way** — by asking what an unbuilt
+feature would need to read, which is the cheapest moment to find it.
+
+**A parser also reads what other programs write.** A game annotated anywhere
+but here says `$4` where this app says `??`, so the six codes that have a glyph
+in this app's vocabulary are read onto the move in front of them, and the other
+two hundred are dropped rather than given an invented mark — `$14` means „White
+is slightly better", which nothing here can draw or mean.
+
+**And the new test found a second fault nobody was looking for.** `Nf3!*` was
+counted as a move that cannot be played: both strips are anchored to the end of
+the token, so with the glyph in front of the star neither pattern could see what
+it was looking for. That is the 7.9.2026 `Nxb4*` fault one character further
+along, and it stayed invisible for as long as the glyph was something to get rid
+of rather than something to keep. **A fix aimed at one end of a token is worth
+re-reading from the other end.** Four mutations, all four caught.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
