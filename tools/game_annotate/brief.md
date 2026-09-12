@@ -45,12 +45,19 @@ the move that should have been played, and the part after it shows the answer.
 Before you write an `ask_move`, ask what a good child might play instead. If a
 second move is about as good, either
 
-  * add it to `"acceptedSans"` - up to six further moves that are also marked
-    correct - so the child is not told they are wrong for finding one of them;
-    or
+  * add it to `"acceptedSans"` - up to six **further** moves that are also
+    marked correct - so the child is not told they are wrong for finding one of
+    them; or
   * do not ask that question. Ask about a position where one move stands out.
 
-Never write „the only move" unless you have checked that it is. A question built
+`"acceptedSans"` never repeats `"solutionSan"`, and it is not the same move
+written a second way: the answer is already accepted, and a list that only says
+it again is a list that accepts nothing.
+
+Never write „the only move" unless you have checked that it is, and never build
+a question on a narrower premise than the position - „how do you block this
+check" has one answer only because blocking was assumed, and the child who
+finds the better move of stepping the king aside is marked wrong for it. A question built
 on a false premise teaches the child to distrust the board, and it is the one
 fault the app cannot catch for you: a legal move that is merely *not the best*
 is stored and marked correct exactly like the right answer, and a child who
