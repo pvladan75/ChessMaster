@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 // look identical.
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/features/repertoire/line_text.dart';
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
@@ -982,7 +983,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       return;
     }
 
-    final played = ChessBoardWithOverlay.lastMoveSquares(_boardController.game);
+    final played = lastMoveSquaresOf(_boardController.game);
     setState(() {
       _lastMoveFrom = played?.from;
       _lastMoveTo = played?.to;

@@ -1,7 +1,7 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 
 /// Diagram 97 of the trainer's scanned set: white mates with Qf1#.
 const _mateInOne = '5Q2/8/8/8/6p1/8/2NNk3/2K5 w - - 0 1';
@@ -20,7 +20,7 @@ void main() {
         reason: 'this is the trap: mate leaves no moves');
     expect(game.in_checkmate, isTrue);
 
-    final played = ChessBoardWithOverlay.lastMoveSquares(game);
+    final played = lastMoveSquaresOf(game);
     expect(played, isNotNull);
     expect(played!.from, 'f8');
     expect(played.to, 'f1');
@@ -29,7 +29,7 @@ void main() {
   test('an ordinary move is reported the same way', () {
     final game = chess.Chess.fromFEN(_mateInOne);
     game.move({'from': 'f8', 'to': 'f2', 'promotion': 'q'});
-    final played = ChessBoardWithOverlay.lastMoveSquares(game);
+    final played = lastMoveSquaresOf(game);
     expect(played?.from, 'f8');
     expect(played?.to, 'f2');
   });
@@ -40,11 +40,11 @@ void main() {
     final game = chess.Chess.fromFEN('7k/8/8/8/8/8/5Q2/7K w - - 0 1');
     game.move({'from': 'f2', 'to': 'f7', 'promotion': 'q'});
     expect(game.moves(), isEmpty);
-    expect(ChessBoardWithOverlay.lastMoveSquares(game), isNotNull);
+    expect(lastMoveSquaresOf(game), isNotNull);
   });
 
   test('nothing played means nothing reported', () {
     final game = chess.Chess.fromFEN(_mateInOne);
-    expect(ChessBoardWithOverlay.lastMoveSquares(game), isNull);
+    expect(lastMoveSquaresOf(game), isNull);
   });
 }

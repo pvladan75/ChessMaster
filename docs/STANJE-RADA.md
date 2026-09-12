@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan, faze 0 i 1"
-odmah ispod ove glave (poslednji potez je sada ispod figura), pa „Priručnik",
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan, faze 0, 1 i 2"
+odmah ispod ove glave (poslednji potez je ispod figura, na svakoj tabli), pa „Priručnik",
 pa „Jezik glasa — plan", pa „Prevod tutorijala, van
 aplikacije", pa „Video bez komentara pored
 table", pa „Ispis prati glas, a ne
@@ -39,7 +39,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Oznake na tabli — plan, faze 0 i 1, 12.9.2026
+## Oznake na tabli — plan, faze 0, 1 i 2, 12.9.2026
 
 `docs/PLAN-OZNAKE-NA-TABLI.md`. Iz četiri vlasnikove prijave od 12.9.2026;
 dve su o istoj stvari.
@@ -72,7 +72,40 @@ polje, dakle nikada nije ni crtao poslednji potez. I dalje ne crta; faza 2
 odlučuje da li treba.
 
 Najgori kontrast opranog polja prema istom neopranom je **1.46:1** (High
-Contrast, tamno polje) — prema 1.03:1 koliko je bio žuti. Ostaje **faze 2–4**.
+Contrast, tamno polje) — prema 1.03:1 koliko je bio žuti.
+
+**Faza 2 je gotova istog dana — 2127, 1 preskočen, analyze 29 infova.** Tabla
+sama zaključuje koji je poslednji potez, pa ekran ne mora da je obavesti. Od
+2098: +6 kapija izvođenja, +19 čisto jezgro faze 2b, +4 testa koje je 2b
+dodala. Dvadeset mutacija u tri kruga, sve uhvaćene. **Ostaju faze 3 i 4.**
+
+**Faza je morala da se radi dvaput, i drugi put je ono što se pamti.** Prvo
+izvođenje je čitalo potez iz `game.history` — tačno, i **bez efekta na devet od
+deset ekrana** zbog kojih je i pisano: svi oni voze tablu preko `loadFen`, a
+`loadFen` briše istoriju. Taktika, odakle je prijava i došla, odigra potez na
+svom `chess.Chess` pa pozove `loadFen(game.fen)`. Izmereno, ne pretpostavljeno:
+posle prevlačenja istorija ima `e2e4`, posle te jedne linije nema ništa.
+
+Kapija to nije uhvatila jer je njen fixture koristio `makeMove`, a ekrani
+koriste `loadFen` — **fixture koji ne liči na ono što se testira**, što je u
+CLAUDE.md već dvaput zapisano.
+
+Rešenje je `lib/core/services/move_between_positions.dart`: za dve pozicije
+pita **koji jedan legalan potez vodi od jedne do druge**, tako što generiše
+poteze i proba ih. Ne poredi polja: rokada pomera dve figure, en passant prazni
+polje na koje niko nije došao, promocija menja šta figura jeste — to su četiri
+posebna slučaja koje `chess.dart` već zna.
+
+**`chess.Chess.fromFEN` ne baca izuzetak — vraća praznu tablu.** Za `''`, `'not
+a fen'`, `'////////'`, četiri reda ili red od devet pešaka vraća tablu bez
+figura i ne kaže ništa. Zato je `try`/`catch` bio mrtav kod, a ni stražar koji
+je izgledao bitno nije mogao da padne: prazna tabla nema kralja, ne generiše
+poteze, pa već odgovara null. Dva stražara obrisana, osobina na koju se
+oslanjaju je zakucana testom.
+
+Usput: `SkinnedChessBoard` je sada `StatefulWidget` (pamti poziciju koju je
+poslednju nacrtao), a reprodukcija snimka i dijalog sa linijama motora sada
+crtaju potez — što je promena koju niko nije tražio i koja je ispravna.
 
 **Vlasnikova odluka, „uzmi inverziju":**
 

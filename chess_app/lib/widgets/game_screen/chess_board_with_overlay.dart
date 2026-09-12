@@ -82,28 +82,6 @@ class ChessBoardWithOverlay extends StatefulWidget {
 
   @override
   State<ChessBoardWithOverlay> createState() => _ChessBoardWithOverlayState();
-
-  /// The move that was just played, or null if none has been.
-  ///
-  /// This used to ask whether any legal moves *remained* and treat "none" as
-  /// "nothing was played" — so a move that ended the game reported nothing at
-  /// all. Checkmate is exactly that case, and checkmate is the answer to every
-  /// mate-in-one exercise: the child's correct move was the one move the board
-  /// never told anybody about. In a live lesson the mating move went
-  /// unbroadcast for the same reason.
-  static ({String from, String to, String promotion})? lastMoveSquares(
-      chess.Chess game) {
-    if (game.history.isEmpty) return null;
-    final move = game.history.last.move;
-    return (
-      from: move.fromAlgebraic,
-      to: move.toAlgebraic,
-      // Read back rather than assumed: a piece dragged to the last rank is
-      // promoted by the board package's own dialog, and whatever the reader
-      // picked there has to reach the screen keeping the position.
-      promotion: move.promotion?.name ?? '',
-    );
-  }
 }
 
 class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
@@ -265,8 +243,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
                 // Deliberately not animated: the user just dragged the piece to
                 // this square themselves, so sliding it along the same path again
                 // reads as the move happening twice.
-                final played = ChessBoardWithOverlay.lastMoveSquares(
-                    widget.controller.game);
+                final played = lastMoveSquaresOf(widget.controller.game);
                 if (played != null) {
                   widget.onMove(played.from, played.to, played.promotion);
                 }

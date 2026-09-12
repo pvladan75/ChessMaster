@@ -4,11 +4,38 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/move_between_positions.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/theme/board_skins.dart';
 import 'package:chess_app/widgets/board/chess_piece_image.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
+
+/// The move that was just played on [game], or null if none has been.
+///
+/// This used to ask whether any legal moves *remained* and treat "none" as
+/// "nothing was played" — so a move that ended the game reported nothing at
+/// all. Checkmate is exactly that case, and checkmate is the answer to every
+/// mate-in-one exercise: the child's correct move was the one move the board
+/// never told anybody about. In a live lesson the mating move went
+/// unbroadcast for the same reason.
+///
+/// It lived on `ChessBoardWithOverlay` until 12.9.2026 and moved here because
+/// [SkinnedChessBoard] needs it and is imported *by* that widget — the other
+/// direction is a cycle. Writing the rule a second time was the alternative,
+/// and this repository has paid for a second copy of a rule more than once.
+({String from, String to, String promotion})? lastMoveSquaresOf(Chess game) {
+  if (game.history.isEmpty) return null;
+  final move = game.history.last.move;
+  return (
+    from: move.fromAlgebraic,
+    to: move.toAlgebraic,
+    // Read back rather than assumed: a piece dragged to the last rank is
+    // promoted by the board package's own dialog, and whatever the reader
+    // picked there has to reach the screen keeping the position.
+    promotion: move.promotion?.name ?? '',
+  );
+}
 
 /// The board, drawn from a [BoardSkin] instead of from a photograph of a board.
 ///
@@ -49,7 +76,7 @@ import 'package:chess_app/widgets/promotion_picker.dart';
 ///    12.9.2026; it is here because it is the only place in the app where those
 ///    two are separate layers, and a mark that must darken the square without
 ///    dimming the piece on it has nowhere else to go.
-class SkinnedChessBoard extends StatelessWidget {
+class SkinnedChessBoard extends StatefulWidget {
   const SkinnedChessBoard({
     super.key,
     required this.controller,
@@ -86,16 +113,79 @@ class SkinnedChessBoard extends StatelessWidget {
   /// where those two are separate layers — see [build] — so it is the only
   /// place the mark can go.
   ///
-  /// Null means "no move to show", which is the honest state of a board loaded
-  /// from a FEN: it has a position and no history. It is not the same as a move
-  /// the caller chose to hide.
+  /// **Both null is the ordinary case, and it means "work it out".** Ten of the
+  /// fifteen screens that draw a board passed nothing — the room a live lesson
+  /// runs in, the tactics trainer the owner's report came from — and a
+  /// parameter each of them has to remember is how it got to ten. See
+  /// [_SkinnedChessBoardState._wash].
   ///
-  /// Nothing passes these yet. Phase 1 of `docs/PLAN-OZNAKE-NA-TABLI.md` moves
-  /// the last-move marker onto them and deletes the one drawn above.
+  /// A caller that tracks the move itself passes both and wins; the five that
+  /// do are held to it by `test/last_move_reaches_board_test.dart`.
+  ///
+  /// There is deliberately **no way to turn the wash off**. Nothing wants that
+  /// today, and a control drawn for nobody is this repository's most frequent
+  /// mistake; a board no move leads to already shows nothing.
   final String? lastMoveFrom;
   final String? lastMoveTo;
 
+  @override
+  State<SkinnedChessBoard> createState() => _SkinnedChessBoardState();
+}
+
+class _SkinnedChessBoardState extends State<SkinnedChessBoard> {
   static const _files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+  /// The position this board last drew, and the move that arrived at it.
+  ///
+  /// **Phase 2b, and the reason it exists is measured rather than reasoned
+  /// about.** Phase 2 read the move out of `game.history`, which is right and
+  /// which is a no-op on nine of the ten screens it was written for: they all
+  /// drive the board with `loadFen`, and `loadFen` empties the history. The
+  /// tactics trainer — the screen the owner's report came from — plays the move
+  /// on its own `chess.Chess` and then calls `loadFen(game.fen)` to put the
+  /// board in step. After the drag the history holds `e2e4`; after that one
+  /// line it holds nothing at all.
+  String? _shownFen;
+  String? _shownPlacement;
+  ({String from, String to})? _derived;
+
+  /// Which two squares to wash, for the position now on the board.
+  ///
+  /// The caller wins whenever it said anything, and **the pair is taken
+  /// whole**: a screen that named one square and not the other means that, and
+  /// mixing its `from` with a derived `to` would be two nodes answering for one
+  /// move — a fault this repository has already paid for once.
+  ({String? from, String? to}) _wash(Chess game) {
+    if (widget.lastMoveFrom != null || widget.lastMoveTo != null) {
+      return (from: widget.lastMoveFrom, to: widget.lastMoveTo);
+    }
+
+    final fen = game.fen;
+    final placement = placementOf(fen);
+
+    // Nothing moved since the last build — a rebuild for a skin change, a
+    // parent's setState, a tab coming back onstage. The mark has to survive
+    // those, so the answer is the one already worked out and not a fresh null.
+    if (placement != null && placement == _shownPlacement) {
+      return (from: _derived?.from, to: _derived?.to);
+    }
+
+    // Played on directly, which is what the room and the two studios do. The
+    // cheaper and more certain of the two readings, so it is asked first.
+    final played = lastMoveSquaresOf(game);
+    final derived = played != null
+        ? (from: played.from, to: played.to)
+        // Loaded as a position, which is what the other ten do. What single
+        // legal move gets from the board we were showing to this one? An
+        // unrelated position — a new puzzle, a jump to another node, a move
+        // taken back — is not one move away, and the answer is no mark.
+        : (_shownFen == null ? null : moveBetweenPositions(_shownFen!, fen));
+
+    _shownFen = fen;
+    _shownPlacement = placement;
+    _derived = derived;
+    return (from: derived?.from, to: derived?.to);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,15 +195,23 @@ class SkinnedChessBoard extends StatelessWidget {
     return ListenableBuilder(
       listenable: AppSettingsService.instance,
       builder: (context, _) {
-        final board = boardSkin ?? AppSettingsService.instance.boardSkin;
-        final pieces = pieceSkin ?? AppSettingsService.instance.pieceSkin;
+        final board = widget.boardSkin ?? AppSettingsService.instance.boardSkin;
+        final pieces =
+            widget.pieceSkin ?? AppSettingsService.instance.pieceSkin;
 
         return ValueListenableBuilder<Chess>(
-          valueListenable: controller,
+          valueListenable: widget.controller,
           builder: (context, game, _) {
+            // Worked out here and not in `ChessBoardWithOverlay` for two
+            // reasons: this builder already holds the `game` and already
+            // re-runs when it changes, and this widget is what all six boards
+            // in the app are built from — the analysis studio and the drill
+            // screen reach it without going through the overlay at all.
+            final wash = _wash(game);
+
             return SizedBox(
-              width: size,
-              height: size,
+              width: widget.size,
+              height: widget.size,
               child: AspectRatio(
                 aspectRatio: 1.0,
                 child: LayoutBuilder(
@@ -140,9 +238,9 @@ class SkinnedChessBoard extends StatelessWidget {
                           child: IgnorePointer(
                             child: CustomPaint(
                               painter: LastMovePainter(
-                                from: lastMoveFrom,
-                                to: lastMoveTo,
-                                orientation: boardOrientation,
+                                from: wash.from,
+                                to: wash.to,
+                                orientation: widget.boardOrientation,
                               ),
                             ),
                           ),
@@ -173,10 +271,10 @@ class SkinnedChessBoard extends StatelessWidget {
       itemBuilder: (context, index) {
         final row = index ~/ 8;
         final column = index % 8;
-        final boardRank = boardOrientation == PlayerColor.black
+        final boardRank = widget.boardOrientation == PlayerColor.black
             ? '${row + 1}'
             : '${(7 - row) + 1}';
-        final boardFile = boardOrientation == PlayerColor.white
+        final boardFile = widget.boardOrientation == PlayerColor.white
             ? _files[column]
             : _files[7 - column];
         final squareName = '$boardFile$boardRank';
@@ -207,7 +305,7 @@ class SkinnedChessBoard extends StatelessWidget {
 
         return DragTarget<PieceMoveData>(
           builder: (context, candidate, rejected) => draggable,
-          onWillAcceptWithDetails: (_) => enableUserMoves,
+          onWillAcceptWithDetails: (_) => widget.enableUserMoves,
           onAcceptWithDetails: (details) =>
               _onPieceDropped(context, game, details.data, squareName),
         );
@@ -233,16 +331,16 @@ class SkinnedChessBoard extends StatelessWidget {
       // Null is a real answer: the reader backed out, so the move is not
       // played at all rather than played as a queen they did not choose.
       if (promotion == null) return;
-      controller.makeMoveWithPromotion(
+      widget.controller.makeMoveWithPromotion(
         from: moveData.squareName,
         to: squareName,
         pieceToPromoteTo: promotion,
       );
     } else {
-      controller.makeMove(from: moveData.squareName, to: squareName);
+      widget.controller.makeMove(from: moveData.squareName, to: squareName);
     }
 
-    if (game.turn != moveColor) onMove?.call();
+    if (game.turn != moveColor) widget.onMove?.call();
   }
 
   static bool _isPromotion(PieceMoveData moveData, String squareName) {

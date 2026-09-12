@@ -229,35 +229,91 @@ tests that take `AnimatedMovePiece` from the same file.
 
 ## Phase 2 — every board draws it
 
-Today 5 of the 15 screens that build `ChessBoardWithOverlay` pass the last move.
-These ten do not, and the two at the top are the two the owner reported:
+**Done 12.9.2026 — 2127 in the app with 1 skipped, analyze at 29 infos and zero
+warnings**, measured on `master` with nothing else running. From phase 1's 2098:
+**+6** for the derivation's gate, **+19** for the pure core of 2b, **+4** for
+the four tests 2b added to that gate. Twenty mutations across the three runs.
 
-`tactics_trainer_screen` · `chess_game_screen` (the room) ·
-`endgame_trainer_screen` · `blunder_walk_screen` · `mistake_drill_screen` ·
-`review_session_screen` · `lesson_viewer_screen` ·
-`custom_puzzle_solver_screen` · `repertoire_new_screen` ·
-`lesson_step_editor_panel`
+It took two goes, and the second is the interesting one.
 
-**It must not be ten more call sites.** `ChessBoardWithOverlay` derives the
-squares from its own controller through `lastMoveSquares` when the caller passed
-none, and a caller that wants none says so explicitly. Ten screens that each
-have to remember to pass a parameter is how this ended up 5-of-15 in the first
-place, and this file already records three other features that were complete at
-every layer and reachable from nowhere.
+### 2a — the history, which was right and was not enough
 
-**One judgement to make while building it:** a screen that loads a position from
-a FEN has an empty history, so nothing is drawn — correct, and it is what the
-puzzle screens do on their first frame. But a puzzle where the *opponent replies*
-does have a history, and that reply is the whole reason report #3 exists. Both
-cases need a test.
+`SkinnedChessBoard` works out its own last move when the caller passed neither
+square. Derived there rather than in `ChessBoardWithOverlay` — which is what
+this plan originally said — for two reasons: that builder already holds the
+`game` and already re-runs when it changes, and it is what all six boards in the
+app are built from, including the analysis studio and the drill screen, which
+never touch the overlay.
 
-**Gate.** One test per screen is too many; one test that walks a representative
-three — a puzzle screen, the room, a viewer — plus one that asserts the
-derivation happens at all, plus one that asserts an explicit opt-out wins.
+`lastMoveSquares` moved off `ChessBoardWithOverlay` and became the top-level
+`lastMoveSquaresOf`, because the widget that needs it is imported *by* that
+widget and the other direction is a cycle. Four callers followed it.
 
-**Mutation:** delete the derivation fallback. Every screen that never passed the
-parameter goes back to drawing nothing, and if the suite stays green the gate is
-testing the five screens that already worked.
+Six mutations, all six caught, including the pair that matter: the caller's own
+squares must win, and they must win **whole** — mixing a caller's `from` with a
+derived `to` is two nodes answering for one move.
+
+### 2b — and then the measurement that undid it
+
+Nine of the ten screens this phase exists for drive their board with `loadFen`,
+and **`loadFen` empties the history.** The tactics trainer, which is where the
+owner's report came from, plays the move on its own `chess.Chess` and then calls
+`_boardController.loadFen(game.fen)` to put the board in step. Probed rather
+than reasoned about: after the drag the history holds `e2e4`, and after that one
+line it holds nothing.
+
+So 2a would have shipped a feature that is still invisible on every screen it
+was written for — every layer correct, nothing drawn, which is the exact shape
+this plan exists to fix. **The gate did not catch it because the gate's fixture
+was `makeMove` and the screens use `loadFen`**: a fixture that did not match the
+thing under test, which this file already records twice.
+
+`lib/core/services/move_between_positions.dart` is the answer, landed as its own
+core with 19 tests before the widget was touched. Given two positions it asks
+**which single legal move gets from one to the other**, by generating the moves
+and trying them. The board remembers the position it last drew and asks that
+question whenever a new one arrives with no history behind it.
+
+**It searches legal moves instead of diffing the squares, and that is the whole
+design.** A square-by-square diff is a second set of chess rules: castling moves
+two pieces, en passant empties a square no piece arrived on, promotion changes
+what a piece is. Asking `chess.dart` needs no special cases, and the tests for
+those four are in the file as the reason.
+
+### Three things worth carrying
+
+**`chess.Chess.fromFEN` does not throw — it answers an empty board.** Handed
+`''`, `'not a fen'`, `'////////'`, four ranks or a rank of nine pawns, it
+returns a board with no pieces and reports nothing. So the `try`/`catch` the
+first version wrapped it in was dead code, and the guard that looked like it
+mattered — "did the board take the position I gave it?" — could not be made to
+fail either, because an empty board has no king, generates no moves, and so
+already answers null. Two guards were deleted and the property they leaned on is
+pinned instead, by a test that fails if the engine ever starts answering
+something else. One early exit stays, unprovable, and says so in the code.
+
+**A screen that syncs by `loadFen` is now the tested case, not the lucky one.**
+Four of the ten tests in `last_move_derived_test.dart` drive the board exactly
+as the real screens do, including the opponent's reply — the sentence in the
+owner's report — and including a new puzzle being loaded, which is two positions
+with no move between them and must mark nothing.
+
+**The mark has to survive a rebuild that changed nothing.** A skin change, a
+parent's `setState`, a tab coming back onstage: the position is the same, no
+move was played, and recomputing from scratch would answer null and lose the
+mark. The board keeps its last answer while the placement is unchanged, and a
+mutation deleting that is caught.
+
+### What is still not drawn, deliberately
+
+The replay player and the engine-line dialog navigate **only** by `loadFen`,
+between positions that are usually one move apart — so they now draw the move
+too, for free. That is a behaviour change nobody asked for and it is the right
+one: `replay_player_screen` had been passing `lastMoveColor` and never a square
+since it was written, which says what was intended.
+
+`SkinnedChessBoard` is a `StatefulWidget` as of this phase. That is item 7 in
+its list of deliberate deviations from the package it forks.
 
 ## Phase 3 — the trainer's square becomes a frame, in the app and in the film
 

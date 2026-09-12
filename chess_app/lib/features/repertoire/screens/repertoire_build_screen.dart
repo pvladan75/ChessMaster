@@ -2,6 +2,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
@@ -1525,7 +1526,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       return;
     }
 
-    final played = ChessBoardWithOverlay.lastMoveSquares(_boardController.game);
+    final played = lastMoveSquaresOf(_boardController.game);
     setState(() {
       _lastMoveFrom = played?.from;
       _lastMoveTo = played?.to;
