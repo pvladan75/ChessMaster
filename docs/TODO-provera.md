@@ -4767,37 +4767,61 @@ grešku zaustavljenog uvoza koja stoji u `user_game_imports`.
    podacima** — `narrativeGuard` odbija izmišljen broj, pa ako se rečenica ne
    pojavi, pogledaj log servera pre nego što prijaviš da je pokvarena.
 
-## 133. Tutorijal kao video — 9.9.2026, nije viđeno uživo
+## 133. Tutorijal kao video — delimično provereno uživo 12.9.2026
 
 Faza 2 `PLAN-ZAVRSNICA.md`. Renderovanje je dokazano na mašini vođe (dvodelni
 tutorijal, strelice, obojena polja, rečenice i okrenuta tabla u drugom delu, 19
-sekundi MP4-a), ali **niko još nije pritisnuo dugme u aplikaciji**.
+sekundi MP4-a), a do 12.9.2026 **niko nije bio pritisnuo dugme u aplikaciji** —
+to se tog dana promenilo, vidi odeljak ispod.
 
 Za ovo treba nalog kome je uključen `mp4_export` (plaćeno pravo) i pokrenut
 lokalni backend sa `ffmpeg` u putanji.
+
+**Prvi objavljen tutorijal, 12.9.2026.** Vlasnik je u studiju napisao „Master
+the Rook and King Checkmate" — četiri dela, 37 taktova, sav sa bele strane —
+izvezao ga na 1080p sa Azure glasom na engleskom, preuzeo fajl i objavio film na
+YouTube. Fajl je `exports/tutorial_50_wood_1080p_….mp4`: 1920×1080, 30 fps,
+2:50, 2,66 MB, ~125 kbps, glas 22 050 Hz mono (srednje −23,7 dB), nacrtan za
+2 min 16 s (`tutorial_render_jobs` za lekciju 50 stoji na `done`). Kopija
+tutorijala i sva merenja stoje u `D:/chess/tutorijal/reference/` — van
+repozitorijuma, kao i ostali generisani tutorijali.
+
+Time su dokazane stavke **3** (izvoz javi „Video ready!" sa linkom — na Windowsu;
+telefon nije gledan), **4** (fajl se preuzima i pušta), **6** i **7** (na kadru
+na 01:02 stoje slova a–h duž donje ivice i naslov bez prazne kutijice), **10**
+(figure i tabla su iz aplikacije — koža nadjačava `boardTheme`, pa ime fajla i
+dalje kaže „wood" iako polja nisu drvena) i **13** (1080p, provereno upravo na
+YouTube uploadu; vidi „60 fps za YouTube — mereno i odbijeno" u
+`docs/STANJE-RADA.md` za lestvicu koju YouTube od toga napravi).
+
+Stavka **5** je dokazana do pola: rečenica se čita do kraja, a strelice i
+obojena polja stoje na svom potezu — ali ovaj tutorijal nema deo pisan sa crne
+strane, pa okrenuta tabla i dalje nije viđena. Sve ostalo u ovom odeljku — prazan
+tutorijal, kvota, traka od 10 %, dva rendera u isto vreme, izvoz snimka časa —
+nije gledano.
 
 1. [ ] **Vrata.** „Sačuvani tutorijali" → svaki red ima tri ikonice: video,
    pošalji, obriši. Na telefonu (ne na Windows prozoru!) proveri da se sve tri
    vide i da se svaka može pogoditi prstom, i kod tutorijala sa dugim imenom.
 2. [ ] **Prazan tutorijal** kaže „This tutorial has nothing to show yet." i
    **ne** šalje ništa serveru.
-3. [ ] **Običan tutorijal** javi „Exporting video…", pa posle nekoliko desetina
+3. [x] **Običan tutorijal** javi „Exporting video…", pa posle nekoliko desetina
    sekundi otvori „Video ready!" sa linkom. Dijalog mora da stane na ekran
    telefona.
-4. [ ] **Fajl se otvara.** Dugme „Download" otvara sistemski pregledač i video
+4. [x] **Fajl se otvara.** Dugme „Download" otvara sistemski pregledač i video
    se pušta.
 5. [ ] **U videu:** rečenica ispod table je čitljiva do kraja; strelice i
    obojena polja stoje na potezu kome pripadaju; drugi deo tutorijala počinje
    **bez** osvetljenog poteza iz prvog; deo pisan sa crne strane je okrenut.
-6. [ ] **Slova kolona (a–h) se vide** duž donje ivice table. To je ispravka iz
+6. [x] **Slova kolona (a–h) se vide** duž donje ivice table. To je ispravka iz
    ove faze — do 9.9.2026 nijedno nije bilo nacrtano ni u jednom izvozu.
-7. [ ] **Naslov nema praznu kutijicu** ispred sebe.
+7. [x] **Naslov nema praznu kutijicu** ispred sebe.
 8. [ ] **Izvoz snimka časa** (`Replay` → izvoz MP4) i dalje izgleda isto kao
    pre. Ovo je regresiona provera: film bez rečenica ne sme da promeni
    geometriju.
 9. [ ] **Kvota.** Posle izvoza, „Moj nalog" prikazuje potrošenu MP4 kvotu; izvoz
    koji padne ne sme da je potroši.
-10. [ ] **Figure su iste kao u aplikaciji.** Uporedi kadar iz videa sa
+10. [x] **Figure su iste kao u aplikaciji.** Uporedi kadar iz videa sa
     Studijom za tutorijal: isti oblici, ista tabla, ista tema. Do 9.9.2026 su
     na serveru živela tri kompleta („Alpha", „Staunton" i onaj iz aplikacije),
     a bojenje po koži je posezalo za pogrešnim — pa je video stizao u
@@ -4809,7 +4833,7 @@ lokalni backend sa `ffmpeg` u putanji.
 12. [ ] **Izvoz snimka časa nema više izbor kompleta figura** — u dijalogu su
     sada četiri stavke (tabla, orijentacija, elementi, rezolucija), a video
     izlazi u figurama iz aplikacije.
-13. [ ] **Prekidač „Higher quality (1080p)"** stoji u dijalogu pre renderovanja
+13. [x] **Prekidač „Higher quality (1080p)"** stoji u dijalogu pre renderovanja
     (sada se taj dijalog otvara i kada server ne ume da govori). Isključen je
     podrazumevano, pamti se za sledeći put, a uključen daje vidno oštriji tekst
     — proveri na YouTube uploadu ili na projektoru.
@@ -4896,6 +4920,11 @@ Do 9.9.2026 se renderovani video nigde nije pamtio: link je živeo samo u
 odgovoru na izvoz, a token mu traje trideset minuta. Sada `saved_lessons` nosi
 ime fajla, a red u „Sačuvani tutorijali" dobija ikonicu za preuzimanje — **samo
 ako film postoji**.
+
+**Kolona je napisana, 12.9.2026.** Posle objavljenog izvoza
+`saved_lessons.video_filename` za lekciju 50 nosi `tutorial_50_wood_1080p_….mp4`
+(pročitano iz baze), pa je zapisivanje dokazano; ikonica na redu i svež link
+nisu gledani.
 
 1. [ ] **Izvezi pa zatvori dijalog.** Ne pritiskaj „Download". Zatvori spisak,
    otvori ga ponovo: na tom redu stoji ikonica za preuzimanje i daje isti film.
@@ -5101,6 +5130,11 @@ da se sakrije („Hide") ili da prekine render („Cancel render"); kad se film
 završi ili padne, stiže obaveštenje na zvonce. Tutorijali za proveru su u
 `mislisha-test/render-fixtures`.
 
+**Posao je izašao iz zahteva, 12.9.2026.** Objavljeni izvoz je prošao tim putem:
+`tutorial_render_jobs` nosi red za lekciju 50 sa `status = done`, imenom fajla i
+razlikom od 2 min 16 s između `created_at` i `finished_at` — dakle film je crtan
+posle odgovora, a ne u njemu. „Hide", „Cancel render" i zvonce nisu gledani.
+
 1. [ ] **Ekran se više ne zamrzava.** Izvezi `medium-12-parts`. Traka ima dva
    dugmeta. Pritisni „Hide": dijalog se zatvori, poruka kaže da se video i dalje
    renderuje, a aplikacija radi normalno dok server crta.
@@ -5182,9 +5216,13 @@ i srpski koji je vraćen a ne preveden" u `docs/STANJE-RADA.md`.
 3. [ ] **Srpski izgovor poteza.** Ako srpski glas postoji:
    `node scripts/tts-probe.js "Odigraj Bd5, pa O-O." <id tog glasa>` — voice
    mora reći „lovac d pet" i „mala rokada", a ne da slovka „be de pet".
-4. [ ] **Film sa Azure glasom.** Izvezi tutorijal sa „Narrate this video" i
-   izabranim Azure glasom: film govori, dužina taktova prati glas, a poruka na
-   kraju je obična „Video rendered successfully…" bez rečenice o naraciji.
+4. [x] **Film sa Azure glasom.** ✅ Vlasnik, 12.9.2026: „Master the Rook and
+   King Checkmate" izvezen sa engleskim Azure glasom i objavljen na YouTube.
+   Film govori kroz celu dužinu (22 050 Hz mono, tačno Azureov
+   `riff-22050hz-16bit-mono-pcm`, srednje −23,7 dB); takte je odredio glas, ne
+   nemi sat — za ovaj tekst nemi sat daje ~159 s, a film traje 170 s; poruka
+   posla je obična „Video rendered successfully, saved, and ready for
+   download!", bez rečenice o naraciji.
 5. [ ] **Rečenica sa `&` ili `<`.** Napiši u nekom taktu „Nimzo & Bogo" ili
    „1 < 2" pa izvezi: glas te reči izgovori normalno, ništa se ne odbija, i u
    logu nema `Azure refused`.
