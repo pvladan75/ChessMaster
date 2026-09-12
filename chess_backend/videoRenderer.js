@@ -563,6 +563,35 @@ function applyEvent(state, event) {
   return next;
 }
 
+/// How much of this beat's sentence is on screen at [currentMs].
+///
+/// **The writing follows the voice**: it starts when the voice does and ends
+/// when it does. A synthesiser's clip is padded at both ends - about an eighth
+/// of a second in front and most of a second behind, measured - and until
+/// 12.9.2026 this read the clip's whole length, so the sentence began before
+/// the first word and was still being written after the last. The owner
+/// reported it as the voice running ahead of the text.
+///
+/// With no voice there is nothing to follow, so it writes over three quarters
+/// of the beat and holds the finished sentence for the rest.
+///
+/// Split out as a value a test can read, like `underBoardText` and
+/// `ffmpegArgsFor`: the frame loop cannot be reached without an ffmpeg.
+function captionRevealAt({
+  currentMs,
+  beatStartMs,
+  nextBeatStartMs,
+  spokenMs = 0,
+  spokenStartMs = 0,
+}) {
+  const spoken = Number(spokenMs) || 0;
+  const over = spoken > 0
+    ? spoken
+    : Math.max(1, (nextBeatStartMs - beatStartMs) * 0.75);
+  const from = beatStartMs + (spoken > 0 ? (Number(spokenStartMs) || 0) : 0);
+  return Math.min(1, Math.max(0, (currentMs - from) / over));
+}
+
 /// What the line under the board says.
 ///
 /// **Three answers, and the third one is why this function exists.** A tutorial
@@ -1030,6 +1059,10 @@ async function renderRecordingToMP4({
     // When the sentence now on screen started being spoken, and for how long.
     let captionStartMs = 0;
     let captionSpokenMs = 0;
+    // How far into the beat the voice begins. A synthesiser's clip opens with
+    // silence, and writing through it made the caption run ahead of the voice
+    // from the first word.
+    let captionSpokenFromMs = 0;
 
     for (let frame = 0; frame <= frames; frame++) {
       // The client left while the previous frame was being drawn. Stop here:
@@ -1049,16 +1082,20 @@ async function renderRecordingToMP4({
         // Without it — a silent film — the reveal takes the beat's own length,
         // less a breath, so the last words are on screen before it moves on.
         captionSpokenMs = Number(event.data?.spokenMs) || 0;
+        captionSpokenFromMs = Number(event.data?.spokenStartMs) || 0;
         eventIdx++;
       }
 
       const nextStart = eventIdx < events.length
         ? (events[eventIdx].timestampMs || 0)
         : totalDuration * 1000;
-      const revealOver = captionSpokenMs > 0
-        ? captionSpokenMs
-        : Math.max(1, (nextStart - captionStartMs) * 0.75);
-      const captionReveal = Math.min(1, Math.max(0, (currentMs - captionStartMs) / revealOver));
+      const captionReveal = captionRevealAt({
+        currentMs,
+        beatStartMs: captionStartMs,
+        nextBeatStartMs: nextStart,
+        spokenMs: captionSpokenMs,
+        spokenStartMs: captionSpokenFromMs,
+      });
 
       const frameBuf = await renderFrameBuffer({
         title,
@@ -1217,6 +1254,7 @@ module.exports = {
   framesPerSecondOf,
   ffmpegArgsFor,
   underBoardText,
+  captionRevealAt,
   OUTPUT_FPS,
   CAPTION_FPS,
   drawColorOf,

@@ -860,6 +860,9 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       } else if (narrate === true) {
         const narrated = await tutorialNarration.narrateFilm({
           events, voice, exportsDir, filename, signal,
+          // The same rate the renderer will draw at, so the plan rounds a beat
+          // up to the next frame rather than to the next whole second.
+          fps,
         });
         if (narrated) {
           if (narrated.events) renderEvents = narrated.events;

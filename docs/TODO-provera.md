@@ -5594,3 +5594,31 @@ ekrana pri skrolovanju. Vidi „Oznake van table, i kartice koje ne beže" u
    figure) — koristi kolutić ili traku za skrolovanje. Ako ti ovo zafali u
    praksi, reci: rešenje bi bilo skrolovanje van table, a ne oduzimanje poteza
    tabli.
+
+
+## 156. Ispis prati glas, a ne fajl — 12.9.2026, nije viđeno uživo
+
+Iz dve prijave od 12.9.2026 (prva reč se ne čuje cela, i čekanje posle glasa).
+Vidi „Ispis prati glas, a ne fajl" u `docs/STANJE-RADA.md`. Za sve ovo treba
+izvoz sa naracijom — najbolje isti „Master the Rook and King Checkmate",
+da može da se uporedi sa objavljenim filmom.
+
+1. [ ] **Prva reč se čuje.** Film počinje sa 0,4 s tišine pa „Checkmating…".
+   Ako se i sada čuje odsečeno, problem nije u fajlu — zvuk je izmeren i bio je
+   ceo — nego u plejeru ili u uvodu koji je prekratak; onda je rešenje veći
+   `LEAD_SECONDS`, ne traženje odsečenih semplova.
+2. [ ] **Ispis se završava sa glasom.** Gledaj bilo koji takt sa dužom
+   rečenicom: poslednja reč treba da se pojavi u trenutku kad je glas izgovori,
+   a ne posle njega.
+3. [ ] **Posle glasa se ne čeka dugo.** Pauza između dva takta treba da bude
+   oko sekunde, ne dve. Ako je i dalje predugo, broj je `BREATH_SECONDS`.
+4. [ ] **Film je kraći.** Isti tutorijal je po meri sa 168 s na oko 147 s, a
+   ništa nije izbačeno — samo je prestalo da se dva puta plaća rep snimke.
+5. [ ] **Nemi film je nedirnut.** Izvezi isti tutorijal sa „No voice": ispis i
+   dužina taktova su kao pre (dvanaest slova u sekundi, tri četvrtine takta).
+6. [ ] **Film bez natpisa, sa glasom.** „Comments beside the board" isključeno,
+   glas uključen: taktovi se i dalje slažu sa glasom (tu se crta jednom u
+   sekundi, pa se zaokružuje na celu sekundu).
+7. [ ] **Trenerov snimak.** Izvoz sa „My recording" ide drugim putem (markeri iz
+   snimanja) i ovim se ne menja — proveri da zvuk i tabla i dalje idu zajedno.
+

@@ -86,8 +86,10 @@ test('a runaway clip is dropped, not trimmed', () => {
   assert.ok(plan.segments.every((s) => s.seconds > 0), 'no zero-length segment reaches ffmpeg');
 
   // The edge itself is spoken, so the ceiling is a ceiling and not a fence.
+  // Asked of the clip rather than of `segments[0]`, which since the film gained
+  // its lead-in is the silence in front of the first thing said.
   const edge = narrationPlan([{ clipSeconds: MAX_BEAT_SECONDS }]);
-  assert.equal(edge.segments[0].kind, 'clip');
+  assert.ok(edge.segments.some((s) => s.kind === 'clip' && s.index === 0));
 });
 
 test('a clip that is not a number is a silent beat, not a crash', () => {

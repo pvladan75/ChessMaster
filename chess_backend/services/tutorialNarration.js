@@ -41,7 +41,13 @@ const { throwIfAborted } = require('./renderAbort');
  * machine, the log said so, and the app said „Video ready!". The value is a
  * word rather than a sentence, so the copy stays with the route that answers.
  */
-async function narrateFilm({ events, voice, exportsDir, filename, signal = null }) {
+async function narrateFilm({
+  events, voice, exportsDir, filename, signal = null,
+  // The rate the film will be drawn at, so a beat boundary lands on a frame.
+  // Absent means one a second, which is what every film was before captions
+  // could be drawn four times a second.
+  fps = 1,
+}) {
   // Narration is inside the render queue with the drawing, so a client that has
   // already gone must not be synthesised for either — a twenty-five beat
   // tutorial is a minute of piper holding the one slot.
@@ -79,7 +85,7 @@ async function narrateFilm({ events, voice, exportsDir, filename, signal = null 
     return { events, audioPath: null, seconds: null, spokenBeats: 0, silentBecause: 'voice' };
   }
 
-  const plan = narrationPlan(clips);
+  const plan = narrationPlan(clips, { fps });
   const audioPath = await buildNarrationTrack({
     segments: plan.segments,
     clips,

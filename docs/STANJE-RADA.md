@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake van table, i
-kartice koje ne beže" odmah ispod ove glave (u kodu, ostaje provera uživo), pa
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Ispis prati glas, a ne
+fajl" odmah ispod ove glave (u kodu, ostaje provera uživo), pa „Oznake van
+table, i kartice koje ne beže" (isto), pa
 „Vraćanje na već viđenu poziciju" (isto), pa „60 fps za
 YouTube — mereno i odbijeno" (ništa u kodu, samo merenje), pa „Oznake na tabli —
 plan i sve faze" (ceo plan u kodu, ostaje provera uživo), pa „Priručnik",
@@ -39,6 +40,64 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Ispis prati glas, a ne fajl — 12.9.2026
+
+Dve prijave posle gledanja prvog objavljenog tutorijala: prva reč se ne čuje
+cela („Checkmating" počinje od „mating"), i „govor ide brže od ispisa teksta, pa
+posle govora čekamo da se tekst ispiše, nekad i po 2 sekunde, pa tek onda ide
+dalje". **1258 na serveru** sa `.env`-om po strani; aplikacija je netaknuta.
+Trinaest mutacija, sve uhvaćene. Provera uživo: `TODO-provera.md`, stavka 156.
+
+**Prvo mereno, pa menjano.** Svaka Azure snimka nosi tišinu oko rečenice, i to
+je izmereno na svih 22 klipa tog filma: **0,12–0,14 s ispred i 0,80–0,93 s
+iza** — 18,6 sekundi od 175 koliko film traje. A sve se ravnalo po **dužini
+fajla**, ne po glasu u njemu:
+
+* natpis se ispisivao preko celog klipa, pa je počinjao pre prve reči i još se
+  pisao posle poslednje — to je „govor ide brže od ispisa";
+* pauza (`BREATH_SECONDS`, 0,6 s) se dodavala na **kraj fajla**, pa je čekanje
+  posle glasa bilo rep klipa *plus* pauza *plus* zaokruživanje na celu sekundu —
+  tačno one dve sekunde koje je vlasnik izmerio.
+
+**Prva reč nije bila odsečena.** Mereno pre nego što je bilo šta dirano: prvih
+0,129 s filma i istih 0,129 s klipa daju identično očitavanje, do decibela
+(−66,2 prema −66,6 dB srednje). Zvuk je bio ceo — reč počinje na 0,129 s, bez
+ikakvog mesta pre sebe, a to je mesto koje plejer ume da pojede. Zato je dodat
+**uvod od 0,4 s pred prvi klip** (`LEAD_SECONDS`), i to je prostor a ne
+popravka; tako i stoji zapisano u kodu, jer bi drugačije neko sutra tražio
+odsečene semplove kojih nema.
+
+Četiri izmene, sve na serveru:
+
+1. **`speechWindow`** (`services/tts/wav.js`) čita gde je glas unutar wav-a —
+   vrh po bloku od 20 ms, prag −40 dBFS. Ne traži prvi sempl različit od nule:
+   tiši deo klipa nije digitalna tišina (−50 dB u vrhu), pa bi takav skan za
+   svaki klip odgovorio „od nule".
+2. **Pauza se meri od glasa**, ne od kraja fajla. Rep klipa je obično duži od
+   pauze, pa je sam sebi pauza; takt je `max(klip, kraj glasa + pauza)`.
+3. **Takt se zaokružuje na kadar, ne na celu sekundu.** Ruta prosleđuje `fps`
+   (`framesPerSecondOf`) do plana: sa natpisima film se crta četiri puta u
+   sekundi, pa zaokruživanje košta najviše četvrt sekunde umesto cele. Bez
+   natpisa je i dalje cela sekunda, jer se tada crta jednom u sekundi.
+4. **`captionRevealAt`** je pravilo ispisa, izvučeno kao vrednost koju test
+   može da pročita (kao `underBoardText` i `ffmpegArgsFor`): ispis počinje kad
+   glas počne i završava se kad glas stane. Nemi film je nedirnut — nema šta da
+   prati, pa piše preko tri četvrtine takta.
+
+**Koliko to vredi, mereno na vlasnikovim klipovima:** sam govor je 115,8 s;
+film je po starom pravilu 168 s, po novom **146,75 s** — kraći za 21 sekundu,
+oko 13%. Mrtvo vreme posle glasa padne sa ~1,45 s na ~0,9 s po taktu, i to je
+rep klipa, dakle prava pauza.
+
+Dve mutacije koje su vredele koliko i kod. „`speakBeats` zaboravi da izmeri
+prozor" i „ruta ne prosledi `fps`" — obe bi ostavile sve gore dokazano i
+ništa uključeno; to je isto ono „proved function is not a proved caller" koje
+ovaj fajl već pamti iz plana snimanja. Obe su sada pokrivene, jedna testom sa
+klipom podmetnutim u keš (bez ijednog poziva sintetizatoru), druga tvrdnjom u
+testu rute.
 
 ---
 

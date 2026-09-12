@@ -551,6 +551,16 @@ test('8. narrate: true -> the render gets narrated.events, narrated.seconds and 
   assert.equal(narrateCalls.length, 1, 'narrateFilm must be called once');
   assert.equal(narrateCalls[0].voice, 'sr-RS-Standard-B');
   assert.deepEqual(narrateCalls[0].events, VALID_EVENTS);
+  // **The rate the film will be drawn at goes with it.** `narrationPlan` rounds
+  // every beat up to the next frame, and told nothing it rounds to the next
+  // whole second — which is up to three quarters of a second of the film
+  // standing still after each sentence. A proved function is not a proved
+  // caller: this is the line that passes it.
+  assert.equal(
+    narrateCalls[0].fps,
+    videoRenderer.framesPerSecondOf(VALID_EVENTS, { resolution: '720p' }),
+    'the plan is told the rate the renderer will use',
+  );
 
   assert.equal(renderCalls.length, 1);
   assert.deepEqual(renderCalls[0].timelineEvents, retimedEvents);

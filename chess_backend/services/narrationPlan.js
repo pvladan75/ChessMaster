@@ -19,11 +19,29 @@
 // of a second of silence at the end of a beat, which is a breath rather than a
 // fault.
 
-/// Silence after a clip before the next beat begins, in seconds.
+/// Silence after the **voice** before the next beat begins, in seconds.
 ///
 /// Not zero: two sentences butted together read as one, and the child needs the
 /// gap to look at the board the sentence was about.
+///
+/// **Counted from where the voice stops, not from where the file ends.** Azure
+/// hands back every sentence with about 0.85 s of silence behind it - measured
+/// across all 22 clips of the owner's film of 12.9.2026, 0.80 to 0.93. Added to
+/// the file's length it made the breath nearly twice what it says here, and the
+/// owner reported exactly that: the film waits, sometimes two seconds, after
+/// the voice has stopped.
 const BREATH_SECONDS = 0.6;
+
+/// Silence before the film's first clip, in seconds.
+///
+/// A synthesiser's own lead-in is about an eighth of a second - measured, 0.12
+/// to 0.14 - and a first word that starts there is a first word a player can
+/// swallow. The owner heard "Checkmating..." begin at "mating" on the published
+/// film, where the audio was in fact whole: the track and the clip measure
+/// identical in that window, to the decibel. So this is room rather than a
+/// repair, and it is spent on the first beat that speaks - a film whose first
+/// beat is wordless already opens with two seconds of silence.
+const LEAD_SECONDS = 0.4;
 
 /// What a beat with nothing written gets, in seconds.
 ///
@@ -67,11 +85,22 @@ function narrationPlan(beats, options = {}) {
   const breath = options.breathSeconds ?? BREATH_SECONDS;
   const silentBeat = options.silentBeatSeconds ?? SILENT_BEAT_SECONDS;
   const maxBeat = options.maxBeatSeconds ?? MAX_BEAT_SECONDS;
+  const lead = Math.max(0, options.leadSeconds ?? LEAD_SECONDS);
+  // **The grid a beat boundary may land on**, which is the rate the film is
+  // drawn at - `videoRenderer.framesPerSecondOf`, passed in by the caller. A
+  // boundary between two frames would show the next position while the previous
+  // sentence is still being read, so it is rounded up to the next frame; at
+  // four frames a second that costs a quarter of a second instead of the whole
+  // one this file rounded to when every film was drawn once a second.
+  const fps = Number.isFinite(options.fps) && options.fps > 0 ? options.fps : 1;
+  const upToFrame = (seconds) => Math.ceil(seconds * fps - 1e-9) / fps;
 
   const beatSeconds = [];
   const segments = [];
   const startMs = [];
+  const spoken = [];
   let atSeconds = 0;
+  let leadLeft = lead;
 
   for (let i = 0; i < beats.length; i++) {
     const clip = beats[i] ? beats[i].clipSeconds : null;
@@ -79,21 +108,39 @@ function narrationPlan(beats, options = {}) {
       && Number.isFinite(clip)
       && clip > 0
       && clip <= maxBeat;
-    const spoken = hasClip ? clip : 0;
+    const clipSeconds = hasClip ? clip : 0;
 
-    // Whole seconds, always at least one more than the voice needs, so the
-    // breath is real and the boundary lands on a frame.
+    // Where the voice is inside the clip. Absent - a wav this server could not
+    // scan - means the whole clip counts as speech, which is what everything
+    // here did before the silence around it was measured.
+    const voiceFrom = hasClip ? finiteOr(beats[i].speechStart, 0) : 0;
+    const voiceTo = hasClip ? finiteOr(beats[i].speechEnd, clipSeconds) : 0;
+    // The film's lead-in, spent on the first beat that has anything to say.
+    const before = hasClip ? leadLeft : 0;
+    if (hasClip) leadLeft = 0;
+
+    // Long enough for the whole clip, and for a breath after the **voice**.
+    // The clip's own tail usually covers that breath by itself.
     const seconds = hasClip
-      ? Math.max(1, Math.ceil(spoken + breath))
+      ? Math.max(1 / fps, upToFrame(before + Math.max(clipSeconds, voiceTo + breath)))
       : silentBeat;
 
     startMs.push(Math.round(atSeconds * 1000));
     beatSeconds.push(seconds);
+    spoken.push(hasClip
+      ? {
+        startMs: Math.round((before + voiceFrom) * 1000),
+        ms: Math.max(1, Math.round((voiceTo - voiceFrom) * 1000)),
+      }
+      : null);
     atSeconds += seconds;
 
     if (hasClip) {
-      segments.push({ kind: 'clip', index: i, seconds: spoken });
-      const rest = seconds - spoken;
+      // Before the clip rather than after the last beat: a lead-in at the end
+      // of a film is a film that appears to have stopped.
+      if (before > 0.001) segments.push({ kind: 'silence', index: i, seconds: before });
+      segments.push({ kind: 'clip', index: i, seconds: clipSeconds });
+      const rest = seconds - before - clipSeconds;
       // Guarded rather than assumed: `ceil(x + breath) - x` is at least the
       // breath, but a clip cut to `maxBeat` makes it exactly zero and ffmpeg
       // given a zero-length silence writes a file nobody can concatenate.
@@ -106,9 +153,19 @@ function narrationPlan(beats, options = {}) {
   return {
     beatSeconds,
     startMs,
+    // Where the voice is, per beat, in the film's own clock - one computation,
+    // read by `retimeEvents` and by nothing else, so the caption cannot be
+    // written to a different window than the one the track holds.
+    spoken,
     segments,
     totalSeconds: atSeconds,
   };
+}
+
+function finiteOr(value, fallback) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : fallback;
 }
 
 /**
@@ -127,12 +184,21 @@ function retimeEvents(events, plan) {
     // and without this it would have to guess from the gap to the next beat —
     // which includes the breath, so the writing would lag the voice by half a
     // second and finish after it.
-    const clip = plan.segments.find((s) => s.kind === 'clip' && s.index === i);
-    const spokenMs = clip ? Math.round(clip.seconds * 1000) : 0;
+    // **The window the voice occupies inside this beat**, for whoever draws
+    // the sentence: the renderer writes the caption on screen at the speed it is
+    // being spoken, and it has to be given that speed rather than guess it.
+    //
+    // It was the clip's whole length until 12.9.2026, and that was half a
+    // mistake: a clip begins with an eighth of a second of silence and ends
+    // with most of a second of it, so the writing started early, ran slow, and
+    // went on after the voice had stopped.
+    const window = plan.spoken ? plan.spoken[i] : null;
+    const spokenMs = window ? window.ms : 0;
+    const spokenStartMs = window ? window.startMs : 0;
     return {
       ...event,
       timestampMs: plan.startMs[i] ?? event.timestampMs,
-      data: event.data ? { ...event.data, spokenMs } : event.data,
+      data: event.data ? { ...event.data, spokenMs, spokenStartMs } : event.data,
     };
   });
 }
@@ -141,6 +207,7 @@ module.exports = {
   narrationPlan,
   retimeEvents,
   BREATH_SECONDS,
+  LEAD_SECONDS,
   SILENT_BEAT_SECONDS,
   MAX_BEAT_SECONDS,
 };
