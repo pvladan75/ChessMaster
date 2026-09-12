@@ -140,6 +140,58 @@ backwards.
 charged, so checking one's own work with `line --no-eval` is free. An experiment
 whose cost nobody wrote down cannot be priced later.
 
+## What three games said, 12.9.2026
+
+Three games, nine runs, `gemini-3.8-flash-high`, one run per arm per game. The
+games were chosen to differ: a sharp win as White decided by a double attack; a
+quiet French Advance drawn by perpetual check; a Philidor where White sacrifices
+on f7 on move eight, it is unsound, and the game ends in mate thirty-five moves
+later. The review tagged ten, ten and eighteen blunders respectively.
+
+**All nine graded CLEAN on the first attempt** — every FEN legal, every line
+replaying through `LessonStepLine`, no question carrying its own answer. Whatever
+else is uncertain, the format contract is not the hard part.
+
+The measurement that separated them is the one the grader cannot make: for every
+`ask_move`, is the answer actually the best move? Each was checked at depth 22,
+multipv 4.
+
+| | arm A (plain) | arm B (reviewed) | arm C (reviewed + engine) |
+|---|---|---|---|
+| sharp win | „the *only* defensive move" → `Rae8`, **3rd of 4** | `Nc7` **#1**, +3.02 against +2.21 | `Nc7` **#1** |
+| quiet draw | „block the check" → `Rd2`, **+2.56 against +3.63** | `c4` **#1**; `Bc6+` **#1**, +0.33 against +7.93 | `c4` **#1** |
+| lost sacrifice | `O-O`, **3rd of 4** | `Nxf3` **#1**, −2.55 against −4.03 | `Rxb2+` **#1, mate in nine** |
+
+**The annotated arms' answers are the engine's first choice by a clear margin in
+every game; the unaided arm's answer is never first.** Three for three, on games
+sharing nothing but the format.
+
+Three things keep that from being a law. It is one run per arm per game with one
+model. The third game is the weakest case for it: arm A picked the *right
+moment* unaided — the move-eight sacrifice, the most instructive point in the
+game — and its accepted list holds `h3`, which is the engine's best; the four
+candidates there sit within a third of a pawn, so the teaching is sound whichever
+is named. And arms B and C diverged for the first time on that game, where on the
+other two they had chosen the identical position.
+
+**The engine's role came out smaller than expected.** On the first two games arm
+C's searches bought verification rather than different content — it checked
+claims and corrected its own certainty („`15. Nd5` is one of three moves of equal
+value, not forced"). Only on the third did it find something arm B did not, and
+there it found a mate. Arm B is the cost-effective configuration; the engine
+earns its place as a check on a *question* — is this answer uniquely best, and
+what else must be accepted — rather than as a second author.
+
+**And one fault was made by the brief itself.** After game one, where no arm
+filled `acceptedSans` and one asked a question whose answer was merely legal, the
+brief was told to fill it. By game three two arms did — with moves that do not
+answer their own question: „find the move that brings the king to safety"
+accepting a developing move, „find the winning rook invasion" accepting a queen
+move. Both lists are defensible as other good moves and indefensible as answers
+to the sentence the child reads. The rule now says so. Third time in this
+experiment that a fix aimed at one fault produced a subtler one a layer above it,
+which is the argument for measuring every arm rather than reading it.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not

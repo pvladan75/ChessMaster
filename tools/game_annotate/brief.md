@@ -54,6 +54,16 @@ second move is about as good, either
 written a second way: the answer is already accepted, and a list that only says
 it again is a list that accepts nothing.
 
+**And every move in it must be an answer to the question you actually asked.**
+A move being just as good is not enough - the child reads your sentence and
+plays what it asks for. „Find the move that brings the king to safety" is not
+answered by a developing move, and „find the winning rook invasion" is not
+answered by a queen move, however well either scores. When a good move does not
+fit the sentence you wrote, widen the sentence to admit it („what should White
+play instead of the sacrifice?") or leave the move out. A question and its
+accepted answers that disagree teach the child that the words on the screen do
+not mean anything.
+
 Never write „the only move" unless you have checked that it is, and never build
 a question on a narrower premise than the position - „how do you block this
 check" has one answer only because blocking was assumed, and the child who
