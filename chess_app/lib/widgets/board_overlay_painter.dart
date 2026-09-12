@@ -143,15 +143,25 @@ class ChessBoardPainter extends CustomPainter {
   static const ui.Color squareMarkHaloShade = ui.Color(0xFF000000);
   static const ui.Color squareMarkHaloLight = ui.Color(0xFFFFFFFF);
 
-  /// The ring's stroke widths, as fractions of one square's side.
+  /// The frame's three stroke widths, as fractions of one square's side.
   ///
   /// Fractions rather than the arrows' absolute 5.0 and 2.5, because an arrow
-  /// spans squares and a ring lives inside one: at the 45 px square of a 360 dp
-  /// phone the arrow's halo widths would leave a ring that is almost entirely
+  /// spans squares and this lives inside one: at the 45 px square of a 360 dp
+  /// phone the arrow's halo widths would leave a frame that is almost entirely
   /// black outline with a thread of colour in it.
+  ///
+  /// These three are the numbers the owner looked at and chose, in
+  /// `probe_trainer_frames.png` (`docs/PLAN-OZNAKE-NA-TABLI.md`). Each stroke
+  /// hugs the square's own edge, so they nest: the author's colour on the
+  /// outermost 5.5%, white from there to 7.5%, black from there to 10.5%.
+  ///
+  /// **`videoRenderer.js` draws the same three**, and
+  /// `test/square_marks_test.dart` asserts the two ends agree — a rule kept in
+  /// two places is two rules, and a tutorial must not look one way on screen
+  /// and another way in the film a child is sent.
   static const double squareMarkCoreFraction = 0.055;
-  static const double squareMarkLightFraction = squareMarkCoreFraction * 1.8;
-  static const double squareMarkShadeFraction = squareMarkCoreFraction * 2.8;
+  static const double squareMarkLightFraction = 0.075;
+  static const double squareMarkShadeFraction = 0.105;
 
   /// How much wider than the arrow each outline pass is drawn.
   static const double arrowHaloShadeWidth = 5.0;
@@ -189,49 +199,49 @@ class ChessBoardPainter extends CustomPainter {
     this.highlightedSquare,
   });
 
-  /// One `[%csl]` square: a ring, drawn in three passes like an arrow.
+  /// One `[%csl]` square: a thin frame around the square's own edge, drawn in
+  /// three passes like an arrow.
   ///
-  /// **A ring rather than a filled square, and the shape is the point.** This
-  /// painter draws over the pieces, so a wash would bury the piece standing on
-  /// the very square the reader is being sent to look at — the same finding
-  /// that turned the last-move highlight from a fill into a frame. A ring
-  /// leaves the middle alone.
+  /// **It was a ring until 12.9.2026**, and the ring was a ring because this
+  /// painter draws over the pieces: a filled square buried the piece standing
+  /// on the very square the reader was being sent to look at. A frame leaves
+  /// the middle alone for the same reason and is the shape the owner asked
+  /// for — „ne želim krugove oko figura ili u poljima".
   ///
-  /// It also has to be distinguishable from the two other things that can
-  /// appear on a square, and by shape, not by colour: the last move is a wash
-  /// under the pieces (`LastMovePainter`, which this layer never touches), and
-  /// the square a trainer has started drawing from is a filled disc. An
-  /// outlined circle is neither.
+  /// It still has to be told apart from the two other things that can appear on
+  /// a square, **by shape and not by colour**: the last move is a wash under
+  /// the pieces (`LastMovePainter`, which this layer never touches) and the
+  /// square a trainer has started drawing from is a filled disc. An outline on
+  /// the edge is neither, and unlike the ring it cannot be mistaken for one.
   ///
-  /// Phase 3 of `docs/PLAN-OZNAKE-NA-TABLI.md` turns this ring into a frame on
-  /// the square's own edge, which is a shape the wash underneath still cannot
-  /// be confused with.
-  ///
-  /// Widest first: black, then white inside it, then the author's colour on
-  /// top. A coloured square is only its colour, so without the two achromatic
-  /// passes a green ring on a green square is nothing at all — and for the
-  /// reader this is drawn for, red on green is the pair that vanishes.
+  /// Widest first: black, then white inside it, then the author's colour on the
+  /// outermost band. **The two achromatic passes are not decoration.** Measured
+  /// against every square of every skin for both modelled deficiencies, a plain
+  /// frame in the palette's own colours measures 1.01:1 for green, 1.02:1 for
+  /// red and 1.24:1 for orange — three of the five vanish into the square they
+  /// are drawn on. With the hairlines every one of them reads.
   void _paintSquareMark(Canvas canvas, Rect square, ui.Color color) {
     final side = square.width;
-    final core = side * squareMarkCoreFraction;
-    final shade = side * squareMarkShadeFraction;
-    // Half the widest stroke plus a hair, so the ring stays inside its own
-    // square rather than bleeding onto the neighbouring one.
-    final radius = side / 2 - shade / 2 - side * 0.03;
-    if (radius <= 0) return;
+    if (side <= 0) return;
 
-    void ring(ui.Color c, double width) => canvas.drawCircle(
-          square.center,
-          radius,
-          Paint()
-            ..color = c
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = width,
-        );
+    // Each stroke is inset by half its own width, so its outer edge sits on the
+    // square's edge and nothing bleeds onto the neighbour. They nest rather
+    // than sit side by side: the widest is drawn first and the next two are
+    // painted over its inner part.
+    void frame(ui.Color c, double fraction) {
+      final width = side * fraction;
+      canvas.drawRect(
+        square.deflate(width / 2),
+        Paint()
+          ..color = c
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width,
+      );
+    }
 
-    ring(squareMarkHaloShade, shade);
-    ring(squareMarkHaloLight, side * squareMarkLightFraction);
-    ring(color, core);
+    frame(squareMarkHaloShade, squareMarkShadeFraction);
+    frame(squareMarkHaloLight, squareMarkLightFraction);
+    frame(color, squareMarkCoreFraction);
   }
 
   @override

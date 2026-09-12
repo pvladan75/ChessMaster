@@ -100,6 +100,84 @@ void main() {
     });
   });
 
+  group('the mark is a frame on the square\'s edge', () {
+    // Asked of the canvas, because the shape is the thing the owner asked to
+    // change — „ne želim krugove oko figura ili u poljima" — and a test that
+    // only checks the colours would have passed the ring it replaced.
+    const boardSize = 400.0;
+    const squareSize = boardSize / 8;
+    const overlayKey = ValueKey('marks-overlay');
+
+    // `Material` builds CustomPaints of its own for ink and for its shape
+    // border, so the painter is found by key rather than by type — the same
+    // reason `last_move_marker_test.dart` did before it was deleted.
+    Widget wrap(List<SquareMark> marks) => MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: CustomPaint(
+                key: overlayKey,
+                size: const Size(boardSize, boardSize),
+                painter: ChessBoardPainter(
+                  arrows: const [],
+                  squares: marks,
+                  boardSize: boardSize,
+                  orientation: PlayerColor.white,
+                  drawingModeColor: const ui.Color(0xFF2196F3),
+                  badgeBorderColor: const ui.Color(0xFF000000),
+                ),
+              ),
+            ),
+          ),
+        );
+
+    testWidgets('it is drawn with rectangles and no circle at all',
+        (tester) async {
+      await tester.pumpWidget(wrap([SquareMark(square: 'd5', colorCode: 'R')]));
+
+      expect(find.byKey(overlayKey), paintsExactlyCountTimes(#drawCircle, 0),
+          reason: 'a circle is still being drawn on a marked square');
+      expect(find.byKey(overlayKey), paintsExactlyCountTimes(#drawRect, 3),
+          reason: 'three passes — black, white and the author\'s colour — and '
+              'no more: the halo is what makes the colour legible and the '
+              'colour is what says whose mark it is');
+    });
+
+    testWidgets('each pass hugs the square and none of them leaves it',
+        (tester) async {
+      await tester.pumpWidget(wrap([SquareMark(square: 'a1', colorCode: 'G')]));
+
+      // a1 is the bottom-left square of a board the usual way up, and a corner
+      // is the case that shows a stroke drawn a hair too wide: two of its
+      // edges are the board's own.
+      const square = Rect.fromLTWH(0, 350, squareSize, squareSize);
+      const shade = squareSize * ChessBoardPainter.squareMarkShadeFraction;
+      const light = squareSize * ChessBoardPainter.squareMarkLightFraction;
+      const core = squareSize * ChessBoardPainter.squareMarkCoreFraction;
+
+      expect(
+        find.byKey(overlayKey),
+        paints
+          // Widest first, each inset by half its own width so its outer edge
+          // lands exactly on the square's edge.
+          ..rect(
+              rect: square.deflate(shade / 2),
+              strokeWidth: shade,
+              style: PaintingStyle.stroke)
+          ..rect(
+              rect: square.deflate(light / 2),
+              strokeWidth: light,
+              style: PaintingStyle.stroke)
+          ..rect(
+              rect: square.deflate(core / 2),
+              strokeWidth: core,
+              // A stroke and never a fill: this painter draws over the
+              // pieces, so anything in the middle buries the piece on the
+              // very square the reader is being sent to look at.
+              style: PaintingStyle.stroke),
+      );
+    });
+  });
+
   group('a change in the marks repaints', () {
     ChessBoardPainter painterWith(List<SquareMark> squares) =>
         ChessBoardPainter(

@@ -92,6 +92,26 @@ function boardGeometry(frame, { resolution = '720p', captionBand = 0, flipped = 
   };
 }
 
+/// A point on the colour band of a marked square — the outermost of the three
+/// strokes a `[%csl]` frame is drawn with.
+///
+/// The three probes that used to live at the call sites each carried a copy of
+/// the ring's radius formula, and when the ring became a frame on 12.9.2026 all
+/// three went red together pointing at a number that no longer existed
+/// anywhere. One helper now, on the mid-point of the square's top edge: inside
+/// the colour band, and far from the corners where three strokes meet.
+function onMarkBand(square, geom) {
+  const col = square.charCodeAt(0) - 97;
+  const row = 8 - parseInt(square[1], 10);
+  const c = geom.flipped ? 7 - col : col;
+  const r = geom.flipped ? 7 - row : row;
+  const band = geom.tileSize * renderer.SQUARE_MARK_FRACTIONS.core;
+  return {
+    x: geom.offsetX + (c + 0.5) * geom.tileSize,
+    y: geom.offsetY + r * geom.tileSize + band / 2,
+  };
+}
+
 function centreOf(square, geom) {
   const col = square.charCodeAt(0) - 97;
   const row = 8 - parseInt(square[1], 10);
@@ -116,16 +136,14 @@ test('a coloured square is drawn on the square it names', async () => {
   const geom = boardGeometry(null, {});
   const frame = await pixels({ ...BASE, squares: [{ square: 'd5', color: 'R' }] });
 
-  // The mark is a ring, so the probe is on the ring's own radius rather than in
-  // the middle of the square — where the piece standing there is, which is the
-  // reason it is a ring and not a filled square.
-  const centre = centreOf('d5', geom);
-  const side = geom.tileSize;
-  const radius = side / 2 - (side * 0.055 * 2.8) / 2 - side * 0.03;
-  const onRing = frame.at(centre.x + radius, centre.y);
+  // The probe is on the frame's own band rather than in the middle of the
+  // square — where the piece standing there is, which is the reason this is a
+  // frame and not a filled square.
+  const on = onMarkBand('d5', geom);
+  const drawn = frame.at(on.x, on.y);
 
-  assert.ok(distance(onRing, hexToRgb('#FF2929')) < 60,
-    `d5's ring should be red, got ${JSON.stringify(onRing)}`);
+  assert.ok(distance(drawn, hexToRgb('#FF2929')) < 60,
+    `d5's frame should be red, got ${JSON.stringify(drawn)}`);
 });
 
 test('the same square is drawn on the other side of a flipped board', async () => {
@@ -136,15 +154,14 @@ test('the same square is drawn on the other side of a flipped board', async () =
     squares: [{ square: 'd5', color: 'R' }],
   });
 
-  const centre = centreOf('d5', geom);
-  const side = geom.tileSize;
-  const radius = side / 2 - (side * 0.055 * 2.8) / 2 - side * 0.03;
-  assert.ok(distance(frame.at(centre.x + radius, centre.y), hexToRgb('#FF2929')) < 60,
-    'the ring follows the board round');
+  const on = onMarkBand('d5', geom);
+  assert.ok(distance(frame.at(on.x, on.y), hexToRgb('#FF2929')) < 60,
+    'the frame follows the board round');
 
   // And nothing is drawn where an unflipped board would have put it.
-  const unflipped = centreOf('d5', boardGeometry(null, {}));
-  assert.ok(distance(frame.at(unflipped.x + radius, unflipped.y), hexToRgb('#FF2929')) > 100,
+  const unflipped = onMarkBand('d5', boardGeometry(null, {}));
+  assert.ok(
+    distance(frame.at(unflipped.x, unflipped.y), hexToRgb('#FF2929')) > 100,
     'an ignored orientation would leave the mark on the mirrored square');
 });
 
@@ -174,11 +191,9 @@ test('an unknown colour code is drawn grey, never as one of the five', async () 
 
   const geom = boardGeometry(null, {});
   const frame = await pixels({ ...BASE, squares: [{ square: 'e5', color: 'X' }] });
-  const centre = centreOf('e5', geom);
-  const side = geom.tileSize;
-  const radius = side / 2 - (side * 0.055 * 2.8) / 2 - side * 0.03;
-  const onRing = frame.at(centre.x + radius, centre.y);
-  assert.ok(distance(onRing, hexToRgb('#9E9E9E')) < 60, 'grey, and not a colour with a meaning');
+  const on = onMarkBand('e5', geom);
+  assert.ok(distance(frame.at(on.x, on.y), hexToRgb('#9E9E9E')) < 60,
+    'grey, and not a colour with a meaning');
 });
 
 test('a square that is not a square is ignored rather than drawn somewhere', async () => {

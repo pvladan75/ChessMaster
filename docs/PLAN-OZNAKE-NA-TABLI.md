@@ -317,31 +317,64 @@ its list of deliberate deviations from the package it forks.
 
 ## Phase 3 — the trainer's square becomes a frame, in the app and in the film
 
-`_paintSquareMark` becomes `_paintSquareFrame`; the three ring constants become
-three stroke widths. `videoRenderer.js` `drawSquareMark` does the same, with the
-same proportions, and the two are checked against each other rather than each
-against its own idea of the shape.
+**Done 12.9.2026 — 2129 in the app with 1 skipped and 1238 on the backend** with
+`.env` moved aside, analyze at 29 infos and zero warnings. From phase 2's 2127
+and the backend's 1234: **+2** for the shape asked of the app's canvas, **+4**
+for the film's own file. Eight mutations across both ends, all eight caught.
 
-**The renderer's last-move colour changes to match the app's** — `rgba(247, 236,
-89, 0.45)` becomes the app's constant. Nothing else in the film changes: it
-already paints it in the right place.
+`_paintSquareMark` draws three nested `drawRect` strokes instead of three
+circles; `videoRenderer.js` does the same with `strokeRect`. The widths are
+0.055, 0.075 and 0.105 of a square's side — the numbers in
+`probe_trainer_frames.png`, which is the sheet the decision was made from — with
+the author's colour on the outermost band, white inside it and black innermost.
 
-**Gate, app side:** the frame reaches the canvas on both squares, sits inside
-its own square, and is drawn *over* the pieces (the opposite of phase 0's
-assertion, and for the opposite reason — an annotation about a piece drawn
-beneath it is an annotation about nothing).
+The renderer's last-move colour became the app's: it had been
+`rgba(247, 236, 89, 0.45)`, a yellow of its own, since the film was written.
 
-**Gate, film side:** a rendered frame is read back pixel by pixel, which is what
-`videoRenderer`'s tests already do. Ask the question the file-letter test learned
-to ask: is there ink on this square's edge that is not the colour of this square
-— with the board empty, so a piece standing there cannot answer for the frame.
+### The two ends are compared, not described
 
-**The one thing that must not be forgotten:** the child's viewer
-(`lesson_viewer_screen`) draws `[%csl]` too. Every tutorial already written
-carries rings that will become frames. Nothing stored changes — `SquareMark` is
-a square and a colour letter, and neither the PGN nor the database knows what
-shape it is drawn as — but the change is visible in every tutorial at once, and
-the owner should see one he wrote before this is called done.
+`chess_backend/test/square_mark_frame.test.js` reads the three fractions and the
+wash **out of the Dart source** and asserts the film's own constants equal them.
+It matches one named constant at a time and fails loudly if it cannot find one,
+rather than scanning a region and trusting its shape — a source-reading check
+this repository has been bitten by four times.
+
+That is the whole reason the file exists. CLAUDE.md already records a motif
+table kept by hand in two places whose sentences drifted apart, and a "neither
+Google nor Azure has a Serbian voice" repeated in three files and checked
+against one list. A tutorial that looks one way on a trainer's screen and
+another way in the film a child is sent is the same fault wearing a picture.
+
+### Three tests that had stopped being about anything
+
+**`board_skin_contrast_test.dart`'s "the ring stays inside its own square" went
+on passing while asserting a formula that no longer existed anywhere.** It
+reproduced the ring's radius arithmetic — `0.5 - shade / 2 - 0.03` — as a copy
+of the code, so when the code went the copy simply carried on agreeing with
+itself. What is left there is the part that is about the design (widest first,
+and the widest cannot meet itself across the square); where the strokes land is
+now asked of the rendering.
+
+**Three tests in `video_renderer.test.js` each carried their own copy of that
+same formula**, which is how all three went red together pointing at a number
+that had been deleted. They probe one helper now, `onMarkBand`, which takes the
+band width from the renderer's own exported constant.
+
+**And the shape itself had no test at all.** The app's marks were asserted by
+colour and by reaching the painter, both of which a ring and a frame pass
+identically. `square_marks_test.dart` now asks the canvas: no `drawCircle` at
+all, exactly three `drawRect`s, each a stroke and never a fill, each inset by
+half its own width. The film's half asks a rendered frame whether the **corner**
+of the marked square carries ink — the one assertion a ring cannot pass, since a
+ring is inscribed and leaves the corners as board.
+
+### What every existing tutorial now looks like
+
+Nothing stored changed. `SquareMark` is a square and a colour letter, and
+neither the PGN nor the database ever knew what shape it was drawn as — so every
+tutorial already written shows frames from now on, in the studio, in the child's
+viewer and in its film. **That is worth the owner looking at one he wrote before
+this landed**, which is part C of the live check.
 
 ## Phase 4 — selecting a range of squares
 

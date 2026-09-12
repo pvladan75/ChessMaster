@@ -291,24 +291,25 @@ void main() {
       }
     });
 
-    test('the ring stays inside its own square', () {
-      // Arithmetic rather than a rendering: the widest pass is the black one,
-      // so the ring's outer edge is `radius + shade / 2` from the centre and
-      // that has to stay under half a side, or a mark bleeds onto the square
-      // next to it and reads as two.
+    test('the three passes nest, widest first', () {
+      // This used to reproduce the ring's radius arithmetic, and when the ring
+      // became a frame on 12.9.2026 it went on passing while asserting a
+      // formula that no longer existed anywhere. What is left here is the part
+      // that is about the design rather than about the maths: widest first,
+      // colour last and narrowest, or the halo covers the thing it is there to
+      // make legible. Where the strokes land is asked of the rendering, in
+      // `square_marks_test.dart`.
       const core = ChessBoardPainter.squareMarkCoreFraction;
       const shade = ChessBoardPainter.squareMarkShadeFraction;
       const light = ChessBoardPainter.squareMarkLightFraction;
 
-      // The radius the painter computes, as a fraction of one side.
-      const radius = 0.5 - shade / 2 - 0.03;
-      expect(radius + shade / 2, lessThan(0.5));
-
-      // And the three passes are in the order the doctrine needs: widest
-      // first, colour last and narrowest, or the halo covers what it is there
-      // to make legible.
       expect(shade, greaterThan(light));
       expect(light, greaterThan(core));
+
+      // And the widest cannot meet itself across the square, which would be a
+      // filled square rather than a frame — the one thing this shape may not
+      // become, because the piece underneath has to stay readable.
+      expect(shade, lessThan(0.5));
     });
   });
 }

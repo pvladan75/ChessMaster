@@ -174,6 +174,27 @@ function drawColorOf(code) {
   return DRAW_COLORS[String(code || '').toUpperCase()] || DRAW_FALLBACK;
 }
 
+/// The three stroke widths of a `[%csl]` frame, as fractions of one square's
+/// side — the app's `ChessBoardPainter.squareMark*Fraction`, value for value.
+///
+/// Exported so a test can compare them with the app's rather than with a
+/// comment claiming they match. CLAUDE.md records a motif table kept by hand in
+/// two places and the two sentences that drifted apart in it; this is the same
+/// shape with numbers instead of words.
+/// The app's `LastMovePainter.wash`: black at 22%, and no hue at all.
+///
+/// Black rather than a colour because it cannot then collide with any of the
+/// five a trainer marks squares in, on any board, for any kind of eye — it has
+/// no hue to collide with. Worst contrast against a square of any skin is
+/// 1.46:1, against the 1.03:1 of the amber it replaced.
+const LAST_MOVE_WASH = 'rgba(0, 0, 0, 0.22)';
+
+const SQUARE_MARK_FRACTIONS = Object.freeze({
+  core: 0.055,
+  light: 0.075,
+  shade: 0.105,
+});
+
 /// Where a square sits on the drawn board, or null when it is not a square.
 function squareTopLeft(square, { offsetX, offsetY, tileSize, flipped }) {
   const name = String(square || '').trim().toLowerCase();
@@ -191,33 +212,46 @@ function squareCenter(square, geom) {
   return { x: at.x + geom.tileSize / 2, y: at.y + geom.tileSize / 2 };
 }
 
-/// `[%csl]` — the same three rings the app draws, in the same order.
+/// `[%csl]` — the same three frames the app draws, in the same order and at
+/// the same widths.
 ///
-/// Black halo, white halo, then the colour. Two neutral rings under a coloured
-/// one is what makes the mark readable on a light square and on a dark one
-/// without knowing which it landed on; a filled square would be cheaper and
-/// would hide the piece standing on it, which is usually the piece being talked
-/// about.
+/// **These were rings until 12.9.2026**, here and in the app on the same day,
+/// because a rule kept in two places is two rules and a tutorial must not look
+/// one way on a trainer's screen and another way in the film a child is sent.
+/// The widths are `SQUARE_MARK_FRACTIONS` below, and
+/// `test/square_mark_frame.test.js` asserts they are the app's own numbers.
+///
+/// Black frame, white frame, then the colour — each hugging the square's edge,
+/// so they nest and the colour ends up on the outermost band. Two neutral
+/// passes under a coloured one is what makes the mark readable on a light
+/// square and on a dark one without knowing which it landed on: measured
+/// against every square of every skin, three of the palette's five colours
+/// measure under 1.25:1 on their own and vanish into the square they are drawn
+/// on. A filled square would be cheaper and would hide the piece standing on
+/// it, which is usually the piece being talked about.
 function drawSquareMark(ctx, square, code, geom) {
-  const centre = squareCenter(square, geom);
-  if (!centre) return;
+  const at = squareTopLeft(square, geom);
+  if (!at) return;
   const side = geom.tileSize;
-  const core = side * 0.055;
-  const light = core * 1.8;
-  const shade = core * 2.8;
-  const radius = side / 2 - shade / 2 - side * 0.03;
-  if (radius <= 0) return;
+  if (side <= 0) return;
 
-  const ring = (colour, width) => {
-    ctx.beginPath();
-    ctx.arc(centre.x, centre.y, radius, 0, Math.PI * 2);
+  // Each stroke is inset by half its own width, so its outer edge lands on the
+  // square's edge and nothing bleeds onto the neighbour.
+  const frame = (colour, fraction) => {
+    const width = side * fraction;
     ctx.strokeStyle = colour;
     ctx.lineWidth = width;
-    ctx.stroke();
+    ctx.strokeRect(
+      at.x + width / 2,
+      at.y + width / 2,
+      side - width,
+      side - width,
+    );
   };
-  ring('#000000', shade);
-  ring('#FFFFFF', light);
-  ring(drawColorOf(code), core);
+
+  frame('#000000', SQUARE_MARK_FRACTIONS.shade);
+  frame('#FFFFFF', SQUARE_MARK_FRACTIONS.light);
+  frame(drawColorOf(code), SQUARE_MARK_FRACTIONS.core);
 }
 
 /// `[%cal]` — a line from the middle of one square to the middle of another,
@@ -645,7 +679,14 @@ async function renderFrameBuffer({
       const row = 8 - parseInt(sq[1]);   // '8' -> 0
       const c = isBlackPerspective ? 7 - col : col;
       const r = isBlackPerspective ? 7 - row : row;
-      ctx.fillStyle = 'rgba(247, 236, 89, 0.45)';
+      // The app's `LastMovePainter.wash`, which is black at 22% — see
+      // `docs/PLAN-OZNAKE-NA-TABLI.md`. It was a yellow of its own until
+      // 12.9.2026, so the film and the app disagreed about what a last move
+      // looks like and neither end knew about the other.
+      //
+      // Drawn here, after the squares and before the pieces, which is what the
+      // app now does too. The film got that right first.
+      ctx.fillStyle = LAST_MOVE_WASH;
       ctx.fillRect(offsetX + c * tileSize, offsetY + r * tileSize, tileSize, tileSize);
     };
     try {
@@ -1109,6 +1150,10 @@ module.exports = {
   OUTPUT_FPS,
   CAPTION_FPS,
   drawColorOf,
+  // Both read by `test/square_mark_frame.test.js`, which compares them with
+  // the app's own constants rather than with a comment claiming they match.
+  SQUARE_MARK_FRACTIONS,
+  LAST_MOVE_WASH,
   getResolutionParams,
   lookOf,
   recolouredPieces,

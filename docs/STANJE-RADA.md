@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan, faze 0, 1 i 2"
-odmah ispod ove glave (poslednji potez je ispod figura, na svakoj tabli), pa „Priručnik",
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan, faze 0–3"
+odmah ispod ove glave (poslednji potez ispod figura, trenerovo polje u okviru), pa „Priručnik",
 pa „Jezik glasa — plan", pa „Prevod tutorijala, van
 aplikacije", pa „Video bez komentara pored
 table", pa „Ispis prati glas, a ne
@@ -39,7 +39,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Oznake na tabli — plan, faze 0, 1 i 2, 12.9.2026
+## Oznake na tabli — plan, faze 0–3, 12.9.2026
 
 `docs/PLAN-OZNAKE-NA-TABLI.md`. Iz četiri vlasnikove prijave od 12.9.2026;
 dve su o istoj stvari.
@@ -106,6 +106,34 @@ oslanjaju je zakucana testom.
 Usput: `SkinnedChessBoard` je sada `StatefulWidget` (pamti poziciju koju je
 poslednju nacrtao), a reprodukcija snimka i dijalog sa linijama motora sada
 crtaju potez — što je promena koju niko nije tražio i koja je ispravna.
+
+**Faza 3 je gotova istog dana — 2129 u aplikaciji i 1238 na serveru** (sa
+sklonjenim `.env`), analyze 29 infova. Prsten `[%csl]` je sada tanak okvir po
+obodu polja — u aplikaciji i u filmu, istog dana, jer pravilo na dva mesta su
+dva pravila. Širine 0.055 / 0.075 / 0.105 strane polja, autorova boja spolja,
+bela pa crna unutra; to su brojevi sa `probe_trainer_frames.png`. Renderer je
+dobio i boju poslednjeg poteza iz aplikacije — do sada je imao svoju žutu.
+Osam mutacija na oba kraja, sve uhvaćene. **Ostaje faza 4.**
+
+`chess_backend/test/square_mark_frame.test.js` čita tri razlomka i boju **iz
+Dart izvora** i traži da su serverove konstante iste. Traži jednu po jednu
+imenovanu konstantu i pada glasno ako je ne nađe — ne skenira oblast i ne veruje
+njenom obliku.
+
+**Tri testa su prestala da budu o bilo čemu.** „Prsten ostaje unutar svog
+polja" je prepisivao formulu poluprečnika, pa je kad je koda nestalo nastavio
+da se slaže sam sa sobom; tri testa u `video_renderer.test.js` su nosila po
+kopiju iste formule, zato su sva tri pala zajedno pokazujući na broj koji je
+obrisan. A **sam oblik nije imao test**: oznake su proveravane po boji i po tome
+da stižu do slikara, što prsten i okvir prolaze isto. Sada se pita platno — ni
+jedan `drawCircle`, tačno tri `drawRect`, svaki potez a nikad ispuna — a na
+strani filma se pita da li **ugao** polja nosi mastilo, što prsten ne može da
+prođe.
+
+Ništa sačuvano se nije promenilo: `SquareMark` je polje i slovo boje, ni PGN ni
+baza nikada nisu znali kojim se oblikom crta. Zato **svi već napisani tutorijali
+od sada prikazuju okvire** — u studiju, u đakovom pregledu i u filmu; vredi da
+vlasnik pogleda jedan koji je pisao ranije (deo C provere).
 
 **Vlasnikova odluka, „uzmi inverziju":**
 
