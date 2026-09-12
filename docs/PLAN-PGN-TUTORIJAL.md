@@ -86,20 +86,44 @@ a sideline whose first move carries `!`:
    stays a sideline. A tutorial about your own game that silently continues with
    a game you did not play is a different artefact.
 
-**The open question, and it is the one the experiment ended on:
-`acceptedSans`.** The answer is engine-chosen, so it is the best move — but a
-second move may be just as good, and then a child playing it is told they are
-wrong. Three options, to be decided before this phase is built:
+**The open question was `acceptedSans`, and the owner chose option 3 on
+12.9.2026.** The answer is engine-chosen, so it is the best move — but a second
+move may be just as good, and then a child playing it is told they are wrong.
+The three options were: leave it empty and accept the cost; fill it from the
+app's own Stockfish at import time; or ask only where the review's own threshold
+already did the filtering.
 
- 1. leave it empty and accept the cost (wrong on roughly one question in three,
-    judging by the experiment's positions);
- 2. fill it from the app's own Stockfish at import time — the engine is already
-    there, but it makes importing a file wait on a search per question;
- 3. ask only where the review's own eval gap is large (the swing is already in
-    the reviewed PGN's tagging threshold), and skip the rest.
+**Built as chosen, and here is exactly what it buys.** A question is made only
+where the review wrote `??`, which means the move lost at least the trainer's
+threshold — two pawns by default.
 
-Option 3 costs nothing and uses a number that already exists. It is the one to
-try first.
+ * It filters **the moment**: every question stands where the game actually
+   turned.
+ * It does **not** filter **the answer's uniqueness**, and the plan said it
+   would. That was wrong, found while building: a reviewed PGN carries no
+   evaluations at all. `GameAnalysisWalkerService` deliberately stopped writing
+   a number onto the node — „the engine's opinion wearing the reader's
+   handwriting" — so the file says a move was a blunder and says nothing about
+   whether a second move was as good as the answer. Only option 2 removes that,
+   and it makes importing a file wait on a search per question.
+
+So the two mitigations that cost nothing are taken instead: the question
+**never claims the answer is the only move** („White played Nd4 here, and it was
+a mistake. What should White have played instead?"), and the part right after it
+shows the better line, so a child who played something else sees what was meant
+rather than only „wrong".
+
+**Both marks are required**: a `??` *and* a sideline whose first move carries
+`!`. A `??` on its own is a move somebody disapproved of, and a trainer's own
+unmarked variation is a line they were looking at — offering its first move to a
+child as the correct answer is the app asserting something nobody said. That
+rule was written with the condition in it and proved by a mutation that survived
+until a fixture with an unmarked sideline existed.
+
+**A ceiling, `defaultMaxQuestions` = 4.** Every question costs two or three
+parts and a tutorial is four to ten; the experiment's third game had eighteen
+moves tagged at 0.8 pawns, which without a ceiling is forty parts nobody walks
+to the end of.
 
 **Nothing is generated silently.** The import reports „four questions made from
 four blunders" and the trainer opens the tutorial in the studio, where every one
