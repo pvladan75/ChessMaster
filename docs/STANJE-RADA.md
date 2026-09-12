@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan i sve faze"
-odmah ispod ove glave (ceo plan u kodu, ostaje provera uživo), pa „Priručnik",
+Poslednje ažuriranje: **12.9.2026** — najnovije je „60 fps za YouTube — mereno i
+odbijeno" odmah ispod ove glave (ništa u kodu, samo merenje), pa „Oznake na tabli —
+plan i sve faze" (ceo plan u kodu, ostaje provera uživo), pa „Priručnik",
 pa „Jezik glasa — plan", pa „Prevod tutorijala, van
 aplikacije", pa „Video bez komentara pored
 table", pa „Ispis prati glas, a ne
@@ -36,6 +37,68 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## 60 fps za YouTube — mereno i odbijeno, 12.9.2026
+
+Pitanje vlasnika: da li se render može podići na 60 fps, jer YouTube „forsira"
+60. **Ništa nije promenjeno u kodu** — `OUTPUT_FPS` ostaje 30. Ovde stoji
+merenje, da se pitanje ne otvara ponovo.
+
+**Dva različita broja, a samo jedan je bio u igri.** `OUTPUT_FPS = 30`
+(`videoRenderer.js`) je ono što fajl *tvrdi*; `CAPTION_FPS = 4` (jedan kad se
+ništa ne govori) je ono što se zaista crta. Između dva takta se na tabli ne
+menja ništa, pa bi 60 *crtanja* u sekundi bilo oko 56 identičnih slika po
+sekundi, a budžet (`renderBudget.js`) bi sa dozvoljenih 30 minuta filma na 720p
+pao na 2 (na 1080p na 1), i najduža snimljena naracija sa njim — ona se iz istog
+računa izvodi (`narrationUpload.js`). To nije ni razmatrano dalje. Mereno je
+samo prvo: isti film, isti nacrtani kadrovi, promenjen jedino `-r` na izlazu.
+
+**Cena, mereno pravim renderom na razvojnoj mašini** (30 i 60 naizmenično, da
+drift mašine padne na oba jednako):
+
+| film | 30 fps | 60 fps |
+|---|---|---|
+| 1080p, 180 s | 2,44 MB; 67,7 / 67,6 s | 3,65 MB; 87,5 / 88,6 s |
+| 1080p, 64 s | 859 KB; 24,6 / 24,4 / 24,5 s | 1288 KB; 32,1 / 31,1 / 33,1 s |
+| 720p, 64 s | 596 KB | 896 KB |
+
+Veličina: **+50% u svakom merenju** (50,3 / 49,9 / 49,7%) — duplirani kadar nije
+besplatan, nosi zaglavlje P-kadra i bez ikakve razlike u slici. Vreme: **oko
++30% na 1080p**; par od 180 s je merodavan (oba merenja na 30 se slažu na 0,1%,
+oba na 60 na 1%), dok su merenja od 64 s bučnija — jedan kasniji prolaz na 60 je
+ispao izjednačen sa 30. Sam film je ispravan: 180,27 s prema 180,25 s, tačno
+dvostruko kadrova, `r_frame_rate=60/1`.
+
+**A YouTube za to ne daje ništa.** Oba filma su postavljena privatno i `yt-dlp
+-F` je pročitao obe lestvice:
+
+| tok | 30 fps | 60 fps |
+|---|---|---|
+| 1080p DASH | 154k | 162k |
+| 720p DASH | 102k | 95k |
+| 1080p HLS | 350k | 330k |
+| 720p HLS | 277k | 258k |
+| 360p H.264 | 48k | 42k |
+
+Dva od pet su *niža*. Jedino što 60 fps kupuje je natpis „1080p60" u meniju
+kvaliteta. Uz to dva nalaza koja ruše pretpostavku ispod pitanja: YouTube-ov
+1080p izlaz nosi **više** bitova (154k) nego naš izvor (97k), dakle ne
+izgladnjuje ni tekst ni tanke konture — a 50% više bajtova koje smo poslali je
+odbacio i dao isti izlaz. I to plaća gledalac: 11 ispuštenih kadrova od 2741 na
+60 fps, prema 0 od 1274 na 30, za slike koje se menjaju četiri puta u sekundi.
+
+Provereno i da enkoder nije usko grlo, pošto film izlazi na svega ~100–160 kbps:
+`-crf 18` umesto podrazumevanog 23 daje samo 23% veći fajl, a PSNR između dva
+enkodiranja je 50 dB. Ravna boja i tanke linije prosto ne traže bitove — CRF
+nije ručica.
+
+**Kada ovo prestaje da važi:** onog dana kada nešto u filmu *krene* — figura
+koja se pomera preko polja, strelica koja se iscrtava. Tada kadrovi između dva
+takta nisu kopije, imaju šta da nose, i tek tada visok broj nešto znači; to je i
+komentar koji već stoji nad `OUTPUT_FPS`. Do tada se plaća tri puta — fajl, slot
+za render, i dekodiranje kod gledaoca — za jedan natpis.
 
 ---
 
