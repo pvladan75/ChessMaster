@@ -33,6 +33,7 @@ import 'package:chess_app/features/assignments/models/assignment.dart'
     show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_beat.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/move_tree.dart';
 
 /// The list of events, and how long the film runs.
 typedef TutorialVideo = ({List<Map<String, dynamic>> events, int seconds});
@@ -88,6 +89,91 @@ List<FilmBeat> filmBeatsOf(TutorialDraft draft) {
     }
   }
   return stops;
+}
+
+/// How a part's opening position stands to the film in front of it.
+///
+/// Three answers rather than two, and telling the first two apart is most of
+/// the point: a part that opens where the previous beat already stood does not
+/// move the board at all, so announcing it would be noise over a picture that
+/// did not change.
+enum PartEntry {
+  /// A position the film has not drawn yet.
+  fresh,
+
+  /// The position the previous beat already stood on. The parts join, and the
+  /// move that arrived at this board is the previous part's last one.
+  continues,
+
+  /// A position drawn earlier, but not the one on screen. The board jumps
+  /// backwards, and the viewer has to be told — the owner's requirement of
+  /// 12.9.2026, see `docs/PLAN-VRACANJE-NA-POZICIJU.md`.
+  returns,
+}
+
+/// How a part opens, and — on a return — the move that arrived at the position
+/// the last time the film showed it.
+typedef PartOpening = ({PartEntry entry, String? afterMove});
+
+/// How each part of [stops] opens. Entry `i` is set exactly when `stops[i]`
+/// opens a part, and null on every beat inside one.
+///
+/// **The comparison is [MoveTree.samePosition]**, which compares placement,
+/// side, castling and en passant and ignores the two counters, because a clock
+/// is not a position. It is the same reading the child's viewer already uses to
+/// decide whether the next part continues from the board in front of it; a
+/// second definition of „the same position" is how two screens come to
+/// disagree about one tutorial.
+///
+/// **A repetition inside a part's own line is not a return.** Only an opening
+/// beat is asked: a line that walks back through a position it has already
+/// visited is one continuous line, and nothing jumped.
+///
+/// The move is named from the most recent earlier beat that has one. A part's
+/// opening beat is a position nothing arrived at, so when a position was last
+/// shown as some part's opening, the move that made it lives one beat further
+/// back — which is exactly the shape of a tutorial that cuts one line into
+/// three parts.
+List<PartOpening?> partOpeningsOf(List<FilmBeat> stops) {
+  final out = List<PartOpening?>.filled(stops.length, null);
+  for (var i = 0; i < stops.length; i++) {
+    if (stops[i].beat.index != 0) continue;
+    final fen = stops[i].beat.node.fen;
+
+    if (i > 0 && MoveTree.samePosition(stops[i - 1].beat.node.fen, fen)) {
+      out[i] = (entry: PartEntry.continues, afterMove: null);
+      continue;
+    }
+
+    var shownBefore = false;
+    String? named;
+    for (var j = i - 1; j >= 0; j--) {
+      if (!MoveTree.samePosition(stops[j].beat.node.fen, fen)) continue;
+      shownBefore = true;
+      named ??= stops[j].beat.arrivedLabel;
+      if (named != null) break;
+    }
+    out[i] = shownBefore
+        ? (entry: PartEntry.returns, afterMove: named)
+        : (entry: PartEntry.fresh, afterMove: null);
+  }
+  return out;
+}
+
+/// The least a returning beat stays on screen.
+///
+/// „Back to the position after 12. Rh7" is about 35 characters, and the film is
+/// written to be read at [_charsPerSecond]; the two seconds a wordless beat
+/// gets are not enough to notice that the board went backwards. Silent films
+/// only — `narrationPlan` on the server re-times every beat to the voice.
+const int _returnBeatSeconds = 4;
+
+/// How long this beat holds, which is its sentence's length unless the board
+/// has just jumped back.
+int _beatSeconds(String caption, PartOpening? opening) {
+  final dwell = dwellSecondsFor(caption);
+  if (opening?.entry != PartEntry.returns) return dwell;
+  return math.max(dwell, _returnBeatSeconds);
 }
 
 /// A comparable rendering of the beats a narration was recorded against —
@@ -157,9 +243,14 @@ TutorialVideo tutorialVideoOf(TutorialDraft draft) {
   final events = <Map<String, dynamic>>[];
   var atMs = 0;
 
-  for (final stop in filmBeatsOf(draft)) {
+  final stops = filmBeatsOf(draft);
+  final openings = partOpeningsOf(stops);
+
+  for (var index = 0; index < stops.length; index++) {
+    final stop = stops[index];
     final node = stop.beat.node;
     final opensPart = stop.beat.index == 0;
+    final opening = openings[index];
     final caption = stop.caption;
 
     events.add({
@@ -174,6 +265,14 @@ TutorialVideo tutorialVideoOf(TutorialDraft draft) {
         if (!opensPart) ...{
           if (node.moveSan != null) 'san': node.moveSan!,
           ..._fromTo(node),
+        },
+        // How this part stands to the film in front of it. Sent on the opening
+        // beat only, because that is the only beat where the board can have
+        // jumped. The renderer reads an absent `join` as `fresh`, which is
+        // what the recorded-lesson export sends and must keep drawing.
+        if (opensPart) ...{
+          'join': (opening?.entry ?? PartEntry.fresh).name,
+          if (opening?.afterMove != null) 'afterMove': opening!.afterMove!,
         },
         if (caption.isNotEmpty) 'text': caption,
         if (node.arrows.isNotEmpty)
@@ -196,7 +295,7 @@ TutorialVideo tutorialVideoOf(TutorialDraft draft) {
       },
     });
 
-    atMs += dwellSecondsFor(caption) * 1000;
+    atMs += _beatSeconds(caption, opening) * 1000;
   }
 
   return (events: events, seconds: atMs ~/ 1000);

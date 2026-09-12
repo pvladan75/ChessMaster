@@ -5529,3 +5529,37 @@ nije ni jedno ni drugo (a2→c7) oboji samo polje na koje si kliknuo. Ponovi ist
 niz — briše se. Na Windowsu isto radi i držanje SHIFT-a bez dugmeta. Na telefonu
 dugme je jedini način i mora da radi.
 
+## 154. Vraćanje na već viđenu poziciju — 12.9.2026, nije viđeno uživo
+
+`docs/PLAN-VRACANJE-NA-POZICIJU.md`, iz vlasnikovog zahteva posle prvog
+objavljenog tutorijala. Film sada pod tablom kaže i **„Back to the position
+after 12. Rh7"**, a spoj dva dela ne gasi poslednji potez. Za ovo je dovoljan
+tutorijal u kom je jedna linija isečena na delove i iz jedne pozicije izlaze dve
+varijante — „Master the Rook and King Checkmate" je tačno takav, i kopija mu
+stoji u `D:/chess/tutorijal/reference/`.
+
+1. [ ] **Vraćanje se vidi.** Izvezi taj tutorijal i gledaj granicu trećeg i
+   četvrtog dela: u trenutku kad se tabla vrati, ispod nje piše „Back to the
+   position after 3... Kd6" (ili koji je potez u tvojoj verziji), i taj natpis
+   stoji dok se ne odigra prvi potez tog dela.
+2. [ ] **Spoj ništa ne kaže.** Na granici prvog i drugog dela — gde se tabla ne
+   menja — nema nikakve nove rečenice, a ispod table i dalje piše „Last move:
+   …" istog poteza, **ne** „Starting position". Do 12.9.2026 je pisalo
+   „Starting position" i potez pod tablom se gasio.
+3. [ ] **Takt se vidi dovoljno dugo.** U **nemom** filmu (u izvoznom listu „No
+   voice") takt koji se vraća stoji najmanje četiri sekunde — dovoljno da se
+   natpis pročita. U filmu sa glasom dužinu odlučuje glas, kao i inače.
+4. [ ] **Snimljena naracija ostaje važeća.** Ako imaš snimak preko tog
+   tutorijala, studio **ne** sme da kaže da snimak više ne odgovara taktovima.
+   Potpis liste taktova o ovome namerno ne zna ništa.
+5. [ ] **Izvoz snimljenog časa izgleda isto.** `Replay` → izvoz MP4: pod tablom
+   na prvom kadru piše „Starting position" kao i pre. Taj izvoz šalje jedan
+   `init` bez spoja i ovo pravilo ga ne dotiče.
+6. [ ] **Deo koji se otvara na poziciji koju niko nije dosegao.** Napravi
+   tutorijal u kom je prvi deo samo dijagram (bez poteza), drugi deo negde
+   drugde, a treći se vraća na tu prvu poziciju: natpis je „Back to a position
+   already shown", bez poteza — jer poteza koji je do te table doveo u filmu
+   nema.
+7. [ ] **Dečji ekran još ne kaže ništa** (P2 nije rađen). U đakovom pregledu se
+   granica prema već viđenoj poziciji ne vidi; ako ti to zafali u praksi, to je
+   sledeća faza i treba da pozove isto pravilo, a ne novo.

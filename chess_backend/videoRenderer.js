@@ -503,6 +503,10 @@ function initialFrameState() {
     arrows: [],
     squares: [],
     orientation: null,
+    // Whether this beat's board is one the film has already shown, and the
+    // move that arrived at it last time. See `applyEvent`.
+    rewound: false,
+    rewoundAfter: null,
   };
 }
 
@@ -512,10 +516,14 @@ function initialFrameState() {
 /// because two of its rules are easy to get wrong and impossible to see in a
 /// finished MP4 without watching the whole thing:
 ///
-///   * **`init` clears the last move.** A new part opens on a position nothing
-///     arrived at. Left uncleared, the previous part's move stays lit under a
-///     board it has nothing to do with — harmless in a recording, where `init`
-///     happens once, and wrong at every join of a tutorial.
+///   * **`init` clears the last move, unless the part continues.** A part that
+///     opens on a position of its own was arrived at by nothing, and leaving
+///     the previous part's move lit under it is a highlight on a board it has
+///     nothing to do with. A part that opens where the previous beat already
+///     stood is the opposite case: the parts join, that move *is* how this
+///     board was reached, and clearing it goes dark for no reason. `join`
+///     says which — written by `tutorialVideoOf`, absent in a recording,
+///     where `init` happens once and there is nothing to continue from.
 ///   * **Marks and the sentence belong to their beat.** Every event replaces
 ///     them and an event that says nothing clears them, so an arrow cannot
 ///     outlive the position it was drawn about.
@@ -526,9 +534,21 @@ function applyEvent(state, event) {
   const next = { ...state };
   const data = (event && event.data) || null;
 
+  // Belongs to one beat, like the caption and the marks below it.
+  next.rewound = false;
+  next.rewoundAfter = null;
+
   if (event && event.eventType === 'init' && data && data.fen) {
     next.fen = data.fen;
-    next.lastMove = null;
+    // **A part that opens where the previous beat already stood keeps the
+    // last move**, because that move is how this board was arrived at: the
+    // parts join and nothing moved. `join` is written by `tutorialVideoOf`;
+    // absent — the recorded lesson's single `init` — means a fresh position.
+    if (data.join !== 'continues') next.lastMove = null;
+    if (data.join === 'returns') {
+      next.rewound = true;
+      next.rewoundAfter = data.afterMove || null;
+    }
   } else if (event && event.eventType === 'move' && data) {
     if (data.fen) next.fen = data.fen;
     next.lastMove = { from: data.from, to: data.to, san: data.san };
@@ -541,6 +561,27 @@ function applyEvent(state, event) {
     if (data.orientation) next.orientation = data.orientation;
   }
   return next;
+}
+
+/// What the line under the board says.
+///
+/// **Three answers, and the third one is why this function exists.** A tutorial
+/// may cut one line into several parts, and until 12.9.2026 every part boundary
+/// said „Starting position" — wrong for a part that continues from the board
+/// already on screen, and worse for one that jumps back to a position the
+/// viewer has seen, where the picture changes and nothing says why. The
+/// owner's requirement, `docs/PLAN-VRACANJE-NA-POZICIJU.md`.
+///
+/// Split out as a value a test can read, the way `ffmpegArgsFor` was: text
+/// drawn on a canvas cannot be read back out of a pixel, so a test that only
+/// looked at the frame could tell there was ink and not what it said.
+function underBoardText({ lastMove, rewound = false, rewoundAfter = null }) {
+  if (rewound) {
+    return rewoundAfter
+      ? `Back to the position after ${rewoundAfter}`
+      : 'Back to a position already shown';
+  }
+  return lastMove && lastMove.san ? `Last move: ${lastMove.san}` : 'Starting position';
 }
 
 function formatTime(sec) {
@@ -559,6 +600,10 @@ async function renderFrameBuffer({
   // tutorial is written from White's side or Black's and says so per part.
   orientation = null,
   lastMove,
+  // Whether this board has been shown before, and after which move — drawn on
+  // the line under the board by `underBoardText`.
+  rewound = false,
+  rewoundAfter = null,
   caption = '',
   // How much of the sentence has been said, 0 to 1. The caption is written on
   // screen at the speed it is spoken; 1 is the whole of it, which is what a
@@ -781,7 +826,7 @@ async function renderFrameBuffer({
     ctx.fillStyle = inkColor;
     ctx.font = `${cfg.fontSizeMove}px ${fontFamily()}`;
     ctx.textAlign = 'center';
-    const moveText = lastMove && lastMove.san ? `Last move: ${lastMove.san}` : 'Starting position';
+    const moveText = underBoardText({ lastMove, rewound, rewoundAfter });
     ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
   }
 
@@ -1001,6 +1046,8 @@ async function renderRecordingToMP4({
         perspective: perspective || 'trainer',
         orientation: state.orientation,
         lastMove: state.lastMove,
+        rewound: state.rewound,
+        rewoundAfter: state.rewoundAfter,
         caption: state.caption,
         arrows: state.arrows,
         squares: state.squares,
@@ -1099,6 +1146,8 @@ async function renderPreviewFrame({
     perspective: perspective || 'trainer',
     orientation: state.orientation,
     lastMove: state.lastMove,
+    rewound: state.rewound,
+    rewoundAfter: state.rewoundAfter,
     caption: state.caption,
     arrows: state.arrows,
     squares: state.squares,
@@ -1147,6 +1196,7 @@ module.exports = {
   captionBandLines,
   framesPerSecondOf,
   ffmpegArgsFor,
+  underBoardText,
   OUTPUT_FPS,
   CAPTION_FPS,
   drawColorOf,

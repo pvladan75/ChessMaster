@@ -628,6 +628,11 @@ test('a new part clears the move that was lit under the old one', () => {
   // `init` opens a position nothing arrived at. Left uncleared, the previous
   // part's last move stays highlighted on a board it has nothing to do with —
   // once per join, for the rest of the film.
+  //
+  // This is the case with no `join` on the event, which is what the recorded
+  // lesson sends and what every draft written before 12.9.2026 sends. A part
+  // that says it *continues* keeps the move on purpose — see
+  // `render_rewind.test.js`.
   let state = initialFrameState();
   state = applyEvent(state, {
     eventType: 'move',

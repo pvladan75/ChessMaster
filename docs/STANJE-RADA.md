@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „60 fps za YouTube — mereno i
-odbijeno" odmah ispod ove glave (ništa u kodu, samo merenje), pa „Oznake na tabli —
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Vraćanje na već viđenu
+poziciju" odmah ispod ove glave (u kodu, ostaje provera uživo), pa „60 fps za
+YouTube — mereno i odbijeno" (ništa u kodu, samo merenje), pa „Oznake na tabli —
 plan i sve faze" (ceo plan u kodu, ostaje provera uživo), pa „Priručnik",
 pa „Jezik glasa — plan", pa „Prevod tutorijala, van
 aplikacije", pa „Video bez komentara pored
@@ -37,6 +38,70 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Vraćanje na već viđenu poziciju — 12.9.2026
+
+`docs/PLAN-VRACANJE-NA-POZICIJU.md`, iz vlasnikovog zahteva posle prvog
+objavljenog tutorijala: „Vraćanje na zajedničku poziciju treba da bude takvo da
+gledalac zna da sam se vratio na već viđenu poziciju." **2171 u aplikaciji, 1
+preskočen, i 1244 na serveru** sa `.env`-om po strani, mereno jedno posle
+drugog bez ičega drugog u pogonu; analyze na 29 infova, nula upozorenja.
+Osam mutacija, sve uhvaćene. Provera uživo: `TODO-provera.md`, stavka 154.
+
+**Tri odgovora, ne dva, i to je cela stvar.** Izmereno na objavljenom
+tutorijalu, ne pretpostavljeno: deo 2 se otvara na poziciji posle `2. Kf3`, gde
+je deo 1 stao, i deo 3 na poziciji posle `12. Rh7`, gde je stao deo 2 — oba
+**nastavljaju**, tabla se ne pomera, i rečenica „vraćamo se na…" bila bi tekst
+preko slike koja se nije promenila. Samo deo 4 se vraća. Pravilo koje ih
+razlikuje je mehaničko — je li to pozicija prethodnog takta, neka ranija, ili
+nijedna — i poredi se kroz `MoveTree.samePosition`, koje **već postoji** i koje
+dečji ekran već koristi za nastavak; drugo čitanje „iste pozicije" je način da
+se dva ekrana raziđu oko jednog tutorijala.
+
+**Red koji to nosi je postojao i bio je potrošen uludo.** Ispod table film piše
+„Last move: 12. Rh7", a „Starting position" kad poteza nema — i na **svakoj**
+granici dela je pisalo „Starting position", što je u tom tutorijalu bilo
+netačno tri puta: dva puta deo nastavlja, jednom se vraća. Sada piše i „Back to
+the position after 12. Rh7", a kad pozicija nikad nije bila ničija posledica
+nego samo početak nekog dela — „Back to a position already shown".
+
+**Tekst, nikad boja ni blesak.** Vlasnik ne razlikuje boje, a znak koji se mora
+videti kao nijansa nije znak; ovo je i jedini signal koji preživi gledanje
+filma na telefonu.
+
+Dve posledice koje nisu bile traženo, a jesu popravka. **Nastavak više ne gasi
+poslednji potez**: `applyEvent` ga je brisao na svakom `init`-u, što je tačno za
+skok a netačno za spoj, gde je taj potez upravo ono čime se do te table došlo —
+komentar iznad tog reda je tvrdio opšti slučaj i bio je stariji od delova koji
+se spajaju. I **takt koji se vraća stoji najmanje četiri sekunde**: nota ima oko
+35 slova, film se čita na 12 slova u sekundi, a dve sekunde koliko dobije takt
+bez teksta nisu dovoljne da se primeti da je tabla otišla nazad. Tiče se samo
+nemih filmova — `narrationPlan` svakom taktu meri dužinu po glasu.
+
+**`filmSignatureOf` o ovome ne zna ništa, namerno.** Snimljena naracija nosi
+potpis liste taktova nad kojom je snimljena, a potpis je pozicija plus rečenica.
+Spoj nije ni jedno ni drugo: menja ono što je *ispisano pod* taktom, a ne koji
+je takt ni koliko se nad njim govori. Da je ušao u potpis, svaka do sada
+snimljena naracija bila bi nevažeća — zbog natpisa koji trenerov glas nikad ne
+čita.
+
+**Odsutan `join` znači `fresh`.** Izvoz snimljenog časa šalje jedan `init` bez
+ikakvog spoja, kao i svaki nacrt napisan pre ovog dana, i mora da nastavi da
+crta tačno ono što je crtao. Test ide kroz oba oblika.
+
+**Zašto je `underBoardText` funkcija a ne red unutar crtanja.** Tekst na
+kanvasu se ne može pročitati iz piksela: i kadar takta koji se vraća i kadar
+svežeg dela imaju mastilo ispod table, pa bi test koji gleda sliku umeo da kaže
+samo da tamo nešto piše. Isti razlog zbog kog je `ffmpegArgsFor` izvučen.
+
+**Dečji ekran (P2) nije rađen**, i to je pitanje obima a ne teškoće: zahtev je o
+filmu. Ekran već ima polovinu pravila (`_nextStepContinuesHere`, koje čeka takt
+pre table koju će prerasporediti); nema treći odgovor ni red na kom bi ga
+nacrtao, i kad dođe mora da pozove `partOpeningsOf` a ne da prepiše pravilo —
+pri čemu ume da imenuje samo deo, ne potez, jer parsira jednu liniju u
+trenutku.
 
 ---
 
