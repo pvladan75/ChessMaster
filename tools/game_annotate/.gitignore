@@ -1,0 +1,6 @@
+# Everything a run produced. The inputs and the scripts are the experiment;
+# the answers are evidence for one afternoon, and some of them are 20 KB of a
+# model thinking out loud.
+out/
+__pycache__/
+out-contaminated-v1/
