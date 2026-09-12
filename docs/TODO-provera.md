@@ -5622,3 +5622,42 @@ da može da se uporedi sa objavljenim filmom.
 7. [ ] **Trenerov snimak.** Izvoz sa „My recording" ide drugim putem (markeri iz
    snimanja) i ovim se ne menja — proveri da zvuk i tabla i dalje idu zajedno.
 
+
+## 157. PGN izlazi iz aplikacije kao fajl — 12.9.2026, nije viđeno uživo
+
+Tačka 4 iz `D:\chess\tutorijal\pgn_tutorial_question.txt`: izvoz je do sada
+umeo samo u clipboard. Alatka **„Export PGN"** u ekranu **Analiza**; dijalog
+sada ima tri dugmeta — „Close", „Save as .pgn" i „Copied".
+
+Sam upis fajla je jedino što nijedan test ne može da dokaže: bira ga sistemski
+dijalog, a to je platformski kanal. Zato je ovde.
+
+1. [ ] **Dijalog se otvara odmah.** Tekst PGN-a je na ekranu čim se pritisne
+   „Export PGN". Kopiranje u clipboard više se ne čeka pre otvaranja — ako se
+   dijalog pojavljuje sa zastojem, promena nije odradila posao.
+2. [ ] **„Copied" i dalje znači kopirano.** Nalepi u Notepad odmah po otvaranju
+   dijaloga: tekst treba da bude tu, isti kao na ekranu.
+3. [ ] **„Save as .pgn" otvara sistemski dijalog za snimanje**, sa ponuđenim
+   imenom `analysis-2026-09-12.pgn` (današnji datum) i filterom na `.pgn`.
+4. [ ] **Fajl postoji i sadrži ono što je bilo na ekranu** — komentari,
+   `[%cal]` strelice, `[%csl]` polja i sve varijante. Uporedi sa tekstom iz
+   dijaloga; to je isti string.
+5. [ ] **Fajl se otvara u drugom programu.** Uvezi ga u ChessBase, Lichess
+   („Import game") ili natrag u aplikaciju: potezi i komentari treba da prežive
+   put napolje i nazad.
+6. [ ] **Naša slova prežive.** Napiši komentar sa „š, đ, č, ć, ž", izvezi,
+   otvori fajl u Notepad-u. Fajl se piše u UTF-8 namerno — zaglavlja ostaju
+   ASCII zbog strožih čitača, ali trenerove rečenice su njegove reči. Ako se
+   vide kao smeće, čitač je taj koji ne zna UTF-8, pa reci u kom programu.
+7. [ ] **Poruka kaže gde je fajl.** Posle snimanja dijalog se zatvara i dole se
+   pojavljuje „Saved: <putanja>". Putanja mora da bude cela i tačna — bez nje
+   trener traži fajl po disku.
+8. [ ] **Odustajanje ne radi ništa.** Pritisni „Save as .pgn" pa zatvori
+   sistemski dijalog: nema poruke, dijalog sa tekstom ostaje otvoren.
+9. [ ] **Neuspeh se prijavi.** Ako uspeš da izazoveš grešku (npr. snimanje na
+   disk bez prava upisa), treba da piše „The file could not be saved.", a
+   dijalog da ostane otvoren — tekst je i dalje tu da se kopira.
+10. [ ] **Na telefonu.** Android ide drugim putem kroz plugin (fajl upisuje on,
+    ne mi). Proveri da se fajl zaista pojavi tamo gde ga je Android ponudio, i
+    da tri dugmeta i naslov stanu na uzak ekran — naslov sada prelama red
+    umesto da se seče.
