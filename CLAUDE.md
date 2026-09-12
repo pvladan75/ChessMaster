@@ -1971,6 +1971,40 @@ first fixture wrote `2. Ra6+`, which is not check: the knight on b6 blocks the
 rank. `MoveTree.parsePgn` refused it and the move after it, as it is meant to.
 The owner's line had it right.
 
+**Measured on `master` on 12.9.2026: 2181 in the app with 1 skipped**, analyze
+at 29 infos and zero warnings; the backend is untouched. Eight of those are „Save
+as .pgn" — the Analysis export, which since it was written could reach the
+clipboard and nowhere else, so a trainer wanting a file pasted the text into
+Notepad. The number in this file had been left at 2066 while the suite was 2173;
+re-derive a count before repeating it, which is what this paragraph is for.
+
+Three things, and none of them is the feature.
+
+**A dialog that awaits the platform is a dialog that does not open in a test** —
+this file already recorded it from the export sheet, and `exportPgnDialog` had
+the same shape all along: `await PgnExporterService.copyToClipboard(...)` stands
+in front of `showDialog`, and the clipboard is a platform channel. Every test
+that opened this dialog found nothing to tap. The copy is unawaited now, its
+failure logged rather than raised, and the dialog opens at once — which is also
+better for a trainer on a slow channel. **A shape this file has already named is
+the first thing to look for, not the last.**
+
+**A 360 dp test found a fault in the title, not in what was added.** The new
+button made three actions, so the dialog was measured on a phone for the first
+time — and the overflow was the title `Row`, an icon beside a `Text` that cannot
+shrink. Fourth instance of that exact shape here. It is `Flexible` now. What the
+same test could *not* see is that the pre-existing „Copied to Clipboard!" is
+twenty characters of squares in the test font and about half that in Segoe UI:
+the label was shortened to „Copied" because three actions no longer leave room
+for a sentence pretending to be a button, not because a real phone clipped it.
+
+**The picker writes the bytes; nothing here writes the file.** `FilePicker
+.saveFile` with `bytes` writes them at the chosen path on every platform this
+app ships to, and a `File.writeAsBytes` beside it is how a file comes to be
+written twice on one platform and not at all on another. `debugSavePgnFile` is
+the seam, in the shape `debugPlayVoiceSample` already had. Five mutations, all
+five caught.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.

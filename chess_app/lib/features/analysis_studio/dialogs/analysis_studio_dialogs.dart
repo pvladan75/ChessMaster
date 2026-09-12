@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -344,10 +348,64 @@ void showLogsDialog(BuildContext context) {
   );
 }
 
+/// The one thing a widget test cannot do: open the operating system's save
+/// dialog.
+///
+/// `FilePicker.saveFile` is a platform channel, and in a test nothing answers
+/// it, so the button that waits for it waits for ever. A test sets this and
+/// reads what it was handed, which is everything about saving except the file.
+/// Same shape as `debugPlayVoiceSample`, and null in a real build.
+Future<String?> Function({required String fileName, required String pgn})?
+    debugSavePgnFile;
+
+/// Where a PGN goes when the trainer picks „Save as .pgn".
+///
+/// The bytes are handed to the picker rather than written here: with `bytes`
+/// given it writes them at the chosen path on every platform this app ships
+/// to, and a second `File.writeAsBytes` beside that is how a file comes to be
+/// written twice on one platform and not at all on another.
+///
+/// **UTF-8, deliberately.** `PgnExporterService` keeps its *headers* in ASCII
+/// because the PGN standard is Latin-1 and a stricter reader shows „Š" as
+/// rubbish — but a trainer's comments are their own words, and a sentence
+/// mangled on the way out is worse than one a strict reader renders oddly.
+Future<String?> _savePgnFile(
+        {required String fileName, required String pgn}) async =>
+    FilePicker.saveFile(
+      dialogTitle: 'Save PGN',
+      fileName: fileName,
+      type: FileType.custom,
+      allowedExtensions: const ['pgn'],
+      bytes: Uint8List.fromList(utf8.encode(pgn)),
+      lockParentWindow: true,
+    );
+
+/// `analysis-2026-09-12.pgn` — the date, because nothing else here has a name.
+///
+/// The export's own `[White]`/`[Black]` headers are „Player" and „Analysis
+/// Engine" whatever is on the board, so a name built from them would say the
+/// same thing for every file a trainer ever saved.
+String pgnFileNameFor(DateTime day) =>
+    'analysis-${day.year}-${_two(day.month)}-${_two(day.day)}.pgn';
+
+String _two(int n) => n.toString().padLeft(2, '0');
+
 Future<void> exportPgnDialog(
     BuildContext context, AnalysisNode rootNode) async {
   final pgnText = PgnExporterService.exportToPgn(rootNode);
-  await PgnExporterService.copyToClipboard(pgnText);
+
+  // Not awaited, and that is the fix rather than the shortcut. The clipboard is
+  // a platform channel: awaiting it in front of `showDialog` means the dialog
+  // opens only once the channel answers — never, in a widget test, and late on
+  // a machine where the channel is slow. CLAUDE.md already records this shape
+  // from the export sheet, where awaiting `path_provider` stopped twelve tests
+  // from seeing the dialog at all.
+  //
+  // The failure is logged rather than raised: a copy that did not happen must
+  // not take down the dialog that was showing the text, which is the other
+  // rule this repository keeps paying for.
+  unawaited(PgnExporterService.copyToClipboard(pgnText)
+      .catchError((Object e) => AppLogger.log('[PGN] not copied: $e')));
 
   if (!context.mounted) return;
   showDialog(
@@ -357,8 +415,14 @@ Future<void> exportPgnDialog(
         children: [
           Icon(Icons.file_download, color: ctx.colors.info),
           const SizedBox(width: AppSpacing.sm),
-          Text('Exported PGN Text',
-              style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
+          // Flexible, so the words wrap on a narrow phone instead of being
+          // clipped: an icon beside a Text that cannot shrink is the shape
+          // this repository has already found unreachable three times, and a
+          // release build draws no stripes over it — it just cuts the end off.
+          Flexible(
+            child: Text('Exported PGN Text',
+                style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
+          ),
         ],
       ),
       content: SizedBox(
@@ -376,9 +440,45 @@ Future<void> exportPgnDialog(
           child: const Text('Close'),
           onPressed: () => Navigator.pop(ctx),
         ),
+        TextButton.icon(
+          key: const Key('export-pgn-save-file'),
+          icon: const Icon(Icons.save_alt, size: 16),
+          label: const Text('Save as .pgn'),
+          onPressed: () async {
+            final save = debugSavePgnFile ?? _savePgnFile;
+            String? path;
+            try {
+              path = await save(
+                fileName: pgnFileNameFor(DateTime.now()),
+                pgn: pgnText,
+              );
+            } catch (e) {
+              AppLogger.log('[PGN] not saved: $e');
+              if (context.mounted) {
+                AppFeedback.error(context, 'The file could not be saved.');
+              }
+              return;
+            }
+            // Null is the trainer closing the picker, and somebody who
+            // cancelled a save does not need to be told they cancelled it.
+            if (path == null) return;
+
+            // The dialog goes first and the message second: a SnackBar under
+            // an open dialog is dimmed by its own barrier, and this
+            // repository has already shipped a refusal that covered the
+            // button it was refusing.
+            if (ctx.mounted) Navigator.pop(ctx);
+            if (context.mounted) AppFeedback.success(context, 'Saved: $path');
+          },
+        ),
         ElevatedButton.icon(
           icon: const Icon(Icons.copy, size: 16),
-          label: const Text('Copied to Clipboard!'),
+          // „Copied to Clipboard!" until 12.9.2026, when a third action joined
+          // the row: twenty characters and an icon do not fit one line of a
+          // 360 dp dialog, and a button label is the one thing in a row that
+          // cannot wrap. The sentence was doing the work of a message anyway —
+          // the copy happens when the dialog opens, and this button closes it.
+          label: const Text('Copied'),
           style: ElevatedButton.styleFrom(
               backgroundColor: ctx.colors.accent,
               foregroundColor: ctx.colors.canvas),
