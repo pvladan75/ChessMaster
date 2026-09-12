@@ -13,6 +13,8 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/services/pgn_game_import.dart';
+import 'package:chess_app/features/tutorial_studio/services/pgn_question_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
@@ -186,7 +188,7 @@ class TutorialLibraryCard extends StatelessWidget {
     ));
   }
 
-  /// „Import from a file" — one or more JSON tutorials written outside the app.
+  /// „Import from a file" — tutorials written outside the app, or games.
   ///
   /// Two doors out of one report, and which one is drawn depends on how many
   /// files were picked. One file opens in the studio **unsaved**, which is the
@@ -195,13 +197,27 @@ class TutorialLibraryCard extends StatelessWidget {
   /// written straight to the library, because opening a dozen in an authoring
   /// screen one at a time is a chore that gets skipped.
   Future<void> _onImport(BuildContext context) async {
-    final picked = await (pickFiles ?? _pickJsonFiles)();
+    final picked = await (pickFiles ?? _pickTutorialFiles)();
     if (!context.mounted || picked.isEmpty) return;
 
-    final read = [
+    // Which reader a file gets is decided by what is in it, not by this screen:
+    // a tutorial written outside the app is JSON, a game is PGN, and one PGN
+    // file can hold many games and therefore many tutorials.
+    var read = [
       for (final file in picked)
-        readTutorialJson(file.text, fileName: file.name),
+        ...tutorialsFromFile(name: file.name, text: file.text),
     ];
+
+    // Only where „Review entire game" left something to ask about, so an
+    // ordinary import never meets this question.
+    final questions = read.fold(0, (sum, t) => sum + questionsAvailableIn(t));
+    if (questions > 0) {
+      final make = await showBlunderQuestionsDialog(context, questions);
+      if (!context.mounted) return;
+      if (make) {
+        read = [for (final t in read) withQuestionsFromBlunders(t)];
+      }
+    }
 
     final choice = await showTutorialImportDialog(context, read);
     if (!context.mounted || choice == null) return;
@@ -290,15 +306,19 @@ class TutorialLibraryCard extends StatelessWidget {
     );
   }
 
-  /// The real chooser. JSON only, several at a time.
+  /// The real chooser. Tutorials and games, several at a time.
+  ///
+  /// Both extensions in one picker rather than two buttons: a trainer has one
+  /// „import" in their head, and which reader a file needs is a question the
+  /// app can answer by looking at it.
   ///
   /// A file that cannot be read from disk is dropped here rather than carried
   /// as an empty string: „the file is not valid JSON" would be the wrong
   /// sentence for a file the operating system would not open.
-  static Future<List<PickedTutorialFile>> _pickJsonFiles() async {
+  static Future<List<PickedTutorialFile>> _pickTutorialFiles() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['json'],
+      allowedExtensions: ['json', 'pgn'],
       allowMultiple: true,
     );
     if (result == null) return const [];

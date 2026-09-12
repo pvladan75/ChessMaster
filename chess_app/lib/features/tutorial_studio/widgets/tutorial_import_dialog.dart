@@ -36,6 +36,53 @@ class ImportChoiceSave extends TutorialImportChoice {
   final List<ImportedTutorial> tutorials;
 }
 
+/// „Review entire game" marked some mistakes — shall they become questions?
+///
+/// Phase 3 of `docs/PLAN-PGN-TUTORIJAL.md`, and it is asked rather than assumed
+/// on purpose: a trainer importing a game to **show** it should not find
+/// questions cut into it, and a trainer importing it to teach from should not
+/// have to build them by hand. It is drawn only when there is something to ask
+/// about, so an ordinary import never meets it.
+///
+/// Answers true for „make them", and false for „just the games" — which is also
+/// what dismissing it means. Backing out of an optional extra must not throw
+/// away the import the trainer already asked for.
+Future<bool> showBlunderQuestionsDialog(
+  BuildContext context,
+  int questions,
+) async {
+  final answer = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Make questions from the mistakes?'),
+      content: Text(
+        questions == 1
+            ? 'One mistake is marked in these games, with the move the engine '
+                'preferred beside it. It can become a question: the child is '
+                'asked what should have been played, and the part after it '
+                'shows the answer.'
+            : '$questions mistakes are marked in these games, each with the '
+                'move the engine preferred beside it. They can become '
+                'questions: the child is asked what should have been played, '
+                'and the part after each one shows the answer.',
+      ),
+      actions: [
+        TextButton(
+          key: const Key('import-no-questions'),
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Just the games'),
+        ),
+        FilledButton(
+          key: const Key('import-make-questions'),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Make questions'),
+        ),
+      ],
+    ),
+  );
+  return answer ?? false;
+}
+
 /// Shows what was read and asks what to do with it.
 ///
 /// Answers null when the trainer backed out. The tutorials carried by the

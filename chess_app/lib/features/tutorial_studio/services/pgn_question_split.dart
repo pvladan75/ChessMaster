@@ -239,8 +239,15 @@ int questionsAvailableIn(ImportedTutorial source,
   if (!source.openable) return 0;
   var found = 0;
   for (final step in source.positionList) {
-    final parts = sectionsWithQuestions(TutorialSection.fromStep(step),
-        maxQuestions: maxQuestions);
+    final part = TutorialSection.fromStep(step);
+    // **Only a demonstration can be cut**, and only what the cutting made is
+    // counted. Counting every `ask_move` in the result counted the questions a
+    // file already had — so a hand-written tutorial with a question in it was
+    // offered „make questions from the mistakes" over a file with no mistakes
+    // marked anywhere. The existing import tests caught that; mine could not,
+    // because not one of my fixtures had a question in it already.
+    if (part.kind != LessonStepKind.show) continue;
+    final parts = sectionsWithQuestions(part, maxQuestions: maxQuestions);
     found += parts.where((p) => p.kind == LessonStepKind.askMove).length;
   }
   return found;

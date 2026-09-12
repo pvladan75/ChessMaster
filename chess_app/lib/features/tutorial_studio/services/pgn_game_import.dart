@@ -185,6 +185,7 @@ List<ImportedTutorial> tutorialsFromPgn(
   String text, {
   String? fileName,
   List<String> tags = const [],
+  int maxGames = maxGamesPerFile,
 }) {
   final games = pgnGamesOf(text);
   if (games.isEmpty) {
@@ -192,13 +193,71 @@ List<ImportedTutorial> tutorialsFromPgn(
       ImportedTutorial.unreadable('The file holds no PGN.', fileName: fileName)
     ];
   }
-  return [
-    for (var i = 0; i < games.length; i++)
+
+  final kept = games.take(maxGames).toList();
+  final out = [
+    for (var i = 0; i < kept.length; i++)
       tutorialFromGame(
-        games[i],
+        kept[i],
         fileName: fileName,
         gameNumber: games.length == 1 ? null : i + 1,
         tags: tags,
       ),
   ];
+
+  if (games.length > kept.length) {
+    // Said rather than silently done. A database export is an ordinary thing to
+    // pick by mistake — the owner's own Lichess file holds 4126 games — and
+    // reading it whole would make four thousand rows in the report and four
+    // thousand rows in the library. A cut nobody is told about is the fault
+    // this repository keeps finding; this one is a sentence on the first row.
+    out[0] = ImportedTutorial(
+      title: out[0].title,
+      description: out[0].description,
+      tags: out[0].tags,
+      language: out[0].language,
+      positionList: out[0].positionList,
+      fileName: out[0].fileName,
+      problems: [
+        ImportProblem(
+          fault: ImportFault.damaged,
+          message: 'this file holds ${games.length} games and the first '
+              '${kept.length} were read. Split it if you need the rest.',
+        ),
+        ...out[0].problems,
+      ],
+    );
+  }
+  return out;
+}
+
+/// How many games one file may become.
+///
+/// A whole database is an ordinary thing to pick by mistake: a Lichess export
+/// of one account's games runs to thousands, and one tutorial per game is the
+/// rule everywhere else here.
+const int maxGamesPerFile = 50;
+
+/// One picked file, read by whichever reader it asks for.
+///
+/// **`.json` is taken at its word; everything else is decided by its content.**
+/// A tutorial file is a JSON object and therefore starts with `{`, and a PGN
+/// never does — so a file named `.pgn` that holds JSON is somebody's rename and
+/// is read as the tutorial it is.
+///
+/// The extension has to win for `.json`, and the existing import tests are what
+/// said so: a trainer who picks `broken.json` and gets „there are no moves in
+/// this game" has been told about the wrong reader. „The file is not valid
+/// JSON" is the sentence that names what they did.
+/// The labels a trainer chose are **not** applied here: the import dialog puts
+/// them on the whole batch at the end, through `withLabels`, and doing it twice
+/// in two places is how one of them comes to be forgotten.
+List<ImportedTutorial> tutorialsFromFile({
+  required String name,
+  required String text,
+}) {
+  if (name.toLowerCase().endsWith('.json') || text.trimLeft().startsWith('{')) {
+    return [readTutorialJson(text, fileName: name)];
+  }
+  return tutorialsFromPgn(text, fileName: name);
 }
