@@ -101,6 +101,12 @@ nothing.
 the tutorial, and every line you are about to write into a `pgn`, can be replayed
 here first. The faults it reports are exactly the faults the app refuses.
 
+**And use `fen --multipv` on any position you are about to ask a question
+about.** If the second move on the list is about as good as the first, that is
+what `"acceptedSans"` is for - or a sign to ask somewhere else. A question whose
+answer is merely one of several good moves marks a child wrong for playing the
+best one, and nothing in the app can catch that.
+
 **You have {calls} engine searches for this task.** `line --no-eval` and
 `budget` are free. Spend them where the game is actually unclear, not evenly:
 going three moves deeper into one critical position is worth more than a shallow
@@ -159,7 +165,7 @@ def game_text(name, which):
 def build_prompt(arm, name, work_dir, calls, session):
     spec = ARMS[arm]
     note = spec['note'] or ARMS['B']['note']
-    pgn, pgn_path = game_text(name, spec['input'])
+    _, pgn_path = game_text(name, spec['input'])
 
     with open(BRIEF, encoding='utf-8') as fh:
         brief = fh.read()
@@ -170,10 +176,15 @@ def build_prompt(arm, name, work_dir, calls, session):
                               session=session, calls=calls)
              if spec['engine'] else NO_TOOL_TEXT)
 
+    # The game travels as the file already copied into the working directory,
+    # never inlined. A 78-move reviewed game is 18 KB, which pushed the prompt
+    # past the Windows command-line limit - and a channel that changes with the
+    # length of the game is a variable nobody declared. One channel for every
+    # arm and every game, so a difference between two answers is not this.
     prompt = (brief
               .replace('{OUT_FILE}', os.path.join(work_dir, 'tutorial.json'))
               .replace('{GAME_NOTE}', note)
-              .replace('{GAME_PGN}', pgn)
+              .replace('{GAME_FILE}', os.path.basename(pgn_path))
               .replace('{TOOLS}', tools)
               .replace('{FORMAT_CONTRACT}', format_contract()))
 

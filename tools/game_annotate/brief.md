@@ -41,6 +41,21 @@ point is a judgement rather than a move. A tutorial that only shows is a video.
 The natural place is a moment where the game went wrong: the child is asked for
 the move that should have been played, and the part after it shows the answer.
 
+**A question is only worth asking where the answer is not a matter of taste.**
+Before you write an `ask_move`, ask what a good child might play instead. If a
+second move is about as good, either
+
+  * add it to `"acceptedSans"` - up to six further moves that are also marked
+    correct - so the child is not told they are wrong for finding one of them;
+    or
+  * do not ask that question. Ask about a position where one move stands out.
+
+Never write „the only move" unless you have checked that it is. A question built
+on a false premise teaches the child to distrust the board, and it is the one
+fault the app cannot catch for you: a legal move that is merely *not the best*
+is stored and marked correct exactly like the right answer, and a child who
+plays the genuinely best move is marked wrong.
+
 **Teach, do not score.** „This is a blunder losing a rook" is a verdict. „The
 rook on a8 has no defender, and the queen on d5 sees both it and f7 - count the
 things one piece attacks before you take with it" is a lesson. The child should
@@ -48,11 +63,10 @@ finish knowing something they can use in their own game next week.
 
 ## The game
 
-{GAME_NOTE}
+It is the file **{GAME_FILE}**, in the directory you are working in. Read it
+first; it is the only thing in there.
 
-```
-{GAME_PGN}
-```
+{GAME_NOTE}
 
 {TOOLS}
 
