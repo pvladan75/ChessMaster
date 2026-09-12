@@ -107,7 +107,6 @@ void main() {
           squares: squares,
           boardSize: 360,
           orientation: PlayerColor.white,
-          lastMoveColor: const ui.Color(0xFFFFC107),
           drawingModeColor: const ui.Color(0xFF2196F3),
           badgeBorderColor: const ui.Color(0xFF000000),
         );
@@ -161,7 +160,6 @@ void main() {
         ],
         boardSize: 360,
         orientation: PlayerColor.white,
-        lastMoveColor: const ui.Color(0xFFFFC107),
         drawingModeColor: const ui.Color(0xFF2196F3),
         badgeBorderColor: const ui.Color(0xFF000000),
       );

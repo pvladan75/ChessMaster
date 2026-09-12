@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/board_skins.dart';
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
 import 'support/color_vision.dart';
@@ -164,97 +165,79 @@ void main() {
     });
   });
 
-  group('the last-move marker', () {
-    // The finding that started this, on 29.8.2026: the marker is `warning` at
-    // 45% plus a 2.5 px border of the same colour, and against the square
-    // underneath it that is almost pure hue. These two tests are the pair that
-    // matters — the first records why the brackets exist, the second asserts
-    // that they do the job.
+  group('the last-move wash', () {
+    // The marker this replaced was amber at 45% over the pieces, and the two
+    // tests that stood here recorded why it needed corner brackets: it measured
+    // 1.03:1 at worst against the square beneath it, which is a hue signal and
+    // not a luminance one. The wash that replaced it on 12.9.2026 is asked the
+    // same two questions, and answers them without a second channel.
 
-    test('the amber alone is a hue signal and almost nothing else', () {
-      // Deliberately an upper bound, not a floor. Asserting "the amber is bad"
-      // as a minimum would punish anyone who improves the palette later; what
-      // this pins down is that on *some* skin it is this weak, which is the
-      // fact the bracket design rests on. If a palette change ever makes even
-      // the worst case strong, this test says so by failing, and the brackets
-      // become a choice rather than a fix.
+    test('a washed square reads as darker than the same square unwashed', () {
+      // The comparison a reader actually makes: this square against another
+      // square of the same colour elsewhere on the board. 1.4:1 is just under
+      // the measured worst case, and is the same order as the 1.5:1 that
+      // `ArrowColor` holds between its own pairs — a floor for "these two are
+      // not the same shade", not the 3.0:1 of an element against a background.
       var worst = double.infinity;
-      String where = '';
+      var where = '';
 
-      for (final (name, tokens) in [
-        ('dark', AppColorTokens.dark),
-        ('light', AppColorTokens.light),
-      ]) {
-        for (final board in BoardSkin.all) {
-          for (final (side, square) in [
-            ('light', board.lightSquare),
-            ('dark', board.darkSquare),
-          ]) {
-            final marked = over(tokens.warning.withValues(alpha: 0.45), square);
-            forEachVision((vision) {
-              final value = contrastAs(marked, square, vision);
-              if (value < worst) {
-                worst = value;
-                where = '$name palette, ${board.id}, $side square, '
-                    '${vision.label}';
-              }
-            });
-          }
-        }
-      }
-
-      expect(worst, lessThan(1.2),
-          reason: 'the worst amber-on-square case measures '
-              '${worst.toStringAsFixed(2)}:1 ($where). If this now passes 1.2, '
-              'the palette improved and this test should be revisited rather '
-              'than relaxed.');
-    });
-
-    test('the brackets always keep an edge, on every square of every skin', () {
-      // The invariant the two-tone bracket exists for: black and white are both
-      // drawn, so whichever square the marker lands on, one of them has a
-      // luminance edge on it. 3.0:1 is the WCAG floor for a non-text UI
-      // element, which is what this is.
       for (final board in BoardSkin.all) {
         for (final (side, square) in [
           ('light', board.lightSquare),
           ('dark', board.darkSquare),
         ]) {
+          final washed = over(LastMovePainter.wash, square);
           forEachVision((vision) {
-            final shade = contrastAs(
-                ChessBoardPainter.lastMoveMarkerShade, square, vision);
-            final light = contrastAs(
-                ChessBoardPainter.lastMoveMarkerLight, square, vision);
-            final best = shade > light ? shade : light;
-
+            final value = contrastAs(washed, square, vision);
+            if (value < worst) {
+              worst = value;
+              where = '${board.id}, $side square, ${vision.label}';
+            }
             expectAtLeast(
-                best, 3.0, 'brackets on ${board.id} $side square', vision);
+                value, 1.4, 'the wash on ${board.id} $side square', vision);
           });
         }
       }
+
+      // Printed rather than pinned: the alpha is a live judgement — the owner
+      // decides whether it is loud enough on a real screen — and a test that
+      // fixed the number would fail the moment that judgement is acted on.
+      // ignore: avoid_print
+      print('worst washed-vs-plain contrast: '
+          '${worst.toStringAsFixed(2)}:1 at $where');
     });
 
-    test('the bracket colours do not move, and the amber does', () {
-      // The difference between the two channels, stated as the one thing that
-      // is actually true of it. An earlier version of this test asserted that
-      // the bracket's *contrast* against a square is the same for every kind of
-      // eye, and that is false — the square moves even when the bracket does
-      // not, so the pairing moves with it. What holds is narrower and is the
-      // whole design: the bracket carries no hue to lose, so it looks the same
-      // to everybody, while the amber does not and does not.
-      for (final marker in [
-        ChessBoardPainter.lastMoveMarkerShade,
-        ChessBoardPainter.lastMoveMarkerLight,
-      ]) {
-        forEachVision((vision) {
-          expect(simulate(marker, vision).toARGB32(), marker.toARGB32(),
-              reason: 'the bracket must look the same for ${vision.label}');
-        });
+    test(
+        'the wash looks the same to everybody, which is why it needs no '
+        'second channel', () {
+      // The whole argument for black rather than a colour. The amber it
+      // replaced is a different colour to a protanope than to a trichromat —
+      // asserted below, because that difference is the reason brackets existed
+      // — and a wash with no hue in it has nothing to lose.
+      forEachVision((vision) {
+        expect(simulate(LastMovePainter.wash, vision).toARGB32(),
+            LastMovePainter.wash.toARGB32(),
+            reason: 'the wash must look the same for ${vision.label}');
+      });
+
+      // And a square with the wash on it moves only as much as the square
+      // itself does: the compositing adds no hue of its own.
+      for (final board in BoardSkin.all) {
+        for (final square in [board.lightSquare, board.darkSquare]) {
+          final washed = over(LastMovePainter.wash, square);
+          for (final vision in [
+            ColorVision.protanopia,
+            ColorVision.deuteranopia,
+          ]) {
+            expect(simulate(washed, vision).toARGB32(),
+                over(LastMovePainter.wash, simulate(square, vision)).toARGB32(),
+                reason:
+                    'washing ${board.id} and then simulating ${vision.label} '
+                    'must give the same colour as simulating and then washing');
+          }
+        }
       }
 
-      // And the colour channel, for contrast with the above: `warning` is a
-      // different colour to a protanope than it is to a trichromat. That is not
-      // a defect in the token — it is the reason a second channel exists.
       for (final tokens in [AppColorTokens.dark, AppColorTokens.light]) {
         for (final vision in [
           ColorVision.protanopia,
@@ -262,7 +245,8 @@ void main() {
         ]) {
           expect(simulate(tokens.warning, vision).toARGB32(),
               isNot(tokens.warning.toARGB32()),
-              reason: 'warning is expected to shift for ${vision.label}');
+              reason: 'warning is expected to shift for ${vision.label} — that '
+                  'shift is what the wash was chosen to avoid');
         }
       }
     });

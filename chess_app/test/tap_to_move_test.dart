@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -350,16 +351,18 @@ void main() {
       ),
     ));
 
-    final painters = tester
-        .widgetList<CustomPaint>(find.byType(CustomPaint))
-        .map((w) => w.painter)
-        .whereType<ChessBoardPainter>()
-        .toList();
+    // Asked of the board rather than of the overlay since 12.9.2026: the wash
+    // moved under the pieces, and `SkinnedChessBoard` is the only layer that
+    // can reach there. The question is the same one — drawing mode swaps which
+    // overlay is built, and the square the reader is being sent to look at must
+    // not depend on that.
+    final boards = tester.widgetList<SkinnedChessBoard>(
+        find.byType(SkinnedChessBoard, skipOffstage: false));
 
-    expect(painters, isNotEmpty, reason: 'the painter must be in the tree');
-    for (final p in painters) {
-      expect(p.lastMoveFrom, 'e2');
-      expect(p.lastMoveTo, 'e4');
+    expect(boards, isNotEmpty, reason: 'the board must be in the tree');
+    for (final board in boards) {
+      expect(board.lastMoveFrom, 'e2');
+      expect(board.lastMoveTo, 'e4');
     }
   });
 }

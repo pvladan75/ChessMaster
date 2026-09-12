@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan i faza 0"
-odmah ispod ove glave (sloj je u kodu, ostalo nije), pa „Priručnik",
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan, faze 0 i 1"
+odmah ispod ove glave (poslednji potez je sada ispod figura), pa „Priručnik",
 pa „Jezik glasa — plan", pa „Prevod tutorijala, van
 aplikacije", pa „Video bez komentara pored
 table", pa „Ispis prati glas, a ne
@@ -39,7 +39,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Oznake na tabli — plan i faza 0, 12.9.2026
+## Oznake na tabli — plan, faze 0 i 1, 12.9.2026
 
 `docs/PLAN-OZNAKE-NA-TABLI.md`. Iz četiri vlasnikove prijave od 12.9.2026;
 dve su o istoj stvari.
@@ -51,9 +51,28 @@ Osnova pre rada je bila **2095**, dakle svih sedam novih su kapija ove faze
 CLAUDE.md je govorio 2079 dok je svita bila 2095 — zastareo, pa je izveden
 ponovo umesto da se ponovi. **Ostalo (faze 1–4) još nije u kodu.**
 
-U kodu je samo sloj: `SkinnedChessBoard` je dobio `lastMoveFrom`/`lastMoveTo` i
-`LastMovePainter` između polja i figura. **Niko ih još ne prosleđuje**, pa se
-aplikacija ne vidi drugačije — to je faza 1.
+**Faza 1 je gotova istog dana — 2098, 1 preskočen, analyze 29 infova.** Marker
+iznad figura (žuti pojas, okvir i uglovne zagrade) je obrisan; `ChessBoardPainter`
+više ne zna za poslednji potez. Četiri pozivaoca sada prosleđuju dva polja
+`SkinnedChessBoard`-u. Prsten `[%csl]` je netaknut — on se menja u fazi 3.
+
+Računica od 2102: −6 (`last_move_marker_test.dart` ceo), −3 (grupa u
+`board_skin_contrast_test.dart`), +2 (nova grupa o sloju), +1 (test da boja ne
+curi na susedno polje), +2 (nova kapija) = **2098**.
+
+**Dve mutacije su preživele u prvom krugu**, i one su nalaz: brisanje
+prosleđivanja u analizi i u ekranu za vežbe nije oborilo ništa. Nijedan od ta
+dva ekrana se ne gradi ni u jednom widget testu, a oba zaobilaze
+`ChessBoardWithOverlay`, pa ih ni faza 2 neće pokriti. `test/
+last_move_reaches_board_test.dart` sada traži: **ekran koji vodi računa o
+`_lastMoveFrom` mora da ga da tabli.** Čita se brojanjem zagrada, ne sečenjem.
+
+Usput: `replay_player_screen.dart` je prosleđivao `lastMoveColor` a nijedno
+polje, dakle nikada nije ni crtao poslednji potez. I dalje ne crta; faza 2
+odlučuje da li treba.
+
+Najgori kontrast opranog polja prema istom neopranom je **1.46:1** (High
+Contrast, tamno polje) — prema 1.03:1 koliko je bio žuti. Ostaje **faze 2–4**.
 
 **Vlasnikova odluka, „uzmi inverziju":**
 

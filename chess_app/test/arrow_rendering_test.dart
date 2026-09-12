@@ -43,7 +43,6 @@ void main() {
         engineArrows: engineArrows,
         boardSize: 400,
         orientation: PlayerColor.white,
-        lastMoveColor: const Color(0xFFFFC107),
         drawingModeColor: const Color(0xFF00BCD4),
         badgeBorderColor: const Color(0xFF000000),
       );

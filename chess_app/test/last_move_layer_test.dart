@@ -198,6 +198,30 @@ void main() {
     );
   });
 
+  testWidgets('the wash stays inside its own square', (tester) async {
+    // Carried over from `last_move_marker_test.dart`, deleted with the marker
+    // it tested: a corner square is the case that shows a rect drawn a hair too
+    // wide, because a1 has two edges against the board's own edge and two
+    // against neighbours. The wash is a filled square, not a stroke, so nothing
+    // is inset — which is exactly why it is worth asking.
+    final (plain, width) = await render(tester);
+    const b1 =
+        Rect.fromLTWH(squareEdge, 7 * squareEdge, squareEdge, squareEdge);
+    const a2 = Rect.fromLTWH(0, 6 * squareEdge, squareEdge, squareEdge);
+
+    final onB1 = findPixel(plain, width, b1, skin.lightSquare)!;
+    final onA2 = findPixel(plain, width, a2, skin.lightSquare)!;
+
+    final (marked, _) = await render(tester, from: 'a1', to: 'h8');
+    for (final (name, sample) in [('b1', onB1), ('a2', onA2)]) {
+      expect(
+        pixel(marked, width, sample.dx.toInt(), sample.dy.toInt()),
+        pixel(plain, width, sample.dx.toInt(), sample.dy.toInt()),
+        reason: 'the wash on a1 bled onto $name',
+      );
+    }
+  });
+
   testWidgets('a name that is not a square draws nothing', (tester) async {
     // These names come out of a PGN comment nobody validates — the same reason
     // `getSquareCenter` was taught to answer `Offset.zero` rather than throw

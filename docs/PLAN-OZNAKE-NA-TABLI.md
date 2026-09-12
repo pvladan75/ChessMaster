@@ -170,22 +170,62 @@ Two guards that prove the same thing prove neither.
 
 ## Phase 1 — the last move becomes the layer
 
-`ChessBoardPainter` loses `lastMoveFrom`, `lastMoveTo`, `lastMoveColor`,
-`_paintLastMoveBrackets`, `lastMoveMarkerShade` and `lastMoveMarkerLight`.
-`ChessBoardWithOverlay` forwards the two square names into `SkinnedChessBoard`
-instead of into the painter.
+**Done 12.9.2026 — 2098 in the app with 1 skipped, analyze at 29 infos and zero
+warnings**, measured on `master` with nothing else running. Five mutations, all
+five caught, but two survived the first run and the gate written for them is the
+part worth keeping.
 
-**Tests that change, and they change because the behaviour changed, not because
-they were wrong.** `last_move_marker_test.dart` is six tests about a marker that
-will not exist; it is rewritten against the layer, keeping every question it
-asks — both squares get the mark, no move means no mark, the mark stays inside
-its own square — and dropping the two that are about the brackets' colours.
-`board_skin_contrast_test.dart` loses the two bracket tests and the two ring
-tests, and gains one: the wash darkens every square of every skin by a
-measurable amount, for every kind of eye.
+The arithmetic from phase 0's 2102, since a falling count is what the test gate
+exists to stop: **−6** for `last_move_marker_test.dart`, deleted whole; **−3**
+for the contrast file's marker group; **+2** for the wash group that replaced
+it; **+1** for the bleed test carried over from the deleted file; **+2** for the
+new source gate. 2102 − 6 − 3 + 2 + 1 + 2 = **2098**.
 
-**Do not delete a test and call the count "expected".** The arithmetic goes in
-the commit message, test by test, the way every count in CLAUDE.md is derived.
+`ChessBoardPainter` lost `lastMoveFrom`, `lastMoveTo`, `lastMoveColor`,
+`_paintLastMoveBrackets`, `lastMoveMarkerShade` and `lastMoveMarkerLight`. Four
+callers moved the two square names onto `SkinnedChessBoard`: the overlay, the
+analysis studio (whose whole `if (_lastMoveFrom != null && _lastMoveTo != null)`
+layer became redundant and went), the drill screen, and the replay player —
+which turned out to pass `lastMoveColor` and **never a square**, so it has drawn
+no last move since it was written. It still does not; phase 2 decides whether it
+should.
+
+**The ring is untouched.** The plan said this phase would take the two ring
+tests out of `board_skin_contrast_test.dart` along with the two bracket ones.
+That was wrong: the ring survives until phase 3, and so do its tests.
+
+### The two mutations that survived, and the gate they bought
+
+Deleting the forwarding from **the analysis studio** and from **the drill
+screen** left the whole suite green. Neither screen is built in any widget test
+— one wants an engine and a session, the other a route with a category on it —
+and both are the two that bypass `ChessBoardWithOverlay` entirely, so phase 2's
+derivation will never cover them. They would have shipped drawing nothing, which
+is the exact fault this plan exists to fix, one commit after fixing it.
+
+`test/last_move_reaches_board_test.dart` asserts the invariant where it can be
+asserted: **a screen that declares `_lastMoveFrom` must hand it to a board.**
+Five screens do as of today. It is deliberately not "every board gets a last
+move" — the replay player and the engine-line dialog pass none on purpose, and a
+gate that failed them would be argued with rather than satisfied.
+
+It reads by matching parentheses with strings and line comments blanked first,
+never by slicing, and its second test feeds it source written to fool it: the
+same call inside a comment, inside a string literal, and a real one with a `)`
+in an argument. This repository has paid for a sliced source read twice.
+
+### Two smaller things
+
+**The worst washed-vs-plain contrast is 1.46:1**, on High Contrast's dark square
+— against the amber's 1.03:1, and on the same order as the 1.5:1 `ArrowColor`
+holds between its own pairs. The contrast test prints it rather than pinning it,
+because the alpha is a live judgement and a test that fixed the number would
+fail the moment that judgement is acted on.
+
+**An import is not dead because one of its names stopped being used.** Removing
+`board_overlay_painter.dart` from `tap_to_move_test.dart` after its
+`ChessBoardPainter` assertions moved to `SkinnedChessBoard` broke two unrelated
+tests that take `AnimatedMovePiece` from the same file.
 
 ## Phase 2 — every board draws it
 
