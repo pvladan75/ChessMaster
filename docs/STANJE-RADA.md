@@ -15,8 +15,8 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan, faze 0–3"
-odmah ispod ove glave (poslednji potez ispod figura, trenerovo polje u okviru), pa „Priručnik",
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan i sve faze"
+odmah ispod ove glave (ceo plan u kodu, ostaje provera uživo), pa „Priručnik",
 pa „Jezik glasa — plan", pa „Prevod tutorijala, van
 aplikacije", pa „Video bez komentara pored
 table", pa „Ispis prati glas, a ne
@@ -39,7 +39,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Oznake na tabli — plan, faze 0–3, 12.9.2026
+## Oznake na tabli — plan i sve faze, 12.9.2026
 
 `docs/PLAN-OZNAKE-NA-TABLI.md`. Iz četiri vlasnikove prijave od 12.9.2026;
 dve su o istoj stvari.
@@ -134,6 +134,34 @@ Ništa sačuvano se nije promenilo: `SquareMark` je polje i slovo boje, ni PGN n
 baza nikada nisu znali kojim se oblikom crta. Zato **svi već napisani tutorijali
 od sada prikazuju okvire** — u studiju, u đakovom pregledu i u filmu; vredi da
 vlasnik pogleda jedan koji je pisao ranije (deo C provere).
+
+**Faza 4 je gotova istog dana — 2164 u aplikaciji, 1 preskočen, analyze 29
+infova; server netaknut na 1238. Ceo plan je time u kodu; ostaje provera
+uživo (`TODO-provera.md`, stavka 153, delovi A–D).** Obeležavanje niza polja:
+`squaresBetween` je pravilo, `tap` je dobio `asRange`, a dugme „Line" stoji u
+traci pored „Arrow" i „Square". Sedamnaest mutacija, sve uhvaćene.
+
+a2→c7 nije linija i obeležava samo polje na koje je upravo kliknuto. Niz
+**postavlja** umesto da prebacuje svako polje (inače bi preko poluobeležene
+linije ispao šah-tabla), a ponovljen isti niz ga briše — u oba smera i bez
+obzira na boju kojom je crtan. **Dugme, a ne samo SHIFT**, jer telefon nema
+modifikator: ekran šalje `asRange: rangeMode || shiftHeld`, dakle jedan put kroz
+kod, a SHIFT je prečica za isti taj put.
+
+**Četiri mutacije su preživele, i to je bila ista rupa kao u fazi 1.** Pravilo
+je imalo 24 testa, a povezivanje sa ekranom nijedan — isto kao kad su analiza i
+ekran za vežbe tiho prestali da prosleđuju potez. `tutorial_oznake_test.dart`
+sada vozi ekran i čita zahtev, uključujući i **kontrolni** slučaj: dva klika bez
+dugmeta i bez tastera moraju i dalje biti dva polja, inače bi mutacija koja
+uvek traži niz prošla oba testa oko njega.
+
+Sedamnaesta je suptilnija: „gašenje dugmeta ostavlja započeto polje" je
+preživela i posle toga, jer kontroler **ionako** odbacuje započeti niz na
+sledeći običan klik — pa je čišćenje u ekranu izgledalo suvišno. Nije: ugasi pa
+upali bez klika između je put koji samo ekran vidi.
+
+Neodlučeno i namerno: desni klik je i dalje kopiranje FEN-a na svakoj tabli, pa
+se ličesova konvencija ne može uzeti dok se ne odluči gde ide kopiranje.
 
 **Vlasnikova odluka, „uzmi inverziju":**
 

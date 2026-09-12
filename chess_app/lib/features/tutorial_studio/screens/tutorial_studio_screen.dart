@@ -1150,6 +1150,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             onSquarePressed: _toggleSquareMode,
             onColorSelected: _selectColor,
             onClearPressed: _clearMarks,
+            rangeMode: _annotationController.rangeMode,
+            onRangePressed: _toggleRangeMode,
           ),
         ),
         SizedBox(
@@ -1171,6 +1173,26 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         _annotationController.stop();
       } else {
         _annotationController.setMode(AnnotationMode.arrow);
+      }
+    });
+  }
+
+  /// SHIFT, asked at the moment of the tap rather than tracked.
+  ///
+  /// `HardwareKeyboard` already holds this and is right whether the key went
+  /// down before or after the pointer; a listener of our own would be a second
+  /// copy of that state, and a copy that stays true when the window loses
+  /// focus mid-gesture. Always false on a phone, which is what the button is
+  /// for.
+  bool get _shiftHeld => HardwareKeyboard.instance.isShiftPressed;
+
+  void _toggleRangeMode() {
+    setState(() {
+      _annotationController.rangeMode = !_annotationController.rangeMode;
+      // Turning it off half-way through leaves a square named and nothing to
+      // join it to.
+      if (!_annotationController.rangeMode) {
+        _annotationController.pendingRangeFrom = null;
       }
     });
   }
@@ -1207,6 +1229,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       square,
       arrows: _current.arrows,
       squares: _current.squares,
+      // The button or the key, and the same code path either way. SHIFT is the
+      // shortcut a trainer at a desk reaches for; the button is the only one of
+      // the two that exists on a phone.
+      asRange: _annotationController.rangeMode || _shiftHeld,
     );
     setState(() {});
     if (changed) {

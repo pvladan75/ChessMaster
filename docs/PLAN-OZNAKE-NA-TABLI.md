@@ -378,37 +378,61 @@ this landed**, which is part C of the live check.
 
 ## Phase 4 — selecting a range of squares
 
-Separate from the three above, and it should land after them: it is an authoring
-convenience, and the other three are what a child sees.
+**Done 12.9.2026 — 2164 in the app with 1 skipped**, analyze at 29 infos and
+zero warnings; the backend is untouched at 1238. From phase 3's 2129: **+24**
+for the rule, **+6** for the way in, **+5** for the studio's wiring. Seventeen
+mutations, all seventeen caught — four of them only after the wiring got tests
+of its own.
 
-`BoardAnnotationController` gains a range entry point beside `tap`. The rule:
+`squaresBetween` is the rule, `BoardAnnotationController.tap` takes `asRange`,
+and a "Line" button sits in the annotation bar beside Arrow and Square. The
+three decisions in the plan all survived being built:
 
-- **a2 → a7** marks the file between them; **a2 → e2** the rank; **a2 → d5** the
-  diagonal.
-- **a2 → c7 is none of the three**, and marks only the square clicked. Inferring
-  a rectangle would surprise anyone who mis-clicked, and a rectangle is a
-  different feature that can be asked for later.
-- **A range sets, it does not toggle each square.** A range over a half-marked
-  file would otherwise come out checkerboarded. Repeating the same range when
-  every square in it is already marked clears it — one rule, reversible.
+- **a2→c7 is not a line**, and marks only the square just tapped. Inferring a
+  rectangle from two corners would surprise anyone who mis-clicked.
+- **a range sets rather than toggling each square.** A range over a half-marked
+  file would otherwise come out checkerboarded, which is nobody's intention and
+  takes another range to undo. Repeating the same range when all of it is
+  marked clears it, so one gesture stays reversible by itself — in either
+  direction, and whatever colour the squares were drawn in.
+- **the button, not only SHIFT.** A phone has no modifier key, so the control is
+  in the bar and SHIFT is a shortcut for the same flag: the screen passes
+  `asRange: rangeMode || shiftHeld` and there is one code path. The button is
+  drawn only in square mode, because an arrow already takes two taps and means
+  something else by them.
 
-**SHIFT is desktop-only, and Android is a real target.** A phone has no modifier
-key, so a SHIFT-only design ships this to half the users. The interaction is a
-**range toggle in the annotation bar** that makes the next two taps a range —
-identical on both platforms — with SHIFT as the desktop shortcut for the same
-thing. One button, one code path, no keyboard required.
+### Four mutations survived, and it was the same gap as phase 1's
 
-**And a conflict to resolve before any mouse-native drawing is designed:**
-right-click is already bound on every board — `onSecondaryTap` copies the FEN
-(`chess_board_with_overlay.dart:250`). The Lichess convention of right-drag for
-an arrow and right-click for a square cannot be adopted without deciding where
-FEN-copying goes. That decision is not made here.
+Deleting the whole of the studio's `asRange`, reading only the button, reading
+only SHIFT, and dropping the abandoned square — all four left the suite green.
+The rule had twenty-four tests and the wiring had none, which is exactly what
+phase 1 found when the analysis studio and the drill screen quietly stopped
+forwarding. `tutorial_oznake_test.dart` drives the screen and reads the saved
+request now, including a **control** case: two taps with neither button nor key
+must still be two squares, or a mutation that always asked for a range would
+pass the two tests either side of it.
 
-**Gate.** The controller is pure and has no widget in it, so this is a plain
-test file: the three collinear cases, the non-collinear refusal, set-not-toggle,
-and the clear-on-repeat. Mutations: delete the collinearity check (a2 → c7 must
-not fill anything); delete the clear-on-repeat; make the range toggle each
-square.
+The seventeenth was subtler and is the one worth keeping. "Turning the button
+off leaves the half-named square behind" survived even after those, because the
+controller **already** drops a pending range on the next ordinary tap — so the
+screen's own clearing looked redundant. It is not: off-and-on-again with no tap
+between is a path only the screen can see, and without it the next range starts
+from a square the trainer abandoned. The test says so; the line stays.
+
+### `HardwareKeyboard`, asked rather than tracked
+
+SHIFT is read at the moment of the tap. A listener of our own would be a second
+copy of state Flutter already keeps, and a copy that stays true when the window
+loses focus mid-gesture. A test asserts the assumption the whole design rests
+on — that with nothing held it answers false, which is every touch device all of
+the time.
+
+### Still not decided, and deliberately
+
+Right-click remains bound to copying the FEN on every board
+(`chess_board_with_overlay.dart:250`), so the Lichess convention of right-drag
+for an arrow and right-click for a square cannot be adopted until somebody
+decides where FEN-copying goes. Nothing in this phase touches it.
 
 ## What must not break
 

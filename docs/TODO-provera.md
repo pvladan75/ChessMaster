@@ -5457,3 +5457,37 @@ ponoviti tačku 1.
 Napomena: engleska politika privatnosti na sajtu je starija od odluke 13+ i
 nije usklađena sa današnjim ponašanjem aplikacije — to je zaseban, pravni
 zadatak i ne proverava se ovde.
+
+## 153. Oznake na tabli: poslednji potez ispod figura, trenerovo polje u okviru — 12.9.2026, nije viđeno uživo
+
+`docs/PLAN-OZNAKE-NA-TABLI.md`, sve četiri faze. Iz četiri vlasnikove prijave
+od 12.9.2026. Četiri dela, jer su četiri različite stvari za gledanje.
+
+**A. Poslednji potez se vidi tamo gde se ranije nije.** Otvori „Tactics
+tailored to you" i odigraj potez: i polje sa kog je figura krenula i polje na
+koje je stigla treba da potamne, **i isto to za protivnikov odgovor** — to je
+bila prijava („nekad ne vidim da je suprotna strana odgovorila"). Zatim isto u
+**sobi** (živi čas), pa u „Find the winning path" i u završnicama. Pre ovoga je
+crtalo 5 od 15 ekrana; sada crtaju svi.
+
+**B. Vidi se, ali nije preglasno.** Figura na obeleženom polju mora da ostane
+bar jednako čitljiva kao ranije — senka je ispod figure, ne preko nje. Ako je
+pretiho na telefonu po danu, to je jedan broj na jednom mestu
+(`LastMovePainter.wash`, crna 22%); alternativa koja je merena i radi je
+tamnoplava 35%.
+
+**C. Stari tutorijal, pisan pre ovoga.** Otvori neki koji već ima obeležena
+polja — u studiju i u đakovom pregledu. Krugova više nema nigde; na njihovom
+mestu je tanak okvir po obodu polja, u boji koju si birao. Ništa sačuvano nije
+menjano, pa i najstariji tutorijal treba da izgleda ispravno.
+
+**D. Isti taj tutorijal kao video.** Izvezi ga i pogledaj: okviri i poslednji
+potez treba da izgledaju kao na ekranu. Do ovoga je film imao svoju žutu boju
+za poslednji potez i svoje prstenove.
+
+**E. Niz polja (novo).** U studiju, „Square" pa „Line", pa klik na a2 i klik na
+a7 — cela linija se oboji. Isto za red (a2→e2) i dijagonalu (a2→d5). Par koji
+nije ni jedno ni drugo (a2→c7) oboji samo polje na koje si kliknuo. Ponovi isti
+niz — briše se. Na Windowsu isto radi i držanje SHIFT-a bez dugmeta. Na telefonu
+dugme je jedini način i mora da radi.
+

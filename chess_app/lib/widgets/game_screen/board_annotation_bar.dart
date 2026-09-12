@@ -7,8 +7,8 @@ import 'package:chess_app/widgets/game_screen/board_annotation_controller.dart';
 
 /// The annotation bar under the board in the tutorial studio.
 ///
-/// Holds the drawing controls: arrow toggle, square toggle, the swatches in
-/// [ArrowColor.all], and the clear button.
+/// Holds the drawing controls: arrow toggle, square toggle, the range toggle,
+/// the swatches in [ArrowColor.all], and the clear button.
 ///
 /// Stateless: reports every action through callbacks and owns nothing. The
 /// screen owns the [BoardAnnotationController].
@@ -21,6 +21,8 @@ class BoardAnnotationBar extends StatelessWidget {
     required this.onSquarePressed,
     required this.onColorSelected,
     required this.onClearPressed,
+    required this.rangeMode,
+    required this.onRangePressed,
   });
 
   final AnnotationMode mode;
@@ -29,6 +31,16 @@ class BoardAnnotationBar extends StatelessWidget {
   final VoidCallback onSquarePressed;
   final ValueChanged<String> onColorSelected;
   final VoidCallback onClearPressed;
+
+  /// Whether the next two taps name a line of squares rather than two squares.
+  ///
+  /// **A button and not only a modifier key.** SHIFT is the obvious way to ask
+  /// for a range and it does not exist on a phone, so a SHIFT-only design would
+  /// ship this to half the users — Android is a real target for this app. The
+  /// screen holds SHIFT as a shortcut for the same flag, so there is one code
+  /// path and the desktop way in is not a second implementation of it.
+  final bool rangeMode;
+  final VoidCallback onRangePressed;
 
   /// The style of a mode button, written as two whole styles rather than as
   /// one style made of ternaries.
@@ -90,6 +102,23 @@ class BoardAnnotationBar extends StatelessWidget {
               style: _modeStyle(context, active: isSquare),
             ),
           ),
+          // Drawn only in square mode: a range of squares is the only thing it
+          // can mean, and a control that is drawn where it cannot act is this
+          // repository's most frequent mistake — a menu offering „Obriši ovu
+          // varijantu" with nothing wired to it, a dialog tab handing its
+          // result to a callback nobody passed.
+          if (isSquare)
+            Tooltip(
+              message: 'Mark a line of squares — tap one end, then the other. '
+                  'Hold Shift instead, on a keyboard.',
+              child: OutlinedButton.icon(
+                key: const Key('annotate-range'),
+                onPressed: onRangePressed,
+                icon: const Icon(Icons.linear_scale, size: 18),
+                label: const Text('Line', style: AppText.body),
+                style: _modeStyle(context, active: rangeMode),
+              ),
+            ),
           Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,

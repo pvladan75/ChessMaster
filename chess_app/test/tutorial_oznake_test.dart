@@ -83,6 +83,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -287,6 +288,104 @@ void main() {
       final step = await saveAndRead(tester, api);
 
       expect(step.line.squares[1].map((s) => s.toString()), ['Gd5']);
+
+      await close(tester);
+    });
+
+    testWidgets('a line of squares is one gesture, and it is what gets saved',
+        (tester) async {
+      // Phase 4 of `docs/PLAN-OZNAKE-NA-TABLI.md`. The rule is proved headless
+      // in `square_range_test.dart`; what this asserts is that the screen
+      // reaches it — four mutations on this wiring survived the whole suite
+      // before it was written, which is the same shape as the two the analysis
+      // studio and the drill screen left behind in phase 1.
+      final api = await open(tester, pgn: '');
+
+      await press(tester, 'annotate-square');
+      await press(tester, 'annotate-range');
+      await tapSquare(tester, 'a2');
+      await tapSquare(tester, 'a5');
+
+      final step = await saveAndRead(tester, api);
+      expect(step.line.rootSquares.map((s) => s.toString()),
+          ['Ga2', 'Ga3', 'Ga4', 'Ga5']);
+
+      await close(tester);
+    });
+
+    testWidgets('SHIFT does the same thing without the button', (tester) async {
+      // The desktop shortcut, and the one code path it shares with the button.
+      // A mutation reading only `rangeMode` survived every other test here.
+      final api = await open(tester, pgn: '');
+
+      await press(tester, 'annotate-square');
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tapSquare(tester, 'c1');
+      await tapSquare(tester, 'c3');
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+
+      final step = await saveAndRead(tester, api);
+      expect(step.line.rootSquares.map((s) => s.toString()),
+          ['Gc1', 'Gc2', 'Gc3']);
+
+      await close(tester);
+    });
+
+    testWidgets('and with neither, two taps are still two squares',
+        (tester) async {
+      // The control: without this, a mutation that always asked for a range
+      // would pass the two tests above.
+      final api = await open(tester, pgn: '');
+
+      await press(tester, 'annotate-square');
+      await tapSquare(tester, 'c1');
+      await tapSquare(tester, 'c3');
+
+      final step = await saveAndRead(tester, api);
+      expect(step.line.rootSquares.map((s) => s.toString()), ['Gc1', 'Gc3']);
+
+      await close(tester);
+    });
+
+    testWidgets('turning the button off mid-gesture drops the square named',
+        (tester) async {
+      // Otherwise the abandoned first square joins the next ordinary tap and a
+      // line appears that the trainer did not ask for.
+      final api = await open(tester, pgn: '');
+
+      await press(tester, 'annotate-square');
+      await press(tester, 'annotate-range');
+      await tapSquare(tester, 'a2');
+      await press(tester, 'annotate-range');
+      await tapSquare(tester, 'a5');
+
+      final step = await saveAndRead(tester, api);
+      expect(step.line.rootSquares.map((s) => s.toString()), ['Ga5']);
+
+      await close(tester);
+    });
+
+    testWidgets('turning it off and on again starts the gesture over',
+        (tester) async {
+      // The path the previous test cannot see. Off-then-on with no tap between
+      // leaves the controller holding a2 unless the screen drops it, and the
+      // next tap would draw a line from a square the trainer had abandoned —
+      // they turned the thing off, which is how a person says "not that".
+      final api = await open(tester, pgn: '');
+
+      await press(tester, 'annotate-square');
+      await press(tester, 'annotate-range');
+      await tapSquare(tester, 'a2');
+      await press(tester, 'annotate-range');
+      await press(tester, 'annotate-range');
+      await tapSquare(tester, 'a5');
+      await tapSquare(tester, 'a7');
+
+      final step = await saveAndRead(tester, api);
+      expect(
+          step.line.rootSquares.map((s) => s.toString()), ['Ga5', 'Ga6', 'Ga7'],
+          reason: 'the abandoned a2 was still remembered, so the line starts '
+              'three squares earlier than the trainer asked for');
 
       await close(tester);
     });
