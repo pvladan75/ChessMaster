@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **11.9.2026** — najnovije je „Jezik glasa — plan"
-odmah ispod ove glave, pa „Prevod tutorijala, van
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake na tabli — plan i faza 0"
+odmah ispod ove glave (sloj je u kodu, ostalo nije), pa „Priručnik",
+pa „Jezik glasa — plan", pa „Prevod tutorijala, van
 aplikacije", pa „Video bez komentara pored
 table", pa „Ispis prati glas, a ne
 sat", pa „Tutorijal iz fajla, i oznake koje su oduvek
@@ -35,6 +36,67 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Oznake na tabli — plan i faza 0, 12.9.2026
+
+`docs/PLAN-OZNAKE-NA-TABLI.md`. Iz četiri vlasnikove prijave od 12.9.2026;
+dve su o istoj stvari.
+
+**Faza 0 je gotova, 12.9.2026 — 2102 u aplikaciji, 1 preskočen, analyze 29
+infova i nula upozorenja**, mereno na `master` bez ičega drugog u pogonu.
+Osnova pre rada je bila **2095**, dakle svih sedam novih su kapija ove faze
+(`test/last_move_layer_test.dart`); sedam mutacija, sve uhvaćene. Broj u
+CLAUDE.md je govorio 2079 dok je svita bila 2095 — zastareo, pa je izveden
+ponovo umesto da se ponovi. **Ostalo (faze 1–4) još nije u kodu.**
+
+U kodu je samo sloj: `SkinnedChessBoard` je dobio `lastMoveFrom`/`lastMoveTo` i
+`LastMovePainter` između polja i figura. **Niko ih još ne prosleđuje**, pa se
+aplikacija ne vidi drugačije — to je faza 1.
+
+**Vlasnikova odluka, „uzmi inverziju":**
+
+1. **Nema krugova, nigde.** `[%csl]` prsten se briše; trenerovo obeleženo polje
+   postaje tanak okvir po obodu polja, u boji koju je izabrao.
+2. **Poslednji potez ide ispod figura** — sloj između polja i figure, crno na
+   22%. Uglovne zagrade i žuti pojas idu s njim.
+3. Time se dve oznake više ne takmiče: jedna je boja polja koja se menja ispod,
+   druga je obod iznad. Nijednoj ne treba tuđa nijansa da bi se videla.
+
+**Tri nalaza koja su odluku i napravila.**
+
+Prvo: **`videoRenderer.js` to već radi tako** (linija 642) — polja, pa
+`fillRect` preko oba polja poteza, pa figure. Film i aplikacija se danas ne
+slažu oko toga kako poslednji potez izgleda, i nijedan kraj nije znao za drugi.
+Renderer time dobija samo promenu boje.
+
+Drugo: **poslednji potez se crta na 5 od 15 ekrana** koji imaju
+`ChessBoardWithOverlay`. Među deset koji ga nemaju su Tactics (odakle je prijava
+došla) i **soba**. `ChessBoardWithOverlay.lastMoveSquares` već postoji i već se
+zove pri svakom potezu, pa se izvodi u samom widgetu — deset poziva koji treba
+da se sete parametra je upravo to kako je i nastalo 5-od-15.
+
+Treće: **okvir u trenerovoj boji ne radi bez tankih linija sa strane.** Mereno
+na svih pet tabli i za obe modelirane deficijencije: zelena 1.01:1, crvena
+1.02:1, narandžasta 1.24:1, ljubičasta 1.37:1, plava 2.86:1. Tri od pet nestanu
+u polju na kom stoje. Sa crnom linijom spolja i belom iznutra svaka se vidi na
+svakoj tabli. Ono što ni to ne popravlja, i piše u planu: boje se i dalje ne
+razlikuju **međusobno** za crveno-zeleni deficit — to je plafon same palete
+(`arrow_colors.dart`), isti kao i danas sa prstenom.
+
+**Faze:** 0 sloj u `SkinnedChessBoard` (vođin commit, ništa se još ne crta),
+1 poslednji potez postaje sloj, 2 svaka tabla ga crta, 3 okvir umesto prstena u
+aplikaciji **i u filmu**, 4 označavanje opsega polja (a2→a7 po liniji, a2→e2 po
+redu, a2→d5 po dijagonali). SHIFT je samo za desktop — Android nema modifikator
+— pa je interakcija dugme u traci za crtanje, a SHIFT prečica za isto.
+
+Otvoreno pitanje koje plan ne rešava: **desni klik je već zauzet** — kopira FEN
+na svakoj tabli (`chess_board_with_overlay.dart:250`), pa se ličesova konvencija
+(desni-prevlačenje strelica, desni klik polje) ne može uzeti dok se ne odluči
+gde ide kopiranje FEN-a.
+
+Provera uživo: `TODO-provera.md` stavka **153**, u četiri dela.
 
 ---
 
