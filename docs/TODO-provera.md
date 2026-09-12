@@ -5563,3 +5563,34 @@ stoji u `D:/chess/tutorijal/reference/`.
 7. [ ] **Dečji ekran još ne kaže ništa** (P2 nije rađen). U đakovom pregledu se
    granica prema već viđenoj poziciji ne vidi; ako ti to zafali u praksi, to je
    sledeća faza i treba da pozove isto pravilo, a ne novo.
+
+
+## 155. Oznake van table i traka koja ne beži — 12.9.2026, nije viđeno uživo
+
+Dve prijave od 12.9.2026, sa slikama: oznake kolona i redova su u filmu bile
+unutar table a u studiju su spolja, i traka „Flow / Tree / PGN" je odlazila sa
+ekrana pri skrolovanju. Vidi „Oznake van table, i kartice koje ne beže" u
+`docs/STANJE-RADA.md`.
+
+1. [ ] **Film i studio se slažu.** Izvezi bilo koji tutorijal i uporedi kadar
+   sa studijom: slova a–h stoje **ispod** table, brojevi 1–8 **levo** od nje, u
+   pojasu, prigušeni — i nigde na poljima. Tabla je za pojas manja nego pre;
+   naslov, sat i kolona sa rečenicom stoje gde su i stajali.
+2. [ ] **Izvoz snimljenog časa.** `Replay` → izvoz MP4: isto tako. Ovaj izvoz
+   se menja namerno — zahtev je o tome kako oznake izgledaju, ne o jednom
+   izvozu.
+3. [ ] **Ugašene oznake.** U dijalogu za izvoz snimljenog časa isključi
+   elemente sa oznakama: tabla uzima ceo prostor natrag, bez praznog pojasa.
+4. [ ] **Traka stoji (širok prozor).** U studiju, na prozoru preko 840 dp,
+   skroluj kartice u donjoj polovini: „Flow / Tree / PGN" ostaje na mestu.
+5. [ ] **Traka stoji (uzak prozor).** Suzi prozor pod 840 dp, skroluj stranu
+   dok traka ne dođe do vrha — tu stane i kartice prolaze ispod nje. Iznad nje
+   su tabla i spisak delova i oni se normalno skroluju; traka ne može da bude
+   prikačena pre nego što dođe do vrha, i to je tačno ono što je traženo.
+6. [ ] **Kartica ne prosijava kroz traku.** Dok kartica prolazi ispod trake,
+   traka mora da je prekrije — bez šava i bez teksta koji se vidi kroz nju.
+7. [ ] **Uzak prozor, skrolovanje mišem.** Prevlačenje prstom/mišem **preko
+   table** ne skroluje stranu (tabla to uzima za sebe, jer je to pomeranje
+   figure) — koristi kolutić ili traku za skrolovanje. Ako ti ovo zafali u
+   praksi, reci: rešenje bi bilo skrolovanje van table, a ne oduzimanje poteza
+   tabli.

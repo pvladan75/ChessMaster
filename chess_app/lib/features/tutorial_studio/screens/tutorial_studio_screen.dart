@@ -1072,9 +1072,48 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
             final board = _boardColumn(boardSize.toDouble());
             if (!wide) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(children: [board, _authoringColumn()]),
+              // **The tab strip does not scroll.** The owner's report of
+              // 12.9.2026: „Flow, tree i pgn kartice ne treba da se skrivaju
+              // prilikom skrolovanja … skroluje se samo ono ispod njih." So the
+              // page is slivers rather than one scroll view, with the strip
+              // pinned between what is above it and the cards it labels — which
+              // are the tallest thing on the screen and the reason anybody
+              // scrolls here at all.
+              return CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(children: [board, _authoringColumn()]),
+                    ),
+                  ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _PinnedEditorTabs(
+                      // Opaque, and painted here rather than inside the
+                      // delegate: `flutter_chess_board` re-exports the chess
+                      // package's own `Color`, so naming that type in a field
+                      // of this library is ambiguous.
+                      child: ColoredBox(
+                        color: context.colors.canvas,
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md),
+                            child: _editorTabs(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
+                    sliver: SliverToBoxAdapter(child: _editorPanels()),
+                  ),
+                ],
               );
             }
             return Padding(
@@ -1963,8 +2002,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           Expanded(
             key: const Key('editor-half'),
             flex: 3,
-            child: SingleChildScrollView(
-              child: _editorFields(),
+            // The strip is outside the scroll view, not inside it: scrolling the
+            // cards must not take their own labels off the screen. The owner's
+            // report of 12.9.2026.
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _editorTabs(),
+                const SizedBox(height: AppSpacing.xs),
+                Expanded(
+                  child: SingleChildScrollView(child: _editorPanels()),
+                ),
+              ],
             ),
           ),
         ],
@@ -1985,7 +2034,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         const SizedBox(height: AppSpacing.md),
         _sectionsPanel(),
         const SizedBox(height: AppSpacing.md),
-        _editorFields(),
       ],
     );
   }
@@ -2319,35 +2367,40 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  Widget _editorFields() {
+  /// „Flow", „Tree", „PGN" — pinned in both layouts, because scrolling the
+  /// cards must not hide the strip that says which of them you are looking at.
+  Widget _editorTabs() {
+    return Row(
+      children: [
+        _tabButton(
+          key: const Key('tok-tab'),
+          label: 'Flow',
+          isSelected: _selectedTab == 0,
+          onTap: () => setState(() => _selectedTab = 0),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        _tabButton(
+          key: const Key('stablo-tab'),
+          label: 'Tree',
+          isSelected: _selectedTab == 1,
+          onTap: () => setState(() => _selectedTab = 1),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        _tabButton(
+          key: const Key('pgn-tab'),
+          label: 'PGN',
+          isSelected: _selectedTab == 2,
+          onTap: () => setState(() => _selectedTab = 2),
+        ),
+      ],
+    );
+  }
+
+  /// What the strip labels: one of the three, and the question card under it.
+  Widget _editorPanels() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            _tabButton(
-              key: const Key('tok-tab'),
-              label: 'Flow',
-              isSelected: _selectedTab == 0,
-              onTap: () => setState(() => _selectedTab = 0),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            _tabButton(
-              key: const Key('stablo-tab'),
-              label: 'Tree',
-              isSelected: _selectedTab == 1,
-              onTap: () => setState(() => _selectedTab = 1),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            _tabButton(
-              key: const Key('pgn-tab'),
-              label: 'PGN',
-              isSelected: _selectedTab == 2,
-              onTap: () => setState(() => _selectedTab = 2),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xs),
         IndexedStack(
           index: _selectedTab,
           children: [
@@ -2546,4 +2599,42 @@ class _CommentDialogState extends State<_CommentDialog> {
       ],
     );
   }
+}
+
+/// The „Flow / Tree / PGN" strip, held at the top of the narrow layout while the
+/// cards it labels scroll under it.
+///
+/// The owner's report of 12.9.2026: „Flow, tree i pgn kartice ne treba da se
+/// skrivaju prilikom skrolovanja, tj. skrolovanje ne sme na njih da utiče.
+/// Skroluje se samo ono ispod njih." In the wide layout the strip simply sits
+/// outside a scroll view of its own; on a narrow window the board and the parts
+/// list are above it in the same scroll, so it takes a pinned sliver.
+class _PinnedEditorTabs extends SliverPersistentHeaderDelegate {
+  const _PinnedEditorTabs({required this.child});
+
+  /// Painted opaque by the caller: the cards pass underneath, and a header you
+  /// can see through is a header that cannot be read once anything is behind
+  /// it.
+  final Widget child;
+
+  /// The strip's own height plus the gap under it. `_tabButton` sets
+  /// `minHeight: 48`, and the gap is part of the pinned block so that the
+  /// background covers it too — a card sliding into a four-pixel transparent
+  /// seam is exactly what this exists to stop.
+  static const double _extent = 48 + AppSpacing.xs;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  @override
+  Widget build(
+          BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      child;
+
+  @override
+  bool shouldRebuild(_PinnedEditorTabs oldDelegate) =>
+      oldDelegate.child != child;
 }

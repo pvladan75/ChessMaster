@@ -659,13 +659,29 @@ async function renderFrameBuffer({
   // move by a pixel.
   const captionColumn = captionBand > 0;
   const margin = Math.round(cfg.offsetY * 0.6);
-  const boardSize = Math.min(cfg.boardSize, height - cfg.offsetY - margin);
-  const offsetX = captionColumn ? margin : (width - boardSize) / 2;
+  // **The board and its labels together.** The letters and numbers are drawn
+  // outside the squares, the way `BoardWithCoordinates` draws them in the app —
+  // the owner asked for it on 12.9.2026 off a still, with the studio beside the
+  // film: „oznake kolona i redova su unutar table u videu, a u studiju su
+  // spolja."
+  //
+  // So the gutter comes **out of** this footprint rather than being added to
+  // it, which is what that widget does too: with the labels off the board takes
+  // the whole of it back, and everything measured from the footprint — the
+  // title, the clock, the caption column — stands exactly where it did.
+  const footprint = Math.min(cfg.boardSize, height - cfg.offsetY - margin);
+  // Scaled with the type rather than with the board: at 720p it comes out at
+  // 20 px, which is the width the app's own gutter is capped at.
+  const coordGutter = showCoords ? Math.round(cfg.fontSizeCoord * 1.7) : 0;
+  const boardSize = footprint - coordGutter;
+  const footLeft = captionColumn ? margin : (width - footprint) / 2;
+  // The board itself: right of the rank numbers, above the file letters.
+  const offsetX = footLeft + coordGutter;
   const offsetY = cfg.offsetY;
   const tileSize = boardSize / 8;
 
   // What is left of the width, less a gap on either side of it.
-  const captionLeft = offsetX + boardSize + margin;
+  const captionLeft = footLeft + footprint + margin;
   const captionWidth = Math.max(0, width - captionLeft - margin);
 
   const canvas = createCanvas(width, height);
@@ -685,7 +701,7 @@ async function renderFrameBuffer({
     // font with U+265F in it, so every frame of every export ever rendered has
     // carried a tofu box where the pawn was meant to be — found by looking at
     // a frame, which no test here had ever done.
-    ctx.fillText(`${title || 'Session recording'}`, offsetX, offsetY / 2);
+    ctx.fillText(`${title || 'Session recording'}`, footLeft, offsetY / 2);
   }
 
   // Timer & Status Badge
@@ -698,7 +714,7 @@ async function renderFrameBuffer({
     // the board's edge it would sit in the middle of the frame with the
     // sentence beside it, which reads as a label on the text rather than as the
     // film's clock.
-    const timerRight = captionColumn ? captionLeft + captionWidth : offsetX + boardSize;
+    const timerRight = captionColumn ? captionLeft + captionWidth : footLeft + footprint;
     ctx.fillText(`${formatTime(timestampSec)} / ${formatTime(totalDurationSec)}`, timerRight, offsetY / 2);
   }
 
@@ -748,35 +764,36 @@ async function renderFrameBuffer({
   const inkOn = (row, col) => ((row + col) % 2 === 0 ? colors.dark : colors.light);
 
   // Draw Rank/File Coordinates
+  //
+  // **In the gutter, not on the squares.** Until 12.9.2026 they were painted
+  // inside the board, each one in the colour of the square it stood on — which
+  // cost two separate bugs, a year of invisible file letters and two days of
+  // invisible rank numbers, because the bottom row and the left column start on
+  // opposite colours and one hand-written parity cannot serve both. Outside the
+  // board there is one background and no parity to get wrong, and the film
+  // matches the studio, which is what the owner asked for.
   if (showCoords) {
     ctx.font = `bold ${cfg.fontSizeCoord}px ${fontFamily()}`;
-    // The title block left the baseline on `middle`, which centred the file
-    // letters on the board's own bottom edge and cut every one of them in half.
-    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = inkColor;
+    // The app draws them at 70 % of the body colour: present, and not
+    // competing with the pieces, which are the thing to look at.
+    const wasAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = 0.7;
     for (let i = 0; i < 8; i++) {
       const fileLabel = isBlackPerspective ? String.fromCharCode(104 - i) : String.fromCharCode(97 + i);
       const rankLabel = isBlackPerspective ? (i + 1).toString() : (8 - i).toString();
 
-      // Files at bottom (drawn on row 7), ranks at the left (drawn in column
-      // 0), and each label painted in the colour its own square is *not*.
-      //
-      // **Both parities come from the board's own expression, and that is the
-      // whole fix.** The bottom row and the left column start on opposite
-      // colours, so one hand-written parity cannot serve both. It served the
-      // ranks until 9.9.2026, when it turned out that not one file letter had
-      // ever been drawn — and the fix that day set the files' colour on the
-      // line above without giving the ranks their own, so the numbers went
-      // invisible in its place. Reported on 11.9.2026 off a still: eight
-      // numbers, none of them there. Second time on the same two lines, and
-      // this time neither owns a parity.
-      ctx.fillStyle = inkOn(7, i);
-      ctx.textAlign = 'right';
-      ctx.fillText(fileLabel, offsetX + (i + 1) * tileSize - 4, offsetY + boardSize - 4);
-
-      ctx.fillStyle = inkOn(i, 0);
-      ctx.textAlign = 'left';
-      ctx.fillText(rankLabel, offsetX + 4, offsetY + i * tileSize + cfg.fontSizeCoord + 2);
+      // Each label centred on its own rank or file, so a flipped board needs no
+      // second rule: flipping renames the labels and moves nothing.
+      ctx.fillText(rankLabel, footLeft + coordGutter / 2, offsetY + (i + 0.5) * tileSize);
+      ctx.fillText(fileLabel, offsetX + (i + 0.5) * tileSize, offsetY + boardSize + coordGutter / 2);
     }
+    ctx.globalAlpha = wasAlpha;
+    // Left as this block has always left it: the line under the board is drawn
+    // next and reads the baseline without setting one.
+    ctx.textBaseline = 'alphabetic';
   }
 
   // Render Vector SVG Pieces from FEN
@@ -827,7 +844,10 @@ async function renderFrameBuffer({
     ctx.font = `${cfg.fontSizeMove}px ${fontFamily()}`;
     ctx.textAlign = 'center';
     const moveText = underBoardText({ lastMove, rewound, rewoundAfter });
-    ctx.fillText(moveText, width / 2, offsetY + boardSize + cfg.fontSizeMove + 15);
+    // Below the file letters when there are any, and exactly where it has
+    // always been when there are none.
+    ctx.fillText(moveText, width / 2,
+      offsetY + boardSize + coordGutter + cfg.fontSizeMove + 15);
   }
 
   // The caption, which for a tutorial is most of the teaching.

@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Vraćanje na već viđenu
-poziciju" odmah ispod ove glave (u kodu, ostaje provera uživo), pa „60 fps za
+Poslednje ažuriranje: **12.9.2026** — najnovije je „Oznake van table, i
+kartice koje ne beže" odmah ispod ove glave (u kodu, ostaje provera uživo), pa
+„Vraćanje na već viđenu poziciju" (isto), pa „60 fps za
 YouTube — mereno i odbijeno" (ništa u kodu, samo merenje), pa „Oznake na tabli —
 plan i sve faze" (ceo plan u kodu, ostaje provera uživo), pa „Priručnik",
 pa „Jezik glasa — plan", pa „Prevod tutorijala, van
@@ -38,6 +39,62 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Oznake van table, i kartice koje ne beže — 12.9.2026
+
+Dve stvari iz vlasnikovog gledanja uživo istog dana. **2173 u aplikaciji, 1
+preskočen, i 1245 na serveru** sa `.env`-om po strani, mereno jedno posle
+drugog bez ičega drugog u pogonu; analyze na 29 infova, nula upozorenja. Tri
+mutacije, sve uhvaćene. Provera uživo: `TODO-provera.md`, stavka 155.
+
+**Oznake kolona i redova su izašle iz table.** „U videu su unutar table, a u
+studiju su spolja" — sa tri slike, film i studio jedan pored drugog. Sada su u
+pojasu oko table, kao u aplikaciji (`BoardWithCoordinates`), i **pojas se
+odbija od okvira table a ne dodaje na njega**: naslov, sat i kolona sa
+rečenicom stoje tačno gde su stajali, a kad su oznake ugašene tabla uzme ceo
+okvir natrag — ista računica koju taj vidžet pravi iz istog razloga. Pojas se
+skalira sa slovima (`fontSizeCoord * 1.7`), pa na 720p izađe 20 piksela, što je
+tačno širina na koju je aplikacijin pojas ograničen.
+
+**Crtanje po poljima je ovom projektu koštalo dva odvojena buga**: godinu dana
+nijedno slovo kolone nije bilo nacrtano (svako u boji polja na kom stoji), a
+popravka tog dana je preselila grešku na brojeve redova, pa su oni bili
+nevidljivi dva dana. Donji red i leva kolona počinju na suprotnim bojama, i
+jedna ručno napisana parnost ne može da služi oboma. **Van table postoji jedna
+pozadina i nema parnosti koja može da se pogreši.**
+
+Testovi su prepisani, i treći je dodat: dva pitaju da li u pojasu ima mastila
+na mestu svake oznake, a treći da **na poljima nema ničega osim njihove
+boje** — što prva dva ne umeju da kažu sama (našla bi svoje mastilo u pojasu i
+kad bi se crtalo na oba mesta). Tabla je od ovoga manja za pojas (31 piksel na
+1080p, 20 na 720p), a izvoz snimljenog časa se menja isto — namerno, jer je
+zahtev o slikama a ne o jednom izvozu.
+
+**„Flow", „Tree" i „PGN" više ne beže sa ekrana.** Iz prijave: „Flow, tree i
+pgn kartice ne treba da se skrivaju prilikom skrolovanja, tj. skrolovanje ne
+sme na njih da utiče. Skroluje se samo ono ispod njih." Na širokom prozoru
+traka sada stoji **izvan** svog skrol-prozora, a `_editorFields` je razdvojen u
+`_editorTabs` i `_editorPanels`. Na uskom su tabla i spisak delova iznad nje u
+istom skrolu, pa je traka **prikačen sliver** (`_PinnedEditorTabs`): dohvati
+gornju ivicu i tu stane, a kartice prolaze ispod nje.
+
+Tri stvari koje su se pokazale u radu. **Prikačen sliver se ne pravi dok ne
+dođe do ekrana**, pa na uskom prozoru traka nije prikačena iznad sadržaja koji
+je pre nje — ne može da bude, i to je tačno ono što je traženo („skroluje se
+samo ono ispod njih"). **Tabla uzima potez prsta za sebe** — ona je tabla, i
+vučenje po njoj je figura koja se pomera — pa na uskom prozoru, gde tabla
+pokriva ceo vidokrug, test vozi `ScrollPosition.jumpTo` umesto pokreta; to je i
+odgovor zašto se ovde ne skroluje prevlačenjem preko table. I **`Color` je u
+ovom fajlu dvosmislen**: `flutter_chess_board` re-eksportuje šahovski paket,
+koji ima svoj `Color`, pa polje tog tipa ne prolazi analizu — pozadinu boji
+pozivalac, a delegat nosi samo vidžet.
+
+Jedna stvar nađena u prolazu i **nije** dirana: u širokoj grani, na prozoru
+visokom 640, `TutorialSectionsPanel` prelije 58 piksela. Gornja polovina panela
+ničim nije menjana ovim radom (flex 2 od iste visine), pa je to starije od
+ovoga; na 800 nema prelivanja. Ako se pojavi uživo, to je svoj zadatak.
 
 ---
 

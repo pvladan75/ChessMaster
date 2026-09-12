@@ -72,18 +72,29 @@ function distance(a, b) {
 /// A film with a caption anywhere puts the board on the left and the sentence in
 /// a column of its own, which is four times the room the old strip under the
 /// board had, and means a longer sentence cannot move the board.
-function boardGeometry(frame, { resolution = '720p', captionBand = 0, flipped = false } = {}) {
+function boardGeometry(frame, {
+  resolution = '720p', captionBand = 0, flipped = false, showCoords = true,
+} = {}) {
   const cfg = getResolutionParams(resolution);
   const captionColumn = captionBand > 0;
   const margin = Math.round(cfg.offsetY * 0.6);
-  const boardSize = Math.min(cfg.boardSize, cfg.height - cfg.offsetY - margin);
-  const offsetX = captionColumn ? margin : (cfg.width - boardSize) / 2;
-  const captionLeft = offsetX + boardSize + margin;
+  // Since 12.9.2026 the labels are drawn outside the squares, so the board and
+  // its gutter share one footprint and the board is the smaller of the two.
+  // `showCoords` defaults to true in the renderer, so it defaults to true here.
+  const footprint = Math.min(cfg.boardSize, cfg.height - cfg.offsetY - margin);
+  const coordGutter = showCoords ? Math.round(cfg.fontSizeCoord * 1.7) : 0;
+  const boardSize = footprint - coordGutter;
+  const footLeft = captionColumn ? margin : (cfg.width - footprint) / 2;
+  const offsetX = footLeft + coordGutter;
+  const captionLeft = footLeft + footprint + margin;
   return {
     offsetX,
     offsetY: cfg.offsetY,
     tileSize: boardSize / 8,
     boardSize,
+    footprint,
+    footLeft,
+    coordGutter,
     captionColumn,
     captionLeft,
     captionWidth: Math.max(0, cfg.width - captionLeft - margin),
@@ -272,8 +283,12 @@ test('the caption is drawn beside the board, never under it', async () => {
   assert.ok(inkBeside > 100, 'the sentence is in the column');
 
   let inkBelow = 0;
-  for (let x = Math.round(geom.offsetX); x < geom.offsetX + geom.boardSize; x += 2) {
-    for (let y = Math.round(geom.offsetY + geom.boardSize + 6); y < frame.height; y += 2) {
+  // Below the footprint, which since 12.9.2026 holds the file letters in its
+  // bottom strip. The claim is about the *sentence* — that it is beside the
+  // board and not under it — and the letters were always going to be drawn
+  // somewhere.
+  for (let x = Math.round(geom.footLeft); x < geom.footLeft + geom.footprint; x += 2) {
+    for (let y = Math.round(geom.offsetY + geom.footprint + 6); y < frame.height; y += 2) {
       if (distance(frame.at(x, y), bg) > 40) inkBelow += 1;
     }
   }
@@ -291,8 +306,14 @@ test('a film with no caption anywhere keeps the geometry it always had', async (
 
   const geom = boardGeometry(null, {});
   assert.equal(geom.captionColumn, false);
-  assert.equal(geom.boardSize, cfg.boardSize);
-  assert.equal(geom.offsetX, (cfg.width - cfg.boardSize) / 2, 'centred, as it always was');
+  // The board and its labels together still take the room the board alone used
+  // to take, and are still centred in the frame. The board inside them is
+  // smaller by the gutter since 12.9.2026, which is what putting the letters
+  // outside the squares costs — and what `BoardWithCoordinates` costs in the
+  // app, where the same subtraction is made for the same reason.
+  assert.equal(geom.footprint, cfg.boardSize);
+  assert.equal(geom.boardSize, cfg.boardSize - geom.coordGutter);
+  assert.equal(geom.footLeft, (cfg.width - cfg.boardSize) / 2, 'centred, as it always was');
 
   const frame = await pixels({ ...BASE, captionBand: 0 });
   const bg = frame.at(4, 4);
@@ -306,72 +327,99 @@ test('a film with no caption anywhere keeps the geometry it always had', async (
       right = x;
     }
   }
-  assert.ok(Math.abs(left - (frame.width - 1 - right)) <= 2, 'the board is centred');
-  assert.ok(Math.abs((right - left + 1) - cfg.boardSize) <= 2, 'and full size');
+  // Measured on the footprint rather than on the board: the rank numbers sit on
+  // one side and the file letters on another, so the board is deliberately off
+  // centre inside the space it shares with them. The app's own centring test
+  // says the same thing about `BoardWithCoordinates`.
+  // The gutter is on the left of the board and under it, so the drawn board is
+  // deliberately off centre inside the footprint that is centred. Asked of the
+  // geometry this file re-derives: a renderer that moved the board still fails.
+  assert.ok(Math.abs(left - geom.offsetX) <= 2,
+    `the board starts where the geometry says; found ${left} wanted ${geom.offsetX}`);
+  assert.ok(Math.abs((right - left + 1) - geom.boardSize) <= 2, 'and is its full size');
 });
 
-test('the file letters are readable, which they were not for a year', async () => {
-  // Painted in the colour of the square they stand on, eight times over: the
-  // parity that is right for the ranks is inverted for the files, and the same
-  // expression served both. Nothing could see it but a pixel.
+test('the file letters are drawn outside the board, and every one of them', async () => {
+  // Two bugs came out of drawing them *on* the squares: for a year every file
+  // letter was painted in the colour of the square it stood on, and the fix for
+  // that made the rank numbers invisible in their place — the bottom row and the
+  // left column start on opposite colours, and one hand-written parity cannot
+  // serve both. Since 12.9.2026 they are in the gutter, where there is one
+  // background and no parity to get wrong, and where the studio has always drawn
+  // them. The owner asked for it off a still, with the two side by side.
   //
-  // **The first version of this test could not see it either.** It asked
-  // whether anything in the bottom strip differed from the square above, and
-  // the pieces standing on rank one answered yes on their own — so putting the
-  // old parity back left it green. The board is empty here for that reason, and
-  // the question is asked per file: is there ink on this square that is not the
-  // colour of this square?
+  // The board is empty on purpose. A probe that only asked whether the bottom
+  // strip differed from the board was answered by the pieces standing on rank
+  // one, which is how the first version of this test passed with the bug in.
   const geom = boardGeometry(null, {});
   const frame = await pixels({ ...BASE, fen: '8/8/8/8/8/8/8/8 w - - 0 1', showCoords: true });
-  const board = { light: { r: 0xF0, g: 0xD9, b: 0xB5 }, dark: { r: 0xB5, g: 0x88, b: 0x63 } };
+  const bg = frame.at(4, 4);
 
-  const bottom = geom.offsetY + geom.boardSize;
-  const unreadable = [];
+  const missing = [];
   for (let file = 0; file < 8; file++) {
-    // Bottom row is rank 1, drawn at row 7: light when the column is odd.
-    const squareColour = file % 2 === 1 ? board.light : board.dark;
-    const right = geom.offsetX + (file + 1) * geom.tileSize;
+    const cx = geom.offsetX + (file + 0.5) * geom.tileSize;
+    const cy = geom.offsetY + geom.boardSize + geom.coordGutter / 2;
     let ink = 0;
-    for (let x = Math.round(right - 18); x < Math.round(right - 2); x++) {
-      for (let y = Math.round(bottom - 20); y < Math.round(bottom - 2); y++) {
-        if (distance(frame.at(x, y), squareColour) > 30) ink++;
+    for (let x = Math.round(cx - 8); x <= Math.round(cx + 8); x++) {
+      for (let y = Math.round(cy - 7); y <= Math.round(cy + 7); y++) {
+        if (distance(frame.at(x, y), bg) > 30) ink++;
       }
     }
-    if (ink < 8) unreadable.push(String.fromCharCode(97 + file));
+    if (ink < 8) missing.push(String.fromCharCode(97 + file));
   }
-  assert.deepEqual(unreadable, [],
-    'every file letter is drawn in a colour that is not its own square');
+  assert.deepEqual(missing, [], 'every file letter is drawn in the strip under the board');
 });
 
-test('the rank numbers are readable, which they stopped being when the files were fixed', async () => {
-  // The other half of the same two lines. Fixing the file letters on 9.9.2026
-  // set `fillStyle` for the files and left the ranks reading it - so from that
-  // day the numbers were the invisible ones, painted in the colour of their own
-  // square eight times over. Reported on 11.9.2026 off a still of a film.
-  //
-  // Written as the file test's twin on purpose: same empty board, same
-  // question per label, opposite parity. Neither line owns a parity any more -
-  // both ask the board's own expression - so this pair cannot be half-fixed
-  // again.
+test('the rank numbers are drawn outside the board, and every one of them', async () => {
+  // The file test's twin, on the other gutter. Written as a pair on purpose:
+  // the two lines that draw these have been half-fixed twice.
+  const geom = boardGeometry(null, {});
+  const frame = await pixels({ ...BASE, fen: '8/8/8/8/8/8/8/8 w - - 0 1', showCoords: true });
+  const bg = frame.at(4, 4);
+
+  const missing = [];
+  for (let row = 0; row < 8; row++) {
+    const cx = geom.footLeft + geom.coordGutter / 2;
+    const cy = geom.offsetY + (row + 0.5) * geom.tileSize;
+    let ink = 0;
+    for (let x = Math.round(cx - 8); x <= Math.round(cx + 8); x++) {
+      for (let y = Math.round(cy - 7); y <= Math.round(cy + 7); y++) {
+        if (distance(frame.at(x, y), bg) > 30) ink++;
+      }
+    }
+    if (ink < 8) missing.push(8 - row);
+  }
+  assert.deepEqual(missing, [], 'every rank number is drawn in the strip left of the board');
+});
+
+test('nothing is written on the squares themselves', async () => {
+  // The other half of „outside": with an empty board every pixel inside it is
+  // one of the two square colours. Put a label back on a square and this fails,
+  // which the two tests above cannot say on their own — they would still find
+  // their gutter ink if something were drawn in both places.
   const geom = boardGeometry(null, {});
   const frame = await pixels({ ...BASE, fen: '8/8/8/8/8/8/8/8 w - - 0 1', showCoords: true });
   const board = { light: { r: 0xF0, g: 0xD9, b: 0xB5 }, dark: { r: 0xB5, g: 0x88, b: 0x63 } };
 
-  const unreadable = [];
-  for (let row = 0; row < 8; row++) {
-    // Left column, drawn at column 0: light when the row is even.
-    const squareColour = row % 2 === 0 ? board.light : board.dark;
-    const top = geom.offsetY + row * geom.tileSize;
-    let ink = 0;
-    for (let x = Math.round(geom.offsetX + 2); x < Math.round(geom.offsetX + 20); x++) {
-      for (let y = Math.round(top + 2); y < Math.round(top + 22); y++) {
-        if (distance(frame.at(x, y), squareColour) > 30) ink++;
+  const strays = [];
+  // The bottom row and the left column, which is where the labels used to be.
+  for (let i = 0; i < 8; i++) {
+    const probes = [
+      // bottom row, in the lower quarter of each square
+      { x: geom.offsetX + (i + 0.5) * geom.tileSize,
+        y: geom.offsetY + geom.boardSize - geom.tileSize * 0.15, row: 7, col: i },
+      // left column, in the left quarter of each square
+      { x: geom.offsetX + geom.tileSize * 0.15,
+        y: geom.offsetY + (i + 0.5) * geom.tileSize, row: i, col: 0 },
+    ];
+    for (const probe of probes) {
+      const square = (probe.row + probe.col) % 2 === 0 ? board.light : board.dark;
+      if (distance(frame.at(probe.x, probe.y), square) > 30) {
+        strays.push(`${probe.row},${probe.col}`);
       }
     }
-    if (ink < 8) unreadable.push(8 - row);
   }
-  assert.deepEqual(unreadable, [],
-    'every rank number is drawn in a colour that is not its own square');
+  assert.deepEqual(strays, [], 'the squares carry nothing but their own colour');
 });
 
 test('the file says 30 frames a second, whatever we drew', () => {
@@ -754,6 +802,7 @@ test('the preview shows the layout the film will have, not the other one', async
       right = x;
     }
   }
-  assert.ok(Math.abs(left - (without.width - 1 - right)) <= 2, 'the board is centred');
-  assert.ok(Math.abs((right - left + 1) - cfg.boardSize) <= 2, 'and full size');
+  assert.ok(Math.abs(left - centred.offsetX) <= 2,
+    `the board is back where the centred layout puts it; found ${left}`);
+  assert.ok(Math.abs((right - left + 1) - centred.boardSize) <= 2, 'and at full size');
 });
