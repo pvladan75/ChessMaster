@@ -13,18 +13,33 @@ anywhere in this file, and none should be added to it.
 
 ## What was decided
 
-| | | |
+The table as decided on 8.9.2026, with what has happened to each row since.
+**Updated 11.9.2026** at the owner's request, because two „out" rows had been
+reversed by the owner's own later decisions and the table still said „out".
+
+| | 8.9.2026 | Why | Where it stands, 11.9.2026 |
+|---|---|---|---|
+| Video of a tutorial | **in** | Server-side, through the renderer that already exists | **Built** — Phase 2, 9.9.2026 |
+| „Predloži rečenicu" in the studio | **in** | LLM writes prose about a chosen position, never moves | **Postponed**, not dropped — the owner chose to start Phase 4 first (11.9.2026). The Gemini key has no billing: about 20 requests a day |
+| One board-setup dialog | **in** | Two files with the same name is a fault, not a preference | **Built** — Phase 1a, 8.9.2026 |
+| Naming the board screens | **in** | Renaming entries, **not** merging screens | **Built** — Phase 1b, 8.9.2026 |
+| TTS through a public API | out | See „What is deliberately not being done" | **Reversed — in.** Azure Speech is a provider for the film's narration (`TTS_PROVIDER`), piper stays the fallback, 11.9.2026. The app itself still reads with the device's voices |
+| Video rendered on the device | out | Same | Unchanged — out |
+| A user's manual and the site's content | **in** | The answer to „ne snalazim se u moru funkcija" | **In progress** — Phase 4, started 11.9.2026, **in English** (decided 8.9.2026, below) |
+| Monetisation beyond what is built | out | Same | Unchanged — out |
+| Reorganising the app by function | out | Same | Unchanged — out |
+| Translating the app | out | No i18n layer exists; ~1700 Serbian literals | **Replaced** — the app went English-only on 8.9.2026, in place and with no i18n layer. A second interface language is still out |
+
+**Added after the freeze, each by the owner's decision** — the scope this
+document froze grew by these, and each has its own plan:
+
+| | Plan | Where it stands, 11.9.2026 |
 |---|---|---|
-| Video of a tutorial | **in** | Server-side, through the renderer that already exists |
-| „Predloži rečenicu" in the studio | **in** | LLM writes prose about a chosen position, never moves |
-| One board-setup dialog | **in** | Two files with the same name is a fault, not a preference |
-| Naming the board screens | **in** | Renaming entries, **not** merging screens |
-| TTS through a public API | out | See „What is deliberately not being done" |
-| Video rendered on the device | out | Same |
-| A user's manual and the site's content | **in** | The answer to „ne snalazim se u moru funkcija" |
-| Monetisation beyond what is built | out | Same |
-| Reorganising the app by function | out | Same |
-| Translating the app | out | No i18n layer exists; ~1700 Serbian literals |
+| A trainer's own voice over a tutorial, and its film | `PLAN-SNIMANJE.md`, part one | **Built** 10.9.2026, phases 0–6; live checks 138–141 |
+| A render that leaves the request, and one refused before drawing | `PLAN-SNIMANJE.md`, part two, items 4–5 | **Built** 10.9.2026. Chunking and the overnight lane are not |
+| A tutorial read in its own language's voice | `PLAN-JEZIK-GLASA.md` | **Built** 11.9.2026; live check 150 |
+| Undo, the saved version, a line inserted into a part | `PLAN-STUDIO-ISTORIJA.md` | **Built** 11.9.2026; live check 151 |
+| The audience, General Audience 13+ | this document, below | **Decided and built** 8.9.2026 |
 
 ## Phase 1 — the freeze, and two cuts
 
@@ -174,6 +189,12 @@ the sentence readable, and the board the way round the trainer left it.
 
 ## Phase 3 — „Predloži rečenicu" in the studio
 
+**Postponed on 11.9.2026, not dropped.** The owner chose to start Phase 4 first,
+which breaks this document's rule that a phase waits for the one in front of
+it — deliberately, and written here so the order is not read as an accident.
+Before it is built, the Gemini key needs billing: without it the key allows
+about 20 requests a day.
+
 ### What already exists
 
 `chess_backend/geminiService.js`, `gemini-flash-latest`, with
@@ -207,6 +228,10 @@ field untouched; the request carries a position and nothing about a person.
 
 ## Phase 4 — the manual, and the site
 
+**Started 11.9.2026 — `docs/PLAN-PRIRUCNIK.md` carries it**, with the owner's
+decisions: the manual is pages on the site with a link from the app, words only
+until the app is frozen, and the worker writes most of the chapters.
+
 **Promoted, on the owner's reading, and they are right.** „Najveći problem je
 nepostojanje dokumentacije koja bi pomogla korisniku da se snađe u moru
 funkcija. Dobra dokumentacija može da nadomesti i malo klimavu organizaciju."
@@ -217,7 +242,9 @@ so the manual is not describing the structure, it **is** the structure the user
 gets. It is therefore written after the features are frozen and built, and
 against the names from Phase 1b.
 
-1. **A user's manual, in Serbian.** Task-shaped rather than screen-shaped: what
+1. **A user's manual, in English** (written „in Serbian" on 8.9.2026 and
+   changed the same day with the app — see „Superseded on 8.9.2026" below).
+   Task-shaped rather than screen-shaped: what
    a trainer wants to do, and which door it is behind. „Napravi tutorijal",
    „Pošalji ga đaku", „Vidi šta je dete uradilo", „Pripremi repertoar",
    „Analiziraj partiju". A screen-by-screen tour is what the app already is,
@@ -316,6 +343,12 @@ otherwise; a trainer who writes a Serbian sentence gets it read in an English
 voice, and that is accepted rather than worked around. What follows is kept
 because it is the reasoning that would have to be revisited if that ever
 changes.
+
+**Reversed on 11.9.2026 for the film: Azure Speech.** The owner's own account
+answered with 655 voices in 154 languages, four of them Serbian, and the film's
+narration can be synthesised through it (`TTS_PROVIDER`, with piper kept as the
+fallback). The cost argument above stands, and it is why the film's clips are
+cached. The app itself still reads with the device's own voices.
 
 **Narrowed on 11.9.2026 — see `docs/PLAN-JEZIK-GLASA.md`.** It changed: a
 tutorial may now say which of seven languages it is written in, and its
@@ -448,7 +481,10 @@ to set it: the copy speaks to a *player* and a *trainer*, and mentions a child
 where the feature genuinely is about one — the parent report, the assignment a
 student receives.
 
-**Translating the app.** There is no localisation layer at all — no
+**Translating the app** — *replaced on 8.9.2026 by the English-only decision
+above: the literals were replaced in place, and there is still no i18n layer.
+The paragraph is kept as the reasoning; its last two sentences about a Serbian
+manual no longer hold.* There is no localisation layer at all — no
 `flutter_localizations`, no `.arb`, and roughly 1700 string literals carrying
 Serbian diacritics in `lib/` alone, which undercounts the ones that happen to
 have none. Adding i18n is a mechanical change across every screen plus a

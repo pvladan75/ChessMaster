@@ -38,6 +38,59 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Priručnik — faza 4 plana završnice, počela 11.9.2026
+
+`docs/PLAN-PRIRUCNIK.md`. Vlasnikova odluka: priručnik su stranice na sajtu
+(`chesstrainers.app/mislisha/manual/`), sa linkom iz aplikacije (red
+„User manual" u Settings i na F1 strani), **bez slika** dok se aplikacija ne
+zamrzne, na engleskom po glosaru. Piše se **po zadacima**, ne po ekranima.
+
+**Vođin deo je gotov:** plan, kapija, sadržaj (`index.html`), uzorak poglavlja
+„Write a tutorial", link iz aplikacije (`lib/core/user_manual.dart`), i
+ispravka — naslov ekrana „Trening" je bio ostatak srpskog koji jezička kapija
+ne vidi (nema našeg slova), sad je „Training" i test traži ime taba.
+
+**Kapija je `chess_app/test/manual_labels_test.dart`:** svaka oznaka koju
+priručnik citira mora da postoji kao literal u `lib/` — čita se lekserom, ne
+regexom, jer komentari u ovom repou citiraju penzionisane nazive („Snimljeni
+časovi"), pa bi ih regex primio kao dokaz. Proverava i da sadržaj vodi do svake
+stranice i svaka nazad, da nema `{{`, slike ni našeg slova. Dokazana
+mutacijama (izmišljena oznaka, preimenovana oznaka u aplikaciji, komentari kao
+kod, stranica bez puta nazad).
+
+**Priručnik je napisan — trinaest stranica, sve vođine.** Worker batch
+(`docs/TASK-prirucnik.md`, `gemini-3.8-flash-high`) prošao je svih dvanaest
+kapija iz prve runde, i njegove stranice su **odbačene**. Kapija za oznake je
+odradila svoje — nijedna stranica nije citirala dugme koje ne postoji — ali ona
+ne može da pita da li je **rečenica** tačna, a rečenice su bile izmišljene sa
+istom sigurnošću: „radi u mobilnim veb pregledačima" (nema veb verzije), teme
+table „tournament wood, modern slate, green vinyl" (izmišljena imena), prečice
+`?` i `F` (ne postoje), „ispod 16 ulazi u zaštićeni režim" (ispod 13 se odbija),
+i skener koji „slika stranicu veb kamerom" (skener čita PDF sa dijagramima u
+šahovskom fontu, nikad sliku). Citati `file:line` koje je brief tražio ne drže:
+`age_gate_screen.dart:176` je poruka o grešci, ne oznaka „Birth year".
+Zadržana je njegova **struktura** (spisak stranica, redosled odeljaka, dužina);
+sadržaj je pisan iznova uz kod.
+
+**Pravilo koje iz toga sledi:** workeru se traži ono što kapija ume da proveri
+(oznake, fajlovi, postojanje vrata), a ne proza o ponašanju — osim ako neko
+ionako čita svaku rečenicu uz kod, a tada je pisanje jeftinija polovina.
+
+Harness je pripremljen i ostaje koristan: `diff` kapija sad broji i izmene u
+`site/`, `gate_tree` prima izmenu tračenih ne-Dart fajlova po imenu, a
+`SERBIAN_WORDS` je dobio „trening" i „delovi" (ne i „deo" — javio bi se na
+regexu koji prepoznaje stare nazive delova).
+
+**Ostaje:** sajt nije objavljen (`TODO-objavljivanje`, 3a), pa link iz
+aplikacije još ne otvara ništa; engleska politika privatnosti je starija od
+odluke 13+ i ide zasebno, uz advokata. Provera uživo: `TODO-provera.md`, stavka
+152. Aplikacija 2095 (1 preskočen), analyze 29.
+
+Van plana priručnika, a nađeno usput: engleska politika privatnosti na sajtu je
+od 26.8.2026, pre odluke 13+, i nije usklađena sa onim što aplikacija danas
+radi. To je pravni tekst — ide odvojeno, uz advokatsku proveru kao kapiju pred
+objavu.
+
 ## Istorija u studiju — plan 11.9.2026; sve četiri faze gotove, čeka proveru uživo (TODO-provera 151)
 
 `docs/PLAN-STUDIO-ISTORIJA.md`. Vlasnik je obrisao deo, nije sačuvao, i kad je

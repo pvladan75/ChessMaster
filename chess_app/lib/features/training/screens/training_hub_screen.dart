@@ -42,8 +42,11 @@ class TrainingHubScreen extends StatelessWidget {
           : AppBar(
               // The title the reader sees, which is not the name the code uses.
               // The screen behind this used to be called a studio for reasons
-              // that stopped being true a long time ago.
-              title: const Text('Trening'),
+              // that stopped being true a long time ago. The tab's own name,
+              // `kTabNames[0]` — it said „Trening" until 11.9.2026, three days
+              // after the English pivot, because a Serbian word with no
+              // Serbian letter in it is invisible to the language gate.
+              title: const Text('Training'),
               elevation: 0,
             ),
       body: SafeArea(

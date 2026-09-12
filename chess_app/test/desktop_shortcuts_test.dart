@@ -178,6 +178,11 @@ void main() {
 
     await tester.scrollUntilVisible(find.text('Keyboard shortcuts'), 200,
         scrollable: find.byType(Scrollable).first);
+    // Fully into view, not just peeking in at the bottom edge where
+    // `scrollUntilVisible` stops: the „User manual" card above it moved the row
+    // to exactly where a tap on its centre fell outside the list.
+    await tester.ensureVisible(find.text('Keyboard shortcuts'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Keyboard shortcuts'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));

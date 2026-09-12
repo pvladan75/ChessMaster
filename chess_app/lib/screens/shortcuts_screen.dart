@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/core/user_manual.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
@@ -150,6 +151,17 @@ class ShortcutsScreen extends StatelessWidget {
             'has its own button. On mobile devices without a keyboard, only right '
             'click works with a mouse.',
             style: AppText.caption.copyWith(color: context.colors.textMuted),
+          ),
+          // F1 is where somebody lost in the app presses first, so the manual
+          // is one tap from here (docs/PLAN-PRIRUCNIK.md).
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const Key('shortcuts-user-manual'),
+              onPressed: () => openUserManual(context),
+              icon: const Icon(Icons.menu_book),
+              label: const Text('User manual'),
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           for (final group in kShortcutGroups) ...[

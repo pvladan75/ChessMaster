@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2083 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2095 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1234 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1938,6 +1938,33 @@ CI has. So the words show from `Breakpoints.wide` (840), where they fit in
 both, with an icon of the same name below. Weakening the test would have
 removed the guard; forcing the words everywhere would have failed it for a
 layout that is fine.
+
+**A gate can hold a worker to the labels and not to the truth — 11.9.2026,
+the user's manual.** Phase 4 of `docs/PLAN-ZAVRSNICA.md`, carried by
+`docs/PLAN-PRIRUCNIK.md`: thirteen task-shaped pages on the site, linked from
+Settings and the F1 page. `test/manual_labels_test.dart` fails if a page quotes
+a label that is not a string literal in `lib/`, and it is read with a lexer
+rather than a regular expression — this repository's comments quote retired
+labels („Not 'Snimljeni časovi' any more"), so a text match would accept the
+comment as proof that the label still exists.
+
+**The worker batch passed all twelve gates and its pages were discarded.** Not
+one invented label got through — the gate works — and almost every sentence
+around the labels was invented anyway: „mobile web browsers" for an app with no
+web build, three board themes that do not exist, shortcuts `?` and `F` that are
+not bound, a scanner that „captures a photo … using your webcam" when it reads
+a PDF's typeset diagrams and never an image. The brief had asked for
+`file:line` beside every claim so grading would be cheap; the citations do not
+resolve — `age_gate_screen.dart:176` is an error message, not the „Birth year"
+label. **Ask a worker for what a gate can check; prose about behaviour costs
+the same to verify as to write.** What was worth keeping was the structure: the
+page list, the section order, the length of a page.
+
+One leftover found on the way: the Training hub drew „Trening" as its own
+screen's title, three days after the English pivot, because a Serbian word with
+no Serbian letter is invisible to `gate_english_ui`. The harness's word list
+knows „trening" and „delovi" now — and not „deo", which fires on the regex that
+recognises parts named before the rename.
 
 **A notation the parser refuses is a test's own mistake first.** The test's
 first fixture wrote `2. Ra6+`, which is not check: the knight on b6 blocks the

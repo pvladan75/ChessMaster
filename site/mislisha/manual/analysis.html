@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analyse a position or a game — Mislisha user manual</title>
+<meta name="description" content="The engine, the opening database and the variation tree, and how a line becomes teaching material.">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a href="/mislisha/manual/">← User manual</a></header>
+
+<h1>Analyse a position or a game</h1>
+<p class="lead">One position, looked at properly: the engine's opinion, what
+masters have played, and a tree of the variations you try. It is also where a
+line you like becomes part of a tutorial.</p>
+
+<h2>Open it</h2>
+<p><span class="ui">Library</span> tab →
+<span class="ui">Open Analysis</span>. The card describes it as it is:
+<span class="ui">Engine, opening database, and variation tree — for working on a
+single position or game.</span></p>
+
+<h2>Get a position onto the board</h2>
+<ul>
+<li><span class="ui">Board Setup</span> puts pieces where you want them, with
+    the side to move and <span class="ui">Castling:</span> rights;
+    <span class="ui">Clear board 🗑️</span> empties it first.</li>
+<li>A game can be pasted or opened as a PGN file, or fetched from
+    <span class="ui">Chess.com/Lichess</span> with
+    <span class="ui">Download Games</span>.</li>
+<li>Anything in your library — a saved position, a game of your own — can be
+    loaded onto the board.</li>
+</ul>
+
+<h2>The engine</h2>
+<p>Stockfish runs on your own machine, and the panel beside the board shows
+what it thinks and the lines it is considering. Which panels you see is your
+choice, in Settings under the board's appearance; the engine itself is
+configured there too, with <span class="ui">Configure local engine</span> for a
+<span class="ui">Custom local engine (.exe)</span> if you have one.</p>
+<p><span class="ui">Automatic Position Analysis</span> walks a whole game
+instead of one position, and <span class="ui">Blunder detection</span> is what
+marks the moments worth talking about. It can be told
+<span class="ui">Analyze only from the current position forward</span> when the
+opening is not the point.</p>
+
+<h2>The opening database</h2>
+<p>For a position early in a game, the explorer says what has actually been
+played there and how it turned out. Which database answers is a setting:
+<span class="ui">Lichess</span> or
+<span class="ui">ChessDB Cloud (consensus, not games)</span>, with
+<span class="ui">All ratings</span> or a narrower band on the Lichess side.
+A Lichess token is optional and only lifts rate limits.</p>
+
+<h2>The tree of what you tried</h2>
+<p>Every move you play is kept as a branch rather than replacing what was
+there, so trying a second idea does not lose the first. On a move in the tree:
+<span class="ui">Set as main line</span> promotes a variation,
+<span class="ui">Delete this variation</span> removes one, and
+<span class="ui">Delete this move (and branch after it)</span> takes back a
+single move with everything under it.</p>
+<p>Words go on a move with <span class="ui">Add Comment</span> — later
+<span class="ui">Add / Edit Comment</span> — and
+<span class="ui">NAG Symbols (!, ?)</span> add the usual annotation marks.
+<span class="ui">Generate AI comment</span> offers a sentence about the
+position if you want a starting point.</p>
+
+<h2>Keep it, or teach from it</h2>
+<p><span class="ui">Save analysis</span> keeps the tree in your library so you
+can come back to it.</p>
+<p>To turn it into teaching material, hand it to the Tutorial Studio. The app
+asks two short questions rather than guessing:
+<span class="ui">What are we transferring to the tutorial?</span> —
+<span class="ui">Position only</span> or <span class="ui">Whole line</span> —
+and, for a line, <span class="ui">Where does the step begin?</span>:
+<span class="ui">From here</span>, where you are standing, or
+<span class="ui">From start of line</span>. What arrives in the studio is a
+part you can write on; see
+<a href="/mislisha/manual/write-a-tutorial">writing a tutorial</a>.</p>
+
+<h2>What can go wrong</h2>
+<ul>
+<li><strong>Saving asks you to sign in</strong> — analysis is kept on the
+    server, so a guest cannot save it.</li>
+<li><strong>A PGN will not open</strong> —
+    <span class="ui">Cannot read file contents.</span> means the file is not
+    readable text; paste the moves instead.</li>
+<li><strong>The engine says nothing</strong> — it is still starting up
+    (<span class="ui">Calculating moves...</span>), or the panel is switched
+    off in Settings.</li>
+</ul>
+
+<footer class="bottom">
+<a href="/mislisha/manual/">User manual</a> · <a href="/mislisha">Mislisha</a> · <a href="/contact">Contact</a>
+</footer>
+</div>
+</body>
+</html>

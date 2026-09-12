@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:chess_app/core/build_info.dart';
+import 'package:chess_app/core/user_manual.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
@@ -959,6 +960,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _birthYearCard(context),
                 _parentEmailCard(context),
               ],
+
+              const SizedBox(height: AppSpacing.xxl),
+              Text('HELP',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textMuted)),
+              const SizedBox(height: AppSpacing.sm),
+
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
+                child: ListTile(
+                  key: const Key('open-user-manual'),
+                  leading: Icon(Icons.menu_book, color: context.colors.accent),
+                  title: const Text('User manual'),
+                  // Task by task, because „where is the button for this?" is
+                  // the question the manual exists to answer
+                  // (docs/PLAN-PRIRUCNIK.md).
+                  subtitle: const Text(
+                      'What you can do in the app, and where to find it. '
+                      'Opens in your browser.'),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () => openUserManual(context),
+                ),
+              ),
 
               const SizedBox(height: AppSpacing.xxl),
               Text('KEYBOARD SHORTCUTS',

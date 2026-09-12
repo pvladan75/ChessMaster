@@ -5413,3 +5413,47 @@ ekranu ne vidi.
     Studio" sa Ctrl+Z, Ctrl+Y i Ctrl+Shift+Z.
 12. [ ] **Uputstvo govori istinu.** `docs/UPUTSTVO-STUDIO.md`, odeljci 2, 5
     (crtanje se gasi na novom taktu) i 7 opisuju baš ovo što si video.
+
+## 152. Priručnik na sajtu, i put do njega iz aplikacije — 11.9.2026, nije viđeno uživo
+
+`docs/PLAN-PRIRUCNIK.md`, faza 4 plana završnice. Trinaest stranica u
+`site/mislisha/manual/`, pisanih **po zadacima**, i dva ulaza iz aplikacije.
+Kapija `chess_app/test/manual_labels_test.dart` već proverava da svaka oznaka
+koju priručnik citira postoji u `lib/`; ovde se proverava ono što test ne može
+— da li je tekst **tačan i upotrebljiv**.
+
+**Priprema:** sajt još nije objavljen (`TODO-objavljivanje`, korak 3a), pa se
+stranice čitaju lokalno — otvori
+`site/mislisha/manual/index.html` u pregledaču. Kad sajt bude objavljen,
+ponoviti tačku 1.
+
+1. [ ] **Link iz aplikacije.** Settings → sekcija „HELP" → red
+   „User manual" otvara pregledač na
+   `chesstrainers.app/mislisha/manual/`. Isto i dugme „User manual" na F1
+   strani. Dok sajt nije objavljen, očekivano je da stranica ne postoji —
+   proveri samo da se pregledač otvara i da je adresa tačna.
+2. [ ] **Sadržaj vodi kuda kaže.** Na `index.html` svaka od trinaest stavki
+   otvara svoju stranicu, i sa svake se vraća na sadržaj.
+3. [ ] **Uradi tri zadatka po uputstvu.** Bez znanja iz glave: otvori stranicu i
+   radi tačno ono što piše.
+   - „Write a tutorial" — napiši kratak tutorijal sa jednim pitanjem.
+   - „Send a tutorial to a student" — pošalji ga nekom svom nalogu-učeniku.
+   - „Turn a tutorial into a video" — izvezi ga kao video.
+   Ako te uputstvo na bilo kom koraku pošalje na pogrešno mesto, to je greška
+   uputstva, ne tvoja — zapiši gde.
+4. [ ] **Stranice za igrače i učenike.** „Practise on your own",
+   „Build an opening repertoire", „Analyse a position or a game" i
+   „Work with your trainer" — pročitaj i reci da li opisuju ono što zaista
+   vidiš na ekranu.
+5. [ ] **Stranica za roditelje.** „For parents" — da li je to ono što bi hteo da
+   roditelj pročita, i slaže li se sa stranicom saglasnosti koju server
+   servira.
+6. [ ] **Stranica proizvoda.** `site/mislisha.html` — opis aplikacije je
+   osvežen (tutorijali, časovi, vežbanje, video, izveštaj roditelju). Da li je
+   to opis pod kojim bi je objavio.
+7. [ ] **Ništa ne fali.** Ako ti nedostaje zadatak koji radiš često, a nema ga
+   u sadržaju — to je sledeća stranica.
+
+Napomena: engleska politika privatnosti na sajtu je starija od odluke 13+ i
+nije usklađena sa današnjim ponašanjem aplikacije — to je zaseban, pravni
+zadatak i ne proverava se ovde.
