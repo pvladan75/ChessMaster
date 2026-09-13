@@ -689,6 +689,92 @@ a forced mate", and its answer part says the game move „gave up a forced mate"
 Those are the two new phrases, in the two places they belong, written by a model
 that had no way to know they had been broken that morning.
 
+## What the masters database actually covers — 13.9.2026
+
+Before building anything on an opening database, one probe:
+`probe_masters.py` walks a game's main line and asks the Lichess masters
+explorer how many master games ever reached each position and how many played
+the move the trainer played. It stops at the first position no master game
+reached, because nothing after such a position can be in the database either —
+so a whole game costs about a dozen requests, and all three cost 35.
+
+| game | positions | in the database | engine time it would save |
+|---|---|---|---|
+| `pvladan_2026-09-12` | 54 | **13 (24%)** | 119 s of 494 |
+| `french_2026-06-19` | 79 | **10 (13%)** | 67 s of 532 |
+| `philidor_2026-07-03` | 87 | **9 (10%)** | 73 s of 710 |
+| | | | **260 s of 1736 — 15%** |
+
+A club player leaves master theory after four to six moves. Three things follow,
+and only the first was expected.
+
+**As a way to save engine time this is not worth building.** Fifteen per cent of
+an eight-to-twelve minute analysis is a minute or two, and it buys a network
+dependency, a token, a rate limit and non-determinism in a file whose whole
+purpose is to be a reproducible input. Trigger the engine on „the move played
+has fewer than ten master games" instead of on „the position is out of book" and
+it saves less still — 11% — because by the time a move is genuinely rare the
+position it stands in is already thin.
+
+**As a source of sentences it is worth building, and that is what the numbers
+show.** The French leaves theory at `4. c3`, played three times in 251 games;
+the Philidor at `5. d4`, zero of 23. That is a real thing to say to a student —
+*here you left what masters play* — and nothing in the tutorial can say it
+today, because a depth-20 engine reports those moves as costing almost nothing.
+
+**A share alone is not a rule.** `--min-share 0.10` fires at move 2 in two games
+of three, because in any position with a dominant main line everything else is
+under ten per cent by definition:
+
+```
+philidor  4  2. Nf3   289898 here  d6  6450 ( 2.2%)  RARE
+```
+
+`2... d6` is the Philidor Defence — the opening the game is named after, with
+6450 master games behind it. It is rare only as a share of a position where
+`2... Nc6` is played 86% of the time. So the probe takes `--min-games` as well,
+and the honest formulation is two signals rather than one threshold:
+
+ * **out of book** — the position has no master games at all. No threshold is
+   needed and none should be invented.
+ * **a thin move inside the book** — the move has few games *in absolute terms*.
+   `openingJudgeService.js` already picked that number and wrote down why:
+   `MIN_MASTER_GAMES = 10`, „low on purpose: a sideline played ten times by
+   masters is a real line a child may meet".
+
+And the threshold is only ever an engine-budget decision. The sentence — *251
+master games reached this position and three of them played c3* — is worth
+saying whatever the number is.
+
+**The motif detector should be silent while the game is still in the book**
+(owner, 13.9.2026), and the probe is what makes that measurable rather than a
+matter of taste. Nineteen of the 32 in-book positions across the three games
+carry a motif comment, and they read like this:
+
+```
+2. Nf3    The black pawn on e5 is attacked by the white knight on f3
+          and has no defender.
+2... d6   The black pawn on e5 is no longer hanging.
+```
+
+That is the second move of a Philidor. It is true of the squares and false of
+the game — e5 is not hanging in any sense a student should learn — and the
+detector then narrates the resolution of a threat that never existed. Two moves
+earlier it says „White's pawns hold more of the centre" after `1. e4` and
+„White's pawns no longer hold more of the centre" after `1... e5`. In the book
+the statistics are the whole of what is worth sending: what is played here, how
+often, and whether this move is one of them.
+
+**The probe is built so that it cannot get this address blocked.**
+`chess_backend/services/lichessPacing.js` already records what that takes — a
+429 blocks the *address* for a minute, and knocking during that minute raises it
+to an hour — so: one request every 1.2 s where a token allows fifteen a second,
+**any answer that is not a 200 stops the probe**, never a retry, and every answer
+kept in `out/_masters/<game>.json` so that `--report` can argue about a threshold
+with no network at all. The masters endpoint answers **401** to an anonymous
+caller, so it uses the server's own `LICHESS_API_TOKEN` — the allowance every
+user of the app's opening panel shares, which is the reason for all of the above.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not
