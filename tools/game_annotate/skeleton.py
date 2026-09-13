@@ -111,16 +111,24 @@ def material(board):
     return white - black
 
 
-def play(board, san):
-    """Play [san] on [board]; the facts about that one move, as data and words."""
+def play(board, san, verb='plays'):
+    """Play [san] on [board]; the facts about that one move, as data and words.
+
+    `verb` is how the move is introduced, and it is the whole of how a
+    student tells what happened from what should have. A move of the best
+    line never happened, and "Black plays Qf6" reads exactly like the game -
+    which is what a student met on 13.9.2026, one click after "instead of
+    the game move bxa3". The model copies the voice it is given, so the
+    voice is what carries it.
+    """
     move = board.parse_san(san)
     mover = 'White' if board.turn else 'Black'
     piece = board.piece_at(move.from_square)
     captured = board.piece_at(move.to_square)
     if board.is_en_passant(move):
         captured = chess.Piece(chess.PAWN, not board.turn)
-    words = ['%s plays %s: the %s from %s to %s' % (
-        mover, san, NAME[piece.piece_type], chess.square_name(move.from_square),
+    words = ['%s %s %s: the %s from %s to %s' % (
+        mover, verb, san, NAME[piece.piece_type], chess.square_name(move.from_square),
         chess.square_name(move.to_square))]
     gain = 0
     if captured:
@@ -265,8 +273,8 @@ def moments(name, cfg=None):
                 game_move = rows[r]['played']
                 sid = '%s.lead.%d' % (mid, len(moves) + 1)
                 info = play(board, game_move['move'])
-                text = '%s; this is the game move; afterwards %s' % (
-                    info['words'], words_for(game_move.get('eval')))
+                text = ('%s; played in the game; afterwards %s'
+                        % (info['words'], words_for(game_move.get('eval'))))
                 if rows[r].get('motifs_after_played'):
                     text += '; on the board after it: %s' % rows[r]['motifs_after_played']
                 book = book_words(rows[r])
@@ -311,14 +319,24 @@ def moments(name, cfg=None):
         moves = []
         for k, san in enumerate(best['line'].split()[:cfg['answer_plies']], 1):
             sid = '%s.answer.%d' % (mid, k)
-            info = play(board, san)
-            slots[sid] = info['words'] + ('; this is the best move' if k == 1
-                                          else '; a move of the best line')
+            info = play(board, san,
+                        verb='should have played' if k == 1
+                        else 'would answer')
+            # A move of the best line did not happen, and „this is the best
+            # move" does not say so. On 13.9.2026 a student met „Black plays
+            # Qf6 instead of the game move bxa3" and, one click later, „Black
+            # plays Qf6 … this is the best move" - the same verb for what
+            # happened and for what should have. The model copies the voice it
+            # is given, so the voice it is given carries the difference now.
+            slots[sid] = info['words'] + (
+                '; not played - the best move the game missed' if k == 1
+                else '; not played - the line goes on')
             facts[sid] = dict(info, motifs='')
             moves.append({'san': san, 'slot': sid})
         intro = '%s.answer.intro' % mid
         slots[intro] = (
-            'the answer: %s plays %s instead of the game move %s. At the end of the '
+            'the answer: %s should have played %s instead of the game move %s, '
+            'which is what actually happened. At the end of the '
             'best line %s; material White minus Black goes from %+d to %+d over the '
             'moves shown. The game move %s.' % (
                 mover, best['move'], played['move'], words_for(best['eval']),
@@ -373,6 +391,10 @@ None of it can change. You do two things.
   material count bears it out; a fork or a pin exists only if the facts name it.
 - **No numbers for evaluations.** The facts turn them into words; use the words.
 - **A move slot is about that one move**, not the move after it.
+- **Keep „played" for what was played.** A slot that says „not played" is a move
+  the game did not contain, and the facts already say „should have played" or
+  „would answer" for it - keep that voice. A student must be able to tell what
+  happened from what should have without doing arithmetic.
 - **A question never names a move in notation** - not its answer, and not the
   move played in the game either. Naming the rejected move eliminates a
   candidate and tells the student what not to look at, which is half the
