@@ -553,17 +553,22 @@ class PositionalEvaluatorService {
         }
       }
 
-      if (!hasLightBishop && lightPawns >= 3 && lightPawns >= darkPawns) {
+      // A pawn guards squares of its own colour, so pawns on light squares
+      // leave the dark squares to the pieces — and the piece made for them is
+      // the dark-squared bishop. Until 13.9.2026 this paired the missing
+      // bishop with the pawns' own colour, which is the one complex the pawns
+      // themselves cover.
+      if (!hasDarkBishop && lightPawns >= 3 && lightPawns >= darkPawns) {
         findings.add(_colorComplex(color,
-            missingBishop: 'light',
+            missingBishop: 'dark',
             pawnSquares: 'light',
             pawnCount: lightPawns,
             squares: lightPawnSquares,
             moverColor: moverColor));
       }
-      if (!hasDarkBishop && darkPawns >= 3 && darkPawns >= lightPawns) {
+      if (!hasLightBishop && darkPawns >= 3 && darkPawns >= lightPawns) {
         findings.add(_colorComplex(color,
-            missingBishop: 'dark',
+            missingBishop: 'light',
             pawnSquares: 'dark',
             pawnCount: darkPawns,
             squares: darkPawnSquares,

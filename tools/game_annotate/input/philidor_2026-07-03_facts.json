@@ -6,8 +6,8 @@
  "engine": "stockfish.exe",
  "threads": 1,
  "hash_mb": 128,
- "generated": "2026-09-13T14:21:18",
- "seconds": 806,
+ "generated": "2026-09-13T16:34:19",
+ "seconds": 671,
  "rows": [
   {
    "label": "start",
@@ -47,7 +47,7 @@
     "cost_pawns": 0.05,
     "rank": 1
    },
-   "motifs_after_played": "White has the greater share of the centre (d4/e4/d5/e5)",
+   "motifs_after_played": "White's pawns hold more of the centre.",
    "margin_pawns": 0.05,
    "best_stands_out": false
   },
@@ -86,10 +86,10 @@
     "label": "1... e5",
     "eval": "+0.35",
     "value_for_mover": -35,
-    "cost_pawns": -0.02,
+    "cost_pawns": 0.0,
     "rank": 2
    },
-   "motifs_after_played": "Resolved — White has the greater share of the centre (d4/e4/d5/e5)",
+   "motifs_after_played": "White's pawns no longer hold more of the centre.",
    "margin_pawns": 0.06,
    "best_stands_out": false
   },
@@ -131,7 +131,7 @@
     "cost_pawns": 0.03,
     "rank": 1
    },
-   "motifs_after_played": "the black pawn on e5 is undefended",
+   "motifs_after_played": "The black pawn on e5 is attacked by the white knight on f3 and has no defender.",
    "margin_pawns": 0.13,
    "best_stands_out": false
   },
@@ -173,7 +173,7 @@
     "cost_pawns": 0.49,
     "rank": 3
    },
-   "motifs_after_played": "Resolved — the black pawn on e5 is undefended",
+   "motifs_after_played": "The black pawn on e5 is no longer hanging.",
    "margin_pawns": 0.13,
    "best_stands_out": false
   },
@@ -215,7 +215,6 @@
     "cost_pawns": 0.5,
     "rank": 2
    },
-   "motifs_after_played": "Pin: the black pawn on f7 is pinned to the black knight on g8",
    "margin_pawns": 0.32,
    "best_stands_out": false
   },
@@ -339,7 +338,7 @@
     "cost_pawns": 0.03,
     "rank": 1
    },
-   "motifs_after_played": "the white pawn on e4 is undefended | Resolved — Pin: the black pawn on f7 is pinned to the black knight on g8",
+   "motifs_after_played": "The white pawn on e4 is attacked by the black knight on f6 and has no defender.",
    "margin_pawns": 0.29,
    "best_stands_out": false
   },
@@ -381,7 +380,7 @@
     "cost_pawns": 0.34,
     "rank": 4
    },
-   "motifs_after_played": "the black pawn on e5 is undefended | White has the greater share of the centre (d4/e4/d5/e5)",
+   "motifs_after_played": "The black pawn on e5 is attacked twice and defended only once. White's pawns hold more of the centre.",
    "margin_pawns": 0.1,
    "best_stands_out": false
   },
@@ -423,7 +422,7 @@
     "cost_pawns": 0.01,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — the black pawn on d4 is undefended | Resolved — the black pawn on e5 is undefended | Watch out — Doubled pawns: black has 2 pawns on the d-file (d4, d6) | Resolved — White has the greater share of the centre (d4/e4/d5/e5)",
+   "motifs_after_played": "The black pawn on d4 is attacked by the white pawn on c3 and has no defender. The black pawn on e5 is no longer hanging. Black has doubled pawns on d4 and d6. White's pawns no longer hold more of the centre.",
    "margin_pawns": 0.2,
    "best_stands_out": false
   },
@@ -462,10 +461,10 @@
     "label": "6. cxd4",
     "eval": "-0.13",
     "value_for_mover": -13,
-    "cost_pawns": -0.04,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "White has the greater share of the centre (d4/e4/d5/e5)",
+   "motifs_after_played": "White's pawns hold more of the centre.",
    "margin_pawns": 0.07,
    "best_stands_out": false
   },
@@ -507,7 +506,7 @@
     "cost_pawns": 1.0,
     "rank": null
    },
-   "motifs_after_played": "Pin: the white knight on f3 is pinned to the white queen on d1",
+   "motifs_after_played": "The black bishop on g4 pins the white knight on f3 to the queen on d1.",
    "margin_pawns": 0.27,
    "best_stands_out": false
   },
@@ -549,7 +548,7 @@
     "cost_pawns": 0.67,
     "rank": null
    },
-   "motifs_after_played": "Resolved — the white pawn on e4 is undefended",
+   "motifs_after_played": "The white pawn on e4 is no longer hanging.",
    "margin_pawns": 0.14,
    "best_stands_out": false
   },
@@ -591,7 +590,7 @@
     "cost_pawns": 0.09,
     "rank": 3
    },
-   "motifs_after_played": "Deflection: the white knight on f3 is the only defender of the white pawn on d4, and is under attack itself — if it moves away, the white pawn is left undefended",
+   "motifs_after_played": "The white knight on f3 is the only defender of the pawn on d4, and it is attacked by the black bishop on g4.",
    "margin_pawns": 0.03,
    "best_stands_out": false
   },
@@ -633,7 +632,7 @@
     "cost_pawns": 2.98,
     "rank": null
    },
-   "motifs_after_played": "Watch out — the white bishop on f7 is undefended | The black king on e8 has lost its pawn shield",
+   "motifs_after_played": "The white bishop on f7 is attacked by the black king on e8 and has no defender. The black king on e8 has lost its pawn shield.",
    "margin_pawns": 0.06,
    "best_stands_out": false
   },
@@ -666,10 +665,10 @@
     "label": "8... Kxf7",
     "eval": "-2.71",
     "value_for_mover": 271,
-    "cost_pawns": -0.02,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Black has the bishop pair | Watch out — The black king on f7 has lost its pawn shield | Resolved — The black king on e8 has lost its pawn shield",
+   "motifs_after_played": "Black has the bishop pair. The black king on f7 has lost its pawn shield. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. The black king is no longer without a pawn shield.",
    "margin_pawns": 5.01,
    "best_stands_out": true
   },
@@ -708,10 +707,10 @@
     "label": "9. Qb3+",
     "eval": "-2.67",
     "value_for_mover": -267,
-    "cost_pawns": -0.04,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Fork: the white queen on b3 attacks two black pieces: the black pawn on b7 and the black king on f7 | Resolved — Pin: the white knight on f3 is pinned to the white queen on d1",
+   "motifs_after_played": "The white queen on b3 forks the black king on f7 and the pawn on b7. The white knight on f3 is no longer pinned.",
    "margin_pawns": 0.17,
    "best_stands_out": false
   },
@@ -750,10 +749,10 @@
     "label": "9... d5",
     "eval": "-2.76",
     "value_for_mover": 276,
-    "cost_pawns": -0.09,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — Pin: the black pawn on d5 is pinned to the black king on f7 | Resolved — Fork: the white queen on b3 attacks two black pieces: the black pawn on b7 and the black king on f7",
+   "motifs_after_played": "The white queen on b3 pins the black pawn on d5 to the king on f7. The fork by the white queen on b3 is over.",
    "margin_pawns": 0.59,
    "best_stands_out": true
   },
@@ -795,7 +794,7 @@
     "cost_pawns": 0.42,
     "rank": 2
    },
-   "motifs_after_played": "Pin: the black pawn on c7 is pinned to the black bishop on e7 | Skewer: the black knight on c6 has to move, exposing the black pawn on d5 | Overloaded piece: the black queen on d8 defends two black pieces at once (the black rook on a8 and the black pawn on c7) — it cannot hold them all | Isolated pawn: the black pawn on the a-file (a7) has no neighbours to defend it",
+   "motifs_after_played": "The black queen on d8 is overloaded: it alone defends the rook on a8 and the pawn on c7. The black knight on c6 is attacked by the white queen on b7 and has no defender. The black pawn on a7 is isolated: no pawn on a neighbouring file can defend it.",
    "margin_pawns": 0.15,
    "best_stands_out": false
   },
@@ -837,7 +836,7 @@
     "cost_pawns": 0.41,
     "rank": 3
    },
-   "motifs_after_played": "Pin: the white pawn on g2 is pinned to the white rook on h1 | Watch out — the black knight on c6 and the black bishop on f3 are undefended | Resolved — the black knight on c6 is undefended | Black has the bishop pair",
+   "motifs_after_played": "The black bishop on f3 pins the white pawn on g2 to the rook on h1. The black bishop on f3 is attacked by the white pawn on g2 and has no defender. Black has the bishop pair.",
    "margin_pawns": 0.18,
    "best_stands_out": false
   },
@@ -879,7 +878,7 @@
     "cost_pawns": 1.98,
     "rank": null
    },
-   "motifs_after_played": "the black knight on c6 is undefended | Resolved — Pin: the white pawn on g2 is pinned to the white rook on h1 | Watch out — Isolated pawn: the white pawn on the h-file (h2) has no neighbours to defend it | Resolved — Black has the bishop pair",
+   "motifs_after_played": "The white pawn on g2 is no longer pinned. Black has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on h2 is isolated: no pawn on a neighbouring file can defend it. Black no longer has the bishop pair.",
    "margin_pawns": 1.32,
    "best_stands_out": true
   },
@@ -918,10 +917,10 @@
     "label": "11... Nxd4",
     "eval": "-4.94",
     "value_for_mover": 494,
-    "cost_pawns": -0.19,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — Deflection: the black rook on a8 is the only defender of the black pawn on a7, and is under attack itself — if it moves away, the black pawn is left undefended | Resolved — Skewer: the black knight on c6 has to move, exposing the black pawn on d5 | Resolved — the black knight on c6 is undefended | White has no light-squared bishop, and 3 pawns are fixed on light squares — a weak complex | Resolved — White has the greater share of the centre (d4/e4/d5/e5)",
+   "motifs_after_played": "The black rook on a8 is the only defender of the pawn on a7, and it is attacked by the white queen on b7. The black knight on c6 is no longer hanging. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. White's pawns no longer hold more of the centre.",
    "margin_pawns": 0.11,
    "best_stands_out": false
   },
@@ -963,7 +962,7 @@
     "cost_pawns": 0.12,
     "rank": 1
    },
-   "motifs_after_played": "the black knight on f6 is undefended | Passed pawn: the white pawn on e5 has no enemy pawns in its way to promotion | Watch out — Passed pawn: the black pawn on d5 has no enemy pawns in its way to promotion | Resolved — White has no light-squared bishop, and 3 pawns are fixed on light squares — a weak complex",
+   "motifs_after_played": "The black knight on f6 is attacked by the white pawn on e5, a cheaper piece. The white pawn on e5 is a passed pawn: no black pawn can block or capture it. The black pawn on d5 is a passed pawn: no white pawn can block or capture it. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. White's light squares are no longer weak.",
    "margin_pawns": 0.3,
    "best_stands_out": false
   },
@@ -1005,7 +1004,7 @@
     "cost_pawns": 1.18,
     "rank": null
    },
-   "motifs_after_played": "Watch out — Pin: the black pawn on c7 is pinned to the black knight on d7 | Resolved — Pin: the black pawn on c7 is pinned to the black bishop on e7 | Resolved — the black knight on f6 is undefended",
+   "motifs_after_played": "The white pawn on e5 is attacked by the black knight on d7 and has no defender. The black knight on f6 is no longer hanging.",
    "margin_pawns": 0.13,
    "best_stands_out": false
   },
@@ -1047,7 +1046,7 @@
     "cost_pawns": 0.19,
     "rank": 1
    },
-   "motifs_after_played": "Fork: the white queen on d5 attacks four black pieces: the black rook on a8, the black knight on d4, the black knight on d7 and the black king on f7 | Pin: the black knight on d7 is pinned to the black queen on d8 | Overloaded piece: the black queen on d8 defends two black pieces at once (the black rook on a8 and the black knight on d7) — it cannot hold them all | Resolved — the white pawn on e5 is undefended | Isolated pawn: the black pawn on the c-file (c7) has no neighbours to defend it | Resolved — Passed pawn: the black pawn on d5 has no enemy pawns in its way to promotion",
+   "motifs_after_played": "The white queen on d5 forks the black king on f7 and the knight on d4. The black queen on d8 is overloaded: it alone defends the rook on a8 and the knight on d7. The black knight on d4 is attacked by the white queen on d5 and has no defender. The white pawn on e5 is no longer hanging. The black pawn on c7 is isolated: no pawn on a neighbouring file can defend it. The black pawn on d5 is no longer a passed pawn.",
    "margin_pawns": 0.89,
    "best_stands_out": true
   },
@@ -1089,7 +1088,7 @@
     "cost_pawns": 0.15,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — Pin: the black knight on d7 is pinned to the black queen on d8 | the black knight on e6 is pinned to the black king on f7 | Resolved — Fork: the white queen on d5 attacks four black pieces: the black rook on a8, the black knight on d4, the black knight on d7 and the black king on f7 | Resolved — Pin: the black knight on d7 is pinned to the black queen on d8",
+   "motifs_after_played": "The white queen on d5 pins the black knight on e6 to the king on f7. The fork by the white queen on d5 is over. The black knight on d4 is no longer hanging.",
    "margin_pawns": 5.3,
    "best_stands_out": true
   },
@@ -1172,7 +1171,7 @@
     "cost_pawns": 0.62,
     "rank": 4
    },
-   "motifs_after_played": "Watch out — Pin: the black knight on e6 is pinned to the black king on f7 | the white queen on d5 is undefended | Discovered attack: the black queen from d8 now attacks the white queen on d5 (discovered by the move away from d7) | Resolved — Pin: the black knight on d7 is pinned to the black queen on d8 | the black knight on e6 is pinned to the black king on f7 | Resolved — Overloaded piece: the black queen on d8 defends two black pieces at once (the black rook on a8 and the black knight on d7) — it cannot hold them all",
+   "motifs_after_played": "The white queen on d5 is attacked by the black knight on b6 and has no defender. The move from d7 uncovers a discovered attack: the black queen on d8 now attacks the white queen on d5. The black queen on d8 is no longer overloaded.",
    "margin_pawns": 0.26,
    "best_stands_out": false
   },
@@ -1214,7 +1213,7 @@
     "cost_pawns": 0.08,
     "rank": 1
    },
-   "motifs_after_played": "Pin: the black knight on e6 is pinned to the black king on f7 | Resolved — the white queen on d5 is undefended",
+   "motifs_after_played": "The white queen on b3 pins the black knight on e6 to the king on f7. The white queen on d5 is no longer hanging.",
    "margin_pawns": 0.04,
    "best_stands_out": false
   },
@@ -1256,7 +1255,7 @@
     "cost_pawns": 0.16,
     "rank": 3
    },
-   "motifs_after_played": "Watch out — Pin: the black knight on b6 is pinned to the black rook on b8 | the black knight on e6 is pinned to the black king on f7 | Resolved — Pin: the black knight on e6 is pinned to the black king on f7 | The black rook on b8 controls the half-open b-file",
+   "motifs_after_played": "The black rook on b8 stands on the half-open b-file.",
    "margin_pawns": 0.12,
    "best_stands_out": false
   },
@@ -1298,7 +1297,6 @@
     "cost_pawns": 0.36,
     "rank": null
    },
-   "motifs_after_played": "Skewer: the black knight on b6 has to move, exposing the black pawn on a7",
    "margin_pawns": 0.07,
    "best_stands_out": false
   },
@@ -1340,7 +1338,7 @@
     "cost_pawns": 0.45,
     "rank": 3
    },
-   "motifs_after_played": "the white queen on b3 is undefended | Skewer: the white queen on b3 has to move, exposing the white pawn on b2 | Discovered attack: the black rook from b8 now attacks the white queen on b3 (discovered by the move away from b6) | Resolved — Pin: the black knight on b6 is pinned to the black rook on b8 | the black knight on e6 is pinned to the black king on f7 | Resolved — Skewer: the black knight on b6 has to move, exposing the black pawn on a7",
+   "motifs_after_played": "The white queen on b3 is attacked by the black rook on b8, a cheaper piece. The black rook on b8 skewers the white queen on b3 and the pawn on b2 behind it. The move from b6 uncovers a discovered attack: the black rook on b8 now attacks the white queen on b3. The black knight on e6 is no longer pinned.",
    "margin_pawns": 0.13,
    "best_stands_out": false
   },
@@ -1382,7 +1380,7 @@
     "cost_pawns": 0.75,
     "rank": 3
    },
-   "motifs_after_played": "Resolved — the white queen on b3 is undefended | Resolved — Skewer: the white queen on b3 has to move, exposing the white pawn on b2 | The white queen on c2 controls the half-open c-file",
+   "motifs_after_played": "The white queen on b3 is no longer hanging. The white queen on b3 is no longer skewered. The white queen on c2 stands on the half-open c-file.",
    "margin_pawns": 0.41,
    "best_stands_out": false
   },
@@ -1424,7 +1422,7 @@
     "cost_pawns": 0.78,
     "rank": 2
    },
-   "motifs_after_played": "the white queen on c2 is undefended | Deflection: the white queen on c2 is the only defender of the white pawn on b2, and is under attack itself — if it moves away, the white pawn is left undefended | Watch out — the black knight on e3 is undefended | Resolved — the black pawn on a7 is undefended | White has no dark-squared bishop, and 4 pawns are fixed on dark squares — a weak complex",
+   "motifs_after_played": "The white queen on c2 is attacked by the black knight on e3 and has no defender. The white queen on c2 is the only defender of the pawn on b2, and it is attacked by the black knight on e3. The black knight on e3 is attacked by the white pawn on f2 and has no defender. The black pawn on a7 is no longer hanging.",
    "margin_pawns": 0.8,
    "best_stands_out": true
   },
@@ -1466,7 +1464,7 @@
     "cost_pawns": 0.09,
     "rank": 1
    },
-   "motifs_after_played": "Resolved — the white queen on c2 is undefended | Resolved — Deflection: the white queen on c2 is the only defender of the white pawn on b2, and is under attack itself — if it moves away, the white pawn is left undefended | Passed pawn: the white pawn on e3 has no enemy pawns in its way to promotion | Watch out — White has no dark-squared bishop, and 4 pawns are fixed on dark squares — a weak complex | Resolved — White has no dark-squared bishop, and 4 pawns are fixed on dark squares — a weak complex",
+   "motifs_after_played": "The white queen on c2 is no longer hanging. The white pawn on b2 no longer depends on one attacked defender. The white pawn on e3 is a passed pawn: no black pawn can block or capture it. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. White's light squares are no longer weak.",
    "margin_pawns": 3.25,
    "best_stands_out": true
   },
@@ -1549,7 +1547,7 @@
     "cost_pawns": 0.39,
     "rank": 4
    },
-   "motifs_after_played": "Watch out — The D-file beside the white king on e2 is open | Resolved — The D-file beside the white king on e1 is open",
+   "motifs_after_played": "The d-file beside the white king on e2 is open. The d-file beside the white king is no longer open.",
    "margin_pawns": 0.05,
    "best_stands_out": false
   },
@@ -1591,7 +1589,7 @@
     "cost_pawns": 1.43,
     "rank": null
    },
-   "motifs_after_played": "The black queen on d7 controls the open d-file",
+   "motifs_after_played": "The black queen on d7 stands on the open d-file.",
    "margin_pawns": 1.07,
    "best_stands_out": true
   },
@@ -1633,7 +1631,7 @@
     "cost_pawns": 1.2,
     "rank": null
    },
-   "motifs_after_played": "Watch out — White pawn structure is broken into 3 islands | Resolved — White pawn structure is broken into 3 islands",
+   "motifs_after_played": "White's pawns are split into three islands. White's pawns are no longer split into three islands.",
    "margin_pawns": 0.46,
    "best_stands_out": false
   },
@@ -1675,7 +1673,7 @@
     "cost_pawns": 1.23,
     "rank": null
    },
-   "motifs_after_played": "The black rook on d8 controls the open d-file",
+   "motifs_after_played": "The black rook on d8 stands on the open d-file.",
    "margin_pawns": 0.58,
    "best_stands_out": true
   },
@@ -1717,7 +1715,7 @@
     "cost_pawns": 0.14,
     "rank": 2
    },
-   "motifs_after_played": "the black queen on d7 is undefended | Skewer: the black queen on d7 has to move, exposing the black rook on d8 | The white rook on d1 controls the open d-file",
+   "motifs_after_played": "The black queen on d7 is attacked by the white rook on d1, a cheaper piece. The white rook on d1 skewers the black queen on d7 and the rook on d8 behind it. The white rook on d1 stands on the open d-file.",
    "margin_pawns": 0.13,
    "best_stands_out": false
   },
@@ -1759,7 +1757,7 @@
     "cost_pawns": 0.55,
     "rank": 3
    },
-   "motifs_after_played": "Discovered attack: the black rook from d8 now attacks the white rook on d1 (discovered by the move away from d7) | Resolved — the black queen on d7 is undefended | Resolved — Skewer: the black queen on d7 has to move, exposing the black rook on d8 | The black queen on e7 controls the half-open e-file",
+   "motifs_after_played": "The move from d7 uncovers a discovered attack: the black rook on d8 now attacks the white rook on d1. The black queen on d7 is no longer hanging. The black queen on d7 is no longer skewered. The black queen on e7 stands on the half-open e-file.",
    "margin_pawns": 0.0,
    "best_stands_out": false
   },
@@ -1801,7 +1799,7 @@
     "cost_pawns": 1.06,
     "rank": null
    },
-   "motifs_after_played": "The white rook on g1 controls the half-open g-file",
+   "motifs_after_played": "The white rook on g1 stands on the half-open g-file.",
    "margin_pawns": 0.14,
    "best_stands_out": false
   },
@@ -1843,7 +1841,7 @@
     "cost_pawns": 0.44,
     "rank": null
    },
-   "motifs_after_played": "the white pawn on e5 is undefended | The black rook on d5 controls the open d-file",
+   "motifs_after_played": "The white pawn on e5 is attacked by the black rook on d5 and has no defender. The black rook on d5 stands on the open d-file.",
    "margin_pawns": 0.17,
    "best_stands_out": false
   },
@@ -1885,7 +1883,7 @@
     "cost_pawns": 1.74,
     "rank": null
    },
-   "motifs_after_played": "the black rook on d5 and the black pawn on h7 are undefended",
+   "motifs_after_played": "The black rook on d5 is attacked by the white knight on c3 and has no defender.",
    "margin_pawns": 1.13,
    "best_stands_out": true
   },
@@ -1924,10 +1922,10 @@
     "label": "23... Rxe5",
     "eval": "-4.75",
     "value_for_mover": 475,
-    "cost_pawns": -0.14,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Pin: the white pawn on e3 is pinned to the white king on e2 | Resolved — the black rook on d5 and the black pawn on h7 are undefended | White has no dark-squared bishop, and 3 pawns are fixed on dark squares — a weak complex | Resolved — Passed pawn: the white pawn on e5 has no enemy pawns in its way to promotion",
+   "motifs_after_played": "The black rook on e5 pins the white pawn on e3 to the king on e2. The black rook on d5 is no longer hanging. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on e5 is no longer a passed pawn.",
    "margin_pawns": 0.97,
    "best_stands_out": true
   },
@@ -1969,7 +1967,7 @@
     "cost_pawns": "mate",
     "rank": null
    },
-   "motifs_after_played": "Pin: the black pawn on g7 is pinned to the black king on f7 | Isolated pawn: the black pawn on the g-file (g7) has no neighbours to defend it",
+   "motifs_after_played": "The white queen on h7 pins the black pawn on g7 to the king on f7. The black pawn on g7 is isolated: no pawn on a neighbouring file can defend it.",
    "margin_pawns": 0.25,
    "best_stands_out": false
   },
@@ -2011,7 +2009,7 @@
     "cost_pawns": "mate",
     "rank": null
    },
-   "motifs_after_played": "Deflection: the white king on e2 is the only defender of the white pawn on e3, and is under attack itself — if it moves away, the white pawn is left undefended",
+   "motifs_after_played": "The white king on e2 is the only defender of the pawn on e3, and it is attacked by the black knight on f4.",
    "best_stands_out": true,
    "margin_pawns": "mate"
   },
@@ -2047,7 +2045,7 @@
     "cost_pawns": 0.17,
     "rank": 1
    },
-   "motifs_after_played": "the black knight on f4 and the black pawn on g7 are undefended | Resolved — Pin: the white pawn on e3 is pinned to the white king on e2 | Resolved — Deflection: the white king on e2 is the only defender of the white pawn on e3, and is under attack itself — if it moves away, the white pawn is left undefended | Resolved — The D-file beside the white king on e2 is open",
+   "motifs_after_played": "The black knight on f4 is attacked by the white pawn on e3 and has no defender. The white pawn on e3 is no longer pinned. The white pawn on e3 no longer depends on one attacked defender. The d-file beside the white king is no longer open.",
    "margin_pawns": 2.33,
    "best_stands_out": true
   },
@@ -2089,7 +2087,7 @@
     "cost_pawns": 3.54,
     "rank": 3
    },
-   "motifs_after_played": "Watch out — Skewer: the black rook on g5 has to move, exposing the black pawn on g7 | Watch out — the black knight on f4 and the black bishop on h4 are undefended | Resolved — the black knight on f4 and the black pawn on g7 are undefended",
+   "motifs_after_played": "The black bishop on h4 is attacked by the white queen on h7 and has no defender. The black pawn on g7 is no longer hanging.",
    "margin_pawns": 0.18,
    "best_stands_out": false
   },
@@ -2128,10 +2126,10 @@
     "label": "26. Rxg5",
     "eval": "-0.06",
     "value_for_mover": -6,
-    "cost_pawns": -0.01,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — the white pawn on b2, the white pawn on e3 and the white rook on g5 are undefended | the black knight on f4, the black pawn on g7 and the black bishop on h4 are undefended | Resolved — the white pawn on b2 and the white pawn on e3 are undefended | The white rook on g5 controls the half-open g-file",
+   "motifs_after_played": "The black queen on e7 forks the white rook on g5 and the pawn on e3. The white rook on g5 is attacked by the black bishop on h4 and has no defender. The white rook on g5 stands on the half-open g-file.",
    "margin_pawns": 3.73,
    "best_stands_out": true
   },
@@ -2173,7 +2171,7 @@
     "cost_pawns": 0.06,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — Overloaded piece: the black queen on g5 defends two black pieces at once (the black knight on f4 and the black bishop on h4) — it cannot hold them all | Watch out — the black knight on f4 is undefended | Resolved — the black knight on f4, the black pawn on g7 and the black bishop on h4 are undefended | Resolved — The white rook on g5 controls the half-open g-file",
+   "motifs_after_played": "The black queen on g5 is overloaded: it alone defends the knight on f4 and the bishop on h4. The black bishop on h4 is no longer hanging. The white rook on g5 no longer stands on the half-open g-file.",
    "margin_pawns": 0.28,
    "best_stands_out": false
   },
@@ -2215,7 +2213,7 @@
     "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "the black queen on g5 is undefended | Deflection: the black bishop on h4 is the only defender of the black queen on g5, and is under attack itself — if it moves away, the black queen is left undefended | the black queen on g5 is the only defender of the black bishop on h4, and is under attack itself — if it moves away, the black bishop is left undefended | Resolved — the white pawn on b2 is undefended | Watch out — The white king on f1 has lost its pawn shield | Watch out — White has no dark-squared bishop, and 3 pawns are fixed on dark squares — a weak complex | Watch out — Isolated pawn: the white pawn on the f-file (f3, f4) has no neighbours to defend it | Resolved — White has no dark-squared bishop, and 3 pawns are fixed on dark squares — a weak complex",
+   "motifs_after_played": "The black queen on g5 is attacked by the white pawn on f4, a cheaper piece. The black bishop on h4 is the only defender of the queen on g5, and it is attacked by the white queen on h7. The black queen on g5 is the only defender of the bishop on h4, and it is attacked by the white pawn on f4. The white king on f1 has lost its pawn shield. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawns on f3 and f4 are isolated: no pawn on a neighbouring file can defend them. White's light squares are no longer weak.",
    "margin_pawns": 3.95,
    "best_stands_out": true
   },
@@ -2257,7 +2255,7 @@
     "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Pin: the white pawn on f3 is pinned to the white king on f1 | Resolved — the black queen on g5 is undefended | Resolved — Deflection: the black bishop on h4 is the only defender of the black queen on g5, and is under attack itself — if it moves away, the black queen is left undefended | the black queen on g5 is the only defender of the black bishop on h4, and is under attack itself — if it moves away, the black bishop is left undefended | Isolated pawn: the white pawn on the f-file (f3) has no neighbours to defend it | Resolved — White has the greater share of the centre (d4/e4/d5/e5)",
+   "motifs_after_played": "The black queen on f4 pins the white pawn on f3 to the king on f1. The black queen on f4 forks the white pawn on f3 and the pawn on h2. The black queen on g5 is no longer hanging. The black queen on g5 no longer depends on one attacked defender. The white pawn on f3 is isolated: no pawn on a neighbouring file can defend it. White's pawns no longer hold more of the centre.",
    "margin_pawns": 0.28,
    "best_stands_out": false
   },
@@ -2299,7 +2297,7 @@
     "cost_pawns": 0.71,
     "rank": 2
    },
-   "motifs_after_played": "the black queen on f4 is undefended | Skewer: the black queen on f4 has to move, exposing the black bishop on h4 | Watch out — Skewer: the white queen on e4 has to move, exposing the white pawn on a4 | Resolved — the white pawn on b2, the white pawn on f3 and the white pawn on h2 are undefended | The white queen on e4 controls the open e-file",
+   "motifs_after_played": "The black queen on f4 is attacked by the white queen on e4 and has no defender. The white queen on e4 skewers the black queen on f4 and the bishop on h4 behind it. The white queen on e4 is the only defender of the pawn on f3, and it is attacked by the black queen on f4. The fork by the black queen on f4 is over. The white queen on e4 stands on the open e-file.",
    "margin_pawns": 0.7,
    "best_stands_out": true
   },
@@ -2338,10 +2336,10 @@
     "label": "28... Qxh2",
     "eval": "-0.86",
     "value_for_mover": 86,
-    "cost_pawns": -0.15,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "the white pawn on b2 is undefended | Resolved — the black queen on f4 is undefended | Resolved — Skewer: the black queen on f4 has to move, exposing the black bishop on h4 | The black queen on h2 controls the open h-file",
+   "motifs_after_played": "The black queen on f4 is no longer hanging. The black queen on f4 is no longer skewered. The black queen on h2 stands on the open h-file.",
    "margin_pawns": 0.63,
    "best_stands_out": true
   },
@@ -2424,7 +2422,7 @@
     "cost_pawns": 0.02,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — Pin: the black bishop on f6 is pinned to the black king on f7 | Skewer: the white knight on c3 has to move, exposing the white pawn on b2",
+   "motifs_after_played": "The white queen on f5 pins the black bishop on f6 to the king on f7.",
    "margin_pawns": 0.64,
    "best_stands_out": true
   },
@@ -2466,7 +2464,7 @@
     "cost_pawns": 2.57,
     "rank": null
    },
-   "motifs_after_played": "The white rook on e1 controls the open e-file",
+   "motifs_after_played": "The white rook on e1 stands on the open e-file.",
    "margin_pawns": 1.57,
    "best_stands_out": true
   },
@@ -2508,7 +2506,7 @@
     "cost_pawns": 3.45,
     "rank": null
    },
-   "motifs_after_played": "The black rook on d8 controls the open d-file",
+   "motifs_after_played": "The black rook on d8 stands on the open d-file.",
    "margin_pawns": 1.15,
    "best_stands_out": true
   },
@@ -2550,7 +2548,7 @@
     "cost_pawns": 0.58,
     "rank": null
    },
-   "motifs_after_played": "Fork: the white queen on e6 attacks two black pieces: the black bishop on f6 and the black king on f7 | Watch out — Deflection: the white pawn on b2 is the only defender of the white knight on c3, and is under attack itself — if it moves away, the white knight is left undefended | The white queen on e6 controls the open e-file",
+   "motifs_after_played": "The white pawn on b2 is the only defender of the knight on c3, and it is attacked by the black queen on h2. The white queen on e6 stands on the open e-file.",
    "margin_pawns": 0.06,
    "best_stands_out": false
   },
@@ -2580,7 +2578,7 @@
     "cost_pawns": 0.65,
     "rank": 2
    },
-   "motifs_after_played": "Watch out — Pin: the black bishop on f6 is pinned to the black king on g6 | Resolved — Fork: the white queen on e6 attacks two black pieces: the black bishop on f6 and the black king on f7 | Watch out — The H-file beside the black king on g6 is open | Resolved — The black king on f7 has lost its pawn shield",
+   "motifs_after_played": "The white queen on e6 pins the black bishop on f6 to the king on g6. The h-file beside the black king on g6 is open. The black king is no longer without a pawn shield.",
    "margin_pawns": 0.58,
    "best_stands_out": true
   },
@@ -2622,7 +2620,7 @@
     "cost_pawns": 0.15,
     "rank": null
    },
-   "motifs_after_played": "Skewer: the black king on g6 has to move, exposing the black pawn on g7 | Watch out — Deflection: the white pawn on b2 is the only defender of the white knight on c3, and is under attack itself — if it moves away, the white knight is left undefended | The white queen on g4 controls the half-open g-file",
+   "motifs_after_played": "The white pawn on b2 is the only defender of the knight on c3, and it is attacked by the black queen on h2. The white queen on g4 stands on the half-open g-file.",
    "margin_pawns": 0.07,
    "best_stands_out": false
   },
@@ -2664,7 +2662,7 @@
     "cost_pawns": 0.08,
     "rank": 3
    },
-   "motifs_after_played": "Resolved — Skewer: the black king on g6 has to move, exposing the black pawn on g7 | Watch out — The H-file beside the black king on h7 is open | Resolved — The H-file beside the black king on g6 is open",
+   "motifs_after_played": "The h-file beside the black king on h7 is open. The h-file beside the black king is no longer open.",
    "margin_pawns": 0.08,
    "best_stands_out": false
   },
@@ -2706,7 +2704,7 @@
     "cost_pawns": 0.14,
     "rank": 3
    },
-   "motifs_after_played": "the black queen on h2 is undefended | Watch out — Skewer: the white knight on c3 has to move, exposing the white pawn on b2 | the white queen on g2 has to move, exposing the white pawn on b2 | Resolved — Skewer: the white knight on c3 has to move, exposing the white pawn on b2 | Resolved — Deflection: the white pawn on b2 is the only defender of the white knight on c3, and is under attack itself — if it moves away, the white knight is left undefended | The white queen on g2 controls the half-open g-file",
+   "motifs_after_played": "The black queen on h2 is attacked by the white queen on g2 and has no defender. The white knight on c3 no longer depends on one attacked defender. The white queen on g2 stands on the half-open g-file.",
    "margin_pawns": 0.09,
    "best_stands_out": false
   },
@@ -2748,7 +2746,7 @@
     "cost_pawns": 0.14,
     "rank": null
    },
-   "motifs_after_played": "Pin: the white pawn on f3 is pinned to the white king on f1 | Skewer: the white knight on c3 has to move, exposing the white pawn on b2 | Deflection: the white knight on c3 is the only defender of the white pawn on a4, and is under attack itself — if it moves away, the white pawn is left undefended | Resolved — the black queen on h2 is undefended | The black queen on f4 controls the half-open f-file",
+   "motifs_after_played": "The black queen on f4 pins the white pawn on f3 to the king on f1. The white knight on c3 is the only defender of the pawn on a4, and it is attacked by the black bishop on f6. The black queen on h2 is no longer hanging. The black queen on f4 stands on the half-open f-file.",
    "margin_pawns": 0.03,
    "best_stands_out": false
   },
@@ -2790,7 +2788,7 @@
     "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "The white queen on h3 controls the open h-file",
+   "motifs_after_played": "The white queen on h3 stands on the open h-file.",
    "margin_pawns": 0.06,
    "best_stands_out": false
   },
@@ -2832,7 +2830,7 @@
     "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Watch out — The black king on g8 has lost its pawn shield | Resolved — The H-file beside the black king on h7 is open",
+   "motifs_after_played": "The black king on g8 has lost its pawn shield. The h-file beside the black king is no longer open.",
    "margin_pawns": 0.0,
    "best_stands_out": false
   },
@@ -2874,7 +2872,7 @@
     "cost_pawns": 0.03,
     "rank": 3
    },
-   "motifs_after_played": "Fork: the white queen on e6 attacks two black pieces: the black bishop on f6 and the black king on g8 | The white queen on e6 controls the open e-file",
+   "motifs_after_played": "The white pawn on f3 is attacked by the black queen on f4 and has no defender. The white queen on e6 stands on the open e-file.",
    "margin_pawns": 0.0,
    "best_stands_out": false
   },
@@ -2910,7 +2908,7 @@
     "cost_pawns": 0.03,
     "rank": 1
    },
-   "motifs_after_played": "Resolved — Fork: the white queen on e6 attacks two black pieces: the black bishop on f6 and the black king on g8 | Watch out — The black king on f8 has lost its pawn shield | Resolved — The black king on g8 has lost its pawn shield",
+   "motifs_after_played": "The black king on f8 has lost its pawn shield. The black king is no longer without a pawn shield.",
    "margin_pawns": 0.03,
    "best_stands_out": false
   },
@@ -2952,7 +2950,7 @@
     "cost_pawns": 4.43,
     "rank": null
    },
-   "motifs_after_played": "the black queen on f4 is undefended | Watch out — Skewer: the white rook on e4 has to move, exposing the white pawn on a4 | the white knight on c3 has to move, exposing the white pawn on b2 | Resolved — Skewer: the white knight on c3 has to move, exposing the white pawn on b2 | Resolved — Deflection: the white knight on c3 is the only defender of the white pawn on a4, and is under attack itself — if it moves away, the white pawn is left undefended | The white rook on e4 controls the open e-file",
+   "motifs_after_played": "The black queen on f4 is attacked by the white rook on e4 and has no defender. The white pawn on a4 no longer depends on one attacked defender. The white rook on e4 stands on the open e-file.",
    "margin_pawns": 0.18,
    "best_stands_out": false
   },
@@ -2994,7 +2992,7 @@
     "cost_pawns": 4.43,
     "rank": null
    },
-   "motifs_after_played": "the white pawn on b2 and the white knight on c3 are undefended | Skewer: the white knight on c3 has to move, exposing the white pawn on b2 | Deflection: the white pawn on b2 is the only defender of the white knight on c3, and is under attack itself — if it moves away, the white knight is left undefended | Resolved — the black queen on f4 is undefended | The black queen on d2 controls the open d-file",
+   "motifs_after_played": "The white knight on c3 is attacked twice and defended only once. The white pawn on b2 is the only defender of the knight on c3, and it is attacked by the black queen on d2. The black queen on f4 is no longer hanging. The black queen on d2 stands on the open d-file.",
    "margin_pawns": 3.89,
    "best_stands_out": true
   },
@@ -3036,7 +3034,7 @@
     "cost_pawns": 4.64,
     "rank": null
    },
-   "motifs_after_played": "the black pawn on c7 and the black bishop on f6 are undefended | Resolved — the white pawn on b2 and the white knight on c3 are undefended | Resolved — Skewer: the white knight on c3 has to move, exposing the white pawn on b2",
+   "motifs_after_played": "The black bishop on f6 is attacked twice and defended only once. The white knight on c3 is no longer hanging. The white knight on c3 no longer depends on one attacked defender.",
    "margin_pawns": 0.01,
    "best_stands_out": false
   },
@@ -3075,10 +3073,10 @@
     "label": "37... Qxd5",
     "eval": "-4.74",
     "value_for_mover": 474,
-    "cost_pawns": -0.1,
+    "cost_pawns": 0.0,
     "rank": 4
    },
-   "motifs_after_played": "Fork: the black queen on d5 attacks two white pieces: the white rook on e4 and the white queen on e6 | Skewer: the white rook on e4 has to move, exposing the white pawn on f3 | Deflection: the white rook on e4 is the only defender of the white queen on e6, and is under attack itself — if it moves away, the white queen is left undefended | Resolved — the black pawn on c7 and the black bishop on f6 are undefended | The black queen on d5 controls the open d-file",
+   "motifs_after_played": "The white rook on e4 is the only defender of the queen on e6, and it is attacked by the black queen on d5. The black bishop on f6 is no longer hanging. The black queen on d5 stands on the open d-file.",
    "margin_pawns": 0.0,
    "best_stands_out": false
   },
@@ -3120,7 +3118,7 @@
     "cost_pawns": 0.75,
     "rank": 2
    },
-   "motifs_after_played": "Resolved — Fork: the black queen on d5 attacks two white pieces: the white rook on e4 and the white queen on e6 | Resolved — Deflection: the white rook on e4 is the only defender of the white queen on e6, and is under attack itself — if it moves away, the white queen is left undefended | The white queen on g4 controls the half-open g-file",
+   "motifs_after_played": "The white queen on e6 no longer depends on one attacked defender. The white queen on g4 stands on the half-open g-file.",
    "margin_pawns": 0.22,
    "best_stands_out": false
   },
@@ -3159,10 +3157,10 @@
     "label": "38... Qd3+",
     "eval": "-7.63",
     "value_for_mover": 763,
-    "cost_pawns": -2.14,
+    "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "Fork: the black queen on d3 attacks three white pieces: the white rook on e4, the white king on f1 and the white pawn on f3 | The black queen on d3 controls the open d-file",
+   "motifs_after_played": "The black queen on d3 stands on the open d-file.",
    "margin_pawns": 0.13,
    "best_stands_out": false
   },
@@ -3204,7 +3202,7 @@
     "cost_pawns": 0.32,
     "rank": 1
    },
-   "motifs_after_played": "Resolved — Fork: the black queen on d3 attacks three white pieces: the white rook on e4, the white king on f1 and the white pawn on f3 | Watch out — The white king on g2 has lost its pawn shield | Resolved — The white king on f1 has lost its pawn shield",
+   "motifs_after_played": "The white king on g2 has lost its pawn shield. The white king is no longer without a pawn shield.",
    "margin_pawns": 0.05,
    "best_stands_out": false
   },
@@ -3246,7 +3244,7 @@
     "cost_pawns": 3.11,
     "rank": 4
    },
-   "motifs_after_played": "Fork: the black queen on c2 attacks four white pieces: the white pawn on a4, the white pawn on b2, the white rook on e4 and the white king on g2 | Deflection: the white rook on e4 is the only defender of the white pawn on a4, and is under attack itself — if it moves away, the white pawn is left undefended",
+   "motifs_after_played": "The black queen on c2 forks the white king on g2 and the pawn on b2. The white rook on e4 is the only defender of the pawn on a4, and it is attacked by the black queen on c2.",
    "margin_pawns": 3.06,
    "best_stands_out": true
   },
@@ -3288,7 +3286,7 @@
     "cost_pawns": 0.04,
     "rank": 1
    },
-   "motifs_after_played": "Resolved — Fork: the black queen on c2 attacks four white pieces: the white pawn on a4, the white pawn on b2, the white rook on e4 and the white king on g2 | Watch out — The H-file beside the white king on h3 is open | Resolved — The white king on g2 has lost its pawn shield",
+   "motifs_after_played": "The fork by the black queen on c2 is over. The h-file beside the white king on h3 is open. The white king is no longer without a pawn shield.",
    "margin_pawns": 0.05,
    "best_stands_out": false
   },
@@ -3330,7 +3328,7 @@
     "cost_pawns": 0.08,
     "rank": null
    },
-   "motifs_after_played": "The black rook on d2 controls the open d-file",
+   "motifs_after_played": "The black rook on d2 stands on the open d-file.",
    "margin_pawns": 0.08,
    "best_stands_out": false
   },
@@ -3372,7 +3370,7 @@
     "cost_pawns": "mate",
     "rank": null
    },
-   "motifs_after_played": "Resolved — the white pawn on b2 is undefended | The white queen on e6 controls the open e-file",
+   "motifs_after_played": "The white pawn on b2 is no longer hanging. The white queen on e6 stands on the open e-file.",
    "margin_pawns": 0.89,
    "best_stands_out": true
   },
@@ -3411,10 +3409,10 @@
     "label": "41... Rh2+",
     "eval": "#-2",
     "value_for_mover": 99998,
-    "cost_pawns": "mate",
+    "cost_pawns": 0,
     "rank": 1
    },
-   "motifs_after_played": "the white pawn on b2 is undefended | The black rook on h2 controls the open h-file",
+   "motifs_after_played": "The white pawn on b2 is attacked by the black bishop on f6 and has no defender. The black rook on h2 stands on the open h-file.",
    "best_stands_out": true,
    "margin_pawns": "mate"
   },
@@ -3444,7 +3442,7 @@
     "cost_pawns": 0,
     "rank": 1
    },
-   "motifs_after_played": "Resolved — the white pawn on b2 is undefended | Watch out — The H-file beside the white king on g4 is open | Resolved — The H-file beside the white king on h3 is open",
+   "motifs_after_played": "The white pawn on b2 is no longer hanging. The h-file beside the white king on g4 is open. The h-file beside the white king is no longer open.",
    "best_stands_out": false,
    "margin_pawns": "mate"
   },
@@ -3483,10 +3481,10 @@
     "label": "42... Qg2+",
     "eval": "#-1",
     "value_for_mover": 99999,
-    "cost_pawns": "mate",
+    "cost_pawns": 0,
     "rank": 1
    },
-   "motifs_after_played": "Fork: the black queen on g2 attacks three white pieces: the white pawn on b2, the white pawn on f3 and the white king on g4 | Deflection: the white king on g4 is the only defender of the white pawn on f3, and is under attack itself — if it moves away, the white pawn is left undefended | Pin: the white pawn on f3 is pinned to the white rook on e4",
+   "motifs_after_played": "The black queen on g2 forks the white king on g4 and the pawn on b2. The white king on g4 is the only defender of the pawn on f3, and it is attacked by the black queen on g2.",
    "best_stands_out": false,
    "margin_pawns": "mate"
   },
@@ -3516,7 +3514,7 @@
     "cost_pawns": 0,
     "rank": 2
    },
-   "motifs_after_played": "Resolved — Fork: the black queen on g2 attacks three white pieces: the white pawn on b2, the white pawn on f3 and the white king on g4 | Resolved — Deflection: the white king on g4 is the only defender of the white pawn on f3, and is under attack itself — if it moves away, the white pawn is left undefended | Watch out — The E-file beside the white king on f4 is open | Resolved — The H-file beside the white king on g4 is open",
+   "motifs_after_played": "The fork by the black queen on g2 is over. The white pawn on f3 no longer depends on one attacked defender. The e-file beside the white king on f4 is open. The h-file beside the white king is no longer open.",
    "best_stands_out": false,
    "margin_pawns": "mate"
   },
@@ -3555,10 +3553,10 @@
     "label": "43... Qg5#",
     "eval": "checkmate",
     "value_for_mover": 100000,
-    "cost_pawns": "mate",
+    "cost_pawns": 0,
     "rank": 1
    },
-   "motifs_after_played": "Double attack: the white pawn on b2 is undefended, plus the white king on f4 is threatened with mate | Watch out — Deflection: the black bishop on f6 is the only defender of the black queen on g5, and is under attack itself — if it moves away, the black queen is left undefended",
+   "motifs_after_played": "The white king on f4 is checkmated. The black bishop on f6 is the only defender of the queen on g5, and it is attacked by the white queen on e6.",
    "best_stands_out": false,
    "margin_pawns": "mate"
   },

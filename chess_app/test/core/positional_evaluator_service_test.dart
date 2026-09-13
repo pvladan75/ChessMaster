@@ -81,17 +81,62 @@ void main() {
 
     test('5. Detects a color complex weakness', () {
       // White's only pawns (c4, d3, e4) are all on light squares and White
-      // has no light-squared bishop at all.
+      // has no bishop at all. A pawn guards squares of its own colour, so it
+      // is the dark squares nothing covers — and the bishop that could is
+      // the dark-squared one. Until 13.9.2026 this said the opposite.
       const fen = '4k3/8/8/4p3/2P1P3/3P4/8/4K3 w - - 0 1';
       final result = service.evaluate(fen: fen);
 
-      final weakness = result.findings.firstWhere(
-        (f) => f.factors.contains(PositionalFactor.colorComplexWeakness),
-        orElse: () =>
-            throw StateError('expected a color-complex-weakness finding'),
-      );
-      expect(weakness.description,
-          'White has no light-squared bishop, and three of its pawns stand on light squares, so the light squares are weak.');
+      final weaknesses = result.findings
+          .where(
+              (f) => f.factors.contains(PositionalFactor.colorComplexWeakness))
+          .map((f) => f.description)
+          .toList();
+      expect(weaknesses, [
+        'White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak.',
+      ]);
+    });
+
+    test('5b. Pawns on dark squares leave the light squares weak', () {
+      // c3, d4 and e3 are all dark squares.
+      const fen = '4k3/8/8/8/3P4/2P1P3/8/4K3 w - - 0 1';
+      final result = service.evaluate(fen: fen);
+
+      final weaknesses = result.findings
+          .where(
+              (f) => f.factors.contains(PositionalFactor.colorComplexWeakness))
+          .map((f) => f.description)
+          .toList();
+      expect(weaknesses, [
+        'White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak.',
+      ]);
+    });
+
+    test('5c. The dark-squared bishop covers what pawns on light squares leave',
+        () {
+      // Same pawns as test 5, with a bishop on c1 — a dark square.
+      const fen = '4k3/8/8/4p3/2P1P3/3P4/8/2B1K3 w - - 0 1';
+      final result = service.evaluate(fen: fen);
+
+      expect(
+          result.findings.where(
+              (f) => f.factors.contains(PositionalFactor.colorComplexWeakness)),
+          isEmpty);
+    });
+
+    test('5d. A light-squared bishop does not cover the dark squares', () {
+      // Same pawns as test 5, with a bishop on f1 — a light square.
+      const fen = '4k3/8/8/4p3/2P1P3/3P4/8/4KB2 w - - 0 1';
+      final result = service.evaluate(fen: fen);
+
+      final weaknesses = result.findings
+          .where(
+              (f) => f.factors.contains(PositionalFactor.colorComplexWeakness))
+          .map((f) => f.description)
+          .toList();
+      expect(weaknesses, [
+        'White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak.',
+      ]);
     });
 
     test('6. Detects a rook controlling an open file', () {
@@ -248,6 +293,7 @@ void main() {
           service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
 
       final comment = service.describeMoveDiff(diff);
+      expect(comment, contains('The white pawn on a2 is no longer isolated.'));
       expect(comment, isNot(contains('Resolved')));
       expect(comment, isNot(contains('Watch out')));
       for (final finding in [...diff.created, ...diff.resolved]) {

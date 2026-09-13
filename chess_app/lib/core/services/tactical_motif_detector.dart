@@ -411,31 +411,26 @@ class TacticalMotifDetector {
         final targets = _getAttackedOpponentSquares(game, sq, p, targetColor);
         if (targets.length < 2) continue;
 
-        // Verify targets include valuable pieces or check on King
-        bool hasKingCheck = false;
-        int valuableTargets = 0;
-        for (final tSq in targets) {
-          final tPiece = game.get(tSq);
-          if (tPiece != null) {
-            if (tPiece.type == chess.PieceType.KING) {
-              hasKingCheck = true;
-            } else if (_pieceValue(tPiece.type) >= _pieceValue(p.type) ||
-                tPiece.type == chess.PieceType.ROOK ||
-                tPiece.type == chess.PieceType.QUEEN) {
-              valuableTargets++;
-            }
-          }
-        }
-        if (!hasKingCheck && valuableTargets < 2) continue;
+        // A target counts only when the fork can win it: the king, whose
+        // check forces the reply; a piece worth more than the forking piece;
+        // or a piece nobody defends. A defended pawn is attacked, not forked —
+        // counting every attacked piece turned a queen's fork of two loose
+        // rooks into „attacks five black pieces", three of them defended pawns,
+        // and made check plus a defended pawn a fork.
+        final counted = [
+          for (final t in targets)
+            if (_forkCanWin(game, p, t, targetColor)) t
+        ];
+        if (counted.length < 2) continue;
 
         final namer = _Namer();
         final forker = namer(p, sq);
         final named = [
-          for (final t in _mostValuableFirst(game, targets))
+          for (final t in _mostValuableFirst(game, counted))
             namer(game.get(t)!, t)
         ];
         found.add(_Found(
-          [sq, ...targets],
+          [sq, ...counted],
           '$forker forks ${joinAnd(named)}',
           'the fork by ${_Namer()(p, sq)} is over',
         ));
@@ -520,25 +515,46 @@ class TacticalMotifDetector {
           final back = secondSq!;
           final val1 = _pieceValue(firstPiece.type);
           final val2 = _pieceValue(secondPiece.type);
+          final attackerValue = _pieceValue(p.type);
           final namer = _Namer();
 
-          // PIN: 2nd piece is King or higher value than 1st piece
+          // PIN: 2nd piece is King or higher value than 1st piece — and the
+          // piece behind is one the pinned piece cannot leave: something worth
+          // more than the pinning piece (the king always is), or something
+          // nothing else defends. A pawn in front of a knight the rook holds,
+          // pinned by a bishop, is an even trade on offer and not a pin.
           if (secondPiece.type == chess.PieceType.KING || val2 > val1) {
-            pins.add(_Found(
-              [attackerSq, front, back],
-              '${namer(p, attackerSq)} pins ${namer(firstPiece, front)} '
-                  'to ${namer(secondPiece, back)}',
-              '${_Namer()(firstPiece, front)} is no longer pinned',
-            ));
+            final behindCannotBeLeft = val2 > attackerValue ||
+                _undefended(game, back, targetColor, besides: front);
+            if (behindCannotBeLeft) {
+              pins.add(_Found(
+                [attackerSq, front, back],
+                '${namer(p, attackerSq)} pins ${namer(firstPiece, front)} '
+                    'to ${namer(secondPiece, back)}',
+                '${_Namer()(firstPiece, front)} is no longer pinned',
+              ));
+            }
           }
-          // SKEWER: 1st piece is King or higher value than 2nd piece
+          // SKEWER: 1st piece is King or higher value than 2nd piece — and it
+          // is one only when the front piece must move (worth more than the
+          // attacker, which the king always is, or defended by nothing) and the
+          // piece behind is worth winning (a minor piece or more, or
+          // undefended). Without both, „the queen has to move, exposing the
+          // pawn" was said of a pawn two others held.
           else if (firstPiece.type == chess.PieceType.KING || val1 > val2) {
-            skewers.add(_Found(
-              [attackerSq, front, back],
-              '${namer(p, attackerSq)} skewers ${namer(firstPiece, front)} '
-                  'and ${namer(secondPiece, back)} behind it',
-              '${_Namer()(firstPiece, front)} is no longer skewered',
-            ));
+            final frontMustMove =
+                val1 > attackerValue || _undefended(game, front, targetColor);
+            final behindWorthWinning =
+                val2 >= _pieceValue(chess.PieceType.KNIGHT) ||
+                    _undefended(game, back, targetColor, besides: front);
+            if (frontMustMove && behindWorthWinning) {
+              skewers.add(_Found(
+                [attackerSq, front, back],
+                '${namer(p, attackerSq)} skewers ${namer(firstPiece, front)} '
+                    'and ${namer(secondPiece, back)} behind it',
+                '${_Namer()(firstPiece, front)} is no longer skewered',
+              ));
+            }
           }
         }
       }
@@ -978,12 +994,21 @@ class TacticalMotifDetector {
         final tSq = _coordsToSq(f, r);
         final tPiece = game.get(tSq);
         if (tPiece == null || tPiece.color != targetColor) continue;
+        // The king is not a piece a defender holds: a check is answered by
+        // moving as often as by taking, and „the king is left undefended" is
+        // not a chess sentence. It was being written.
+        if (tPiece.type == chess.PieceType.KING) continue;
         if (_legalCapturerSquares(game, tSq, attackerColor).isEmpty) continue;
 
         final defenders = _legalCapturerSquares(game, tSq, targetColor);
-        if (defenders.length == 1) {
-          targetsBySoleDefender.putIfAbsent(defenders.first, () => []).add(tSq);
+        if (defenders.length != 1) continue;
+        // A pawn guarding a pawn is the ordinary shape of a pawn chain, not a
+        // defender to overload or deflect.
+        if (tPiece.type == chess.PieceType.PAWN &&
+            game.get(defenders.first)!.type == chess.PieceType.PAWN) {
+          continue;
         }
+        targetsBySoleDefender.putIfAbsent(defenders.first, () => []).add(tSq);
       }
     }
 
@@ -1172,6 +1197,25 @@ class TacticalMotifDetector {
     });
     return [for (final entry in indexed) entry.square];
   }
+
+  /// Whether a fork attacking [square] can win what stands there — see the
+  /// rule at the call in [_detectForks].
+  bool _forkCanWin(chess.Chess game, chess.Piece forker, String square,
+      chess.Color targetColor) {
+    final target = game.get(square)!;
+    // The king needs no clause of its own: nothing that can attack it is worth
+    // more, so the comparison already counts it.
+    return _pieceValue(target.type) > _pieceValue(forker.type) ||
+        _undefended(game, square, targetColor);
+  }
+
+  /// Whether nothing of [color] could take back on [square]. [besides] is
+  /// left out of the count: the piece standing in front on a pin's or a
+  /// skewer's line is the one being driven off it, so it is not a defender
+  /// the piece behind can rely on.
+  bool _undefended(chess.Chess game, String square, chess.Color color,
+          {String? besides}) =>
+      _legalCapturerSquares(game, square, color).every((s) => s == besides);
 
   /// The square in [squares] holding the least valuable piece, the first of
   /// equals — the attacker a sentence names, since it is the one that makes

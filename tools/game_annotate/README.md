@@ -500,6 +500,22 @@ d5 has to move, exposing the white pawn on e4", and „Fork: the white queen on 
 attacks five black pieces" counts three pawns. „Resolved —" came through as
 words too. Whatever the facts say, the model says.
 
+**So the vocabulary was cleaned, and the inputs follow it (13.9.2026).** The
+detector writes sentences now — no „Watch out —", no „Resolved —", no „ | " —
+and stops counting what teaches nothing: a fork lists only what it can win (the
+queen above „forks the black rook on a8 and the rook on d7"), a skewer needs a
+front piece that must move and a back piece worth winning, a pin needs something
+behind worth more than the pinning piece or left loose, the king is never a
+„defended piece", and the colour-complex rule points at the squares the pawns do
+*not* cover. The three `_reviewed.pgn` files were rewritten with
+`REVIEW_COMMENTS_ONLY=1` (`chess_app/tool/review_game.dart`): main-line comments
+only, every `??`, `!` line and side-line comment kept — checked move for move
+against the old files, because game one's tags came from the trainer's in-app run
+and a fresh review would not give them back. The `_facts.json` files were then
+rebuilt at the settings they carried (depth 20, multipv 4, margin 0.5, one
+thread, 128 MB). **Runs made before this date read the old wording**, so a
+comparison across that date compares two vocabularies, not two models.
+
 **The claim check is judged against the slot's own facts.** It first flagged
 „mate" in slots whose facts read „Black mates in 5"; it now backs a word when the
 text shown beside that slot contains it, which is the rule the model was given.

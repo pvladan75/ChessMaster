@@ -5728,3 +5728,28 @@ ono što nijedan test ne dokazuje.
 10. [ ] **Traka studija i dalje staje.** Dugme je osmo u traci; na uskom
     prozoru (oko 700 dp) proveri da se ništa ne seče i da se naslov „Tutorial
     Studio" skraćuje sa tri tačke umesto da gura dugmad van ekrana.
+
+## 160. Komentari detektora motiva su rečenice — 13.9.2026, nije viđeno uživo
+
+Rečnik detektora (`tactical_motif_detector.dart`,
+`positional_evaluator_service.dart`): nalazi su rečenice bez „Watch out —" i
+„Resolved —", spajaju se razmakom umesto „ | ", i više se ne broje lažne
+viljuške, iskošenja na braneni pešak, vezivanja pešaka za braneni skakač i
+„branjenje" kralja; slabost boje polja je okrenuta na ispravnu stranu. Testovi
+čitaju rečenice, ali nijedan ne vidi ekran ni ne sluša glas.
+
+1. [ ] **„Review entire game" piše rečenice.** U Analizi pusti pregled cele
+   partije: komentari moraju biti obične rečenice sa tačkom, bez „Watch out",
+   „Resolved" i uspravne crte.
+2. [ ] **Izmena komentara vraća štiklirane nalaze.** Na potezu sa dva nalaza
+   (npr. dve vezane figure) otvori „Add / Edit Comment": oba nalaza moraju biti
+   štiklirana, a slobodno polje prazno. Dodaj svoju belešku, sačuvaj, otvori
+   ponovo — beleška je u slobodnom polju, nalazi i dalje štiklirani.
+3. [ ] **Stari komentar ne nestaje.** Otvori analizu sačuvanu pre ovoga (sa
+   „Pin: … | Resolved — …"): ceo stari tekst mora da stoji u slobodnom polju.
+4. [ ] **Glas čita komentar kao govor.** Uvezi pregledanu partiju kao tutorijal
+   i pusti ga: između dva nalaza mora da se čuje pauza rečenice, a ne „vertical
+   bar" ili „pipe".
+5. [ ] **Jedan pogled šahista.** Na tri partije iz `tools/game_annotate/input/`
+   pročitaj nekoliko regenerisanih komentara: viljuška navodi samo ono što može
+   da osvoji, a „weak" boja polja je ona koju pešaci ne pokrivaju.

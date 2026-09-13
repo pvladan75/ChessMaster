@@ -396,11 +396,39 @@ void main() {
     });
 
     test('19. A mate on the board is called a mate, not a threat', () {
-      const fen = '3R2k1/5ppp/8/8/8/8/8/6K1 b - - 0 1';
+      // The knight on e4 is also hanging. On a board that is already mate
+      // that is not „two threats at once": the mate is said on its own.
+      const fen = '3R2k1/5ppp/8/8/4n3/3P4/8/6K1 b - - 0 1';
       final result = detector.detect(fen: fen);
 
       expect(_only(result, TacticalMotif.mateThreat).description,
           'The black king on g8 is checkmated.');
+    });
+
+    test('19b. A mate threat and a hanging piece are said as one double attack',
+        () {
+      // „M1" is White mating: Rd8 is coming, and the knight on e4 hangs to
+      // the pawn on d3 as well.
+      const fen = '6k1/5ppp/8/8/4n3/3P4/8/3R2K1 b - - 0 1';
+      final result = detector.detect(fen: fen, evalText: 'M1');
+
+      expect(
+          _only(result, TacticalMotif.mateThreatAndPieceAttack).description,
+          'Two threats at once: the black king on g8 is threatened with mate, '
+          'and the black knight on e4 is attacked by the white pawn on d3 '
+          'and has no defender.');
+    });
+
+    test('19c. The attacker named is the cheapest one, not the first found',
+        () {
+      // The rook on d1 and the pawn on e4 both attack the defended queen; the
+      // rook comes first in the board scan, and it is the pawn that wins it.
+      const fen = '3r2k1/8/8/3q4/4P3/8/8/3R2K1 b - - 0 1';
+      final result = detector.detect(fen: fen);
+
+      expect(
+          _only(result, TacticalMotif.hangingPiece, square: 'd5').description,
+          'The black queen on d5 is attacked by the white pawn on e4, a cheaper piece.');
     });
 
     test('20. The result joins its findings as sentences', () {
