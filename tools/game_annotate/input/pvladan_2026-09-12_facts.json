@@ -22,7 +22,6 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "White's pawns hold more of the centre.",
    "candidates": [
     {
      "move": "e4",
@@ -50,7 +49,32 @@
     }
    ],
    "margin_pawns": 0.07,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 2879587,
+    "played": {
+     "move": "e4",
+     "games": 1309466,
+     "share": 0.4547
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 1029878,
+      "share": 0.3576
+     },
+     {
+      "move": "Nf3",
+      "games": 292957,
+      "share": 0.1017
+     },
+     {
+      "move": "c4",
+      "games": 199442,
+      "share": 0.0693
+     }
+    ]
+   }
   },
   {
    "label": "1. e4",
@@ -64,7 +88,6 @@
     "rank": 2,
     "cost_pawns": 0.06
    },
-   "motifs_after_played": "White's pawns no longer hold more of the centre.",
    "candidates": [
     {
      "move": "c6",
@@ -92,7 +115,33 @@
     }
    ],
    "margin_pawns": 0.01,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 1309466,
+    "opening": "King's Pawn Game",
+    "played": {
+     "move": "e5",
+     "games": 314452,
+     "share": 0.2401
+    },
+    "alternatives": [
+     {
+      "move": "c5",
+      "games": 601092,
+      "share": 0.459
+     },
+     {
+      "move": "e6",
+      "games": 153056,
+      "share": 0.1169
+     },
+     {
+      "move": "c6",
+      "games": 106295,
+      "share": 0.0812
+     }
+    ]
+   }
   },
   {
    "label": "1... e5",
@@ -106,7 +155,6 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black pawn on e5 is attacked by the white knight on f3 and has no defender.",
    "candidates": [
     {
      "move": "Nf3",
@@ -134,7 +182,33 @@
     }
    ],
    "margin_pawns": 0.2,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 314452,
+    "opening": "King's Pawn Game",
+    "played": {
+     "move": "Nf3",
+     "games": 289894,
+     "share": 0.9219
+    },
+    "alternatives": [
+     {
+      "move": "Bc4",
+      "games": 9323,
+      "share": 0.0296
+     },
+     {
+      "move": "Nc3",
+      "games": 8152,
+      "share": 0.0259
+     },
+     {
+      "move": "f4",
+      "games": 4858,
+      "share": 0.0154
+     }
+    ]
+   }
   },
   {
    "label": "2. Nf3",
@@ -148,7 +222,6 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black pawn on e5 is no longer hanging.",
    "candidates": [
     {
      "move": "Nc6",
@@ -176,7 +249,33 @@
     }
    ],
    "margin_pawns": 0.01,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 289898,
+    "opening": "King's Knight Opening",
+    "played": {
+     "move": "Nc6",
+     "games": 248258,
+     "share": 0.8564
+    },
+    "alternatives": [
+     {
+      "move": "Nf6",
+      "games": 34242,
+      "share": 0.1181
+     },
+     {
+      "move": "d6",
+      "games": 6450,
+      "share": 0.0222
+     },
+     {
+      "move": "f5",
+      "games": 360,
+      "share": 0.0012
+     }
+    ]
+   }
   },
   {
    "label": "2... Nc6",
@@ -217,7 +316,33 @@
     }
    ],
    "margin_pawns": 0.21,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 249218,
+    "opening": "King's Knight Opening: Normal Variation",
+    "played": {
+     "move": "Bc4",
+     "games": 48160,
+     "share": 0.1932
+    },
+    "alternatives": [
+     {
+      "move": "Bb5",
+      "games": 162021,
+      "share": 0.6501
+     },
+     {
+      "move": "d4",
+      "games": 22292,
+      "share": 0.0894
+     },
+     {
+      "move": "Nc3",
+      "games": 14272,
+      "share": 0.0573
+     }
+    ]
+   }
   },
   {
    "label": "3. Bc4",
@@ -258,7 +383,33 @@
     }
    ],
    "margin_pawns": 0.05,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 48726,
+    "opening": "Italian Game",
+    "played": {
+     "move": "Be7",
+     "games": 1043,
+     "share": 0.0214
+    },
+    "alternatives": [
+     {
+      "move": "Bc5",
+      "games": 25481,
+      "share": 0.5229
+     },
+     {
+      "move": "Nf6",
+      "games": 21370,
+      "share": 0.4386
+     },
+     {
+      "move": "d6",
+      "games": 647,
+      "share": 0.0133
+     }
+    ]
+   }
   },
   {
    "label": "3... Be7",
@@ -299,7 +450,33 @@
     }
    ],
    "margin_pawns": 0.11,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 1043,
+    "opening": "Italian Game: Hungarian Defense",
+    "played": {
+     "move": "O-O",
+     "games": 364,
+     "share": 0.349
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 499,
+      "share": 0.4784
+     },
+     {
+      "move": "d3",
+      "games": 88,
+      "share": 0.0844
+     },
+     {
+      "move": "c3",
+      "games": 65,
+      "share": 0.0623
+     }
+    ]
+   }
   },
   {
    "label": "4. O-O",
@@ -313,7 +490,6 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white pawn on e4 is attacked by the black knight on f6 and has no defender.",
    "candidates": [
     {
      "move": "Nf6",
@@ -341,7 +517,22 @@
     }
    ],
    "margin_pawns": 0.06,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 364,
+    "played": {
+     "move": "Nf6",
+     "games": 294,
+     "share": 0.8077
+    },
+    "alternatives": [
+     {
+      "move": "d6",
+      "games": 70,
+      "share": 0.1923
+     }
+    ]
+   }
   },
   {
    "label": "4... Nf6",
@@ -355,7 +546,6 @@
     "rank": 3,
     "cost_pawns": 0.12
    },
-   "motifs_after_played": "The white pawn on e4 is no longer hanging.",
    "candidates": [
     {
      "move": "d4",
@@ -383,7 +573,32 @@
     }
    ],
    "margin_pawns": 0.12,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 310,
+    "played": {
+     "move": "Nc3",
+     "games": 10,
+     "share": 0.0323
+    },
+    "alternatives": [
+     {
+      "move": "d3",
+      "games": 232,
+      "share": 0.7484
+     },
+     {
+      "move": "d4",
+      "games": 35,
+      "share": 0.1129
+     },
+     {
+      "move": "Re1",
+      "games": 33,
+      "share": 0.1065
+     }
+    ]
+   }
   },
   {
    "label": "5. Nc3",
@@ -397,7 +612,6 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white bishop on c4 pins the black pawn on f7 to the king on g8.",
    "candidates": [
     {
      "move": "O-O",
@@ -425,7 +639,22 @@
     }
    ],
    "margin_pawns": 0.01,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 18,
+    "played": {
+     "move": "O-O",
+     "games": 11,
+     "share": 0.6111
+    },
+    "alternatives": [
+     {
+      "move": "d6",
+      "games": 7,
+      "share": 0.3889
+     }
+    ]
+   }
   },
   {
    "label": "5... O-O",
@@ -437,7 +666,8 @@
     "eval": "+0.25",
     "value_for_mover": 25,
     "rank": 2,
-    "cost_pawns": 0.09
+    "cost_pawns": 0.09,
+    "left_book": true
    },
    "candidates": [
     {
@@ -466,7 +696,27 @@
     }
    ],
    "margin_pawns": 0.05,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 11,
+    "played": {
+     "move": "Re1",
+     "games": 0,
+     "share": 0.0
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 6,
+      "share": 0.5455
+     },
+     {
+      "move": "d3",
+      "games": 5,
+      "share": 0.4545
+     }
+    ]
+   }
   },
   {
    "label": "6. Re1",
@@ -507,7 +757,16 @@
     }
    ],
    "margin_pawns": 0.16,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 1,
+    "played": {
+     "move": "d6",
+     "games": 1,
+     "share": 1.0
+    },
+    "alternatives": []
+   }
   },
   {
    "label": "6... d6",
@@ -549,7 +808,27 @@
     }
    ],
    "margin_pawns": 0.05,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 4,
+    "played": {
+     "move": "d4",
+     "games": 0,
+     "share": 0.0
+    },
+    "alternatives": [
+     {
+      "move": "h3",
+      "games": 3,
+      "share": 0.75
+     },
+     {
+      "move": "a3",
+      "games": 1,
+      "share": 0.25
+     }
+    ]
+   }
   },
   {
    "label": "7. d4",
@@ -2250,5 +2529,7 @@
    "margin_pawns": 1.5,
    "best_stands_out": true
   }
- ]
+ ],
+ "in_book": 13,
+ "rebooked": "2026-09-13T20:10:30"
 }

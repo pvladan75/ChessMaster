@@ -69,6 +69,46 @@ def ask(fen, bearer):
         return json.load(fh)
 
 
+def book_walk(game, fens, bearer=None, gap_s=GAP_S):
+    """What the masters database says about each of [fens], in order.
+
+    Returns {fen: the explorer's answer} for the positions it knows, and stops
+    at the first it does not: no master game reached anything after such a
+    position, so asking is a request spent on a certain zero. Answers already in
+    `out/_masters/<game>.json` cost nothing.
+
+    This is the one place that talks to the explorer. `make_facts.py` calls it
+    while building a game's facts, and the answers are written into the facts
+    file - so the network is a build-time dependency and never a read-time one,
+    and a facts file stays what it became tonight: a function of its inputs.
+
+    A refusal returns what it has rather than raising. Half a book is a fact
+    about the opening; a retry into a 429 is a blocked address, and the app's
+    opening panel shares it.
+    """
+    cached = load(game)
+    known, fetched = {}, 0
+    for fen in fens:
+        if fen not in cached:
+            if bearer is None:
+                bearer = token()
+            time.sleep(gap_s)
+            try:
+                cached[fen] = ask(fen, bearer)
+                fetched += 1
+            except Exception as exc:
+                save(game, cached)
+                print('  masters: stopped at %s (%s); %d position(s) known'
+                      % (fen.split()[0][:20], exc, len(known)), flush=True)
+                return known
+        if total_of(cached[fen]) == 0:
+            break
+        known[fen] = cached[fen]
+    if fetched:
+        save(game, cached)
+    return known
+
+
 def cache_path(game):
     return os.path.join(CACHE, '%s.json' % game)
 

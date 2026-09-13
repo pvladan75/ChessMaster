@@ -183,6 +183,48 @@ def _cost_value(cost):
     return 1e9 if cost == 'mate' else (cost if isinstance(cost, (int, float)) else -1)
 
 
+def share_words(share):
+    """A share of a position's master games, as a reader would say it."""
+    if share >= 0.10:
+        return '%d%%' % round(100 * share)
+    if share >= 0.001:
+        return '%.1f%%' % (100 * share)
+    return 'under 0.1%'
+
+
+def book_words(row):
+    """What the masters database says about the move played here.
+
+    Absent for every position master games never reached, which after four to
+    six moves of a club game is all of them. `make_facts.py` silences the motif
+    detector for exactly the positions this speaks for: measured on the first
+    three games, its opening sentences were things like "the black pawn on e5
+    is attacked by the white knight on f3 and has no defender" on move two of a
+    Philidor. What is worth saying in the book is what is played here.
+    """
+    book = row.get('book')
+    if not book:
+        return ''
+    played = book.get('played') or {}
+    reached = ('1 master game has reached this position' if book['games'] == 1
+               else '%d master games have reached this position' % book['games'])
+    if played.get('games') and book['games'] == 1:
+        said = '%s, and it played %s' % (reached, played['move'])
+    elif played.get('games'):
+        said = '%s, and %s of them played %s' % (
+            reached, share_words(played['share']), played['move'])
+    else:
+        said = '%s and not one of them played %s' % (
+            reached, played.get('move', 'this move'))
+    others = ', '.join('%s %s' % (a['move'], share_words(a['share']))
+                       for a in book.get('alternatives') or [])
+    if others:
+        said += '; the other moves played here are %s' % others
+    if book.get('opening'):
+        said += '. The opening is the %s' % book['opening']
+    return said
+
+
 def moments(name, cfg=None):
     """The candidate moments of a game, each with its parts and its slots."""
     cfg = dict(DEFAULTS, **(cfg or {}))
@@ -206,6 +248,10 @@ def moments(name, cfg=None):
                    if best['value_for_mover'] - c['value_for_mover'] <= near]
         asks = len(correct) <= cfg['max_correct']
         board_here = rows[i - 1].get('motifs_after_played') if i > 0 else None
+        if not board_here:
+            # In the book the detector is quiet on purpose, and this is what
+            # stands in its place.
+            board_here = book_words(row) or None
         played = row['played']
         slots, facts, parts = {}, {}, []
 
@@ -223,6 +269,9 @@ def moments(name, cfg=None):
                     info['words'], words_for(game_move.get('eval')))
                 if rows[r].get('motifs_after_played'):
                     text += '; on the board after it: %s' % rows[r]['motifs_after_played']
+                book = book_words(rows[r])
+                if book:
+                    text += '. In the masters database: %s' % book
                 slots[sid] = text
                 facts[sid] = dict(info, motifs=rows[r].get('motifs_after_played') or '')
                 moves.append({'san': game_move['move'], 'slot': sid, 'ply': r,
@@ -291,6 +340,7 @@ def moments(name, cfg=None):
             'id': mid, 'index': i, 'label': row['label'], 'mover': mover,
             'played': played['label'], 'cost': played.get('cost_pawns'),
             'cost_text': cost_text(played),
+            'left_book': bool(played.get('left_book')),
             'best': best['move'], 'asks': asks,
             'correct': [c['move'] for c in correct], 'board': board_here,
             'parts': parts, 'slots': slots, 'facts': facts,
@@ -337,7 +387,7 @@ Return one JSON object and nothing else - no prose, no code fence:
 
 ## The game
 
-```
+{opening}```
 {game}
 ```
 
@@ -345,6 +395,37 @@ Return one JSON object and nothing else - no prose, no code fence:
 
 {moments}
 """
+
+
+def book_summary(rows):
+    """One line about the opening, for the prompt's header.
+
+    The statistics belong to the positions master games reached, and those are
+    the first four to six moves of a club game - while the moments a tutorial is
+    built from are in the middlegame. So on the three games this was written
+    against, the book reached a slot in exactly one: the agreed value, "name the
+    opening", arrived nowhere in the other two. This is that one line, and it
+    sits with the game rather than with a slot, because it is about the game.
+    It is what the title and the description can be written from.
+    """
+    named = [r['book']['opening'] for r in rows
+             if r.get('book') and r['book'].get('opening')]
+    left = next((r for r in rows if (r.get('played') or {}).get('left_book')),
+                None)
+    if not named and not left:
+        return ''
+    said = []
+    if named:
+        said.append('The opening is the %s' % named[-1])
+    if left:
+        book = left['book']
+        said.append('%s left the masters database: %d master game%s had reached '
+                    'that position and not one played it'
+                    % (left['played']['label'], book['games'],
+                       '' if book['games'] == 1 else 's'))
+    elif named:
+        said.append('the game never left the masters database')
+    return '. '.join(said) + '.'
 
 
 def prompt(name, cfg=None):
@@ -358,6 +439,11 @@ def prompt(name, cfg=None):
                     ('There is a question here; correct answers: %s.' % ', '.join(m['correct']))
                     if m['asks'] else
                     'No question here: too many moves are about as good.'))
+        if m['left_book']:
+            # The hook a moment inside the book is for: not "you
+            # blundered", but "this is where you stopped playing what
+            # masters play".
+            head += '\nThis is the move that left the masters database.'
         if m['board']:
             head += '\nOn the board: %s' % m['board']
         lines = [head, '', 'Slots, in the order the student meets them:']
@@ -367,7 +453,10 @@ def prompt(name, cfg=None):
                        [mv['slot'] for mv in part.get('moves', [])]:
                 lines.append('- `%s`: %s' % (sid, m['slots'][sid]))
         blocks.append('\n'.join(lines))
-    return PROMPT.format(game=game, moments='\n\n'.join(blocks))
+    opening = book_summary(facts_of(name)['rows'])
+    return PROMPT.format(
+        game=game, opening=(opening + '\n\n') if opening else '',
+        moments='\n\n'.join(blocks))
 
 
 # --- Assembly -----------------------------------------------------------------

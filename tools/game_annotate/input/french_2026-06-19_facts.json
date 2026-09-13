@@ -22,7 +22,6 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "White's pawns hold more of the centre.",
    "candidates": [
     {
      "move": "e4",
@@ -50,7 +49,32 @@
     }
    ],
    "margin_pawns": 0.07,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 2879587,
+    "played": {
+     "move": "e4",
+     "games": 1309466,
+     "share": 0.4547
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 1029878,
+      "share": 0.3576
+     },
+     {
+      "move": "Nf3",
+      "games": 292957,
+      "share": 0.1017
+     },
+     {
+      "move": "c4",
+      "games": 199442,
+      "share": 0.0693
+     }
+    ]
+   }
   },
   {
    "label": "1. e4",
@@ -91,7 +115,33 @@
     }
    ],
    "margin_pawns": 0.01,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 1309466,
+    "opening": "King's Pawn Game",
+    "played": {
+     "move": "e6",
+     "games": 153056,
+     "share": 0.1169
+    },
+    "alternatives": [
+     {
+      "move": "c5",
+      "games": 601092,
+      "share": 0.459
+     },
+     {
+      "move": "e5",
+      "games": 314452,
+      "share": 0.2401
+     },
+     {
+      "move": "c6",
+      "games": 106295,
+      "share": 0.0812
+     }
+    ]
+   }
   },
   {
    "label": "1... e6",
@@ -132,7 +182,33 @@
     }
    ],
    "margin_pawns": 0.02,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 153056,
+    "opening": "French Defense",
+    "played": {
+     "move": "f4",
+     "games": 319,
+     "share": 0.0021
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 137036,
+      "share": 0.8953
+     },
+     {
+      "move": "d3",
+      "games": 8823,
+      "share": 0.0576
+     },
+     {
+      "move": "Nf3",
+      "games": 2507,
+      "share": 0.0164
+     }
+    ]
+   }
   },
   {
    "label": "2. f4",
@@ -146,7 +222,6 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white pawn on e4 is attacked by the black pawn on d5 and has no defender. White's pawns no longer hold more of the centre.",
    "candidates": [
     {
      "move": "d5",
@@ -174,7 +249,33 @@
     }
    ],
    "margin_pawns": 0.09,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 319,
+    "opening": "French Defense: La Bourdonnais Variation",
+    "played": {
+     "move": "d5",
+     "games": 297,
+     "share": 0.931
+    },
+    "alternatives": [
+     {
+      "move": "c5",
+      "games": 12,
+      "share": 0.0376
+     },
+     {
+      "move": "b6",
+      "games": 8,
+      "share": 0.0251
+     },
+     {
+      "move": "Nf6",
+      "games": 1,
+      "share": 0.0031
+     }
+    ]
+   }
   },
   {
    "label": "2... d5",
@@ -188,7 +289,6 @@
     "rank": 2,
     "cost_pawns": 0.09
    },
-   "motifs_after_played": "The white pawn on e4 is no longer hanging.",
    "candidates": [
     {
      "move": "d3",
@@ -216,7 +316,32 @@
     }
    ],
    "margin_pawns": 0.07,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 297,
+    "played": {
+     "move": "e5",
+     "games": 267,
+     "share": 0.899
+    },
+    "alternatives": [
+     {
+      "move": "d3",
+      "games": 10,
+      "share": 0.0337
+     },
+     {
+      "move": "Nc3",
+      "games": 8,
+      "share": 0.0269
+     },
+     {
+      "move": "Nf3",
+      "games": 8,
+      "share": 0.0269
+     }
+    ]
+   }
   },
   {
    "label": "3. e5",
@@ -230,7 +355,6 @@
     "rank": 2,
     "cost_pawns": 0.02
    },
-   "motifs_after_played": "Black's pawns hold more of the centre.",
    "candidates": [
     {
      "move": "d4",
@@ -258,7 +382,32 @@
     }
    ],
    "margin_pawns": 0.06,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 267,
+    "played": {
+     "move": "c5",
+     "games": 251,
+     "share": 0.9401
+    },
+    "alternatives": [
+     {
+      "move": "Nh6",
+      "games": 7,
+      "share": 0.0262
+     },
+     {
+      "move": "b6",
+      "games": 3,
+      "share": 0.0112
+     },
+     {
+      "move": "f5",
+      "games": 3,
+      "share": 0.0112
+     }
+    ]
+   }
   },
   {
    "label": "3... c5",
@@ -272,7 +421,6 @@
     "rank": 2,
     "cost_pawns": 0.02
    },
-   "motifs_after_played": "Black's pawns no longer hold more of the centre.",
    "candidates": [
     {
      "move": "Nf3",
@@ -300,7 +448,32 @@
     }
    ],
    "margin_pawns": 0.01,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 251,
+    "played": {
+     "move": "c3",
+     "games": 3,
+     "share": 0.012
+    },
+    "alternatives": [
+     {
+      "move": "Nf3",
+      "games": 236,
+      "share": 0.9402
+     },
+     {
+      "move": "b4",
+      "games": 8,
+      "share": 0.0319
+     },
+     {
+      "move": "Bb5+",
+      "games": 2,
+      "share": 0.008
+     }
+    ]
+   }
   },
   {
    "label": "4. c3",
@@ -341,7 +514,27 @@
     }
    ],
    "margin_pawns": 0.0,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 10,
+    "played": {
+     "move": "Nc6",
+     "games": 7,
+     "share": 0.7
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 2,
+      "share": 0.2
+     },
+     {
+      "move": "Ne7",
+      "games": 1,
+      "share": 0.1
+     }
+    ]
+   }
   },
   {
    "label": "4... Nc6",
@@ -353,7 +546,8 @@
     "eval": "-0.47",
     "value_for_mover": -47,
     "rank": 3,
-    "cost_pawns": 0.18
+    "cost_pawns": 0.18,
+    "left_book": true
    },
    "candidates": [
     {
@@ -382,7 +576,22 @@
     }
    ],
    "margin_pawns": 0.13,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 9,
+    "played": {
+     "move": "Na3",
+     "games": 0,
+     "share": 0.0
+    },
+    "alternatives": [
+     {
+      "move": "Nf3",
+      "games": 9,
+      "share": 1.0
+     }
+    ]
+   }
   },
   {
    "label": "5. Na3",
@@ -423,7 +632,22 @@
     }
    ],
    "margin_pawns": 0.01,
-   "best_stands_out": false
+   "best_stands_out": false,
+   "book": {
+    "games": 1,
+    "played": {
+     "move": "Nge7",
+     "games": 0,
+     "share": 0.0
+    },
+    "alternatives": [
+     {
+      "move": "Nh6",
+      "games": 1,
+      "share": 1.0
+     }
+    ]
+   }
   },
   {
    "label": "5... Nge7",
@@ -3227,5 +3451,7 @@
    "margin_pawns": 0.71,
    "best_stands_out": true
   }
- ]
+ ],
+ "in_book": 10,
+ "rebooked": "2026-09-13T20:10:32"
 }

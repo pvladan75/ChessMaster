@@ -48,6 +48,7 @@ import chess.engine
 import chess.pgn
 
 import analyze
+import probe_masters
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(HERE, 'input')
@@ -228,9 +229,75 @@ def analyse_all(fens, depth, multipv, threads, hash_mb, workers):
     return results
 
 
-def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers):
+def add_book(name, rows, gap_s, enabled=True):
+    """What the masters database says about this game, onto the rows.
+
+    Three things go in, and the third is a removal:
+
+     * `row['book']` on every position master games reached - how many, the
+       opening's name, what share of them played the move the trainer played,
+       and the three most popular alternatives. **The statistics are written
+       into the facts file**, so the network is a build-time dependency and
+       never a read-time one.
+     * `played['left_book']` on the first move no master game has played. That
+       move, and not the position after it, is the one worth a sentence: a
+       position can transpose back into the database by another move order, and
+       twice in three probed games it did.
+     * **and the motif detector goes quiet while the game is still theory**
+       (owner, 13.9.2026). Measured before it was believed: nineteen of the
+       thirty-two in-book positions of the first three games carried a motif
+       comment, and on move two of a Philidor it read "The black pawn on e5 is
+       attacked by the white knight on f3 and has no defender", then narrated
+       that threat's resolution a move later. In the book what is worth saying
+       is what is played here, and how often.
+
+    The engine still runs on every position. Skipping the book was the other
+    half of the owner's proposal and the measurement sent it back: it saves
+    about twelve seconds of an eighty-second run, and a move can be in the
+    database and still lose - the Fried Liver and Legal's mate are in every
+    masters database there is.
+    """
+    if not enabled:
+        return 0
+    known = probe_masters.book_walk(name, [row['fen'] for row in rows],
+                                    gap_s=gap_s)
+    if not known:
+        return 0
+    left = False
+    for row in rows:
+        data = known.get(row['fen'])
+        if data is None:
+            break
+        here = probe_masters.total_of(data)
+        played = row.get('played')
+        entry = {'games': here}
+        if data.get('opening'):
+            entry['opening'] = data['opening'].get('name')
+        moves = [{'move': m['san'], 'games': probe_masters.total_of(m),
+                  'share': round(probe_masters.total_of(m) / float(here), 4)}
+                 for m in data.get('moves') or []]
+        if played:
+            mine = next((m for m in moves if m['move'] == played['move']), None)
+            entry['played'] = mine or {'move': played['move'], 'games': 0,
+                                       'share': 0.0}
+            if not mine and not left:
+                played['left_book'] = True
+                left = True
+            if mine:
+                # Theory, so the detector has nothing to add that the
+                # statistics do not say better.
+                row.pop('motifs_after_played', None)
+        entry['alternatives'] = [m for m in moves
+                                 if not played or m['move'] != played['move']][:3]
+        row['book'] = entry
+    return sum(1 for row in rows if 'book' in row)
+
+
+def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers,
+          book=True, book_gap_s=None):
     started = time.time()
     rows = walk(name)
+    in_book = add_book(name, rows, book_gap_s or probe_masters.GAP_S, book)
     todo = [i for i, row in enumerate(rows) if 'candidates' not in row]
     answers = analyse_all([rows[i]['fen'] for i in todo],
                           depth, multipv, threads, hash_mb, workers)
@@ -287,6 +354,7 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers):
         'threads': threads,
         'hash_mb': hash_mb,
         'workers': workers,
+        'in_book': in_book,
         'generated': time.strftime('%Y-%m-%dT%H:%M:%S'),
         'seconds': round(time.time() - started),
         'rows': rows,
@@ -322,6 +390,39 @@ def recost(name):
     return len(changed)
 
 
+def rebook(name, gap_s=None):
+    """Put the masters statistics onto a facts file already written.
+
+    The same rule as `--recost`: a game once analysed is reused, and what is
+    only read off the numbers is re-derived without an engine. The motif
+    comments are read back out of the reviewed PGN rather than out of the file,
+    so the silence rule is applied from scratch every time and running this
+    twice says the same thing as running it once.
+    """
+    path = os.path.join(INPUT_DIR, '%s_facts.json' % name)
+    with io.open(path, encoding='utf-8') as fh:
+        facts = json.load(fh)
+    fresh = {row['label']: row.get('motifs_after_played') for row in walk(name)}
+    for row in facts['rows']:
+        row.pop('book', None)
+        if row.get('played'):
+            row['played'].pop('left_book', None)
+        comment = fresh.get(row['label'])
+        if comment:
+            row['motifs_after_played'] = comment
+        else:
+            row.pop('motifs_after_played', None)
+    facts['in_book'] = add_book(name, facts['rows'],
+                                gap_s or probe_masters.GAP_S)
+    facts['rebooked'] = time.strftime('%Y-%m-%dT%H:%M:%S')
+    with io.open(path, 'w', encoding='utf-8') as fh:
+        json.dump(facts, fh, ensure_ascii=False, indent=1)
+    quiet = sum(1 for r in facts['rows']
+                if r.get('book') and not r.get('motifs_after_played'))
+    print('%s: %d positions in the masters book, the detector silent on %d of '
+          'them' % (name, facts['in_book'], quiet))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('name')
@@ -338,24 +439,35 @@ def main():
                         help='positions analysed at the same time, each by its '
                              'own single-threaded engine')
     parser.add_argument('--hash', type=int, default=128)
+    parser.add_argument('--no-book', action='store_true',
+                        help='do not ask the masters database; the facts then '
+                             'carry no statistics and the detector is not '
+                             'silenced in the opening')
+    parser.add_argument('--rebook', action='store_true',
+                        help='put the masters statistics onto the existing '
+                             'facts file, with no engine and no re-analysis')
     parser.add_argument('--recost', action='store_true',
                         help='re-derive the costs over the existing facts file, '
                              'with no engine and no re-analysis')
     cfg = parser.parse_args()
 
+    if cfg.rebook:
+        rebook(cfg.name)
+        return
     if cfg.recost:
         recost(cfg.name)
         return
 
     facts = build(cfg.name, cfg.depth, cfg.multipv, cfg.margin, cfg.threads,
-                  cfg.hash, cfg.workers)
+                  cfg.hash, cfg.workers, book=not cfg.no_book)
     path = os.path.join(INPUT_DIR, '%s_facts.json' % cfg.name)
     with open(path, 'w', encoding='utf-8') as fh:
         json.dump(facts, fh, ensure_ascii=False, indent=1)
     out = sum(1 for r in facts['rows'] if r.get('best_stands_out'))
-    print('%s: %d positions, %d where the best move stands out, %d s -> %s'
-          % (cfg.name, len(facts['rows']), out, facts['seconds'],
-             os.path.relpath(path, HERE)))
+    print('%s: %d positions, %d where the best move stands out, %d in the '
+          'masters book, %d s -> %s'
+          % (cfg.name, len(facts['rows']), out, facts['in_book'],
+             facts['seconds'], os.path.relpath(path, HERE)))
 
 
 if __name__ == '__main__':

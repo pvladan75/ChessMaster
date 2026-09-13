@@ -939,6 +939,73 @@ changed the answer — the one accusation this harness must never make wrongly,
 and the exact trap this rebuild would otherwise have set. Proved by tampering
 with a stamp and watching it fire.
 
+## The opening speaks for itself — 13.9.2026
+
+The probe said the masters database is not worth building for the engine time it
+saves. It is worth building for the sentence, and this is that. Three changes,
+agreed with the owner before a line was written.
+
+**The statistics go into the facts file, and the network is a build-time
+dependency only.** `probe_masters.book_walk` is the one place that talks to the
+explorer; `make_facts.py` calls it while walking a game, writes what comes back
+onto the rows, and the file is self-contained afterwards. A facts file stays
+what it became earlier tonight — a function of its inputs — and reading one
+never touches a network. `--rebook` puts the statistics onto a file already
+analysed, with no engine at all, which is the same rule as `--recost`: a game
+once analysed is reused.
+
+A row master games reached carries how many, the opening's name, the share of
+them that played the move the trainer played, and the three most popular
+alternatives. In words:
+
+```
+3. Bc4    48726 master games have reached this position, and 2.1% of them
+          played Be7; the other moves played here are Bc5 52%, Nf6 44%,
+          d6 1.3%. The opening is the Italian Game
+5... O-O  11 master games have reached this position and not one of them
+          played Re1; the other moves played here are d4 55%, d3 45%
+```
+
+**The engine still runs on every position.** Skipping the book was the other
+half of the proposal and the measurement sent it back: it saves about twelve
+seconds of an eighty-second run, and a move can be in the database and still
+lose — the Fried Liver and Legal's mate are in every masters database there is.
+
+**The motif detector goes quiet while the game is still theory**, and this was
+measured before it was believed. Nineteen of the thirty-two in-book positions of
+the first three games carried a motif comment, and on move two of a Philidor it
+read „The black pawn on e5 is attacked by the white knight on f3 and has no
+defender", then narrated that threat's resolution a move later. True of the
+squares, false of the game. In the book what is worth saying is what is played
+here, and how often. Twelve of thirteen, ten of ten and eight of nine positions
+went quiet across the three games.
+
+**„Left the book" is a fact about the move, not about the position.** The
+probe caught the reason: in game one `6. Re1` was played by no master game at
+all, and the position after it has one — reached by another move order. So
+`left_book` is written on the first move nobody has played, which is the move
+worth a sentence, and not on the first position nobody has reached.
+
+### The finding that changed the shape
+
+**On the three games the book reached a slot in one of three.** The statistics
+belong to the first four to six moves; the moments a tutorial is built from are
+in the middlegame, and a moment's lead-in reaches back only three plies. So the
+agreed value — name the opening — arrived nowhere in two of three tutorials.
+
+So there is one line about the opening in the prompt's header, beside the game
+rather than beside a slot, because it is about the game:
+
+```
+The opening is the Italian Game: Hungarian Defense. 6. Re1 left the masters
+database: 11 master games had reached that position and not one played it.
+```
+
+That is the one addition beyond what was agreed, and the reason is above. It
+reached the first tutorial written with it immediately, in the description the
+model chose: „Three moments from a **French Defense** game…". CLEAN, every
+position exact, every question the best move of the analysis sent.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not
