@@ -247,6 +247,12 @@ python run_api.py B --provider groq --model <the model's own id>
 python run_api.py B --provider openai-compatible --base-url https://… --model …
 ```
 
+**Status, 13.9.2026.** Gemini is dropped as a metered API (Google Cloud refuses
+this account's payment profile — see `docs/STANJE-RADA.md`). A DeepSeek key is
+in `.env` and the first call came back **HTTP 402, „Insufficient Balance"**, so
+the free grant that was reported for new accounts does not apply to this one.
+Nothing has been run against a vendor other than Gemini yet.
+
 **DeepSeek** needs one line in `chess_backend/.env`:
 
 ```

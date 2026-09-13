@@ -85,6 +85,57 @@ motor i partije ne znaju ni za jednog dobavljača.
 
 ---
 
+## ODAKLE SUTRA — 13.9.2026, izbor LLM dobavljača
+
+**Cilj oko kog smo se složili**, da se ne bi ponovo otvarao: funkcija se na
+kraju nudi korisniku **u aplikaciji**, preko backenda, sa ključem na serveru i
+kontrolom (entitlement, merenje, red) — ali **pre** nego što se pipne backend
+ili UI, dobavljač se proverava kroz `tools/game_annotate/`, isto onako kako je
+provereno tri partije: ponašanje, format, kvalitet rezonovanja i potrošnja.
+Vlasnikove lične partije su odvojen posao i mogu oflajn kroz `agy`.
+
+**Šta model tu radi, a šta ne.** Komentare aplikacija već piše sama, lokalno i
+besplatno („Review entire game" = detektor motiva + pozicioni procenjivač +
+Stockfish). Model se kupuje za *pedagoški* deo: koja 4–10 trenutaka partije
+vrede detetu i koje rečenice ono čuje. Zato je tok **grana B**, ne A:
+
+> čist PGN → „Review entire game" (lokalno) → prokomentarisan PGN → model →
+> tutorijal JSON → `readTutorialJson` → otvara se u studiju
+
+Grana A (čist PGN pravo modelu) je merena i lošija u sve tri partije: pitanja
+koja izgledaju ispravno a netačna su.
+
+**Gde je stalo.** Ključ za DeepSeek je u `chess_backend/.env`, i prvi poziv
+vraća **HTTP 402 „Insufficient Balance"** — dakle onaj „grant od 5 miliona
+besplatnih tokena" za ovaj nalog ne važi. To je bila tvrdnja jednog modela, ne
+provereni podatak; isto važi i za Groq besplatni nivo dok se ne pogleda njihova
+stranica.
+
+**Sledeći korak je jedan od dva**, oba izvan koda:
+
+1. dopuniti DeepSeek nalog (ako njihova naplata prihvata karticu), pa odmah:
+   `python run_api.py B --provider deepseek --model deepseek-reasoner --timeout 600`
+   za sve tri partije iz `input/`;
+2. ili napraviti **Azure OpenAI** resurs (odvojen od Speech resursa koji već
+   postoji) i deployment, pa u `.env`: `AZURE_OPENAI_KEY`,
+   `AZURE_OPENAI_ENDPOINT=https://<resurs>.openai.azure.com`, po želji
+   `AZURE_OPENAI_API_VERSION`; `--model` je tada **ime deploymenta**.
+   `python run_api.py B --provider azure --model <deployment>`
+
+**Merilo je već postavljeno i ne izmišlja se ponovo**: ocenjivač mora reći
+CLEAN (`cd chess_app && dart run tool/grade_tutorial.dart <folder>`), a svako
+`ask_move` mora proći `python analyze.py fen "<FEN>" --depth 22 --multipv 4`
+kao prvi izbor motora sa jasnom razlikom. Tako su prošli i Gemini modeli, pa su
+brojevi uporedivi.
+
+**Jedna šteta iz te sesije, da se ne traži uzalud:** tri `out/B-…` foldera
+(grana B, sve tri partije, `gemini-3.8-flash-high`) obrisana su nepažljivim
+`rm -rf` sa džokerom. Nalazi su zapisani u `tools/game_annotate/README.md`;
+sami tutorijali nisu, i vraćaju se ponovnim pokretanjem
+(`python run_arm.py B --name <partija>`), oko dvanaest minuta za sve tri.
+
+---
+
 ## PGN u tutorijal i natrag — `PLAN-PGN-TUTORIJAL.md`, sve četiri faze, 12–13.9.2026
 
 Tačke 1, 2 i 4 iz fajla sa pitanjima vlasnika od 12.9.2026. Nije viđeno
