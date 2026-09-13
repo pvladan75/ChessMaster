@@ -9,13 +9,7 @@ move and what a fork and a pin are. They do not know this game.
 
 ## What to produce
 
-Write the tutorial as a single JSON object into the file
-
-    {OUT_FILE}
-
-Write nothing else to that file - no prose around it, no code fence. Everything
-you want to say to the person running this experiment goes in your reply, not in
-the file.
+{OUTPUT_INSTRUCTION}
 
 The exact shape of that object, and the rules it must obey, are in **THE FORMAT
 CONTRACT** at the bottom of this brief. Read it before you start. Every rule in
@@ -80,8 +74,7 @@ finish knowing something they can use in their own game next week.
 
 ## The game
 
-It is the file **{GAME_FILE}**, in the directory you are working in. Read it
-first; it is the only thing in there.
+{GAME_DELIVERY}
 
 {GAME_NOTE}
 
@@ -89,18 +82,7 @@ first; it is the only thing in there.
 
 ## When you are done
 
-Reply with, briefly:
-
- * how many parts you wrote and what each one teaches, in one line each;
- * which claims you were least sure of;
- * anything about the game you wanted to check and could not.
-
-**Everything you need is in this brief.** Do not go looking through the file
-system for anything else - this is one arm of a comparison, and a file written
-by another arm, or a note describing what is being compared, makes the answer
-worthless rather than better. If you do read anything outside your working
-directory, say what and why in your reply: an experiment that cannot say what
-its subject saw is not an experiment.
+{CLOSING}
 
 ---
 

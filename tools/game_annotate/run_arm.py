@@ -116,6 +116,30 @@ tutorial with what you know.
 Say in your reply which positions you spent them on and why.
 """
 
+OUTPUT_TO_FILE = """Write the tutorial as a single JSON object into the file
+
+    {path}
+
+Write nothing else to that file - no prose around it, no code fence. Everything
+you want to say to the person running this experiment goes in your reply, not in
+the file."""
+
+GAME_AS_FILE = """It is the file **{name}**, in the directory you are working in.
+Read it first; it is the only thing in there."""
+
+CLOSING = """Reply with, briefly:
+
+ * how many parts you wrote and what each one teaches, in one line each;
+ * which claims you were least sure of;
+ * anything about the game you wanted to check and could not.
+
+**Everything you need is in this brief.** Do not go looking through the file
+system for anything else - this is one arm of a comparison, and a file written
+by another arm, or a note describing what is being compared, makes the answer
+worthless rather than better. If you do read anything outside your working
+directory, say what and why in your reply: an experiment that cannot say what
+its subject saw is not an experiment."""
+
 NO_TOOL_TEXT = """## No engine
 
 You have no engine and no tablebase for this task. Work from the position in
@@ -182,9 +206,12 @@ def build_prompt(arm, name, work_dir, calls, session):
     # length of the game is a variable nobody declared. One channel for every
     # arm and every game, so a difference between two answers is not this.
     prompt = (brief
-              .replace('{OUT_FILE}', os.path.join(work_dir, 'tutorial.json'))
+              .replace('{OUTPUT_INSTRUCTION}', OUTPUT_TO_FILE.format(
+                  path=os.path.join(work_dir, 'tutorial.json')))
+              .replace('{CLOSING}', CLOSING)
               .replace('{GAME_NOTE}', note)
-              .replace('{GAME_FILE}', os.path.basename(pgn_path))
+              .replace('{GAME_DELIVERY}', GAME_AS_FILE.format(
+                  name=os.path.basename(pgn_path)))
               .replace('{TOOLS}', tools)
               .replace('{FORMAT_CONTRACT}', format_contract()))
 

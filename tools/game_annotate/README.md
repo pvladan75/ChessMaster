@@ -192,6 +192,48 @@ to the sentence the child reads. The rule now says so. Third time in this
 experiment that a fix aimed at one fault produced a subtler one a layer above it,
 which is the argument for measuring every arm rather than reading it.
 
+## Which model, and what it costs — 13.9.2026
+
+The three-game result above was produced by `gemini-3.8-flash-high` through
+`agy`. The question that followed was whether a much cheaper model could do the
+same work, since a price table put a factor of twenty between the top and the
+bottom of the range. `run_api.py` exists to ask it: the Lite models are not in
+the CLI's list at all, so only the API can be asked.
+
+Arm B, game one, every run through the same API channel:
+
+| model | thinking | verdict |
+|---|---|---|
+| `gemini-3.5-flash` | default, 9,640 thought tokens | **CLEAN** |
+| `gemini-3.5-flash-lite` | its own default — **none** | DAMAGED, 16 unplayable moves in 5 parts |
+| `gemini-3.5-flash-lite` | 12,337 thought tokens | DAMAGED, 2 unplayable moves |
+| `gemini-3.1-flash-lite` | none | REFUSED, illegal `solutionSan` + 22 unplayable |
+| `gemini-3.1-flash-lite` | 12,115 thought tokens | REFUSED, the same two faults |
+| `gemini-2.5-flash-lite` | — | the account cannot reach it: „no longer available to new users" |
+
+**The channel is exonerated by the first row.** Same prompt, same transport,
+same game: a non-Lite model returns something the app would accept. So the Lite
+verdicts are about the model.
+
+**And the price table was measuring the wrong thing.** Those figures assume a
+short answer. The cheap runs *are* cheap — zero thinking tokens, four seconds —
+and they fail. The runs that come close spend about twelve thousand thinking
+tokens, billed as output, which is **more** than the model that passes spends.
+The saving disappears exactly where it would have had to exist. When a task
+needs deliberation, compare models at the token counts they actually use, not
+at the ones a table assumes.
+
+That ended Gemini as a paid option here, for a reason outside the models:
+Google Cloud refuses this account's payment profile — the same wall that left
+`chess_backend/tts/google.js` written and unreachable on 9.9.2026. The free tier
+is ~20 calls a day and has no Batch, so the cheaper column of any such table is
+unreachable too. `agy` is unaffected, being a subscription rather than metered,
+and `tools/tutorial_translate/` goes on using it.
+
+`run_api.py` takes `--model`, and the grader, the engine check and the inputs
+know nothing about any provider — so pointing this at a different vendor is a
+transport, not a rewrite.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not

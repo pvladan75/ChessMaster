@@ -43,6 +43,48 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Gemini kao plaćeni API — odustalo, 13.9.2026
+
+**Odluka vlasnika: „ne mogu da platim API."** Google Cloud odbija njihov
+platni profil — *„You can't select this profile because the legal entity type
+isn't supported for this product"* — što je **drugi put** da isti zid odlučuje
+o dobavljaču: 9.9.2026. je zbog njega `google.js` (Google TTS) ostao napisan i
+nedostupan, pa je uzet Azure Speech. Bez naplate nema ni Batch reda, dakle ni
+one druge kolone iz cenovnika; ostaje besplatni nivo sa ~20 poziva dnevno,
+što nije osnova za bilo šta u proizvodu.
+
+**Šta odluka NE obuhvata.** `agy` (Antigravity CLI) i dalje radi i nije
+naplata po tokenu — `tools/tutorial_translate/` prevodi kroz njega
+(`gemini-3.8-flash-high`), i tu se ništa ne dira. Odustaje se od **Gemini API-ja
+koji se plaća po tokenu**, ne od alata koji već radi.
+
+**Šta odluka ne košta.** Isporučena funkcija (faze 1–4 ispod) ne zove nikakav
+model: pitanje se pravi tamo gde je „Review entire game" već napisao `??` i
+pored njega `!` liniju. Model je bio kandidat samo za *masovno* pisanje
+tutorijala iz partija; to ostaje neurađeno, a ne pokvareno.
+
+**Izmereno pre odustajanja** (`tools/game_annotate/`, grana B, partija 1, ista
+API cev za sve): `gemini-3.5-flash` → CLEAN. Oba Lite modela koja nalog uopšte
+može da dohvati padaju — `3.5-flash-lite` DAMAGED (16 poteza koji se ne mogu
+odigrati; sa uključenim razmišljanjem 2), `3.1-flash-lite` REFUSED (nelegalno
+rešenje i 22 poteza) i sa razmišljanjem i bez njega. `gemini-2.5-flash-lite`,
+najjeftiniji red u cenovniku, nalog **uopšte ne može da dobije** („no longer
+available to new users"). Cev je time opravdana: isti prompt kroz isti API sa
+ne-Lite modelom daje CLEAN, dakle greši model.
+
+**I cenovnik je merio pogrešnu stvar.** Te cene pretpostavljaju kratak odgovor:
+jeftini pokušaji potrošili su **nula** tokena na razmišljanje, odgovorili za
+četiri sekunde i pali. Oni koji su blizu prolaza potroše ~12.000 tokena
+razmišljanja, što se naplaćuje kao izlaz — više nego model koji zadatak
+rešava (9.640). Ušteda nestaje tačno tamo gde bi trebalo da postoji.
+
+**Ako se masovno pisanje ikad vrati:** dobavljač čiju naplatu ovaj nalog može
+da koristi je Azure (već se plaća za Speech), a to znači modele iz OpenAI
+porodice. Alat je spreman za to — `run_api.py` prima `--model`, a ocenjivač,
+motor i partije ne znaju ni za jednog dobavljača.
+
+---
+
 ## PGN u tutorijal i natrag — `PLAN-PGN-TUTORIJAL.md`, sve četiri faze, 12–13.9.2026
 
 Tačke 1, 2 i 4 iz fajla sa pitanjima vlasnika od 12.9.2026. Nije viđeno
