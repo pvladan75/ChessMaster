@@ -135,25 +135,39 @@ def questions(run_dir, game, parts):
     return count, thin, unfair
 
 
-def book_reach(game, meta):
-    """(positions in the masters database, slots of the chosen moments that
-    mention it).
+def book_reach(run_dir, game, tutorial):
+    """(positions in the database, prompt slots offering them, sentences using
+    one).
 
     Not one of the four agreed questions - it measures the reach of the change
-    that went in the same evening. The statistics belong to the first four to
-    six moves and the moments are in the middlegame, so on the three games C was
-    written against, a slot mentioned the book in one of three. This says
-    whether ten games agree.
+    that landed the same evening. The statistics belong to the first four to six
+    moves and the moments are in the middlegame, so on the three games C was
+    written against a prompt slot mentioned the book in one of three.
+
+    **Offered and used are two counts, not one.** The first version counted
+    skeleton slot texts and reported them as "tutorials with a slot that names
+    the book" - but a skeleton slot is what the model was told, and whether it
+    said any of it back is the other question entirely, and the one that decides
+    whether the statistics are worth sending. Metric 4 beside this already reads
+    the model's own words; this one was reading the prompt and labelled as if it
+    were not.
     """
     facts = skeleton.facts_of(game)
-    chosen = set((meta.get('skeleton') or {}).get('chosen') or [])
-    mentions = 0
-    for m in moments_of(game):
-        if chosen and m['id'] not in chosen:
-            continue
-        mentions += sum(1 for text in m['slots'].values()
-                        if 'master game' in text)
-    return facts.get('in_book', 0), mentions
+    # The prompt the run was actually sent, not one rebuilt from today's facts.
+    # The first version rebuilt it, and on a run made before the statistics
+    # existed it reported slots that run was never given - the same fault the
+    # facts stamp was added for two commits ago, in a tool written after it.
+    path = os.path.join(run_dir, 'prompt.md')
+    offered = 0
+    if os.path.exists(path):
+        with io.open(path, encoding='utf-8') as fh:
+            offered = sum(1 for line in fh
+                          if line.lstrip().startswith('- `m') and 'master game' in line)
+    written = sum(1 for p in tutorial.get('positionList') or []
+                  if re.search(r'master game|masters (database|play)',
+                               (p.get('instruction') or '') + ' '
+                               + (p.get('pgn') or ''), re.I))
+    return facts.get('in_book', 0), offered, written
 
 
 def opening_used(run_dir, game, tutorial):
@@ -218,30 +232,38 @@ def main():
                 run_dir, game, parts)
             row['opening'], row['opening_line'] = opening_used(
                 run_dir, game, tutorial)
-            row['in_book'], row['book_slots'] = book_reach(game, meta)
+            (row['in_book'], row['book_offered'],
+             row['book_written']) = book_reach(run_dir, game, tutorial)
+            row['drifted'] = bool(check_positions.facts_drift(run_dir, game))
             row['parts'] = len(parts)
         rows.append(row)
 
     print('%-24s %-8s %7s %7s %6s %5s %11s %6s %s' % (
         'game', 'verdict', 'moments', 'chosen', 'rank', 'quest', 'ambiguous',
-        'book', 'opening used'))
+        'book*', 'opening used'))
     print('-' * 110)
     for r in rows:
         if 'offered' not in r:
             print('%-26s %-9s  %s' % (r['game'][:26], r['verdict'], ''))
             continue
-        print('%-24s %-8s %3d/%-3d %3d/%-3d %6s %5d %11s %6s %s' % (
-            r['game'][:24], r['verdict'],
+        print('%-23s%1s %-8s %3d/%-3d %3d/%-3d %6s %5d %11s %6s %s' % (
+            r['game'][:23], '!' if r.get('drifted') else ' ', r['verdict'],
             r['askable'], r['offered'], r['chose_asking'], r['chosen'],
             '%.1f' % r['rank'] if r['rank'] else '-',
             r['questions'],
             '%d thin,%d bad' % (r['thin'], r['unfair']),
-            '%d/%d' % (r['book_slots'], r['in_book']),
+            '%d>%d/%d' % (r['book_written'], r['book_offered'],
+                          r['in_book']),
             r['opening']))
 
     full = [r for r in rows if 'offered' in r]
     if full:
-        print('-' * 104)
+        print('-' * 110)
+        drifted = [r for r in full if r.get('drifted')]
+        if drifted:
+            print('! %d run(s) were given a different analysis from the one on '
+                  "disk; their moment counts and ranks are read against today's "
+                  'facts, not the ones they saw' % len(drifted))
         print('1. moment yield      : %d of %d games offer 2+ askable moments, '
               '%d offer none' % (
                   sum(1 for r in full if r['askable'] >= 2), len(full),
@@ -264,10 +286,14 @@ def main():
         print('4. opening header    : used in %d of %d tutorials (%s)' % (
             len(used), len(full),
             ', '.join(sorted({r['opening'] for r in used})) or 'nowhere'))
-        print('   book reach        : %d of %d tutorials have a slot that names the '
-              'book; %d positions in it across the games'
-              % (sum(1 for r in full if r['book_slots']), len(full),
-                 sum(r['in_book'] for r in full)))
+        print('   book reach        : %d positions in the database across the '
+              'games; the chosen moments offered the model %d slots naming it, '
+              'and %d sentences used one'
+              % (sum(r['in_book'] for r in full),
+                 sum(r['book_offered'] for r in full),
+                 sum(r['book_written'] for r in full)))
+        print('                       (the column is written>offered/in the '
+              'database; offered is the prompt, written is the model)')
         print('   verdicts          : %s' % ', '.join(
             '%s %d' % (v, sum(1 for r in full if r['verdict'] == v))
             for v in sorted({r['verdict'] for r in full})))
