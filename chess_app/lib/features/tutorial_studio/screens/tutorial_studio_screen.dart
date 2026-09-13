@@ -38,6 +38,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_video_expor
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_narration_screen.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_export_dialog.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -1018,6 +1019,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Export video',
             onPressed: _exportVideo,
           ),
+          // Beside the video because it is the other way a tutorial leaves the
+          // app. It costs the bar 48 px, which the title pays for: the actions
+          // were measured at 453 px as Windows draws them and are 501 now, so
+          // „Tutorial Studio" is whole down to about 660 dp instead of 610 and
+          // ellipses below that. A name that shortens is cheaper than an export
+          // nobody can reach.
+          IconButton(
+            key: const Key('export-tutorial-pgn'),
+            icon: const Icon(Icons.save_alt),
+            tooltip: 'Save as .pgn',
+            onPressed: _exportPgn,
+          ),
           // Words where there is room — the owner's call, 11.9.2026: clearer
           // for a trainer. „Preview tutorial" rather than „as student",
           // because whoever writes a tutorial may have no students at all.
@@ -1480,6 +1493,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// an unsaved draft would mean either a silent save nobody asked for or a
   /// refusal two clicks later, so the answer is a sentence and the Save button
   /// is right beside it.
+  /// The whole tutorial as a `.pgn` file — phase 4 of
+  /// `docs/PLAN-PGN-TUTORIJAL.md`.
+  ///
+  /// The draft is handed over as it stands, so a part written a moment ago is
+  /// in the file whether or not it has been saved. The dialog says how the
+  /// parts come apart into games and what a PGN cannot carry, and it is the one
+  /// place that decides either.
+  Future<void> _exportPgn() async {
+    await showTutorialPgnExportDialog(context, _draft);
+  }
+
   Future<void> _exportVideo() async {
     final id = _draft.lessonId;
     if (id == null) {

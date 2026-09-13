@@ -5661,3 +5661,70 @@ dijalog, a to je platformski kanal. Zato je ovde.
     ne mi). Proveri da se fajl zaista pojavi tamo gde ga je Android ponudio, i
     da tri dugmeta i naslov stanu na uzak ekran — naslov sada prelama red
     umesto da se seče.
+
+
+## 158. PGN ulazi u aplikaciju kao tutorijal — 13.9.2026, nije viđeno uživo
+
+Tačka 1 iz `D:\chess\tutorijal\pgn_tutorial_question.txt`, faze 1–3 iz
+`docs/PLAN-PGN-TUTORIJAL.md`. „Uvezi iz fajla" na listi sačuvanih tutorijala
+sada prima i `.pgn` pored `.json`; jedna partija postaje jedan tutorijal, a gde
+je „Review entire game" ostavio `??` sa engine-ovim potezom pored, ponudi se da
+od toga naprave pitanja.
+
+1. [ ] **Birač fajlova nudi `.pgn`.** „Uvezi iz fajla" → u sistemskom dijalogu
+   se vide i `.json` i `.pgn` fajlovi.
+2. [ ] **Jedna partija, jedan tutorijal.** Uvezi fajl sa dve-tri partije:
+   izveštaj ima red po partiji, a naslov je „Beli - Crni (datum)" iz zaglavlja,
+   ne ime fajla.
+3. [ ] **Velika baza se preseče i to piše.** Uzmi svoj Lichess izvoz (4126
+   partija): prvi red mora da kaže koliko partija fajl ima i da je pročitano
+   prvih 50. Ako ništa ne piše, presek je tih — a to je greška.
+4. [ ] **Pitanje o greškama se pojavi samo kad ima šta da se pita.** Uvezi
+   partiju bez oznaka: dijalog „Make questions from the mistakes?" ne sme da
+   se pojavi. Uvezi partiju kroz „Review entire game": treba da se pojavi i da
+   kaže koliko ih je.
+5. [ ] **„Just the games" ostavlja partije kakve jesu** — svaki tutorijal je
+   jedan deo, `Show`.
+6. [ ] **„Make questions" seče.** Otvori dobijeni tutorijal u studiju: pre
+   pitanja ide demonstracija, pitanje je gola pozicija, a deo posle njega nosi
+   odgovor. Rečenica pitanja ne sme da tvrdi da je odgovor jedini potez.
+7. [ ] **Odgovor je engine-ov potez**, ne onaj koji je odigran u partiji.
+8. [ ] **Ocene preživljavaju.** Otvori uvezenu partiju, promeni nešto bilo gde,
+   sačuvaj, pa je otvori ponovo: `??` i `!` moraju i dalje da stoje na
+   potezima. Do 12.9.2026. su se gubile pri prvom snimanju.
+9. [ ] **Pokvaren fajl kaže šta je pokvareno.** Preimenuj neki tekst u `.pgn` i
+   uvezi ga: poruka govori o partiji. Preimenuj pokvaren JSON u `.json`: poruka
+   govori o JSON-u, ne o partiji.
+
+## 159. Tutorijal izlazi kao PGN — 13.9.2026, nije viđeno uživo
+
+Tačka 2 iz istog fajla, faza 4. Dugme **„Save as .pgn"** (ikona diskete) u
+alatnoj traci **Studija za tutorijal**, pored izvoza videa. Upis fajla je opet
+ono što nijedan test ne dokazuje.
+
+1. [ ] **Dijalog kaže kako se tutorijal deli.** Otvori tutorijal čiji se delovi
+   nastavljaju jedan na drugi: mora da piše „… one game". Otvori onaj sa
+   delom na sasvim drugoj poziciji: „… 2 games".
+2. [ ] **Rečenica o gubitku je tu i tačna** — šta deo pita, odgovor, primljeni
+   potezi, orijentacija table, naslov, oznake i jezik ostaju u sačuvanom
+   tutorijalu, ne u fajlu.
+3. [ ] **Ime fajla je naslov tutorijala** (razmaci u crtice), a bez naslova
+   `tutorial-2026-09-13.pgn`.
+4. [ ] **Fajl ima onoliko partija koliko je dijalog rekao**, razdvojene praznim
+   redom, svaka sa svojim zaglavljem; druga i svaka sledeća imaju `[SetUp "1"]`
+   i `[FEN]`.
+5. [ ] **Pitanje se u fajlu vidi kao rečenica na svojoj poziciji.** Izvezi
+   tutorijal sa `ask_move` delom: tekst pitanja mora da stoji kao komentar pre
+   poteza o kome se pita.
+6. [ ] **Strelica se ne duplira.** Izvezi tutorijal koji je sečen na pitanje
+   tamo gde je nacrtana strelica: u fajlu sme da stoji samo jedno `[%cal]` za
+   nju.
+7. [ ] **Put napolje i nazad.** Uvezi dobijeni fajl natrag kroz „Uvezi iz
+   fajla": partije moraju da se pročitaju bez ijedne primedbe (zeleni redovi).
+8. [ ] **Izvozi se ono što je na ekranu.** Napiši novu rečenicu u delu, **ne**
+   pritiskaj „Save tutorial", pa izvezi: rečenica mora da bude u fajlu.
+9. [ ] **Odustajanje ne radi ništa**, a posle snimanja se dijalog zatvara i
+   piše „Saved: <putanja>".
+10. [ ] **Traka studija i dalje staje.** Dugme je osmo u traci; na uskom
+    prozoru (oko 700 dp) proveri da se ništa ne seče i da se naslov „Tutorial
+    Studio" skraćuje sa tri tačke umesto da gura dugmad van ekrana.

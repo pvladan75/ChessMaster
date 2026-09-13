@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,6 +7,12 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
+// `debugSavePgnFile` and `pgnFileNameFor` are re-exported so that every test and
+// caller that has ever reached them through this file still does: the seam is
+// one variable wherever it is imported from.
+export 'package:chess_app/features/analysis_studio/services/pgn_file_saver.dart'
+    show debugSavePgnFile, pgnFileNameFor, savePgnFile;
+import 'package:chess_app/features/analysis_studio/services/pgn_file_saver.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -348,48 +352,6 @@ void showLogsDialog(BuildContext context) {
   );
 }
 
-/// The one thing a widget test cannot do: open the operating system's save
-/// dialog.
-///
-/// `FilePicker.saveFile` is a platform channel, and in a test nothing answers
-/// it, so the button that waits for it waits for ever. A test sets this and
-/// reads what it was handed, which is everything about saving except the file.
-/// Same shape as `debugPlayVoiceSample`, and null in a real build.
-Future<String?> Function({required String fileName, required String pgn})?
-    debugSavePgnFile;
-
-/// Where a PGN goes when the trainer picks „Save as .pgn".
-///
-/// The bytes are handed to the picker rather than written here: with `bytes`
-/// given it writes them at the chosen path on every platform this app ships
-/// to, and a second `File.writeAsBytes` beside that is how a file comes to be
-/// written twice on one platform and not at all on another.
-///
-/// **UTF-8, deliberately.** `PgnExporterService` keeps its *headers* in ASCII
-/// because the PGN standard is Latin-1 and a stricter reader shows „Š" as
-/// rubbish — but a trainer's comments are their own words, and a sentence
-/// mangled on the way out is worse than one a strict reader renders oddly.
-Future<String?> _savePgnFile(
-        {required String fileName, required String pgn}) async =>
-    FilePicker.saveFile(
-      dialogTitle: 'Save PGN',
-      fileName: fileName,
-      type: FileType.custom,
-      allowedExtensions: const ['pgn'],
-      bytes: Uint8List.fromList(utf8.encode(pgn)),
-      lockParentWindow: true,
-    );
-
-/// `analysis-2026-09-12.pgn` — the date, because nothing else here has a name.
-///
-/// The export's own `[White]`/`[Black]` headers are „Player" and „Analysis
-/// Engine" whatever is on the board, so a name built from them would say the
-/// same thing for every file a trainer ever saved.
-String pgnFileNameFor(DateTime day) =>
-    'analysis-${day.year}-${_two(day.month)}-${_two(day.day)}.pgn';
-
-String _two(int n) => n.toString().padLeft(2, '0');
-
 Future<void> exportPgnDialog(
     BuildContext context, AnalysisNode rootNode) async {
   final pgnText = PgnExporterService.exportToPgn(rootNode);
@@ -445,7 +407,7 @@ Future<void> exportPgnDialog(
           icon: const Icon(Icons.save_alt, size: 16),
           label: const Text('Save as .pgn'),
           onPressed: () async {
-            final save = debugSavePgnFile ?? _savePgnFile;
+            final save = debugSavePgnFile ?? savePgnFile;
             String? path;
             try {
               path = await save(

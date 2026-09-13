@@ -21,7 +21,7 @@ several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2095 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2272 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
 cd chess_backend && npm test          # node --test, 1234 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -2029,6 +2029,66 @@ it was looking for. That is the 7.9.2026 `Nxb4*` fault one character further
 along, and it stayed invisible for as long as the glyph was something to get rid
 of rather than something to keep. **A fix aimed at one end of a token is worth
 re-reading from the other end.** Four mutations, all four caught.
+
+**A PGN comes in and a tutorial goes back out — 13.9.2026, and the count is
+2272 in the app with 1 skipped**, analyze at 29 infos and zero warnings; the
+backend is untouched. That is phases 1–4 of `docs/PLAN-PGN-TUTORIJAL.md`, points
+1 and 2 of the owner's note: fifty for the reader, the questions and the import
+door, and thirty-two for the export. Live checks: `TODO-provera.md`, items 158
+and 159.
+
+**The feature was decided by an experiment rather than by an opinion.** Three
+games, nine runs through `tools/game_annotate/`, every `ask_move` checked against
+Stockfish at depth 22: the arms given „Review entire game" asked questions whose
+answer is the engine's first choice by a clear margin, and the arm given only the
+moves never once did — it wrote questions that look well formed and are subtly
+false („the *only* defensive move", answer ranked third). So a question is made
+only where the review already wrote `??` **and** put a `!` line beside it. What
+that does not buy is stated in the code: a reviewed PGN carries no evaluations at
+all, so nothing in the file says whether a second move was as good. The plan had
+claimed it did; that was found while building and corrected in the plan.
+
+**The experiment's own biggest fault was contamination, and it was mine.**
+`--add-dir HERE` made the experiment folder the model's workspace, so two arms
+read the README and one read a finished `tutorial.json` from the arm before it. A
+finding had already been reported off that run; it was withdrawn and all nine
+runs re-done in `tempfile.mkdtemp()` with no `--add-dir`. The repository's own
+`tools/tutorial_translate/translate.py` already carried a comment prescribing an
+empty working directory.
+
+**An existing source-reading gate failed the new export file, and the gate was
+right.** `tutorial_authoring_test.dart` fails anything under
+`lib/features/tutorial_studio/` that imports `PgnExporterService`, because a
+step's `fen` and `pgn` must come from one node through `StudioLessonStep`. A file
+export is not a step, so the letter of the rule did not apply — and the fix was
+still to go through `StudioLessonStep.gameText`, beside `textWithSpans`, which
+exists precisely so the studio never reaches for the exporter itself. **Widening
+a gate to admit a special case is how the case after it gets in unasked.**
+
+**Two phase-3 faults were found by the tests that were already there.**
+`questionsAvailableIn` counted the questions a file *already had*, so a
+hand-written tutorial with a question in it was offered „make questions from the
+mistakes" over a file with no mistakes marked anywhere — and the report behind
+that dialog never opened; and judging a file by its content alone read a broken
+`.json` as a game, which tells a trainer about the wrong reader. Not one of the
+three new fixture files had a question in it already, and not one was a `.json`
+that failed to parse. **New tests cover the case you thought of; the old suite
+covers the case you are standing in.**
+
+**A drawing is merged at a join, not appended.** `splitForQuestion` copies the
+cursor's arrows and squares onto the question it makes, because the board does
+not reload across a join and a circle that vanished there would be a flicker — so
+both parts either side of a join carry the same arrow, and exporting by
+concatenation writes it twice, on every question this app has ever cut. The
+square is tested as the arrow's twin, since a pair fixed by halves is how the
+rank numbers spent two days invisible after the file letters were put right.
+
+**A fixture that types a FEN by hand can disagree with every reader in the
+app.** The first export fixture wrote the position after `1. e4 e5` with `-` in
+the en passant field, and the two parts refused to join — correctly:
+`MoveTree.samePosition` compares that field, the child's viewer compares it, and
+`addSection(continueFromEnd: true)` writes the square. The code was right and the
+fixture was wrong, which is the order worth checking in.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

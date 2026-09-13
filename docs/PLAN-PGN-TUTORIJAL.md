@@ -42,7 +42,7 @@ here has to answer it — see phase 2.
 Done and merged. Without it a `??` could be written and never read, so every
 phase below would have been reading a field that is always null.
 
-## Phase 1 — the reader: a PGN text becomes tutorial parts
+## Phase 1 — the reader: a PGN text becomes tutorial parts ✅ 12.9.2026
 
 A pure function, no widgets, landed as its own commit. The repository's own
 lesson: where a batch has a pure core, prove it first and the screen has
@@ -72,7 +72,7 @@ not replay from its own header FEN (report, do not store); a file with several
 games where one is broken (the others still import); a file that is not a PGN at
 all; and `rejectedMoves` reaching the caller rather than being swallowed.
 
-## Phase 2 — questions where the marks are
+## Phase 2 — questions where the marks are ✅ 13.9.2026
 
 Reads the tree phase 1 produced. For each move carrying `??` whose parent holds
 a sideline whose first move carries `!`:
@@ -130,7 +130,22 @@ four blunders" and the trainer opens the tutorial in the studio, where every one
 of them can be deleted. A generator that cannot be reviewed before saving is the
 shape this repository keeps paying for.
 
-## Phase 3 — the door
+## Phase 3 — the door ✅ 13.9.2026
+
+Built, with one thing decided while building and two faults the **existing**
+import tests found that the new ones could not.
+
+`maxGamesPerFile` is 50 and the cut is said on the first row — a whole database
+is an ordinary thing to pick by mistake, and the owner's own Lichess export
+holds 4126 games. The two faults: `questionsAvailableIn` counted the questions a
+file *already had*, so a hand-written tutorial with a question in it was offered
+„make questions from the mistakes" over a file with no mistakes marked anywhere
+and the report behind that dialog never opened; and judging a file by its
+content alone read a broken `.json` as a game, which tells a trainer about the
+wrong reader. **Not one of the new fixtures had a question in it already, and
+not one was a `.json` that failed to parse** — the suite that caught both is the
+one that had been there all along.
+
 
  * `.pgn` beside `.json` in the library card's picker, and the same multi-file
    behaviour: several files, one report.
@@ -140,24 +155,63 @@ shape this repository keeps paying for.
    a game to *show* it should not find questions in it.
  * A single game opens in the studio unsaved, the way a single JSON file does.
 
-## Phase 4 — the other direction
+## Phase 4 — the other direction ✅ 13.9.2026
 
 ```dart
+List<AnalysisNode> gameTreesOfTutorial(List<TutorialSection> sections);
 List<String> pgnGamesOfTutorial(TutorialDraft draft);
+String pgnFileOfTutorial(TutorialDraft draft);
 ```
 
- * Adjacent parts join into one game when `MoveTree.samePosition(next.fen,
-   endOfMainLine(previous))` — the viewer's own test for „this continues", so
-   the file is cut where the child's board would have been rebuilt anyway.
- * A break starts a new game with `[SetUp "1"]` and `[FEN]`, which the exporter
-   already writes.
- * It leaves through „Save as .pgn", already built.
+Built as written. Adjacent parts join into one game when
+`MoveTree.samePosition(next.fen, endOfMainLine(previous).fen)` — the viewer's
+own test for „this continues", so the file is cut where the child's board would
+have been rebuilt anyway; a break starts a new game, and the exporter writes its
+`[SetUp "1"]`/`[FEN]` on its own. It leaves through `savePgnFile`, the picker
+the Analysis studio's „Save as .pgn" already went through, from a button in the
+tutorial studio's own toolbar.
 
-**Say what is lost, in the dialog, in one sentence.** `kind`, `solutionSan`,
-`acceptedSans`, `blackOrientation`, the tutorial's own title, labels and
-language have no home in PGN. The JSON of `docs/PGN-TUTORIAL-FORMAT.md` is the
-lossless format and already imports; PGN export is for humans and other chess
-programs. A trainer who learns that by losing a question learns it too late.
+**The loss is said in the dialog before the file is named**, and the sentence is
+`pgnExportLoses`: what a part asks, its answer, the moves accepted beside it,
+which way round the board is drawn, and the tutorial's title, labels and
+language. It does **not** send a trainer to another door — there is no JSON
+*export* in this app, only an import — so it says the saved tutorial keeps all
+of it, which is true and reachable.
+
+Four things came out of building it.
+
+**A part's `instruction` does travel**, written as the sentence it is on the
+position it is asked from. The plan had listed it as lost. A question part is a
+position, a sentence and an answer; the answer is the move the tutorial itself
+goes on to play, so dropping the sentence too would have made an `ask_move` part
+contribute *nothing at all* to the file — a silent loss of the one thing in it a
+person wrote.
+
+**An existing source-reading gate caught the new file, and the gate was right.**
+`tutorial_authoring_test.dart` fails anything under `lib/features/tutorial_studio/`
+that imports `PgnExporterService`, because a step's `fen` and `pgn` must come
+from one node through `StudioLessonStep`. The export is a file rather than a
+step, so the letter of the rule did not apply — but the fix was to go through
+`StudioLessonStep.gameText`, beside `textWithSpans`, which is the class that
+exists precisely so the studio never reaches for the exporter itself. **Widening
+a gate to admit a special case is how the case after it gets in unasked.**
+
+**The drawings are merged at a join, not appended.** `splitForQuestion` *copies*
+the cursor's arrows and squares onto the question it makes, because the board
+does not reload across a join and a circle that vanished there would be a
+flicker. Both parts therefore carry the same arrow, and joining them back by
+concatenation writes it twice — on every question this app has ever cut. The
+square is tested as the arrow's twin, since a pair fixed by halves is how the
+rank numbers spent two days invisible after the file letters were put right.
+
+**The join is the real FEN, en passant square and all.** The first fixture wrote
+the position after `1. e4 e5` with `-` in that field, and the two parts did not
+join — correctly: `MoveTree.samePosition` compares it, the viewer compares it,
+and `addSection(continueFromEnd: true)` writes the square. A fixture that types
+a FEN by hand is a fixture that can disagree with every reader in the app.
+
+Sixteen mutations, all sixteen caught; one reported „NOT APPLIED" first and was
+re-run rather than counted.
 
 ## What this plan does not do
 

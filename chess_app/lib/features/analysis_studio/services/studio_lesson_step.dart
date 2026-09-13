@@ -62,6 +62,20 @@ class StudioLessonStep {
   static PgnWithSpans textWithSpans(AnalysisNode anchor) =>
       PgnExporterService.exportWithSpans(anchor);
 
+  /// One whole game as PGN text, with [headers] written over the defaults.
+  ///
+  /// **For a file, not for a step**, and it is here for the same reason
+  /// [textWithSpans] is: the tutorial feature is not allowed to reach for the
+  /// exporter itself, so every call it makes goes through this class. Phase 4
+  /// of `docs/PLAN-PGN-TUTORIJAL.md` — a tutorial saved as a `.pgn` — is the
+  /// one caller, and it hands a tree that several parts were grafted into
+  /// rather than a step's own.
+  ///
+  /// Nothing here reads it back: there is no step whose position it has to
+  /// agree with, which is the whole of what [from] exists to check.
+  static String gameText(AnalysisNode root, {Map<String, String>? headers}) =>
+      PgnExporterService.exportToPgn(root, customHeaders: headers);
+
   Map<String, dynamic> toJson({required String title}) => {
         'fen': fen,
         'pgn': pgn,
