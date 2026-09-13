@@ -372,16 +372,26 @@ The game is in the name now, and an existing folder is refused.
 ### `check_positions.py`
 
 ```bash
-python check_positions.py out/<run> --engine
+python check_positions.py out/<run>
 ```
 
 The grader asks whether the app would take a file, and a board with a rook
 missing loads and replays perfectly. This asks the two questions the grader
 cannot: is each part's FEN a position the reviewed PGN actually reaches —
 variations included, since a part on a better-move line is teaching — and if
-not, which squares differ from the nearest one; and with `--engine`, where each
-`ask_move` answer ranks at depth 22 and by how much. The margin is printed, not
-judged.
+not, which squares differ from the nearest one; and is each `ask_move` answer
+the best move of **the analysis that was sent**, with every extra
+`acceptedSans` move one the sent numbers put within 0.3 pawns of it.
+
+**It used to run Stockfish again at depth 22, and that was wrong** (owner,
+13.9.2026): the analysis we send is the only source of truth, it is our job to
+send it deep enough, and a model must take the evaluation it was given and not
+change it. Grading against a deeper search marks a model on a fact it was never
+told — the French `Ke3` was #2 by 0.04 at depth 22 and #1 by 0.44 at depth 26,
+three searches disagreeing about a question the model had answered exactly as
+instructed, and the analysis it was handed said +0.53. There is no `--engine`
+flag any more, because a flag is an invitation. What is measured is obedience,
+not chess.
 
 It was proved against the findings made by hand on five runs before it was
 believed, and those found two faults in it. A position that repeats — a
@@ -542,8 +552,142 @@ python make_facts.py <game> --depth 20
 python run_api.py H --name <game> --provider deepseek --model deepseek-flash --reasoning-effort low --max-tokens 64000
 python run_arm.py H --name <game> --model gemini-3.8-flash-high
 python review_run.py out/<run>
-python check_positions.py out/<run> --engine
+python check_positions.py out/<run>
 ```
+
+## Arm H again, on the cleaned inputs — 13.9.2026, evening
+
+The vocabulary cleanup asked a question it could not answer itself: **did the
+sentences get truer?** So arm H was run again on the three regenerated games,
+same model and same flags (`deepseek-flash`, `--reasoning-effort low`,
+`--max-tokens 64000`), and read against the runs of that afternoon.
+
+| game | grade | positions | question | seconds | prompt chars | tokens |
+|---|---|---|---|---|---|---|
+| `pvladan_2026-09-12` | CLEAN | all exact | 3 of 3 #1 | 24.2 → **19.3** | 16398 → **12038** | 10120 → **8848** |
+| `french_2026-06-19` | CLEAN | all exact | 2 of 3 #1, one borderline | 38.1 → **18.6** | 18615 → **15115** | 13770 → **9312** |
+| `philidor_2026-07-03` | CLEAN | all exact | 3 of 3 #1 | 31.0 → **26.8** | 25056 → **21721** | 14182 → **13498** |
+
+The one marked borderline was the French `Ke3`, and **the question it raised was
+settled against the harness rather than against the model.** Graded by a fresh
+search it was #2 by 0.04 at depth 22 and #1 by 0.44 at depth 26 — three searches,
+three answers. The analysis the model was handed says +0.53, and the model
+answered exactly what it was handed. The owner drew the line the same evening:
+**the analysis we send is the only source of truth**, it is our job to send it
+deep enough, and a model must not change the evaluation it was given. So
+`check_positions.py` no longer re-searches at all; it asks whether the answer is
+the best move of `input/<game>_facts.json`, and under that rule all nine
+questions of all three runs are right, `Ke3` included and unremarkable.
+
+**The false sentences are gone, and they were the motif detector's words in the
+model's mouth.** Every sentence of all three new runs traces to a fact in its own
+slot; the afternoon's runs carried these, all of them repeating the old wording:
+
+ * game one, after 23... Qc6: „Behind the knight sits the white pawn on e4, so
+   the knight cannot simply move away" — the old skewer of a knight onto one's
+   own pawn. Geometrically true and pedagogically backwards: a knight may move
+   and drop a pawn. The new run says what the position holds — „The queen on c4
+   pins the c5 pawn to the queen on c6".
+ * French, after 31. Rd6: „attacks the bishop on c6, skewering it to the b6 pawn
+   behind", and „The skewer is over" a move later — a skewer that wins nothing,
+   which is exactly what the new rule refuses. The new run: „the bishop has no
+   defender", „the bishop is no longer hanging".
+ * French, after 25... Rc2+: „the g2 pawn stands behind the king", carried into
+   the question a student reads. Gone; the question now names the fork.
+ * Philidor, after 39... Qc2+: „forks four white pieces", and „The rook on e4 is
+   also the only defender of the pawn on a4". The new run forks the two it can
+   win — „the white king on g2 and the pawn on b2".
+
+**What did not improve is one question's mechanism.** Game one's first question
+was „Look for a knight move that attacks two black pieces at the same time" in
+the afternoon and „Find the move that uses the pinned pawn on c5 to win
+material" now. Nc7 forks the rooks; the pin on c5 is the one motif standing
+beside that slot, and the model attached it. Whatever the facts say, the model
+says — and that holds for a true fact quoted about the wrong move as well as for
+a false one.
+
+**The choice barely moved.** Game one chose the same three moments; the Philidor
+chose the same three under new labels (its candidate list changed, below); the
+French swapped its third, from 32. Kd4 to 31... Bb5. Two changes sit between the
+runs, not one: the brief's audience line became „a student of 13 or older" in the
+same commit.
+
+Two faults of the harness came out of the comparison, both in the numbers rather
+than in the words, and both are fixed.
+
+**`cost_pawns` is the string `mate`, and it was printed into a sentence.**
+`skeleton.py` wrote `it cost %s pawns`, so nine slots of the Philidor prompt said
+„it cost mate pawns". The afternoon's run read it as damage and told a student
+that grabbing on h7 „cost pawns near the king"; the evening's wrote „That move
+allowed mate". The input was broken either way. `cost_text()` is the one place
+that turns a cost into words now, and `make_facts.py` says **which** mate it was:
+the prompt reads „in the game 24. Qxh7 was played and it allowed a forced mate"
+and „24... Nf4+ was played and it gave up a forced mate".
+
+**A move that is the best move cost nothing, whatever two searches say.** The
+move played is scored from the next position's own search, so its number and the
+best move's come from two searches that disagree by a hair — `11. Qxe2`, rank 1
+of 4, carried a cost of 0.2 pawns. `make_facts.py` had the guard only against a
+*negative* cost. With a mate on the board the same hair becomes infinite:
+`cost_pawns` was `mate` whenever a mate was involved and the best value was
+larger by anything at all, one ply of mate distance included, and `_cost_value`
+sorts a mate above every real blunder. In the afternoon's Philidor facts that
+filled **three of the eight candidate moments with moves where the best move was
+the move played** — one of them `43... Qg5#`, the mate that ended the game —
+crowding out three genuine mistakes of 3.4 to 4.4 pawns. `set_cost()` now says
+zero when the played move is the best move and when a mate is still a mate
+(mate in 3 against mate in 2 is not an infinite loss, and being mated a move
+later is not a loss at all); `mate` is kept for a forced mate that appears or
+disappears.
+
+**The fix was applied to the three games without analysing them again.** What a
+move cost is arithmetic over `value_for_mover`, which the facts file already
+holds, so `python make_facts.py <game> --recost` re-derives every cost with no
+engine — the owner's rule that a game once analysed is reused, honoured exactly.
+It zeroed 44 costs of 0.01 to 0.27 pawns across the three games, every one of
+them on a move that *was* the best move, and changed no moment list: the noise
+that mattered was the mate-sized kind, and the rebuilt facts happened not to
+carry any.
+
+## The Gemini leg, on the fixed inputs — 13.9.2026, evening
+
+Both faults above were fixed, the three facts files recosted, and the whole thing
+run twice more on identical inputs: `gemini-3.8-flash-high` through `agy`, and
+`deepseek-flash` again so the two models are read off the same prompts rather
+than across a change.
+
+| | `deepseek-flash` | `gemini-3.8-flash-high` |
+|---|---|---|
+| grade | CLEAN × 3 | CLEAN × 3 |
+| positions | all exact | all exact |
+| questions | 9 of 9 the sent best move | 6 of 6 the sent best move |
+| moments chosen | 3, 3, 3 | **2, 2, 2** |
+| seconds a game | 21, 33, 27 | 142, 81, 125 |
+
+Neither changed the analysis it was given — no answer differs from the facts
+file, and no run widened an accepted set. Three things separate them.
+
+**Gemini transcribes where DeepSeek writes.** Nearly every Gemini move sentence
+is the slot's own phrasing with the punctuation changed: „Black plays the queen
+from d8 to c8", „White plays the rook from g3 to d3", „This is a move of the best
+line" — the shape of the fact, twenty times over. DeepSeek varies the verb to the
+move („Black swings the rook from d8 to d5", „Black's rook takes on d4 and
+attacks the rook on d3"). Both are true; only one sounds like a trainer. That is
+the README's own first question — did it choose, or did it transcribe — and it is
+the first time a model has answered it badly while getting everything right.
+
+**Gemini takes two moments where the brief allows two or three**, in all three
+games, so its tutorials are six parts against nine. Fewer questions for the same
+game.
+
+**It is four to six times slower for it**, through `agy` rather than an API,
+which is a channel difference as much as a model one.
+
+**The cost fix reached a student's sentence immediately, which is the point of
+it.** Gemini's Philidor part one ends „White attacks the bishop on h4, but allows
+a forced mate", and its answer part says the game move „gave up a forced mate".
+Those are the two new phrases, in the two places they belong, written by a model
+that had no way to know they had been broken that morning.
 
 ## What to look at in the results
 

@@ -75,6 +75,51 @@ def pawns(value):
     return round(value / 100.0, 2)
 
 
+def set_cost(played, best):
+    """What the move played cost against the best move, written onto [played].
+
+    `cost_pawns` is a number of pawns, or the string `mate` when the loss is not
+    in pawns at all - and then `cost_mate` says which way.
+
+    Two rules, and both are about one thing: the move played is scored from the
+    next position's own search, so its number and the best move's come from two
+    different searches and disagree by a hair.
+
+    **A move that is the best move cost nothing**, whatever the two searches
+    say. Without this, `11. Qxe2` - rank 1 of 4 - carried a cost of 0.2 pawns,
+    and three of the Philidor's eight candidate moments on 13.9.2026 were moves
+    where the best move was the move played, one of them the mate that ended the
+    game (`43... Qg5# was played and cost mate pawns; the best move was Qg5#`).
+    A mate sorts above every real blunder in `skeleton.py`, so noise between two
+    searches crowded out three genuine mistakes of 3.4 to 4.4 pawns.
+
+    **A mate that is still a mate cost nothing either.** Mate in 3 where the
+    best move mates in 2 is not an infinite loss, and being mated a move later
+    is not a loss at all. `mate` is for a mate that appears or disappears - a
+    forced mate given up, or one allowed.
+
+    It reads `value_for_mover` and nothing else, so it can be applied to a facts
+    file that is already written: `--recost` is that, and it re-analyses
+    nothing.
+    """
+    value, best_value = played['value_for_mover'], best['value_for_mover']
+    played.pop('cost_mate', None)
+    if played['move'] == best['move'] or best_value <= value:
+        played['cost_pawns'] = 0
+        return
+    side = lambda v: (v > MATE / 2) - (v < -MATE / 2)
+    if side(best_value) == side(value):
+        played['cost_pawns'] = pawns(best_value - value) if side(value) == 0 else 0
+        return
+    played['cost_pawns'] = 'mate'
+    gave_up, walked_in = best_value > MATE / 2, value < -MATE / 2
+    played['cost_mate'] = (
+        'gave up a forced mate and allowed one' if gave_up and walked_in
+        else 'gave up a forced mate' if gave_up
+        else 'allowed a forced mate' if walked_in
+        else 'cost a forced mate')
+
+
 def build(name, depth, multipv, margin_pawns, threads, hash_mb):
     with open(os.path.join(INPUT_DIR, '%s_reviewed.pgn' % name), encoding='utf-8') as fh:
         reviewed = chess.pgn.read_game(fh)
@@ -163,15 +208,10 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb):
                 value = 0
                 played['eval'] = 'draw'
             played['value_for_mover'] = value
-            # Never below zero. The move played is scored from the next
-            # position's own search, which can come back a hair above the best
-            # move's score from this one; „cost -0.46" is noise between two
-            # searches, and a model reading it would take it for a meaning.
-            played['cost_pawns'] = pawns(max(0, cands[0]['value_for_mover'] - value)) \
-                if abs(value) < MATE / 2 and abs(cands[0]['value_for_mover']) < MATE / 2 \
-                else ('mate' if cands[0]['value_for_mover'] > value else 0)
             ranks = [c['move'] for c in cands]
-            played['rank'] = ranks.index(played['move']) + 1 if played['move'] in ranks else None
+            played['rank'] = (ranks.index(played['move']) + 1
+                              if played['move'] in ranks else None)
+            set_cost(played, cands[0])
 
     return {
         'game': name,
@@ -187,6 +227,35 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb):
     }
 
 
+def recost(name):
+    """Re-derive what every move cost, over the facts file already written.
+
+    The owner's rule is that a game once analysed is reused and never analysed
+    again for a threshold or a rule that is only read off the numbers. What a
+    move cost is such a rule: `value_for_mover` for the best move and for the
+    move played are both already in the file, so `set_cost` can run over them
+    with no engine at all. Nothing else in the file is touched.
+    """
+    path = os.path.join(INPUT_DIR, '%s_facts.json' % name)
+    with open(path, encoding='utf-8') as fh:
+        facts = json.load(fh)
+    before = [(r.get('played') or {}).get('cost_pawns') for r in facts['rows']]
+    for row in facts['rows']:
+        played, cands = row.get('played'), row.get('candidates')
+        if played and cands and 'value_for_mover' in played:
+            set_cost(played, cands[0])
+    after = [(r.get('played') or {}).get('cost_pawns') for r in facts['rows']]
+    facts['recosted'] = time.strftime('%Y-%m-%dT%H:%M:%S')
+    with open(path, 'w', encoding='utf-8') as fh:
+        json.dump(facts, fh, ensure_ascii=False, indent=1)
+    changed = [(facts['rows'][i]['played']['label'], b, a)
+               for i, (b, a) in enumerate(zip(before, after)) if b != a]
+    print('%s: %d of %d costs changed%s' % (
+        name, len(changed), len(before),
+        (' - ' + ', '.join('%s %s->%s' % c for c in changed[:12])) if changed else ''))
+    return len(changed)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('name')
@@ -196,7 +265,14 @@ def main():
                         help='pawns the best move must lead the second by')
     parser.add_argument('--threads', type=int, default=1)
     parser.add_argument('--hash', type=int, default=128)
+    parser.add_argument('--recost', action='store_true',
+                        help='re-derive the costs over the existing facts file, '
+                             'with no engine and no re-analysis')
     cfg = parser.parse_args()
+
+    if cfg.recost:
+        recost(cfg.name)
+        return
 
     facts = build(cfg.name, cfg.depth, cfg.multipv, cfg.margin, cfg.threads, cfg.hash)
     path = os.path.join(INPUT_DIR, '%s_facts.json' % cfg.name)

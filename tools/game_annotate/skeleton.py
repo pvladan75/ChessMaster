@@ -149,6 +149,23 @@ def play(board, san):
 
 # --- Moments ------------------------------------------------------------------
 
+def cost_text(played):
+    """What the move played cost, as words rather than as a number and a unit.
+
+    `cost_pawns` is a number of pawns or the string `mate`, and printing it into
+    `it cost %s pawns` wrote "it cost mate pawns" into nine slots of one Philidor
+    prompt on 13.9.2026. The model read it as best it could and told a student
+    that grabbing on h7 "cost pawns near the king". A broken sentence in the
+    facts is a broken sentence in the tutorial.
+    """
+    cost = played.get('cost_pawns')
+    if cost == 'mate':
+        return played.get('cost_mate') or 'cost a forced mate'
+    if cost is None:
+        return 'cost an unknown amount'
+    return 'cost %s pawns' % cost
+
+
 def _cost_value(cost):
     return 1e9 if cost == 'mate' else (cost if isinstance(cost, (int, float)) else -1)
 
@@ -212,11 +229,11 @@ def moments(name, cfg=None):
             slots[qid] = (
                 '%s to move. The best move is %s, and afterwards %s. Also counted '
                 'correct: %s. What follows the best move: %s. In the game %s was '
-                'played instead; it cost %s pawns and afterwards %s.%s Ask for the '
+                'played instead; it %s and afterwards %s.%s Ask for the '
                 'move in one sentence, without naming it or its destination square.' % (
                     mover, best['move'], words_for(best['eval']),
                     ', '.join(c['move'] for c in correct[1:]) or 'nothing else',
-                    best['line'], played['move'], played.get('cost_pawns'),
+                    best['line'], played['move'], cost_text(played),
                     words_for(played.get('eval')),
                     (' On the board: %s.' % board_here) if board_here else ''))
             facts[qid] = {'gain': 0, 'mate': False, 'fork': False, 'pin': False,
@@ -241,9 +258,9 @@ def moments(name, cfg=None):
         slots[intro] = (
             'the answer: %s plays %s instead of the game move %s. At the end of the '
             'best line %s; material White minus Black goes from %+d to %+d over the '
-            'moves shown. The game move cost %s pawns.' % (
+            'moves shown. The game move %s.' % (
                 mover, best['move'], played['move'], words_for(best['eval']),
-                before, material(board), played.get('cost_pawns')))
+                before, material(board), cost_text(played)))
         change = material(board) - before
         facts[intro] = {'gain': max(0, change if not black else -change), 'mate': False,
                         'fork': False, 'pin': False, 'motifs': ''}
@@ -260,6 +277,7 @@ def moments(name, cfg=None):
         out.append({
             'id': mid, 'index': i, 'label': row['label'], 'mover': mover,
             'played': played['label'], 'cost': played.get('cost_pawns'),
+            'cost_text': cost_text(played),
             'best': best['move'], 'asks': asks,
             'correct': [c['move'] for c in correct], 'board': board_here,
             'parts': parts, 'slots': slots, 'facts': facts,
@@ -321,9 +339,9 @@ def prompt(name, cfg=None):
         game = fh.read().strip()
     blocks = []
     for m in moments(name, cfg):
-        head = ('### %s - at %s, %s to move\nIn the game %s was played and cost %s pawns; '
+        head = ('### %s - at %s, %s to move\nIn the game %s was played and it %s; '
                 'the best move was %s. %s' % (
-                    m['id'], m['label'], m['mover'], m['played'], m['cost'], m['best'],
+                    m['id'], m['label'], m['mover'], m['played'], m['cost_text'], m['best'],
                     ('There is a question here; correct answers: %s.' % ', '.join(m['correct']))
                     if m['asks'] else
                     'No question here: too many moves are about as good.'))

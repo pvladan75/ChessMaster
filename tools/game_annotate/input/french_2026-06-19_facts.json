@@ -44,7 +44,7 @@
     "label": "1. e4",
     "eval": "+0.37",
     "value_for_mover": 37,
-    "cost_pawns": 0.05,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "White's pawns hold more of the centre.",
@@ -168,7 +168,7 @@
     "label": "2... d5",
     "eval": "-0.26",
     "value_for_mover": 26,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white pawn on e4 is attacked by the black pawn on d5 and has no defender. White's pawns no longer hold more of the centre.",
@@ -336,7 +336,7 @@
     "label": "4... Nc6",
     "eval": "-0.35",
     "value_for_mover": 35,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 2
    },
    "margin_pawns": 0.01,
@@ -418,7 +418,7 @@
     "label": "5... Nge7",
     "eval": "-0.48",
     "value_for_mover": 48,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "margin_pawns": 0.15,
@@ -705,7 +705,7 @@
     "label": "9. Bxf5",
     "eval": "+0.58",
     "value_for_mover": 58,
-    "cost_pawns": 0.27,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white bishop on f5 is attacked by the black pawn on e6 and has no defender.",
@@ -747,7 +747,7 @@
     "label": "9... exf5",
     "eval": "+0.57",
     "value_for_mover": -57,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "Black has the bishop pair. White has no light-squared bishop, and six of its pawns stand on dark squares, so the light squares are weak.",
@@ -789,7 +789,7 @@
     "label": "10. d4",
     "eval": "+0.66",
     "value_for_mover": 66,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "White's pawns hold more of the centre.",
@@ -831,7 +831,7 @@
     "label": "10... cxd4",
     "eval": "+0.67",
     "value_for_mover": -67,
-    "cost_pawns": 0.01,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black pawn on d4 is attacked four times and defended only once. White has no light-squared bishop, and five of its pawns stand on dark squares, so the light squares are weak. The black pawns on d4 and d5 are isolated: no pawn on a neighbouring file can defend them. White's pawns no longer hold more of the centre.",
@@ -873,7 +873,7 @@
     "label": "11. Ncxd4",
     "eval": "+0.68",
     "value_for_mover": 68,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black pawn on d5 is isolated: no pawn on a neighbouring file can defend it. Black's pawns no longer hold more of the centre.",
@@ -957,7 +957,7 @@
     "label": "12. Qxd4",
     "eval": "+0.71",
     "value_for_mover": 71,
-    "cost_pawns": 0.04,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black pawn on d5 is attacked by the white queen on d4 and has no defender.",
@@ -1041,7 +1041,7 @@
     "label": "13. Be3",
     "eval": "+0.84",
     "value_for_mover": 84,
-    "cost_pawns": 0.02,
+    "cost_pawns": 0,
     "rank": 1
    },
    "margin_pawns": 0.31,
@@ -1375,7 +1375,7 @@
     "label": "17. O-O",
     "eval": "+0.94",
     "value_for_mover": 94,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black bishop on c5 pins the white bishop on e3 to the king on g1.",
@@ -1453,7 +1453,7 @@
     "label": "18. Qxe3",
     "eval": "+1.37",
     "value_for_mover": 137,
-    "cost_pawns": 0.03,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white pawn on f4 is no longer pinned. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. Black no longer has the bishop pair.",
@@ -1703,7 +1703,7 @@
     "label": "21. Rxd4",
     "eval": "+1.19",
     "value_for_mover": 119,
-    "cost_pawns": 0.09,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The fork by the black queen on d4 is over. The white rook on d1 is no longer hanging.",
@@ -1745,7 +1745,7 @@
     "label": "21... Rc8",
     "eval": "+1.19",
     "value_for_mover": -119,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": null
    },
    "motifs_after_played": "The black bishop on e6 is the only defender of the pawn on d5, and it is attacked by the white knight on g5. The black rook on c8 stands on the half-open c-file.",
@@ -1787,7 +1787,7 @@
     "label": "22. Rfd3",
     "eval": "+1.27",
     "value_for_mover": 127,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white rook on d3 stands on the half-open d-file.",
@@ -1871,7 +1871,7 @@
     "label": "23. c4",
     "eval": "+2.92",
     "value_for_mover": 292,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white pawn on c4 is attacked twice and defended only once. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. White's light squares are no longer weak.",
@@ -1954,7 +1954,7 @@
     "label": "24. cxd5",
     "eval": "+3.38",
     "value_for_mover": 338,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black bishop on e6 is attacked by the white pawn on d5, a cheaper piece. The white pawn on d5 is a passed pawn: no black pawn can block or capture it. Black has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The black rook on c8 no longer stands on the half-open c-file.",
@@ -1996,7 +1996,7 @@
     "label": "24... Rc1+",
     "eval": "+3.39",
     "value_for_mover": -339,
-    "cost_pawns": 0.01,
+    "cost_pawns": 0,
     "rank": 1
    },
    "margin_pawns": 0.89,
@@ -2025,7 +2025,7 @@
     "label": "25. Kf2",
     "eval": "+3.50",
     "value_for_mover": 350,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "margin_pawns": 0.89,
@@ -2234,7 +2234,7 @@
     "label": "27... fxe6",
     "eval": "+1.08",
     "value_for_mover": -108,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black bishop on d7 is no longer hanging. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white knight on g5 stands on an outpost: no black pawn can drive it away. The white pawn on d5 is no longer a passed pawn.",
@@ -2318,7 +2318,7 @@
     "label": "28... Bc6+",
     "eval": "+0.36",
     "value_for_mover": -36,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The move from d7 uncovers a discovered attack: the black rook on d8 now attacks the white rook on d4. The black rook on d8 is attacked by the white rook on d4 and has no defender. The black bishop on d7 is no longer pinned. The black bishop on d7 is no longer hanging.",
@@ -2360,7 +2360,7 @@
     "label": "29. Ke3",
     "eval": "+0.48",
     "value_for_mover": 48,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white pawn on g2 is attacked by the black bishop on c6 and has no defender. The white king on f3 is no longer skewered. The d-file beside the white king on e3 is open.",
@@ -2402,7 +2402,7 @@
     "label": "29... Rxd4",
     "eval": "+0.48",
     "value_for_mover": -48,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white king on e3 is overloaded: it alone defends the rook on d3 and the pawn on f4. The white rook on d4 no longer stands on the open d-file.",
@@ -2695,7 +2695,7 @@
     "label": "33. Rd8+",
     "eval": "-0.03",
     "value_for_mover": -3,
-    "cost_pawns": 0.03,
+    "cost_pawns": 0,
     "rank": 1
    },
    "margin_pawns": 1.59,
@@ -2724,7 +2724,7 @@
     "label": "33... Ke7",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.03,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The white rook on d8 is attacked by the black king on e7 and has no defender. The black king on e7 has lost its pawn shield.",
@@ -2844,7 +2844,7 @@
     "label": "35. Ke5",
     "eval": "-0.04",
     "value_for_mover": -4,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black pawn on f5 is attacked by the white king on e5 and has no defender. The fork by the black rook on d2 is over.",
@@ -2886,7 +2886,7 @@
     "label": "35... Re2+",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.04,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black rook on e2 forks the white king on e5, the pawn on a2 and the pawn on h2. The black rook on e2 stands on the half-open e-file.",
@@ -2928,7 +2928,7 @@
     "label": "36. Kd5",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black rook on e2 forks the white pawn on a2 and the pawn on h2. The fork by the black rook on e2 is over.",
@@ -2970,7 +2970,7 @@
     "label": "36... Rd2+",
     "eval": "-0.01",
     "value_for_mover": 1,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black rook on d2 forks the white king on d5, the pawn on a2 and the pawn on h2. The black rook on d2 stands on the open d-file.",
@@ -2994,7 +2994,7 @@
     "label": "37. Ke5",
     "eval": "-0.02",
     "value_for_mover": -2,
-    "cost_pawns": 0.01,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black pawn on f5 is attacked by the white king on e5 and has no defender. The fork by the black rook on d2 is over.",
@@ -3036,7 +3036,7 @@
     "label": "37... Re2+",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.02,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black rook on e2 forks the white king on e5, the pawn on a2 and the pawn on h2. The black rook on e2 stands on the half-open e-file.",
@@ -3078,7 +3078,7 @@
     "label": "38. Kd5",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black rook on e2 forks the white pawn on a2 and the pawn on h2. The fork by the black rook on e2 is over.",
@@ -3120,7 +3120,7 @@
     "label": "38... Rd2+",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 2
    },
    "motifs_after_played": "The black rook on d2 forks the white king on d5, the pawn on a2 and the pawn on h2. The black rook on d2 stands on the open d-file.",
@@ -3144,7 +3144,7 @@
     "label": "39. Ke5",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 1
    },
    "motifs_after_played": "The black pawn on f5 is attacked by the white king on e5 and has no defender. The fork by the black rook on d2 is over.",
@@ -3186,7 +3186,7 @@
     "label": "39... Re2+",
     "eval": "+0.00",
     "value_for_mover": 0,
-    "cost_pawns": 0.0,
+    "cost_pawns": 0,
     "rank": 2
    },
    "motifs_after_played": "The black rook on e2 forks the white king on e5, the pawn on a2 and the pawn on h2. The black rook on e2 stands on the half-open e-file.",
@@ -3226,5 +3226,6 @@
    "margin_pawns": 0.34,
    "best_stands_out": false
   }
- ]
+ ],
+ "recosted": "2026-09-13T17:51:29"
 }
