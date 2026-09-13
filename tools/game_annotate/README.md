@@ -1094,9 +1094,78 @@ reach it.
 
 ### What this does not answer
 
-Whether the sentences are true. Ten tutorials is thirty parts and about two
-hundred sentences, and no gate reads them. `summarise.py` says nothing about it
-by design; `review_run.py` is where a person reads one.
+Whether the sentences are true. That is the next section: it was read.
+
+### Reading the sentences — 13.9.2026
+
+Thirty parts and about two hundred sentences, read against the facts each slot
+carried. This is the half no gate covers, and it was done in two passes: a
+machine one for vocabulary, and a person reading every part.
+
+**No false sentence was found.** That is the headline and it is worth stating
+plainly, because every earlier arm of this experiment failed here.
+
+**The machine pass.** `_claims` already checks fork, pin, skewer, mate, printed
+evaluations and a sentence written on the wrong move. It does not check the rest
+of the detector's vocabulary, so all 290 slots were re-read for `outpost`,
+`overload`, `undefended`, `passed`, `bishop pair`, `weak squares`, `isolated`,
+`doubled`, `open file`, `pawn shield` and `the centre` against the text their own
+slot was shown. **Two sentences of 290 say something their slot did not**, both
+in `g02`, and both are **true**: the knight on f2 was declared overloaded two
+slots earlier and the detector never retracted it — it reports changes, so
+silence means the finding stands, and Black's `Be3` cannot un-defend White's
+pieces. The model carried a true fact forward. That breaks the letter of „say
+only what the facts beside the slot say" and nothing else.
+
+**The two opening sentences are exactly right.** `g01` wrote „10% of the master
+games reaching here played it" where the facts say 1 of 10, and „only one master
+game reached this position, and none played f6" where they say 1 game and 0.
+
+Three findings came out of the reading, and none of them is a false sentence.
+
+**A question may name a move that is not the answer.** Two of twenty-nine, both
+in `g09`: „Find the best move; it attacks the knight… **The game move Bg5** let
+Black become clearly better", and „…it advances the pawn… **Kg2** let Black
+become winning". The brief forbids naming the answer or its destination square
+and says nothing about the move being rejected — but naming it eliminates a
+candidate and frames the position. The same game's third question says „it is a
+capture that trades knights and queens", which leaves exactly one move. **The
+gap is in the brief, not in the model**, and the other twenty-six questions are
+sound.
+
+**Adjacent moments can show one move two ways.** Three occurrences, in three of
+the ten: `g03` shows `Qg3` as a move of the best line in part 3 and refutes it as
+the game move in part 6; `g05` does it with `Qxb7`; `g08` in the other order.
+Each part is correct about its own position — the line that recommends the move
+and the line that refutes it start from different boards — so nothing in the
+harness can see it, and a student reading straight through meets a move praised
+and then condemned. **This is what reading finds and grading cannot.**
+
+**The „left the book" anchor is right, and a share threshold would be wrong.**
+Ten games settle what three could not. A 10% share fires at move one or two in
+**all ten**: `1... d5` is „rare" at 1.9% and is the Scandinavian, `1... c6` at
+8.1% is the Caro-Kann, `1. c4` at 6.9% is the English. The absolute rule this
+project already has — `MIN_MASTER_GAMES = 10` — misses three of the ten, and
+loosened to fifty it starts firing on the main move of a tiny position (24 of 68
+is 35%). The anchor in use, the first move no master game has played, fires in
+all ten at moves two to seven and is never absurd.
+
+There is a second signal worth adding where it exists: **the last well-travelled
+position the game left** — a position of 500 games or more where the move played
+has fewer than fifty and under 10%. It picks `3... Qe6+`, ten games out of
+15038, which is where `g01` really left theory, one move before the anchor finds
+it. It fires in four of ten, because six of these games were off the beaten path
+by move two.
+
+**And a lesson about the instruments, not the tutorials.** Both measurements
+above were wrong on their first run. The contradiction detector counted a part's
+own „the answer is X instead of Y" as a contradiction and reported seventeen, of
+which sixteen were that sentence; and the question check flagged 26 of 29 for
+„names a piece", which catches „a white pawn is attacked and undefended, find the
+move that takes it" — naming the *target* is not giving away the answer.
+Tightened to what actually matters they report three and two. A number produced
+by a check that fires on everything is not a finding, and the first version of
+both would have been quoted.
 
 ## What to look at in the results
 
