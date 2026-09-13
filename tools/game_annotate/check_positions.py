@@ -194,6 +194,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('run_dir')
     parser.add_argument('--game', help="defaults to the run's meta.json")
+    parser.add_argument('--file', default='tutorial.json',
+                        help='tutorial-game.json for the whole-game mode')
     cfg = parser.parse_args()
 
     run_dir = os.path.abspath(cfg.run_dir)
@@ -204,10 +206,10 @@ def main():
     known = positions_of(os.path.join(HERE, 'input', '%s_reviewed.pgn' % game))
     sent = facts_rows(game)
     drifted = facts_drift(run_dir, game)
-    tutorial = os.path.join(run_dir, 'tutorial.json')
+    tutorial = os.path.join(run_dir, cfg.file)
     if not os.path.exists(tutorial):
         # A run that answered nothing is a result to report, not a traceback.
-        print('%s  — no tutorial.json, nothing to check' % os.path.basename(run_dir))
+        print('%s  — no %s, nothing to check' % (os.path.basename(run_dir), cfg.file))
         sys.exit(2)
     with open(tutorial, encoding='utf-8') as fh:
         parts = json.load(fh).get('positionList') or []

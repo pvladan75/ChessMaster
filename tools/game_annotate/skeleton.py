@@ -30,6 +30,11 @@ moment is reported; a sentence that prints an evaluation, or says a move wins
 when it captures nothing, or names a fork or a pin the board does not have, is
 reported. The grader and the engine check then judge the assembled file the
 same way they judge every other arm.
+
+**One answer, two tutorials.** `tutorial.json` is the key moments;
+`tutorial-game.json` is the whole game, with the same moments and the game moves
+between them filled in by code (`whole_game`). `python skeleton.py --assemble
+<run dir>` builds both again from a saved answer.
 """
 
 import io
@@ -580,7 +585,7 @@ def assemble(run_dir, name, meta, answer_text, cfg=None):
 
     given = {k: _clean(v) for k, v in (answer.get('slots') or {}).items()}
     wanted = set()
-    steps = []
+    blocks = []
     previous = None
     trimmed = []
     for mid in sorted(chosen, key=lambda c: offered[c]['index']):
@@ -618,33 +623,208 @@ def assemble(run_dir, name, meta, answer_text, cfg=None):
                 report['missing_slots'].append(sid)
             else:
                 report['claims'].extend(_claims(sid, given[sid], moment['facts'][sid]))
-        for part in parts:
-            step = {'title': 'Part %d' % (len(steps) + 1), 'fen': part['fen'],
-                    'kind': part['kind']}
-            if part['black']:
-                step['blackOrientation'] = True
-            if part['kind'] == 'show':
-                step['pgn'] = _pgn(part, given)
-            else:
-                step['instruction'] = given.get(part['instruction'], '')
-                step['solutionSan'] = part['solution']
-                if part['accepted']:
-                    step['acceptedSans'] = part['accepted']
-                step['pgn'] = ''
-            steps.append(step)
+        blocks.append((moment, parts))
     report['unused_slots'] = sorted(set(given) - wanted)
     report['trimmed'] = trimmed
 
-    tutorial = {
+    head = {
         'title': _clean(answer.get('title')),
         'description': _clean(answer.get('description')),
         'tags': [_clean(t) for t in (answer.get('tags') or [])][:2],
         'language': 'en',
-        'positionList': steps,
     }
-    with open(os.path.join(run_dir, 'tutorial.json'), 'w', encoding='utf-8') as fh:
+    moments_only = [part for _, parts in blocks for part in parts]
+    _write(run_dir, 'tutorial.json', dict(head, positionList=_steps(moments_only, given)))
+
+    parts, words, report['game'] = whole_game(name, blocks, given, cfg)
+    _write(run_dir, 'tutorial-game.json',
+           dict(head, title=head['title'] + GAME_TITLE, positionList=_steps(parts, words)))
+
+
+def _write(run_dir, file_name, tutorial):
+    with open(os.path.join(run_dir, file_name), 'w', encoding='utf-8') as fh:
         json.dump(tutorial, fh, ensure_ascii=False, indent=2)
 
 
+def _steps(parts, words):
+    """The tutorial's `positionList`: each part as the app stores a step."""
+    steps = []
+    for part in parts:
+        step = {'title': 'Part %d' % (len(steps) + 1), 'fen': part['fen'],
+                'kind': part['kind']}
+        if part['black']:
+            step['blackOrientation'] = True
+        if part['kind'] == 'show':
+            step['pgn'] = _pgn(part, words)
+        else:
+            step['instruction'] = words.get(part['instruction'], '')
+            step['solutionSan'] = part['solution']
+            if part['accepted']:
+                step['acceptedSans'] = part['accepted']
+            step['pgn'] = ''
+        steps.append(step)
+    return steps
+
+
+# --- The whole game -----------------------------------------------------------
+
+# Two tutorials of one game carry one title from the model, and a library
+# showing the same name twice cannot say which is which.
+GAME_TITLE = ' (whole game)'
+
+
+def filler_words(rows, r, cfg, resumed):
+    """The sentence code writes on a game move no chosen moment narrates.
+
+    Most such moves get none: a whole game of sentences like „White plays Nf3"
+    is a narration nobody listens to past move ten, and the narrated walk
+    already waits over a move with no words. Four moves get one, each built
+    from the facts alone and in the voice of what was played:
+
+     * the move a moment's answer just refuted, where the game resumes -
+       without it the student is back on the board with no word of why;
+     * a costly mistake the model did not choose, when the evaluation's words
+       change - a swing in silence reads as though nothing happened;
+     * the move that left the masters database, which the per-position
+       statistics could only ever say when a lead-in happened to reach it
+       (one game in ten, measured) and which a whole game always reaches;
+     * the last move, for how the game ended.
+    """
+    row = rows[r]
+    played = row['played']
+    mover = row['to_move']
+    after = words_for(played.get('eval'))
+    said = []
+    if resumed:
+        # `words_for` can answer without a subject, and „afterwards about even"
+        # is what three of ten games said before this.
+        said.append('Back in the game, %s played %s instead; afterwards %s.'
+                    % (mover, played['move'],
+                       ('it is ' + after) if after in ('about even', 'a draw', 'checkmate')
+                       else 'the evaluation is unknown' if after == 'unknown' else after))
+    elif _cost_value(played.get('cost_pawns')) >= cfg['min_cost'] and row.get('candidates'):
+        before = words_for(row['candidates'][0]['eval'])
+        if before != after:
+            said.append('%s plays %s, and it is a mistake. With the best move: %s. '
+                        'After this one: %s.' % (mover, played['move'], before, after))
+    book = row.get('book')
+    if played.get('left_book') and book:
+        said.append('This move left the masters database: %s reached this position '
+                    'and none played it.' % ('1 master game' if book['games'] == 1
+                                             else '%d master games' % book['games']))
+    return ' '.join(said)
+
+
+def whole_game(name, blocks, given, cfg):
+    """The chosen moments with every game move between them put back.
+
+    The moments are exactly the parts of `tutorial.json`, words and trims and
+    all; nothing here changes what the model wrote or which moments it chose.
+    What is added is a part of game moves in front of each moment - from where
+    the game last left off to where the moment's lead-in begins - and one after
+    the last, to the end of the game. Each added part ends on the position the
+    next part starts on, so the student's board carries straight on into the
+    lead-in. After a moment's answer the game resumes on the moment's own
+    board, with the move that was played there.
+
+    Returns (parts, words, report).
+    """
+    rows = facts_of(name)['rows']
+    end = sum(1 for row in rows if row.get('played'))
+    if any(not rows[r].get('played') for r in range(end)):
+        # A gap would silently join the moves on either side of it into a line
+        # that does not replay.
+        raise ValueError('%s: a row inside the game has no move played' % name)
+    words = dict(given)
+    parts = []
+    report = {'filler_parts': 0, 'filler_moves': 0, 'filler_sentences': 0}
+
+    def fill(start, stop, black):
+        if start >= stop:
+            return
+        board = chess.Board(rows[start]['fen'])
+        intro = 'game.%d.intro' % start
+        if start == 0:
+            named = [row['book']['opening'] for row in rows
+                     if row.get('book') and row['book'].get('opening')]
+            if named:
+                words[intro] = 'The opening is the %s.' % named[-1]
+        moves = []
+        for r in range(start, stop):
+            san = rows[r]['played']['move']
+            sid = 'game.%d' % r
+            text = filler_words(rows, r, cfg, resumed=(r == start and start > 0))
+            board.push_san(san)
+            if r == end - 1:
+                text = (text + ' ' + ('Checkmate.' if board.is_checkmate()
+                                      else 'Stalemate.' if board.is_stalemate()
+                                      else 'The game ended here.')).strip()
+            if text:
+                words[sid] = text
+                report['filler_sentences'] += 1
+            moves.append({'san': san, 'slot': sid, 'ply': r})
+        report['filler_moves'] += len(moves)
+        report['filler_sentences'] += 1 if words.get(intro) else 0
+        return {'kind': 'show', 'fen': rows[start]['fen'], 'black': black,
+                'intro': intro, 'moves': moves}
+
+    cursor = 0
+    black = False
+    report['merged'] = 0
+    for moment, mparts in blocks:
+        first = mparts[0]
+        stop = first['moves'][0]['ply'] if first.get('lead') else moment['index']
+        black = first['black']
+        filler = fill(cursor, stop, black)
+        if filler and first.get('lead'):
+            # The game moves and the lead-in are one stretch of one game, and
+            # as two parts the first was sometimes a single move (`22... bxa3`
+            # alone, on g01). The lead-in's opening sentence described the
+            # board the filler ends on, so it becomes that last move's comment,
+            # after whatever code said there.
+            last = filler['moves'][-1]['slot']
+            joined = ' '.join(t for t in (words.get(last), words.get(first.get('intro')))
+                              if t)
+            if joined:
+                words[last] = joined
+            mparts = [dict(first, fen=filler['fen'], intro=filler['intro'],
+                           moves=filler['moves'] + first['moves'])] + mparts[1:]
+            report['merged'] += 1
+        elif filler:
+            parts.append(filler)
+            report['filler_parts'] += 1
+        parts.extend(mparts)
+        cursor = moment['index']
+    filler = fill(cursor, end, black)
+    if filler:
+        parts.append(filler)
+        report['filler_parts'] += 1
+    report['parts'] = len(parts)
+    return parts, words, report
+
+
+def reassemble(run_dir):
+    """Build both tutorials of a finished run again from its saved answer.
+
+    No model is asked: the answer is `answer.json` as it came, so a change to
+    the assembly - the whole-game mode of 13.9.2026 was the first - can be
+    tried on every run already made.
+    """
+    with open(os.path.join(run_dir, 'meta.json'), encoding='utf-8') as fh:
+        meta = json.load(fh)
+    with open(os.path.join(run_dir, 'answer.json'), encoding='utf-8') as fh:
+        answer = fh.read()
+    assemble(run_dir, meta['game'], meta, answer,
+             (meta.get('skeleton') or {}).get('parameters'))
+    with open(os.path.join(run_dir, 'meta.json'), 'w', encoding='utf-8') as fh:
+        fh.write(json.dumps(meta, ensure_ascii=False, indent=1))
+    return meta['skeleton']
+
+
 if __name__ == '__main__':
-    print(prompt(sys.argv[1] if len(sys.argv) > 1 else 'pvladan_2026-09-12'))
+    if len(sys.argv) > 2 and sys.argv[1] == '--assemble':
+        for folder in sys.argv[2:]:
+            got = reassemble(folder)
+            print('%s  %s' % (os.path.basename(folder.rstrip('/\\')), got.get('game')))
+    else:
+        print(prompt(sys.argv[1] if len(sys.argv) > 1 else 'pvladan_2026-09-12'))

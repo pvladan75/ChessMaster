@@ -1167,6 +1167,89 @@ Tightened to what actually matters they report three and two. A number produced
 by a check that fires on everything is not a finding, and the first version of
 both would have been quoted.
 
+## Two modes from one answer: key moments and the whole game — 13.9.2026
+
+A trainer can want the tutorial of a game in two shapes: the two or three
+moments worth stopping on, or the whole game played through with those moments
+stopped on. **Both come from the same model answer.** `skeleton.assemble` writes
+`tutorial.json`, the moments exactly as before, and `tutorial-game.json`, the
+same moments with every game move between them put back. The model is asked
+nothing new and its words are not touched. Only code writes the filler.
+
+```
+python skeleton.py --assemble out/H-api-...     # both files again, from answer.json
+python check_positions.py out/H-api-... --file tutorial-game.json
+```
+
+**The shape.** Before each moment, the game moves from where the tutorial last
+left the game to where the moment's lead-in begins. They are **merged into the
+lead-in** rather than added as a part of their own: as separate parts, the first
+version made a one-move part out of `22... bxa3` on g01, and put 13 parts in a
+file the grader's contract wants at 4 to 10. The lead-in's opening sentence
+described the board the filler ends on, so it becomes the last filler move's
+comment. After a moment's answer line, the game resumes on the moment's own
+board with the move that was actually played there, and a last part runs to
+the end of the game.
+
+**What code says, and what it leaves silent.** Most game moves get no sentence.
+Sixty sentences of „White plays Nf3" is a narration nobody listens to past move
+ten, and the narrated walk already pauses on a move with no words. Four kinds of
+move do get a sentence, each built from the facts alone:
+
+ * the opening's name, on the first part;
+ * „Back in the game, Black played Qf7 instead; afterwards White is clearly
+   better", on the move a moment's answer just refuted;
+ * „Black plays c6, and it is a mistake. With the best move: White is clearly
+   better. After this one: White is winning.", on a costly move (≥ `min_cost`)
+   the model did not choose, and only when the evaluation's words change;
+ * „This move left the masters database: 1367 master games reached this position
+   and none played it.", which the per-position statistics could only say in
+   one game of ten while a lead-in had to happen to reach it. A whole game
+   always reaches it.
+
+The last move adds „Checkmate.", „Stalemate." or „The game ended here." — every
+input PGN says `[Result "*"]`, so a resignation cannot be told from a flag fall.
+
+**Measured on the ten games of D:**
+
+```
+game                     parts  answers  plies covered  code sentences  merged
+g01_scandinavian-defense   10      3        63/63            6            3
+g02_french-defense         10      3        82/82           13            3
+g03_scandinavian-defense   10      3        80/80           18            2
+g04_saragossa-opening      10      3        60/60            7            3
+g05_french-defense         10      3        67/67            7            2
+g06_zukertort-opening      10      3        61/61            7            3
+g07_english-opening        10      3        87/87           11            3
+g08_nimzowitsch-defense     7      2        80/80            5            2
+g09_caro-kann-defense      10      3      101/101           15            2
+g10_english-opening        10      3        67/67            9            2
+```
+
+Every `tutorial.json` re-assembled byte-identical to the file imported into the
+app earlier the same evening, so the moments mode did not move. Every
+`tutorial-game.json` grades CLEAN, `check_positions.py` exits 0 on all ten, and
+a replay check reads each file part by part: a part on the game continues at
+exactly the next ply, every other part starts where the one before it ended,
+and every ply of every game is covered once, in order.
+
+Four things the grader does not say:
+
+ * **Moves per part run to 57**, against the contract's 8. That is what a whole
+   game is, and the grader only warns.
+ * **The merged comments are the long sentences** — 184, 210 and 185 characters
+   — because a lead-in's intro now follows a code sentence in one comment. They
+   are two sentences read aloud and one comment counted.
+ * **A blitz game is a lot of mistakes.** g09 says „it is a mistake" eleven
+   times and g03 ten, every one of them true at `min_cost` 1.0. A higher
+   threshold for the filler alone is a parameter, not a redesign.
+ * **The board turns over between moments in six of ten** (g03 reads
+   `WWWBBBWWWW`), because every moment is shown from its mover's side, as in the
+   moments mode. The turn falls where the board already jumps from the end of an
+   answer line back to the game. Whether a whole game should keep one side
+   throughout is the owner's decision. The facts do not know which side the
+   trainer played.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not
