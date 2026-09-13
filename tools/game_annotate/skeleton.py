@@ -100,14 +100,43 @@ def words_for(eval_text):
         return ('White mates in %d' % n) if n > 0 else ('Black mates in %d' % -n)
     value = float(eval_text)
     side = 'White' if value > 0 else 'Black'
-    size = abs(value)
-    if size < 0.5:
+    level = _level(abs(value))
+    if level == 0:
         return 'about even'
-    if size < 1.5:
-        return '%s is slightly better' % side
-    if size < 3.0:
-        return '%s is clearly better' % side
-    return '%s is winning' % side
+    return '%s is %s' % (side, ('slightly better', 'clearly better', 'winning')[level - 1])
+
+
+# Where the words change, in pawns: under 0.5 about even, under 1.5 slightly
+# better, under 3.0 clearly better, winning from there. One tuple, because the
+# filler's lexicon judges a move by these same steps, and two copies of a
+# threshold are how a phrase comes to disagree with the words beside it.
+LEVELS = (0.5, 1.5, 3.0)
+
+
+def _level(size):
+    return sum(1 for step in LEVELS if size >= step)
+
+
+def standing(eval_text, mover):
+    """An evaluation as [mover] sees it, in the steps `words_for` speaks in.
+
+    -4 to 4: 0 about even, 1 to 3 slightly better to winning, 4 a forced mate;
+    negative when it is the other side's. None when the evaluation is unknown.
+    """
+    if eval_text in (None, '', 'unknown'):
+        return None
+    if eval_text == 'draw':
+        return 0
+    if eval_text == 'checkmate':
+        # Only ever the evaluation after a move that mates, by the side that
+        # moved - a position whose side to move is mated has no candidates.
+        return 4
+    if eval_text.startswith('#'):
+        white, level = int(eval_text[1:]) > 0, 4
+    else:
+        value = float(eval_text)
+        white, level = value > 0, _level(abs(value))
+    return (level if white == (mover == 'White') else -level) if level else 0
 
 
 def material(board):
@@ -675,7 +704,72 @@ def _steps(parts, words):
 GAME_TITLE = ' (whole game)'
 
 
-def filler_words(rows, r, cfg, resumed):
+# The phrases code may say on a game move, by what the facts establish about it.
+# Every phrase is true by construction of the pool it is in - none says
+# „material", „initiative" or „decisive", because nothing the filler reads
+# measures those, and a confident sentence no fact backs is the one thing arm H
+# exists to prevent. Chosen by how often the pool has been used in this
+# tutorial, never by ply: two slips three plies apart share `ply % 3`.
+LEXICON = {
+    'resumed': [
+        'Back in the game, {mover} played {move} instead; afterwards {after}.',
+        'Returning to the game, {mover} played {move} instead; afterwards {after}.',
+        'Back on the board, the game continued with {move} instead; afterwards {after}.',
+    ],
+    # The mover was better and now it is about even.
+    'advantage_gone': [
+        'This lets the advantage go.',
+        'The advantage is gone after this move.',
+        'This throws the advantage away.',
+    ],
+    # The other side is better now and was not before, short of winning.
+    'opponent_better': [
+        'This hands the opponent the better game.',
+        'After this, the opponent has the better position.',
+        'This gives the opponent the upper hand.',
+    ],
+    # The other side is winning now and was not before.
+    'opponent_winning': [
+        'A serious mistake: from here the opponent is winning.',
+        'A serious mistake, and it leaves the opponent winning.',
+        'This is the move that leaves the opponent winning.',
+    ],
+    # The best move had a forced mate, and this one has none.
+    'misses_mate': [
+        'This misses a forced mate.',
+        'There was a forced mate here, and this move misses it.',
+        'This lets a forced mate slip away.',
+    ],
+}
+
+
+def mistake_kind(before, after):
+    """The pool for a costly move, from its `standing` with the best move and after it.
+
+    None means silence, and two kinds are silent on purpose: a side that was
+    better and still is, only less so, and a side already worse that is worse
+    still but not yet lost. Neither changes who is better, and in a blitz game
+    they are most of the costly moves - ten sentences with different adjectives
+    are still ten interruptions.
+    """
+    if before is None or after is None or after >= before:
+        return None
+    if after <= -3 < before:
+        return 'opponent_winning'
+    if before == 4:
+        return 'misses_mate'
+    if before < 0 or after > 0:
+        return None
+    return 'advantage_gone' if after == 0 else 'opponent_better'
+
+
+def _pick(pool, used):
+    n = used.get(pool, 0)
+    used[pool] = n + 1
+    return LEXICON[pool][n % len(LEXICON[pool])]
+
+
+def filler_words(rows, r, cfg, resumed, used):
     """The sentence code writes on a game move no chosen moment narrates.
 
     Most such moves get none: a whole game of sentences like „White plays Nf3"
@@ -685,12 +779,15 @@ def filler_words(rows, r, cfg, resumed):
 
      * the move a moment's answer just refuted, where the game resumes -
        without it the student is back on the board with no word of why;
-     * a costly mistake the model did not choose, when the evaluation's words
-       change - a swing in silence reads as though nothing happened;
+     * a costly mistake the model did not choose, when it changes who is
+       better (`mistake_kind`) - a swing in silence reads as though nothing
+       happened;
      * the move that left the masters database, which the per-position
        statistics could only ever say when a lead-in happened to reach it
        (one game in ten, measured) and which a whole game always reaches;
      * the last move, for how the game ended.
+
+    [used] counts each lexicon pool's uses in this tutorial.
     """
     row = rows[r]
     played = row['played']
@@ -700,15 +797,16 @@ def filler_words(rows, r, cfg, resumed):
     if resumed:
         # `words_for` can answer without a subject, and „afterwards about even"
         # is what three of ten games said before this.
-        said.append('Back in the game, %s played %s instead; afterwards %s.'
-                    % (mover, played['move'],
-                       ('it is ' + after) if after in ('about even', 'a draw', 'checkmate')
-                       else 'the evaluation is unknown' if after == 'unknown' else after))
+        said.append(_pick('resumed', used).format(
+            mover=mover, move=played['move'],
+            after=('it is ' + after) if after in ('about even', 'a draw', 'checkmate')
+            else 'the evaluation is unknown' if after == 'unknown' else after))
     elif _cost_value(played.get('cost_pawns')) >= cfg['min_cost'] and row.get('candidates'):
-        before = words_for(row['candidates'][0]['eval'])
-        if before != after:
-            said.append('%s plays %s, and it is a mistake. With the best move: %s. '
-                        'After this one: %s.' % (mover, played['move'], before, after))
+        best = row['candidates'][0]['eval']
+        kind = mistake_kind(standing(best, mover), standing(played.get('eval'), mover))
+        if kind:
+            said.append('%s plays %s. %s With the best move: %s. After this one: %s.' % (
+                mover, played['move'], _pick(kind, used), words_for(best), after))
     book = row.get('book')
     if played.get('left_book') and book:
         said.append('This move left the masters database: %s reached this position '
@@ -739,7 +837,8 @@ def whole_game(name, blocks, given, cfg):
         raise ValueError('%s: a row inside the game has no move played' % name)
     words = dict(given)
     parts = []
-    report = {'filler_parts': 0, 'filler_moves': 0, 'filler_sentences': 0}
+    report = {'filler_parts': 0, 'filler_moves': 0, 'filler_sentences': 0,
+              'lexicon': {}}
 
     def fill(start, stop):
         if start >= stop:
@@ -755,7 +854,8 @@ def whole_game(name, blocks, given, cfg):
         for r in range(start, stop):
             san = rows[r]['played']['move']
             sid = 'game.%d' % r
-            text = filler_words(rows, r, cfg, resumed=(r == start and start > 0))
+            text = filler_words(rows, r, cfg, resumed=(r == start and start > 0),
+                                used=report['lexicon'])
             board.push_san(san)
             if r == end - 1:
                 text = (text + ' ' + ('Checkmate.' if board.is_checkmate()

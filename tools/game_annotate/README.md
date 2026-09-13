@@ -1199,9 +1199,10 @@ move do get a sentence, each built from the facts alone:
  * the opening's name, on the first part;
  * „Back in the game, Black played Qf7 instead; afterwards White is clearly
    better", on the move a moment's answer just refuted;
- * „Black plays c6, and it is a mistake. With the best move: White is clearly
-   better. After this one: White is winning.", on a costly move (≥ `min_cost`)
-   the model did not choose, and only when the evaluation's words change;
+ * „Black plays c6. A serious mistake: from here the opponent is winning. With
+   the best move: White is clearly better. After this one: White is winning.",
+   on a costly move (≥ `min_cost`) the model did not choose, and only when it
+   changes who is better — see the lexicon below;
  * „This move left the masters database: 1367 master games reached this position
    and none played it.", which the per-position statistics could only say in
    one game of ten while a lead-in had to happen to reach it. A whole game
@@ -1215,14 +1216,14 @@ input PGN says `[Result "*"]`, so a resignation cannot be told from a flag fall.
 ```
 game                     parts  answers  plies covered  code sentences  merged
 g01_scandinavian-defense   10      3        63/63            6            3
-g02_french-defense         10      3        82/82           13            3
-g03_scandinavian-defense   10      3        80/80           18            2
-g04_saragossa-opening      10      3        60/60            7            3
-g05_french-defense         10      3        67/67            7            2
-g06_zukertort-opening      10      3        61/61            7            3
-g07_english-opening        10      3        87/87           11            3
+g02_french-defense         10      3        82/82            9            3
+g03_scandinavian-defense   10      3        80/80           16            2
+g04_saragossa-opening      10      3        60/60            6            3
+g05_french-defense         10      3        67/67            6            2
+g06_zukertort-opening      10      3        61/61            6            3
+g07_english-opening        10      3        87/87            9            3
 g08_nimzowitsch-defense     7      2        80/80            5            2
-g09_caro-kann-defense      10      3      101/101           15            2
+g09_caro-kann-defense      10      3      101/101           12            2
 g10_english-opening        10      3        67/67            9            2
 ```
 
@@ -1237,12 +1238,14 @@ Four things the grader does not say:
 
  * **Moves per part run to 57**, against the contract's 8. That is what a whole
    game is, and the grader only warns.
- * **The merged comments are the long sentences** — 184, 210 and 185 characters
-   — because a lead-in's intro now follows a code sentence in one comment. They
-   are two sentences read aloud and one comment counted.
- * **A blitz game is a lot of mistakes.** g09 says „it is a mistake" eleven
-   times and g03 ten, every one of them true at `min_cost` 1.0. A higher
-   threshold for the filler alone is a parameter, not a redesign.
+ * **The long „sentences" are comments of two or three sentences** — up to 244
+   characters, where a lead-in's intro follows a code sentence, and a costly
+   move's comment is a phrase and two evaluations in one. Read aloud they are
+   short sentences; the grader counts the comment.
+ * **A blitz game is a lot of mistakes.** The first version said „it is a
+   mistake" 44 times across the ten — **thirteen in g03 and ten in g09** (this
+   section first said eleven and ten; that was a miscount) — see the lexicon
+   below for what replaced it.
  * **The board turned over between moments in six of ten** (g03 read
    `WWWBBBWWWW`), because every moment was shown from its mover's side. The
    owner settled it the same evening, for both modes: **one side throughout**,
@@ -1251,6 +1254,56 @@ Four things the grader does not say:
    `blackOrientation` any more, so every tutorial opens from White's side —
    the facts do not know which side the trainer played, and a guess that
    differs from one game to the next is the same confusion one level up.
+
+### The filler's lexicon — 13.9.2026
+
+„It is a mistake" 44 times was the owner's complaint, and the first proposal was
+three pools keyed by cost in pawns — „drops material", „hands over the
+initiative", „a decisive slip". It was built differently, for two reasons.
+
+**Most of those phrases say what nothing measured.** The filler reads two facts
+about a move: the evaluation, in words, with the best move and after the move
+played. No material count, no initiative. And „gives the opponent an edge" is
+false for a side that goes from winning to clearly better, which is three of
+g09's ten. Code writing a confident sentence no fact backs is exactly what
+`_claims` exists to stop in the model.
+
+**A pawn is not a severity.** From +5 to +4 changes nothing; from +0.4 to −0.6
+changes who is better. So a phrase is chosen by `mistake_kind`, from the two
+evaluations on the mover's side of `words_for`'s own steps (`LEVELS`, one tuple
+for both):
+
+| `LEXICON` pool | when |
+|---|---|
+| `opponent_winning` | the other side is winning after it, and was not before |
+| `misses_mate` | the best move had a forced mate and this one has none |
+| `advantage_gone` | the mover was better and now it is about even |
+| `opponent_better` | the other side is better now and was not before |
+| *silent* | a side better before and still better, or worse before and worse still short of lost |
+
+Each pool holds three phrasings, all true of their row, and the evaluation words
+still follow. **A pool is cycled by its uses in the tutorial, not by ply** — two
+slips three plies apart share `ply % 3`. The resumption sentence has a pool of
+its own.
+
+On the ten games: **44 mistake sentences became 30** (13 `opponent_winning`, 9
+`opponent_better`, 5 `advantage_gone`, 3 `misses_mate`) — g03 13 → 11, g09 10 →
+7. Fewer than hoped: a blitz game crosses „about even" in both directions often,
+and each crossing is a change of who is better. `tutorial.json` did not move,
+all ten whole-game files grade CLEAN, positions are exact, and every ply is
+covered once.
+
+**How it was checked, and the check that could not fail at first.** A throwaway
+verifier reads each phrase back against the evaluation words printed beside it,
+parsed from the text rather than from `skeleton.py`'s arithmetic. Six mutations
+were run against it; **one survived** — `standing` reading every evaluation from
+White's side — because it silences every Black mistake, and a check that judges
+only the phrases written cannot see a phrase that is missing. The verifier now
+also walks all 621 code-written game moves and asks the facts whether each one
+was owed a phrase. Seven mutations — the silence removed, two pools swapped, the
+winning and mate boundaries widened, the pool cycle frozen, the `min_cost` gate
+removed, the mover ignored — are all caught, each on a line that names the move,
+rather than on a crash.
 
 ## What to look at in the results
 
