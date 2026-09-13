@@ -3,6 +3,8 @@
 *.log
 *.pyc
 *.swp
+# Backup copies under lib/ are read by every source-reading test and grep.
+*.bak
 .DS_Store
 .atom/
 .build/
