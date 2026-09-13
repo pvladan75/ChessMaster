@@ -43,6 +43,43 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## PGN u tutorijal i natrag — `PLAN-PGN-TUTORIJAL.md`, sve četiri faze, 12–13.9.2026
+
+Tačke 1, 2 i 4 iz fajla sa pitanjima vlasnika od 12.9.2026. Nije viđeno
+uživo: `TODO-provera.md`, stavke 157 (fajl iz Analize), 158 (uvoz) i 159
+(izvoz).
+
+**Pre koda je išao eksperiment**, `tools/game_annotate/`: tri partije, devet
+prolaza, svaki `ask_move` proveren Stockfish-om na dubini 22. Grana koja je
+dobila izlaz „Review entire game" svaki put je pitala pitanje čiji je odgovor
+engine-ov prvi izbor sa jasnom razlikom; grana koja je dobila samo poteze nije
+nijednom — pisala je pitanja koja izgledaju ispravno i suptilno su netačna
+(„jedini odbrambeni potez", odgovor treći po redu). Zato se pitanja prave samo
+tamo gde je pregled već ostavio `??` **i** `!` liniju pored njega.
+
+Šta je napravljeno:
+
+ * **Faza 0** — `??` i `!` se konačno i čitaju natrag. Do 12.9.2026. su se
+   gubile pri prvom ponovnom snimanju tutorijala, tiho.
+ * **Faza 1** — `.pgn` postaje tutorijal: jedna partija, jedan deo; naslov iz
+   zaglavlja; ništa se ne parsira po drugi put.
+ * **Faza 2** — pitanja na oznakama, sečena istim `splitForQuestion` koji
+   trener koristi ručno. Odgovor je engine-ov potez, nastavak prati partiju.
+   Rečenica pitanja **ne tvrdi da je odgovor jedini** — pregledani PGN ne nosi
+   nijednu ocenu, pa se to iz fajla ne može znati.
+ * **Faza 3** — vrata: `.pgn` pored `.json` u „Uvezi iz fajla", najviše 50
+   partija po fajlu i to piše na prvom redu.
+ * **Faza 4** — natrag: susedni delovi se spajaju u jednu partiju kad drugi
+   stoji na poziciji na kojoj se prvi završio, a prekid počinje novu partiju u
+   istom fajlu. Izlazi kroz „Save as .pgn", sada dugme i u studiju.
+
+**Šta PGN ne nosi, i to dijalog kaže pre nego što se fajl imenuje**: šta deo
+pita, odgovor, primljeni potezi, orijentacija table, naslov tutorijala, oznake i
+jezik. Rečenica ne šalje trenera na druga vrata — izvoza u JSON u aplikaciji
+nema — nego kaže da sve to ostaje u sačuvanom tutorijalu.
+
+---
+
 ## Ispis prati glas, a ne fajl — 12.9.2026
 
 Dve prijave posle gledanja prvog objavljenog tutorijala: prva reč se ne čuje
