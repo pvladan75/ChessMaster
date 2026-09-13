@@ -203,8 +203,8 @@ void main() {
       const beforeFen = '4k3/8/8/8/2P1P3/8/8/1N2K3 w - - 0 1';
       const afterFen = '4k3/8/8/3N4/2P1P3/8/8/4K3 b - - 0 1';
 
-      final diff =
-          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff = service.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: null);
 
       final created = diff.created.firstWhere(
         (f) => f.factors.contains(PositionalFactor.knightOutpost),
@@ -219,8 +219,8 @@ void main() {
         () {
       const beforeFen = '4k3/8/8/8/2P1P3/8/8/1N2K3 w - - 0 1';
       const afterFen = '4k3/8/8/3N4/2P1P3/8/8/4K3 b - - 0 1';
-      final diff =
-          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff = service.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: null);
 
       final comment = service.describeMoveDiff(diff);
       final candidates = service.candidateCommentLines(diff);
@@ -245,8 +245,8 @@ void main() {
       const beforeFen = '4k3/8/8/8/8/8/5PPP/6K1 w - - 0 1';
       const afterFen = '4k3/8/8/8/8/8/8/6K1 b - - 0 1';
 
-      final diff =
-          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff = service.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: null);
       final comment = service.describeMoveDiff(diff);
 
       expect(comment, contains('pawn shield'));
@@ -273,8 +273,8 @@ void main() {
       // The knight leaves its outpost on d5 for b4.
       const beforeFen = '4k3/8/8/3N4/2P1P3/8/8/4K3 w - - 0 1';
       const afterFen = '4k3/8/8/8/1NP1P3/8/8/4K3 b - - 0 1';
-      final diff =
-          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff = service.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: null);
 
       final gone = diff.resolved.firstWhere(
         (f) => f.factors.contains(PositionalFactor.knightOutpost),
@@ -289,8 +289,8 @@ void main() {
       // White's a- and c-pawns were both isolated; cxb3 gives them one file.
       const beforeFen = '4k3/8/8/8/8/1p6/P1P5/4K3 w - - 0 1';
       const afterFen = '4k3/8/8/8/8/1P6/P7/4K3 b - - 0 1';
-      final diff =
-          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+      final diff = service.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: null);
 
       final comment = service.describeMoveDiff(diff);
       expect(comment, contains('The white pawn on a2 is no longer isolated.'));

@@ -94,11 +94,14 @@ void main() {
     test(
         '3. annotateNodeChain writes eval into each node and respects overwriteExisting',
         () async {
-      final root = AnalysisNode(fen: '3r2k1/8/8/8/8/8/8/3Q2K1 w - - 0 1');
+      final root = AnalysisNode(fen: '3r2k1/8/8/8/8/8/8/6KQ w - - 0 1');
       final child = root.addChild(
         childFen: '3r2k1/8/8/3Q4/8/8/8/6K1 b - - 0 1',
         san: 'Qd5',
-        uci: 'd1d5',
+        // From h1, not d1: on the open d-file the queen was already hanging
+        // before the move, and a finding that was true on both sides of a
+        // move is not a comment on it.
+        uci: 'h1d5',
       );
 
       await service.annotateNodeChain(
@@ -230,6 +233,26 @@ void main() {
       );
       expect(drasticTagged, 1);
       expect(drasticResult.chain.first.nag, '??');
+    });
+
+    test('6. A king that walks without a pawn shield gets no comment for it',
+        () async {
+      // The walker has to hand the move to the positional diff: without it a
+      // king stepping g1-h1 reads as a shield lost on h1 and one no longer
+      // lost on g1, and „Review entire game" writes that on every step.
+      final root = AnalysisNode(fen: '4k3/8/8/8/8/8/8/6K1 w - - 0 1');
+      final child = root.addChild(
+        childFen: '4k3/8/8/8/8/8/8/7K b - - 0 1',
+        san: 'Kh1',
+        uci: 'g1h1',
+      );
+
+      await service.annotateNodeChain(
+        startNode: root,
+        analyzer: _SequencedFakeEngine(['0.00', '0.00']).analyze,
+      );
+
+      expect(child.comment, isEmpty);
     });
   });
 }

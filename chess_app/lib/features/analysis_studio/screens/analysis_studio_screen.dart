@@ -825,7 +825,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           lastMoveUci: uci,
         );
         final positionalDiff = _positionalEvaluator.explainMove(
-            beforeFen: _currentNode.fen, afterFen: newFen);
+            beforeFen: _currentNode.fen, afterFen: newFen, lastMoveUci: uci);
         final autoComment = joinSentences([
           _tacticalDetector.describeMoveDiff(tacticalDiff),
           _positionalEvaluator.describeMoveDiff(positionalDiff),
@@ -897,7 +897,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         lastMoveUci: moveUci,
       );
       final positionalDiff = _positionalEvaluator.explainMove(
-          beforeFen: parentFen, afterFen: _currentNode.fen);
+          beforeFen: parentFen,
+          afterFen: _currentNode.fen,
+          lastMoveUci: moveUci);
       tacticalCandidates
           .addAll(_tacticalDetector.candidateCommentLines(tacticalDiff));
       positionalCandidates
@@ -937,7 +939,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final tacticalDiff = _tacticalDetector.explainMove(
         beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: lastMoveUci);
     final positionalDiff = _positionalEvaluator.explainMove(
-        beforeFen: beforeFen, afterFen: afterFen);
+        beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: lastMoveUci);
     return (
       tactical: [...tacticalDiff.created, ...tacticalDiff.resolved]
           .map(_motifFindingToJson)
@@ -974,7 +976,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
     final positionalCandidates = _positionalEvaluator.candidateCommentLines(
       _positionalEvaluator.explainMove(
-          beforeFen: parent.fen, afterFen: _currentNode.fen),
+          beforeFen: parent.fen,
+          afterFen: _currentNode.fen,
+          lastMoveUci: moveUci),
     );
 
     // Previous move — what led into the position this move was played from.

@@ -1,3 +1,4 @@
+import 'package:chess_app/core/services/finding_identity.dart';
 import 'package:chess_app/core/services/finding_sentences.dart';
 
 enum PositionalFactor {
@@ -49,11 +50,16 @@ class PositionalFinding {
     required this.significance,
   });
 
-  String get diffKey {
-    final sortedFactors = factors.map((f) => f.name).toList()..sort();
-    final sortedSquares = List<String>.from(affectedSquares)..sort();
-    return '$favorsMover::${sortedFactors.join(',')}::${sortedSquares.join(',')}';
-  }
+  String get diffKey => diffKeyAcross(null);
+
+  /// [diffKey] for a finding read from the position *before* [lastMoveUci] —
+  /// see [MotifFinding.diffKeyAcross].
+  String diffKeyAcross(String? lastMoveUci) => findingKey(
+        favorsMover: favorsMover,
+        kinds: factors.map((f) => f.name),
+        squares: affectedSquares,
+        lastMoveUci: lastMoveUci,
+      );
 }
 
 class PositionalResult {

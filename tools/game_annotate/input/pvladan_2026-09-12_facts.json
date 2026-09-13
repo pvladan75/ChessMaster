@@ -6,8 +6,8 @@
  "engine": "stockfish.exe",
  "threads": 1,
  "hash_mb": 128,
- "generated": "2026-09-13T16:30:48",
- "seconds": 460,
+ "generated": "2026-09-13T17:09:49",
+ "seconds": 494,
  "rows": [
   {
    "label": "start",
@@ -630,7 +630,7 @@
     "cost_pawns": 0.02,
     "rank": 1
    },
-   "motifs_after_played": "The black knight on f6 is attacked by the white pawn on e5, a cheaper piece. The white knight on f3 is the only defender of the pawn on e5, and it is attacked by the black bishop on g4. White has doubled pawns on e4 and e5.",
+   "motifs_after_played": "The black knight on f6 is attacked by the white pawn on e5, a cheaper piece. White has doubled pawns on e4 and e5.",
    "margin_pawns": 0.33,
    "best_stands_out": false
   },
@@ -840,7 +840,7 @@
     "cost_pawns": 0.08,
     "rank": 1
    },
-   "motifs_after_played": "The white queen on d1 is attacked by the black bishop on e2, a cheaper piece. The black bishop on e2 is attacked by the white knight on c3 and has no defender. The black bishop on g4 is no longer hanging. Black has the bishop pair.",
+   "motifs_after_played": "The white queen on d1 is attacked by the black bishop on e2, a cheaper piece. Black has the bishop pair.",
    "margin_pawns": 3.51,
    "best_stands_out": true
   },
@@ -924,7 +924,7 @@
     "cost_pawns": 0.06,
     "rank": 1
    },
-   "motifs_after_played": "Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. Black's light squares are no longer weak. The black pawn on d6 is no longer backward.",
+   "motifs_after_played": "The black queen on d8 stands on the open d-file. The black pawn on d6 is no longer backward.",
    "margin_pawns": 3.59,
    "best_stands_out": true
   },
@@ -1301,7 +1301,6 @@
     "cost_pawns": 0.0,
     "rank": 2
    },
-   "motifs_after_played": "The white rook on d3 stands on the open d-file.",
    "margin_pawns": 0.02,
    "best_stands_out": false
   },
@@ -2053,7 +2052,6 @@
     "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "The white rook on d7 stands on the open d-file.",
    "margin_pawns": 0.14,
    "best_stands_out": false
   },
@@ -2136,7 +2134,7 @@
     "cost_pawns": 3.58,
     "rank": 4
    },
-   "motifs_after_played": "The white queen on d5 pins the black pawn on f7 to the king on g8. The black rook on a8 is attacked by the white queen on d5 and has no defender. The black rook on a8 is the only defender of the pawn on a7, and it is attacked by the white queen on d5. The white queen on d5 stands on the open d-file.",
+   "motifs_after_played": "The black rook on a8 is attacked by the white queen on d5 and has no defender. The white queen on d5 stands on the open d-file.",
    "margin_pawns": 3.34,
    "best_stands_out": true
   },
@@ -2178,7 +2176,7 @@
     "cost_pawns": 4.08,
     "rank": null
    },
-   "motifs_after_played": "The white queen on d5 is attacked by the black rook on d7, a cheaper piece. The black rook on d7 skewers the white queen on d5 and the rook on d1 behind it. The white queen on d5 forks the black rook on a8 and the rook on d7. The black pawn on a7 no longer depends on one attacked defender. The black rook on d7 stands on the open d-file. The white rook on d7 no longer stands on the open d-file.",
+   "motifs_after_played": "The white queen on d5 is attacked by the black rook on d7, a cheaper piece. The black rook on d7 skewers the white queen on d5 and the rook on d1 behind it. The black rook on d7 is attacked by the white queen on d5 and has no defender. The black pawn on a7 no longer depends on one attacked defender. The black rook on d7 stands on the open d-file. The white rook on d7 no longer stands on the open d-file.",
    "margin_pawns": 0.3,
    "best_stands_out": false
   },
@@ -2220,7 +2218,7 @@
     "cost_pawns": 0.0,
     "rank": 1
    },
-   "motifs_after_played": "The move from d5 uncovers a discovered attack: the white rook on d1 now attacks the black rook on d7. The black rook on d7 is the only defender of the pawn on a7, and it is attacked by the white rook on d1. The white queen on d5 is no longer hanging. The white queen on d5 is no longer skewered.",
+   "motifs_after_played": "The move from d5 uncovers a discovered attack: the white rook on d1 now attacks the black rook on d7. The white queen on d5 is no longer hanging. The white queen on d5 is no longer skewered.",
    "margin_pawns": 4.4,
    "best_stands_out": true
   },

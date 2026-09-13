@@ -149,13 +149,16 @@ void main() {
     });
 
     test('9. explainMove flags a freshly hung Queen as "created"', () {
-      // White plays Qd1-d5 straight into an undefended square attacked by
+      // White plays Qh1-d5 straight into an undefended square attacked by
       // the Black Rook on d8 — a pure blunder that didn't exist before it.
-      const beforeFen = '3r2k1/8/8/8/8/8/8/3Q2K1 w - - 0 1';
+      // (This test used Qd1-d5 until 13.9.2026, where the d-file is open and
+      // the queen was already hanging on d1: the „created" finding it asserted
+      // was the square-keyed identity reporting the same queen twice.)
+      const beforeFen = '3r2k1/8/8/8/8/8/8/6KQ w - - 0 1';
       const afterFen = '3r2k1/8/8/3Q4/8/8/8/6K1 b - - 0 1';
 
       final diff = detector.explainMove(
-          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: 'd1d5');
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: 'h1d5');
 
       final blunder = diff.created.firstWhere(
         (f) => !f.favorsMover && f.motifs.contains(TacticalMotif.hangingPiece),

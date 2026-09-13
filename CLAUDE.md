@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2323 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2335 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1260 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -2110,6 +2110,22 @@ worth 1000. Deleted rather than left to survive a mutation.
 models wrote „skewer" wherever the review did, and „Resolved —" as prose.
 Cleaning the words was half of it; the other half was not writing the findings
 that teach nothing — a pawn „skewered" behind a queen, a king „left undefended".
+
+**A finding keeps its identity across a move, the same day — 2335 in the app
+with 1 skipped.** A finding before a move is compared as its squares stand after
+it, and its significance is what it can win, never the attacker
+(`docs/STANJE-RADA.md`, „Isti nalaz posle poteza"). Two things worth carrying.
+
+**A test can pin the fault it should catch.** Test 9 said Qd1-d5 „freshly" hung
+a queen that was already hanging on the open d-file, and asserted the
+square-keyed noise as a created finding; its comment described a board its FEN
+did not hold. Read what a fixture's position actually has before believing the
+sentence above it.
+
+**A snippet that appears twice is not a mutation.** The harness refused it as
+NOT APPLIED instead of taking the first match — which would have mutated the
+tactical call, already passing the move, and reported a verdict about the wrong
+line.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

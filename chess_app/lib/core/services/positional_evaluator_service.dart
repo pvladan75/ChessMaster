@@ -45,8 +45,11 @@ class PositionalEvaluatorService {
 
   /// Explains what a move changed positionally, by diffing the position
   /// before and after it — mirrors [TacticalMotifDetector.explainMove].
-  PositionalMoveDiff explainMove(
-      {required String beforeFen, required String afterFen}) {
+  PositionalMoveDiff explainMove({
+    required String beforeFen,
+    required String afterFen,
+    required String? lastMoveUci,
+  }) {
     try {
       final afterGame = chess.Chess.fromFEN(afterFen);
       final defenderColor = afterGame.turn;
@@ -58,13 +61,19 @@ class PositionalEvaluatorService {
       final beforeGame = chess.Chess.fromFEN(beforeFen);
       final beforeFindings = _buildFindings(beforeGame, moverColor: moverColor);
 
-      final beforeKeys = beforeFindings.map((f) => f.diffKey).toSet();
+      // A finding from before the move is keyed as its squares stand after
+      // it, so a king that walks keeps its missing shield
+      // (finding_identity.dart). [lastMoveUci] is required, and null only for
+      // two positions that are not one move apart.
+      final beforeKeys =
+          beforeFindings.map((f) => f.diffKeyAcross(lastMoveUci)).toSet();
       final afterKeys = afterFindings.map((f) => f.diffKey).toSet();
 
       final created =
           afterFindings.where((f) => !beforeKeys.contains(f.diffKey)).toList();
-      final resolved =
-          beforeFindings.where((f) => !afterKeys.contains(f.diffKey)).toList();
+      final resolved = beforeFindings
+          .where((f) => !afterKeys.contains(f.diffKeyAcross(lastMoveUci)))
+          .toList();
 
       return PositionalMoveDiff(created: created, resolved: resolved);
     } catch (_) {

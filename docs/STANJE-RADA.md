@@ -43,6 +43,59 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Isti nalaz posle poteza, i težina onoga što se može osvojiti — 13.9.2026, u kodu
+
+Nastavak „Rečnika detektora motiva" odmah ispod, iz zadatka koji je taj unos
+izdvojio. Provera uživo ide uz stavku 160 u `TODO-provera.md`.
+
+**Identitet.** Nalaz iz pozicije pre poteza se poredi sa nalazima posle poteza
+kao da je odigrana figura već stajala na odredišnom polju
+(`finding_identity.dart`). Do sada je identitet bio skup polja, pa je dama koja
+pređe sa jednog napadnutog polja na drugo bila „no longer hanging" na d1 i
+ponovo viseća na d5, a kralj bez zaštite pešaka isto na svakom koraku. Prati se
+samo figura iz poteza; top pri rokadi i pešak uzet en passant ne, pa za njih
+nalaz i dalje izgleda završen pa započet — kao i pre, ne kao nova greška.
+`PositionalEvaluatorService.explainMove` sada **traži** `lastMoveUci`
+(`null` samo za dve pozicije koje nisu jedan potez), da pozivalac ne može da ga
+zaboravi; šetač, generator stabla i četiri mesta u Analizi ga predaju.
+
+**Težina.** `significance` je vrednost onoga što nalaz može da osvoji ili
+košta, nikad figure koja napada: veza — vezana figura i ono iza nje osim kralja;
+iskošenje — figura iza; viljuška i preopterećenost — ono što drže; otkriveni
+napad — figura na koju je otkriven; odvlačenje — figura koja ostaje bez branioca.
+Dama koja vezuje pešaka za kralja vredela je 1000, sada 1. `_Found.stake` je
+obavezan parametar, da novi motiv mora da kaže šta mu je ulog.
+
+**Dva testa su tvrdila šum.** Test 9 detektora i test 3 šetača su za Qd1-d5
+tvrdili da je dama „tek" ostavljena da visi — a na otvorenoj d-liniji visila je
+već na d1, i komentar testa je opisivao poziciju koju njegov FEN nema. Fiksture
+su prebačene na Qh1-d5, gde je to istina; stari potez je sada test identiteta.
+
+**Mereno:** aplikacija 2335 prolaza, 1 preskočen; analyze 26, sva
+`curly_braces`; server nedirnut na 1260. 15 mutacija, sve uhvaćene testom kome
+su namenjene. Jedna je prošla tek iz drugog pokušaja: njen isečak je u šetaču
+postojao dvaput (taktički poziv je potez predavao i ranije), pa ga harness nije
+primenio i tako je i rekao, umesto da izabere pogrešnu liniju.
+
+**Pozivalac je dobio test pre mutacije koja bi ga otkrila.** Da šetač preda
+`null` umesto poteza, sve bi ostalo zeleno — testovi identiteta zovu servis
+direktno. Test 6 šetača (kralj hoda, komentar mora biti prazan) napisan je pre
+pokretanja i uhvatio je baš tu mutaciju. Generator stabla i ekran Analize takav
+test nemaju; obavezan parametar je njihova zaštita.
+
+**Ulazi eksperimenta su ponovo regenerisani** (`REVIEW_COMMENTS_ONLY=1`, pa
+`make_facts.py` na dubini 20): stablo, oznake i komentari u varijantama
+identični; promenjeno je 8/53, 33/78 i 38/86 komentara glavne linije, tekst je
+kraći za 21% (28.039 → 22.224 znaka). `_facts.json` su ponovo izgrađeni i
+upoređeni sa prethodnim: svaki red je identičan van `motifs_after_played`
+(kandidati, ocene, linije, „stands out"), a promenjeno je upravo 8, 33 i 38
+redova motiva — isti broj kao komentara. Primeri: posle `10... Bxe2` nema više
+„lovac na e2 nema branioca" pored „lovac na g4 više ne visi" — isti lovac je
+visio i pre; posle `8... Kxf7` nema para „izgubio zaštitu / više nije bez nje",
+jer je kralj bez nje bio i na e8.
+
+---
+
 ## Rečnik detektora motiva — 13.9.2026, u kodu, ostaje provera uživo
 
 Odeljak „ODAKLE SUTRA — čišćenje rečnika detektora motiva" niže je urađen, u
@@ -102,8 +155,8 @@ datuma čitaju stari rečnik** — poređenje preko te granice poredi dva rečni
 **Viđeno, nije dirano:** nalaz je vezan za polje, pa dama koja pređe sa jednog
 napadnutog polja na drugo dobija „d1 no longer hanging" pored „d5 … has no
 defender"; isto važi za zaštitu kralja dok kralj hoda. `significance` računa i
-figuru koja napada, pa veza damom vredi 9 i kad je vezan pešak. Izdvojeno kao
-poseban zadatak.
+figuru koja napada, pa veza damom vredi 9 i kad je vezan pešak. Urađeno isti
+dan — vidi „Isti nalaz posle poteza" iznad.
 
 ---
 
@@ -250,6 +303,14 @@ linije, pitanja) pravi aplikacija, ne server. (2) **Prvo se čisti rečnik
 detektora motiva**, pa tek onda prenos skeleta u aplikaciju. (3) Publika je
 **13+** (u nekim državama više), ne deca — promptovi u `tools/game_annotate/` i
 `CLAUDE.md` su ispravljeni.
+
+**Odluka (2) je izvršena iste noći** — „Rečnik detektora motiva" i „Isti nalaz
+posle poteza" na vrhu. Ulazi sve tri partije su regenerisani, pa **svaki raniji
+rezultat grana B–H čita stari rečnik**. Odavde se nastavlja testiranje modela:
+ponovo pokrenuti granu H (prvo `deepseek-flash`, pa jedan Gemini) na novim
+ulazima, istim merilom (ocenjivač, `check_positions.py --engine`,
+`review_run.py`), i pročitati da li su rečenice postale tačnije — to je pitanje
+zbog kog je rečnik čišćen. Tek posle toga prenos skeleta u aplikaciju.
 
 ## ODAKLE SUTRA — čišćenje rečnika detektora motiva
 

@@ -8,11 +8,19 @@ import 'package:chess_app/core/models/tactical_motif.dart';
 /// being true. One pin is one of these, so two pins are two findings — and two
 /// sentences — rather than one clause joining both.
 class _Found {
-  const _Found(this.squares, this.clause, this.goneClause);
+  const _Found(this.squares, this.clause, this.goneClause,
+      {required this.stake});
 
   final List<String> squares;
   final String clause;
   final String goneClause;
+
+  /// The squares of the pieces this finding can win or cost — what its
+  /// significance is the value of. Never the piece doing the attacking: until
+  /// 13.9.2026 significance was the most valuable piece on any of [squares],
+  /// so a queen pinning a pawn counted as nine pawns and crowded a hanging
+  /// knight out of the comment. Required, so a new motif has to say.
+  final List<String> stake;
 }
 
 // =============================================================================
@@ -145,13 +153,17 @@ class TacticalMotifDetector {
         defenderColor: defenderColor,
       );
 
-      final beforeKeys = beforeFindings.map((f) => f.diffKey).toSet();
+      // A finding from before the move is keyed as its squares stand after
+      // it, so a piece that moves keeps its finding (finding_identity.dart).
+      final beforeKeys =
+          beforeFindings.map((f) => f.diffKeyAcross(lastMoveUci)).toSet();
       final afterKeys = afterFindings.map((f) => f.diffKey).toSet();
 
       final created =
           afterFindings.where((f) => !beforeKeys.contains(f.diffKey)).toList();
-      final resolved =
-          beforeFindings.where((f) => !afterKeys.contains(f.diffKey)).toList();
+      final resolved = beforeFindings
+          .where((f) => !afterKeys.contains(f.diffKeyAcross(lastMoveUci)))
+          .toList();
 
       return MoveMotifDiff(created: created, resolved: resolved);
     } catch (_) {
@@ -292,7 +304,7 @@ class TacticalMotifDetector {
           favorsMover: favorsMover,
           significance: significance,
         );
-    int worth(_Found found) => _significanceOf(game, found.squares);
+    int worth(_Found found) => _significanceOf(game, found.stake);
     final kingValue = _pieceValue(chess.PieceType.KING);
 
     final hanging = _detectHangingPieces(game,
@@ -323,6 +335,7 @@ class TacticalMotifDetector {
           'two threats at once: ${mate.clause}, and '
               '${joinAnd([for (final h in hanging) h.clause])}',
           'the double attack on the ${_colorAdj(targetColor)} king is over',
+          stake: const [],
         ),
         kingValue,
       ));
@@ -433,6 +446,7 @@ class TacticalMotifDetector {
           [sq, ...counted],
           '$forker forks ${joinAnd(named)}',
           'the fork by ${_Namer()(p, sq)} is over',
+          stake: counted,
         ));
       }
     }
@@ -532,6 +546,12 @@ class TacticalMotifDetector {
                 '${namer(p, attackerSq)} pins ${namer(firstPiece, front)} '
                     'to ${namer(secondPiece, back)}',
                 '${_Namer()(firstPiece, front)} is no longer pinned',
+                // The pinned piece, and what stands behind it — unless that is
+                // the king, which a pin never wins.
+                stake: [
+                  front,
+                  if (secondPiece.type != chess.PieceType.KING) back,
+                ],
               ));
             }
           }
@@ -553,6 +573,9 @@ class TacticalMotifDetector {
                 '${namer(p, attackerSq)} skewers ${namer(firstPiece, front)} '
                     'and ${namer(secondPiece, back)} behind it',
                 '${_Namer()(firstPiece, front)} is no longer skewered',
+                // What the skewer wins is the piece behind; the one in front
+                // escapes, and if it is loose that is a hanging piece of its own.
+                stake: [back],
               ));
             }
           }
@@ -674,6 +697,7 @@ class TacticalMotifDetector {
           'the move from $fromSq uncovers a discovered $kind: '
               '${namer(p, sliderSq)} now attacks ${namer(hitPiece, hit)}',
           'the discovered $kind on ${_Namer()(hitPiece, hit)} is over',
+          stake: [hit],
         ));
       }
     }
@@ -708,6 +732,7 @@ class TacticalMotifDetector {
         [defSq, ...targets],
         '$name is overloaded: it alone defends ${joinAnd(named)}',
         '${_Namer()(defender, defSq)} is no longer overloaded',
+        stake: targets,
       ));
     });
 
@@ -746,6 +771,7 @@ class TacticalMotifDetector {
             '${namer(target, targetSq)}, and it is attacked by '
             '${namer(game.get(attackerSq)!, attackerSq)}',
         '${_Namer()(target, targetSq)} no longer depends on one attacked defender',
+        stake: [targetSq],
       ));
     });
 
@@ -817,6 +843,7 @@ class TacticalMotifDetector {
           [sqName],
           clause,
           '${_Namer()(piece, sqName)} is no longer hanging',
+          stake: [sqName],
         ));
       }
     }
@@ -848,7 +875,8 @@ class TacticalMotifDetector {
     // Actual checkmate on the board only ever applies to whoever's turn it
     // is in `game` — only meaningful here when that's moverColor's target.
     if (game.in_checkmate && game.turn == defenderColor) {
-      return _Found(squares, '$king is checkmated', gone);
+      // A mate's significance is the king's, set where the finding is made.
+      return _Found(squares, '$king is checkmated', gone, stake: const []);
     }
 
     final signal = _parseMateSignal(
@@ -868,6 +896,7 @@ class TacticalMotifDetector {
           ? '$king can be mated at once with $namedMateMove'
           : '$king is threatened with mate',
       gone,
+      stake: const [],
     );
   }
 
@@ -1230,11 +1259,11 @@ class TacticalMotifDetector {
     return best;
   }
 
-  /// The value of the most valuable piece sitting on any of [squares] —
-  /// used as a finding's [MotifFinding.significance] so a hanging pawn and a
-  /// hanging queen aren't treated as equally worth mentioning. Squares with
-  /// no piece (e.g. a discovered attack's now-vacated origin square) are
-  /// ignored rather than counted as 0-and-therefore-lowest.
+  /// The value of the most valuable piece sitting on any of [squares] — a
+  /// finding's stake ([_Found.stake]) — used as its
+  /// [MotifFinding.significance] so a hanging pawn and a hanging queen aren't
+  /// treated as equally worth mentioning. Squares with no piece are ignored
+  /// rather than counted as 0-and-therefore-lowest.
   int _significanceOf(chess.Chess game, List<String> squares) {
     var maxValue = 0;
     for (final sq in squares) {

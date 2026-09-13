@@ -516,6 +516,12 @@ rebuilt at the settings they carried (depth 20, multipv 4, margin 0.5, one
 thread, 128 MB). **Runs made before this date read the old wording**, so a
 comparison across that date compares two vocabularies, not two models.
 
+Later the same day the inputs were rewritten once more, when a finding started
+keeping its identity across a move and counting only what it can win
+(`docs/STANJE-RADA.md`, „Isti nalaz posle poteza"): 79 main-line comments
+changed across the three games, 21% less text, and the tags and lines were
+again identical move for move.
+
 **The claim check is judged against the slot's own facts.** It first flagged
 „mate" in slots whose facts read „Black mates in 5"; it now backs a word when the
 text shown beside that slot contains it, which is the rule the model was given.

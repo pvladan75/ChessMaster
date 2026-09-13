@@ -1,3 +1,4 @@
+import 'package:chess_app/core/services/finding_identity.dart';
 import 'package:chess_app/core/services/finding_sentences.dart';
 
 enum TacticalMotif {
@@ -55,11 +56,17 @@ class MotifFinding {
 
   /// Order-independent identity used to compare findings across positions
   /// (e.g. "is this the same finding before and after a move?").
-  String get diffKey {
-    final sortedMotifs = motifs.map((m) => m.name).toList()..sort();
-    final sortedSquares = List<String>.from(affectedSquares)..sort();
-    return '$favorsMover::${sortedMotifs.join(',')}::${sortedSquares.join(',')}';
-  }
+  String get diffKey => diffKeyAcross(null);
+
+  /// [diffKey] for a finding read from the position *before* [lastMoveUci],
+  /// with its squares as they stand after that move — so a piece that moves
+  /// keeps its finding. See finding_identity.dart.
+  String diffKeyAcross(String? lastMoveUci) => findingKey(
+        favorsMover: favorsMover,
+        kinds: motifs.map((m) => m.name),
+        squares: affectedSquares,
+        lastMoveUci: lastMoveUci,
+      );
 }
 
 class MotifResult {

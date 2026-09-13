@@ -122,7 +122,7 @@ class GameAnalysisWalkerService {
         lastMoveUci: appliedUci[i],
       );
       final positionalDiff = positionalEvaluator.explainMove(
-          beforeFen: fenBefore, afterFen: fenAfter);
+          beforeFen: fenBefore, afterFen: fenAfter, lastMoveUci: appliedUci[i]);
 
       moments.add(GameMoment(
         plyIndex: i,
