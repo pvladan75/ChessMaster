@@ -105,28 +105,41 @@ vrede detetu i koje rečenice ono čuje. Zato je tok **grana B**, ne A:
 Grana A (čist PGN pravo modelu) je merena i lošija u sve tri partije: pitanja
 koja izgledaju ispravno a netačna su.
 
-**Gde je stalo.** Ključ za DeepSeek je u `chess_backend/.env`, i prvi poziv
-vraća **HTTP 402 „Insufficient Balance"** — dakle onaj „grant od 5 miliona
-besplatnih tokena" za ovaj nalog ne važi. To je bila tvrdnja jednog modela, ne
-provereni podatak; isto važi i za Groq besplatni nivo dok se ne pogleda njihova
-stranica.
+**Gde je stalo — DeepSeek je proveren i ne prolazi (13.9.2026).** Vlasnik je
+dopunio nalog sa 5 USD; potrošeno oko 0,35 USD. Nalog nudi `deepseek-flash` i
+`deepseek-v4-pro` (nema `deepseek-reasoner`). Od sedam pokretanja na tri
+partije, merilo je prošlo **jedno**: pro na francuskoj partiji, sve pozicije
+tačne, `d4` prvi izbor motora sa razlikom 0,49. Tabela i obrazloženje su u
+`tools/game_annotate/README.md`, odeljak „DeepSeek, 13.9.2026".
 
-**Sledeći korak je jedan od dva**, oba izvan koda:
+Tri stvari iz toga vrede i bez tabele:
 
-1. dopuniti DeepSeek nalog (ako njihova naplata prihvata karticu), pa odmah:
-   `python run_api.py B --provider deepseek --model deepseek-reasoner --timeout 600`
-   za sve tri partije iz `input/`;
-2. ili napraviti **Azure OpenAI** resurs (odvojen od Speech resursa koji već
-   postoji) i deployment, pa u `.env`: `AZURE_OPENAI_KEY`,
-   `AZURE_OPENAI_ENDPOINT=https://<resurs>.openai.azure.com`, po želji
-   `AZURE_OPENAI_API_VERSION`; `--model` je tada **ime deploymenta**.
-   `python run_api.py B --provider azure --model <deployment>`
+- **Razmišljanje se troši iz `max_tokens`.** Na 16k oba modela nisu napisala
+  ništa; flash ni na 64k. Završava tek sa `--reasoning-effort low`, a bez
+  razmišljanja (`--thinking-mode disabled`) je REFUSED, kao Gemini Lite.
+- **Ne pada šah nego tabla.** Svaka pogrešna pozicija je prava pozicija partije
+  sa jednim do tri pogrešna polja — izostao top na a1, pešak, dama, crni lovac
+  upisan kao beli. Gde tabla preživi, pitanja su dobra. Otvoren predlog, ništa
+  nije urađeno: da model **imenuje** potez („posle 15. Nd5"), a čitač sam
+  sagradi FEN — onda model ne mora da odigra celu partiju u glavi.
+- **Ocenjivač to nije mogao da vidi.** FEN bez topa se učitava i linija se
+  odigrava, pa dobija CLEAN. Zato postoji `check_positions.py`: da li je svaka
+  pozicija zaista iz partije (ili varijante pregleda), koja polja se razlikuju,
+  i sa `--engine` gde je odgovor na `ask_move` kod motora i sa kolikom razlikom.
+
+**Sledeći korak**, izvan koda: ili **Azure OpenAI** resurs (odvojen od Speech
+resursa koji već postoji) i deployment, pa u `.env`: `AZURE_OPENAI_KEY`,
+`AZURE_OPENAI_ENDPOINT=https://<resurs>.openai.azure.com`, po želji
+`AZURE_OPENAI_API_VERSION`; `--model` je tada **ime deploymenta**:
+`python run_api.py B --provider azure --model <deployment> --max-tokens 64000`
+— ili odluka o predlogu iznad, koji je izmena ugovora formata a ne izbor
+dobavljača.
 
 **Merilo je već postavljeno i ne izmišlja se ponovo**: ocenjivač mora reći
-CLEAN (`cd chess_app && dart run tool/grade_tutorial.dart <folder>`), a svako
-`ask_move` mora proći `python analyze.py fen "<FEN>" --depth 22 --multipv 4`
-kao prvi izbor motora sa jasnom razlikom. Tako su prošli i Gemini modeli, pa su
-brojevi uporedivi.
+CLEAN (`cd chess_app && dart run tool/grade_tutorial.dart <folder>`),
+`python check_positions.py <folder> --engine` ne sme naći poziciju koje nema u
+partiji, a svako `ask_move` mora biti prvi izbor motora (dubina 22, multipv 4)
+sa jasnom razlikom. Tako su prošli i Gemini modeli, pa su brojevi uporedivi.
 
 **Jedna šteta iz te sesije, da se ne traži uzalud:** tri `out/B-…` foldera
 (grana B, sve tri partije, `gemini-3.8-flash-high`) obrisana su nepažljivim

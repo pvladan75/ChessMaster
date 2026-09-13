@@ -248,10 +248,9 @@ python run_api.py B --provider openai-compatible --base-url https://… --model 
 ```
 
 **Status, 13.9.2026.** Gemini is dropped as a metered API (Google Cloud refuses
-this account's payment profile — see `docs/STANJE-RADA.md`). A DeepSeek key is
-in `.env` and the first call came back **HTTP 402, „Insufficient Balance"**, so
-the free grant that was reported for new accounts does not apply to this one.
-Nothing has been run against a vendor other than Gemini yet.
+this account's payment profile — see `docs/STANJE-RADA.md`). DeepSeek has been
+run on all three games and does not clear the bar; the results are in
+„DeepSeek, 13.9.2026" below.
 
 **DeepSeek** needs one line in `chess_backend/.env`:
 
@@ -291,8 +290,9 @@ window, which is why the error messages carry neither the URL nor the header.
 answer": the grader must say CLEAN, and every `ask_move` it writes must survive
 `analyze.py fen --multipv 4` as the engine's own first choice by a clear
 margin. Three games are in `input/`, the brief is fixed, and the arms mean the
-same thing whoever answers them — so a vendor trial is three commands and a
-grading run, not a new experiment.
+same thing whoever answers them — so a vendor trial is three commands, a grading
+run and `check_positions.py --engine` on each run, not a new experiment. The
+last one is not optional: the grader alone passed boards with a rook missing.
 
 Two things to expect from the Gemini measurements above. A *distilled* or
 otherwise small model is likely to fail the way the Lites did, with moves that
@@ -300,6 +300,77 @@ cannot be played; and a model that reasons will spend far more tokens than a
 vendor's headline price per game assumes, because this task needs the thinking.
 Read `meta.json`'s token counts rather than the price page: `thoughts` is kept
 apart from `answer` for exactly that reason.
+
+## DeepSeek, 13.9.2026
+
+Five dollars topped up — the free grant reported for new accounts did not apply.
+The account lists two models, `deepseek-flash` and `deepseek-v4-pro`, and not
+`deepseek-reasoner`. Both think unless told not to. Twelve calls, eleven of them
+billed, cost about $0.35.
+
+**Thinking is spent out of `max_tokens`.** Both models used all 16,384 tokens
+thinking and wrote no answer; flash did the same at 64,000. `--max-tokens`
+exists for that, and `reasoning.txt` now keeps what a run was thinking.
+`--thinking-mode disabled` answers in six seconds and is REFUSED — an unplayable
+solution and nineteen moves that do not replay, the Lite result again.
+`--reasoning-effort low` is what made flash stop at all, and it still thinks
+45–60k tokens, most of them a FEN written out after every move of the game.
+
+Arm B, each run through `grade_tutorial.dart` and `check_positions.py --engine`:
+
+| | sharp win | quiet draw | lost sacrifice |
+|---|---|---|---|
+| `deepseek-flash`, effort low | CLEAN; `Nd5` **#2**, 0.03 behind `g3`; one move number wrong | DAMAGED; the a1 rook and a c4 pawn missing from three parts, the question among them | DAMAGED; a queen missing, a queen and a rook shifted, in three parts; `Qg5#` is mate |
+| `deepseek-v4-pro` | run 1 REFUSED — nine squares on rank 8, the c4 bishop missing; run 2 CLEAN, `Rb8` #1 by only 0.18, and the sentence names the square | **CLEAN**, every position exact, `d4` **#1 by 0.49** | DAMAGED; Black's e7 bishop written as White's in five of six parts, both questions among them |
+| `gemini-3.8-flash-high`, above | `Nc7` #1, +3.02 against +2.21 | `c4` #1 | `Nxf3` #1 |
+
+**No DeepSeek configuration clears the bar.** Of seven runs one is clean with a
+sound question — pro on the French.
+
+**What fails is the board, not the chess.** Every wrong position is a real
+position of the game with one to three squares wrong: a rook dropped, a pawn
+dropped, a piece's colour flipped. Where the board survives, the questions are
+good — flash's `d4` in the French is the engine's best by half a pawn on the
+real position, and its `Nxe5?? Bxd1` choice in game one is sound. A model that
+has to write a FEN has to play the game out in its head, and this one cannot do
+it reliably for forty moves. The fault is in the contract as much as in the
+model: nothing the brief asks for needs the model to *write* a position it could
+*name* — „after 15. Nd5" — and have the reader build. That is a proposal, not a
+change made here.
+
+**Tokens, not the price page.** Pro spent 20–38k output tokens a game (about
+$0.04–0.08 off-peak), flash at low effort 46–62k (about $0.03–0.04).
+`gemini-3.5-flash`, which passed, thought 9,640.
+
+**The runs could have overwritten each other.** A run's folder was named by
+arm, model and second, not by game, so two games started together on one model
+would have shared a folder and one answer would have been graded as the other.
+The game is in the name now, and an existing folder is refused.
+
+### `check_positions.py`
+
+```bash
+python check_positions.py out/<run> --engine
+```
+
+The grader asks whether the app would take a file, and a board with a rook
+missing loads and replays perfectly. This asks the two questions the grader
+cannot: is each part's FEN a position the reviewed PGN actually reaches —
+variations included, since a part on a better-move line is teaching — and if
+not, which squares differ from the nearest one; and with `--engine`, where each
+`ask_move` answer ranks at depth 22 and by how much. The margin is printed, not
+judged.
+
+It was proved against the findings made by hand on five runs before it was
+believed, and those found two faults in it. A position that repeats — a
+threefold draw is one board at three move numbers — was compared with its first
+occurrence only, so a part on the third was reported with wrong counters: a false
+alarm about the very fault it exists for. And a mate in one against a mate in
+twenty-one printed as „mate against mate".
+
+**Read the position line before the engine line.** The engine ranks whatever
+board it is given, so a score under a part that is not the game's is a score for
+a board the child should never have been shown.
 
 ## What to look at in the results
 

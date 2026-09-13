@@ -146,10 +146,12 @@ def build(arm, name):
     return prompt, pgn_path
 
 
-def ask(provider, model, prompt, timeout, thinking=None, base_url=None):
+def ask(provider, model, prompt, timeout, thinking=None, base_url=None,
+        max_tokens=16384, extra=None):
     spec = PROVIDERS[provider]
     if spec['shape'] == 'openai':
-        return ask_openai(provider, model, prompt, timeout, base_url)
+        return ask_openai(provider, model, prompt, timeout, base_url, max_tokens,
+                          extra)
     # The Gemini shape needs no adjustment, so it answers with an empty list.
 
     body = json.dumps({
@@ -198,7 +200,8 @@ def azure_url(model):
             % (endpoint.rstrip('/'), model, version))
 
 
-def ask_openai(provider, model, prompt, timeout, base_url=None):
+def ask_openai(provider, model, prompt, timeout, base_url=None,
+               max_tokens=16384, extra=None):
     """The OpenAI chat shape: Groq, DeepSeek, Azure OpenAI, OpenRouter.
 
     `response_format` is asked for but not relied on - a reasoning model that
@@ -215,9 +218,16 @@ def ask_openai(provider, model, prompt, timeout, base_url=None):
         'model': model,
         'messages': [{'role': 'user', 'content': prompt}],
         'response_format': {'type': 'json_object'},
-        'max_tokens': 16384,
+        # A reasoning model counts its thinking against this ceiling, so 16k —
+        # enough for Gemini, whose thoughts are billed but budgeted apart — cut
+        # both DeepSeek models off mid-thought with no answer written at all.
+        'max_tokens': max_tokens,
         'temperature': 1.0,
     }
+
+    # Vendor-specific switches (DeepSeek's `thinking` and `reasoning_effort`)
+    # go in as given; `run` records them in `meta.json`.
+    payload.update(extra or {})
 
     header = PROVIDERS[provider].get('auth_header')
     headers = {'Content-Type': 'application/json'}
@@ -285,6 +295,12 @@ def text_of(answer):
     return '', None
 
 
+def reasoning_of(answer):
+    """The OpenAI shape's `reasoning_content`, where a provider sends one."""
+    choice = (answer.get('choices') or [{}])[0]
+    return (choice.get('message') or {}).get('reasoning_content') or ''
+
+
 def tokens_of(answer):
     """What the call cost, in whichever shape the provider reports it.
 
@@ -323,8 +339,16 @@ def run(cfg):
     slug = re.sub(r'[^a-z0-9.]+', '-', cfg.model.lower())
     if cfg.thinking is not None:
         slug += '-think%d' % cfg.thinking
-    run_dir = os.path.join(run_arm.OUT_DIR, '%s-api-%s-%s' % (arm, slug, stamp))
-    os.makedirs(run_dir, exist_ok=True)
+    if cfg.thinking_mode == 'disabled':
+        slug += '-nothink'
+    if cfg.reasoning_effort:
+        slug += '-effort-' + cfg.reasoning_effort
+    # The game is in the name, and an existing folder is refused rather than
+    # reused: two games on one model started in the same second used to share a
+    # folder, and one run's answer would have been graded as the other's.
+    run_dir = os.path.join(run_arm.OUT_DIR,
+                           '%s-api-%s-%s-%s' % (arm, slug, cfg.name, stamp))
+    os.makedirs(run_dir, exist_ok=False)
 
     with open(os.path.join(run_dir, 'prompt.md'), 'w', encoding='utf-8') as fh:
         fh.write(prompt)
@@ -347,8 +371,17 @@ def run(cfg):
     print('arm %s, %s, %d characters of prompt - asking...'
           % (arm, cfg.model, len(prompt)))
     started = time.time()
+    meta['max_tokens'] = cfg.max_tokens
+    extra = {}
+    if cfg.thinking_mode:
+        extra['thinking'] = {'type': cfg.thinking_mode}
+    if cfg.reasoning_effort:
+        extra['reasoning_effort'] = cfg.reasoning_effort
+    if extra:
+        meta['request_extra'] = extra
     answer, fault, adjustments = ask(cfg.provider, cfg.model, prompt,
-                                     cfg.timeout, cfg.thinking, cfg.base_url)
+                                     cfg.timeout, cfg.thinking, cfg.base_url,
+                                     cfg.max_tokens, extra)
     if adjustments:
         meta['request_adjusted'] = adjustments
     meta['seconds'] = round(time.time() - started, 1)
@@ -364,6 +397,12 @@ def run(cfg):
     meta['tokens'] = tokens_of(answer)
 
     run_arm.save_text(run_dir, 'reply.txt', body)
+    # DeepSeek returns its thinking beside the answer. Kept, because a run that
+    # spends its whole ceiling thinking and answers nothing can only be
+    # diagnosed from what it was thinking about.
+    reasoning = reasoning_of(answer)
+    if reasoning:
+        run_arm.save_text(run_dir, 'reasoning.txt', reasoning)
     rescued = body if body.strip().startswith('{') else run_arm.rescue_json(body)
     meta['answer_was_json'] = bool(rescued) and body.strip().startswith('{')
     if rescued:
@@ -390,6 +429,14 @@ def main():
                         help='thinking budget in tokens; -1 asks the '
                              'model to decide, 0 turns it off, absent '
                              'leaves the model default')
+    parser.add_argument('--thinking-mode', choices=['enabled', 'disabled'],
+                        help="DeepSeek's `thinking.type`; absent leaves the "
+                             'model default, which is enabled')
+    parser.add_argument('--reasoning-effort', choices=['low', 'high', 'max'],
+                        help="DeepSeek's `reasoning_effort`")
+    parser.add_argument('--max-tokens', type=int, default=16384,
+                        help='output ceiling for the OpenAI shape; a '
+                             'reasoning model spends its thinking out of it')
     parser.add_argument('--timeout', type=int, default=300)
     parser.add_argument('--dry-run', action='store_true')
     run(parser.parse_args())
