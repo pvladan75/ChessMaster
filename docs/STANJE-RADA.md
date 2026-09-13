@@ -43,6 +43,70 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Rečnik detektora motiva — 13.9.2026, u kodu, ostaje provera uživo
+
+Odeljak „ODAKLE SUTRA — čišćenje rečnika detektora motiva" niže je urađen, u
+dva commita, sa odlukama vlasnika na četiri pitanja: „Watch out" se briše bez
+zamene, „ | " postaje rečenica sa tačkom, B ide odmah posle A bez pauze za
+pregled, i pravilo slabih polja je bilo naopako. Provera uživo:
+`TODO-provera.md`, stavka 160.
+
+**A — kako se kaže** (`finding_sentences.dart`). Svaki nalaz je jedna rečenica
+i nosi drugu za trenutak kad prestane da važi (`goneDescription`) — „Resolved —
+X" je ponavljao nešto što više nije tačno. Jedan nalaz po pojavi: dve vezane
+figure su dva nalaza, a ne „Pin: a | b", koji dijalog za komentar nije mogao
+ponovo da prepozna. Komentar su rečenice spojene razmakom, svuda gde se
+spajalo (šetač, generator stabla, Analiza, dijalog, rezervni komentar na
+serveru), a dijalog nalaz traži po rečenici. „Undefended" se kaže samo za
+figuru bez branioca; branjena figura napadnuta jeftinijom kaže to.
+
+**B — šta se broji.** Viljuška broji samo ono što može da osvoji; iskošenje
+traži prednju figuru koja mora da se skloni i zadnju vrednu osvajanja; veza
+traži da je iza nešto vrednije od figure koja vezuje ili nebranjeno; kralj nije
+„branjena figura", pešak koji brani pešaka je lanac; slaba polja su ona boje
+koju pešaci **ne** pokrivaju. Svaki „ne sme" test je pozicija iz jedne od tri
+partije, i svaki je prvo pao na starom detektoru.
+
+**Mereno:** aplikacija 2323 prolaza, 1 preskočen; server 1260 sa `.env`-om po
+strani; analyze 26 infos, sva `curly_braces` (tri manje — prepis je dodao
+zagrade). 32 mutacije, sve uhvaćene testom kome su namenjene.
+
+Četiri stvari vredne pamćenja.
+
+**Mutacija koja se ne kompajlira nije uhvaćena.** M14 je zamenila
+`mate != null && …` sa `false`, čime je nestalo unapređenje tipa od kog
+`mate.squares` zavisi; harness je video crveno i javio „caught". Izveštaj je
+imao samo imena fajlova, bez imena testova — to je bio znak. Prepisana tako da
+se kompajlira, pala je na testu 19b.
+
+**Klauzula koja ne može ništa da odluči je obrisana pre mutacija, ne posle.**
+„Kralj se uvek broji" stajalo je tri puta pored poređenja vrednosti, a kralj
+vredi 1000 — više od svakog napadača. Nađeno čitanjem testova za mutaciju koja
+bi preživela, što je jeftinije od preživele mutacije.
+
+**Broj u CLAUDE.md je bio šest iza.** Pisalo je 2272, a HEAD pre ovog posla je
+imao 2278: 2298 posle A minus 20 dodatih deklaracija, prebrojano na oba stabla.
+
+**Ulazi eksperimenta su regenerisani, i to je provereno, ne pretpostavljeno.**
+Tri `_reviewed.pgn` su prepisana kroz `REVIEW_COMMENTS_ONLY=1`
+(`tool/review_game.dart`): samo komentari glavne linije, dok su potezi, `??`,
+`!` linije i komentari u varijantama identični — jer oznake prve partije
+potiču iz trenerovog pregleda u aplikaciji i novi pregled ih ne bi vratio.
+`_facts.json` su ponovo izgrađeni sa podešavanjima koja su nosili: kandidati,
+ocene, linije i sve „stands out" oznake identični; jedino drugo polje koje se
+promenilo je `cost_pawns`, koje su stari fajlovi imali ispod nule jer su
+stariji od `max(0, …)` u `make_facts.py`. Tekst motiva je kraći za 35%
+(43.271 → 28.039 znakova), 634 prefiksa i crte → 0. **Pokretanja pre ovog
+datuma čitaju stari rečnik** — poređenje preko te granice poredi dva rečnika.
+
+**Viđeno, nije dirano:** nalaz je vezan za polje, pa dama koja pređe sa jednog
+napadnutog polja na drugo dobija „d1 no longer hanging" pored „d5 … has no
+defender"; isto važi za zaštitu kralja dok kralj hoda. `significance` računa i
+figuru koja napada, pa veza damom vredi 9 i kad je vezan pešak. Izdvojeno kao
+poseban zadatak.
+
+---
+
 ## Gemini kao plaćeni API — odustalo, 13.9.2026
 
 **Odluka vlasnika: „ne mogu da platim API."** Google Cloud odbija njihov
@@ -188,6 +252,9 @@ detektora motiva**, pa tek onda prenos skeleta u aplikaciju. (3) Publika je
 `CLAUDE.md` su ispravljeni.
 
 ## ODAKLE SUTRA — čišćenje rečnika detektora motiva
+
+**Urađeno 13.9.2026** — vidi „Rečnik detektora motiva" na vrhu. Ono ispod o
+oceni u PGN-u i o merilu i dalje važi.
 
 Zašto: skelet je pokazao da model **doslovno ponavlja** ono što detektor napiše,
 pa kvalitet rečenica ne može biti bolji od rečnika detektora. Primeri iz

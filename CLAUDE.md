@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2272 tests, 1 skipped, rest green
-cd chess_app && flutter analyze       # exits 1 on 29 known infos — read the list
-cd chess_backend && npm test          # node --test, 1234 tests, all green
+cd chess_app && flutter test          # 2323 tests, 1 skipped, rest green
+cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
+cd chess_backend && npm test          # node --test, 1260 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2090,6 +2090,27 @@ the en passant field, and the two parts refused to join — correctly:
 `addSection(continueFromEnd: true)` writes the square. The code was right and the
 fixture was wrong, which is the order worth checking in.
 
+**The motif detector's vocabulary, 13.9.2026 — 2323 in the app with 1
+skipped, 1260 on the backend, analyze at 26 infos.** Findings are sentences
+now, and a fork, skewer, pin or overload is counted only when it can win
+something (`docs/STANJE-RADA.md`, „Rečnik detektora motiva"). The number in this
+file had been left at 2272 while `master` was at 2278. Three things worth
+carrying.
+
+**A mutant that does not compile is not a caught mutant.** One replaced
+`mate != null && …` with `false`, which removed the null promotion the next line
+needed; the harness saw red and said caught. The report listed file names and no
+test names — read *which* test failed, and a compile error names none.
+
+**A clause that can never decide is found by reading, before the run.** „The
+king always counts" stood beside a value comparison three times, and a king is
+worth 1000. Deleted rather than left to survive a mutation.
+
+**When a model repeats its input word for word, the input is the product.** Four
+models wrote „skewer" wherever the review did, and „Resolved —" as prose.
+Cleaning the words was half of it; the other half was not writing the findings
+that teach nothing — a pawn „skewered" behind a queen, a king „left undefended".
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
@@ -2100,11 +2121,12 @@ tests and the skip still skips them, so the run exits 0 saying "All tests
 skipped". Run them with `flutter test --tags golden --run-skipped`.
 
 **`flutter analyze` does not exit clean, and has not for a long time.** It
-reports 29 issues, every one of them `info` level and every one of them
+reports 26 issues, every one of them `info` level and every one of them
 `curly_braces_in_flow_control_structures`, spread over
-`positional_evaluator_service.dart`, `tactical_motif_detector.dart`,
-`game_analysis_walker_service.dart`, `review_api_service.dart`,
-`ai_studio_screen.dart` and `matrix_filter_panel.dart`. This file used to say
+`positional_evaluator_service.dart`, `game_analysis_walker_service.dart`,
+`review_api_service.dart`, `ai_studio_screen.dart` and
+`matrix_filter_panel.dart`. (29 until 13.9.2026, when the motif detector's
+rewrite put braces on its three.) This file used to say
 "must be clean", which is worse than saying nothing: it makes a red exit code
 look like the normal state, so a real error added tomorrow reads as the same
 failure as today's. **What must hold is zero errors, zero warnings, and no new
