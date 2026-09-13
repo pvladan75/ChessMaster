@@ -61,6 +61,16 @@ PROVIDERS = {
         'key_env': 'DEEPSEEK_API_KEY',
         'shape': 'openai',
     },
+    # Azure speaks the same body and neither the same address nor the same
+    # header: the deployment is in the URL with an `api-version`, and the key
+    # goes in `api-key` rather than in `Authorization`. A row, because getting
+    # either of those wrong is a 401 that reads like a bad key.
+    'azure': {
+        'url': None,                  # built from AZURE_OPENAI_ENDPOINT
+        'key_env': 'AZURE_OPENAI_KEY',
+        'shape': 'openai',
+        'auth_header': 'api-key',
+    },
     # Anything else that speaks the OpenAI chat API: pass --base-url.
     'openai-compatible': {
         'url': None,
@@ -68,6 +78,8 @@ PROVIDERS = {
         'shape': 'openai',
     },
 }
+
+AZURE_DEFAULT_API_VERSION = '2024-10-21'
 
 OUTPUT_AS_ANSWER = """Return the tutorial as a single JSON object, and return
 nothing else at all: no prose before or after it, no code fence, no explanation.
@@ -85,6 +97,18 @@ channel to put remarks, so anything that is not the object will be read as part
 of it and break the file."""
 
 
+def from_env_file(name):
+    """One setting out of `chess_backend/.env`, or None."""
+    if not os.path.exists(ENV_FILE):
+        return None
+    for line in open(ENV_FILE, encoding='utf-8', errors='replace'):
+        if line.startswith(name + '='):
+            value = line.split('=', 1)[1].strip()
+            if value and 'your_' not in value:
+                return value
+    return None
+
+
 def api_key(provider):
     """The key for [provider], from the environment or from the backend's `.env`.
 
@@ -95,12 +119,9 @@ def api_key(provider):
     from_env = os.environ.get(name)
     if from_env and 'your_' not in from_env:
         return from_env
-    if os.path.exists(ENV_FILE):
-        for line in open(ENV_FILE, encoding='utf-8', errors='replace'):
-            if line.startswith(name + '='):
-                value = line.split('=', 1)[1].strip()
-                if value and 'your_' not in value:
-                    return value
+    found = from_env_file(name)
+    if found:
+        return found
     sys.exit('No %s in the environment or in chess_backend/.env.' % name)
 
 
@@ -129,6 +150,7 @@ def ask(provider, model, prompt, timeout, thinking=None, base_url=None):
     spec = PROVIDERS[provider]
     if spec['shape'] == 'openai':
         return ask_openai(provider, model, prompt, timeout, base_url)
+    # The Gemini shape needs no adjustment, so it answers with an empty list.
 
     body = json.dumps({
         'contents': [{'parts': [{'text': prompt}]}],
@@ -154,7 +176,26 @@ def ask(provider, model, prompt, timeout, thinking=None, base_url=None):
         data=body,
         headers={'Content-Type': 'application/json'},
     )
-    return send(request, timeout)
+    answer, fault = send(request, timeout)
+    return answer, fault, []
+
+
+def azure_url(model):
+    """`https://<resource>.openai.azure.com/openai/deployments/<deployment>/…`
+
+    [model] is the **deployment** name here, not a model id: Azure names the
+    thing you created, and the body's `model` field is ignored.
+    """
+    endpoint = (os.environ.get('AZURE_OPENAI_ENDPOINT')
+                or from_env_file('AZURE_OPENAI_ENDPOINT'))
+    if not endpoint:
+        sys.exit('Set AZURE_OPENAI_ENDPOINT (https://<resource>.openai.azure.com) '
+                 'in the environment or in chess_backend/.env.')
+    version = (os.environ.get('AZURE_OPENAI_API_VERSION')
+               or from_env_file('AZURE_OPENAI_API_VERSION')
+               or AZURE_DEFAULT_API_VERSION)
+    return ('%s/openai/deployments/%s/chat/completions?api-version=%s'
+            % (endpoint.rstrip('/'), model, version))
 
 
 def ask_openai(provider, model, prompt, timeout, base_url=None):
@@ -165,22 +206,53 @@ def ask_openai(provider, model, prompt, timeout, base_url=None):
     had to be is recorded in `meta.json` rather than smoothed over.
     """
     url = base_url or PROVIDERS[provider]['url']
+    if provider == 'azure':
+        url = base_url or azure_url(model)
     if not url:
         sys.exit('--base-url is required for the openai-compatible provider.')
 
-    body = json.dumps({
+    payload = {
         'model': model,
         'messages': [{'role': 'user', 'content': prompt}],
         'response_format': {'type': 'json_object'},
         'max_tokens': 16384,
         'temperature': 1.0,
-    }).encode('utf-8')
+    }
 
-    request = urllib.request.Request(url, data=body, headers={
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + api_key(provider),
-    })
-    return send(request, timeout)
+    header = PROVIDERS[provider].get('auth_header')
+    headers = {'Content-Type': 'application/json'}
+    if header:
+        headers[header] = api_key(provider)
+    else:
+        headers['Authorization'] = 'Bearer ' + api_key(provider)
+
+    # Two refusals are worth surviving rather than reporting, because both are
+    # about the request's shape and not about the work: a reasoning model that
+    # cannot be asked for JSON (DeepSeek's reasoner is one), and a newer model
+    # that wants `max_completion_tokens` where the older ones want `max_tokens`.
+    # Each retry is recorded, so „it needed one" stays visible.
+    adjustments = []
+    while True:
+        request = urllib.request.Request(
+            url, data=json.dumps(payload).encode('utf-8'), headers=headers)
+        answer, fault = send(request, timeout)
+        if not fault or not fault.startswith('HTTP 400'):
+            return answer, fault, adjustments
+
+        lowered = fault.lower()
+        if 'response_format' in lowered and 'response_format' in payload:
+            payload.pop('response_format')
+            adjustments.append('no response_format')
+            continue
+        if 'max_tokens' in lowered and 'max_tokens' in payload:
+            payload['max_completion_tokens'] = payload.pop('max_tokens')
+            adjustments.append('max_completion_tokens')
+            continue
+        if 'temperature' in lowered and 'temperature' in payload:
+            payload.pop('temperature')
+            adjustments.append('no temperature')
+            continue
+        return answer, fault, adjustments
 
 
 def send(request, timeout):
@@ -275,8 +347,10 @@ def run(cfg):
     print('arm %s, %s, %d characters of prompt - asking...'
           % (arm, cfg.model, len(prompt)))
     started = time.time()
-    answer, fault = ask(cfg.provider, cfg.model, prompt, cfg.timeout,
-                        cfg.thinking, cfg.base_url)
+    answer, fault, adjustments = ask(cfg.provider, cfg.model, prompt,
+                                     cfg.timeout, cfg.thinking, cfg.base_url)
+    if adjustments:
+        meta['request_adjusted'] = adjustments
     meta['seconds'] = round(time.time() - started, 1)
 
     if fault:

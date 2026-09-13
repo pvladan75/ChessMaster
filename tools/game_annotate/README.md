@@ -247,8 +247,36 @@ python run_api.py B --provider groq --model <the model's own id>
 python run_api.py B --provider openai-compatible --base-url https://… --model …
 ```
 
+**DeepSeek** needs one line in `chess_backend/.env`:
+
+```
+DEEPSEEK_API_KEY=sk-…
+```
+
+**Azure OpenAI** needs three, because Azure addresses a *deployment* you
+created rather than a model id, and authenticates with its own header:
+
+```
+AZURE_OPENAI_KEY=…
+AZURE_OPENAI_ENDPOINT=https://<resource-name>.openai.azure.com
+AZURE_OPENAI_API_VERSION=2024-10-21
+```
+
+The third is optional — that value is the default. `--model` is then the
+**deployment name**, not the model id: `python run_api.py B --provider azure
+--model my-gpt4o-deployment`.
+
+Two refusals are survived rather than reported, because both are about the
+request's shape and not about the work: a reasoning model that cannot be asked
+for JSON at all, and a newer model that wants `max_completion_tokens` where the
+older ones want `max_tokens`. Each retry is written into `meta.json` as
+`request_adjusted`, so „it needed one" stays visible instead of becoming folklore.
+
 The key is read from the environment, or from `chess_backend/.env`, under
-`GEMINI_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY` or `LLM_API_KEY`. It is
+`GEMINI_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `AZURE_OPENAI_KEY` or
+`LLM_API_KEY`. **None of these belong in `.env.example`** — that file is the
+server's contract and the deploy script hands its keys to the droplet; these
+are read by a tool that runs on a developer's machine. It is
 never printed and never written into a run's folder — this repository is
 public, and a failing run is exactly the thing somebody pastes into a chat
 window, which is why the error messages carry neither the URL nor the header.
