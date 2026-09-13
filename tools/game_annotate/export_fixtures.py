@@ -169,9 +169,151 @@ def answer_cases(answer):
     }
 
 
+def _share_probe():
+    """Shares a facts file can hold (`round(x, 4)`) whose percentage is a tie.
+
+    Two rounding rules decide these and neither ten real games reach: Python's
+    `round` is half-to-even only on a value that is *exactly* a half, and `'%.1f'`
+    rounds an exact binary tie to even where Dart's `toStringAsFixed` rounds it
+    up. Batch 70's report measured both mutations surviving the whole gate.
+    """
+    import math
+    exact, near, tenths = [], [], []
+    for k in range(1, 10001):
+        s = round(k / 10000.0, 4)
+        v = 100 * s
+        frac = v - math.floor(v)
+        if frac == 0.5 and s >= 0.10:
+            exact.append(s)
+        elif 0 < abs(frac - 0.5) < 1e-9 and s >= 0.10:
+            near.append(s)
+        if 0.001 <= s < 0.10 and ('%.1f' % v) != ('%.1f' % (v + 1e-12)):
+            tenths.append(s)
+    return exact[:6], near[:6], tenths[:8]
+
+
+def with_facts(facts, fn):
+    """Run [fn] with `skeleton.facts_of` answering [facts] - the harness's own
+    code over a variant of a game, so an edge case is still the reference's
+    answer and not a hand-written one."""
+    original = skeleton.facts_of
+    skeleton.facts_of = lambda name: facts
+    try:
+        return fn()
+    finally:
+        skeleton.facts_of = original
+
+
+def edge_cases():
+    import copy
+    exact, near, tenths = _share_probe()
+    shares = exact + near + tenths + [0.0009, 0.001, 0.0999, 0.1, 0.1049, 0.9999]
+
+    # A book variant of g01: every book row's shares replaced by the ties above,
+    # so the lead-in and question slots that quote the book carry them.
+    # Every book row gets the same breaking shares, not a walk through the list:
+    # the first version dealt the list out in order, the rows a moment quotes
+    # drew only exact halves the port already rounded right, and the test built
+    # on it passed against code that was wrong. 0.545 is a near half Python
+    # rounds up (`54.50000000000001`), 0.0025 and 0.0125 exact one-decimal ties.
+    booked = copy.deepcopy(skeleton.facts_of('g01_scandinavian-defense'))
+    for row in booked['rows']:
+        book = row.get('book')
+        if not book:
+            continue
+        if (book.get('played') or {}).get('games'):
+            book['played']['share'] = 0.545
+        for alt, share in zip(book.get('alternatives') or [], (0.0025, 0.0125, 0.545)):
+            alt['share'] = share
+
+    # A cost variant of g09, which has more candidates than `max_moments`: the
+    # cost of the ninth-most-expensive move made equal to the eighth's, and two
+    # more pairs made equal inside the cut, so the order of ties decides which
+    # moments are offered and what they are numbered.
+    tied = copy.deepcopy(skeleton.facts_of('g09_caro-kann-defense'))
+    rows = tied['rows']
+    heavy = [i for i, r in enumerate(rows)
+             if r.get('played') and r.get('candidates')
+             and skeleton._cost_value(r['played'].get('cost_pawns')) >= 1.0
+             and r['played'].get('cost_pawns') != 'mate']
+    by_cost = sorted(heavy, key=lambda i: rows[i]['played']['cost_pawns'], reverse=True)
+    assert len(by_cost) > 9, 'g09 no longer has enough numeric candidates for a tie'
+    # the later ply of each pair takes the earlier-sorted one's cost
+    for a, b in ((by_cost[7], by_cost[8]), (by_cost[1], by_cost[2]), (by_cost[4], by_cost[5])):
+        rows[b]['played']['cost_pawns'] = rows[a]['played']['cost_pawns']
+    parameters = dict(skeleton.DEFAULTS)
+
+    book_moments = with_facts(booked, lambda: skeleton.moments('booked', parameters))
+    quoted = json.dumps(book_moments)
+    for words in ('55%', '0.2%'):
+        # A variant nobody quotes is a test that cannot fail.
+        assert words in quoted, 'the book variant no longer reaches a slot: %s' % words
+
+    # A question whose answer is castling. The rule „a question names its
+    # answer or its square" has two halves, and for every other move the square
+    # half catches what the answer half would - `Qxe2+` contains `e2` - so a
+    # mutation deleting the answer half survived all 43 tests. Castling is the
+    # one move where only that half can decide: `'O-O-O'[-2:]` is `-O`, which a
+    # lowercased sentence never contains. g04's position after 13... Rdg8 has
+    # O-O-O among its four candidates; swapping only the moves and their lines
+    # makes it the best move while every number stays where it was, so the move
+    # is legal and its line is the engine's own.
+    castled = copy.deepcopy(skeleton.facts_of('g04_saragossa-opening'))
+    row = next(r for r in castled['rows'] if r['label'] == '13... Rdg8')
+    cands = row['candidates']
+    k = next(i for i, c in enumerate(cands) if c['move'].startswith('O-O'))
+    for key in ('move', 'line'):
+        cands[0][key], cands[k][key] = cands[k][key], cands[0][key]
+    castled_moments = with_facts(castled, lambda: skeleton.moments('castled', parameters))
+    castle = next(m for m in castled_moments if m['label'] == '13... Rdg8')
+    assert castle['asks'] and castle['best'].startswith('O-O'), castle['best']
+    other = next(m['id'] for m in castled_moments if m['id'] != castle['id'])
+    castled_answer = json.dumps({
+        'title': 'Castling', 'description': 'A question naming its answer.',
+        'tags': ['castling'], 'chosen': [castle['id'], other],
+        'slots': {'%s.question' % castle['id']:
+                  'White to move: find the move, %s, that tucks the king away.'
+                  % castle['best']}})
+
+    def assembled():
+        folder = tempfile.mkdtemp(prefix='fixture-')
+        try:
+            meta = {}
+            skeleton.assemble(folder, 'castled', meta, castled_answer, parameters)
+            made = {}
+            for key, file_name in (('tutorial', 'tutorial.json'),
+                                   ('tutorialGame', 'tutorial-game.json')):
+                path = os.path.join(folder, file_name)
+                made[key] = json.loads(read(path)) if os.path.exists(path) else None
+            made['report'] = meta.get('skeleton')
+            return made
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+
+    castled_expected = with_facts(castled, assembled)
+    assert ('%s.question names its answer or its square' % castle['id']
+            in castled_expected['report']['claims']), castled_expected['report']['claims']
+
+    return {
+        'about': ABOUT,
+        'castledFacts': castled,
+        'castledAnswer': castled_answer,
+        'castledExpected': castled_expected,
+        'shareWords': [[s, skeleton.share_words(s)] for s in shares],
+        'bookFacts': booked,
+        'bookMoments': book_moments,
+        'tiedFacts': tied,
+        'tiedMoments': with_facts(tied, lambda: skeleton.moments('tied', parameters)),
+        'tiedPairs': [[rows[a]['label'], rows[b]['label']] for a, b in
+                      ((by_cost[7], by_cost[8]), (by_cost[1], by_cost[2]),
+                       (by_cost[4], by_cost[5]))],
+    }
+
+
 def extras(answer_of_g01):
     return {'evaluation_words_cases.json': evaluation_cases(),
-            'answer_cases.json': answer_cases(answer_of_g01)}
+            'answer_cases.json': answer_cases(answer_of_g01),
+            'edge_cases.json': edge_cases()}
 
 
 def dump(data):

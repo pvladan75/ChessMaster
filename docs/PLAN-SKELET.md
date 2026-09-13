@@ -286,4 +286,9 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
    a part's `pgn`, read back through `LessonStepLine` — was proved passable
    first**: every part of every fixture, rebuilt through
    `StudioLessonStep.from`, reads back as the harness wrote it.
-4. **Batch 1 to the worker**: the rest of the skeleton, against that gate.
+4. ✅ 14.9.2026 **Batch 70 to the worker**: the rest of the skeleton, against
+   that gate — PASS in one round, merged with three lead fixes. The ten games
+   never reach two rounding rules (Python's `round` on an exact half, `'%.1f'`
+   on an exact tie) and the port had both wrong; `edge_cases.json`, written by
+   the harness, reaches them now, with a cost tie across the cut and a castling
+   answer. Fifteen mutations, all caught. **Phase 1 is done.**

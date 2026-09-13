@@ -71,6 +71,17 @@ prolaznim unapred: svaki deo svakog fixture-a, prepisan kroz
 preskočen), analyze 26 info. Sledeće: batch 1 za worker-a (ostatak skeleta prema
 kapiji), pa faza 0 (`tool/game_facts.dart`).
 
+**Batch 70 (Gemini) je prošao i spojen je, 14.9.2026 — faza 1 je gotova.** Ceo
+skelet je u aplikaciji (`game_tutorial/skeleton_*.dart`, `board_queries.dart`):
+od istih činjenica i istog odgovora modela pravi isto što harness. Sve kapije
+zelene u prvom krugu; ocenjivanje je dodalo tri ispravke. Dve su pravila
+zaokruživanja do kojih deset partija nikad ne stiže — Pythonov `round` samo na
+tačnoj polovini i `'%.1f'` na tačnom izjednačenju (u zaglavlju kapije je pisalo
+da se Dart i Python tu slažu, što je bila pretpostavka) — a treća je potez koji
+ne može da se odigra, a nije bio prijavljen. `edge_cases.json` ih sada pokriva,
+iz samog harnessa. Aplikacija **2412** (1 preskočen), analyze 26. Sledeće: faza 0
+(`tool/game_facts.dart`) i faza 2, činjenice na uređaju.
+
 ## Isti nalaz posle poteza, i težina onoga što se može osvojiti — 13.9.2026, u kodu
 
 Nastavak „Rečnika detektora motiva" odmah ispod, iz zadatka koji je taj unos

@@ -86,10 +86,11 @@
 //     then re-sorts by index. Sort by (cost descending, index ascending).
 //  2. **Python's `round` is half-to-even**: `share_words` writes `'%d%%' %
 //     round(100 * share)`, and 12.5 is 12 there and 13 with `.round()`.
-//  3. **`'%.1f' % x` and `toStringAsFixed(1)` both round the exact binary
-//     value**, so they should agree — unlike (2), where Python's `round` is
-//     half-to-even on a value that is exactly a half. Believe the fixtures,
-//     not this sentence: `share_words` is exercised by every book slot.
+//  3. **`'%.1f' % x` rounds an exact binary tie to even; `toStringAsFixed(1)`
+//     rounds it away from zero**: `0.25` is `0.2` in Python and `0.3` in Dart.
+//     Measured after batch 70 — this line said the two agreed, which was a
+//     guess, and no fixture game has such a share, so the gate could not say
+//     otherwise. `test/game_tutorial_skeleton_edges_test.dart` can.
 //  4. **`'%+d'`** writes `+0` and `+2`: material in the lead-in and answer
 //     intros.
 //  5. **`'%s' % 1.0` is `1.0`, and `'%s' % 2` is `2`.** `cost_pawns` keeps the
@@ -146,13 +147,12 @@ Map<String, dynamic> _read(String path) =>
     jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
 
 List<Map<String, dynamic>> _games() {
-  final files =
-      Directory(_fixtures)
-          .listSync()
-          .whereType<File>()
-          .where((f) => RegExp(r'g\d\d_[a-z-]+\.json$').hasMatch(f.path))
-          .toList()
-        ..sort((a, b) => a.path.compareTo(b.path));
+  final files = Directory(_fixtures)
+      .listSync()
+      .whereType<File>()
+      .where((f) => RegExp(r'g\d\d_[a-z-]+\.json$').hasMatch(f.path))
+      .toList()
+    ..sort((a, b) => a.path.compareTo(b.path));
   return [for (final f in files) _read(f.path)];
 }
 

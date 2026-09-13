@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2368 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2412 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1260 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -2143,6 +2143,26 @@ over. **And a sentence in a brief is a claim like any other:** the first draft
 said the motif detector „already asks" python-chess's attack and pin questions;
 grep found one private pin check and a legal-capture query, which is not the
 same answer, and the gate says so now.
+
+**Forty-four more on 14.9.2026 — 2412 in the app with 1 skipped** — batch 70,
+the rest of the skeleton ported by a worker in one round (39 of the gate's), and
+five of the lead's. Fifteen mutations, all caught.
+
+**A gate built from real data cannot see what the data never does.** The ten
+fixture games have no cost tie at the cut and no masters share that is exactly a
+half, so the port could get Python's `round` and `'%.1f'` wrong and pass all 39.
+It did, and the worker's report said so — two of three requested divergence
+mutations came back „no test failed", which is a finding about the gate and not a
+pass. The harness now writes the variants itself (`edge_cases.json`). And the
+first of those variants was vacuous: it dealt the breaking shares to rows no
+moment quotes, and was only caught by **watching the new test stay green on the
+code it was written against**. Run a new test on the wrong code before believing
+it — the lead's tests included.
+
+**A rule can be redundant for every input but one.** „A question names its answer
+or its square" survived its mutation because every answer contains its square;
+castling is the exception (`'O-O-O'[-2:]` is `-O`), so the case that proves the
+rule is the one move no fixture had.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
