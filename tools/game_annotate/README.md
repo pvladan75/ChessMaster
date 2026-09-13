@@ -234,6 +234,39 @@ and `tools/tutorial_translate/` goes on using it.
 know nothing about any provider — so pointing this at a different vendor is a
 transport, not a rewrite.
 
+## Trying another vendor
+
+`run_api.py --provider` knows four: `gemini` (its own request shape), and
+`groq`, `deepseek` and `openai-compatible`, which are all the OpenAI chat shape
+and so are one transport rather than three. Azure OpenAI and OpenRouter fit the
+last one with `--base-url`.
+
+```bash
+python run_api.py B --provider deepseek --model deepseek-reasoner
+python run_api.py B --provider groq --model <the model's own id>
+python run_api.py B --provider openai-compatible --base-url https://… --model …
+```
+
+The key is read from the environment, or from `chess_backend/.env`, under
+`GEMINI_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY` or `LLM_API_KEY`. It is
+never printed and never written into a run's folder — this repository is
+public, and a failing run is exactly the thing somebody pastes into a chat
+window, which is why the error messages carry neither the URL nor the header.
+
+**The bar a new model has to clear is already set**, and it is not „did it
+answer": the grader must say CLEAN, and every `ask_move` it writes must survive
+`analyze.py fen --multipv 4` as the engine's own first choice by a clear
+margin. Three games are in `input/`, the brief is fixed, and the arms mean the
+same thing whoever answers them — so a vendor trial is three commands and a
+grading run, not a new experiment.
+
+Two things to expect from the Gemini measurements above. A *distilled* or
+otherwise small model is likely to fail the way the Lites did, with moves that
+cannot be played; and a model that reasons will spend far more tokens than a
+vendor's headline price per game assumes, because this task needs the thinking.
+Read `meta.json`'s token counts rather than the price page: `thoughts` is kept
+apart from `answer` for exactly that reason.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not

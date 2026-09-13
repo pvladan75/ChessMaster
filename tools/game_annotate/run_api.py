@@ -38,8 +38,36 @@ import run_arm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ENV_FILE = os.path.join(run_arm.REPO, 'chess_backend', '.env')
-ENDPOINT = ('https://generativelanguage.googleapis.com/v1beta/models/'
-            '%s:generateContent')
+# One provider is one row: where to post, which environment variable holds the
+# key, and which of the two request shapes it speaks. Groq, DeepSeek, Azure
+# OpenAI, OpenRouter and the rest are all the OpenAI chat shape, so a new vendor
+# is a row here rather than a second script - and the grader, the engine check
+# and the games below stay ignorant of all of it, which is what keeps a model
+# comparison about the model.
+PROVIDERS = {
+    'gemini': {
+        'url': ('https://generativelanguage.googleapis.com/v1beta/models/'
+                '%s:generateContent'),
+        'key_env': 'GEMINI_API_KEY',
+        'shape': 'gemini',
+    },
+    'groq': {
+        'url': 'https://api.groq.com/openai/v1/chat/completions',
+        'key_env': 'GROQ_API_KEY',
+        'shape': 'openai',
+    },
+    'deepseek': {
+        'url': 'https://api.deepseek.com/chat/completions',
+        'key_env': 'DEEPSEEK_API_KEY',
+        'shape': 'openai',
+    },
+    # Anything else that speaks the OpenAI chat API: pass --base-url.
+    'openai-compatible': {
+        'url': None,
+        'key_env': 'LLM_API_KEY',
+        'shape': 'openai',
+    },
+}
 
 OUTPUT_AS_ANSWER = """Return the tutorial as a single JSON object, and return
 nothing else at all: no prose before or after it, no code fence, no explanation.
@@ -57,22 +85,23 @@ channel to put remarks, so anything that is not the object will be read as part
 of it and break the file."""
 
 
-def api_key():
-    """The key, from the environment or from the backend's `.env`.
+def api_key(provider):
+    """The key for [provider], from the environment or from the backend's `.env`.
 
     Never printed, never written into a run's folder: this repository is public
     and a key in an artefact outlives the run that made it.
     """
-    from_env = os.environ.get('GEMINI_API_KEY')
-    if from_env and 'your_gemini' not in from_env:
+    name = PROVIDERS[provider]['key_env']
+    from_env = os.environ.get(name)
+    if from_env and 'your_' not in from_env:
         return from_env
     if os.path.exists(ENV_FILE):
         for line in open(ENV_FILE, encoding='utf-8', errors='replace'):
-            if line.startswith('GEMINI_API_KEY='):
+            if line.startswith(name + '='):
                 value = line.split('=', 1)[1].strip()
-                if value and 'your_gemini' not in value:
+                if value and 'your_' not in value:
                     return value
-    sys.exit('No GEMINI_API_KEY in the environment or in chess_backend/.env.')
+    sys.exit('No %s in the environment or in chess_backend/.env.' % name)
 
 
 def build(arm, name):
@@ -96,7 +125,11 @@ def build(arm, name):
     return prompt, pgn_path
 
 
-def ask(model, prompt, timeout, thinking=None):
+def ask(provider, model, prompt, timeout, thinking=None, base_url=None):
+    spec = PROVIDERS[provider]
+    if spec['shape'] == 'openai':
+        return ask_openai(provider, model, prompt, timeout, base_url)
+
     body = json.dumps({
         'contents': [{'parts': [{'text': prompt}]}],
         'generationConfig': {
@@ -117,22 +150,60 @@ def ask(model, prompt, timeout, thinking=None):
     }).encode('utf-8')
 
     request = urllib.request.Request(
-        (ENDPOINT % model) + '?key=' + api_key(),
+        (spec['url'] % model) + '?key=' + api_key(provider),
         data=body,
         headers={'Content-Type': 'application/json'},
     )
+    return send(request, timeout)
+
+
+def ask_openai(provider, model, prompt, timeout, base_url=None):
+    """The OpenAI chat shape: Groq, DeepSeek, Azure OpenAI, OpenRouter.
+
+    `response_format` is asked for but not relied on - a reasoning model that
+    ignores it still gets its object fished out by `rescue_json`, and whether it
+    had to be is recorded in `meta.json` rather than smoothed over.
+    """
+    url = base_url or PROVIDERS[provider]['url']
+    if not url:
+        sys.exit('--base-url is required for the openai-compatible provider.')
+
+    body = json.dumps({
+        'model': model,
+        'messages': [{'role': 'user', 'content': prompt}],
+        'response_format': {'type': 'json_object'},
+        'max_tokens': 16384,
+        'temperature': 1.0,
+    }).encode('utf-8')
+
+    request = urllib.request.Request(url, data=body, headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + api_key(provider),
+    })
+    return send(request, timeout)
+
+
+def send(request, timeout):
     try:
         with urllib.request.urlopen(request, timeout=timeout) as answer:
             return json.load(answer), None
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode('utf-8', 'replace')[:600]
-        # The key is in the URL, so the URL never goes into the message.
+        # The key travels in the URL or a header, so neither goes into the
+        # message: a failing run is exactly the thing somebody pastes into a
+        # chat window.
         return None, 'HTTP %d: %s' % (exc.code, detail)
     except Exception as exc:                       # noqa: BLE001 - reported
         return None, '%s: %s' % (type(exc).__name__, exc)
 
 
 def text_of(answer):
+    """The answer's text and why it stopped, from either shape."""
+    if 'choices' in answer:
+        choice = (answer.get('choices') or [{}])[0]
+        message = choice.get('message') or {}
+        return message.get('content') or '', choice.get('finish_reason')
+
     for candidate in answer.get('candidates', []):
         parts = (candidate.get('content') or {}).get('parts') or []
         joined = ''.join(p.get('text', '') for p in parts)
@@ -140,6 +211,31 @@ def text_of(answer):
             return joined, candidate.get('finishReason')
         return '', candidate.get('finishReason')
     return '', None
+
+
+def tokens_of(answer):
+    """What the call cost, in whichever shape the provider reports it.
+
+    The thinking count is kept apart from the answer count on purpose: this
+    experiment's own finding is that the cheap configurations are cheap because
+    they think not at all, and one total hides exactly that.
+    """
+    if 'usage' in answer:                               # the OpenAI shape
+        usage = answer['usage'] or {}
+        details = usage.get('completion_tokens_details') or {}
+        return {
+            'prompt': usage.get('prompt_tokens'),
+            'answer': usage.get('completion_tokens'),
+            'thoughts': details.get('reasoning_tokens'),
+            'total': usage.get('total_tokens'),
+        }
+    usage = answer.get('usageMetadata') or {}
+    return {
+        'prompt': usage.get('promptTokenCount'),
+        'answer': usage.get('candidatesTokenCount'),
+        'thoughts': usage.get('thoughtsTokenCount'),
+        'total': usage.get('totalTokenCount'),
+    }
 
 
 def run(cfg):
@@ -163,7 +259,7 @@ def run(cfg):
 
     meta = {
         'arm': arm, 'model': cfg.model, 'game': cfg.name,
-        'channel': 'gemini-api', 'input': run_arm.ARMS[arm]['input'],
+        'channel': cfg.provider, 'input': run_arm.ARMS[arm]['input'],
         'started': time.strftime('%Y-%m-%dT%H:%M:%S'),
         'prompt_characters': len(prompt),
         'thinking_budget': cfg.thinking,
@@ -179,7 +275,8 @@ def run(cfg):
     print('arm %s, %s, %d characters of prompt - asking...'
           % (arm, cfg.model, len(prompt)))
     started = time.time()
-    answer, fault = ask(cfg.model, prompt, cfg.timeout, cfg.thinking)
+    answer, fault = ask(cfg.provider, cfg.model, prompt, cfg.timeout,
+                        cfg.thinking, cfg.base_url)
     meta['seconds'] = round(time.time() - started, 1)
 
     if fault:
@@ -190,13 +287,7 @@ def run(cfg):
 
     body, finish = text_of(answer)
     meta['finish_reason'] = finish
-    usage = answer.get('usageMetadata') or {}
-    meta['tokens'] = {
-        'prompt': usage.get('promptTokenCount'),
-        'answer': usage.get('candidatesTokenCount'),
-        'thoughts': usage.get('thoughtsTokenCount'),
-        'total': usage.get('totalTokenCount'),
-    }
+    meta['tokens'] = tokens_of(answer)
 
     run_arm.save_text(run_dir, 'reply.txt', body)
     rescued = body if body.strip().startswith('{') else run_arm.rescue_json(body)
@@ -218,6 +309,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('arm', help='A or B')
     parser.add_argument('--name', default='pvladan_2026-09-12')
+    parser.add_argument('--provider', default='gemini', choices=sorted(PROVIDERS))
+    parser.add_argument('--base-url', help='for --provider openai-compatible')
     parser.add_argument('--model', default='gemini-2.5-flash-lite')
     parser.add_argument('--thinking', type=int, default=None,
                         help='thinking budget in tokens; -1 asks the '
