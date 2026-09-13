@@ -335,17 +335,32 @@ class MoveTree {
     return result;
   }
 
-  /// The words of a comment, with every annotation tag taken out.
+  /// The words of a comment, with every PGN command taken out.
   ///
-  /// Both tags, and that is the fix: this stripped `[%cal]` and nothing else,
-  /// so a PGN written in Lichess or ChessBase — where `[%csl]` is ordinary —
-  /// put „[%csl Rd5]" on screen in the middle of the trainer's sentence.
+  /// Every command, and not a list of them. This stripped `[%cal]` alone, then
+  /// `[%cal]` and `[%csl]` once „[%csl Rd5]" had reached the screen in the
+  /// middle of a trainer's sentence — and a list of names is what leaked the
+  /// third time. Chess.com writes `[%clk]` after every move and Lichess writes
+  /// `[%eval]`, and a comment is what the lesson viewer draws and **reads
+  /// aloud**, so a game imported as a tutorial spoke its clock to a child; a
+  /// comment holding nothing but a clock was not even empty, so the walk spoke
+  /// it instead of taking its silent step. Found 13.9.2026, the day an engine
+  /// evaluation was allowed into the PGN, which is exactly the tag that would
+  /// have been read out next.
+  ///
+  /// Arrows and squares lose nothing here: [parsePgnArrows] and
+  /// [parsePgnSquares] read them out of the raw text before this runs.
   static String cleanPgnComment(String commentText) {
     return commentText
-        .replaceAll(RegExp(r'\[%(cal|csl)\s+[^\]]+\]'), '')
+        .replaceAll(_pgnCommand, '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
+
+  /// `[%clk 0:02:59.9]`, `[%eval 0.17]`, `[%csl Rd5]`, `[%novag]`: `[%`, a
+  /// name, and anything up to the closing bracket. `[%` followed by a space is
+  /// words, and so is a percent that merely stands near a bracket.
+  static final RegExp _pgnCommand = RegExp(r'\[%[A-Za-z]\w*(?:\s[^\]]*)?\]');
 
   /// The main line, with every move's words, arrows and squares beside it.
   ///

@@ -237,6 +237,68 @@ void main() {
       expect(node.arrows.length, 1);
       expect(node.squares.length, 1);
     });
+
+    group('a command from another tool is not words either', () {
+      // Chess.com writes `[%clk]` after every move and Lichess adds `[%eval]`,
+      // and this stripped only the two tags it draws. The comment is what the
+      // lesson viewer draws and reads aloud, so a game imported as a tutorial
+      // spoke its clock to a child after every move.
+      MoveNode only(String pgn) =>
+          MoveTree.parsePgn(pgn, startingFen: _startFen)!.root.children.single;
+
+      test('a clock and an evaluation leave no words behind', () {
+        // The probe the fault was proved with, verbatim.
+        final tree = MoveTree.parsePgn(
+          '[Event "Live Chess"]\n\n'
+          '1. e4 {[%clk 0:02:59.9]} 1... e5 {[%eval 0.17] [%clk 0:02:58.1]} '
+          '2. Nf3 { White develops. [%cal Ge2e4] } *',
+          startingFen: _startFen,
+        )!;
+
+        expect(_mainLineComments(tree), ['', '', 'White develops.']);
+        // Empty, not a blank-looking string: an empty comment is what makes
+        // the narrated walk take its silent step instead of speaking.
+        expect(tree.mainLine().comments, ['', '', 'White develops.']);
+      });
+
+      test('a command in the middle of a sentence is lifted out of it', () {
+        expect(only('1. e4 { Napad [%eval 0.17] na kralja. }').comment,
+            'Napad na kralja.');
+      });
+
+      test('a command with no argument is a command too', () {
+        expect(only('1. e4 { [%novag] Dobar potez. }').comment, 'Dobar potez.');
+      });
+
+      test('arrows and squares are still read beside other commands', () {
+        final node = only('1. e4 { [%clk 0:01:00] Slabo polje. '
+            '[%csl Rd5][%cal Gd1h5] [%emt 0:00:02] }');
+
+        expect(node.comment, 'Slabo polje.');
+        expect(node.squares.single.square, 'd5');
+        expect(node.arrows.single.to, 'h5');
+      });
+
+      test('the note ahead of move one is cleaned the same way', () {
+        final tree = MoveTree.parsePgn(
+          '{ [%evp 0.10,0.25] Pogledaj polje d5. [%csl Rd5] } 1. e4 *',
+          startingFen: _startFen,
+        )!;
+
+        expect(tree.root.comment, 'Pogledaj polje d5.');
+        expect(tree.root.squares.single.square, 'd5');
+        expect(tree.root.children.single.san, 'e4');
+      });
+
+      test('a percent and a bracket that are not a command stay words', () {
+        // The other half of the rule, so that „every command" cannot quietly
+        // become „everything in brackets". Only `[%` and a name is a command.
+        expect(only('1. e4 { Pobeda u 90% [partija]. }').comment,
+            'Pobeda u 90% [partija].');
+        expect(only('1. e4 { Zagrada [% nije komanda]. }').comment,
+            'Zagrada [% nije komanda].');
+      });
+    });
   });
 
   group('the main line is read once, so it cannot disagree with itself', () {
