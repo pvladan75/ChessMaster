@@ -4,8 +4,8 @@ Chess coaching platform: a Flutter client (`chess_app/`) and a Node backend
 (`chess_backend/`). A trainer runs a live lesson in a room — board, voice, and a
 silent replay of the lesson's move timeline — plus puzzles, homework, spaced
 repetition and parent reports. Audio is recorded only by an adult alone in a
-room, making their own teaching material. Most users are children, which decides
-several rules below.
+room, making their own teaching material. The app is for 13 and older (higher in
+some countries), so many users are minors, which decides several rules below.
 
 ## Layout
 

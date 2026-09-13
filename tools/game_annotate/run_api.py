@@ -36,6 +36,7 @@ import urllib.parse
 import urllib.request
 
 import run_arm
+import skeleton
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ENV_FILE = os.path.join(run_arm.REPO, 'chess_backend', '.env')
@@ -139,6 +140,11 @@ def api_key(provider):
 def build(arm, name):
     spec = run_arm.ARMS[arm]
     pgn, pgn_path = run_arm.game_text(name, spec['input'])
+    if arm == 'H':
+        # Not the brief: the skeleton's own short task, with the moments and
+        # their empty slots. The format contract is not in it, because the
+        # model writes no JSON the app reads - only words the harness places.
+        return skeleton.prompt(name), pgn_path
 
     with open(run_arm.BRIEF, encoding='utf-8') as fh:
         brief = fh.read()
@@ -146,7 +152,7 @@ def build(arm, name):
     prompt = (brief
               .replace('{OUTPUT_INSTRUCTION}', OUTPUT_AS_ANSWER)
               .replace('{CLOSING}', CLOSING_API)
-              .replace('{GAME_NOTE}', spec['note'] or run_arm.ARMS['B']['note'])
+              .replace('{GAME_NOTE}', run_arm.game_note(arm, name))
               .replace('{GAME_DELIVERY}', GAME_INLINE.format(pgn=pgn))
               .replace('{TOOLS}', run_arm.NO_TOOL_TEXT)
               .replace('{FORMAT_CONTRACT}', run_arm.format_contract()))
@@ -440,7 +446,7 @@ def run(cfg):
         sys.exit('Arm C needs a tool loop, which this channel has not. '
                  'Use run_arm.py for it.')
     if arm not in run_arm.ARMS:
-        sys.exit('the arms are A and B here')
+        sys.exit('the arms are A, B, F, G and H here')
 
     prompt, pgn_path = build(arm, cfg.name)
     stamp = time.strftime('%Y%m%d-%H%M%S')
@@ -521,8 +527,16 @@ def run(cfg):
         run_arm.save_text(run_dir, 'reasoning.txt', reasoning)
     rescued = body if body.strip().startswith('{') else run_arm.rescue_json(body)
     meta['answer_was_json'] = bool(rescued) and body.strip().startswith('{')
-    if rescued:
+    if rescued and arm == 'H':
+        # The answer is words, not a tutorial: kept as it came, and the
+        # tutorial is assembled from the skeleton around it.
+        run_arm.save_text(run_dir, 'answer.json', rescued)
+        skeleton.assemble(run_dir, cfg.name, meta, rescued)
+        rescued = rescued if os.path.exists(os.path.join(run_dir, 'tutorial.json')) else None
+    elif rescued:
         run_arm.save_text(run_dir, 'tutorial.json', rescued)
+        if arm in run_arm.POSITION_TABLE_ARMS:
+            run_arm.apply_positions(run_dir, cfg.name, meta, arm)
     meta['wrote_the_file'] = bool(rescued)
 
     run_arm.save(run_dir, 'meta.json', meta)

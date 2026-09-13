@@ -8,7 +8,7 @@ see. `grade_tutorial.dart` asks whether the app would take a file: every FEN
 loads, every line replays from it. A FEN that is the game's position with the
 rook on a1 quietly missing loads and replays perfectly, so it grades CLEAN — and
 five of those came back in one afternoon, plus two whose move number was off by
-one, which the child reads as „4… Be7" where the game says „3… Be7".
+one, which the student reads as „4… Be7" where the game says „3… Be7".
 
 Two questions, then, and neither is the grader's:
 
@@ -87,10 +87,17 @@ def nearest(fen, known):
 
 def engine_ranking(fen, answer):
     """(rank of [answer] or None, its score, the best other score), side to move's view."""
+    # A grading session of its own and no ceiling. `analyze.py` meters calls
+    # per session because arm C is *given* a budget, and without a session of
+    # its own every grading call was charged to the default one: on 13.9.2026
+    # the fortieth check of the day was refused as „budget spent". Grading is
+    # not an arm, so it is not metered.
+    env = dict(os.environ, ANALYZE_SESSION='grader', ANALYZE_MAX_CALLS='1000000')
     out = subprocess.run(
         [sys.executable, os.path.join(HERE, 'analyze.py'), 'fen', fen,
          '--depth', '22', '--multipv', '4'],
-        capture_output=True, text=True, encoding='utf-8', errors='replace')
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        env=env)
     data = json.loads(out.stdout)
     if not data.get('ok', True):
         return None, None, None, data
@@ -145,7 +152,12 @@ def main():
         with open(os.path.join(run_dir, 'meta.json'), encoding='utf-8') as fh:
             game = json.load(fh)['game']
     known = positions_of(os.path.join(HERE, 'input', '%s_reviewed.pgn' % game))
-    with open(os.path.join(run_dir, 'tutorial.json'), encoding='utf-8') as fh:
+    tutorial = os.path.join(run_dir, 'tutorial.json')
+    if not os.path.exists(tutorial):
+        # A run that answered nothing is a result to report, not a traceback.
+        print('%s  — no tutorial.json, nothing to check' % os.path.basename(run_dir))
+        sys.exit(2)
+    with open(tutorial, encoding='utf-8') as fh:
         parts = json.load(fh).get('positionList') or []
 
     print('%s  (%s, %d positions in its review)' % (os.path.basename(run_dir),
@@ -186,7 +198,7 @@ def main():
                     # that position: the side to move, the castling rights or
                     # the en passant square is what is wrong. „Differs on 0
                     # squares" said nothing, and it is the one case where the
-                    # board a child sees is right and the move they must find
+                    # board a student sees is right and the move they must find
                     # belongs to the other side.
                     fields = [FIELDS[n] for n in (1, 2, 3)
                               if fen.split()[n:n + 1] != real_fen.split()[n:n + 1]]

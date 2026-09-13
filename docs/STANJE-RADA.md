@@ -153,6 +153,67 @@ uvezena kao tutorijal detetu naglas čitala `[%clk 0:02:59.9]` posle svakog
 poteza. Sada skida svaku PGN komandu; šest testova u `pgn_dialect_test.dart`,
 pet mutacija uhvaćeno; 2278 testova, 1 preskočen, analyze 29 infos.
 
+**Isti dan, posle probe dobavljača: pronađen put koji radi — skelet (grana H).**
+Vlasnikova postavka: model ne sme da procenjuje poteze. Python i Stockfish
+(`make_facts.py`, dubina 20, jednom po partiji) prave ceo tutorijal: kandidat
+momente gde je odigrani potez koštao ≥ 1,0 pešak, delove, FEN-ove, linije i
+pitanja (tačni su svi potezi u krugu od 0,3; bez pitanja ako ih je više od 3).
+Model samo bira 2–3 ponuđena momenta i popunjava prazna tekstualna polja, svako
+sa činjenicama pored sebe (`skeleton.py`). Pragovi se primenjuju pri pravljenju
+skeleta, ne pri analizi — već analizirane partije se ne šalju ponovo.
+
+Rezultat, 15 pokretanja na tri partije i pet modela: **14 CLEAN, sve pozicije
+tačne, svako pitanje prvi izbor Stockfish-a**; `deepseek-flash` 24–38 s po
+partiji, oko 10 hiljada tokena, rečenice pročitane i uglavnom tačne;
+`gpt-5.4-mini`, `qwen3.7-max`, `gemini-3.8-flash-high` i `gemini-3.1-pro-high`
+takođe prolaze; `qwen3.8-flash` je pokvario sopstveni JSON. Preostaje istina
+rečenica — provera tvrdnji hvata rečenicu na pogrešnom potezu i „pin"/„fork"/
+„mate" koje činjenice ne pokazuju — i **rečnik detektora motiva** u aplikaciji,
+koji model verno ponavlja („Skewer: … knight … exposing the pawn", „Fork" koji
+broji pešake, „Resolved —"). Tabele i sve pouke: `tools/game_annotate/README.md`,
+odeljak „Arms F, G and H".
+
+**Sledeći korak je odluka vlasnika, ne dobavljač:** da li se skelet prenosi u
+aplikaciju/backend (analiza lokalno ili na serveru, model samo za reči), i da li
+se prvo čisti rečnik detektora motiva. Jedna pouka ide uz to: jedna pretraga
+Stockfish-a blizu praga nije presuda (`Ke3` je na dubini 22 sa četiri linije
+izgledao drugi, a na dubini 26 vodi 0,44), pa granično pitanje mora da potvrdi
+dublja ili ponovljena pretraga.
+
+**Odluke vlasnika, 13.9.2026, uveče:** (1) LLM se koristi **samo za reči**;
+**analiza je lokalna, na korisnikovom uređaju** — skelet (momenti, pozicije,
+linije, pitanja) pravi aplikacija, ne server. (2) **Prvo se čisti rečnik
+detektora motiva**, pa tek onda prenos skeleta u aplikaciju. (3) Publika je
+**13+** (u nekim državama više), ne deca — promptovi u `tools/game_annotate/` i
+`CLAUDE.md` su ispravljeni.
+
+## ODAKLE SUTRA — čišćenje rečnika detektora motiva
+
+Zašto: skelet je pokazao da model **doslovno ponavlja** ono što detektor napiše,
+pa kvalitet rečenica ne može biti bolji od rečnika detektora. Primeri iz
+činjenica partije `pvladan_2026-09-12` (`tools/game_annotate/input/
+pvladan_2026-09-12_facts.json`, polje `motifs_after_played`), koje su četiri
+različita modela prenela u tutorijal:
+
+- **„Skewer" na slabim figurama:** „Skewer: the white knight on d5 has to move,
+  exposing the white pawn on e4", „Skewer: the black rook on e7 has to move,
+  exposing the black pawn on f7". Geometrijski tačno, ali skewer iza kojeg stoji
+  pešak nije pouka.
+- **„Fork" koji broji pešake:** „Fork: the white queen on d5 attacks five black
+  pieces: the black rook on a8, the black pawn on c5, the black rook on d7, the
+  black pawn on e5 and the black pawn on f7".
+- **Mašinski prefiksi kao reči:** „Resolved — …" i „Watch out — …" su promene
+  stanja, ne rečenice; jedan model je napisao „The skewer on c6 is resolved".
+
+Gde: `chess_app/lib/core/services/tactical_motif_detector.dart`,
+`positional_evaluator_service.dart`, i spajanje u
+`game_analysis_walker_service.dart` (`combinedComment`). Pre izmene pogledati ko
+sve čita te tekstove (komentari „Review entire game" u PGN-u, paneli nalaza,
+`reportService.js` na backendu drži kopiju tabele motiva — vidi CLAUDE.md o
+engleskom rečniku), jer promena naziva menja i što vide treneri i testovi.
+Pravila rada iz CLAUDE.md važe: testovi prvo, mutacije, `flutter analyze` na 29
+infos.
+
 **Odluka vlasnika, 13.9.2026 — evaluacija u PGN, ne u stablo.** Sužava odluku
 od 4.9.2026: ocena motora i dalje **ne ulazi u grafičko stablo poteza** (nema
 broja na kartici, nema polja na `AnalysisNode`), ali **sme da ide u PGN**. Povod:

@@ -441,6 +441,88 @@ The input was regenerated after the runs above; `make_inputs.py` now finds the
 end of the movetext outside comments and variations, and refuses a game that
 does not end in a result.
 
+## Arms F, G and H, 13.9.2026 — taking the decisions away from the model
+
+After the vendor trial every remaining failure was a decision a model had made
+that a program can make exactly. So three arms took those decisions away, one
+layer at a time.
+
+| arm | what the model is given | what the model still decides |
+|---|---|---|
+| **F** | arm B plus a table of every position; parts name a position by label (`"from": "14... Qc7"`) and the harness fills the FEN | everything but the FENs |
+| **G** | the bare game plus `input/<game>_facts.json`: for every position the four best moves at depth 20 with evaluations, the move played and its cost, whether the best move stands out, and the app's motifs; the model must not assess moves | the moments, the lines (copied from the facts), the questions (checked against the facts), the words |
+| **H** | a skeleton built by `skeleton.py`: candidate moments where the move played cost ≥ 1.0 pawns, each with its parts, FENs, lines and questions already made (every move within 0.3 of the best is correct, no question when more than 3 are); every text field empty and shown with its facts | which 2–3 of the offered moments, and the words |
+
+`make_facts.py` computes the facts once per game with the same engine settings
+the grading uses. **The thresholds belong to the skeleton, not to the analysis**:
+a facts file is raw engine output, so X, the 0.3 margin and the ceiling can
+change without analysing a game again — the owner's rule, so that games once
+analysed are reused.
+
+**F** made every position exact in all five runs on game one and left the
+questions wrong: they still trusted the review's single „better move", and
+`9... Nxf3+` is fourth of four moves within a tenth of a pawn at depth 22.
+`qwen3.7-max` thought eight times less once it no longer rebuilt boards.
+
+**G** gave `deepseek-flash` eight right questions out of eight across the three
+games, and two damaged files — both for one letter copied wrong from a line the
+facts had right (`Raxb8` written `Rxb8`, `Rd7` written `R3d7`). Three other
+models copied FENs instead of naming positions; the harness now accepts a
+written FEN only when it is exactly a position of the table. The weaker models'
+sentences stayed false with the facts in front of them.
+
+**H**, fifteen runs over three games and five models:
+
+| model | game one | French | Philidor | seconds a game |
+|---|---|---|---|---|
+| `deepseek-flash` (API) | CLEAN | CLEAN | CLEAN | 24–38 |
+| `gpt-5.4-mini` (Azure) | CLEAN, 3 sentences on the wrong move | CLEAN | CLEAN | 17–28 |
+| `qwen3.7-max` (Qwen) | CLEAN | CLEAN | CLEAN | 60–67 |
+| `gemini-3.8-flash-high` (agy) | CLEAN | CLEAN | CLEAN | 86–120 |
+| `gemini-3.1-pro-high` (agy) | CLEAN | CLEAN, 1 unsupported „pin" | CLEAN | 84–126 |
+| `qwen3.8-flash` (Qwen) | its JSON broke — `"chosen: ["` inside a tag | — | — | 344 |
+
+Every position exact and every question Stockfish's first choice, with about
+ten thousand tokens a game instead of thirty to ninety. `deepseek-flash`'s
+sentences, read in full, follow the facts.
+
+Four things worth carrying.
+
+**A single search near the margin is not a verdict.** `Ke3` in the French game
+led by 0.53 at depth 20 with four lines, came second by 0.04 at depth 22 with
+four, led by 0.25 at depth 22 with five and by 0.44 at depth 26. The question was
+right; the grading search was the noise. A borderline question has to be judged
+by a deeper search or by two agreeing ones.
+
+**The app's motif detector writes the tutorial's vocabulary.** Four models wrote
+„skewer" in the same places because the review says „Skewer: the white knight on
+d5 has to move, exposing the white pawn on e4", and „Fork: the white queen on d5
+attacks five black pieces" counts three pawns. „Resolved —" came through as
+words too. Whatever the facts say, the model says.
+
+**The claim check is judged against the slot's own facts.** It first flagged
+„mate" in slots whose facts read „Black mates in 5"; it now backs a word when the
+text shown beside that slot contains it, which is the rule the model was given.
+It catches a sentence written on the wrong move (`says a piece goes to c4, and
+this move goes to c8`), which nothing else did.
+
+**The harness had faults of its own, and each looked like success.** The
+question check skipped parts with no label and reported an empty list; two
+`make_facts.py` runs started beside a `cd` into `out/` could not find the script
+and exited 0 behind a `| grep` (every command now uses absolute paths and
+`set -o pipefail`); grading calls were charged to arm C's forty-call engine
+budget until the fortieth was refused; and a 503 that cut a run off left a draft
+that was graded as the model's answer until `run_arm.py` recorded the CLI's
+failure. `review_run.py` prints everything a person still has to read.
+
+```bash
+python make_facts.py <game> --depth 20
+python run_api.py H --name <game> --provider deepseek --model deepseek-flash --reasoning-effort low --max-tokens 64000
+python run_arm.py H --name <game> --model gemini-3.8-flash-high
+python review_run.py out/<run>
+python check_positions.py out/<run> --engine
+```
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not

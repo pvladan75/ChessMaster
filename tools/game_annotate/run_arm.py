@@ -44,8 +44,8 @@ INPUT_DIR = os.path.join(HERE, 'input')
 OUT_DIR = os.path.join(HERE, 'out')
 
 TOPIC = ('this game - what the two sides did well, where it went wrong, and '
-         'what a child can take from it into their own games')
-LEVEL = 'a club child of about ten to thirteen who knows how the pieces move'
+         'what a student can take from it into their own games')
+LEVEL = 'a club player of 13 or older who knows how the pieces move'
 LANGUAGE = 'en'
 
 ARMS = {
@@ -64,7 +64,7 @@ ARMS = {
                  'prose:\n\n'
                  ' * a clause beginning `Resolved -` says a motif that existed '
                  'a move ago has *stopped* being true. It is a state change, '
-                 'not something to tell a child.\n'
+                 'not something to tell a student.\n'
                  ' * `Watch out -` marks a motif that has just appeared '
                  'against the side who moved.\n'
                  ' * `??` on a move and a `( ... { Better move } ... )` '
@@ -77,7 +77,37 @@ ARMS = {
         'engine': True,
         'note': None,     # filled in from B's note, which it shares
     },
+    # B+FEN, 13.9.2026. Arm B with every position of the game handed over, and
+    # the model naming a part's position by the move it follows instead of
+    # writing a FEN. Every failure of the vendor trial was a board the model had
+    # rebuilt in its head; this arm asks what is left when it no longer has to.
+    'F': {
+        'input': 'reviewed',
+        'engine': False,
+        'note': None,     # B's note, plus the table of positions
+    },
+    # Facts, 13.9.2026. The owner's line: a model must not assess moves. So it
+    # gets the bare game and, for every position, what Stockfish at depth 20
+    # says - the best four with evaluations, the move played and its cost,
+    # whether the best move stands out - plus the app's motifs. It chooses and
+    # explains; `make_facts.py` did the assessing, once, for every model alike.
+    'G': {
+        'input': 'plain',
+        'engine': False,
+        'note': None,     # the facts table and its rules
+    },
+    # The skeleton, 13.9.2026: Python and Stockfish build the whole tutorial,
+    # the model chooses moments and writes only the words. `skeleton.py`.
+    # Through `run_api.py` only - its prompt is not the brief.
+    'H': {
+        'input': 'plain',
+        'engine': False,
+        'note': None,
+    },
 }
+
+# The arms whose parts name a position rather than write one.
+POSITION_TABLE_ARMS = ('F', 'G')
 
 TOOL_TEXT = """## The engine
 
@@ -104,7 +134,7 @@ here first. The faults it reports are exactly the faults the app refuses.
 **And use `fen --multipv` on any position you are about to ask a question
 about.** If the second move on the list is about as good as the first, that is
 what `"acceptedSans"` is for - or a sign to ask somewhere else. A question whose
-answer is merely one of several good moves marks a child wrong for playing the
+answer is merely one of several good moves marks a student wrong for playing the
 best one, and nothing in the app can catch that.
 
 **You have {calls} engine searches for this task.** `line --no-eval` and
@@ -147,6 +177,247 @@ front of you, and where you are not certain of a line, write a shorter one you
 are certain of.
 """
 
+POSITIONS_TEXT = """## Positions: name them, do not write them
+
+The table below holds every position of this game. `start` is the position
+before the first move; every other row is the position right after the move it
+is labelled with.
+
+**In this task you do not write `fen`.** Give every part a `"from"` field
+instead, holding the label of the row the part starts from, copied exactly as
+the table writes it - for example `"from": "14... Qc7"` - and leave `fen` out.
+The position is filled in from this table when your file is read, so it cannot
+come out wrong. This overrides the contract's rule that every part carries a
+`fen`; every other rule of the contract still holds, and a part's `pgn` still
+begins with the first move made *from* that position.
+
+A part can only start on a row of this table. To show a better move instead of
+the one that was played, start the part on the position before the mistake and
+play the better move from there.
+
+{table}
+"""
+
+
+FACTS_TEXT = """## The facts: every position, already assessed
+
+You are not asked to assess a single move, and you must not. Stockfish has
+analysed every position of this game at depth {depth}, and the blocks below are
+its assessment. Each block is one position:
+
+ * its label and FEN - `start` is the position before the first move, and every
+   other label is the move that led to it;
+ * `best moves`: the {multipv} best moves, best first, each with its evaluation
+   and the line that follows. **Evaluations are in pawns from White's side**:
+   `+1.50` means White is better by a pawn and a half, `-0.80` that Black is
+   better, `#3` that White mates in three and `#-3` that Black does;
+ * `best move stands out`: whether the best move leads the second by at least
+   {margin} pawns, or is a mate the second is not. This is decided for you;
+ * `played`: the move actually played from this position, the evaluation after
+   it, what it cost the side that played it against the best move, and its rank
+   among the best moves;
+ * `on the board after it`: what the app's motif detector found on the board
+   after that move - descriptions of the position, not verdicts.
+
+The rules this sets, on top of the brief:
+
+1. **Every claim about who is better, what a move wins or loses, or which move
+   is best comes from these blocks and nothing else.** If a block does not say
+   it, do not write it. A capture that is taken straight back is not a win, and
+   the evaluation after it shows that.
+2. **An `ask_move` goes only on a position whose best move stands out**, and its
+   answer is that position's best move. Where the best move does not stand out,
+   the position can still be shown, or carry an `ask_choice` about an idea -
+   never „find the best move".
+3. **Numbers are for you, not for the student.** Turn an evaluation into words -
+   „White is winning", „the position is about even" - and never print `+1.50`
+   in a sentence.
+4. **Name positions, do not write them.** Give every part a `"from"` field
+   holding the label of the block it starts from, copied exactly - for example
+   `"from": "14... Qc7"` - and leave `fen` out; the position is filled in from
+   these blocks when your file is read. This overrides the contract's rule that
+   every part carries a `fen`; every other rule of the contract still holds. To
+   show a better move, start the part on the position before the mistake and
+   play that move's line from its block.
+
+{table}
+"""
+
+
+def facts_of(name):
+    """`input/<name>_facts.json`, or a loud stop naming the command that makes it."""
+    path = os.path.join(HERE, 'input', '%s_facts.json' % name)
+    if not os.path.exists(path):
+        sys.exit('no facts for %s: run `python make_facts.py %s` first' % (name, name))
+    with open(path, encoding='utf-8') as fh:
+        return json.load(fh)
+
+
+def facts_text(name):
+    """The facts as the blocks a model reads, one per position."""
+    facts = facts_of(name)
+    blocks = []
+    for row in facts['rows']:
+        lines = ['%s | %s to move | %s' % (row['label'], row['to_move'], row['fen'])]
+        if row.get('game_over'):
+            lines.append('  game over: %s' % row['game_over'])
+        elif row.get('candidates'):
+            lines.append('  best moves: ' + '; '.join(
+                '%s %s (%s)' % (c['move'], c['eval'], c['line'])
+                for c in row['candidates']))
+            if 'best_stands_out' in row:
+                detail = row.get('why') or 'lead over the second: %s' % row.get('margin_pawns')
+                lines.append('  best move stands out: %s (%s)'
+                             % ('yes' if row['best_stands_out'] else 'no', detail))
+        played = row.get('played')
+        if played:
+            rank = ('rank %d' % played['rank']) if played.get('rank') else 'not among the best moves'
+            cost = played.get('cost_pawns')
+            if isinstance(cost, (int, float)):
+                # Clamped here as well as in make_facts.py, so a facts file
+                # written before that fix reads the same as one written after.
+                cost = max(0, cost)
+            lines.append('  played: %s, evaluation after it %s, cost %s pawns, %s'
+                         % (played['label'], played.get('eval'), cost, rank))
+            if row.get('motifs_after_played'):
+                lines.append('  on the board after it: ' + row['motifs_after_played'])
+        blocks.append('\n'.join(lines))
+    return facts, '\n\n'.join(blocks)
+
+
+def position_rows(name):
+    """(label, FEN) for every position of the game's main line.
+
+    `start` first, then one row per move, labelled the way a PGN writes the move
+    that led to it (`14... Qc7`), so the label a model copies is the notation it
+    has just read.
+    """
+    import io
+    import chess.pgn
+
+    text, _ = game_text(name, 'plain')
+    game = chess.pgn.read_game(io.StringIO(text))
+    board = game.board()
+    rows = [('start', board.fen())]
+    for move in game.mainline_moves():
+        label = ('%d. ' if board.turn else '%d... ') % board.fullmove_number
+        label += board.san(move)
+        board.push(move)
+        rows.append((label, board.fen()))
+    return rows
+
+
+def normalise_label(label):
+    """A label as it is compared: no spaces, one spelling of the ellipsis, and
+    no check or assessment marks — `14...Qc7+` and `14... Qc7` are one row."""
+    text = re.sub(r'\s+', '', str(label)).replace('…', '...')
+    return re.sub(r'[+#!?]+$', '', text).lower()
+
+
+def game_note(arm, name):
+    """The note that goes under the game: B's, and for a position-table arm the
+    table after it."""
+    if arm == 'G':
+        facts, table = facts_text(name)
+        return FACTS_TEXT.format(depth=facts['depth'], multipv=facts['multipv'],
+                                 margin=facts['margin_pawns'], table=table)
+    note = ARMS[arm]['note'] or ARMS['B']['note']
+    if arm in POSITION_TABLE_ARMS:
+        table = '\n'.join('%s | %s' % row for row in position_rows(name))
+        note += '\n\n' + POSITIONS_TEXT.format(table='```\n%s\n```' % table)
+    return note
+
+
+def apply_positions(run_dir, name, meta, arm='F'):
+    """Fill each part's `fen` from the `from` label the model wrote.
+
+    A label that names no row is left without a position rather than guessed
+    at: the grader then refuses the part, which is the loud answer. What the
+    model wrote is kept beside the filled file, and `meta.json` says how many
+    parts were filled, which labels did not resolve, and whether the model wrote
+    a FEN anyway against the instruction.
+    """
+    path = os.path.join(run_dir, 'tutorial.json')
+    if not os.path.exists(path):
+        return
+    raw = open(path, encoding='utf-8').read()
+    save_text(run_dir, 'tutorial_as_written.json', raw)
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        meta['positions'] = {'error': 'tutorial.json is not JSON'}
+        return
+
+    rows_in_order = position_rows(name)
+    table = {normalise_label(label): fen for label, fen in rows_in_order}
+    by_board = {}
+    for label, fen in rows_in_order:
+        by_board.setdefault(' '.join(fen.split()[:2]), (label, fen))
+    filled, unresolved, wrote_fen, labels = 0, [], 0, {}
+    for index, part in enumerate(data.get('positionList') or [], 1):
+        if part.get('fen'):
+            wrote_fen += 1
+        label = part.pop('from', None)
+        if label is None:
+            # A model that wrote the FEN itself instead of naming it. It counts
+            # only when it is a row of the table, and then it gets that row's
+            # label - a copy made correctly. Anything else is removed, so the
+            # grader refuses the part: on 13.9.2026 `gpt-5.4-mini` wrote eight
+            # FENs and no labels, three of them wrong, and with this branch
+            # missing nothing was filled and no question was checked.
+            written = part.get('fen')
+            hit = by_board.get(' '.join(str(written).split()[:2])) if written else None
+            if hit:
+                labels[index] = hit[0]
+                part['fen'] = hit[1]
+                continue
+            part.pop('fen', None)
+            unresolved.append('part %d: no "from", and %s' % (
+                index, 'the FEN it wrote is not a position of this game'
+                if written else 'no FEN either'))
+            continue
+        fen = table.get(normalise_label(label))
+        if fen is None:
+            unresolved.append('part %d: %r is not a row' % (index, label))
+            part.pop('fen', None)
+            continue
+        part['fen'] = fen
+        labels[index] = label
+        filled += 1
+
+    meta['positions'] = {'filled_from_table': filled, 'unresolved': unresolved,
+                         'fen_written_by_model': wrote_fen}
+
+    # Arm G's rule 2, checked rather than trusted: a question only where the
+    # best move stands out, and its answer that best move. A student marked wrong
+    # for an equally good move is the fault this arm exists to end.
+    if arm == 'G':
+        rows = {normalise_label(r['label']): r for r in facts_of(name)['rows']}
+        against = []
+        for index, part in enumerate(data.get('positionList') or [], 1):
+            if part.get('kind') != 'ask_move':
+                continue
+            if index not in labels:
+                # Said, not skipped: an empty list must mean „every question
+                # was checked and passed", never „none could be checked".
+                against.append('part %d is a question on no position of the '
+                               'table, so it could not be checked' % index)
+                continue
+            row = rows.get(normalise_label(labels[index]))
+            if not row or not row.get('candidates'):
+                continue
+            best = row['candidates'][0]['move']
+            answer = str(part.get('solutionSan') or '')
+            if not row.get('best_stands_out'):
+                against.append('part %d asks at %s, where the best move does not '
+                               'stand out' % (index, row['label']))
+            elif answer.rstrip('+#') != best.rstrip('+#'):
+                against.append('part %d answers %s at %s; the best move is %s'
+                               % (index, answer, row['label'], best))
+        meta['positions']['questions_against_facts'] = against
+    save_text(run_dir, 'tutorial.json',
+              json.dumps(data, ensure_ascii=False, indent=2))
+
 
 # --- The pieces of the prompt -------------------------------------------------
 
@@ -188,7 +459,7 @@ def game_text(name, which):
 
 def build_prompt(arm, name, work_dir, calls, session):
     spec = ARMS[arm]
-    note = spec['note'] or ARMS['B']['note']
+    note = game_note(arm, name)
     _, pgn_path = game_text(name, spec['input'])
 
     with open(BRIEF, encoding='utf-8') as fh:
@@ -245,11 +516,16 @@ def find_agy():
 def run(cfg):
     arm = cfg.arm.upper()
     if arm not in ARMS:
-        sys.exit('the arms are A, B and C')
+        sys.exit('the arms are A, B, C, F, G and H')
 
     stamp = time.strftime('%Y%m%d-%H%M%S')
-    run_dir = os.path.join(OUT_DIR, '%s-%s' % (arm, stamp))
-    os.makedirs(run_dir, exist_ok=True)
+    # Model and game in the name, and an existing folder refused: named by arm
+    # and second alone, several models started together would share one folder,
+    # and one model's answer would be graded as another's. `run_api.py` had the
+    # same fault and the same fix.
+    slug = re.sub(r'[^a-z0-9.]+', '-', cfg.model.lower())
+    run_dir = os.path.join(OUT_DIR, '%s-%s-%s-%s' % (arm, slug, cfg.name, stamp))
+    os.makedirs(run_dir, exist_ok=False)
 
     # The model works in an empty directory of its own, outside this folder,
     # holding nothing but the game. Everything is copied back into `run_dir`
@@ -261,7 +537,14 @@ def run(cfg):
 
     calls = cfg.max_calls if ARMS[arm]['engine'] else 0
     session = os.path.basename(run_dir)
-    prompt, pgn_path = build_prompt(arm, cfg.name, work_dir, calls, session)
+    if arm == 'H':
+        # The skeleton's own short task rather than the brief; the model answers
+        # with words, and the tutorial is assembled from them below.
+        import skeleton
+        prompt = skeleton.prompt(cfg.name)
+        _, pgn_path = game_text(cfg.name, 'plain')
+    else:
+        prompt, pgn_path = build_prompt(arm, cfg.name, work_dir, calls, session)
 
     with open(os.path.join(run_dir, 'prompt.md'), 'w', encoding='utf-8') as fh:
         fh.write(prompt)
@@ -293,8 +576,12 @@ def run(cfg):
     # was thrown away because the model read the README, learnt what the
     # experiment was comparing, and had the previous arm's answer sitting in a
     # sibling directory.
+    # The CLI's own log, kept with the run. `gemini-3.1-pro-high` once exited 0
+    # after two minutes with an empty reply and no stderr — a run that reports
+    # success and did nothing, and with no log there was no way to say why.
     cmd = [find_agy(), '-p', prompt, '--model', cfg.model,
-           '--print-timeout', cfg.timeout]
+           '--print-timeout', cfg.timeout,
+           '--log-file', os.path.join(run_dir, 'agy.log')]
     if cfg.yolo:
         cmd.append('--dangerously-skip-permissions')
 
@@ -305,10 +592,35 @@ def run(cfg):
                           encoding='utf-8', errors='replace', env=env)
     meta['seconds'] = round(time.time() - started, 1)
     meta['exit_code'] = proc.returncode
+    # A CLI that failed may still leave a file behind, and that file is a draft
+    # the model never finished, not its answer. `gpt-oss-120b-medium` was cut off
+    # by a 503 („No capacity available") after eleven minutes, left a four-part
+    # tutorial, and was graded DAMAGED as if it had chosen to write that. The
+    # fault is recorded here so nobody grades the channel as the model.
+    if proc.returncode != 0:
+        first = next((line.strip() for line in (proc.stderr or '').splitlines()
+                      if line.strip()), 'no stderr')
+        meta['channel_error'] = first[:300]
+        print('THE CLI FAILED (exit %d): %s\n  whatever was written is not an '
+              'answer - rerun before grading' % (proc.returncode, first[:200]))
 
     save_text(run_dir, 'reply.txt', proc.stdout or '')
     if proc.stderr:
         save_text(run_dir, 'stderr.txt', proc.stderr)
+
+    # The empty working directory is not the only one the model can reach: agy
+    # gives every session `~/.gemini/antigravity-cli/scratch`, shared across
+    # sessions and never cleared. On 13.9.2026 `gemini-3.1-pro-high` said it had
+    # run a `validate_tutorial.py` from there — which held a finished game-one
+    # tutorial from arm A of 12.9. The brief asks the model to declare what it
+    # read outside its directory; this makes that declaration a field, so a run
+    # that reached the shared scratch is flagged rather than trusted.
+    reached = re.findall(r'[^\n]*(?:antigravity-cli|\.gemini[\\/]|scratch)[^\n]*',
+                         proc.stdout or '', re.I)
+    if reached:
+        meta['outside_read_declared'] = [line.strip()[:200] for line in reached[:5]]
+        print('THE MODEL REPORTS READING OUTSIDE ITS DIRECTORY:\n  %s'
+              % reached[0].strip()[:200])
 
     for name in sorted(os.listdir(work_dir)):
         source = os.path.join(work_dir, name)
@@ -316,13 +628,22 @@ def run(cfg):
             shutil.copy(source, run_dir)
     shutil.rmtree(work_dir, ignore_errors=True)
 
+    if arm == 'H':
+        answer = rescue_json(proc.stdout or '')
+        meta['answer_was_json'] = bool(answer)
+        if answer:
+            import skeleton
+            save_text(run_dir, 'answer.json', answer)
+            skeleton.assemble(run_dir, cfg.name, meta, answer)
     wrote = os.path.exists(os.path.join(run_dir, 'tutorial.json'))
     meta['wrote_the_file'] = wrote
-    if not wrote:
+    if not wrote and arm != 'H':
         rescued = rescue_json(proc.stdout or '')
         meta['rescued_from_reply'] = bool(rescued)
         if rescued:
             save_text(run_dir, 'tutorial.json', rescued)
+    if arm in POSITION_TABLE_ARMS:
+        apply_positions(run_dir, cfg.name, meta, arm)
 
     budget = os.path.join(HERE, 'out', '_budget',
                           '%s.jsonl' % re.sub(r'\W+', '_', session))
