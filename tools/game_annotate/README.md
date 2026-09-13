@@ -1305,6 +1305,35 @@ winning and mate boundaries widened, the pool cycle frozen, the `min_cost` gate
 removed, the mover ignored — are all caught, each on a line that names the move,
 rather than on a crash.
 
+## Fixtures for the app's port — 13.9.2026
+
+Step 1 of `docs/PLAN-SKELET.md`. `export_fixtures.py` writes one file per game of
+D into `chess_app/test/fixtures/game_tutorial/`: the facts, the plain PGN, the
+parameters and the model's answer as it came — the inputs — and what this
+harness makes of them: the moments with every slot's text and facts, the prompt,
+the assembly report, `tutorial.json` and `tutorial-game.json`.
+
+```
+python export_fixtures.py            # write them
+python export_fixtures.py --check    # exit 1 when skeleton.py no longer makes them
+```
+
+**Computed, never copied.** The expectations come from running the code, and on
+export they are compared with the run folder's own files, which are the ones the
+owner imported. **The fixture is the only committed copy of each answer** —
+`out/` is ignored — so `--check` reads the answer back out of it and needs no run
+folder at all.
+
+It is a two-sided drift guard: the app's gate will say the Dart port agrees with
+these files, and `--check` says the files still agree with `skeleton.py`. Both
+halves were proved before being trusted — a lexicon phrase changed in the
+harness made three fixtures STALE, and one FEN edited in a stored expectation
+made its own file STALE, each naming the path where they part.
+
+**1.7 MB for ten games, and that is a choice.** The facts are embedded rather
+than pointed at in `input/`, so rebuilding a game's facts at another depth cannot
+change what the port is judged against without `--check` saying so.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not

@@ -43,6 +43,25 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Skelet u aplikaciji — plan i korak 1 — 13.9.2026
+
+Plan je `docs/PLAN-SKELET.md` (opcija A): činjenice, skelet, provera odgovora i
+oba moda (ključni momenti i cela partija) prave se **na Windows-u, gde živi
+studio**; model piše samo reči, preko jedne rute na serveru koja prompt pravi iz
+svog šablona — klijent nikad ne šalje prompt. Odluke vlasnika su upisane u plan:
+dubinu bira trener od 18 naviše, funkcija je za premium i za kupljene kredite
+(krediti kasnije, potrošnja se meri odmah), `deepseek-flash` sa
+`reasoning_effort: low`, vrata i u Analizi i u arhivi partija, i jedno
+automatsko pokretanje koje staje samo pre trošenja.
+
+**Korak 1 je urađen:** `tools/game_annotate/export_fixtures.py` piše deset
+fajlova u `chess_app/test/fixtures/game_tutorial/` — ulaze (činjenice, PGN,
+parametre, odgovor modela) i ono što harness od njih pravi (momente sa tekstom i
+činjenicama svakog slota, prompt, izveštaj, oba tutorijala). `--check` kaže da li
+fajlovi i dalje odgovaraju `skeleton.py`; dokazan dvema mutacijama. Sledeći
+korak: faza 0 (`tool/game_facts.dart`, poređenje činjenica i vreme na Windows-u)
+i kapija faze 1 sa `words_for` i `standing` prenetim kroz nju.
+
 ## Isti nalaz posle poteza, i težina onoga što se može osvojiti — 13.9.2026, u kodu
 
 Nastavak „Rečnika detektora motiva" odmah ispod, iz zadatka koji je taj unos

@@ -272,8 +272,9 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
 
 ## First concrete steps
 
-1. **`export_fixtures.py`** and the fixture folder — the parity gate's data.
-   Lead, no app code.
+1. ✅ 13.9.2026 **`export_fixtures.py`** and the fixture folder — the parity
+   gate's data. Ten games, 1.7 MB, `--check` proved by two mutations
+   (`tools/game_annotate/README.md`, „Fixtures for the app's port").
 2. **Phase 0** (`tool/game_facts.dart`) — parity and time on Windows, the lead.
 3. **The phase 1 gate** plus `words_for` and `standing` ported through it and
    mutation-proved.

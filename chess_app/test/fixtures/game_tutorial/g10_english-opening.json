@@ -1,0 +1,4696 @@
+{
+ "about": "Written by tools/game_annotate/export_fixtures.py from skeleton.py. Do not edit by hand: change the harness, then run the script again.",
+ "game": "g10_english-opening",
+ "parameters": {
+  "min_cost": 1.0,
+  "near": 0.3,
+  "max_correct": 3,
+  "max_moments": 8,
+  "lead_plies": 3,
+  "answer_plies": 4
+ },
+ "facts": {
+  "game": "g10_english-opening",
+  "depth": 18,
+  "multipv": 4,
+  "margin_pawns": 0.5,
+  "engine": "stockfish.exe",
+  "threads": 1,
+  "hash_mb": 128,
+  "workers": 8,
+  "in_book": 7,
+  "generated": "2026-09-13T20:41:07",
+  "seconds": 96,
+  "rows": [
+   {
+    "label": "start",
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "to_move": "White",
+    "played": {
+     "move": "c4",
+     "label": "1. c4",
+     "eval": "+0.27",
+     "value_for_mover": 27,
+     "rank": null,
+     "cost_pawns": 0.12
+    },
+    "book": {
+     "games": 2879587,
+     "played": {
+      "move": "c4",
+      "games": 199442,
+      "share": 0.0693
+     },
+     "alternatives": [
+      {
+       "move": "e4",
+       "games": 1309466,
+       "share": 0.4547
+      },
+      {
+       "move": "d4",
+       "games": 1029878,
+       "share": 0.3576
+      },
+      {
+       "move": "Nf3",
+       "games": 292957,
+       "share": 0.1017
+      }
+     ]
+    },
+    "candidates": [
+     {
+      "move": "e4",
+      "eval": "+0.39",
+      "value_for_mover": 39,
+      "line": "e4 e5 Nf3 Nc6 Bb5 a6"
+     },
+     {
+      "move": "d4",
+      "eval": "+0.32",
+      "value_for_mover": 32,
+      "line": "d4 Nf6 c4 e6 Nc3 Bb4"
+     },
+     {
+      "move": "Nf3",
+      "eval": "+0.27",
+      "value_for_mover": 27,
+      "line": "Nf3 d5 d4 e6 c4 Nf6"
+     },
+     {
+      "move": "e3",
+      "eval": "+0.18",
+      "value_for_mover": 18,
+      "line": "e3 Nf6 d4 e6 Nf3 d5"
+     }
+    ],
+    "margin_pawns": 0.07,
+    "best_stands_out": false
+   },
+   {
+    "label": "1. c4",
+    "fen": "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
+    "to_move": "Black",
+    "played": {
+     "move": "g6",
+     "label": "1... g6",
+     "eval": "+0.49",
+     "value_for_mover": -49,
+     "rank": null,
+     "cost_pawns": 0.22
+    },
+    "book": {
+     "games": 199442,
+     "opening": "English Opening",
+     "played": {
+      "move": "g6",
+      "games": 15290,
+      "share": 0.0767
+     },
+     "alternatives": [
+      {
+       "move": "Nf6",
+       "games": 55219,
+       "share": 0.2769
+      },
+      {
+       "move": "e5",
+       "games": 50059,
+       "share": 0.251
+      },
+      {
+       "move": "e6",
+       "games": 30908,
+       "share": 0.155
+      }
+     ]
+    },
+    "candidates": [
+     {
+      "move": "e5",
+      "eval": "+0.27",
+      "value_for_mover": -27,
+      "line": "e5 g3 c6 d4 exd4 Qxd4"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+0.34",
+      "value_for_mover": -34,
+      "line": "Nf6 Nf3 c6 d4 d5 e3"
+     },
+     {
+      "move": "e6",
+      "eval": "+0.35",
+      "value_for_mover": -35,
+      "line": "e6 Nc3 d5 d4 Nf6 Nf3"
+     },
+     {
+      "move": "c5",
+      "eval": "+0.37",
+      "value_for_mover": -37,
+      "line": "c5 Nf3 Nf6 Nc3 d5 cxd5"
+     }
+    ],
+    "margin_pawns": 0.07,
+    "best_stands_out": false
+   },
+   {
+    "label": "1... g6",
+    "fen": "rnbqkbnr/pppppp1p/6p1/8/2P5/8/PP1PPPPP/RNBQKBNR w KQkq - 0 2",
+    "to_move": "White",
+    "played": {
+     "move": "Nc3",
+     "label": "2. Nc3",
+     "eval": "+0.30",
+     "value_for_mover": 30,
+     "rank": null,
+     "cost_pawns": 0.19
+    },
+    "book": {
+     "games": 15290,
+     "opening": "English Opening: Great Snake Variation",
+     "played": {
+      "move": "Nc3",
+      "games": 6263,
+      "share": 0.4096
+     },
+     "alternatives": [
+      {
+       "move": "g3",
+       "games": 3964,
+       "share": 0.2593
+      },
+      {
+       "move": "d4",
+       "games": 2588,
+       "share": 0.1693
+      },
+      {
+       "move": "e4",
+       "games": 1322,
+       "share": 0.0865
+      }
+     ]
+    },
+    "candidates": [
+     {
+      "move": "d4",
+      "eval": "+0.49",
+      "value_for_mover": 49,
+      "line": "d4 Nf6 Nc3 d5 Bg5 c6"
+     },
+     {
+      "move": "Nf3",
+      "eval": "+0.34",
+      "value_for_mover": 34,
+      "line": "Nf3 Bg7 d4 Nf6 Nc3 d5"
+     },
+     {
+      "move": "e4",
+      "eval": "+0.28",
+      "value_for_mover": 28,
+      "line": "e4 e5 d4 Nf6 Nf3 exd4"
+     },
+     {
+      "move": "h4",
+      "eval": "+0.22",
+      "value_for_mover": 22,
+      "line": "h4 c5 h5 Bg7 Nf3 d6"
+     }
+    ],
+    "margin_pawns": 0.15,
+    "best_stands_out": false
+   },
+   {
+    "label": "2. Nc3",
+    "fen": "rnbqkbnr/pppppp1p/6p1/8/2P5/2N5/PP1PPPPP/R1BQKBNR b KQkq - 1 2",
+    "to_move": "Black",
+    "played": {
+     "move": "Bg7",
+     "label": "2... Bg7",
+     "eval": "+0.54",
+     "value_for_mover": -54,
+     "rank": 2,
+     "cost_pawns": 0.24
+    },
+    "book": {
+     "games": 6263,
+     "played": {
+      "move": "Bg7",
+      "games": 5215,
+      "share": 0.8327
+     },
+     "alternatives": [
+      {
+       "move": "c5",
+       "games": 920,
+       "share": 0.1469
+      },
+      {
+       "move": "Nf6",
+       "games": 98,
+       "share": 0.0156
+      },
+      {
+       "move": "d6",
+       "games": 12,
+       "share": 0.0019
+      }
+     ]
+    },
+    "candidates": [
+     {
+      "move": "c5",
+      "eval": "+0.30",
+      "value_for_mover": -30,
+      "line": "c5 e3 Nf6 d4 Bg7 d5"
+     },
+     {
+      "move": "Bg7",
+      "eval": "+0.54",
+      "value_for_mover": -54,
+      "line": "Bg7 d4 Nf6 e4 d6 Be2"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+0.58",
+      "value_for_mover": -58,
+      "line": "Nf6 Nf3 d6 d4 Bg7 e4"
+     },
+     {
+      "move": "d6",
+      "eval": "+0.64",
+      "value_for_mover": -64,
+      "line": "d6 d4 e5 Nf3 exd4 Nxd4"
+     }
+    ],
+    "margin_pawns": 0.24,
+    "best_stands_out": false
+   },
+   {
+    "label": "2... Bg7",
+    "fen": "rnbqk1nr/ppppppbp/6p1/8/2P5/2N5/PP1PPPPP/R1BQKBNR w KQkq - 2 3",
+    "to_move": "White",
+    "played": {
+     "move": "Nf3",
+     "label": "3. Nf3",
+     "eval": "+0.28",
+     "value_for_mover": 28,
+     "rank": 2,
+     "cost_pawns": 0.26
+    },
+    "book": {
+     "games": 5215,
+     "played": {
+      "move": "Nf3",
+      "games": 438,
+      "share": 0.084
+     },
+     "alternatives": [
+      {
+       "move": "g3",
+       "games": 3200,
+       "share": 0.6136
+      },
+      {
+       "move": "d4",
+       "games": 1427,
+       "share": 0.2736
+      },
+      {
+       "move": "e4",
+       "games": 117,
+       "share": 0.0224
+      }
+     ]
+    },
+    "candidates": [
+     {
+      "move": "d4",
+      "eval": "+0.54",
+      "value_for_mover": 54,
+      "line": "d4 d6 Nf3 c5 dxc5 dxc5"
+     },
+     {
+      "move": "Nf3",
+      "eval": "+0.32",
+      "value_for_mover": 32,
+      "line": "Nf3 c5 g3 Nc6 Bg2 d6"
+     },
+     {
+      "move": "g3",
+      "eval": "+0.26",
+      "value_for_mover": 26,
+      "line": "g3 e5 Bg2 Ne7 b3 Nbc6"
+     },
+     {
+      "move": "e3",
+      "eval": "+0.19",
+      "value_for_mover": 19,
+      "line": "e3 Nf6 d4 d5 Nf3 O-O"
+     }
+    ],
+    "margin_pawns": 0.22,
+    "best_stands_out": false
+   },
+   {
+    "label": "3. Nf3",
+    "fen": "rnbqk1nr/ppppppbp/6p1/8/2P5/2N2N2/PP1PPPPP/R1BQKB1R b KQkq - 3 3",
+    "to_move": "Black",
+    "played": {
+     "move": "c6",
+     "label": "3... c6",
+     "eval": "+0.83",
+     "value_for_mover": -83,
+     "rank": null,
+     "cost_pawns": 0.55
+    },
+    "book": {
+     "games": 1780,
+     "played": {
+      "move": "c6",
+      "games": 3,
+      "share": 0.0017
+     },
+     "alternatives": [
+      {
+       "move": "d6",
+       "games": 626,
+       "share": 0.3517
+      },
+      {
+       "move": "c5",
+       "games": 595,
+       "share": 0.3343
+      },
+      {
+       "move": "Nf6",
+       "games": 314,
+       "share": 0.1764
+      }
+     ]
+    },
+    "candidates": [
+     {
+      "move": "c5",
+      "eval": "+0.28",
+      "value_for_mover": -28,
+      "line": "c5 g3 Nc6 Bg2 d6 O-O"
+     },
+     {
+      "move": "e5",
+      "eval": "+0.32",
+      "value_for_mover": -32,
+      "line": "e5 d4 exd4 Bg5 Nf6 Qxd4"
+     },
+     {
+      "move": "d6",
+      "eval": "+0.61",
+      "value_for_mover": -61,
+      "line": "d6 d4 Nf6 e4 O-O Be2"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+0.63",
+      "value_for_mover": -63,
+      "line": "Nf6 e4 O-O d4 d6 Be2"
+     }
+    ],
+    "margin_pawns": 0.04,
+    "best_stands_out": false
+   },
+   {
+    "label": "3... c6",
+    "fen": "rnbqk1nr/pp1pppbp/2p3p1/8/2P5/2N2N2/PP1PPPPP/R1BQKB1R w KQkq - 0 4",
+    "to_move": "White",
+    "played": {
+     "move": "b3",
+     "label": "4. b3",
+     "left_book": true,
+     "eval": "+0.03",
+     "value_for_mover": 3,
+     "rank": null,
+     "cost_pawns": 0.8
+    },
+    "motifs_after_played": "The black bishop on g7 pins the white knight on c3 to the rook on a1.",
+    "book": {
+     "games": 13,
+     "played": {
+      "move": "b3",
+      "games": 0,
+      "share": 0.0
+     },
+     "alternatives": [
+      {
+       "move": "d4",
+       "games": 8,
+       "share": 0.6154
+      },
+      {
+       "move": "e4",
+       "games": 4,
+       "share": 0.3077
+      },
+      {
+       "move": "g3",
+       "games": 1,
+       "share": 0.0769
+      }
+     ]
+    },
+    "candidates": [
+     {
+      "move": "e4",
+      "eval": "+0.83",
+      "value_for_mover": 83,
+      "line": "e4 d6 d4 Nf6 Be2 O-O"
+     },
+     {
+      "move": "d4",
+      "eval": "+0.55",
+      "value_for_mover": 55,
+      "line": "d4 d5 cxd5 cxd5 Bf4 Nf6"
+     },
+     {
+      "move": "e3",
+      "eval": "+0.48",
+      "value_for_mover": 48,
+      "line": "e3 d5 d4 Nf6 Be2 O-O"
+     },
+     {
+      "move": "a3",
+      "eval": "+0.29",
+      "value_for_mover": 29,
+      "line": "a3 e5 d4 exd4 Nxd4 Nf6"
+     }
+    ],
+    "margin_pawns": 0.28,
+    "best_stands_out": false
+   },
+   {
+    "label": "4. b3",
+    "fen": "rnbqk1nr/pp1pppbp/2p3p1/8/2P5/1PN2N2/P2PPPPP/R1BQKB1R b KQkq - 0 4",
+    "to_move": "Black",
+    "played": {
+     "move": "d5",
+     "label": "4... d5",
+     "eval": "+0.07",
+     "value_for_mover": -7,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "Black's pawns hold more of the centre.",
+    "candidates": [
+     {
+      "move": "d5",
+      "eval": "+0.03",
+      "value_for_mover": -3,
+      "line": "d5 cxd5 cxd5 d4 Nf6 e3"
+     },
+     {
+      "move": "e5",
+      "eval": "+0.08",
+      "value_for_mover": -8,
+      "line": "e5 e3 Qe7 Be2 d6 O-O"
+     },
+     {
+      "move": "d6",
+      "eval": "+0.09",
+      "value_for_mover": -9,
+      "line": "d6 d4 Nf6 e3 O-O Be2"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+0.09",
+      "value_for_mover": -9,
+      "line": "Nf6 d4 O-O e3 d6 Bb2"
+     }
+    ],
+    "margin_pawns": 0.05,
+    "best_stands_out": false
+   },
+   {
+    "label": "4... d5",
+    "fen": "rnbqk1nr/pp2ppbp/2p3p1/3p4/2P5/1PN2N2/P2PPPPP/R1BQKB1R w KQkq - 0 5",
+    "to_move": "White",
+    "played": {
+     "move": "cxd5",
+     "label": "5. cxd5",
+     "eval": "-0.02",
+     "value_for_mover": -2,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white pawn on d5 is attacked twice and defended only once. White has doubled pawns on d2 and d5. Black's pawns no longer hold more of the centre.",
+    "candidates": [
+     {
+      "move": "cxd5",
+      "eval": "+0.07",
+      "value_for_mover": 7,
+      "line": "cxd5 cxd5 e3 Bg4 Bb5+ Nd7"
+     },
+     {
+      "move": "d4",
+      "eval": "-0.14",
+      "value_for_mover": -14,
+      "line": "d4 dxc4 e3 cxb3 Qxb3 Nf6"
+     },
+     {
+      "move": "e3",
+      "eval": "-0.21",
+      "value_for_mover": -21,
+      "line": "e3 dxc4 Be2 Bxc3 dxc3 Qxd1+"
+     },
+     {
+      "move": "Ba3",
+      "eval": "-0.68",
+      "value_for_mover": -68,
+      "line": "Ba3 d4 Na4 Na6 b4 b5"
+     }
+    ],
+    "margin_pawns": 0.21,
+    "best_stands_out": false
+   },
+   {
+    "label": "5. cxd5",
+    "fen": "rnbqk1nr/pp2ppbp/2p3p1/3P4/8/1PN2N2/P2PPPPP/R1BQKB1R b KQkq - 0 5",
+    "to_move": "Black",
+    "played": {
+     "move": "cxd5",
+     "label": "5... cxd5",
+     "eval": "+0.09",
+     "value_for_mover": -9,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "Black's pawns hold more of the centre.",
+    "candidates": [
+     {
+      "move": "cxd5",
+      "eval": "-0.02",
+      "value_for_mover": 2,
+      "line": "cxd5 e3 Nf6 Bb2 O-O Rc1"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+0.40",
+      "value_for_mover": -40,
+      "line": "Nf6 dxc6 Nxc6 e3 O-O Bc4"
+     },
+     {
+      "move": "Bf5",
+      "eval": "+0.57",
+      "value_for_mover": -57,
+      "line": "Bf5 dxc6 Nxc6 Nh4 Be6 e3"
+     },
+     {
+      "move": "a6",
+      "eval": "+0.74",
+      "value_for_mover": -74,
+      "line": "a6 dxc6 Nxc6 e3 Nf6 Bb2"
+     }
+    ],
+    "margin_pawns": 0.42,
+    "best_stands_out": false
+   },
+   {
+    "label": "5... cxd5",
+    "fen": "rnbqk1nr/pp2ppbp/6p1/3p4/8/1PN2N2/P2PPPPP/R1BQKB1R w KQkq - 0 6",
+    "to_move": "White",
+    "played": {
+     "move": "Bb2",
+     "label": "6. Bb2",
+     "eval": "-0.16",
+     "value_for_mover": -16,
+     "rank": 3,
+     "cost_pawns": 0.25
+    },
+    "motifs_after_played": "The white knight on c3 is no longer pinned.",
+    "candidates": [
+     {
+      "move": "e3",
+      "eval": "+0.09",
+      "value_for_mover": 9,
+      "line": "e3 Nf6 Bb2 O-O h3 Ne4"
+     },
+     {
+      "move": "d4",
+      "eval": "-0.07",
+      "value_for_mover": -7,
+      "line": "d4 Nc6 e3 Bg4 Be2 Bxf3"
+     },
+     {
+      "move": "Bb2",
+      "eval": "-0.21",
+      "value_for_mover": -21,
+      "line": "Bb2 e5 e4 Ne7 exd5 Nxd5"
+     },
+     {
+      "move": "Ba3",
+      "eval": "-0.27",
+      "value_for_mover": -27,
+      "line": "Ba3 d4 Na4 Nh6 Rc1 b5"
+     }
+    ],
+    "margin_pawns": 0.16,
+    "best_stands_out": false
+   },
+   {
+    "label": "6. Bb2",
+    "fen": "rnbqk1nr/pp2ppbp/6p1/3p4/8/1PN2N2/PB1PPPPP/R2QKB1R b KQkq - 1 6",
+    "to_move": "Black",
+    "played": {
+     "move": "Nc6",
+     "label": "6... Nc6",
+     "eval": "+0.06",
+     "value_for_mover": -6,
+     "rank": 3,
+     "cost_pawns": 0.22
+    },
+    "candidates": [
+     {
+      "move": "d4",
+      "eval": "-0.16",
+      "value_for_mover": 16,
+      "line": "d4 Ne4 Nc6 e3 Nh6 Bb5"
+     },
+     {
+      "move": "e5",
+      "eval": "-0.12",
+      "value_for_mover": 12,
+      "line": "e5 e4 d4 Nd5 Nc6 Ba3"
+     },
+     {
+      "move": "Nc6",
+      "eval": "-0.05",
+      "value_for_mover": 5,
+      "line": "Nc6 d4 Bg4 e3 Nf6 Be2"
+     },
+     {
+      "move": "Nf6",
+      "eval": "-0.04",
+      "value_for_mover": 4,
+      "line": "Nf6 d4 O-O h3 Nc6 e3"
+     }
+    ],
+    "margin_pawns": 0.04,
+    "best_stands_out": false
+   },
+   {
+    "label": "6... Nc6",
+    "fen": "r1bqk1nr/pp2ppbp/2n3p1/3p4/8/1PN2N2/PB1PPPPP/R2QKB1R w KQkq - 2 7",
+    "to_move": "White",
+    "played": {
+     "move": "e3",
+     "label": "7. e3",
+     "eval": "-0.29",
+     "value_for_mover": -29,
+     "rank": 2,
+     "cost_pawns": 0.35
+    },
+    "candidates": [
+     {
+      "move": "d4",
+      "eval": "+0.06",
+      "value_for_mover": 6,
+      "line": "d4 Bg4 e3 Nf6 Bb5 Rc8"
+     },
+     {
+      "move": "e3",
+      "eval": "-0.23",
+      "value_for_mover": -23,
+      "line": "e3 e5 d4 exd4 Ne2 Qa5+"
+     },
+     {
+      "move": "Rc1",
+      "eval": "-0.36",
+      "value_for_mover": -36,
+      "line": "Rc1 e5 e4 d4 Nd5 Nge7"
+     },
+     {
+      "move": "b4",
+      "eval": "-0.76",
+      "value_for_mover": -76,
+      "line": "b4 d4 Na4 e5 e3 Nge7"
+     }
+    ],
+    "margin_pawns": 0.29,
+    "best_stands_out": false
+   },
+   {
+    "label": "7. e3",
+    "fen": "r1bqk1nr/pp2ppbp/2n3p1/3p4/8/1PN1PN2/PB1P1PPP/R2QKB1R b KQkq - 0 7",
+    "to_move": "Black",
+    "played": {
+     "move": "Nf6",
+     "label": "7... Nf6",
+     "eval": "+0.19",
+     "value_for_mover": -19,
+     "rank": 4,
+     "cost_pawns": 0.48
+    },
+    "candidates": [
+     {
+      "move": "e5",
+      "eval": "-0.29",
+      "value_for_mover": 29,
+      "line": "e5 d4 e4 Ne5 Nxe5 dxe5"
+     },
+     {
+      "move": "d4",
+      "eval": "-0.15",
+      "value_for_mover": 15,
+      "line": "d4 Ne4 Nh6 Bb5 Bd7 Qb1"
+     },
+     {
+      "move": "Bg4",
+      "eval": "+0.08",
+      "value_for_mover": -8,
+      "line": "Bg4 Bb5 Rc8 h3 Bxf3 Qxf3"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+0.15",
+      "value_for_mover": -15,
+      "line": "Nf6 Bb5 Ne4 Qc2 O-O Bxc6"
+     }
+    ],
+    "margin_pawns": 0.14,
+    "best_stands_out": false
+   },
+   {
+    "label": "7... Nf6",
+    "fen": "r1bqk2r/pp2ppbp/2n2np1/3p4/8/1PN1PN2/PB1P1PPP/R2QKB1R w KQkq - 1 8",
+    "to_move": "White",
+    "played": {
+     "move": "Bb5",
+     "label": "8. Bb5",
+     "eval": "+0.14",
+     "value_for_mover": 14,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white bishop on b5 pins the black knight on c6 to the king on e8.",
+    "candidates": [
+     {
+      "move": "Bb5",
+      "eval": "+0.19",
+      "value_for_mover": 19,
+      "line": "Bb5 Ne4 Bxc6+ bxc6 Qc2 O-O"
+     },
+     {
+      "move": "d4",
+      "eval": "+0.09",
+      "value_for_mover": 9,
+      "line": "d4 Bg4 Rc1 O-O Be2 Rc8"
+     },
+     {
+      "move": "Na4",
+      "eval": "-0.01",
+      "value_for_mover": -1,
+      "line": "Na4 O-O Rc1 Bf5 Be2 Ne4"
+     },
+     {
+      "move": "Rc1",
+      "eval": "-0.03",
+      "value_for_mover": -3,
+      "line": "Rc1 d4 Nb5 dxe3 dxe3 Qxd1+"
+     }
+    ],
+    "margin_pawns": 0.1,
+    "best_stands_out": false
+   },
+   {
+    "label": "8. Bb5",
+    "fen": "r1bqk2r/pp2ppbp/2n2np1/1B1p4/8/1PN1PN2/PB1P1PPP/R2QK2R b KQkq - 2 8",
+    "to_move": "Black",
+    "played": {
+     "move": "O-O",
+     "label": "8... O-O",
+     "eval": "+0.26",
+     "value_for_mover": -26,
+     "rank": 3,
+     "cost_pawns": 0.12
+    },
+    "motifs_after_played": "The black knight on c6 is no longer pinned.",
+    "candidates": [
+     {
+      "move": "Qd6",
+      "eval": "+0.14",
+      "value_for_mover": -14,
+      "line": "Qd6 Na4 O-O Rc1 Bd7 O-O"
+     },
+     {
+      "move": "Ne4",
+      "eval": "+0.21",
+      "value_for_mover": -21,
+      "line": "Ne4 Bxc6+ bxc6 Qc2 O-O O-O"
+     },
+     {
+      "move": "O-O",
+      "eval": "+0.22",
+      "value_for_mover": -22,
+      "line": "O-O Bxc6 bxc6 Na4 Bg4 Rc1"
+     },
+     {
+      "move": "Bg4",
+      "eval": "+0.23",
+      "value_for_mover": -23,
+      "line": "Bg4 Bxc6+ bxc6 Rc1 O-O Na4"
+     }
+    ],
+    "margin_pawns": 0.07,
+    "best_stands_out": false
+   },
+   {
+    "label": "8... O-O",
+    "fen": "r1bq1rk1/pp2ppbp/2n2np1/1B1p4/8/1PN1PN2/PB1P1PPP/R2QK2R w KQ - 3 9",
+    "to_move": "White",
+    "played": {
+     "move": "O-O",
+     "label": "9. O-O",
+     "eval": "+0.07",
+     "value_for_mover": 7,
+     "rank": 2,
+     "cost_pawns": 0.19
+    },
+    "candidates": [
+     {
+      "move": "Bxc6",
+      "eval": "+0.26",
+      "value_for_mover": 26,
+      "line": "Bxc6 bxc6 Na4 Bg4 Rc1 Qa5"
+     },
+     {
+      "move": "O-O",
+      "eval": "+0.11",
+      "value_for_mover": 11,
+      "line": "O-O Bd7 Na4 b6 Be2 Rc8"
+     },
+     {
+      "move": "Na4",
+      "eval": "+0.03",
+      "value_for_mover": 3,
+      "line": "Na4 Nb4 O-O Bg4 a3 Bxf3"
+     },
+     {
+      "move": "d4",
+      "eval": "-0.03",
+      "value_for_mover": -3,
+      "line": "d4 Qd6 Bxc6 Qxc6 Ne5 Qd6"
+     }
+    ],
+    "margin_pawns": 0.15,
+    "best_stands_out": false
+   },
+   {
+    "label": "9. O-O",
+    "fen": "r1bq1rk1/pp2ppbp/2n2np1/1B1p4/8/1PN1PN2/PB1P1PPP/R2Q1RK1 b - - 4 9",
+    "to_move": "Black",
+    "played": {
+     "move": "Bg4",
+     "label": "9... Bg4",
+     "eval": "+0.20",
+     "value_for_mover": -20,
+     "rank": null,
+     "cost_pawns": 0.13
+    },
+    "motifs_after_played": "The black bishop on g4 pins the white knight on f3 to the queen on d1.",
+    "candidates": [
+     {
+      "move": "Bd7",
+      "eval": "+0.07",
+      "value_for_mover": -7,
+      "line": "Bd7 Bxc6 Bxc6 Ne2 Ne8 Bxg7"
+     },
+     {
+      "move": "Qd6",
+      "eval": "+0.08",
+      "value_for_mover": -8,
+      "line": "Qd6 Bxc6 Qxc6 Rc1 Qa6 Qe2"
+     },
+     {
+      "move": "Qb6",
+      "eval": "+0.09",
+      "value_for_mover": -9,
+      "line": "Qb6 Bxc6 Qxc6 Rc1 Rd8 h3"
+     },
+     {
+      "move": "Ne4",
+      "eval": "+0.13",
+      "value_for_mover": -13,
+      "line": "Ne4 Bxc6 bxc6 Qc2 Bf5 Nh4"
+     }
+    ],
+    "margin_pawns": 0.01,
+    "best_stands_out": false
+   },
+   {
+    "label": "9... Bg4",
+    "fen": "r2q1rk1/pp2ppbp/2n2np1/1B1p4/6b1/1PN1PN2/PB1P1PPP/R2Q1RK1 w - - 5 10",
+    "to_move": "White",
+    "played": {
+     "move": "h3",
+     "label": "10. h3",
+     "eval": "-0.04",
+     "value_for_mover": -4,
+     "rank": 2,
+     "cost_pawns": 0.24
+    },
+    "motifs_after_played": "The black bishop on g4 is attacked by the white pawn on h3, a cheaper piece.",
+    "candidates": [
+     {
+      "move": "Bxc6",
+      "eval": "+0.20",
+      "value_for_mover": 20,
+      "line": "Bxc6 bxc6 h3 Bxf3 Qxf3 c5"
+     },
+     {
+      "move": "h3",
+      "eval": "+0.10",
+      "value_for_mover": 10,
+      "line": "h3 Bxf3 Qxf3 Ne4 Rfd1 Rc8"
+     },
+     {
+      "move": "d4",
+      "eval": "-0.01",
+      "value_for_mover": -1,
+      "line": "d4 Rc8 Rc1 a6 Bd3 e5"
+     },
+     {
+      "move": "Na4",
+      "eval": "-0.07",
+      "value_for_mover": -7,
+      "line": "Na4 Rc8 d4 Ne4 Be2 e6"
+     }
+    ],
+    "margin_pawns": 0.1,
+    "best_stands_out": false
+   },
+   {
+    "label": "10. h3",
+    "fen": "r2q1rk1/pp2ppbp/2n2np1/1B1p4/6b1/1PN1PN1P/PB1P1PP1/R2Q1RK1 b - - 0 10",
+    "to_move": "Black",
+    "played": {
+     "move": "Bd7",
+     "label": "10... Bd7",
+     "eval": "+0.30",
+     "value_for_mover": -30,
+     "rank": 2,
+     "cost_pawns": 0.34
+    },
+    "motifs_after_played": "The black bishop on g4 is no longer hanging.",
+    "candidates": [
+     {
+      "move": "Bxf3",
+      "eval": "-0.04",
+      "value_for_mover": 4,
+      "line": "Bxf3 Qxf3 Ne4 Rfd1 Qa5 Bxc6"
+     },
+     {
+      "move": "Bd7",
+      "eval": "+0.21",
+      "value_for_mover": -21,
+      "line": "Bd7 Ne2 Qa5 Bxc6 bxc6 Ne5"
+     },
+     {
+      "move": "Bh5",
+      "eval": "+0.47",
+      "value_for_mover": -47,
+      "line": "Bh5 Bxc6 bxc6 Na4 Re8 Be5"
+     },
+     {
+      "move": "a6",
+      "eval": "+0.99",
+      "value_for_mover": -99,
+      "line": "a6 Bxc6 Bxf3 Qxf3 bxc6 Na4"
+     }
+    ],
+    "margin_pawns": 0.25,
+    "best_stands_out": false
+   },
+   {
+    "label": "10... Bd7",
+    "fen": "r2q1rk1/pp1bppbp/2n2np1/1B1p4/8/1PN1PN1P/PB1P1PP1/R2Q1RK1 w - - 1 11",
+    "to_move": "White",
+    "played": {
+     "move": "Bxc6",
+     "label": "11. Bxc6",
+     "eval": "+0.21",
+     "value_for_mover": 21,
+     "rank": 4,
+     "cost_pawns": 0.09
+    },
+    "motifs_after_played": "The white bishop on c6 pins the black pawn on b7 to the rook on a8. The white bishop on c6 is attacked by the black pawn on b7 and has no defender.",
+    "candidates": [
+     {
+      "move": "Ne2",
+      "eval": "+0.30",
+      "value_for_mover": 30,
+      "line": "Ne2 Nb4 Bxd7 Nxd7 Bxg7 Kxg7"
+     },
+     {
+      "move": "Rc1",
+      "eval": "+0.27",
+      "value_for_mover": 27,
+      "line": "Rc1 Ne4 d4 Nb4 Bxd7 Qxd7"
+     },
+     {
+      "move": "a4",
+      "eval": "+0.22",
+      "value_for_mover": 22,
+      "line": "a4 Ne4 d4 a6 Be2 Bf5"
+     },
+     {
+      "move": "Bxc6",
+      "eval": "+0.18",
+      "value_for_mover": 18,
+      "line": "Bxc6 Bxc6 Ne2 Ne8 Ne5 Bb5"
+     }
+    ],
+    "margin_pawns": 0.03,
+    "best_stands_out": false
+   },
+   {
+    "label": "11. Bxc6",
+    "fen": "r2q1rk1/pp1bppbp/2B2np1/3p4/8/1PN1PN1P/PB1P1PP1/R2Q1RK1 b - - 0 11",
+    "to_move": "Black",
+    "played": {
+     "move": "bxc6",
+     "label": "11... bxc6",
+     "eval": "+1.08",
+     "value_for_mover": -108,
+     "rank": 2,
+     "cost_pawns": 0.87
+    },
+    "motifs_after_played": "The black pawn on b7 is no longer pinned. Black has the bishop pair. The black pawn on a7 is isolated: no pawn on a neighbouring file can defend it.",
+    "candidates": [
+     {
+      "move": "Bxc6",
+      "eval": "+0.21",
+      "value_for_mover": -21,
+      "line": "Bxc6 Ne2 Nh5 Bxg7 Nxg7 d4"
+     },
+     {
+      "move": "bxc6",
+      "eval": "+1.01",
+      "value_for_mover": -101,
+      "line": "bxc6 Na4 Ne8 Ne5 Qc7 f4"
+     },
+     {
+      "move": "d4",
+      "eval": "+3.04",
+      "value_for_mover": -304,
+      "line": "d4 Bxb7 dxc3 Bxc3 Rb8 Ba6"
+     },
+     {
+      "move": "Bxh3",
+      "eval": "+3.71",
+      "value_for_mover": -371,
+      "line": "Bxh3 gxh3 bxc6 Na4 c5 Rc1"
+     }
+    ],
+    "margin_pawns": 0.8,
+    "best_stands_out": true
+   },
+   {
+    "label": "11... bxc6",
+    "fen": "r2q1rk1/p2bppbp/2p2np1/3p4/8/1PN1PN1P/PB1P1PP1/R2Q1RK1 w - - 0 12",
+    "to_move": "White",
+    "played": {
+     "move": "Na4",
+     "label": "12. Na4",
+     "eval": "+1.12",
+     "value_for_mover": 112,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The move from c3 uncovers a discovered attack: the white bishop on b2 now attacks the black knight on f6.",
+    "candidates": [
+     {
+      "move": "Na4",
+      "eval": "+1.08",
+      "value_for_mover": 108,
+      "line": "Na4 Qa5 Rc1 Rfc8 Rc5 Qc7"
+     },
+     {
+      "move": "d4",
+      "eval": "+0.67",
+      "value_for_mover": 67,
+      "line": "d4 Ne4 Na4 f6 Rc1 g5"
+     },
+     {
+      "move": "Rc1",
+      "eval": "+0.57",
+      "value_for_mover": 57,
+      "line": "Rc1 c5 d4 cxd4 Qxd4 e6"
+     },
+     {
+      "move": "Ne5",
+      "eval": "+0.47",
+      "value_for_mover": 47,
+      "line": "Ne5 c5 d4 cxd4 Qxd4 e6"
+     }
+    ],
+    "margin_pawns": 0.41,
+    "best_stands_out": false
+   },
+   {
+    "label": "12. Na4",
+    "fen": "r2q1rk1/p2bppbp/2p2np1/3p4/N7/1P2PN1P/PB1P1PP1/R2Q1RK1 b - - 1 12",
+    "to_move": "Black",
+    "played": {
+     "move": "Re8",
+     "label": "12... Re8",
+     "eval": "+1.37",
+     "value_for_mover": -137,
+     "rank": null,
+     "cost_pawns": 0.25
+    },
+    "candidates": [
+     {
+      "move": "Ne8",
+      "eval": "+1.12",
+      "value_for_mover": -112,
+      "line": "Ne8 Ne5 Qc7 d4 Nd6 Qe2"
+     },
+     {
+      "move": "Nh5",
+      "eval": "+1.16",
+      "value_for_mover": -116,
+      "line": "Nh5 Ne5 Qc7 d4 Bxe5 dxe5"
+     },
+     {
+      "move": "Qc7",
+      "eval": "+1.17",
+      "value_for_mover": -117,
+      "line": "Qc7 Be5 Qa5 d4 Rfc8 Nc5"
+     },
+     {
+      "move": "Qa5",
+      "eval": "+1.17",
+      "value_for_mover": -117,
+      "line": "Qa5 Rc1 Rfc8 Rc5 Qc7 Qa1"
+     }
+    ],
+    "margin_pawns": 0.04,
+    "best_stands_out": false
+   },
+   {
+    "label": "12... Re8",
+    "fen": "r2qr1k1/p2bppbp/2p2np1/3p4/N7/1P2PN1P/PB1P1PP1/R2Q1RK1 w - - 2 13",
+    "to_move": "White",
+    "played": {
+     "move": "Rc1",
+     "label": "13. Rc1",
+     "eval": "+1.35",
+     "value_for_mover": 135,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white rook on c1 stands on the half-open c-file.",
+    "candidates": [
+     {
+      "move": "Rc1",
+      "eval": "+1.37",
+      "value_for_mover": 137,
+      "line": "Rc1 Rc8 d3 Nh5 Ne5 Bxe5"
+     },
+     {
+      "move": "d3",
+      "eval": "+1.22",
+      "value_for_mover": 122,
+      "line": "d3 Nh5 Ne5 Qc7 d4 Bxe5"
+     },
+     {
+      "move": "Qe2",
+      "eval": "+1.19",
+      "value_for_mover": 119,
+      "line": "Qe2 Ne4 Bxg7 Kxg7 d3 Nd6"
+     },
+     {
+      "move": "Qc2",
+      "eval": "+1.12",
+      "value_for_mover": 112,
+      "line": "Qc2 Rc8 Nc5 Nh5 g4 Bxb2"
+     }
+    ],
+    "margin_pawns": 0.15,
+    "best_stands_out": false
+   },
+   {
+    "label": "13. Rc1",
+    "fen": "r2qr1k1/p2bppbp/2p2np1/3p4/N7/1P2PN1P/PB1P1PP1/2RQ1RK1 b - - 3 13",
+    "to_move": "Black",
+    "played": {
+     "move": "Ne4",
+     "label": "13... Ne4",
+     "eval": "+1.74",
+     "value_for_mover": -174,
+     "rank": null,
+     "cost_pawns": 0.39
+    },
+    "motifs_after_played": "The move from f6 uncovers a discovered attack: the black bishop on g7 now attacks the white bishop on b2.",
+    "candidates": [
+     {
+      "move": "Rc8",
+      "eval": "+1.35",
+      "value_for_mover": -135,
+      "line": "Rc8 d3 Nh5 Ne5 Bxe5 Bxe5"
+     },
+     {
+      "move": "Qa5",
+      "eval": "+1.36",
+      "value_for_mover": -136,
+      "line": "Qa5 d3 Nh5 Bxg7 Nxg7 Ne5"
+     },
+     {
+      "move": "Nh5",
+      "eval": "+1.42",
+      "value_for_mover": -142,
+      "line": "Nh5 d4 Qc7 Ne5 Nf6 Qe2"
+     },
+     {
+      "move": "Bf5",
+      "eval": "+1.47",
+      "value_for_mover": -147,
+      "line": "Bf5 d3 Rc8 Nc5 Bh6 b4"
+     }
+    ],
+    "margin_pawns": 0.01,
+    "best_stands_out": false
+   },
+   {
+    "label": "13... Ne4",
+    "fen": "r2qr1k1/p2bppbp/2p3p1/3p4/N3n3/1P2PN1P/PB1P1PP1/2RQ1RK1 w - - 4 14",
+    "to_move": "White",
+    "played": {
+     "move": "d3",
+     "label": "14. d3",
+     "eval": "+1.22",
+     "value_for_mover": 122,
+     "rank": 2,
+     "cost_pawns": 0.52
+    },
+    "motifs_after_played": "The black knight on e4 is attacked by the white pawn on d3, a cheaper piece.",
+    "candidates": [
+     {
+      "move": "Bxg7",
+      "eval": "+1.74",
+      "value_for_mover": 174,
+      "line": "Bxg7 Kxg7 d3 Nf6 Ne5 Qc7"
+     },
+     {
+      "move": "d3",
+      "eval": "+1.27",
+      "value_for_mover": 127,
+      "line": "d3 Bxb2 Nxb2 Nd6 Ne5 Rc8"
+     },
+     {
+      "move": "Ne5",
+      "eval": "+0.95",
+      "value_for_mover": 95,
+      "line": "Ne5 Qc7 Nxd7 Bxb2 Nxb2 Qxd7"
+     },
+     {
+      "move": "d4",
+      "eval": "+0.60",
+      "value_for_mover": 60,
+      "line": "d4 f6 Nd2 Ng5 f4 Nf7"
+     }
+    ],
+    "margin_pawns": 0.47,
+    "best_stands_out": false
+   },
+   {
+    "label": "14. d3",
+    "fen": "r2qr1k1/p2bppbp/2p3p1/3p4/N3n3/1P1PPN1P/PB3PP1/2RQ1RK1 b - - 0 14",
+    "to_move": "Black",
+    "played": {
+     "move": "Bxb2",
+     "label": "14... Bxb2",
+     "eval": "+1.24",
+     "value_for_mover": -124,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white rook on c1 is attacked by the black bishop on b2, a cheaper piece. The black bishop on b2 is attacked by the white knight on a4 and has no defender. White has no dark-squared bishop, and five of its pawns stand on light squares, so the dark squares are weak.",
+    "candidates": [
+     {
+      "move": "Bxb2",
+      "eval": "+1.22",
+      "value_for_mover": -122,
+      "line": "Bxb2 Nxb2 Nd6 Ne5 Qc7 Qe2"
+     },
+     {
+      "move": "Nd6",
+      "eval": "+1.69",
+      "value_for_mover": -169,
+      "line": "Nd6 Bxg7 Kxg7 Ne5 Qc7 Nc5"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+1.72",
+      "value_for_mover": -172,
+      "line": "Nf6 Ne5 Nh5 f4 Bxe5 fxe5"
+     },
+     {
+      "move": "Bxh3",
+      "eval": "+4.01",
+      "value_for_mover": -401,
+      "line": "Bxh3 dxe4 dxe4 gxh3 Qxd1 Rcxd1"
+     }
+    ],
+    "margin_pawns": 0.47,
+    "best_stands_out": false
+   },
+   {
+    "label": "14... Bxb2",
+    "fen": "r2qr1k1/p2bpp1p/2p3p1/3p4/N3n3/1P1PPN1P/Pb3PP1/2RQ1RK1 w - - 0 15",
+    "to_move": "White",
+    "played": {
+     "move": "Nxb2",
+     "label": "15. Nxb2",
+     "eval": "+1.26",
+     "value_for_mover": 126,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white rook on c1 is no longer hanging. Black has no dark-squared bishop, and five of its pawns stand on light squares, so the dark squares are weak. Black no longer has the bishop pair.",
+    "candidates": [
+     {
+      "move": "Nxb2",
+      "eval": "+1.24",
+      "value_for_mover": 124,
+      "line": "Nxb2 Nd6 Ne5 Rc8 Na4 f6"
+     },
+     {
+      "move": "Rc2",
+      "eval": "-1.37",
+      "value_for_mover": -137,
+      "line": "Rc2 Nxf2 Rfxf2 Bg7 d4 Qc7"
+     },
+     {
+      "move": "dxe4",
+      "eval": "-2.41",
+      "value_for_mover": -241,
+      "line": "dxe4 Bxc1 Qxc1 dxe4 Nd2 c5"
+     },
+     {
+      "move": "b4",
+      "eval": "-3.81",
+      "value_for_mover": -381,
+      "line": "b4 Bxc1 dxe4 Ba3 Qb3 a5"
+     }
+    ],
+    "margin_pawns": 2.61,
+    "best_stands_out": true
+   },
+   {
+    "label": "15. Nxb2",
+    "fen": "r2qr1k1/p2bpp1p/2p3p1/3p4/4n3/1P1PPN1P/PN3PP1/2RQ1RK1 b - - 0 15",
+    "to_move": "Black",
+    "played": {
+     "move": "Nd6",
+     "label": "15... Nd6",
+     "eval": "+1.25",
+     "value_for_mover": -125,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The black knight on e4 is no longer hanging. Black's pawns hold more of the centre.",
+    "candidates": [
+     {
+      "move": "Nd6",
+      "eval": "+1.26",
+      "value_for_mover": -126,
+      "line": "Nd6 Ne5 Rc8 Na4 f6 Nxd7"
+     },
+     {
+      "move": "Nf6",
+      "eval": "+1.37",
+      "value_for_mover": -137,
+      "line": "Nf6 Ne5 Qc7 d4 Ne4 Qe2"
+     },
+     {
+      "move": "Bxh3",
+      "eval": "+4.03",
+      "value_for_mover": -403,
+      "line": "Bxh3 dxe4 Bg4 e5 Rc8 Nd3"
+     },
+     {
+      "move": "Nxf2",
+      "eval": "+4.27",
+      "value_for_mover": -427,
+      "line": "Nxf2 Rxf2 e5 Qd2 Rc8 e4"
+     }
+    ],
+    "margin_pawns": 0.11,
+    "best_stands_out": false
+   },
+   {
+    "label": "15... Nd6",
+    "fen": "r2qr1k1/p2bpp1p/2pn2p1/3p4/8/1P1PPN1P/PN3PP1/2RQ1RK1 w - - 1 16",
+    "to_move": "White",
+    "played": {
+     "move": "Na4",
+     "label": "16. Na4",
+     "eval": "+0.82",
+     "value_for_mover": 82,
+     "rank": 3,
+     "cost_pawns": 0.43
+    },
+    "candidates": [
+     {
+      "move": "Ne5",
+      "eval": "+1.25",
+      "value_for_mover": 125,
+      "line": "Ne5 Rc8 Na4 f6 Nxd7 Qxd7"
+     },
+     {
+      "move": "d4",
+      "eval": "+0.80",
+      "value_for_mover": 80,
+      "line": "d4 f6 Nd2 g5 Re1 Kh8"
+     },
+     {
+      "move": "Na4",
+      "eval": "+0.80",
+      "value_for_mover": 80,
+      "line": "Na4 e5 e4 f6 Re1 a5"
+     },
+     {
+      "move": "Re1",
+      "eval": "+0.75",
+      "value_for_mover": 75,
+      "line": "Re1 e5 Na4 f6 e4 Nb5"
+     }
+    ],
+    "margin_pawns": 0.45,
+    "best_stands_out": false
+   },
+   {
+    "label": "16. Na4",
+    "fen": "r2qr1k1/p2bpp1p/2pn2p1/3p4/N7/1P1PPN1P/P4PP1/2RQ1RK1 b - - 2 16",
+    "to_move": "Black",
+    "played": {
+     "move": "Qa5",
+     "label": "16... Qa5",
+     "eval": "+1.46",
+     "value_for_mover": -146,
+     "rank": null,
+     "cost_pawns": 0.64
+    },
+    "candidates": [
+     {
+      "move": "e5",
+      "eval": "+0.82",
+      "value_for_mover": -82,
+      "line": "e5 Re1 f6 e4 a5 Qc2"
+     },
+     {
+      "move": "f6",
+      "eval": "+0.97",
+      "value_for_mover": -97,
+      "line": "f6 Nd4 Rc8 b4 e5 Nb3"
+     },
+     {
+      "move": "Rc8",
+      "eval": "+1.18",
+      "value_for_mover": -118,
+      "line": "Rc8 Ne5 f6 Nxd7 Qxd7 Nc5"
+     },
+     {
+      "move": "Qc7",
+      "eval": "+1.23",
+      "value_for_mover": -123,
+      "line": "Qc7 Ne5 Rec8 d4 Be8 Nc5"
+     }
+    ],
+    "margin_pawns": 0.15,
+    "best_stands_out": false
+   },
+   {
+    "label": "16... Qa5",
+    "fen": "r3r1k1/p2bpp1p/2pn2p1/q2p4/N7/1P1PPN1P/P4PP1/2RQ1RK1 w - - 3 17",
+    "to_move": "White",
+    "played": {
+     "move": "Nd4",
+     "label": "17. Nd4",
+     "eval": "+1.03",
+     "value_for_mover": 103,
+     "rank": null,
+     "cost_pawns": 0.43
+    },
+    "motifs_after_played": "The black pawn on c6 is attacked twice and defended only once.",
+    "candidates": [
+     {
+      "move": "Ne5",
+      "eval": "+1.46",
+      "value_for_mover": 146,
+      "line": "Ne5 Qc7 Qe2 f6 Nxd7 Qxd7"
+     },
+     {
+      "move": "Nc5",
+      "eval": "+1.36",
+      "value_for_mover": 136,
+      "line": "Nc5 Bc8 Ne5 Qc7 Na4 Bb7"
+     },
+     {
+      "move": "Re1",
+      "eval": "+1.34",
+      "value_for_mover": 134,
+      "line": "Re1 Red8 Re2 Nb7 Rec2 Qc7"
+     },
+     {
+      "move": "Qc2",
+      "eval": "+1.27",
+      "value_for_mover": 127,
+      "line": "Qc2 Qc7 e4 dxe4 dxe4 Nb7"
+     }
+    ],
+    "margin_pawns": 0.1,
+    "best_stands_out": false
+   },
+   {
+    "label": "17. Nd4",
+    "fen": "r3r1k1/p2bpp1p/2pn2p1/q2p4/N2N4/1P1PP2P/P4PP1/2RQ1RK1 b - - 4 17",
+    "to_move": "Black",
+    "played": {
+     "move": "Rac8",
+     "label": "17... Rac8",
+     "eval": "+1.03",
+     "value_for_mover": -103,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The black pawn on c6 is no longer hanging.",
+    "candidates": [
+     {
+      "move": "Rac8",
+      "eval": "+1.03",
+      "value_for_mover": -103,
+      "line": "Rac8 Nc5 Qc7 b4 e5 Ndb3"
+     },
+     {
+      "move": "Qc7",
+      "eval": "+1.08",
+      "value_for_mover": -108,
+      "line": "Qc7 Nc5 Rac8 b4 e5 Ndb3"
+     },
+     {
+      "move": "Rec8",
+      "eval": "+1.09",
+      "value_for_mover": -109,
+      "line": "Rec8 Nc5 Qc7 e4 e5 Nf3"
+     },
+     {
+      "move": "Nb7",
+      "eval": "+1.11",
+      "value_for_mover": -111,
+      "line": "Nb7 Nxc6 Qa6 Ne5 Bxa4 bxa4"
+     }
+    ],
+    "margin_pawns": 0.05,
+    "best_stands_out": false
+   },
+   {
+    "label": "17... Rac8",
+    "fen": "2r1r1k1/p2bpp1p/2pn2p1/q2p4/N2N4/1P1PP2P/P4PP1/2RQ1RK1 w - - 5 18",
+    "to_move": "White",
+    "played": {
+     "move": "Rc5",
+     "label": "18. Rc5",
+     "eval": "+0.66",
+     "value_for_mover": 66,
+     "rank": 2,
+     "cost_pawns": 0.37
+    },
+    "motifs_after_played": "The black queen on a5 is attacked by the white rook on c5 and has no defender. The white knight on a4 is the only defender of the rook on c5, and it is attacked by the black queen on a5.",
+    "candidates": [
+     {
+      "move": "Nc5",
+      "eval": "+1.03",
+      "value_for_mover": 103,
+      "line": "Nc5 Qd8 f4 e5 fxe5 Rxe5"
+     },
+     {
+      "move": "Rc5",
+      "eval": "+0.73",
+      "value_for_mover": 73,
+      "line": "Rc5 Qc7 Rc2 e5 Ne2 Nf5"
+     },
+     {
+      "move": "Qe1",
+      "eval": "+0.70",
+      "value_for_mover": 70,
+      "line": "Qe1 Qxe1 Rfxe1 e5 Ne2 h5"
+     },
+     {
+      "move": "Qc2",
+      "eval": "+0.43",
+      "value_for_mover": 43,
+      "line": "Qc2 e5 Ne2 Nb7 b4 Qa6"
+     }
+    ],
+    "margin_pawns": 0.3,
+    "best_stands_out": false
+   },
+   {
+    "label": "18. Rc5",
+    "fen": "2r1r1k1/p2bpp1p/2pn2p1/q1Rp4/N2N4/1P1PP2P/P4PP1/3Q1RK1 b - - 6 18",
+    "to_move": "Black",
+    "played": {
+     "move": "Qb4",
+     "label": "18... Qb4",
+     "eval": "+0.89",
+     "value_for_mover": -89,
+     "rank": 3,
+     "cost_pawns": 0.23
+    },
+    "motifs_after_played": "The white pawn on b3 is the only defender of the knight on a4, and it is attacked by the black queen on b4. The black queen on a5 is no longer hanging. The black queen on b4 stands on the half-open b-file.",
+    "candidates": [
+     {
+      "move": "Qd8",
+      "eval": "+0.66",
+      "value_for_mover": -66,
+      "line": "Qd8 Qc2 e5 Nxc6 Qg5 h4"
+     },
+     {
+      "move": "Qc7",
+      "eval": "+0.71",
+      "value_for_mover": -71,
+      "line": "Qc7 Rc2 e5 Ne2 Rcd8 Qd2"
+     },
+     {
+      "move": "Qb4",
+      "eval": "+0.73",
+      "value_for_mover": -73,
+      "line": "Qb4 Qc1 e5 Nxc6 Qh4 Kh2"
+     },
+     {
+      "move": "Qa6",
+      "eval": "+1.00",
+      "value_for_mover": -100,
+      "line": "Qa6 Qd2 e5 Ra5 Qb7 Nc2"
+     }
+    ],
+    "margin_pawns": 0.05,
+    "best_stands_out": false
+   },
+   {
+    "label": "18... Qb4",
+    "fen": "2r1r1k1/p2bpp1p/2pn2p1/2Rp4/Nq1N4/1P1PP2P/P4PP1/3Q1RK1 w - - 7 19",
+    "to_move": "White",
+    "played": {
+     "move": "Qc2",
+     "label": "19. Qc2",
+     "eval": "+0.13",
+     "value_for_mover": 13,
+     "rank": null,
+     "cost_pawns": 0.76
+    },
+    "motifs_after_played": "The white rook on c5 no longer depends on one attacked defender. The white queen on c2 stands on the half-open c-file.",
+    "candidates": [
+     {
+      "move": "Qc1",
+      "eval": "+0.89",
+      "value_for_mover": 89,
+      "line": "Qc1 e5 Nxc6 Qb7 Na5 Qa6"
+     },
+     {
+      "move": "Qa1",
+      "eval": "+0.51",
+      "value_for_mover": 51,
+      "line": "Qa1 e5 Nf3 f6 Rfc1 Nb7"
+     },
+     {
+      "move": "Nf3",
+      "eval": "+0.50",
+      "value_for_mover": 50,
+      "line": "Nf3 Nb7 Rc1 Red8 Qe2 c5"
+     },
+     {
+      "move": "Nc2",
+      "eval": "+0.43",
+      "value_for_mover": 43,
+      "line": "Nc2 Qb8 b4 e5 a3 Nb7"
+     }
+    ],
+    "margin_pawns": 0.38,
+    "best_stands_out": false
+   },
+   {
+    "label": "19. Qc2",
+    "fen": "2r1r1k1/p2bpp1p/2pn2p1/2Rp4/Nq1N4/1P1PP2P/P1Q2PP1/5RK1 b - - 8 19",
+    "to_move": "Black",
+    "played": {
+     "move": "e5",
+     "label": "19... e5",
+     "eval": "+0.25",
+     "value_for_mover": -25,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white knight on d4 is attacked by the black pawn on e5, a cheaper piece.",
+    "candidates": [
+     {
+      "move": "e5",
+      "eval": "+0.13",
+      "value_for_mover": -13,
+      "line": "e5 Nf3 e4 Nd2 Nb7 Qc3"
+     },
+     {
+      "move": "h6",
+      "eval": "+0.72",
+      "value_for_mover": -72,
+      "line": "h6 Qb2 e5 Nf3 f6 a3"
+     },
+     {
+      "move": "Qb8",
+      "eval": "+0.79",
+      "value_for_mover": -79,
+      "line": "Qb8 Nf3 e5 Qc1 f6 Rc2"
+     },
+     {
+      "move": "h5",
+      "eval": "+0.86",
+      "value_for_mover": -86,
+      "line": "h5 Rd1 Qb8 Nf3 e5 Qc1"
+     }
+    ],
+    "margin_pawns": 0.59,
+    "best_stands_out": true
+   },
+   {
+    "label": "19... e5",
+    "fen": "2r1r1k1/p2b1p1p/2pn2p1/2Rpp3/Nq1N4/1P1PP2P/P1Q2PP1/5RK1 w - - 0 20",
+    "to_move": "White",
+    "played": {
+     "move": "Nxc6",
+     "label": "20. Nxc6",
+     "eval": "+0.14",
+     "value_for_mover": 14,
+     "rank": 2,
+     "cost_pawns": 0.11
+    },
+    "motifs_after_played": "The black queen on b4 is attacked by the white knight on c6 and has no defender. The white knight on c6 forks the black queen on b4 and the pawn on a7. The white rook on c5 is the only defender of the knight on c6, and it is attacked by the black queen on b4. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. Black's pawns no longer hold more of the centre.",
+    "candidates": [
+     {
+      "move": "Nf3",
+      "eval": "+0.25",
+      "value_for_mover": 25,
+      "line": "Nf3 e4 Nd2 exd3 Qxd3 Bf5"
+     },
+     {
+      "move": "Nxc6",
+      "eval": "+0.07",
+      "value_for_mover": 7,
+      "line": "Nxc6 Qb7 Na5 Qb4 Rc1 d4"
+     },
+     {
+      "move": "a3",
+      "eval": "-0.05",
+      "value_for_mover": -5,
+      "line": "a3 Qxa3 Nxc6 Bxc6 Rxc6 d4"
+     },
+     {
+      "move": "Ne2",
+      "eval": "-0.27",
+      "value_for_mover": -27,
+      "line": "Ne2 Nb7 Rc3 c5 Rc1 d4"
+     }
+    ],
+    "margin_pawns": 0.18,
+    "best_stands_out": false
+   },
+   {
+    "label": "20. Nxc6",
+    "fen": "2r1r1k1/p2b1p1p/2Nn2p1/2Rpp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 b - - 0 20",
+    "to_move": "Black",
+    "played": {
+     "move": "Bxc6",
+     "label": "20... Bxc6",
+     "eval": "+1.15",
+     "value_for_mover": -115,
+     "rank": 2,
+     "cost_pawns": 1.01
+    },
+    "motifs_after_played": "The white knight on a4 is attacked twice and defended only once. The black queen on b4 is no longer hanging. The fork by the white knight on c6 is over.",
+    "candidates": [
+     {
+      "move": "Qb7",
+      "eval": "+0.14",
+      "value_for_mover": -14,
+      "line": "Qb7 Na5 Qb4 Rc1 d4 e4"
+     },
+     {
+      "move": "Bxc6",
+      "eval": "+1.02",
+      "value_for_mover": -102,
+      "line": "Bxc6 Rxc6 d4 Qc5 Qxc5 Rxc5"
+     },
+     {
+      "move": "Qh4",
+      "eval": "+1.04",
+      "value_for_mover": -104,
+      "line": "Qh4 Nxa7 Bxh3 gxh3 Qxh3 f3"
+     },
+     {
+      "move": "Rxc6",
+      "eval": "+1.48",
+      "value_for_mover": -148,
+      "line": "Rxc6 Rxc6 Bxc6 Qxc6 d4 e4"
+     }
+    ],
+    "margin_pawns": 0.88,
+    "best_stands_out": true
+   },
+   {
+    "label": "20... Bxc6",
+    "fen": "2r1r1k1/p4p1p/2bn2p1/2Rpp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 w - - 0 21",
+    "to_move": "White",
+    "played": {
+     "move": "Rxc6",
+     "label": "21. Rxc6",
+     "eval": "+1.20",
+     "value_for_mover": 120,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The black rook on c8 pins the white rook on c6 to the queen on c2. The white knight on a4 is no longer hanging.",
+    "candidates": [
+     {
+      "move": "Rxc6",
+      "eval": "+1.15",
+      "value_for_mover": 115,
+      "line": "Rxc6 d4 Qc5 Qxc5 Rxc5 e4"
+     },
+     {
+      "move": "a3",
+      "eval": "-3.58",
+      "value_for_mover": -358,
+      "line": "a3 Qb7 b4 d4 e4 Qd7"
+     },
+     {
+      "move": "Rc1",
+      "eval": "-3.96",
+      "value_for_mover": -396,
+      "line": "Rc1 Bxa4 Rxc8 Nxc8 bxa4 Nb6"
+     },
+     {
+      "move": "Nb2",
+      "eval": "-4.04",
+      "value_for_mover": -404,
+      "line": "Nb2 Bd7 Rc1 Qb6 Rxc8 Rxc8"
+     }
+    ],
+    "margin_pawns": 4.73,
+    "best_stands_out": true
+   },
+   {
+    "label": "21. Rxc6",
+    "fen": "2r1r1k1/p4p1p/2Rn2p1/3pp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 b - - 0 21",
+    "to_move": "Black",
+    "played": {
+     "move": "Rxc6",
+     "label": "21... Rxc6",
+     "eval": "+1.48",
+     "value_for_mover": -148,
+     "rank": null,
+     "cost_pawns": 0.28
+    },
+    "motifs_after_played": "The white queen on c2 is attacked by the black rook on c6 and has no defender. The black rook on c6 is attacked by the white queen on c2 and has no defender. The white rook on c6 no longer stands on the open c-file.",
+    "candidates": [
+     {
+      "move": "Qb5",
+      "eval": "+1.20",
+      "value_for_mover": -120,
+      "line": "Qb5 Rc7 d4 Qc5 Qxc5 Rxc5"
+     },
+     {
+      "move": "d4",
+      "eval": "+1.21",
+      "value_for_mover": -121,
+      "line": "d4 Qc5 Qxc5 Rxc5 e4 exd4"
+     },
+     {
+      "move": "Qb7",
+      "eval": "+1.32",
+      "value_for_mover": -132,
+      "line": "Qb7 Rc5 Qb4 Rc1 d4 e4"
+     },
+     {
+      "move": "Qb8",
+      "eval": "+1.38",
+      "value_for_mover": -138,
+      "line": "Qb8 Rxc8 Rxc8 Qb2 d4 exd4"
+     }
+    ],
+    "margin_pawns": 0.01,
+    "best_stands_out": false
+   },
+   {
+    "label": "21... Rxc6",
+    "fen": "4r1k1/p4p1p/2rn2p1/3pp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 w - - 0 22",
+    "to_move": "White",
+    "played": {
+     "move": "Qxc6",
+     "label": "22. Qxc6",
+     "eval": "+1.49",
+     "value_for_mover": 149,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.",
+    "candidates": [
+     {
+      "move": "Qxc6",
+      "eval": "+1.48",
+      "value_for_mover": 148,
+      "line": "Qxc6 d4 e4 h5 Qd5 Nb7"
+     },
+     {
+      "move": "Qb2",
+      "eval": "-4.74",
+      "value_for_mover": -474,
+      "line": "Qb2 Rcc8 a3 Qa5 e4 dxe4"
+     },
+     {
+      "move": "Qe2",
+      "eval": "-5.09",
+      "value_for_mover": -509,
+      "line": "Qe2 Rec8 Qd1 h5 d4 exd4"
+     },
+     {
+      "move": "Qd1",
+      "eval": "-5.09",
+      "value_for_mover": -509,
+      "line": "Qd1 h5 a3 Qxa3 Qf3 Rec8"
+     }
+    ],
+    "margin_pawns": 6.22,
+    "best_stands_out": true
+   },
+   {
+    "label": "22. Qxc6",
+    "fen": "4r1k1/p4p1p/2Qn2p1/3pp3/Nq6/1P1PP2P/P4PP1/5RK1 b - - 0 22",
+    "to_move": "Black",
+    "played": {
+     "move": "Rc8",
+     "label": "22... Rc8",
+     "eval": "+3.43",
+     "value_for_mover": -343,
+     "rank": null,
+     "cost_pawns": 1.94
+    },
+    "motifs_after_played": "The white queen on c6 is attacked by the black rook on c8 and has no defender. The black rook on c8 stands on the open c-file.",
+    "candidates": [
+     {
+      "move": "d4",
+      "eval": "+1.49",
+      "value_for_mover": -149,
+      "line": "d4 e4 Kg7 Qd5 Nb5 Nc5"
+     },
+     {
+      "move": "Rd8",
+      "eval": "+2.95",
+      "value_for_mover": -295,
+      "line": "Rd8 Qxd5 Qb5 Qxb5 Nxb5 Nb2"
+     },
+     {
+      "move": "h5",
+      "eval": "+3.18",
+      "value_for_mover": -318,
+      "line": "h5 Qxd5 Nb5 Qc4 a5 Rc1"
+     },
+     {
+      "move": "Kg7",
+      "eval": "+3.22",
+      "value_for_mover": -322,
+      "line": "Kg7 Qxd5 Nf5 Qc6 Qe7 Nc5"
+     }
+    ],
+    "margin_pawns": 1.46,
+    "best_stands_out": true
+   },
+   {
+    "label": "22... Rc8",
+    "fen": "2r3k1/p4p1p/2Qn2p1/3pp3/Nq6/1P1PP2P/P4PP1/5RK1 w - - 1 23",
+    "to_move": "White",
+    "played": {
+     "move": "Qxd5",
+     "label": "23. Qxd5",
+     "eval": "+3.51",
+     "value_for_mover": 351,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white pawn on b3 is the only defender of the knight on a4, and it is attacked by the black queen on b4. The white queen on c6 is no longer hanging. Black has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. Black's pawns no longer hold more of the centre.",
+    "candidates": [
+     {
+      "move": "Qxd5",
+      "eval": "+3.43",
+      "value_for_mover": 343,
+      "line": "Qxd5 h5 Qxe5 Nf5 d4 Rc2"
+     },
+     {
+      "move": "Qd7",
+      "eval": "+0.93",
+      "value_for_mover": 93,
+      "line": "Qd7 Qb8 b4 Qxb4 Qxa7 Qa3"
+     },
+     {
+      "move": "Qa6",
+      "eval": "+0.87",
+      "value_for_mover": 87,
+      "line": "Qa6 Rc7 a3 Qxa3 Qa5 Rb7"
+     },
+     {
+      "move": "a3",
+      "eval": "+0.26",
+      "value_for_mover": 26,
+      "line": "a3 Qxb3 Qxd6 Qxa4 Qxe5 Qxa3"
+     }
+    ],
+    "margin_pawns": 2.5,
+    "best_stands_out": true
+   },
+   {
+    "label": "23. Qxd5",
+    "fen": "2r3k1/p4p1p/3n2p1/3Qp3/Nq6/1P1PP2P/P4PP1/5RK1 b - - 0 23",
+    "to_move": "Black",
+    "played": {
+     "move": "Rc2",
+     "label": "23... Rc2",
+     "eval": "+3.56",
+     "value_for_mover": -356,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white pawn on a2 is attacked by the black rook on c2 and has no defender.",
+    "candidates": [
+     {
+      "move": "Rc2",
+      "eval": "+3.51",
+      "value_for_mover": -351,
+      "line": "Rc2 Qxe5 h6 d4 Rxa2 Nc5"
+     },
+     {
+      "move": "Nf5",
+      "eval": "+3.54",
+      "value_for_mover": -354,
+      "line": "Nf5 Qxe5 Rc2 d4 Qd6 Qxd6"
+     },
+     {
+      "move": "h6",
+      "eval": "+3.70",
+      "value_for_mover": -370,
+      "line": "h6 Qxe5 Rc2 d4 Rxa2 g4"
+     },
+     {
+      "move": "Nb5",
+      "eval": "+3.73",
+      "value_for_mover": -373,
+      "line": "Nb5 Qxe5 Nc3 Nxc3 Rxc3 d4"
+     }
+    ],
+    "margin_pawns": 0.03,
+    "best_stands_out": false
+   },
+   {
+    "label": "23... Rc2",
+    "fen": "6k1/p4p1p/3n2p1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 1 24",
+    "to_move": "White",
+    "played": {
+     "move": "Qa8+",
+     "label": "24. Qa8+",
+     "eval": "+2.84",
+     "value_for_mover": 284,
+     "rank": null,
+     "cost_pawns": 0.72
+    },
+    "motifs_after_played": "The white queen on a8 forks the black king on g8 and the pawn on a7.",
+    "candidates": [
+     {
+      "move": "Qxe5",
+      "eval": "+3.56",
+      "value_for_mover": 356,
+      "line": "Qxe5 Nf5 d4 h6 Qe8+ Kg7"
+     },
+     {
+      "move": "g4",
+      "eval": "+3.24",
+      "value_for_mover": 324,
+      "line": "g4 Nb5 Qxe5 Nc7 d4 Ne6"
+     },
+     {
+      "move": "g3",
+      "eval": "+2.87",
+      "value_for_mover": 287,
+      "line": "g3 h5 Qxe5 Nf5 d4 h4"
+     },
+     {
+      "move": "Kh2",
+      "eval": "+2.60",
+      "value_for_mover": 260,
+      "line": "Kh2 e4 a3 Qb8 Kg1 exd3"
+     }
+    ],
+    "margin_pawns": 0.32,
+    "best_stands_out": false
+   },
+   {
+    "label": "24. Qa8+",
+    "fen": "Q5k1/p4p1p/3n2p1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 2 24",
+    "to_move": "Black",
+    "played": {
+     "move": "Kg7",
+     "label": "24... Kg7",
+     "eval": "+2.83",
+     "value_for_mover": -283,
+     "rank": 2,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The fork by the white queen on a8 is over.",
+    "candidates": [
+     {
+      "move": "Nc8",
+      "eval": "+2.84",
+      "value_for_mover": -284,
+      "line": "Nc8 Nb2 Rxb2 Qxc8+ Qf8 Qc7"
+     },
+     {
+      "move": "Kg7",
+      "eval": "+3.10",
+      "value_for_mover": -310,
+      "line": "Kg7 Qxa7 Nc8 Qd7 h5 Qd5"
+     },
+     {
+      "move": "Rc8",
+      "eval": "+3.94",
+      "value_for_mover": -394,
+      "line": "Rc8 Qxa7 Kg7 Nb6 Rc2 Nd7"
+     },
+     {
+      "move": "Ne8",
+      "eval": "+5.01",
+      "value_for_mover": -501,
+      "line": "Ne8 Qxe8+ Kg7 Qxe5+ f6 Qd4"
+     }
+    ],
+    "margin_pawns": 0.26,
+    "best_stands_out": false
+   },
+   {
+    "label": "24... Kg7",
+    "fen": "Q7/p4pkp/3n2p1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 3 25",
+    "to_move": "White",
+    "played": {
+     "move": "Qd5",
+     "label": "25. Qd5",
+     "eval": "+1.80",
+     "value_for_mover": 180,
+     "rank": 2,
+     "cost_pawns": 1.03
+    },
+    "motifs_after_played": "The black pawn on e5 is attacked by the white queen on d5 and has no defender.",
+    "candidates": [
+     {
+      "move": "Qxa7",
+      "eval": "+2.83",
+      "value_for_mover": 283,
+      "line": "Qxa7 Nf5 Qb6 Qe7 Qb5 Rxa2"
+     },
+     {
+      "move": "Qd5",
+      "eval": "+1.88",
+      "value_for_mover": 188,
+      "line": "Qd5 f6 Qa8 Qb7 Qxb7+ Nxb7"
+     },
+     {
+      "move": "Qd8",
+      "eval": "+1.64",
+      "value_for_mover": 164,
+      "line": "Qd8 Nf5 Qd5 Qd6 Qxd6 Nxd6"
+     },
+     {
+      "move": "Rd1",
+      "eval": "+1.39",
+      "value_for_mover": 139,
+      "line": "Rd1 Qa5 a3 h5 Qf3 h4"
+     }
+    ],
+    "margin_pawns": 0.95,
+    "best_stands_out": true
+   },
+   {
+    "label": "25. Qd5",
+    "fen": "8/p4pkp/3n2p1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 4 25",
+    "to_move": "Black",
+    "played": {
+     "move": "f6",
+     "label": "25... f6",
+     "eval": "+2.05",
+     "value_for_mover": -205,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The black pawn on e5 is no longer hanging. Black has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. Black's dark squares are no longer weak.",
+    "candidates": [
+     {
+      "move": "f6",
+      "eval": "+1.80",
+      "value_for_mover": -180,
+      "line": "f6 Qa8 Qb7 Qxb7+ Nxb7 Rb1"
+     },
+     {
+      "move": "Nf5",
+      "eval": "+3.36",
+      "value_for_mover": -336,
+      "line": "Nf5 Qxe5+ f6 Qd5 a5 Qd7+"
+     },
+     {
+      "move": "Kg8",
+      "eval": "+3.51",
+      "value_for_mover": -351,
+      "line": "Kg8 Qxe5 Nf5 d4 Qd6 Qe4"
+     },
+     {
+      "move": "h6",
+      "eval": "+3.53",
+      "value_for_mover": -353,
+      "line": "h6 Qxe5+ Kg8 d4 Rxa2 Nc5"
+     }
+    ],
+    "margin_pawns": 1.56,
+    "best_stands_out": true
+   },
+   {
+    "label": "25... f6",
+    "fen": "8/p5kp/3n1pp1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 0 26",
+    "to_move": "White",
+    "played": {
+     "move": "Qa8",
+     "label": "26. Qa8",
+     "eval": "+1.74",
+     "value_for_mover": 174,
+     "rank": 2,
+     "cost_pawns": 0.31
+    },
+    "motifs_after_played": "The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.",
+    "candidates": [
+     {
+      "move": "Rd1",
+      "eval": "+2.05",
+      "value_for_mover": 205,
+      "line": "Rd1 Nf5 Qd7+ Kh6 Qf7 Qd6"
+     },
+     {
+      "move": "Qa8",
+      "eval": "+1.88",
+      "value_for_mover": 188,
+      "line": "Qa8 Qb7 Qxb7+ Nxb7 Rd1 Rxa2"
+     },
+     {
+      "move": "Ra1",
+      "eval": "+1.76",
+      "value_for_mover": 176,
+      "line": "Ra1 Nf5 Qa8 Qa5 Rd1 h5"
+     },
+     {
+      "move": "Qe6",
+      "eval": "+1.72",
+      "value_for_mover": 172,
+      "line": "Qe6 Nf7 Qa6 Rc7 Rd1 Rc2"
+     }
+    ],
+    "margin_pawns": 0.17,
+    "best_stands_out": false
+   },
+   {
+    "label": "26. Qa8",
+    "fen": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 1 26",
+    "to_move": "Black",
+    "played": {
+     "move": "Rxa2",
+     "label": "26... Rxa2",
+     "eval": "+2.98",
+     "value_for_mover": -298,
+     "rank": null,
+     "cost_pawns": 1.24
+    },
+    "motifs_after_played": "The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it.",
+    "candidates": [
+     {
+      "move": "Qb7",
+      "eval": "+1.74",
+      "value_for_mover": -174,
+      "line": "Qb7 Qxb7+ Nxb7 Rb1 Rxa2 Rc1"
+     },
+     {
+      "move": "Nc8",
+      "eval": "+2.09",
+      "value_for_mover": -209,
+      "line": "Nc8 Rd1 Qe7 Qd5 Qd6 Qa5"
+     },
+     {
+      "move": "Qa5",
+      "eval": "+2.20",
+      "value_for_mover": -220,
+      "line": "Qa5 d4 exd4 exd4 Qc7 Nc5"
+     },
+     {
+      "move": "a5",
+      "eval": "+2.22",
+      "value_for_mover": -222,
+      "line": "a5 Qa7+ Nf7 d4 exd4 exd4"
+     }
+    ],
+    "margin_pawns": 0.35,
+    "best_stands_out": false
+   },
+   {
+    "label": "26... Rxa2",
+    "fen": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 0 27",
+    "to_move": "White",
+    "played": {
+     "move": "Qxa7+",
+     "label": "27. Qxa7+",
+     "eval": "+3.18",
+     "value_for_mover": 318,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+    "candidates": [
+     {
+      "move": "Qxa7+",
+      "eval": "+2.98",
+      "value_for_mover": 298,
+      "line": "Qxa7+ Qb7 Qxb7+ Nxb7 Rc1 Na5"
+     },
+     {
+      "move": "Rc1",
+      "eval": "+2.77",
+      "value_for_mover": 277,
+      "line": "Rc1 Qd2 Rf1 Qa5 Qc6 Qd8"
+     },
+     {
+      "move": "Qc6",
+      "eval": "+2.64",
+      "value_for_mover": 264,
+      "line": "Qc6 Kh6 Nc5 Ne8 Qxe8 Qxc5"
+     },
+     {
+      "move": "Qd8",
+      "eval": "+2.15",
+      "value_for_mover": 215,
+      "line": "Qd8 Nf5 Qd7+ Kh6 Qc6 Qe7"
+     }
+    ],
+    "margin_pawns": 0.21,
+    "best_stands_out": false
+   },
+   {
+    "label": "27. Qxa7+",
+    "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+    "to_move": "Black",
+    "played": {
+     "move": "Kh6",
+     "label": "27... Kh6",
+     "eval": "+4.31",
+     "value_for_mover": -431,
+     "rank": null,
+     "cost_pawns": 1.13
+    },
+    "motifs_after_played": "The black king on g7 is no longer skewered.",
+    "candidates": [
+     {
+      "move": "Nf7",
+      "eval": "+3.18",
+      "value_for_mover": -318,
+      "line": "Nf7 Qc7 Qd6 Qc4 Qe7 Rb1"
+     },
+     {
+      "move": "Qb7",
+      "eval": "+3.22",
+      "value_for_mover": -322,
+      "line": "Qb7 Qxb7+ Nxb7 Rc1 Nd6 Rc7+"
+     },
+     {
+      "move": "Nb7",
+      "eval": "+3.61",
+      "value_for_mover": -361,
+      "line": "Nb7 Rc1 Kh6 Rc7 Qe1+ Kh2"
+     },
+     {
+      "move": "Kg8",
+      "eval": "+4.17",
+      "value_for_mover": -417,
+      "line": "Kg8 Qe7 f5 Qxe5 Rc2 Qe6+"
+     }
+    ],
+    "margin_pawns": 0.04,
+    "best_stands_out": false
+   },
+   {
+    "label": "27... Kh6",
+    "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+    "to_move": "White",
+    "played": {
+     "move": "Rc1",
+     "label": "28. Rc1",
+     "eval": "+0.13",
+     "value_for_mover": 13,
+     "rank": null,
+     "cost_pawns": 4.18
+    },
+    "motifs_after_played": "The white rook on c1 stands on the open c-file.",
+    "candidates": [
+     {
+      "move": "Qe7",
+      "eval": "+4.31",
+      "value_for_mover": 431,
+      "line": "Qe7 f5 Qf8+ Kh5 Qg7 Qb7"
+     },
+     {
+      "move": "Qc7",
+      "eval": "+3.06",
+      "value_for_mover": 306,
+      "line": "Qc7 Nf5 Qc4 Qxc4 dxc4 Ne7"
+     },
+     {
+      "move": "Qd7",
+      "eval": "+3.04",
+      "value_for_mover": 304,
+      "line": "Qd7 Nb7 Qe6 Qd6 Qc4 Rd2"
+     },
+     {
+      "move": "Qa8",
+      "eval": "+3.02",
+      "value_for_mover": 302,
+      "line": "Qa8 Nf5 Qc8 Re2 Nc5 Rc2"
+     }
+    ],
+    "margin_pawns": 1.25,
+    "best_stands_out": true
+   },
+   {
+    "label": "28. Rc1",
+    "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/2R3K1 b - - 2 28",
+    "to_move": "Black",
+    "played": {
+     "move": "Qxb3",
+     "label": "28... Qxb3",
+     "eval": "+3.14",
+     "value_for_mover": -314,
+     "rank": null,
+     "cost_pawns": 3.01
+    },
+    "motifs_after_played": "The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.",
+    "candidates": [
+     {
+      "move": "Rxf2",
+      "eval": "+0.13",
+      "value_for_mover": -13,
+      "line": "Rxf2 Nc3 Rd2 Qa4 Qb7 Qh4+"
+     },
+     {
+      "move": "Qd2",
+      "eval": "+1.98",
+      "value_for_mover": -198,
+      "line": "Qd2 Rf1 Qxd3 Qb8 Ne4 Qf8+"
+     },
+     {
+      "move": "Rd2",
+      "eval": "+2.36",
+      "value_for_mover": -236,
+      "line": "Rd2 Qc5 Qxc5 Nxc5 f5 g3"
+     },
+     {
+      "move": "Nb5",
+      "eval": "+2.82",
+      "value_for_mover": -282,
+      "line": "Nb5 Qc5 Qxc5 Nxc5 Rb2 Nd7"
+     }
+    ],
+    "margin_pawns": 1.85,
+    "best_stands_out": true
+   },
+   {
+    "label": "28... Qxb3",
+    "fen": "8/Q6p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/2R3K1 w - - 0 29",
+    "to_move": "White",
+    "played": {
+     "move": "Rc7",
+     "label": "29. Rc7",
+     "eval": "+0.00",
+     "value_for_mover": 0,
+     "rank": null,
+     "cost_pawns": 3.14
+    },
+    "candidates": [
+     {
+      "move": "Qe7",
+      "eval": "+3.14",
+      "value_for_mover": 314,
+      "line": "Qe7 Rxa4 Qxd6 Qb2 Rf1 f5"
+     },
+     {
+      "move": "Qa8",
+      "eval": "+1.73",
+      "value_for_mover": 173,
+      "line": "Qa8 Kg7 Qc6 Qxd3 Nc5 Qd2"
+     },
+     {
+      "move": "Qd7",
+      "eval": "+0.97",
+      "value_for_mover": 97,
+      "line": "Qd7 Qxd3 Rc7 Qd1+ Kh2 Qxa4"
+     },
+     {
+      "move": "Qb6",
+      "eval": "+0.59",
+      "value_for_mover": 59,
+      "line": "Qb6 Qxd3 Nc5 Qd2 Rf1 Qd5"
+     }
+    ],
+    "margin_pawns": 1.41,
+    "best_stands_out": true
+   },
+   {
+    "label": "29. Rc7",
+    "fen": "8/Q1R4p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/6K1 b - - 1 29",
+    "to_move": "Black",
+    "played": {
+     "move": "Qb1+",
+     "label": "29... Qb1+",
+     "eval": "+0.07",
+     "value_for_mover": -7,
+     "rank": null,
+     "cost_pawns": 0.07
+    },
+    "motifs_after_played": "The black queen on b1 forks the white king on g1 and the pawn on d3.",
+    "candidates": [
+     {
+      "move": "Qd1+",
+      "eval": "+0.00",
+      "value_for_mover": 0,
+      "line": "Qd1+ Kh2 Rxf2 Nc5 Rxg2+ Kxg2"
+     },
+     {
+      "move": "Rxa4",
+      "eval": "+0.00",
+      "value_for_mover": 0,
+      "line": "Rxa4 Rxh7+ Kg5 Qd7 Nf5 Qc6"
+     },
+     {
+      "move": "Qxa4",
+      "eval": "+0.06",
+      "value_for_mover": -6,
+      "line": "Qxa4 Rxh7+ Kg5 h4+ Qxh4 f4+"
+     },
+     {
+      "move": "Kg5",
+      "eval": "+0.32",
+      "value_for_mover": -32,
+      "line": "Kg5 f4+ Kh4 Kh2 h6 Qa5"
+     }
+    ],
+    "margin_pawns": 0.0,
+    "best_stands_out": false
+   },
+   {
+    "label": "29... Qb1+",
+    "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PP1/1q4K1 w - - 2 30",
+    "to_move": "White",
+    "played": {
+     "move": "Kh2",
+     "label": "30. Kh2",
+     "eval": "+0.18",
+     "value_for_mover": 18,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.",
+    "candidates": [
+     {
+      "move": "Kh2",
+      "eval": "+0.07",
+      "value_for_mover": 7,
+      "line": "Kh2 Rxf2 Rxh7+ Kg5 Nc3 Qc2"
+     },
+     {
+      "move": "Rc1",
+      "eval": "-7.54",
+      "value_for_mover": -754,
+      "line": "Rc1 Qxc1+ Kh2 Qd2 Qd7 Qxf2"
+     }
+    ],
+    "margin_pawns": 7.61,
+    "best_stands_out": true
+   },
+   {
+    "label": "30. Kh2",
+    "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+    "to_move": "Black",
+    "played": {
+     "move": "Qb2",
+     "label": "30... Qb2",
+     "eval": "#4",
+     "value_for_mover": -99996,
+     "rank": null,
+     "cost_pawns": "mate",
+     "cost_mate": "allowed a forced mate"
+    },
+    "motifs_after_played": "The black queen on b2 is attacked by the white knight on a4, a cheaper piece.",
+    "candidates": [
+     {
+      "move": "Rxf2",
+      "eval": "+0.18",
+      "value_for_mover": -18,
+      "line": "Rxf2 Rxh7+ Kg5 Nc3 Qc2 Qa8"
+     },
+     {
+      "move": "Kg5",
+      "eval": "+5.28",
+      "value_for_mover": -528,
+      "line": "Kg5 f4+ Kf5 Rc1 Qb7 e4+"
+     },
+     {
+      "move": "Qb7",
+      "eval": "+6.33",
+      "value_for_mover": -633,
+      "line": "Qb7 Rxb7 Nxb7 Qxb7 Rxa4 Qc6"
+     },
+     {
+      "move": "Nf5",
+      "eval": "+6.33",
+      "value_for_mover": -633,
+      "line": "Nf5 Rxh7+ Kg5 Nc3 Qxd3 Qxa2"
+     }
+    ],
+    "margin_pawns": 5.1,
+    "best_stands_out": true
+   },
+   {
+    "label": "30... Qb2",
+    "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/rq3PPK/8 w - - 4 31",
+    "to_move": "White",
+    "played": {
+     "move": "Rxh7+",
+     "label": "31. Rxh7+",
+     "eval": "#3",
+     "value_for_mover": 99997,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white queen on a7 is overloaded: it alone defends the rook on h7 and the knight on a4.",
+    "candidates": [
+     {
+      "move": "Rxh7+",
+      "eval": "#4",
+      "value_for_mover": 99996,
+      "line": "Rxh7+ Kg5 h4+ Kg4 Qd7+ Nf5"
+     },
+     {
+      "move": "h4",
+      "eval": "+6.42",
+      "value_for_mover": 642,
+      "line": "h4 Nb7 Rxb7 Qxb7 Qxb7 Rxa4"
+     },
+     {
+      "move": "Nxb2",
+      "eval": "+6.37",
+      "value_for_mover": 637,
+      "line": "Nxb2 Rxa7 Rxa7 Nb5 Ra6 Kg7"
+     },
+     {
+      "move": "e4",
+      "eval": "+5.06",
+      "value_for_mover": 506,
+      "line": "e4 Qxf2 Rxh7+ Kg5 Qxf2 Rxf2"
+     }
+    ],
+    "best_stands_out": true,
+    "margin_pawns": "mate"
+   },
+   {
+    "label": "31. Rxh7+",
+    "fen": "8/Q6R/3n1ppk/4p3/N7/3PP2P/rq3PPK/8 b - - 0 31",
+    "to_move": "Black",
+    "played": {
+     "move": "Kg5",
+     "label": "31... Kg5",
+     "eval": "#3",
+     "value_for_mover": -99997,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "candidates": [
+     {
+      "move": "Kg5",
+      "eval": "#3",
+      "value_for_mover": -99997,
+      "line": "Kg5 h4+ Kg4 Qd7+ Nf5 f3#"
+     }
+    ],
+    "best_stands_out": false,
+    "why": "only one legal move"
+   },
+   {
+    "label": "31... Kg5",
+    "fen": "8/Q6R/3n1pp1/4p1k1/N7/3PP2P/rq3PPK/8 w - - 1 32",
+    "to_move": "White",
+    "played": {
+     "move": "Nxb2",
+     "label": "32. Nxb2",
+     "eval": "+6.71",
+     "value_for_mover": 671,
+     "rank": 4,
+     "cost_pawns": "mate",
+     "cost_mate": "gave up a forced mate"
+    },
+    "motifs_after_played": "The white queen on a7 is attacked by the black rook on a2, a cheaper piece. The black rook on a2 forks the white queen on a7 and the knight on b2. The black rook on a2 is attacked by the white queen on a7 and has no defender. The white knight on a4 is no longer pinned. The black queen on b2 no longer stands on the open b-file.",
+    "candidates": [
+     {
+      "move": "h4+",
+      "eval": "#3",
+      "value_for_mover": 99997,
+      "line": "h4+ Kg4 f3+ Kf5 Qd7#"
+     },
+     {
+      "move": "Qd7",
+      "eval": "+9.68",
+      "value_for_mover": 968,
+      "line": "Qd7 Qb4 f4+ Qxf4+ exf4+ Kxf4"
+     },
+     {
+      "move": "f4+",
+      "eval": "+7.90",
+      "value_for_mover": 790,
+      "line": "f4+ exf4 exf4+ Kxf4 Rh4+ Ke5"
+     },
+     {
+      "move": "Nxb2",
+      "eval": "+6.71",
+      "value_for_mover": 671,
+      "line": "Nxb2 Rxa7 Rxa7 Nb5 Ra1 Kh6"
+     }
+    ],
+    "best_stands_out": true,
+    "margin_pawns": "mate"
+   },
+   {
+    "label": "32. Nxb2",
+    "fen": "8/Q6R/3n1pp1/4p1k1/8/3PP2P/rN3PPK/8 b - - 0 32",
+    "to_move": "Black",
+    "played": {
+     "move": "Rxa7",
+     "label": "32... Rxa7",
+     "eval": "+6.71",
+     "value_for_mover": -671,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white rook on h7 is attacked by the black rook on a7 and has no defender. The white queen on a7 no longer stands on the open a-file.",
+    "candidates": [
+     {
+      "move": "Rxa7",
+      "eval": "+6.71",
+      "value_for_mover": -671,
+      "line": "Rxa7 Rxa7 Nb5 Ra1 Nc3 Na4"
+     },
+     {
+      "move": "Nf5",
+      "eval": "#6",
+      "value_for_mover": -99994,
+      "line": "Nf5 Qxa2 Ne7 Qe6 Nf5 Qd5"
+     },
+     {
+      "move": "Nb7",
+      "eval": "#4",
+      "value_for_mover": -99996,
+      "line": "Nb7 h4+ Kf5 Qxb7 g5 Qd7+"
+     },
+     {
+      "move": "Ra4",
+      "eval": "#4",
+      "value_for_mover": -99996,
+      "line": "Ra4 Qxa4 Nc4 h4+ Kg4 Qxc4+"
+     }
+    ],
+    "best_stands_out": false,
+    "margin_pawns": "mate"
+   },
+   {
+    "label": "32... Rxa7",
+    "fen": "8/r6R/3n1pp1/4p1k1/8/3PP2P/1N3PPK/8 w - - 0 33",
+    "to_move": "White",
+    "played": {
+     "move": "h4+",
+     "label": "33. h4+",
+     "eval": "+6.80",
+     "value_for_mover": 680,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white rook on h7 is the only defender of the pawn on h4, and it is attacked by the black rook on a7. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. White's dark squares are no longer weak.",
+    "candidates": [
+     {
+      "move": "h4+",
+      "eval": "+6.71",
+      "value_for_mover": 671,
+      "line": "h4+ Kf5 Rxa7 g5 Ra6 Nb5"
+     },
+     {
+      "move": "Rxa7",
+      "eval": "+6.50",
+      "value_for_mover": 650,
+      "line": "Rxa7 Nb5 Ra6 Nc3 Rc6 Nd5"
+     },
+     {
+      "move": "f4+",
+      "eval": "+5.84",
+      "value_for_mover": 584,
+      "line": "f4+ exf4 exf4+ Kxf4 Rxa7 Nb5"
+     },
+     {
+      "move": "Rh8",
+      "eval": "+2.29",
+      "value_for_mover": 229,
+      "line": "Rh8 Rc7 h4+ Kf5 Rb8 Rc2"
+     }
+    ],
+    "margin_pawns": 0.21,
+    "best_stands_out": false
+   },
+   {
+    "label": "33. h4+",
+    "fen": "8/r6R/3n1pp1/4p1k1/7P/3PP3/1N3PPK/8 b - - 0 33",
+    "to_move": "Black",
+    "played": {
+     "move": "Kf5",
+     "label": "33... Kf5",
+     "eval": "+6.71",
+     "value_for_mover": -671,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "candidates": [
+     {
+      "move": "Kf5",
+      "eval": "+6.80",
+      "value_for_mover": -680,
+      "line": "Kf5 Rxa7 Nb5 Ra6 Kg4 Rxf6"
+     },
+     {
+      "move": "Kg4",
+      "eval": "+6.97",
+      "value_for_mover": -697,
+      "line": "Kg4 f3+ Kf5 Rxa7 g5 g4+"
+     }
+    ],
+    "margin_pawns": 0.17,
+    "best_stands_out": false
+   },
+   {
+    "label": "33... Kf5",
+    "fen": "8/r6R/3n1pp1/4pk2/7P/3PP3/1N3PPK/8 w - - 1 34",
+    "to_move": "White",
+    "played": {
+     "move": "Rxa7",
+     "label": "34. Rxa7",
+     "eval": "+6.89",
+     "value_for_mover": 689,
+     "rank": 1,
+     "cost_pawns": 0
+    },
+    "motifs_after_played": "The white rook on h7 is no longer hanging. The white rook on a7 stands on the open a-file. The black rook on a7 no longer stands on the open a-file.",
+    "candidates": [
+     {
+      "move": "Rxa7",
+      "eval": "+6.71",
+      "value_for_mover": 671,
+      "line": "Rxa7 Nb5 Ra6 Kg4 Rxf6 Kxh4"
+     },
+     {
+      "move": "e4+",
+      "eval": "+6.59",
+      "value_for_mover": 659,
+      "line": "e4+ Ke6 Rxa7 Nb5 Ra6+ Kf7"
+     },
+     {
+      "move": "g4+",
+      "eval": "+5.54",
+      "value_for_mover": 554,
+      "line": "g4+ Kxg4 Rxa7 Nf5 h5 gxh5"
+     },
+     {
+      "move": "Rh8",
+      "eval": "+1.92",
+      "value_for_mover": 192,
+      "line": "Rh8 Ra2 Rb8 g5 e4+ Kg6"
+     }
+    ],
+    "margin_pawns": 0.12,
+    "best_stands_out": false
+   },
+   {
+    "label": "34. Rxa7",
+    "fen": "8/R7/3n1pp1/4pk2/7P/3PP3/1N3PPK/8 b - - 0 34",
+    "to_move": "Black",
+    "candidates": [
+     {
+      "move": "Nb5",
+      "eval": "+6.89",
+      "value_for_mover": -689,
+      "line": "Nb5 Ra6 Kg4 Rxf6 Kxh4 Rc6"
+     },
+     {
+      "move": "g5",
+      "eval": "+6.94",
+      "value_for_mover": -694,
+      "line": "g5 Nc4 Nb5 Ra6 Nc3 Nd6+"
+     },
+     {
+      "move": "Kg4",
+      "eval": "+6.96",
+      "value_for_mover": -696,
+      "line": "Kg4 Ra6 Ne8 Re6 Nc7 Rxf6"
+     },
+     {
+      "move": "Ke6",
+      "eval": "+7.09",
+      "value_for_mover": -709,
+      "line": "Ke6 Na4 g5 Ra6 g4 Nc5+"
+     }
+    ],
+    "margin_pawns": 0.05,
+    "best_stands_out": false
+   }
+  ]
+ },
+ "plainPgn": "[Event \"Analysis Studio Session\"]\n[Site \"Chess trainer\"]\n[Date \"2026.09.13\"]\n[Round \"1\"]\n[White \"Player\"]\n[Black \"Analysis Engine\"]\n[Result \"*\"]\n\n1. c4 g6 2. Nc3 Bg7 3. Nf3 c6 4. b3 d5 5. cxd5 cxd5 6. Bb2 Nc6 7. e3 Nf6 8. Bb5\nO-O 9. O-O Bg4 10. h3 Bd7 11. Bxc6 bxc6 12. Na4 Re8 13. Rc1 Ne4 14. d3 Bxb2 15.\nNxb2 Nd6 16. Na4 Qa5 17. Nd4 Rac8 18. Rc5 Qb4 19. Qc2 e5 20. Nxc6 Bxc6 21. Rxc6\nRxc6 22. Qxc6 Rc8 23. Qxd5 Rc2 24. Qa8+ Kg7 25. Qd5 f6 26. Qa8 Rxa2 27. Qxa7+\nKh6 28. Rc1 Qxb3 29. Rc7 Qb1+ 30. Kh2 Qb2 31. Rxh7+ Kg5 32. Nxb2 Rxa7 33. h4+\nKf5 34. Rxa7 *\n",
+ "answer": "{\"title\": \"Defend, don't grab: pins and forced mates\", \"description\": \"Three key defensive and attacking choices from an English Opening game where pins and forced mates decide the result.\", \"tags\": [\"pins\", \"forced mate\"], \"chosen\": [\"m3\", \"m4\", \"m7\"], \"slots\": {\"m3.lead.intro\": \"The position before this sequence. White is to move, and material favours White.\", \"m3.lead.1\": \"White plays Qa8. The black pawn on a7 is attacked by the queen and has no defender, and White is clearly better.\", \"m3.lead.2\": \"Black plays Rxa2, capturing a pawn and attacking the knight on a4. White is clearly better, but the b3-pawn is loose and the dark squares are weak.\", \"m3.lead.3\": \"White plays Qxa7+, capturing a pawn and giving check, and White is winning. The black rook pins the white knight to the queen, and White's b3-pawn is passed.\", \"m3.question\": \"Black is in check. Find a move that blocks the check without freeing the pinned white knight.\", \"m3.answer.intro\": \"The answer: Black plays Nf7 instead of the game move Kh6. In the best line White is winning, and the game move was costly.\", \"m3.answer.1\": \"Black plays Nf7, moving the knight from d6 to f7. This is the best move.\", \"m3.answer.2\": \"White plays Qc7, attacking the knight on f7. The knight is pinned to the king afterwards.\", \"m3.answer.3\": \"Black plays Qd6, attacking the queen on c7.\", \"m3.answer.4\": \"White plays Qc4, attacking the knight on f7.\", \"m4.lead.intro\": \"The position before this sequence. Black is to move, and material favours White.\", \"m4.lead.1\": \"Black plays Rxa2, capturing a pawn and attacking the knight on a4. White is clearly better, but the b3-pawn is loose and the dark squares are weak.\", \"m4.lead.2\": \"White plays Qxa7+, capturing a pawn and giving check, and White is winning. The black rook pins the white knight to the queen, and White's b3-pawn is passed.\", \"m4.lead.3\": \"Black plays Kh6, moving the king from g7; White is winning. The black king on g7 is no longer skewered.\", \"m4.question\": \"White to move. The black king is no longer skewered; find the move that keeps the attack and stays winning.\", \"m4.answer.intro\": \"The answer: White plays Qe7 instead of the game move Rc1. In the best line White is winning, and the game move was costly.\", \"m4.answer.1\": \"White plays Qe7, attacking the knight on d6. This is the best move.\", \"m4.answer.2\": \"Black plays f5, pushing the pawn from f6 to f5.\", \"m4.answer.3\": \"White plays Qf8+, giving check and attacking the knight on d6 and the king.\", \"m4.answer.4\": \"Black plays Kh5, moving the king from h6 to h5.\", \"m7.lead.intro\": \"The position before this sequence. White is to move, and material favours White.\", \"m7.lead.1\": \"White plays Rc7, moving the rook from c1 to c7. The position is about even.\", \"m7.lead.2\": \"Black plays Qb1+, giving check; the position is about even. The queen forks the white king on g1 and the pawn on d3.\", \"m7.lead.3\": \"White plays Kh2; the position is about even. The pawn on f2 is attacked by the rook on a2 and has no defender, and the fork is over.\", \"m7.question\": \"Black to move. A white pawn is attacked and undefended; find the move that takes it and keeps the game balanced.\", \"m7.answer.intro\": \"The answer: Black plays Rxf2 instead of the game move Qb2. In the best line the position is about even, and the game move allowed a forced mate.\", \"m7.answer.1\": \"Black plays Rxf2, capturing a pawn. This is the best move.\", \"m7.answer.2\": \"White plays Rxh7+, capturing a pawn and giving check on the king.\", \"m7.answer.3\": \"Black plays Kg5, moving the king from h6 to g5.\", \"m7.answer.4\": \"White plays Nc3, attacking the queen on b1.\"}}",
+ "expected": {
+  "moments": [
+   {
+    "id": "m1",
+    "index": 43,
+    "label": "22. Qxc6",
+    "mover": "Black",
+    "played": "22... Rc8",
+    "cost": 1.94,
+    "cost_text": "cost 1.94 pawns",
+    "left_book": false,
+    "best": "d4",
+    "asks": true,
+    "correct": [
+     "d4"
+    ],
+    "board": "The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.",
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "2r1r1k1/p4p1p/2bn2p1/2Rpp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 w - - 0 21",
+      "intro": "m1.lead.intro",
+      "moves": [
+       {
+        "san": "Rxc6",
+        "slot": "m1.lead.1",
+        "ply": 40,
+        "fen_before": "2r1r1k1/p4p1p/2bn2p1/2Rpp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 w - - 0 21"
+       },
+       {
+        "san": "Rxc6",
+        "slot": "m1.lead.2",
+        "ply": 41,
+        "fen_before": "2r1r1k1/p4p1p/2Rn2p1/3pp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 b - - 0 21"
+       },
+       {
+        "san": "Qxc6",
+        "slot": "m1.lead.3",
+        "ply": 42,
+        "fen_before": "4r1k1/p4p1p/2rn2p1/3pp3/Nq6/1P1PP2P/P1Q2PP1/5RK1 w - - 0 22"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "4r1k1/p4p1p/2Qn2p1/3pp3/Nq6/1P1PP2P/P4PP1/5RK1 b - - 0 22",
+      "instruction": "m1.question",
+      "solution": "d4",
+      "accepted": []
+     },
+     {
+      "kind": "show",
+      "fen": "4r1k1/p4p1p/2Qn2p1/3pp3/Nq6/1P1PP2P/P4PP1/5RK1 b - - 0 22",
+      "intro": "m1.answer.intro",
+      "moves": [
+       {
+        "san": "d4",
+        "slot": "m1.answer.1"
+       },
+       {
+        "san": "e4",
+        "slot": "m1.answer.2"
+       },
+       {
+        "san": "Kg7",
+        "slot": "m1.answer.3"
+       },
+       {
+        "san": "Qd5",
+        "slot": "m1.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m1.lead.1": "White plays Rxc6: the rook from c5 to c6; it captures a bishop; the moved piece now attacks: knight on d6, rook on c8; played in the game; afterwards White is slightly better; on the board after it: The black rook on c8 pins the white rook on c6 to the queen on c2. The white knight on a4 is no longer hanging.",
+     "m1.lead.2": "Black plays Rxc6: the rook from c8 to c6; it captures a rook; the moved piece now attacks: queen on c2; played in the game; afterwards White is slightly better; on the board after it: The white queen on c2 is attacked by the black rook on c6 and has no defender. The black rook on c6 is attacked by the white queen on c2 and has no defender. The white rook on c6 no longer stands on the open c-file.",
+     "m1.lead.3": "White plays Qxc6: the queen from c2 to c6; it captures a rook; the moved piece now attacks: knight on d6, rook on e8; played in the game; afterwards White is slightly better; on the board after it: The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.",
+     "m1.lead.intro": "the board before these moves (White to move); material White minus Black is -2 before them and +1 after them",
+     "m1.question": "Black to move. The best move is d4, and afterwards White is slightly better. Also counted correct: nothing else. What follows the best move: d4 e4 Kg7 Qd5 Nb5 Nc5. In the game Rc8 was played instead; it cost 1.94 pawns and afterwards White is winning. On the board: The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.. Ask for the move in one sentence, without naming it or its destination square.",
+     "m1.answer.1": "Black should have played d4: the pawn from d5 to d4; not played - the best move the game missed",
+     "m1.answer.2": "White would answer e4: the pawn from e3 to e4; not played - the line goes on",
+     "m1.answer.3": "Black would answer Kg7: the king from g8 to g7; not played - the line goes on",
+     "m1.answer.4": "White would answer Qd5: the queen from c6 to d5; the moved piece now attacks: knight on d6; not played - the line goes on",
+     "m1.answer.intro": "the answer: Black should have played d4 instead of the game move Rc8, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +1 to +1 over the moves shown. The game move cost 1.94 pawns."
+    },
+    "facts": {
+     "m1.lead.1": {
+      "words": "White plays Rxc6: the rook from c5 to c6; it captures a bishop; the moved piece now attacks: knight on d6, rook on c8",
+      "gain": 3,
+      "mate": false,
+      "fork": true,
+      "pin": false,
+      "to": "c6",
+      "motifs": "The black rook on c8 pins the white rook on c6 to the queen on c2. The white knight on a4 is no longer hanging.",
+      "text": "White plays Rxc6: the rook from c5 to c6; it captures a bishop; the moved piece now attacks: knight on d6, rook on c8; played in the game; afterwards White is slightly better; on the board after it: The black rook on c8 pins the white rook on c6 to the queen on c2. The white knight on a4 is no longer hanging."
+     },
+     "m1.lead.2": {
+      "words": "Black plays Rxc6: the rook from c8 to c6; it captures a rook; the moved piece now attacks: queen on c2",
+      "gain": 5,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c6",
+      "motifs": "The white queen on c2 is attacked by the black rook on c6 and has no defender. The black rook on c6 is attacked by the white queen on c2 and has no defender. The white rook on c6 no longer stands on the open c-file.",
+      "text": "Black plays Rxc6: the rook from c8 to c6; it captures a rook; the moved piece now attacks: queen on c2; played in the game; afterwards White is slightly better; on the board after it: The white queen on c2 is attacked by the black rook on c6 and has no defender. The black rook on c6 is attacked by the white queen on c2 and has no defender. The white rook on c6 no longer stands on the open c-file."
+     },
+     "m1.lead.3": {
+      "words": "White plays Qxc6: the queen from c2 to c6; it captures a rook; the moved piece now attacks: knight on d6, rook on e8",
+      "gain": 5,
+      "mate": false,
+      "fork": true,
+      "pin": false,
+      "to": "c6",
+      "motifs": "The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.",
+      "text": "White plays Qxc6: the queen from c2 to c6; it captures a rook; the moved piece now attacks: knight on d6, rook on e8; played in the game; afterwards White is slightly better; on the board after it: The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file."
+     },
+     "m1.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (White to move); material White minus Black is -2 before them and +1 after them"
+     },
+     "m1.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.",
+      "question": true,
+      "names": [
+       "d4",
+       "d4"
+      ],
+      "text": "Black to move. The best move is d4, and afterwards White is slightly better. Also counted correct: nothing else. What follows the best move: d4 e4 Kg7 Qd5 Nb5 Nc5. In the game Rc8 was played instead; it cost 1.94 pawns and afterwards White is winning. On the board: The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m1.answer.1": {
+      "words": "Black should have played d4: the pawn from d5 to d4",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d4",
+      "motifs": "",
+      "text": "Black should have played d4: the pawn from d5 to d4; not played - the best move the game missed"
+     },
+     "m1.answer.2": {
+      "words": "White would answer e4: the pawn from e3 to e4",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "e4",
+      "motifs": "",
+      "text": "White would answer e4: the pawn from e3 to e4; not played - the line goes on"
+     },
+     "m1.answer.3": {
+      "words": "Black would answer Kg7: the king from g8 to g7",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g7",
+      "motifs": "",
+      "text": "Black would answer Kg7: the king from g8 to g7; not played - the line goes on"
+     },
+     "m1.answer.4": {
+      "words": "White would answer Qd5: the queen from c6 to d5; the moved piece now attacks: knight on d6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d5",
+      "motifs": "",
+      "text": "White would answer Qd5: the queen from c6 to d5; the moved piece now attacks: knight on d6; not played - the line goes on"
+     },
+     "m1.answer.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: Black should have played d4 instead of the game move Rc8, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +1 to +1 over the moves shown. The game move cost 1.94 pawns."
+     }
+    }
+   },
+   {
+    "id": "m2",
+    "index": 51,
+    "label": "26. Qa8",
+    "mover": "Black",
+    "played": "26... Rxa2",
+    "cost": 1.24,
+    "cost_text": "cost 1.24 pawns",
+    "left_book": false,
+    "best": "Qb7",
+    "asks": true,
+    "correct": [
+     "Qb7"
+    ],
+    "board": "The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.",
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "Q7/p4pkp/3n2p1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 3 25",
+      "intro": "m2.lead.intro",
+      "moves": [
+       {
+        "san": "Qd5",
+        "slot": "m2.lead.1",
+        "ply": 48,
+        "fen_before": "Q7/p4pkp/3n2p1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 3 25"
+       },
+       {
+        "san": "f6",
+        "slot": "m2.lead.2",
+        "ply": 49,
+        "fen_before": "8/p4pkp/3n2p1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 4 25"
+       },
+       {
+        "san": "Qa8",
+        "slot": "m2.lead.3",
+        "ply": 50,
+        "fen_before": "8/p5kp/3n1pp1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 0 26"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 1 26",
+      "instruction": "m2.question",
+      "solution": "Qb7",
+      "accepted": []
+     },
+     {
+      "kind": "show",
+      "fen": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 1 26",
+      "intro": "m2.answer.intro",
+      "moves": [
+       {
+        "san": "Qb7",
+        "slot": "m2.answer.1"
+       },
+       {
+        "san": "Qxb7+",
+        "slot": "m2.answer.2"
+       },
+       {
+        "san": "Nxb7",
+        "slot": "m2.answer.3"
+       },
+       {
+        "san": "Rb1",
+        "slot": "m2.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m2.lead.1": "White plays Qd5: the queen from a8 to d5; the moved piece now attacks: knight on d6; played in the game; afterwards White is clearly better; on the board after it: The black pawn on e5 is attacked by the white queen on d5 and has no defender.",
+     "m2.lead.2": "Black plays f6: the pawn from f7 to f6; played in the game; afterwards White is clearly better; on the board after it: The black pawn on e5 is no longer hanging. Black has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. Black's dark squares are no longer weak.",
+     "m2.lead.3": "White plays Qa8: the queen from d5 to a8; played in the game; afterwards White is clearly better; on the board after it: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.",
+     "m2.lead.intro": "the board before these moves (White to move); material White minus Black is +2 before them and +2 after them",
+     "m2.question": "Black to move. The best move is Qb7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Qb7 Qxb7+ Nxb7 Rb1 Rxa2 Rc1. In the game Rxa2 was played instead; it cost 1.24 pawns and afterwards White is clearly better. On the board: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.. Ask for the move in one sentence, without naming it or its destination square.",
+     "m2.answer.1": "Black should have played Qb7: the queen from b4 to b7; the moved piece now attacks: queen on a8; not played - the best move the game missed",
+     "m2.answer.2": "White would answer Qxb7+: the queen from a8 to b7; it captures a queen; it gives check; the moved piece now attacks: king on g7; not played - the line goes on",
+     "m2.answer.3": "Black would answer Nxb7: the knight from d6 to b7; it captures a queen; not played - the line goes on",
+     "m2.answer.4": "White would answer Rb1: the rook from f1 to b1; not played - the line goes on",
+     "m2.answer.intro": "the answer: Black should have played Qb7 instead of the game move Rxa2, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 1.24 pawns."
+    },
+    "facts": {
+     "m2.lead.1": {
+      "words": "White plays Qd5: the queen from a8 to d5; the moved piece now attacks: knight on d6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d5",
+      "motifs": "The black pawn on e5 is attacked by the white queen on d5 and has no defender.",
+      "text": "White plays Qd5: the queen from a8 to d5; the moved piece now attacks: knight on d6; played in the game; afterwards White is clearly better; on the board after it: The black pawn on e5 is attacked by the white queen on d5 and has no defender."
+     },
+     "m2.lead.2": {
+      "words": "Black plays f6: the pawn from f7 to f6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "f6",
+      "motifs": "The black pawn on e5 is no longer hanging. Black has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. Black's dark squares are no longer weak.",
+      "text": "Black plays f6: the pawn from f7 to f6; played in the game; afterwards White is clearly better; on the board after it: The black pawn on e5 is no longer hanging. Black has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. Black's dark squares are no longer weak."
+     },
+     "m2.lead.3": {
+      "words": "White plays Qa8: the queen from d5 to a8",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a8",
+      "motifs": "The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.",
+      "text": "White plays Qa8: the queen from d5 to a8; played in the game; afterwards White is clearly better; on the board after it: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre."
+     },
+     "m2.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (White to move); material White minus Black is +2 before them and +2 after them"
+     },
+     "m2.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.",
+      "question": true,
+      "names": [
+       "Qb7",
+       "b7"
+      ],
+      "text": "Black to move. The best move is Qb7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Qb7 Qxb7+ Nxb7 Rb1 Rxa2 Rc1. In the game Rxa2 was played instead; it cost 1.24 pawns and afterwards White is clearly better. On the board: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m2.answer.1": {
+      "words": "Black should have played Qb7: the queen from b4 to b7; the moved piece now attacks: queen on a8",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b7",
+      "motifs": "",
+      "text": "Black should have played Qb7: the queen from b4 to b7; the moved piece now attacks: queen on a8; not played - the best move the game missed"
+     },
+     "m2.answer.2": {
+      "words": "White would answer Qxb7+: the queen from a8 to b7; it captures a queen; it gives check; the moved piece now attacks: king on g7",
+      "gain": 9,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b7",
+      "motifs": "",
+      "text": "White would answer Qxb7+: the queen from a8 to b7; it captures a queen; it gives check; the moved piece now attacks: king on g7; not played - the line goes on"
+     },
+     "m2.answer.3": {
+      "words": "Black would answer Nxb7: the knight from d6 to b7; it captures a queen",
+      "gain": 9,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b7",
+      "motifs": "",
+      "text": "Black would answer Nxb7: the knight from d6 to b7; it captures a queen; not played - the line goes on"
+     },
+     "m2.answer.4": {
+      "words": "White would answer Rb1: the rook from f1 to b1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b1",
+      "motifs": "",
+      "text": "White would answer Rb1: the rook from f1 to b1; not played - the line goes on"
+     },
+     "m2.answer.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: Black should have played Qb7 instead of the game move Rxa2, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 1.24 pawns."
+     }
+    }
+   },
+   {
+    "id": "m3",
+    "index": 53,
+    "label": "27. Qxa7+",
+    "mover": "Black",
+    "played": "27... Kh6",
+    "cost": 1.13,
+    "cost_text": "cost 1.13 pawns",
+    "left_book": false,
+    "best": "Nf7",
+    "asks": true,
+    "correct": [
+     "Nf7",
+     "Qb7"
+    ],
+    "board": "The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "8/p5kp/3n1pp1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 0 26",
+      "intro": "m3.lead.intro",
+      "moves": [
+       {
+        "san": "Qa8",
+        "slot": "m3.lead.1",
+        "ply": 50,
+        "fen_before": "8/p5kp/3n1pp1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 0 26"
+       },
+       {
+        "san": "Rxa2",
+        "slot": "m3.lead.2",
+        "ply": 51,
+        "fen_before": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 1 26"
+       },
+       {
+        "san": "Qxa7+",
+        "slot": "m3.lead.3",
+        "ply": 52,
+        "fen_before": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 0 27"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+      "instruction": "m3.question",
+      "solution": "Nf7",
+      "accepted": [
+       "Qb7"
+      ]
+     },
+     {
+      "kind": "show",
+      "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+      "intro": "m3.answer.intro",
+      "moves": [
+       {
+        "san": "Nf7",
+        "slot": "m3.answer.1"
+       },
+       {
+        "san": "Qc7",
+        "slot": "m3.answer.2"
+       },
+       {
+        "san": "Qd6",
+        "slot": "m3.answer.3"
+       },
+       {
+        "san": "Qc4",
+        "slot": "m3.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m3.lead.1": "White plays Qa8: the queen from d5 to a8; played in the game; afterwards White is clearly better; on the board after it: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.",
+     "m3.lead.2": "Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is clearly better; on the board after it: The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it.",
+     "m3.lead.3": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+     "m3.lead.intro": "the board before these moves (White to move); material White minus Black is +2 before them and +2 after them",
+     "m3.question": "Black to move. The best move is Nf7, and afterwards White is winning. Also counted correct: Qb7. What follows the best move: Nf7 Qc7 Qd6 Qc4 Qe7 Rb1. In the game Kh6 was played instead; it cost 1.13 pawns and afterwards White is winning. On the board: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.. Ask for the move in one sentence, without naming it or its destination square.",
+     "m3.answer.1": "Black should have played Nf7: the knight from d6 to f7; not played - the best move the game missed",
+     "m3.answer.2": "White would answer Qc7: the queen from a7 to c7; the moved piece now attacks: knight on f7; pinned to their king afterwards: f7; not played - the line goes on",
+     "m3.answer.3": "Black would answer Qd6: the queen from b4 to d6; the moved piece now attacks: queen on c7; not played - the line goes on",
+     "m3.answer.4": "White would answer Qc4: the queen from c7 to c4; the moved piece now attacks: knight on f7; not played - the line goes on",
+     "m3.answer.intro": "the answer: Black should have played Nf7 instead of the game move Kh6, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 1.13 pawns."
+    },
+    "facts": {
+     "m3.lead.1": {
+      "words": "White plays Qa8: the queen from d5 to a8",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a8",
+      "motifs": "The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.",
+      "text": "White plays Qa8: the queen from d5 to a8; played in the game; afterwards White is clearly better; on the board after it: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre."
+     },
+     "m3.lead.2": {
+      "words": "Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a2",
+      "motifs": "The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it.",
+      "text": "Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is clearly better; on the board after it: The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it."
+     },
+     "m3.lead.3": {
+      "words": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a7",
+      "motifs": "The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+      "text": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it."
+     },
+     "m3.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (White to move); material White minus Black is +2 before them and +2 after them"
+     },
+     "m3.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+      "question": true,
+      "names": [
+       "Nf7",
+       "f7"
+      ],
+      "text": "Black to move. The best move is Nf7, and afterwards White is winning. Also counted correct: Qb7. What follows the best move: Nf7 Qc7 Qd6 Qc4 Qe7 Rb1. In the game Kh6 was played instead; it cost 1.13 pawns and afterwards White is winning. On the board: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m3.answer.1": {
+      "words": "Black should have played Nf7: the knight from d6 to f7",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "f7",
+      "motifs": "",
+      "text": "Black should have played Nf7: the knight from d6 to f7; not played - the best move the game missed"
+     },
+     "m3.answer.2": {
+      "words": "White would answer Qc7: the queen from a7 to c7; the moved piece now attacks: knight on f7; pinned to their king afterwards: f7",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "c7",
+      "motifs": "",
+      "text": "White would answer Qc7: the queen from a7 to c7; the moved piece now attacks: knight on f7; pinned to their king afterwards: f7; not played - the line goes on"
+     },
+     "m3.answer.3": {
+      "words": "Black would answer Qd6: the queen from b4 to d6; the moved piece now attacks: queen on c7",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d6",
+      "motifs": "",
+      "text": "Black would answer Qd6: the queen from b4 to d6; the moved piece now attacks: queen on c7; not played - the line goes on"
+     },
+     "m3.answer.4": {
+      "words": "White would answer Qc4: the queen from c7 to c4; the moved piece now attacks: knight on f7",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c4",
+      "motifs": "",
+      "text": "White would answer Qc4: the queen from c7 to c4; the moved piece now attacks: knight on f7; not played - the line goes on"
+     },
+     "m3.answer.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: Black should have played Nf7 instead of the game move Kh6, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 1.13 pawns."
+     }
+    }
+   },
+   {
+    "id": "m4",
+    "index": 54,
+    "label": "27... Kh6",
+    "mover": "White",
+    "played": "28. Rc1",
+    "cost": 4.18,
+    "cost_text": "cost 4.18 pawns",
+    "left_book": false,
+    "best": "Qe7",
+    "asks": true,
+    "correct": [
+     "Qe7"
+    ],
+    "board": "The black king on g7 is no longer skewered.",
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 1 26",
+      "intro": "m4.lead.intro",
+      "moves": [
+       {
+        "san": "Rxa2",
+        "slot": "m4.lead.1",
+        "ply": 51,
+        "fen_before": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/P1r2PP1/5RK1 b - - 1 26"
+       },
+       {
+        "san": "Qxa7+",
+        "slot": "m4.lead.2",
+        "ply": 52,
+        "fen_before": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 0 27"
+       },
+       {
+        "san": "Kh6",
+        "slot": "m4.lead.3",
+        "ply": 53,
+        "fen_before": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+      "instruction": "m4.question",
+      "solution": "Qe7",
+      "accepted": []
+     },
+     {
+      "kind": "show",
+      "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+      "intro": "m4.answer.intro",
+      "moves": [
+       {
+        "san": "Qe7",
+        "slot": "m4.answer.1"
+       },
+       {
+        "san": "f5",
+        "slot": "m4.answer.2"
+       },
+       {
+        "san": "Qf8+",
+        "slot": "m4.answer.3"
+       },
+       {
+        "san": "Kh5",
+        "slot": "m4.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m4.lead.1": "Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is clearly better; on the board after it: The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it.",
+     "m4.lead.2": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+     "m4.lead.3": "Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered.",
+     "m4.lead.intro": "the board before these moves (Black to move); material White minus Black is +2 before them and +2 after them",
+     "m4.question": "White to move. The best move is Qe7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qe7 f5 Qf8+ Kh5 Qg7 Qb7. In the game Rc1 was played instead; it cost 4.18 pawns and afterwards about even. On the board: The black king on g7 is no longer skewered.. Ask for the move in one sentence, without naming it or its destination square.",
+     "m4.answer.1": "White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6; not played - the best move the game missed",
+     "m4.answer.2": "Black would answer f5: the pawn from f6 to f5; not played - the line goes on",
+     "m4.answer.3": "White would answer Qf8+: the queen from e7 to f8; it gives check; the moved piece now attacks: knight on d6, king on h6; not played - the line goes on",
+     "m4.answer.4": "Black would answer Kh5: the king from h6 to h5; not played - the line goes on",
+     "m4.answer.intro": "the answer: White should have played Qe7 instead of the game move Rc1, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 4.18 pawns."
+    },
+    "facts": {
+     "m4.lead.1": {
+      "words": "Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a2",
+      "motifs": "The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it.",
+      "text": "Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is clearly better; on the board after it: The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it."
+     },
+     "m4.lead.2": {
+      "words": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a7",
+      "motifs": "The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+      "text": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it."
+     },
+     "m4.lead.3": {
+      "words": "Black plays Kh6: the king from g7 to h6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h6",
+      "motifs": "The black king on g7 is no longer skewered.",
+      "text": "Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered."
+     },
+     "m4.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (Black to move); material White minus Black is +2 before them and +2 after them"
+     },
+     "m4.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "The black king on g7 is no longer skewered.",
+      "question": true,
+      "names": [
+       "Qe7",
+       "e7"
+      ],
+      "text": "White to move. The best move is Qe7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qe7 f5 Qf8+ Kh5 Qg7 Qb7. In the game Rc1 was played instead; it cost 4.18 pawns and afterwards about even. On the board: The black king on g7 is no longer skewered.. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m4.answer.1": {
+      "words": "White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "e7",
+      "motifs": "",
+      "text": "White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6; not played - the best move the game missed"
+     },
+     "m4.answer.2": {
+      "words": "Black would answer f5: the pawn from f6 to f5",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "f5",
+      "motifs": "",
+      "text": "Black would answer f5: the pawn from f6 to f5; not played - the line goes on"
+     },
+     "m4.answer.3": {
+      "words": "White would answer Qf8+: the queen from e7 to f8; it gives check; the moved piece now attacks: knight on d6, king on h6",
+      "gain": 0,
+      "mate": false,
+      "fork": true,
+      "pin": false,
+      "to": "f8",
+      "motifs": "",
+      "text": "White would answer Qf8+: the queen from e7 to f8; it gives check; the moved piece now attacks: knight on d6, king on h6; not played - the line goes on"
+     },
+     "m4.answer.4": {
+      "words": "Black would answer Kh5: the king from h6 to h5",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h5",
+      "motifs": "",
+      "text": "Black would answer Kh5: the king from h6 to h5; not played - the line goes on"
+     },
+     "m4.answer.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: White should have played Qe7 instead of the game move Rc1, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 4.18 pawns."
+     }
+    }
+   },
+   {
+    "id": "m5",
+    "index": 55,
+    "label": "28. Rc1",
+    "mover": "Black",
+    "played": "28... Qxb3",
+    "cost": 3.01,
+    "cost_text": "cost 3.01 pawns",
+    "left_book": false,
+    "best": "Rxf2",
+    "asks": true,
+    "correct": [
+     "Rxf2"
+    ],
+    "board": "The white rook on c1 stands on the open c-file.",
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 0 27",
+      "intro": "m5.lead.intro",
+      "moves": [
+       {
+        "san": "Qxa7+",
+        "slot": "m5.lead.1",
+        "ply": 52,
+        "fen_before": "Q7/p5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 0 27"
+       },
+       {
+        "san": "Kh6",
+        "slot": "m5.lead.2",
+        "ply": 53,
+        "fen_before": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27"
+       },
+       {
+        "san": "Rc1",
+        "slot": "m5.lead.3",
+        "ply": 54,
+        "fen_before": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/2R3K1 b - - 2 28",
+      "instruction": "m5.question",
+      "solution": "Rxf2",
+      "accepted": []
+     },
+     {
+      "kind": "show",
+      "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/2R3K1 b - - 2 28",
+      "intro": "m5.answer.intro",
+      "moves": [
+       {
+        "san": "Rxf2",
+        "slot": "m5.answer.1"
+       },
+       {
+        "san": "Nc3",
+        "slot": "m5.answer.2"
+       },
+       {
+        "san": "Rd2",
+        "slot": "m5.answer.3"
+       },
+       {
+        "san": "Qa4",
+        "slot": "m5.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m5.lead.1": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+     "m5.lead.2": "Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered.",
+     "m5.lead.3": "White plays Rc1: the rook from f1 to c1; played in the game; afterwards about even; on the board after it: The white rook on c1 stands on the open c-file.",
+     "m5.lead.intro": "the board before these moves (White to move); material White minus Black is +1 before them and +2 after them",
+     "m5.question": "Black to move. The best move is Rxf2, and afterwards about even. Also counted correct: nothing else. What follows the best move: Rxf2 Nc3 Rd2 Qa4 Qb7 Qh4+. In the game Qxb3 was played instead; it cost 3.01 pawns and afterwards White is winning. On the board: The white rook on c1 stands on the open c-file.. Ask for the move in one sentence, without naming it or its destination square.",
+     "m5.answer.1": "Black should have played Rxf2: the rook from a2 to f2; it captures a pawn; not played - the best move the game missed",
+     "m5.answer.2": "White would answer Nc3: the knight from a4 to c3; not played - the line goes on",
+     "m5.answer.3": "Black would answer Rd2: the rook from f2 to d2; not played - the line goes on",
+     "m5.answer.4": "White would answer Qa4: the queen from a7 to a4; the moved piece now attacks: queen on b4; not played - the line goes on",
+     "m5.answer.intro": "the answer: Black should have played Rxf2 instead of the game move Qxb3, which is what actually happened. At the end of the best line about even; material White minus Black goes from +2 to +1 over the moves shown. The game move cost 3.01 pawns."
+    },
+    "facts": {
+     "m5.lead.1": {
+      "words": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a7",
+      "motifs": "The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.",
+      "text": "White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it."
+     },
+     "m5.lead.2": {
+      "words": "Black plays Kh6: the king from g7 to h6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h6",
+      "motifs": "The black king on g7 is no longer skewered.",
+      "text": "Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered."
+     },
+     "m5.lead.3": {
+      "words": "White plays Rc1: the rook from f1 to c1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c1",
+      "motifs": "The white rook on c1 stands on the open c-file.",
+      "text": "White plays Rc1: the rook from f1 to c1; played in the game; afterwards about even; on the board after it: The white rook on c1 stands on the open c-file."
+     },
+     "m5.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (White to move); material White minus Black is +1 before them and +2 after them"
+     },
+     "m5.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "The white rook on c1 stands on the open c-file.",
+      "question": true,
+      "names": [
+       "Rxf2",
+       "f2"
+      ],
+      "text": "Black to move. The best move is Rxf2, and afterwards about even. Also counted correct: nothing else. What follows the best move: Rxf2 Nc3 Rd2 Qa4 Qb7 Qh4+. In the game Qxb3 was played instead; it cost 3.01 pawns and afterwards White is winning. On the board: The white rook on c1 stands on the open c-file.. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m5.answer.1": {
+      "words": "Black should have played Rxf2: the rook from a2 to f2; it captures a pawn",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "f2",
+      "motifs": "",
+      "text": "Black should have played Rxf2: the rook from a2 to f2; it captures a pawn; not played - the best move the game missed"
+     },
+     "m5.answer.2": {
+      "words": "White would answer Nc3: the knight from a4 to c3",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c3",
+      "motifs": "",
+      "text": "White would answer Nc3: the knight from a4 to c3; not played - the line goes on"
+     },
+     "m5.answer.3": {
+      "words": "Black would answer Rd2: the rook from f2 to d2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d2",
+      "motifs": "",
+      "text": "Black would answer Rd2: the rook from f2 to d2; not played - the line goes on"
+     },
+     "m5.answer.4": {
+      "words": "White would answer Qa4: the queen from a7 to a4; the moved piece now attacks: queen on b4",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a4",
+      "motifs": "",
+      "text": "White would answer Qa4: the queen from a7 to a4; the moved piece now attacks: queen on b4; not played - the line goes on"
+     },
+     "m5.answer.intro": {
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: Black should have played Rxf2 instead of the game move Qxb3, which is what actually happened. At the end of the best line about even; material White minus Black goes from +2 to +1 over the moves shown. The game move cost 3.01 pawns."
+     }
+    }
+   },
+   {
+    "id": "m6",
+    "index": 56,
+    "label": "28... Qxb3",
+    "mover": "White",
+    "played": "29. Rc7",
+    "cost": 3.14,
+    "cost_text": "cost 3.14 pawns",
+    "left_book": false,
+    "best": "Qe7",
+    "asks": true,
+    "correct": [
+     "Qe7"
+    ],
+    "board": "The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.",
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+      "intro": "m6.lead.intro",
+      "moves": [
+       {
+        "san": "Kh6",
+        "slot": "m6.lead.1",
+        "ply": 53,
+        "fen_before": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27"
+       },
+       {
+        "san": "Rc1",
+        "slot": "m6.lead.2",
+        "ply": 54,
+        "fen_before": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28"
+       },
+       {
+        "san": "Qxb3",
+        "slot": "m6.lead.3",
+        "ply": 55,
+        "fen_before": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/2R3K1 b - - 2 28"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "8/Q6p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/2R3K1 w - - 0 29",
+      "instruction": "m6.question",
+      "solution": "Qe7",
+      "accepted": []
+     },
+     {
+      "kind": "show",
+      "fen": "8/Q6p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/2R3K1 w - - 0 29",
+      "intro": "m6.answer.intro",
+      "moves": [
+       {
+        "san": "Qe7",
+        "slot": "m6.answer.1"
+       },
+       {
+        "san": "Rxa4",
+        "slot": "m6.answer.2"
+       },
+       {
+        "san": "Qxd6",
+        "slot": "m6.answer.3"
+       },
+       {
+        "san": "Qb2",
+        "slot": "m6.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m6.lead.1": "Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered.",
+     "m6.lead.2": "White plays Rc1: the rook from f1 to c1; played in the game; afterwards about even; on the board after it: The white rook on c1 stands on the open c-file.",
+     "m6.lead.3": "Black plays Qxb3: the queen from b4 to b3; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is winning; on the board after it: The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.",
+     "m6.lead.intro": "the board before these moves (Black to move); material White minus Black is +2 before them and +1 after them",
+     "m6.question": "White to move. The best move is Qe7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qe7 Rxa4 Qxd6 Qb2 Rf1 f5. In the game Rc7 was played instead; it cost 3.14 pawns and afterwards about even. On the board: The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.. Ask for the move in one sentence, without naming it or its destination square.",
+     "m6.answer.1": "White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6; not played - the best move the game missed",
+     "m6.answer.2": "Black would answer Rxa4: the rook from a2 to a4; it captures a knight; not played - the line goes on",
+     "m6.answer.3": "White would answer Qxd6: the queen from e7 to d6; it captures a knight; not played - the line goes on",
+     "m6.answer.4": "Black would answer Qb2: the queen from b3 to b2; the moved piece now attacks: rook on c1; not played - the line goes on",
+     "m6.answer.intro": "the answer: White should have played Qe7 instead of the game move Rc7, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +1 to +1 over the moves shown. The game move cost 3.14 pawns."
+    },
+    "facts": {
+     "m6.lead.1": {
+      "words": "Black plays Kh6: the king from g7 to h6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h6",
+      "motifs": "The black king on g7 is no longer skewered.",
+      "text": "Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered."
+     },
+     "m6.lead.2": {
+      "words": "White plays Rc1: the rook from f1 to c1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c1",
+      "motifs": "The white rook on c1 stands on the open c-file.",
+      "text": "White plays Rc1: the rook from f1 to c1; played in the game; afterwards about even; on the board after it: The white rook on c1 stands on the open c-file."
+     },
+     "m6.lead.3": {
+      "words": "Black plays Qxb3: the queen from b4 to b3; it captures a pawn; the moved piece now attacks: knight on a4",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b3",
+      "motifs": "The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.",
+      "text": "Black plays Qxb3: the queen from b4 to b3; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is winning; on the board after it: The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn."
+     },
+     "m6.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (Black to move); material White minus Black is +2 before them and +1 after them"
+     },
+     "m6.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.",
+      "question": true,
+      "names": [
+       "Qe7",
+       "e7"
+      ],
+      "text": "White to move. The best move is Qe7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qe7 Rxa4 Qxd6 Qb2 Rf1 f5. In the game Rc7 was played instead; it cost 3.14 pawns and afterwards about even. On the board: The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m6.answer.1": {
+      "words": "White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "e7",
+      "motifs": "",
+      "text": "White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6; not played - the best move the game missed"
+     },
+     "m6.answer.2": {
+      "words": "Black would answer Rxa4: the rook from a2 to a4; it captures a knight",
+      "gain": 3,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a4",
+      "motifs": "",
+      "text": "Black would answer Rxa4: the rook from a2 to a4; it captures a knight; not played - the line goes on"
+     },
+     "m6.answer.3": {
+      "words": "White would answer Qxd6: the queen from e7 to d6; it captures a knight",
+      "gain": 3,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d6",
+      "motifs": "",
+      "text": "White would answer Qxd6: the queen from e7 to d6; it captures a knight; not played - the line goes on"
+     },
+     "m6.answer.4": {
+      "words": "Black would answer Qb2: the queen from b3 to b2; the moved piece now attacks: rook on c1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b2",
+      "motifs": "",
+      "text": "Black would answer Qb2: the queen from b3 to b2; the moved piece now attacks: rook on c1; not played - the line goes on"
+     },
+     "m6.answer.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: White should have played Qe7 instead of the game move Rc7, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +1 to +1 over the moves shown. The game move cost 3.14 pawns."
+     }
+    }
+   },
+   {
+    "id": "m7",
+    "index": 59,
+    "label": "30. Kh2",
+    "mover": "Black",
+    "played": "30... Qb2",
+    "cost": "mate",
+    "cost_text": "allowed a forced mate",
+    "left_book": false,
+    "best": "Rxf2",
+    "asks": true,
+    "correct": [
+     "Rxf2"
+    ],
+    "board": "The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.",
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "8/Q6p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/2R3K1 w - - 0 29",
+      "intro": "m7.lead.intro",
+      "moves": [
+       {
+        "san": "Rc7",
+        "slot": "m7.lead.1",
+        "ply": 56,
+        "fen_before": "8/Q6p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/2R3K1 w - - 0 29"
+       },
+       {
+        "san": "Qb1+",
+        "slot": "m7.lead.2",
+        "ply": 57,
+        "fen_before": "8/Q1R4p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/6K1 b - - 1 29"
+       },
+       {
+        "san": "Kh2",
+        "slot": "m7.lead.3",
+        "ply": 58,
+        "fen_before": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PP1/1q4K1 w - - 2 30"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+      "instruction": "m7.question",
+      "solution": "Rxf2",
+      "accepted": []
+     },
+     {
+      "kind": "show",
+      "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+      "intro": "m7.answer.intro",
+      "moves": [
+       {
+        "san": "Rxf2",
+        "slot": "m7.answer.1"
+       },
+       {
+        "san": "Rxh7+",
+        "slot": "m7.answer.2"
+       },
+       {
+        "san": "Kg5",
+        "slot": "m7.answer.3"
+       },
+       {
+        "san": "Nc3",
+        "slot": "m7.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m7.lead.1": "White plays Rc7: the rook from c1 to c7; played in the game; afterwards about even",
+     "m7.lead.2": "Black plays Qb1+: the queen from b3 to b1; it gives check; the moved piece now attacks: king on g1; played in the game; afterwards about even; on the board after it: The black queen on b1 forks the white king on g1 and the pawn on d3.",
+     "m7.lead.3": "White plays Kh2: the king from g1 to h2; played in the game; afterwards about even; on the board after it: The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.",
+     "m7.lead.intro": "the board before these moves (White to move); material White minus Black is +1 before them and +1 after them",
+     "m7.question": "Black to move. The best move is Rxf2, and afterwards about even. Also counted correct: nothing else. What follows the best move: Rxf2 Rxh7+ Kg5 Nc3 Qc2 Qa8. In the game Qb2 was played instead; it allowed a forced mate and afterwards White mates in 4. On the board: The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.. Ask for the move in one sentence, without naming it or its destination square.",
+     "m7.answer.1": "Black should have played Rxf2: the rook from a2 to f2; it captures a pawn; pinned to their king afterwards: g2; not played - the best move the game missed",
+     "m7.answer.2": "White would answer Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6; not played - the line goes on",
+     "m7.answer.3": "Black would answer Kg5: the king from h6 to g5; pinned to their king afterwards: g2; not played - the line goes on",
+     "m7.answer.4": "White would answer Nc3: the knight from a4 to c3; the moved piece now attacks: queen on b1; not played - the line goes on",
+     "m7.answer.intro": "the answer: Black should have played Rxf2 instead of the game move Qb2, which is what actually happened. At the end of the best line about even; material White minus Black goes from +1 to +1 over the moves shown. The game move allowed a forced mate."
+    },
+    "facts": {
+     "m7.lead.1": {
+      "words": "White plays Rc7: the rook from c1 to c7",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c7",
+      "motifs": "",
+      "text": "White plays Rc7: the rook from c1 to c7; played in the game; afterwards about even"
+     },
+     "m7.lead.2": {
+      "words": "Black plays Qb1+: the queen from b3 to b1; it gives check; the moved piece now attacks: king on g1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b1",
+      "motifs": "The black queen on b1 forks the white king on g1 and the pawn on d3.",
+      "text": "Black plays Qb1+: the queen from b3 to b1; it gives check; the moved piece now attacks: king on g1; played in the game; afterwards about even; on the board after it: The black queen on b1 forks the white king on g1 and the pawn on d3."
+     },
+     "m7.lead.3": {
+      "words": "White plays Kh2: the king from g1 to h2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h2",
+      "motifs": "The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.",
+      "text": "White plays Kh2: the king from g1 to h2; played in the game; afterwards about even; on the board after it: The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over."
+     },
+     "m7.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (White to move); material White minus Black is +1 before them and +1 after them"
+     },
+     "m7.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.",
+      "question": true,
+      "names": [
+       "Rxf2",
+       "f2"
+      ],
+      "text": "Black to move. The best move is Rxf2, and afterwards about even. Also counted correct: nothing else. What follows the best move: Rxf2 Rxh7+ Kg5 Nc3 Qc2 Qa8. In the game Qb2 was played instead; it allowed a forced mate and afterwards White mates in 4. On the board: The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m7.answer.1": {
+      "words": "Black should have played Rxf2: the rook from a2 to f2; it captures a pawn; pinned to their king afterwards: g2",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "f2",
+      "motifs": "",
+      "text": "Black should have played Rxf2: the rook from a2 to f2; it captures a pawn; pinned to their king afterwards: g2; not played - the best move the game missed"
+     },
+     "m7.answer.2": {
+      "words": "White would answer Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h7",
+      "motifs": "",
+      "text": "White would answer Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6; not played - the line goes on"
+     },
+     "m7.answer.3": {
+      "words": "Black would answer Kg5: the king from h6 to g5; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "g5",
+      "motifs": "",
+      "text": "Black would answer Kg5: the king from h6 to g5; pinned to their king afterwards: g2; not played - the line goes on"
+     },
+     "m7.answer.4": {
+      "words": "White would answer Nc3: the knight from a4 to c3; the moved piece now attacks: queen on b1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c3",
+      "motifs": "",
+      "text": "White would answer Nc3: the knight from a4 to c3; the moved piece now attacks: queen on b1; not played - the line goes on"
+     },
+     "m7.answer.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: Black should have played Rxf2 instead of the game move Qb2, which is what actually happened. At the end of the best line about even; material White minus Black goes from +1 to +1 over the moves shown. The game move allowed a forced mate."
+     }
+    }
+   },
+   {
+    "id": "m8",
+    "index": 62,
+    "label": "31... Kg5",
+    "mover": "White",
+    "played": "32. Nxb2",
+    "cost": "mate",
+    "cost_text": "gave up a forced mate",
+    "left_book": false,
+    "best": "h4+",
+    "asks": true,
+    "correct": [
+     "h4+"
+    ],
+    "board": null,
+    "parts": [
+     {
+      "kind": "show",
+      "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+      "intro": "m8.lead.intro",
+      "moves": [
+       {
+        "san": "Qb2",
+        "slot": "m8.lead.1",
+        "ply": 59,
+        "fen_before": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30"
+       },
+       {
+        "san": "Rxh7+",
+        "slot": "m8.lead.2",
+        "ply": 60,
+        "fen_before": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/rq3PPK/8 w - - 4 31"
+       },
+       {
+        "san": "Kg5",
+        "slot": "m8.lead.3",
+        "ply": 61,
+        "fen_before": "8/Q6R/3n1ppk/4p3/N7/3PP2P/rq3PPK/8 b - - 0 31"
+       }
+      ],
+      "lead": true
+     },
+     {
+      "kind": "ask_move",
+      "fen": "8/Q6R/3n1pp1/4p1k1/N7/3PP2P/rq3PPK/8 w - - 1 32",
+      "instruction": "m8.question",
+      "solution": "h4+",
+      "accepted": []
+     },
+     {
+      "kind": "show",
+      "fen": "8/Q6R/3n1pp1/4p1k1/N7/3PP2P/rq3PPK/8 w - - 1 32",
+      "intro": "m8.answer.intro",
+      "moves": [
+       {
+        "san": "h4+",
+        "slot": "m8.answer.1"
+       },
+       {
+        "san": "Kg4",
+        "slot": "m8.answer.2"
+       },
+       {
+        "san": "f3+",
+        "slot": "m8.answer.3"
+       },
+       {
+        "san": "Kf5",
+        "slot": "m8.answer.4"
+       }
+      ]
+     }
+    ],
+    "slots": {
+     "m8.lead.1": "Black plays Qb2: the queen from b1 to b2; played in the game; afterwards White mates in 4; on the board after it: The black queen on b2 is attacked by the white knight on a4, a cheaper piece.",
+     "m8.lead.2": "White plays Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6; played in the game; afterwards White mates in 3; on the board after it: The white queen on a7 is overloaded: it alone defends the rook on h7 and the knight on a4.",
+     "m8.lead.3": "Black plays Kg5: the king from h6 to g5; played in the game; afterwards White mates in 3",
+     "m8.lead.intro": "the board before these moves (Black to move); material White minus Black is +1 before them and +2 after them",
+     "m8.question": "White to move. The best move is h4+, and afterwards White mates in 3. Also counted correct: nothing else. What follows the best move: h4+ Kg4 f3+ Kf5 Qd7#. In the game Nxb2 was played instead; it gave up a forced mate and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.",
+     "m8.answer.1": "White should have played h4+: the pawn from h3 to h4; it gives check; the moved piece now attacks: king on g5; not played - the best move the game missed",
+     "m8.answer.2": "Black would answer Kg4: the king from g5 to g4; not played - the line goes on",
+     "m8.answer.3": "White would answer f3+: the pawn from f2 to f3; it gives check; the moved piece now attacks: king on g4; not played - the line goes on",
+     "m8.answer.4": "Black would answer Kf5: the king from g4 to f5; pinned to their king afterwards: g2; not played - the line goes on",
+     "m8.answer.intro": "the answer: White should have played h4+ instead of the game move Nxb2, which is what actually happened. At the end of the best line White mates in 3; material White minus Black goes from +2 to +2 over the moves shown. The game move gave up a forced mate."
+    },
+    "facts": {
+     "m8.lead.1": {
+      "words": "Black plays Qb2: the queen from b1 to b2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b2",
+      "motifs": "The black queen on b2 is attacked by the white knight on a4, a cheaper piece.",
+      "text": "Black plays Qb2: the queen from b1 to b2; played in the game; afterwards White mates in 4; on the board after it: The black queen on b2 is attacked by the white knight on a4, a cheaper piece."
+     },
+     "m8.lead.2": {
+      "words": "White plays Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h7",
+      "motifs": "The white queen on a7 is overloaded: it alone defends the rook on h7 and the knight on a4.",
+      "text": "White plays Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6; played in the game; afterwards White mates in 3; on the board after it: The white queen on a7 is overloaded: it alone defends the rook on h7 and the knight on a4."
+     },
+     "m8.lead.3": {
+      "words": "Black plays Kg5: the king from h6 to g5",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g5",
+      "motifs": "",
+      "text": "Black plays Kg5: the king from h6 to g5; played in the game; afterwards White mates in 3"
+     },
+     "m8.lead.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the board before these moves (Black to move); material White minus Black is +1 before them and +2 after them"
+     },
+     "m8.question": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "question": true,
+      "names": [
+       "h4+",
+       "h4"
+      ],
+      "text": "White to move. The best move is h4+, and afterwards White mates in 3. Also counted correct: nothing else. What follows the best move: h4+ Kg4 f3+ Kf5 Qd7#. In the game Nxb2 was played instead; it gave up a forced mate and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square."
+     },
+     "m8.answer.1": {
+      "words": "White should have played h4+: the pawn from h3 to h4; it gives check; the moved piece now attacks: king on g5",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h4",
+      "motifs": "",
+      "text": "White should have played h4+: the pawn from h3 to h4; it gives check; the moved piece now attacks: king on g5; not played - the best move the game missed"
+     },
+     "m8.answer.2": {
+      "words": "Black would answer Kg4: the king from g5 to g4",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g4",
+      "motifs": "",
+      "text": "Black would answer Kg4: the king from g5 to g4; not played - the line goes on"
+     },
+     "m8.answer.3": {
+      "words": "White would answer f3+: the pawn from f2 to f3; it gives check; the moved piece now attacks: king on g4",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "f3",
+      "motifs": "",
+      "text": "White would answer f3+: the pawn from f2 to f3; it gives check; the moved piece now attacks: king on g4; not played - the line goes on"
+     },
+     "m8.answer.4": {
+      "words": "Black would answer Kf5: the king from g4 to f5; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "f5",
+      "motifs": "",
+      "text": "Black would answer Kf5: the king from g4 to f5; pinned to their king afterwards: g2; not played - the line goes on"
+     },
+     "m8.answer.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the answer: White should have played h4+ instead of the game move Nxb2, which is what actually happened. At the end of the best line White mates in 3; material White minus Black goes from +2 to +2 over the moves shown. The game move gave up a forced mate."
+     }
+    }
+   }
+  ],
+  "prompt": "# Write the words for a chess tutorial\n\nA trainer's game is being turned into a tutorial that a student of 13 or older\nwalks through alone, on a board, with every sentence read aloud. The student plays\nin a club and knows how the pieces move and what a fork and a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move, every question and every correct answer.\nNone of it can change. You do two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep „played\" for what was played.** A slot that says „not played\" is a move\n  the game did not contain, and the facts already say „should have played\" or\n  „would answer\" for it - keep that voice. A student must be able to tell what\n  happened from what should have without doing arithmetic.\n- **A question never names a move in notation** - not its answer, and not the\n  move played in the game either. Naming the rejected move eliminates a\n  candidate and tells the student what not to look at, which is half the\n  exercise. Say what is on the board, not what was played.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"m2.question\": \"...\", \"...\": \"...\"}}\n\n## The game\n\nThe opening is the English Opening: Great Snake Variation. 4. b3 left the masters database: 13 master games had reached that position and not one played it.\n\n```\n[Event \"Analysis Studio Session\"]\n[Site \"Chess trainer\"]\n[Date \"2026.09.13\"]\n[Round \"1\"]\n[White \"Player\"]\n[Black \"Analysis Engine\"]\n[Result \"*\"]\n\n1. c4 g6 2. Nc3 Bg7 3. Nf3 c6 4. b3 d5 5. cxd5 cxd5 6. Bb2 Nc6 7. e3 Nf6 8. Bb5\nO-O 9. O-O Bg4 10. h3 Bd7 11. Bxc6 bxc6 12. Na4 Re8 13. Rc1 Ne4 14. d3 Bxb2 15.\nNxb2 Nd6 16. Na4 Qa5 17. Nd4 Rac8 18. Rc5 Qb4 19. Qc2 e5 20. Nxc6 Bxc6 21. Rxc6\nRxc6 22. Qxc6 Rc8 23. Qxd5 Rc2 24. Qa8+ Kg7 25. Qd5 f6 26. Qa8 Rxa2 27. Qxa7+\nKh6 28. Rc1 Qxb3 29. Rc7 Qb1+ 30. Kh2 Qb2 31. Rxh7+ Kg5 32. Nxb2 Rxa7 33. h4+\nKf5 34. Rxa7 *\n```\n\n## The moments\n\n### m1 - at 22. Qxc6, Black to move\nIn the game 22... Rc8 was played and it cost 1.94 pawns; the best move was d4. There is a question here; correct answers: d4.\nOn the board: The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the board before these moves (White to move); material White minus Black is -2 before them and +1 after them\n- `m1.lead.1`: White plays Rxc6: the rook from c5 to c6; it captures a bishop; the moved piece now attacks: knight on d6, rook on c8; played in the game; afterwards White is slightly better; on the board after it: The black rook on c8 pins the white rook on c6 to the queen on c2. The white knight on a4 is no longer hanging.\n- `m1.lead.2`: Black plays Rxc6: the rook from c8 to c6; it captures a rook; the moved piece now attacks: queen on c2; played in the game; afterwards White is slightly better; on the board after it: The white queen on c2 is attacked by the black rook on c6 and has no defender. The black rook on c6 is attacked by the white queen on c2 and has no defender. The white rook on c6 no longer stands on the open c-file.\n- `m1.lead.3`: White plays Qxc6: the queen from c2 to c6; it captures a rook; the moved piece now attacks: knight on d6, rook on e8; played in the game; afterwards White is slightly better; on the board after it: The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.\n- `m1.question`: Black to move. The best move is d4, and afterwards White is slightly better. Also counted correct: nothing else. What follows the best move: d4 e4 Kg7 Qd5 Nb5 Nc5. In the game Rc8 was played instead; it cost 1.94 pawns and afterwards White is winning. On the board: The black knight on d6 is the only defender of the rook on e8, and it is attacked by the white queen on c6. The white queen on c2 is no longer hanging. The white knight on a4 no longer depends on one attacked defender. The black rook on c6 no longer stands on the open c-file.. Ask for the move in one sentence, without naming it or its destination square.\n- `m1.answer.intro`: the answer: Black should have played d4 instead of the game move Rc8, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +1 to +1 over the moves shown. The game move cost 1.94 pawns.\n- `m1.answer.1`: Black should have played d4: the pawn from d5 to d4; not played - the best move the game missed\n- `m1.answer.2`: White would answer e4: the pawn from e3 to e4; not played - the line goes on\n- `m1.answer.3`: Black would answer Kg7: the king from g8 to g7; not played - the line goes on\n- `m1.answer.4`: White would answer Qd5: the queen from c6 to d5; the moved piece now attacks: knight on d6; not played - the line goes on\n\n### m2 - at 26. Qa8, Black to move\nIn the game 26... Rxa2 was played and it cost 1.24 pawns; the best move was Qb7. There is a question here; correct answers: Qb7.\nOn the board: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the board before these moves (White to move); material White minus Black is +2 before them and +2 after them\n- `m2.lead.1`: White plays Qd5: the queen from a8 to d5; the moved piece now attacks: knight on d6; played in the game; afterwards White is clearly better; on the board after it: The black pawn on e5 is attacked by the white queen on d5 and has no defender.\n- `m2.lead.2`: Black plays f6: the pawn from f7 to f6; played in the game; afterwards White is clearly better; on the board after it: The black pawn on e5 is no longer hanging. Black has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. Black's dark squares are no longer weak.\n- `m2.lead.3`: White plays Qa8: the queen from d5 to a8; played in the game; afterwards White is clearly better; on the board after it: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.\n- `m2.question`: Black to move. The best move is Qb7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Qb7 Qxb7+ Nxb7 Rb1 Rxa2 Rc1. In the game Rxa2 was played instead; it cost 1.24 pawns and afterwards White is clearly better. On the board: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.. Ask for the move in one sentence, without naming it or its destination square.\n- `m2.answer.intro`: the answer: Black should have played Qb7 instead of the game move Rxa2, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 1.24 pawns.\n- `m2.answer.1`: Black should have played Qb7: the queen from b4 to b7; the moved piece now attacks: queen on a8; not played - the best move the game missed\n- `m2.answer.2`: White would answer Qxb7+: the queen from a8 to b7; it captures a queen; it gives check; the moved piece now attacks: king on g7; not played - the line goes on\n- `m2.answer.3`: Black would answer Nxb7: the knight from d6 to b7; it captures a queen; not played - the line goes on\n- `m2.answer.4`: White would answer Rb1: the rook from f1 to b1; not played - the line goes on\n\n### m3 - at 27. Qxa7+, Black to move\nIn the game 27... Kh6 was played and it cost 1.13 pawns; the best move was Nf7. There is a question here; correct answers: Nf7, Qb7.\nOn the board: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the board before these moves (White to move); material White minus Black is +2 before them and +2 after them\n- `m3.lead.1`: White plays Qa8: the queen from d5 to a8; played in the game; afterwards White is clearly better; on the board after it: The black pawn on a7 is attacked by the white queen on a8 and has no defender. Black's pawns hold more of the centre. Black's pawns no longer hold more of the centre.\n- `m3.lead.2`: Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is clearly better; on the board after it: The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it.\n- `m3.lead.3`: White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.\n- `m3.question`: Black to move. The best move is Nf7, and afterwards White is winning. Also counted correct: Qb7. What follows the best move: Nf7 Qc7 Qd6 Qc4 Qe7 Rb1. In the game Kh6 was played instead; it cost 1.13 pawns and afterwards White is winning. On the board: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.. Ask for the move in one sentence, without naming it or its destination square.\n- `m3.answer.intro`: the answer: Black should have played Nf7 instead of the game move Kh6, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 1.13 pawns.\n- `m3.answer.1`: Black should have played Nf7: the knight from d6 to f7; not played - the best move the game missed\n- `m3.answer.2`: White would answer Qc7: the queen from a7 to c7; the moved piece now attacks: knight on f7; pinned to their king afterwards: f7; not played - the line goes on\n- `m3.answer.3`: Black would answer Qd6: the queen from b4 to d6; the moved piece now attacks: queen on c7; not played - the line goes on\n- `m3.answer.4`: White would answer Qc4: the queen from c7 to c4; the moved piece now attacks: knight on f7; not played - the line goes on\n\n### m4 - at 27... Kh6, White to move\nIn the game 28. Rc1 was played and it cost 4.18 pawns; the best move was Qe7. There is a question here; correct answers: Qe7.\nOn the board: The black king on g7 is no longer skewered.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the board before these moves (Black to move); material White minus Black is +2 before them and +2 after them\n- `m4.lead.1`: Black plays Rxa2: the rook from c2 to a2; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is clearly better; on the board after it: The white pawn on b3 is attacked by the black queen on b4 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is isolated: no pawn on a neighbouring file can defend it.\n- `m4.lead.2`: White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.\n- `m4.lead.3`: Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered.\n- `m4.question`: White to move. The best move is Qe7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qe7 f5 Qf8+ Kh5 Qg7 Qb7. In the game Rc1 was played instead; it cost 4.18 pawns and afterwards about even. On the board: The black king on g7 is no longer skewered.. Ask for the move in one sentence, without naming it or its destination square.\n- `m4.answer.intro`: the answer: White should have played Qe7 instead of the game move Rc1, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +2 to +2 over the moves shown. The game move cost 4.18 pawns.\n- `m4.answer.1`: White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6; not played - the best move the game missed\n- `m4.answer.2`: Black would answer f5: the pawn from f6 to f5; not played - the line goes on\n- `m4.answer.3`: White would answer Qf8+: the queen from e7 to f8; it gives check; the moved piece now attacks: knight on d6, king on h6; not played - the line goes on\n- `m4.answer.4`: Black would answer Kh5: the king from h6 to h5; not played - the line goes on\n\n### m5 - at 28. Rc1, Black to move\nIn the game 28... Qxb3 was played and it cost 3.01 pawns; the best move was Rxf2. There is a question here; correct answers: Rxf2.\nOn the board: The white rook on c1 stands on the open c-file.\n\nSlots, in the order the student meets them:\n- `m5.lead.intro`: the board before these moves (White to move); material White minus Black is +1 before them and +2 after them\n- `m5.lead.1`: White plays Qxa7+: the queen from a8 to a7; it captures a pawn; it gives check; the moved piece now attacks: king on g7; played in the game; afterwards White is winning; on the board after it: The black rook on a2 pins the white knight on a4 to the queen on a7. The white knight on a4 no longer depends on one attacked defender. The white pawn on b3 is a passed pawn: no black pawn can block or capture it.\n- `m5.lead.2`: Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered.\n- `m5.lead.3`: White plays Rc1: the rook from f1 to c1; played in the game; afterwards about even; on the board after it: The white rook on c1 stands on the open c-file.\n- `m5.question`: Black to move. The best move is Rxf2, and afterwards about even. Also counted correct: nothing else. What follows the best move: Rxf2 Nc3 Rd2 Qa4 Qb7 Qh4+. In the game Qxb3 was played instead; it cost 3.01 pawns and afterwards White is winning. On the board: The white rook on c1 stands on the open c-file.. Ask for the move in one sentence, without naming it or its destination square.\n- `m5.answer.intro`: the answer: Black should have played Rxf2 instead of the game move Qxb3, which is what actually happened. At the end of the best line about even; material White minus Black goes from +2 to +1 over the moves shown. The game move cost 3.01 pawns.\n- `m5.answer.1`: Black should have played Rxf2: the rook from a2 to f2; it captures a pawn; not played - the best move the game missed\n- `m5.answer.2`: White would answer Nc3: the knight from a4 to c3; not played - the line goes on\n- `m5.answer.3`: Black would answer Rd2: the rook from f2 to d2; not played - the line goes on\n- `m5.answer.4`: White would answer Qa4: the queen from a7 to a4; the moved piece now attacks: queen on b4; not played - the line goes on\n\n### m6 - at 28... Qxb3, White to move\nIn the game 29. Rc7 was played and it cost 3.14 pawns; the best move was Qe7. There is a question here; correct answers: Qe7.\nOn the board: The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.\n\nSlots, in the order the student meets them:\n- `m6.lead.intro`: the board before these moves (Black to move); material White minus Black is +2 before them and +1 after them\n- `m6.lead.1`: Black plays Kh6: the king from g7 to h6; played in the game; afterwards White is winning; on the board after it: The black king on g7 is no longer skewered.\n- `m6.lead.2`: White plays Rc1: the rook from f1 to c1; played in the game; afterwards about even; on the board after it: The white rook on c1 stands on the open c-file.\n- `m6.lead.3`: Black plays Qxb3: the queen from b4 to b3; it captures a pawn; the moved piece now attacks: knight on a4; played in the game; afterwards White is winning; on the board after it: The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.\n- `m6.question`: White to move. The best move is Qe7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qe7 Rxa4 Qxd6 Qb2 Rf1 f5. In the game Rc7 was played instead; it cost 3.14 pawns and afterwards about even. On the board: The white knight on a4 is attacked twice and defended only once. White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. The white pawn on b3 is no longer a passed pawn.. Ask for the move in one sentence, without naming it or its destination square.\n- `m6.answer.intro`: the answer: White should have played Qe7 instead of the game move Rc7, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +1 to +1 over the moves shown. The game move cost 3.14 pawns.\n- `m6.answer.1`: White should have played Qe7: the queen from a7 to e7; the moved piece now attacks: knight on d6; not played - the best move the game missed\n- `m6.answer.2`: Black would answer Rxa4: the rook from a2 to a4; it captures a knight; not played - the line goes on\n- `m6.answer.3`: White would answer Qxd6: the queen from e7 to d6; it captures a knight; not played - the line goes on\n- `m6.answer.4`: Black would answer Qb2: the queen from b3 to b2; the moved piece now attacks: rook on c1; not played - the line goes on\n\n### m7 - at 30. Kh2, Black to move\nIn the game 30... Qb2 was played and it allowed a forced mate; the best move was Rxf2. There is a question here; correct answers: Rxf2.\nOn the board: The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.\n\nSlots, in the order the student meets them:\n- `m7.lead.intro`: the board before these moves (White to move); material White minus Black is +1 before them and +1 after them\n- `m7.lead.1`: White plays Rc7: the rook from c1 to c7; played in the game; afterwards about even\n- `m7.lead.2`: Black plays Qb1+: the queen from b3 to b1; it gives check; the moved piece now attacks: king on g1; played in the game; afterwards about even; on the board after it: The black queen on b1 forks the white king on g1 and the pawn on d3.\n- `m7.lead.3`: White plays Kh2: the king from g1 to h2; played in the game; afterwards about even; on the board after it: The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.\n- `m7.question`: Black to move. The best move is Rxf2, and afterwards about even. Also counted correct: nothing else. What follows the best move: Rxf2 Rxh7+ Kg5 Nc3 Qc2 Qa8. In the game Qb2 was played instead; it allowed a forced mate and afterwards White mates in 4. On the board: The white pawn on f2 is attacked by the black rook on a2 and has no defender. The fork by the black queen on b1 is over.. Ask for the move in one sentence, without naming it or its destination square.\n- `m7.answer.intro`: the answer: Black should have played Rxf2 instead of the game move Qb2, which is what actually happened. At the end of the best line about even; material White minus Black goes from +1 to +1 over the moves shown. The game move allowed a forced mate.\n- `m7.answer.1`: Black should have played Rxf2: the rook from a2 to f2; it captures a pawn; pinned to their king afterwards: g2; not played - the best move the game missed\n- `m7.answer.2`: White would answer Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6; not played - the line goes on\n- `m7.answer.3`: Black would answer Kg5: the king from h6 to g5; pinned to their king afterwards: g2; not played - the line goes on\n- `m7.answer.4`: White would answer Nc3: the knight from a4 to c3; the moved piece now attacks: queen on b1; not played - the line goes on\n\n### m8 - at 31... Kg5, White to move\nIn the game 32. Nxb2 was played and it gave up a forced mate; the best move was h4+. There is a question here; correct answers: h4+.\n\nSlots, in the order the student meets them:\n- `m8.lead.intro`: the board before these moves (Black to move); material White minus Black is +1 before them and +2 after them\n- `m8.lead.1`: Black plays Qb2: the queen from b1 to b2; played in the game; afterwards White mates in 4; on the board after it: The black queen on b2 is attacked by the white knight on a4, a cheaper piece.\n- `m8.lead.2`: White plays Rxh7+: the rook from c7 to h7; it captures a pawn; it gives check; the moved piece now attacks: king on h6; played in the game; afterwards White mates in 3; on the board after it: The white queen on a7 is overloaded: it alone defends the rook on h7 and the knight on a4.\n- `m8.lead.3`: Black plays Kg5: the king from h6 to g5; played in the game; afterwards White mates in 3\n- `m8.question`: White to move. The best move is h4+, and afterwards White mates in 3. Also counted correct: nothing else. What follows the best move: h4+ Kg4 f3+ Kf5 Qd7#. In the game Nxb2 was played instead; it gave up a forced mate and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.\n- `m8.answer.intro`: the answer: White should have played h4+ instead of the game move Nxb2, which is what actually happened. At the end of the best line White mates in 3; material White minus Black goes from +2 to +2 over the moves shown. The game move gave up a forced mate.\n- `m8.answer.1`: White should have played h4+: the pawn from h3 to h4; it gives check; the moved piece now attacks: king on g5; not played - the best move the game missed\n- `m8.answer.2`: Black would answer Kg4: the king from g5 to g4; not played - the line goes on\n- `m8.answer.3`: White would answer f3+: the pawn from f2 to f3; it gives check; the moved piece now attacks: king on g4; not played - the line goes on\n- `m8.answer.4`: Black would answer Kf5: the king from g4 to f5; pinned to their king afterwards: g2; not played - the line goes on\n",
+  "report": {
+   "parameters": {
+    "min_cost": 1.0,
+    "near": 0.3,
+    "max_correct": 3,
+    "max_moments": 8,
+    "lead_plies": 3,
+    "answer_plies": 4
+   },
+   "facts": "g10_english-opening d18 mpv4 2026-09-13T20:41:07",
+   "problems": [],
+   "missing_slots": [],
+   "unused_slots": [
+    "m4.lead.1",
+    "m4.lead.2",
+    "m4.lead.intro"
+   ],
+   "claims": [],
+   "chosen": [
+    "m3",
+    "m4",
+    "m7"
+   ],
+   "trimmed": [
+    "m4 lead-in starts at ply 53 instead of 51"
+   ],
+   "game": {
+    "filler_parts": 1,
+    "filler_moves": 60,
+    "filler_sentences": 9,
+    "lexicon": {
+     "opponent_better": 1,
+     "opponent_winning": 2,
+     "resumed": 2,
+     "misses_mate": 1
+    },
+    "merged": 2,
+    "parts": 10
+   }
+  },
+  "tutorial": {
+   "title": "Defend, don't grab: pins and forced mates",
+   "description": "Three key defensive and attacking choices from an English Opening game where pins and forced mates decide the result.",
+   "tags": [
+    "pins",
+    "forced mate"
+   ],
+   "language": "en",
+   "positionList": [
+    {
+     "title": "Part 1",
+     "fen": "8/p5kp/3n1pp1/3Qp3/Nq6/1P1PP2P/P1r2PP1/5RK1 w - - 0 26",
+     "kind": "show",
+     "pgn": "{ The position before this sequence. White is to move, and material favours White. }\n26. Qa8\n{ White plays Qa8. The black pawn on a7 is attacked by the queen and has no defender, and White is clearly better. }\n26... Rxa2\n{ Black plays Rxa2, capturing a pawn and attacking the knight on a4. White is clearly better, but the b3-pawn is loose and the dark squares are weak. }\n27. Qxa7+\n{ White plays Qxa7+, capturing a pawn and giving check, and White is winning. The black rook pins the white knight to the queen, and White's b3-pawn is passed. }\n*"
+    },
+    {
+     "title": "Part 2",
+     "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+     "kind": "ask_move",
+     "instruction": "Black is in check. Find a move that blocks the check without freeing the pinned white knight.",
+     "solutionSan": "Nf7",
+     "acceptedSans": [
+      "Qb7"
+     ],
+     "pgn": ""
+    },
+    {
+     "title": "Part 3",
+     "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+     "kind": "show",
+     "pgn": "{ The answer: Black plays Nf7 instead of the game move Kh6. In the best line White is winning, and the game move was costly. }\n27... Nf7\n{ Black plays Nf7, moving the knight from d6 to f7. This is the best move. }\n28. Qc7\n{ White plays Qc7, attacking the knight on f7. The knight is pinned to the king afterwards. }\n28... Qd6 { Black plays Qd6, attacking the queen on c7. } 29. Qc4\n{ White plays Qc4, attacking the knight on f7. } *"
+    },
+    {
+     "title": "Part 4",
+     "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+     "kind": "show",
+     "pgn": "27... Kh6\n{ Black plays Kh6, moving the king from g7; White is winning. The black king on g7 is no longer skewered. }\n*"
+    },
+    {
+     "title": "Part 5",
+     "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+     "kind": "ask_move",
+     "instruction": "White to move. The black king is no longer skewered; find the move that keeps the attack and stays winning.",
+     "solutionSan": "Qe7",
+     "pgn": ""
+    },
+    {
+     "title": "Part 6",
+     "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+     "kind": "show",
+     "pgn": "{ The answer: White plays Qe7 instead of the game move Rc1. In the best line White is winning, and the game move was costly. }\n28. Qe7 { White plays Qe7, attacking the knight on d6. This is the best move. }\n28... f5 { Black plays f5, pushing the pawn from f6 to f5. } 29. Qf8+\n{ White plays Qf8+, giving check and attacking the knight on d6 and the king. }\n29... Kh5 { Black plays Kh5, moving the king from h6 to h5. } *"
+    },
+    {
+     "title": "Part 7",
+     "fen": "8/Q6p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/2R3K1 w - - 0 29",
+     "kind": "show",
+     "pgn": "{ The position before this sequence. White is to move, and material favours White. }\n29. Rc7\n{ White plays Rc7, moving the rook from c1 to c7. The position is about even. }\n29... Qb1+\n{ Black plays Qb1+, giving check; the position is about even. The queen forks the white king on g1 and the pawn on d3. }\n30. Kh2\n{ White plays Kh2; the position is about even. The pawn on f2 is attacked by the rook on a2 and has no defender, and the fork is over. }\n*"
+    },
+    {
+     "title": "Part 8",
+     "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+     "kind": "ask_move",
+     "instruction": "Black to move. A white pawn is attacked and undefended; find the move that takes it and keeps the game balanced.",
+     "solutionSan": "Rxf2",
+     "pgn": ""
+    },
+    {
+     "title": "Part 9",
+     "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+     "kind": "show",
+     "pgn": "{ The answer: Black plays Rxf2 instead of the game move Qb2. In the best line the position is about even, and the game move allowed a forced mate. }\n30... Rxf2 { Black plays Rxf2, capturing a pawn. This is the best move. } 31.\nRxh7+ { White plays Rxh7+, capturing a pawn and giving check on the king. }\n31... Kg5 { Black plays Kg5, moving the king from h6 to g5. } 32. Nc3\n{ White plays Nc3, attacking the queen on b1. } *"
+    }
+   ]
+  },
+  "tutorialGame": {
+   "title": "Defend, don't grab: pins and forced mates (whole game)",
+   "description": "Three key defensive and attacking choices from an English Opening game where pins and forced mates decide the result.",
+   "tags": [
+    "pins",
+    "forced mate"
+   ],
+   "language": "en",
+   "positionList": [
+    {
+     "title": "Part 1",
+     "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+     "kind": "show",
+     "pgn": "{ The opening is the English Opening: Great Snake Variation. } 1. c4 g6 2. Nc3\nBg7 3. Nf3 c6 4. b3\n{ This move left the masters database: 13 master games reached this position and none played it. }\n4... d5 5. cxd5 cxd5 6. Bb2 Nc6 7. e3 Nf6 8. Bb5 O-O 9. O-O Bg4 10. h3 Bd7 11.\nBxc6 bxc6 12. Na4 Re8 13. Rc1 Ne4 14. d3 Bxb2 15. Nxb2 Nd6 16. Na4 Qa5 17. Nd4\nRac8 18. Rc5 Qb4 19. Qc2 e5 20. Nxc6 Bxc6\n{ Black plays Bxc6. This hands the opponent the better game. With the best move: about even. After this one: White is slightly better. }\n21. Rxc6 Rxc6 22. Qxc6 Rc8\n{ Black plays Rc8. A serious mistake: from here the opponent is winning. With the best move: White is slightly better. After this one: White is winning. }\n23. Qxd5 Rc2 24. Qa8+ Kg7 25. Qd5 f6\n{ The position before this sequence. White is to move, and material favours White. }\n26. Qa8\n{ White plays Qa8. The black pawn on a7 is attacked by the queen and has no defender, and White is clearly better. }\n26... Rxa2\n{ Black plays Rxa2, capturing a pawn and attacking the knight on a4. White is clearly better, but the b3-pawn is loose and the dark squares are weak. }\n27. Qxa7+\n{ White plays Qxa7+, capturing a pawn and giving check, and White is winning. The black rook pins the white knight to the queen, and White's b3-pawn is passed. }\n*"
+    },
+    {
+     "title": "Part 2",
+     "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+     "kind": "ask_move",
+     "instruction": "Black is in check. Find a move that blocks the check without freeing the pinned white knight.",
+     "solutionSan": "Nf7",
+     "acceptedSans": [
+      "Qb7"
+     ],
+     "pgn": ""
+    },
+    {
+     "title": "Part 3",
+     "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+     "kind": "show",
+     "pgn": "{ The answer: Black plays Nf7 instead of the game move Kh6. In the best line White is winning, and the game move was costly. }\n27... Nf7\n{ Black plays Nf7, moving the knight from d6 to f7. This is the best move. }\n28. Qc7\n{ White plays Qc7, attacking the knight on f7. The knight is pinned to the king afterwards. }\n28... Qd6 { Black plays Qd6, attacking the queen on c7. } 29. Qc4\n{ White plays Qc4, attacking the knight on f7. } *"
+    },
+    {
+     "title": "Part 4",
+     "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
+     "kind": "show",
+     "pgn": "27... Kh6\n{ Black plays Kh6, moving the king from g7; White is winning. The black king on g7 is no longer skewered. }\n*"
+    },
+    {
+     "title": "Part 5",
+     "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+     "kind": "ask_move",
+     "instruction": "White to move. The black king is no longer skewered; find the move that keeps the attack and stays winning.",
+     "solutionSan": "Qe7",
+     "pgn": ""
+    },
+    {
+     "title": "Part 6",
+     "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+     "kind": "show",
+     "pgn": "{ The answer: White plays Qe7 instead of the game move Rc1. In the best line White is winning, and the game move was costly. }\n28. Qe7 { White plays Qe7, attacking the knight on d6. This is the best move. }\n28... f5 { Black plays f5, pushing the pawn from f6 to f5. } 29. Qf8+\n{ White plays Qf8+, giving check and attacking the knight on d6 and the king. }\n29... Kh5 { Black plays Kh5, moving the king from h6 to h5. } *"
+    },
+    {
+     "title": "Part 7",
+     "fen": "8/Q6p/3n1ppk/4p3/Nq6/1P1PP2P/r4PP1/5RK1 w - - 1 28",
+     "kind": "show",
+     "pgn": "28. Rc1\n{ Back in the game, White played Rc1 instead; afterwards it is about even. }\n28... Qxb3\n{ Black plays Qxb3. A serious mistake, and it leaves the opponent winning. With the best move: about even. After this one: White is winning. The position before this sequence. White is to move, and material favours White. }\n29. Rc7\n{ White plays Rc7, moving the rook from c1 to c7. The position is about even. }\n29... Qb1+\n{ Black plays Qb1+, giving check; the position is about even. The queen forks the white king on g1 and the pawn on d3. }\n30. Kh2\n{ White plays Kh2; the position is about even. The pawn on f2 is attacked by the rook on a2 and has no defender, and the fork is over. }\n*"
+    },
+    {
+     "title": "Part 8",
+     "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+     "kind": "ask_move",
+     "instruction": "Black to move. A white pawn is attacked and undefended; find the move that takes it and keeps the game balanced.",
+     "solutionSan": "Rxf2",
+     "pgn": ""
+    },
+    {
+     "title": "Part 9",
+     "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+     "kind": "show",
+     "pgn": "{ The answer: Black plays Rxf2 instead of the game move Qb2. In the best line the position is about even, and the game move allowed a forced mate. }\n30... Rxf2 { Black plays Rxf2, capturing a pawn. This is the best move. } 31.\nRxh7+ { White plays Rxh7+, capturing a pawn and giving check on the king. }\n31... Kg5 { Black plays Kg5, moving the king from h6 to g5. } 32. Nc3\n{ White plays Nc3, attacking the queen on b1. } *"
+    },
+    {
+     "title": "Part 10",
+     "fen": "8/Q1R4p/3n1ppk/4p3/N7/3PP2P/r4PPK/1q6 b - - 3 30",
+     "kind": "show",
+     "pgn": "30... Qb2\n{ Returning to the game, Black played Qb2 instead; afterwards White mates in 4. }\n31. Rxh7+ Kg5 32. Nxb2\n{ White plays Nxb2. This misses a forced mate. With the best move: White mates in 3. After this one: White is winning. }\n32... Rxa7 33. h4+ Kf5 34. Rxa7 { The game ended here. } *"
+    }
+   ]
+  }
+ }
+}
