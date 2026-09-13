@@ -1,0 +1,15 @@
+[Event "Analysis Studio Session"]
+[Site "Chess trainer"]
+[Date "2026.09.13"]
+[Round "1"]
+[White "Player"]
+[Black "Analysis Engine"]
+[Result "*"]
+
+1. e4 Nc6 2. Nf3 f5 3. exf5 d5 4. d4 Bxf5 5. Bd3 e6 6. Bxf5 exf5 7. O-O Nf6 8.
+Re1+ Be7 9. c3 O-O 10. Ne5 Nxe5 11. Rxe5 Ne4 12. f3 Ng5 13. Qd3 g6 14. Bf4 c6
+15. Nd2 Nf7 16. Re2 Bd6 17. Bxd6 Nxd6 18. Rae1 Qb6 19. b3 Rae8 20. c4 dxc4 21.
+bxc4 Qd8 22. c5 Nb5 23. Nb3 Rxe2 24. Rxe2 Re8 25. Kf2 Rxe2+ 26. Kxe2 Qe7+ 27.
+Qe3 Kf7 28. Qxe7+ Kxe7 29. Kd3 Ke6 30. Nd2 Kd5 31. Nb3 h6 32. a4 Nc7 33. Nd2
+Ne6 34. Nb3 Nf4+ 35. Kc3 Nxg2 36. Nc1 Nh4 37. Nd3 Nxf3 38. Nf4+ Ke4 39. Nxg6
+Nxd4 40. Ne7 f4 *

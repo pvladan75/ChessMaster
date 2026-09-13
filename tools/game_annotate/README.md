@@ -1006,6 +1006,98 @@ reached the first tutorial written with it immediately, in the description the
 model chose: „Three moments from a **French Defense** game…". CLEAN, every
 position exact, every question the best move of the analysis sent.
 
+## D: ten games — 13.9.2026
+
+Ten of the owner's own blitz games from Lichess, chosen by rule rather than by
+eye: five as White and five as Black, four won, five lost, one drawn, ten
+different openings across ECO A, B and C, 60 to 107 plies, all 3+2 and all
+ended normally. Deliberately half mainstream and half offbeat — the Panov and
+the French Exchange are theory for a dozen moves, the Saragossa Opening and the
+Colorado Countergambit are not — because that is what the opening statistics had
+to cope with. Each went through the app's own review, `make_inputs.py`,
+`make_facts.py` and one arm H run with `deepseek-flash`.
+
+```
+game                     verdict  moments  chosen   rank quest   ambiguous  book* opening used
+g01_scandinavian-defens  CLEAN      5/6     3/3      2.7     3 0 thin,0 bad  1>2/8 description
+g02_french-defense       CLEAN      7/8     3/3      4.7     3 0 thin,0 bad  0>0/9 description
+g03_scandinavian-defens  CLEAN      8/8     3/3      3.3     3 2 thin,0 bad 0>0/13 no
+g04_saragossa-opening    CLEAN      5/5     3/3      2.0     3 0 thin,0 bad  0>0/7 no
+g05_french-defense       CLEAN      8/8     3/3      4.0     3 1 thin,0 bad  0>0/8 title+description
+g06_zukertort-opening    CLEAN      8/8     3/3      4.3     3 1 thin,0 bad 0>0/15 no
+g07_english-opening      CLEAN      8/8     3/3      3.0     3 0 thin,0 bad  0>0/6 no
+g08_nimzowitsch-defense  CLEAN      2/2     2/2      1.5     2 0 thin,0 bad 0>0/10 title
+g09_caro-kann-defense    CLEAN      8/8     3/3      4.3     3 0 thin,0 bad  0>0/9 title+description
+g10_english-opening      CLEAN      8/8     3/3      4.0     3 1 thin,0 bad  0>0/7 description
+```
+
+**Ten CLEAN, and every position and answer is the analysis each run was sent** —
+`check_positions.py` flags nothing in any of the ten. Twenty-four to sixty-nine
+seconds a game for the words, on top of seventy-five to two hundred and
+twenty-six for the analysis.
+
+### 1. Moment yield — every game, but the floor is low
+
+All ten offer at least two askable moments, and none offers zero. What the
+column hides is that `offered` is capped at eight: the raw count of positions
+where the move played cost a pawn or more runs **2, 5, 6, 10, 10, 12, 14, 14,
+19, 21**. Six of the ten games have more candidates than the skeleton will show.
+
+The interesting game is `g08`, with **two**. A club game can be played well
+enough to yield almost nothing, and two is the minimum this pipeline needs — one
+fewer and there is no tutorial. Worth knowing before anything is built on „a
+game always has three mistakes".
+
+### 2. Selection — the model never takes a silent moment
+
+**Twenty-seven of twenty-seven chosen moments can ask a question.** Not once, in
+nine games offering five or more, did it spend a slot on a moment where too many
+moves are equally good to ask anything.
+
+Mean cost-rank **3.6** of eight. Taking the three costliest blunders scores 2.0;
+picking blind from eight averages 4.5. So it leans towards the expensive
+mistakes without chasing them — which is what the brief asks for („the ones a
+student learns the most from", not „the biggest"). Per game it runs from 1.5 to
+4.7, so the behaviour is a tendency rather than a rule.
+
+### 3. Move ambiguity — one question in six has a co-answer
+
+Twenty-nine questions; **five stand on a position where a second move is within
+0.3 pawns of the best**, and in all five the skeleton put that move in
+`acceptedSans`. The harness is doing its job and the count is zero on the half
+that would be a fault.
+
+But five of twenty-nine is not small, and it is a question for the app rather
+than for the harness: a student who plays the other move is marked right and
+told nothing. „There were two good moves here" is a sentence nobody writes yet.
+
+### 4. The opening header earns its place; the per-position statistics do not
+
+**Six of ten tutorials used the header line** — in the title, the description or
+both. That is the addition made the same evening, and it is doing all of the
+work.
+
+**The per-position statistics are seen almost never.** Across ten games with
+**92 positions in the masters database**, the moments the model chose offered it
+**two** slots naming the book, in one game, and **one sentence** used one. The
+reason is structural and was visible on three games before it was visible on
+ten: the statistics belong to moves one to six, the moments are in the
+middlegame, and a lead-in reaches back three plies. They meet only when a game
+blunders inside its first nine moves, which happened once in ten.
+
+So the honest reading of C, one evening after building it: **the one-line
+summary is the whole value, and the per-position statistics are paying for
+themselves in one game out of ten.** They cost a dozen explorer requests per
+game and no engine time, so they are cheap to keep — but if the opening is to
+teach anything, it needs a part of its own rather than a lead-in that happens to
+reach it.
+
+### What this does not answer
+
+Whether the sentences are true. Ten tutorials is thirty parts and about two
+hundred sentences, and no gate reads them. `summarise.py` says nothing about it
+by design; `review_run.py` is where a person reads one.
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not

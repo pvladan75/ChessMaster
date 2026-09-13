@@ -62,19 +62,27 @@ def load(path):
 
 
 def grade(run_dir):
-    """CLEAN / DAMAGED / REFUSED, from the app's own reader."""
+    """CLEAN / DAMAGED / REFUSED, from the app's own reader.
+
+    The path has to be absolute: the grader runs with `chess_app` as its working
+    directory, and the first version handed it a path relative to this one. Ten
+    runs came back "no verdict", which reads as the grader having run and found
+    nothing to say rather than as never having seen the file. When the output
+    cannot be parsed, say what the grader actually said.
+    """
     app = os.path.join(REPO, 'chess_app')
     try:
         out = subprocess.run(
-            ['dart', 'run', 'tool/grade_tutorial.dart', run_dir],
+            ['dart', 'run', 'tool/grade_tutorial.dart', os.path.abspath(run_dir)],
             cwd=app, capture_output=True, text=True, encoding='utf-8',
             errors='replace', timeout=300)
     except Exception as exc:
         return 'grader failed (%s)' % exc
     for word in ('CLEAN', 'DAMAGED', 'REFUSED'):
-        if re.search(r'^%s\b' % word, out.stdout or '', re.M):
+        if re.search('^%s' % word, out.stdout or '', re.M):
             return word
-    return 'no verdict'
+    said = ((out.stdout or '') + (out.stderr or '')).strip().splitlines()
+    return 'UNREAD: %s' % (said[-1][:36] if said else 'nothing printed')
 
 
 _MOMENTS = {}

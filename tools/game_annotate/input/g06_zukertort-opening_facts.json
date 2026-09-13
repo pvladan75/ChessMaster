@@ -1,0 +1,2929 @@
+{
+ "game": "g06_zukertort-opening",
+ "depth": 18,
+ "multipv": 4,
+ "margin_pawns": 0.5,
+ "engine": "stockfish.exe",
+ "threads": 1,
+ "hash_mb": 128,
+ "workers": 8,
+ "in_book": 15,
+ "generated": "2026-09-13T20:26:48",
+ "seconds": 140,
+ "rows": [
+  {
+   "label": "start",
+   "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+   "to_move": "White",
+   "played": {
+    "move": "Nf3",
+    "label": "1. Nf3",
+    "eval": "+0.27",
+    "value_for_mover": 27,
+    "rank": 3,
+    "cost_pawns": 0.12
+   },
+   "book": {
+    "games": 2879587,
+    "played": {
+     "move": "Nf3",
+     "games": 292957,
+     "share": 0.1017
+    },
+    "alternatives": [
+     {
+      "move": "e4",
+      "games": 1309466,
+      "share": 0.4547
+     },
+     {
+      "move": "d4",
+      "games": 1029878,
+      "share": 0.3576
+     },
+     {
+      "move": "c4",
+      "games": 199442,
+      "share": 0.0693
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "e4",
+     "eval": "+0.39",
+     "value_for_mover": 39,
+     "line": "e4 e5 Nf3 Nc6 Bb5 a6"
+    },
+    {
+     "move": "d4",
+     "eval": "+0.32",
+     "value_for_mover": 32,
+     "line": "d4 Nf6 c4 e6 Nc3 Bb4"
+    },
+    {
+     "move": "Nf3",
+     "eval": "+0.27",
+     "value_for_mover": 27,
+     "line": "Nf3 d5 d4 e6 c4 Nf6"
+    },
+    {
+     "move": "e3",
+     "eval": "+0.18",
+     "value_for_mover": 18,
+     "line": "e3 Nf6 d4 e6 Nf3 d5"
+    }
+   ],
+   "margin_pawns": 0.07,
+   "best_stands_out": false
+  },
+  {
+   "label": "1. Nf3",
+   "fen": "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+   "to_move": "Black",
+   "played": {
+    "move": "g6",
+    "label": "1... g6",
+    "eval": "+0.58",
+    "value_for_mover": -58,
+    "rank": null,
+    "cost_pawns": 0.31
+   },
+   "book": {
+    "games": 292958,
+    "opening": "Zukertort Opening",
+    "played": {
+     "move": "g6",
+     "games": 13477,
+     "share": 0.046
+    },
+    "alternatives": [
+     {
+      "move": "Nf6",
+      "games": 135850,
+      "share": 0.4637
+     },
+     {
+      "move": "d5",
+      "games": 88532,
+      "share": 0.3022
+     },
+     {
+      "move": "c5",
+      "games": 33465,
+      "share": 0.1142
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "d5",
+     "eval": "+0.27",
+     "value_for_mover": -27,
+     "line": "d5 d4 e6 c4 Nf6 Nc3"
+    },
+    {
+     "move": "Nf6",
+     "eval": "+0.32",
+     "value_for_mover": -32,
+     "line": "Nf6 d4 e6 c4 d5 Nc3"
+    },
+    {
+     "move": "c6",
+     "eval": "+0.37",
+     "value_for_mover": -37,
+     "line": "c6 e3 d5 c4 Nf6 Nc3"
+    },
+    {
+     "move": "e6",
+     "eval": "+0.40",
+     "value_for_mover": -40,
+     "line": "e6 g3 d5 Bg2 c5 O-O"
+    }
+   ],
+   "margin_pawns": 0.05,
+   "best_stands_out": false
+  },
+  {
+   "label": "1... g6",
+   "fen": "rnbqkbnr/pppppp1p/6p1/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 2",
+   "to_move": "White",
+   "played": {
+    "move": "c4",
+    "label": "2. c4",
+    "eval": "+0.38",
+    "value_for_mover": 38,
+    "rank": 3,
+    "cost_pawns": 0.2
+   },
+   "book": {
+    "games": 13477,
+    "opening": "Zukertort Opening: Kingside Fianchetto",
+    "played": {
+     "move": "c4",
+     "games": 3342,
+     "share": 0.248
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 4289,
+      "share": 0.3182
+     },
+     {
+      "move": "e4",
+      "games": 2993,
+      "share": 0.2221
+     },
+     {
+      "move": "g3",
+      "games": 2786,
+      "share": 0.2067
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "e4",
+     "eval": "+0.58",
+     "value_for_mover": 58,
+     "line": "e4 c5 c4 Bg7 d4 Qa5+"
+    },
+    {
+     "move": "d4",
+     "eval": "+0.41",
+     "value_for_mover": 41,
+     "line": "d4 Nf6 c4 Bg7 Nc3 d5"
+    },
+    {
+     "move": "c4",
+     "eval": "+0.41",
+     "value_for_mover": 41,
+     "line": "c4 Bg7 d4 Nf6 Nc3 d5"
+    },
+    {
+     "move": "h3",
+     "eval": "+0.23",
+     "value_for_mover": 23,
+     "line": "h3 Bg7 d4 Nf6 c4 O-O"
+    }
+   ],
+   "margin_pawns": 0.17,
+   "best_stands_out": false
+  },
+  {
+   "label": "2. c4",
+   "fen": "rnbqkbnr/pppppp1p/6p1/8/2P5/5N2/PP1PPPPP/RNBQKB1R b KQkq - 0 2",
+   "to_move": "Black",
+   "played": {
+    "move": "Bg7",
+    "label": "2... Bg7",
+    "eval": "+0.34",
+    "value_for_mover": -34,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "book": {
+    "games": 4464,
+    "played": {
+     "move": "Bg7",
+     "games": 4107,
+     "share": 0.92
+    },
+    "alternatives": [
+     {
+      "move": "c5",
+      "games": 143,
+      "share": 0.032
+     },
+     {
+      "move": "Nf6",
+      "games": 135,
+      "share": 0.0302
+     },
+     {
+      "move": "f5",
+      "games": 46,
+      "share": 0.0103
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "Bg7",
+     "eval": "+0.38",
+     "value_for_mover": -38,
+     "line": "Bg7 Nc3 c5 g3 Nc6 Bg2"
+    },
+    {
+     "move": "d6",
+     "eval": "+0.48",
+     "value_for_mover": -48,
+     "line": "d6 d4 Bg7 Nc3 c5 e4"
+    },
+    {
+     "move": "Nf6",
+     "eval": "+0.56",
+     "value_for_mover": -56,
+     "line": "Nf6 Nc3 Bg7 e4 O-O d4"
+    },
+    {
+     "move": "c5",
+     "eval": "+0.65",
+     "value_for_mover": -65,
+     "line": "c5 e4 Bg7 d4 d6 d5"
+    }
+   ],
+   "margin_pawns": 0.1,
+   "best_stands_out": false
+  },
+  {
+   "label": "2... Bg7",
+   "fen": "rnbqk1nr/ppppppbp/6p1/8/2P5/5N2/PP1PPPPP/RNBQKB1R w KQkq - 1 3",
+   "to_move": "White",
+   "played": {
+    "move": "g3",
+    "label": "3. g3",
+    "eval": "+0.15",
+    "value_for_mover": 15,
+    "rank": 3,
+    "cost_pawns": 0.19
+   },
+   "book": {
+    "games": 4107,
+    "played": {
+     "move": "g3",
+     "games": 603,
+     "share": 0.1468
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 1754,
+      "share": 0.4271
+     },
+     {
+      "move": "Nc3",
+      "games": 1342,
+      "share": 0.3268
+     },
+     {
+      "move": "e4",
+      "games": 382,
+      "share": 0.093
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "d4",
+     "eval": "+0.34",
+     "value_for_mover": 34,
+     "line": "d4 Nf6 Nc3 d5 Qb3 dxc4"
+    },
+    {
+     "move": "Nc3",
+     "eval": "+0.29",
+     "value_for_mover": 29,
+     "line": "Nc3 c5 g3 Nc6 Bg2 e6"
+    },
+    {
+     "move": "g3",
+     "eval": "+0.28",
+     "value_for_mover": 28,
+     "line": "g3 e5 Bg2 Nc6 Nc3 Nge7"
+    },
+    {
+     "move": "e3",
+     "eval": "+0.19",
+     "value_for_mover": 19,
+     "line": "e3 Nf6 d4 c5 d5 e6"
+    }
+   ],
+   "margin_pawns": 0.05,
+   "best_stands_out": false
+  },
+  {
+   "label": "3. g3",
+   "fen": "rnbqk1nr/ppppppbp/6p1/8/2P5/5NP1/PP1PPP1P/RNBQKB1R b KQkq - 0 3",
+   "to_move": "Black",
+   "played": {
+    "move": "c5",
+    "label": "3... c5",
+    "eval": "+0.28",
+    "value_for_mover": -28,
+    "rank": 3,
+    "cost_pawns": 0.13
+   },
+   "book": {
+    "games": 710,
+    "played": {
+     "move": "c5",
+     "games": 198,
+     "share": 0.2789
+    },
+    "alternatives": [
+     {
+      "move": "e5",
+      "games": 180,
+      "share": 0.2535
+     },
+     {
+      "move": "Nf6",
+      "games": 154,
+      "share": 0.2169
+     },
+     {
+      "move": "d6",
+      "games": 128,
+      "share": 0.1803
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "e5",
+     "eval": "+0.15",
+     "value_for_mover": -15,
+     "line": "e5 Nc3 Nc6 Bg2 Nge7 d3"
+    },
+    {
+     "move": "c6",
+     "eval": "+0.23",
+     "value_for_mover": -23,
+     "line": "c6 d4 d5 Bg2 Nf6 b3"
+    },
+    {
+     "move": "c5",
+     "eval": "+0.26",
+     "value_for_mover": -26,
+     "line": "c5 Bg2 Nc6 Nc3 d6 O-O"
+    },
+    {
+     "move": "Nf6",
+     "eval": "+0.26",
+     "value_for_mover": -26,
+     "line": "Nf6 Bg2 c6 b3 Ne4 d4"
+    }
+   ],
+   "margin_pawns": 0.08,
+   "best_stands_out": false
+  },
+  {
+   "label": "3... c5",
+   "fen": "rnbqk1nr/pp1pppbp/6p1/2p5/2P5/5NP1/PP1PPP1P/RNBQKB1R w KQkq - 0 4",
+   "to_move": "White",
+   "played": {
+    "move": "Bg2",
+    "label": "4. Bg2",
+    "eval": "+0.22",
+    "value_for_mover": 22,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "book": {
+    "games": 1108,
+    "played": {
+     "move": "Bg2",
+     "games": 998,
+     "share": 0.9007
+    },
+    "alternatives": [
+     {
+      "move": "d4",
+      "games": 59,
+      "share": 0.0532
+     },
+     {
+      "move": "Nc3",
+      "games": 51,
+      "share": 0.046
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "Bg2",
+     "eval": "+0.28",
+     "value_for_mover": 28,
+     "line": "Bg2 Nc6 Nc3 d6 O-O Bg4"
+    },
+    {
+     "move": "Nc3",
+     "eval": "+0.22",
+     "value_for_mover": 22,
+     "line": "Nc3 Nc6 Bg2 d6 O-O Bg4"
+    },
+    {
+     "move": "d3",
+     "eval": "+0.07",
+     "value_for_mover": 7,
+     "line": "d3 Nc6 Bg2 e6 Nc3 Nge7"
+    },
+    {
+     "move": "h4",
+     "eval": "-0.14",
+     "value_for_mover": -14,
+     "line": "h4 Nf6 Bg2 O-O d4 cxd4"
+    }
+   ],
+   "margin_pawns": 0.06,
+   "best_stands_out": false
+  },
+  {
+   "label": "4. Bg2",
+   "fen": "rnbqk1nr/pp1pppbp/6p1/2p5/2P5/5NP1/PP1PPPBP/RNBQK2R b KQkq - 1 4",
+   "to_move": "Black",
+   "played": {
+    "move": "Nc6",
+    "label": "4... Nc6",
+    "eval": "+0.28",
+    "value_for_mover": -28,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "book": {
+    "games": 1693,
+    "played": {
+     "move": "Nc6",
+     "games": 1600,
+     "share": 0.9451
+    },
+    "alternatives": [
+     {
+      "move": "Nf6",
+      "games": 62,
+      "share": 0.0366
+     },
+     {
+      "move": "e5",
+      "games": 17,
+      "share": 0.01
+     },
+     {
+      "move": "d6",
+      "games": 8,
+      "share": 0.0047
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "Nc6",
+     "eval": "+0.22",
+     "value_for_mover": -22,
+     "line": "Nc6 Nc3 d6 O-O Nh6 e3"
+    },
+    {
+     "move": "Nf6",
+     "eval": "+0.30",
+     "value_for_mover": -30,
+     "line": "Nf6 d4 d5 cxd5 O-O O-O"
+    },
+    {
+     "move": "d6",
+     "eval": "+0.40",
+     "value_for_mover": -40,
+     "line": "d6 d4 cxd4 Nxd4 Qb6 e3"
+    },
+    {
+     "move": "h5",
+     "eval": "+0.43",
+     "value_for_mover": -43,
+     "line": "h5 Nc3 Nc6 d3 Rb8 Bg5"
+    }
+   ],
+   "margin_pawns": 0.08,
+   "best_stands_out": false
+  },
+  {
+   "label": "4... Nc6",
+   "fen": "r1bqk1nr/pp1pppbp/2n3p1/2p5/2P5/5NP1/PP1PPPBP/RNBQK2R w KQkq - 2 5",
+   "to_move": "White",
+   "played": {
+    "move": "O-O",
+    "label": "5. O-O",
+    "eval": "+0.11",
+    "value_for_mover": 11,
+    "rank": 2,
+    "cost_pawns": 0.17
+   },
+   "book": {
+    "games": 3415,
+    "played": {
+     "move": "O-O",
+     "games": 1411,
+     "share": 0.4132
+    },
+    "alternatives": [
+     {
+      "move": "Nc3",
+      "games": 1994,
+      "share": 0.5839
+     },
+     {
+      "move": "d3",
+      "games": 5,
+      "share": 0.0015
+     },
+     {
+      "move": "e3",
+      "games": 3,
+      "share": 0.0009
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "Nc3",
+     "eval": "+0.28",
+     "value_for_mover": 28,
+     "line": "Nc3 e6 d4 cxd4 Nb5 d5"
+    },
+    {
+     "move": "O-O",
+     "eval": "+0.16",
+     "value_for_mover": 16,
+     "line": "O-O Nh6 Nc3 Nf5 Rb1 O-O"
+    },
+    {
+     "move": "d3",
+     "eval": "-0.04",
+     "value_for_mover": -4,
+     "line": "d3 e6 Nc3 d5 O-O Nge7"
+    },
+    {
+     "move": "Na3",
+     "eval": "-0.18",
+     "value_for_mover": -18,
+     "line": "Na3 d6 O-O e5 d3 Nge7"
+    }
+   ],
+   "margin_pawns": 0.12,
+   "best_stands_out": false
+  },
+  {
+   "label": "5. O-O",
+   "fen": "r1bqk1nr/pp1pppbp/2n3p1/2p5/2P5/5NP1/PP1PPPBP/RNBQ1RK1 b kq - 3 5",
+   "to_move": "Black",
+   "played": {
+    "move": "Nf6",
+    "label": "5... Nf6",
+    "eval": "+0.45",
+    "value_for_mover": -45,
+    "rank": null,
+    "cost_pawns": 0.34
+   },
+   "book": {
+    "games": 2269,
+    "played": {
+     "move": "Nf6",
+     "games": 172,
+     "share": 0.0758
+    },
+    "alternatives": [
+     {
+      "move": "e6",
+      "games": 764,
+      "share": 0.3367
+     },
+     {
+      "move": "d6",
+      "games": 578,
+      "share": 0.2547
+     },
+     {
+      "move": "e5",
+      "games": 514,
+      "share": 0.2265
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "e6",
+     "eval": "+0.11",
+     "value_for_mover": -11,
+     "line": "e6 e3 Nge7 d4 cxd4 Nxd4"
+    },
+    {
+     "move": "Nh6",
+     "eval": "+0.19",
+     "value_for_mover": -19,
+     "line": "Nh6 Nc3 O-O Rb1 d6 a3"
+    },
+    {
+     "move": "d6",
+     "eval": "+0.20",
+     "value_for_mover": -20,
+     "line": "d6 Nc3 Bg4 Rb1 Qd7 a3"
+    },
+    {
+     "move": "Rb8",
+     "eval": "+0.23",
+     "value_for_mover": -23,
+     "line": "Rb8 Nc3 d6 a3 a6 b4"
+    }
+   ],
+   "margin_pawns": 0.08,
+   "best_stands_out": false
+  },
+  {
+   "label": "5... Nf6",
+   "fen": "r1bqk2r/pp1pppbp/2n2np1/2p5/2P5/5NP1/PP1PPPBP/RNBQ1RK1 w kq - 4 6",
+   "to_move": "White",
+   "played": {
+    "move": "d3",
+    "label": "6. d3",
+    "eval": "+0.10",
+    "value_for_mover": 10,
+    "rank": 3,
+    "cost_pawns": 0.35
+   },
+   "book": {
+    "games": 535,
+    "played": {
+     "move": "d3",
+     "games": 3,
+     "share": 0.0056
+    },
+    "alternatives": [
+     {
+      "move": "Nc3",
+      "games": 267,
+      "share": 0.4991
+     },
+     {
+      "move": "d4",
+      "games": 264,
+      "share": 0.4935
+     },
+     {
+      "move": "Na3",
+      "games": 1,
+      "share": 0.0019
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "d4",
+     "eval": "+0.45",
+     "value_for_mover": 45,
+     "line": "d4 cxd4 Nxd4 Nxd4 Qxd4 O-O"
+    },
+    {
+     "move": "Nc3",
+     "eval": "+0.41",
+     "value_for_mover": 41,
+     "line": "Nc3 d6 d4 O-O d5 Na5"
+    },
+    {
+     "move": "d3",
+     "eval": "+0.15",
+     "value_for_mover": 15,
+     "line": "d3 O-O Nc3 d6 a3 Rb8"
+    },
+    {
+     "move": "Na3",
+     "eval": "-0.09",
+     "value_for_mover": -9,
+     "line": "Na3 O-O d4 cxd4 Nxd4 d5"
+    }
+   ],
+   "margin_pawns": 0.04,
+   "best_stands_out": false
+  },
+  {
+   "label": "6. d3",
+   "fen": "r1bqk2r/pp1pppbp/2n2np1/2p5/2P5/3P1NP1/PP2PPBP/RNBQ1RK1 b kq - 0 6",
+   "to_move": "Black",
+   "played": {
+    "move": "O-O",
+    "label": "6... O-O",
+    "eval": "+0.05",
+    "value_for_mover": -5,
+    "rank": 2,
+    "cost_pawns": 0
+   },
+   "book": {
+    "games": 28,
+    "played": {
+     "move": "O-O",
+     "games": 19,
+     "share": 0.6786
+    },
+    "alternatives": [
+     {
+      "move": "d5",
+      "games": 4,
+      "share": 0.1429
+     },
+     {
+      "move": "d6",
+      "games": 3,
+      "share": 0.1071
+     },
+     {
+      "move": "a6",
+      "games": 2,
+      "share": 0.0714
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "d5",
+     "eval": "+0.10",
+     "value_for_mover": -10,
+     "line": "d5 Nc3 O-O Nxd5 Nxd5 cxd5"
+    },
+    {
+     "move": "O-O",
+     "eval": "+0.14",
+     "value_for_mover": -14,
+     "line": "O-O Nc3 d5 cxd5 Nxd5 Nxd5"
+    },
+    {
+     "move": "d6",
+     "eval": "+0.15",
+     "value_for_mover": -15,
+     "line": "d6 Nc3 O-O Be3 a6 Qd2"
+    },
+    {
+     "move": "a6",
+     "eval": "+0.29",
+     "value_for_mover": -29,
+     "line": "a6 d4 cxd4 Nxd4 Nxd4 Qxd4"
+    }
+   ],
+   "margin_pawns": 0.04,
+   "best_stands_out": false
+  },
+  {
+   "label": "6... O-O",
+   "fen": "r1bq1rk1/pp1pppbp/2n2np1/2p5/2P5/3P1NP1/PP2PPBP/RNBQ1RK1 w - - 1 7",
+   "to_move": "White",
+   "played": {
+    "move": "a3",
+    "label": "7. a3",
+    "eval": "-0.40",
+    "value_for_mover": -40,
+    "rank": null,
+    "cost_pawns": 0.45
+   },
+   "book": {
+    "games": 43,
+    "played": {
+     "move": "a3",
+     "games": 1,
+     "share": 0.0233
+    },
+    "alternatives": [
+     {
+      "move": "Nc3",
+      "games": 39,
+      "share": 0.907
+     },
+     {
+      "move": "Bd2",
+      "games": 2,
+      "share": 0.0465
+     },
+     {
+      "move": "e4",
+      "games": 1,
+      "share": 0.0233
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "Nc3",
+     "eval": "+0.05",
+     "value_for_mover": 5,
+     "line": "Nc3 d6 a3 Qd7 d4 Nxd4"
+    },
+    {
+     "move": "Bf4",
+     "eval": "+0.03",
+     "value_for_mover": 3,
+     "line": "Bf4 Nh5 Bc1 b6 Nc3 Bb7"
+    },
+    {
+     "move": "Bd2",
+     "eval": "-0.11",
+     "value_for_mover": -11,
+     "line": "Bd2 d5 cxd5 Nxd5 Nc3 b6"
+    },
+    {
+     "move": "Be3",
+     "eval": "-0.12",
+     "value_for_mover": -12,
+     "line": "Be3 b6 Nc3 Bb7 Ne5 Na5"
+    }
+   ],
+   "margin_pawns": 0.02,
+   "best_stands_out": false
+  },
+  {
+   "label": "7. a3",
+   "fen": "r1bq1rk1/pp1pppbp/2n2np1/2p5/2P5/P2P1NP1/1P2PPBP/RNBQ1RK1 b - - 0 7",
+   "to_move": "Black",
+   "played": {
+    "move": "d6",
+    "label": "7... d6",
+    "left_book": true,
+    "eval": "+0.18",
+    "value_for_mover": -18,
+    "rank": 4,
+    "cost_pawns": 0.58
+   },
+   "book": {
+    "games": 1,
+    "played": {
+     "move": "d6",
+     "games": 0,
+     "share": 0.0
+    },
+    "alternatives": [
+     {
+      "move": "d5",
+      "games": 1,
+      "share": 1.0
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "d5",
+     "eval": "-0.40",
+     "value_for_mover": 40,
+     "line": "d5 Nc3 dxc4 dxc4 Be6 Be3"
+    },
+    {
+     "move": "b6",
+     "eval": "-0.12",
+     "value_for_mover": 12,
+     "line": "b6 Ne5 Bb7 Nc3 Rc8 Nxc6"
+    },
+    {
+     "move": "a5",
+     "eval": "-0.02",
+     "value_for_mover": 2,
+     "line": "a5 Nc3 d5 Na4 dxc4 dxc4"
+    },
+    {
+     "move": "d6",
+     "eval": "+0.09",
+     "value_for_mover": -9,
+     "line": "d6 Nc3 Qd7 Rb1 b6 b4"
+    }
+   ],
+   "margin_pawns": 0.28,
+   "best_stands_out": false
+  },
+  {
+   "label": "7... d6",
+   "fen": "r1bq1rk1/pp2ppbp/2np1np1/2p5/2P5/P2P1NP1/1P2PPBP/RNBQ1RK1 w - - 0 8",
+   "to_move": "White",
+   "played": {
+    "move": "Nbd2",
+    "label": "8. Nbd2",
+    "eval": "-0.42",
+    "value_for_mover": -42,
+    "rank": null,
+    "cost_pawns": 0.6
+   },
+   "book": {
+    "games": 1,
+    "played": {
+     "move": "Nbd2",
+     "games": 0,
+     "share": 0.0
+    },
+    "alternatives": [
+     {
+      "move": "Nc3",
+      "games": 1,
+      "share": 1.0
+     }
+    ]
+   },
+   "candidates": [
+    {
+     "move": "Nc3",
+     "eval": "+0.18",
+     "value_for_mover": 18,
+     "line": "Nc3 Rb8 Rb1 a6 b4 cxb4"
+    },
+    {
+     "move": "Bd2",
+     "eval": "+0.01",
+     "value_for_mover": 1,
+     "line": "Bd2 d5 cxd5 Nxd5 Nc3 b6"
+    },
+    {
+     "move": "Bg5",
+     "eval": "-0.13",
+     "value_for_mover": -13,
+     "line": "Bg5 d5 cxd5 Nxd5 Nc3 Be6"
+    },
+    {
+     "move": "Bf4",
+     "eval": "-0.14",
+     "value_for_mover": -14,
+     "line": "Bf4 Nh5 Bc1 b6 Nc3 Bb7"
+    }
+   ],
+   "margin_pawns": 0.17,
+   "best_stands_out": false
+  },
+  {
+   "label": "8. Nbd2",
+   "fen": "r1bq1rk1/pp2ppbp/2np1np1/2p5/2P5/P2P1NP1/1P1NPPBP/R1BQ1RK1 b - - 1 8",
+   "to_move": "Black",
+   "played": {
+    "move": "Be6",
+    "label": "8... Be6",
+    "eval": "-0.14",
+    "value_for_mover": 14,
+    "rank": null,
+    "cost_pawns": 0.28
+   },
+   "candidates": [
+    {
+     "move": "Rb8",
+     "eval": "-0.42",
+     "value_for_mover": 42,
+     "line": "Rb8 b4 Ne4 Nb3 Bxa1 Nxa1"
+    },
+    {
+     "move": "Bd7",
+     "eval": "-0.31",
+     "value_for_mover": 31,
+     "line": "Bd7 Rb1 Rb8 b3 b5 Bb2"
+    },
+    {
+     "move": "a5",
+     "eval": "-0.29",
+     "value_for_mover": 29,
+     "line": "a5 Nb1 d5 Nc3 dxc4 dxc4"
+    },
+    {
+     "move": "Qc7",
+     "eval": "-0.27",
+     "value_for_mover": 27,
+     "line": "Qc7 Qc2 Rb8 b3 b5 Bb2"
+    }
+   ],
+   "margin_pawns": 0.11,
+   "best_stands_out": false
+  },
+  {
+   "label": "8... Be6",
+   "fen": "r2q1rk1/pp2ppbp/2npbnp1/2p5/2P5/P2P1NP1/1P1NPPBP/R1BQ1RK1 w - - 2 9",
+   "to_move": "White",
+   "played": {
+    "move": "Rb1",
+    "label": "9. Rb1",
+    "eval": "-0.22",
+    "value_for_mover": -22,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "candidates": [
+    {
+     "move": "Rb1",
+     "eval": "-0.14",
+     "value_for_mover": -14,
+     "line": "Rb1 a5 Ng5 Bf5 b3 Rb8"
+    },
+    {
+     "move": "b4",
+     "eval": "-0.15",
+     "value_for_mover": -15,
+     "line": "b4 cxb4 axb4 Nxb4 Rb1 a5"
+    },
+    {
+     "move": "Ng5",
+     "eval": "-0.40",
+     "value_for_mover": -40,
+     "line": "Ng5 Bd7 Nde4 Rb8 Nxf6+ Bxf6"
+    },
+    {
+     "move": "Qc2",
+     "eval": "-0.40",
+     "value_for_mover": -40,
+     "line": "Qc2 Rb8 b3 b5 Bb2 Qd7"
+    }
+   ],
+   "margin_pawns": 0.01,
+   "best_stands_out": false
+  },
+  {
+   "label": "9. Rb1",
+   "fen": "r2q1rk1/pp2ppbp/2npbnp1/2p5/2P5/P2P1NP1/1P1NPPBP/1RBQ1RK1 b - - 3 9",
+   "to_move": "Black",
+   "played": {
+    "move": "Qd7",
+    "label": "9... Qd7",
+    "eval": "+0.41",
+    "value_for_mover": -41,
+    "rank": null,
+    "cost_pawns": 0.63
+   },
+   "candidates": [
+    {
+     "move": "a5",
+     "eval": "-0.22",
+     "value_for_mover": 22,
+     "line": "a5 Ng5 Bf5 h3 Rb8 b3"
+    },
+    {
+     "move": "Rb8",
+     "eval": "-0.09",
+     "value_for_mover": 9,
+     "line": "Rb8 b4 cxb4 axb4 b5 Bb2"
+    },
+    {
+     "move": "d5",
+     "eval": "+0.06",
+     "value_for_mover": -6,
+     "line": "d5 Ng5 Bc8 b4 h6 Ngf3"
+    },
+    {
+     "move": "a6",
+     "eval": "+0.10",
+     "value_for_mover": -10,
+     "line": "a6 b4 cxb4 axb4 b5 Bb2"
+    }
+   ],
+   "margin_pawns": 0.13,
+   "best_stands_out": false
+  },
+  {
+   "label": "9... Qd7",
+   "fen": "r4rk1/pp1qppbp/2npbnp1/2p5/2P5/P2P1NP1/1P1NPPBP/1RBQ1RK1 w - - 4 10",
+   "to_move": "White",
+   "played": {
+    "move": "b3",
+    "label": "10. b3",
+    "eval": "-0.37",
+    "value_for_mover": -37,
+    "rank": 3,
+    "cost_pawns": 0.78
+   },
+   "candidates": [
+    {
+     "move": "b4",
+     "eval": "+0.41",
+     "value_for_mover": 41,
+     "line": "b4 cxb4 axb4 a6 Ng5 Bf5"
+    },
+    {
+     "move": "Ng5",
+     "eval": "+0.10",
+     "value_for_mover": 10,
+     "line": "Ng5 Bf5 b4 h6 Ngf3 e5"
+    },
+    {
+     "move": "b3",
+     "eval": "-0.24",
+     "value_for_mover": -24,
+     "line": "b3 Rab8 Bb2 b5 Qc2 Bg4"
+    },
+    {
+     "move": "Qc2",
+     "eval": "-0.32",
+     "value_for_mover": -32,
+     "line": "Qc2 Rab8 b3 Bh3 Bb2 Bxg2"
+    }
+   ],
+   "margin_pawns": 0.31,
+   "best_stands_out": false
+  },
+  {
+   "label": "10. b3",
+   "fen": "r4rk1/pp1qppbp/2npbnp1/2p5/2P5/PP1P1NP1/3NPPBP/1RBQ1RK1 b - - 0 10",
+   "to_move": "Black",
+   "played": {
+    "move": "Bh3",
+    "label": "10... Bh3",
+    "eval": "-0.13",
+    "value_for_mover": 13,
+    "rank": 2,
+    "cost_pawns": 0.24
+   },
+   "motifs_after_played": "The black bishop on h3 pins the white bishop on g2 to the rook on f1.",
+   "candidates": [
+    {
+     "move": "Rab8",
+     "eval": "-0.37",
+     "value_for_mover": 37,
+     "line": "Rab8 Bb2 b5 Bc3 a5 Ng5"
+    },
+    {
+     "move": "Bh3",
+     "eval": "-0.24",
+     "value_for_mover": 24,
+     "line": "Bh3 b4 Bxg2 Kxg2 Ne8 Bb2"
+    },
+    {
+     "move": "a6",
+     "eval": "-0.22",
+     "value_for_mover": 22,
+     "line": "a6 b4 cxb4 axb4 b5 Ng5"
+    },
+    {
+     "move": "Rfb8",
+     "eval": "-0.05",
+     "value_for_mover": 5,
+     "line": "Rfb8 Ng5 Bf5 Bb2 h6 Nge4"
+    }
+   ],
+   "margin_pawns": 0.13,
+   "best_stands_out": false
+  },
+  {
+   "label": "10... Bh3",
+   "fen": "r4rk1/pp1qppbp/2np1np1/2p5/2P5/PP1P1NPb/3NPPBP/1RBQ1RK1 w - - 1 11",
+   "to_move": "White",
+   "played": {
+    "move": "Bb2",
+    "label": "11. Bb2",
+    "eval": "-0.16",
+    "value_for_mover": -16,
+    "rank": 3,
+    "cost_pawns": 0.03
+   },
+   "candidates": [
+    {
+     "move": "b4",
+     "eval": "-0.13",
+     "value_for_mover": -13,
+     "line": "b4 b6 Bb2 Bxg2 Kxg2 Rae8"
+    },
+    {
+     "move": "Bxh3",
+     "eval": "-0.14",
+     "value_for_mover": -14,
+     "line": "Bxh3 Qxh3 Ne4 Nxe4 dxe4 b6"
+    },
+    {
+     "move": "Bb2",
+     "eval": "-0.20",
+     "value_for_mover": -20,
+     "line": "Bb2 Bxg2 Kxg2 e5 b4 Nh5"
+    },
+    {
+     "move": "e3",
+     "eval": "-0.30",
+     "value_for_mover": -30,
+     "line": "e3 Rab8 Qe2 Bxg2 Kxg2 Nh5"
+    }
+   ],
+   "margin_pawns": 0.01,
+   "best_stands_out": false
+  },
+  {
+   "label": "11. Bb2",
+   "fen": "r4rk1/pp1qppbp/2np1np1/2p5/2P5/PP1P1NPb/1B1NPPBP/1R1Q1RK1 b - - 2 11",
+   "to_move": "Black",
+   "played": {
+    "move": "Bxg2",
+    "label": "11... Bxg2",
+    "eval": "-0.12",
+    "value_for_mover": 12,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The white rook on f1 is attacked by the black bishop on g2, a cheaper piece. The black bishop on g2 is attacked by the white king on g1 and has no defender. Black has the bishop pair. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
+   "candidates": [
+    {
+     "move": "Bxg2",
+     "eval": "-0.16",
+     "value_for_mover": 16,
+     "line": "Bxg2 Kxg2 e5 Ne4 b6 Nc3"
+    },
+    {
+     "move": "a5",
+     "eval": "-0.15",
+     "value_for_mover": 15,
+     "line": "a5 Ne4 Bxg2 Kxg2 Nxe4 dxe4"
+    },
+    {
+     "move": "e5",
+     "eval": "-0.07",
+     "value_for_mover": 7,
+     "line": "e5 Bxh3 Qxh3 Ng5 Qd7 Nge4"
+    },
+    {
+     "move": "Rab8",
+     "eval": "-0.01",
+     "value_for_mover": 1,
+     "line": "Rab8 Bxh3 Qxh3 Ne4 Nxe4 dxe4"
+    }
+   ],
+   "margin_pawns": 0.01,
+   "best_stands_out": false
+  },
+  {
+   "label": "11... Bxg2",
+   "fen": "r4rk1/pp1qppbp/2np1np1/2p5/2P5/PP1P1NP1/1B1NPPbP/1R1Q1RK1 w - - 0 12",
+   "to_move": "White",
+   "played": {
+    "move": "Kxg2",
+    "label": "12. Kxg2",
+    "eval": "-0.18",
+    "value_for_mover": -18,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The white rook on f1 is no longer hanging. Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. Black no longer has the bishop pair.",
+   "candidates": [
+    {
+     "move": "Kxg2",
+     "eval": "-0.12",
+     "value_for_mover": -12,
+     "line": "Kxg2 e5 Ne4 b6 Nc3 Ne8"
+    },
+    {
+     "move": "Bxf6",
+     "eval": "-3.58",
+     "value_for_mover": -358,
+     "line": "Bxf6 Bxf1 Bxg7 Bxe2 Qxe2 Kxg7"
+    },
+    {
+     "move": "b4",
+     "eval": "-4.95",
+     "value_for_mover": -495,
+     "line": "b4 Bxf3 Nxf3 Rfe8 e4 e5"
+    },
+    {
+     "move": "Ne5",
+     "eval": "-5.05",
+     "value_for_mover": -505,
+     "line": "Ne5 dxe5 Kxg2 a5 Ne4 Nxe4"
+    }
+   ],
+   "margin_pawns": 3.46,
+   "best_stands_out": true
+  },
+  {
+   "label": "12. Kxg2",
+   "fen": "r4rk1/pp1qppbp/2np1np1/2p5/2P5/PP1P1NP1/1B1NPPKP/1R1Q1R2 b - - 0 12",
+   "to_move": "Black",
+   "played": {
+    "move": "a5",
+    "label": "12... a5",
+    "eval": "+0.07",
+    "value_for_mover": -7,
+    "rank": null,
+    "cost_pawns": 0.25
+   },
+   "candidates": [
+    {
+     "move": "Rfb8",
+     "eval": "-0.18",
+     "value_for_mover": 18,
+     "line": "Rfb8 b4 cxb4 axb4 b5 Bc3"
+    },
+    {
+     "move": "Nh5",
+     "eval": "-0.17",
+     "value_for_mover": 17,
+     "line": "Nh5 b4 e5 Ne4 b6 Nc3"
+    },
+    {
+     "move": "e5",
+     "eval": "-0.16",
+     "value_for_mover": 16,
+     "line": "e5 Ne4 Ne8 Nc3 Nc7 b4"
+    },
+    {
+     "move": "Rab8",
+     "eval": "-0.14",
+     "value_for_mover": 14,
+     "line": "Rab8 b4 cxb4 axb4 b5 e4"
+    }
+   ],
+   "margin_pawns": 0.01,
+   "best_stands_out": false
+  },
+  {
+   "label": "12... a5",
+   "fen": "r4rk1/1p1qppbp/2np1np1/p1p5/2P5/PP1P1NP1/1B1NPPKP/1R1Q1R2 w - - 0 13",
+   "to_move": "White",
+   "played": {
+    "move": "Ne4",
+    "label": "13. Ne4",
+    "eval": "+0.04",
+    "value_for_mover": 4,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "candidates": [
+    {
+     "move": "Ne4",
+     "eval": "+0.07",
+     "value_for_mover": 7,
+     "line": "Ne4 Rae8 Qd2 b6 Nxf6+ Bxf6"
+    },
+    {
+     "move": "e3",
+     "eval": "-0.11",
+     "value_for_mover": -11,
+     "line": "e3 Rfd8 Qe2 d5 Rfd1 b6"
+    },
+    {
+     "move": "Re1",
+     "eval": "-0.24",
+     "value_for_mover": -24,
+     "line": "Re1 Rfb8 e3 e5 Kg1 Ne8"
+    },
+    {
+     "move": "Qc2",
+     "eval": "-0.25",
+     "value_for_mover": -25,
+     "line": "Qc2 e5 Ne4 Rab8 Nc3 Nd4"
+    }
+   ],
+   "margin_pawns": 0.18,
+   "best_stands_out": false
+  },
+  {
+   "label": "13. Ne4",
+   "fen": "r4rk1/1p1qppbp/2np1np1/p1p5/2P1N3/PP1P1NP1/1B2PPKP/1R1Q1R2 b - - 1 13",
+   "to_move": "Black",
+   "played": {
+    "move": "Nxe4",
+    "label": "13... Nxe4",
+    "eval": "+0.09",
+    "value_for_mover": -9,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The move from f6 uncovers a discovered attack: the black bishop on g7 now attacks the white bishop on b2. The black knight on e4 is attacked by the white pawn on d3 and has no defender.",
+   "candidates": [
+    {
+     "move": "Nxe4",
+     "eval": "+0.04",
+     "value_for_mover": -4,
+     "line": "Nxe4 dxe4 h6 h4 Bxb2 Rxb2"
+    },
+    {
+     "move": "e5",
+     "eval": "+0.07",
+     "value_for_mover": -7,
+     "line": "e5 e3 Rab8 Nxf6+ Bxf6 d4"
+    },
+    {
+     "move": "Rae8",
+     "eval": "+0.12",
+     "value_for_mover": -12,
+     "line": "Rae8 Nc3 Rb8 d4 cxd4 Nxd4"
+    },
+    {
+     "move": "Rab8",
+     "eval": "+0.12",
+     "value_for_mover": -12,
+     "line": "Rab8 Nxf6+ Bxf6 Bxf6 exf6 d4"
+    }
+   ],
+   "margin_pawns": 0.03,
+   "best_stands_out": false
+  },
+  {
+   "label": "13... Nxe4",
+   "fen": "r4rk1/1p1qppbp/2np2p1/p1p5/2P1n3/PP1P1NP1/1B2PPKP/1R1Q1R2 w - - 0 14",
+   "to_move": "White",
+   "played": {
+    "move": "Bxg7",
+    "label": "14. Bxg7",
+    "eval": "-1.60",
+    "value_for_mover": -160,
+    "rank": 2,
+    "cost_pawns": 1.69
+   },
+   "motifs_after_played": "The black rook on f8 is attacked by the white bishop on g7, a cheaper piece. The white bishop on g7 is attacked by the black king on g8 and has no defender. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
+   "candidates": [
+    {
+     "move": "dxe4",
+     "eval": "+0.09",
+     "value_for_mover": 9,
+     "line": "dxe4 h6 a4 Bxb2 Rxb2 g5"
+    },
+    {
+     "move": "Bxg7",
+     "eval": "-1.45",
+     "value_for_mover": -145,
+     "line": "Bxg7 Nxf2 Rxf2 Kxg7 e3 e5"
+    },
+    {
+     "move": "b4",
+     "eval": "-4.28",
+     "value_for_mover": -428,
+     "line": "b4 Nf6 bxc5 dxc5 Bc3 Nd8"
+    },
+    {
+     "move": "h4",
+     "eval": "-4.61",
+     "value_for_mover": -461,
+     "line": "h4 Bxb2 Rxb2 Nf6 h5 h6"
+    }
+   ],
+   "margin_pawns": 1.54,
+   "best_stands_out": true
+  },
+  {
+   "label": "14. Bxg7",
+   "fen": "r4rk1/1p1qppBp/2np2p1/p1p5/2P1n3/PP1P1NP1/4PPKP/1R1Q1R2 b - - 0 14",
+   "to_move": "Black",
+   "played": {
+    "move": "Kxg7",
+    "label": "14... Kxg7",
+    "eval": "+0.04",
+    "value_for_mover": -4,
+    "rank": 3,
+    "cost_pawns": 1.64
+   },
+   "motifs_after_played": "The black rook on f8 is no longer hanging. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
+   "candidates": [
+    {
+     "move": "Nxf2",
+     "eval": "-1.60",
+     "value_for_mover": 160,
+     "line": "Nxf2 Rxf2 Kxg7 e3 e5 d4"
+    },
+    {
+     "move": "Nxg3",
+     "eval": "-0.36",
+     "value_for_mover": 36,
+     "line": "Nxg3 Bxf8 Nxf1 Bh6 Qg4+ Kh1"
+    },
+    {
+     "move": "Kxg7",
+     "eval": "-0.05",
+     "value_for_mover": 5,
+     "line": "Kxg7 dxe4 h6 Qd5 a4 Rfd1"
+    },
+    {
+     "move": "Rfb8",
+     "eval": "+0.47",
+     "value_for_mover": -47,
+     "line": "Rfb8 Ba1 Nf6 a4 e5 e3"
+    }
+   ],
+   "margin_pawns": 1.24,
+   "best_stands_out": true
+  },
+  {
+   "label": "14... Kxg7",
+   "fen": "r4r2/1p1qppkp/2np2p1/p1p5/2P1n3/PP1P1NP1/4PPKP/1R1Q1R2 w - - 0 15",
+   "to_move": "White",
+   "played": {
+    "move": "dxe4",
+    "label": "15. dxe4",
+    "eval": "+0.00",
+    "value_for_mover": 0,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The white queen on d1 pins the black pawn on d6 to the queen on d7. White has doubled pawns on e2 and e4.",
+   "candidates": [
+    {
+     "move": "dxe4",
+     "eval": "+0.04",
+     "value_for_mover": 4,
+     "line": "dxe4 f6 h4 h5 Rb2 Rh8"
+    },
+    {
+     "move": "Qc1",
+     "eval": "-4.51",
+     "value_for_mover": -451,
+     "line": "Qc1 Nf6 Qb2 Rfb8 b4 b6"
+    },
+    {
+     "move": "Qc2",
+     "eval": "-4.55",
+     "value_for_mover": -455,
+     "line": "Qc2 Nf6 Qb2 Rab8 b4 b6"
+    },
+    {
+     "move": "Qe1",
+     "eval": "-4.62",
+     "value_for_mover": -462,
+     "line": "Qe1 Nf6 Qd2 h6 Qb2 a4"
+    }
+   ],
+   "margin_pawns": 4.55,
+   "best_stands_out": true
+  },
+  {
+   "label": "15. dxe4",
+   "fen": "r4r2/1p1qppkp/2np2p1/p1p5/2P1P3/PP3NP1/4PPKP/1R1Q1R2 b - - 0 15",
+   "to_move": "Black",
+   "played": {
+    "move": "e6",
+    "label": "15... e6",
+    "eval": "+0.45",
+    "value_for_mover": -45,
+    "rank": null,
+    "cost_pawns": 0.45
+   },
+   "motifs_after_played": "Black has no dark-squared bishop, and five of its pawns stand on light squares, so the dark squares are weak. Black's dark squares are no longer weak. Black's light squares are no longer weak.",
+   "candidates": [
+    {
+     "move": "f6",
+     "eval": "+0.00",
+     "value_for_mover": 0,
+     "line": "f6 a4 Nb4 Qd2 Qe6 Qe3"
+    },
+    {
+     "move": "h6",
+     "eval": "+0.03",
+     "value_for_mover": -3,
+     "line": "h6 Qd5 Rad8 Rbd1 a4 Rb1"
+    },
+    {
+     "move": "Rad8",
+     "eval": "+0.11",
+     "value_for_mover": -11,
+     "line": "Rad8 Qd3 h6 Rfd1 Qe6 Qd5"
+    },
+    {
+     "move": "Qe6",
+     "eval": "+0.12",
+     "value_for_mover": -12,
+     "line": "Qe6 Qd5 h6 h3 Rad8 a4"
+    }
+   ],
+   "margin_pawns": 0.03,
+   "best_stands_out": false
+  },
+  {
+   "label": "15... e6",
+   "fen": "r4r2/1p1q1pkp/2npp1p1/p1p5/2P1P3/PP3NP1/4PPKP/1R1Q1R2 w - - 0 16",
+   "to_move": "White",
+   "played": {
+    "move": "e5",
+    "label": "16. e5",
+    "eval": "-0.08",
+    "value_for_mover": -8,
+    "rank": null,
+    "cost_pawns": 0.53
+   },
+   "motifs_after_played": "The black pawn on d6 is attacked twice and defended only once. White has no light-squared bishop, and five of its pawns stand on dark squares, so the light squares are weak. The black pawn on f7 is backward: it has fallen behind its neighbours and cannot advance safely. White's dark squares are no longer weak. White's light squares are no longer weak.",
+   "candidates": [
+    {
+     "move": "Rb2",
+     "eval": "+0.45",
+     "value_for_mover": 45,
+     "line": "Rb2 Qe7 Rd2 Rad8 Qc2 Rd7"
+    },
+    {
+     "move": "Qd3",
+     "eval": "+0.43",
+     "value_for_mover": 43,
+     "line": "Qd3 Qe7 Rfd1 Rad8 Rd2 g5"
+    },
+    {
+     "move": "Qc2",
+     "eval": "+0.41",
+     "value_for_mover": 41,
+     "line": "Qc2 Nd4 Qd3 e5 Nd2 Nc6"
+    },
+    {
+     "move": "Qd2",
+     "eval": "+0.34",
+     "value_for_mover": 34,
+     "line": "Qd2 Rad8 Qc3+ e5 e3 h5"
+    }
+   ],
+   "margin_pawns": 0.02,
+   "best_stands_out": false
+  },
+  {
+   "label": "16. e5",
+   "fen": "r4r2/1p1q1pkp/2npp1p1/p1p1P3/2P5/PP3NP1/4PPKP/1R1Q1R2 b - - 0 16",
+   "to_move": "Black",
+   "played": {
+    "move": "d5",
+    "label": "16... d5",
+    "eval": "+0.01",
+    "value_for_mover": -1,
+    "rank": 3,
+    "cost_pawns": 0.09
+   },
+   "motifs_after_played": "The black pawn on d6 is no longer hanging. Black has no dark-squared bishop, and six of its pawns stand on light squares, so the dark squares are weak. Black's dark squares are no longer weak.",
+   "candidates": [
+    {
+     "move": "Rad8",
+     "eval": "-0.08",
+     "value_for_mover": 8,
+     "line": "Rad8 exd6 Qxd6 Qc2 e5 Rbd1"
+    },
+    {
+     "move": "Rfd8",
+     "eval": "-0.07",
+     "value_for_mover": 7,
+     "line": "Rfd8 exd6 Qxd6 Qc2 Nd4 Qe4"
+    },
+    {
+     "move": "d5",
+     "eval": "+0.00",
+     "value_for_mover": 0,
+     "line": "d5 Qd2 h6 Qe3 d4 Qe4"
+    },
+    {
+     "move": "b6",
+     "eval": "+0.06",
+     "value_for_mover": -6,
+     "line": "b6 Qxd6 Qb7 Qd2 Nxe5 Qe3"
+    }
+   ],
+   "margin_pawns": 0.01,
+   "best_stands_out": false
+  },
+  {
+   "label": "16... d5",
+   "fen": "r4r2/1p1q1pkp/2n1p1p1/p1ppP3/2P5/PP3NP1/4PPKP/1R1Q1R2 w - - 0 17",
+   "to_move": "White",
+   "played": {
+    "move": "Qc2",
+    "label": "17. Qc2",
+    "eval": "-0.12",
+    "value_for_mover": -12,
+    "rank": null,
+    "cost_pawns": 0.13
+   },
+   "candidates": [
+    {
+     "move": "h4",
+     "eval": "+0.01",
+     "value_for_mover": 1,
+     "line": "h4 h6 Qd2 d4 Rbd1 b6"
+    },
+    {
+     "move": "Qc1",
+     "eval": "+0.00",
+     "value_for_mover": 0,
+     "line": "Qc1 Qe7 h4 h6 Qf4 Rad8"
+    },
+    {
+     "move": "Qd2",
+     "eval": "+0.00",
+     "value_for_mover": 0,
+     "line": "Qd2 h6 h4 d4 Qf4 f6"
+    },
+    {
+     "move": "Qd3",
+     "eval": "+0.00",
+     "value_for_mover": 0,
+     "line": "Qd3 Rad8 Qe3 Qe7 h3 h6"
+    }
+   ],
+   "margin_pawns": 0.01,
+   "best_stands_out": false
+  },
+  {
+   "label": "17. Qc2",
+   "fen": "r4r2/1p1q1pkp/2n1p1p1/p1ppP3/2P5/PP3NP1/2Q1PPKP/1R3R2 b - - 1 17",
+   "to_move": "Black",
+   "played": {
+    "move": "Rfd8",
+    "label": "17... Rfd8",
+    "eval": "+0.01",
+    "value_for_mover": -1,
+    "rank": null,
+    "cost_pawns": 0.13
+   },
+   "candidates": [
+    {
+     "move": "b6",
+     "eval": "-0.12",
+     "value_for_mover": 12,
+     "line": "b6 h4 h6 Qd2 Rad8 Qe3"
+    },
+    {
+     "move": "Rad8",
+     "eval": "-0.08",
+     "value_for_mover": 8,
+     "line": "Rad8 cxd5 Qxd5 Rfd1 Nd4 e4"
+    },
+    {
+     "move": "Qe7",
+     "eval": "-0.06",
+     "value_for_mover": 6,
+     "line": "Qe7 h4 h6 Qd2 Rad8 Qf4"
+    },
+    {
+     "move": "d4",
+     "eval": "+0.05",
+     "value_for_mover": -5,
+     "line": "d4 h4 f5 exf6+ Rxf6 Ng5"
+    }
+   ],
+   "margin_pawns": 0.04,
+   "best_stands_out": false
+  },
+  {
+   "label": "17... Rfd8",
+   "fen": "r2r4/1p1q1pkp/2n1p1p1/p1ppP3/2P5/PP3NP1/2Q1PPKP/1R3R2 w - - 2 18",
+   "to_move": "White",
+   "played": {
+    "move": "Rfd1",
+    "label": "18. Rfd1",
+    "eval": "-0.04",
+    "value_for_mover": -4,
+    "rank": 3,
+    "cost_pawns": 0.05
+   },
+   "motifs_after_played": "The white rook on d1 pins the black pawn on d5 to the queen on d7. The white rook on d1 stands on the half-open d-file.",
+   "candidates": [
+    {
+     "move": "Qc1",
+     "eval": "+0.01",
+     "value_for_mover": 1,
+     "line": "Qc1 Qe7 h4 h6 Qe3 a4"
+    },
+    {
+     "move": "Qc3",
+     "eval": "+0.01",
+     "value_for_mover": 1,
+     "line": "Qc3 Qe7 h4 h6 Qe3 a4"
+    },
+    {
+     "move": "Rfd1",
+     "eval": "-0.02",
+     "value_for_mover": -2,
+     "line": "Rfd1 Qe7 h4 h6 Rd2 d4"
+    },
+    {
+     "move": "Rfc1",
+     "eval": "-0.03",
+     "value_for_mover": -3,
+     "line": "Rfc1 b6 Qd2 Rf8 h4 h6"
+    }
+   ],
+   "margin_pawns": 0.0,
+   "best_stands_out": false
+  },
+  {
+   "label": "18. Rfd1",
+   "fen": "r2r4/1p1q1pkp/2n1p1p1/p1ppP3/2P5/PP3NP1/2Q1PPKP/1R1R4 b - - 3 18",
+   "to_move": "Black",
+   "played": {
+    "move": "d4",
+    "label": "18... d4",
+    "eval": "+0.53",
+    "value_for_mover": -53,
+    "rank": 4,
+    "cost_pawns": 0.57
+   },
+   "motifs_after_played": "Black has no dark-squared bishop, and five of its pawns stand on light squares, so the dark squares are weak. Black's dark squares are no longer weak.",
+   "candidates": [
+    {
+     "move": "Qe7",
+     "eval": "-0.04",
+     "value_for_mover": 4,
+     "line": "Qe7 h4 h6 Rd2 Rd7 cxd5"
+    },
+    {
+     "move": "b6",
+     "eval": "+0.13",
+     "value_for_mover": -13,
+     "line": "b6 Qc1 h6 Qf4 Qe7 h4"
+    },
+    {
+     "move": "Nd4",
+     "eval": "+0.35",
+     "value_for_mover": -35,
+     "line": "Nd4 Nxd4 cxd4 Rxd4 Qc7 Rbd1"
+    },
+    {
+     "move": "d4",
+     "eval": "+0.53",
+     "value_for_mover": -53,
+     "line": "d4 h4 h6 Qe4 Qc7 Qf4"
+    }
+   ],
+   "margin_pawns": 0.17,
+   "best_stands_out": false
+  },
+  {
+   "label": "18... d4",
+   "fen": "r2r4/1p1q1pkp/2n1p1p1/p1p1P3/2Pp4/PP3NP1/2Q1PPKP/1R1R4 w - - 0 19",
+   "to_move": "White",
+   "played": {
+    "move": "Qd3",
+    "label": "19. Qd3",
+    "eval": "+0.05",
+    "value_for_mover": 5,
+    "rank": 4,
+    "cost_pawns": 0.48
+   },
+   "motifs_after_played": "The white queen on d3 stands on the half-open d-file.",
+   "candidates": [
+    {
+     "move": "h4",
+     "eval": "+0.53",
+     "value_for_mover": 53,
+     "line": "h4 h6 Qe4 Qe7 Ne1 a4"
+    },
+    {
+     "move": "Qe4",
+     "eval": "+0.49",
+     "value_for_mover": 49,
+     "line": "Qe4 Qe7 h4 f5 exf6+ Qxf6"
+    },
+    {
+     "move": "Rb2",
+     "eval": "+0.13",
+     "value_for_mover": 13,
+     "line": "Rb2 Qe7 h4 h6 Qe4 f5"
+    },
+    {
+     "move": "Qd3",
+     "eval": "+0.10",
+     "value_for_mover": 10,
+     "line": "Qd3 Qe7 Qe4 Rd7 h4 f5"
+    }
+   ],
+   "margin_pawns": 0.04,
+   "best_stands_out": false
+  },
+  {
+   "label": "19. Qd3",
+   "fen": "r2r4/1p1q1pkp/2n1p1p1/p1p1P3/2Pp4/PP1Q1NP1/4PPKP/1R1R4 b - - 1 19",
+   "to_move": "Black",
+   "played": {
+    "move": "Qc7",
+    "label": "19... Qc7",
+    "eval": "+0.52",
+    "value_for_mover": -52,
+    "rank": 4,
+    "cost_pawns": 0.47
+   },
+   "motifs_after_played": "The white pawn on e5 is attacked twice and defended only once.",
+   "candidates": [
+    {
+     "move": "a4",
+     "eval": "+0.05",
+     "value_for_mover": -5,
+     "line": "a4 Qe4 axb3 Rxb3 Na5 Rb5"
+    },
+    {
+     "move": "Qe7",
+     "eval": "+0.11",
+     "value_for_mover": -11,
+     "line": "Qe7 h4 h6 Qe4 f6 exf6+"
+    },
+    {
+     "move": "h6",
+     "eval": "+0.27",
+     "value_for_mover": -27,
+     "line": "h6 Qe4 Qe7 h4 f6 exf6+"
+    },
+    {
+     "move": "Qc7",
+     "eval": "+0.45",
+     "value_for_mover": -45,
+     "line": "Qc7 Qe4 Qe7 h4 f5 exf6+"
+    }
+   ],
+   "margin_pawns": 0.06,
+   "best_stands_out": false
+  },
+  {
+   "label": "19... Qc7",
+   "fen": "r2r4/1pq2pkp/2n1p1p1/p1p1P3/2Pp4/PP1Q1NP1/4PPKP/1R1R4 w - - 2 20",
+   "to_move": "White",
+   "played": {
+    "move": "Qe4",
+    "label": "20. Qe4",
+    "eval": "+0.24",
+    "value_for_mover": 24,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The white pawn on e5 is no longer hanging.",
+   "candidates": [
+    {
+     "move": "Qe4",
+     "eval": "+0.52",
+     "value_for_mover": 52,
+     "line": "Qe4 h6 h4 Qe7 Ne1 a4"
+    },
+    {
+     "move": "b4",
+     "eval": "-0.93",
+     "value_for_mover": -93,
+     "line": "b4 axb4 axb4 cxb4 h4 Ra5"
+    },
+    {
+     "move": "Qd2",
+     "eval": "-1.08",
+     "value_for_mover": -108,
+     "line": "Qd2 Nxe5 Qf4 f6 Nxe5 Qxe5"
+    },
+    {
+     "move": "Rb2",
+     "eval": "-1.30",
+     "value_for_mover": -130,
+     "line": "Rb2 Nxe5 Nxe5 Qxe5 b4 axb4"
+    }
+   ],
+   "margin_pawns": 1.45,
+   "best_stands_out": true
+  },
+  {
+   "label": "20. Qe4",
+   "fen": "r2r4/1pq2pkp/2n1p1p1/p1p1P3/2PpQ3/PP3NP1/4PPKP/1R1R4 b - - 3 20",
+   "to_move": "Black",
+   "played": {
+    "move": "Rab8",
+    "label": "20... Rab8",
+    "eval": "+0.64",
+    "value_for_mover": -64,
+    "rank": null,
+    "cost_pawns": 0.4
+   },
+   "candidates": [
+    {
+     "move": "h6",
+     "eval": "+0.24",
+     "value_for_mover": -24,
+     "line": "h6 h4 Rf8 Rd2 Rac8 Rbd1"
+    },
+    {
+     "move": "Qe7",
+     "eval": "+0.38",
+     "value_for_mover": -38,
+     "line": "Qe7 Ne1 a4 Nd3 axb3 Rxb3"
+    },
+    {
+     "move": "a4",
+     "eval": "+0.47",
+     "value_for_mover": -47,
+     "line": "a4 h4 h5 Qf4 b6 Rd3"
+    },
+    {
+     "move": "Rd7",
+     "eval": "+0.56",
+     "value_for_mover": -56,
+     "line": "Rd7 Qf4 h6 h4 Kh7 Rd3"
+    }
+   ],
+   "margin_pawns": 0.14,
+   "best_stands_out": false
+  },
+  {
+   "label": "20... Rab8",
+   "fen": "1r1r4/1pq2pkp/2n1p1p1/p1p1P3/2PpQ3/PP3NP1/4PPKP/1R1R4 w - - 4 21",
+   "to_move": "White",
+   "played": {
+    "move": "h4",
+    "label": "21. h4",
+    "eval": "+0.68",
+    "value_for_mover": 68,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "candidates": [
+    {
+     "move": "h4",
+     "eval": "+0.64",
+     "value_for_mover": 64,
+     "line": "h4 h6 Qf4 Qe7 Nd2 g5"
+    },
+    {
+     "move": "Qf4",
+     "eval": "+0.37",
+     "value_for_mover": 37,
+     "line": "Qf4 Qe7 h4 Rf8 h5 h6"
+    },
+    {
+     "move": "a4",
+     "eval": "+0.37",
+     "value_for_mover": 37,
+     "line": "a4 h6 h4 Qe7 Ne1 Nb4"
+    },
+    {
+     "move": "h3",
+     "eval": "+0.21",
+     "value_for_mover": 21,
+     "line": "h3 h6 h4 Rf8 Qf4 Qe7"
+    }
+   ],
+   "margin_pawns": 0.27,
+   "best_stands_out": false
+  },
+  {
+   "label": "21. h4",
+   "fen": "1r1r4/1pq2pkp/2n1p1p1/p1p1P3/2PpQ2P/PP3NP1/4PPK1/1R1R4 b - - 0 21",
+   "to_move": "Black",
+   "played": {
+    "move": "b5",
+    "label": "21... b5",
+    "eval": "+1.68",
+    "value_for_mover": -168,
+    "rank": null,
+    "cost_pawns": 1.0
+   },
+   "candidates": [
+    {
+     "move": "h6",
+     "eval": "+0.68",
+     "value_for_mover": -68,
+     "line": "h6 Qf4 Kh7 Rd3 Rf8 Qf6"
+    },
+    {
+     "move": "h5",
+     "eval": "+0.68",
+     "value_for_mover": -68,
+     "line": "h5 Qf4 Rf8 Rd3 Kg8 Qg5"
+    },
+    {
+     "move": "Rd7",
+     "eval": "+0.77",
+     "value_for_mover": -77,
+     "line": "Rd7 Qf4 h6 Qf6+ Kh7 Rh1"
+    },
+    {
+     "move": "Ra8",
+     "eval": "+0.78",
+     "value_for_mover": -78,
+     "line": "Ra8 h5 h6 hxg6 fxg6 Rh1"
+    }
+   ],
+   "margin_pawns": 0.0,
+   "best_stands_out": false
+  },
+  {
+   "label": "21... b5",
+   "fen": "1r1r4/2q2pkp/2n1p1p1/ppp1P3/2PpQ2P/PP3NP1/4PPK1/1R1R4 w - - 0 22",
+   "to_move": "White",
+   "played": {
+    "move": "h5",
+    "label": "22. h5",
+    "eval": "+1.82",
+    "value_for_mover": 182,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The white pawn on h5 is attacked by the black pawn on g6 and has no defender. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. White's light squares are no longer weak.",
+   "candidates": [
+    {
+     "move": "h5",
+     "eval": "+1.68",
+     "value_for_mover": 168,
+     "line": "h5 bxc4 hxg6 hxg6 Qf4 Nxe5"
+    },
+    {
+     "move": "cxb5",
+     "eval": "+1.61",
+     "value_for_mover": 161,
+     "line": "cxb5 Rxb5 h5 Rd5 Qf4 Kg8"
+    },
+    {
+     "move": "Qf4",
+     "eval": "+0.73",
+     "value_for_mover": 73,
+     "line": "Qf4 h6 Qf6+ Kg8 h5 Qe7"
+    },
+    {
+     "move": "Rh1",
+     "eval": "+0.55",
+     "value_for_mover": 55,
+     "line": "Rh1 h5 Qf4 d3 exd3 Nd4"
+    }
+   ],
+   "margin_pawns": 0.07,
+   "best_stands_out": false
+  },
+  {
+   "label": "22. h5",
+   "fen": "1r1r4/2q2pkp/2n1p1p1/ppp1P2P/2PpQ3/PP3NP1/4PPK1/1R1R4 b - - 0 22",
+   "to_move": "Black",
+   "played": {
+    "move": "bxc4",
+    "label": "22... bxc4",
+    "eval": "+2.02",
+    "value_for_mover": -202,
+    "rank": 2,
+    "cost_pawns": 0.2
+   },
+   "motifs_after_played": "The white pawn on b3 is attacked twice and defended only once. The black pawn on a5 is isolated: no pawn on a neighbouring file can defend it. The black pawn on c5 is backward: it has fallen behind its neighbours and cannot advance safely.",
+   "candidates": [
+    {
+     "move": "Kg8",
+     "eval": "+1.82",
+     "value_for_mover": -182,
+     "line": "Kg8 Rh1 Rd7 cxb5 Rxb5 Rbc1"
+    },
+    {
+     "move": "bxc4",
+     "eval": "+1.91",
+     "value_for_mover": -191,
+     "line": "bxc4 Rh1 Rxb3 hxg6 hxg6 Qh4"
+    },
+    {
+     "move": "Ne7",
+     "eval": "+2.13",
+     "value_for_mover": -213,
+     "line": "Ne7 h6+ Kg8 Qf4 a4 Rh1"
+    },
+    {
+     "move": "gxh5",
+     "eval": "+2.45",
+     "value_for_mover": -245,
+     "line": "gxh5 cxb5 Rxb5 Qf4 Rg8 Rbc1"
+    }
+   ],
+   "margin_pawns": 0.09,
+   "best_stands_out": false
+  },
+  {
+   "label": "22... bxc4",
+   "fen": "1r1r4/2q2pkp/2n1p1p1/p1p1P2P/2ppQ3/PP3NP1/4PPK1/1R1R4 w - - 0 23",
+   "to_move": "White",
+   "played": {
+    "move": "hxg6",
+    "label": "23. hxg6",
+    "eval": "+1.63",
+    "value_for_mover": 163,
+    "rank": 3,
+    "cost_pawns": 0.39
+   },
+   "motifs_after_played": "Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The black pawn on h7 is isolated: no pawn on a neighbouring file can defend it.",
+   "candidates": [
+    {
+     "move": "Rh1",
+     "eval": "+2.02",
+     "value_for_mover": 202,
+     "line": "Rh1 Rxb3 hxg6 hxg6 Qf4 Kf8"
+    },
+    {
+     "move": "bxc4",
+     "eval": "+1.67",
+     "value_for_mover": 167,
+     "line": "bxc4 h6 hxg6 fxg6 Rb5 Ne7"
+    },
+    {
+     "move": "hxg6",
+     "eval": "+1.60",
+     "value_for_mover": 160,
+     "line": "hxg6 hxg6 Rh1 Rh8 Qf4 Nxe5"
+    },
+    {
+     "move": "Qh4",
+     "eval": "+0.88",
+     "value_for_mover": 88,
+     "line": "Qh4 c3 hxg6 fxg6 Qf6+ Kg8"
+    }
+   ],
+   "margin_pawns": 0.35,
+   "best_stands_out": false
+  },
+  {
+   "label": "23. hxg6",
+   "fen": "1r1r4/2q2pkp/2n1p1P1/p1p1P3/2ppQ3/PP3NP1/4PPK1/1R1R4 b - - 0 23",
+   "to_move": "Black",
+   "played": {
+    "move": "fxg6",
+    "label": "23... fxg6",
+    "eval": "+1.92",
+    "value_for_mover": -192,
+    "rank": 2,
+    "cost_pawns": 0.29
+   },
+   "motifs_after_played": "The black pawn on h7 is no longer isolated. The black pawn on f7 is no longer backward.",
+   "candidates": [
+    {
+     "move": "hxg6",
+     "eval": "+1.63",
+     "value_for_mover": -163,
+     "line": "hxg6 Rh1 Rh8 Qf4 Nxe5 Nxe5"
+    },
+    {
+     "move": "fxg6",
+     "eval": "+1.74",
+     "value_for_mover": -174,
+     "line": "fxg6 Rh1 Kg8 bxc4 Rxb1 Rxb1"
+    },
+    {
+     "move": "c3",
+     "eval": "+2.42",
+     "value_for_mover": -242,
+     "line": "c3 Rh1 hxg6 Qf4 Kf8 Ng5"
+    },
+    {
+     "move": "Rxb3",
+     "eval": "+2.68",
+     "value_for_mover": -268,
+     "line": "Rxb3 gxf7 h6 Rh1 Rh8 Rbc1"
+    }
+   ],
+   "margin_pawns": 0.11,
+   "best_stands_out": false
+  },
+  {
+   "label": "23... fxg6",
+   "fen": "1r1r4/2q3kp/2n1p1p1/p1p1P3/2ppQ3/PP3NP1/4PPK1/1R1R4 w - - 0 24",
+   "to_move": "White",
+   "played": {
+    "move": "Rh1",
+    "label": "24. Rh1",
+    "eval": "+1.84",
+    "value_for_mover": 184,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "candidates": [
+    {
+     "move": "Rh1",
+     "eval": "+1.92",
+     "value_for_mover": 192,
+     "line": "Rh1 Kg8 bxc4 Rxb1 Rxb1 Rb8"
+    },
+    {
+     "move": "bxc4",
+     "eval": "+1.66",
+     "value_for_mover": 166,
+     "line": "bxc4 h6 Rb5 Rxb5 cxb5 Ne7"
+    },
+    {
+     "move": "Ng5",
+     "eval": "+0.70",
+     "value_for_mover": 70,
+     "line": "Ng5 Qxe5 Qxe5+ Nxe5 Nxe6+ Kf6"
+    },
+    {
+     "move": "Qh4",
+     "eval": "+0.09",
+     "value_for_mover": 9,
+     "line": "Qh4 Rf8 bxc4 Nxe5 Nxe5 Qxe5"
+    }
+   ],
+   "margin_pawns": 0.26,
+   "best_stands_out": false
+  },
+  {
+   "label": "24. Rh1",
+   "fen": "1r1r4/2q3kp/2n1p1p1/p1p1P3/2ppQ3/PP3NP1/4PPK1/1R5R b - - 1 24",
+   "to_move": "Black",
+   "played": {
+    "move": "Rf8",
+    "label": "24... Rf8",
+    "eval": "+2.66",
+    "value_for_mover": -266,
+    "rank": null,
+    "cost_pawns": 0.82
+   },
+   "motifs_after_played": "The black rook on f8 stands on the half-open f-file.",
+   "candidates": [
+    {
+     "move": "Kg8",
+     "eval": "+1.84",
+     "value_for_mover": -184,
+     "line": "Kg8 bxc4 Rxb1 Rxb1 Rb8 Rb5"
+    },
+    {
+     "move": "Rh8",
+     "eval": "+2.45",
+     "value_for_mover": -245,
+     "line": "Rh8 bxc4 Rxb1 Rxb1 Rc8 Rb5"
+    },
+    {
+     "move": "Rd7",
+     "eval": "+2.49",
+     "value_for_mover": -249,
+     "line": "Rd7 Ng5 Kg8 Nxe6 Qc8 Nxc5"
+    },
+    {
+     "move": "h5",
+     "eval": "+2.53",
+     "value_for_mover": -253,
+     "line": "h5 bxc4 Qd7 Rxb8 Rxb8 g4"
+    }
+   ],
+   "margin_pawns": 0.61,
+   "best_stands_out": true
+  },
+  {
+   "label": "24... Rf8",
+   "fen": "1r3r2/2q3kp/2n1p1p1/p1p1P3/2ppQ3/PP3NP1/4PPK1/1R5R w - - 2 25",
+   "to_move": "White",
+   "played": {
+    "move": "Qh4",
+    "label": "25. Qh4",
+    "eval": "-0.50",
+    "value_for_mover": -50,
+    "rank": null,
+    "cost_pawns": 3.16
+   },
+   "motifs_after_played": "The white pawn on e5 is attacked twice and defended only once. The white pawn on b3 is no longer hanging. The white queen on h4 stands on the half-open h-file. Black's pawns no longer hold more of the centre.",
+   "candidates": [
+    {
+     "move": "Ng5",
+     "eval": "+2.66",
+     "value_for_mover": 266,
+     "line": "Ng5 Qxe5 Qxc6 Kg8 Qxe6+ Qxe6"
+    },
+    {
+     "move": "bxc4",
+     "eval": "+2.55",
+     "value_for_mover": 255,
+     "line": "bxc4 Rxb1 Rxb1 Rc8 Rb5 Qe7"
+    },
+    {
+     "move": "Rxh7+",
+     "eval": "+1.43",
+     "value_for_mover": 143,
+     "line": "Rxh7+ Kxh7 Rh1+ Kg8 Qxg6+ Qg7"
+    },
+    {
+     "move": "g4",
+     "eval": "+0.88",
+     "value_for_mover": 88,
+     "line": "g4 h6 Rxh6 Kxh6 Rh1+ Kg7"
+    }
+   ],
+   "margin_pawns": 0.11,
+   "best_stands_out": false
+  },
+  {
+   "label": "25. Qh4",
+   "fen": "1r3r2/2q3kp/2n1p1p1/p1p1P3/2pp3Q/PP3NP1/4PPK1/1R5R b - - 3 25",
+   "to_move": "Black",
+   "played": {
+    "move": "Kh8",
+    "label": "25... Kh8",
+    "eval": "+1.95",
+    "value_for_mover": -195,
+    "rank": 3,
+    "cost_pawns": 2.45
+   },
+   "motifs_after_played": "The white pawn on b3 is attacked twice and defended only once.",
+   "candidates": [
+    {
+     "move": "h5",
+     "eval": "-0.50",
+     "value_for_mover": 50,
+     "line": "h5 bxc4 Nxe5 Nxe5 Qxe5 Rxb8"
+    },
+    {
+     "move": "Kg8",
+     "eval": "+0.08",
+     "value_for_mover": -8,
+     "line": "Kg8 bxc4 Rxb1 Rxb1 Nxe5 Ng5"
+    },
+    {
+     "move": "Kh8",
+     "eval": "+2.14",
+     "value_for_mover": -214,
+     "line": "Kh8 bxc4 Rxb1 Rxb1 a4 Qe4"
+    },
+    {
+     "move": "Rh8",
+     "eval": "+3.96",
+     "value_for_mover": -396,
+     "line": "Rh8 Qf6+ Kg8 Qxe6+ Kg7 bxc4"
+    }
+   ],
+   "margin_pawns": 0.58,
+   "best_stands_out": true
+  },
+  {
+   "label": "25... Kh8",
+   "fen": "1r3r1k/2q4p/2n1p1p1/p1p1P3/2pp3Q/PP3NP1/4PPK1/1R5R w - - 4 26",
+   "to_move": "White",
+   "played": {
+    "move": "Qg5",
+    "label": "26. Qg5",
+    "eval": "-0.07",
+    "value_for_mover": -7,
+    "rank": null,
+    "cost_pawns": 2.02
+   },
+   "motifs_after_played": "The black pawn on g6 is attacked by the white queen on g5 and has no defender. The white pawn on e5 is no longer hanging.",
+   "candidates": [
+    {
+     "move": "bxc4",
+     "eval": "+1.95",
+     "value_for_mover": 195,
+     "line": "bxc4 Rxb1 Rxb1 Kg8 Qe4 a4"
+    },
+    {
+     "move": "Qe4",
+     "eval": "+1.31",
+     "value_for_mover": 131,
+     "line": "Qe4 Rf5 g4 Rxf3 Qxf3 c3"
+    },
+    {
+     "move": "Ng5",
+     "eval": "+1.04",
+     "value_for_mover": 104,
+     "line": "Ng5 h5 g4 Qxe5 gxh5 Kg7"
+    },
+    {
+     "move": "Rh2",
+     "eval": "+0.18",
+     "value_for_mover": 18,
+     "line": "Rh2 Rxb3 Rbh1 Rbxf3 Qxh7+ Qxh7"
+    }
+   ],
+   "margin_pawns": 0.64,
+   "best_stands_out": true
+  },
+  {
+   "label": "26. Qg5",
+   "fen": "1r3r1k/2q4p/2n1p1p1/p1p1P1Q1/2pp4/PP3NP1/4PPK1/1R5R b - - 5 26",
+   "to_move": "Black",
+   "played": {
+    "move": "Qf7",
+    "label": "26... Qf7",
+    "eval": "+0.18",
+    "value_for_mover": -18,
+    "rank": 4,
+    "cost_pawns": 0.25
+   },
+   "motifs_after_played": "The black pawn on g6 is no longer hanging. The black queen on f7 stands on the half-open f-file.",
+   "candidates": [
+    {
+     "move": "Rxb3",
+     "eval": "-0.07",
+     "value_for_mover": 7,
+     "line": "Rxb3 Qxg6 Rxb1 Qxb1 Qf7 Rh6"
+    },
+    {
+     "move": "cxb3",
+     "eval": "+0.00",
+     "value_for_mover": 0,
+     "line": "cxb3 Qxg6 Qf7 Qxf7 Rxf7 Rhc1"
+    },
+    {
+     "move": "Rf5",
+     "eval": "+0.12",
+     "value_for_mover": -12,
+     "line": "Rf5 Qxg6 Nxe5 Nxe5 Rg8 Qxe6"
+    },
+    {
+     "move": "Qf7",
+     "eval": "+0.42",
+     "value_for_mover": -42,
+     "line": "Qf7 bxc4 Rxb1 Rxb1 d3 Qe3"
+    }
+   ],
+   "margin_pawns": 0.07,
+   "best_stands_out": false
+  },
+  {
+   "label": "26... Qf7",
+   "fen": "1r3r1k/5q1p/2n1p1p1/p1p1P1Q1/2pp4/PP3NP1/4PPK1/1R5R w - - 6 27",
+   "to_move": "White",
+   "played": {
+    "move": "bxc4",
+    "label": "27. bxc4",
+    "eval": "+0.30",
+    "value_for_mover": 30,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The move from b3 uncovers a discovered attack: the white rook on b1 now attacks the black rook on b8. The white pawn on b3 is no longer hanging. Black has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. Black has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on a3 is isolated: no pawn on a neighbouring file can defend it. The black rook on b8 no longer stands on the half-open b-file.",
+   "candidates": [
+    {
+     "move": "bxc4",
+     "eval": "+0.18",
+     "value_for_mover": 18,
+     "line": "bxc4 Rxb1 Rxb1 d3 Qe3 dxe2"
+    },
+    {
+     "move": "Qg4",
+     "eval": "-0.89",
+     "value_for_mover": -89,
+     "line": "Qg4 cxb3 Rhc1 Qe7 Qe4 Rb6"
+    },
+    {
+     "move": "Rh4",
+     "eval": "-0.93",
+     "value_for_mover": -93,
+     "line": "Rh4 Rxb3 Rf4 Qg7 Rxf8+ Qxf8"
+    },
+    {
+     "move": "Qf6+",
+     "eval": "-1.21",
+     "value_for_mover": -121,
+     "line": "Qf6+ Qxf6 exf6 c3 Ng5 h5"
+    }
+   ],
+   "margin_pawns": 1.07,
+   "best_stands_out": true
+  },
+  {
+   "label": "27. bxc4",
+   "fen": "1r3r1k/5q1p/2n1p1p1/p1p1P1Q1/2Pp4/P4NP1/4PPK1/1R5R b - - 0 27",
+   "to_move": "Black",
+   "played": {
+    "move": "Rxb1",
+    "label": "27... Rxb1",
+    "eval": "+0.21",
+    "value_for_mover": -21,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The black rook on b1 is attacked by the white rook on h1 and has no defender. The white rook on b1 no longer stands on the open b-file.",
+   "candidates": [
+    {
+     "move": "Rxb1",
+     "eval": "+0.30",
+     "value_for_mover": -30,
+     "line": "Rxb1 Rxb1 d3 Qe3 dxe2 Qxe2"
+    },
+    {
+     "move": "Kg8",
+     "eval": "+1.15",
+     "value_for_mover": -115,
+     "line": "Kg8 Rxb8 Rxb8 Rh4 Qb7 Rf4"
+    },
+    {
+     "move": "d3",
+     "eval": "+1.87",
+     "value_for_mover": -187,
+     "line": "d3 Rxb8 Nxb8 Qe3 dxe2 Ng5"
+    },
+    {
+     "move": "a4",
+     "eval": "+2.00",
+     "value_for_mover": -200,
+     "line": "a4 Rb5 d3 Qe3 Rxb5 cxb5"
+    }
+   ],
+   "margin_pawns": 0.85,
+   "best_stands_out": true
+  },
+  {
+   "label": "27... Rxb1",
+   "fen": "5r1k/5q1p/2n1p1p1/p1p1P1Q1/2Pp4/P4NP1/4PPK1/1r5R w - - 0 28",
+   "to_move": "White",
+   "played": {
+    "move": "Rxb1",
+    "label": "28. Rxb1",
+    "eval": "+0.29",
+    "value_for_mover": 29,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The white rook on b1 stands on the open b-file. The black rook on b1 no longer stands on the open b-file.",
+   "candidates": [
+    {
+     "move": "Rxb1",
+     "eval": "+0.21",
+     "value_for_mover": 21,
+     "line": "Rxb1 d3 Qe3 dxe2 Qxe2 Nd4"
+    },
+    {
+     "move": "Rh4",
+     "eval": "-3.85",
+     "value_for_mover": -385,
+     "line": "Rh4 d3 Rf4 Qg7 exd3 Rxf4"
+    },
+    {
+     "move": "Qh4",
+     "eval": "-4.95",
+     "value_for_mover": -495,
+     "line": "Qh4 Rxh1 Kxh1 d3 Ng5 Qe7"
+    },
+    {
+     "move": "Rh2",
+     "eval": "-5.24",
+     "value_for_mover": -524,
+     "line": "Rh2 d3 Rh4 dxe2 Rf4 Qg7"
+    }
+   ],
+   "margin_pawns": 4.06,
+   "best_stands_out": true
+  },
+  {
+   "label": "28. Rxb1",
+   "fen": "5r1k/5q1p/2n1p1p1/p1p1P1Q1/2Pp4/P4NP1/4PPK1/1R6 b - - 0 28",
+   "to_move": "Black",
+   "played": {
+    "move": "Qf5",
+    "label": "28... Qf5",
+    "eval": "+3.09",
+    "value_for_mover": -309,
+    "rank": null,
+    "cost_pawns": 2.8
+   },
+   "motifs_after_played": "The white knight on f3 is overloaded: it alone defends the queen on g5 and the pawn on e5. The white rook on b1 is attacked by the black queen on f5 and has no defender.",
+   "candidates": [
+    {
+     "move": "d3",
+     "eval": "+0.29",
+     "value_for_mover": -29,
+     "line": "d3 Qd2 dxe2 Qxe2 Nd4 Nxd4"
+    },
+    {
+     "move": "Kg8",
+     "eval": "+1.25",
+     "value_for_mover": -125,
+     "line": "Kg8 Qf4 Qxf4 gxf4 Rxf4 Rb6"
+    },
+    {
+     "move": "a4",
+     "eval": "+1.44",
+     "value_for_mover": -144,
+     "line": "a4 Qh6 Kg8 Ng5 Qxf2+ Kh1"
+    },
+    {
+     "move": "Qd7",
+     "eval": "+1.87",
+     "value_for_mover": -187,
+     "line": "Qd7 Rb5 Rf5 Qd2 Qa7 Qd3"
+    }
+   ],
+   "margin_pawns": 0.96,
+   "best_stands_out": true
+  },
+  {
+   "label": "28... Qf5",
+   "fen": "5r1k/7p/2n1p1p1/p1p1PqQ1/2Pp4/P4NP1/4PPK1/1R6 w - - 1 29",
+   "to_move": "White",
+   "played": {
+    "move": "Qh6",
+    "label": "29. Qh6",
+    "eval": "+1.80",
+    "value_for_mover": 180,
+    "rank": 2,
+    "cost_pawns": 1.29
+   },
+   "motifs_after_played": "The black queen on f5 is overloaded: it alone defends the rook on f8 and the pawn on g6. The white knight on f3 is no longer overloaded. The white rook on b1 is no longer hanging. The white queen on h6 stands on the half-open h-file.",
+   "candidates": [
+    {
+     "move": "Qxf5",
+     "eval": "+3.09",
+     "value_for_mover": 309,
+     "line": "Qxf5 Rxf5 g4 Rf8 Rb6 Rc8"
+    },
+    {
+     "move": "Qh6",
+     "eval": "+1.81",
+     "value_for_mover": 181,
+     "line": "Qh6 Rf7 Rb6 Qe4 Rb7 Qf5"
+    },
+    {
+     "move": "Qf4",
+     "eval": "+1.46",
+     "value_for_mover": 146,
+     "line": "Qf4 Qxf4 gxf4 Rxf4 Rb6 Ne7"
+    },
+    {
+     "move": "Rb7",
+     "eval": "+1.33",
+     "value_for_mover": 133,
+     "line": "Rb7 Qxg5 Nxg5 Nxe5 Rxh7+ Kg8"
+    }
+   ],
+   "margin_pawns": 1.28,
+   "best_stands_out": true
+  },
+  {
+   "label": "29. Qh6",
+   "fen": "5r1k/7p/2n1p1pQ/p1p1Pq2/2Pp4/P4NP1/4PPK1/1R6 b - - 2 29",
+   "to_move": "Black",
+   "played": {
+    "move": "Rb8",
+    "label": "29... Rb8",
+    "eval": "+8.15",
+    "value_for_mover": -815,
+    "rank": null,
+    "cost_pawns": 6.35
+   },
+   "motifs_after_played": "The white rook on b1 is attacked by the black rook on b8 and has no defender. The black queen on f5 is no longer overloaded. The black rook on b8 stands on the open b-file.",
+   "candidates": [
+    {
+     "move": "Rf7",
+     "eval": "+1.80",
+     "value_for_mover": -180,
+     "line": "Rf7 Rb6 Qe4 Rb7 Qf5 Rxf7"
+    },
+    {
+     "move": "Kg8",
+     "eval": "+1.92",
+     "value_for_mover": -192,
+     "line": "Kg8 Ng5 Qxf2+ Kh1 Rf7 Nxf7"
+    },
+    {
+     "move": "a4",
+     "eval": "+3.11",
+     "value_for_mover": -311,
+     "line": "a4 Ng5 Qxf2+ Kh1 Rf7 Nxf7+"
+    },
+    {
+     "move": "g5",
+     "eval": "+3.61",
+     "value_for_mover": -361,
+     "line": "g5 Rb7 Rf7 Rxf7 Qxf7 Nxg5"
+    }
+   ],
+   "margin_pawns": 0.12,
+   "best_stands_out": false
+  },
+  {
+   "label": "29... Rb8",
+   "fen": "1r5k/7p/2n1p1pQ/p1p1Pq2/2Pp4/P4NP1/4PPK1/1R6 w - - 3 30",
+   "to_move": "White",
+   "played": {
+    "move": "Rxb8+",
+    "label": "30. Rxb8+",
+    "eval": "+7.10",
+    "value_for_mover": 710,
+    "rank": 2,
+    "cost_pawns": 1.05
+   },
+   "motifs_after_played": "The black king on h8 is the only defender of the pawn on h7, and it is attacked by the white rook on b8. The black rook on b8 no longer stands on the open b-file.",
+   "candidates": [
+    {
+     "move": "Ng5",
+     "eval": "+8.15",
+     "value_for_mover": 815,
+     "line": "Ng5 Kg8 Rxb8+ Nxb8 f4 Nc6"
+    },
+    {
+     "move": "Rxb8+",
+     "eval": "+7.87",
+     "value_for_mover": 787,
+     "line": "Rxb8+ Nxb8 Ng5 Kg8 f4 d3"
+    },
+    {
+     "move": "Rh1",
+     "eval": "+3.11",
+     "value_for_mover": 311,
+     "line": "Rh1 g5 Rh5 Rf8 Qxg5 d3"
+    },
+    {
+     "move": "Rb5",
+     "eval": "+3.09",
+     "value_for_mover": 309,
+     "line": "Rb5 Rf8 Rxc5 d3 Qe3 dxe2"
+    }
+   ],
+   "margin_pawns": 0.28,
+   "best_stands_out": false
+  },
+  {
+   "label": "30. Rxb8+",
+   "fen": "1R5k/7p/2n1p1pQ/p1p1Pq2/2Pp4/P4NP1/4PPK1/8 b - - 0 30",
+   "to_move": "Black",
+   "played": {
+    "move": "Nxb8",
+    "label": "30... Nxb8",
+    "eval": "+6.43",
+    "value_for_mover": -643,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The black pawn on h7 no longer depends on one attacked defender. The white rook on b8 no longer stands on the open b-file.",
+   "candidates": [
+    {
+     "move": "Nxb8",
+     "eval": "+7.10",
+     "value_for_mover": -710,
+     "line": "Nxb8 Ng5 Kg8 f4 d3 exd3"
+    },
+    {
+     "move": "Nd8",
+     "eval": "#2",
+     "value_for_mover": -99998,
+     "line": "Nd8 Rxd8+ Qf8 Rxf8#"
+    },
+    {
+     "move": "Qf8",
+     "eval": "#1",
+     "value_for_mover": -99999,
+     "line": "Qf8 Qxf8#"
+    }
+   ],
+   "best_stands_out": false,
+   "margin_pawns": "mate"
+  },
+  {
+   "label": "30... Nxb8",
+   "fen": "1n5k/7p/4p1pQ/p1p1Pq2/2Pp4/P4NP1/4PPK1/8 w - - 0 31",
+   "to_move": "White",
+   "played": {
+    "move": "Ng5",
+    "label": "31. Ng5",
+    "eval": "+6.28",
+    "value_for_mover": 628,
+    "rank": 1,
+    "cost_pawns": 0
+   },
+   "motifs_after_played": "The black pawn on h7 is attacked twice and defended only once. The white pawn on e5 no longer depends on one attacked defender.",
+   "candidates": [
+    {
+     "move": "Ng5",
+     "eval": "+6.43",
+     "value_for_mover": 643,
+     "line": "Ng5 Kg8 Qxh7+ Kf8 f4 d3"
+    },
+    {
+     "move": "Qd2",
+     "eval": "+1.99",
+     "value_for_mover": 199,
+     "line": "Qd2 Nc6 Qb2 g5 Qb7 g4"
+    },
+    {
+     "move": "Qc1",
+     "eval": "+1.94",
+     "value_for_mover": 194,
+     "line": "Qc1 Nc6 Qb2 g5 Qb7 g4"
+    },
+    {
+     "move": "a4",
+     "eval": "+1.85",
+     "value_for_mover": 185,
+     "line": "a4 Qf7 Ng5 Qb7+ Kg1 Qe7"
+    }
+   ],
+   "margin_pawns": 4.44,
+   "best_stands_out": true
+  },
+  {
+   "label": "31. Ng5",
+   "fen": "1n5k/7p/4p1pQ/p1p1PqN1/2Pp4/P5P1/4PPK1/8 b - - 1 31",
+   "to_move": "Black",
+   "candidates": [
+    {
+     "move": "Kg8",
+     "eval": "+6.28",
+     "value_for_mover": -628,
+     "line": "Kg8 Qxh7+ Kf8 f4 Ke8 Qg8+"
+    },
+    {
+     "move": "Qe4+",
+     "eval": "#4",
+     "value_for_mover": -99996,
+     "line": "Qe4+ Nxe4 Nd7 Nxc5 Kg8 Nxd7"
+    },
+    {
+     "move": "Qf7",
+     "eval": "#4",
+     "value_for_mover": -99996,
+     "line": "Qf7 Nxf7+ Kg8 Ng5 Nd7 Qxh7+"
+    },
+    {
+     "move": "Qh3+",
+     "eval": "#3",
+     "value_for_mover": -99997,
+     "line": "Qh3+ Kxh3 Kg8 Qxh7+ Kf8 Qf7#"
+    }
+   ],
+   "best_stands_out": false,
+   "margin_pawns": "mate"
+  }
+ ]
+}
