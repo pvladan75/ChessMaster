@@ -1,4 +1,5 @@
 import 'package:chess/chess.dart' as chess;
+import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/models/analysis_models.dart';
 
 /// One played move, annotated with engine eval (before/after, from the
@@ -55,9 +56,8 @@ class GameMoment {
     required this.positionalComment,
   });
 
-  String get combinedComment => [tacticalComment, positionalComment]
-      .where((s) => s.isNotEmpty)
-      .join(' | ');
+  String get combinedComment =>
+      joinSentences([tacticalComment, positionalComment]);
 
   /// True when this move gave up at least [threshold] pawns of value from
   /// the mover's own perspective — a blunder the opponent can now exploit.

@@ -1,3 +1,5 @@
+import 'package:chess_app/core/services/finding_sentences.dart';
+
 enum PositionalFactor {
   doubledPawn,
   isolatedPawn,
@@ -18,13 +20,20 @@ enum PositionalFactor {
 /// the squares to highlight, and how it bears on the side that just moved.
 class PositionalFinding {
   final List<PositionalFactor> factors;
+
+  /// What is true, as one sentence — see [MotifFinding.description].
   final String description;
+
+  /// What is said once it stops being true, as one sentence — see
+  /// [MotifFinding.goneDescription].
+  final String goneDescription;
+
   final List<String> affectedSquares;
 
   /// True when this finding favors the side that just moved (a strength of
   /// theirs, or a weakness of the opponent's); false otherwise. Same
   /// convention as [MotifFinding.favorsMover] in tactical_motif.dart, so the
-  /// two can share UI (green/red chips, "Pažnja"/"Rešeno" phrasing).
+  /// two can share UI (green/red chips).
   final bool favorsMover;
 
   /// Roughly "how structurally important is this" — used the same way as
@@ -34,6 +43,7 @@ class PositionalFinding {
   const PositionalFinding({
     required this.factors,
     required this.description,
+    required this.goneDescription,
     required this.affectedSquares,
     required this.favorsMover,
     required this.significance,
@@ -54,8 +64,7 @@ class PositionalResult {
   List<PositionalFactor> get factors =>
       findings.expand((f) => f.factors).toSet().toList();
 
-  String get description =>
-      findings.map((f) => f.description).where((d) => d.isNotEmpty).join(' | ');
+  String get description => joinSentences(findings.map((f) => f.description));
 
   List<String> get affectedSquares =>
       findings.expand((f) => f.affectedSquares).toSet().toList();

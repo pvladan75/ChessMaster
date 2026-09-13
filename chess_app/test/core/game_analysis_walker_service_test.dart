@@ -108,7 +108,12 @@ void main() {
 
       // The review writes what it says about the move, and no longer a number
       // onto the node. The queen-hanging blunder should produce a real comment.
-      expect(child.comment, contains('undefended'));
+      expect(
+          child.comment,
+          contains('The white queen on d5 is attacked by the black rook on d8 '
+              'and has no defender.'));
+      // Sentences, not clauses behind a separator a voice would read out.
+      expect(child.comment, isNot(contains('|')));
 
       child.comment = 'moj ručni komentar';
       await service.annotateNodeChain(

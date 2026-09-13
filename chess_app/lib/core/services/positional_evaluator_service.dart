@@ -1,5 +1,6 @@
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/core/models/positional_factor.dart';
+import 'package:chess_app/core/services/finding_sentences.dart';
 
 class _PawnFacts {
   final int file;
@@ -71,33 +72,29 @@ class PositionalEvaluatorService {
     }
   }
 
+  /// Sentences, as [TacticalMotifDetector.describeMoveDiff] writes them: what
+  /// the move made true, then what it ended, with no prefix on either.
   String describeMoveDiff(PositionalMoveDiff diff) {
     final created = _mostNarratable(diff.created, _maxCreatedInComment);
     final resolved = _mostNarratable(
         diff.resolved.where((f) => !f.favorsMover).toList(),
         _maxResolvedInComment);
 
-    final parts = <String>[
-      ...created.map(_formatFinding),
-      ...resolved.map((f) => _formatFinding(f, resolved: true)),
-    ];
-    return parts.join(' | ');
+    return joinSentences([
+      ...created.map((f) => f.description),
+      ...resolved.map((f) => f.goneDescription),
+    ]);
   }
 
   /// Every candidate comment line, unfiltered/uncapped — for a manual
   /// checklist UI, mirrors [TacticalMotifDetector.candidateCommentLines].
   List<String> candidateCommentLines(PositionalMoveDiff diff) {
     return [
-      ...diff.created.map(_formatFinding),
+      ...diff.created.map((f) => f.description),
       ...diff.resolved
           .where((f) => !f.favorsMover)
-          .map((f) => _formatFinding(f, resolved: true)),
+          .map((f) => f.goneDescription),
     ];
-  }
-
-  String _formatFinding(PositionalFinding f, {bool resolved = false}) {
-    if (resolved) return 'Resolved — ${f.description}';
-    return f.favorsMover ? f.description : 'Watch out — ${f.description}';
   }
 
   List<PositionalFinding> _mostNarratable(
@@ -110,6 +107,25 @@ class PositionalEvaluatorService {
     final pool = aboveBar.isNotEmpty ? aboveBar : sorted.take(1);
     return pool.take(max).toList();
   }
+
+  /// A finding whose two sentences are written as clauses and ended here, so
+  /// no call site can forget the capital or the full stop.
+  PositionalFinding _finding({
+    required PositionalFactor factor,
+    required String says,
+    required String whenGone,
+    required List<String> squares,
+    required bool favorsMover,
+    required int significance,
+  }) =>
+      PositionalFinding(
+        factors: [factor],
+        description: sentence(says),
+        goneDescription: sentence(whenGone),
+        affectedSquares: squares,
+        favorsMover: favorsMover,
+        significance: significance,
+      );
 
   // =========================================================================
   // ORCHESTRATION
@@ -164,6 +180,10 @@ class PositionalEvaluatorService {
       final pawns = _pawnsOf(game, color);
       if (pawns.isEmpty) continue;
 
+      final side = _colorAdjCap(color);
+      final colour = _colorAdj(color);
+      final enemy = _colorAdj(_other(color));
+
       final byFile = <int, List<_PawnFacts>>{};
       for (final p in pawns) {
         byFile.putIfAbsent(p.file, () => []).add(p);
@@ -173,11 +193,12 @@ class PositionalEvaluatorService {
       byFile.forEach((file, filePawns) {
         if (filePawns.length < 2) return;
         final squares = filePawns.map((p) => p.square).toList()..sort();
-        findings.add(PositionalFinding(
-          factors: const [PositionalFactor.doubledPawn],
-          description:
-              'Doubled pawns: ${_colorAdj(color)} has ${filePawns.length} pawns on the ${_fileLetter(file)}-file (${squares.join(', ')})',
-          affectedSquares: squares,
+        findings.add(_finding(
+          factor: PositionalFactor.doubledPawn,
+          says: '$side has doubled pawns on ${joinAnd(squares)}',
+          whenGone:
+              '$side no longer has doubled pawns on the ${_fileLetter(file)}-file',
+          squares: squares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 2,
         ));
@@ -189,11 +210,15 @@ class PositionalEvaluatorService {
             byFile.containsKey(file - 1) || byFile.containsKey(file + 1);
         if (hasNeighbor) return;
         final squares = filePawns.map((p) => p.square).toList()..sort();
-        findings.add(PositionalFinding(
-          factors: const [PositionalFactor.isolatedPawn],
-          description:
-              'Isolated pawn: the ${_colorAdj(color)} pawn on the ${_fileLetter(file)}-file (${squares.join(', ')}) has no neighbours to defend it',
-          affectedSquares: squares,
+        final one = squares.length == 1;
+        final pawnsHere =
+            'the $colour ${one ? 'pawn' : 'pawns'} on ${joinAnd(squares)}';
+        findings.add(_finding(
+          factor: PositionalFactor.isolatedPawn,
+          says: '$pawnsHere ${one ? 'is' : 'are'} isolated: '
+              'no pawn on a neighbouring file can defend ${one ? 'it' : 'them'}',
+          whenGone: '$pawnsHere ${one ? 'is' : 'are'} no longer isolated',
+          squares: squares,
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 3,
         ));
@@ -202,21 +227,24 @@ class PositionalEvaluatorService {
       // Backward / passed are per-pawn.
       for (final p in pawns) {
         if (_isBackwardPawn(game, p)) {
-          findings.add(PositionalFinding(
-            factors: const [PositionalFactor.backwardPawn],
-            description:
-                'Backward pawn: the ${_colorAdj(color)} pawn on ${p.square} has fallen behind its neighbours and cannot advance safely',
-            affectedSquares: [p.square],
+          findings.add(_finding(
+            factor: PositionalFactor.backwardPawn,
+            says: 'the $colour pawn on ${p.square} is backward: it has fallen '
+                'behind its neighbours and cannot advance safely',
+            whenGone: 'the $colour pawn on ${p.square} is no longer backward',
+            squares: [p.square],
             favorsMover: _favorsMover(color, false, moverColor),
             significance: 3,
           ));
         }
         if (_isPassedPawn(game, p)) {
-          findings.add(PositionalFinding(
-            factors: const [PositionalFactor.passedPawn],
-            description:
-                'Passed pawn: the ${_colorAdj(color)} pawn on ${p.square} has no enemy pawns in its way to promotion',
-            affectedSquares: [p.square],
+          findings.add(_finding(
+            factor: PositionalFactor.passedPawn,
+            says: 'the $colour pawn on ${p.square} is a passed pawn: '
+                'no $enemy pawn can block or capture it',
+            whenGone:
+                'the $colour pawn on ${p.square} is no longer a passed pawn',
+            squares: [p.square],
             favorsMover: _favorsMover(color, true, moverColor),
             significance: 5,
           ));
@@ -230,11 +258,12 @@ class PositionalEvaluatorService {
         if (occupiedFiles[i] != occupiedFiles[i - 1] + 1) islands++;
       }
       if (islands >= 3) {
-        findings.add(PositionalFinding(
-          factors: const [PositionalFactor.pawnIslands],
-          description:
-              '${_colorAdjCap(color)} pawn structure is broken into $islands islands',
-          affectedSquares: pawns.map((p) => p.square).toList(),
+        findings.add(_finding(
+          factor: PositionalFactor.pawnIslands,
+          says: "$side's pawns are split into ${countWord(islands)} islands",
+          whenGone:
+              "$side's pawns are no longer split into ${countWord(islands)} islands",
+          squares: pawns.map((p) => p.square).toList(),
           favorsMover: _favorsMover(color, false, moverColor),
           significance: 2,
         ));
@@ -350,13 +379,17 @@ class PositionalEvaluatorService {
 
         final noun = piece.type == chess.PieceType.ROOK ? 'rook' : 'queen';
         final lineDesc = isOpen ? 'open' : 'half-open';
-        findings.add(PositionalFinding(
-          factors: [
-            isOpen ? PositionalFactor.openFile : PositionalFactor.semiOpenFile
-          ],
-          description:
-              'The ${_colorAdj(piece.color)} $noun on $sq controls the $lineDesc ${_fileLetter(f)}-file',
-          affectedSquares: [sq],
+        final piecePhrase = 'the ${_colorAdj(piece.color)} $noun on $sq';
+        final fileName = '$lineDesc ${_fileLetter(f)}-file';
+        findings.add(_finding(
+          factor: isOpen
+              ? PositionalFactor.openFile
+              : PositionalFactor.semiOpenFile,
+          // Standing on the file is what was checked. Nothing here asks
+          // whether the piece controls it.
+          says: '$piecePhrase stands on the $fileName',
+          whenGone: '$piecePhrase no longer stands on the $fileName',
+          squares: [sq],
           favorsMover: _favorsMover(piece.color, true, moverColor),
           // Fluid/contested — file control shifts with nearly every trade or
           // pawn push, so it isn't worth auto-narrating on its own.
@@ -421,12 +454,15 @@ class PositionalEvaluatorService {
     final margin = (whiteScore - blackScore).abs();
     if (margin < 2) return const [];
 
+    final side = _colorAdjCap(leadingColor);
     return [
-      PositionalFinding(
-        factors: const [PositionalFactor.centerControl],
-        description:
-            '${_colorAdjCap(leadingColor)} has the greater share of the centre (d4/e4/d5/e5)',
-        affectedSquares: centerSquares,
+      _finding(
+        factor: PositionalFactor.centerControl,
+        // The score counts pawns only, so the sentence says pawns. No list of
+        // the four squares: a voice reads the slashes between them.
+        says: "$side's pawns hold more of the centre",
+        whenGone: "$side's pawns no longer hold more of the centre",
+        squares: centerSquares,
         favorsMover: _favorsMover(leadingColor, true, moverColor),
         // Fluid — the margin shifts with nearly every pawn/piece move.
         significance: 2,
@@ -457,29 +493,22 @@ class PositionalEvaluatorService {
     final whiteCount = bishopSquares[chess.Color.WHITE]!.length;
     final blackCount = bishopSquares[chess.Color.BLACK]!.length;
 
-    if (whiteCount >= 2 && blackCount < 2) {
-      return [
-        PositionalFinding(
-          factors: const [PositionalFactor.bishopPair],
-          description: 'White has the bishop pair',
-          affectedSquares: bishopSquares[chess.Color.WHITE]!,
-          favorsMover: _favorsMover(chess.Color.WHITE, true, moverColor),
-          significance: 5,
-        ),
-      ];
-    }
-    if (blackCount >= 2 && whiteCount < 2) {
-      return [
-        PositionalFinding(
-          factors: const [PositionalFactor.bishopPair],
-          description: 'Black has the bishop pair',
-          affectedSquares: bishopSquares[chess.Color.BLACK]!,
-          favorsMover: _favorsMover(chess.Color.BLACK, true, moverColor),
-          significance: 5,
-        ),
-      ];
-    }
-    return const [];
+    chess.Color? holder;
+    if (whiteCount >= 2 && blackCount < 2) holder = chess.Color.WHITE;
+    if (blackCount >= 2 && whiteCount < 2) holder = chess.Color.BLACK;
+    if (holder == null) return const [];
+
+    final side = _colorAdjCap(holder);
+    return [
+      _finding(
+        factor: PositionalFactor.bishopPair,
+        says: '$side has the bishop pair',
+        whenGone: '$side no longer has the bishop pair',
+        squares: bishopSquares[holder]!,
+        favorsMover: _favorsMover(holder, true, moverColor),
+        significance: 5,
+      ),
+    ];
   }
 
   // =========================================================================
@@ -525,28 +554,45 @@ class PositionalEvaluatorService {
       }
 
       if (!hasLightBishop && lightPawns >= 3 && lightPawns >= darkPawns) {
-        findings.add(PositionalFinding(
-          factors: const [PositionalFactor.colorComplexWeakness],
-          description:
-              '${_colorAdjCap(color)} has no light-squared bishop, and $lightPawns pawns are fixed on light squares — a weak complex',
-          affectedSquares: lightPawnSquares,
-          favorsMover: _favorsMover(color, false, moverColor),
-          significance: 4,
-        ));
+        findings.add(_colorComplex(color,
+            missingBishop: 'light',
+            pawnSquares: 'light',
+            pawnCount: lightPawns,
+            squares: lightPawnSquares,
+            moverColor: moverColor));
       }
       if (!hasDarkBishop && darkPawns >= 3 && darkPawns >= lightPawns) {
-        findings.add(PositionalFinding(
-          factors: const [PositionalFactor.colorComplexWeakness],
-          description:
-              '${_colorAdjCap(color)} has no dark-squared bishop, and $darkPawns pawns are fixed on dark squares — a weak complex',
-          affectedSquares: darkPawnSquares,
-          favorsMover: _favorsMover(color, false, moverColor),
-          significance: 4,
-        ));
+        findings.add(_colorComplex(color,
+            missingBishop: 'dark',
+            pawnSquares: 'dark',
+            pawnCount: darkPawns,
+            squares: darkPawnSquares,
+            moverColor: moverColor));
       }
     }
 
     return findings;
+  }
+
+  PositionalFinding _colorComplex(
+    chess.Color color, {
+    required String missingBishop,
+    required String pawnSquares,
+    required int pawnCount,
+    required List<String> squares,
+    required chess.Color moverColor,
+  }) {
+    final side = _colorAdjCap(color);
+    return _finding(
+      factor: PositionalFactor.colorComplexWeakness,
+      says: '$side has no $missingBishop-squared bishop, and '
+          '${countWord(pawnCount)} of its pawns stand on $pawnSquares squares, '
+          'so the $missingBishop squares are weak',
+      whenGone: "$side's $missingBishop squares are no longer weak",
+      squares: squares,
+      favorsMover: _favorsMover(color, false, moverColor),
+      significance: 4,
+    );
   }
 
   // =========================================================================
@@ -564,11 +610,13 @@ class PositionalEvaluatorService {
         if (p == null || p.type != chess.PieceType.KNIGHT) continue;
         if (!_isKnightOutpost(game, f, r, p.color)) continue;
 
-        findings.add(PositionalFinding(
-          factors: const [PositionalFactor.knightOutpost],
-          description:
-              'The ${_colorAdj(p.color)} knight on $sq stands on a permanent outpost — no enemy pawn can drive it away',
-          affectedSquares: [sq],
+        final knight = 'the ${_colorAdj(p.color)} knight on $sq';
+        findings.add(_finding(
+          factor: PositionalFactor.knightOutpost,
+          says: '$knight stands on an outpost: '
+              'no ${_colorAdj(_other(p.color))} pawn can drive it away',
+          whenGone: '$knight is no longer on an outpost',
+          squares: [sq],
           favorsMover: _favorsMover(p.color, true, moverColor),
           significance: 4,
         ));
@@ -625,6 +673,7 @@ class PositionalEvaluatorService {
       if (kingSq == null) continue;
       final kf = kingSq.codeUnitAt(0) - 97;
       final kr = kingSq.codeUnitAt(1) - 49;
+      final colour = _colorAdj(color);
 
       // Only judge the pawn shield while the king is still on its home rank —
       // a king out in the open in an endgame or a hunt is a different (and
@@ -647,11 +696,13 @@ class PositionalEvaluatorService {
           if (!hasPawnOnFile) missingShieldFiles++;
         }
         if (missingShieldFiles >= 2) {
-          findings.add(PositionalFinding(
-            factors: const [PositionalFactor.kingShield],
-            description:
-                'The ${_colorAdj(color)} king on $kingSq has lost its pawn shield',
-            affectedSquares: [kingSq],
+          findings.add(_finding(
+            factor: PositionalFactor.kingShield,
+            says: 'the $colour king on $kingSq has lost its pawn shield',
+            // No square: the finding is keyed to the square the king stood
+            // on, so it also ends when the king steps off it.
+            whenGone: 'the $colour king is no longer without a pawn shield',
+            squares: [kingSq],
             favorsMover: _favorsMover(color, false, moverColor),
             significance: 5,
           ));
@@ -671,11 +722,12 @@ class PositionalEvaluatorService {
         }
         if (hasAnyPawn) continue;
 
-        findings.add(PositionalFinding(
-          factors: const [PositionalFactor.kingShield],
-          description:
-              'The ${_fileLetterCap(f)}-file beside the ${_colorAdj(color)} king on $kingSq is open',
-          affectedSquares: [kingSq],
+        final file = '${_fileLetter(f)}-file';
+        findings.add(_finding(
+          factor: PositionalFactor.kingShield,
+          says: 'the $file beside the $colour king on $kingSq is open',
+          whenGone: 'the $file beside the $colour king is no longer open',
+          squares: [kingSq],
           favorsMover: _favorsMover(color, false, moverColor),
           // Fluid — retriggers on almost every step while a king is running,
           // since it's keyed to whichever square it currently stands on.
@@ -713,7 +765,8 @@ class PositionalEvaluatorService {
 
   String _fileLetter(int file) => String.fromCharCode(97 + file);
 
-  String _fileLetterCap(int file) => String.fromCharCode(65 + file);
+  chess.Color _other(chess.Color color) =>
+      color == chess.Color.WHITE ? chess.Color.BLACK : chess.Color.WHITE;
 
   String _colorAdj(chess.Color color) =>
       color == chess.Color.WHITE ? 'white' : 'black';

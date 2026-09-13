@@ -112,7 +112,9 @@ function generateFallbackMoveComment({ evalBefore, evalAfter, tacticalFindings, 
     .filter((d) => typeof d === 'string' && d.trim() !== '');
 
   if (parts.length > 0) {
-    return { comment: parts.join(' | ') };
+    // The app writes each finding as a sentence; a comment is those sentences
+    // joined by a space. A „ | " between them is read out by a voice.
+    return { comment: parts.map((d) => d.trim()).join(' ') };
   }
 
   // A "quiet" move with no detected tactical/positional findings has

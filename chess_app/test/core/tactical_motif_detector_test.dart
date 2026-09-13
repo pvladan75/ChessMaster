@@ -2,6 +2,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/core/models/tactical_motif.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 
+MotifFinding _only(MotifResult result, TacticalMotif motif, {String? square}) {
+  final matching = result.findings
+      .where((f) =>
+          f.motifs.contains(motif) &&
+          (square == null || f.affectedSquares.contains(square)))
+      .toList();
+  expect(matching, hasLength(1),
+      reason: 'expected one $motif finding'
+          '${square == null ? '' : ' on $square'}, got '
+          '${result.findings.map((f) => f.description).toList()}');
+  return matching.single;
+}
+
 void main() {
   group('TacticalMotifDetector Full Geometric Detection Unit Tests', () {
     late TacticalMotifDetector detector;
@@ -23,7 +36,9 @@ void main() {
       expect(result.motifs, contains(TacticalMotif.fork));
       expect(result.motifs, contains(TacticalMotif.doubleAttack));
       expect(result.affectedSquares, containsAll(['c7', 'e8', 'a8']));
-      expect(result.description, contains('Fork'));
+      // The king is named first: the most valuable target leads.
+      expect(_only(result, TacticalMotif.fork).description,
+          'The white knight on c7 forks the black king on e8 and the rook on a8.');
     });
 
     test('2. Detects Absolute Pin with Bishop along diagonal', () {
@@ -36,7 +51,9 @@ void main() {
       expect(result.hasMotif, isTrue);
       expect(result.motifs, contains(TacticalMotif.pin));
       expect(result.affectedSquares, containsAll(['b4', 'd2', 'e1']));
-      expect(result.description, contains('Pin'));
+      // The pinning piece is named — „pinned to the king" by what, otherwise?
+      expect(_only(result, TacticalMotif.pin, square: 'b4').description,
+          'The black bishop on b4 pins the white pawn on d2 to the king on e1.');
     });
 
     test('3. Detects Discovered Check when Knight unblocks slider ray', () {
@@ -52,7 +69,10 @@ void main() {
       expect(result.hasMotif, isTrue);
       expect(result.motifs, contains(TacticalMotif.discoveredAttack));
       expect(result.affectedSquares, containsAll(['e2', 'e5', 'e8']));
-      expect(result.description, contains('Discovered check'));
+      expect(
+          _only(result, TacticalMotif.discoveredAttack).description,
+          'The move from e5 uncovers a discovered check: '
+          'the white queen on e2 now attacks the black king on e8.');
     });
 
     test('4. Detects Skewer along horizontal/orthogonal line', () {
@@ -64,7 +84,8 @@ void main() {
       expect(result.hasMotif, isTrue);
       expect(result.motifs, contains(TacticalMotif.skewer));
       expect(result.affectedSquares, containsAll(['a1', 'a5', 'a8']));
-      expect(result.description, contains('Skewer'));
+      expect(_only(result, TacticalMotif.skewer).description,
+          'The white rook on a1 skewers the black king on a5 and the queen on a8 behind it.');
     });
 
     test('5. Verifies empty motif result for quiet starting position', () {
@@ -88,6 +109,11 @@ void main() {
 
       expect(result.motifs, contains(TacticalMotif.hangingPiece));
       expect(result.affectedSquares, contains('d5'));
+      // It is defended, so it must not be called undefended: the sentence
+      // says what actually loses it.
+      expect(
+          _only(result, TacticalMotif.hangingPiece, square: 'd5').description,
+          'The black queen on d5 is attacked by the white pawn on c4, a cheaper piece.');
     });
 
     test('7. Ignores an absolutely pinned piece as a defender', () {
@@ -118,6 +144,8 @@ void main() {
             throw StateError('expected a favorsMover=false hanging finding'),
       );
       expect(blunder.affectedSquares, contains('d5'));
+      expect(blunder.description,
+          'The white queen on d5 is attacked by the black rook on d8 and has no defender.');
     });
 
     test('9. explainMove flags a freshly hung Queen as "created"', () {
@@ -135,6 +163,17 @@ void main() {
             throw StateError('expected a newly-created hanging finding'),
       );
       expect(blunder.affectedSquares, contains('d5'));
+
+      // A threat against the side who moved carries no prefix: the sentence
+      // says whose queen it is.
+      final comment = detector.describeMoveDiff(diff);
+      expect(
+          comment,
+          contains(
+              'The white queen on d5 is attacked by the black rook on d8 and has no defender.'));
+      expect(comment, isNot(contains('Watch out')));
+      expect(comment, isNot(contains('Resolved')));
+      expect(comment, isNot(contains('|')));
     });
 
     test('10. explainMove flags a hanging piece the move fixed as "resolved"',
@@ -154,6 +193,15 @@ void main() {
       );
       expect(saved.affectedSquares, contains('e5'));
       expect(diff.created.any((f) => !f.favorsMover), isFalse);
+
+      // What ended is said as a sentence of its own, not a prefix on the
+      // sentence that is no longer true.
+      expect(saved.goneDescription,
+          'The white knight on e5 is no longer hanging.');
+      expect(detector.describeMoveDiff(diff),
+          'The white knight on e5 is no longer hanging.');
+      expect(detector.candidateCommentLines(diff),
+          ['The white knight on e5 is no longer hanging.']);
     });
 
     test(
@@ -170,6 +218,11 @@ void main() {
         orElse: () => throw StateError('expected a deflection finding'),
       );
       expect(deflection.affectedSquares, containsAll(['a8', 'a5']));
+      // The attacker is named: „under attack itself" said by what.
+      expect(
+          deflection.description,
+          'The black queen on a8 is the only defender of the knight on a5, '
+          'and it is attacked by the white rook on h8.');
     });
 
     test('12. A capture that walks into immediate mate is not a real threat',
@@ -200,14 +253,17 @@ void main() {
           MotifFinding(
             motifs: [TacticalMotif.fork],
             description:
-                'Fork: the white knight attacks the queen and the rook',
+                'The white knight on e5 forks the black queen on d7 and the rook on c6.',
+            goneDescription: 'The fork by the white knight on e5 is over.',
             affectedSquares: ['e5'],
             favorsMover: true,
             significance: 9,
           ),
           MotifFinding(
             motifs: [TacticalMotif.hangingPiece],
-            description: 'the white pawn on a2 is undefended',
+            description:
+                'The white pawn on a2 is attacked by the black rook on a8 and has no defender.',
+            goneDescription: 'The white pawn on a2 is no longer hanging.',
             affectedSquares: ['a2'],
             favorsMover: false,
             significance: 1,
@@ -218,8 +274,8 @@ void main() {
 
       final comment = detector.describeMoveDiff(diff);
 
-      expect(comment, contains('Fork'));
-      expect(comment, isNot(contains('a2')));
+      expect(comment,
+          'The white knight on e5 forks the black queen on d7 and the rook on c6.');
     });
 
     test(
@@ -229,7 +285,9 @@ void main() {
         created: [
           MotifFinding(
             motifs: [TacticalMotif.hangingPiece],
-            description: 'the white pawn on a2 is undefended',
+            description:
+                'The white pawn on a2 is attacked by the black rook on a8 and has no defender.',
+            goneDescription: 'The white pawn on a2 is no longer hanging.',
             affectedSquares: ['a2'],
             favorsMover: false,
             significance: 1,
@@ -241,6 +299,120 @@ void main() {
       final comment = detector.describeMoveDiff(diff);
 
       expect(comment, contains('a2'));
+    });
+
+    test(
+        '15. describeMoveDiff writes sentences joined by a space, and says only what ended against the mover',
+        () {
+      const diff = MoveMotifDiff(
+        created: [
+          MotifFinding(
+            motifs: [TacticalMotif.pin],
+            description:
+                'The white bishop on b5 pins the black knight on c6 to the king on e8.',
+            goneDescription: 'The black knight on c6 is no longer pinned.',
+            affectedSquares: ['b5', 'c6', 'e8'],
+            favorsMover: true,
+            significance: 5,
+          ),
+        ],
+        resolved: [
+          MotifFinding(
+            motifs: [TacticalMotif.hangingPiece],
+            description:
+                'The white knight on f3 is attacked by the black pawn on e4, a cheaper piece.',
+            goneDescription: 'The white knight on f3 is no longer hanging.',
+            affectedSquares: ['f3'],
+            favorsMover: false,
+            significance: 3,
+          ),
+          // A threat the mover had against the opponent that ended is not
+          // narrated — this one must not appear.
+          MotifFinding(
+            motifs: [TacticalMotif.hangingPiece],
+            description:
+                'The black rook on a8 is attacked by the white queen on d5 and has no defender.',
+            goneDescription: 'The black rook on a8 is no longer hanging.',
+            affectedSquares: ['a8'],
+            favorsMover: true,
+            significance: 5,
+          ),
+        ],
+      );
+
+      expect(
+          detector.describeMoveDiff(diff),
+          'The white bishop on b5 pins the black knight on c6 to the king on e8. '
+          'The white knight on f3 is no longer hanging.');
+      expect(detector.candidateCommentLines(diff), [
+        'The white bishop on b5 pins the black knight on c6 to the king on e8.',
+        'The white knight on f3 is no longer hanging.',
+      ]);
+    });
+
+    test('16. Two pins are two findings, each one sentence', () {
+      // Rook e1 pins the knight on e5 to the king; bishop b5 pins the knight
+      // on c6 to the same king. One finding holding both as „Pin: a | b" was
+      // what the checklist dialog could never match again.
+      const fen = '4k3/8/2n5/1B2n3/8/8/8/4R1K1 b - - 0 1';
+      final result = detector.detect(fen: fen);
+
+      final pins = result.findings
+          .where((f) => f.motifs.contains(TacticalMotif.pin))
+          .map((f) => f.description)
+          .toList();
+      expect(
+          pins,
+          unorderedEquals([
+            'The white bishop on b5 pins the black knight on c6 to the king on e8.',
+            'The white rook on e1 pins the black knight on e5 to the king on e8.',
+          ]));
+    });
+
+    test(
+        '17. A piece attacked more often than it is defended says so in counts',
+        () {
+      // Black knight e5: attacked by the knights on d3 and f3, defended by the
+      // knight on c6 alone. No attacker is cheaper, and it has a defender.
+      const fen = '4k3/8/2n5/4n3/8/3N1N2/8/4K3 b - - 0 1';
+      final result = detector.detect(fen: fen);
+
+      expect(
+          _only(result, TacticalMotif.hangingPiece, square: 'e5').description,
+          'The black knight on e5 is attacked twice and defended only once.');
+    });
+
+    test('18. An overloaded defender names what it alone holds', () {
+      // Black rook e5 is the only defender of the knight on a5 (attacked by
+      // the pawn on b4) and of the knight on e8 (attacked by the rook on h8).
+      const fen = 'k3n2R/8/8/n3r3/1P6/8/8/6K1 b - - 0 1';
+      final result = detector.detect(fen: fen);
+
+      final overloaded = _only(result, TacticalMotif.overloading);
+      expect(overloaded.description,
+          'The black rook on e5 is overloaded: it alone defends the knight on a5 and the knight on e8.');
+      expect(overloaded.goneDescription,
+          'The black rook on e5 is no longer overloaded.');
+    });
+
+    test('19. A mate on the board is called a mate, not a threat', () {
+      const fen = '3R2k1/5ppp/8/8/8/8/8/6K1 b - - 0 1';
+      final result = detector.detect(fen: fen);
+
+      expect(_only(result, TacticalMotif.mateThreat).description,
+          'The black king on g8 is checkmated.');
+    });
+
+    test('20. The result joins its findings as sentences', () {
+      const fen = '3r2k1/8/8/3Q4/8/8/8/6K1 b - - 0 1';
+      final result = detector.detect(fen: fen);
+
+      expect(result.description, isNot(contains('|')));
+      for (final finding in result.findings) {
+        expect(finding.description, endsWith('.'));
+        expect(finding.goneDescription, endsWith('.'));
+        expect(result.description, contains(finding.description));
+      }
     });
   });
 }

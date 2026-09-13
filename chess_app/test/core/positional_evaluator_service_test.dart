@@ -21,11 +21,20 @@ void main() {
         orElse: () => throw StateError('expected a doubled-pawn finding'),
       );
       expect(doubled.affectedSquares, containsAll(['c2', 'c3']));
+      expect(doubled.description, 'White has doubled pawns on c2 and c3.');
 
       final isolated = result.findings
-          .where((f) => f.factors.contains(PositionalFactor.isolatedPawn));
+          .where((f) => f.factors.contains(PositionalFactor.isolatedPawn))
+          .toList();
       expect(isolated.any((f) => f.affectedSquares.contains('a2')), isTrue);
       expect(isolated.any((f) => f.affectedSquares.contains('c2')), isTrue);
+      // One pawn and two pawns on a file each read as English.
+      expect(
+          isolated.map((f) => f.description),
+          unorderedEquals([
+            'The white pawn on a2 is isolated: no pawn on a neighbouring file can defend it.',
+            'The white pawns on c2 and c3 are isolated: no pawn on a neighbouring file can defend them.',
+          ]));
     });
 
     test('2. Detects a passed pawn with no enemy pawns ahead', () {
@@ -38,7 +47,8 @@ void main() {
             f.affectedSquares.contains('a5'),
         orElse: () => throw StateError('expected a5 flagged as a passed pawn'),
       );
-      expect(passed.description, contains('Passed pawn'));
+      expect(passed.description,
+          'The white pawn on a5 is a passed pawn: no black pawn can block or capture it.');
     });
 
     test('3. Detects a backward pawn controlled by an enemy pawn', () {
@@ -53,6 +63,8 @@ void main() {
         orElse: () => throw StateError('expected a backward-pawn finding'),
       );
       expect(backward.affectedSquares, contains('d3'));
+      expect(backward.description,
+          'The white pawn on d3 is backward: it has fallen behind its neighbours and cannot advance safely.');
     });
 
     test('4. Detects the bishop pair', () {
@@ -63,7 +75,8 @@ void main() {
         (f) => f.factors.contains(PositionalFactor.bishopPair),
         orElse: () => throw StateError('expected a bishop-pair finding'),
       );
-      expect(pair.description, contains('bishop pair'));
+      expect(pair.description, 'White has the bishop pair.');
+      expect(pair.goneDescription, 'White no longer has the bishop pair.');
     });
 
     test('5. Detects a color complex weakness', () {
@@ -77,7 +90,8 @@ void main() {
         orElse: () =>
             throw StateError('expected a color-complex-weakness finding'),
       );
-      expect(weakness.description, contains('light-squared bishop'));
+      expect(weakness.description,
+          'White has no light-squared bishop, and three of its pawns stand on light squares, so the light squares are weak.');
     });
 
     test('6. Detects a rook controlling an open file', () {
@@ -89,7 +103,9 @@ void main() {
         orElse: () => throw StateError('expected an open-file finding'),
       );
       expect(openFile.affectedSquares, contains('a1'));
-      expect(openFile.description, contains('controls the open'));
+      // Standing on a file is what is checked; controlling it is not.
+      expect(openFile.description,
+          'The white rook on a1 stands on the open a-file.');
     });
 
     test('7. Detects a center-control edge from pawn occupation', () {
@@ -100,7 +116,8 @@ void main() {
         (f) => f.factors.contains(PositionalFactor.centerControl),
         orElse: () => throw StateError('expected a center-control finding'),
       );
-      expect(center.description, contains('White'));
+      // No „(d4/e4/d5/e5)": a voice reads the slashes.
+      expect(center.description, "White's pawns hold more of the centre.");
     });
 
     test('8. Detects a permanent knight outpost', () {
@@ -114,6 +131,8 @@ void main() {
         orElse: () => throw StateError('expected a knight-outpost finding'),
       );
       expect(outpost.affectedSquares, contains('d5'));
+      expect(outpost.description,
+          'The white knight on d5 stands on an outpost: no black pawn can drive it away.');
     });
 
     test('9. Detects a damaged pawn shield and an open file next to the king',
@@ -122,11 +141,14 @@ void main() {
       final result = service.evaluate(fen: fen);
 
       final shieldFindings = result.findings
-          .where((f) => f.factors.contains(PositionalFactor.kingShield));
-      expect(shieldFindings.any((f) => f.description.contains('pawn shield')),
-          isTrue);
-      expect(
-          shieldFindings.any((f) => f.description.contains('is open')), isTrue);
+          .where((f) => f.factors.contains(PositionalFactor.kingShield))
+          .map((f) => f.description)
+          .toList();
+      expect(shieldFindings,
+          contains('The white king on e1 has lost its pawn shield.'));
+      // The file letter is lower case, as everywhere else.
+      expect(shieldFindings,
+          contains('The d-file beside the white king on e1 is open.'));
     });
 
     test('10. explainMove diffs positional findings the same way tactical does',
@@ -160,6 +182,10 @@ void main() {
 
       expect(comment, contains('outpost'));
       expect(candidates.any((c) => c.contains('outpost')), isTrue);
+      expect(comment, isNot(contains('|')));
+      for (final line in candidates) {
+        expect(comment, contains(line));
+      }
     });
 
     test(
@@ -184,6 +210,50 @@ void main() {
       // Still available for manual selection, just not auto-narrated.
       final candidates = service.candidateCommentLines(diff);
       expect(candidates.any((c) => c.contains('is open')), isTrue);
+    });
+
+    test('13. Pawn islands are counted in words', () {
+      const fen = '4k3/8/8/8/8/8/P1P1P3/4K3 w - - 0 1';
+      final result = service.evaluate(fen: fen);
+
+      final islands = result.findings.firstWhere(
+        (f) => f.factors.contains(PositionalFactor.pawnIslands),
+        orElse: () => throw StateError('expected a pawn-islands finding'),
+      );
+      expect(
+          islands.description, "White's pawns are split into three islands.");
+    });
+
+    test('14. What ended is said as a sentence of its own', () {
+      // The knight leaves its outpost on d5 for b4.
+      const beforeFen = '4k3/8/8/3N4/2P1P3/8/8/4K3 w - - 0 1';
+      const afterFen = '4k3/8/8/8/1NP1P3/8/8/4K3 b - - 0 1';
+      final diff =
+          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+
+      final gone = diff.resolved.firstWhere(
+        (f) => f.factors.contains(PositionalFactor.knightOutpost),
+        orElse: () => throw StateError('expected a resolved outpost finding'),
+      );
+      expect(gone.goneDescription,
+          'The white knight on d5 is no longer on an outpost.');
+    });
+
+    test('15. A resolved weakness of the mover is narrated without a prefix',
+        () {
+      // White's a- and c-pawns were both isolated; cxb3 gives them one file.
+      const beforeFen = '4k3/8/8/8/8/1p6/P1P5/4K3 w - - 0 1';
+      const afterFen = '4k3/8/8/8/8/1P6/P7/4K3 b - - 0 1';
+      final diff =
+          service.explainMove(beforeFen: beforeFen, afterFen: afterFen);
+
+      final comment = service.describeMoveDiff(diff);
+      expect(comment, isNot(contains('Resolved')));
+      expect(comment, isNot(contains('Watch out')));
+      for (final finding in [...diff.created, ...diff.resolved]) {
+        expect(finding.description, endsWith('.'));
+        expect(finding.goneDescription, endsWith('.'));
+      }
     });
   });
 }

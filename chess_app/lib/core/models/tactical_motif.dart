@@ -1,3 +1,5 @@
+import 'package:chess_app/core/services/finding_sentences.dart';
+
 enum TacticalMotif {
   pin,
   fork,
@@ -16,13 +18,24 @@ enum TacticalMotif {
 /// squares to highlight on the board.
 class MotifFinding {
   final List<TacticalMotif> motifs;
+
+  /// What is true, as one sentence: "The white bishop on b5 pins the black
+  /// knight on c6 to the king on e8."
   final String description;
+
+  /// What is said once it stops being true, as one sentence: "The black
+  /// knight on c6 is no longer pinned." Written by the detector beside
+  /// [description] because only it knows the pieces; a prefix on the old
+  /// sentence („Resolved — …") restated something that was no longer so.
+  final String goneDescription;
+
   final List<String> affectedSquares;
 
   /// True when this finding is a threat/advantage for the side that just
   /// moved (good for the move); false when it's a threat/advantage for the
   /// opponent instead (bad for the move — e.g. the move left a piece
-  /// hanging, or walked into a fork).
+  /// hanging, or walked into a fork). Data only: the sentence already names
+  /// whose pieces these are, so nothing prefixes it with a warning.
   final bool favorsMover;
 
   /// Roughly "how much material is at stake" (in pawn units, king=1000) —
@@ -34,6 +47,7 @@ class MotifFinding {
   const MotifFinding({
     required this.motifs,
     required this.description,
+    required this.goneDescription,
     required this.affectedSquares,
     required this.favorsMover,
     required this.significance,
@@ -56,8 +70,7 @@ class MotifResult {
   List<TacticalMotif> get motifs =>
       findings.expand((f) => f.motifs).toSet().toList();
 
-  String get description =>
-      findings.map((f) => f.description).where((d) => d.isNotEmpty).join(' | ');
+  String get description => joinSentences(findings.map((f) => f.description));
 
   List<String> get affectedSquares =>
       findings.expand((f) => f.affectedSquares).toSet().toList();

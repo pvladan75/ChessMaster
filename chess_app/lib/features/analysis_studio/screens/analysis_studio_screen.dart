@@ -38,6 +38,7 @@ import 'package:chess_app/features/analysis_studio/services/opening_judge_servic
 import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/core/models/tactical_motif.dart';
+import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/features/analysis_studio/widgets/tactical_findings_panel_widget.dart';
 import 'package:chess_app/core/models/positional_factor.dart';
@@ -825,10 +826,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         );
         final positionalDiff = _positionalEvaluator.explainMove(
             beforeFen: _currentNode.fen, afterFen: newFen);
-        final autoComment = [
+        final autoComment = joinSentences([
           _tacticalDetector.describeMoveDiff(tacticalDiff),
           _positionalEvaluator.describeMoveDiff(positionalDiff),
-        ].where((s) => s.isNotEmpty).join(' | ');
+        ]);
         if (autoComment.isNotEmpty) {
           childNode.comment = autoComment;
         }

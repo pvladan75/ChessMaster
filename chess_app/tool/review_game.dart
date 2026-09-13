@@ -39,6 +39,15 @@
 /// wrote. Say which settings a file was made with rather than assuming it
 /// matches one made in the app.
 ///
+/// **`set REVIEW_COMMENTS_ONLY=1`** rewrites the main line's comments of a game
+/// that has *already* been reviewed and leaves everything else — the `??`, the
+/// „Better move" lines, their comments — exactly as it came. Written on
+/// 13.9.2026, when the detector's sentences changed and the three reviewed games
+/// had to follow: the first of them was tagged by the trainer inside the app,
+/// and the paragraph above is why re-running the review would not give those
+/// tags back. The motif sentences need no engine — the walker's comments are
+/// built from the two positions alone — so none is started.
+///
 /// It fails, loudly, when `REVIEW_IN` is not set.
 library;
 
@@ -49,6 +58,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/models/analysis_models.dart';
@@ -69,6 +79,7 @@ void main() {
   final threshold =
       double.tryParse(Platform.environment['REVIEW_THRESHOLD'] ?? '') ??
           _defaultThreshold;
+  final commentsOnly = Platform.environment['REVIEW_COMMENTS_ONLY'] == '1';
 
   test('reviews a game and writes the annotated PGN', () async {
     if (input == null || output == null) {
@@ -84,15 +95,34 @@ void main() {
     final read = readStepTree(fen: fen, pgn: text);
     final root = read.root;
 
-    var moves = 0;
+    final chain = <AnalysisNode>[];
     for (var node = root;
         node.children.isNotEmpty;
         node = node.children.first) {
-      moves++;
+      chain.add(node.children.first);
     }
-    stdout.writeln('$moves moves read from ${File(input).uri.pathSegments.last}'
+    stdout.writeln(
+        '${chain.length} moves read from ${File(input).uri.pathSegments.last}'
         '${read.rejectedMoves > 0 ? ', ${read.rejectedMoves} refused' : ''}');
-    expect(moves, greaterThan(0), reason: 'the PGN holds no playable moves');
+    expect(chain, isNotEmpty, reason: 'the PGN holds no playable moves');
+    // A refused move would shift every comment after it onto the wrong move.
+    expect(read.rejectedMoves, 0, reason: 'the PGN has moves that do not play');
+
+    if (commentsOnly) {
+      final moments = await GameAnalysisWalkerService().analyzeGame(
+        startingFen: root.fen,
+        uciMoves: [for (final node in chain) node.moveUci ?? ''],
+        analyzer: _noEngine,
+      );
+      expect(moments, hasLength(chain.length),
+          reason: 'the walk stopped before the end of the main line');
+      for (var i = 0; i < chain.length; i++) {
+        chain[i].comment = moments[i].combinedComment;
+      }
+      File(output).writeAsStringSync(PgnExporterService.exportToPgn(root));
+      stdout.writeln('comments rewritten, tags and lines kept: $output');
+      return;
+    }
 
     final engine = await _Engine.start();
     try {
@@ -122,6 +152,17 @@ void main() {
     }
   }, timeout: const Timeout(Duration(minutes: 30)));
 }
+
+/// The analyzer for a walk that only wants the motif sentences: no evaluation
+/// for any position, which the walker already treats as „the engine did not
+/// answer".
+Future<List<AnalysisLine>> _noEngine(
+  String fen, {
+  required int depth,
+  required int multiPV,
+  Duration timeout = const Duration(seconds: 1),
+}) async =>
+    const [];
 
 /// One Stockfish process, spoken to in UCI.
 ///

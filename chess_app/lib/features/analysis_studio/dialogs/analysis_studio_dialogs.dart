@@ -15,6 +15,7 @@ export 'package:chess_app/features/analysis_studio/services/pgn_file_saver.dart'
 import 'package:chess_app/features/analysis_studio/services/pgn_file_saver.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
@@ -64,12 +65,11 @@ void showCommentDialog(
 /// ([PositionalEvaluatorService]) — the user toggles individually instead of
 /// keeping or discarding the whole comment as one block.
 ///
-/// [initialComment] is a ' | '-joined string (see how comments get built
-/// throughout the analysis feature); whichever of its parts still match a
-/// currently-available candidate come back pre-checked here, and anything
-/// left over (the user's own note, or a clause whose exact wording no
-/// longer matches — e.g. after an app update) lands in the free-text field
-/// instead of being silently dropped.
+/// [initialComment] is sentences joined by a space ([joinSentences]);
+/// whichever candidate sentences it still holds come back pre-checked here,
+/// and anything left over (the user's own note, or a comment in a wording
+/// that is no longer written — e.g. after an app update) lands in the
+/// free-text field instead of being silently dropped.
 void showManualCommentDialog(
   BuildContext context,
   String initialComment,
@@ -77,22 +77,11 @@ void showManualCommentDialog(
   List<String> positionalCandidates,
   ValueChanged<String> onSaved,
 ) {
-  final existingParts = initialComment
-      .split(' | ')
-      .map((s) => s.trim())
-      .where((s) => s.isNotEmpty)
-      .toList();
-  final selectedTactical = <String>{
-    ...tacticalCandidates.where(existingParts.contains)
-  };
-  final selectedPositional = <String>{
-    ...positionalCandidates.where(existingParts.contains)
-  };
-  final leftoverText = existingParts
-      .where((p) =>
-          !selectedTactical.contains(p) && !selectedPositional.contains(p))
-      .join(' | ');
-  final freeTextController = TextEditingController(text: leftoverText);
+  final split = splitCommentForChecklist(
+      initialComment, tacticalCandidates, positionalCandidates);
+  final selectedTactical = {...split.tactical};
+  final selectedPositional = {...split.positional};
+  final freeTextController = TextEditingController(text: split.leftover);
 
   showDialog(
     context: context,
@@ -213,12 +202,7 @@ void showManualCommentDialog(
                   ...tacticalCandidates.where(selectedTactical.contains),
                   ...positionalCandidates.where(selectedPositional.contains),
                 ];
-                final parts = <String>[
-                  if (freeTextController.text.trim().isNotEmpty)
-                    freeTextController.text.trim(),
-                  ...chosen,
-                ];
-                onSaved(parts.join(' | '));
+                onSaved(joinSentences([freeTextController.text, ...chosen]));
                 Navigator.pop(ctx);
               },
             ),

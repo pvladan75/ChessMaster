@@ -8,6 +8,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
 
@@ -235,10 +236,10 @@ class AutoTreeGeneratorService {
         );
         final positionalDiff = _positionalEvaluator.explainMove(
             beforeFen: currentNode.fen, afterFen: childFen);
-        final autoComment = [
+        final autoComment = joinSentences([
           _tacticalDetector.describeMoveDiff(tacticalDiff),
           _positionalEvaluator.describeMoveDiff(positionalDiff),
-        ].where((s) => s.isNotEmpty).join(' | ');
+        ]);
         if (autoComment.isNotEmpty) {
           childNode.comment = autoComment;
         }
