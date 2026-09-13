@@ -1243,12 +1243,14 @@ Four things the grader does not say:
  * **A blitz game is a lot of mistakes.** g09 says „it is a mistake" eleven
    times and g03 ten, every one of them true at `min_cost` 1.0. A higher
    threshold for the filler alone is a parameter, not a redesign.
- * **The board turns over between moments in six of ten** (g03 reads
-   `WWWBBBWWWW`), because every moment is shown from its mover's side, as in the
-   moments mode. The turn falls where the board already jumps from the end of an
-   answer line back to the game. Whether a whole game should keep one side
-   throughout is the owner's decision. The facts do not know which side the
-   trainer played.
+ * **The board turned over between moments in six of ten** (g03 read
+   `WWWBBBWWWW`), because every moment was shown from its mover's side. The
+   owner settled it the same evening, for both modes: **one side throughout**,
+   since a board that turns by itself confuses, and a reader or a trainer
+   making a video turns it whenever they like. No part carries
+   `blackOrientation` any more, so every tutorial opens from White's side —
+   the facts do not know which side the trainer played, and a guess that
+   differs from one game to the next is the same confusion one level up.
 
 ## What to look at in the results
 

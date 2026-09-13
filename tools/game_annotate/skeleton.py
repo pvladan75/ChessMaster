@@ -295,7 +295,7 @@ def moments(name, cfg=None):
                                 rows[start]['to_move'], before, material(board)))
             facts[intro] = {'gain': 0, 'mate': False, 'fork': False, 'pin': False,
                             'motifs': ''}
-            parts.append({'kind': 'show', 'fen': rows[start]['fen'], 'black': black,
+            parts.append({'kind': 'show', 'fen': rows[start]['fen'],
                           'intro': intro, 'moves': moves, 'lead': True})
 
         # The question.
@@ -314,7 +314,7 @@ def moments(name, cfg=None):
             facts[qid] = {'gain': 0, 'mate': False, 'fork': False, 'pin': False,
                           'motifs': board_here or '', 'question': True,
                           'names': [best['move'], best['move'].rstrip('+#')[-2:]]}
-            parts.append({'kind': 'ask_move', 'fen': row['fen'], 'black': black,
+            parts.append({'kind': 'ask_move', 'fen': row['fen'],
                           'instruction': qid, 'solution': best['move'],
                           'accepted': [c['move'] for c in correct[1:]]})
 
@@ -349,7 +349,7 @@ def moments(name, cfg=None):
         change = material(board) - before
         facts[intro] = {'gain': max(0, change if not black else -change), 'mate': False,
                         'fork': False, 'pin': False, 'motifs': ''}
-        parts.append({'kind': 'show', 'fen': row['fen'], 'black': black,
+        parts.append({'kind': 'show', 'fen': row['fen'],
                       'intro': intro, 'moves': moves})
 
         # Every slot's facts carry the very text the model was shown beside it,
@@ -650,10 +650,12 @@ def _steps(parts, words):
     """The tutorial's `positionList`: each part as the app stores a step."""
     steps = []
     for part in parts:
+        # No `blackOrientation`, in either mode. Each moment used to be shown
+        # from its mover's side, and a whole game turned the board over by
+        # itself in six of ten; the owner settled it on 13.9.2026 - one side
+        # throughout, because the reader and the video export can turn it.
         step = {'title': 'Part %d' % (len(steps) + 1), 'fen': part['fen'],
                 'kind': part['kind']}
-        if part['black']:
-            step['blackOrientation'] = True
         if part['kind'] == 'show':
             step['pgn'] = _pgn(part, words)
         else:
@@ -739,7 +741,7 @@ def whole_game(name, blocks, given, cfg):
     parts = []
     report = {'filler_parts': 0, 'filler_moves': 0, 'filler_sentences': 0}
 
-    def fill(start, stop, black):
+    def fill(start, stop):
         if start >= stop:
             return
         board = chess.Board(rows[start]['fen'])
@@ -765,17 +767,15 @@ def whole_game(name, blocks, given, cfg):
             moves.append({'san': san, 'slot': sid, 'ply': r})
         report['filler_moves'] += len(moves)
         report['filler_sentences'] += 1 if words.get(intro) else 0
-        return {'kind': 'show', 'fen': rows[start]['fen'], 'black': black,
+        return {'kind': 'show', 'fen': rows[start]['fen'],
                 'intro': intro, 'moves': moves}
 
     cursor = 0
-    black = False
     report['merged'] = 0
     for moment, mparts in blocks:
         first = mparts[0]
         stop = first['moves'][0]['ply'] if first.get('lead') else moment['index']
-        black = first['black']
-        filler = fill(cursor, stop, black)
+        filler = fill(cursor, stop)
         if filler and first.get('lead'):
             # The game moves and the lead-in are one stretch of one game, and
             # as two parts the first was sometimes a single move (`22... bxa3`
@@ -795,7 +795,7 @@ def whole_game(name, blocks, given, cfg):
             report['filler_parts'] += 1
         parts.extend(mparts)
         cursor = moment['index']
-    filler = fill(cursor, end, black)
+    filler = fill(cursor, end)
     if filler:
         parts.append(filler)
         report['filler_parts'] += 1
