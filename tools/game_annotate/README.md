@@ -258,18 +258,40 @@ run on all three games and does not clear the bar; the results are in
 DEEPSEEK_API_KEY=sk-…
 ```
 
-**Azure OpenAI** needs three, because Azure addresses a *deployment* you
-created rather than a model id, and authenticates with its own header:
+**Azure OpenAI** needs two, because Azure addresses a *deployment* you created
+rather than a model id, and authenticates with its own header:
 
 ```
 AZURE_OPENAI_KEY=…
 AZURE_OPENAI_ENDPOINT=https://<resource-name>.openai.azure.com
-AZURE_OPENAI_API_VERSION=2024-10-21
 ```
 
-The third is optional — that value is the default. `--model` is then the
-**deployment name**, not the model id: `python run_api.py B --provider azure
---model my-gpt4o-deployment`.
+Requests go to the v1 path, `/openai/v1/chat/completions`, which is what Azure
+documents for its GPT-5 and GPT-6 reasoning models and which takes no API
+version. Setting `AZURE_OPENAI_API_VERSION` switches to the older dated path.
+`--model` is the **deployment name**, not the model id: `python run_api.py B
+--provider azure --model gpt-5.6-terra --reasoning-effort medium`. Those models
+refuse `max_tokens` and a custom `temperature`; both are survived by the retry
+below and written into `meta.json`.
+
+**Qwen** (Qwen Cloud / Alibaba Cloud Model Studio) needs a key, and an address
+only when the key is not an international one:
+
+```
+DASHSCOPE_API_KEY=sk-…
+DASHSCOPE_BASE_URL=https://<workspace>.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+```
+
+Without the second line the address is `https://dashscope-intl.aliyuncs.com/
+compatible-mode/v1`, the one Qwen Cloud's own model page uses. A key is bound
+to the region it was made in, so a 401 from a key made elsewhere means „set the
+address the console shows", not „the key is wrong". Qwen Cloud lists
+`qwen3.8-flash` at 131K output tokens with thinking and 2M tokens a minute, so
+`--max-tokens 64000` fits.
+
+The 3.8 models think by default. `--thinking-mode disabled` sends
+`enable_thinking: false`, and `--thinking <n>` sends `thinking_budget`:
+`python run_api.py B --provider qwen --model qwen3.8-max --max-tokens 64000`.
 
 Two refusals are survived rather than reported, because both are about the
 request's shape and not about the work: a reasoning model that cannot be asked
@@ -371,6 +393,53 @@ twenty-one printed as „mate against mate".
 **Read the position line before the engine line.** The engine ranks whatever
 board it is given, so a score under a part that is not the game's is a score for
 a board the child should never have been shown.
+
+## Azure OpenAI and Qwen, 13.9.2026 — and the end of the vendor trial
+
+The owner's rule for this round was set before it started: try Qwen, and if that
+does not work, stop. Nothing did. Game one only, arm B, every run through the
+grader and `check_positions.py --engine`:
+
+| model | verdict | what went wrong |
+|---|---|---|
+| `gpt-5.4-mini` (Azure, Data Zone EU), effort medium | DAMAGED | six of seven parts off the game by 2–7 squares — captured pieces left standing |
+| `qwen3.8-flash` | DAMAGED | all ten parts off the game by 3–15 squares, further off with every part; 88k thinking tokens, 22 minutes |
+| `qwen3.8-2.4t-a95b` | REFUSED | an unplayable solution; all ten parts off the game, one of them only by the side to move; 75k thinking tokens, 30 minutes |
+| `qwen3.8-max` | no answer | the stream was closed at 899 s during its final checks — 139k characters of reasoning, none of it repeated |
+
+**Every failure in this whole trial is the same failure.** Gemini Lite, both
+DeepSeek models, `gpt-5.4-mini` and three Qwen models: none of them chose badly
+or reasoned badly so much as lost the board. Asked to write a FEN forty plies
+into a game, a model has to play the game out in its head, and only
+`gemini-3.8-flash-high` and `gemini-3.5-flash` did that reliably. That is an
+argument about the contract, not about the vendors — the proposal it points to
+is arm D, below in `docs/STANJE-RADA.md`: hand the model the moments with their
+positions already computed, and let it choose and explain.
+
+Things worth knowing about the channels, because they cost a morning:
+
+ * **Azure** would not deploy anything on a Free Trial subscription — „no
+   quota" in every region. After the upgrade, Global Standard still had none
+   for the GPT-5.6 models or `gpt-5.4-mini`; **Data Zone Standard** had quota for
+   `gpt-5.4-mini` only. The Azure reasoning models refuse `max_tokens`, and the
+   retry to `max_completion_tokens` handled it.
+ * **Qwen** thinking requests sent without streaming **never answered**: two
+   runs waited fourteen minutes and the console's usage page still said 0 tokens.
+   `--stream` fixed it, and prints progress. Qwen does not hold a request to
+   `max_tokens` — flash thought 88k tokens under a 64k ceiling. And a stream the
+   server simply closes used to be recorded as a finished run with no answer;
+   `send_stream` reports it as a fault now.
+ * The free quota („Free quota only", per model) covered all of it.
+
+**One fault in the experiment itself, found during this round.** Game one's
+reviewed input carried 1,679 characters of the owner's Serbian questions after
+the game: `make_inputs.py` looked for the result token on a line of its own and
+the app writes it after the last comment. Every game-one arm-B prompt had it,
+Gemini's included, so the comparison stayed fair — but it cost thinking, and
+`qwen3.8-max` spent some of its reasoning deciding not to answer the questions.
+The input was regenerated after the runs above; `make_inputs.py` now finds the
+end of the movetext outside comments and variations, and refuses a game that
+does not end in a result.
 
 ## What to look at in the results
 

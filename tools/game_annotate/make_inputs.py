@@ -49,10 +49,56 @@ def extract(text):
         # same rule the app itself applies to a pasted line.
         start = 0
     body = text[start:]
-    end = re.search(r'\n\s*(1-0|0-1|1/2-1/2|\*)\s*(\n|$)', body)
-    if end:
-        body = body[:end.end()]
-    return body.strip() + '\n'
+    end = game_end(body)
+    if end is not None:
+        body = body[:end]
+    body = body.strip() + '\n'
+    # Loud rather than quiet. The first version looked for the result on a line
+    # of its own, and the app writes it after the last comment (`… } *`), so
+    # the owner's questions below the game went into every game-one prompt for
+    # a day - to every model, and into the thinking of one of them.
+    if not re.search(r'(^|\s)(1-0|0-1|1/2-1/2|\*)\s*$', body):
+        sys.exit('the game does not end with a result token (1-0, 0-1, 1/2-1/2 '
+                 'or *), so where it stops cannot be told')
+    return body
+
+
+def game_end(body):
+    """Where the movetext's result token ends, or None.
+
+    Read as the PGN reader reads it: a `*` or a `1-0` inside a `{ comment }`
+    or a `( variation )` is not the end of the game, and a result token counts
+    only between whitespace. The first such token at the top level is the end.
+    """
+    depth, i, n = 0, 0, len(body)
+    in_headers = True
+    while i < n:
+        ch = body[i]
+        if in_headers:
+            if ch == '[':
+                close = body.find(']', i)
+                i = n if close < 0 else close + 1
+                continue
+            if not ch.isspace():
+                in_headers = False
+            else:
+                i += 1
+                continue
+        if ch == '{':
+            close = body.find('}', i)
+            i = n if close < 0 else close + 1
+            continue
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth = max(0, depth - 1)
+        elif depth == 0 and (i == 0 or body[i - 1].isspace()):
+            for token in ('1/2-1/2', '1-0', '0-1', '*'):
+                stop = i + len(token)
+                if body.startswith(token, i) and (stop == n or body[stop].isspace()):
+                    return stop
+        i += 1
+    return None
 
 
 def plain(pgn_text):

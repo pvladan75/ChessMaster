@@ -181,13 +181,31 @@ def main():
                 verdict = 'UNREADABLE' + legal
             else:
                 real_fen, squares, model, real, where = nearest(fen, known)
-                verdict = ('NOT IN THE GAME: nearest %s position differs on %d '
-                           'square(s) — %s' % (
-                               where, len(squares),
-                               ', '.join('%s model %s / real %s' % (
-                                   s, model.get(chess.parse_square(s), '-'),
-                                   real.get(chess.parse_square(s), '-'))
-                                   for s in squares)))
+                if not squares:
+                    # Every piece where a real position has it, and still not
+                    # that position: the side to move, the castling rights or
+                    # the en passant square is what is wrong. „Differs on 0
+                    # squares" said nothing, and it is the one case where the
+                    # board a child sees is right and the move they must find
+                    # belongs to the other side.
+                    fields = [FIELDS[n] for n in (1, 2, 3)
+                              if fen.split()[n:n + 1] != real_fen.split()[n:n + 1]]
+                    names = ' and '.join(
+                        'side to move' if f == 'side' else f for f in fields)
+                    verdict = ('NOT IN THE GAME: the pieces stand as in a %s '
+                               'position, but the %s %s (model: %s, real: %s)' % (
+                                   where, names or 'counters',
+                                   'differs' if len(fields) == 1 else 'differ',
+                                   ' '.join(fen.split()[1:4]),
+                                   ' '.join(real_fen.split()[1:4])))
+                else:
+                    verdict = ('NOT IN THE GAME: nearest %s position differs on '
+                               '%d square(s) — %s' % (
+                                   where, len(squares),
+                                   ', '.join('%s model %s / real %s' % (
+                                       s, model.get(chess.parse_square(s), '-'),
+                                       real.get(chess.parse_square(s), '-'))
+                                       for s in squares)))
         print('  part %2d  %-10s %s' % (i, kind, verdict))
 
         if cfg.engine and kind == 'ask_move' and not legal:

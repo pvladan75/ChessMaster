@@ -127,13 +127,42 @@ Tri stvari iz toga vrede i bez tabele:
   pozicija zaista iz partije (ili varijante pregleda), koja polja se razlikuju,
   i sa `--engine` gde je odgovor na `ask_move` kod motora i sa kolikom razlikom.
 
-**Sledeći korak**, izvan koda: ili **Azure OpenAI** resurs (odvojen od Speech
-resursa koji već postoji) i deployment, pa u `.env`: `AZURE_OPENAI_KEY`,
-`AZURE_OPENAI_ENDPOINT=https://<resurs>.openai.azure.com`, po želji
-`AZURE_OPENAI_API_VERSION`; `--model` je tada **ime deploymenta**:
-`python run_api.py B --provider azure --model <deployment> --max-tokens 64000`
-— ili odluka o predlogu iznad, koji je izmena ugovora formata a ne izbor
-dobavljača.
+**Azure OpenAI i Qwen, isti dan — i kraj probe dobavljača.** Vlasnikovo
+pravilo za ovaj krug: probaj Qwen, pa ako ne uspe, odustajemo. Nije uspeo
+nijedan. `gpt-5.4-mini` (Azure, Data Zone EU — jedini model sa kvotom posle
+nadogradnje probne pretplate) DAMAGED; `qwen3.8-flash` DAMAGED, svih deset
+pozicija van partije; `qwen3.8-2.4t-a95b` REFUSED; `qwen3.8-max` bez odgovora,
+stream zatvoren posle 899 s. Tabela i detalji kanala (Azure kvote, Qwen koji bez
+streama ne odgovara) su u `tools/game_annotate/README.md`.
+
+**Svaki neuspeh u celoj probi je isti neuspeh: izgubljena tabla**, ne loš izbor
+ni loše rezonovanje. Zato **sledeći korak nije dobavljač nego ugovor — grana D**:
+modelu se daju samo momenti partije (gde je pregled napisao `??`), sa FEN-om koji
+izračunamo mi, potezom koji je odigran, boljim potezom i — posle vlasnikove
+odluke gore — kandidatima sa ocenom motora; model bira koje momente i piše
+rečenice, a poziciju samo imenuje. Nije izgrađeno.
+
+**Uz to, jedna greška u samom eksperimentu:** ulaz za prvu partiju je nosio
+vlasnikova pitanja posle partije (`make_inputs.py` je tražio rezultat u zasebnom
+redu), u svim promptovima grane B za tu partiju, Gemini uključen. Ulaz je
+ponovo napravljen, a skripta sada odbija partiju koja se ne završava rezultatom.
+
+**I jedna greška u aplikaciji nađena usput, popravljena:** `MoveTree.cleanPgnComment`
+je iz komentara skidao samo `[%cal]` i `[%csl]`, pa je partija sa Chess.com-a
+uvezena kao tutorijal detetu naglas čitala `[%clk 0:02:59.9]` posle svakog
+poteza. Sada skida svaku PGN komandu; šest testova u `pgn_dialect_test.dart`,
+pet mutacija uhvaćeno; 2278 testova, 1 preskočen, analyze 29 infos.
+
+**Odluka vlasnika, 13.9.2026 — evaluacija u PGN, ne u stablo.** Sužava odluku
+od 4.9.2026: ocena motora i dalje **ne ulazi u grafičko stablo poteza** (nema
+broja na kartici, nema polja na `AnalysisNode`), ali **sme da ide u PGN**. Povod:
+„Review entire game" bi davao više boljih poteza sa ocenom, pa se pitanje pravi
+samo gde je najbolji potez jasno najbolji, a jednako dobri idu u `acceptedSans`.
+Implementacija od 4.9. je uklonila i `[%eval]` iz izvoza, pa je PGN deo sada
+dozvoljen, ne vraćen. Uslov koji ide uz to: tutorijal uvezen iz PGN-a čita
+komentare detetu naglas, pa ocena upisana u komentar ne sme da stigne do glasa.
+Prvo se dokazuje u `tools/game_annotate/` (grana D, momenti umesto cele
+partije), pa tek onda plan za aplikaciju.
 
 **Merilo je već postavljeno i ne izmišlja se ponovo**: ocenjivač mora reći
 CLEAN (`cd chess_app && dart run tool/grade_tutorial.dart <folder>`),

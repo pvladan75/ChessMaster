@@ -32,6 +32,7 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import run_arm
@@ -71,6 +72,16 @@ PROVIDERS = {
         'shape': 'openai',
         'auth_header': 'api-key',
     },
+    # Alibaba Cloud Model Studio. The address depends on the region the key
+    # was made in and, for most regions, on a workspace id inside the host, so
+    # it is read whole from DASHSCOPE_BASE_URL rather than written here - a key
+    # is bound to its region, and a guessed host is a 401 that reads like a bad
+    # key.
+    'qwen': {
+        'url': None,                  # built from DASHSCOPE_BASE_URL
+        'key_env': 'DASHSCOPE_API_KEY',
+        'shape': 'openai',
+    },
     # Anything else that speaks the OpenAI chat API: pass --base-url.
     'openai-compatible': {
         'url': None,
@@ -79,7 +90,7 @@ PROVIDERS = {
     },
 }
 
-AZURE_DEFAULT_API_VERSION = '2024-10-21'
+QWEN_DEFAULT_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
 
 OUTPUT_AS_ANSWER = """Return the tutorial as a single JSON object, and return
 nothing else at all: no prose before or after it, no code fence, no explanation.
@@ -147,11 +158,11 @@ def build(arm, name):
 
 
 def ask(provider, model, prompt, timeout, thinking=None, base_url=None,
-        max_tokens=16384, extra=None):
+        max_tokens=16384, extra=None, stream=False):
     spec = PROVIDERS[provider]
     if spec['shape'] == 'openai':
         return ask_openai(provider, model, prompt, timeout, base_url, max_tokens,
-                          extra)
+                          extra, stream)
     # The Gemini shape needs no adjustment, so it answers with an empty list.
 
     body = json.dumps({
@@ -183,25 +194,53 @@ def ask(provider, model, prompt, timeout, thinking=None, base_url=None,
 
 
 def azure_url(model):
-    """`https://<resource>.openai.azure.com/openai/deployments/<deployment>/…`
+    """`https://<resource>.openai.azure.com/openai/v1/chat/completions`
 
-    [model] is the **deployment** name here, not a model id: Azure names the
-    thing you created, and the body's `model` field is ignored.
+    The v1 path, which is what Azure documents for the GPT-5 and GPT-6
+    reasoning models: no `api-version`, and the **deployment** name travels as
+    the body's `model`. Setting `AZURE_OPENAI_API_VERSION` asks for the older
+    dated path instead, `…/deployments/<deployment>/chat/completions`.
     """
     endpoint = (os.environ.get('AZURE_OPENAI_ENDPOINT')
                 or from_env_file('AZURE_OPENAI_ENDPOINT'))
     if not endpoint:
         sys.exit('Set AZURE_OPENAI_ENDPOINT (https://<resource>.openai.azure.com) '
                  'in the environment or in chess_backend/.env.')
+    # The portal's „Target URI" is the whole request address, path and
+    # `api-version` included, and it is the obvious thing to copy. Only the
+    # scheme and host are the resource, so that is all that is kept.
+    parts = urllib.parse.urlsplit(endpoint.strip())
+    if not parts.scheme or not parts.netloc:
+        sys.exit('AZURE_OPENAI_ENDPOINT is not an address: expected '
+                 'https://<resource>.openai.azure.com')
+    endpoint = '%s://%s' % (parts.scheme, parts.netloc)
     version = (os.environ.get('AZURE_OPENAI_API_VERSION')
-               or from_env_file('AZURE_OPENAI_API_VERSION')
-               or AZURE_DEFAULT_API_VERSION)
+               or from_env_file('AZURE_OPENAI_API_VERSION'))
+    if not version:
+        return '%s/openai/v1/chat/completions' % endpoint
     return ('%s/openai/deployments/%s/chat/completions?api-version=%s'
-            % (endpoint.rstrip('/'), model, version))
+            % (endpoint, model, version))
+
+
+def qwen_url():
+    """The chat address under DASHSCOPE_BASE_URL, the compatible-mode base the
+    console shows for the key's region.
+
+    Absent, it is the international address from Qwen Cloud's own model page
+    (13.9.2026). A key made in another region answers that with a 401, which is
+    the signal to set the variable rather than to doubt the key.
+    """
+    base = (os.environ.get('DASHSCOPE_BASE_URL')
+            or from_env_file('DASHSCOPE_BASE_URL')
+            or QWEN_DEFAULT_BASE_URL)
+    base = base.strip().rstrip('/')
+    if base.endswith('/chat/completions'):
+        return base
+    return base + '/chat/completions'
 
 
 def ask_openai(provider, model, prompt, timeout, base_url=None,
-               max_tokens=16384, extra=None):
+               max_tokens=16384, extra=None, stream=False):
     """The OpenAI chat shape: Groq, DeepSeek, Azure OpenAI, OpenRouter.
 
     `response_format` is asked for but not relied on - a reasoning model that
@@ -211,6 +250,8 @@ def ask_openai(provider, model, prompt, timeout, base_url=None,
     url = base_url or PROVIDERS[provider]['url']
     if provider == 'azure':
         url = base_url or azure_url(model)
+    if provider == 'qwen':
+        url = base_url or qwen_url()
     if not url:
         sys.exit('--base-url is required for the openai-compatible provider.')
 
@@ -228,6 +269,9 @@ def ask_openai(provider, model, prompt, timeout, base_url=None,
     # Vendor-specific switches (DeepSeek's `thinking` and `reasoning_effort`)
     # go in as given; `run` records them in `meta.json`.
     payload.update(extra or {})
+    if stream:
+        payload['stream'] = True
+        payload['stream_options'] = {'include_usage': True}
 
     header = PROVIDERS[provider].get('auth_header')
     headers = {'Content-Type': 'application/json'}
@@ -245,7 +289,8 @@ def ask_openai(provider, model, prompt, timeout, base_url=None,
     while True:
         request = urllib.request.Request(
             url, data=json.dumps(payload).encode('utf-8'), headers=headers)
-        answer, fault = send(request, timeout)
+        answer, fault = (send_stream(request, timeout) if stream
+                         else send(request, timeout))
         if not fault or not fault.startswith('HTTP 400'):
             return answer, fault, adjustments
 
@@ -277,6 +322,69 @@ def send(request, timeout):
         return None, 'HTTP %d: %s' % (exc.code, detail)
     except Exception as exc:                       # noqa: BLE001 - reported
         return None, '%s: %s' % (type(exc).__name__, exc)
+
+
+def send_stream(request, timeout):
+    """The same request as a stream, folded back into the non-streamed shape.
+
+    Written on 13.9.2026, when two Qwen runs sat for thirteen minutes with no
+    way to tell a model thinking from a connection nobody was answering. A
+    stream says which every thirty seconds, and a read timeout then measures
+    silence rather than the length of the whole answer. What arrived before a
+    fault is reported with it and not kept: half a tutorial is not a result.
+    """
+    content, reasoning, usage, finish = [], [], None, None
+    started = last = time.time()
+    done = False
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as answer:
+            for raw in answer:
+                line = raw.decode('utf-8', 'replace').strip()
+                if not line.startswith('data:'):
+                    continue
+                data = line[5:].strip()
+                if data == '[DONE]':
+                    done = True
+                    break
+                chunk = json.loads(data)
+                if chunk.get('usage'):
+                    usage = chunk['usage']
+                for choice in chunk.get('choices') or []:
+                    delta = choice.get('delta') or {}
+                    if delta.get('content'):
+                        content.append(delta['content'])
+                    if delta.get('reasoning_content'):
+                        reasoning.append(delta['reasoning_content'])
+                    if choice.get('finish_reason'):
+                        finish = choice['finish_reason']
+                if time.time() - last >= 30:
+                    last = time.time()
+                    print('  ... %d characters of thinking, %d of answer'
+                          % (sum(map(len, reasoning)), sum(map(len, content))),
+                          flush=True)
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode('utf-8', 'replace')[:600]
+        return None, 'HTTP %d: %s' % (exc.code, detail)
+    except Exception as exc:                       # noqa: BLE001 - reported
+        return None, '%s: %s (after %d characters of thinking, %d of answer)' % (
+            type(exc).__name__, exc, sum(map(len, reasoning)),
+            sum(map(len, content)))
+    # A stream the server simply closes is not an answer. The first version
+    # read it as one: qwen3.8-max was cut off at 899 s mid-thought and the run
+    # was recorded as finished, with no finish reason, no tokens and no file.
+    if not done and finish is None:
+        return None, ('the stream was closed after %.0f s with no finish reason '
+                      '(%d characters of thinking, %d of answer)' % (
+                          time.time() - started, sum(map(len, reasoning)),
+                          sum(map(len, content))))
+    return {
+        'choices': [{
+            'message': {'content': ''.join(content),
+                        'reasoning_content': ''.join(reasoning)},
+            'finish_reason': finish,
+        }],
+        'usage': usage or {},
+    }, None
 
 
 def text_of(answer):
@@ -369,19 +477,27 @@ def run(cfg):
         return
 
     print('arm %s, %s, %d characters of prompt - asking...'
-          % (arm, cfg.model, len(prompt)))
+          % (arm, cfg.model, len(prompt)), flush=True)
+    if cfg.stream:
+        meta['stream'] = True
     started = time.time()
     meta['max_tokens'] = cfg.max_tokens
     extra = {}
     if cfg.thinking_mode:
-        extra['thinking'] = {'type': cfg.thinking_mode}
+        # One switch, two spellings: DeepSeek nests it, Qwen takes a boolean.
+        if cfg.provider == 'qwen':
+            extra['enable_thinking'] = cfg.thinking_mode == 'enabled'
+        else:
+            extra['thinking'] = {'type': cfg.thinking_mode}
+    if cfg.provider == 'qwen' and cfg.thinking is not None:
+        extra['thinking_budget'] = cfg.thinking
     if cfg.reasoning_effort:
         extra['reasoning_effort'] = cfg.reasoning_effort
     if extra:
         meta['request_extra'] = extra
     answer, fault, adjustments = ask(cfg.provider, cfg.model, prompt,
                                      cfg.timeout, cfg.thinking, cfg.base_url,
-                                     cfg.max_tokens, extra)
+                                     cfg.max_tokens, extra, cfg.stream)
     if adjustments:
         meta['request_adjusted'] = adjustments
     meta['seconds'] = round(time.time() - started, 1)
@@ -432,11 +548,20 @@ def main():
     parser.add_argument('--thinking-mode', choices=['enabled', 'disabled'],
                         help="DeepSeek's `thinking.type`; absent leaves the "
                              'model default, which is enabled')
-    parser.add_argument('--reasoning-effort', choices=['low', 'high', 'max'],
-                        help="DeepSeek's `reasoning_effort`")
+    # The union of both vendors' values; each model accepts a subset and says
+    # so with a 400. DeepSeek: low, high, max. Azure: none (not GPT-6),
+    # minimal (original GPT-5 only), low, medium, high, xhigh.
+    parser.add_argument('--reasoning-effort',
+                        choices=['none', 'minimal', 'low', 'medium', 'high',
+                                 'xhigh', 'max'],
+                        help='`reasoning_effort`; absent leaves the model default')
     parser.add_argument('--max-tokens', type=int, default=16384,
                         help='output ceiling for the OpenAI shape; a '
                              'reasoning model spends its thinking out of it')
+    parser.add_argument('--stream', action='store_true',
+                        help='OpenAI shape only: stream the answer and print '
+                             'progress every 30 s; the timeout then measures '
+                             'silence, not the whole answer')
     parser.add_argument('--timeout', type=int, default=300)
     parser.add_argument('--dry-run', action='store_true')
     run(parser.parse_args())
