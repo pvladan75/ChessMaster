@@ -548,7 +548,7 @@ that was graded as the model's answer until `run_arm.py` recorded the CLI's
 failure. `review_run.py` prints everything a person still has to read.
 
 ```bash
-python make_facts.py <game> --depth 20
+python make_facts.py <game>          # depth 18, 8 positions at a time
 python run_api.py H --name <game> --provider deepseek --model deepseek-flash --reasoning-effort low --max-tokens 64000
 python run_arm.py H --name <game> --model gemini-3.8-flash-high
 python review_run.py out/<run>
@@ -875,6 +875,69 @@ what a student is told, and it does not:
 Depth 18 and parallel positions compound, and neither changes an answer: about
 80 seconds a game against nine minutes now. **The two that sound clever — a
 shallow first pass and more threads — are the two that cost quality or time.**
+
+### What was adopted, and what it cost — 13.9.2026
+
+Depth 18 is the default now, and the cores go into positions rather than into
+the search: `--workers`, eight by default, each running its own single-threaded
+engine. The three games were rebuilt at those settings.
+
+| | before | after |
+|---|---|---|
+| `pvladan_2026-09-12` | 494 s | **49 s** |
+| `french_2026-06-19` | 532 s | **80 s** |
+| `philidor_2026-07-03` | 710 s | **88 s** |
+| total | 1736 s | **217 s — 8×** |
+
+Arm H ran end to end on the rebuilt facts: three CLEAN, every position exact,
+every question the best move of the analysis sent.
+
+**Every position is searched from an empty table now**, which is a change worth
+naming rather than slipping in with the parallelism. The old build carried one
+engine and one transposition table across the whole game, so what came back
+depended on the order positions were searched in — fine while there was exactly
+one order, and not a property to keep once there are eight. `game=object()` per
+call makes python-chess send `ucinewgame`, so a facts file is a function of the
+position, the depth and the engine, and of nothing else.
+
+Both halves were measured rather than assumed, on one game at depth 18:
+
+ * **One worker and eight give byte-identical candidates on all 54 positions.**
+   That is the claim parallelism has to earn, and it earns it.
+ * **53 of 54 positions differ from the old warm-table build**, and the
+   differences are what an empty table looks like: `+0.31` against `+0.35`, and
+   reorderings among moves within a tenth of a pawn in quiet opening positions.
+   Seven of the eight positions where depth 20 says the best move stands out
+   still agree; the one that does not is `27. Qxa8+`, where White is between
+   seven and nine pawns up and the disagreement is over which of three losing
+   defences lasts longest. All three questions this game's tutorials asked are
+   unchanged.
+ * Clearing the table cost no time at all — 111 s against the warm build's
+   125 s on the same game, which is noise. A table full of one position's tree
+   was not helping the next position.
+
+**One visible consequence, and it is the position this file has argued about all
+evening.** The French `Ke3` led by 0.53 at depth 20 and leads by 0.23 at depth
+18, so it no longer *stands out* — the question is still asked and `Ke3` is still
+the answer, but the move within a tenth of it is now offered as correct too. That
+is the rule working: a student is not marked wrong for a move the analysis cannot
+separate.
+
+**And a run now records which analysis it was given.** `skeleton.stamp_of`
+writes the game, depth, multipv and generation time into the run's `meta.json`,
+and `check_positions.py` compares it with the file on disk:
+
+```
+NOT THE ANALYSIS THIS RUN WAS GIVEN - it was built from
+  pvladan_2026-09-12 d20 mpv4 2026-09-13T17:09:00
+and the file on disk now is
+  pvladan_2026-09-12 d18 mpv4 2026-09-13T19:32:37
+```
+
+Without it, rebuilding the facts makes every old run read as a model that
+changed the answer — the one accusation this harness must never make wrongly,
+and the exact trap this rebuild would otherwise have set. Proved by tampering
+with a stamp and watching it fire.
 
 ## What to look at in the results
 

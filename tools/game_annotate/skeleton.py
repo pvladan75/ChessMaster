@@ -69,6 +69,19 @@ def facts_of(name):
         return json.load(fh)
 
 
+def stamp_of(facts):
+    """Which analysis this is, short enough to carry in a run's meta.json.
+
+    A run is graded against the analysis it was given and against no other -
+    the owner's rule of 13.9.2026 - and a facts file can be rebuilt at another
+    depth between the run and the grading. Without a stamp that reads as the
+    model having changed the answer, which is the one accusation this harness
+    must never make wrongly. `check_positions.py` compares it and says so.
+    """
+    return '%s d%s mpv%s %s' % (facts.get('game'), facts.get('depth'),
+                                facts.get('multipv'), facts.get('generated'))
+
+
 def words_for(eval_text):
     """An evaluation from White's side, as the words a sentence may use."""
     if eval_text in (None, ''):
@@ -420,7 +433,8 @@ def _claims(sid, text, facts):
 def assemble(run_dir, name, meta, answer_text, cfg=None):
     """Build `tutorial.json` from the skeleton and the model's words."""
     cfg = dict(DEFAULTS, **(cfg or {}))
-    report = {'parameters': cfg, 'problems': [], 'missing_slots': [],
+    report = {'parameters': cfg, 'facts': stamp_of(facts_of(name)),
+              'problems': [], 'missing_slots': [],
               'unused_slots': [], 'claims': []}
     meta['skeleton'] = report
     try:

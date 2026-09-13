@@ -100,6 +100,29 @@ def nearest(fen, known):
     return best
 
 
+def facts_drift(run_dir, game):
+    """Whether the facts file on disk is the one this run was built from.
+
+    A facts file can be rebuilt - at another depth, or simply again - between a
+    run and its grading, and then every question would read as the model having
+    changed the answer. That is the one accusation this harness must never make
+    wrongly, so it says which analysis it is judging against instead.
+    """
+    path = os.path.join(run_dir, 'meta.json')
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding='utf-8') as fh:
+        used = ((json.load(fh).get('skeleton') or {}).get('facts'))
+    if not used:
+        return None
+    facts = os.path.join(HERE, 'input', '%s_facts.json' % game)
+    if not os.path.exists(facts):
+        return None
+    with open(facts, encoding='utf-8') as fh:
+        now = skeleton.stamp_of(json.load(fh))
+    return None if now == used else (used, now)
+
+
 def facts_rows(game):
     """Every row of the analysis that was sent, keyed by board and side to move."""
     path = os.path.join(HERE, 'input', '%s_facts.json' % game)
@@ -180,6 +203,7 @@ def main():
             game = json.load(fh)['game']
     known = positions_of(os.path.join(HERE, 'input', '%s_reviewed.pgn' % game))
     sent = facts_rows(game)
+    drifted = facts_drift(run_dir, game)
     tutorial = os.path.join(run_dir, 'tutorial.json')
     if not os.path.exists(tutorial):
         # A run that answered nothing is a result to report, not a traceback.
@@ -192,6 +216,12 @@ def main():
         os.path.basename(run_dir), game, len(known),
         '%d in the analysis sent' % len(sent) if sent
         else 'NO FACTS FILE: no question can be checked'))
+    if drifted:
+        print('  NOT THE ANALYSIS THIS RUN WAS GIVEN - it was built from'
+              '\n    %s\n  and the file on disk now is\n    %s\n'
+              '  so a question below that reads as changed may be this, '
+              'and not the model.' % drifted)
+
     all_exact = True
     for i, part in enumerate(parts, 1):
         fen = part.get('fen') or ''

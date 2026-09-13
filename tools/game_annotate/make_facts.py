@@ -38,8 +38,10 @@ import argparse
 import io
 import json
 import os
+import queue
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import chess
 import chess.engine
@@ -120,7 +122,8 @@ def set_cost(played, best):
         else 'cost a forced mate')
 
 
-def build(name, depth, multipv, margin_pawns, threads, hash_mb):
+def walk(name):
+    """The game as rows, with everything in them that needs no engine."""
     with open(os.path.join(INPUT_DIR, '%s_reviewed.pgn' % name), encoding='utf-8') as fh:
         reviewed = chess.pgn.read_game(fh)
     with open(os.path.join(INPUT_DIR, '%s_plain.pgn' % name), encoding='utf-8') as fh:
@@ -132,45 +135,107 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb):
         sys.exit('the reviewed and the plain game are not the same game')
 
     board = plain.board()
-    rows = []
-    label = 'start'
+    rows, label = [], 'start'
+    for index in range(len(moves) + 1):
+        row = {'label': label, 'fen': board.fen(),
+               'to_move': 'White' if board.turn else 'Black'}
+        if board.is_game_over(claim_draw=False):
+            row['game_over'] = board.result(claim_draw=False)
+            row['candidates'] = []
+        if index < len(moves):
+            move = moves[index]
+            row['played'] = {'move': board.san(move),
+                             'label': label_of(board, move)}
+            if comments[index]:
+                row['motifs_after_played'] = comments[index]
+            label = row['played']['label']
+            board.push(move)
+        rows.append(row)
+    return rows
+
+
+def candidates_of(board, infos):
+    """One position's answer, as the facts file keeps it."""
+    if isinstance(infos, dict):
+        infos = [infos]
+    out = []
+    for info in infos:
+        pv = info.get('pv') or []
+        if not pv:
+            continue
+        white = info['score'].white()
+        out.append({
+            'move': board.san(pv[0]),
+            'eval': analyze.score_text(white),
+            'value_for_mover': mover_value(white, board.turn),
+            'line': ' '.join(analyze.san_list(board, pv[:6])),
+        })
+    return out
+
+
+def analyse_all(fens, depth, multipv, threads, hash_mb, workers):
+    """Every position, one single-threaded engine at a time, in `workers` of them.
+
+    **The cores go into positions, not into the search.** Measured on
+    13.9.2026, eight positions at depth 20 with multipv 4: one thread 33.8 s,
+    four 74.9 s, eight 98.9 s. Lazy SMP buys time-to-depth sublinearly, least of
+    all with multipv above one, and this harness searches to a fixed depth on
+    purpose - threads help at a fixed time. The same cores spent on whole
+    positions are 2.2x, and every number comes out the same. So `threads` stays
+    at one and `workers` is what to raise.
+
+    **Every position is searched from an empty table**, which `game=object()`
+    is: a new game object makes python-chess send `ucinewgame`. The sequential
+    version carried one table across the whole game, so what came back depended
+    on the order positions were searched in - fine while there was one order,
+    and not a property to keep once there are several. What a facts file holds
+    is now a function of the position, the depth and the engine, and of nothing
+    else.
+    """
+    results = [None] * len(fens)
+    free, engines = queue.Queue(), []
+    done = [0]
     started = time.time()
-    with chess.engine.SimpleEngine.popen_uci(analyze.engine_path()) as sf:
-        sf.configure({'Threads': threads, 'Hash': hash_mb})
-        for index in range(len(moves) + 1):
-            row = {'label': label, 'fen': board.fen(),
-                   'to_move': 'White' if board.turn else 'Black'}
-            if board.is_game_over(claim_draw=False):
-                row['game_over'] = board.result(claim_draw=False)
-                row['candidates'] = []
-            else:
-                infos = sf.analyse(board, chess.engine.Limit(depth=depth),
-                                   multipv=multipv)
-                if isinstance(infos, dict):
-                    infos = [infos]
-                row['candidates'] = []
-                for info in infos:
-                    pv = info.get('pv') or []
-                    if not pv:
-                        continue
-                    white = info['score'].white()
-                    row['candidates'].append({
-                        'move': board.san(pv[0]),
-                        'eval': analyze.score_text(white),
-                        'value_for_mover': mover_value(white, board.turn),
-                        'line': ' '.join(analyze.san_list(board, pv[:6])),
-                    })
-            if index < len(moves):
-                move = moves[index]
-                row['played'] = {'move': board.san(move),
-                                 'label': label_of(board, move)}
-                if comments[index]:
-                    row['motifs_after_played'] = comments[index]
-                label = row['played']['label']
-                board.push(move)
-            rows.append(row)
-            print('  %3d/%d  %-14s %.0f s' % (index, len(moves), row['label'],
-                                              time.time() - started), flush=True)
+
+    def one(job):
+        index, fen = job
+        sf = free.get()
+        try:
+            board = chess.Board(fen)
+            infos = sf.analyse(board, chess.engine.Limit(depth=depth),
+                               multipv=multipv, game=object())
+        finally:
+            free.put(sf)
+        results[index] = candidates_of(board, infos)
+        done[0] += 1
+        print('  %3d/%d  %.0f s' % (done[0], len(fens), time.time() - started),
+              flush=True)
+
+    try:
+        for _ in range(workers):
+            sf = chess.engine.SimpleEngine.popen_uci(analyze.engine_path())
+            sf.configure({'Threads': threads, 'Hash': hash_mb})
+            engines.append(sf)
+            free.put(sf)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            list(pool.map(one, list(enumerate(fens))))
+    finally:
+        for sf in engines:
+            try:
+                sf.quit()
+            except Exception:
+                pass
+    return results
+
+
+def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers):
+    started = time.time()
+    rows = walk(name)
+    todo = [i for i, row in enumerate(rows) if 'candidates' not in row]
+    answers = analyse_all([rows[i]['fen'] for i in todo],
+                          depth, multipv, threads, hash_mb, workers)
+    for i, cands in zip(todo, answers):
+        rows[i]['candidates'] = cands
 
     margin = int(round(margin_pawns * 100))
     for index, row in enumerate(rows):
@@ -221,6 +286,7 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb):
         'engine': os.path.basename(analyze.engine_path()),
         'threads': threads,
         'hash_mb': hash_mb,
+        'workers': workers,
         'generated': time.strftime('%Y-%m-%dT%H:%M:%S'),
         'seconds': round(time.time() - started),
         'rows': rows,
@@ -259,11 +325,18 @@ def recost(name):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('name')
-    parser.add_argument('--depth', type=int, default=20)
+    parser.add_argument('--depth', type=int, default=18)
     parser.add_argument('--multipv', type=int, default=4)
     parser.add_argument('--margin', type=float, default=0.5,
                         help='pawns the best move must lead the second by')
-    parser.add_argument('--threads', type=int, default=1)
+    parser.add_argument('--threads', type=int, default=1,
+                        help='threads PER ENGINE; leave it at one and raise '
+                             '--workers instead, which is measured and this is '
+                             'not')
+    parser.add_argument('--workers', type=int,
+                        default=min(8, os.cpu_count() or 1),
+                        help='positions analysed at the same time, each by its '
+                             'own single-threaded engine')
     parser.add_argument('--hash', type=int, default=128)
     parser.add_argument('--recost', action='store_true',
                         help='re-derive the costs over the existing facts file, '
@@ -274,7 +347,8 @@ def main():
         recost(cfg.name)
         return
 
-    facts = build(cfg.name, cfg.depth, cfg.multipv, cfg.margin, cfg.threads, cfg.hash)
+    facts = build(cfg.name, cfg.depth, cfg.multipv, cfg.margin, cfg.threads,
+                  cfg.hash, cfg.workers)
     path = os.path.join(INPUT_DIR, '%s_facts.json' % cfg.name)
     with open(path, 'w', encoding='utf-8') as fh:
         json.dump(facts, fh, ensure_ascii=False, indent=1)
