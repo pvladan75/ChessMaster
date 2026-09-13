@@ -58,9 +58,18 @@ automatsko pokretanje koje staje samo pre trošenja.
 fajlova u `chess_app/test/fixtures/game_tutorial/` — ulaze (činjenice, PGN,
 parametre, odgovor modela) i ono što harness od njih pravi (momente sa tekstom i
 činjenicama svakog slota, prompt, izveštaj, oba tutorijala). `--check` kaže da li
-fajlovi i dalje odgovaraju `skeleton.py`; dokazan dvema mutacijama. Sledeći
-korak: faza 0 (`tool/game_facts.dart`, poređenje činjenica i vreme na Windows-u)
-i kapija faze 1 sa `words_for` i `standing` prenetim kroz nju.
+fajlovi i dalje odgovaraju `skeleton.py`; dokazan dvema mutacijama.
+
+**Korak 3 je urađen:** `evaluation_words.dart` (`wordsFor`, `standing`) prenet i
+držan uz harness na svakoj oceni deset partija i na graničnim slučajevima koje je
+harness sam odgovorio; deset mutacija od deset uhvaćeno. Kapija za ostatak faze 1
+je `docs/gates/game_tutorial_skeleton_test.dart` — zamrznut API, jedanaest mesta
+gde se Python i Dart razilaze, pet loših odgovora modela. Jedino poređenje koje
+nije bajt po bajt (`pgn` dela, čita se nazad kroz `LessonStepLine`) dokazano je
+prolaznim unapred: svaki deo svakog fixture-a, prepisan kroz
+`StudioLessonStep.from`, čita se nazad isto. Aplikacija **2368 testova** (1
+preskočen), analyze 26 info. Sledeće: batch 1 za worker-a (ostatak skeleta prema
+kapiji), pa faza 0 (`tool/game_facts.dart`).
 
 ## Isti nalaz posle poteza, i težina onoga što se može osvojiti — 13.9.2026, u kodu
 

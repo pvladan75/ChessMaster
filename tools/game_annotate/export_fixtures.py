@@ -15,6 +15,10 @@ not written by hand. For each of the ten games of D this writes one file holding
    slots, claims, trims, the whole-game counts), `tutorial.json` and
    `tutorial-game.json`.
 
+Beside them, two case files the harness also answers: `evaluation_words_cases.json`
+(`words_for` and `standing` at the edges of `LEVELS`) and `answer_cases.json`
+(five bad answers on g01, with the report and tutorials made of each).
+
 The expectations are **computed fresh from the code**, never copied out of a run
 folder, and on export they are also compared with that run's files - so a
 fixture cannot quietly describe a tutorial the harness no longer produces.
@@ -82,7 +86,16 @@ def expected(game, answer, parameters):
             tutorials[key] = json.loads(read(path)) if os.path.exists(path) else None
     finally:
         shutil.rmtree(folder, ignore_errors=True)
+    rows = skeleton.facts_of(game)['rows']
+    evals = sorted({e for row in rows for e in
+                    [c['eval'] for c in row.get('candidates') or []]
+                    + [(row.get('played') or {}).get('eval')] if e is not None})
     return {
+        # The two smallest functions, answered for every evaluation this game
+        # carries: what a port is proved on first, before any of the rest.
+        'wordsFor': {e: skeleton.words_for(e) for e in evals},
+        'standing': [[e, mover, skeleton.standing(e, mover)]
+                     for e in evals for mover in ('White', 'Black')],
         'moments': skeleton.moments(game, parameters),
         'prompt': skeleton.prompt(game, parameters),
         'report': meta.get('skeleton'),
@@ -102,6 +115,63 @@ def fixture(game, answer):
         'answer': answer,
         'expected': expected(game, answer, parameters),
     }
+
+
+# Evaluations no game happens to carry, at the edges of `LEVELS` and in the
+# spellings the facts use - so a port that moves a threshold by a hair fails on
+# a case the harness answered, not on one written by hand.
+BOUNDARIES = ['0.00', '+0.00', '-0.00', '+0.49', '+0.50', '-0.50', '-0.49',
+              '+1.49', '+1.50', '-1.50', '+2.99', '+3.00', '-3.00', '-2.99',
+              '+12.40', '-7.05', '#1', '#-1', '#12', '#-12', 'draw',
+              'checkmate', '', None]
+
+# What assembly does with an answer that is not a good one, on g01. The harness
+# reports and does not patch; these hold the port to the same reports.
+ANSWER_GAME = 'g01_scandinavian-defense'
+
+
+def evaluation_cases():
+    return {
+        'about': ABOUT,
+        'wordsFor': [[e, skeleton.words_for(e)] for e in BOUNDARIES],
+        'standing': [[e, mover, skeleton.standing(e, mover)]
+                     for e in BOUNDARIES + ['unknown'] for mover in ('White', 'Black')],
+    }
+
+
+def answer_cases(answer):
+    real = json.loads(answer)
+    chosen = real['chosen']
+    dropped = dict(real, slots={k: v for k, v in real['slots'].items()
+                                if not k.startswith(chosen[0] + '.lead.')})
+    worded = dict(real, slots=dict(real['slots'], **{
+        '%s.question' % chosen[0]: 'Find the fork that wins the knight with Qxe2+.'}))
+    cases = [
+        ('the answer is not JSON', 'Here are the moments I chose: m1, m3.'),
+        ('a moment chosen that was not offered', json.dumps(dict(real, chosen=[chosen[0], 'm99']))),
+        ('only one moment chosen', json.dumps(dict(real, chosen=[chosen[0]]))),
+        ('a lead-in left without words', json.dumps(dropped)),
+        ('a question that names a move and a fork', json.dumps(worded)),
+    ]
+    parameters = dict(skeleton.DEFAULTS)
+
+    def judged(text):
+        # The moments and the prompt do not depend on the answer, and g01's own
+        # fixture already holds them: only what the answer changes is kept.
+        made = expected(ANSWER_GAME, text, parameters)
+        return {k: made[k] for k in ('report', 'tutorial', 'tutorialGame')}
+
+    return {
+        'about': ABOUT,
+        'game': ANSWER_GAME,
+        'cases': [dict(name=name, answer=text, expected=judged(text))
+                  for name, text in cases],
+    }
+
+
+def extras(answer_of_g01):
+    return {'evaluation_words_cases.json': evaluation_cases(),
+            'answer_cases.json': answer_cases(answer_of_g01)}
 
 
 def dump(data):
@@ -137,9 +207,11 @@ def first_difference(a, b, path='$'):
 def export():
     os.makedirs(DEST, exist_ok=True)
     total = 0
+    answers = {}
     for game in RUNS:
         folder = run_dir(game)
         answer = read(os.path.join(folder, 'answer.json'))
+        answers[game] = answer
         data = fixture(game, answer)
         # The run's own files are what the owner imported; a fixture that
         # disagrees with them describes some other tutorial.
@@ -162,7 +234,15 @@ def export():
                  len(data['expected']['tutorial']['positionList']),
                  len(data['expected']['tutorialGame']['positionList']),
                  len(report.get('claims') or []), len(text.encode('utf-8')) // 1024))
-    print('%d fixtures, %d KB -> %s' % (len(RUNS), total // 1024, os.path.relpath(DEST, REPO)))
+    for file_name, data in extras(answers[ANSWER_GAME]).items():
+        text = dump(data)
+        with open(os.path.join(DEST, file_name), 'w', encoding='utf-8', newline='\n') as fh:
+            fh.write(text)
+        total += len(text.encode('utf-8'))
+        print('%-26s %d KB' % (file_name, len(text.encode('utf-8')) // 1024))
+    print('%d fixtures and %d case files, %d KB -> %s' % (
+        len(RUNS), len(extras(answers[ANSWER_GAME])), total // 1024,
+        os.path.relpath(DEST, REPO)))
 
 
 def check():
@@ -181,6 +261,14 @@ def check():
             stale += 1
         else:
             print('%s: current' % game)
+    g01 = os.path.join(DEST, '%s.json' % ANSWER_GAME)
+    if os.path.exists(g01):
+        for file_name, fresh in extras(json.loads(read(g01))['answer']).items():
+            path = os.path.join(DEST, file_name)
+            found = ('missing' if not os.path.exists(path)
+                     else first_difference(json.loads(read(path)), fresh))
+            print('%s: %s' % (file_name, 'STALE - %s' % found if found else 'current'))
+            stale += 1 if found else 0
     if stale:
         print('%d of %d fixtures are not what the harness makes now; '
               'run export_fixtures.py' % (stale, len(RUNS)))

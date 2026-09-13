@@ -1,0 +1,675 @@
+{
+ "about": "Written by tools/game_annotate/export_fixtures.py from skeleton.py. Do not edit by hand: change the harness, then run the script again.",
+ "game": "g01_scandinavian-defense",
+ "cases": [
+  {
+   "name": "the answer is not JSON",
+   "answer": "Here are the moments I chose: m1, m3.",
+   "expected": {
+    "report": {
+     "parameters": {
+      "min_cost": 1.0,
+      "near": 0.3,
+      "max_correct": 3,
+      "max_moments": 8,
+      "lead_plies": 3,
+      "answer_plies": 4
+     },
+     "facts": "g01_scandinavian-defense d18 mpv4 2026-09-13T20:08:59",
+     "problems": [
+      "the answer is not JSON"
+     ],
+     "missing_slots": [],
+     "unused_slots": [],
+     "claims": []
+    },
+    "tutorial": null,
+    "tutorialGame": null
+   }
+  },
+  {
+   "name": "a moment chosen that was not offered",
+   "answer": "{\"title\": \"Trading queens, a skewer, and a bare king\", \"description\": \"Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.\", \"tags\": [\"Scandinavian Defense\", \"king safety\"], \"chosen\": [\"m1\", \"m99\"], \"slots\": {\"m1.lead.intro\": \"White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it.\", \"m1.lead.1\": \"White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it.\", \"m1.lead.2\": \"Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6.\", \"m1.lead.3\": \"White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre.\", \"m1.question\": \"Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.\", \"m1.answer.intro\": \"Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better.\", \"m1.answer.1\": \"Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move.\", \"m1.answer.2\": \"White plays Ngxe2, recapturing the queen with the knight. A move of the best line.\", \"m1.answer.3\": \"Black plays Na6, bringing the knight from b8 to a6. A move of the best line.\", \"m1.answer.4\": \"White plays Be3, developing the bishop from c1 to e3. A move of the best line.\", \"m3.lead.intro\": \"White to move. White is a pawn down here; by the end of this sequence White is a pawn up.\", \"m3.lead.1\": \"White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender.\", \"m3.lead.2\": \"Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair.\", \"m3.lead.3\": \"White plays h6, pushing the pawn from h5 to h6; White is clearly better.\", \"m3.question\": \"Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.\", \"m3.answer.intro\": \"Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better.\", \"m3.answer.1\": \"Black plays Qf6, moving the queen from f8 to f6. This is the best move.\", \"m3.answer.2\": \"White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line.\", \"m3.answer.3\": \"Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2.\", \"m3.answer.4\": \"White plays Qe3, moving the queen to e3 and attacking the knight on f4.\", \"m6.lead.intro\": \"White to move with material level, and material goes a pawn down over these moves \\u2014 yet White ends up winning.\", \"m6.lead.1\": \"White plays Qh5, moving the queen from e2 to h5; White is clearly better.\", \"m6.lead.2\": \"Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning.\", \"m6.lead.3\": \"White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield.\", \"m6.question\": \"Black to move. White's king has lost its pawn shield. Find Black's best move \\u2014 a careless one lets White force mate.\", \"m6.answer.intro\": \"Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level.\", \"m6.answer.1\": \"Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move.\", \"m6.answer.2\": \"White plays Qg5, attacking the knight on f6 with the queen. A move of the best line.\", \"m6.answer.3\": \"Black plays Ra7, moving the rook from a8 to a7. A move of the best line.\", \"m6.answer.4\": \"White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king.\"}}",
+   "expected": {
+    "report": {
+     "parameters": {
+      "min_cost": 1.0,
+      "near": 0.3,
+      "max_correct": 3,
+      "max_moments": 8,
+      "lead_plies": 3,
+      "answer_plies": 4
+     },
+     "facts": "g01_scandinavian-defense d18 mpv4 2026-09-13T20:08:59",
+     "problems": [
+      "chose 'm99', which was not offered",
+      "chose 1 moments, not two or three"
+     ],
+     "missing_slots": [],
+     "unused_slots": [
+      "m3.answer.1",
+      "m3.answer.2",
+      "m3.answer.3",
+      "m3.answer.4",
+      "m3.answer.intro",
+      "m3.lead.1",
+      "m3.lead.2",
+      "m3.lead.3",
+      "m3.lead.intro",
+      "m3.question",
+      "m6.answer.1",
+      "m6.answer.2",
+      "m6.answer.3",
+      "m6.answer.4",
+      "m6.answer.intro",
+      "m6.lead.1",
+      "m6.lead.2",
+      "m6.lead.3",
+      "m6.lead.intro",
+      "m6.question"
+     ],
+     "claims": [
+      "m1.answer.intro prints an evaluation"
+     ],
+     "chosen": [
+      "m1"
+     ],
+     "trimmed": [],
+     "game": {
+      "filler_parts": 1,
+      "filler_moves": 60,
+      "filler_sentences": 6,
+      "lexicon": {
+       "resumed": 1,
+       "opponent_winning": 3
+      },
+      "merged": 1,
+      "parts": 4
+     }
+    },
+    "tutorial": {
+     "title": "Trading queens, a skewer, and a bare king",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnb1kbnr/ppp1pppp/4q3/8/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4",
+       "kind": "show",
+       "pgn": "{ White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it. }\n4. Qe2\n{ White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it. }\n4... f6\n{ Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6. }\n5. d4\n{ White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre. }\n*"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      }
+     ]
+    },
+    "tutorialGame": {
+     "title": "Trading queens, a skewer, and a bare king (whole game)",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+       "kind": "show",
+       "pgn": "{ The opening is the Scandinavian Defense: Mieses-Kotroc Variation. } 1. e4 d5\n2. exd5 Qxd5 3. Nc3 Qe6+\n{ White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it. }\n4. Qe2\n{ White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it. }\n4... f6\n{ Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6. }\n5. d4\n{ White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre. }\n*"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      },
+      {
+       "title": "Part 4",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "5... Qf7\n{ Back in the game, Black played Qf7 instead; afterwards White is clearly better. }\n6. Nf3 e6 7. Bd2 Bd6 8. O-O-O Ne7 9. Re1 O-O 10. h4 a5 11. g4 a4 12. a3 c6\n{ Black plays c6. A serious mistake: from here the opponent is winning. With the best move: White is clearly better. After this one: White is winning. }\n13. g5 f5 14. h5 Qe8 15. Ne5 b5 16. Na2 Nd5 17. g6 h6 18. Nf7 Qe7 19. Nxh6+\ngxh6 20. Bxh6 b4 21. Bxf8 Qxf8 22. h6 bxa3\n{ Black plays bxa3. A serious mistake, and it leaves the opponent winning. With the best move: White is clearly better. After this one: White is winning. }\n23. Qh5 axb2+\n{ Black plays axb2+. This is the move that leaves the opponent winning. With the best move: White is clearly better. After this one: White is winning. }\n24. Kb1 Ba6 25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4 28. h8=Q+ Ke7 29. Q8e8+ Kf6\n30. Qhh8+ Kg5 31. Qeh5+ Kf4 32. Rh4# { Checkmate. } *"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "only one moment chosen",
+   "answer": "{\"title\": \"Trading queens, a skewer, and a bare king\", \"description\": \"Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.\", \"tags\": [\"Scandinavian Defense\", \"king safety\"], \"chosen\": [\"m1\"], \"slots\": {\"m1.lead.intro\": \"White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it.\", \"m1.lead.1\": \"White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it.\", \"m1.lead.2\": \"Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6.\", \"m1.lead.3\": \"White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre.\", \"m1.question\": \"Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.\", \"m1.answer.intro\": \"Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better.\", \"m1.answer.1\": \"Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move.\", \"m1.answer.2\": \"White plays Ngxe2, recapturing the queen with the knight. A move of the best line.\", \"m1.answer.3\": \"Black plays Na6, bringing the knight from b8 to a6. A move of the best line.\", \"m1.answer.4\": \"White plays Be3, developing the bishop from c1 to e3. A move of the best line.\", \"m3.lead.intro\": \"White to move. White is a pawn down here; by the end of this sequence White is a pawn up.\", \"m3.lead.1\": \"White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender.\", \"m3.lead.2\": \"Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair.\", \"m3.lead.3\": \"White plays h6, pushing the pawn from h5 to h6; White is clearly better.\", \"m3.question\": \"Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.\", \"m3.answer.intro\": \"Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better.\", \"m3.answer.1\": \"Black plays Qf6, moving the queen from f8 to f6. This is the best move.\", \"m3.answer.2\": \"White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line.\", \"m3.answer.3\": \"Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2.\", \"m3.answer.4\": \"White plays Qe3, moving the queen to e3 and attacking the knight on f4.\", \"m6.lead.intro\": \"White to move with material level, and material goes a pawn down over these moves \\u2014 yet White ends up winning.\", \"m6.lead.1\": \"White plays Qh5, moving the queen from e2 to h5; White is clearly better.\", \"m6.lead.2\": \"Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning.\", \"m6.lead.3\": \"White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield.\", \"m6.question\": \"Black to move. White's king has lost its pawn shield. Find Black's best move \\u2014 a careless one lets White force mate.\", \"m6.answer.intro\": \"Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level.\", \"m6.answer.1\": \"Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move.\", \"m6.answer.2\": \"White plays Qg5, attacking the knight on f6 with the queen. A move of the best line.\", \"m6.answer.3\": \"Black plays Ra7, moving the rook from a8 to a7. A move of the best line.\", \"m6.answer.4\": \"White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king.\"}}",
+   "expected": {
+    "report": {
+     "parameters": {
+      "min_cost": 1.0,
+      "near": 0.3,
+      "max_correct": 3,
+      "max_moments": 8,
+      "lead_plies": 3,
+      "answer_plies": 4
+     },
+     "facts": "g01_scandinavian-defense d18 mpv4 2026-09-13T20:08:59",
+     "problems": [
+      "chose 1 moments, not two or three"
+     ],
+     "missing_slots": [],
+     "unused_slots": [
+      "m3.answer.1",
+      "m3.answer.2",
+      "m3.answer.3",
+      "m3.answer.4",
+      "m3.answer.intro",
+      "m3.lead.1",
+      "m3.lead.2",
+      "m3.lead.3",
+      "m3.lead.intro",
+      "m3.question",
+      "m6.answer.1",
+      "m6.answer.2",
+      "m6.answer.3",
+      "m6.answer.4",
+      "m6.answer.intro",
+      "m6.lead.1",
+      "m6.lead.2",
+      "m6.lead.3",
+      "m6.lead.intro",
+      "m6.question"
+     ],
+     "claims": [
+      "m1.answer.intro prints an evaluation"
+     ],
+     "chosen": [
+      "m1"
+     ],
+     "trimmed": [],
+     "game": {
+      "filler_parts": 1,
+      "filler_moves": 60,
+      "filler_sentences": 6,
+      "lexicon": {
+       "resumed": 1,
+       "opponent_winning": 3
+      },
+      "merged": 1,
+      "parts": 4
+     }
+    },
+    "tutorial": {
+     "title": "Trading queens, a skewer, and a bare king",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnb1kbnr/ppp1pppp/4q3/8/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4",
+       "kind": "show",
+       "pgn": "{ White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it. }\n4. Qe2\n{ White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it. }\n4... f6\n{ Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6. }\n5. d4\n{ White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre. }\n*"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      }
+     ]
+    },
+    "tutorialGame": {
+     "title": "Trading queens, a skewer, and a bare king (whole game)",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+       "kind": "show",
+       "pgn": "{ The opening is the Scandinavian Defense: Mieses-Kotroc Variation. } 1. e4 d5\n2. exd5 Qxd5 3. Nc3 Qe6+\n{ White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it. }\n4. Qe2\n{ White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it. }\n4... f6\n{ Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6. }\n5. d4\n{ White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre. }\n*"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      },
+      {
+       "title": "Part 4",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "5... Qf7\n{ Back in the game, Black played Qf7 instead; afterwards White is clearly better. }\n6. Nf3 e6 7. Bd2 Bd6 8. O-O-O Ne7 9. Re1 O-O 10. h4 a5 11. g4 a4 12. a3 c6\n{ Black plays c6. A serious mistake: from here the opponent is winning. With the best move: White is clearly better. After this one: White is winning. }\n13. g5 f5 14. h5 Qe8 15. Ne5 b5 16. Na2 Nd5 17. g6 h6 18. Nf7 Qe7 19. Nxh6+\ngxh6 20. Bxh6 b4 21. Bxf8 Qxf8 22. h6 bxa3\n{ Black plays bxa3. A serious mistake, and it leaves the opponent winning. With the best move: White is clearly better. After this one: White is winning. }\n23. Qh5 axb2+\n{ Black plays axb2+. This is the move that leaves the opponent winning. With the best move: White is clearly better. After this one: White is winning. }\n24. Kb1 Ba6 25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4 28. h8=Q+ Ke7 29. Q8e8+ Kf6\n30. Qhh8+ Kg5 31. Qeh5+ Kf4 32. Rh4# { Checkmate. } *"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "a lead-in left without words",
+   "answer": "{\"title\": \"Trading queens, a skewer, and a bare king\", \"description\": \"Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.\", \"tags\": [\"Scandinavian Defense\", \"king safety\"], \"chosen\": [\"m1\", \"m3\", \"m6\"], \"slots\": {\"m1.question\": \"Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.\", \"m1.answer.intro\": \"Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better.\", \"m1.answer.1\": \"Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move.\", \"m1.answer.2\": \"White plays Ngxe2, recapturing the queen with the knight. A move of the best line.\", \"m1.answer.3\": \"Black plays Na6, bringing the knight from b8 to a6. A move of the best line.\", \"m1.answer.4\": \"White plays Be3, developing the bishop from c1 to e3. A move of the best line.\", \"m3.lead.intro\": \"White to move. White is a pawn down here; by the end of this sequence White is a pawn up.\", \"m3.lead.1\": \"White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender.\", \"m3.lead.2\": \"Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair.\", \"m3.lead.3\": \"White plays h6, pushing the pawn from h5 to h6; White is clearly better.\", \"m3.question\": \"Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.\", \"m3.answer.intro\": \"Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better.\", \"m3.answer.1\": \"Black plays Qf6, moving the queen from f8 to f6. This is the best move.\", \"m3.answer.2\": \"White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line.\", \"m3.answer.3\": \"Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2.\", \"m3.answer.4\": \"White plays Qe3, moving the queen to e3 and attacking the knight on f4.\", \"m6.lead.intro\": \"White to move with material level, and material goes a pawn down over these moves \\u2014 yet White ends up winning.\", \"m6.lead.1\": \"White plays Qh5, moving the queen from e2 to h5; White is clearly better.\", \"m6.lead.2\": \"Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning.\", \"m6.lead.3\": \"White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield.\", \"m6.question\": \"Black to move. White's king has lost its pawn shield. Find Black's best move \\u2014 a careless one lets White force mate.\", \"m6.answer.intro\": \"Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level.\", \"m6.answer.1\": \"Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move.\", \"m6.answer.2\": \"White plays Qg5, attacking the knight on f6 with the queen. A move of the best line.\", \"m6.answer.3\": \"Black plays Ra7, moving the rook from a8 to a7. A move of the best line.\", \"m6.answer.4\": \"White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king.\"}}",
+   "expected": {
+    "report": {
+     "parameters": {
+      "min_cost": 1.0,
+      "near": 0.3,
+      "max_correct": 3,
+      "max_moments": 8,
+      "lead_plies": 3,
+      "answer_plies": 4
+     },
+     "facts": "g01_scandinavian-defense d18 mpv4 2026-09-13T20:08:59",
+     "problems": [],
+     "missing_slots": [
+      "m1.lead.1",
+      "m1.lead.2",
+      "m1.lead.3",
+      "m1.lead.intro"
+     ],
+     "unused_slots": [],
+     "claims": [
+      "m1.answer.intro prints an evaluation",
+      "m3.answer.intro prints an evaluation"
+     ],
+     "chosen": [
+      "m1",
+      "m3",
+      "m6"
+     ],
+     "trimmed": [],
+     "game": {
+      "filler_parts": 1,
+      "filler_moves": 54,
+      "filler_sentences": 6,
+      "lexicon": {
+       "resumed": 3,
+       "opponent_winning": 1
+      },
+      "merged": 3,
+      "parts": 10
+     }
+    },
+    "tutorial": {
+     "title": "Trading queens, a skewer, and a bare king",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnb1kbnr/ppp1pppp/4q3/8/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4",
+       "kind": "show",
+       "pgn": "4. Qe2 f6 5. d4 *"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      },
+      {
+       "title": "Part 4",
+       "fen": "rnb2rk1/4q3/2pbp1PB/3n1p1P/pp1P4/P7/NPP1QP2/2K1RB1R w - - 0 21",
+       "kind": "show",
+       "pgn": "{ White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
+      },
+      {
+       "title": "Part 5",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "ask_move",
+       "instruction": "Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.",
+       "solutionSan": "Qf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 6",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "{ Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better. }\n22... Qf6\n{ Black plays Qf6, moving the queen from f8 to f6. This is the best move. } 23.\nNxb4\n{ White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line. }\n23... Nf4\n{ Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2. }\n24. Qe3\n{ White plays Qe3, moving the queen to e3 and attacking the knight on f4. } *"
+      },
+      {
+       "title": "Part 7",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/p2P4/p7/NPP1QP2/2K1RB1R w - - 0 23",
+       "kind": "show",
+       "pgn": "{ White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+      },
+      {
+       "title": "Part 8",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
+       "solutionSan": "Nf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 9",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "show",
+       "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
+      }
+     ]
+    },
+    "tutorialGame": {
+     "title": "Trading queens, a skewer, and a bare king (whole game)",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+       "kind": "show",
+       "pgn": "{ The opening is the Scandinavian Defense: Mieses-Kotroc Variation. } 1. e4 d5\n2. exd5 Qxd5 3. Nc3 Qe6+ 4. Qe2 f6 5. d4 *"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's pawns hold more of the centre, but Black can force a check that trades the queens. Find the move.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      },
+      {
+       "title": "Part 4",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "5... Qf7\n{ Back in the game, Black played Qf7 instead; afterwards White is clearly better. }\n6. Nf3 e6 7. Bd2 Bd6 8. O-O-O Ne7 9. Re1 O-O 10. h4 a5 11. g4 a4 12. a3 c6\n{ Black plays c6. A serious mistake: from here the opponent is winning. With the best move: White is clearly better. After this one: White is winning. }\n13. g5 f5 14. h5 Qe8 15. Ne5 b5 16. Na2 Nd5 17. g6 h6 18. Nf7 Qe7 19. Nxh6+\ngxh6 20. Bxh6 b4\n{ White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
+      },
+      {
+       "title": "Part 5",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "ask_move",
+       "instruction": "Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.",
+       "solutionSan": "Qf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 6",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "{ Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better. }\n22... Qf6\n{ Black plays Qf6, moving the queen from f8 to f6. This is the best move. } 23.\nNxb4\n{ White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line. }\n23... Nf4\n{ Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2. }\n24. Qe3\n{ White plays Qe3, moving the queen to e3 and attacking the knight on f4. } *"
+      },
+      {
+       "title": "Part 7",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "22... bxa3\n{ Returning to the game, Black played bxa3 instead; afterwards White is winning. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+      },
+      {
+       "title": "Part 8",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
+       "solutionSan": "Nf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 9",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "show",
+       "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
+      },
+      {
+       "title": "Part 10",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "show",
+       "pgn": "24... Ba6\n{ Back on the board, the game continued with Ba6 instead; afterwards White mates in 11. }\n25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4 28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+\nKg5 31. Qeh5+ Kf4 32. Rh4# { Checkmate. } *"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "a question that names a move and a fork",
+   "answer": "{\"title\": \"Trading queens, a skewer, and a bare king\", \"description\": \"Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.\", \"tags\": [\"Scandinavian Defense\", \"king safety\"], \"chosen\": [\"m1\", \"m3\", \"m6\"], \"slots\": {\"m1.lead.intro\": \"White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it.\", \"m1.lead.1\": \"White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it.\", \"m1.lead.2\": \"Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6.\", \"m1.lead.3\": \"White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre.\", \"m1.question\": \"Find the fork that wins the knight with Qxe2+.\", \"m1.answer.intro\": \"Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better.\", \"m1.answer.1\": \"Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move.\", \"m1.answer.2\": \"White plays Ngxe2, recapturing the queen with the knight. A move of the best line.\", \"m1.answer.3\": \"Black plays Na6, bringing the knight from b8 to a6. A move of the best line.\", \"m1.answer.4\": \"White plays Be3, developing the bishop from c1 to e3. A move of the best line.\", \"m3.lead.intro\": \"White to move. White is a pawn down here; by the end of this sequence White is a pawn up.\", \"m3.lead.1\": \"White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender.\", \"m3.lead.2\": \"Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair.\", \"m3.lead.3\": \"White plays h6, pushing the pawn from h5 to h6; White is clearly better.\", \"m3.question\": \"Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.\", \"m3.answer.intro\": \"Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better.\", \"m3.answer.1\": \"Black plays Qf6, moving the queen from f8 to f6. This is the best move.\", \"m3.answer.2\": \"White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line.\", \"m3.answer.3\": \"Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2.\", \"m3.answer.4\": \"White plays Qe3, moving the queen to e3 and attacking the knight on f4.\", \"m6.lead.intro\": \"White to move with material level, and material goes a pawn down over these moves \\u2014 yet White ends up winning.\", \"m6.lead.1\": \"White plays Qh5, moving the queen from e2 to h5; White is clearly better.\", \"m6.lead.2\": \"Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning.\", \"m6.lead.3\": \"White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield.\", \"m6.question\": \"Black to move. White's king has lost its pawn shield. Find Black's best move \\u2014 a careless one lets White force mate.\", \"m6.answer.intro\": \"Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level.\", \"m6.answer.1\": \"Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move.\", \"m6.answer.2\": \"White plays Qg5, attacking the knight on f6 with the queen. A move of the best line.\", \"m6.answer.3\": \"Black plays Ra7, moving the rook from a8 to a7. A move of the best line.\", \"m6.answer.4\": \"White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king.\"}}",
+   "expected": {
+    "report": {
+     "parameters": {
+      "min_cost": 1.0,
+      "near": 0.3,
+      "max_correct": 3,
+      "max_moments": 8,
+      "lead_plies": 3,
+      "answer_plies": 4
+     },
+     "facts": "g01_scandinavian-defense d18 mpv4 2026-09-13T20:08:59",
+     "problems": [],
+     "missing_slots": [],
+     "unused_slots": [],
+     "claims": [
+      "m1.question names a fork the facts do not show",
+      "m1.question names its answer or its square",
+      "m1.answer.intro prints an evaluation",
+      "m3.answer.intro prints an evaluation"
+     ],
+     "chosen": [
+      "m1",
+      "m3",
+      "m6"
+     ],
+     "trimmed": [],
+     "game": {
+      "filler_parts": 1,
+      "filler_moves": 54,
+      "filler_sentences": 6,
+      "lexicon": {
+       "resumed": 3,
+       "opponent_winning": 1
+      },
+      "merged": 3,
+      "parts": 10
+     }
+    },
+    "tutorial": {
+     "title": "Trading queens, a skewer, and a bare king",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnb1kbnr/ppp1pppp/4q3/8/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4",
+       "kind": "show",
+       "pgn": "{ White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it. }\n4. Qe2\n{ White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it. }\n4... f6\n{ Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6. }\n5. d4\n{ White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre. }\n*"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Find the fork that wins the knight with Qxe2+.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      },
+      {
+       "title": "Part 4",
+       "fen": "rnb2rk1/4q3/2pbp1PB/3n1p1P/pp1P4/P7/NPP1QP2/2K1RB1R w - - 0 21",
+       "kind": "show",
+       "pgn": "{ White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
+      },
+      {
+       "title": "Part 5",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "ask_move",
+       "instruction": "Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.",
+       "solutionSan": "Qf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 6",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "{ Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better. }\n22... Qf6\n{ Black plays Qf6, moving the queen from f8 to f6. This is the best move. } 23.\nNxb4\n{ White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line. }\n23... Nf4\n{ Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2. }\n24. Qe3\n{ White plays Qe3, moving the queen to e3 and attacking the knight on f4. } *"
+      },
+      {
+       "title": "Part 7",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/p2P4/p7/NPP1QP2/2K1RB1R w - - 0 23",
+       "kind": "show",
+       "pgn": "{ White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+      },
+      {
+       "title": "Part 8",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
+       "solutionSan": "Nf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 9",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "show",
+       "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
+      }
+     ]
+    },
+    "tutorialGame": {
+     "title": "Trading queens, a skewer, and a bare king (whole game)",
+     "description": "Three moments from a Scandinavian Defense game: a missed queen trade in the opening, a queen move that meets a pawn storm, and a king left without its pawn shield.",
+     "tags": [
+      "Scandinavian Defense",
+      "king safety"
+     ],
+     "language": "en",
+     "positionList": [
+      {
+       "title": "Part 1",
+       "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+       "kind": "show",
+       "pgn": "{ The opening is the Scandinavian Defense: Mieses-Kotroc Variation. } 1. e4 d5\n2. exd5 Qxd5 3. Nc3 Qe6+\n{ White to move. Material is level, and Black's queen already stands on e6. Watch how White meets it. }\n4. Qe2\n{ White plays Qe2, where the queen attacks the black queen on e6. It is about even, and 10% of the master games reaching here played it. }\n4... f6\n{ Black plays f6, the game move; White is slightly better. Only one master game reached this position, and none played f6. }\n5. d4\n{ White plays d4, the game move, and White is slightly better. White's pawns hold more of the centre. }\n*"
+      },
+      {
+       "title": "Part 2",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "ask_move",
+       "instruction": "Find the fork that wins the knight with Qxe2+.",
+       "solutionSan": "Qxe2+",
+       "pgn": ""
+      },
+      {
+       "title": "Part 3",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "{ Black plays Qxe2+ instead of the game move Qf7. The game move cost 1.26 pawns; material stays level and White is only slightly better. }\n5... Qxe2+\n{ Black plays Qxe2+, taking the white queen, giving check, and hitting the king on e1 and the bishop on f1. This is the best move. }\n6. Ngxe2\n{ White plays Ngxe2, recapturing the queen with the knight. A move of the best line. }\n6... Na6\n{ Black plays Na6, bringing the knight from b8 to a6. A move of the best line. }\n7. Be3\n{ White plays Be3, developing the bishop from c1 to e3. A move of the best line. }\n*"
+      },
+      {
+       "title": "Part 4",
+       "fen": "rnb1kbnr/ppp1p1pp/4qp2/8/3P4/2N5/PPP1QPPP/R1B1KBNR b KQkq - 0 5",
+       "kind": "show",
+       "pgn": "5... Qf7\n{ Back in the game, Black played Qf7 instead; afterwards White is clearly better. }\n6. Nf3 e6 7. Bd2 Bd6 8. O-O-O Ne7 9. Re1 O-O 10. h4 a5 11. g4 a4 12. a3 c6\n{ Black plays c6. A serious mistake: from here the opponent is winning. With the best move: White is clearly better. After this one: White is winning. }\n13. g5 f5 14. h5 Qe8 15. Ne5 b5 16. Na2 Nd5 17. g6 h6 18. Nf7 Qe7 19. Nxh6+\ngxh6 20. Bxh6 b4\n{ White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
+      },
+      {
+       "title": "Part 5",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "ask_move",
+       "instruction": "Black to move. White is clearly better and pushing a pawn toward promotion. Find Black's best move.",
+       "solutionSan": "Qf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 6",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "{ Black plays Qf6 instead of the game move bxa3, which cost 2.11 pawns. White is still clearly better. }\n22... Qf6\n{ Black plays Qf6, moving the queen from f8 to f6. This is the best move. } 23.\nNxb4\n{ White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line. }\n23... Nf4\n{ Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2. }\n24. Qe3\n{ White plays Qe3, moving the queen to e3 and attacking the knight on f4. } *"
+      },
+      {
+       "title": "Part 7",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "22... bxa3\n{ Returning to the game, Black played bxa3 instead; afterwards White is winning. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+      },
+      {
+       "title": "Part 8",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "ask_move",
+       "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
+       "solutionSan": "Nf6",
+       "pgn": ""
+      },
+      {
+       "title": "Part 9",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "show",
+       "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
+      },
+      {
+       "title": "Part 10",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
+       "kind": "show",
+       "pgn": "24... Ba6\n{ Back on the board, the game continued with Ba6 instead; afterwards White mates in 11. }\n25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4 28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+\nKg5 31. Qeh5+ Kf4 32. Rh4# { Checkmate. } *"
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

@@ -276,6 +276,14 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
    gate's data. Ten games, 1.7 MB, `--check` proved by two mutations
    (`tools/game_annotate/README.md`, „Fixtures for the app's port").
 2. **Phase 0** (`tool/game_facts.dart`) — parity and time on Windows, the lead.
-3. **The phase 1 gate** plus `words_for` and `standing` ported through it and
-   mutation-proved.
+3. ✅ 13.9.2026 **The phase 1 gate** plus `words_for` and `standing` ported
+   through it and mutation-proved. `evaluation_words.dart` is held to every
+   evaluation of the ten games and to boundary cases the harness answered
+   (`test/game_tutorial_evaluation_words_test.dart`, ten mutations of ten
+   caught). The gate for the rest is `docs/gates/game_tutorial_skeleton_test.dart`,
+   with the frozen API, eleven places Python and Dart disagree, and five bad
+   answers the harness judged. **Its one comparison that is not byte equality —
+   a part's `pgn`, read back through `LessonStepLine` — was proved passable
+   first**: every part of every fixture, rebuilt through
+   `StudioLessonStep.from`, reads back as the harness wrote it.
 4. **Batch 1 to the worker**: the rest of the skeleton, against that gate.

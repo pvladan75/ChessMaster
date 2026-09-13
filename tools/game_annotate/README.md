@@ -1330,9 +1330,21 @@ halves were proved before being trusted — a lexicon phrase changed in the
 harness made three fixtures STALE, and one FEN edited in a stored expectation
 made its own file STALE, each naming the path where they part.
 
-**1.7 MB for ten games, and that is a choice.** The facts are embedded rather
+**2.0 MB for ten games, and that is a choice.** The facts are embedded rather
 than pointed at in `input/`, so rebuilding a game's facts at another depth cannot
 change what the port is judged against without `--check` saying so.
+
+Two case files sit beside the games, and `--check` covers them too:
+
+ * `evaluation_words_cases.json` — `words_for` and `standing` at the edges of
+   `LEVELS` and in every spelling the facts use (`+0.50`, `-0.00`, `#-12`,
+   `draw`, `''`, `None`, `unknown`), so a port that moves a threshold by a
+   hundredth fails on a case the harness answered. Each game file also carries
+   both functions for every evaluation it holds.
+ * `answer_cases.json` — five answers that are not good ones, on g01, with the
+   report and tutorials the harness made of each: text that is not JSON, a
+   moment not offered, one moment, a lead-in with no words, and a question that
+   names a move and a fork. Only what the answer changes is kept.
 
 ## What to look at in the results
 

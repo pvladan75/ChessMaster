@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2335 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2368 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1260 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -2126,6 +2126,23 @@ sentence above it.
 NOT APPLIED instead of taking the first match — which would have mutated the
 tactical call, already passing the move, and reported a verdict about the wrong
 line.
+
+**Thirty-three more on 13.9.2026 — 2368 in the app with 1 skipped** — and they
+are phase 1's first step of `docs/PLAN-SKELET.md`: `wordsFor` and `standing`
+ported from `tools/game_annotate/skeleton.py`, held to fixtures the harness
+writes itself (`export_fixtures.py`, whose `--check` fails when the two part).
+Ten mutations, all caught. The rest of the phase waits in
+`docs/gates/game_tutorial_skeleton_test.dart`.
+
+**A gate that cannot be satisfied is found before a batch, not by one.** The
+port has to write a part's `pgn` through `StudioLessonStep.from`, and the
+fixtures hold python-chess's text, wrapped at 80 columns — so the gate compares
+what `LessonStepLine` reads back, and that was proved passable by rebuilding
+every part of every fixture through the app's writer before the gate was handed
+over. **And a sentence in a brief is a claim like any other:** the first draft
+said the motif detector „already asks" python-chess's attack and pin questions;
+grep found one private pin check and a legal-capture query, which is not the
+same answer, and the gate says so now.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
