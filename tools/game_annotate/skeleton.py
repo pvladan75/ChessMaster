@@ -373,8 +373,10 @@ None of it can change. You do two things.
   material count bears it out; a fork or a pin exists only if the facts name it.
 - **No numbers for evaluations.** The facts turn them into words; use the words.
 - **A move slot is about that one move**, not the move after it.
-- **A question never names its answer**, neither the move nor the square it goes
-  to. It says what the student should look for.
+- **A question never names a move in notation** - not its answer, and not the
+  move played in the game either. Naming the rejected move eliminates a
+  candidate and tells the student what not to look at, which is half the
+  exercise. Say what is on the board, not what was played.
 - One or two short sentences per slot, at most 140 characters.
 - Teach, do not score: say what to notice, not only that a move was bad.
 
@@ -516,6 +518,18 @@ def _claims(sid, text, facts):
         answer = facts['names'][0].rstrip('+#')
         if answer and answer in text or facts['names'][1] in low:
             found.append('%s names its answer or its square' % sid)
+        # And any other move written in notation. A bare square ("the pawn on
+        # b7") is a place on the board and fair to name; a move with its piece
+        # letter or its capture is notation, and on 13.9.2026 two questions of
+        # twenty-nine named the move played in the game - which the slot hands
+        # the model, and which eliminates a candidate as surely as the answer
+        # would.
+        others = [m for m in re.findall(
+            r'\b([KQRBN][a-h]?[1-8]?x?[a-h][1-8][+#]?|[a-h]x[a-h][1-8][+#]?'
+            r'|O-O(?:-O)?)\b', text) if m.rstrip('+#') != answer]
+        if others:
+            found.append('%s names %s, a move that is not the answer'
+                         % (sid, ', '.join(sorted(set(others)))))
     return found
 
 
