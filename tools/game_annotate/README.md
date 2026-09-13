@@ -775,6 +775,107 @@ with no network at all. The masters endpoint answers **401** to an anonymous
 caller, so it uses the server's own `LICHESS_API_TOKEN` — the allowance every
 user of the app's opening panel shares, which is the reason for all of the above.
 
+## How long the engine takes, and four ways to make it shorter — 13.9.2026
+
+Analysing one game is 494, 532 and 710 seconds for these three — eight to twelve
+minutes, and over 95% of everything the pipeline spends. Four ideas were
+measured against that. **Three of them are recorded here because they failed**,
+which is the only way to stop them being proposed again in a month.
+
+### A shallow first pass — 1.4×, and it misses things
+
+The idea: depth 12 over every position to find the candidate moments, depth 20
+only on those and their lead-ins. Depth 12 really is that cheap — **5, 9 and 13
+seconds for a whole game, 64× faster**. It still does not pay.
+
+**The threshold has to be 0.35, not 0.5.** At 0.5 the shallow pass missed two
+real moments in the Philidor, one of them badly: `39... Qc2+` costs 3.11 pawns
+at depth 20 and depth 12 rates it **0.35**. At 0.35 nothing is missed in any of
+the three games, but the flagged set grows to 17, 23 and 30 positions.
+
+**And the lead-ins are the cost.** A moment needs its three lead-in positions
+*and the row after it* — what a move cost is read from the next position's own
+search — so five rows each, and with that many flagged the windows overlap into
+41 to 62 of the 54 to 87 positions. Net: **1.3 to 1.6×**.
+
+Taking the lead-in sentences from the shallow numbers instead reaches 2.0×
+(869 s against 1736 s, nothing missed), and pays for it exactly where it hurts:
+6 to 14% of move evaluations change category at depth 12, and they cluster in
+the sharp positions, which are the lead-ins to the moments.
+
+```
+24... Qf6   deep "White is winning"  /  shallow "White is clearly better"
+25. Rd7     deep "White is winning"  /  shallow "White is clearly better"
+```
+
+Both are lead-in moves of a moment that **both models chose** in game one.
+
+### More engine threads — 3× *slower*
+
+Sixteen logical cores, and `make_facts.py` uses one thread. Raising it is the
+obvious free win, and it is not one. Eight middlegame positions, depth 20,
+multipv 4, one engine process, nothing else running:
+
+| threads | hash | seconds | a position |
+|---|---|---|---|
+| 1 | 128 MB | **33.8** | 4.22 s |
+| 4 | 512 MB | 74.9 | 9.36 s |
+| 8 | 1024 MB | 98.9 | 12.37 s |
+
+Monotonically worse. Lazy SMP buys time-to-depth sublinearly at the best of
+times, it buys least of all with `multipv` above one, and the helper threads
+fill the shared table with lines the main thread is not going to need. **Threads
+help at a fixed time, not at a fixed depth**, and this harness searches to a
+fixed depth on purpose. A whole-game run at eight threads was abandoned after
+passing 890 wall-seconds against the 494 that one thread takes.
+
+### Positions in parallel, not the search — 2.2×, and it costs nothing
+
+The same cores, spent the other way: one single-threaded engine per position.
+Sixteen positions, depth 20, multipv 4, a fresh engine each:
+
+| at a time | seconds | a position |
+|---|---|---|
+| 1 | 89.0 | 5.57 s |
+| 4 | 50.9 | 3.18 s |
+| 8 | **40.2** | 2.51 s |
+| 12 | 40.7 | 2.54 s |
+
+Flat after eight, which is this machine's physical cores. Every search stays
+single-threaded at the same depth, so **every number comes out identical** —
+this is wall clock bought with nothing sold. `build()`'s analysis loop is
+already embarrassingly parallel: the costs are computed in a second loop, after
+every row has its candidates.
+
+### Depth 18 instead of 20 — 3.1×, and nothing that matters changes
+
+The owner's suggestion, and the one that wins.
+
+| | depth 20 | depth 18 | depth 12 |
+|---|---|---|---|
+| `pvladan_2026-09-12` | 494 s | **125 s** | 5 s |
+| `french_2026-06-19` | 532 s | **217 s** | 9 s |
+| `philidor_2026-07-03` | 710 s | **210 s** | 13 s |
+| total | 1736 s | **552 s (3.1×)** | 27 s (64×) |
+
+Speed is the easy half. What decides it is whether a shallower search changes
+what a student is told, and it does not:
+
+ * **Every position where depth 20 says the best move stands out — 54 of them,
+   which is exactly the set a question may be asked from — has the same best
+   move at depth 18. All 54.** Depth 12 gets 50.
+ * **All nine questions the six tutorials actually asked come back with the same
+   answer at depth 18.** Depth 12 changes two of them: `Ke3` becomes `Kg3` in
+   the French and `Rf8` becomes `Rae8` in game one.
+ * The moment *selection* moves on six positions across the three games, and
+   every one of them is boundary noise around the 1.0-pawn threshold: 0.91
+   against 1.11, 0.9 against 1.14, 1.06 against 0.88. Not one is a moment depth
+   18 cannot see.
+
+Depth 18 and parallel positions compound, and neither changes an answer: about
+80 seconds a game against nine minutes now. **The two that sound clever — a
+shallow first pass and more threads — are the two that cost quality or time.**
+
 ## What to look at in the results
 
 The grader answers „would the app take it". These are the questions it does not
