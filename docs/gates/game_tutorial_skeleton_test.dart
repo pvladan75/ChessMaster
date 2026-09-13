@@ -51,6 +51,10 @@
 //         Map<String, dynamic> facts, String answerText,
 //         {SkeletonParameters parameters = const SkeletonParameters()});
 //
+// One more file is allowed in that folder and not required:
+// `board_queries.dart`, for the board questions python-chess answers and
+// `package:chess` does not (point 7 below). A fifth is not allowed.
+//
 // `report` is the harness's `meta['skeleton']`; `tutorial` and `tutorialGame`
 // are `tutorial.json` and `tutorial-game.json`, and both are null exactly when
 // the harness wrote neither (an answer that is not JSON).
@@ -82,8 +86,10 @@
 //     then re-sorts by index. Sort by (cost descending, index ascending).
 //  2. **Python's `round` is half-to-even**: `share_words` writes `'%d%%' %
 //     round(100 * share)`, and 12.5 is 12 there and 13 with `.round()`.
-//  3. **`'%.1f' % x` rounds the binary value half-to-even**; `toStringAsFixed`
-//     does not always agree on a tie. Same function.
+//  3. **`'%.1f' % x` and `toStringAsFixed(1)` both round the exact binary
+//     value**, so they should agree — unlike (2), where Python's `round` is
+//     half-to-even on a value that is exactly a half. Believe the fixtures,
+//     not this sentence: `share_words` is exercised by every book slot.
 //  4. **`'%+d'`** writes `+0` and `+2`: material in the lead-in and answer
 //     intros.
 //  5. **`'%s' % 1.0` is `1.0`, and `'%s' % 2` is `2`.** `cost_pawns` keeps the
@@ -100,9 +106,12 @@
 //     `attacks`, so it is not the same answer. Whether to lift the pin check
 //     out of the detector or write a small helper is the batch's call; the
 //     gate decides whether it answers what the harness answered.
-//  8. **`re` and `RegExp`**: `\b` and `\s` are Unicode-aware in Python 3 and
-//     ASCII-only in a Dart `RegExp` unless `unicode: true`. The sentences are
-//     English, but `_clean` collapses `\s+` in whatever a model wrote.
+//  8. **`re` and `RegExp`**: Python 3's `\w` and `\b` count accented letters
+//     as word characters; a Dart `RegExp`'s do not, **even with
+//     `unicode: true`** (JavaScript semantics). The fixtures are English, so
+//     translate the patterns as written and do not try to emulate Python's
+//     Unicode word boundary — a divergence the fixtures cannot see is not
+//     one to invent code for. `\s` is Unicode-aware on both sides.
 //  9. **`json.loads` of text that is not JSON** is `the answer is not JSON` and
 //     no tutorial at all — `jsonDecode` throws `FormatException`, and the
 //     report must say the same sentence.
