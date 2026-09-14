@@ -199,14 +199,6 @@ List<String> claimsFor(
   return found;
 }
 
-String? mistakeKind(int? before, int? after) {
-  if (before == null || after == null || after >= before) return null;
-  if (after <= -3 && -3 < before) return 'opponent_winning';
-  if (before == 4) return 'misses_mate';
-  if (before < 0 || after > 0) return null;
-  return after == 0 ? 'advantage_gone' : 'opponent_better';
-}
-
 String pickLexicon(String pool, Map<String, int> used) {
   final n = used[pool] ?? 0;
   used[pool] = n + 1;
@@ -380,6 +372,34 @@ Map<String, dynamic> bridged(
   return out;
 }
 
+/// The decisive part again, with a closing sentence.
+Map<String, dynamic>? recapPart(
+  List<(Map<String, dynamic>, List<Map<String, dynamic>>)> blocks,
+  Map<String, dynamic> words,
+  List<Map<String, dynamic>> rows,
+) {
+  final chosen = decisiveMoment([for (final (m, _) in blocks) m], rows);
+  for (final (moment, mparts) in blocks) {
+    if (moment['id'] != chosen) continue;
+    final answer = mparts.where((p) => p['sideline'] == true).firstOrNull;
+    if (answer == null || (answer['moves'] as List?)?.isEmpty != false) {
+      return null;
+    }
+    words['recap.intro'] =
+        'Looking back: the game turned on ${moment['played']}. '
+        'It ${moment['cost_text']}, and this is what was there instead.';
+    return {
+      'kind': 'show',
+      'fen': answer['fen'],
+      'intro': 'recap.intro',
+      'moves': answer['moves'],
+      'sideline': true,
+      'moment': moment['id'],
+    };
+  }
+  return null;
+}
+
 (List<Map<String, dynamic>>, Map<String, dynamic>, Map<String, dynamic>)
     wholeGame(
   List<Map<String, dynamic>> rows,
@@ -400,6 +420,7 @@ Map<String, dynamic> bridged(
   final words = Map<String, dynamic>.of(given);
   final parts = <Map<String, dynamic>>[];
   final lexiconUsed = <String, int>{};
+  String? reportRecap;
   var fillerParts = 0;
   var fillerMoves = 0;
   var fillerSentences = 0;
@@ -504,6 +525,20 @@ Map<String, dynamic> bridged(
     fillerParts++;
   }
 
+  // **The moment the game turned, once more at the end** — point 8 of the
+  // owner's live pass, 14.9.2026, and whole-game mode only: in key-moments mode
+  // the tutorial is short enough that the recap would repeat a part the student
+  // has just read.
+  //
+  // The same position and the same line, so the words are the ones already
+  // written for it and nothing new is asked of the model; only the sentence
+  // that frames it is new, and that is written here rather than asked for.
+  final recap = recapPart(blocks, words, rows);
+  if (recap != null) {
+    parts.add(recap);
+    reportRecap = recap['moment'] as String;
+  }
+
   final bridgedWords = bridged(parts, words, lexiconUsed);
 
   final reportGame = <String, dynamic>{
@@ -512,6 +547,7 @@ Map<String, dynamic> bridged(
     'filler_sentences': fillerSentences,
     'lexicon': lexiconUsed,
     'merged': merged,
+    if (reportRecap != null) 'recap': reportRecap,
     'parts': parts.length,
   };
 

@@ -179,3 +179,56 @@ test('an answer that writes outside what was offered is refused', () => {
   refuse((a) => { a.slots[Object.keys(a.slots)[0]] = 'x'.repeat(CAPS.answerSlotChars + 1); }, /at most/);
   refuse((a) => { a.slots = []; }, /slots/);
 });
+
+// Point 7 of the owner's live pass, 14.9.2026: the app marks the one moment the
+// game turned on, and the model has to be told.
+test('the moment the game turned on reaches the prompt, and only it', () => {
+  const moment = (id, turning) => ({
+    id, label: '1. e4', mover: 'White', played: '1. e4', cost_text: 'cost 1 pawn',
+    best: 'd4', asks: false, correct: [], left_book: false, turning_point: turning,
+    board: null, slots: [{ id: `${id}.answer.1`, text: 'a sentence' }],
+  });
+  const request = {
+    game: '1. e4 e5', opening: null,
+    moments: [moment('m1', false), moment('m2', true)],
+  };
+  const prompt = buildPrompt(validateWordsRequest(request));
+  const said = prompt.split('This is the moment the game turned on.').length - 1;
+  assert.equal(said, 1, 'said once');
+  // Under m2 and not under m1: the prompt is read in order, so the line has to
+  // fall inside the block it belongs to.
+  const m2 = prompt.indexOf('### m2');
+  assert.ok(prompt.indexOf('This is the moment the game turned on.') > m2);
+});
+
+// **Absence is not a refusal, and that is deliberate.** The server ships apart
+// from the app, so a copy already on a trainer's machine sends no
+// `turning_point` at all; requiring it would answer every one of them 400 on
+// the day this deployed.
+test('a request from an app that does not know the field is still served', () => {
+  const request = {
+    game: '1. e4 e5', opening: null,
+    moments: [1, 2].map((n) => ({
+      id: `m${n}`, label: '1. e4', mover: 'White', played: '1. e4',
+      cost_text: 'cost 1 pawn', best: 'd4', asks: false, correct: [],
+      left_book: false, board: null,
+      slots: [{ id: `m${n}.answer.1`, text: 'a sentence' }],
+    })),
+  };
+  const checked = validateWordsRequest(request);
+  assert.equal(checked.moments[0].turning_point, false);
+  assert.ok(!buildPrompt(checked).includes('the game turned on'));
+});
+
+test('a turning_point that is not true or false is refused', () => {
+  const request = {
+    game: '1. e4 e5', opening: null,
+    moments: [{
+      id: 'm1', label: '1. e4', mover: 'White', played: '1. e4',
+      cost_text: 'cost 1 pawn', best: 'd4', asks: false, correct: [],
+      left_book: false, turning_point: 'yes', board: null,
+      slots: [{ id: 'm1.answer.1', text: 'a sentence' }],
+    }],
+  };
+  assert.throws(() => validateWordsRequest(request), /turning_point/);
+});

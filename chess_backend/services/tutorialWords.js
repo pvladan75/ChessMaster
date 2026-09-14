@@ -94,6 +94,14 @@ function validateWordsRequest(body) {
     if (typeof m.asks !== 'boolean' || typeof m.left_book !== 'boolean') {
       throw new RangeError(`${at}.asks and left_book must be true or false.`);
     }
+    // **Optional, unlike the two above, and that is deliberate.** The server is
+    // deployed apart from the app, so an app already on a trainer's machine
+    // sends a request with no `turning_point` at all; requiring it would answer
+    // every one of them 400 the day this ships. Absent means false - there is
+    // no third answer to have here, the way there is for a stored column.
+    if (typeof m.turning_point !== 'undefined' && typeof m.turning_point !== 'boolean') {
+      throw new RangeError(`${at}.turning_point must be true or false.`);
+    }
     if (!Array.isArray(m.correct) || m.correct.length > CAPS.correct) {
       throw new RangeError(`${at}.correct must be a list of at most ${CAPS.correct} moves.`);
     }
@@ -118,6 +126,7 @@ function validateWordsRequest(body) {
       asks: m.asks,
       correct: m.correct.map((c, k) => text(c, `${at}.correct[${k}]`, CAPS.sanChars)),
       left_book: m.left_book,
+      turning_point: m.turning_point === true,
       board: text(m.board, `${at}.board`, CAPS.boardChars, { optional: true }),
       slots,
     };
@@ -148,6 +157,7 @@ function buildPrompt(request) {
       + (m.asks
         ? `There is a question here; correct answers: ${m.correct.join(', ')}.`
         : 'No question here: too many moves are about as good.');
+    if (m.turning_point) head += '\nThis is the moment the game turned on.';
     if (m.left_book) head += '\nThis is the move that left the masters database.';
     if (m.board) head += `\nOn the board: ${m.board}`;
     const lines = [head, '', 'Slots, in the order the student meets them:'];

@@ -411,7 +411,58 @@ def moments(name, cfg=None):
             'correct': [c['move'] for c in correct], 'board': board_here,
             'parts': parts, 'slots': slots, 'facts': facts,
         })
+
+    # **The one moment the game turned on** - point 7 of the owner's live pass,
+    # 14.9.2026. Every moment offered is already a mistake; what was missing is
+    # which of them decided the game, so the model can weight it and the
+    # whole-game tutorial can come back to it at the end (point 8).
+    #
+    # Ranked by whether the move changed who stands better before it is ranked
+    # by what it cost, because a game already lost collects expensive blunders
+    # that decide nothing. `mistake_kind` is that question and it is not asked a
+    # second way here: it is the same classifier the filler's lexicon uses, so
+    # the sentence the student reads at that move and the moment marked
+    # decisive cannot disagree. Ties go to the earlier move - the game turned
+    # the first time it turned.
+    turning = decisive_moment(out, rows)
+    for m in out:
+        m['turning_point'] = m['id'] == turning
     return out
+
+
+def _changed_hands(rows, i):
+    """Whether the move at [i] changed who stands better."""
+    row = rows[i]
+    best_eval = row['candidates'][0].get('eval')
+    return mistake_kind(
+        standing(best_eval, row['to_move']),
+        standing(row['played'].get('eval'), row['to_move'])) is not None
+
+
+def decisive_moment(moments_list, rows):
+    """Which of `moments_list` the game turned on, by id; None when it is empty.
+
+    Whether the move changed who stands better comes before what it cost,
+    because a game already lost collects expensive blunders that decide
+    nothing - on g01 a move costing a forced mate is passed over for one
+    costing 2.11 pawns, because the first was played from a lost position and
+    the second is where the position was lost. `mistake_kind` is that question
+    and is not asked a second way here: it is the same classifier the filler's
+    lexicon uses, so the sentence the student reads at that move and the moment
+    called decisive cannot disagree. Ties go to the earlier move.
+
+    Asked twice of two different lists, which is the point of it being a
+    function. `moments` marks the decisive moment **of the game**, before the
+    model has chosen anything, so the prompt can weight it. `whole_game` asks
+    again of the moments the model actually chose, so the recap at the end is
+    the most decisive part of the tutorial that exists rather than nothing at
+    all when the model passed the marked one over.
+    """
+    if not moments_list:
+        return None
+    return max(moments_list,
+               key=lambda m: (_changed_hands(rows, m['index']),
+                              _cost_value(m['cost']), -m['index']))['id']
 
 
 # --- The prompt ---------------------------------------------------------------
@@ -495,6 +546,7 @@ def words_request(name, cfg=None):
             'id': m['id'], 'label': m['label'], 'mover': m['mover'],
             'played': m['played'], 'cost_text': m['cost_text'], 'best': m['best'],
             'asks': m['asks'], 'correct': m['correct'], 'left_book': m['left_book'],
+            'turning_point': m['turning_point'],
             'board': m['board'], 'slots': slots,
         })
     return {'game': game,
@@ -512,6 +564,10 @@ def prompt_from_request(request):
                     ('There is a question here; correct answers: %s.' % ', '.join(m['correct']))
                     if m['asks'] else
                     'No question here: too many moves are about as good.'))
+        if m['turning_point']:
+            # After the book hook and before the board, so a moment that is
+            # both reads in one order.
+            head += '\nThis is the moment the game turned on.'
         if m['left_book']:
             # The hook a moment inside the book is for: not "you
             # blundered", but "this is where you stopped playing what
@@ -974,9 +1030,40 @@ def whole_game(name, blocks, given, cfg):
     if filler:
         parts.append(filler)
         report['filler_parts'] += 1
+    # **The moment the game turned, once more at the end** - point 8 of the
+    # owner's live pass, 14.9.2026, and whole-game mode only: in key-moments
+    # mode the tutorial is short enough that the recap would repeat a part the
+    # student has just read.
+    #
+    # The same position and the same line, so the words are the ones already
+    # written for it and nothing new is asked of the model; only the sentence
+    # that frames it is new, and that is written here rather than asked for.
+    recap = _recap(blocks, words, rows)
+    if recap:
+        parts.append(recap)
+        report['recap'] = recap['moment']
+
     words = _bridged(parts, words, report['lexicon'])
     report['parts'] = len(parts)
     return parts, words, report
+
+
+def _recap(blocks, words, rows):
+    """The decisive part again, with a closing sentence."""
+    chosen = decisive_moment([m for m, _ in blocks], rows)
+    for moment, mparts in blocks:
+        if moment['id'] != chosen:
+            continue
+        answer = next((p for p in mparts if p.get('sideline')), None)
+        if answer is None or not answer.get('moves'):
+            return None
+        words['recap.intro'] = (
+            'Looking back: the game turned on %s. It %s, and this is what was '
+            'there instead.' % (moment['played'], moment['cost_text']))
+        return {'kind': 'show', 'fen': answer['fen'], 'intro': 'recap.intro',
+                'moves': answer['moves'], 'sideline': True,
+                'moment': moment['id']}
+    return None
 
 
 def reassemble(run_dir):

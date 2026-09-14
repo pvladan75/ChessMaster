@@ -63,6 +63,7 @@ Map<String, dynamic> _momentRequest(Map<String, dynamic> m) {
     'asks': m['asks'],
     'correct': m['correct'],
     'left_book': m['left_book'],
+    'turning_point': m['turning_point'],
     'board': m['board'],
     'slots': slots,
   };

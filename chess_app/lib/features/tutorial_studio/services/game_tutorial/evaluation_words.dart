@@ -70,3 +70,24 @@ int? standing(String? evalText, String mover) {
   if (level == 0) return 0;
   return white == (mover == 'White') ? level : -level;
 }
+
+/// The lexicon pool for a costly move, from its [standing] with the best move
+/// and after it.
+///
+/// Null means silence, and two kinds are silent on purpose: a side that was
+/// better and still is, only less so, and a side already worse that is worse
+/// still but not yet lost. Neither changes who is better.
+///
+/// **It lives here rather than beside the lexicon that reads it** because a
+/// second reader arrived on 14.9.2026: `decisiveMoment` asks the same question
+/// to find the move the game turned on. `skeleton_assembly.dart` already
+/// imports `skeleton_moments.dart`, so a copy there could not be reached from
+/// here without a cycle - and a copy is how the sentence a student reads at a
+/// move comes to disagree with the moment called decisive.
+String? mistakeKind(int? before, int? after) {
+  if (before == null || after == null || after >= before) return null;
+  if (after <= -3 && -3 < before) return 'opponent_winning';
+  if (before == 4) return 'misses_mate';
+  if (before < 0 || after > 0) return null;
+  return after == 0 ? 'advantage_gone' : 'opponent_better';
+}

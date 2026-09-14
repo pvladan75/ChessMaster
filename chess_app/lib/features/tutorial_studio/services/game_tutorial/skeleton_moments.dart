@@ -351,5 +351,56 @@ List<Map<String, dynamic>> skeletonMoments(
     });
   }
 
+  final turning = decisiveMoment(out, rows);
+  for (final m in out) {
+    m['turning_point'] = m['id'] == turning;
+  }
   return out;
+}
+
+/// Whether the move at [i] changed who stands better.
+bool changedHands(List<Map<String, dynamic>> rows, int i) {
+  final row = rows[i];
+  final mover = row['to_move'] as String;
+  final bestEval = (row['candidates'] as List).first['eval'] as String?;
+  final playedEval = (row['played'] as Map)['eval'] as String?;
+  return mistakeKind(standing(bestEval, mover), standing(playedEval, mover)) !=
+      null;
+}
+
+/// Which of [moments] the game turned on, by id; null when it is empty.
+///
+/// Whether the move changed who stands better comes before what it cost,
+/// because a game already lost collects expensive blunders that decide
+/// nothing — on g01 a move costing a forced mate is passed over for one costing
+/// 2.11 pawns, because the first was played from a position already lost and
+/// the second is where it was lost. [mistakeKind] is that question and is not
+/// asked a second way here: it is the same classifier the filler's lexicon
+/// uses, so the sentence the student reads at that move and the moment called
+/// decisive cannot disagree. Ties go to the earlier move.
+///
+/// Asked twice of two different lists, which is the point of it being a
+/// function. [skeletonMoments] marks the decisive moment **of the game**,
+/// before the model has chosen anything, so the prompt can weight it;
+/// `wholeGame` asks again of the moments the model actually chose, so the recap
+/// at the end is the most decisive part of the tutorial that exists rather than
+/// nothing at all when the model passed the marked one over.
+String? decisiveMoment(
+    List<Map<String, dynamic>> moments, List<Map<String, dynamic>> rows) {
+  if (moments.isEmpty) return null;
+  Map<String, dynamic>? best;
+  var bestKey = (false, 0.0, 0);
+  for (final m in moments) {
+    final index = m['index'] as int;
+    final key = (changedHands(rows, index), costValue(m['cost']), -index);
+    if (best == null ||
+        (key.$1 ? 1 : 0) > (bestKey.$1 ? 1 : 0) ||
+        (key.$1 == bestKey.$1 &&
+            (key.$2 > bestKey.$2 ||
+                (key.$2 == bestKey.$2 && key.$3 > bestKey.$3)))) {
+      best = m;
+      bestKey = key;
+    }
+  }
+  return best!['id'] as String;
 }

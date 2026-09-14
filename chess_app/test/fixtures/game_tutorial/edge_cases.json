@@ -2737,6 +2737,12 @@
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "show",
      "pgn": "14. Bf3\n{ Back in the game, White played Bf3 instead; afterwards Black is clearly better. }\n14... d4 15. cxd4 exd4 16. Ng4 Bxg4 17. Bxg4\n{ White plays Bxg4. A serious mistake: from here the opponent is winning. With the best move: Black is clearly better. After this one: Black is winning. }\n17... Rxg4 18. hxg4 Rxh1 19. O-O-O Nc6 20. f3 Ne5 21. Ne2 Rxd1+ 22. Qxd1 Nxf3\n23. Qf1 Qxg4 24. Kc2 Be5 25. Nc1 Nh2 26. Qf2 Qf3 27. Qh4 Nf1 28. Qh8+ Kd7 29.\nQf8 Ne3+ 30. Kb3 Qd1+ { The game ended here. } *"
+    },
+    {
+     "title": "Part 8",
+     "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
+     "kind": "show",
+     "pgn": "{ Looking back: the game turned on 13... Rdg8. It cost 1.83 pawns, and this is what was there instead. }\n13... d4 14. cxd4 exd4 15. Nc4 *"
     }
    ]
   },
@@ -2790,7 +2796,8 @@
      "back_to_game": 1
     },
     "merged": 1,
-    "parts": 7
+    "recap": "m1",
+    "parts": 8
    }
   }
  },
@@ -5822,7 +5829,8 @@
      "motifs": "",
      "text": "the answer: the game went Qf7, which cost 1.26 pawns. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m2",
@@ -5992,7 +6000,8 @@
      "motifs": "",
      "text": "the answer: the game went c6, which cost 1.25 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m3",
@@ -6180,7 +6189,8 @@
      "motifs": "",
      "text": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +2 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": true
   },
   {
    "id": "m4",
@@ -6368,7 +6378,8 @@
      "motifs": "",
      "text": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m5",
@@ -6556,7 +6567,8 @@
      "motifs": "",
      "text": "the answer: the game went axb2+, which cost 2.07 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m6",
@@ -6744,7 +6756,8 @@
      "motifs": "",
      "text": "the answer: the game went Ba6, which allowed a forced mate. At the end of the best line White is winning; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   }
  ],
  "tiedFacts": {
@@ -11402,7 +11415,8 @@
      "motifs": "",
      "text": "the answer: the game went g6, which cost 1.69 pawns. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m2",
@@ -11590,7 +11604,8 @@
      "motifs": "",
      "text": "the answer: the game went Bg5, which cost 4.98 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": true
   },
   {
    "id": "m3",
@@ -11778,7 +11793,8 @@
      "motifs": "",
      "text": "the answer: the game went Rd3, which cost 1.97 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m4",
@@ -11971,7 +11987,8 @@
      "motifs": "",
      "text": "the answer: the game went h3, which cost 2.82 pawns. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m5",
@@ -12162,7 +12179,8 @@
      "motifs": "",
      "text": "the answer: the game went Rd6, which cost 2.82 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m6",
@@ -12350,7 +12368,8 @@
      "motifs": "",
      "text": "the answer: the game went Kg1, which cost 4.34 pawns. At the end of the best line about even; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m7",
@@ -12538,7 +12557,8 @@
      "motifs": "",
      "text": "the answer: the game went Rb3, which cost 4.34 pawns. At the end of the best line Black is winning; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   },
   {
    "id": "m8",
@@ -12726,7 +12746,8 @@
      "motifs": "",
      "text": "the answer: the game went Kg2, which cost 3.9 pawns. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
-   }
+   },
+   "turning_point": false
   }
  ],
  "tiedPairs": [
