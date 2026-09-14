@@ -883,7 +883,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black pawn on c4 is attacked by the white bishop on e2 and has no defender. The white pawn on d4 is isolated: no pawn on a neighbouring file can defend it.",
+    "motifs_after_played": "The white pawn on d4 is isolated: no pawn on a neighbouring file can defend it.",
     "candidates": [
      {
       "move": "dxc4",
@@ -1296,7 +1296,6 @@
      "rank": 2,
      "cost_pawns": 0.12
     },
-    "motifs_after_played": "The black bishop on f3 is attacked by the white pawn on g2 and has no defender.",
     "candidates": [
      {
       "move": "Rc8",
@@ -2344,7 +2343,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The white bishop on f5 is attacked by the black pawn on e6 and has no defender. The white pawn on d4 is no longer hanging.",
+    "motifs_after_played": "The white pawn on d4 is no longer hanging.",
     "candidates": [
      {
       "move": "Bxf5",

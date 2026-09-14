@@ -676,7 +676,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The white bishop on f5 is attacked by the black pawn on e6 and has no defender. White has the bishop pair.",
+    "motifs_after_played": "The black pawn on e6 is attacked by the white bishop on f5 and has no defender. White has the bishop pair.",
     "candidates": [
      {
       "move": "Bxf5",
@@ -1053,7 +1053,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black knight on e5 is attacked by the white pawn on d4 and has no defender. The white knight on e5 is no longer on an outpost.",
+    "motifs_after_played": "The white knight on e5 is no longer on an outpost.",
     "candidates": [
      {
       "move": "Nxe5",
@@ -2143,7 +2143,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The white rook on e1 is attacked by the black rook on e2 and has no defender. The black rook on e2 forks the white rook on e1 and the pawn on a2. The black rook on e2 is attacked by the white rook on e1 and has no defender. The white rook on e2 no longer stands on the open e-file.",
+    "motifs_after_played": "The white rook on e1 is attacked by the black rook on e2 and has no defender. The black rook on e2 forks the white rook on e1 and the pawn on a2. The white rook on e2 no longer stands on the open e-file.",
     "candidates": [
      {
       "move": "Rxe2",
@@ -2311,7 +2311,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black rook on e2 forks the white king on f2 and the pawn on a2. The black rook on e2 is attacked by the white queen on d3 and has no defender. The white rook on e2 no longer stands on the open e-file.",
+    "motifs_after_played": "The black rook on e2 forks the white king on f2 and the pawn on a2. The white rook on e2 no longer stands on the open e-file.",
     "candidates": [
      {
       "move": "Rxe2+",
@@ -2521,7 +2521,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The white queen on e7 forks the black king on f7 and the pawn on b7. The white queen on e7 is attacked by the black king on f7 and has no defender. The white queen on e3 is no longer pinned. The black queen on e7 no longer stands on the open e-file.",
+    "motifs_after_played": "The white queen on e7 forks the black king on f7 and the pawn on b7. The white queen on e3 is no longer pinned. The black queen on e7 no longer stands on the open e-file.",
     "candidates": [
      {
       "move": "Qxe7+",

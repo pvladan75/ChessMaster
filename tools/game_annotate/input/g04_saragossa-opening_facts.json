@@ -858,7 +858,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black pawn on g5 is attacked by the white bishop on c1 and has no defender. The black knight on f6 is no longer hanging. The white pawn on h3 is isolated: no pawn on a neighbouring file can defend it.",
+   "motifs_after_played": "The black knight on f6 is no longer hanging. The white pawn on h3 is isolated: no pawn on a neighbouring file can defend it.",
    "candidates": [
     {
      "move": "hxg5",
@@ -982,7 +982,7 @@
     "rank": null,
     "cost_pawns": 0.32
    },
-   "motifs_after_played": "The white bishop on f6 pins the black pawn on g7 to the rook on h8. The white bishop on f6 is attacked by the black pawn on g7 and has no defender.",
+   "motifs_after_played": "The white bishop on f6 pins the black pawn on g7 to the rook on h8.",
    "candidates": [
     {
      "move": "O-O-O",
@@ -1441,7 +1441,7 @@
     "rank": null,
     "cost_pawns": 0.48
    },
-   "motifs_after_played": "The black bishop on g4 is attacked by the white pawn on h3, a cheaper piece. The black pawn on f6 is no longer hanging.",
+   "motifs_after_played": "The black pawn on f6 is no longer hanging.",
    "candidates": [
     {
      "move": "Rg6",
@@ -1861,7 +1861,7 @@
     "rank": 2,
     "cost_pawns": 0.03
    },
-   "motifs_after_played": "The black rook on d1 is attacked by the white queen on c2 and has no defender.",
+   "motifs_after_played": "The white pawn on d3 is attacked twice and defended only once.",
    "candidates": [
     {
      "move": "Rh2",

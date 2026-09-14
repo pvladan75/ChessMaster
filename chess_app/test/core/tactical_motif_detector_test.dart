@@ -445,5 +445,105 @@ void main() {
         expect(result.description, contains(finding.description));
       }
     });
+
+    // The owner's report of 14.9.2026, from „The bishop pair and the open
+    // e-file": 11. Bxf6 was narrated „the bishop on f6 is attacked by the g7
+    // pawn with no defender", which reads as a bishop given away in the middle
+    // of an ordinary trade.
+    test(
+        '21. The piece that just captured is not hanging when taking it back only completes the trade',
+        () {
+      const beforeFen =
+          'r4rk1/ppqn1ppp/2pb1n2/3p1bB1/1P1P4/2P2N2/P2NBPPP/R2Q1RK1 w - - 1 11';
+      const afterFen =
+          'r4rk1/ppqn1ppp/2pb1B2/3p1b2/1P1P4/2P2N2/P2NBPPP/R2Q1RK1 b - - 0 11';
+
+      final diff = detector.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: 'g5f6');
+
+      expect(
+          diff.created.where((f) =>
+              f.motifs.contains(TacticalMotif.hangingPiece) &&
+              f.affectedSquares.contains('f6')),
+          isEmpty);
+      expect(
+          detector.describeMoveDiff(diff), isNot(contains('f6 is attacked')));
+    });
+
+    test('25. A trade still under way is not called over', () {
+      // 1. e4 d5 2. exd5: the pawn on e4 was attacked, and the pawn that has
+      // just taken on d5 is attacked by the queen in exactly the same way.
+      // Leaving the recapture out of what the move created must not turn it
+      // into something the move resolved.
+      const beforeFen =
+          'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2';
+      const afterFen =
+          'rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2';
+
+      final diff = detector.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: 'e4d5');
+
+      expect(detector.describeMoveDiff(diff), isNot(contains('no longer')));
+      expect(
+          diff.created.where((f) => f.affectedSquares.contains('d5')), isEmpty);
+    });
+
+    test(
+        '22. A capture that loses more than it took still leaves the piece hanging',
+        () {
+      // Qxf6 takes a knight and gxf6 takes a queen: that is not a trade.
+      const beforeFen = '6k1/5ppp/5n2/8/3Q4/8/5PPP/6K1 w - - 0 1';
+      const afterFen = '6k1/5ppp/5Q2/8/8/8/5PPP/6K1 b - - 0 1';
+
+      final diff = detector.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: 'd4f6');
+
+      final blunder = diff.created.firstWhere(
+        (f) => !f.favorsMover && f.affectedSquares.contains('f6'),
+        orElse: () => throw StateError('expected the queen on f6 to hang'),
+      );
+      expect(blunder.description,
+          'The white queen on f6 is attacked by the black pawn on g7 and has no defender.');
+    });
+
+    test(
+        '23. En passant takes a pawn from an empty square, and is a capture all the same',
+        () {
+      const beforeFen = 'k7/2p5/8/3pP3/8/8/8/K7 w - d6 0 1';
+      const afterFen = 'k7/2p5/3P4/8/8/8/8/K7 b - - 0 1';
+
+      final diff = detector.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: 'e5d6');
+
+      expect(
+          diff.created.where((f) =>
+              f.motifs.contains(TacticalMotif.hangingPiece) &&
+              f.affectedSquares.contains('d6')),
+          isEmpty);
+    });
+
+    test(
+        '24. Only the capturing piece is excused, not another piece the capture left hanging',
+        () {
+      // Bxa5 takes a knight, and the bishop leaving c3 leaves the e5 knight to
+      // the rook. What is lost there is worth what was taken, and it is still
+      // a piece given away rather than a trade.
+      const beforeFen = 'k3r3/8/8/n3N3/8/2B5/8/K7 w - - 0 1';
+      const afterFen = 'k3r3/8/8/B3N3/8/8/8/K7 b - - 0 1';
+
+      final diff = detector.explainMove(
+          beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: 'c3a5');
+
+      expect(
+          diff.created
+              .where((f) =>
+                  !f.favorsMover &&
+                  f.motifs.contains(TacticalMotif.hangingPiece) &&
+                  f.affectedSquares.contains('e5'))
+              .map((f) => f.description),
+          [
+            'The white knight on e5 is attacked by the black rook on e8 and has no defender.'
+          ]);
+    });
   });
 }

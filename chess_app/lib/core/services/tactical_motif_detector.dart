@@ -67,6 +67,9 @@ class _Namer {
   }
 }
 
+/// A capture: the square it was made on and the value of what it took.
+typedef _Capture = ({String square, int taken});
+
 /// Universal, pure stateless service for detecting tactical motifs in a
 /// position (`detect`) or explaining what a specific move changed
 /// (`explainMove`) — meant to back engine-eval displays and auto-generated
@@ -133,18 +136,28 @@ class TacticalMotifDetector {
       final moverColor = defenderColor == chess.Color.WHITE
           ? chess.Color.BLACK
           : chess.Color.WHITE;
-
-      final afterFindings = _buildFindings(
-        afterGame,
-        moverColor: moverColor,
-        defenderColor: defenderColor,
-        lastMoveUci: lastMoveUci,
-        evalText: evalText,
-        mateIn: mateIn,
-        evalScore: evalScore,
-      );
-
       final beforeGame = chess.Chess.fromFEN(beforeFen);
+
+      List<MotifFinding> after({_Capture? recapture}) => _buildFindings(
+            afterGame,
+            moverColor: moverColor,
+            defenderColor: defenderColor,
+            lastMoveUci: lastMoveUci,
+            evalText: evalText,
+            mateIn: mateIn,
+            evalScore: evalScore,
+            recapture: recapture,
+          );
+
+      // Two readings of the position after a capture, for two questions. What
+      // the move *created* leaves out a trade's own recapture; what it
+      // *resolved* must not, or 1. e4 d5 2. exd5 — the pawn taken on d5 is
+      // attacked exactly as the pawn on e4 was — reads „the white pawn on e4 is
+      // no longer hanging" in the middle of the trade.
+      final capture = _captureOf(beforeGame, lastMoveUci);
+      final afterFindings = after(recapture: capture);
+      final afterAll = capture == null ? afterFindings : after();
+
       // Same color roles as the after-analysis (not derived from beforeGame's
       // own side to move) so the two finding sets are directly comparable.
       final beforeFindings = _buildFindings(
@@ -157,7 +170,7 @@ class TacticalMotifDetector {
       // it, so a piece that moves keeps its finding (finding_identity.dart).
       final beforeKeys =
           beforeFindings.map((f) => f.diffKeyAcross(lastMoveUci)).toSet();
-      final afterKeys = afterFindings.map((f) => f.diffKey).toSet();
+      final afterKeys = afterAll.map((f) => f.diffKey).toSet();
 
       final created =
           afterFindings.where((f) => !beforeKeys.contains(f.diffKey)).toList();
@@ -249,6 +262,7 @@ class TacticalMotifDetector {
     String? evalText,
     int? mateIn,
     double? evalScore,
+    _Capture? recapture,
   }) {
     final moverThreats = _buildDirectionalFindings(
       game,
@@ -278,9 +292,28 @@ class TacticalMotifDetector {
       mateIn: mateIn,
       evalScore: evalScore,
       includeDiscovered: false,
+      recapture: recapture,
     );
 
     return [...moverThreats, ...moverExposure];
+  }
+
+  /// The square [lastMoveUci] captured on and what it took there, or null
+  /// when the move took nothing. En passant takes a pawn from an empty square.
+  _Capture? _captureOf(chess.Chess before, String lastMoveUci) {
+    if (lastMoveUci.length < 4) return null;
+    final from = lastMoveUci.substring(0, 2);
+    final to = lastMoveUci.substring(2, 4);
+    final moving = before.get(from);
+    if (moving == null) return null;
+    final taken = before.get(to);
+    if (taken != null && taken.color != moving.color) {
+      return (square: to, taken: _pieceValue(taken.type));
+    }
+    if (moving.type == chess.PieceType.PAWN && from[0] != to[0]) {
+      return (square: to, taken: 1);
+    }
+    return null;
   }
 
   List<MotifFinding> _buildDirectionalFindings(
@@ -293,6 +326,7 @@ class TacticalMotifDetector {
     String? evalText,
     int? mateIn,
     double? evalScore,
+    _Capture? recapture,
   }) {
     MotifFinding finding(
             List<TacticalMotif> motifs, _Found found, int significance) =>
@@ -308,7 +342,9 @@ class TacticalMotifDetector {
     final kingValue = _pieceValue(chess.PieceType.KING);
 
     final hanging = _detectHangingPieces(game,
-        targetColor: targetColor, attackerColor: attackerColor);
+        targetColor: targetColor,
+        attackerColor: attackerColor,
+        recapture: recapture);
     final mate = _detectMateThreat(
       game,
       evalText: evalText,
@@ -786,10 +822,19 @@ class TacticalMotifDetector {
   /// not by counting — said in whichever of four forms is true of it. „Is
   /// undefended" was the one sentence for all of them, and it was false for
   /// every defended piece attacked by something cheaper.
+  ///
+  /// [recapture] is the capture that was just made, when there was one. The
+  /// piece that made it is attacked by definition whenever the capture was one
+  /// half of a trade, and „the bishop on f6 is attacked by the g7 pawn with no
+  /// defender" after 11. Bxf6 reads as a bishop given away when Black is only
+  /// taking back what it cost (the owner, 14.9.2026). So that piece is hanging
+  /// only when winning it gains **more** than the capture took: a queen that
+  /// takes a knight into a pawn's reach still is.
   List<_Found> _detectHangingPieces(
     chess.Chess game, {
     required chess.Color targetColor,
     required chess.Color attackerColor,
+    _Capture? recapture,
   }) {
     final found = <_Found>[];
 
@@ -815,9 +860,12 @@ class TacticalMotifDetector {
 
         // Static exchange evaluation: does the attacking side come out ahead
         // if the exchange on this square is carried out optimally?
-        if (_seeGain(_pieceValue(piece.type), attackerValues, 0, defenderValues,
-                0) <=
-            0) {
+        final gain = _seeGain(
+            _pieceValue(piece.type), attackerValues, 0, defenderValues, 0);
+        if (gain <= 0) continue;
+        if (recapture != null &&
+            sqName == recapture.square &&
+            gain <= recapture.taken) {
           continue;
         }
 

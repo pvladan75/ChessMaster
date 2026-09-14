@@ -994,7 +994,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white queen on c3 pins the black pawn on g7 to the rook on h8. The black knight on c4 is attacked by the white queen on c3 and has no defender. Black has the bishop pair. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
+   "motifs_after_played": "The white queen on c3 pins the black pawn on g7 to the rook on h8. Black has the bishop pair. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
    "candidates": [
     {
      "move": "Nxc4",
@@ -1868,7 +1868,7 @@
     "rank": 3,
     "cost_pawns": 1.98
    },
-   "motifs_after_played": "The move from c5 uncovers a discovered attack: the white queen on c4 now attacks the black bishop on c6. The white bishop on f8 is attacked by the black rook on h8 and has no defender. Black no longer has the bishop pair.",
+   "motifs_after_played": "The move from c5 uncovers a discovered attack: the white queen on c4 now attacks the black bishop on c6. Black no longer has the bishop pair.",
    "candidates": [
     {
      "move": "Nxf6",
@@ -2580,7 +2580,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black bishop on e4 is attacked by the white pawn on d3 and has no defender.",
+   "motifs_after_played": "The white pawn on f3 is attacked by the black bishop on e4 and has no defender.",
    "candidates": [
     {
      "move": "Bxe4",
@@ -3000,7 +3000,7 @@
     "cost_pawns": "mate",
     "cost_mate": "gave up a forced mate"
    },
-   "motifs_after_played": "The black pawn on g2 is attacked twice and defended only once. The black pawn on g2 is a passed pawn: no white pawn can block or capture it. The white king on g1 has lost its pawn shield. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The black pawn on h3 is no longer isolated.",
+   "motifs_after_played": "The black pawn on g2 is a passed pawn: no white pawn can block or capture it. The white king on g1 has lost its pawn shield. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The black pawn on h3 is no longer isolated.",
    "candidates": [
     {
      "move": "Reg8",

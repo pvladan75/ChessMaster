@@ -1238,7 +1238,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white rook on f1 is attacked by the black bishop on g2, a cheaper piece. The black bishop on g2 is attacked by the white king on g1 and has no defender. Black has the bishop pair. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
+   "motifs_after_played": "The white rook on f1 is attacked by the black bishop on g2, a cheaper piece. Black has the bishop pair. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
    "candidates": [
     {
      "move": "Bxg2",
@@ -1404,7 +1404,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The move from f6 uncovers a discovered attack: the black bishop on g7 now attacks the white bishop on b2. The black knight on e4 is attacked by the white pawn on d3 and has no defender.",
+   "motifs_after_played": "The move from f6 uncovers a discovered attack: the black bishop on g7 now attacks the white bishop on b2.",
    "candidates": [
     {
      "move": "Nxe4",
@@ -1446,7 +1446,7 @@
     "rank": 2,
     "cost_pawns": 1.69
    },
-   "motifs_after_played": "The black rook on f8 is attacked by the white bishop on g7, a cheaper piece. The white bishop on g7 is attacked by the black king on g8 and has no defender. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
+   "motifs_after_played": "The black rook on f8 is attacked by the white bishop on g7, a cheaper piece. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
    "candidates": [
     {
      "move": "dxe4",
@@ -2574,7 +2574,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black rook on b1 is attacked by the white rook on h1 and has no defender. The white rook on b1 no longer stands on the open b-file.",
+   "motifs_after_played": "The white rook on b1 no longer stands on the open b-file.",
    "candidates": [
     {
      "move": "Rxb1",

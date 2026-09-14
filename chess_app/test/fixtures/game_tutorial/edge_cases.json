@@ -860,7 +860,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black pawn on g5 is attacked by the white bishop on c1 and has no defender. The black knight on f6 is no longer hanging. The white pawn on h3 is isolated: no pawn on a neighbouring file can defend it.",
+    "motifs_after_played": "The black knight on f6 is no longer hanging. The white pawn on h3 is isolated: no pawn on a neighbouring file can defend it.",
     "candidates": [
      {
       "move": "hxg5",
@@ -984,7 +984,7 @@
      "rank": null,
      "cost_pawns": 0.32
     },
-    "motifs_after_played": "The white bishop on f6 pins the black pawn on g7 to the rook on h8. The white bishop on f6 is attacked by the black pawn on g7 and has no defender.",
+    "motifs_after_played": "The white bishop on f6 pins the black pawn on g7 to the rook on h8.",
     "candidates": [
      {
       "move": "O-O-O",
@@ -1443,7 +1443,7 @@
      "rank": null,
      "cost_pawns": 0.48
     },
-    "motifs_after_played": "The black bishop on g4 is attacked by the white pawn on h3, a cheaper piece. The black pawn on f6 is no longer hanging.",
+    "motifs_after_played": "The black pawn on f6 is no longer hanging.",
     "candidates": [
      {
       "move": "Rg6",
@@ -1863,7 +1863,7 @@
      "rank": 2,
      "cost_pawns": 0.03
     },
-    "motifs_after_played": "The black rook on d1 is attacked by the white queen on c2 and has no defender.",
+    "motifs_after_played": "The white pawn on d3 is attacked twice and defended only once.",
     "candidates": [
      {
       "move": "Rh2",
@@ -4683,7 +4683,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black pawn on h6 is attacked by the white bishop on d2 and has no defender. The white pawn on g6 is a passed pawn: no black pawn can block or capture it. The black pawn on h6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on g7 is no longer backward.",
+    "motifs_after_played": "The white pawn on g6 is a passed pawn: no black pawn can block or capture it. The black pawn on h6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on g7 is no longer backward.",
     "candidates": [
      {
       "move": "gxh6",
@@ -4796,7 +4796,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it. The white bishop on f8 is attacked by the black queen on e7 and has no defender.",
+    "motifs_after_played": "The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it.",
     "candidates": [
      {
       "move": "Bxf8",
@@ -5004,7 +5004,7 @@
      "rank": null,
      "cost_pawns": 2.07
     },
-    "motifs_after_played": "The black pawn on b2 is attacked by the white king on c1 and has no defender. The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
+    "motifs_after_played": "The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
     "candidates": [
      {
       "move": "Bf4+",
@@ -5173,7 +5173,7 @@
      "rank": null,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black bishop on f1 is attacked by the white rook on e1 and has no defender. The white rook on e1 forks the black bishop on f1 and the pawn on e6. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
+    "motifs_after_played": "The white rook on e1 forks the black bishop on f1 and the pawn on e6. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
     "candidates": [
      {
       "move": "Nf6",
@@ -5215,7 +5215,7 @@
      "rank": 3,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The white queen on f8 forks the black king on g8 and the bishop on d6. The white queen on f8 is attacked by the black bishop on d6 and has no defender. The white queen on f8 pins the black knight on b8 to the rook on a8. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on f2 is isolated: no pawn on a neighbouring file can defend it. The white pawn on h6 is isolated: no pawn on a neighbouring file can defend it. White's light squares are no longer weak.",
+    "motifs_after_played": "The white queen on f8 forks the black king on g8 and the bishop on d6. The white queen on f8 pins the black knight on b8 to the rook on a8. The black bishop on d6 is attacked by the white queen on f8 and has no defender. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on f2 is isolated: no pawn on a neighbouring file can defend it. The white pawn on h6 is isolated: no pawn on a neighbouring file can defend it. White's light squares are no longer weak.",
     "candidates": [
      {
       "move": "Qg6",
@@ -6144,7 +6144,7 @@
     }
    ],
    "slots": {
-    "m3.lead.1": "White plays Bxf8: the bishop from h6 to f8; it captures a rook; the moved piece now attacks: queen on e7; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it. The white bishop on f8 is attacked by the black queen on e7 and has no defender.",
+    "m3.lead.1": "White plays Bxf8: the bishop from h6 to f8; it captures a rook; the moved piece now attacks: queen on e7; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it.",
     "m3.lead.2": "Black plays Qxf8: the queen from e7 to f8; it captures a bishop; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is no longer hanging. The black queen on e7 is no longer skewered. Black has the bishop pair.",
     "m3.lead.3": "White plays h6: the pawn from h5 to h6; played in the game; afterwards White is clearly better",
     "m3.lead.intro": "the board before these moves (White to move); material White minus Black is -1 before them and +1 after them",
@@ -6169,8 +6169,8 @@
      "fork": false,
      "pin": false,
      "to": "f8",
-     "motifs": "The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it. The white bishop on f8 is attacked by the black queen on e7 and has no defender.",
-     "text": "White plays Bxf8: the bishop from h6 to f8; it captures a rook; the moved piece now attacks: queen on e7; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it. The white bishop on f8 is attacked by the black queen on e7 and has no defender."
+     "motifs": "The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it.",
+     "text": "White plays Bxf8: the bishop from h6 to f8; it captures a rook; the moved piece now attacks: queen on e7; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it."
     },
     "m3.lead.2": {
      "words": "Black plays Qxf8: the queen from e7 to f8; it captures a bishop",
@@ -6884,7 +6884,7 @@
    ],
    "slots": {
     "m6.lead.1": "White plays Qh5: the queen from e2 to h5; played in the game; afterwards White is clearly better",
-    "m6.lead.2": "Black plays axb2+: the pawn from a3 to b2; it captures a pawn; it gives check; the moved piece now attacks: king on c1; played in the game; afterwards White is winning; on the board after it: The black pawn on b2 is attacked by the white king on c1 and has no defender. The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
+    "m6.lead.2": "Black plays axb2+: the pawn from a3 to b2; it captures a pawn; it gives check; the moved piece now attacks: king on c1; played in the game; afterwards White is winning; on the board after it: The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
     "m6.lead.3": "White plays Kb1: the king from c1 to b1; played in the game; afterwards White is winning; on the board after it: The white king on b1 has lost its pawn shield.",
     "m6.lead.intro": "the board before these moves (White to move); material White minus Black is +0 before them and -1 after them",
     "m6.question": "Black to move. The best move is Nf6, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Nf6 Qg5 Ra7 Bc4 Ne4 Rxe4. In the game Ba6 was played instead; it allowed a forced mate and afterwards White mates in 11. On the board: The white king on b1 has lost its pawn shield.. Ask for the move in one sentence, without naming it or its destination square.",
@@ -6912,8 +6912,8 @@
      "fork": false,
      "pin": false,
      "to": "b2",
-     "motifs": "The black pawn on b2 is attacked by the white king on c1 and has no defender. The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
-     "text": "Black plays axb2+: the pawn from a3 to b2; it captures a pawn; it gives check; the moved piece now attacks: king on c1; played in the game; afterwards White is winning; on the board after it: The black pawn on b2 is attacked by the white king on c1 and has no defender. The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated."
+     "motifs": "The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
+     "text": "Black plays axb2+: the pawn from a3 to b2; it captures a pawn; it gives check; the moved piece now attacks: king on c1; played in the game; afterwards White is winning; on the board after it: The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated."
     },
     "m6.lead.3": {
      "words": "White plays Kb1: the king from c1 to b1",
@@ -7871,7 +7871,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The black pawn on c4 is attacked by the white bishop on e2 and has no defender. The white pawn on d4 is isolated: no pawn on a neighbouring file can defend it.",
+    "motifs_after_played": "The white pawn on d4 is isolated: no pawn on a neighbouring file can defend it.",
     "candidates": [
      {
       "move": "dxc4",
@@ -8284,7 +8284,6 @@
      "rank": 2,
      "cost_pawns": 0.12
     },
-    "motifs_after_played": "The black bishop on f3 is attacked by the white pawn on g2 and has no defender.",
     "candidates": [
      {
       "move": "Rc8",
@@ -9332,7 +9331,7 @@
      "rank": 1,
      "cost_pawns": 0
     },
-    "motifs_after_played": "The white bishop on f5 is attacked by the black pawn on e6 and has no defender. The white pawn on d4 is no longer hanging.",
+    "motifs_after_played": "The white pawn on d4 is no longer hanging.",
     "candidates": [
      {
       "move": "Bxf5",

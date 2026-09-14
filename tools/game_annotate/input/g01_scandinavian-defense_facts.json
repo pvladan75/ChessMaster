@@ -1737,7 +1737,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black pawn on h6 is attacked by the white bishop on d2 and has no defender. The white pawn on g6 is a passed pawn: no black pawn can block or capture it. The black pawn on h6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on g7 is no longer backward.",
+   "motifs_after_played": "The white pawn on g6 is a passed pawn: no black pawn can block or capture it. The black pawn on h6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on g7 is no longer backward.",
    "candidates": [
     {
      "move": "gxh6",
@@ -1850,7 +1850,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it. The white bishop on f8 is attacked by the black queen on e7 and has no defender.",
+   "motifs_after_played": "The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it.",
    "candidates": [
     {
      "move": "Bxf8",
@@ -2058,7 +2058,7 @@
     "rank": null,
     "cost_pawns": 2.07
    },
-   "motifs_after_played": "The black pawn on b2 is attacked by the white king on c1 and has no defender. The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
+   "motifs_after_played": "The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
    "candidates": [
     {
      "move": "Bf4+",
@@ -2227,7 +2227,7 @@
     "rank": null,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black bishop on f1 is attacked by the white rook on e1 and has no defender. The white rook on e1 forks the black bishop on f1 and the pawn on e6. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
+   "motifs_after_played": "The white rook on e1 forks the black bishop on f1 and the pawn on e6. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
    "candidates": [
     {
      "move": "Nf6",
@@ -2269,7 +2269,7 @@
     "rank": 3,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white queen on f8 forks the black king on g8 and the bishop on d6. The white queen on f8 is attacked by the black bishop on d6 and has no defender. The white queen on f8 pins the black knight on b8 to the rook on a8. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on f2 is isolated: no pawn on a neighbouring file can defend it. The white pawn on h6 is isolated: no pawn on a neighbouring file can defend it. White's light squares are no longer weak.",
+   "motifs_after_played": "The white queen on f8 forks the black king on g8 and the bishop on d6. The white queen on f8 pins the black knight on b8 to the rook on a8. The black bishop on d6 is attacked by the white queen on f8 and has no defender. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on f2 is isolated: no pawn on a neighbouring file can defend it. The white pawn on h6 is isolated: no pawn on a neighbouring file can defend it. White's light squares are no longer weak.",
    "candidates": [
     {
      "move": "Qg6",

@@ -880,7 +880,7 @@
     "rank": null,
     "cost_pawns": 1.47
    },
-   "motifs_after_played": "The white queen on d1 is attacked by the black knight on f2, a cheaper piece. The black knight on f2 is attacked twice and defended only once. White's pawns are split into three islands.",
+   "motifs_after_played": "The white queen on d1 is attacked by the black knight on f2, a cheaper piece. White's pawns are split into three islands.",
    "candidates": [
     {
      "move": "h6",
@@ -922,7 +922,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white rook on f2 is attacked by the black bishop on c5, a cheaper piece. The black bishop on c5 pins the white rook on f2 to the king on g1. The white queen on d1 is no longer hanging.",
+   "motifs_after_played": "The black bishop on c5 pins the white rook on f2 to the king on g1. The white queen on d1 is no longer hanging.",
    "candidates": [
     {
      "move": "Rxf2",
@@ -964,7 +964,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The black bishop on f2 is attacked by the white king on g1 and has no defender. The white rook on f2 no longer stands on the half-open f-file.",
+   "motifs_after_played": "The white rook on f2 no longer stands on the half-open f-file.",
    "candidates": [
     {
      "move": "Bxf2+",
@@ -1125,7 +1125,7 @@
     "rank": null,
     "cost_pawns": 0.49
    },
-   "motifs_after_played": "The black knight on f3 is attacked by the white pawn on e2 and has no defender. The black pawn on e5 is no longer hanging. Black's pawns hold more of the centre.",
+   "motifs_after_played": "The white pawn on h2 is attacked by the black knight on f3 and has no defender. The black pawn on e5 is no longer hanging. Black's pawns hold more of the centre.",
    "candidates": [
     {
      "move": "Re8",
@@ -2295,7 +2295,7 @@
     "rank": 2,
     "cost_pawns": 0.01
    },
-   "motifs_after_played": "The black queen on d1 is attacked by the white knight on c3, a cheaper piece. The white queen on d1 no longer stands on the open d-file.",
+   "motifs_after_played": "The white queen on d1 no longer stands on the open d-file.",
    "candidates": [
     {
      "move": "fxe4",
@@ -2337,7 +2337,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white knight on d1 is attacked by the black rook on d8 and has no defender. The black queen on d1 no longer stands on the open d-file.",
+   "motifs_after_played": "The black queen on d1 no longer stands on the open d-file.",
    "candidates": [
     {
      "move": "Nxd1",
@@ -2630,7 +2630,7 @@
     "rank": 3,
     "cost_pawns": 0.02
    },
-   "motifs_after_played": "The black rook on f2 is attacked by the white bishop on c5 and has no defender. The white rook on f2 no longer stands on the open f-file.",
+   "motifs_after_played": "The black rook on f2 skewers the white king on g2 and the pawn on h2 behind it. The white rook on f2 no longer stands on the open f-file.",
    "candidates": [
     {
      "move": "g5",

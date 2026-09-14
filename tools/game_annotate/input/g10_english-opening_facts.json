@@ -531,7 +531,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white pawn on d5 is attacked twice and defended only once. White has doubled pawns on d2 and d5. Black's pawns no longer hold more of the centre.",
+   "motifs_after_played": "The white knight on c3 is the only defender of the pawn on d5, and it is attacked by the black bishop on g7. White has doubled pawns on d2 and d5. Black's pawns no longer hold more of the centre.",
    "candidates": [
     {
      "move": "cxd5",
@@ -1031,7 +1031,7 @@
     "rank": 4,
     "cost_pawns": 0.09
    },
-   "motifs_after_played": "The white bishop on c6 pins the black pawn on b7 to the rook on a8. The white bishop on c6 is attacked by the black pawn on b7 and has no defender.",
+   "motifs_after_played": "The white bishop on c6 pins the black pawn on b7 to the rook on a8.",
    "candidates": [
     {
      "move": "Ne2",
@@ -1324,7 +1324,7 @@
     "rank": 1,
     "cost_pawns": 0
    },
-   "motifs_after_played": "The white rook on c1 is attacked by the black bishop on b2, a cheaper piece. The black bishop on b2 is attacked by the white knight on a4 and has no defender. White has no dark-squared bishop, and five of its pawns stand on light squares, so the dark squares are weak.",
+   "motifs_after_played": "The white rook on c1 is attacked by the black bishop on b2, a cheaper piece. White has no dark-squared bishop, and five of its pawns stand on light squares, so the dark squares are weak.",
    "candidates": [
     {
      "move": "Bxb2",
@@ -1910,7 +1910,7 @@
     "rank": null,
     "cost_pawns": 0.28
    },
-   "motifs_after_played": "The white queen on c2 is attacked by the black rook on c6 and has no defender. The black rook on c6 is attacked by the white queen on c2 and has no defender. The white rook on c6 no longer stands on the open c-file.",
+   "motifs_after_played": "The white queen on c2 is attacked by the black rook on c6 and has no defender. The white rook on c6 no longer stands on the open c-file.",
    "candidates": [
     {
      "move": "Qb5",
