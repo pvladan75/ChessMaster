@@ -43,6 +43,30 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Skelet: faza 0, merenje na Windows-u — 14.9.2026, gotovo
+
+`chess_app/tool/game_facts.dart` pravi činjenice deset partija kroz servise
+aplikacije i preuzeti Stockfish (više procesa, jedna nit, prazan heš po
+poziciji) i poredi ih sa harnessom. **Na dubini 18 svih deset je identično** —
+kandidati, ocene, linije, „stands out", cena, rečenice detektora, pa i momenti i
+odgovori na pitanja. Razlika je samo u en passant polju FEN-a (python-chess ga
+piše samo kad je uzimanje legalno). Razlog: preuzeti Stockfish je isti binarni
+fajl koji je harness koristio (isti MD5), a jedna nit na fiksnoj dubini je
+deterministička. Poređenje je dokazano da ume da padne: g01 na dubini 16 daje 8
+momenata umesto 6.
+
+Vreme sa 8 radnika (laptop vlasnika, 16 logičkih procesora): dubina 18 je 39–109
+s po partiji, 20 je 1,9–3,8× toga, 22 je 3,6–7,1×. **16 radnika ne pomaže**
+(g03 čak 64 → 112 s), pa faza 2 broji fizička jezgra, ne logička. Tabela je u
+`PLAN-SKELET.md`, faza 0.
+
+Usput: baterija se ispraznila usred g03, osam pretraga je prešlo 15-minutni
+timeout, odbačene su i ponovljene, i ishod je isti. Pravilo 1 je radilo, ali
+spavanje preko oba pokušaja bi oborilo pokretanje uz rečenicu koja krivi motor —
+zato plan sada kaže da graditelj prepoznaje skok sata i ponavlja poziciju bez
+trošenja jedinog ponovnog pokušaja. Testovi se nisu menjali (alat je u `tool/`).
+**Sledeće: faza 2**, činjenice na uređaju.
+
 ## Skelet u aplikaciji — plan i korak 1 — 13.9.2026
 
 Plan je `docs/PLAN-SKELET.md` (opcija A): činjenice, skelet, provera odgovora i

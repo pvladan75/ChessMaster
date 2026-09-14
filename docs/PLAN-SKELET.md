@@ -137,9 +137,9 @@ depth 18 on eight cores. The builder owns its processes and never touches the
 measurement, not a law). Offered: **18** (the default, remembered), **20** and
 **22**. Not below 18, because that is where the thresholds were validated —
 depth 12 changed two of nine question answers, depth 18 changed none of 54 — and
-a lower choice stays closed until it is measured the same way. Depth 20 cost
-about 3× the time of 18. The depth travels in the facts, so a tutorial says what
-it was built from.
+a lower choice stays closed until it is measured the same way. Measured in phase
+0 on Windows: depth 20 costs 1.9–3.8× the time of 18, depth 22 3.6–7.1×. The
+depth travels in the facts, so a tutorial says what it was built from.
 
 Four rules hold at any depth:
 
@@ -148,6 +148,11 @@ Four rules hold at any depth:
    asked depth with the asked number of lines, and a position that did not is
    retried once and then fails the run with a sentence. This repository's
    recurring bug is exactly a step that reports success on less than it did.
+   **A timeout measured on the wall clock also fires across a sleep** (phase 0
+   met it: the laptop's battery ran out mid-game). The builder notices a gap in
+   its own clock — a monotonic stopwatch that jumped — and searches that position
+   again without counting it as the one retry, so a trainer whose laptop slept is
+   not told the engine failed.
 2. **An empty hash per position** (`ucinewgame`), as the harness does — measured
    free, and it makes a facts file a function of the position, the depth and the
    engine alone.
@@ -194,6 +199,37 @@ Each phase ends with its tests counted, `flutter analyze` compared, and a
   has, so the depth choice can say how long each takes.
 - There is no phone half: the studio is Windows-only.
 
+**Done 14.9.2026 — `chess_app/tool/game_facts.dart`.** At depth 18 all ten
+games are **identical** to the harness: every candidate move, evaluation and
+line, every stands-out, cost and motif sentence, so every moment and every
+question answer. The only difference is the en passant field of 3–9 FENs a
+game — python-chess writes that square only when a capture there is legal, the
+`chess` package whenever a pawn moved two squares, and no engine searches
+differently for it. Byte identity was not the bar and held anyway: the app's
+downloaded Stockfish is the harness's binary (same MD5), and one thread at a
+fixed depth from an empty hash is deterministic. **The comparison was proved
+able to fail**: g01 at depth 16 differs in 38 rows' moves and 54 evaluations and
+yields 8 moments instead of 6.
+
+Time on the owner's laptop (16 logical processors), 8 workers:
+
+| game | positions | depth 18 | depth 20 | depth 22 |
+|---|---|---|---|---|
+| g01 | 63 | 63 s | 133 s | 259 s |
+| g03 | 81 | 64 s | 244 s | 455 s |
+| g09 | 102 | 109 s | 207 s | 395 s |
+
+All ten at 18: 39–109 s. Depth 20 costs 1.9–3.8× depth 18, depth 22 3.6–7.1×.
+**16 workers bought nothing reliable** — g01 63 → 63 s, g09 109 → 95 s, g03
+64 → 112 s — so the logical processors beyond the physical cores are not
+workers. Phase 2 has to choose the worker count knowing that
+`Platform.numberOfProcessors` reports logical ones.
+
+**A laptop that sleeps is not a slow search.** The battery ran out during g03:
+eight searches passed the 15-minute timeout, were discarded, retried once and
+came back identical — rule 1 did its job. But a sleep across both attempts would
+have failed the run with a sentence that blames the engine. See rule 1.
+
 ### Phase 1 — the skeleton in Dart (gate by the lead, translation by a worker)
 
 The pure half: `moments`, the slot texts, `_claims`, `assemble`, `whole_game`,
@@ -227,6 +263,18 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
   at the first position master games never reached, reusing
   `openingJudgeService`'s client; the app writes `book` and `left_book` and
   silences the detector where the game is in book.
+- **An alternative, not the plan: a local opening database.** On 13.9.2026 the
+  owner extracted move statistics from the Lumbras GigaBase OTB file (games
+  with an average rating of 2400 or more, the first 30 plies, keyed by polyglot
+  Zobrist hash), as a test of whether such data can be pulled out at all. It
+  can: 1.31 million games, 12.1 million position-move rows, sound on
+  `quick_check`. Against the Lichess masters answers stored in the ten facts
+  files it agrees on the most-played move in 78 of 92 positions, holds about
+  41% as many games (median), has no opening names, and lacks the lines Lichess
+  has one to four games of — so a game would leave the book earlier. It is kept
+  as the fallback if the Lichess route becomes unavailable; switching to it
+  means re-validating „left the masters database" on its data first, because
+  the harness's wording was measured on Lichess's.
 
 ### Phase 3 — the words route on the server (gate by the lead, worker)
 
@@ -275,7 +323,9 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
 1. ✅ 13.9.2026 **`export_fixtures.py`** and the fixture folder — the parity
    gate's data. Ten games, 1.7 MB, `--check` proved by two mutations
    (`tools/game_annotate/README.md`, „Fixtures for the app's port").
-2. **Phase 0** (`tool/game_facts.dart`) — parity and time on Windows, the lead.
+2. ✅ 14.9.2026 **Phase 0** (`tool/game_facts.dart`) — parity and time on
+   Windows, the lead. Identical to the harness on all ten games at depth 18;
+   the times are in phase 0 above. **Next: phase 2.**
 3. ✅ 13.9.2026 **The phase 1 gate** plus `words_for` and `standing` ported
    through it and mutation-proved. `evaluation_words.dart` is held to every
    evaluation of the ten games and to boundary cases the harness answered
