@@ -202,7 +202,6 @@ class _Rig {
   Future<GameTutorialResult> run(
           {List<String>? moves,
           String startFen = _start,
-          bool blackOrientation = false,
           SkeletonParameters parameters = const SkeletonParameters(),
           Future<SkeletonParameters?> Function(GameTutorialSlice)?
               chooseSlice}) =>
@@ -211,7 +210,6 @@ class _Rig {
         startFen: startFen,
         uciMoves: moves ?? _uci(),
         depth: 18,
-        blackOrientation: blackOrientation,
         parameters: parameters,
         chooseSlice: chooseSlice,
         onProgress: (p) {
@@ -262,27 +260,22 @@ void main() {
   // so a game tutorial turned the board over on every part whose side to move
   // had changed. Lesson 54 was saved with parts facing white, white, white,
   // white, black, black, black, white, white, white.
-  // One run per orientation, not a loop inside one test: a run is about five
-  // seconds here and two of them ran past the 30 s default under the full
-  // suite, where the teardown then deleted the store the run was still
-  // writing to. The timeout was the fault and the path error its aftermath.
-  for (final black in [false, true]) {
-    test(
-        'every part of both tutorials faces the way the trainer asked '
-        '(black=$black)', () async {
-      final rig = _Rig();
-      addTearDown(() => rig.dir.deleteSync(recursive: true));
-      final result = await rig.run(blackOrientation: black);
+  //
+  // And White, not the Analysis board's orientation: the owner's rule of the
+  // same evening, after a tutorial whose first part alone had been turned.
+  test('every part of both tutorials says White is at the bottom', () async {
+    final rig = _Rig();
+    addTearDown(() => rig.dir.deleteSync(recursive: true));
+    final result = await rig.run();
 
-      for (final tutorial in [result.keyMoments, result.wholeGame]) {
-        expect(tutorial.positionList, isNotEmpty);
-        for (var i = 0; i < tutorial.positionList.length; i++) {
-          expect(tutorial.positionList[i]['blackOrientation'], black,
-              reason: 'part ${i + 1} of ${tutorial.title} with black=$black');
-        }
+    for (final tutorial in [result.keyMoments, result.wholeGame]) {
+      expect(tutorial.positionList, isNotEmpty);
+      for (var i = 0; i < tutorial.positionList.length; i++) {
+        expect(tutorial.positionList[i]['blackOrientation'], isFalse,
+            reason: 'part ${i + 1} of ${tutorial.title}');
       }
-    });
-  }
+    }
+  });
 
   // The fault this replaced was invisible to a test that only asked whether
   // the field was there: the fallback writes a bool on every part too. What
@@ -290,7 +283,7 @@ void main() {
   test('the orientation is one answer, not the side to move', () async {
     final rig = _Rig();
     addTearDown(() => rig.dir.deleteSync(recursive: true));
-    final result = await rig.run(blackOrientation: true);
+    final result = await rig.run();
 
     final sides = {
       for (final step in result.wholeGame.positionList)

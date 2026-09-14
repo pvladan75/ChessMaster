@@ -121,28 +121,32 @@ Future<FactsEngines> startFactsEngines(String path, int workers) async {
   return (analyzers: pool.analyzers, close: pool.close);
 }
 
-/// Every part of [tutorial] drawn from one side, with [black] deciding which.
+/// Every part of [tutorial] with White at the bottom, said on each part.
 ///
 /// **Not part of the skeleton port, and it cannot be.** `skeleton.py` writes a
-/// part's position and line and has no board to face; which way round a board
-/// stands is a property of the screen the trainer pressed the button on. So the
-/// stamp happens here, on the assembled tutorial, and `stepsFor` stays byte for
-/// byte what the harness makes.
+/// part's position and line and has no board to face. So the stamp happens
+/// here, on the assembled tutorial, and `stepsFor` stays byte for byte what the
+/// harness makes.
 ///
 /// Without it every part adopts `blackToMoveIn(fen)` — the fallback a stored
 /// step gets when it says nothing — and a game tutorial says nothing, so the
 /// board turned over on every part whose side to move had changed. One game
 /// became ten diagrams facing four different ways.
 ///
+/// White, and not the orientation of the Analysis board the button was pressed
+/// on: the owner's rule of 14.9.2026 is that a new tutorial opens with White at
+/// the bottom everywhere, and that the trainer turns a part in „Preview
+/// tutorial" or every part at once with the studio's flip. The orientation
+/// Analysis happened to be left in was the one decision nobody made on purpose.
+///
 /// The map is copied rather than written through: the caller's assembly is read
 /// again by the report, and a tutorial that changed under it would be a second
 /// fault to find.
-Map<String, dynamic> facingOneWay(Map<String, dynamic> tutorial, bool black) =>
-    {
+Map<String, dynamic> facingWhite(Map<String, dynamic> tutorial) => {
       ...tutorial,
       'positionList': [
         for (final step in (tutorial['positionList'] as List? ?? const []))
-          {...(step as Map).cast<String, dynamic>(), 'blackOrientation': black},
+          {...(step as Map).cast<String, dynamic>(), 'blackOrientation': false},
       ],
     };
 
@@ -231,7 +235,6 @@ class GameTutorialRunner {
     required String startFen,
     required List<String> uciMoves,
     required int depth,
-    required bool blackOrientation,
     SkeletonParameters parameters = const SkeletonParameters(),
     Future<SkeletonParameters?> Function(GameTutorialSlice slice)? chooseSlice,
     void Function(GameTutorialProgress progress)? onProgress,
@@ -368,11 +371,10 @@ class GameTutorialRunner {
           'The words that came back did not fit this game ($problems).');
     }
     return GameTutorialResult(
-      keyMoments: readTutorialJson(
-          jsonEncode(facingOneWay(assembled.tutorial!, blackOrientation)),
+      keyMoments: readTutorialJson(jsonEncode(facingWhite(assembled.tutorial!)),
           fileName: gameName),
       wholeGame: readTutorialJson(
-          jsonEncode(facingOneWay(assembled.tutorialGame!, blackOrientation)),
+          jsonEncode(facingWhite(assembled.tutorialGame!)),
           fileName: gameName),
       report: assembled.report,
       momentsOffered: offered.length,

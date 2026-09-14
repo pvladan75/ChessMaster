@@ -52,7 +52,6 @@ class _Runner implements GameTutorialRunner {
   bool cancelled = false;
   int? depthAsked;
   List<String>? movesAsked;
-  bool? orientationAsked;
   double? minCostAsked;
   SkeletonParameters? sliceChosen;
 
@@ -65,14 +64,12 @@ class _Runner implements GameTutorialRunner {
     required String startFen,
     required List<String> uciMoves,
     required int depth,
-    required bool blackOrientation,
     SkeletonParameters parameters = const SkeletonParameters(),
     Future<SkeletonParameters?> Function(GameTutorialSlice slice)? chooseSlice,
     void Function(GameTutorialProgress progress)? onProgress,
   }) async {
     depthAsked = depth;
     movesAsked = uciMoves;
-    orientationAsked = blackOrientation;
     minCostAsked = parameters.minCost;
     for (final s in steps) {
       onProgress?.call(s);
@@ -123,7 +120,6 @@ Future<void> _pump(
   List<String> moves = const ['e2e4', 'e7e5', 'g1f3'],
   List<ImportedTutorial>? opened,
   VoidCallback? onOpenEngineSettings,
-  bool blackOrientation = false,
   Future<SkeletonParameters?> Function(
           BuildContext context, GameTutorialSlice slice)?
       chooseSlice,
@@ -144,7 +140,6 @@ Future<void> _pump(
               session: _session,
               root: root,
               gameName: 'test game',
-              blackOrientation: blackOrientation,
               chooseSlice: chooseSlice,
               runnerFor: () => runner,
               onOpenEngineSettings: onOpenEngineSettings,

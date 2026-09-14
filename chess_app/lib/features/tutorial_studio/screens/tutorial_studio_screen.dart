@@ -909,11 +909,39 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _persist();
   }
 
+  /// Turns **every** part over, each from the way it stands now.
+  ///
+  /// It turned the open part alone until 14.9.2026, and nothing on the screen
+  /// said so: the owner flipped part 1 of a twelve-part tutorial and found it
+  /// facing the other way from the eleven after it, in the viewer and in the
+  /// film. Parts that face different ways keep facing different ways — a
+  /// tutorial with parts 1 and 3 from Black and part 2 from White comes out
+  /// 1 and 3 from White and 2 from Black — so a deliberate mix survives, and
+  /// one part is set on its own in „Preview tutorial" ([_setPartOrientation]).
   void _flipBoard() {
     setState(() {
+      for (final section in _draft.sections) {
+        section.blackOrientation = !section.blackOrientation;
+      }
+      // The open part is the screen's own field, and `_persist` writes the
+      // field over the part — so it is the field that has to turn.
       _orientation = _orientation == PlayerColor.white
           ? PlayerColor.black
           : PlayerColor.white;
+    });
+    _persist();
+  }
+
+  /// One part turned from „Preview tutorial", which is where the trainer sees
+  /// a part the way a student will.
+  void _setPartOrientation(int index, bool black) {
+    if (index < 0 || index >= _draft.sections.length) return;
+    setState(() {
+      if (index == _draft.selected) {
+        _orientation = black ? PlayerColor.black : PlayerColor.white;
+      } else {
+        _draft.sections[index].blackOrientation = black;
+      }
     });
     _persist();
   }
@@ -1589,6 +1617,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           lessonLanguage: _draft.language,
         ),
         api: PreviewAssignmentApiService(),
+        onPartOrientationChanged: _setPartOrientation,
       ),
     ));
   }

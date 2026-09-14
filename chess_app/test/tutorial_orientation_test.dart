@@ -18,6 +18,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart' show PlayerColor;
+
+import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
@@ -69,8 +73,13 @@ void main() {
     await TutorialDraftService.instance.clear();
   });
 
+  // One id per test. The studio adopts a stored draft whose lesson id
+  // matches and flushes its own on dispose, so a test that fails before it
+  // closes would otherwise hand its parts to the test after it.
+  var nextLessonId = 41;
+
   Map<String, dynamic> lessonOf(List<Map<String, dynamic>> steps) => {
-        'id': 41,
+        'id': nextLessonId++,
         'title': 'Otvaranje',
         'position_list': steps,
       };
@@ -142,12 +151,20 @@ void main() {
   testWidgets('each part keeps its own, across a visit to another part',
       (tester) async {
     final api = await open(tester, [
-      {'fen': startFen, 'title': 'Deo 1', 'kind': 'show'},
-      {'fen': endgameFen, 'title': 'Deo 2', 'kind': 'show'},
+      {
+        'fen': startFen,
+        'title': 'Deo 1',
+        'kind': 'show',
+        'blackOrientation': true,
+      },
+      {
+        'fen': endgameFen,
+        'title': 'Deo 2',
+        'kind': 'show',
+        'blackOrientation': false,
+      },
     ]);
 
-    // Part one is turned round, part two is left alone.
-    await flip(tester);
     // Stored as „Deo 2", as tutorials were before 11.9.2026, and listed in
     // the app's own words.
     await tester.tap(find.text('Part 2'));
@@ -162,6 +179,98 @@ void main() {
             'restoring what it had stored');
 
     await close(tester);
+  });
+
+  testWidgets('the flip turns every part over, each from where it stands',
+      (tester) async {
+    // The owner, 14.9.2026: part 1 of twelve had been turned and the other
+    // eleven had not, because the flip turned the open part alone. A mix is
+    // kept as a mix — parts 1 and 3 from Black and 2 from White come out the
+    // other way round, not all from one side.
+    final api = await open(tester, [
+      for (final black in [true, false, true])
+        {
+          'fen': startFen,
+          'title': 'Deo',
+          'kind': 'show',
+          'blackOrientation': black,
+        },
+    ]);
+
+    await flip(tester);
+    final sent = await save(tester, api);
+
+    expect([for (final s in sent) (s as Map)['blackOrientation']],
+        [false, true, false]);
+
+    await close(tester);
+  });
+
+  group('„Preview tutorial" sets one part', () {
+    PlayerColor shown(WidgetTester tester) => tester
+        .widget<BoardWithCoordinates>(find.byType(BoardWithCoordinates).last)
+        .orientation;
+
+    Future<void> preview(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('preview-tutorial')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> step(WidgetTester tester, String label) async {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('and the studio saves it', (tester) async {
+      final api = await open(tester, [
+        {'fen': startFen, 'title': 'Deo 1', 'kind': 'show'},
+        {'fen': endgameFen, 'title': 'Deo 2', 'kind': 'show'},
+      ]);
+
+      await preview(tester);
+      await step(tester, 'Next part');
+      await tester.tap(find.byKey(const Key('preview-flip-part')));
+      await tester.pumpAndSettle();
+      expect(shown(tester), PlayerColor.black);
+
+      // Away and back: the part is still the way it was set.
+      await step(tester, 'Previous part');
+      expect(shown(tester), PlayerColor.white);
+      await step(tester, 'Next part');
+      expect(shown(tester), PlayerColor.black,
+          reason: 'the part forgot what it was set to when it was left');
+
+      Navigator.of(tester.element(find.byType(LessonViewerScreen))).pop();
+      await tester.pumpAndSettle();
+      final sent = await save(tester, api);
+
+      expect([for (final s in sent) (s as Map)['blackOrientation']],
+          [false, true]);
+
+      await close(tester);
+    });
+
+    testWidgets('including the part open in the studio', (tester) async {
+      // The open part's orientation is the screen's own field, and `_persist`
+      // writes the field over the part — so setting the part alone would be
+      // undone by the next save.
+      final api = await open(tester, [
+        {'fen': startFen, 'title': 'Deo 1', 'kind': 'show'},
+        {'fen': endgameFen, 'title': 'Deo 2', 'kind': 'show'},
+      ]);
+
+      await preview(tester);
+      await tester.tap(find.byKey(const Key('preview-flip-part')));
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(LessonViewerScreen))).pop();
+      await tester.pumpAndSettle();
+      final sent = await save(tester, api);
+
+      expect([for (final s in sent) (s as Map)['blackOrientation']],
+          [true, false]);
+
+      await close(tester);
+    });
   });
 
   testWidgets('a part added after this one starts the same way round',

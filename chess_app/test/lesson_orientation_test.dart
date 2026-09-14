@@ -94,6 +94,82 @@ void main() {
     );
   });
 
+  group('across parts', () {
+    // A knight move, so no en passant square: `samePosition` compares that
+    // field, and a pawn's double step would make the join no join at all.
+    const afterNf3 =
+        'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1';
+
+    AssignmentDetail twoParts(bool? second) => AssignmentDetail(
+          assignment: const Assignment(
+            id: 6,
+            title: 'Dva dela',
+            kind: AssignmentKind.lesson,
+            totalItems: 2,
+          ),
+          items: const [
+            AssignmentItem(puzzleId: null, position: 0),
+            AssignmentItem(puzzleId: null, position: 1),
+          ],
+          steps: [
+            const LessonStep(
+              title: 'Deo 1',
+              fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+              pgn: '1. Nf3',
+              blackOrientation: false,
+            ),
+            LessonStep(title: 'Deo 2', fen: afterNf3, blackOrientation: second),
+          ],
+        );
+
+    PlayerColor shown(WidgetTester tester) => tester
+        .widget<BoardWithCoordinates>(find.byType(BoardWithCoordinates).first)
+        .orientation;
+
+    Future<void> step(WidgetTester tester, String label) async {
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a part that says which way it faces is obeyed at a join',
+        (tester) async {
+      // Part 2 stands on the position part 1 ends on. That join used to keep
+      // the board as it was, whatever part 2 said — so a part the trainer set
+      // to face Black in „Preview tutorial" would never have shown it.
+      await tester.pumpWidget(MaterialApp(
+        home: LessonViewerScreen(session: session, detail: twoParts(true)),
+      ));
+      await tester.pump();
+      expect(shown(tester), PlayerColor.white);
+      // To the end of part 1's line, which is where part 2 stands: a join.
+      await tester.tap(find.byTooltip('Next move'));
+      await tester.pumpAndSettle();
+
+      await step(tester, 'Next part');
+
+      expect(shown(tester), PlayerColor.black);
+    });
+
+    testWidgets('a student turning the board is a look, not a setting',
+        (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: LessonViewerScreen(session: session, detail: twoParts(false)),
+      ));
+      await tester.pump();
+
+      expect(find.byKey(const Key('preview-flip-part')), findsNothing,
+          reason: 'only the studio\'s preview sets a part');
+      await tester.tap(find.byTooltip('Flip board'));
+      await tester.pumpAndSettle();
+      expect(shown(tester), PlayerColor.black);
+
+      await step(tester, 'Next part');
+      await step(tester, 'Previous part');
+
+      expect(shown(tester), PlayerColor.white);
+    });
+  });
+
   test('the wire carries all three states', () {
     expect(
       LessonStep.fromJson({'fen': whiteToMove, 'blackOrientation': true})

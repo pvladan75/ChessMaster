@@ -271,7 +271,6 @@ class GameTutorialProgressDialog extends StatefulWidget {
     required this.startFen,
     required this.uciMoves,
     required this.depth,
-    required this.blackOrientation,
     this.minCost = kGameTutorialDefaultThreshold,
     this.chooseSlice,
   });
@@ -281,10 +280,6 @@ class GameTutorialProgressDialog extends StatefulWidget {
   final String startFen;
   final List<String> uciMoves;
   final int depth;
-
-  /// Which way round every part of the tutorial stands — the orientation the
-  /// trainer has in Analysis, not the side to move.
-  final bool blackOrientation;
 
   /// What a move must cost to be taught, as the first dialog left it.
   final double minCost;
@@ -319,7 +314,6 @@ class _GameTutorialProgressDialogState
         startFen: widget.startFen,
         uciMoves: widget.uciMoves,
         depth: widget.depth,
-        blackOrientation: widget.blackOrientation,
         parameters: const SkeletonParameters().withMinCost(widget.minCost),
         chooseSlice: (slice) async {
           if (!mounted) return null;
@@ -555,7 +549,6 @@ Future<void> makeTutorialFromGame(
   required UserSession session,
   required AnalysisNode root,
   required String gameName,
-  required bool blackOrientation,
   VoidCallback? onOpenEngineSettings,
   Future<SkeletonParameters?> Function(
           BuildContext context, GameTutorialSlice slice)?
@@ -590,7 +583,6 @@ Future<void> makeTutorialFromGame(
       uciMoves: uciMoves,
       depth: settings.depth,
       minCost: settings.minCost,
-      blackOrientation: blackOrientation,
       chooseSlice: chooseSlice,
     ),
   );

@@ -1453,9 +1453,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         session: widget.userSession,
         root: _rootNode,
         gameName: 'Game from Analysis',
-        // Every part of the tutorial faces the way the trainer's own board
-        // faces, which is what the flip control under it chose.
-        blackOrientation: _orientation == PlayerColor.black,
         onOpenEngineSettings: _openEngineSettings,
       );
 

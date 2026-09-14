@@ -36,7 +36,14 @@ class LessonViewerScreen extends StatefulWidget {
     required this.detail,
     this.api,
     this.speech,
+    this.onPartOrientationChanged,
   });
+
+  /// Given only by the tutorial studio's „Preview tutorial", where turning the
+  /// board sets which way that part faces rather than looking at it from the
+  /// other side for a moment. [part] is the part's index.
+  final void Function(int part, bool blackOrientation)?
+      onPartOrientationChanged;
 
   final UserSession session;
   final AssignmentDetail detail;
@@ -68,6 +75,13 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   List<SquareMark> get _currentSquares => _node?.squares ?? const [];
 
   PlayerColor _orientation = PlayerColor.white;
+
+  /// Parts turned in this preview, by index. A [LessonStep] is immutable, and a
+  /// part set to face Black has to still face Black when the trainer comes
+  /// back to it.
+  final Map<int, bool> _turned = {};
+
+  bool get _previewSetsOrientation => widget.onPartOrientationChanged != null;
 
   /// True once the student has moved a piece away from the position the lesson
   /// is showing.
@@ -155,18 +169,24 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       _sending = false;
       _verdict = null;
       _reveal = null;
-      // A continuing step keeps the board the child is looking at, whichever
-      // way round it is. Only a step that opens a different position gets to
-      // decide the orientation.
+      // The trainer decides it when they said so. `blackOrientation` is null
+      // for every step written before the studio could send it, and for those
+      // the side to move is still the best guess — but a step that carries the
+      // field carries a decision, and a computed orientation overruling it is
+      // the board flipping under a child in the middle of a tutorial written
+      // from one side. Reported live on 7.9.2026.
       //
-      // And the trainer decides it when they said so. `blackOrientation` is
-      // null for every step written before the studio could send it, and for
-      // those the side to move is still the best guess — but a step that
-      // carries the field carries a decision, and a computed orientation
-      // overruling it is the board flipping under a child in the middle of a
-      // tutorial written from one side. Reported live on 7.9.2026.
-      if (!continues) {
-        _orientation = _orientationOf(step);
+      // A decision is obeyed at a join too. A continuing step used to keep
+      // the board the child was looking at whichever way it stood, which was
+      // right while the orientation was a guess — and wrong since 14.9.2026,
+      // when the trainer sets each part in „Preview tutorial": a part set to
+      // face Black that happens to continue a White part would never have
+      // shown it. Only a step that says nothing keeps the board as it is.
+      final said = _turned[_stepIndex] ?? step.blackOrientation;
+      if (said != null) {
+        _orientation = said ? PlayerColor.black : PlayerColor.white;
+      } else if (!continues) {
+        _orientation = _sideToMove(step.fen);
       }
     });
 
@@ -305,13 +325,21 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     });
   }
 
-  /// Which way round a step's board stands.
-  static PlayerColor _orientationOf(LessonStep step) =>
-      switch (step.blackOrientation) {
-        true => PlayerColor.black,
-        false => PlayerColor.white,
-        null => _sideToMove(step.fen),
-      };
+  /// Turns the board. In „Preview tutorial" that sets the part; anywhere else
+  /// it is a look from the other side, and the next part stands the way its
+  /// trainer left it.
+  void _flipBoard() {
+    setState(() {
+      _orientation = _orientation == PlayerColor.white
+          ? PlayerColor.black
+          : PlayerColor.white;
+    });
+    final report = widget.onPartOrientationChanged;
+    if (report == null) return;
+    final black = _orientation == PlayerColor.black;
+    _turned[_stepIndex] = black;
+    report(_stepIndex, black);
+  }
 
   static PlayerColor _sideToMove(String fen) {
     try {
@@ -588,7 +616,19 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         title: Text(widget.detail.assignment.title),
-        actions: const [BoardViewMenu()],
+        actions: [
+          // In the app bar and not only under the board, because a question
+          // part has no move strip to carry the flip, and it is a part the
+          // trainer sets like any other.
+          if (_previewSetsOrientation)
+            IconButton(
+              key: const Key('preview-flip-part'),
+              tooltip: 'Flip this part',
+              icon: const Icon(Icons.swap_vert),
+              onPressed: _flipBoard,
+            ),
+          const BoardViewMenu(),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
@@ -1059,11 +1099,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     return MoveNavigationControls(
       cursor: _moveCursor(),
       centerLabel: 'Move ${progress.at} of ${progress.of}',
-      onFlipBoard: () => setState(() {
-        _orientation = _orientation == PlayerColor.white
-            ? PlayerColor.black
-            : PlayerColor.white;
-      }),
+      onFlipBoard: _flipBoard,
       trailing: [_buildNarrationButton()],
     );
   }
