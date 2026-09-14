@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
     show PositionAnalyzer;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/sleep_watch.dart';
@@ -201,13 +202,18 @@ class _Rig {
   Future<GameTutorialResult> run(
           {List<String>? moves,
           String startFen = _start,
-          bool blackOrientation = false}) =>
+          bool blackOrientation = false,
+          SkeletonParameters parameters = const SkeletonParameters(),
+          Future<SkeletonParameters?> Function(GameTutorialSlice)?
+              chooseSlice}) =>
       runner.run(
         gameName: 'g01',
         startFen: startFen,
         uciMoves: moves ?? _uci(),
         depth: 18,
         blackOrientation: blackOrientation,
+        parameters: parameters,
+        chooseSlice: chooseSlice,
         onProgress: (p) {
           progress.add(p);
           if (stages.isEmpty || stages.last != p.stage) stages.add(p.stage);
@@ -293,6 +299,70 @@ void main() {
     expect(sides, containsAll(['w', 'b']),
         reason: 'the fixture game must have parts of both sides, or this '
             'test cannot tell a stamp from the fallback');
+  });
+
+  // Points 1 and 6 of the owner's live pass, 14.9.2026. The threshold was a
+  // constant nobody could reach; these say it reaches the words and the parts.
+  test('the threshold the trainer chose decides what is taught', () async {
+    final rig = _Rig();
+    addTearDown(() => rig.dir.deleteSync(recursive: true));
+
+    GameTutorialSlice? seen;
+    final result = await rig.run(
+      chooseSlice: (slice) async {
+        seen = slice;
+        // Two pawns is a coarser tutorial than one: on g01 six moments become
+        // four. Not three pawns - that leaves one, and a tutorial of one is
+        // refused before the words, so the run would stop and prove nothing.
+        return slice.parameters.withMinCost(2.0);
+      },
+    );
+
+    expect(seen, isNotNull, reason: 'the trainer is asked before the words');
+    expect(seen!.countAt(1.0), 6);
+    expect(seen!.countAt(2.0), 4,
+        reason: 'the fixture must have moments between the two, or this test '
+            'cannot tell the threshold being used from it being ignored');
+
+    // The request is the proof: `momentsOffered` could be counted anywhere,
+    // but what is sent is what the model is paid to write about.
+    expect(rig.requests.single['moments'] as List, hasLength(4));
+    expect(result.momentsOffered, 4);
+  });
+
+  test('a trainer who stops at the count is charged nothing', () async {
+    final rig = _Rig();
+    addTearDown(() => rig.dir.deleteSync(recursive: true));
+
+    await expectLater(
+      rig.run(chooseSlice: (slice) async => null),
+      throwsA(isA<GameTutorialStopped>()),
+    );
+    expect(rig.requests, isEmpty, reason: 'the words are what costs');
+    expect(rig.searches, greaterThan(0),
+        reason: 'the engine had already run, and its answers are kept');
+  });
+
+  test('the count is said whole, and the cap is said separately', () async {
+    final rig = _Rig();
+    addTearDown(() => rig.dir.deleteSync(recursive: true));
+
+    GameTutorialSlice? seen;
+    await rig.run(chooseSlice: (slice) async {
+      seen = slice;
+      return slice.parameters;
+    });
+
+    // Below the cap the two numbers agree.
+    expect(seen!.countAt(2.0), 4);
+    expect(seen!.partsAt(2.0), 4);
+
+    // Above it they must not: „23 found" over a tutorial of eight parts reads
+    // as a fault in the tutorial, so the dialog says both numbers and this
+    // says they are two.
+    expect(seen!.countAt(0.2), 23);
+    expect(seen!.partsAt(0.2), const SkeletonParameters().maxMoments);
+    expect(seen!.partsAt(0.2), lessThan(seen!.countAt(0.2)));
   });
 
   test('the second run of the same game searches nothing', () async {

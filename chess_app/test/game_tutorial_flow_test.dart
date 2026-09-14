@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/services/game_from_moves.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/game_tutorial_flow.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -39,15 +40,21 @@ GameTutorialResult _result({String? mastersNote}) {
 /// The run, driven by the test: [steps] are sent as progress, then [finish]
 /// decides the outcome.
 class _Runner implements GameTutorialRunner {
-  _Runner({this.steps = const [], this.hold, required this.finish});
+  _Runner(
+      {this.steps = const [], this.hold, required this.finish, this.askSlice});
 
   final List<GameTutorialProgress> steps;
   final Completer<void>? hold;
   final Object Function(bool cancelled) finish;
+
+  /// Facts to ask the slice question about; null means do not ask.
+  final Map<String, dynamic>? askSlice;
   bool cancelled = false;
   int? depthAsked;
   List<String>? movesAsked;
   bool? orientationAsked;
+  double? minCostAsked;
+  SkeletonParameters? sliceChosen;
 
   @override
   void cancel() => cancelled = true;
@@ -59,13 +66,24 @@ class _Runner implements GameTutorialRunner {
     required List<String> uciMoves,
     required int depth,
     required bool blackOrientation,
+    SkeletonParameters parameters = const SkeletonParameters(),
+    Future<SkeletonParameters?> Function(GameTutorialSlice slice)? chooseSlice,
     void Function(GameTutorialProgress progress)? onProgress,
   }) async {
     depthAsked = depth;
     movesAsked = uciMoves;
     orientationAsked = blackOrientation;
+    minCostAsked = parameters.minCost;
     for (final s in steps) {
       onProgress?.call(s);
+    }
+    if (chooseSlice != null && askSlice != null) {
+      sliceChosen = await chooseSlice(
+          GameTutorialSlice(facts: askSlice!, parameters: parameters));
+      if (sliceChosen == null) {
+        throw const GameTutorialStopped(
+            'cancelled', 'Cancelled. Nothing was spent.');
+      }
     }
     if (hold != null) await hold!.future;
     final outcome = finish(cancelled);
@@ -84,6 +102,21 @@ final _session = UserSession(
     name: 'Trainer',
     role: 'trener');
 
+/// Enough of a game's facts for the slice question: two moves that cost a pawn
+/// or more, which is the least a tutorial is made of.
+final Map<String, dynamic> _facts = {
+  'rows': [
+    for (final cost in [2.0, 1.4])
+      {
+        'fen': _start,
+        'played': {'move': 'e4', 'cost_pawns': cost},
+        'candidates': [
+          {'move': 'd4'}
+        ],
+      },
+  ],
+};
+
 Future<void> _pump(
   WidgetTester tester, {
   required _Runner runner,
@@ -91,6 +124,9 @@ Future<void> _pump(
   List<ImportedTutorial>? opened,
   VoidCallback? onOpenEngineSettings,
   bool blackOrientation = false,
+  Future<SkeletonParameters?> Function(
+          BuildContext context, GameTutorialSlice slice)?
+      chooseSlice,
 }) async {
   tester.view.physicalSize = const Size(360, 640);
   tester.view.devicePixelRatio = 1.0;
@@ -109,6 +145,7 @@ Future<void> _pump(
               root: root,
               gameName: 'test game',
               blackOrientation: blackOrientation,
+              chooseSlice: chooseSlice,
               runnerFor: () => runner,
               onOpenEngineSettings: onOpenEngineSettings,
               openInStudio: (context, tutorial) async => opened?.add(tutorial),
@@ -229,6 +266,59 @@ void main() {
     await tester.pumpAndSettle();
     expect(settingsOpened, 1);
     expect(tester.takeException(), isNull);
+  });
+
+  // Point 6 of the owner's live pass, 14.9.2026. The runner asks a question
+  // between the engine and the words; these say the screen answers it, which
+  // no test of the runner or of the dialog on its own can say.
+  testWidgets('the count is put to the trainer, and their answer is used',
+      (tester) async {
+    final opened = <ImportedTutorial>[];
+    SkeletonParameters? asked;
+    final runner = _Runner(
+      askSlice: _facts,
+      finish: (_) => _result(),
+    );
+    await _pump(
+      tester,
+      runner: runner,
+      opened: opened,
+      chooseSlice: (context, slice) async {
+        asked = slice.parameters;
+        return slice.parameters.withMinCost(2.5);
+      },
+    );
+    await tester.tap(find.byKey(const Key('door')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('game-tutorial-start')));
+    await tester.pumpAndSettle();
+
+    expect(asked, isNotNull, reason: 'the screen is asked');
+    expect(runner.sliceChosen?.minCost, 2.5,
+        reason: 'and the answer goes back to the run');
+
+    // The run carried on to the end, which says the question is a step in the
+    // flow and not a dead end.
+    await tester.tap(find.byKey(const Key('game-tutorial-whole-game')));
+    await tester.pumpAndSettle();
+    expect(opened, hasLength(1));
+  });
+
+  testWidgets('stopping at the count opens nothing', (tester) async {
+    final opened = <ImportedTutorial>[];
+    final runner = _Runner(askSlice: _facts, finish: (_) => _result());
+    await _pump(
+      tester,
+      runner: runner,
+      opened: opened,
+      chooseSlice: (context, slice) async => null,
+    );
+    await tester.tap(find.byKey(const Key('door')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('game-tutorial-start')));
+    await tester.pumpAndSettle();
+
+    expect(opened, isEmpty);
   });
 
   testWidgets('cancel stops the run and says so, and nothing opens',

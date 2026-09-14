@@ -15,6 +15,17 @@ class SkeletonParameters {
   final int leadPlies;
   final int answerPlies;
 
+  /// The same parameters at another threshold — what the trainer's slider
+  /// changes, and the only field of these a trainer ever sets.
+  SkeletonParameters withMinCost(double value) => SkeletonParameters(
+        minCost: value,
+        near: near,
+        maxCorrect: maxCorrect,
+        maxMoments: maxMoments,
+        leadPlies: leadPlies,
+        answerPlies: answerPlies,
+      );
+
   Map<String, dynamic> toJson() => {
         'min_cost': minCost,
         'near': near,

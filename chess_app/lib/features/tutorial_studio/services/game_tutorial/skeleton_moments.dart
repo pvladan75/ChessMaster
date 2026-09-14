@@ -100,23 +100,48 @@ String bookWords(Map<String, dynamic> row) {
   return said;
 }
 
-List<Map<String, dynamic>> skeletonMoments(
-  Map<String, dynamic> facts, {
-  SkeletonParameters parameters = const SkeletonParameters(),
-}) {
-  final rows = (facts['rows'] as List).cast<Map<String, dynamic>>();
-
+/// The moves of [rows] that cost at least [minCost] pawns, in game order.
+///
+/// The one reading of „this move is worth teaching from". Extracted so the
+/// trainer can be told how many there are before the words are paid for
+/// (`mistakeCount`) without a second copy of the rule deciding a different
+/// number from the one that becomes parts — this repository has already lost
+/// three days to one subquery written out three times.
+///
+/// It has no counterpart in `skeleton.py`, which keeps the loop inline: the
+/// harness has nobody to tell. The fixture gate proves the two still agree on
+/// what comes out.
+List<int> heavyIndices(List<Map<String, dynamic>> rows, double minCost) {
   final heavy = <int>[];
   for (var i = 0; i < rows.length; i++) {
     final row = rows[i];
     final played = row['played'] as Map<String, dynamic>?;
     final candidates = row['candidates'] as List?;
     if (played != null && candidates != null && candidates.isNotEmpty) {
-      if (costValue(played['cost_pawns']) >= parameters.minCost) {
+      if (costValue(played['cost_pawns']) >= minCost) {
         heavy.add(i);
       }
     }
   }
+  return heavy;
+}
+
+/// How many moves of [facts] cost at least [minCost] pawns.
+///
+/// Cheap on purpose: it answers while a slider is being dragged, so it counts
+/// rows and builds no part, no board and no sentence.
+int mistakeCount(Map<String, dynamic> facts, double minCost) => heavyIndices(
+      (facts['rows'] as List).cast<Map<String, dynamic>>(),
+      minCost,
+    ).length;
+
+List<Map<String, dynamic>> skeletonMoments(
+  Map<String, dynamic> facts, {
+  SkeletonParameters parameters = const SkeletonParameters(),
+}) {
+  final rows = (facts['rows'] as List).cast<Map<String, dynamic>>();
+
+  final heavy = heavyIndices(rows, parameters.minCost);
 
   // Stable sort by cost descending, then index ascending (Divergence 1)
   heavy.sort((a, b) {

@@ -25,7 +25,8 @@ import 'package:chess_app/features/tutorial_studio/services/game_tutorial/game_f
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_assembly.dart'
     show assembleSkeleton;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_moments.dart'
-    show skeletonMoments;
+    show mistakeCount, skeletonMoments;
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/words_request.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart';
@@ -145,6 +146,34 @@ Map<String, dynamic> facingOneWay(Map<String, dynamic> tutorial, bool black) =>
       ],
     };
 
+/// What the trainer is shown once the engine is done and before the words are
+/// paid for — point 6 of the owner's live pass, 14.9.2026.
+///
+/// **The threshold is free to change and the depth is not.** A game's answers
+/// are cached by game, depth and engine (`factsKey`) and the threshold is no
+/// part of that key, so re-slicing the same game at another threshold costs no
+/// engine time at all — only the words are paid for again, and they have not
+/// been asked for yet at this point. That is why the question is asked here
+/// rather than offered as „run it again".
+class GameTutorialSlice {
+  const GameTutorialSlice({required this.facts, required this.parameters});
+
+  /// The engine's answers for the whole game.
+  final Map<String, dynamic> facts;
+
+  /// The slice being proposed, which the trainer may change.
+  final SkeletonParameters parameters;
+
+  /// How many moves cost at least [minCost] pawns. Cheap enough for a slider.
+  int countAt(double minCost) => mistakeCount(facts, minCost);
+
+  /// How many of those would become parts: the rest are over the cap.
+  int partsAt(double minCost) {
+    final found = countAt(minCost);
+    return found < parameters.maxMoments ? found : parameters.maxMoments;
+  }
+}
+
 class GameTutorialRunner {
   GameTutorialRunner({
     required String token,
@@ -203,6 +232,8 @@ class GameTutorialRunner {
     required List<String> uciMoves,
     required int depth,
     required bool blackOrientation,
+    SkeletonParameters parameters = const SkeletonParameters(),
+    Future<SkeletonParameters?> Function(GameTutorialSlice slice)? chooseSlice,
     void Function(GameTutorialProgress progress)? onProgress,
   }) async {
     void say(GameTutorialProgress p) => onProgress?.call(p);
@@ -289,7 +320,19 @@ class GameTutorialRunner {
       await recorder.flush();
     }
 
-    final offered = skeletonMoments(facts);
+    // Asked before the words, because the words are what costs. A trainer who
+    // wants a different slice gets it for nothing; one who cancels here has
+    // spent nothing either.
+    var sliced = parameters;
+    if (chooseSlice != null) {
+      _checkCancelled();
+      final chosen = await chooseSlice(
+          GameTutorialSlice(facts: facts, parameters: sliced));
+      if (chosen == null) throw _cancelledStop;
+      sliced = chosen;
+    }
+
+    final offered = skeletonMoments(facts, parameters: sliced);
     if (offered.length < 2) {
       throw GameTutorialStopped(
         'too-few-moments',
@@ -307,8 +350,8 @@ class GameTutorialRunner {
       for (final r in rows)
         if (r['played'] != null) (r['played'] as Map)['move'] as String
     ];
-    final outcome = await _askWords(
-        wordsRequestOf(facts, movetext: movetextOf(startFen, sans)));
+    final outcome = await _askWords(wordsRequestOf(facts,
+        movetext: movetextOf(startFen, sans), parameters: sliced));
     final refusal = outcome.refusal;
     if (refusal != null) {
       throw GameTutorialStopped(refusal.reason, refusal.message,
@@ -316,7 +359,8 @@ class GameTutorialRunner {
     }
 
     say(const GameTutorialProgress(GameTutorialStage.assembly));
-    final assembled = assembleSkeleton(facts, outcome.answerText!);
+    final assembled =
+        assembleSkeleton(facts, outcome.answerText!, parameters: sliced);
     if (assembled.tutorial == null || assembled.tutorialGame == null) {
       final problems =
           (assembled.report['problems'] as List? ?? const []).join('; ');

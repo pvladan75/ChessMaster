@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -30,6 +31,25 @@ import 'package:chess_app/widgets/app_feedback.dart';
 const List<int> kGameTutorialDepths = [18, 20, 22];
 
 const String kGameTutorialDepthPreference = 'app_game_tutorial_depth';
+const String kGameTutorialThresholdPreference = 'app_game_tutorial_threshold';
+
+/// What a move has to cost, in pawns, before it is a moment worth teaching.
+///
+/// The range and the step are the Review dialog's, so the two controls speak
+/// one language. The **default is not** the Review dialog's: 2.0 pawns there
+/// tags a blunder and cuts a puzzle from it, and 1.0 here is where phase 0
+/// validated „worth teaching from" — a move that costs a pawn and a half is a
+/// poor puzzle and a good lesson.
+const double kGameTutorialMinThreshold = 0.2;
+const double kGameTutorialMaxThreshold = 5.0;
+const double kGameTutorialDefaultThreshold = 1.0;
+
+/// One decimal, the step the slider moves in.
+double roundThreshold(double value) => (value * 10).roundToDouble() / 10;
+
+/// What the trainer chose before the run: how deep, and how bad a move has to
+/// be to be taught.
+typedef GameTutorialSettings = ({int depth, double minCost});
 
 /// How long a depth takes, as phase 0 measured it on Windows with eight
 /// workers: 39–109 s a game at 18, 1.9–3.8 times that at 20, 3.6–7.1 at 22.
@@ -40,13 +60,28 @@ String gameTutorialDepthTime(int depth) => switch (depth) {
       _ => '',
     };
 
-/// The depth, remembered from last time; null when the trainer cancels.
-Future<int?> chooseGameTutorialDepth(BuildContext context) async {
+/// The depth and the threshold, remembered from last time; null when the
+/// trainer cancels.
+///
+/// Both are asked here, but they are not the same kind of question. The depth
+/// buys engine time and cannot be taken back; the threshold costs nothing and
+/// is asked again, with the count beside it, once the engine has finished
+/// (`chooseGameTutorialSlice`). This is where a trainer who already knows what
+/// they want says so.
+Future<GameTutorialSettings?> chooseGameTutorialDepth(
+    BuildContext context) async {
   final prefs = await SharedPreferences.getInstance();
   final remembered = prefs.getInt(kGameTutorialDepthPreference);
   var depth = kGameTutorialDepths.contains(remembered) ? remembered! : 18;
+  var minCost = roundThreshold(
+      prefs.getDouble(kGameTutorialThresholdPreference) ??
+          kGameTutorialDefaultThreshold);
+  if (minCost < kGameTutorialMinThreshold ||
+      minCost > kGameTutorialMaxThreshold) {
+    minCost = kGameTutorialDefaultThreshold;
+  }
   if (!context.mounted) return null;
-  final chosen = await showDialog<int>(
+  final chosen = await showDialog<GameTutorialSettings>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
@@ -80,9 +115,26 @@ Future<int?> chooseGameTutorialDepth(BuildContext context) async {
                   ],
                 ),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                  'Teach a move that cost ${minCost.toStringAsFixed(1)} pawns '
+                  'or more',
+                  style: AppText.body),
+              Slider(
+                key: const Key('game-tutorial-threshold'),
+                value: minCost,
+                min: kGameTutorialMinThreshold,
+                max: kGameTutorialMaxThreshold,
+                divisions: 48,
+                label: minCost.toStringAsFixed(1),
+                onChanged: (value) =>
+                    setState(() => minCost = roundThreshold(value)),
+              ),
               Text(
                 'A game searched once is kept on this computer: making it again '
-                'at the same depth takes no engine time.',
+                'at the same depth takes no engine time. You can change the '
+                'threshold again when the search is done, and see how many '
+                'mistakes it finds.',
                 style: AppText.caption.copyWith(color: ctx.colors.textMuted),
               ),
             ],
@@ -95,15 +147,118 @@ Future<int?> chooseGameTutorialDepth(BuildContext context) async {
           ),
           FilledButton(
             key: const Key('game-tutorial-start'),
-            onPressed: () => Navigator.of(ctx).pop(depth),
+            onPressed: () =>
+                Navigator.of(ctx).pop((depth: depth, minCost: minCost)),
             child: const Text('Start'),
           ),
         ],
       ),
     ),
   );
-  if (chosen != null) await prefs.setInt(kGameTutorialDepthPreference, chosen);
+  if (chosen != null) {
+    await prefs.setInt(kGameTutorialDepthPreference, chosen.depth);
+    await prefs.setDouble(kGameTutorialThresholdPreference, chosen.minCost);
+  }
   return chosen;
+}
+
+/// What the engine found, before the words are paid for — point 6 of the
+/// owner's live pass, 14.9.2026: „koliko ima otkrivenih grešaka sa ovim
+/// postavkama, pa može da ponovo izvrši analizu, ako mu je to malo ili mnogo".
+///
+/// It turned out to be better than „run it again": the facts are cached by
+/// game, depth and engine and **the threshold is no part of that key**, so
+/// another slice of the same game costs no engine time whatever. The trainer
+/// moves the slider and the count answers at once; nothing is spent until they
+/// press the button.
+///
+/// Returns the parameters to write the tutorial with, or null to stop.
+Future<SkeletonParameters?> chooseGameTutorialSlice(
+  BuildContext context,
+  GameTutorialSlice slice,
+) {
+  var minCost = roundThreshold(slice.parameters.minCost);
+  return showDialog<SkeletonParameters>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) {
+        final found = slice.countAt(minCost);
+        final parts = slice.partsAt(minCost);
+        final enough = found >= 2;
+        return AlertDialog(
+          title: const Text('What the engine found'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  key: const Key('game-tutorial-found'),
+                  found == 1
+                      ? '1 move cost ${minCost.toStringAsFixed(1)} pawns or more.'
+                      : '$found moves cost ${minCost.toStringAsFixed(1)} pawns '
+                          'or more.',
+                  style: AppText.bodyBold,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  // The cap is said whenever it bites, because „14 found" over
+                  // a tutorial of eight parts reads as a fault in the tutorial.
+                  found > parts
+                      ? 'The $parts worst become parts of the tutorial.'
+                      : found == 0
+                          ? 'Lower the threshold to find some.'
+                          : 'All of them become parts of the tutorial.',
+                  style: AppText.body.copyWith(color: ctx.colors.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text('Teach a move that cost ${minCost.toStringAsFixed(1)} '
+                    'pawns or more'),
+                Slider(
+                  key: const Key('game-tutorial-slice-threshold'),
+                  value: minCost,
+                  min: kGameTutorialMinThreshold,
+                  max: kGameTutorialMaxThreshold,
+                  divisions: 48,
+                  label: minCost.toStringAsFixed(1),
+                  onChanged: (value) =>
+                      setState(() => minCost = roundThreshold(value)),
+                ),
+                if (!enough)
+                  Text(
+                    key: const Key('game-tutorial-too-few'),
+                    'A tutorial needs at least two. Lower the threshold.',
+                    style: AppText.body.copyWith(color: ctx.colors.warning),
+                  ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Moving this costs no engine time — the search is done and '
+                  'its answers are kept. Only writing the words is paid for.',
+                  style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              key: const Key('game-tutorial-slice-cancel'),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('game-tutorial-slice-write'),
+              onPressed: enough
+                  ? () => Navigator.of(ctx)
+                      .pop(slice.parameters.withMinCost(minCost))
+                  : null,
+              child: const Text('Write the tutorial'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
 }
 
 /// The run, with its progress and a cancel. Pops a [GameTutorialResult] or a
@@ -117,6 +272,8 @@ class GameTutorialProgressDialog extends StatefulWidget {
     required this.uciMoves,
     required this.depth,
     required this.blackOrientation,
+    this.minCost = kGameTutorialDefaultThreshold,
+    this.chooseSlice,
   });
 
   final GameTutorialRunner runner;
@@ -128,6 +285,14 @@ class GameTutorialProgressDialog extends StatefulWidget {
   /// Which way round every part of the tutorial stands — the orientation the
   /// trainer has in Analysis, not the side to move.
   final bool blackOrientation;
+
+  /// What a move must cost to be taught, as the first dialog left it.
+  final double minCost;
+
+  /// Asked once the engine is done and before the words are paid for.
+  /// Injected so a test can answer it without a second dialog.
+  final Future<SkeletonParameters?> Function(
+      BuildContext context, GameTutorialSlice slice)? chooseSlice;
 
   @override
   State<GameTutorialProgressDialog> createState() =>
@@ -155,6 +320,12 @@ class _GameTutorialProgressDialogState
         uciMoves: widget.uciMoves,
         depth: widget.depth,
         blackOrientation: widget.blackOrientation,
+        parameters: const SkeletonParameters().withMinCost(widget.minCost),
+        chooseSlice: (slice) async {
+          if (!mounted) return null;
+          return (widget.chooseSlice ?? chooseGameTutorialSlice)(
+              context, slice);
+        },
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
         },
@@ -386,6 +557,9 @@ Future<void> makeTutorialFromGame(
   required String gameName,
   required bool blackOrientation,
   VoidCallback? onOpenEngineSettings,
+  Future<SkeletonParameters?> Function(
+          BuildContext context, GameTutorialSlice slice)?
+      chooseSlice,
   GameTutorialRunner Function()? runnerFor,
   Future<void> Function(BuildContext context, ImportedTutorial tutorial)?
       openInStudio,
@@ -402,8 +576,8 @@ Future<void> makeTutorialFromGame(
     return;
   }
 
-  final depth = await chooseGameTutorialDepth(context);
-  if (depth == null || !context.mounted) return;
+  final settings = await chooseGameTutorialDepth(context);
+  if (settings == null || !context.mounted) return;
 
   final runner = runnerFor?.call() ?? GameTutorialRunner(token: session.token);
   final outcome = await showDialog<Object>(
@@ -414,8 +588,10 @@ Future<void> makeTutorialFromGame(
       gameName: gameName,
       startFen: root.fen,
       uciMoves: uciMoves,
-      depth: depth,
+      depth: settings.depth,
+      minCost: settings.minCost,
       blackOrientation: blackOrientation,
+      chooseSlice: chooseSlice,
     ),
   );
   if (!context.mounted) return;
