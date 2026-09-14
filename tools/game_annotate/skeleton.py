@@ -390,8 +390,10 @@ def moments(name, cfg=None):
         change = material(board) - before
         facts[intro] = {'gain': max(0, change if not black else -change), 'mate': False,
                         'fork': False, 'pin': False, 'motifs': ''}
+        # Marked, not inferred from the slot ids: what follows this part is
+        # the game again, and the student has to be told so.
         parts.append({'kind': 'show', 'fen': row['fen'],
-                      'intro': intro, 'moves': moves})
+                      'intro': intro, 'moves': moves, 'sideline': True})
 
         # Every slot's facts carry the very text the model was shown beside it,
         # so a claim is judged against what it was allowed to say rather than
@@ -676,7 +678,9 @@ def assemble(run_dir, name, meta, answer_text, cfg=None):
         'language': 'en',
     }
     moments_only = [part for _, parts in blocks for part in parts]
-    _write(run_dir, 'tutorial.json', dict(head, positionList=_steps(moments_only, given)))
+    _write(run_dir, 'tutorial.json',
+           dict(head, positionList=_steps(moments_only,
+                                          _bridged(moments_only, given, {}))))
 
     parts, words, report['game'] = whole_game(name, blocks, given, cfg)
     _write(run_dir, 'tutorial-game.json',
@@ -724,6 +728,14 @@ GAME_TITLE = ' (whole game)'
 # exists to prevent. Chosen by how often the pool has been used in this
 # tutorial, never by ply: two slips three plies apart share `ply % 3`.
 LEXICON = {
+    # Said where the game picks up straight after a sideline and the move that
+    # carries it already has words of its own - a moment's lead-in, in either
+    # mode. Short, because it is a prefix and not the sentence.
+    'back_to_game': [
+        'Back to the game.',
+        'Now back to the game as it was played.',
+        'Returning to the moves of the game.',
+    ],
     'resumed': [
         'Back in the game, {mover} played {move} instead; afterwards {after}.',
         'Returning to the game, {mover} played {move} instead; afterwards {after}.',
@@ -828,6 +840,55 @@ def filler_words(rows, r, cfg, resumed, used):
     return ' '.join(said)
 
 
+def _first_text_key(part, words):
+    """The first slot of `part` the student actually reads words from.
+
+    A part is read introduction, then question, then move by move; an empty
+    slot is read as nothing at all, so it is skipped rather than written into.
+    """
+    keys = []
+    if part.get('intro'):
+        keys.append(part['intro'])
+    if part.get('instruction'):
+        keys.append(part['instruction'])
+    keys.extend(mv['slot'] for mv in (part.get('moves') or []))
+    for key in keys:
+        if (words.get(key) or '').strip():
+            return key
+    return keys[0] if keys else None
+
+
+def _bridged(parts, words, used):
+    """„Back to the game" wherever the game resumes straight after a sideline.
+
+    The answer part is a line that was **not** played, and the part after it is
+    the game again - a change of footing the student was never told about. In
+    whole-game mode the filler already says it (`resumed`), but only where a
+    filler exists: two mistakes close together leave none, because the second
+    moment's lead-in reaches back past the first, and then the game resumed
+    with no word at all. In key-moments mode there is no filler ever, so it was
+    missing at every join. The owner asked for it on 14.9.2026, having seen
+    both halves of one tutorial.
+
+    Written here rather than asked of the model, and rotated through three
+    wordings rather than fixed, because the same sentence three times in one
+    tutorial is what a reader stops seeing.
+
+    A part that already carries a `resumed` sentence is left alone: that
+    sentence says the same thing and says it with the move.
+    """
+    out = dict(words)
+    after_sideline = False
+    for part in parts:
+        if after_sideline and not part.get('sideline') and not part.get('resumed'):
+            key = _first_text_key(part, out)
+            if key:
+                said = (out.get(key) or '').strip()
+                out[key] = ('%s %s' % (_pick('back_to_game', used), said)).strip()
+        after_sideline = bool(part.get('sideline'))
+    return out
+
+
 def whole_game(name, blocks, given, cfg):
     """The chosen moments with every game move between them put back.
 
@@ -881,7 +942,7 @@ def whole_game(name, blocks, given, cfg):
         report['filler_moves'] += len(moves)
         report['filler_sentences'] += 1 if words.get(intro) else 0
         return {'kind': 'show', 'fen': rows[start]['fen'],
-                'intro': intro, 'moves': moves}
+                'intro': intro, 'moves': moves, 'resumed': start > 0}
 
     cursor = 0
     report['merged'] = 0
@@ -901,7 +962,8 @@ def whole_game(name, blocks, given, cfg):
             if joined:
                 words[last] = joined
             mparts = [dict(first, fen=filler['fen'], intro=filler['intro'],
-                           moves=filler['moves'] + first['moves'])] + mparts[1:]
+                           moves=filler['moves'] + first['moves'],
+                           resumed=filler['resumed'])] + mparts[1:]
             report['merged'] += 1
         elif filler:
             parts.append(filler)
@@ -912,6 +974,7 @@ def whole_game(name, blocks, given, cfg):
     if filler:
         parts.append(filler)
         report['filler_parts'] += 1
+    words = _bridged(parts, words, report['lexicon'])
     report['parts'] = len(parts)
     return parts, words, report
 

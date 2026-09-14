@@ -5115,7 +5115,8 @@
         "san": "Qd7",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5302,7 +5303,8 @@
         "san": "Nfxd4",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5489,7 +5491,8 @@
         "san": "h6",
         "slot": "m3.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5676,7 +5679,8 @@
         "san": "Qxb7",
         "slot": "m4.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5863,7 +5867,8 @@
         "san": "Qxb7",
         "slot": "m5.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6053,7 +6058,8 @@
         "san": "g5",
         "slot": "m6.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6243,7 +6249,8 @@
         "san": "Qxb7",
         "slot": "m7.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6433,7 +6440,8 @@
         "san": "Kg5",
         "slot": "m8.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7035,7 +7043,8 @@
     "filler_sentences": 6,
     "lexicon": {
      "resumed": 2,
-     "opponent_winning": 1
+     "opponent_winning": 1,
+     "back_to_game": 1
     },
     "merged": 2,
     "parts": 10
@@ -7074,7 +7083,7 @@
      "title": "Part 4",
      "fen": "rn2RB2/pp3p1p/6p1/5k2/2b1q3/2Q5/PP4PP/7K w - - 2 23",
      "kind": "show",
-     "pgn": "{ White to move, down material before this sequence. By the end of it White is ahead. }\n23. Rxe4\n{ White plays Rxe4, capturing the queen. The rook attacks the bishop on c4, which has no defender, and White is winning. }\n23... Kxe4\n{ Black plays Kxe4, capturing the rook. The pawn on a2 is now attacked and undefended, and White is winning. }\n24. Qxc4+\n{ White plays Qxc4+, capturing the bishop with check. The queen forks the king on e4 and the pawn on f7, and White is winning. }\n*"
+     "pgn": "{ Back to the game. White to move, down material before this sequence. By the end of it White is ahead. }\n23. Rxe4\n{ White plays Rxe4, capturing the queen. The rook attacks the bishop on c4, which has no defender, and White is winning. }\n23... Kxe4\n{ Black plays Kxe4, capturing the rook. The pawn on a2 is now attacked and undefended, and White is winning. }\n24. Qxc4+\n{ White plays Qxc4+, capturing the bishop with check. The queen forks the king on e4 and the pawn on f7, and White is winning. }\n*"
     },
     {
      "title": "Part 5",
@@ -7094,7 +7103,7 @@
      "title": "Part 7",
      "fen": "rn3B2/pp3p1p/6p1/8/2Q1k3/8/PP4PP/7K b - - 0 24",
      "kind": "show",
-     "pgn": "{ Before this sequence it is Black to move, and White is ahead in material. }\n24... Kf5\n{ Black plays the game move Kf5. The fork by the white queen on c4 is over, and White now has a forced mate. }\n25. Qc8+\n{ White plays Qc8+, giving check. The queen forks the king on f5 and the pawn on b7, and it pins the knight on b8 to the rook on a8. }\n25... Kg5\n{ Black plays the game move Kg5. The fork is over, the e-file beside the king is no longer open, and White has a forced mate. }\n*"
+     "pgn": "{ Now back to the game as it was played. Before this sequence it is Black to move, and White is ahead in material. }\n24... Kf5\n{ Black plays the game move Kf5. The fork by the white queen on c4 is over, and White now has a forced mate. }\n25. Qc8+\n{ White plays Qc8+, giving check. The queen forks the king on f5 and the pawn on b7, and it pins the knight on b8 to the rook on a8. }\n25... Kg5\n{ Black plays the game move Kg5. The fork is over, the e-file beside the king is no longer open, and White has a forced mate. }\n*"
     },
     {
      "title": "Part 8",
@@ -7168,7 +7177,7 @@
      "title": "Part 7",
      "fen": "rn3B2/pp3p1p/6p1/8/2Q1k3/8/PP4PP/7K b - - 0 24",
      "kind": "show",
-     "pgn": "{ Before this sequence it is Black to move, and White is ahead in material. }\n24... Kf5\n{ Black plays the game move Kf5. The fork by the white queen on c4 is over, and White now has a forced mate. }\n25. Qc8+\n{ White plays Qc8+, giving check. The queen forks the king on f5 and the pawn on b7, and it pins the knight on b8 to the rook on a8. }\n25... Kg5\n{ Black plays the game move Kg5. The fork is over, the e-file beside the king is no longer open, and White has a forced mate. }\n*"
+     "pgn": "{ Back to the game. Before this sequence it is Black to move, and White is ahead in material. }\n24... Kf5\n{ Black plays the game move Kf5. The fork by the white queen on c4 is over, and White now has a forced mate. }\n25. Qc8+\n{ White plays Qc8+, giving check. The queen forks the king on f5 and the pawn on b7, and it pins the knight on b8 to the rook on a8. }\n25... Kg5\n{ Black plays the game move Kg5. The fork is over, the e-file beside the king is no longer open, and White has a forced mate. }\n*"
     },
     {
      "title": "Part 8",

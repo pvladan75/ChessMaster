@@ -5799,7 +5799,8 @@
         "san": "Rf7",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5986,7 +5987,8 @@
         "san": "Ke6",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6286,7 +6288,7 @@
      "title": "Part 4",
      "fen": "8/pp5p/2p3p1/1nPk1p2/3P4/1N1K1P2/P5PP/8 b - - 5 31",
      "kind": "show",
-     "pgn": "{ Black is to move. Material is level before this sequence and stays level after it. }\n31... h6\n{ Black plays h6, the pawn from h7 to h6. The game is about even, and Black has no dark-squared bishop, so the dark squares are weak. }\n32. a4\n{ White plays a4, the pawn from a2 to a4. The pawn now attacks the knight on b5, a cheaper piece, and the game is about even. }\n32... Nc7\n{ Black plays Nc7, the knight from b5 to c7. The game is about even, and the knight on b5 is no longer hanging. }\n*"
+     "pgn": "{ Back to the game. Black is to move. Material is level before this sequence and stays level after it. }\n31... h6\n{ Black plays h6, the pawn from h7 to h6. The game is about even, and Black has no dark-squared bishop, so the dark squares are weak. }\n32. a4\n{ White plays a4, the pawn from a2 to a4. The pawn now attacks the knight on b5, a cheaper piece, and the game is about even. }\n32... Nc7\n{ Black plays Nc7, the knight from b5 to c7. The game is about even, and the knight on b5 is no longer hanging. }\n*"
     },
     {
      "title": "Part 5",

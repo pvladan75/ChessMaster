@@ -363,7 +363,7 @@
        "title": "Part 4",
        "fen": "rnb2rk1/4q3/2pbp1PB/3n1p1P/pp1P4/P7/NPP1QP2/2K1RB1R w - - 0 21",
        "kind": "show",
-       "pgn": "{ White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
+       "pgn": "{ Back to the game. White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
       },
       {
        "title": "Part 5",
@@ -383,7 +383,7 @@
        "title": "Part 7",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/p2P4/p7/NPP1QP2/2K1RB1R w - - 0 23",
        "kind": "show",
-       "pgn": "{ White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+       "pgn": "{ Now back to the game as it was played. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
       },
       {
        "title": "Part 8",
@@ -554,7 +554,7 @@
        "title": "Part 4",
        "fen": "rnb2rk1/4q3/2pbp1PB/3n1p1P/pp1P4/P7/NPP1QP2/2K1RB1R w - - 0 21",
        "kind": "show",
-       "pgn": "{ White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
+       "pgn": "{ Back to the game. White to move. White is a pawn down here; by the end of this sequence White is a pawn up. }\n21. Bxf8\n{ White plays Bxf8, taking a rook and skewering the queen on e7 to the bishop on d6. The bishop has no defender. }\n21... Qxf8\n{ Black plays Qxf8, taking the bishop. The queen is no longer hanging or skewered, and Black has the bishop pair. }\n22. h6\n{ White plays h6, pushing the pawn from h5 to h6; White is clearly better. } *"
       },
       {
        "title": "Part 5",
@@ -574,7 +574,7 @@
        "title": "Part 7",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/p2P4/p7/NPP1QP2/2K1RB1R w - - 0 23",
        "kind": "show",
-       "pgn": "{ White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+       "pgn": "{ Now back to the game as it was played. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
       },
       {
        "title": "Part 8",

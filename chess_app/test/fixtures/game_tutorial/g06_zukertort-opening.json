@@ -4699,7 +4699,8 @@
         "san": "Bxb2",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -4886,7 +4887,8 @@
         "san": "e3",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5076,7 +5078,8 @@
         "san": "Kg8",
         "slot": "m3.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5263,7 +5266,8 @@
         "san": "Nxe5",
         "slot": "m4.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5450,7 +5454,8 @@
         "san": "Kg8",
         "slot": "m5.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5637,7 +5642,8 @@
         "san": "Qxe2",
         "slot": "m6.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5824,7 +5830,8 @@
         "san": "Rf8",
         "slot": "m7.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6014,7 +6021,8 @@
         "san": "Rb7",
         "slot": "m8.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6653,7 +6661,7 @@
      "title": "Part 4",
      "fen": "1r1r4/2q3kp/2n1p1p1/p1p1P3/2ppQ3/PP3NP1/4PPK1/1R5R b - - 1 24",
      "kind": "show",
-     "pgn": "{ Begin here with Black to move; White is a pawn down and stays a pawn down through the next few moves. }\n24... Rf8\n{ Black swings the rook to the f-file, where it attacks the knight on f3. White stands clearly better. }\n25. Qh4\n{ White's queen goes to h4, but the pawn on e5 is now attacked twice and defended only once. Black is slightly better. }\n25... Kh8\n{ Black tucks the king away. Now the white pawn on b3 is attacked twice and defended only once. }\n*"
+     "pgn": "{ Back to the game. Begin here with Black to move; White is a pawn down and stays a pawn down through the next few moves. }\n24... Rf8\n{ Black swings the rook to the f-file, where it attacks the knight on f3. White stands clearly better. }\n25. Qh4\n{ White's queen goes to h4, but the pawn on e5 is now attacked twice and defended only once. Black is slightly better. }\n25... Kh8\n{ Black tucks the king away. Now the white pawn on b3 is attacked twice and defended only once. }\n*"
     },
     {
      "title": "Part 5",
@@ -6673,7 +6681,7 @@
      "title": "Part 7",
      "fen": "5r1k/5q1p/2n1p1p1/p1p1P1Q1/2Pp4/P4NP1/4PPK1/1r5R w - - 0 28",
      "kind": "show",
-     "pgn": "{ White is well behind in material here; these moves bring it back to level. White is to move. }\n28. Rxb1\n{ White's rook takes the rook on b1 and now stands on an open file. The balance is level again. }\n28... Qf5\n{ Black's queen leaps out, hitting the rook, the knight and the queen at once. Notice the knight on f3 alone defending two pieces. }\n29. Qh6\n{ White's queen goes to h6 and attacks the rook on f8. The black queen is now overloaded, defending both it and the pawn on g6. }\n*"
+     "pgn": "{ Now back to the game as it was played. White is well behind in material here; these moves bring it back to level. White is to move. }\n28. Rxb1\n{ White's rook takes the rook on b1 and now stands on an open file. The balance is level again. }\n28... Qf5\n{ Black's queen leaps out, hitting the rook, the knight and the queen at once. Notice the knight on f3 alone defending two pieces. }\n29. Qh6\n{ White's queen goes to h6 and attacks the rook on f8. The black queen is now overloaded, defending both it and the pawn on g6. }\n*"
     },
     {
      "title": "Part 8",

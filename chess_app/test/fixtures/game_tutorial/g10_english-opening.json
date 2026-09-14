@@ -5216,7 +5216,8 @@
         "san": "Qd5",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5403,7 +5404,8 @@
         "san": "Rb1",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5593,7 +5595,8 @@
         "san": "Qc4",
         "slot": "m3.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5780,7 +5783,8 @@
         "san": "Kh5",
         "slot": "m4.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5967,7 +5971,8 @@
         "san": "Qa4",
         "slot": "m5.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6154,7 +6159,8 @@
         "san": "Qb2",
         "slot": "m6.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6341,7 +6347,8 @@
         "san": "Nc3",
         "slot": "m7.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6528,7 +6535,8 @@
         "san": "Kf5",
         "slot": "m8.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7136,7 +7144,8 @@
      "opponent_better": 1,
      "opponent_winning": 2,
      "resumed": 2,
-     "misses_mate": 1
+     "misses_mate": 1,
+     "back_to_game": 1
     },
     "merged": 2,
     "parts": 10
@@ -7178,7 +7187,7 @@
      "title": "Part 4",
      "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
      "kind": "show",
-     "pgn": "27... Kh6\n{ Black plays Kh6, moving the king from g7; White is winning. The black king on g7 is no longer skewered. }\n*"
+     "pgn": "27... Kh6\n{ Back to the game. Black plays Kh6, moving the king from g7; White is winning. The black king on g7 is no longer skewered. }\n*"
     },
     {
      "title": "Part 5",
@@ -7198,7 +7207,7 @@
      "title": "Part 7",
      "fen": "8/Q6p/3n1ppk/4p3/N7/1q1PP2P/r4PP1/2R3K1 w - - 0 29",
      "kind": "show",
-     "pgn": "{ The position before this sequence. White is to move, and material favours White. }\n29. Rc7\n{ White plays Rc7, moving the rook from c1 to c7. The position is about even. }\n29... Qb1+\n{ Black plays Qb1+, giving check; the position is about even. The queen forks the white king on g1 and the pawn on d3. }\n30. Kh2\n{ White plays Kh2; the position is about even. The pawn on f2 is attacked by the rook on a2 and has no defender, and the fork is over. }\n*"
+     "pgn": "{ Now back to the game as it was played. The position before this sequence. White is to move, and material favours White. }\n29. Rc7\n{ White plays Rc7, moving the rook from c1 to c7. The position is about even. }\n29... Qb1+\n{ Black plays Qb1+, giving check; the position is about even. The queen forks the white king on g1 and the pawn on d3. }\n30. Kh2\n{ White plays Kh2; the position is about even. The pawn on f2 is attacked by the rook on a2 and has no defender, and the fork is over. }\n*"
     },
     {
      "title": "Part 8",
@@ -7252,7 +7261,7 @@
      "title": "Part 4",
      "fen": "8/Q5kp/3n1pp1/4p3/Nq6/1P1PP2P/r4PP1/5RK1 b - - 0 27",
      "kind": "show",
-     "pgn": "27... Kh6\n{ Black plays Kh6, moving the king from g7; White is winning. The black king on g7 is no longer skewered. }\n*"
+     "pgn": "27... Kh6\n{ Back to the game. Black plays Kh6, moving the king from g7; White is winning. The black king on g7 is no longer skewered. }\n*"
     },
     {
      "title": "Part 5",

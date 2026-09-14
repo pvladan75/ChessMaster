@@ -293,11 +293,14 @@ List<Map<String, dynamic>> skeletonMoments(
       'pin': false,
       'motifs': '',
     };
+    // Marked, not inferred from the slot ids: what follows this part is the
+    // game again, and the student has to be told so.
     parts.add({
       'kind': 'show',
       'fen': row['fen'],
       'intro': intro,
       'moves': moves,
+      'sideline': true,
     });
 
     for (final entry in slots.entries) {

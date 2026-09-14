@@ -6414,7 +6414,8 @@
         "san": "h4",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6601,7 +6602,8 @@
         "san": "Qg6",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6791,7 +6793,8 @@
         "san": "Qh3",
         "slot": "m3.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6978,7 +6981,8 @@
         "san": "Rxg2",
         "slot": "m4.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7165,7 +7169,8 @@
         "san": "Rd8",
         "slot": "m5.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7352,7 +7357,8 @@
         "san": "Qxb7+",
         "slot": "m6.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7539,7 +7545,8 @@
         "san": "Rxe1",
         "slot": "m7.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7731,7 +7738,8 @@
         "san": "Rxe1",
         "slot": "m8.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8343,7 +8351,8 @@
      "advantage_gone": 2,
      "opponent_winning": 2,
      "resumed": 2,
-     "misses_mate": 2
+     "misses_mate": 2,
+     "back_to_game": 1
     },
     "merged": 2,
     "parts": 10
@@ -8385,7 +8394,7 @@
      "title": "Part 4",
      "fen": "1k2r1r1/ppp5/8/4p2p/1PQ1bp1q/3P1P2/P1P3P1/3RR1K1 w - - 0 29",
      "kind": "show",
-     "pgn": "29. Qxe4\n{ White plays Qxe4, capturing the bishop. The white queen pins the f4 pawn to the queen on h4, and Black mates in 5. }\n*"
+     "pgn": "29. Qxe4\n{ Back to the game. White plays Qxe4, capturing the bishop. The white queen pins the f4 pawn to the queen on h4, and Black mates in 5. }\n*"
     },
     {
      "title": "Part 5",
@@ -8405,7 +8414,7 @@
      "title": "Part 7",
      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/2R2KR1/2q5 b - - 4 37",
      "kind": "show",
-     "pgn": "{ Before these moves Black is to move. Material is level before and after them. }\n37... Qd1\n{ Black plays Qd1, attacking the rook on c2 and skewering it to the pawn on a4. The queen stands on the half-open d-file. }\n38. Rd2\n{ White plays Rd2, attacking the queen on d1. The black queen has no defender and forks the rook on d2 and the pawn on a4. }\n38... Qa1 { Black plays Qa1. Afterwards Black is winning. } *"
+     "pgn": "{ Now back to the game as it was played. Before these moves Black is to move. Material is level before and after them. }\n37... Qd1\n{ Black plays Qd1, attacking the rook on c2 and skewering it to the pawn on a4. The queen stands on the half-open d-file. }\n38. Rd2\n{ White plays Rd2, attacking the queen on d1. The black queen has no defender and forks the rook on d2 and the pawn on a4. }\n38... Qa1 { Black plays Qa1. Afterwards Black is winning. } *"
     },
     {
      "title": "Part 8",
@@ -8463,7 +8472,7 @@
      "title": "Part 4",
      "fen": "1k2r1r1/ppp5/8/4p2p/1PQ1bp1q/3P1P2/P1P3P1/3RR1K1 w - - 0 29",
      "kind": "show",
-     "pgn": "29. Qxe4\n{ White plays Qxe4, capturing the bishop. The white queen pins the f4 pawn to the queen on h4, and Black mates in 5. }\n*"
+     "pgn": "29. Qxe4\n{ Back to the game. White plays Qxe4, capturing the bishop. The white queen pins the f4 pawn to the queen on h4, and Black mates in 5. }\n*"
     },
     {
      "title": "Part 5",

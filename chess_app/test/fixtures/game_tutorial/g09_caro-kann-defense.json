@@ -7613,7 +7613,8 @@
         "san": "fxe4",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7800,7 +7801,8 @@
         "san": "Nd5",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7987,7 +7989,8 @@
         "san": "Ra6",
         "slot": "m3.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8179,7 +8182,8 @@
         "san": "Ra3",
         "slot": "m4.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8369,7 +8373,8 @@
         "san": "Rxb6",
         "slot": "m5.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8556,7 +8561,8 @@
         "san": "Rxf3",
         "slot": "m6.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8743,7 +8749,8 @@
         "san": "Ke1",
         "slot": "m7.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8930,7 +8937,8 @@
         "san": "h5",
         "slot": "m8.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -9543,7 +9551,8 @@
      "resumed": 2,
      "opponent_winning": 4,
      "advantage_gone": 2,
-     "opponent_better": 1
+     "opponent_better": 1,
+     "back_to_game": 1
     },
     "merged": 2,
     "parts": 10
@@ -9582,7 +9591,7 @@
      "title": "Part 4",
      "fen": "r2r2k1/pq2bppp/1p2pn2/n7/3PN3/P2QBP2/1P3P1P/1BR2RK1 b - - 6 17",
      "kind": "show",
-     "pgn": "17... g6\n{ Black plays g6, moving the pawn from g7 to g6. White is clearly better, and Black's light squares are no longer weak. }\n*"
+     "pgn": "17... g6\n{ Back to the game. Black plays g6, moving the pawn from g7 to g6. White is clearly better, and Black's light squares are no longer weak. }\n*"
     },
     {
      "title": "Part 5",
@@ -9602,7 +9611,7 @@
      "title": "Part 7",
      "fen": "1R6/5k2/5p1p/1P4p1/5p2/5P1P/1r6/6K1 b - - 0 46",
      "kind": "show",
-     "pgn": "{ Board before these moves; Black to move. Black is a pawn ahead. } 46... Kg7\n{ Black plays Kg7: the king from f7 to g7. Black is winning, and the e-file beside the king is no longer open. }\n47. b6\n{ White plays b6: the pawn from b5 to b6. Black is winning, and White's dark squares are no longer weak. }\n47... Rb3\n{ Black plays Rb3: the rook from b2 to b3. The white pawn on f3 is attacked and has no defender; Black is slightly better. }\n*"
+     "pgn": "{ Now back to the game as it was played. Board before these moves; Black to move. Black is a pawn ahead. }\n46... Kg7\n{ Black plays Kg7: the king from f7 to g7. Black is winning, and the e-file beside the king is no longer open. }\n47. b6\n{ White plays b6: the pawn from b5 to b6. Black is winning, and White's dark squares are no longer weak. }\n47... Rb3\n{ Black plays Rb3: the rook from b2 to b3. The white pawn on f3 is attacked and has no defender; Black is slightly better. }\n*"
     },
     {
      "title": "Part 8",
@@ -9653,7 +9662,7 @@
      "title": "Part 4",
      "fen": "r2r2k1/pq2bppp/1p2pn2/n7/3PN3/P2QBP2/1P3P1P/1BR2RK1 b - - 6 17",
      "kind": "show",
-     "pgn": "17... g6\n{ Black plays g6, moving the pawn from g7 to g6. White is clearly better, and Black's light squares are no longer weak. }\n*"
+     "pgn": "17... g6\n{ Back to the game. Black plays g6, moving the pawn from g7 to g6. White is clearly better, and Black's light squares are no longer weak. }\n*"
     },
     {
      "title": "Part 5",

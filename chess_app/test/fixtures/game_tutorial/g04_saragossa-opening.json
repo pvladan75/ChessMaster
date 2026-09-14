@@ -4831,7 +4831,8 @@
         "san": "Nc4",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5018,7 +5019,8 @@
         "san": "Qc6",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5205,7 +5207,8 @@
         "san": "Qxg4",
         "slot": "m3.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5395,7 +5398,8 @@
         "san": "Qb3",
         "slot": "m4.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -5582,7 +5586,8 @@
         "san": "Bd6",
         "slot": "m5.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -6052,7 +6057,7 @@
      "title": "Part 4",
      "fen": "2k3rr/pppqnp2/3bbp2/4p3/3PP3/3PNB1P/PPQ2P2/R3K1NR b KQ - 0 15",
      "kind": "show",
-     "pgn": "{ Black to move. Material starts with White a pawn up and ends with Black three pawns up. }\n15... exd4\n{ Black plays exd4, e5 to d4, capturing a pawn and attacking the e3 knight; the game move. Afterwards Black is clearly better. }\n16. Ng4\n{ White plays Ng4, e3 to g4; the game move, after which Black is clearly better. The knight attacks the undefended f6 pawn. }\n16... Bxg4\n{ Black plays Bxg4, e6 to g4, capturing a knight; the game move. Afterwards Black is clearly better. g4 bishop is attacked by the h3 pawn. }\n*"
+     "pgn": "{ Back to the game. Black to move. Material starts with White a pawn up and ends with Black three pawns up. }\n15... exd4\n{ Black plays exd4, e5 to d4, capturing a pawn and attacking the e3 knight; the game move. Afterwards Black is clearly better. }\n16. Ng4\n{ White plays Ng4, e3 to g4; the game move, after which Black is clearly better. The knight attacks the undefended f6 pawn. }\n16... Bxg4\n{ Black plays Bxg4, e6 to g4, capturing a knight; the game move. Afterwards Black is clearly better. g4 bishop is attacked by the h3 pawn. }\n*"
     },
     {
      "title": "Part 5",
@@ -6072,7 +6077,7 @@
      "title": "Part 7",
      "fen": "2k4Q/ppp2p2/5p2/4b3/3pP3/3P1q2/PPK5/2N2n2 b - - 9 28",
      "kind": "show",
-     "pgn": "{ Black to move. Material is Black up five pawns before and after this sequence. }\n28... Kd7\n{ Black plays Kd7, the king from c8 to d7; the game move. Afterwards Black is winning. }\n29. Qf8\n{ White plays Qf8, h8 to f8, the game move. Afterwards Black is winning; the queen attacks the undefended f7 pawn on the half-open f-file. }\n29... Ne3+\n{ Black plays Ne3+, f1 to e3, giving check; the game move. Afterwards Black is winning. The e3 knight stands on an outpost. }\n*"
+     "pgn": "{ Now back to the game as it was played. Black to move. Material is Black up five pawns before and after this sequence. }\n28... Kd7\n{ Black plays Kd7, the king from c8 to d7; the game move. Afterwards Black is winning. }\n29. Qf8\n{ White plays Qf8, h8 to f8, the game move. Afterwards Black is winning; the queen attacks the undefended f7 pawn on the half-open f-file. }\n29... Ne3+\n{ Black plays Ne3+, f1 to e3, giving check; the game move. Afterwards Black is winning. The e3 knight stands on an outpost. }\n*"
     },
     {
      "title": "Part 8",

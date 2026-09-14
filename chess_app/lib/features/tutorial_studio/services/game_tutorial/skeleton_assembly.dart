@@ -10,6 +10,14 @@ import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skelet
 const String kGameTitle = ' (whole game)';
 
 const Map<String, List<String>> kLexicon = {
+  // Said where the game picks up straight after a sideline and the move that
+  // carries it already has words of its own — a moment's lead-in, in either
+  // mode. Short, because it is a prefix and not the sentence.
+  'back_to_game': [
+    'Back to the game.',
+    'Now back to the game as it was played.',
+    'Returning to the moves of the game.',
+  ],
   'resumed': [
     'Back in the game, {mover} played {move} instead; afterwards {after}.',
     'Returning to the game, {mover} played {move} instead; afterwards {after}.',
@@ -317,6 +325,61 @@ List<Map<String, dynamic>> stepsFor(
   return steps;
 }
 
+/// The first slot of [part] the student actually reads words from.
+///
+/// A part is read introduction, then question, then move by move; an empty slot
+/// is read as nothing at all, so it is skipped rather than written into.
+String? firstTextKey(Map<String, dynamic> part, Map<String, dynamic> words) {
+  final keys = <String>[
+    if (part['intro'] != null) part['intro'] as String,
+    if (part['instruction'] != null) part['instruction'] as String,
+    for (final mv in (part['moves'] as List? ?? const []))
+      (mv as Map)['slot'] as String,
+  ];
+  for (final key in keys) {
+    if ((words[key] as String? ?? '').trim().isNotEmpty) return key;
+  }
+  return keys.isEmpty ? null : keys.first;
+}
+
+/// „Back to the game" wherever the game resumes straight after a sideline.
+///
+/// The answer part is a line that was **not** played, and the part after it is
+/// the game again — a change of footing the student was never told about. In
+/// whole-game mode the filler already says it (`resumed`), but only where a
+/// filler exists: two mistakes close together leave none, because the second
+/// moment's lead-in reaches back past the first, and then the game resumed with
+/// no word at all. In key-moments mode there is no filler ever, so it was
+/// missing at every join. The owner asked for it on 14.9.2026, having seen both
+/// halves of one tutorial; measured over the ten harness games, whole-game mode
+/// was short one bridge in four of them and key-moments mode had none in any.
+///
+/// Written here rather than asked of the model, and rotated through three
+/// wordings rather than fixed, because the same sentence three times in one
+/// tutorial is what a reader stops seeing.
+///
+/// A part that already carries a `resumed` sentence is left alone: that
+/// sentence says the same thing and says it with the move.
+Map<String, dynamic> bridged(
+  List<Map<String, dynamic>> parts,
+  Map<String, dynamic> words,
+  Map<String, int> used,
+) {
+  final out = Map<String, dynamic>.of(words);
+  var afterSideline = false;
+  for (final part in parts) {
+    if (afterSideline && part['sideline'] != true && part['resumed'] != true) {
+      final key = firstTextKey(part, out);
+      if (key != null) {
+        final said = (out[key] as String? ?? '').trim();
+        out[key] = '${pickLexicon('back_to_game', used)} $said'.trim();
+      }
+    }
+    afterSideline = part['sideline'] == true;
+  }
+  return out;
+}
+
 (List<Map<String, dynamic>>, Map<String, dynamic>, Map<String, dynamic>)
     wholeGame(
   List<Map<String, dynamic>> rows,
@@ -392,6 +455,7 @@ List<Map<String, dynamic>> stepsFor(
       'fen': rows[start]['fen'],
       'intro': intro,
       'moves': moves,
+      'resumed': start > 0,
     };
   }
 
@@ -422,6 +486,7 @@ List<Map<String, dynamic>> stepsFor(
         'fen': filler['fen'],
         'intro': filler['intro'],
         'moves': [...fillerMovesList, ...firstMoves],
+        'resumed': filler['resumed'],
       };
       workingParts = [newFirst, ...workingParts.sublist(1)];
       merged++;
@@ -439,6 +504,8 @@ List<Map<String, dynamic>> stepsFor(
     fillerParts++;
   }
 
+  final bridgedWords = bridged(parts, words, lexiconUsed);
+
   final reportGame = <String, dynamic>{
     'filler_parts': fillerParts,
     'filler_moves': fillerMoves,
@@ -448,7 +515,7 @@ List<Map<String, dynamic>> stepsFor(
     'parts': parts.length,
   };
 
-  return (parts, words, reportGame);
+  return (parts, bridgedWords, reportGame);
 }
 
 SkeletonAssembly assembleSkeleton(
@@ -593,7 +660,7 @@ SkeletonAssembly assembleSkeleton(
   final momentsOnly = [for (final (_, parts) in blocks) ...parts];
   final tutorial = <String, dynamic>{
     ...head,
-    'positionList': stepsFor(momentsOnly, given),
+    'positionList': stepsFor(momentsOnly, bridged(momentsOnly, given, {})),
   };
 
   final rows = (facts['rows'] as List).cast<Map<String, dynamic>>();

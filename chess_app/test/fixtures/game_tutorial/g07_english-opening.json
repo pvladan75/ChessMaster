@@ -6942,7 +6942,8 @@
         "san": "Bf7",
         "slot": "m1.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7129,7 +7130,8 @@
         "san": "Qxc3",
         "slot": "m2.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7316,7 +7318,8 @@
         "san": "Qd8",
         "slot": "m3.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7503,7 +7506,8 @@
         "san": "Bg2",
         "slot": "m4.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7690,7 +7694,8 @@
         "san": "Bd5",
         "slot": "m5.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -7877,7 +7882,8 @@
         "san": "Bf3",
         "slot": "m6.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8064,7 +8070,8 @@
         "san": "Rf1",
         "slot": "m7.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8254,7 +8261,8 @@
         "san": "Bg3+",
         "slot": "m8.answer.4"
        }
-      ]
+      ],
+      "sideline": true
      }
     ],
     "slots": {
@@ -8896,7 +8904,7 @@
      "title": "Part 4",
      "fen": "3r1rk1/3q2pp/p3b3/1pB1pp2/8/P1NP1BP1/1P2PRKP/3Q4 b - - 2 24",
      "kind": "show",
-     "pgn": "{ Black to move. Material is unchanged: White is a pawn up. } 24... Rf6\n{ Black plays Rf6, moving the rook from f8 to f6. White is clearly better, and the rook on f8 is no longer hanging. }\n25. b4\n{ White plays b4, pushing the pawn from b2 to b4. White is slightly better; the pawns on a3 and a6 are backward. }\n25... e4\n{ Black plays e4, pushing the pawn from e5 to e4. It attacks the bishop on f3, a cheaper piece, and Black's dark squares are weak. }\n*"
+     "pgn": "{ Back to the game. Black to move. Material is unchanged: White is a pawn up. }\n24... Rf6\n{ Black plays Rf6, moving the rook from f8 to f6. White is clearly better, and the rook on f8 is no longer hanging. }\n25. b4\n{ White plays b4, pushing the pawn from b2 to b4. White is slightly better; the pawns on a3 and a6 are backward. }\n25... e4\n{ Black plays e4, pushing the pawn from e5 to e4. It attacks the bishop on f3, a cheaper piece, and Black's dark squares are weak. }\n*"
     },
     {
      "title": "Part 5",
@@ -8916,7 +8924,7 @@
      "title": "Part 7",
      "fen": "6k1/6pp/p3br2/1pB2p2/1P2P3/P4BP1/4PRKP/3r4 w - - 0 28",
      "kind": "show",
-     "pgn": "{ White to move. Material is unchanged: Black is a pawn up. } 28. exf5\n{ White plays exf5, capturing a pawn with the pawn from e4 to f5. The pawn on f5 attacks the bishop on e6, a cheaper piece. }\n28... Rxf5\n{ Black plays Rxf5, capturing a pawn with the rook from f6 to f5. The rook attacks the bishops on f3 and c5, and the white e2 pawn is isolated. }\n29. e4\n{ White plays e4, pushing the pawn from e2 to e4. It attacks the rook on f5, and the move uncovers an attack by the bishop on f3 on the rook on d1. }\n*"
+     "pgn": "{ Now back to the game as it was played. White to move. Material is unchanged: Black is a pawn up. }\n28. exf5\n{ White plays exf5, capturing a pawn with the pawn from e4 to f5. The pawn on f5 attacks the bishop on e6, a cheaper piece. }\n28... Rxf5\n{ Black plays Rxf5, capturing a pawn with the rook from f6 to f5. The rook attacks the bishops on f3 and c5, and the white e2 pawn is isolated. }\n29. e4\n{ White plays e4, pushing the pawn from e2 to e4. It attacks the rook on f5, and the move uncovers an attack by the bishop on f3 on the rook on d1. }\n*"
     },
     {
      "title": "Part 8",

@@ -2666,7 +2666,7 @@
      "title": "Part 4",
      "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
      "kind": "show",
-     "pgn": "13... Rdg8 *"
+     "pgn": "13... Rdg8 { Back to the game. } *"
     },
     {
      "title": "Part 5",
@@ -2716,7 +2716,7 @@
      "title": "Part 4",
      "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
      "kind": "show",
-     "pgn": "13... Rdg8 *"
+     "pgn": "13... Rdg8 { Back to the game. } *"
     },
     {
      "title": "Part 5",
@@ -2786,7 +2786,8 @@
     "filler_sentences": 5,
     "lexicon": {
      "resumed": 1,
-     "opponent_winning": 1
+     "opponent_winning": 1,
+     "back_to_game": 1
     },
     "merged": 1,
     "parts": 7
@@ -5705,7 +5706,8 @@
        "san": "Be3",
        "slot": "m1.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -5888,7 +5890,8 @@
        "san": "Nb5",
        "slot": "m2.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -6061,7 +6064,8 @@
        "san": "Qe3",
        "slot": "m3.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -6248,7 +6252,8 @@
        "san": "Kxg7",
        "slot": "m4.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -6435,7 +6440,8 @@
        "san": "g7",
        "slot": "m5.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -6622,7 +6628,8 @@
        "san": "Bc4",
        "slot": "m6.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -11279,7 +11286,8 @@
        "san": "fxe4",
        "slot": "m1.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -11466,7 +11474,8 @@
        "san": "Nd5",
        "slot": "m2.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -11653,7 +11662,8 @@
        "san": "Ra6",
        "slot": "m3.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -11845,7 +11855,8 @@
        "san": "Ra3",
        "slot": "m4.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -12035,7 +12046,8 @@
        "san": "Rxb6",
        "slot": "m5.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -12222,7 +12234,8 @@
        "san": "Rxf3",
        "slot": "m6.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -12409,7 +12422,8 @@
        "san": "Ke1",
        "slot": "m7.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
@@ -12596,7 +12610,8 @@
        "san": "h5",
        "slot": "m8.answer.4"
       }
-     ]
+     ],
+     "sideline": true
     }
    ],
    "slots": {
