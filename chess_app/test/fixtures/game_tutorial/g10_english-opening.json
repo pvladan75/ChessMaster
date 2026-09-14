@@ -7,7 +7,8 @@
   "max_correct": 3,
   "max_moments": 8,
   "lead_plies": 3,
-  "answer_plies": 4
+  "answer_plies": 4,
+  "max_answer_plies": 8
  },
  "facts": {
   "game": "g10_english-opening",
@@ -7133,7 +7134,8 @@
     "max_correct": 3,
     "max_moments": 8,
     "lead_plies": 3,
-    "answer_plies": 4
+    "answer_plies": 4,
+    "max_answer_plies": 8
    },
    "facts": "g10_english-opening d18 mpv4 2026-09-13T20:41:07",
    "problems": [],

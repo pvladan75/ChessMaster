@@ -56,6 +56,7 @@ DEFAULTS = {
     'max_moments': 8,      # candidates offered to the model
     'lead_plies': 3,       # game moves shown before a moment
     'answer_plies': 4,     # moves of the best line shown as the answer
+    'max_answer_plies': 8,  # ...and the most it is extended to, mid-sacrifice
 }
 
 VALUE = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5,
@@ -267,6 +268,43 @@ def book_words(row):
     return said
 
 
+def answer_ply_count(fen, mover, line, cfg):
+    """How many plies of `line` the answer part shows.
+
+    `answer_plies` normally, but **never ending while the side that played it is
+    still down material**. The owner found why on 14.9.2026, on „Punish, Count,
+    Retreat": a line cut at four plies ended on a position where White was
+    better with no visible reason, because the piece had been given and the
+    point of giving it was the move after the cut.
+
+    Measured over the ten fixture games before it was written: 16 of 69 answer
+    parts ended with the mover down material, so it is about one in four rather
+    than a corner case. On g01 `g7 Qe8 h7+ Kxg7 h8=R Qxh8` runs 0, 0, 0, -1,
+    +3, -2 - cut at four it stops on „a pawn down", and one ply further it
+    stops on the promotion, which is the whole idea of the line.
+
+    Bounded by `max_answer_plies` rather than by the line, because the stored
+    line is six plies today and this must not become „show the whole engine PV"
+    the day that changes.
+    """
+    if not line:
+        return 0
+    board = chess.Board(fen)
+    sign = 1 if mover == 'White' else -1
+    start = sign * material(board)
+    after = []
+    for san in line:
+        board.push_san(san)
+        after.append(sign * material(board))
+    cap = min(cfg['max_answer_plies'], len(after))
+    cut = min(cfg['answer_plies'], cap)
+    if cut == 0:
+        return 0
+    while cut < cap and after[cut - 1] < start:
+        cut += 1
+    return cut
+
+
 def moments(name, cfg=None):
     """The candidate moments of a game, each with its parts and its slots."""
     cfg = dict(DEFAULTS, **(cfg or {}))
@@ -351,7 +389,9 @@ def moments(name, cfg=None):
         board = chess.Board(row['fen'])
         before = material(board)
         moves = []
-        for k, san in enumerate(best['line'].split()[:cfg['answer_plies']], 1):
+        line_sans = best['line'].split()
+        shown = answer_ply_count(row['fen'], mover, line_sans, cfg)
+        for k, san in enumerate(line_sans[:shown], 1):
             sid = '%s.answer.%d' % (mid, k)
             info = play(board, san,
                         verb='should have played' if k == 1

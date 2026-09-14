@@ -7,7 +7,8 @@
   "max_correct": 3,
   "max_moments": 8,
   "lead_plies": 3,
-  "answer_plies": 4
+  "answer_plies": 4,
+  "max_answer_plies": 8
  },
  "facts": {
   "game": "g08_nimzowitsch-defense",
@@ -6236,7 +6237,8 @@
     "max_correct": 3,
     "max_moments": 8,
     "lead_plies": 3,
-    "answer_plies": 4
+    "answer_plies": 4,
+    "max_answer_plies": 8
    },
    "facts": "g08_nimzowitsch-defense d18 mpv4 2026-09-13T20:34:48",
    "problems": [],

@@ -135,6 +135,53 @@ int mistakeCount(Map<String, dynamic> facts, double minCost) => heavyIndices(
       minCost,
     ).length;
 
+/// How many plies of [line] the answer part shows.
+///
+/// [SkeletonParameters.answerPlies] normally, but **never ending while the side
+/// that played it is still down material**. The owner found why on 14.9.2026,
+/// on „Punish, Count, Retreat": a line cut at four plies ended on a position
+/// where White was better with no visible reason, because the piece had been
+/// given and the point of giving it was the move after the cut.
+///
+/// Measured over the ten fixture games before it was written: 16 of 69 answer
+/// parts ended with the mover down material, so it is about one in four rather
+/// than a corner case, and the rule brings that to 7. On g01 the line
+/// `g7 Qe8 h7+ Kxg7 h8=R Qxh8` runs 0, 0, 0, −1, +3, −2 — cut at four it stops
+/// on „a pawn down", and one ply further it stops on the promotion, which is
+/// the whole idea of the line. The seven that remain are lines whose
+/// compensation is not material at all, and they run to the end of what is
+/// stored.
+///
+/// Bounded by [SkeletonParameters.maxAnswerPlies] rather than by the line,
+/// because the stored line is six plies today and this must not become „show
+/// the whole engine PV" the day that changes.
+int answerPlyCount(String fen, String mover, List<String> line,
+    SkeletonParameters parameters) {
+  if (line.isEmpty) return 0;
+  final board = chess.Chess.fromFEN(fen);
+  final sign = mover == 'White' ? 1 : -1;
+  final start = sign * materialOf(board);
+  final after = <int>[];
+  for (final san in line) {
+    // `move` answers false and leaves the board where it was, so an unchecked
+    // call measures every later ply from the wrong position. python-chess's
+    // `push_san` raises; so does this.
+    if (!board.move(san)) {
+      throw StateError('$san cannot be played from ${board.fen}');
+    }
+    after.add(sign * materialOf(board));
+  }
+  final cap = parameters.maxAnswerPlies < after.length
+      ? parameters.maxAnswerPlies
+      : after.length;
+  var cut = parameters.answerPlies < cap ? parameters.answerPlies : cap;
+  if (cut == 0) return 0;
+  while (cut < cap && after[cut - 1] < start) {
+    cut++;
+  }
+  return cut;
+}
+
 List<Map<String, dynamic>> skeletonMoments(
   Map<String, dynamic> facts, {
   SkeletonParameters parameters = const SkeletonParameters(),
@@ -273,9 +320,12 @@ List<Map<String, dynamic>> skeletonMoments(
     final board = chess.Chess.fromFEN(row['fen'] as String);
     final before = materialOf(board);
     final moves = <Map<String, dynamic>>[];
-    final lineMoves = (best['line'] as String)
+    final lineSans = (best['line'] as String)
         .split(RegExp(r'\s+'))
-        .take(parameters.answerPlies)
+        .where((token) => token.isNotEmpty)
+        .toList();
+    final lineMoves = lineSans
+        .take(answerPlyCount(row['fen'] as String, mover, lineSans, parameters))
         .toList();
     for (var k = 1; k <= lineMoves.length; k++) {
       final san = lineMoves[k - 1];

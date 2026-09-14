@@ -2680,7 +2680,7 @@
      "title": "Part 6",
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "show",
-     "pgn": "14. O-O-O d4 15. Ng4 dxc3 *"
+     "pgn": "14. O-O-O d4 15. Ng4 dxc3 16. bxc3 *"
     }
    ]
   },
@@ -2730,7 +2730,7 @@
      "title": "Part 6",
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "show",
-     "pgn": "14. O-O-O d4 15. Ng4 dxc3 *"
+     "pgn": "14. O-O-O d4 15. Ng4 dxc3 16. bxc3 *"
     },
     {
      "title": "Part 7",
@@ -2753,7 +2753,8 @@
     "max_correct": 3,
     "max_moments": 8,
     "lead_plies": 3,
-    "answer_plies": 4
+    "answer_plies": 4,
+    "max_answer_plies": 8
    },
    "facts": "g04_saragossa-opening d18 mpv4 2026-09-13T20:19:08",
    "problems": [],
@@ -2773,6 +2774,7 @@
     "m2.answer.2",
     "m2.answer.3",
     "m2.answer.4",
+    "m2.answer.5",
     "m2.answer.intro"
    ],
    "unused_slots": [],
@@ -6072,6 +6074,10 @@
       {
        "san": "Qe3",
        "slot": "m3.answer.4"
+      },
+      {
+       "san": "Nxg6",
+       "slot": "m3.answer.5"
       }
      ],
      "sideline": true
@@ -6087,7 +6093,8 @@
     "m3.answer.2": "White would answer Nxb4: the knight from a2 to b4; it captures a pawn; the moved piece now attacks: knight on d5; not played - the line goes on",
     "m3.answer.3": "Black would answer Nf4: the knight from d5 to f4; the moved piece now attacks: queen on e2; not played - the line goes on",
     "m3.answer.4": "White would answer Qe3: the queen from e2 to e3; the moved piece now attacks: knight on f4; not played - the line goes on",
-    "m3.answer.intro": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +2 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+    "m3.answer.5": "Black would answer Nxg6: the knight from f4 to g6; it captures a pawn; not played - the line goes on",
+    "m3.answer.intro": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m3.lead.1": {
@@ -6181,13 +6188,23 @@
      "motifs": "",
      "text": "White would answer Qe3: the queen from e2 to e3; the moved piece now attacks: knight on f4; not played - the line goes on"
     },
+    "m3.answer.5": {
+     "words": "Black would answer Nxg6: the knight from f4 to g6; it captures a pawn",
+     "gain": 1,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "g6",
+     "motifs": "",
+     "text": "Black would answer Nxg6: the knight from f4 to g6; it captures a pawn; not played - the line goes on"
+    },
     "m3.answer.intro": {
      "gain": 0,
      "mate": false,
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +2 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "text": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    },
    "turning_point": true
@@ -6261,6 +6278,10 @@
       {
        "san": "Kxg7",
        "slot": "m4.answer.4"
+      },
+      {
+       "san": "h8=R",
+       "slot": "m4.answer.5"
       }
      ],
      "sideline": true
@@ -6276,7 +6297,8 @@
     "m4.answer.2": "Black would answer Qe8: the queen from f8 to e8; not played - the line goes on",
     "m4.answer.3": "White would answer h7+: the pawn from h6 to h7; it gives check; the moved piece now attacks: king on g8; not played - the line goes on",
     "m4.answer.4": "Black would answer Kxg7: the king from g8 to g7; it captures a pawn; not played - the line goes on",
-    "m4.answer.intro": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+    "m4.answer.5": "White would answer h8=R: the pawn from h7 to h8; it promotes to a rook; the moved piece now attacks: queen on e8; not played - the line goes on",
+    "m4.answer.intro": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to +3 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m4.lead.1": {
@@ -6370,13 +6392,23 @@
      "motifs": "",
      "text": "Black would answer Kxg7: the king from g8 to g7; it captures a pawn; not played - the line goes on"
     },
+    "m4.answer.5": {
+     "words": "White would answer h8=R: the pawn from h7 to h8; it promotes to a rook; the moved piece now attacks: queen on e8",
+     "gain": 4,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h8",
+     "motifs": "",
+     "text": "White would answer h8=R: the pawn from h7 to h8; it promotes to a rook; the moved piece now attacks: queen on e8; not played - the line goes on"
+    },
     "m4.answer.intro": {
-     "gain": 0,
+     "gain": 3,
      "mate": false,
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "text": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to +3 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    },
    "turning_point": false
@@ -12062,6 +12094,14 @@
       {
        "san": "Rxb6",
        "slot": "m5.answer.4"
+      },
+      {
+       "san": "Ra2+",
+       "slot": "m5.answer.5"
+      },
+      {
+       "san": "Kf1",
+       "slot": "m5.answer.6"
       }
      ],
      "sideline": true
@@ -12077,6 +12117,8 @@
     "m5.answer.2": "White would answer b5: the pawn from b4 to b5; not played - the line goes on",
     "m5.answer.3": "Black would answer Kh5: the king from g6 to h5; not played - the line goes on",
     "m5.answer.4": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn; not played - the line goes on",
+    "m5.answer.5": "Black would answer Ra2+: the rook from a3 to a2; it gives check; the moved piece now attacks: king on f2; not played - the line goes on",
+    "m5.answer.6": "White would answer Kf1: the king from f2 to f1; not played - the line goes on",
     "m5.answer.intro": "the answer: the game went Rd6, which cost 2.82 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
@@ -12170,6 +12212,26 @@
      "to": "b6",
      "motifs": "",
      "text": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn; not played - the line goes on"
+    },
+    "m5.answer.5": {
+     "words": "Black would answer Ra2+: the rook from a3 to a2; it gives check; the moved piece now attacks: king on f2",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "a2",
+     "motifs": "",
+     "text": "Black would answer Ra2+: the rook from a3 to a2; it gives check; the moved piece now attacks: king on f2; not played - the line goes on"
+    },
+    "m5.answer.6": {
+     "words": "White would answer Kf1: the king from f2 to f1",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "f1",
+     "motifs": "",
+     "text": "White would answer Kf1: the king from f2 to f1; not played - the line goes on"
     },
     "m5.answer.intro": {
      "gain": 0,
