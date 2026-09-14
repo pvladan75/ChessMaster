@@ -5763,11 +5763,29 @@ motorom, lažnim serverom i lažnim modelom; **pravi poziv DeepSeek-u sa servera
 nije napravljen nikad**. Pre provere vlasnik traži da mu se nalogu dodeli pro
 nivo; na serveru moraju da postoje `DEEPSEEK_API_KEY` i `MASTERS_BOOK_PATH`.
 
+**14.9.2026: vlasnik je prvi put prošao ceo put uživo** — analiza partije,
+tutorijal, izvoz videa — i javio da radi; iz toga su nastala dva tutorijala,
+„Lost chances: a fork, a pawn, a mate" i „Punish, Count, Retreat: Three Missed
+Chances". To pokriva **tačke 1, 3 i 5** i polovinu tačke 2 (dubina je izabrana i
+analiza je otišla do kraja; da li je izbor zapamćen nije javljeno). **Tačke 4,
+6, 7 i 8 i dalje nisu proverene** i ostaju otvorene — nijedna nije ni pomenuta
+u prijavi.
+
+Iz te provere je izašlo devet prijava, sve popravljene istog dana; stavke 9–16
+niže su te popravke i **nijedna od njih nije viđena uživo**. Pošto su menjale
+skelet, tačke 3 i 5 treba proći ponovo.
+
+Jedna napomena pre svega: `MASTERS_BOOK_PATH` se čita **pri pokretanju servera**
+(`createMastersBook()` na importu rute), a `nodemon` ne prati `.env`. Ako
+dijalog na kraju kaže `not-configured`, prvo uporediti kad je server startovan sa
+tim kad je `.env` upisan.
+
 1. [ ] **Dugme je tamo gde je partija.** Na Windows-u otvori partiju u Analizi
    (uvezi PGN): u traci stoji dugme sa kapom „Make a tutorial from this game".
    Na poziciji bez poteza isto dugme kaže da nema poteza, i ništa se ne pokreće.
 2. [ ] **Dubina sa vremenom, i zapamćena.** Izbor nudi 18 / 20 / 22 sa vremenom
    pored svake; izaberi 20, pokreni, prekini. Sledeći put je 20 već izabrano.
+   *(Od 14.9.2026 isti dijalog nosi i klizač za prag — vidi stavku 13.)*
 3. [ ] **Napredak govori istinu.** Posle nekoliko pozicija piše „N of M
    positions · about X minutes left", a procena se ne vraća unazad više od
    jednom-dvaput. Uporedi ukupno vreme sa tabelom faze 0 (dubina 18: 39–109 s).
@@ -5789,3 +5807,44 @@ nivo; na serveru moraju da postoje `DEEPSEEK_API_KEY` i `MASTERS_BOOK_PATH`.
    analize: posle buđenja nastavlja, ne javlja grešku motora.
 8. [ ] **Ime igrača ne izlazi sa uređaja.** Uz partiju sa pravim imenima u
    zaglavlju, u logu servera (ili u zahtevu) partija ide samo kao potezi.
+
+Ispod su popravke od 14.9.2026, napravljene posle prve provere uživo. Za njih
+treba **nova partija** (stara je keširana sa starim skeletom samo utoliko što su
+reči snimljene; činjenice se ponovo koriste, pa analiza ide brzo).
+
+9. [ ] **Tabla se ne okreće usred tutorijala.** Okreni tablu u Analizi na crnu
+   stranu pa napravi tutorijal: **svaki** deo stoji crnom stranom dole, i u
+   studiju i u izvezenom videu — i oni u kojima je beli na potezu. Zatim isto sa
+   belom stranom. Ranije se tabla okretala sa time ko je na potezu.
+10. [ ] **Odgovor ne kaže isti potez dvaput.** U delu sa odgovorom uvodna
+    rečenica kaže šta je partija odigrala i koliko je koštalo, **ne imenuje**
+    najbolji potez; prvi potez linije ga imenuje. Ranije su obe rečenice
+    počinjale isto („White should have played Qe3…").
+11. [ ] **Povratak na partiju se kaže.** Posle svake sporedne linije sledeći deo
+    počinje rečenicom tipa „Back to the game" / „Back in the game" / „Returning
+    to the game" — i **ne istom** svaki put. Proveri u oba tutorijala: u „Whole
+    game" jedan po momentu, u „Key moments" jedan manje (pre prvog momenta ga
+    nema).
+12. [ ] **Linija ne staje usred žrtve.** Nađi deo u kom najbolja linija nešto
+    daje: linija se ne završava na poziciji u kojoj je onaj ko je odigrao u
+    minusu, osim ako se linija tu prosto završila. Ovo je bila prijava koja je
+    pokrenula popravku — „beli je bolji a ne vidi se zašto".
+13. [ ] **Prag i broj grešaka.** (a) U prvom dijalogu klizač „Teach a move that
+    cost X pawns or more"; izaberi 2.0 i pokreni — sledeći put je 2.0 već tu.
+    (b) Kad se analiza završi dolazi „What the engine found" sa brojem; pomeri
+    klizač i broj se menja **odmah** (bez motora, bez čekanja). (c) Spusti prag
+    dok ne ostane manje od dva — dugme „Write the tutorial" je ugašeno i piše da
+    treba spustiti prag. (d) Pritisni Cancel tu: ništa se ne troši, a broj
+    preostalih tutorijala je isti kao pre.
+14. [ ] **Kritičan momenat i rekapitulacija.** U „Whole game" **poslednji** deo
+    počinje sa „Looking back: the game turned on …" i ponavlja liniju tog
+    momenta. U „Key moments" tog dela **nema**. Proceni i da li je označeni
+    momenat zaista onaj na kom se partija prelomila.
+15. [ ] **Drugi najbolji potez.** Tamo gde najbolja linija nešto žrtvuje, posle
+    dela sa odgovorom stoji još jedan deo: „the other line" — šta radi sledeći
+    najbolji potez i zašto je slabiji. Ne treba da se pojavljuje svuda (mereno:
+    oko 29 od 69 momenata), i **ne sme** da bude račvanje na tabli — to je
+    zaseban deo, a ne varijanta.
+16. [ ] **Reči na novim delovima.** Pošto su dodati novi slotovi, proveri da
+    dijalog na kraju ne prijavljuje gomilu „sentences to check": u pravom
+    pozivu model piše sve ponuđene slotove. Ako ih ima mnogo, to je nalaz.

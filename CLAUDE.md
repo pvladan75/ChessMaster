@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2540 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2649 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1321 tests, all green
+cd chess_backend && npm test          # node --test, 1324 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2256,6 +2256,41 @@ for a boundary has to stand on the boundary.
 **The screen-names gate failed „sentences to check in the studio".** The copy
 was reworded; the gate stays as it is. It is the third time that gate has
 caught a sentence that did not need the word.
+
+**Measured again on `master` on 14.9.2026: 2649 in the app with 1 skipped, 1324
+on the backend** with `.env` moved aside, analyze at 26 infos. The day's nine
+findings came from the owner's first live run of a game tutorial, and every one
+of them is written up in `docs/STANJE-RADA.md`, „Skelet: devet prijava sa prve
+provere uživo". Four lessons from it are worth carrying here.
+
+**A configuration fault can look exactly like a code fault.** „The tutorial says
+nothing about the opening" was `createMastersBook()` reading
+`process.env.MASTERS_BOOK_PATH` **at import**, in a server process started
+twenty-six minutes before that line was written into `.env` — and `nodemon`
+watches `js,mjs,cjs,json`, not `.env`. Two timestamps settled it in a minute.
+Compare when the process started with when the configuration was written before
+looking for the bug in the logic.
+
+**Measure the scope of a rule before writing it, and again after.** „Show what
+the second-best move does" was built first for every moment with a worse
+alternative and fired on 67 of 69 — a second part on almost every answer, which
+is not what was asked. Gated on the best line actually giving material up it is
+29 of 69. The same discipline found the real size of two other findings: the
+answer line ended mid-sacrifice in 16 of 69 parts, and the „back to the game"
+bridge was missing from 4 of 10 whole-game tutorials and from every
+key-moments one.
+
+**A rule about a line must be asked of the line, not of its first move.** Not
+one best move in the ten fixture games gives material away on its first ply, so
+`givesMaterial` asked only there would have been a rule that never fired. There
+is a test pinning that zero.
+
+**Read what the viewer does before choosing a shape.** The alternative line is a
+part of its own rather than a PGN variation because
+`lesson_viewer_screen.dart:490` breaks the narrated walk at a fork and asks the
+child to choose — a variation would have stopped „Pusti tutorijal" at the moment
+the answer is shown — and because the film's beats follow the spine, so a
+variation is invisible in every exported video.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

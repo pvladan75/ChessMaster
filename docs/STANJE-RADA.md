@@ -15,8 +15,10 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **12.9.2026** — najnovije je „Ispis prati glas, a ne
-fajl" odmah ispod ove glave (u kodu, ostaje provera uživo), pa „Oznake van
+Poslednje ažuriranje: **14.9.2026** — najnovije je „Skelet: devet prijava sa
+prve provere uživo" odmah ispod ove glave (sve u kodu, ostaje provera uživo),
+pa faze 4, 3, 2 i 0 plana skeleta. Pre toga „Ispis prati glas, a ne
+fajl" (u kodu, ostaje provera uživo), pa „Oznake van
 table, i kartice koje ne beže" (isto), pa
 „Vraćanje na već viđenu poziciju" (isto), pa „60 fps za
 YouTube — mereno i odbijeno" (ništa u kodu, samo merenje), pa „Oznake na tabli —
@@ -42,6 +44,114 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Skelet: devet prijava sa prve provere uživo — 14.9.2026, u kodu
+
+Vlasnik je prvi put prošao ceo put — analiza partije, tutorijal, izvoz videa —
+i javio da radi. Iz toga je izašlo devet stavki; sve su u kodu, ništa od toga
+nije ponovo viđeno uživo.
+
+**Majstorska baza nije bila greška u kodu.** „Tutorijal ne kaže ništa o
+otvaranju" i `not-configured` u dijalogu: `routes/openingExplorer.js` pravi
+knjigu **pri importu** (`createMastersBook()`), a podrazumevani parametar čita
+`process.env.MASTERS_BOOK_PATH` u tom trenutku. Server je bio pokrenut u
+12:00:30, a `.env` upisan u 12:26:17 — taj proces tu promenljivu nije mogao da
+vidi, i `nodemon` ne prati `.env` (gleda `js,mjs,cjs,json`). Posle restarta
+`POST /opening-explorer/masters-walk` vraća 200 sa pravim brojevima. **Pouka je
+o merenju, ne o kodu**: pre nego što se traži greška u logici, uporediti kad je
+proces startovan sa tim kad je konfiguracija upisana.
+
+**Tabla stoji na jednu stranu.** `stepsFor` nije pisao `blackOrientation`, pa je
+svaki deo padao na `blackToMoveIn(fen)` — pretpostavku koju dobija sačuvan korak
+koji ne kaže ništa — i tabla se okretala sa time ko je na potezu. Sačuvana
+lekcija 54 ima redom belo, belo, belo, belo, **crno, crno, crno**, belo, belo,
+belo. Pečat se stavlja u aplikaciji (`facingOneWay`), namerno **ne** u skeletu:
+`skeleton.py` nema tablu da je okrene, a orijentacija je svojstvo ekrana sa kog
+je trener pritisnuo dugme. Video čita isto polje, pa prati bez ičega novog.
+
+**Ista rečenica se ne kaže dvaput.** Svaki „odgovor" je govorio isti potez u dve
+uzastopne rečenice, jer su `m*.answer.intro` i `m*.answer.1` dobijali istu
+činjenicu. Model je bio veran — ponavljanje je bilo u ulazu. Uvod sada kaže šta
+je partija odigrala i koliko je to koštalo, a **prvi potez linije imenuje potez**,
+što je i bolja pouka: potez pročitan pre nego što se odigra je poklonjen potez.
+
+**„Back to the game" posle sporedne linije.** Polovina je već postojala
+(`kLexicon['resumed']`, tri varijante, piše ih aplikacija a ne model), ali samo
+tamo gde postoji ispuna: kad su dve greške blizu, druga vodi svoj uvod unazad
+preko prve, ispune nema i partija se nastavljala bez ijedne reči. U režimu
+ključnih momenata mosta nije bilo **nigde**. Mereno pre popravke: cela partija
+je imala most manje u 4 od 10 partija, ključni momenti ni u jednoj. Sada je u
+obe: jedan po izabranom momentu, u ključnim momentima jedan manje (pre prvog
+nema šta da se vrati). Vlasnik je 14.9.2026. potvrdio da ostaje i u režimu
+ključnih momenata.
+
+**Prag greške bira trener, i vidi šta je našao.** `minCost` je bio konstanta do
+koje se nije moglo doći. Prvi dijalog sada pita i dubinu i prag (opseg i korak
+kao u „Review game", ali podrazumevano 1.0 a ne 2.0 — 2.0 označava blunder i
+seče zagonetku, 1.0 je ono što je faza 0 potvrdila kao „vredi učiti"). Posle
+motora dolazi drugo pitanje: „6 moves cost 1.0 pawns or more", klizač koji
+prebrojava dok se pomera, i ništa se ne troši do dugmeta. **Ovo je ispalo
+jeftinije nego što je traženo** — činjenice se keširaju po partiji, dubini i
+motoru, a prag **nije deo tog ključa**, pa drugo presecanje iste partije ne
+košta nijednu sekundu motora; „pokreni analizu ponovo" nikad nije ni trebalo.
+Kapa se kaže zasebno („The 8 worst become parts"), jer „23 nađeno" iznad
+tutorijala od osam delova čita se kao greška u tutorijalu.
+
+**Kritičan momenat, i povratak na njega.** Svaki ponuđeni momenat je već greška;
+ono što je nedostajalo je **koji je odlučio partiju**. `decisiveMoment` označava
+jedan, `turning_point` putuje u zahtevu, i prompt to kaže. Pravilo namerno
+**nije** „najskuplji potez": izgubljena partija skuplja skupe promašaje koji ne
+odlučuju ništa — na g01 se potez koji košta forsiran mat preskače zbog poteza od
+2.11 pešaka, jer je prvi odigran iz već izgubljene pozicije a drugi je mesto gde
+je izgubljena. Pitanje je `mistakeKind`, isti klasifikator koji leksikon ispune
+već koristi, pa rečenica koju dete čita na tom potezu i momenat nazvan
+odlučujućim ne mogu da se raziđu. Ista funkcija se pita dvaput: jednom nad svim
+momentima (pre nego što model bira, da prompt zna), jednom nad izabranima (da
+rekapitulacija na kraju postoji i kad je model preskočio označeni). Rekapitulacija
+je samo u režimu cele partije, kako je i traženo.
+
+**Linija se ne seče dok je žrtva neplaćena.** Prijava: sporedna linija se
+završava na poziciji gde je beli bolji a ne vidi se zašto. Mereno pre popravke:
+**16 od 69 delova** se završavalo sa igračem u minusu, dakle svaki četvrti. Sada
+linija ide dalje dok materijal ne izađe na svoje, ograničena `max_answer_plies`
+— 16 → 7, a 53 dela su netaknuta. Na g01 `g7 Qe8 h7+ Kxg7 h8=R Qxh8` ide 0, 0,
+0, −1, +3, −2: presečena na četiri staje na „pešak manje", a jedan potez dalje
+staje na promociju, što je cela ideja linije. Preostalih 7 su linije čija
+nadoknada uopšte nije materijalna.
+
+**I šta radi drugi najbolji potez.** Traženo je usko: „kad je žrtva opravdana i
+najbolji potez". Napisano prvo za svaki momenat sa slabijom alternativom, palilo
+se na **67 od 69** — drugi deo skoro na svakom odgovoru. Uslovljeno time da
+najbolja linija stvarno nešto daje, to je **29 od 69**. `givesMaterial` pita celu
+prikazanu liniju a ne prvi potez, i to nije sitnica: **nijedan najbolji potez u
+deset partija iz fixture-a ne daje materijal na prvom potezu**, pa bi pravilo
+koje gleda tamo bilo pravilo koje se nikad ne pali; postoji test koji tu nulu
+drži. Alternativa je uvek najbolji **jasno slabiji** kandidat — sve unutar
+`near` je jednako dobro, i nazvati to slabijim potezom bila bi rečenica koju
+činjenice ne pokrivaju.
+
+**Zašto je alternativa zaseban deo a ne varijanta.** Odlučeno čitanjem
+prikazivača, ne ukusom: `lesson_viewer_screen.dart:490` prekida vođenu šetnju na
+račvanju i traži od deteta da bira. Varijanta bi zaustavila „Pusti tutorijal"
+baš u trenutku kad se odgovor prikazuje, i ponudila izbor između tačnog i
+slabijeg poteza pre nego što je o ijednom išta rečeno. Film takođe ignoriše
+varijante — taktovi prate kičmu — pa bi kao varijanta ovo bilo nevidljivo u
+svakom izvezenom videu. Kao deo se čita, govori i snima kao i svaki drugi.
+
+Aplikacija **2649** (1 preskočen), backend **1324** (`.env` sklonjen), analyze
+26 infoa, nula upozorenja. Sedam commit-ova, oba čuvara razlaza zelena
+(`export_fixtures.py --check` i gate porta). Promptovi su narasli za oko šestinu
+— najveći 30.5 KB prema serverskoj granici od 120 KB.
+
+**Ostaje otvoreno.** (1) Provera uživo: sve iznad je viđeno samo prema snimljenom
+odgovoru modela, a snimljeni odgovori su stariji od svih ovih izmena, pa fixture
+tutorijali i dalje pokazuju stari tekst. (2) Druga polovina prijave o žrtvama —
+„kad jedna strana žrtvuje a druga može da prihvati ili ne, pokazati oba" —
+traži **nova pretraživanja motora** unutar linije (motor je pitan samo o
+pozicijama iz partije), oko 8 dodatnih pretraga po partiji i podizanje verzije
+keša, što znači ponovnu analizu već keširanih partija. Mereno: takva žrtva
+postoji u 27 od 69 linija. (3) `kFactsLineLength` je 6 iako motor vraća ceo PV —
+`candidateOf` ostatak baca; podizanje je zasebna odluka sa istom cenom keša.
 
 ## Skelet: faza 4, vrata — 14.9.2026, u kodu
 
