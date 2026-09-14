@@ -5812,10 +5812,11 @@ Ispod su popravke od 14.9.2026, napravljene posle prve provere uživo. Za njih
 treba **nova partija** (stara je keširana sa starim skeletom samo utoliko što su
 reči snimljene; činjenice se ponovo koriste, pa analiza ide brzo).
 
-9. [ ] **Tabla se ne okreće usred tutorijala.** Okreni tablu u Analizi na crnu
-   stranu pa napravi tutorijal: **svaki** deo stoji crnom stranom dole, i u
-   studiju i u izvezenom videu — i oni u kojima je beli na potezu. Zatim isto sa
-   belom stranom. Ranije se tabla okretala sa time ko je na potezu.
+9. [ ] **Tabla se ne okreće usred tutorijala.** Napravi tutorijal: **svaki** deo
+   stoji belom stranom dole, i u studiju i u izvezenom videu — i oni u kojima je
+   crni na potezu. *(Do večeri 14.9.2026 tutorijal je pratio orijentaciju table
+   u Analizi; po pravilu vlasnika istog dana novi tutorijal je uvek beli dole, a
+   okreće se u studiju ili u „Preview tutorial" — stavke 18 i 19.)*
 10. [ ] **Odgovor ne kaže isti potez dvaput.** U delu sa odgovorom uvodna
     rečenica kaže šta je partija odigrala i koliko je koštalo, **ne imenuje**
     najbolji potez; prvi potez linije ga imenuje. Ranije su obe rečenice
@@ -5848,3 +5849,28 @@ reči snimljene; činjenice se ponovo koriste, pa analiza ide brzo).
 16. [ ] **Reči na novim delovima.** Pošto su dodati novi slotovi, proveri da
     dijalog na kraju ne prijavljuje gomilu „sentences to check": u pravom
     pozivu model piše sve ponuđene slotove. Ako ih ima mnogo, to je nalaz.
+
+Druga provera uživo, 14.9.2026 uveče, na „The bishop pair and the open e-file
+(whole game)" (sačuvana lekcija 57), dala je šest prijava (A–F). Popravke A, D i
+E su u kodu istog dana; B, C i naracija su u `docs/PLAN-NARACIJA.md`, F je
+odgovor. **Ništa od ovoga nije viđeno uživo.**
+
+17. [ ] **Uzimanje nazad nije „figura bez odbrane".** U partiji sa razmenom
+    (npr. `Bxf6 Nxf6`) komentar na potezu koji uzima **ne kaže** „the bishop on f6
+    is attacked … and has no defender". Ali dama koja uzme skakača i stane pod
+    pešaka i dalje dobija tu rečenicu. Za ovo treba **nova analiza partije**
+    („Review entire game" ili novi tutorijal), jer su stari komentari sačuvani.
+18. [ ] **Flip u studiju okreće sve delove.** U studiju sa tutorijalom od više
+    delova pritisni „Flip board" ispod table: okreće se **svaki** deo, svaki
+    suprotno od onoga kako je stajao (delovi 1 i 3 crni dole, 2 beli dole →
+    1 i 3 beli dole, 2 crni dole). Proveri i posle „Save tutorial" i ponovnog
+    otvaranja.
+19. [ ] **„Preview tutorial" okreće jedan deo.** U pregledu dugme sa strelicama
+    gore-desno („Flip this part") okreće samo deo koji se gleda, **i to ostaje**:
+    idi na drugi deo i vrati se, zatvori pregled, sačuvaj, otvori ponovo — i u
+    videu taj deo stoji tako. Radi i na delu sa pitanjem (tu nema trake sa
+    potezima). Kod učenika tog dugmeta nema, a flip ispod table je samo pogled.
+20. [ ] **Za učenike ili za video.** U poslednjem dijalogu („The same words made
+    two tutorials") izbor „For students" / „For a video". Za video broj delova
+    se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
+    se ne plaća ponovo. Za učenike je kao do sada.

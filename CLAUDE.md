@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2649 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2659 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1324 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -2291,6 +2291,24 @@ part of its own rather than a PGN variation because
 child to choose — a variation would have stopped „Pusti tutorijal" at the moment
 the answer is shown — and because the film's beats follow the spine, so a
 variation is invisible in every exported video.
+
+**Ten more the same evening — 2659 in the app with 1 skipped**, analyze at 26
+infos; the backend is untouched. Three of the owner's second live review:
+a recapture no longer called a hanging piece, one orientation per tutorial
+turned by part or all at once, and a version for a video with no questions.
+Two things worth carrying.
+
+**Ask the database before the code.** „The board turns over between parts"
+looked like the same fault as the morning's, and every layer read correct.
+One query said lesson 57 had part 1 facing Black and eleven facing White — a
+pattern only the studio's per-part flip could write. The code was right; the
+control did something nobody could see.
+
+**Hiding a finding on one side of a diff moves it to the other.** Leaving a
+trade's recapture out of what a move *created* made the same finding count as
+*resolved*, and 2. exd5 said „the white pawn on e4 is no longer hanging" in the
+middle of the trade. It surfaced only when the ten reviewed games were rewritten
+and compared sentence by sentence — the unit tests were green.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **14.9.2026** — najnovije je „Skelet: devet prijava sa
-prve provere uživo" odmah ispod ove glave (sve u kodu, ostaje provera uživo),
+Poslednje ažuriranje: **14.9.2026** — najnovije je „Druga provera uživo: šest
+prijava (A–F)" odmah ispod ove glave, pa „Skelet: devet prijava sa
+prve provere uživo" (sve u kodu, ostaje provera uživo),
 pa faze 4, 3, 2 i 0 plana skeleta. Pre toga „Ispis prati glas, a ne
 fajl" (u kodu, ostaje provera uživo), pa „Oznake van
 table, i kartice koje ne beže" (isto), pa
@@ -44,6 +45,57 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Druga provera uživo: šest prijava (A–F) — 14.9.2026 uveče
+
+Vlasnik je pregledao „The bishop pair and the open e-file (whole game)"
+(sačuvana lekcija 57) u prikazivaču i u videu. A, D i E su u kodu; B, C i
+naracija idu kroz `docs/PLAN-NARACIJA.md` (prvo merenje, pa ugradnja); F je
+odgovor. Provera uživo: `TODO-provera.md`, stavka 161, tačke 17–20.
+
+**A — tabla se okretala, ali ne zbog koda koji je ovde tražen.** Baza je rekla
+tačno: lekcija 57 ima deo 1 crni dole i jedanaest delova beli dole, dok 55 i 56
+imaju sve belo. Jedini put koji menja jedan deo je dugme „Flip board" u studiju,
+koje je okretalo **samo otvoreni deo** i nije to nigde reklo. Pravilo vlasnika:
+novi tutorijal iz partije je beli dole na svakom delu (`facingWhite`, orijentacija
+Analize više ne putuje); „Flip board" u studiju okreće **svaki** deo, svaki
+suprotno od onog kako stoji (mešavina ostaje mešavina); jedan deo se okreće u
+„Preview tutorial" dugmetom „Flip this part", i to se upisuje u nacrt. Prikazivač
+sada poštuje izričitu orijentaciju i na spoju delova — do sada je deo koji
+nastavlja poziciju zadržavao tablu kakva jeste, što bi pregled učinilo
+beskorisnim. Deo bez polja i dalje zadržava tablu.
+
+**D — „the bishop on f6 is attacked by the g7 pawn with no defender" posle
+`Bxf6`.** Detektor motiva je figuru koja je upravo uzela zvao visećom iako je
+uzimanje nazad samo završava razmenu. Sada ta figura nije viseća kad uzimanje
+nazad dobija **ne više** od onoga što je potez uzeo (dama koja uzme skakača pod
+pešakom i dalje jeste). Isti zahvat je otkrio drugu grešku u sopstvenom prvom
+nacrtu: kad se uzimanje sakrije iz „stvorenog", poređenje pre/posle je javljalo
+„the white pawn on e4 is no longer hanging" usred `exd5` — pa se „rešeno" računa
+prema punom čitanju, a „stvoreno" prema filtriranom. Deset `_reviewed.pgn` i
+njihovi `_facts.json` prepisani su (`REVIEW_COMMENTS_ONLY=1`), provereni
+rečenicu po rečenicu: samo uklonjene rečenice uzimanja nazad, plus nalazi koje
+je ograničenje od tri po potezu ranije sakrivalo. Fixture-i regenerisani,
+`--check` zelen.
+
+**E — za učenike ili za video.** U poslednjem dijalogu, besplatno, jer su oba
+tutorijala već sklopljena od istih reči: verzija za video izbacuje delove sa
+pitanjem (`showOnly`), i broj delova se menja odmah.
+
+**F — drugi jezik.** Sam poziv je jeftin: pet tutorijala vlasnika potrošilo je
+57.022 tokena (oko 11 hiljada po tutorijalu, oko jednog centa), drugi jezik
+dodaje možda pola centa, a prevod gotovog tutorijala manje od toga. Pravi trošak
+je drugde: rečenice koje piše sam program („Back to the game", „The opening is…",
+rekapitulacija, a posle plana naracije i rečenica na račvanju) trebaju prevod za
+svaki od sedam jezika, a provera tvrdnji („sentences to check") radi samo na
+engleskom. Planira se posle naracije, da se programske rečenice ne prevode dvaput.
+
+Aplikacija **2659** (1 preskočen), analyze 26 infoa, nula upozorenja; backend
+nepromenjen. Dvadeset mutacija, sve uhvaćene — jedna tek posle ispravke testa
+(spoj delova nije bio spoj: pešak sa dva polja ostavlja en passant polje u FEN-u,
+pa pozicije nisu bile iste). Usput: `game_tutorial_run_test.dart` je pod celim
+paketom padao na 30 s i na nepromenjenom `master`-u (193 s sam, prema 89 s sa
+izmenama), pa fajl ima svoj limit od 3 minuta.
 
 ## Skelet: devet prijava sa prve provere uživo — 14.9.2026, u kodu
 
