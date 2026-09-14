@@ -242,6 +242,40 @@ void main() {
             .length);
   });
 
+  // The owner, 14.9.2026: a tutorial made for a film asks nothing — a
+  // question in a video is a board waiting for an answer nobody can give.
+  testWidgets(
+      'a tutorial for a video has no question parts, and says how many '
+      'parts that leaves', (tester) async {
+    final opened = <ImportedTutorial>[];
+    await _pump(tester,
+        runner: _Runner(finish: (_) => _result()), opened: opened);
+    await _startAt(tester);
+    await tester.pumpAndSettle();
+
+    final expected =
+        ((_fixture['expected'] as Map)['tutorialGame']['positionList'] as List)
+            .cast<Map>();
+    final shows = expected.where((s) => s['kind'] == 'show').length;
+    expect(shows, lessThan(expected.length),
+        reason: 'the fixture must ask something, or this test cannot tell');
+    expect(find.textContaining('${expected.length} parts —'), findsOneWidget,
+        reason: 'for students unless the trainer says otherwise');
+
+    await tester.tap(find.byKey(const Key('game-tutorial-for-video')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('$shows parts —'), findsOneWidget);
+
+    final whole = find.byKey(const Key('game-tutorial-whole-game'));
+    await tester.ensureVisible(whole);
+    await tester.tap(whole);
+    await tester.pumpAndSettle();
+
+    expect(opened.single.partCount, shows);
+    expect(opened.single.positionList.map((s) => s['kind']).toSet(), {'show'});
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('no engine says so, and its button goes to the engine settings',
       (tester) async {
     var settingsOpened = 0;

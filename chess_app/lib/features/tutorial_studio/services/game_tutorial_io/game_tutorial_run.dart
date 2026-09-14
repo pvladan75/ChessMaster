@@ -150,6 +150,32 @@ Map<String, dynamic> facingWhite(Map<String, dynamic> tutorial) => {
       ],
     };
 
+/// [tutorial] as a film is made of it: the parts that ask something are left
+/// out, and everything that shows stays where it was.
+///
+/// The owner's rule of 14.9.2026 — „zbog videa se ne prave `ask_move` i
+/// `ask_choice` delovi, već samo show". A question in a film is a board that
+/// waits for an answer nobody can give. Asked in the last dialog rather than
+/// before the run, because both versions come from the same words: choosing
+/// costs nothing, and a trainer can open the other one afterwards.
+///
+/// Read back through [readTutorialJson] rather than filtered in place, so a
+/// problem the pre-flight reports names the part by the number it has in
+/// *this* tutorial.
+ImportedTutorial showOnly(ImportedTutorial tutorial) => readTutorialJson(
+      jsonEncode({
+        'title': tutorial.title,
+        if (tutorial.description != null) 'description': tutorial.description,
+        'tags': tutorial.tags,
+        if (tutorial.language != null) 'language': tutorial.language,
+        'positionList': [
+          for (final step in tutorial.positionList)
+            if ((step['kind'] ?? 'show') == 'show') step,
+        ],
+      }),
+      fileName: tutorial.fileName,
+    );
+
 /// What the trainer is shown once the engine is done and before the words are
 /// paid for — point 6 of the owner's live pass, 14.9.2026.
 ///

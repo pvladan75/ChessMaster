@@ -410,34 +410,42 @@ class _GameTutorialProgressDialogState
 Future<ImportedTutorial?> chooseGameTutorial(
     BuildContext context, GameTutorialResult result) {
   final toCheck = [...result.claims, ...result.missingSlots];
+  // For students unless the trainer says otherwise: that is what every game
+  // tutorial was until the video version existed.
+  var forVideo = false;
   return showDialog<ImportedTutorial>(
     context: context,
-    builder: (ctx) {
-      Widget option(String key, String title, String detail,
-              ImportedTutorial tutorial) =>
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: OutlinedButton(
-              key: Key(key),
-              onPressed: () => Navigator.of(ctx).pop(tutorial),
-              style: OutlinedButton.styleFrom(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.all(AppSpacing.md),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: AppText.bodyBold),
-                  Text(
-                    '${tutorial.partCount} '
-                    '${tutorial.partCount == 1 ? 'part' : 'parts'} — $detail',
-                    style: AppText.caption
-                        .copyWith(color: ctx.colors.textSecondary),
-                  ),
-                ],
-              ),
+    builder: (ctx) => StatefulBuilder(builder: (ctx, setState) {
+      ImportedTutorial version(ImportedTutorial t) =>
+          forVideo ? showOnly(t) : t;
+      Widget option(
+          String key, String title, String detail, ImportedTutorial original) {
+        final tutorial = version(original);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: OutlinedButton(
+            key: Key(key),
+            onPressed: () => Navigator.of(ctx).pop(tutorial),
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.all(AppSpacing.md),
             ),
-          );
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.bodyBold),
+                Text(
+                  '${tutorial.partCount} '
+                  '${tutorial.partCount == 1 ? 'part' : 'parts'} — $detail',
+                  style:
+                      AppText.caption.copyWith(color: ctx.colors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return AlertDialog(
         title: Text(result.keyMoments.title.isEmpty
             ? 'The tutorial is ready'
@@ -452,7 +460,33 @@ Future<ImportedTutorial?> chooseGameTutorial(
                 'nothing is saved until you save it.',
                 style: AppText.body.copyWith(color: ctx.colors.textSecondary),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
+              RadioGroup<bool>(
+                groupValue: forVideo,
+                onChanged: (value) =>
+                    setState(() => forVideo = value ?? forVideo),
+                child: const Column(
+                  children: [
+                    RadioListTile<bool>(
+                      key: Key('game-tutorial-for-students'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: false,
+                      title: Text('For students'),
+                      subtitle: Text('Asks for the best move at each mistake'),
+                    ),
+                    RadioListTile<bool>(
+                      key: Key('game-tutorial-for-video'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: true,
+                      title: Text('For a video'),
+                      subtitle: Text('Shows every moment and asks nothing'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               option('game-tutorial-key-moments', 'Key moments',
                   'only the moments worth teaching', result.keyMoments),
               option(
@@ -490,7 +524,7 @@ Future<ImportedTutorial?> chooseGameTutorial(
           ),
         ],
       );
-    },
+    }),
   );
 }
 
