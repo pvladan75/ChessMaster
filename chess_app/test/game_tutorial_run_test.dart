@@ -5,6 +5,13 @@
 // its own book, and the words from the answer the harness's run returned. So
 // the chain is held to the harness at both ends: the request the run sends is
 // the fixture's `wordsRequest`, and both tutorials have the fixture's parts.
+//
+// Every test here is a whole run — five to fifteen seconds alone — and under
+// the full suite on 14.9.2026 five of them ran past the 30 s default, on the
+// unchanged `master` as much as on the change being measured. The limit is
+// the file's, so the next test added here does not find it one at a time.
+@Timeout(Duration(minutes: 3))
+library;
 
 import 'dart:convert';
 import 'dart:io';
