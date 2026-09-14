@@ -6610,6 +6610,31 @@
        }
       ],
       "sideline": true
+     },
+     {
+      "kind": "show",
+      "fen": "1k2r1r1/ppp5/8/4p2p/1P2Qp1q/3P1P2/P1P3P1/3RR1K1 b - - 0 29",
+      "intro": "m2.other.intro",
+      "moves": [
+       {
+        "san": "Qg3",
+        "slot": "m2.other.1"
+       },
+       {
+        "san": "Rd2",
+        "slot": "m2.other.2"
+       },
+       {
+        "san": "h4",
+        "slot": "m2.other.3"
+       },
+       {
+        "san": "Kf1",
+        "slot": "m2.other.4"
+       }
+      ],
+      "sideline": true,
+      "alternative": true
      }
     ],
     "slots": {
@@ -6623,7 +6648,12 @@
      "m2.answer.3": "Black would answer Rg8+: the rook from e8 to g8; it gives check; the moved piece now attacks: king on g2; not played - the line goes on",
      "m2.answer.4": "White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on g8; not played - the line goes on",
      "m2.answer.5": "Black would answer Rxg6+: the rook from g8 to g6; it captures a queen; it gives check; the moved piece now attacks: king on g2; not played - the line goes on",
-     "m2.answer.intro": "the answer: the game went Qg3, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -5 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "m2.answer.intro": "the answer: the game went Qg3, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -5 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.",
+     "m2.other.1": "Black could have played Qg3: the queen from h4 to g3; the moved piece now attacks: rook on e1; pinned to their king afterwards: g2; the next best move, and not as good as Rxg2+",
+     "m2.other.2": "White would answer Rd2: the rook from d1 to d2; the line goes on",
+     "m2.other.3": "Black would answer h4: the pawn from h5 to h4; pinned to their king afterwards: g2; the line goes on",
+     "m2.other.4": "White would answer Kf1: the king from g1 to f1; the line goes on",
+     "m2.other.intro": "the other line: the next best move here is not as good as Rxg2+. At the end of it Black is clearly better, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     },
     "facts": {
      "m2.lead.1": {
@@ -6734,6 +6764,54 @@
       "pin": false,
       "motifs": "",
       "text": "the answer: the game went Qg3, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -5 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+     },
+     "m2.other.1": {
+      "words": "Black could have played Qg3: the queen from h4 to g3; the moved piece now attacks: rook on e1; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "g3",
+      "motifs": "",
+      "text": "Black could have played Qg3: the queen from h4 to g3; the moved piece now attacks: rook on e1; pinned to their king afterwards: g2; the next best move, and not as good as Rxg2+"
+     },
+     "m2.other.2": {
+      "words": "White would answer Rd2: the rook from d1 to d2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d2",
+      "motifs": "",
+      "text": "White would answer Rd2: the rook from d1 to d2; the line goes on"
+     },
+     "m2.other.3": {
+      "words": "Black would answer h4: the pawn from h5 to h4; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "h4",
+      "motifs": "",
+      "text": "Black would answer h4: the pawn from h5 to h4; pinned to their king afterwards: g2; the line goes on"
+     },
+     "m2.other.4": {
+      "words": "White would answer Kf1: the king from g1 to f1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "f1",
+      "motifs": "",
+      "text": "White would answer Kf1: the king from g1 to f1; the line goes on"
+     },
+     "m2.other.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the other line: the next best move here is not as good as Rxg2+. At the end of it Black is clearly better, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
      }
     },
     "turning_point": true
@@ -6813,6 +6891,31 @@
        }
       ],
       "sideline": true
+     },
+     {
+      "kind": "show",
+      "fen": "1k2r2r/ppp5/8/4p3/PP2Qp2/3P1Pqp/2PRR1P1/6K1 w - - 1 33",
+      "intro": "m3.other.intro",
+      "moves": [
+       {
+        "san": "a5",
+        "slot": "m3.other.1"
+       },
+       {
+        "san": "a6",
+        "slot": "m3.other.2"
+       },
+       {
+        "san": "Rf2",
+        "slot": "m3.other.3"
+       },
+       {
+        "san": "Reg8",
+        "slot": "m3.other.4"
+       }
+      ],
+      "sideline": true,
+      "alternative": true
      }
     ],
     "slots": {
@@ -6825,7 +6928,12 @@
      "m3.answer.2": "Black would answer hxg2: the pawn from h3 to g2; it captures a pawn; not played - the line goes on",
      "m3.answer.3": "White would answer Rxg2: the rook from e2 to g2; it captures a pawn; the moved piece now attacks: queen on g3; not played - the line goes on",
      "m3.answer.4": "Black would answer Qh3: the queen from g3 to h3; the moved piece now attacks: rook on g2; not played - the line goes on",
-     "m3.answer.intro": "the answer: the game went c4, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "m3.answer.intro": "the answer: the game went c4, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.",
+     "m3.other.1": "White could have played a5: the pawn from a4 to a5; the next best move, and not as good as d4",
+     "m3.other.2": "Black would answer a6: the pawn from a7 to a6; pinned to their king afterwards: g2; the line goes on",
+     "m3.other.3": "White would answer Rf2: the rook from e2 to f2; the line goes on",
+     "m3.other.4": "Black would answer Reg8: the rook from e8 to g8; pinned to their king afterwards: g2; the line goes on",
+     "m3.other.intro": "the other line: the next best move here is not as good as d4. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     },
     "facts": {
      "m3.lead.1": {
@@ -6926,6 +7034,54 @@
       "pin": false,
       "motifs": "",
       "text": "the answer: the game went c4, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     },
+     "m3.other.1": {
+      "words": "White could have played a5: the pawn from a4 to a5",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "a5",
+      "motifs": "",
+      "text": "White could have played a5: the pawn from a4 to a5; the next best move, and not as good as d4"
+     },
+     "m3.other.2": {
+      "words": "Black would answer a6: the pawn from a7 to a6; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "a6",
+      "motifs": "",
+      "text": "Black would answer a6: the pawn from a7 to a6; pinned to their king afterwards: g2; the line goes on"
+     },
+     "m3.other.3": {
+      "words": "White would answer Rf2: the rook from e2 to f2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "f2",
+      "motifs": "",
+      "text": "White would answer Rf2: the rook from e2 to f2; the line goes on"
+     },
+     "m3.other.4": {
+      "words": "Black would answer Reg8: the rook from e8 to g8; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "g8",
+      "motifs": "",
+      "text": "Black would answer Reg8: the rook from e8 to g8; pinned to their king afterwards: g2; the line goes on"
+     },
+     "m3.other.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the other line: the next best move here is not as good as d4. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
      }
     },
     "turning_point": false
@@ -7199,6 +7355,31 @@
        }
       ],
       "sideline": true
+     },
+     {
+      "kind": "show",
+      "fen": "1k2r2r/ppp5/8/4p3/PPP1Qp2/3P1P1q/3R2R1/6K1 w - - 1 35",
+      "intro": "m5.other.intro",
+      "moves": [
+       {
+        "san": "Qe2",
+        "slot": "m5.other.1"
+       },
+       {
+        "san": "Reg8",
+        "slot": "m5.other.2"
+       },
+       {
+        "san": "Rxg8+",
+        "slot": "m5.other.3"
+       },
+       {
+        "san": "Rxg8+",
+        "slot": "m5.other.4"
+       }
+      ],
+      "sideline": true,
+      "alternative": true
      }
     ],
     "slots": {
@@ -7213,7 +7394,12 @@
      "m5.answer.4": "Black would answer Rd8: the rook from e8 to d8; not played - the line goes on",
      "m5.answer.5": "White would answer Qf5: the queen from g6 to f5; not played - the line goes on",
      "m5.answer.6": "Black would answer Rxd3: the rook from d8 to d3; it captures a pawn; not played - the line goes on",
-     "m5.answer.intro": "the answer: the game went c5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to -2 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "m5.answer.intro": "the answer: the game went c5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to -2 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.",
+     "m5.other.1": "White could have played Qe2: the queen from e4 to e2; the next best move, and not as good as Qg6",
+     "m5.other.2": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the line goes on",
+     "m5.other.3": "White would answer Rxg8+: the rook from g2 to g8; it captures a rook; it gives check; the moved piece now attacks: king on b8, rook on h8; the line goes on",
+     "m5.other.4": "Black would answer Rxg8+: the rook from h8 to g8; it captures a rook; it gives check; the moved piece now attacks: king on g1; the line goes on",
+     "m5.other.intro": "the other line: the next best move here is not as good as Qg6. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     },
     "facts": {
      "m5.lead.1": {
@@ -7334,6 +7520,54 @@
       "pin": false,
       "motifs": "",
       "text": "the answer: the game went c5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to -2 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     },
+     "m5.other.1": {
+      "words": "White could have played Qe2: the queen from e4 to e2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "e2",
+      "motifs": "",
+      "text": "White could have played Qe2: the queen from e4 to e2; the next best move, and not as good as Qg6"
+     },
+     "m5.other.2": {
+      "words": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "g8",
+      "motifs": "",
+      "text": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the line goes on"
+     },
+     "m5.other.3": {
+      "words": "White would answer Rxg8+: the rook from g2 to g8; it captures a rook; it gives check; the moved piece now attacks: king on b8, rook on h8",
+      "gain": 5,
+      "mate": false,
+      "fork": true,
+      "pin": false,
+      "to": "g8",
+      "motifs": "",
+      "text": "White would answer Rxg8+: the rook from g2 to g8; it captures a rook; it gives check; the moved piece now attacks: king on b8, rook on h8; the line goes on"
+     },
+     "m5.other.4": {
+      "words": "Black would answer Rxg8+: the rook from h8 to g8; it captures a rook; it gives check; the moved piece now attacks: king on g1",
+      "gain": 5,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g8",
+      "motifs": "",
+      "text": "Black would answer Rxg8+: the rook from h8 to g8; it captures a rook; it gives check; the moved piece now attacks: king on g1; the line goes on"
+     },
+     "m5.other.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the other line: the next best move here is not as good as Qg6. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
      }
     },
     "turning_point": false
@@ -7414,6 +7648,31 @@
        }
       ],
       "sideline": true
+     },
+     {
+      "kind": "show",
+      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/7q b - - 2 36",
+      "intro": "m6.other.intro",
+      "moves": [
+       {
+        "san": "Rh2",
+        "slot": "m6.other.1"
+       },
+       {
+        "san": "Qg6",
+        "slot": "m6.other.2"
+       },
+       {
+        "san": "Reh8",
+        "slot": "m6.other.3"
+       },
+       {
+        "san": "Re2",
+        "slot": "m6.other.4"
+       }
+      ],
+      "sideline": true,
+      "alternative": true
      }
     ],
     "slots": {
@@ -7427,7 +7686,12 @@
      "m6.answer.3": "Black would answer Rxg8: the rook from h8 to g8; it captures a rook; not played - the line goes on",
      "m6.answer.4": "White would answer Qxb7+: the queen from e4 to b7; it captures a pawn; it gives check; the moved piece now attacks: king on b8; not played - the line goes on",
      "m6.answer.5": "Black would answer Kxb7: the king from b8 to b7; it captures a queen; not played - the line goes on",
-     "m6.answer.intro": "the answer: the game went Qc1, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -8 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "m6.answer.intro": "the answer: the game went Qc1, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -8 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.",
+     "m6.other.1": "Black could have played Rh2: the rook from h8 to h2; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the next best move, and not as good as Reg8",
+     "m6.other.2": "White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on e8; the line goes on",
+     "m6.other.3": "Black would answer Reh8: the rook from e8 to h8; pinned to their king afterwards: g2; the line goes on",
+     "m6.other.4": "White would answer Re2: the rook from d2 to e2; the line goes on",
+     "m6.other.intro": "the other line: the next best move here is not as good as Reg8. At the end of it Black is winning, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     },
     "facts": {
      "m6.lead.1": {
@@ -7538,6 +7802,54 @@
       "pin": false,
       "motifs": "",
       "text": "the answer: the game went Qc1, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -8 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+     },
+     "m6.other.1": {
+      "words": "Black could have played Rh2: the rook from h8 to h2; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "h2",
+      "motifs": "",
+      "text": "Black could have played Rh2: the rook from h8 to h2; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the next best move, and not as good as Reg8"
+     },
+     "m6.other.2": {
+      "words": "White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on e8",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g6",
+      "motifs": "",
+      "text": "White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on e8; the line goes on"
+     },
+     "m6.other.3": {
+      "words": "Black would answer Reh8: the rook from e8 to h8; pinned to their king afterwards: g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "h8",
+      "motifs": "",
+      "text": "Black would answer Reh8: the rook from e8 to h8; pinned to their king afterwards: g2; the line goes on"
+     },
+     "m6.other.4": {
+      "words": "White would answer Re2: the rook from d2 to e2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "e2",
+      "motifs": "",
+      "text": "White would answer Re2: the rook from d2 to e2; the line goes on"
+     },
+     "m6.other.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the other line: the next best move here is not as good as Reg8. At the end of it Black is winning, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
      }
     },
     "turning_point": false
@@ -7618,6 +7930,31 @@
        }
       ],
       "sideline": true
+     },
+     {
+      "kind": "show",
+      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/2R2KR1/3q4 w - - 5 38",
+      "intro": "m7.other.intro",
+      "moves": [
+       {
+        "san": "Qe2",
+        "slot": "m7.other.1"
+       },
+       {
+        "san": "Qb1",
+        "slot": "m7.other.2"
+       },
+       {
+        "san": "Rc4",
+        "slot": "m7.other.3"
+       },
+       {
+        "san": "Reg8",
+        "slot": "m7.other.4"
+       }
+      ],
+      "sideline": true,
+      "alternative": true
      }
     ],
     "slots": {
@@ -7631,7 +7968,12 @@
      "m7.answer.3": "White would answer Re1: the rook from e2 to e1; the moved piece now attacks: queen on d1, rook on h1; not played - the line goes on",
      "m7.answer.4": "Black would answer Rxe1: the rook from h1 to e1; it captures a rook; the moved piece now attacks: queen on e4; not played - the line goes on",
      "m7.answer.5": "White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on d1; not played - the line goes on",
-     "m7.answer.intro": "the answer: the game went Rd2, which cost 6.61 pawns. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "m7.answer.intro": "the answer: the game went Rd2, which cost 6.61 pawns. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.",
+     "m7.other.1": "White could have played Qe2: the queen from e4 to e2; the moved piece now attacks: queen on d1; the next best move, and not as good as Re2",
+     "m7.other.2": "Black would answer Qb1: the queen from d1 to b1; the moved piece now attacks: rook on c2; the line goes on",
+     "m7.other.3": "White would answer Rc4: the rook from c2 to c4; the line goes on",
+     "m7.other.4": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; the line goes on",
+     "m7.other.intro": "the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     },
     "facts": {
      "m7.lead.1": {
@@ -7742,6 +8084,54 @@
       "pin": false,
       "motifs": "",
       "text": "the answer: the game went Rd2, which cost 6.61 pawns. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     },
+     "m7.other.1": {
+      "words": "White could have played Qe2: the queen from e4 to e2; the moved piece now attacks: queen on d1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "e2",
+      "motifs": "",
+      "text": "White could have played Qe2: the queen from e4 to e2; the moved piece now attacks: queen on d1; the next best move, and not as good as Re2"
+     },
+     "m7.other.2": {
+      "words": "Black would answer Qb1: the queen from d1 to b1; the moved piece now attacks: rook on c2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "b1",
+      "motifs": "",
+      "text": "Black would answer Qb1: the queen from d1 to b1; the moved piece now attacks: rook on c2; the line goes on"
+     },
+     "m7.other.3": {
+      "words": "White would answer Rc4: the rook from c2 to c4",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "c4",
+      "motifs": "",
+      "text": "White would answer Rc4: the rook from c2 to c4; the line goes on"
+     },
+     "m7.other.4": {
+      "words": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g8",
+      "motifs": "",
+      "text": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; the line goes on"
+     },
+     "m7.other.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
      }
     },
     "turning_point": false
@@ -7827,6 +8217,39 @@
        }
       ],
       "sideline": true
+     },
+     {
+      "kind": "show",
+      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
+      "intro": "m8.other.intro",
+      "moves": [
+       {
+        "san": "d4",
+        "slot": "m8.other.1"
+       },
+       {
+        "san": "exd4",
+        "slot": "m8.other.2"
+       },
+       {
+        "san": "Rg1",
+        "slot": "m8.other.3"
+       },
+       {
+        "san": "Rh2+",
+        "slot": "m8.other.4"
+       },
+       {
+        "san": "Rg2",
+        "slot": "m8.other.5"
+       },
+       {
+        "san": "Rxe4",
+        "slot": "m8.other.6"
+       }
+      ],
+      "sideline": true,
+      "alternative": true
      }
     ],
     "slots": {
@@ -7840,7 +8263,14 @@
      "m8.answer.3": "White would answer Re1: the rook from e2 to e1; the moved piece now attacks: queen on a1, rook on h1; not played - the line goes on",
      "m8.answer.4": "Black would answer Rxe1: the rook from h1 to e1; it captures a rook; the moved piece now attacks: queen on e4; not played - the line goes on",
      "m8.answer.5": "White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on a1; not played - the line goes on",
-     "m8.answer.intro": "the answer: the game went a5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     "m8.answer.intro": "the answer: the game went a5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.",
+     "m8.other.1": "White could have played d4: the pawn from d3 to d4; the next best move, and not as good as Re2",
+     "m8.other.2": "Black would answer exd4: the pawn from e5 to d4; it captures a pawn; the line goes on",
+     "m8.other.3": "White would answer Rg1: the rook from g2 to g1; the moved piece now attacks: queen on a1; the line goes on",
+     "m8.other.4": "Black would answer Rh2+: the rook from h8 to h2; it gives check; the moved piece now attacks: king on f2; the line goes on",
+     "m8.other.5": "White would answer Rg2: the rook from g1 to g2; the moved piece now attacks: rook on h2; the line goes on",
+     "m8.other.6": "Black would answer Rxe4: the rook from e8 to e4; it captures a queen; pinned to their king afterwards: g2; the line goes on",
+     "m8.other.intro": "the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     },
     "facts": {
      "m8.lead.1": {
@@ -7951,6 +8381,74 @@
       "pin": false,
       "motifs": "",
       "text": "the answer: the game went a5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+     },
+     "m8.other.1": {
+      "words": "White could have played d4: the pawn from d3 to d4",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d4",
+      "motifs": "",
+      "text": "White could have played d4: the pawn from d3 to d4; the next best move, and not as good as Re2"
+     },
+     "m8.other.2": {
+      "words": "Black would answer exd4: the pawn from e5 to d4; it captures a pawn",
+      "gain": 1,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "d4",
+      "motifs": "",
+      "text": "Black would answer exd4: the pawn from e5 to d4; it captures a pawn; the line goes on"
+     },
+     "m8.other.3": {
+      "words": "White would answer Rg1: the rook from g2 to g1; the moved piece now attacks: queen on a1",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g1",
+      "motifs": "",
+      "text": "White would answer Rg1: the rook from g2 to g1; the moved piece now attacks: queen on a1; the line goes on"
+     },
+     "m8.other.4": {
+      "words": "Black would answer Rh2+: the rook from h8 to h2; it gives check; the moved piece now attacks: king on f2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "h2",
+      "motifs": "",
+      "text": "Black would answer Rh2+: the rook from h8 to h2; it gives check; the moved piece now attacks: king on f2; the line goes on"
+     },
+     "m8.other.5": {
+      "words": "White would answer Rg2: the rook from g1 to g2; the moved piece now attacks: rook on h2",
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "to": "g2",
+      "motifs": "",
+      "text": "White would answer Rg2: the rook from g1 to g2; the moved piece now attacks: rook on h2; the line goes on"
+     },
+     "m8.other.6": {
+      "words": "Black would answer Rxe4: the rook from e8 to e4; it captures a queen; pinned to their king afterwards: g2",
+      "gain": 9,
+      "mate": false,
+      "fork": false,
+      "pin": true,
+      "to": "e4",
+      "motifs": "",
+      "text": "Black would answer Rxe4: the rook from e8 to e4; it captures a queen; pinned to their king afterwards: g2; the line goes on"
+     },
+     "m8.other.intro": {
+      "gain": 0,
+      "mate": false,
+      "fork": false,
+      "pin": false,
+      "motifs": "",
+      "text": "the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
      }
     },
     "turning_point": false
@@ -8076,6 +8574,26 @@
       {
        "id": "m2.answer.5",
        "text": "Black would answer Rxg6+: the rook from g8 to g6; it captures a queen; it gives check; the moved piece now attacks: king on g2; not played - the line goes on"
+      },
+      {
+       "id": "m2.other.intro",
+       "text": "the other line: the next best move here is not as good as Rxg2+. At the end of it Black is clearly better, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
+      },
+      {
+       "id": "m2.other.1",
+       "text": "Black could have played Qg3: the queen from h4 to g3; the moved piece now attacks: rook on e1; pinned to their king afterwards: g2; the next best move, and not as good as Rxg2+"
+      },
+      {
+       "id": "m2.other.2",
+       "text": "White would answer Rd2: the rook from d1 to d2; the line goes on"
+      },
+      {
+       "id": "m2.other.3",
+       "text": "Black would answer h4: the pawn from h5 to h4; pinned to their king afterwards: g2; the line goes on"
+      },
+      {
+       "id": "m2.other.4",
+       "text": "White would answer Kf1: the king from g1 to f1; the line goes on"
       }
      ]
     },
@@ -8134,6 +8652,26 @@
       {
        "id": "m3.answer.4",
        "text": "Black would answer Qh3: the queen from g3 to h3; the moved piece now attacks: rook on g2; not played - the line goes on"
+      },
+      {
+       "id": "m3.other.intro",
+       "text": "the other line: the next best move here is not as good as d4. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
+      },
+      {
+       "id": "m3.other.1",
+       "text": "White could have played a5: the pawn from a4 to a5; the next best move, and not as good as d4"
+      },
+      {
+       "id": "m3.other.2",
+       "text": "Black would answer a6: the pawn from a7 to a6; pinned to their king afterwards: g2; the line goes on"
+      },
+      {
+       "id": "m3.other.3",
+       "text": "White would answer Rf2: the rook from e2 to f2; the line goes on"
+      },
+      {
+       "id": "m3.other.4",
+       "text": "Black would answer Reg8: the rook from e8 to g8; pinned to their king afterwards: g2; the line goes on"
       }
      ]
     },
@@ -8256,6 +8794,26 @@
       {
        "id": "m5.answer.6",
        "text": "Black would answer Rxd3: the rook from d8 to d3; it captures a pawn; not played - the line goes on"
+      },
+      {
+       "id": "m5.other.intro",
+       "text": "the other line: the next best move here is not as good as Qg6. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
+      },
+      {
+       "id": "m5.other.1",
+       "text": "White could have played Qe2: the queen from e4 to e2; the next best move, and not as good as Qg6"
+      },
+      {
+       "id": "m5.other.2",
+       "text": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the line goes on"
+      },
+      {
+       "id": "m5.other.3",
+       "text": "White would answer Rxg8+: the rook from g2 to g8; it captures a rook; it gives check; the moved piece now attacks: king on b8, rook on h8; the line goes on"
+      },
+      {
+       "id": "m5.other.4",
+       "text": "Black would answer Rxg8+: the rook from h8 to g8; it captures a rook; it gives check; the moved piece now attacks: king on g1; the line goes on"
       }
      ]
     },
@@ -8317,6 +8875,26 @@
       {
        "id": "m6.answer.5",
        "text": "Black would answer Kxb7: the king from b8 to b7; it captures a queen; not played - the line goes on"
+      },
+      {
+       "id": "m6.other.intro",
+       "text": "the other line: the next best move here is not as good as Reg8. At the end of it Black is winning, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
+      },
+      {
+       "id": "m6.other.1",
+       "text": "Black could have played Rh2: the rook from h8 to h2; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the next best move, and not as good as Reg8"
+      },
+      {
+       "id": "m6.other.2",
+       "text": "White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on e8; the line goes on"
+      },
+      {
+       "id": "m6.other.3",
+       "text": "Black would answer Reh8: the rook from e8 to h8; pinned to their king afterwards: g2; the line goes on"
+      },
+      {
+       "id": "m6.other.4",
+       "text": "White would answer Re2: the rook from d2 to e2; the line goes on"
       }
      ]
     },
@@ -8378,6 +8956,26 @@
       {
        "id": "m7.answer.5",
        "text": "White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on d1; not played - the line goes on"
+      },
+      {
+       "id": "m7.other.intro",
+       "text": "the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
+      },
+      {
+       "id": "m7.other.1",
+       "text": "White could have played Qe2: the queen from e4 to e2; the moved piece now attacks: queen on d1; the next best move, and not as good as Re2"
+      },
+      {
+       "id": "m7.other.2",
+       "text": "Black would answer Qb1: the queen from d1 to b1; the moved piece now attacks: rook on c2; the line goes on"
+      },
+      {
+       "id": "m7.other.3",
+       "text": "White would answer Rc4: the rook from c2 to c4; the line goes on"
+      },
+      {
+       "id": "m7.other.4",
+       "text": "Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; the line goes on"
       }
      ]
     },
@@ -8441,12 +9039,40 @@
       {
        "id": "m8.answer.5",
        "text": "White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on a1; not played - the line goes on"
+      },
+      {
+       "id": "m8.other.intro",
+       "text": "the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
+      },
+      {
+       "id": "m8.other.1",
+       "text": "White could have played d4: the pawn from d3 to d4; the next best move, and not as good as Re2"
+      },
+      {
+       "id": "m8.other.2",
+       "text": "Black would answer exd4: the pawn from e5 to d4; it captures a pawn; the line goes on"
+      },
+      {
+       "id": "m8.other.3",
+       "text": "White would answer Rg1: the rook from g2 to g1; the moved piece now attacks: queen on a1; the line goes on"
+      },
+      {
+       "id": "m8.other.4",
+       "text": "Black would answer Rh2+: the rook from h8 to h2; it gives check; the moved piece now attacks: king on f2; the line goes on"
+      },
+      {
+       "id": "m8.other.5",
+       "text": "White would answer Rg2: the rook from g1 to g2; the moved piece now attacks: rook on h2; the line goes on"
+      },
+      {
+       "id": "m8.other.6",
+       "text": "Black would answer Rxe4: the rook from e8 to e4; it captures a queen; pinned to their king afterwards: g2; the line goes on"
       }
      ]
     }
    ]
   },
-  "prompt": "# Write the words for a chess tutorial\n\nA trainer's game is being turned into a tutorial that a student of 13 or older\nwalks through alone, on a board, with every sentence read aloud. The student plays\nin a club and knows how the pieces move and what a fork and a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move, every question and every correct answer.\nNone of it can change. You do two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep „played\" for what was played.** A slot that says „not played\" is a move\n  the game did not contain, and the facts already say „should have played\" or\n  „would answer\" for it - keep that voice. A student must be able to tell what\n  happened from what should have without doing arithmetic.\n- **A question never names a move in notation** - not its answer, and not the\n  move played in the game either. Naming the rejected move eliminates a\n  candidate and tells the student what not to look at, which is half the\n  exercise. Say what is on the board, not what was played.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"m2.question\": \"...\", \"...\": \"...\"}}\n\n## The game\n\nThe opening is the Scandinavian Defense: Modern Variation. 7. Ne2 left the masters database: 1 master game had reached that position and not one played it.\n\n```\n1. e4 d5 2. exd5 Nf6 3. Nc3 Nxd5 4. Nxd5 Qxd5 5. Qf3 Qd6 6. Bc4 e6 7. Ne2 Nc6\n8. O-O Ne5 9. Qc3 Nxc4 10. Qxc4 Bd7 11. d3 O-O-O 12. Bd2 h5 13. h3 f6 14. Ng3\nBc6 15. Bf4 e5 16. Be3 Kb8 17. Rad1 g5 18. Ne4 Qe7 19. Bc5 Qe8 20. Bxf8 Qxf8\n21. Qe6 f5 22. Nxg5 Re8 23. Qc4 Rg8 24. h4 f4 25. Rfe1 Qf5 26. b4 Qg4 27. f3\nQxh4 28. Ne4 Bxe4 29. Qxe4 Qg3 30. Re2 h4 31. Rdd2 h3 32. a4 Rh8 33. c4 hxg2\n34. Rxg2 Qh3 35. c5 Qh1+ 36. Kf2 Qc1 37. Rc2 Qd1 38. Rd2 Qa1 39. a5 Rh1 40. Qe2\nQd4+ *\n```\n\n## The moments\n\n### m1 - at 28... Bxe4, White to move\nIn the game 29. Qxe4 was played and it allowed a forced mate; the best move was dxe4. There is a question here; correct answers: dxe4, Rxe4.\nOn the board: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the board before these moves (Black to move); material White minus Black is +1 before them and -3 after them\n- `m1.lead.1`: Black plays Qxh4: the queen from g4 to h4; it captures a pawn; the moved piece now attacks: rook on e1, knight on g5; played in the game; afterwards Black is winning; on the board after it: The white queen on c4 pins the black pawn on f4 to the queen on h4. The white knight on g5 is attacked by the black rook on g8 and has no defender. The black queen on g4 is no longer hanging. The white knight on g5 is no longer on an outpost.\n- `m1.lead.2`: White plays Ne4: the knight from g5 to e4; played in the game; afterwards Black is winning; on the board after it: The black rook on g8 pins the white pawn on g2 to the king on g1. The white knight on g5 is no longer hanging.\n- `m1.lead.3`: Black plays Bxe4: the bishop from c6 to e4; it captures a knight; pinned to their king afterwards: g2; played in the game; afterwards Black is winning; on the board after it: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.\n- `m1.question`: White to move. The best move is dxe4, and afterwards Black is winning. Also counted correct: Rxe4. What follows the best move: dxe4 Qg3 Qe2 h4 Qf2 Qg6. In the game Qxe4 was played instead; it allowed a forced mate and afterwards Black mates in 5. On the board: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.. Ask for the move in one sentence, without naming it or its destination square.\n- `m1.answer.intro`: the answer: the game went Qxe4, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from -3 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m1.answer.1`: White should have played dxe4: the pawn from d3 to e4; it captures a bishop; not played - the best move the game missed\n- `m1.answer.2`: Black would answer Qg3: the queen from h4 to g3; the moved piece now attacks: rook on e1; pinned to their king afterwards: g2; not played - the line goes on\n- `m1.answer.3`: White would answer Qe2: the queen from c4 to e2; not played - the line goes on\n- `m1.answer.4`: Black would answer h4: the pawn from h5 to h4; pinned to their king afterwards: g2; not played - the line goes on\n\n### m2 - at 29. Qxe4, Black to move\nIn the game 29... Qg3 was played and it gave up a forced mate; the best move was Rxg2+. There is a question here; correct answers: Rxg2+.\nThis is the moment the game turned on.\nOn the board: The white queen on e4 pins the black pawn on f4 to the queen on h4. The white pawn on f3 is no longer hanging. Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m2.lead.1`: White plays Ne4: the knight from g5 to e4; played in the game; afterwards Black is winning; on the board after it: The black rook on g8 pins the white pawn on g2 to the king on g1. The white knight on g5 is no longer hanging.\n- `m2.lead.2`: Black plays Bxe4: the bishop from c6 to e4; it captures a knight; pinned to their king afterwards: g2; played in the game; afterwards Black is winning; on the board after it: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.\n- `m2.lead.3`: White plays Qxe4: the queen from c4 to e4; it captures a bishop; played in the game; afterwards Black mates in 5; on the board after it: The white queen on e4 pins the black pawn on f4 to the queen on h4. The white pawn on f3 is no longer hanging. Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.\n- `m2.question`: Black to move. The best move is Rxg2+, and afterwards Black mates in 5. Also counted correct: nothing else. What follows the best move: Rxg2+ Kxg2 Rg8+ Qg6 Rxg6+ Kf1. In the game Qg3 was played instead; it gave up a forced mate and afterwards Black is clearly better. On the board: The white queen on e4 pins the black pawn on f4 to the queen on h4. The white pawn on f3 is no longer hanging. Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.. Ask for the move in one sentence, without naming it or its destination square.\n- `m2.answer.intro`: the answer: the game went Qg3, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -5 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m2.answer.1`: Black should have played Rxg2+: the rook from g8 to g2; it captures a pawn; it gives check; the moved piece now attacks: king on g1; not played - the best move the game missed\n- `m2.answer.2`: White would answer Kxg2: the king from g1 to g2; it captures a rook; not played - the line goes on\n- `m2.answer.3`: Black would answer Rg8+: the rook from e8 to g8; it gives check; the moved piece now attacks: king on g2; not played - the line goes on\n- `m2.answer.4`: White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on g8; not played - the line goes on\n- `m2.answer.5`: Black would answer Rxg6+: the rook from g8 to g6; it captures a queen; it gives check; the moved piece now attacks: king on g2; not played - the line goes on\n\n### m3 - at 32... Rh8, White to move\nIn the game 33. c4 was played and it allowed a forced mate; the best move was d4. There is a question here; correct answers: d4, Qxe5.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m3.lead.1`: Black plays h3: the pawn from h4 to h3; pinned to their king afterwards: g2; played in the game; afterwards Black is winning; on the board after it: Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. Black's light squares are no longer weak.\n- `m3.lead.2`: White plays a4: the pawn from a2 to a4; played in the game; afterwards Black is winning\n- `m3.lead.3`: Black plays Rh8: the rook from g8 to h8; pinned to their king afterwards: g2; played in the game; afterwards Black is winning\n- `m3.question`: White to move. The best move is d4, and afterwards Black is winning. Also counted correct: Qxe5. What follows the best move: d4 hxg2 Rxg2 Qh3 Kf2 exd4. In the game c4 was played instead; it allowed a forced mate and afterwards Black mates in 6. Ask for the move in one sentence, without naming it or its destination square.\n- `m3.answer.intro`: the answer: the game went c4, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m3.answer.1`: White should have played d4: the pawn from d3 to d4; not played - the best move the game missed\n- `m3.answer.2`: Black would answer hxg2: the pawn from h3 to g2; it captures a pawn; not played - the line goes on\n- `m3.answer.3`: White would answer Rxg2: the rook from e2 to g2; it captures a pawn; the moved piece now attacks: queen on g3; not played - the line goes on\n- `m3.answer.4`: Black would answer Qh3: the queen from g3 to h3; the moved piece now attacks: rook on g2; not played - the line goes on\n\n### m4 - at 33. c4, Black to move\nIn the game 33... hxg2 was played and it gave up a forced mate; the best move was Reg8. There is a question here; correct answers: Reg8.\nOn the board: The white pawn on d3 is backward: it has fallen behind its neighbours and cannot advance safely.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m4.lead.1`: White plays a4: the pawn from a2 to a4; played in the game; afterwards Black is winning\n- `m4.lead.2`: Black plays Rh8: the rook from g8 to h8; pinned to their king afterwards: g2; played in the game; afterwards Black is winning\n- `m4.lead.3`: White plays c4: the pawn from c2 to c4; played in the game; afterwards Black mates in 6; on the board after it: The white pawn on d3 is backward: it has fallen behind its neighbours and cannot advance safely.\n- `m4.question`: Black to move. The best move is Reg8, and afterwards Black mates in 6. Also counted correct: nothing else. What follows the best move: Reg8 Rb2 hxg2 Rxg2 Qh2+ Kf1. In the game hxg2 was played instead; it gave up a forced mate and afterwards Black is winning. On the board: The white pawn on d3 is backward: it has fallen behind its neighbours and cannot advance safely.. Ask for the move in one sentence, without naming it or its destination square.\n- `m4.answer.intro`: the answer: the game went hxg2, which gave up a forced mate. At the end of the best line Black mates in 6; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m4.answer.1`: Black should have played Reg8: the rook from e8 to g8; pinned to their king afterwards: g2; not played - the best move the game missed\n- `m4.answer.2`: White would answer Rb2: the rook from d2 to b2; not played - the line goes on\n- `m4.answer.3`: Black would answer hxg2: the pawn from h3 to g2; it captures a pawn; not played - the line goes on\n- `m4.answer.4`: White would answer Rxg2: the rook from e2 to g2; it captures a pawn; the moved piece now attacks: queen on g3; not played - the line goes on\n\n### m5 - at 34... Qh3, White to move\nIn the game 35. c5 was played and it allowed a forced mate; the best move was Qg6. There is a question here; correct answers: Qg6.\n\nSlots, in the order the student meets them:\n- `m5.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m5.lead.1`: Black plays hxg2: the pawn from h3 to g2; it captures a pawn; played in the game; afterwards Black is winning; on the board after it: The black pawn on g2 is attacked twice and defended only once. The black pawn on g2 is a passed pawn: no white pawn can block or capture it. The white king on g1 has lost its pawn shield. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The black pawn on h3 is no longer isolated.\n- `m5.lead.2`: White plays Rxg2: the rook from e2 to g2; it captures a pawn; the moved piece now attacks: queen on g3; played in the game; afterwards Black is winning; on the board after it: The black queen on g3 pins the white rook on g2 to the king on g1. The white rook on g2 stands on the open g-file. The black pawn on g2 is no longer a passed pawn.\n- `m5.lead.3`: Black plays Qh3: the queen from g3 to h3; the moved piece now attacks: rook on g2; played in the game; afterwards Black is winning\n- `m5.question`: White to move. The best move is Qg6, and afterwards Black is winning. Also counted correct: nothing else. What follows the best move: Qg6 Qxf3 Rde2 Rd8 Qf5 Rxd3. In the game c5 was played instead; it allowed a forced mate and afterwards Black mates in 6. Ask for the move in one sentence, without naming it or its destination square.\n- `m5.answer.intro`: the answer: the game went c5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to -2 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m5.answer.1`: White should have played Qg6: the queen from e4 to g6; the moved piece now attacks: rook on e8; not played - the best move the game missed\n- `m5.answer.2`: Black would answer Qxf3: the queen from h3 to f3; it captures a pawn; the moved piece now attacks: rook on g2; not played - the line goes on\n- `m5.answer.3`: White would answer Rde2: the rook from d2 to e2; not played - the line goes on\n- `m5.answer.4`: Black would answer Rd8: the rook from e8 to d8; not played - the line goes on\n- `m5.answer.5`: White would answer Qf5: the queen from g6 to f5; not played - the line goes on\n- `m5.answer.6`: Black would answer Rxd3: the rook from d8 to d3; it captures a pawn; not played - the line goes on\n\n### m6 - at 36. Kf2, Black to move\nIn the game 36... Qc1 was played and it gave up a forced mate; the best move was Reg8. There is a question here; correct answers: Reg8.\n\nSlots, in the order the student meets them:\n- `m6.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m6.lead.1`: White plays c5: the pawn from c4 to c5; played in the game; afterwards Black mates in 6; on the board after it: White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. White's dark squares are no longer weak.\n- `m6.lead.2`: Black plays Qh1+: the queen from h3 to h1; it gives check; the moved piece now attacks: king on g1, rook on g2; played in the game; afterwards Black mates in 5\n- `m6.lead.3`: White plays Kf2: the king from g1 to f2; played in the game; afterwards Black mates in 5\n- `m6.question`: Black to move. The best move is Reg8, and afterwards Black mates in 5. Also counted correct: nothing else. What follows the best move: Reg8 Rxg8+ Rxg8 Qxb7+ Kxb7 c6+. In the game Qc1 was played instead; it gave up a forced mate and afterwards Black is winning. Ask for the move in one sentence, without naming it or its destination square.\n- `m6.answer.intro`: the answer: the game went Qc1, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -8 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m6.answer.1`: Black should have played Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; not played - the best move the game missed\n- `m6.answer.2`: White would answer Rxg8+: the rook from g2 to g8; it captures a rook; it gives check; the moved piece now attacks: king on b8, rook on h8; not played - the line goes on\n- `m6.answer.3`: Black would answer Rxg8: the rook from h8 to g8; it captures a rook; not played - the line goes on\n- `m6.answer.4`: White would answer Qxb7+: the queen from e4 to b7; it captures a pawn; it gives check; the moved piece now attacks: king on b8; not played - the line goes on\n- `m6.answer.5`: Black would answer Kxb7: the king from b8 to b7; it captures a queen; not played - the line goes on\n\n### m7 - at 37... Qd1, White to move\nIn the game 38. Rd2 was played and it cost 6.61 pawns; the best move was Re2. There is a question here; correct answers: Re2.\nOn the board: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.\n\nSlots, in the order the student meets them:\n- `m7.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m7.lead.1`: Black plays Qc1: the queen from h1 to c1; the moved piece now attacks: rook on d2; played in the game; afterwards Black is winning; on the board after it: The white rook on d2 is attacked by the black queen on c1 and has no defender.\n- `m7.lead.2`: White plays Rc2: the rook from d2 to c2; the moved piece now attacks: queen on c1; played in the game; afterwards Black is winning; on the board after it: The black queen on c1 is attacked by the white rook on c2 and has no defender.\n- `m7.lead.3`: Black plays Qd1: the queen from c1 to d1; the moved piece now attacks: rook on c2; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.\n- `m7.question`: White to move. The best move is Re2, and afterwards Black is winning. Also counted correct: nothing else. What follows the best move: Re2 Rh1 Re1 Rxe1 Qxe1 Qxd3. In the game Rd2 was played instead; it cost 6.61 pawns and afterwards Black is winning. On the board: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.. Ask for the move in one sentence, without naming it or its destination square.\n- `m7.answer.intro`: the answer: the game went Rd2, which cost 6.61 pawns. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m7.answer.1`: White should have played Re2: the rook from c2 to e2; not played - the best move the game missed\n- `m7.answer.2`: Black would answer Rh1: the rook from h8 to h1; not played - the line goes on\n- `m7.answer.3`: White would answer Re1: the rook from e2 to e1; the moved piece now attacks: queen on d1, rook on h1; not played - the line goes on\n- `m7.answer.4`: Black would answer Rxe1: the rook from h1 to e1; it captures a rook; the moved piece now attacks: queen on e4; not played - the line goes on\n- `m7.answer.5`: White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on d1; not played - the line goes on\n\n### m8 - at 38... Qa1, White to move\nIn the game 39. a5 was played and it allowed a forced mate; the best move was Re2. There is a question here; correct answers: Re2, Qe1, Qg6.\nOn the board: The black queen on d1 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m8.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m8.lead.1`: Black plays Qd1: the queen from c1 to d1; the moved piece now attacks: rook on c2; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.\n- `m8.lead.2`: White plays Rd2: the rook from c2 to d2; the moved piece now attacks: queen on d1; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 is attacked by the white rook on d2 and has no defender. The black queen on d1 forks the white rook on d2 and the pawn on a4. The white rook on c2 is no longer skewered.\n- `m8.lead.3`: Black plays Qa1: the queen from d1 to a1; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 is no longer hanging.\n- `m8.question`: White to move. The best move is Re2, and afterwards Black is winning. Also counted correct: Qe1, Qg6. What follows the best move: Re2 Rh1 Re1 Rxe1 Qxe1 Qd4+. In the game a5 was played instead; it allowed a forced mate and afterwards Black mates in 9. On the board: The black queen on d1 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square.\n- `m8.answer.intro`: the answer: the game went a5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m8.answer.1`: White should have played Re2: the rook from d2 to e2; not played - the best move the game missed\n- `m8.answer.2`: Black would answer Rh1: the rook from h8 to h1; not played - the line goes on\n- `m8.answer.3`: White would answer Re1: the rook from e2 to e1; the moved piece now attacks: queen on a1, rook on h1; not played - the line goes on\n- `m8.answer.4`: Black would answer Rxe1: the rook from h1 to e1; it captures a rook; the moved piece now attacks: queen on e4; not played - the line goes on\n- `m8.answer.5`: White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on a1; not played - the line goes on\n",
+  "prompt": "# Write the words for a chess tutorial\n\nA trainer's game is being turned into a tutorial that a student of 13 or older\nwalks through alone, on a board, with every sentence read aloud. The student plays\nin a club and knows how the pieces move and what a fork and a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move, every question and every correct answer.\nNone of it can change. You do two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep „played\" for what was played.** A slot that says „not played\" is a move\n  the game did not contain, and the facts already say „should have played\" or\n  „would answer\" for it - keep that voice. A student must be able to tell what\n  happened from what should have without doing arithmetic.\n- **A question never names a move in notation** - not its answer, and not the\n  move played in the game either. Naming the rejected move eliminates a\n  candidate and tells the student what not to look at, which is half the\n  exercise. Say what is on the board, not what was played.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"m2.question\": \"...\", \"...\": \"...\"}}\n\n## The game\n\nThe opening is the Scandinavian Defense: Modern Variation. 7. Ne2 left the masters database: 1 master game had reached that position and not one played it.\n\n```\n1. e4 d5 2. exd5 Nf6 3. Nc3 Nxd5 4. Nxd5 Qxd5 5. Qf3 Qd6 6. Bc4 e6 7. Ne2 Nc6\n8. O-O Ne5 9. Qc3 Nxc4 10. Qxc4 Bd7 11. d3 O-O-O 12. Bd2 h5 13. h3 f6 14. Ng3\nBc6 15. Bf4 e5 16. Be3 Kb8 17. Rad1 g5 18. Ne4 Qe7 19. Bc5 Qe8 20. Bxf8 Qxf8\n21. Qe6 f5 22. Nxg5 Re8 23. Qc4 Rg8 24. h4 f4 25. Rfe1 Qf5 26. b4 Qg4 27. f3\nQxh4 28. Ne4 Bxe4 29. Qxe4 Qg3 30. Re2 h4 31. Rdd2 h3 32. a4 Rh8 33. c4 hxg2\n34. Rxg2 Qh3 35. c5 Qh1+ 36. Kf2 Qc1 37. Rc2 Qd1 38. Rd2 Qa1 39. a5 Rh1 40. Qe2\nQd4+ *\n```\n\n## The moments\n\n### m1 - at 28... Bxe4, White to move\nIn the game 29. Qxe4 was played and it allowed a forced mate; the best move was dxe4. There is a question here; correct answers: dxe4, Rxe4.\nOn the board: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the board before these moves (Black to move); material White minus Black is +1 before them and -3 after them\n- `m1.lead.1`: Black plays Qxh4: the queen from g4 to h4; it captures a pawn; the moved piece now attacks: rook on e1, knight on g5; played in the game; afterwards Black is winning; on the board after it: The white queen on c4 pins the black pawn on f4 to the queen on h4. The white knight on g5 is attacked by the black rook on g8 and has no defender. The black queen on g4 is no longer hanging. The white knight on g5 is no longer on an outpost.\n- `m1.lead.2`: White plays Ne4: the knight from g5 to e4; played in the game; afterwards Black is winning; on the board after it: The black rook on g8 pins the white pawn on g2 to the king on g1. The white knight on g5 is no longer hanging.\n- `m1.lead.3`: Black plays Bxe4: the bishop from c6 to e4; it captures a knight; pinned to their king afterwards: g2; played in the game; afterwards Black is winning; on the board after it: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.\n- `m1.question`: White to move. The best move is dxe4, and afterwards Black is winning. Also counted correct: Rxe4. What follows the best move: dxe4 Qg3 Qe2 h4 Qf2 Qg6. In the game Qxe4 was played instead; it allowed a forced mate and afterwards Black mates in 5. On the board: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.. Ask for the move in one sentence, without naming it or its destination square.\n- `m1.answer.intro`: the answer: the game went Qxe4, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from -3 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m1.answer.1`: White should have played dxe4: the pawn from d3 to e4; it captures a bishop; not played - the best move the game missed\n- `m1.answer.2`: Black would answer Qg3: the queen from h4 to g3; the moved piece now attacks: rook on e1; pinned to their king afterwards: g2; not played - the line goes on\n- `m1.answer.3`: White would answer Qe2: the queen from c4 to e2; not played - the line goes on\n- `m1.answer.4`: Black would answer h4: the pawn from h5 to h4; pinned to their king afterwards: g2; not played - the line goes on\n\n### m2 - at 29. Qxe4, Black to move\nIn the game 29... Qg3 was played and it gave up a forced mate; the best move was Rxg2+. There is a question here; correct answers: Rxg2+.\nThis is the moment the game turned on.\nOn the board: The white queen on e4 pins the black pawn on f4 to the queen on h4. The white pawn on f3 is no longer hanging. Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m2.lead.1`: White plays Ne4: the knight from g5 to e4; played in the game; afterwards Black is winning; on the board after it: The black rook on g8 pins the white pawn on g2 to the king on g1. The white knight on g5 is no longer hanging.\n- `m2.lead.2`: Black plays Bxe4: the bishop from c6 to e4; it captures a knight; pinned to their king afterwards: g2; played in the game; afterwards Black is winning; on the board after it: The black bishop on e4 is attacked by the white pawn on d3 and has no defender.\n- `m2.lead.3`: White plays Qxe4: the queen from c4 to e4; it captures a bishop; played in the game; afterwards Black mates in 5; on the board after it: The white queen on e4 pins the black pawn on f4 to the queen on h4. The white pawn on f3 is no longer hanging. Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.\n- `m2.question`: Black to move. The best move is Rxg2+, and afterwards Black mates in 5. Also counted correct: nothing else. What follows the best move: Rxg2+ Kxg2 Rg8+ Qg6 Rxg6+ Kf1. In the game Qg3 was played instead; it gave up a forced mate and afterwards Black is clearly better. On the board: The white queen on e4 pins the black pawn on f4 to the queen on h4. The white pawn on f3 is no longer hanging. Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.. Ask for the move in one sentence, without naming it or its destination square.\n- `m2.answer.intro`: the answer: the game went Qg3, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -5 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m2.answer.1`: Black should have played Rxg2+: the rook from g8 to g2; it captures a pawn; it gives check; the moved piece now attacks: king on g1; not played - the best move the game missed\n- `m2.answer.2`: White would answer Kxg2: the king from g1 to g2; it captures a rook; not played - the line goes on\n- `m2.answer.3`: Black would answer Rg8+: the rook from e8 to g8; it gives check; the moved piece now attacks: king on g2; not played - the line goes on\n- `m2.answer.4`: White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on g8; not played - the line goes on\n- `m2.answer.5`: Black would answer Rxg6+: the rook from g8 to g6; it captures a queen; it gives check; the moved piece now attacks: king on g2; not played - the line goes on\n- `m2.other.intro`: the other line: the next best move here is not as good as Rxg2+. At the end of it Black is clearly better, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m2.other.1`: Black could have played Qg3: the queen from h4 to g3; the moved piece now attacks: rook on e1; pinned to their king afterwards: g2; the next best move, and not as good as Rxg2+\n- `m2.other.2`: White would answer Rd2: the rook from d1 to d2; the line goes on\n- `m2.other.3`: Black would answer h4: the pawn from h5 to h4; pinned to their king afterwards: g2; the line goes on\n- `m2.other.4`: White would answer Kf1: the king from g1 to f1; the line goes on\n\n### m3 - at 32... Rh8, White to move\nIn the game 33. c4 was played and it allowed a forced mate; the best move was d4. There is a question here; correct answers: d4, Qxe5.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m3.lead.1`: Black plays h3: the pawn from h4 to h3; pinned to their king afterwards: g2; played in the game; afterwards Black is winning; on the board after it: Black has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak. Black's light squares are no longer weak.\n- `m3.lead.2`: White plays a4: the pawn from a2 to a4; played in the game; afterwards Black is winning\n- `m3.lead.3`: Black plays Rh8: the rook from g8 to h8; pinned to their king afterwards: g2; played in the game; afterwards Black is winning\n- `m3.question`: White to move. The best move is d4, and afterwards Black is winning. Also counted correct: Qxe5. What follows the best move: d4 hxg2 Rxg2 Qh3 Kf2 exd4. In the game c4 was played instead; it allowed a forced mate and afterwards Black mates in 6. Ask for the move in one sentence, without naming it or its destination square.\n- `m3.answer.intro`: the answer: the game went c4, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m3.answer.1`: White should have played d4: the pawn from d3 to d4; not played - the best move the game missed\n- `m3.answer.2`: Black would answer hxg2: the pawn from h3 to g2; it captures a pawn; not played - the line goes on\n- `m3.answer.3`: White would answer Rxg2: the rook from e2 to g2; it captures a pawn; the moved piece now attacks: queen on g3; not played - the line goes on\n- `m3.answer.4`: Black would answer Qh3: the queen from g3 to h3; the moved piece now attacks: rook on g2; not played - the line goes on\n- `m3.other.intro`: the other line: the next best move here is not as good as d4. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m3.other.1`: White could have played a5: the pawn from a4 to a5; the next best move, and not as good as d4\n- `m3.other.2`: Black would answer a6: the pawn from a7 to a6; pinned to their king afterwards: g2; the line goes on\n- `m3.other.3`: White would answer Rf2: the rook from e2 to f2; the line goes on\n- `m3.other.4`: Black would answer Reg8: the rook from e8 to g8; pinned to their king afterwards: g2; the line goes on\n\n### m4 - at 33. c4, Black to move\nIn the game 33... hxg2 was played and it gave up a forced mate; the best move was Reg8. There is a question here; correct answers: Reg8.\nOn the board: The white pawn on d3 is backward: it has fallen behind its neighbours and cannot advance safely.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m4.lead.1`: White plays a4: the pawn from a2 to a4; played in the game; afterwards Black is winning\n- `m4.lead.2`: Black plays Rh8: the rook from g8 to h8; pinned to their king afterwards: g2; played in the game; afterwards Black is winning\n- `m4.lead.3`: White plays c4: the pawn from c2 to c4; played in the game; afterwards Black mates in 6; on the board after it: The white pawn on d3 is backward: it has fallen behind its neighbours and cannot advance safely.\n- `m4.question`: Black to move. The best move is Reg8, and afterwards Black mates in 6. Also counted correct: nothing else. What follows the best move: Reg8 Rb2 hxg2 Rxg2 Qh2+ Kf1. In the game hxg2 was played instead; it gave up a forced mate and afterwards Black is winning. On the board: The white pawn on d3 is backward: it has fallen behind its neighbours and cannot advance safely.. Ask for the move in one sentence, without naming it or its destination square.\n- `m4.answer.intro`: the answer: the game went hxg2, which gave up a forced mate. At the end of the best line Black mates in 6; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m4.answer.1`: Black should have played Reg8: the rook from e8 to g8; pinned to their king afterwards: g2; not played - the best move the game missed\n- `m4.answer.2`: White would answer Rb2: the rook from d2 to b2; not played - the line goes on\n- `m4.answer.3`: Black would answer hxg2: the pawn from h3 to g2; it captures a pawn; not played - the line goes on\n- `m4.answer.4`: White would answer Rxg2: the rook from e2 to g2; it captures a pawn; the moved piece now attacks: queen on g3; not played - the line goes on\n\n### m5 - at 34... Qh3, White to move\nIn the game 35. c5 was played and it allowed a forced mate; the best move was Qg6. There is a question here; correct answers: Qg6.\n\nSlots, in the order the student meets them:\n- `m5.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m5.lead.1`: Black plays hxg2: the pawn from h3 to g2; it captures a pawn; played in the game; afterwards Black is winning; on the board after it: The black pawn on g2 is attacked twice and defended only once. The black pawn on g2 is a passed pawn: no white pawn can block or capture it. The white king on g1 has lost its pawn shield. White has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak. The black pawn on h3 is no longer isolated.\n- `m5.lead.2`: White plays Rxg2: the rook from e2 to g2; it captures a pawn; the moved piece now attacks: queen on g3; played in the game; afterwards Black is winning; on the board after it: The black queen on g3 pins the white rook on g2 to the king on g1. The white rook on g2 stands on the open g-file. The black pawn on g2 is no longer a passed pawn.\n- `m5.lead.3`: Black plays Qh3: the queen from g3 to h3; the moved piece now attacks: rook on g2; played in the game; afterwards Black is winning\n- `m5.question`: White to move. The best move is Qg6, and afterwards Black is winning. Also counted correct: nothing else. What follows the best move: Qg6 Qxf3 Rde2 Rd8 Qf5 Rxd3. In the game c5 was played instead; it allowed a forced mate and afterwards Black mates in 6. Ask for the move in one sentence, without naming it or its destination square.\n- `m5.answer.intro`: the answer: the game went c5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to -2 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m5.answer.1`: White should have played Qg6: the queen from e4 to g6; the moved piece now attacks: rook on e8; not played - the best move the game missed\n- `m5.answer.2`: Black would answer Qxf3: the queen from h3 to f3; it captures a pawn; the moved piece now attacks: rook on g2; not played - the line goes on\n- `m5.answer.3`: White would answer Rde2: the rook from d2 to e2; not played - the line goes on\n- `m5.answer.4`: Black would answer Rd8: the rook from e8 to d8; not played - the line goes on\n- `m5.answer.5`: White would answer Qf5: the queen from g6 to f5; not played - the line goes on\n- `m5.answer.6`: Black would answer Rxd3: the rook from d8 to d3; it captures a pawn; not played - the line goes on\n- `m5.other.intro`: the other line: the next best move here is not as good as Qg6. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m5.other.1`: White could have played Qe2: the queen from e4 to e2; the next best move, and not as good as Qg6\n- `m5.other.2`: Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the line goes on\n- `m5.other.3`: White would answer Rxg8+: the rook from g2 to g8; it captures a rook; it gives check; the moved piece now attacks: king on b8, rook on h8; the line goes on\n- `m5.other.4`: Black would answer Rxg8+: the rook from h8 to g8; it captures a rook; it gives check; the moved piece now attacks: king on g1; the line goes on\n\n### m6 - at 36. Kf2, Black to move\nIn the game 36... Qc1 was played and it gave up a forced mate; the best move was Reg8. There is a question here; correct answers: Reg8.\n\nSlots, in the order the student meets them:\n- `m6.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m6.lead.1`: White plays c5: the pawn from c4 to c5; played in the game; afterwards Black mates in 6; on the board after it: White has no dark-squared bishop, and three of its pawns stand on light squares, so the dark squares are weak. White's dark squares are no longer weak.\n- `m6.lead.2`: Black plays Qh1+: the queen from h3 to h1; it gives check; the moved piece now attacks: king on g1, rook on g2; played in the game; afterwards Black mates in 5\n- `m6.lead.3`: White plays Kf2: the king from g1 to f2; played in the game; afterwards Black mates in 5\n- `m6.question`: Black to move. The best move is Reg8, and afterwards Black mates in 5. Also counted correct: nothing else. What follows the best move: Reg8 Rxg8+ Rxg8 Qxb7+ Kxb7 c6+. In the game Qc1 was played instead; it gave up a forced mate and afterwards Black is winning. Ask for the move in one sentence, without naming it or its destination square.\n- `m6.answer.intro`: the answer: the game went Qc1, which gave up a forced mate. At the end of the best line Black mates in 5; material White minus Black goes from +0 to -8 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m6.answer.1`: Black should have played Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; not played - the best move the game missed\n- `m6.answer.2`: White would answer Rxg8+: the rook from g2 to g8; it captures a rook; it gives check; the moved piece now attacks: king on b8, rook on h8; not played - the line goes on\n- `m6.answer.3`: Black would answer Rxg8: the rook from h8 to g8; it captures a rook; not played - the line goes on\n- `m6.answer.4`: White would answer Qxb7+: the queen from e4 to b7; it captures a pawn; it gives check; the moved piece now attacks: king on b8; not played - the line goes on\n- `m6.answer.5`: Black would answer Kxb7: the king from b8 to b7; it captures a queen; not played - the line goes on\n- `m6.other.intro`: the other line: the next best move here is not as good as Reg8. At the end of it Black is winning, against Black mates in 5 at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m6.other.1`: Black could have played Rh2: the rook from h8 to h2; the moved piece now attacks: rook on g2; pinned to their king afterwards: g2; the next best move, and not as good as Reg8\n- `m6.other.2`: White would answer Qg6: the queen from e4 to g6; the moved piece now attacks: rook on e8; the line goes on\n- `m6.other.3`: Black would answer Reh8: the rook from e8 to h8; pinned to their king afterwards: g2; the line goes on\n- `m6.other.4`: White would answer Re2: the rook from d2 to e2; the line goes on\n\n### m7 - at 37... Qd1, White to move\nIn the game 38. Rd2 was played and it cost 6.61 pawns; the best move was Re2. There is a question here; correct answers: Re2.\nOn the board: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.\n\nSlots, in the order the student meets them:\n- `m7.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m7.lead.1`: Black plays Qc1: the queen from h1 to c1; the moved piece now attacks: rook on d2; played in the game; afterwards Black is winning; on the board after it: The white rook on d2 is attacked by the black queen on c1 and has no defender.\n- `m7.lead.2`: White plays Rc2: the rook from d2 to c2; the moved piece now attacks: queen on c1; played in the game; afterwards Black is winning; on the board after it: The black queen on c1 is attacked by the white rook on c2 and has no defender.\n- `m7.lead.3`: Black plays Qd1: the queen from c1 to d1; the moved piece now attacks: rook on c2; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.\n- `m7.question`: White to move. The best move is Re2, and afterwards Black is winning. Also counted correct: nothing else. What follows the best move: Re2 Rh1 Re1 Rxe1 Qxe1 Qxd3. In the game Rd2 was played instead; it cost 6.61 pawns and afterwards Black is winning. On the board: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.. Ask for the move in one sentence, without naming it or its destination square.\n- `m7.answer.intro`: the answer: the game went Rd2, which cost 6.61 pawns. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m7.answer.1`: White should have played Re2: the rook from c2 to e2; not played - the best move the game missed\n- `m7.answer.2`: Black would answer Rh1: the rook from h8 to h1; not played - the line goes on\n- `m7.answer.3`: White would answer Re1: the rook from e2 to e1; the moved piece now attacks: queen on d1, rook on h1; not played - the line goes on\n- `m7.answer.4`: Black would answer Rxe1: the rook from h1 to e1; it captures a rook; the moved piece now attacks: queen on e4; not played - the line goes on\n- `m7.answer.5`: White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on d1; not played - the line goes on\n- `m7.other.intro`: the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m7.other.1`: White could have played Qe2: the queen from e4 to e2; the moved piece now attacks: queen on d1; the next best move, and not as good as Re2\n- `m7.other.2`: Black would answer Qb1: the queen from d1 to b1; the moved piece now attacks: rook on c2; the line goes on\n- `m7.other.3`: White would answer Rc4: the rook from c2 to c4; the line goes on\n- `m7.other.4`: Black would answer Reg8: the rook from e8 to g8; the moved piece now attacks: rook on g2; the line goes on\n\n### m8 - at 38... Qa1, White to move\nIn the game 39. a5 was played and it allowed a forced mate; the best move was Re2. There is a question here; correct answers: Re2, Qe1, Qg6.\nOn the board: The black queen on d1 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m8.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m8.lead.1`: Black plays Qd1: the queen from c1 to d1; the moved piece now attacks: rook on c2; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 skewers the white rook on c2 and the pawn on a4 behind it. The black queen on c1 is no longer hanging. The black queen on d1 stands on the half-open d-file.\n- `m8.lead.2`: White plays Rd2: the rook from c2 to d2; the moved piece now attacks: queen on d1; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 is attacked by the white rook on d2 and has no defender. The black queen on d1 forks the white rook on d2 and the pawn on a4. The white rook on c2 is no longer skewered.\n- `m8.lead.3`: Black plays Qa1: the queen from d1 to a1; played in the game; afterwards Black is winning; on the board after it: The black queen on d1 is no longer hanging.\n- `m8.question`: White to move. The best move is Re2, and afterwards Black is winning. Also counted correct: Qe1, Qg6. What follows the best move: Re2 Rh1 Re1 Rxe1 Qxe1 Qd4+. In the game a5 was played instead; it allowed a forced mate and afterwards Black mates in 9. On the board: The black queen on d1 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square.\n- `m8.answer.intro`: the answer: the game went a5, which allowed a forced mate. At the end of the best line Black is winning; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.\n- `m8.answer.1`: White should have played Re2: the rook from d2 to e2; not played - the best move the game missed\n- `m8.answer.2`: Black would answer Rh1: the rook from h8 to h1; not played - the line goes on\n- `m8.answer.3`: White would answer Re1: the rook from e2 to e1; the moved piece now attacks: queen on a1, rook on h1; not played - the line goes on\n- `m8.answer.4`: Black would answer Rxe1: the rook from h1 to e1; it captures a rook; the moved piece now attacks: queen on e4; not played - the line goes on\n- `m8.answer.5`: White would answer Qxe1: the queen from e4 to e1; it captures a rook; the moved piece now attacks: queen on a1; not played - the line goes on\n- `m8.other.intro`: the other line: the next best move here is not as good as Re2. At the end of it Black is winning, against Black is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m8.other.1`: White could have played d4: the pawn from d3 to d4; the next best move, and not as good as Re2\n- `m8.other.2`: Black would answer exd4: the pawn from e5 to d4; it captures a pawn; the line goes on\n- `m8.other.3`: White would answer Rg1: the rook from g2 to g1; the moved piece now attacks: queen on a1; the line goes on\n- `m8.other.4`: Black would answer Rh2+: the rook from h8 to h2; it gives check; the moved piece now attacks: king on f2; the line goes on\n- `m8.other.5`: White would answer Rg2: the rook from g1 to g2; the moved piece now attacks: rook on h2; the line goes on\n- `m8.other.6`: Black would answer Rxe4: the rook from e8 to e4; it captures a queen; pinned to their king afterwards: g2; the line goes on\n",
   "report": {
    "parameters": {
     "min_cost": 1.0,
@@ -8461,7 +9087,19 @@
    "problems": [],
    "missing_slots": [
     "m2.answer.5",
-    "m8.answer.5"
+    "m2.other.1",
+    "m2.other.2",
+    "m2.other.3",
+    "m2.other.4",
+    "m2.other.intro",
+    "m8.answer.5",
+    "m8.other.1",
+    "m8.other.2",
+    "m8.other.3",
+    "m8.other.4",
+    "m8.other.5",
+    "m8.other.6",
+    "m8.other.intro"
    ],
    "unused_slots": [
     "m2.lead.1",
@@ -8491,7 +9129,7 @@
     },
     "merged": 2,
     "recap": "m2",
-    "parts": 11
+    "parts": 13
    }
   },
   "tutorial": {
@@ -8548,12 +9186,18 @@
     },
     {
      "title": "Part 7",
+     "fen": "1k2r1r1/ppp5/8/4p2p/1P2Qp1q/3P1P2/P1P3P1/3RR1K1 b - - 0 29",
+     "kind": "show",
+     "pgn": "29... Qg3 30. Rd2 h4 31. Kf1 *"
+    },
+    {
+     "title": "Part 8",
      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/2R2KR1/2q5 b - - 4 37",
      "kind": "show",
      "pgn": "{ Now back to the game as it was played. Before these moves Black is to move. Material is level before and after them. }\n37... Qd1\n{ Black plays Qd1, attacking the rook on c2 and skewering it to the pawn on a4. The queen stands on the half-open d-file. }\n38. Rd2\n{ White plays Rd2, attacking the queen on d1. The black queen has no defender and forks the rook on d2 and the pawn on a4. }\n38... Qa1 { Black plays Qa1. Afterwards Black is winning. } *"
     },
     {
-     "title": "Part 8",
+     "title": "Part 9",
      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
      "kind": "ask_move",
      "instruction": "White to move. Look for a move that prevents a forced mate. What is your move?",
@@ -8565,10 +9209,16 @@
      "pgn": ""
     },
     {
-     "title": "Part 9",
+     "title": "Part 10",
      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
      "kind": "show",
      "pgn": "{ The answer is Re2 instead of the game move a5. At the end of the best line Black is winning, and the game move allowed a forced mate. }\n39. Re2 { White plays Re2. This is the best move. } 39... Rh1\n{ Black plays Rh1. This is a move of the best line. } 40. Re1\n{ White plays Re1, attacking the queen on a1 and the rook on h1. This is a move of the best line. }\n40... Rxe1\n{ Black plays Rxe1, capturing a rook and attacking the queen on e4. This is a move of the best line. }\n41. Qxe1 *"
+    },
+    {
+     "title": "Part 11",
+     "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
+     "kind": "show",
+     "pgn": "39. d4 exd4 40. Rg1 Rh2+ 41. Rg2 Rxe4 *"
     }
    ]
   },
@@ -8628,10 +9278,16 @@
      "title": "Part 7",
      "fen": "1k2r1r1/ppp5/8/4p2p/1P2Qp1q/3P1P2/P1P3P1/3RR1K1 b - - 0 29",
      "kind": "show",
-     "pgn": "29... Qg3\n{ Back in the game, Black played Qg3 instead; afterwards Black is clearly better. }\n30. Re2\n{ White plays Re2. A serious mistake, and it leaves the opponent winning. With the best move: Black is clearly better. After this one: Black is winning. }\n30... h4 31. Rdd2 h3 32. a4 Rh8 33. c4 hxg2\n{ Black plays hxg2. This misses a forced mate. With the best move: Black mates in 6. After this one: Black is winning. }\n34. Rxg2 Qh3 35. c5 Qh1+ 36. Kf2 Qc1\n{ Black plays Qc1. There was a forced mate here, and this move misses it. With the best move: Black mates in 5. After this one: Black is winning. }\n37. Rc2\n{ Before these moves Black is to move. Material is level before and after them. }\n37... Qd1\n{ Black plays Qd1, attacking the rook on c2 and skewering it to the pawn on a4. The queen stands on the half-open d-file. }\n38. Rd2\n{ White plays Rd2, attacking the queen on d1. The black queen has no defender and forks the rook on d2 and the pawn on a4. }\n38... Qa1 { Black plays Qa1. Afterwards Black is winning. } *"
+     "pgn": "29... Qg3 30. Rd2 h4 31. Kf1 *"
     },
     {
      "title": "Part 8",
+     "fen": "1k2r1r1/ppp5/8/4p2p/1P2Qp1q/3P1P2/P1P3P1/3RR1K1 b - - 0 29",
+     "kind": "show",
+     "pgn": "29... Qg3\n{ Back in the game, Black played Qg3 instead; afterwards Black is clearly better. }\n30. Re2\n{ White plays Re2. A serious mistake, and it leaves the opponent winning. With the best move: Black is clearly better. After this one: Black is winning. }\n30... h4 31. Rdd2 h3 32. a4 Rh8 33. c4 hxg2\n{ Black plays hxg2. This misses a forced mate. With the best move: Black mates in 6. After this one: Black is winning. }\n34. Rxg2 Qh3 35. c5 Qh1+ 36. Kf2 Qc1\n{ Black plays Qc1. There was a forced mate here, and this move misses it. With the best move: Black mates in 5. After this one: Black is winning. }\n37. Rc2\n{ Before these moves Black is to move. Material is level before and after them. }\n37... Qd1\n{ Black plays Qd1, attacking the rook on c2 and skewering it to the pawn on a4. The queen stands on the half-open d-file. }\n38. Rd2\n{ White plays Rd2, attacking the queen on d1. The black queen has no defender and forks the rook on d2 and the pawn on a4. }\n38... Qa1 { Black plays Qa1. Afterwards Black is winning. } *"
+    },
+    {
+     "title": "Part 9",
      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
      "kind": "ask_move",
      "instruction": "White to move. Look for a move that prevents a forced mate. What is your move?",
@@ -8643,19 +9299,25 @@
      "pgn": ""
     },
     {
-     "title": "Part 9",
+     "title": "Part 10",
      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
      "kind": "show",
      "pgn": "{ The answer is Re2 instead of the game move a5. At the end of the best line Black is winning, and the game move allowed a forced mate. }\n39. Re2 { White plays Re2. This is the best move. } 39... Rh1\n{ Black plays Rh1. This is a move of the best line. } 40. Re1\n{ White plays Re1, attacking the queen on a1 and the rook on h1. This is a move of the best line. }\n40... Rxe1\n{ Black plays Rxe1, capturing a rook and attacking the queen on e4. This is a move of the best line. }\n41. Qxe1 *"
     },
     {
-     "title": "Part 10",
+     "title": "Part 11",
+     "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
+     "kind": "show",
+     "pgn": "39. d4 exd4 40. Rg1 Rh2+ 41. Rg2 Rxe4 *"
+    },
+    {
+     "title": "Part 12",
      "fen": "1k2r2r/ppp5/8/2P1p3/PP2Qp2/3P1P2/3R1KR1/q7 w - - 7 39",
      "kind": "show",
      "pgn": "39. a5\n{ Returning to the game, White played a5 instead; afterwards Black mates in 9. }\n39... Rh1 40. Qe2 Qd4+ { The game ended here. } *"
     },
     {
-     "title": "Part 11",
+     "title": "Part 13",
      "fen": "1k2r1r1/ppp5/8/4p2p/1P2Qp1q/3P1P2/P1P3P1/3RR1K1 b - - 0 29",
      "kind": "show",
      "pgn": "{ Looking back: the game turned on 29... Qg3. It gave up a forced mate, and this is what was there instead. }\n29... Rxg2+\n{ Black plays Rxg2+, capturing the pawn and giving check. The rook attacks the king on g1, and this is the best move. }\n30. Kxg2\n{ White plays Kxg2, capturing the rook. This is a move of the best line. }\n30... Rg8+\n{ Black plays Rg8+, giving check. The rook attacks the king on g2, and this is a move of the best line. }\n31. Qg6\n{ White plays Qg6, attacking the rook on g8. This is a move of the best line. }\n31... Rxg6+ *"

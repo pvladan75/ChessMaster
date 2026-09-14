@@ -268,6 +268,25 @@ def book_words(row):
     return said
 
 
+def gives_material(fen, mover, sans):
+    """Whether `mover` is ever behind where they started inside `sans`.
+
+    „The best move is a sacrifice", asked of the line rather than of the first
+    move: on the ten fixture games not one best move gives material away
+    immediately, and 29 of 69 best lines do so somewhere inside the plies
+    shown. A rule that looked only at the first move would have been a rule
+    that never fired.
+    """
+    board = chess.Board(fen)
+    sign = 1 if mover == 'White' else -1
+    start = sign * material(board)
+    for san in sans:
+        board.push_san(san)
+        if sign * material(board) < start:
+            return True
+    return False
+
+
 def answer_ply_count(fen, mover, line, cfg):
     """How many plies of `line` the answer part shows.
 
@@ -434,6 +453,65 @@ def moments(name, cfg=None):
         # the game again, and the student has to be told so.
         parts.append({'kind': 'show', 'fen': row['fen'],
                       'intro': intro, 'moves': moves, 'sideline': True})
+
+            # **And what the next-best move does instead, where the best one gives
+        # something up.** The owner asked for it on 14.9.2026, and asked for it
+        # scoped: „kad je žrtva opravdana i najbolji potez". Written first for
+        # every moment with a worse alternative, it fired on 67 of the 69
+        # fixture moments - a second part on almost every answer, which is not
+        # what was asked and doubles what a child reads. Gated on the best line
+        # actually giving material up it is 29 of 69, which is the question a
+        # child really has there: why give that, and what was wrong with
+        # keeping it.
+        #
+        # `correct` is every candidate within `near` of the best, so
+        # `candidates[len(correct)]` is the best move that is **clearly** worse
+        # - the first one it would be true to call second choice. Anything
+        # inside `correct` is as good, and calling it the lesser move would be
+        # a sentence the facts do not bear out.
+        #
+        # **A part of its own, not a variation of the answer part.** The
+        # child's viewer breaks the narrated walk at a fork and asks them to
+        # choose (`lesson_viewer_screen.dart`), so a variation here would stop
+        # „Pusti tutorijal" at the very moment the answer is being shown, and
+        # offer a choice between the right move and a worse one with nothing
+        # said yet about either. The film ignores variations too - its beats
+        # follow the spine - so as a variation this would be invisible in every
+        # exported video. As a part it is read, spoken and filmed like any
+        # other.
+        others = row['candidates'][len(correct):]
+        if others and gives_material(row['fen'], mover, line_sans[:shown]):
+            other = others[0]
+            other_sans = other['line'].split()
+            other_shown = answer_ply_count(row['fen'], mover, other_sans, cfg)
+            if other_shown:
+                other_board = chess.Board(row['fen'])
+                other_moves = []
+                for k, san in enumerate(other_sans[:other_shown], 1):
+                    sid = '%s.other.%d' % (mid, k)
+                    info = play(other_board, san,
+                                verb='could have played' if k == 1
+                                else 'would answer')
+                    slots[sid] = info['words'] + (
+                        '; the next best move, and not as good as %s'
+                        % best['move'] if k == 1
+                        else '; the line goes on')
+                    facts[sid] = dict(info, motifs='')
+                    other_moves.append({'san': san, 'slot': sid})
+                other_intro = '%s.other.intro' % mid
+                slots[other_intro] = (
+                    'the other line: the next best move here is not as good as '
+                    '%s. At the end of it %s, against %s at the end of the best '
+                    'line. Say that there was a second choice and that it is '
+                    'weaker, in one sentence, without naming it - the move '
+                    'after this sentence names it.' % (
+                        best['move'], words_for(other.get('eval')),
+                        words_for(best.get('eval'))))
+                facts[other_intro] = {'gain': 0, 'mate': False, 'fork': False,
+                                      'pin': False, 'motifs': ''}
+                parts.append({'kind': 'show', 'fen': row['fen'],
+                              'intro': other_intro, 'moves': other_moves,
+                              'sideline': True, 'alternative': True})
 
         # Every slot's facts carry the very text the model was shown beside it,
         # so a claim is judged against what it was allowed to say rather than
@@ -1094,7 +1172,8 @@ def _recap(blocks, words, rows):
     for moment, mparts in blocks:
         if moment['id'] != chosen:
             continue
-        answer = next((p for p in mparts if p.get('sideline')), None)
+        answer = next((p for p in mparts
+                       if p.get('sideline') and not p.get('alternative')), None)
         if answer is None or not answer.get('moves'):
             return None
         words['recap.intro'] = (

@@ -155,6 +155,26 @@ int mistakeCount(Map<String, dynamic> facts, double minCost) => heavyIndices(
 /// Bounded by [SkeletonParameters.maxAnswerPlies] rather than by the line,
 /// because the stored line is six plies today and this must not become „show
 /// the whole engine PV" the day that changes.
+/// Whether [mover] is ever behind where they started inside [sans].
+///
+/// „The best move is a sacrifice", asked of the line rather than of the first
+/// move: on the ten fixture games not one best move gives material away
+/// immediately, and 29 of 69 best lines do so somewhere inside the plies shown.
+/// A rule that looked only at the first move would have been a rule that never
+/// fired.
+bool givesMaterial(String fen, String mover, List<String> sans) {
+  final board = chess.Chess.fromFEN(fen);
+  final sign = mover == 'White' ? 1 : -1;
+  final start = sign * materialOf(board);
+  for (final san in sans) {
+    if (!board.move(san)) {
+      throw StateError('$san cannot be played from ${board.fen}');
+    }
+    if (sign * materialOf(board) < start) return true;
+  }
+  return false;
+}
+
 int answerPlyCount(String fen, String mover, List<String> line,
     SkeletonParameters parameters) {
   if (line.isEmpty) return 0;
@@ -377,6 +397,72 @@ List<Map<String, dynamic>> skeletonMoments(
       'moves': moves,
       'sideline': true,
     });
+
+    // **And what the next-best move does instead, where the best one gives
+    // something up.** The owner asked for it on 14.9.2026, and asked for it
+    // scoped: „kad je žrtva opravdana i najbolji potez". Written first for
+    // every moment with a worse alternative, it fired on 67 of the 69 fixture
+    // moments — a second part on almost every answer, which is not what was
+    // asked and doubles what a child reads. Gated on the best line actually
+    // giving material up it is 29 of 69, which is the question a child really
+    // has there: why give that, and what was wrong with keeping it.
+    //
+    // `correct` is every candidate within `near` of the best, so the one after
+    // it is the best move that is **clearly** worse — the first it would be
+    // true to call a second choice. Anything inside `correct` is as good, and
+    // calling it the lesser move would be a sentence the facts do not bear out.
+    //
+    // **A part of its own, not a variation of the answer part.** The child's
+    // viewer breaks the narrated walk at a fork and asks them to choose
+    // (`lesson_viewer_screen.dart`), so a variation here would stop „Pusti
+    // tutorijal" at the very moment the answer is being shown, and offer a
+    // choice between the right move and a worse one with nothing said yet
+    // about either. The film ignores variations too — its beats follow the
+    // spine — so as a variation this would be invisible in every exported
+    // video. As a part it is read, spoken and filmed like any other.
+    final others = candidates.skip(correct.length).toList();
+    if (others.isNotEmpty &&
+        givesMaterial(row['fen'] as String, mover, lineMoves)) {
+      final other = others.first;
+      final otherSans = (other['line'] as String)
+          .split(RegExp(r'\s+'))
+          .where((token) => token.isNotEmpty)
+          .toList();
+      final otherShown =
+          answerPlyCount(row['fen'] as String, mover, otherSans, parameters);
+      if (otherShown > 0) {
+        final otherBoard = chess.Chess.fromFEN(row['fen'] as String);
+        final otherMoves = <Map<String, dynamic>>[];
+        for (var k = 1; k <= otherShown; k++) {
+          final san = otherSans[k - 1];
+          final sid = '$mid.other.$k';
+          final info = playMoveOnBoard(otherBoard, san,
+              verb: k == 1 ? 'could have played' : 'would answer');
+          slots[sid] =
+              '${info['words']}${k == 1 ? '; the next best move, and not as good as ${best['move']}' : '; the line goes on'}';
+          slotFacts[sid] = {...info, 'motifs': ''};
+          otherMoves.add({'san': san, 'slot': sid});
+        }
+        final otherIntro = '$mid.other.intro';
+        slots[otherIntro] =
+            'the other line: the next best move here is not as good as ${best['move']}. At the end of it ${wordsFor(other['eval'] as String?)}, against ${wordsFor(best['eval'] as String?)} at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.';
+        slotFacts[otherIntro] = {
+          'gain': 0,
+          'mate': false,
+          'fork': false,
+          'pin': false,
+          'motifs': '',
+        };
+        parts.add({
+          'kind': 'show',
+          'fen': row['fen'],
+          'intro': otherIntro,
+          'moves': otherMoves,
+          'sideline': true,
+          'alternative': true,
+        });
+      }
+    }
 
     for (final entry in slots.entries) {
       slotFacts[entry.key]!['text'] = entry.value;

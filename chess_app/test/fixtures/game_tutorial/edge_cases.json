@@ -2666,10 +2666,16 @@
      "title": "Part 4",
      "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
      "kind": "show",
-     "pgn": "13... Rdg8 { Back to the game. } *"
+     "pgn": "13... dxe4 14. dxe4 Qc6 15. O-O-O *"
     },
     {
      "title": "Part 5",
+     "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
+     "kind": "show",
+     "pgn": "13... Rdg8 { Back to the game. } *"
+    },
+    {
+     "title": "Part 6",
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "ask_move",
      "instruction": "White to move: find the move, O-O-O, that tucks the king away.",
@@ -2677,10 +2683,16 @@
      "pgn": ""
     },
     {
-     "title": "Part 6",
+     "title": "Part 7",
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "show",
      "pgn": "14. O-O-O d4 15. Ng4 dxc3 16. bxc3 *"
+    },
+    {
+     "title": "Part 8",
+     "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
+     "kind": "show",
+     "pgn": "14. Bf3 d4 15. Nc4 dxc3 16. bxc3 *"
     }
    ]
   },
@@ -2716,10 +2728,16 @@
      "title": "Part 4",
      "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
      "kind": "show",
-     "pgn": "13... Rdg8 { Back to the game. } *"
+     "pgn": "13... dxe4 14. dxe4 Qc6 15. O-O-O *"
     },
     {
      "title": "Part 5",
+     "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
+     "kind": "show",
+     "pgn": "13... Rdg8 { Back to the game. } *"
+    },
+    {
+     "title": "Part 6",
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "ask_move",
      "instruction": "White to move: find the move, O-O-O, that tucks the king away.",
@@ -2727,19 +2745,25 @@
      "pgn": ""
     },
     {
-     "title": "Part 6",
+     "title": "Part 7",
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "show",
      "pgn": "14. O-O-O d4 15. Ng4 dxc3 16. bxc3 *"
     },
     {
-     "title": "Part 7",
+     "title": "Part 8",
+     "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
+     "kind": "show",
+     "pgn": "14. Bf3 d4 15. Nc4 dxc3 16. bxc3 *"
+    },
+    {
+     "title": "Part 9",
      "fen": "2k3rr/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR w KQ - 3 14",
      "kind": "show",
      "pgn": "14. Bf3\n{ Back in the game, White played Bf3 instead; afterwards Black is clearly better. }\n14... d4 15. cxd4 exd4 16. Ng4 Bxg4 17. Bxg4\n{ White plays Bxg4. A serious mistake: from here the opponent is winning. With the best move: Black is clearly better. After this one: Black is winning. }\n17... Rxg4 18. hxg4 Rxh1 19. O-O-O Nc6 20. f3 Ne5 21. Ne2 Rxd1+ 22. Qxd1 Nxf3\n23. Qf1 Qxg4 24. Kc2 Be5 25. Nc1 Nh2 26. Qf2 Qf3 27. Qh4 Nf1 28. Qh8+ Kd7 29.\nQf8 Ne3+ 30. Kb3 Qd1+ { The game ended here. } *"
     },
     {
-     "title": "Part 8",
+     "title": "Part 10",
      "fen": "2kr3r/pppqnp2/3bbp2/3pp3/4P3/2PPN2P/PPQ2PB1/R3K1NR b KQ - 2 13",
      "kind": "show",
      "pgn": "{ Looking back: the game turned on 13... Rdg8. It cost 1.83 pawns, and this is what was there instead. }\n13... d4 14. cxd4 exd4 15. Nc4 *"
@@ -2769,13 +2793,24 @@
     "m1.answer.3",
     "m1.answer.4",
     "m1.answer.intro",
+    "m1.other.1",
+    "m1.other.2",
+    "m1.other.3",
+    "m1.other.4",
+    "m1.other.intro",
     "m2.lead.3",
     "m2.answer.1",
     "m2.answer.2",
     "m2.answer.3",
     "m2.answer.4",
     "m2.answer.5",
-    "m2.answer.intro"
+    "m2.answer.intro",
+    "m2.other.1",
+    "m2.other.2",
+    "m2.other.3",
+    "m2.other.4",
+    "m2.other.5",
+    "m2.other.intro"
    ],
    "unused_slots": [],
    "claims": [
@@ -2799,7 +2834,7 @@
     },
     "merged": 1,
     "recap": "m1",
-    "parts": 8
+    "parts": 10
    }
   }
  },
@@ -6081,6 +6116,31 @@
       }
      ],
      "sideline": true
+    },
+    {
+     "kind": "show",
+     "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+     "intro": "m3.other.intro",
+     "moves": [
+      {
+       "san": "Bf4+",
+       "slot": "m3.other.1"
+      },
+      {
+       "san": "Kb1",
+       "slot": "m3.other.2"
+      },
+      {
+       "san": "Bxh6",
+       "slot": "m3.other.3"
+      },
+      {
+       "san": "Qh5",
+       "slot": "m3.other.4"
+      }
+     ],
+     "sideline": true,
+     "alternative": true
     }
    ],
    "slots": {
@@ -6094,7 +6154,12 @@
     "m3.answer.3": "Black would answer Nf4: the knight from d5 to f4; the moved piece now attacks: queen on e2; not played - the line goes on",
     "m3.answer.4": "White would answer Qe3: the queen from e2 to e3; the moved piece now attacks: knight on f4; not played - the line goes on",
     "m3.answer.5": "Black would answer Nxg6: the knight from f4 to g6; it captures a pawn; not played - the line goes on",
-    "m3.answer.intro": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+    "m3.answer.intro": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.",
+    "m3.other.1": "Black could have played Bf4+: the bishop from d6 to f4; it gives check; the moved piece now attacks: king on c1; the next best move, and not as good as Qf6",
+    "m3.other.2": "White would answer Kb1: the king from c1 to b1; the line goes on",
+    "m3.other.3": "Black would answer Bxh6: the bishop from f4 to h6; it captures a pawn; the line goes on",
+    "m3.other.4": "White would answer Qh5: the queen from e2 to h5; the moved piece now attacks: bishop on h6; the line goes on",
+    "m3.other.intro": "the other line: the next best move here is not as good as Qf6. At the end of it White is winning, against White is clearly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
    },
    "facts": {
     "m3.lead.1": {
@@ -6205,6 +6270,54 @@
      "pin": false,
      "motifs": "",
      "text": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+    },
+    "m3.other.1": {
+     "words": "Black could have played Bf4+: the bishop from d6 to f4; it gives check; the moved piece now attacks: king on c1",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "f4",
+     "motifs": "",
+     "text": "Black could have played Bf4+: the bishop from d6 to f4; it gives check; the moved piece now attacks: king on c1; the next best move, and not as good as Qf6"
+    },
+    "m3.other.2": {
+     "words": "White would answer Kb1: the king from c1 to b1",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "b1",
+     "motifs": "",
+     "text": "White would answer Kb1: the king from c1 to b1; the line goes on"
+    },
+    "m3.other.3": {
+     "words": "Black would answer Bxh6: the bishop from f4 to h6; it captures a pawn",
+     "gain": 1,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h6",
+     "motifs": "",
+     "text": "Black would answer Bxh6: the bishop from f4 to h6; it captures a pawn; the line goes on"
+    },
+    "m3.other.4": {
+     "words": "White would answer Qh5: the queen from e2 to h5; the moved piece now attacks: bishop on h6",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h5",
+     "motifs": "",
+     "text": "White would answer Qh5: the queen from e2 to h5; the moved piece now attacks: bishop on h6; the line goes on"
+    },
+    "m3.other.intro": {
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "motifs": "",
+     "text": "the other line: the next best move here is not as good as Qf6. At the end of it White is winning, against White is clearly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     }
    },
    "turning_point": true
@@ -6285,6 +6398,35 @@
       }
      ],
      "sideline": true
+    },
+    {
+     "kind": "show",
+     "fen": "rnb2qk1/8/2pbp1PP/3n1p2/p2P4/p7/NPP1QP2/2K1RB1R w - - 0 23",
+     "intro": "m4.other.intro",
+     "moves": [
+      {
+       "san": "Qh5",
+       "slot": "m4.other.1"
+      },
+      {
+       "san": "Bf4+",
+       "slot": "m4.other.2"
+      },
+      {
+       "san": "Kb1",
+       "slot": "m4.other.3"
+      },
+      {
+       "san": "Qxh6",
+       "slot": "m4.other.4"
+      },
+      {
+       "san": "Qxh6",
+       "slot": "m4.other.5"
+      }
+     ],
+     "sideline": true,
+     "alternative": true
     }
    ],
    "slots": {
@@ -6298,7 +6440,13 @@
     "m4.answer.3": "White would answer h7+: the pawn from h6 to h7; it gives check; the moved piece now attacks: king on g8; not played - the line goes on",
     "m4.answer.4": "Black would answer Kxg7: the king from g8 to g7; it captures a pawn; not played - the line goes on",
     "m4.answer.5": "White would answer h8=R: the pawn from h7 to h8; it promotes to a rook; the moved piece now attacks: queen on e8; not played - the line goes on",
-    "m4.answer.intro": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to +3 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+    "m4.answer.intro": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to +3 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it.",
+    "m4.other.1": "White could have played Qh5: the queen from e2 to h5; the next best move, and not as good as g7",
+    "m4.other.2": "Black would answer Bf4+: the bishop from d6 to f4; it gives check; the moved piece now attacks: king on c1; the line goes on",
+    "m4.other.3": "White would answer Kb1: the king from c1 to b1; the line goes on",
+    "m4.other.4": "Black would answer Qxh6: the queen from f8 to h6; it captures a pawn; the moved piece now attacks: queen on h5; the line goes on",
+    "m4.other.5": "White would answer Qxh6: the queen from h5 to h6; it captures a queen; the moved piece now attacks: bishop on f4; the line goes on",
+    "m4.other.intro": "the other line: the next best move here is not as good as g7. At the end of it White is winning, against White is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
    },
    "facts": {
     "m4.lead.1": {
@@ -6409,6 +6557,64 @@
      "pin": false,
      "motifs": "",
      "text": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to +3 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
+    },
+    "m4.other.1": {
+     "words": "White could have played Qh5: the queen from e2 to h5",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h5",
+     "motifs": "",
+     "text": "White could have played Qh5: the queen from e2 to h5; the next best move, and not as good as g7"
+    },
+    "m4.other.2": {
+     "words": "Black would answer Bf4+: the bishop from d6 to f4; it gives check; the moved piece now attacks: king on c1",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "f4",
+     "motifs": "",
+     "text": "Black would answer Bf4+: the bishop from d6 to f4; it gives check; the moved piece now attacks: king on c1; the line goes on"
+    },
+    "m4.other.3": {
+     "words": "White would answer Kb1: the king from c1 to b1",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "b1",
+     "motifs": "",
+     "text": "White would answer Kb1: the king from c1 to b1; the line goes on"
+    },
+    "m4.other.4": {
+     "words": "Black would answer Qxh6: the queen from f8 to h6; it captures a pawn; the moved piece now attacks: queen on h5",
+     "gain": 1,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h6",
+     "motifs": "",
+     "text": "Black would answer Qxh6: the queen from f8 to h6; it captures a pawn; the moved piece now attacks: queen on h5; the line goes on"
+    },
+    "m4.other.5": {
+     "words": "White would answer Qxh6: the queen from h5 to h6; it captures a queen; the moved piece now attacks: bishop on f4",
+     "gain": 9,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h6",
+     "motifs": "",
+     "text": "White would answer Qxh6: the queen from h5 to h6; it captures a queen; the moved piece now attacks: bishop on f4; the line goes on"
+    },
+    "m4.other.intro": {
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "motifs": "",
+     "text": "the other line: the next best move here is not as good as g7. At the end of it White is winning, against White is winning at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     }
    },
    "turning_point": false
@@ -12105,6 +12311,39 @@
       }
      ],
      "sideline": true
+    },
+    {
+     "kind": "show",
+     "fen": "8/7p/Rp3pk1/6p1/PP3p2/3r1P1P/5K2/8 b - - 0 40",
+     "intro": "m5.other.intro",
+     "moves": [
+      {
+       "san": "Kh5",
+       "slot": "m5.other.1"
+      },
+      {
+       "san": "Rxb6",
+       "slot": "m5.other.2"
+      },
+      {
+       "san": "Kh4",
+       "slot": "m5.other.3"
+      },
+      {
+       "san": "a5",
+       "slot": "m5.other.4"
+      },
+      {
+       "san": "Ra3",
+       "slot": "m5.other.5"
+      },
+      {
+       "san": "a6",
+       "slot": "m5.other.6"
+      }
+     ],
+     "sideline": true,
+     "alternative": true
     }
    ],
    "slots": {
@@ -12119,7 +12358,14 @@
     "m5.answer.4": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn; not played - the line goes on",
     "m5.answer.5": "Black would answer Ra2+: the rook from a3 to a2; it gives check; the moved piece now attacks: king on f2; not played - the line goes on",
     "m5.answer.6": "White would answer Kf1: the king from f2 to f1; not played - the line goes on",
-    "m5.answer.intro": "the answer: the game went Rd6, which cost 2.82 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+    "m5.answer.intro": "the answer: the game went Rd6, which cost 2.82 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it.",
+    "m5.other.1": "Black could have played Kh5: the king from g6 to h5; the next best move, and not as good as Ra3",
+    "m5.other.2": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn; the line goes on",
+    "m5.other.3": "Black would answer Kh4: the king from h5 to h4; the line goes on",
+    "m5.other.4": "White would answer a5: the pawn from a4 to a5; the line goes on",
+    "m5.other.5": "Black would answer Ra3: the rook from d3 to a3; the line goes on",
+    "m5.other.6": "White would answer a6: the pawn from a5 to a6; the line goes on",
+    "m5.other.intro": "the other line: the next best move here is not as good as Ra3. At the end of it about even, against Black is clearly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
    },
    "facts": {
     "m5.lead.1": {
@@ -12240,6 +12486,74 @@
      "pin": false,
      "motifs": "",
      "text": "the answer: the game went Rd6, which cost 2.82 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
+    },
+    "m5.other.1": {
+     "words": "Black could have played Kh5: the king from g6 to h5",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h5",
+     "motifs": "",
+     "text": "Black could have played Kh5: the king from g6 to h5; the next best move, and not as good as Ra3"
+    },
+    "m5.other.2": {
+     "words": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn",
+     "gain": 1,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "b6",
+     "motifs": "",
+     "text": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn; the line goes on"
+    },
+    "m5.other.3": {
+     "words": "Black would answer Kh4: the king from h5 to h4",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "h4",
+     "motifs": "",
+     "text": "Black would answer Kh4: the king from h5 to h4; the line goes on"
+    },
+    "m5.other.4": {
+     "words": "White would answer a5: the pawn from a4 to a5",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "a5",
+     "motifs": "",
+     "text": "White would answer a5: the pawn from a4 to a5; the line goes on"
+    },
+    "m5.other.5": {
+     "words": "Black would answer Ra3: the rook from d3 to a3",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "a3",
+     "motifs": "",
+     "text": "Black would answer Ra3: the rook from d3 to a3; the line goes on"
+    },
+    "m5.other.6": {
+     "words": "White would answer a6: the pawn from a5 to a6",
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "to": "a6",
+     "motifs": "",
+     "text": "White would answer a6: the pawn from a5 to a6; the line goes on"
+    },
+    "m5.other.intro": {
+     "gain": 0,
+     "mate": false,
+     "fork": false,
+     "pin": false,
+     "motifs": "",
+     "text": "the other line: the next best move here is not as good as Ra3. At the end of it about even, against Black is clearly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it."
     }
    },
    "turning_point": false

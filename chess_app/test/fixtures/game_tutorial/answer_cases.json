@@ -324,7 +324,12 @@
       "m1.lead.2",
       "m1.lead.3",
       "m1.lead.intro",
-      "m3.answer.5"
+      "m3.answer.5",
+      "m3.other.1",
+      "m3.other.2",
+      "m3.other.3",
+      "m3.other.4",
+      "m3.other.intro"
      ],
      "unused_slots": [],
      "claims": [
@@ -347,7 +352,7 @@
       },
       "merged": 3,
       "recap": "m3",
-      "parts": 11
+      "parts": 12
      }
     },
     "tutorial": {
@@ -401,12 +406,18 @@
       },
       {
        "title": "Part 7",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "22... Bf4+ 23. Kb1 Bxh6 24. Qh5 *"
+      },
+      {
+       "title": "Part 8",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/p2P4/p7/NPP1QP2/2K1RB1R w - - 0 23",
        "kind": "show",
        "pgn": "{ Now back to the game as it was played. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
       },
       {
-       "title": "Part 8",
+       "title": "Part 9",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "ask_move",
        "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
@@ -414,7 +425,7 @@
        "pgn": ""
       },
       {
-       "title": "Part 9",
+       "title": "Part 10",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "show",
        "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
@@ -474,10 +485,16 @@
        "title": "Part 7",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
        "kind": "show",
-       "pgn": "22... bxa3\n{ Returning to the game, Black played bxa3 instead; afterwards White is winning. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+       "pgn": "22... Bf4+ 23. Kb1 Bxh6 24. Qh5 *"
       },
       {
        "title": "Part 8",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "22... bxa3\n{ Returning to the game, Black played bxa3 instead; afterwards White is winning. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+      },
+      {
+       "title": "Part 9",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "ask_move",
        "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
@@ -485,19 +502,19 @@
        "pgn": ""
       },
       {
-       "title": "Part 9",
+       "title": "Part 10",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "show",
        "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
       },
       {
-       "title": "Part 10",
+       "title": "Part 11",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "show",
        "pgn": "24... Ba6\n{ Back on the board, the game continued with Ba6 instead; afterwards White mates in 11. }\n25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4 28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+\nKg5 31. Qeh5+ Kf4 32. Rh4# { Checkmate. } *"
       },
       {
-       "title": "Part 11",
+       "title": "Part 12",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
        "kind": "show",
        "pgn": "{ Looking back: the game turned on 22... bxa3. It cost 2.11 pawns, and this is what was there instead. }\n22... Qf6\n{ Black plays Qf6, moving the queen from f8 to f6. This is the best move. } 23.\nNxb4\n{ White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line. }\n23... Nf4\n{ Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2. }\n24. Qe3\n{ White plays Qe3, moving the queen to e3 and attacking the knight on f4. }\n24... Nxg6 *"
@@ -523,7 +540,12 @@
      "facts": "g01_scandinavian-defense d18 mpv4 2026-09-13T20:08:59",
      "problems": [],
      "missing_slots": [
-      "m3.answer.5"
+      "m3.answer.5",
+      "m3.other.1",
+      "m3.other.2",
+      "m3.other.3",
+      "m3.other.4",
+      "m3.other.intro"
      ],
      "unused_slots": [],
      "claims": [
@@ -548,7 +570,7 @@
       },
       "merged": 3,
       "recap": "m3",
-      "parts": 11
+      "parts": 12
      }
     },
     "tutorial": {
@@ -602,12 +624,18 @@
       },
       {
        "title": "Part 7",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "22... Bf4+ 23. Kb1 Bxh6 24. Qh5 *"
+      },
+      {
+       "title": "Part 8",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/p2P4/p7/NPP1QP2/2K1RB1R w - - 0 23",
        "kind": "show",
        "pgn": "{ Now back to the game as it was played. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
       },
       {
-       "title": "Part 8",
+       "title": "Part 9",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "ask_move",
        "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
@@ -615,7 +643,7 @@
        "pgn": ""
       },
       {
-       "title": "Part 9",
+       "title": "Part 10",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "show",
        "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
@@ -675,10 +703,16 @@
        "title": "Part 7",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
        "kind": "show",
-       "pgn": "22... bxa3\n{ Returning to the game, Black played bxa3 instead; afterwards White is winning. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+       "pgn": "22... Bf4+ 23. Kb1 Bxh6 24. Qh5 *"
       },
       {
        "title": "Part 8",
+       "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
+       "kind": "show",
+       "pgn": "22... bxa3\n{ Returning to the game, Black played bxa3 instead; afterwards White is winning. White to move with material level, and material goes a pawn down over these moves — yet White ends up winning. }\n23. Qh5\n{ White plays Qh5, moving the queen from e2 to h5; White is clearly better. }\n23... axb2+\n{ Black plays axb2+, taking a pawn with check on the king on c1. Black's pawns on a4 and b2 are passed, but White is winning. }\n24. Kb1\n{ White plays Kb1, moving the king off the check. White is winning, but the king has lost its pawn shield. }\n*"
+      },
+      {
+       "title": "Part 9",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "ask_move",
        "instruction": "Black to move. White's king has lost its pawn shield. Find Black's best move — a careless one lets White force mate.",
@@ -686,19 +720,19 @@
        "pgn": ""
       },
       {
-       "title": "Part 9",
+       "title": "Part 10",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "show",
        "pgn": "{ Black plays Nf6 instead of the game move Ba6, which allowed a forced mate. In the best line White is winning and material stays level. }\n24... Nf6\n{ Black plays Nf6, moving the knight from d5 to f6 and attacking the queen on h5. This is the best move. }\n25. Qg5\n{ White plays Qg5, attacking the knight on f6 with the queen. A move of the best line. }\n25... Ra7\n{ Black plays Ra7, moving the rook from a8 to a7. A move of the best line. }\n26. Bc4\n{ White plays Bc4, moving the bishop from f1 to c4 and pinning the black piece on e6 to the king. }\n*"
       },
       {
-       "title": "Part 10",
+       "title": "Part 11",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
        "kind": "show",
        "pgn": "24... Ba6\n{ Back on the board, the game continued with Ba6 instead; afterwards White mates in 11. }\n25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4 28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+\nKg5 31. Qeh5+ Kf4 32. Rh4# { Checkmate. } *"
       },
       {
-       "title": "Part 11",
+       "title": "Part 12",
        "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
        "kind": "show",
        "pgn": "{ Looking back: the game turned on 22... bxa3. It cost 2.11 pawns, and this is what was there instead. }\n22... Qf6\n{ Black plays Qf6, moving the queen from f8 to f6. This is the best move. } 23.\nNxb4\n{ White plays Nxb4, taking a pawn and attacking the knight on d5. A move of the best line. }\n23... Nf4\n{ Black plays Nf4, jumping the knight from d5 to f4 and attacking the queen on e2. }\n24. Qe3\n{ White plays Qe3, moving the queen to e3 and attacking the knight on f4. }\n24... Nxg6 *"

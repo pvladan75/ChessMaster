@@ -381,7 +381,9 @@ Map<String, dynamic>? recapPart(
   final chosen = decisiveMoment([for (final (m, _) in blocks) m], rows);
   for (final (moment, mparts) in blocks) {
     if (moment['id'] != chosen) continue;
-    final answer = mparts.where((p) => p['sideline'] == true).firstOrNull;
+    final answer = mparts
+        .where((p) => p['sideline'] == true && p['alternative'] != true)
+        .firstOrNull;
     if (answer == null || (answer['moves'] as List?)?.isEmpty != false) {
       return null;
     }

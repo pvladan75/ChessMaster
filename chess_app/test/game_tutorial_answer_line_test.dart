@@ -163,22 +163,30 @@ void main() {
     expect(extended, inInclusiveRange(10, 25));
   });
 
-  test('the fixtures miss only the plies their recorded answer never saw', () {
-    // The ten recorded model answers were written against four-ply requests, so
-    // the plies this rule added have no text in them. Held here rather than
-    // left as an oddity: it explains every missing slot in the fixtures, and it
-    // fails loudly if a future change starts losing slots of any other kind.
+  test('the fixtures miss only what their recorded answer was never asked', () {
+    // The ten recorded model answers were written against a request that asked
+    // for four plies of the best line and nothing else, so two kinds of slot
+    // have no text in them: the plies the sacrifice rule added, and every slot
+    // of an alternative line. In a real run the model is asked for both.
+    //
+    // Held here rather than left as an oddity: it explains every missing slot
+    // in the fixtures, and it fails loudly if a change ever starts losing slots
+    // of a kind that *was* asked for — which would otherwise hide among these.
     for (final game in _games()) {
       final missing =
           ((game['expected']['report']['missing_slots'] as List?) ?? const [])
               .cast<String>();
       for (final slot in missing) {
-        final match = RegExp(r'^m\d+\.answer\.(\d+)$').firstMatch(slot);
-        expect(match, isNotNull,
-            reason: '${game['game']}: $slot is not an answer ply');
-        expect(int.parse(match!.group(1)!),
-            greaterThan(const SkeletonParameters().answerPlies),
-            reason: '${game['game']}: $slot was offered before this change');
+        final answerPly = RegExp(r'^m\d+\.answer\.(\d+)$').firstMatch(slot);
+        if (answerPly != null) {
+          expect(int.parse(answerPly.group(1)!),
+              greaterThan(const SkeletonParameters().answerPlies),
+              reason: '${game['game']}: $slot was offered before this change');
+          continue;
+        }
+        expect(slot, matches(RegExp(r'^m\d+\.other\.(intro|\d+)$')),
+            reason: '${game['game']}: $slot is neither an added ply nor an '
+                'alternative line');
       }
     }
   });
