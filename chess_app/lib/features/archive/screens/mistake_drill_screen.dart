@@ -5,6 +5,9 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
+import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
+import 'package:chess_app/features/analysis_studio/services/game_from_moves.dart';
+import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/features/reviews/services/review_api_service.dart'
     show ReviewGrade;
 import 'package:chess_app/theme/app_colors.dart';
@@ -12,6 +15,21 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+
+/// How the drill opens a game in Analysis. Null — the default — pushes the real
+/// screen; a test sets it, because Analysis starts an engine the test has none of.
+/// Same shape as `debugTutorialStudioAvailable`.
+@visibleForTesting
+Future<void> Function(BuildContext context, AnalysisGame game)?
+    debugOpenGameInAnalysis;
+
+Future<void> _pushAnalysis(BuildContext context, AnalysisGame game) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AnalysisStudioScreen(
+        userSession: SessionService.instance.current,
+        initialGame: game,
+      ),
+    ));
 
 class MistakeDrillScreen extends StatefulWidget {
   const MistakeDrillScreen({super.key});
@@ -34,6 +52,9 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
   bool _revealed = false;
   bool _grading = false;
   String? _playerMoveUci;
+
+  /// While the game of the mistake on the board is being fetched.
+  bool _openingGame = false;
 
   MistakeRecurrence? _recurrence;
 
@@ -128,6 +149,31 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
         _playerMoveUci = moveUci;
         _revealed = true;
       });
+    }
+  }
+
+  /// The whole game of the mistake on the board, in Analysis, standing on the
+  /// position the mistake was made in — D4 of `docs/PLAN-SKELET.md`: the
+  /// archive's way to the tutorial is the Analysis door.
+  Future<void> _openGameInAnalysis() async {
+    final item = _current;
+    if (item == null) return;
+    setState(() => _openingGame = true);
+    try {
+      final game = await _api.fetchGameMoves(item.gameId);
+      if (!mounted) return;
+      final open = debugOpenGameInAnalysis ?? _pushAnalysis;
+      await open(context, (
+        startFen: game.startFen,
+        uciMoves: game.uciMoves,
+        cursorPly: item.ply,
+        blackOrientation: (game.subjectColor ?? item.subjectColor) == 'b',
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      AppFeedback.error(context, e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _openingGame = false);
     }
   }
 
@@ -281,6 +327,16 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
               '$toMove to move. Recall the better move.',
               style:
                   TextStyle(fontSize: 12.5, color: context.colors.textPrimary),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('mistake-open-game'),
+                onPressed: _openingGame ? null : _openGameInAnalysis,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Open this game in Analysis'),
+              ),
             ),
           ],
         ),

@@ -206,6 +206,29 @@ class ArchiveApiService {
     throw Exception('Failed to fetch due mistakes: ${response.body}');
   }
 
+  /// One of the caller's own games, as its starting position and its moves —
+  /// for "Open this game in Analysis" (D4 of `docs/PLAN-SKELET.md`).
+  ///
+  /// Throws with a sentence the drill can show: a game that is no longer in
+  /// the archive is a different thing to say from a server that did not answer.
+  Future<({String startFen, List<String> uciMoves, String? subjectColor})>
+      fetchGameMoves(String gameId) async {
+    final uri =
+        Uri.parse('$backendUrl/games/${Uri.encodeComponent(gameId)}/moves');
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return (
+        startFen: json['startFen'] as String,
+        uciMoves: (json['moves'] as List).cast<String>(),
+        subjectColor: json['subjectColor'] as String?,
+      );
+    }
+    throw Exception(response.statusCode == 404
+        ? 'That game is no longer in your archive.'
+        : 'The game could not be loaded.');
+  }
+
   Future<GradeResponse> gradeMistake(String id, String grade) async {
     final uri = Uri.parse('$backendUrl/games/mistakes/$id/grade');
     final response = await _post(

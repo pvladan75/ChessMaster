@@ -15,6 +15,11 @@ import 'package:chess_app/features/archive/models/archive_subject.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
+  // Added with `GET /games/:id/moves` (D4 of docs/PLAN-SKELET.md). This fake
+  // implements every method by hand, so a new one must be here to compile.
+  @override
+  Future<({String startFen, List<String> uciMoves, String? subjectColor})>
+      fetchGameMoves(String gameId) async => throw UnimplementedError();
   @override
   Future<List<ArchiveSubject>> getSubjects() async => [];
   @override

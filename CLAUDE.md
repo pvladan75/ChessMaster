@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2489 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2540 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1316 tests, all green
+cd chess_backend && npm test          # node --test, 1321 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2231,6 +2231,31 @@ brace-slicing fallback read it just as well. Change only what the check is for.
 second account's call, left the first call waiting for ever: the whole file
 sat past its 300 s budget with no output. Node's `--test-timeout` turns that
 into a failure, and the mutation harness runs every mutant under one.
+
+**Phase 4 the same day — 2540 in the app with 1 skipped, 1321 on the backend**
+with `.env` moved aside, analyze at 26 infos. 2489 + 51: fifteen for the words
+request (ten of them one per fixture game), nine for the run, eight for the
+dialog, seven for the game tree, five for the client, three for the door and
+four for the archive; 1316 + 5 for `GET /games/:id/moves`. Analysis makes both
+tutorials in one run. Live check: `TODO-provera.md`, item 161.
+
+**A mutation that does not compile over a promoted nullable is the mutation's
+fault.** `if (false)` in front of `onOpenEngineSettings()` and `path == ""` in
+front of a `String?` both lose the null promotion the next line needs. Mutate
+the condition in a way that keeps it (`!flag && x != null`, `?? ''` at the
+source); a compile error is neither caught nor survived.
+
+**Three survivors, and every one was a case the fixtures never reach.** Every
+fixture game names an opening, so sending `''` where the harness sends `None`
+passed; the too-few-moments test had zero moments, so one was never tried; and
+the unplayable-move test followed its illegal move with another illegal one, so
+skipping looked exactly like stopping. Same family as `edge_cases.json`: **a
+gate built from real data cannot see what the data never does**, and the test
+for a boundary has to stand on the boundary.
+
+**The screen-names gate failed „sentences to check in the studio".** The copy
+was reworded; the gate stays as it is. It is the third time that gate has
+caught a sentence that did not need the word.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

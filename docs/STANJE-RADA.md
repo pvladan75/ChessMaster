@@ -43,6 +43,31 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Skelet: faza 4, vrata — 14.9.2026, u kodu
+
+U Analizi „Make a tutorial from this game" (samo gde postoji studio): izbor
+dubine sa vremenom (pamti se), pa jedno pokretanje — motor na uređaju,
+majstorska baza, činjenice, reči sa servera — i na kraju **Key moments** /
+**Whole game**, oba napravljena, jedan otvoren u studiju. Napredak kaže fazu i
+„N of M positions · about X minutes left"; Cancel odmah gasi motore i ne nudi
+se dok se reči pišu (taj poziv se naplaćuje). Svaki prekid je rečenica: nema
+motora (sa dugmetom za podešavanja), partija se ne odigrava, motor pao dva puta,
+manje od dva momenta, svako odbijanje rute za reči, odgovor koji se ne sklapa.
+Majstorska baza nedostupna **nije** prekid — tutorijal se pravi bez nje i to se
+kaže.
+
+Arhiva: greška u „Mistake drill" ima „Open this game in Analysis"; server
+vraća poteze partije (`GET /games/:id/moves`, samo sopstvene partije naloga), a
+Analiza stoji na potezu greške, okrenuta strani igrača. Lichess rokada
+(`e1h1`) čita se kao rokada samo kad je igra kralj.
+
+Aplikacija **2540** (1 preskočen), backend **1321** (`.env` sklonjen), analyze
+26. 39 mutacija, sve uhvaćene — tri tek posle novih testova za slučajeve koje
+nijedna partija iz fixture-a ne dostiže (partija bez otvaranja, tačno jedan
+momenat, nelegalan potez iza kog sledi legalan).
+Ništa od ovoga nije viđeno uživo: `TODO-provera.md`, stavka 161 — pre nje
+vlasnik traži pro nivo za svoj nalog. **Sledeće: faza 5**, provera uživo.
+
 ## Skelet: faza 3, ruta za reči — 14.9.2026, u kodu
 
 `POST /lessons/from-game/words`: aplikacija šalje skelet kao podatke, server od

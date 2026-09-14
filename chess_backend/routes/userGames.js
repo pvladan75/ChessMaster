@@ -30,7 +30,7 @@ const {
   createOpponentPrep, OpponentPrepUnavailable, policyFrom,
 } = require('../services/opponentPrep');
 const { createPrepNarrative } = require('../services/prepNarrative');
-const { isOwnSubject } = require('../services/archiveScope');
+const { isOwnSubject, OWN_GAMES_SQL } = require('../services/archiveScope');
 const { GoogleGenAI } = require('@google/genai');
 const { generateContentWithRetry } = require('../geminiService');
 const { openingJudge } = require('../services/openingJudgeService');
@@ -474,6 +474,40 @@ router.use((err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
   return next();
+});
+
+// GET /games/:id/moves — one of the caller's own games, as the moves Analysis
+// rebuilds it from (docs/PLAN-SKELET.md, D4: an archive mistake opens its game
+// in Analysis, and the Analysis door makes the tutorial).
+//
+// Only what a board needs: the starting position, the moves and which side the
+// player had. The opponent's name stays on the server — nothing on this screen
+// shows it, and a tutorial made from the game must not carry it. Only the
+// caller's **own** games (`OWN_GAMES_SQL`): an opponent's archive imported for
+// preparation is not a game of theirs to teach from.
+//
+// A non-numeric id is not refused here but passed on, so this pattern can never
+// swallow a path another router under /games is meant to answer.
+router.get('/:id/moves', authenticateToken, async (req, res, next) => {
+  if (!/^\d+$/.test(String(req.params.id))) return next();
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id)) return next();
+  try {
+    const { rows } = await pool.query(
+      `SELECT start_fen, moves, subject_color FROM user_games
+        WHERE id = $1 AND user_id = $2 AND ${OWN_GAMES_SQL}`,
+      [id, req.user.id],
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Game not found.' });
+    return res.json({
+      startFen: rows[0].start_fen,
+      moves: rows[0].moves,
+      subjectColor: rows[0].subject_color,
+    });
+  } catch (err) {
+    logger.error(`[ARHIVA] Partija ${id} nije pročitana: ${err.message}`);
+    return res.status(500).json({ error: 'The game is not available.' });
+  }
 });
 
 module.exports = router;

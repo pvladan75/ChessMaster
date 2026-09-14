@@ -397,6 +397,49 @@ server**: that is phase 5's live check.
 - Every refusal a sentence: no local engine, quota spent, provider down, a run
   interrupted. Tested at 360 × 640, with the engine and HTTP behind debug seams.
 
+**Done 14.9.2026, by the lead.** One door, in Analysis
+(`analysis_studio_screen.dart`, drawn only where `isTutorialStudioAvailable`);
+the archive reaches it through „Open this game in Analysis" on a mistake.
+
+- **The run** is `game_tutorial_io/game_tutorial_run.dart`: find the engine,
+  start the pool, load the kept answers, walk the masters database, build the
+  facts, close the engines, ask for the words, assemble both tutorials. Every
+  way it can end short is a `GameTutorialStopped` with a sentence: no engine
+  (with the engine settings offered), a game that does not replay, the engine
+  failing twice, cancel, fewer than two moments, each refusal of the words
+  route, and an answer the app cannot assemble. The masters database being
+  unreachable is **not** a stop — the tutorial is made without the masters
+  lines and the choice screen says so.
+- **The request** is `game_tutorial/words_request.dart`, pure, and matches the
+  fixture's `wordsRequest` on all ten games; the game goes as moves only.
+- **The client** (`words_client.dart`) turns every status of phase 3 into one
+  sentence: 401 sign in, 403 upgrade or quota spent (told apart by the
+  server's `quotaExceeded`), 429 already writing, 422 and 400 not counted,
+  503 with the provider's reason, and timeout and network.
+- **The dialog** (`widgets/game_tutorial_flow.dart`): the depth with its time,
+  remembered; progress by stage with „N of M positions · about X minutes
+  left" once two positions have been searched; cancel closes the engines at
+  once and is not offered while the words are written, because that call is
+  metered and cannot be taken back; then **Key moments** / **Whole game** and
+  what the app's own check flagged.
+- **The archive door**: `GET /games/:id/moves` returns the game's start and
+  UCI moves only for the account's own games (`OWN_GAMES_SQL`), and the Analysis
+  tree is built by `analysis_studio/services/game_from_moves.dart`, which reads
+  Lichess's king-takes-rook castling as castling only when a king makes it.
+  Analysis opens standing on the mistake, turned to the player's side, and does
+  not restore its draft over the game it was given.
+
+Tested with a fake engine, a fake server and a fake model — 51 tests in the
+app, 5 on the backend. 39 mutations: 34 caught at once, and the five that were
+not are the findings. Two did not compile, because `if (false)` over a promoted
+nullable loses the promotion; they were rewritten to keep it. Three survived,
+each on a case no fixture reaches: every fixture game has an opening, so an
+empty one sent as `''` instead of the harness's `None` passed; the
+too-few-moments test had no moments at all, so one was never tried; and the
+unplayable-move test's next move was illegal too, so skipping it looked like
+stopping. Each has its own test now.
+**Nothing of it has been watched running**: `TODO-provera.md`, item 161.
+
 ### Phase 5 — documents and the live check
 
 `TODO-provera.md` item 161, `STANJE-RADA.md`, the counts in `CLAUDE.md`.
@@ -408,7 +451,7 @@ server**: that is phase 5's live check.
 | D1 | the depth | **the trainer's choice**, 18 / 20 / 22, default 18; nothing lower until measured (owner, 13.9.2026) |
 | D2 | who gets it | **premium accounts, and free accounts that buy credits**. No credit system exists yet, so phase 3 gates on a new `AI_TUTORIALS` entitlement granted to the paid tiers and records every use with its tokens; credits are a plan of their own, and the usage rows are what it will read |
 | D3 | the provider | **`deepseek-flash`, `reasoning_effort: low`** — the model of every validated run. Measured on the ten games: 24–69 s and 10.5–22.8 k tokens a tutorial, 15.5 k on average, of which about two thirds are the answer and its thinking |
-| D4 | where the door is | **both**: Analysis and the game archive |
+| D4 | where the door is | **both**: Analysis and the game archive. The archive has no screen for one game, so (owner, 14.9.2026) an archive mistake gets **"Open this game in Analysis"**, with a server route that returns the game's moves, and the Analysis door covers archive games — one door |
 | D6 | how many tutorials a month each paid tier gets | **the placeholders stand for now** (owner, 14.9.2026): premium 30, pro 100, club unlimited, free none — to be priced with the credits of D2 |
 | D5 | where the masters statistics come from | **a local opening database on the server** (owner, 14.9.2026), built from the Lumbras GigaBase OTB file: both players rated 2200+, no correspondence games, the first 30 plies. Not the Lichess masters explorer — see phase 2 for the measurement that decided it |
 
@@ -451,4 +494,7 @@ server**: that is phase 5's live check.
 6. ✅ 14.9.2026 **Phase 3** — the words route. The server writes the harness's
    prompt byte for byte from the app's request, sends the moves without the
    players' names, and meters every attempt. Quotas per tier (D6) are
-   placeholders. **Next: phase 4**, the door in the app.
+   placeholders.
+7. ✅ 14.9.2026 **Phase 4** — the door. Analysis makes both tutorials in one
+   run, the archive opens a mistake's game in Analysis, and every stop is a
+   sentence. **Next: phase 5**, the live check (`TODO-provera.md`, item 161).

@@ -5753,3 +5753,39 @@ viljuške, iskošenja na braneni pešak, vezivanja pešaka za braneni skakač i
 5. [ ] **Jedan pogled šahista.** Na tri partije iz `tools/game_annotate/input/`
    pročitaj nekoliko regenerisanih komentara: viljuška navodi samo ono što može
    da osvoji, a „weak" boja polja je ona koju pešaci ne pokrivaju.
+
+## 161. Tutorijal iz partije, jednim dugmetom — 14.9.2026, nije viđeno uživo
+
+`docs/PLAN-SKELET.md`, faze 2–4: u Analizi „Make a tutorial from this game" pokreće
+Stockfish na uređaju, pita lokalnu majstorsku bazu na serveru, šalje skelet ruti
+za reči (DeepSeek) i otvara tutorijal u studiju. Testovi voze sve to sa lažnim
+motorom, lažnim serverom i lažnim modelom; **pravi poziv DeepSeek-u sa servera
+nije napravljen nikad**. Pre provere vlasnik traži da mu se nalogu dodeli pro
+nivo; na serveru moraju da postoje `DEEPSEEK_API_KEY` i `MASTERS_BOOK_PATH`.
+
+1. [ ] **Dugme je tamo gde je partija.** Na Windows-u otvori partiju u Analizi
+   (uvezi PGN): u traci stoji dugme sa kapom „Make a tutorial from this game".
+   Na poziciji bez poteza isto dugme kaže da nema poteza, i ništa se ne pokreće.
+2. [ ] **Dubina sa vremenom, i zapamćena.** Izbor nudi 18 / 20 / 22 sa vremenom
+   pored svake; izaberi 20, pokreni, prekini. Sledeći put je 20 već izabrano.
+3. [ ] **Napredak govori istinu.** Posle nekoliko pozicija piše „N of M
+   positions · about X minutes left", a procena se ne vraća unazad više od
+   jednom-dvaput. Uporedi ukupno vreme sa tabelom faze 0 (dubina 18: 39–109 s).
+4. [ ] **Odustajanje gasi motor.** Tokom analize pritisni Cancel: dijalog piše
+   „Cancelling…" i zatvara se u roku od par sekundi; u Task Manageru nema
+   zaostalih `stockfish` procesa. Ponovo pokreni istu partiju na istoj dubini:
+   već analizirane pozicije se ne traže ponovo (brojač skače brzo).
+5. [ ] **Dva tutorijala, jedan otvoren.** Na kraju se nudi „Key moments" i
+   „Whole game"; oba se otvaraju u studiju, sa rečima na delovima i pitanjima
+   koja se mogu rešiti na tabli. Ako je nešto „to check", lista je razumljiva.
+6. [ ] **Sa arhive u Analizu.** U arhivi otvori grešku („Mistake drill") i
+   pritisni „Open this game in Analysis": otvara se cela partija, tabla stoji na
+   potezu greške i okrenuta je strani igrača. Partija sa rokadom iz Lichess-a
+   (`e1h1`) mora da se odigra do kraja.
+7. [ ] **Svako odbijanje je rečenica.** (a) Bez Stockfish-a: poruka i dugme koje
+   vodi u podešavanja motora. (b) Nalog bez pro/premium: poruka o nadogradnji.
+   (c) Bez interneta posle analize: poruka o mreži, i kredit se ne troši
+   (proveri broj preostalih tutorijala pre i posle). (d) Laptop u sleep usred
+   analize: posle buđenja nastavlja, ne javlja grešku motora.
+8. [ ] **Ime igrača ne izlazi sa uređaja.** Uz partiju sa pravim imenima u
+   zaglavlju, u logu servera (ili u zahtevu) partija ide samo kao potezi.

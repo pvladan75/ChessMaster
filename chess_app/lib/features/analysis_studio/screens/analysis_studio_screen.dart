@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess/chess.dart' as chess;
+import 'package:chess_app/features/analysis_studio/services/game_from_moves.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
@@ -67,15 +68,22 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/game_tutorial_flow.dart';
 
 class AnalysisStudioScreen extends StatefulWidget {
   final UserSession userSession;
   final String? initialFen;
 
+  /// A whole game to open, with the cursor on one of its plies — how an archive
+  /// mistake opens its game (D4 of `docs/PLAN-SKELET.md`). Like [initialFen],
+  /// it wins over the draft kept on the device: the caller asked for this game.
+  final AnalysisGame? initialGame;
+
   const AnalysisStudioScreen({
     super.key,
     required this.userSession,
     this.initialFen,
+    this.initialGame,
   });
 
   @override
@@ -208,18 +216,21 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   @override
   void initState() {
     super.initState();
-    final startFen = widget.initialFen ??
+    final startFen = widget.initialGame?.startFen ??
+        widget.initialFen ??
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     AppLogger.log(
         '[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
     _initAnalysisTree(startFen);
+    final game = widget.initialGame;
+    if (game != null) _loadGame(game);
     _initEngine();
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
     });
-    // An explicit initialFen means the caller wants that exact position
+    // An explicit initialFen or game means the caller wants exactly that
     // (e.g. exported from a game), so it must not be overwritten by a draft.
-    if (widget.initialFen == null) {
+    if (widget.initialFen == null && game == null) {
       _restoreDraft();
     }
   }
@@ -280,6 +291,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       if (isTutorialStudioAvailable)
         _ToolAction(Icons.auto_stories, context.colors.success,
             'Create interactive tutorial', _openTutorialStudio),
+      // Phase 4 of docs/PLAN-SKELET.md: the whole game turned into a tutorial
+      // by the engine and the words route. Drawn where the studio is, because
+      // the tutorial opens there — and an archive game reaches it by opening
+      // here (D4).
+      if (isTutorialStudioAvailable)
+        _ToolAction(Icons.school, context.colors.success,
+            'Make a tutorial from this game', _makeTutorialFromGame),
       _ToolAction(Icons.share, context.colors.info, 'Export PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Saved analyses',
           _showSavedAnalysesDialog),
@@ -375,6 +393,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         ),
       ),
     );
+  }
+
+  /// [game] as the tree, standing on its cursor ply, with the board turned to
+  /// the side the player had.
+  void _loadGame(AnalysisGame game) {
+    final tree = analysisTreeFromMoves(game.startFen, game.uciMoves);
+    _rootNode = tree.root;
+    final node = nodeAtPly(_rootNode, game.cursorPly);
+    _currentNode = node;
+    _chessGame = chess.Chess.fromFEN(node.fen);
+    _boardController.loadFen(node.fen);
+    _orientation =
+        game.blackOrientation ? PlayerColor.black : PlayerColor.white;
   }
 
   void _initAnalysisTree(String fen) {
@@ -1414,6 +1445,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   void _exportPgn() {
     dialogs.exportPgnDialog(context, _rootNode);
   }
+
+  /// The main line from the root, through the engine and the words route, to a
+  /// tutorial open in the studio.
+  Future<void> _makeTutorialFromGame() => makeTutorialFromGame(
+        context,
+        session: widget.userSession,
+        root: _rootNode,
+        gameName: 'Game from Analysis',
+        onOpenEngineSettings: _openEngineSettings,
+      );
 
   void _showGameReviewDialog() {
     showDialog(
