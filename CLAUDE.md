@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2412 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2489 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1260 tests, all green
+cd chess_backend && npm test          # node --test, 1278 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2163,6 +2163,47 @@ it — the lead's tests included.
 or its square" survived its mutation because every answer contains its square;
 castling is the exception (`'O-O-O'[-2:]` is `-O`), so the case that proves the
 rule is the one move no fixture had.
+
+**Phase 2 of `docs/PLAN-SKELET.md` on 14.9.2026 — 2489 in the app with 1
+skipped, 1278 on the backend** with `.env` moved aside, analyze at 26 infos.
+The arithmetic: 2412 + 49 (facts) + 13 (engine) + 7 (store) + 8 (the walk
+client); 1260 + 8 (the masters book) + 5 (Polyglot keys) + 5 (the route).
+A game's facts are built on the device and are identical to the harness on the
+real engine, and the masters statistics come from a local database (D5).
+
+**A question about a token was settled by measuring the alternative.** Whose
+Lichess token a game's walk should spend had no good answer, and a SQLite file
+built from over-the-board games answered it: the same most-played move in 99%
+of 163 positions. Lichess refused the measurement itself with a 429, twice, at
+1.2 s spacing.
+
+**The first extraction's draw rate was 6.5 points below Lichess's, and the
+cause was the filter, not the data.** An *average* rating of 2200 admits a
+2500 against a 1900, and those games draw 23.6% of the time against 37.8%.
+Both players 2200+ — the rule Lichess uses — brought the gap to 2.9. A
+systematic difference with the score unmoved is worth a hypothesis before it is
+filed as noise.
+
+**A mutation that removes a loop's cap does not fail, it hangs** — and with a
+fake engine that answers at once, the retry is an endless chain of microtasks
+that no test timeout can interrupt. The mutation harness reported it CAUGHT
+with no test named. It now runs every mutant under a timeout and prints HUNG;
+same family as the render queue's „survived" that had hung.
+
+**A comparison by value cannot see a branch that returns the same number in a
+different type.** `cost_pawns` is the integer `0` from one branch and `0.0`
+from another; `<` for `<=` survived because `0 == 0.0`. Python's JSON keeps the
+difference, so the gate compares numbers by kind as well.
+
+**A purity gate caught I/O in the pure folder, and the files moved.** The
+engine, the store, the sleep watch and the HTTP client went into
+`game_tutorial/` beside the skeleton port, and
+`game_tutorial_skeleton_test.dart` failed them for `dart:io` and `http`. They
+live in `game_tutorial_io/` now; the gate was not widened.
+
+**A comment asserted a need nobody had checked.** `setReadBigInts(true)` was
+written „because a 64-bit key would round" — but the key is only ever bound as
+a parameter, never read back. The line and its reason were deleted.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

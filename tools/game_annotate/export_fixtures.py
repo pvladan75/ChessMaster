@@ -310,10 +310,177 @@ def edge_cases():
     }
 
 
+def facts_cases():
+    """Phase 2: the arithmetic of `make_facts.py`, on cases no game reaches.
+
+    Three groups, all answered by the harness's own code:
+
+     * `scores` - an engine score, as UCI reports it (from the side to move),
+       turned into the facts' `eval` text and `value_for_mover` by
+       `analyze.score_text` and `make_facts.mover_value`;
+     * `finish` - small games whose candidates are given, finished by
+       `make_facts.finish`: a mate among the candidates, a margin of exactly half
+       a pawn, one legal move, a game that ends in mate or stalemate, a move
+       played that is not among the four, and every branch of `set_cost`;
+     * and a proof, asserted rather than stored: `finish` over the ten facts
+       files with its own fields removed gives back those files exactly. The
+       function was lifted out of `build` on 14.9.2026, and this is what says
+       the lifting changed nothing.
+    """
+    import copy
+
+    import chess
+    import chess.engine
+
+    import analyze
+    import make_facts
+
+    for game in RUNS:
+        stored = skeleton.facts_of(game)
+        stripped = copy.deepcopy(stored)
+        for row in stripped['rows']:
+            for key in make_facts.FINISHED_ROW:
+                row.pop(key, None)
+            for key in make_facts.FINISHED_PLAYED:
+                (row.get('played') or {}).pop(key, None)
+        make_facts.finish(stripped['rows'], stored['margin_pawns'])
+        found = first_difference(stored, stripped)
+        assert found is None, '%s: finish() does not give the facts back - %s' % (game, found)
+
+    scores = []
+    for white_to_move in (True, False):
+        turn = chess.WHITE if white_to_move else chess.BLACK
+        for cp in (0, 1, -1, 5, -5, 35, -35, 50, 139, -1240, 100000 - 1):
+            white = chess.engine.PovScore(chess.engine.Cp(cp), turn).white()
+            scores.append({'kind': 'cp', 'fromSideToMove': cp, 'whiteToMove': white_to_move,
+                           'eval': analyze.score_text(white),
+                           'valueForMover': make_facts.mover_value(white, white_to_move)})
+        for mate in (1, -1, 2, -2, 12, -12):
+            white = chess.engine.PovScore(chess.engine.Mate(mate), turn).white()
+            scores.append({'kind': 'mate', 'fromSideToMove': mate, 'whiteToMove': white_to_move,
+                           'eval': analyze.score_text(white),
+                           'valueForMover': make_facts.mover_value(white, white_to_move)})
+
+    M = make_facts.MATE
+
+    def cand(move, value, eval_text='+0.00'):
+        return {'move': move, 'eval': eval_text, 'value_for_mover': value, 'line': move}
+
+    def game(first, played, after):
+        """Two rows: the position with [first] candidates where [played] was
+        played, and the position after it - candidates, or a finished game."""
+        rows = [{'label': 'start', 'fen': 'x', 'to_move': 'White',
+                 'played': {'move': played, 'label': '1. %s' % played},
+                 'candidates': first}]
+        second = {'label': '1. %s' % played, 'fen': 'y', 'to_move': 'Black'}
+        if isinstance(after, str):
+            second['game_over'] = after
+            second['candidates'] = []
+        else:
+            second['candidates'] = after
+        rows.append(second)
+        return rows
+
+    four = lambda values: [cand(m, v) for m, v in zip(('e4', 'd4', 'Nf3', 'c4'), values)]
+    reply = lambda v: [cand('e5', v)]
+    cases = [
+        ('a margin of exactly half a pawn stands out', game(four([80, 30, 10, 0]), 'e4', reply(-80))),
+        ('a margin of 49 does not', game(four([79, 30, 10, 0]), 'e4', reply(-79))),
+        ('a mate the second move lacks stands out', game(four([M - 3, 200, 10, 0]), 'e4', reply(-(M - 3)))),
+        ('two mates: nothing stands out', game(four([M - 2, M - 5, 10, 0]), 'e4', reply(-(M - 2)))),
+        ('the second move is mated: a mate margin, not standing out',
+         game(four([40, -(M - 4), -(M - 6), -(M - 8)]), 'e4', reply(-40))),
+        ('the best move being mated does not stand out',
+         game(four([-(M - 9), -(M - 4), -(M - 3), -(M - 2)]), 'e4', reply(M - 8))),
+        ('one legal move', game([cand('Kh1', -20)], 'Kh1', reply(20))),
+        ('the best move played costs nothing though the next search says less',
+         game(four([120, 60, 10, 0]), 'e4', reply(-100))),
+        ('a move better than the best by the next search costs nothing',
+         game(four([120, 60, 10, 0]), 'd4', reply(-130))),
+        # Equal, not better: the `<=` of set_cost decides it. Python writes the
+        # integer 0 here, where the pawn branch would write 0.0.
+        ('another move the next search values the same costs nothing',
+         game(four([120, 60, 10, 0]), 'd4', reply(-120))),
+        ('a move outside the four has no rank', game(four([120, 60, 10, 0]), 'a3', reply(90))),
+        ('a slower mate costs nothing', game(four([M - 2, M - 5, 10, 0]), 'd4', reply(-(M - 5)))),
+        ('being mated a move later costs nothing',
+         game(four([-(M - 9), -(M - 4), -(M - 3), -(M - 2)]), 'd4', reply(M - 7))),
+        ('a forced mate given up', game(four([M - 3, 200, 10, 0]), 'd4', reply(-200))),
+        ('a forced mate allowed', game(four([40, 20, 10, 0]), 'd4', reply(M - 6))),
+        ('a forced mate given up and one allowed', game(four([M - 3, 200, 10, 0]), 'c4', reply(M - 6))),
+        ('the game ends in mate', game(four([M - 1, 200, 10, 0]), 'e4', '1-0')),
+        ('the game ends in stalemate', game(four([0, -300, -400, -500]), 'e4', '1/2-1/2')),
+    ]
+    finished = []
+    for name, rows in cases:
+        given = copy.deepcopy(rows)
+        make_facts.finish(rows, 0.5)
+        finished.append({'name': name, 'rows': given, 'expected': rows})
+
+    # The masters statistics, through `make_facts.add_book` with the walk
+    # answered from here instead of the network. The explorer's shape is kept:
+    # counts per result for the position and for each move.
+    def explorer(moves, opening='Test Opening'):
+        data = {'white': sum(m[1] for m in moves), 'draws': 0, 'black': 0,
+                'moves': [{'san': san, 'white': n, 'draws': 0, 'black': 0}
+                          for san, n in moves]}
+        if opening is not None:
+            data['opening'] = {'eco': 'A00', 'name': opening}
+        return data
+
+    def book_rows(played, motifs=True):
+        rows = []
+        for i, move in enumerate(played + [None]):
+            row = {'label': 'p%d' % i, 'fen': 'fen %d' % i,
+                   'to_move': 'White' if i % 2 == 0 else 'Black'}
+            if move:
+                row['played'] = {'move': move, 'label': 'l%d' % i}
+                if motifs:
+                    row['motifs_after_played'] = 'motif after %s' % move
+            rows.append(row)
+        return rows
+
+    ties = [('e4', 16), ('d4', 7), ('c4', 5), ('Nf3', 3), ('g3', 1)]
+    book_cases = [
+        ('shares that are exact ties at the fourth decimal',
+         book_rows(['d4', 'Nf6']), {0: explorer(ties), 1: explorer([('Nf6', 1), ('d5', 1)])}),
+        ('the first move outside the book is marked once, and the book goes on',
+         book_rows(['e4', 'Qh5', 'Nc6', 'Bc4']),
+         {0: explorer([('e4', 9), ('d4', 3)]), 1: explorer([('e5', 4)]),
+          2: explorer([('Nc6', 2)]), 3: explorer([('Nf3', 1)])}),
+        ('a position the walk did not reach ends the book',
+         book_rows(['e4', 'e5', 'Nf3']),
+         {0: explorer([('e4', 9)]), 2: explorer([('Nf3', 5)])}),
+        ('no opening name, and more than three alternatives',
+         book_rows(['a3']),
+         {0: explorer([('e4', 40), ('d4', 30), ('c4', 20), ('Nf3', 10), ('a3', 1)], opening=None)}),
+        ('the last position has no move played',
+         book_rows(['e4']),
+         {0: explorer([('e4', 3)]), 1: explorer([('e5', 2), ('c5', 1)])}),
+        ('an empty walk leaves the rows alone', book_rows(['e4']), {}),
+    ]
+    booked = []
+    original = make_facts.probe_masters.book_walk
+    try:
+        for name, rows, by_index in book_cases:
+            known = {'fen %d' % i: data for i, data in by_index.items()}
+            make_facts.probe_masters.book_walk = lambda game, fens, gap_s=None, known=known: known
+            given = copy.deepcopy(rows)
+            count = make_facts.add_book('case', rows, 0)
+            booked.append({'name': name, 'rows': given, 'known': known,
+                           'expected': rows, 'inBook': count})
+    finally:
+        make_facts.probe_masters.book_walk = original
+
+    return {'about': ABOUT, 'mate': M, 'marginPawns': 0.5,
+            'scores': scores, 'finish': finished, 'book': booked}
+
+
 def extras(answer_of_g01):
     return {'evaluation_words_cases.json': evaluation_cases(),
             'answer_cases.json': answer_cases(answer_of_g01),
-            'edge_cases.json': edge_cases()}
+            'edge_cases.json': edge_cases(),
+            'facts_cases.json': facts_cases()}
 
 
 def dump(data):

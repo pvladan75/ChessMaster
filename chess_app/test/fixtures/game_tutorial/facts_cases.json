@@ -1,0 +1,2949 @@
+{
+ "about": "Written by tools/game_annotate/export_fixtures.py from skeleton.py. Do not edit by hand: change the harness, then run the script again.",
+ "mate": 100000,
+ "marginPawns": 0.5,
+ "scores": [
+  {
+   "kind": "cp",
+   "fromSideToMove": 0,
+   "whiteToMove": true,
+   "eval": "+0.00",
+   "valueForMover": 0
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 1,
+   "whiteToMove": true,
+   "eval": "+0.01",
+   "valueForMover": 1
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -1,
+   "whiteToMove": true,
+   "eval": "-0.01",
+   "valueForMover": -1
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 5,
+   "whiteToMove": true,
+   "eval": "+0.05",
+   "valueForMover": 5
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -5,
+   "whiteToMove": true,
+   "eval": "-0.05",
+   "valueForMover": -5
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 35,
+   "whiteToMove": true,
+   "eval": "+0.35",
+   "valueForMover": 35
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -35,
+   "whiteToMove": true,
+   "eval": "-0.35",
+   "valueForMover": -35
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 50,
+   "whiteToMove": true,
+   "eval": "+0.50",
+   "valueForMover": 50
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 139,
+   "whiteToMove": true,
+   "eval": "+1.39",
+   "valueForMover": 139
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -1240,
+   "whiteToMove": true,
+   "eval": "-12.40",
+   "valueForMover": -1240
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 99999,
+   "whiteToMove": true,
+   "eval": "+999.99",
+   "valueForMover": 99999
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": 1,
+   "whiteToMove": true,
+   "eval": "#1",
+   "valueForMover": 99999
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": -1,
+   "whiteToMove": true,
+   "eval": "#-1",
+   "valueForMover": -99999
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": 2,
+   "whiteToMove": true,
+   "eval": "#2",
+   "valueForMover": 99998
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": -2,
+   "whiteToMove": true,
+   "eval": "#-2",
+   "valueForMover": -99998
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": 12,
+   "whiteToMove": true,
+   "eval": "#12",
+   "valueForMover": 99988
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": -12,
+   "whiteToMove": true,
+   "eval": "#-12",
+   "valueForMover": -99988
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 0,
+   "whiteToMove": false,
+   "eval": "+0.00",
+   "valueForMover": 0
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 1,
+   "whiteToMove": false,
+   "eval": "-0.01",
+   "valueForMover": 1
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -1,
+   "whiteToMove": false,
+   "eval": "+0.01",
+   "valueForMover": -1
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 5,
+   "whiteToMove": false,
+   "eval": "-0.05",
+   "valueForMover": 5
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -5,
+   "whiteToMove": false,
+   "eval": "+0.05",
+   "valueForMover": -5
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 35,
+   "whiteToMove": false,
+   "eval": "-0.35",
+   "valueForMover": 35
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -35,
+   "whiteToMove": false,
+   "eval": "+0.35",
+   "valueForMover": -35
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 50,
+   "whiteToMove": false,
+   "eval": "-0.50",
+   "valueForMover": 50
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 139,
+   "whiteToMove": false,
+   "eval": "-1.39",
+   "valueForMover": 139
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": -1240,
+   "whiteToMove": false,
+   "eval": "+12.40",
+   "valueForMover": -1240
+  },
+  {
+   "kind": "cp",
+   "fromSideToMove": 99999,
+   "whiteToMove": false,
+   "eval": "-999.99",
+   "valueForMover": 99999
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": 1,
+   "whiteToMove": false,
+   "eval": "#-1",
+   "valueForMover": 99999
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": -1,
+   "whiteToMove": false,
+   "eval": "#1",
+   "valueForMover": -99999
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": 2,
+   "whiteToMove": false,
+   "eval": "#-2",
+   "valueForMover": 99998
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": -2,
+   "whiteToMove": false,
+   "eval": "#2",
+   "valueForMover": -99998
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": 12,
+   "whiteToMove": false,
+   "eval": "#-12",
+   "valueForMover": 99988
+  },
+  {
+   "kind": "mate",
+   "fromSideToMove": -12,
+   "whiteToMove": false,
+   "eval": "#12",
+   "valueForMover": -99988
+  }
+ ],
+ "finish": [
+  {
+   "name": "a margin of exactly half a pawn stands out",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 80,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 30,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -80,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "+0.00",
+      "value_for_mover": 80,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 80,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 30,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 0.5,
+     "best_stands_out": true
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -80,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a margin of 49 does not",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 79,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 30,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -79,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "+0.00",
+      "value_for_mover": 79,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 79,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 30,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 0.49,
+     "best_stands_out": false
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -79,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a mate the second move lacks stands out",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99997,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -99997,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "+0.00",
+      "value_for_mover": 99997,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99997,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": true,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -99997,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "two mates: nothing stands out",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99998,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 99995,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -99998,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "+0.00",
+      "value_for_mover": 99998,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99998,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 99995,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": false,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -99998,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "the second move is mated: a mate margin, not standing out",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 40,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -99996,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -99994,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -99992,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -40,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "+0.00",
+      "value_for_mover": 40,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 40,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -99996,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -99994,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -99992,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": false,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -40,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "the best move being mated does not stand out",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": -99991,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -99996,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -99997,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -99998,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99992,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "+0.00",
+      "value_for_mover": -99992,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": -99991,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -99996,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -99997,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -99998,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": false,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99992,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "one legal move",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "Kh1",
+      "label": "1. Kh1"
+     },
+     "candidates": [
+      {
+       "move": "Kh1",
+       "eval": "+0.00",
+       "value_for_mover": -20,
+       "line": "Kh1"
+      }
+     ]
+    },
+    {
+     "label": "1. Kh1",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 20,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "Kh1",
+      "label": "1. Kh1",
+      "eval": "+0.00",
+      "value_for_mover": -20,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "Kh1",
+       "eval": "+0.00",
+       "value_for_mover": -20,
+       "line": "Kh1"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    },
+    {
+     "label": "1. Kh1",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 20,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "the best move played costs nothing though the next search says less",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -100,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "+0.00",
+      "value_for_mover": 100,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 0.6,
+     "best_stands_out": true
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -100,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a move better than the best by the next search costs nothing",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -130,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4",
+      "eval": "+0.00",
+      "value_for_mover": 130,
+      "rank": 2,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 0.6,
+     "best_stands_out": true
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -130,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "another move the next search values the same costs nothing",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -120,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4",
+      "eval": "+0.00",
+      "value_for_mover": 120,
+      "rank": 2,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 0.6,
+     "best_stands_out": true
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -120,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a move outside the four has no rank",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "a3",
+      "label": "1. a3"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. a3",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 90,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "a3",
+      "label": "1. a3",
+      "eval": "+0.00",
+      "value_for_mover": -90,
+      "rank": null,
+      "cost_pawns": 2.1
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 120,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 60,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 0.6,
+     "best_stands_out": true
+    },
+    {
+     "label": "1. a3",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 90,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a slower mate costs nothing",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99998,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 99995,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -99995,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4",
+      "eval": "+0.00",
+      "value_for_mover": 99995,
+      "rank": 2,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99998,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 99995,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": false,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -99995,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "being mated a move later costs nothing",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": -99991,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -99996,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -99997,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -99998,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99993,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4",
+      "eval": "+0.00",
+      "value_for_mover": -99993,
+      "rank": 2,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": -99991,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -99996,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -99997,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -99998,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": false,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99993,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a forced mate given up",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99997,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -200,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4",
+      "eval": "+0.00",
+      "value_for_mover": 200,
+      "rank": 2,
+      "cost_pawns": "mate",
+      "cost_mate": "gave up a forced mate"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99997,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": true,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": -200,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a forced mate allowed",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 40,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 20,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99994,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "1. d4",
+      "eval": "+0.00",
+      "value_for_mover": -99994,
+      "rank": 2,
+      "cost_pawns": "mate",
+      "cost_mate": "allowed a forced mate"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 40,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 20,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 0.2,
+     "best_stands_out": false
+    },
+    {
+     "label": "1. d4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99994,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "a forced mate given up and one allowed",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "c4",
+      "label": "1. c4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99997,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. c4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99994,
+       "line": "e5"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "c4",
+      "label": "1. c4",
+      "eval": "+0.00",
+      "value_for_mover": -99994,
+      "rank": 4,
+      "cost_pawns": "mate",
+      "cost_mate": "gave up a forced mate and allowed one"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99997,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": true,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. c4",
+     "fen": "y",
+     "to_move": "Black",
+     "candidates": [
+      {
+       "move": "e5",
+       "eval": "+0.00",
+       "value_for_mover": 99994,
+       "line": "e5"
+      }
+     ],
+     "best_stands_out": false,
+     "why": "only one legal move"
+    }
+   ]
+  },
+  {
+   "name": "the game ends in mate",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99999,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "game_over": "1-0",
+     "candidates": []
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "checkmate",
+      "value_for_mover": 100000,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 99999,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": 200,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": 10,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "c4"
+      }
+     ],
+     "best_stands_out": true,
+     "margin_pawns": "mate"
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "game_over": "1-0",
+     "candidates": []
+    }
+   ]
+  },
+  {
+   "name": "the game ends in stalemate",
+   "rows": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4"
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -300,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -400,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -500,
+       "line": "c4"
+      }
+     ]
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "game_over": "1/2-1/2",
+     "candidates": []
+    }
+   ],
+   "expected": [
+    {
+     "label": "start",
+     "fen": "x",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "1. e4",
+      "eval": "draw",
+      "value_for_mover": 0,
+      "rank": 1,
+      "cost_pawns": 0
+     },
+     "candidates": [
+      {
+       "move": "e4",
+       "eval": "+0.00",
+       "value_for_mover": 0,
+       "line": "e4"
+      },
+      {
+       "move": "d4",
+       "eval": "+0.00",
+       "value_for_mover": -300,
+       "line": "d4"
+      },
+      {
+       "move": "Nf3",
+       "eval": "+0.00",
+       "value_for_mover": -400,
+       "line": "Nf3"
+      },
+      {
+       "move": "c4",
+       "eval": "+0.00",
+       "value_for_mover": -500,
+       "line": "c4"
+      }
+     ],
+     "margin_pawns": 3.0,
+     "best_stands_out": true
+    },
+    {
+     "label": "1. e4",
+     "fen": "y",
+     "to_move": "Black",
+     "game_over": "1/2-1/2",
+     "candidates": []
+    }
+   ]
+  }
+ ],
+ "book": [
+  {
+   "name": "shares that are exact ties at the fourth decimal",
+   "rows": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "l0"
+     },
+     "motifs_after_played": "motif after d4"
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black",
+     "played": {
+      "move": "Nf6",
+      "label": "l1"
+     },
+     "motifs_after_played": "motif after Nf6"
+    },
+    {
+     "label": "p2",
+     "fen": "fen 2",
+     "to_move": "White"
+    }
+   ],
+   "known": {
+    "fen 0": {
+     "white": 32,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "e4",
+       "white": 16,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "d4",
+       "white": 7,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "c4",
+       "white": 5,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "Nf3",
+       "white": 3,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "g3",
+       "white": 1,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    },
+    "fen 1": {
+     "white": 2,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "Nf6",
+       "white": 1,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "d5",
+       "white": 1,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    }
+   },
+   "expected": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "d4",
+      "label": "l0"
+     },
+     "book": {
+      "games": 32,
+      "opening": "Test Opening",
+      "played": {
+       "move": "d4",
+       "games": 7,
+       "share": 0.2188
+      },
+      "alternatives": [
+       {
+        "move": "e4",
+        "games": 16,
+        "share": 0.5
+       },
+       {
+        "move": "c4",
+        "games": 5,
+        "share": 0.1562
+       },
+       {
+        "move": "Nf3",
+        "games": 3,
+        "share": 0.0938
+       }
+      ]
+     }
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black",
+     "played": {
+      "move": "Nf6",
+      "label": "l1"
+     },
+     "book": {
+      "games": 2,
+      "opening": "Test Opening",
+      "played": {
+       "move": "Nf6",
+       "games": 1,
+       "share": 0.5
+      },
+      "alternatives": [
+       {
+        "move": "d5",
+        "games": 1,
+        "share": 0.5
+       }
+      ]
+     }
+    },
+    {
+     "label": "p2",
+     "fen": "fen 2",
+     "to_move": "White"
+    }
+   ],
+   "inBook": 2
+  },
+  {
+   "name": "the first move outside the book is marked once, and the book goes on",
+   "rows": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "motifs_after_played": "motif after e4"
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black",
+     "played": {
+      "move": "Qh5",
+      "label": "l1"
+     },
+     "motifs_after_played": "motif after Qh5"
+    },
+    {
+     "label": "p2",
+     "fen": "fen 2",
+     "to_move": "White",
+     "played": {
+      "move": "Nc6",
+      "label": "l2"
+     },
+     "motifs_after_played": "motif after Nc6"
+    },
+    {
+     "label": "p3",
+     "fen": "fen 3",
+     "to_move": "Black",
+     "played": {
+      "move": "Bc4",
+      "label": "l3"
+     },
+     "motifs_after_played": "motif after Bc4"
+    },
+    {
+     "label": "p4",
+     "fen": "fen 4",
+     "to_move": "White"
+    }
+   ],
+   "known": {
+    "fen 0": {
+     "white": 12,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "e4",
+       "white": 9,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "d4",
+       "white": 3,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    },
+    "fen 1": {
+     "white": 4,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "e5",
+       "white": 4,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    },
+    "fen 2": {
+     "white": 2,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "Nc6",
+       "white": 2,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    },
+    "fen 3": {
+     "white": 1,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "Nf3",
+       "white": 1,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    }
+   },
+   "expected": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "book": {
+      "games": 12,
+      "opening": "Test Opening",
+      "played": {
+       "move": "e4",
+       "games": 9,
+       "share": 0.75
+      },
+      "alternatives": [
+       {
+        "move": "d4",
+        "games": 3,
+        "share": 0.25
+       }
+      ]
+     }
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black",
+     "played": {
+      "move": "Qh5",
+      "label": "l1",
+      "left_book": true
+     },
+     "motifs_after_played": "motif after Qh5",
+     "book": {
+      "games": 4,
+      "opening": "Test Opening",
+      "played": {
+       "move": "Qh5",
+       "games": 0,
+       "share": 0.0
+      },
+      "alternatives": [
+       {
+        "move": "e5",
+        "games": 4,
+        "share": 1.0
+       }
+      ]
+     }
+    },
+    {
+     "label": "p2",
+     "fen": "fen 2",
+     "to_move": "White",
+     "played": {
+      "move": "Nc6",
+      "label": "l2"
+     },
+     "book": {
+      "games": 2,
+      "opening": "Test Opening",
+      "played": {
+       "move": "Nc6",
+       "games": 2,
+       "share": 1.0
+      },
+      "alternatives": []
+     }
+    },
+    {
+     "label": "p3",
+     "fen": "fen 3",
+     "to_move": "Black",
+     "played": {
+      "move": "Bc4",
+      "label": "l3"
+     },
+     "motifs_after_played": "motif after Bc4",
+     "book": {
+      "games": 1,
+      "opening": "Test Opening",
+      "played": {
+       "move": "Bc4",
+       "games": 0,
+       "share": 0.0
+      },
+      "alternatives": [
+       {
+        "move": "Nf3",
+        "games": 1,
+        "share": 1.0
+       }
+      ]
+     }
+    },
+    {
+     "label": "p4",
+     "fen": "fen 4",
+     "to_move": "White"
+    }
+   ],
+   "inBook": 4
+  },
+  {
+   "name": "a position the walk did not reach ends the book",
+   "rows": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "motifs_after_played": "motif after e4"
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black",
+     "played": {
+      "move": "e5",
+      "label": "l1"
+     },
+     "motifs_after_played": "motif after e5"
+    },
+    {
+     "label": "p2",
+     "fen": "fen 2",
+     "to_move": "White",
+     "played": {
+      "move": "Nf3",
+      "label": "l2"
+     },
+     "motifs_after_played": "motif after Nf3"
+    },
+    {
+     "label": "p3",
+     "fen": "fen 3",
+     "to_move": "Black"
+    }
+   ],
+   "known": {
+    "fen 0": {
+     "white": 9,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "e4",
+       "white": 9,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    },
+    "fen 2": {
+     "white": 5,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "Nf3",
+       "white": 5,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    }
+   },
+   "expected": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "book": {
+      "games": 9,
+      "opening": "Test Opening",
+      "played": {
+       "move": "e4",
+       "games": 9,
+       "share": 1.0
+      },
+      "alternatives": []
+     }
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black",
+     "played": {
+      "move": "e5",
+      "label": "l1"
+     },
+     "motifs_after_played": "motif after e5"
+    },
+    {
+     "label": "p2",
+     "fen": "fen 2",
+     "to_move": "White",
+     "played": {
+      "move": "Nf3",
+      "label": "l2"
+     },
+     "motifs_after_played": "motif after Nf3"
+    },
+    {
+     "label": "p3",
+     "fen": "fen 3",
+     "to_move": "Black"
+    }
+   ],
+   "inBook": 1
+  },
+  {
+   "name": "no opening name, and more than three alternatives",
+   "rows": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "a3",
+      "label": "l0"
+     },
+     "motifs_after_played": "motif after a3"
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black"
+    }
+   ],
+   "known": {
+    "fen 0": {
+     "white": 101,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "e4",
+       "white": 40,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "d4",
+       "white": 30,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "c4",
+       "white": 20,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "Nf3",
+       "white": 10,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "a3",
+       "white": 1,
+       "draws": 0,
+       "black": 0
+      }
+     ]
+    }
+   },
+   "expected": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "a3",
+      "label": "l0"
+     },
+     "book": {
+      "games": 101,
+      "played": {
+       "move": "a3",
+       "games": 1,
+       "share": 0.0099
+      },
+      "alternatives": [
+       {
+        "move": "e4",
+        "games": 40,
+        "share": 0.396
+       },
+       {
+        "move": "d4",
+        "games": 30,
+        "share": 0.297
+       },
+       {
+        "move": "c4",
+        "games": 20,
+        "share": 0.198
+       }
+      ]
+     }
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black"
+    }
+   ],
+   "inBook": 1
+  },
+  {
+   "name": "the last position has no move played",
+   "rows": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "motifs_after_played": "motif after e4"
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black"
+    }
+   ],
+   "known": {
+    "fen 0": {
+     "white": 3,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "e4",
+       "white": 3,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    },
+    "fen 1": {
+     "white": 3,
+     "draws": 0,
+     "black": 0,
+     "moves": [
+      {
+       "san": "e5",
+       "white": 2,
+       "draws": 0,
+       "black": 0
+      },
+      {
+       "san": "c5",
+       "white": 1,
+       "draws": 0,
+       "black": 0
+      }
+     ],
+     "opening": {
+      "eco": "A00",
+      "name": "Test Opening"
+     }
+    }
+   },
+   "expected": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "book": {
+      "games": 3,
+      "opening": "Test Opening",
+      "played": {
+       "move": "e4",
+       "games": 3,
+       "share": 1.0
+      },
+      "alternatives": []
+     }
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black",
+     "book": {
+      "games": 3,
+      "opening": "Test Opening",
+      "alternatives": [
+       {
+        "move": "e5",
+        "games": 2,
+        "share": 0.6667
+       },
+       {
+        "move": "c5",
+        "games": 1,
+        "share": 0.3333
+       }
+      ]
+     }
+    }
+   ],
+   "inBook": 2
+  },
+  {
+   "name": "an empty walk leaves the rows alone",
+   "rows": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "motifs_after_played": "motif after e4"
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black"
+    }
+   ],
+   "known": {},
+   "expected": [
+    {
+     "label": "p0",
+     "fen": "fen 0",
+     "to_move": "White",
+     "played": {
+      "move": "e4",
+      "label": "l0"
+     },
+     "motifs_after_played": "motif after e4"
+    },
+    {
+     "label": "p1",
+     "fen": "fen 1",
+     "to_move": "Black"
+    }
+   ],
+   "inBook": 0
+  }
+ ]
+}

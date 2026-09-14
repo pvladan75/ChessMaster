@@ -304,6 +304,38 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers,
     for i, cands in zip(todo, answers):
         rows[i]['candidates'] = cands
 
+    finish(rows, margin_pawns)
+
+    return {
+        'game': name,
+        'depth': depth,
+        'multipv': multipv,
+        'margin_pawns': margin_pawns,
+        'engine': os.path.basename(analyze.engine_path()),
+        'threads': threads,
+        'hash_mb': hash_mb,
+        'workers': workers,
+        'in_book': in_book,
+        'generated': time.strftime('%Y-%m-%dT%H:%M:%S'),
+        'seconds': round(time.time() - started),
+        'rows': rows,
+    }
+
+
+# The fields `finish` writes. Everything else in a row is the walk's, the
+# book's or the engine's.
+FINISHED_ROW = ('best_stands_out', 'why', 'margin_pawns')
+FINISHED_PLAYED = ('eval', 'value_for_mover', 'rank', 'cost_pawns', 'cost_mate')
+
+
+def finish(rows, margin_pawns):
+    """The arithmetic of `build`, over rows whose candidates are already in.
+
+    Split out on 14.9.2026 so the app's port can be held to it on cases no game
+    reaches - a mate among the candidates, a margin of exactly half a pawn -
+    through `export_fixtures.py`, which also proves this function gives back the
+    ten facts files it was lifted from.
+    """
     margin = int(round(margin_pawns * 100))
     for index, row in enumerate(rows):
         cands = row['candidates']
@@ -344,21 +376,7 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers,
             played['rank'] = (ranks.index(played['move']) + 1
                               if played['move'] in ranks else None)
             set_cost(played, cands[0])
-
-    return {
-        'game': name,
-        'depth': depth,
-        'multipv': multipv,
-        'margin_pawns': margin_pawns,
-        'engine': os.path.basename(analyze.engine_path()),
-        'threads': threads,
-        'hash_mb': hash_mb,
-        'workers': workers,
-        'in_book': in_book,
-        'generated': time.strftime('%Y-%m-%dT%H:%M:%S'),
-        'seconds': round(time.time() - started),
-        'rows': rows,
-    }
+    return rows
 
 
 def recost(name):

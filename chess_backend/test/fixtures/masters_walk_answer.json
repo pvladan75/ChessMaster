@@ -1,0 +1,38 @@
+{
+ "about": "One walk of POST /opening-explorer/masters-walk, read by both ends: test/masters_book.test.js builds the database from `rows` and must answer `answer` for `fens`; chess_app/test/game_tutorial_masters_walk_test.dart reads `answer` as the server's reply. Rows are [fen, from, to, promotion, white wins, black wins, draws].",
+ "rows": [
+  ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2", "e4", 0, 40, 30, 60],
+  ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "d2", "d4", 0, 30, 20, 50],
+  ["rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "e7", "e5", 0, 10, 8, 12],
+  ["rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "c7", "c5", 0, 15, 10, 20]
+ ],
+ "fens": [
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2"
+ ],
+ "answer": {
+  "positions": [
+   {
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "white": 70,
+    "draws": 110,
+    "black": 50,
+    "moves": [
+     {"uci": "e2e4", "san": "e4", "white": 40, "draws": 60, "black": 30},
+     {"uci": "d2d4", "san": "d4", "white": 30, "draws": 50, "black": 20}
+    ]
+   },
+   {
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+    "white": 25,
+    "draws": 32,
+    "black": 18,
+    "moves": [
+     {"uci": "c7c5", "san": "c5", "white": 15, "draws": 20, "black": 10},
+     {"uci": "e7e5", "san": "e5", "white": 10, "draws": 12, "black": 8}
+    ]
+   }
+  ]
+ }
+}

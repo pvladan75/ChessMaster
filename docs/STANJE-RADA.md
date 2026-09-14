@@ -43,6 +43,27 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Skelet: faza 2, činjenice na uređaju — 14.9.2026, gotovo
+
+Činjenice partije se prave u aplikaciji: `game_tutorial/game_facts.dart`
+(redovi, cena, „stands out", majstorska statistika, pravilo 1 i spavanje) i
+`game_tutorial_io/` (Stockfish procesi, pamćenje odgovora, sat za spavanje,
+klijent za majstorsku bazu). **Svih deset partija kroz `lib/` na pravom motoru
+identično je harnessu**, a drugo pokretanje iz sačuvanih odgovora ne traži
+ništa (4–8 s umesto 32–97 s). Aplikacija **2489** (1 preskočen), backend
+**1278**, analyze 26.
+
+**Majstorska statistika dolazi iz lokalne baze na serveru** (odluka D5,
+vlasnik): Lumbras GigaBase OTB, oba igrača 2200+, bez dopisnih partija, prvih
+30 polupoteza — 2,57 miliona partija, 512 MB. Poređenje sa Lichess masters na
+163 pozicije: isti najigraniji potez u 99%, remi 2,9 poena manje (sa prosekom
+2200 bilo je 6,5). Imena otvaranja daje ECO skup aplikacije (52 od 52 ista kao
+Lichess). Ruta je `POST /opening-explorer/masters-walk`, baza se kopira na
+server ručno (`MASTERS_BOOK_PATH`); skripta i uputstvo su u `tools/opening_book/`.
+
+Otvoreno: licenca Lumbras GigaBase za plaćenu aplikaciju i kopiranje baze na
+server (`TODO-objavljivanje.md`). **Sledeće: faza 3**, ruta za reči na serveru.
+
 ## Skelet: faza 0, merenje na Windows-u — 14.9.2026, gotovo
 
 `chess_app/tool/game_facts.dart` pravi činjenice deset partija kroz servise

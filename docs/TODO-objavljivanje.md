@@ -775,6 +775,17 @@ Redosled (odrađeno):
       otvaranja od 24.8.2026. ide kroz backend; bez tokena ruta vraća 503 i svi
       dobijaju ChessDB umesto statistike iz partija — tiho, jer aplikacija na to
       i treba da pređe kad Lichess nije dostupan.
+- [ ] **Lokalna baza majstorskih partija na serveru** (`PLAN-SKELET.md`, odluka
+      D5, 14.9.2026). Fajl od ~512 MB (`…_stats_min2200.sqlite`) se ne pravi
+      pri deploy-u — kopira se ručno na droplet, a `MASTERS_BOOK_PATH` u `.env`
+      pokazuje na njega. Bez njega `POST /opening-explorer/masters-walk` vraća
+      503 `not-configured`, i tutorijal iz partije nastaje **bez** rečenica o
+      majstorskoj bazi — tiho za trenera, glasno samo u logu. Pravi se skriptom
+      `extract_stats.py --elo-rule min` iz Lumbras GigaBase OTB fajla.
+- [ ] **Licenca Lumbras GigaBase za plaćenu aplikaciju.** Server deli statistiku
+      izvedenu iz te baze (broj partija i udeo poteza po poziciji, bez samih
+      partija). Pre objavljivanja proveriti uslove korišćenja baze za komercijalnu
+      upotrebu — nije provereno ni za šta.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
 

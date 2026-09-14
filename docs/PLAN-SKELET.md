@@ -211,7 +211,7 @@ fixed depth from an empty hash is deterministic. **The comparison was proved
 able to fail**: g01 at depth 16 differs in 38 rows' moves and 54 evaluations and
 yields 8 moments instead of 6.
 
-Time on the owner's laptop (16 logical processors), 8 workers:
+Time on the owner's laptop (10 cores, 16 logical processors), 8 workers:
 
 | game | positions | depth 18 | depth 20 | depth 22 |
 |---|---|---|---|---|
@@ -222,7 +222,8 @@ Time on the owner's laptop (16 logical processors), 8 workers:
 All ten at 18: 39–109 s. Depth 20 costs 1.9–3.8× depth 18, depth 22 3.6–7.1×.
 **16 workers bought nothing reliable** — g01 63 → 63 s, g09 109 → 95 s, g03
 64 → 112 s — so the logical processors beyond the physical cores are not
-workers. Phase 2 has to choose the worker count knowing that
+workers. The laptop has 10 physical cores, and whether 10 beats 8 was not
+measured. Phase 2 has to choose the worker count knowing that
 `Platform.numberOfProcessors` reports logical ones.
 
 **A laptop that sleeps is not a slow search.** The battery ran out during g03:
@@ -259,22 +260,82 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
 - The engine half: depth-and-lines check, one retry, `ucinewgame`, the local
   engine rule, the on-device facts store. Lead's, because every rule above is a
   place where a silent success hides.
-- The masters walk: `GET /opening-explorer/masters-walk` on the server, stopping
-  at the first position master games never reached, reusing
-  `openingJudgeService`'s client; the app writes `book` and `left_book` and
-  silences the detector where the game is in book.
-- **An alternative, not the plan: a local opening database.** On 13.9.2026 the
-  owner extracted move statistics from the Lumbras GigaBase OTB file (games
-  with an average rating of 2400 or more, the first 30 plies, keyed by polyglot
-  Zobrist hash), as a test of whether such data can be pulled out at all. It
-  can: 1.31 million games, 12.1 million position-move rows, sound on
-  `quick_check`. Against the Lichess masters answers stored in the ten facts
-  files it agrees on the most-played move in 78 of 92 positions, holds about
-  41% as many games (median), has no opening names, and lacks the lines Lichess
-  has one to four games of — so a game would leave the book earlier. It is kept
-  as the fallback if the Lichess route becomes unavailable; switching to it
-  means re-validating „left the masters database" on its data first, because
-  the harness's wording was measured on Lichess's.
+- The masters walk: a route on the server, stopping at the first position
+  master games never reached, answered from **a local opening database** (D5)
+  rather than from Lichess; the app writes `book` and `left_book` and silences
+  the detector where the game is in book.
+
+  **Why local (owner, 14.9.2026).** The Lichess masters explorer needs a token,
+  and whose token was the open question: the shared one is one allowance for
+  every student (the rule `routes/openingJudge.js` is written around), and a
+  game's walk is 15–30 requests. Measuring the alternative answered it. Lichess
+  itself refused the measurement with a 429 twice at 1.2 s spacing, which is
+  the dependency this avoids.
+
+  | against Lichess masters, 163 positions | both players 2200+ |
+  |---|---|
+  | same most-played move (20+ games in both) | 99.0% |
+  | same three most-played | 87.8% |
+  | share of a 5%+ move, mean / worst difference | 1.7 / 14.3 points |
+  | White's score per move (100+ games), mean / 90th pct difference | 0.9 / 1.9 points |
+  | draw rate, local minus Lichess | −2.9 points |
+  | games, local / Lichess (positions with 1000+) | 0.98 |
+  | Lichess positions with 1–4 games absent locally | 2 of 44 |
+  | 13 harness games: same move leaving the book | 9 of 13 |
+
+  **The Elo rule is both players, not the average.** The first extraction took
+  an average of 2200, which admits a 2500 against a 1900: its draw rate was 6.5
+  points below Lichess's, and in the first gigabyte the games that pass only on
+  the average draw 23.6% of the time against 37.8% for the rest. The remaining
+  2.9 points are not explained.
+
+  **What the local database does not have**, and what that costs:
+  - **opening names** — Lichess names 52 of the 124 book positions of the 13
+    games, and a book sentence ends with „The opening is the …". They are to
+    come from the ECO data the app already ships, not from a second table on
+    the server;
+  - **plies past 30** — a game still in the book after move 15 leaves it early.
+    None of the 13 games came near it;
+  - **the rarest lines** — two Lichess positions with 1–4 games are not there;
+  - **the same wording** — the sentence past its game count matches word for
+    word in 6% of positions, nearly always a point of rounding in a share.
+
+  **„Left the masters database" was measured on Lichess's data**, and the book
+  sentences read to a model change with the source. The live check of phase 5
+  reads tutorials built from the local database, not from Lichess.
+
+**Done 14.9.2026 — all of it by the lead, the pure part included.** The plan gave
+the pure arithmetic to a worker; it already existed, measured identical to the
+harness, inside phase 0's `tool/game_facts.dart`, and a brief to translate it a
+second time would have cost more than moving it.
+
+| | where | proved by |
+|---|---|---|
+| rows, masters arithmetic, cost, stands-out, the build with rule 1 and sleeps | `game_tutorial/game_facts.dart` | the ten games rebuilt from their own candidates give the harness's rows back; `facts_cases.json`, written by the harness, holds the mates, the half-pawn margin, the 1/32 ties and a cost of an equal value; numbers compared by kind as well as value |
+| one Stockfish process per worker, empty hash per search, stop that is waited for | `game_tutorial_io/uci_engine.dart` | a scripted engine |
+| the sleep watch | `game_tutorial_io/sleep_watch.dart` | a wall clock that jumps |
+| answers kept by game, depth and engine | `game_tutorial_io/facts_store.dart` | a torn file, a stranger's file, a resume |
+| the masters walk | `chess_backend/services/mastersBook.js`, `POST /opening-explorer/masters-walk`, `game_tutorial_io/masters_walk.dart` | the server's key held to python-chess on 753 positions (`tools/opening_book/export_polyglot.py`); one reply read by both suites (`masters_walk_answer.json`) |
+
+**The whole chain on the real engine**: `tool/game_facts.dart`, now only an entry
+point into `lib/`, gave all ten games at depth 18 with **no row different** from
+the harness — candidates, evaluations, lines, costs, motif sentences, the book —
+in 32–97 s a game. Run a second time with `FACTS_STORE`, every game searched
+**nothing** and gave the same rows in 4–8 s.
+
+**Mutations**: 43 on `game_facts.dart` — 40 caught at once, one *hung* (a sleep
+cap removed turns the retry into an endless microtask loop, which no test
+timeout can interrupt; the harness now labels a run that does not end HUNG, and
+never CAUGHT), two survived and are caught by tests written for them; 18 of 18
+on `mastersBook.js`.
+
+**Two folders, because a gate said so.** `game_tutorial_skeleton_test.dart`
+fails any file in `game_tutorial/` that imports `dart:io`, `package:flutter/` or
+`package:http`, and the engine, the store, the sleep watch and the walk client
+all do. They live in `game_tutorial_io/` beside it; the gate was not widened.
+
+**Cancelling closes the engines**, and a closed engine fails the search it was
+in: that failure is reported as the trainer's cancel, not retried as a miss.
 
 ### Phase 3 — the words route on the server (gate by the lead, worker)
 
@@ -309,6 +370,7 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
 | D2 | who gets it | **premium accounts, and free accounts that buy credits**. No credit system exists yet, so phase 3 gates on a new `AI_TUTORIALS` entitlement granted to the paid tiers and records every use with its tokens; credits are a plan of their own, and the usage rows are what it will read |
 | D3 | the provider | **`deepseek-flash`, `reasoning_effort: low`** — the model of every validated run. Measured on the ten games: 24–69 s and 10.5–22.8 k tokens a tutorial, 15.5 k on average, of which about two thirds are the answer and its thinking |
 | D4 | where the door is | **both**: Analysis and the game archive |
+| D5 | where the masters statistics come from | **a local opening database on the server** (owner, 14.9.2026), built from the Lumbras GigaBase OTB file: both players rated 2200+, no correspondence games, the first 30 plies. Not the Lichess masters explorer — see phase 2 for the measurement that decided it |
 
 ## Not in this plan
 
@@ -342,3 +404,7 @@ into `lib/features/tutorial_studio/services/game_tutorial/`.
    on an exact tie) and the port had both wrong; `edge_cases.json`, written by
    the harness, reaches them now, with a cost tie across the cut and a castling
    answer. Fifteen mutations, all caught. **Phase 1 is done.**
+5. ✅ 14.9.2026 **Phase 2** — facts on the device, the engine, the store and the
+   masters walk from the local database (D5). The ten games through `lib/` on
+   the real engine are identical to the harness, and a second run searches
+   nothing. **Next: phase 3**, the words route on the server.
