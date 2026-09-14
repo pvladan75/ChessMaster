@@ -5718,7 +5718,7 @@
     "m1.answer.2": "White would answer Ngxe2: the knight from g1 to e2; it captures a queen; not played - the line goes on",
     "m1.answer.3": "Black would answer Na6: the knight from b8 to a6; not played - the line goes on",
     "m1.answer.4": "White would answer Be3: the bishop from c1 to e3; not played - the line goes on",
-    "m1.answer.intro": "the answer: Black should have played Qxe2+ instead of the game move Qf7, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 1.26 pawns."
+    "m1.answer.intro": "the answer: the game went Qf7, which cost 1.26 pawns. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m1.lead.1": {
@@ -5818,7 +5818,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Qxe2+ instead of the game move Qf7, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 1.26 pawns."
+     "text": "the answer: the game went Qf7, which cost 1.26 pawns. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -5900,7 +5900,7 @@
     "m2.answer.2": "White would answer g5: the pawn from g4 to g5; not played - the line goes on",
     "m2.answer.3": "Black would answer Nd5: the knight from e7 to d5; the moved piece now attacks: knight on c3; not played - the line goes on",
     "m2.answer.4": "White would answer Nb5: the knight from c3 to b5; the moved piece now attacks: bishop on d6; not played - the line goes on",
-    "m2.answer.intro": "the answer: Black should have played Nbc6 instead of the game move c6, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 1.25 pawns."
+    "m2.answer.intro": "the answer: the game went c6, which cost 1.25 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m2.lead.1": {
@@ -5987,7 +5987,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Nbc6 instead of the game move c6, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 1.25 pawns."
+     "text": "the answer: the game went c6, which cost 1.25 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -6074,7 +6074,7 @@
     "m3.answer.2": "White would answer Nxb4: the knight from a2 to b4; it captures a pawn; the moved piece now attacks: knight on d5; not played - the line goes on",
     "m3.answer.3": "Black would answer Nf4: the knight from d5 to f4; the moved piece now attacks: queen on e2; not played - the line goes on",
     "m3.answer.4": "White would answer Qe3: the queen from e2 to e3; the moved piece now attacks: knight on f4; not played - the line goes on",
-    "m3.answer.intro": "the answer: Black should have played Qf6 instead of the game move bxa3, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +1 to +2 over the moves shown. The game move cost 2.11 pawns."
+    "m3.answer.intro": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +2 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m3.lead.1": {
@@ -6174,7 +6174,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Qf6 instead of the game move bxa3, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +1 to +2 over the moves shown. The game move cost 2.11 pawns."
+     "text": "the answer: the game went bxa3, which cost 2.11 pawns. At the end of the best line White is clearly better; material White minus Black goes from +1 to +2 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -6261,7 +6261,7 @@
     "m4.answer.2": "Black would answer Qe8: the queen from f8 to e8; not played - the line goes on",
     "m4.answer.3": "White would answer h7+: the pawn from h6 to h7; it gives check; the moved piece now attacks: king on g8; not played - the line goes on",
     "m4.answer.4": "Black would answer Kxg7: the king from g8 to g7; it captures a pawn; not played - the line goes on",
-    "m4.answer.intro": "the answer: White should have played g7 instead of the game move Qh5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +0 to -1 over the moves shown. The game move cost 2.0 pawns."
+    "m4.answer.intro": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m4.lead.1": {
@@ -6361,7 +6361,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: White should have played g7 instead of the game move Qh5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +0 to -1 over the moves shown. The game move cost 2.0 pawns."
+     "text": "the answer: the game went Qh5, which cost 2.0 pawns. At the end of the best line White is winning; material White minus Black goes from +0 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -6448,7 +6448,7 @@
     "m5.answer.2": "White would answer Kb1: the king from c1 to b1; not played - the line goes on",
     "m5.answer.3": "Black would answer Nf6: the knight from d5 to f6; the moved piece now attacks: queen on h5; not played - the line goes on",
     "m5.answer.4": "White would answer g7: the pawn from g6 to g7; the moved piece now attacks: queen on f8; not played - the line goes on",
-    "m5.answer.intro": "the answer: Black should have played Bf4+ instead of the game move axb2+, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 2.07 pawns."
+    "m5.answer.intro": "the answer: the game went axb2+, which cost 2.07 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m5.lead.1": {
@@ -6548,7 +6548,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Bf4+ instead of the game move axb2+, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 2.07 pawns."
+     "text": "the answer: the game went axb2+, which cost 2.07 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -6635,7 +6635,7 @@
     "m6.answer.2": "White would answer Qg5: the queen from h5 to g5; the moved piece now attacks: knight on f6; not played - the line goes on",
     "m6.answer.3": "Black would answer Ra7: the rook from a8 to a7; not played - the line goes on",
     "m6.answer.4": "White would answer Bc4: the bishop from f1 to c4; pinned to their king afterwards: e6; not played - the line goes on",
-    "m6.answer.intro": "the answer: Black should have played Nf6 instead of the game move Ba6, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from -1 to -1 over the moves shown. The game move allowed a forced mate."
+    "m6.answer.intro": "the answer: the game went Ba6, which allowed a forced mate. At the end of the best line White is winning; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m6.lead.1": {
@@ -6735,7 +6735,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Nf6 instead of the game move Ba6, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from -1 to -1 over the moves shown. The game move allowed a forced mate."
+     "text": "the answer: the game went Ba6, which allowed a forced mate. At the end of the best line White is winning; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   }
@@ -11292,7 +11292,7 @@
     "m1.answer.2": "White would answer Qxe4: the queen from d3 to e4; it captures a knight; the moved piece now attacks: queen on b7; not played - the line goes on",
     "m1.answer.3": "Black would answer Qxe4: the queen from b7 to e4; it captures a queen; the moved piece now attacks: bishop on b1, bishop on e3; not played - the line goes on",
     "m1.answer.4": "White would answer fxe4: the pawn from f3 to e4; it captures a queen; not played - the line goes on",
-    "m1.answer.intro": "the answer: Black should have played Nxe4 instead of the game move g6, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 1.69 pawns."
+    "m1.answer.intro": "the answer: the game went g6, which cost 1.69 pawns. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m1.lead.1": {
@@ -11392,7 +11392,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Nxe4 instead of the game move g6, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 1.69 pawns."
+     "text": "the answer: the game went g6, which cost 1.69 pawns. At the end of the best line White is slightly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -11479,7 +11479,7 @@
     "m2.answer.2": "Black would answer Nc6: the knight from a5 to c6; not played - the line goes on",
     "m2.answer.3": "White would answer Qc4: the queen from d3 to c4; the moved piece now attacks: knight on c6; not played - the line goes on",
     "m2.answer.4": "Black would answer Nd5: the knight from f6 to d5; the moved piece now attacks: bishop on e3; not played - the line goes on",
-    "m2.answer.intro": "the answer: White should have played b4 instead of the game move Bg5, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 4.98 pawns."
+    "m2.answer.intro": "the answer: the game went Bg5, which cost 4.98 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m2.lead.1": {
@@ -11579,7 +11579,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: White should have played b4 instead of the game move Bg5, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. The game move cost 4.98 pawns."
+     "text": "the answer: the game went Bg5, which cost 4.98 pawns. At the end of the best line White is clearly better; material White minus Black goes from +0 to +0 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -11666,7 +11666,7 @@
     "m3.answer.2": "White would answer f4: the pawn from f3 to f4; not played - the line goes on",
     "m3.answer.3": "Black would answer b5: the pawn from b6 to b5; not played - the line goes on",
     "m3.answer.4": "White would answer Ra6: the rook from a7 to a6; pinned to their king afterwards: f6; not played - the line goes on",
-    "m3.answer.intro": "the answer: Black should have played g5 instead of the game move Rd3, which is what actually happened. At the end of the best line Black is clearly better; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 1.97 pawns."
+    "m3.answer.intro": "the answer: the game went Rd3, which cost 1.97 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m3.lead.1": {
@@ -11766,7 +11766,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played g5 instead of the game move Rd3, which is what actually happened. At the end of the best line Black is clearly better; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 1.97 pawns."
+     "text": "the answer: the game went Rd3, which cost 1.97 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -11858,7 +11858,7 @@
     "m4.answer.2": "Black would answer Kg6: the king from h6 to g6; not played - the line goes on",
     "m4.answer.3": "White would answer a4: the pawn from a3 to a4; not played - the line goes on",
     "m4.answer.4": "Black would answer Ra3: the rook from d3 to a3; not played - the line goes on",
-    "m4.answer.intro": "the answer: White should have played Kg2 instead of the game move h3, which is what actually happened. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 2.82 pawns."
+    "m4.answer.intro": "the answer: the game went h3, which cost 2.82 pawns. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m4.lead.1": {
@@ -11958,7 +11958,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: White should have played Kg2 instead of the game move h3, which is what actually happened. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 2.82 pawns."
+     "text": "the answer: the game went h3, which cost 2.82 pawns. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -12048,7 +12048,7 @@
     "m5.answer.2": "White would answer b5: the pawn from b4 to b5; not played - the line goes on",
     "m5.answer.3": "Black would answer Kh5: the king from g6 to h5; not played - the line goes on",
     "m5.answer.4": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn; not played - the line goes on",
-    "m5.answer.intro": "the answer: Black should have played Ra3 instead of the game move Rd6, which is what actually happened. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. The game move cost 2.82 pawns."
+    "m5.answer.intro": "the answer: the game went Rd6, which cost 2.82 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m5.lead.1": {
@@ -12148,7 +12148,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Ra3 instead of the game move Rd6, which is what actually happened. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. The game move cost 2.82 pawns."
+     "text": "the answer: the game went Rd6, which cost 2.82 pawns. At the end of the best line Black is clearly better; material White minus Black goes from -1 to +0 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -12235,7 +12235,7 @@
     "m6.answer.2": "Black would answer Rd3: the rook from d2 to d3; not played - the line goes on",
     "m6.answer.3": "White would answer Rxb6: the rook from a6 to b6; it captures a pawn; pinned to their king afterwards: f6; not played - the line goes on",
     "m6.answer.4": "Black would answer Rxf3: the rook from d3 to f3; it captures a pawn; not played - the line goes on",
-    "m6.answer.intro": "the answer: White should have played Ke1 instead of the game move Kg1, which is what actually happened. At the end of the best line about even; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 4.34 pawns."
+    "m6.answer.intro": "the answer: the game went Kg1, which cost 4.34 pawns. At the end of the best line about even; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m6.lead.1": {
@@ -12335,7 +12335,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: White should have played Ke1 instead of the game move Kg1, which is what actually happened. At the end of the best line about even; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 4.34 pawns."
+     "text": "the answer: the game went Kg1, which cost 4.34 pawns. At the end of the best line about even; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -12422,7 +12422,7 @@
     "m7.answer.2": "White would answer Kf1: the king from g1 to f1; not played - the line goes on",
     "m7.answer.3": "Black would answer Kh5: the king from g6 to h5; not played - the line goes on",
     "m7.answer.4": "White would answer Ke1: the king from f1 to e1; not played - the line goes on",
-    "m7.answer.intro": "the answer: Black should have played Kg6 instead of the game move Rb3, which is what actually happened. At the end of the best line Black is winning; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 4.34 pawns."
+    "m7.answer.intro": "the answer: the game went Rb3, which cost 4.34 pawns. At the end of the best line Black is winning; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m7.lead.1": {
@@ -12522,7 +12522,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: Black should have played Kg6 instead of the game move Rb3, which is what actually happened. At the end of the best line Black is winning; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 4.34 pawns."
+     "text": "the answer: the game went Rb3, which cost 4.34 pawns. At the end of the best line Black is winning; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that Black had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   },
@@ -12609,7 +12609,7 @@
     "m8.answer.2": "Black would answer Rb2: the rook from b3 to b2; not played - the line goes on",
     "m8.answer.3": "White would answer Kf1: the king from g1 to f1; not played - the line goes on",
     "m8.answer.4": "Black would answer h5: the pawn from h6 to h5; not played - the line goes on",
-    "m8.answer.intro": "the answer: White should have played b7 instead of the game move Kg2, which is what actually happened. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 3.9 pawns."
+    "m8.answer.intro": "the answer: the game went Kg2, which cost 3.9 pawns. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
    },
    "facts": {
     "m8.lead.1": {
@@ -12709,7 +12709,7 @@
      "fork": false,
      "pin": false,
      "motifs": "",
-     "text": "the answer: White should have played b7 instead of the game move Kg2, which is what actually happened. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. The game move cost 3.9 pawns."
+     "text": "the answer: the game went Kg2, which cost 3.9 pawns. At the end of the best line Black is slightly better; material White minus Black goes from -1 to -1 over the moves shown. Say in one sentence that White had something better here, without naming the move or its destination square - the move after this sentence names it."
     }
    }
   }

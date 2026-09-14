@@ -269,8 +269,19 @@ List<Map<String, dynamic>> skeletonMoments(
       moves.add({'san': san, 'slot': sid});
     }
     final intro = '$mid.answer.intro';
+    // **The introduction does not name the move, and that is the point.** It
+    // used to open „$mover should have played ${best['move']} instead of the game
+    // move ${played['move']}", and the slot right after it opens „should have
+    // played ${best['move']}" too — so every answer part said the same move
+    // twice in two consecutive sentences (the owner, 14.9.2026, on „Lost
+    // chances"). The model was faithful; it was handed the same fact twice.
+    // The introduction frames what the game did and what the line is worth,
+    // the first move of the line names it as it appears on the board — which
+    // is also the better lesson, since a move read before it is played is a
+    // move given away. The instruction is written into the fact the way the
+    // question slot's already is; that is the idiom here, not a new one.
     slots[intro] =
-        'the answer: $mover should have played ${best['move']} instead of the game move ${played['move']}, which is what actually happened. At the end of the best line ${wordsFor(best['eval'] as String?)}; material White minus Black goes from ${formatMaterial(before)} to ${formatMaterial(materialOf(board))} over the moves shown. The game move ${costText(played)}.';
+        'the answer: the game went ${played['move']}, which ${costText(played)}. At the end of the best line ${wordsFor(best['eval'] as String?)}; material White minus Black goes from ${formatMaterial(before)} to ${formatMaterial(materialOf(board))} over the moves shown. Say in one sentence that $mover had something better here, without naming the move or its destination square - the move after this sentence names it.';
     final change = materialOf(board) - before;
     final gain = change > 0
         ? (!black ? change : 0)

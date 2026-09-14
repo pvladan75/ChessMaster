@@ -368,13 +368,25 @@ def moments(name, cfg=None):
             facts[sid] = dict(info, motifs='')
             moves.append({'san': san, 'slot': sid})
         intro = '%s.answer.intro' % mid
+        # **The introduction does not name the move, and that is the point.**
+        # It used to open „%s should have played %s instead of the game move
+        # %s", and the slot right after it opens „should have played %s" too -
+        # so every answer part said the same move twice in two consecutive
+        # sentences (the owner, 14.9.2026, on „Lost chances"). The model was
+        # faithful; it was handed the same fact twice. The introduction frames
+        # what the game did and what the line is worth, the first move of the
+        # line names it as it appears on the board - which is also the better
+        # lesson, since a move read before it is played is a move given away.
+        # The instruction is written into the fact the way the question slot's
+        # already is; that is the idiom here, not a new one.
         slots[intro] = (
-            'the answer: %s should have played %s instead of the game move %s, '
-            'which is what actually happened. At the end of the '
-            'best line %s; material White minus Black goes from %+d to %+d over the '
-            'moves shown. The game move %s.' % (
-                mover, best['move'], played['move'], words_for(best['eval']),
-                before, material(board), cost_text(played)))
+            'the answer: the game went %s, which %s. At the end of the best '
+            'line %s; material White minus Black goes from %+d to %+d over the '
+            'moves shown. Say in one sentence that %s had something better '
+            'here, without naming the move or its destination square - the '
+            'move after this sentence names it.' % (
+                played['move'], cost_text(played), words_for(best['eval']),
+                before, material(board), mover))
         change = material(board) - before
         facts[intro] = {'gain': max(0, change if not black else -change), 'mate': False,
                         'fork': False, 'pin': False, 'motifs': ''}
