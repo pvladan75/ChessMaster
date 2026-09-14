@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 2489 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1278 tests, all green
+cd chess_backend && npm test          # node --test, 1316 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2204,6 +2204,33 @@ live in `game_tutorial_io/` now; the gate was not widened.
 **A comment asserted a need nobody had checked.** `setReadBigInts(true)` was
 written „because a 64-bit key would round" — but the key is only ever bound as
 a parameter, never read back. The line and its reason were deleted.
+
+**Phase 3 the same day — 1316 on the backend** with `.env` moved aside; the
+app is unchanged at 2489. 1278 + 21 (the request, the prompt on ten games, the
+answer's shape) + 7 (the DeepSeek client) + 10 (the route) = 1316, counted from
+the files rather than from memory, which had it as 20 and 11. The words
+route writes the harness's prompt byte for byte from the app's request.
+
+**A template retyped is a template that differs.** The prompt holds a `„`, and
+the server's copy was written by the harness itself, from its own string, into
+the one file both now read. The byte-equal test on ten games is what says the
+formatting — Python's `{{` and `}}` — agrees too.
+
+**A validated prompt still sent something it should not.** The harness quoted
+the whole PGN file, headers and all; the fixtures only ever named „Player", so
+nothing showed. A real trainer's game names their students, and the model is a
+third party's. The request now carries moves only, and the server refuses one
+with headers rather than stripping them — the app decides what leaves the device.
+
+**Three mutations survived because each test changed two things at once.** A
+duplicate moment id was written with duplicate slot ids too, so the slot check
+refused it first; the fence test had no braces outside the fence, so the
+brace-slicing fallback read it just as well. Change only what the check is for.
+
+**A test's own fake can hang it.** One `release` variable, overwritten by a
+second account's call, left the first call waiting for ever: the whole file
+sat past its 300 s budget with no output. Node's `--test-timeout` turns that
+into a failure, and the mutation harness runs every mutant under one.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

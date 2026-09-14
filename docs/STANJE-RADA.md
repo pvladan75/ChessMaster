@@ -43,6 +43,25 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Skelet: faza 3, ruta za reči — 14.9.2026, u kodu
+
+`POST /lessons/from-game/words`: aplikacija šalje skelet kao podatke, server od
+njega piše prompt (šablon je jedan fajl, `services/prompts/tutorial_words.txt`,
+koji čita i harness), pita DeepSeek (`deepseek-flash`, effort low) i vraća reči
+kad su u traženom obliku. **Prompt je bajt po bajt isti kao harnessov na svih
+deset partija.** Partija se šalje **bez PGN zaglavlja** — imena igrača su
+trenerovi učenici, a model je tuđ; server odbija zahtev sa zaglavljem.
+
+Kredit se rezerviše pre poziva i vraća ako reči nisu napisane; tokeni svakog
+pokušaja se beleže (`ai_tutorial_tokens`). Backend **1316**, aplikacija
+nepromenjena (2489). 36 mutacija, sve uhvaćene posle tri izolovana testa.
+
+D6, broj tutorijala mesečno po nivou: **privremene vrednosti ostaju za sada**
+(vlasnik, 14.9.2026) — premium 30, pro 100, club neograničeno, free nema. Pravi
+poziv DeepSeek-u sa servera još nije napravljen (faza 5). Za proveru uživo
+vlasnik će tražiti da mu se nalogu dodeli pro nivo — tek kad to zatraži.
+**Sledeće: faza 4**, vrata u aplikaciji.
+
 ## Skelet: faza 2, činjenice na uređaju — 14.9.2026, gotovo
 
 Činjenice partije se prave u aplikaciji: `game_tutorial/game_facts.dart`

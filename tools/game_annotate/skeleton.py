@@ -402,57 +402,15 @@ def moments(name, cfg=None):
 
 # --- The prompt ---------------------------------------------------------------
 
-PROMPT = """# Write the words for a chess tutorial
-
-A trainer's game is being turned into a tutorial that a student of 13 or older
-walks through alone, on a board, with every sentence read aloud. The student plays
-in a club and knows how the pieces move and what a fork and a pin are.
-
-**Everything except the words is already done**, by a program and a chess
-engine: every position, every move, every question and every correct answer.
-None of it can change. You do two things.
-
-1. **Choose** two or three of the moments below - the ones a student learns the
-   most from - by their ids.
-2. **Write** a title (under 60 characters), a one-sentence description, one or
-   two tags, and the text of **every slot of the moments you chose**, and of no
-   other slot.
-
-## Rules for every sentence
-
-- **Say only what the facts beside the slot say.** Do not judge a move yourself.
-  A move wins material only if its facts say it captures something and the
-  material count bears it out; a fork or a pin exists only if the facts name it.
-- **No numbers for evaluations.** The facts turn them into words; use the words.
-- **A move slot is about that one move**, not the move after it.
-- **Keep „played" for what was played.** A slot that says „not played" is a move
-  the game did not contain, and the facts already say „should have played" or
-  „would answer" for it - keep that voice. A student must be able to tell what
-  happened from what should have without doing arithmetic.
-- **A question never names a move in notation** - not its answer, and not the
-  move played in the game either. Naming the rejected move eliminates a
-  candidate and tells the student what not to look at, which is half the
-  exercise. Say what is on the board, not what was played.
-- One or two short sentences per slot, at most 140 characters.
-- Teach, do not score: say what to notice, not only that a move was bad.
-
-## Answer format
-
-Return one JSON object and nothing else - no prose, no code fence:
-
-{{"title": "...", "description": "...", "tags": ["..."], "chosen": ["m2", "m5"],
- "slots": {{"m2.lead.intro": "...", "m2.lead.1": "...", "m2.question": "...", "...": "..."}}}}
-
-## The game
-
-{opening}```
-{game}
-```
-
-## The moments
-
-{moments}
-"""
+# The template of the words prompt. **One copy, and it is the server's**: since
+# 14.9.2026 the words route writes the prompt (docs/PLAN-SKELET.md, phase 3), and
+# a second copy here would be two prompts agreeing by accident. Python's
+# `str.format` fills it, and chess_backend/services/tutorialWords.js fills it the
+# same way; its test holds the result to `expected.prompt` on every fixture game.
+PROMPT_PATH = os.path.join(os.path.dirname(os.path.dirname(HERE)), 'chess_backend',
+                           'services', 'prompts', 'tutorial_words.txt')
+with io.open(PROMPT_PATH, encoding='utf-8') as _fh:
+    PROMPT = _fh.read()
 
 
 def book_summary(rows):
@@ -486,11 +444,54 @@ def book_summary(rows):
     return '. '.join(said) + '.'
 
 
-def prompt(name, cfg=None):
+def movetext_of(pgn):
+    """The moves of a PGN without its headers.
+
+    A trainer's game names its players, and they are the trainer's students -
+    many of them minors - while the words are written by a model on somebody
+    else's servers that has no use for a name. Until 14.9.2026 the prompt quoted
+    the whole file; the ten fixture games only ever carried placeholder names
+    ("Player", "Analysis Engine"), so what changed is what a real game would
+    have sent.
+    """
+    lines = [line for line in pgn.strip().splitlines()
+             if not line.lstrip().startswith('[')]
+    return '\n'.join(lines).strip()
+
+
+def words_request(name, cfg=None):
+    """What the app sends the server for the words (docs/PLAN-SKELET.md, phase 3).
+
+    **The skeleton as data, never a prompt**: a route that forwarded a prompt
+    would be the server's key as an open proxy for anything. The server writes
+    the prompt from this with `prompt_from_request`'s rules, and its test holds
+    it to that function on every fixture game.
+    """
     with open(os.path.join(INPUT_DIR, '%s_plain.pgn' % name), encoding='utf-8') as fh:
-        game = fh.read().strip()
-    blocks = []
+        game = movetext_of(fh.read())
+    request_moments = []
     for m in moments(name, cfg):
+        slots = []
+        for part in m['parts']:
+            for sid in ([part.get('intro')] if part.get('intro') else []) + \
+                       ([part['instruction']] if part.get('instruction') else []) + \
+                       [mv['slot'] for mv in part.get('moves', [])]:
+                slots.append({'id': sid, 'text': m['slots'][sid]})
+        request_moments.append({
+            'id': m['id'], 'label': m['label'], 'mover': m['mover'],
+            'played': m['played'], 'cost_text': m['cost_text'], 'best': m['best'],
+            'asks': m['asks'], 'correct': m['correct'], 'left_book': m['left_book'],
+            'board': m['board'], 'slots': slots,
+        })
+    return {'game': game,
+            'opening': book_summary(facts_of(name)['rows']) or None,
+            'moments': request_moments}
+
+
+def prompt_from_request(request):
+    """The prompt, from what the app sends - the one place it is written."""
+    blocks = []
+    for m in request['moments']:
         head = ('### %s - at %s, %s to move\nIn the game %s was played and it %s; '
                 'the best move was %s. %s' % (
                     m['id'], m['label'], m['mover'], m['played'], m['cost_text'], m['best'],
@@ -505,16 +506,16 @@ def prompt(name, cfg=None):
         if m['board']:
             head += '\nOn the board: %s' % m['board']
         lines = [head, '', 'Slots, in the order the student meets them:']
-        for part in m['parts']:
-            for sid in ([part.get('intro')] if part.get('intro') else []) + \
-                       ([part['instruction']] if part.get('instruction') else []) + \
-                       [mv['slot'] for mv in part.get('moves', [])]:
-                lines.append('- `%s`: %s' % (sid, m['slots'][sid]))
+        lines += ['- `%s`: %s' % (slot['id'], slot['text']) for slot in m['slots']]
         blocks.append('\n'.join(lines))
-    opening = book_summary(facts_of(name)['rows'])
+    opening = request.get('opening') or ''
     return PROMPT.format(
-        game=game, opening=(opening + '\n\n') if opening else '',
+        game=request['game'], opening=(opening + '\n\n') if opening else '',
         moments='\n\n'.join(blocks))
+
+
+def prompt(name, cfg=None):
+    return prompt_from_request(words_request(name, cfg))
 
 
 # --- Assembly -----------------------------------------------------------------

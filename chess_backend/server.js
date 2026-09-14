@@ -11,6 +11,7 @@ const { pool, initDB } = require('./db');
 const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const lessonRoutes = require('./routes/lessons');
+const gameTutorialWordsRoutes = require('./routes/gameTutorialWords');
 const recordingRoutes = require('./routes/recordings');
 const puzzleRoutes = require('./routes/puzzles');
 const socialRoutes = require('./routes/social');
@@ -134,6 +135,8 @@ app.get(['/', '/health', '/api/health'], (req, res) => {
 // MOUNT ROUTE MODULES
 app.use('/', authRoutes);
 app.use('/rooms', roomRoutes);
+// Before /lessons, whose router would read `from-game` as a lesson id.
+app.use('/lessons/from-game', gameTutorialWordsRoutes);
 app.use('/lessons', lessonRoutes);
 app.use('/recordings', recordingRoutes);
 app.use('/api', puzzleRoutes);

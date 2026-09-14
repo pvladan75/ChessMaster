@@ -1360,3 +1360,18 @@ answer, and they are the ones worth reading the three `tutorial.json` files for:
    against 478 bytes — twenty-three times the text for the same game.
  * **Did the engine change what it taught, or only what it asserted?** B against
    C, and `engine_calls.jsonl` beside it.
+
+## The words prompt moved to the server — 14.9.2026
+
+Phase 3 of `docs/PLAN-SKELET.md`. The words route on the server writes the
+prompt now, so the template is one file,
+`chess_backend/services/prompts/tutorial_words.txt`, and `skeleton.py` reads it
+instead of holding its own copy. It was written from `skeleton.PROMPT` itself,
+not retyped. The prompt is built in two steps: `words_request` is what the app
+sends, and `prompt_from_request` writes the prompt from it. `export_fixtures.py`
+stores both, and the server's test holds its prompt to them byte for byte.
+
+**The game is quoted as moves only.** Until this change the prompt carried the
+plain PGN's headers. The ten games only ever named „Player" and „Analysis
+Engine", so no run is affected, but a trainer's real game names their students,
+and the words are written on a third party's servers.

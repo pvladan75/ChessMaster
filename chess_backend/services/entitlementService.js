@@ -19,6 +19,9 @@ const ENT = {
   UNLIMITED_LESSONS: 'unlimited_lessons',
   UNLIMITED_SESSIONS: 'unlimited_sessions',
   AI_COMMENTS: 'ai_comments',
+  // A tutorial's words written from a game (docs/PLAN-SKELET.md, phase 3):
+  // premium, and later bought credits (decision D2).
+  AI_TUTORIALS: 'ai_tutorials',
   ASSIGNMENTS: 'assignments',
 };
 
@@ -37,6 +40,12 @@ const METRIC = {
   // our own CPU — but on a one-vCPU host that is the number that decides when a
   // bigger droplet is due, and it is invisible unless counted.
   SCANNED_PAGES: 'scanned_pages',
+  // One per tutorial the model wrote words for — the quota counter, the same
+  // name as the entitlement — and the tokens every attempt cost, refused ones
+  // included: the provider bills the attempt, and credits will be priced from
+  // this number.
+  AI_TUTORIALS: 'ai_tutorials',
+  AI_TUTORIAL_TOKENS: 'ai_tutorial_tokens',
 };
 
 /// Metered features. -1 means unmetered.
@@ -45,15 +54,20 @@ const METRIC = {
 /// trainer has to feel the feature work with a real student before a
 /// subscription is worth anything to them, and a locked button demonstrates
 /// nothing.
+///
+/// The tutorial numbers are **placeholders until the owner prices them**
+/// (docs/PLAN-SKELET.md, phase 3). A tier without an entry reads as 0, which
+/// locks the feature, so every paid tier needs one.
 const QUOTAS = {
   free: { [ENT.AI_COMMENTS]: 10, [ENT.ASSIGNMENTS]: 5 },
-  premium: { [ENT.AI_COMMENTS]: 500, [ENT.ASSIGNMENTS]: -1 },
-  pro: { [ENT.AI_COMMENTS]: 2000, [ENT.ASSIGNMENTS]: -1 },
-  club: { [ENT.AI_COMMENTS]: -1, [ENT.ASSIGNMENTS]: -1 },
+  premium: { [ENT.AI_COMMENTS]: 500, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 30 },
+  pro: { [ENT.AI_COMMENTS]: 2000, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 100 },
+  club: { [ENT.AI_COMMENTS]: -1, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: -1 },
 };
 
 const PAID_ENTITLEMENTS = [
   ENT.AI_COMMENTS,
+  ENT.AI_TUTORIALS,
   ENT.ASSIGNMENTS,
   ENT.MP4_EXPORT,
   ENT.UNLIMITED_LESSONS,
@@ -191,6 +205,7 @@ function loadUnitCosts() {
     [METRIC.MP4_RENDER_SECONDS]: 0,
     [METRIC.AI_COMMENTS]: 0,
     [METRIC.MP4_RENDERS]: 0,
+    [METRIC.AI_TUTORIAL_TOKENS]: 0,
   };
   const raw = process.env.USAGE_UNIT_COSTS;
   if (!raw) return defaults;

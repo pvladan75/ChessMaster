@@ -6551,7 +6551,464 @@
     }
    }
   ],
-  "prompt": "# Write the words for a chess tutorial\n\nA trainer's game is being turned into a tutorial that a student of 13 or older\nwalks through alone, on a board, with every sentence read aloud. The student plays\nin a club and knows how the pieces move and what a fork and a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move, every question and every correct answer.\nNone of it can change. You do two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep „played\" for what was played.** A slot that says „not played\" is a move\n  the game did not contain, and the facts already say „should have played\" or\n  „would answer\" for it - keep that voice. A student must be able to tell what\n  happened from what should have without doing arithmetic.\n- **A question never names a move in notation** - not its answer, and not the\n  move played in the game either. Naming the rejected move eliminates a\n  candidate and tells the student what not to look at, which is half the\n  exercise. Say what is on the board, not what was played.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"m2.question\": \"...\", \"...\": \"...\"}}\n\n## The game\n\nThe opening is the French Defense: Exchange Variation, Monte Carlo Variation. 4... g6 left the masters database: 1367 master games had reached that position and not one played it.\n\n```\n[Event \"Analysis Studio Session\"]\n[Site \"Chess trainer\"]\n[Date \"2026.09.13\"]\n[Round \"1\"]\n[White \"Player\"]\n[Black \"Analysis Engine\"]\n[Result \"*\"]\n\n1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 g6 5. Nc3 Bg7 6. Nf3 dxc4 7. Bxc4 Ne7 8.\nO-O O-O 9. Re1 Nf5 10. Bg5 Qd6 11. Qb3 Nxd4 12. Nxd4 Bxd4 13. Rad1 c5 14. Be7\nQf4 15. Bxf8 Bxf2+ 16. Kh1 Bxe1 17. Bxc5 Be6 18. Rxe1 Bxc4 19. Re8+ Kg7 20.\nBf8+ Kf6 21. Ne4+ Qxe4 22. Qc3+ Kf5 23. Rxe4 Kxe4 24. Qxc4+ Kf5 25. Qc8+ Kg5\n26. Qxb7 Nc6 27. Qxa8 Ne5 28. Qd5 f6 29. Bg7 Kf5 30. g4+ Kxg4 31. Bxf6 Nf3 32.\nQe4+ Kh5 33. Qxf3+ Kh6 34. Qh3# *\n```\n\n## The moments\n\n### m1 - at 10... Qd6, White to move\nIn the game 11. Qb3 was played and it cost 1.72 pawns; the best move was g4. There is a question here; correct answers: g4.\nOn the board: The black queen on d8 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m1.lead.1`: Black plays Nf5: the knight from e7 to f5; played in the game; afterwards White is clearly better; on the board after it: The white pawn on d4 is attacked three times and defended only twice.\n- `m1.lead.2`: White plays Bg5: the bishop from c1 to g5; the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m1.lead.3`: Black plays Qd6: the queen from d8 to d6; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m1.question`: White to move. The best move is g4, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: g4 Nxd4 Be7 Qd7 Nxd4 Bxd4. In the game Qb3 was played instead; it cost 1.72 pawns and afterwards White is slightly better. On the board: The black queen on d8 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square.\n- `m1.answer.intro`: the answer: White should have played g4 instead of the game move Qb3, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to -1 over the moves shown. The game move cost 1.72 pawns.\n- `m1.answer.1`: White should have played g4: the pawn from g2 to g4; the moved piece now attacks: knight on f5; pinned to their king afterwards: f7; not played - the best move the game missed\n- `m1.answer.2`: Black would answer Nxd4: the knight from f5 to d4; it captures a pawn; the moved piece now attacks: knight on f3; not played - the line goes on\n- `m1.answer.3`: White would answer Be7: the bishop from g5 to e7; the moved piece now attacks: queen on d6, rook on f8; pinned to their king afterwards: f7; not played - the line goes on\n- `m1.answer.4`: Black would answer Qd7: the queen from d6 to d7; the moved piece now attacks: bishop on e7; not played - the line goes on\n\n### m2 - at 11. Qb3, Black to move\nIn the game 11... Nxd4 was played and it cost 3.14 pawns; the best move was Nc6. There is a question here; correct answers: Nc6.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m2.lead.1`: White plays Bg5: the bishop from c1 to g5; the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m2.lead.2`: Black plays Qd6: the queen from d8 to d6; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m2.lead.3`: White plays Qb3: the queen from d1 to b3; pinned to their king afterwards: f7; played in the game; afterwards White is slightly better\n- `m2.question`: Black to move. The best move is Nc6, and afterwards White is slightly better. Also counted correct: nothing else. What follows the best move: Nc6 Nb5 Nfxd4 Nfxd4 Nxd4 Nxd6. In the game Nxd4 was played instead; it cost 3.14 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.\n- `m2.answer.intro`: the answer: Black should have played Nc6 instead of the game move Nxd4, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +0 to +2 over the moves shown. The game move cost 3.14 pawns.\n- `m2.answer.1`: Black should have played Nc6: the knight from b8 to c6; not played - the best move the game missed\n- `m2.answer.2`: White would answer Nb5: the knight from c3 to b5; the moved piece now attacks: queen on d6; pinned to their king afterwards: f7; not played - the line goes on\n- `m2.answer.3`: Black would answer Nfxd4: the knight from f5 to d4; it captures a pawn; the moved piece now attacks: queen on b3, knight on f3, knight on b5; not played - the line goes on\n- `m2.answer.4`: White would answer Nfxd4: the knight from f3 to d4; it captures a knight; the moved piece now attacks: knight on c6; pinned to their king afterwards: f7; not played - the line goes on\n\n### m3 - at 17... Be6, White to move\nIn the game 18. Rxe1 was played and it cost 3.96 pawns; the best move was Qxb7. There is a question here; correct answers: Qxb7.\nOn the board: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the board before these moves (Black to move); material White minus Black is +3 before them and -1 after them\n- `m3.lead.1`: Black plays Bxe1: the bishop from f2 to e1; it captures a rook; the moved piece now attacks: knight on c3; played in the game; afterwards White is winning; on the board after it: The black bishop on e1 is attacked by the white rook on d1 and has no defender. The white rook on e1 no longer stands on the open e-file.\n- `m3.lead.2`: White plays Bxc5: the bishop from f8 to c5; it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m3.lead.3`: Black plays Be6: the bishop from c8 to e6; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m3.question`: White to move. The best move is Qxb7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qxb7 Qxc4 Qxa8 h6 Qxb8+ Kh7. In the game Rxe1 was played instead; it cost 3.96 pawns and afterwards White is clearly better. On the board: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.. Ask for the move in one sentence, without naming it or its destination square.\n- `m3.answer.intro`: the answer: White should have played Qxb7 instead of the game move Rxe1, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from -1 to +2 over the moves shown. The game move cost 3.96 pawns.\n- `m3.answer.1`: White should have played Qxb7: the queen from b3 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the best move the game missed\n- `m3.answer.2`: Black would answer Qxc4: the queen from f4 to c4; it captures a bishop; the moved piece now attacks: knight on c3, bishop on c5; not played - the line goes on\n- `m3.answer.3`: White would answer Qxa8: the queen from b7 to a8; it captures a rook; the moved piece now attacks: knight on b8; pinned to their king afterwards: b8; not played - the line goes on\n- `m3.answer.4`: Black would answer h6: the pawn from h7 to h6; not played - the line goes on\n\n### m4 - at 18. Rxe1, Black to move\nIn the game 18... Bxc4 was played and it cost 7.07 pawns; the best move was Nd7. There is a question here; correct answers: Nd7.\nOn the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the board before these moves (White to move); material White minus Black is -2 before them and +2 after them\n- `m4.lead.1`: White plays Bxc5: the bishop from f8 to c5; it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m4.lead.2`: Black plays Be6: the bishop from c8 to e6; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m4.lead.3`: White plays Rxe1: the rook from d1 to e1; it captures a bishop; the moved piece now attacks: bishop on e6; played in the game; afterwards White is clearly better; on the board after it: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n- `m4.question`: Black to move. The best move is Nd7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Nd7 Bxa7 Qxc4 Qxb7 Re8 h3. In the game Bxc4 was played instead; it cost 7.07 pawns and afterwards White is winning. On the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.. Ask for the move in one sentence, without naming it or its destination square.\n- `m4.answer.intro`: the answer: Black should have played Nd7 instead of the game move Bxc4, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +2 to +1 over the moves shown. The game move cost 7.07 pawns.\n- `m4.answer.1`: Black should have played Nd7: the knight from b8 to d7; the moved piece now attacks: bishop on c5; not played - the best move the game missed\n- `m4.answer.2`: White would answer Bxa7: the bishop from c5 to a7; it captures a pawn; not played - the line goes on\n- `m4.answer.3`: Black would answer Qxc4: the queen from f4 to c4; it captures a bishop; the moved piece now attacks: queen on b3, knight on c3; not played - the line goes on\n- `m4.answer.4`: White would answer Qxb7: the queen from b3 to b7; it captures a pawn; the moved piece now attacks: knight on d7, rook on a8; not played - the line goes on\n\n### m5 - at 24. Qxc4+, Black to move\nIn the game 24... Kf5 was played and it allowed a forced mate; the best move was Ke5. There is a question here; correct answers: Ke5.\nOn the board: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m5.lead.intro`: the board before these moves (White to move); material White minus Black is -4 before them and +3 after them\n- `m5.lead.1`: White plays Rxe4: the rook from e8 to e4; it captures a queen; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on c4 is attacked by the white rook on e4 and has no defender. The white pawn on a2 is no longer hanging. The black queen on e4 no longer stands on the open e-file.\n- `m5.lead.2`: Black plays Kxe4: the king from f5 to e4; it captures a rook; played in the game; afterwards White is winning; on the board after it: The white pawn on a2 is attacked by the black bishop on c4 and has no defender. The white rook on e4 no longer stands on the open e-file.\n- `m5.lead.3`: White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n- `m5.question`: Black to move. The best move is Ke5, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Ke5 Qc7+ Kf5 Qxb7 Nc6 Qxa8. In the game Kf5 was played instead; it allowed a forced mate and afterwards White mates in 6. On the board: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square.\n- `m5.answer.intro`: the answer: Black should have played Ke5 instead of the game move Kf5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +3 to +4 over the moves shown. The game move allowed a forced mate.\n- `m5.answer.1`: Black should have played Ke5: the king from e4 to e5; not played - the best move the game missed\n- `m5.answer.2`: White would answer Qc7+: the queen from c4 to c7; it gives check; the moved piece now attacks: king on e5, knight on b8; not played - the line goes on\n- `m5.answer.3`: Black would answer Kf5: the king from e5 to f5; not played - the line goes on\n- `m5.answer.4`: White would answer Qxb7: the queen from c7 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the line goes on\n\n### m6 - at 24... Kf5, White to move\nIn the game 25. Qc8+ was played and it gave up a forced mate; the best move was Qd5+. There is a question here; correct answers: Qd5+, Bg7.\nOn the board: The fork by the white queen on c4 is over.\n\nSlots, in the order the student meets them:\n- `m6.lead.intro`: the board before these moves (Black to move); material White minus Black is +5 before them and +3 after them\n- `m6.lead.1`: Black plays Kxe4: the king from f5 to e4; it captures a rook; played in the game; afterwards White is winning; on the board after it: The white pawn on a2 is attacked by the black bishop on c4 and has no defender. The white rook on e4 no longer stands on the open e-file.\n- `m6.lead.2`: White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n- `m6.lead.3`: Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over.\n- `m6.question`: White to move. The best move is Qd5+, and afterwards White mates in 6. Also counted correct: Bg7. What follows the best move: Qd5+ Kf4 Bh6+ g5 Bxg5+ Kg4. In the game Qc8+ was played instead; it gave up a forced mate and afterwards White is winning. On the board: The fork by the white queen on c4 is over.. Ask for the move in one sentence, without naming it or its destination square.\n- `m6.answer.intro`: the answer: White should have played Qd5+ instead of the game move Qc8+, which is what actually happened. At the end of the best line White mates in 6; material White minus Black goes from +3 to +3 over the moves shown. The game move gave up a forced mate.\n- `m6.answer.1`: White should have played Qd5+: the queen from c4 to d5; it gives check; the moved piece now attacks: king on f5; not played - the best move the game missed\n- `m6.answer.2`: Black would answer Kf4: the king from f5 to f4; not played - the line goes on\n- `m6.answer.3`: White would answer Bh6+: the bishop from f8 to h6; it gives check; the moved piece now attacks: king on f4; not played - the line goes on\n- `m6.answer.4`: Black would answer g5: the pawn from g6 to g5; not played - the line goes on\n\n### m7 - at 25. Qc8+, Black to move\nIn the game 25... Kg5 was played and it allowed a forced mate; the best move was Ke5. There is a question here; correct answers: Ke5, Kf4.\nOn the board: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.\n\nSlots, in the order the student meets them:\n- `m7.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +3 after them\n- `m7.lead.1`: White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n- `m7.lead.2`: Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over.\n- `m7.lead.3`: White plays Qc8+: the queen from c4 to c8; it gives check; the moved piece now attacks: king on f5, knight on b8; played in the game; afterwards White is winning; on the board after it: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.\n- `m7.question`: Black to move. The best move is Ke5, and afterwards White is winning. Also counted correct: Kf4. What follows the best move: Ke5 Qc7+ Kf5 Qxb7 Nc6 Qxa8. In the game Kg5 was played instead; it allowed a forced mate and afterwards White mates in 9. On the board: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.. Ask for the move in one sentence, without naming it or its destination square.\n- `m7.answer.intro`: the answer: Black should have played Ke5 instead of the game move Kg5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +3 to +4 over the moves shown. The game move allowed a forced mate.\n- `m7.answer.1`: Black should have played Ke5: the king from f5 to e5; not played - the best move the game missed\n- `m7.answer.2`: White would answer Qc7+: the queen from c8 to c7; it gives check; the moved piece now attacks: king on e5, knight on b8; not played - the line goes on\n- `m7.answer.3`: Black would answer Kf5: the king from e5 to f5; not played - the line goes on\n- `m7.answer.4`: White would answer Qxb7: the queen from c7 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the line goes on\n\n### m8 - at 25... Kg5, White to move\nIn the game 26. Qxb7 was played and it gave up a forced mate; the best move was Qc5+. There is a question here; correct answers: Qc5+, Qd8+.\nOn the board: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.\n\nSlots, in the order the student meets them:\n- `m8.lead.intro`: the board before these moves (Black to move); material White minus Black is +3 before them and +3 after them\n- `m8.lead.1`: Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over.\n- `m8.lead.2`: White plays Qc8+: the queen from c4 to c8; it gives check; the moved piece now attacks: king on f5, knight on b8; played in the game; afterwards White is winning; on the board after it: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.\n- `m8.lead.3`: Black plays Kg5: the king from f5 to g5; played in the game; afterwards White mates in 9; on the board after it: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.\n- `m8.question`: White to move. The best move is Qc5+, and afterwards White mates in 9. Also counted correct: Qd8+. What follows the best move: Qc5+ Kf6 Qd6+ Kg5 Qe5+ f5. In the game Qxb7 was played instead; it gave up a forced mate and afterwards White is winning. On the board: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.. Ask for the move in one sentence, without naming it or its destination square.\n- `m8.answer.intro`: the answer: White should have played Qc5+ instead of the game move Qxb7, which is what actually happened. At the end of the best line White mates in 9; material White minus Black goes from +3 to +3 over the moves shown. The game move gave up a forced mate.\n- `m8.answer.1`: White should have played Qc5+: the queen from c8 to c5; it gives check; the moved piece now attacks: king on g5; not played - the best move the game missed\n- `m8.answer.2`: Black would answer Kf6: the king from g5 to f6; not played - the line goes on\n- `m8.answer.3`: White would answer Qd6+: the queen from c5 to d6; it gives check; the moved piece now attacks: king on f6, knight on b8; not played - the line goes on\n- `m8.answer.4`: Black would answer Kg5: the king from f6 to g5; not played - the line goes on\n",
+  "wordsRequest": {
+   "game": "1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 g6 5. Nc3 Bg7 6. Nf3 dxc4 7. Bxc4 Ne7 8.\nO-O O-O 9. Re1 Nf5 10. Bg5 Qd6 11. Qb3 Nxd4 12. Nxd4 Bxd4 13. Rad1 c5 14. Be7\nQf4 15. Bxf8 Bxf2+ 16. Kh1 Bxe1 17. Bxc5 Be6 18. Rxe1 Bxc4 19. Re8+ Kg7 20.\nBf8+ Kf6 21. Ne4+ Qxe4 22. Qc3+ Kf5 23. Rxe4 Kxe4 24. Qxc4+ Kf5 25. Qc8+ Kg5\n26. Qxb7 Nc6 27. Qxa8 Ne5 28. Qd5 f6 29. Bg7 Kf5 30. g4+ Kxg4 31. Bxf6 Nf3 32.\nQe4+ Kh5 33. Qxf3+ Kh6 34. Qh3# *",
+   "opening": "The opening is the French Defense: Exchange Variation, Monte Carlo Variation. 4... g6 left the masters database: 1367 master games had reached that position and not one played it.",
+   "moments": [
+    {
+     "id": "m1",
+     "label": "10... Qd6",
+     "mover": "White",
+     "played": "11. Qb3",
+     "cost_text": "cost 1.72 pawns",
+     "best": "g4",
+     "asks": true,
+     "correct": [
+      "g4"
+     ],
+     "left_book": false,
+     "board": "The black queen on d8 is no longer hanging.",
+     "slots": [
+      {
+       "id": "m1.lead.intro",
+       "text": "the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them"
+      },
+      {
+       "id": "m1.lead.1",
+       "text": "Black plays Nf5: the knight from e7 to f5; played in the game; afterwards White is clearly better; on the board after it: The white pawn on d4 is attacked three times and defended only twice."
+      },
+      {
+       "id": "m1.lead.2",
+       "text": "White plays Bg5: the bishop from c1 to g5; the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece."
+      },
+      {
+       "id": "m1.lead.3",
+       "text": "Black plays Qd6: the queen from d8 to d6; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging."
+      },
+      {
+       "id": "m1.question",
+       "text": "White to move. The best move is g4, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: g4 Nxd4 Be7 Qd7 Nxd4 Bxd4. In the game Qb3 was played instead; it cost 1.72 pawns and afterwards White is slightly better. On the board: The black queen on d8 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m1.answer.intro",
+       "text": "the answer: White should have played g4 instead of the game move Qb3, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to -1 over the moves shown. The game move cost 1.72 pawns."
+      },
+      {
+       "id": "m1.answer.1",
+       "text": "White should have played g4: the pawn from g2 to g4; the moved piece now attacks: knight on f5; pinned to their king afterwards: f7; not played - the best move the game missed"
+      },
+      {
+       "id": "m1.answer.2",
+       "text": "Black would answer Nxd4: the knight from f5 to d4; it captures a pawn; the moved piece now attacks: knight on f3; not played - the line goes on"
+      },
+      {
+       "id": "m1.answer.3",
+       "text": "White would answer Be7: the bishop from g5 to e7; the moved piece now attacks: queen on d6, rook on f8; pinned to their king afterwards: f7; not played - the line goes on"
+      },
+      {
+       "id": "m1.answer.4",
+       "text": "Black would answer Qd7: the queen from d6 to d7; the moved piece now attacks: bishop on e7; not played - the line goes on"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "label": "11. Qb3",
+     "mover": "Black",
+     "played": "11... Nxd4",
+     "cost_text": "cost 3.14 pawns",
+     "best": "Nc6",
+     "asks": true,
+     "correct": [
+      "Nc6"
+     ],
+     "left_book": false,
+     "board": null,
+     "slots": [
+      {
+       "id": "m2.lead.intro",
+       "text": "the board before these moves (White to move); material White minus Black is +0 before them and +0 after them"
+      },
+      {
+       "id": "m2.lead.1",
+       "text": "White plays Bg5: the bishop from c1 to g5; the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece."
+      },
+      {
+       "id": "m2.lead.2",
+       "text": "Black plays Qd6: the queen from d8 to d6; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging."
+      },
+      {
+       "id": "m2.lead.3",
+       "text": "White plays Qb3: the queen from d1 to b3; pinned to their king afterwards: f7; played in the game; afterwards White is slightly better"
+      },
+      {
+       "id": "m2.question",
+       "text": "Black to move. The best move is Nc6, and afterwards White is slightly better. Also counted correct: nothing else. What follows the best move: Nc6 Nb5 Nfxd4 Nfxd4 Nxd4 Nxd6. In the game Nxd4 was played instead; it cost 3.14 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m2.answer.intro",
+       "text": "the answer: Black should have played Nc6 instead of the game move Nxd4, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +0 to +2 over the moves shown. The game move cost 3.14 pawns."
+      },
+      {
+       "id": "m2.answer.1",
+       "text": "Black should have played Nc6: the knight from b8 to c6; not played - the best move the game missed"
+      },
+      {
+       "id": "m2.answer.2",
+       "text": "White would answer Nb5: the knight from c3 to b5; the moved piece now attacks: queen on d6; pinned to their king afterwards: f7; not played - the line goes on"
+      },
+      {
+       "id": "m2.answer.3",
+       "text": "Black would answer Nfxd4: the knight from f5 to d4; it captures a pawn; the moved piece now attacks: queen on b3, knight on f3, knight on b5; not played - the line goes on"
+      },
+      {
+       "id": "m2.answer.4",
+       "text": "White would answer Nfxd4: the knight from f3 to d4; it captures a knight; the moved piece now attacks: knight on c6; pinned to their king afterwards: f7; not played - the line goes on"
+      }
+     ]
+    },
+    {
+     "id": "m3",
+     "label": "17... Be6",
+     "mover": "White",
+     "played": "18. Rxe1",
+     "cost_text": "cost 3.96 pawns",
+     "best": "Qxb7",
+     "asks": true,
+     "correct": [
+      "Qxb7"
+     ],
+     "left_book": false,
+     "board": "The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.",
+     "slots": [
+      {
+       "id": "m3.lead.intro",
+       "text": "the board before these moves (Black to move); material White minus Black is +3 before them and -1 after them"
+      },
+      {
+       "id": "m3.lead.1",
+       "text": "Black plays Bxe1: the bishop from f2 to e1; it captures a rook; the moved piece now attacks: knight on c3; played in the game; afterwards White is winning; on the board after it: The black bishop on e1 is attacked by the white rook on d1 and has no defender. The white rook on e1 no longer stands on the open e-file."
+      },
+      {
+       "id": "m3.lead.2",
+       "text": "White plays Bxc5: the bishop from f8 to c5; it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging."
+      },
+      {
+       "id": "m3.lead.3",
+       "text": "Black plays Be6: the bishop from c8 to e6; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned."
+      },
+      {
+       "id": "m3.question",
+       "text": "White to move. The best move is Qxb7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qxb7 Qxc4 Qxa8 h6 Qxb8+ Kh7. In the game Rxe1 was played instead; it cost 3.96 pawns and afterwards White is clearly better. On the board: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m3.answer.intro",
+       "text": "the answer: White should have played Qxb7 instead of the game move Rxe1, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from -1 to +2 over the moves shown. The game move cost 3.96 pawns."
+      },
+      {
+       "id": "m3.answer.1",
+       "text": "White should have played Qxb7: the queen from b3 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the best move the game missed"
+      },
+      {
+       "id": "m3.answer.2",
+       "text": "Black would answer Qxc4: the queen from f4 to c4; it captures a bishop; the moved piece now attacks: knight on c3, bishop on c5; not played - the line goes on"
+      },
+      {
+       "id": "m3.answer.3",
+       "text": "White would answer Qxa8: the queen from b7 to a8; it captures a rook; the moved piece now attacks: knight on b8; pinned to their king afterwards: b8; not played - the line goes on"
+      },
+      {
+       "id": "m3.answer.4",
+       "text": "Black would answer h6: the pawn from h7 to h6; not played - the line goes on"
+      }
+     ]
+    },
+    {
+     "id": "m4",
+     "label": "18. Rxe1",
+     "mover": "Black",
+     "played": "18... Bxc4",
+     "cost_text": "cost 7.07 pawns",
+     "best": "Nd7",
+     "asks": true,
+     "correct": [
+      "Nd7"
+     ],
+     "left_book": false,
+     "board": "The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
+     "slots": [
+      {
+       "id": "m4.lead.intro",
+       "text": "the board before these moves (White to move); material White minus Black is -2 before them and +2 after them"
+      },
+      {
+       "id": "m4.lead.1",
+       "text": "White plays Bxc5: the bishop from f8 to c5; it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging."
+      },
+      {
+       "id": "m4.lead.2",
+       "text": "Black plays Be6: the bishop from c8 to e6; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned."
+      },
+      {
+       "id": "m4.lead.3",
+       "text": "White plays Rxe1: the rook from d1 to e1; it captures a bishop; the moved piece now attacks: bishop on e6; played in the game; afterwards White is clearly better; on the board after it: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak."
+      },
+      {
+       "id": "m4.question",
+       "text": "Black to move. The best move is Nd7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Nd7 Bxa7 Qxc4 Qxb7 Re8 h3. In the game Bxc4 was played instead; it cost 7.07 pawns and afterwards White is winning. On the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m4.answer.intro",
+       "text": "the answer: Black should have played Nd7 instead of the game move Bxc4, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +2 to +1 over the moves shown. The game move cost 7.07 pawns."
+      },
+      {
+       "id": "m4.answer.1",
+       "text": "Black should have played Nd7: the knight from b8 to d7; the moved piece now attacks: bishop on c5; not played - the best move the game missed"
+      },
+      {
+       "id": "m4.answer.2",
+       "text": "White would answer Bxa7: the bishop from c5 to a7; it captures a pawn; not played - the line goes on"
+      },
+      {
+       "id": "m4.answer.3",
+       "text": "Black would answer Qxc4: the queen from f4 to c4; it captures a bishop; the moved piece now attacks: queen on b3, knight on c3; not played - the line goes on"
+      },
+      {
+       "id": "m4.answer.4",
+       "text": "White would answer Qxb7: the queen from b3 to b7; it captures a pawn; the moved piece now attacks: knight on d7, rook on a8; not played - the line goes on"
+      }
+     ]
+    },
+    {
+     "id": "m5",
+     "label": "24. Qxc4+",
+     "mover": "Black",
+     "played": "24... Kf5",
+     "cost_text": "allowed a forced mate",
+     "best": "Ke5",
+     "asks": true,
+     "correct": [
+      "Ke5"
+     ],
+     "left_book": false,
+     "board": "The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.",
+     "slots": [
+      {
+       "id": "m5.lead.intro",
+       "text": "the board before these moves (White to move); material White minus Black is -4 before them and +3 after them"
+      },
+      {
+       "id": "m5.lead.1",
+       "text": "White plays Rxe4: the rook from e8 to e4; it captures a queen; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on c4 is attacked by the white rook on e4 and has no defender. The white pawn on a2 is no longer hanging. The black queen on e4 no longer stands on the open e-file."
+      },
+      {
+       "id": "m5.lead.2",
+       "text": "Black plays Kxe4: the king from f5 to e4; it captures a rook; played in the game; afterwards White is winning; on the board after it: The white pawn on a2 is attacked by the black bishop on c4 and has no defender. The white rook on e4 no longer stands on the open e-file."
+      },
+      {
+       "id": "m5.lead.3",
+       "text": "White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging."
+      },
+      {
+       "id": "m5.question",
+       "text": "Black to move. The best move is Ke5, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Ke5 Qc7+ Kf5 Qxb7 Nc6 Qxa8. In the game Kf5 was played instead; it allowed a forced mate and afterwards White mates in 6. On the board: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m5.answer.intro",
+       "text": "the answer: Black should have played Ke5 instead of the game move Kf5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +3 to +4 over the moves shown. The game move allowed a forced mate."
+      },
+      {
+       "id": "m5.answer.1",
+       "text": "Black should have played Ke5: the king from e4 to e5; not played - the best move the game missed"
+      },
+      {
+       "id": "m5.answer.2",
+       "text": "White would answer Qc7+: the queen from c4 to c7; it gives check; the moved piece now attacks: king on e5, knight on b8; not played - the line goes on"
+      },
+      {
+       "id": "m5.answer.3",
+       "text": "Black would answer Kf5: the king from e5 to f5; not played - the line goes on"
+      },
+      {
+       "id": "m5.answer.4",
+       "text": "White would answer Qxb7: the queen from c7 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the line goes on"
+      }
+     ]
+    },
+    {
+     "id": "m6",
+     "label": "24... Kf5",
+     "mover": "White",
+     "played": "25. Qc8+",
+     "cost_text": "gave up a forced mate",
+     "best": "Qd5+",
+     "asks": true,
+     "correct": [
+      "Qd5+",
+      "Bg7"
+     ],
+     "left_book": false,
+     "board": "The fork by the white queen on c4 is over.",
+     "slots": [
+      {
+       "id": "m6.lead.intro",
+       "text": "the board before these moves (Black to move); material White minus Black is +5 before them and +3 after them"
+      },
+      {
+       "id": "m6.lead.1",
+       "text": "Black plays Kxe4: the king from f5 to e4; it captures a rook; played in the game; afterwards White is winning; on the board after it: The white pawn on a2 is attacked by the black bishop on c4 and has no defender. The white rook on e4 no longer stands on the open e-file."
+      },
+      {
+       "id": "m6.lead.2",
+       "text": "White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging."
+      },
+      {
+       "id": "m6.lead.3",
+       "text": "Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over."
+      },
+      {
+       "id": "m6.question",
+       "text": "White to move. The best move is Qd5+, and afterwards White mates in 6. Also counted correct: Bg7. What follows the best move: Qd5+ Kf4 Bh6+ g5 Bxg5+ Kg4. In the game Qc8+ was played instead; it gave up a forced mate and afterwards White is winning. On the board: The fork by the white queen on c4 is over.. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m6.answer.intro",
+       "text": "the answer: White should have played Qd5+ instead of the game move Qc8+, which is what actually happened. At the end of the best line White mates in 6; material White minus Black goes from +3 to +3 over the moves shown. The game move gave up a forced mate."
+      },
+      {
+       "id": "m6.answer.1",
+       "text": "White should have played Qd5+: the queen from c4 to d5; it gives check; the moved piece now attacks: king on f5; not played - the best move the game missed"
+      },
+      {
+       "id": "m6.answer.2",
+       "text": "Black would answer Kf4: the king from f5 to f4; not played - the line goes on"
+      },
+      {
+       "id": "m6.answer.3",
+       "text": "White would answer Bh6+: the bishop from f8 to h6; it gives check; the moved piece now attacks: king on f4; not played - the line goes on"
+      },
+      {
+       "id": "m6.answer.4",
+       "text": "Black would answer g5: the pawn from g6 to g5; not played - the line goes on"
+      }
+     ]
+    },
+    {
+     "id": "m7",
+     "label": "25. Qc8+",
+     "mover": "Black",
+     "played": "25... Kg5",
+     "cost_text": "allowed a forced mate",
+     "best": "Ke5",
+     "asks": true,
+     "correct": [
+      "Ke5",
+      "Kf4"
+     ],
+     "left_book": false,
+     "board": "The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.",
+     "slots": [
+      {
+       "id": "m7.lead.intro",
+       "text": "the board before these moves (White to move); material White minus Black is +0 before them and +3 after them"
+      },
+      {
+       "id": "m7.lead.1",
+       "text": "White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging."
+      },
+      {
+       "id": "m7.lead.2",
+       "text": "Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over."
+      },
+      {
+       "id": "m7.lead.3",
+       "text": "White plays Qc8+: the queen from c4 to c8; it gives check; the moved piece now attacks: king on f5, knight on b8; played in the game; afterwards White is winning; on the board after it: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8."
+      },
+      {
+       "id": "m7.question",
+       "text": "Black to move. The best move is Ke5, and afterwards White is winning. Also counted correct: Kf4. What follows the best move: Ke5 Qc7+ Kf5 Qxb7 Nc6 Qxa8. In the game Kg5 was played instead; it allowed a forced mate and afterwards White mates in 9. On the board: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m7.answer.intro",
+       "text": "the answer: Black should have played Ke5 instead of the game move Kg5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +3 to +4 over the moves shown. The game move allowed a forced mate."
+      },
+      {
+       "id": "m7.answer.1",
+       "text": "Black should have played Ke5: the king from f5 to e5; not played - the best move the game missed"
+      },
+      {
+       "id": "m7.answer.2",
+       "text": "White would answer Qc7+: the queen from c8 to c7; it gives check; the moved piece now attacks: king on e5, knight on b8; not played - the line goes on"
+      },
+      {
+       "id": "m7.answer.3",
+       "text": "Black would answer Kf5: the king from e5 to f5; not played - the line goes on"
+      },
+      {
+       "id": "m7.answer.4",
+       "text": "White would answer Qxb7: the queen from c7 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the line goes on"
+      }
+     ]
+    },
+    {
+     "id": "m8",
+     "label": "25... Kg5",
+     "mover": "White",
+     "played": "26. Qxb7",
+     "cost_text": "gave up a forced mate",
+     "best": "Qc5+",
+     "asks": true,
+     "correct": [
+      "Qc5+",
+      "Qd8+"
+     ],
+     "left_book": false,
+     "board": "The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.",
+     "slots": [
+      {
+       "id": "m8.lead.intro",
+       "text": "the board before these moves (Black to move); material White minus Black is +3 before them and +3 after them"
+      },
+      {
+       "id": "m8.lead.1",
+       "text": "Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over."
+      },
+      {
+       "id": "m8.lead.2",
+       "text": "White plays Qc8+: the queen from c4 to c8; it gives check; the moved piece now attacks: king on f5, knight on b8; played in the game; afterwards White is winning; on the board after it: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8."
+      },
+      {
+       "id": "m8.lead.3",
+       "text": "Black plays Kg5: the king from f5 to g5; played in the game; afterwards White mates in 9; on the board after it: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open."
+      },
+      {
+       "id": "m8.question",
+       "text": "White to move. The best move is Qc5+, and afterwards White mates in 9. Also counted correct: Qd8+. What follows the best move: Qc5+ Kf6 Qd6+ Kg5 Qe5+ f5. In the game Qxb7 was played instead; it gave up a forced mate and afterwards White is winning. On the board: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.. Ask for the move in one sentence, without naming it or its destination square."
+      },
+      {
+       "id": "m8.answer.intro",
+       "text": "the answer: White should have played Qc5+ instead of the game move Qxb7, which is what actually happened. At the end of the best line White mates in 9; material White minus Black goes from +3 to +3 over the moves shown. The game move gave up a forced mate."
+      },
+      {
+       "id": "m8.answer.1",
+       "text": "White should have played Qc5+: the queen from c8 to c5; it gives check; the moved piece now attacks: king on g5; not played - the best move the game missed"
+      },
+      {
+       "id": "m8.answer.2",
+       "text": "Black would answer Kf6: the king from g5 to f6; not played - the line goes on"
+      },
+      {
+       "id": "m8.answer.3",
+       "text": "White would answer Qd6+: the queen from c5 to d6; it gives check; the moved piece now attacks: king on f6, knight on b8; not played - the line goes on"
+      },
+      {
+       "id": "m8.answer.4",
+       "text": "Black would answer Kg5: the king from f6 to g5; not played - the line goes on"
+      }
+     ]
+    }
+   ]
+  },
+  "prompt": "# Write the words for a chess tutorial\n\nA trainer's game is being turned into a tutorial that a student of 13 or older\nwalks through alone, on a board, with every sentence read aloud. The student plays\nin a club and knows how the pieces move and what a fork and a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move, every question and every correct answer.\nNone of it can change. You do two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep „played\" for what was played.** A slot that says „not played\" is a move\n  the game did not contain, and the facts already say „should have played\" or\n  „would answer\" for it - keep that voice. A student must be able to tell what\n  happened from what should have without doing arithmetic.\n- **A question never names a move in notation** - not its answer, and not the\n  move played in the game either. Naming the rejected move eliminates a\n  candidate and tells the student what not to look at, which is half the\n  exercise. Say what is on the board, not what was played.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"m2.question\": \"...\", \"...\": \"...\"}}\n\n## The game\n\nThe opening is the French Defense: Exchange Variation, Monte Carlo Variation. 4... g6 left the masters database: 1367 master games had reached that position and not one played it.\n\n```\n1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 g6 5. Nc3 Bg7 6. Nf3 dxc4 7. Bxc4 Ne7 8.\nO-O O-O 9. Re1 Nf5 10. Bg5 Qd6 11. Qb3 Nxd4 12. Nxd4 Bxd4 13. Rad1 c5 14. Be7\nQf4 15. Bxf8 Bxf2+ 16. Kh1 Bxe1 17. Bxc5 Be6 18. Rxe1 Bxc4 19. Re8+ Kg7 20.\nBf8+ Kf6 21. Ne4+ Qxe4 22. Qc3+ Kf5 23. Rxe4 Kxe4 24. Qxc4+ Kf5 25. Qc8+ Kg5\n26. Qxb7 Nc6 27. Qxa8 Ne5 28. Qd5 f6 29. Bg7 Kf5 30. g4+ Kxg4 31. Bxf6 Nf3 32.\nQe4+ Kh5 33. Qxf3+ Kh6 34. Qh3# *\n```\n\n## The moments\n\n### m1 - at 10... Qd6, White to move\nIn the game 11. Qb3 was played and it cost 1.72 pawns; the best move was g4. There is a question here; correct answers: g4.\nOn the board: The black queen on d8 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the board before these moves (Black to move); material White minus Black is +0 before them and +0 after them\n- `m1.lead.1`: Black plays Nf5: the knight from e7 to f5; played in the game; afterwards White is clearly better; on the board after it: The white pawn on d4 is attacked three times and defended only twice.\n- `m1.lead.2`: White plays Bg5: the bishop from c1 to g5; the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m1.lead.3`: Black plays Qd6: the queen from d8 to d6; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m1.question`: White to move. The best move is g4, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: g4 Nxd4 Be7 Qd7 Nxd4 Bxd4. In the game Qb3 was played instead; it cost 1.72 pawns and afterwards White is slightly better. On the board: The black queen on d8 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square.\n- `m1.answer.intro`: the answer: White should have played g4 instead of the game move Qb3, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +0 to -1 over the moves shown. The game move cost 1.72 pawns.\n- `m1.answer.1`: White should have played g4: the pawn from g2 to g4; the moved piece now attacks: knight on f5; pinned to their king afterwards: f7; not played - the best move the game missed\n- `m1.answer.2`: Black would answer Nxd4: the knight from f5 to d4; it captures a pawn; the moved piece now attacks: knight on f3; not played - the line goes on\n- `m1.answer.3`: White would answer Be7: the bishop from g5 to e7; the moved piece now attacks: queen on d6, rook on f8; pinned to their king afterwards: f7; not played - the line goes on\n- `m1.answer.4`: Black would answer Qd7: the queen from d6 to d7; the moved piece now attacks: bishop on e7; not played - the line goes on\n\n### m2 - at 11. Qb3, Black to move\nIn the game 11... Nxd4 was played and it cost 3.14 pawns; the best move was Nc6. There is a question here; correct answers: Nc6.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +0 after them\n- `m2.lead.1`: White plays Bg5: the bishop from c1 to g5; the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m2.lead.2`: Black plays Qd6: the queen from d8 to d6; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m2.lead.3`: White plays Qb3: the queen from d1 to b3; pinned to their king afterwards: f7; played in the game; afterwards White is slightly better\n- `m2.question`: Black to move. The best move is Nc6, and afterwards White is slightly better. Also counted correct: nothing else. What follows the best move: Nc6 Nb5 Nfxd4 Nfxd4 Nxd4 Nxd6. In the game Nxd4 was played instead; it cost 3.14 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.\n- `m2.answer.intro`: the answer: Black should have played Nc6 instead of the game move Nxd4, which is what actually happened. At the end of the best line White is slightly better; material White minus Black goes from +0 to +2 over the moves shown. The game move cost 3.14 pawns.\n- `m2.answer.1`: Black should have played Nc6: the knight from b8 to c6; not played - the best move the game missed\n- `m2.answer.2`: White would answer Nb5: the knight from c3 to b5; the moved piece now attacks: queen on d6; pinned to their king afterwards: f7; not played - the line goes on\n- `m2.answer.3`: Black would answer Nfxd4: the knight from f5 to d4; it captures a pawn; the moved piece now attacks: queen on b3, knight on f3, knight on b5; not played - the line goes on\n- `m2.answer.4`: White would answer Nfxd4: the knight from f3 to d4; it captures a knight; the moved piece now attacks: knight on c6; pinned to their king afterwards: f7; not played - the line goes on\n\n### m3 - at 17... Be6, White to move\nIn the game 18. Rxe1 was played and it cost 3.96 pawns; the best move was Qxb7. There is a question here; correct answers: Qxb7.\nOn the board: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the board before these moves (Black to move); material White minus Black is +3 before them and -1 after them\n- `m3.lead.1`: Black plays Bxe1: the bishop from f2 to e1; it captures a rook; the moved piece now attacks: knight on c3; played in the game; afterwards White is winning; on the board after it: The black bishop on e1 is attacked by the white rook on d1 and has no defender. The white rook on e1 no longer stands on the open e-file.\n- `m3.lead.2`: White plays Bxc5: the bishop from f8 to c5; it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m3.lead.3`: Black plays Be6: the bishop from c8 to e6; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m3.question`: White to move. The best move is Qxb7, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Qxb7 Qxc4 Qxa8 h6 Qxb8+ Kh7. In the game Rxe1 was played instead; it cost 3.96 pawns and afterwards White is clearly better. On the board: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.. Ask for the move in one sentence, without naming it or its destination square.\n- `m3.answer.intro`: the answer: White should have played Qxb7 instead of the game move Rxe1, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from -1 to +2 over the moves shown. The game move cost 3.96 pawns.\n- `m3.answer.1`: White should have played Qxb7: the queen from b3 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the best move the game missed\n- `m3.answer.2`: Black would answer Qxc4: the queen from f4 to c4; it captures a bishop; the moved piece now attacks: knight on c3, bishop on c5; not played - the line goes on\n- `m3.answer.3`: White would answer Qxa8: the queen from b7 to a8; it captures a rook; the moved piece now attacks: knight on b8; pinned to their king afterwards: b8; not played - the line goes on\n- `m3.answer.4`: Black would answer h6: the pawn from h7 to h6; not played - the line goes on\n\n### m4 - at 18. Rxe1, Black to move\nIn the game 18... Bxc4 was played and it cost 7.07 pawns; the best move was Nd7. There is a question here; correct answers: Nd7.\nOn the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the board before these moves (White to move); material White minus Black is -2 before them and +2 after them\n- `m4.lead.1`: White plays Bxc5: the bishop from f8 to c5; it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m4.lead.2`: Black plays Be6: the bishop from c8 to e6; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m4.lead.3`: White plays Rxe1: the rook from d1 to e1; it captures a bishop; the moved piece now attacks: bishop on e6; played in the game; afterwards White is clearly better; on the board after it: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n- `m4.question`: Black to move. The best move is Nd7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Nd7 Bxa7 Qxc4 Qxb7 Re8 h3. In the game Bxc4 was played instead; it cost 7.07 pawns and afterwards White is winning. On the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.. Ask for the move in one sentence, without naming it or its destination square.\n- `m4.answer.intro`: the answer: Black should have played Nd7 instead of the game move Bxc4, which is what actually happened. At the end of the best line White is clearly better; material White minus Black goes from +2 to +1 over the moves shown. The game move cost 7.07 pawns.\n- `m4.answer.1`: Black should have played Nd7: the knight from b8 to d7; the moved piece now attacks: bishop on c5; not played - the best move the game missed\n- `m4.answer.2`: White would answer Bxa7: the bishop from c5 to a7; it captures a pawn; not played - the line goes on\n- `m4.answer.3`: Black would answer Qxc4: the queen from f4 to c4; it captures a bishop; the moved piece now attacks: queen on b3, knight on c3; not played - the line goes on\n- `m4.answer.4`: White would answer Qxb7: the queen from b3 to b7; it captures a pawn; the moved piece now attacks: knight on d7, rook on a8; not played - the line goes on\n\n### m5 - at 24. Qxc4+, Black to move\nIn the game 24... Kf5 was played and it allowed a forced mate; the best move was Ke5. There is a question here; correct answers: Ke5.\nOn the board: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m5.lead.intro`: the board before these moves (White to move); material White minus Black is -4 before them and +3 after them\n- `m5.lead.1`: White plays Rxe4: the rook from e8 to e4; it captures a queen; the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on c4 is attacked by the white rook on e4 and has no defender. The white pawn on a2 is no longer hanging. The black queen on e4 no longer stands on the open e-file.\n- `m5.lead.2`: Black plays Kxe4: the king from f5 to e4; it captures a rook; played in the game; afterwards White is winning; on the board after it: The white pawn on a2 is attacked by the black bishop on c4 and has no defender. The white rook on e4 no longer stands on the open e-file.\n- `m5.lead.3`: White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n- `m5.question`: Black to move. The best move is Ke5, and afterwards White is winning. Also counted correct: nothing else. What follows the best move: Ke5 Qc7+ Kf5 Qxb7 Nc6 Qxa8. In the game Kf5 was played instead; it allowed a forced mate and afterwards White mates in 6. On the board: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.. Ask for the move in one sentence, without naming it or its destination square.\n- `m5.answer.intro`: the answer: Black should have played Ke5 instead of the game move Kf5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +3 to +4 over the moves shown. The game move allowed a forced mate.\n- `m5.answer.1`: Black should have played Ke5: the king from e4 to e5; not played - the best move the game missed\n- `m5.answer.2`: White would answer Qc7+: the queen from c4 to c7; it gives check; the moved piece now attacks: king on e5, knight on b8; not played - the line goes on\n- `m5.answer.3`: Black would answer Kf5: the king from e5 to f5; not played - the line goes on\n- `m5.answer.4`: White would answer Qxb7: the queen from c7 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the line goes on\n\n### m6 - at 24... Kf5, White to move\nIn the game 25. Qc8+ was played and it gave up a forced mate; the best move was Qd5+. There is a question here; correct answers: Qd5+, Bg7.\nOn the board: The fork by the white queen on c4 is over.\n\nSlots, in the order the student meets them:\n- `m6.lead.intro`: the board before these moves (Black to move); material White minus Black is +5 before them and +3 after them\n- `m6.lead.1`: Black plays Kxe4: the king from f5 to e4; it captures a rook; played in the game; afterwards White is winning; on the board after it: The white pawn on a2 is attacked by the black bishop on c4 and has no defender. The white rook on e4 no longer stands on the open e-file.\n- `m6.lead.2`: White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n- `m6.lead.3`: Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over.\n- `m6.question`: White to move. The best move is Qd5+, and afterwards White mates in 6. Also counted correct: Bg7. What follows the best move: Qd5+ Kf4 Bh6+ g5 Bxg5+ Kg4. In the game Qc8+ was played instead; it gave up a forced mate and afterwards White is winning. On the board: The fork by the white queen on c4 is over.. Ask for the move in one sentence, without naming it or its destination square.\n- `m6.answer.intro`: the answer: White should have played Qd5+ instead of the game move Qc8+, which is what actually happened. At the end of the best line White mates in 6; material White minus Black goes from +3 to +3 over the moves shown. The game move gave up a forced mate.\n- `m6.answer.1`: White should have played Qd5+: the queen from c4 to d5; it gives check; the moved piece now attacks: king on f5; not played - the best move the game missed\n- `m6.answer.2`: Black would answer Kf4: the king from f5 to f4; not played - the line goes on\n- `m6.answer.3`: White would answer Bh6+: the bishop from f8 to h6; it gives check; the moved piece now attacks: king on f4; not played - the line goes on\n- `m6.answer.4`: Black would answer g5: the pawn from g6 to g5; not played - the line goes on\n\n### m7 - at 25. Qc8+, Black to move\nIn the game 25... Kg5 was played and it allowed a forced mate; the best move was Ke5. There is a question here; correct answers: Ke5, Kf4.\nOn the board: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.\n\nSlots, in the order the student meets them:\n- `m7.lead.intro`: the board before these moves (White to move); material White minus Black is +0 before them and +3 after them\n- `m7.lead.1`: White plays Qxc4+: the queen from c3 to c4; it captures a bishop; it gives check; the moved piece now attacks: king on e4; played in the game; afterwards White is winning; on the board after it: The white queen on c4 forks the black king on e4 and the pawn on f7. The white pawn on a2 is no longer hanging.\n- `m7.lead.2`: Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over.\n- `m7.lead.3`: White plays Qc8+: the queen from c4 to c8; it gives check; the moved piece now attacks: king on f5, knight on b8; played in the game; afterwards White is winning; on the board after it: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.\n- `m7.question`: Black to move. The best move is Ke5, and afterwards White is winning. Also counted correct: Kf4. What follows the best move: Ke5 Qc7+ Kf5 Qxb7 Nc6 Qxa8. In the game Kg5 was played instead; it allowed a forced mate and afterwards White mates in 9. On the board: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.. Ask for the move in one sentence, without naming it or its destination square.\n- `m7.answer.intro`: the answer: Black should have played Ke5 instead of the game move Kg5, which is what actually happened. At the end of the best line White is winning; material White minus Black goes from +3 to +4 over the moves shown. The game move allowed a forced mate.\n- `m7.answer.1`: Black should have played Ke5: the king from f5 to e5; not played - the best move the game missed\n- `m7.answer.2`: White would answer Qc7+: the queen from c8 to c7; it gives check; the moved piece now attacks: king on e5, knight on b8; not played - the line goes on\n- `m7.answer.3`: Black would answer Kf5: the king from e5 to f5; not played - the line goes on\n- `m7.answer.4`: White would answer Qxb7: the queen from c7 to b7; it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; not played - the line goes on\n\n### m8 - at 25... Kg5, White to move\nIn the game 26. Qxb7 was played and it gave up a forced mate; the best move was Qc5+. There is a question here; correct answers: Qc5+, Qd8+.\nOn the board: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.\n\nSlots, in the order the student meets them:\n- `m8.lead.intro`: the board before these moves (Black to move); material White minus Black is +3 before them and +3 after them\n- `m8.lead.1`: Black plays Kf5: the king from e4 to f5; played in the game; afterwards White mates in 6; on the board after it: The fork by the white queen on c4 is over.\n- `m8.lead.2`: White plays Qc8+: the queen from c4 to c8; it gives check; the moved piece now attacks: king on f5, knight on b8; played in the game; afterwards White is winning; on the board after it: The white queen on c8 forks the black king on f5 and the pawn on b7. The white queen on c8 pins the black knight on b8 to the rook on a8.\n- `m8.lead.3`: Black plays Kg5: the king from f5 to g5; played in the game; afterwards White mates in 9; on the board after it: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.\n- `m8.question`: White to move. The best move is Qc5+, and afterwards White mates in 9. Also counted correct: Qd8+. What follows the best move: Qc5+ Kf6 Qd6+ Kg5 Qe5+ f5. In the game Qxb7 was played instead; it gave up a forced mate and afterwards White is winning. On the board: The fork by the white queen on c8 is over. The e-file beside the black king is no longer open.. Ask for the move in one sentence, without naming it or its destination square.\n- `m8.answer.intro`: the answer: White should have played Qc5+ instead of the game move Qxb7, which is what actually happened. At the end of the best line White mates in 9; material White minus Black goes from +3 to +3 over the moves shown. The game move gave up a forced mate.\n- `m8.answer.1`: White should have played Qc5+: the queen from c8 to c5; it gives check; the moved piece now attacks: king on g5; not played - the best move the game missed\n- `m8.answer.2`: Black would answer Kf6: the king from g5 to f6; not played - the line goes on\n- `m8.answer.3`: White would answer Qd6+: the queen from c5 to d6; it gives check; the moved piece now attacks: king on f6, knight on b8; not played - the line goes on\n- `m8.answer.4`: Black would answer Kg5: the king from f6 to g5; not played - the line goes on\n",
   "report": {
    "parameters": {
     "min_cost": 1.0,

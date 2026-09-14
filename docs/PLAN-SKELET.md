@@ -346,6 +346,45 @@ in: that failure is reported as the trainer's cancel, not retried as a miss.
 - Schema check, caps, one retry, entitlement, `consumeQuota`, `recordUsage` with
   tokens; tests with a fake provider, run with `.env` moved aside.
 
+**Done 14.9.2026, by the lead.** `POST /lessons/from-game/words`
+(`routes/gameTutorialWords.js`), `services/tutorialWords.js`,
+`services/llm/deepseek.js`. What changed from the design above, and why:
+
+- **The prompt template is one file** —
+  `chess_backend/services/prompts/tutorial_words.txt`, written from the harness's
+  own string rather than retyped (it holds a `„`), and read by both the server
+  and `skeleton.py`. The server's `buildPrompt` gives **the harness's prompt byte
+  for byte on all ten games**, from `expected.wordsRequest`, the request the app
+  will send, which `export_fixtures.py` now writes beside `expected.prompt`.
+- **The game is sent as moves only, without PGN headers.** A trainer's game
+  names its players, who are the trainer's students, and the words are written
+  on a third party's servers. The harness had sent the whole file; the ten games
+  only ever carried placeholder names, so the validated runs are unaffected, and
+  the server refuses a request whose game has headers rather than stripping
+  them, so the app is the one place that decides what leaves the device.
+- **Statuses**: 400 a request that is not the skeleton (before any credit is
+  reserved); **403** not entitled or the monthly quota spent — the existing
+  middleware's answer, not the 402 and 429 written above; 429 a second request
+  from the same account while one is being written; 422 two answers in the
+  wrong shape; 503 no model configured, or the provider's own reason
+  (`unauthorized`, `no-balance`, `rate-limited`, `timeout`, `network`).
+- **The answer** is `{ answer, attempts, tokens, model }`: the model's object as
+  it came, for the app to assemble and judge.
+- **What a credit costs**: one unit of `ai_tutorials` is reserved before the
+  call and handed back when the words could not be written; the tokens of every
+  attempt, refused ones included, go to `ai_tutorial_tokens`, because the
+  provider bills them.
+- **Caps** on every field of the request, each at least twice what the ten
+  games reach (a test says so per cap), and on the whole prompt.
+
+Tested with a fake provider and a fake network — 38 tests, 36 mutations of
+which 33 were caught at once and the three survivors closed by isolating each
+check from the one beside it. **No real DeepSeek call has been made from the
+server**: that is phase 5's live check.
+
+**D6 — the monthly quota per tier.** The owner accepted the placeholders for now
+(14.9.2026): premium 30, pro 100, club unlimited; free has no entitlement.
+
 ### Phase 4 — the door (lead, with a trial build before any batch)
 
 - „Make a tutorial from this game" in **both** places a game is already loaded —
@@ -370,6 +409,7 @@ in: that failure is reported as the trainer's cancel, not retried as a miss.
 | D2 | who gets it | **premium accounts, and free accounts that buy credits**. No credit system exists yet, so phase 3 gates on a new `AI_TUTORIALS` entitlement granted to the paid tiers and records every use with its tokens; credits are a plan of their own, and the usage rows are what it will read |
 | D3 | the provider | **`deepseek-flash`, `reasoning_effort: low`** — the model of every validated run. Measured on the ten games: 24–69 s and 10.5–22.8 k tokens a tutorial, 15.5 k on average, of which about two thirds are the answer and its thinking |
 | D4 | where the door is | **both**: Analysis and the game archive |
+| D6 | how many tutorials a month each paid tier gets | **the placeholders stand for now** (owner, 14.9.2026): premium 30, pro 100, club unlimited, free none — to be priced with the credits of D2 |
 | D5 | where the masters statistics come from | **a local opening database on the server** (owner, 14.9.2026), built from the Lumbras GigaBase OTB file: both players rated 2200+, no correspondence games, the first 30 plies. Not the Lichess masters explorer — see phase 2 for the measurement that decided it |
 
 ## Not in this plan
@@ -407,4 +447,8 @@ in: that failure is reported as the trainer's cancel, not retried as a miss.
 5. ✅ 14.9.2026 **Phase 2** — facts on the device, the engine, the store and the
    masters walk from the local database (D5). The ten games through `lib/` on
    the real engine are identical to the harness, and a second run searches
-   nothing. **Next: phase 3**, the words route on the server.
+   nothing.
+6. ✅ 14.9.2026 **Phase 3** — the words route. The server writes the harness's
+   prompt byte for byte from the app's request, sends the moves without the
+   players' names, and meters every attempt. Quotas per tier (D6) are
+   placeholders. **Next: phase 4**, the door in the app.

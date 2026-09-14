@@ -97,6 +97,9 @@ def expected(game, answer, parameters):
         'standing': [[e, mover, skeleton.standing(e, mover)]
                      for e in evals for mover in ('White', 'Black')],
         'moments': skeleton.moments(game, parameters),
+        # What the app sends the words route, and the prompt the server must
+        # write from it (chess_backend/test/tutorial_words.test.js).
+        'wordsRequest': skeleton.words_request(game, parameters),
         'prompt': skeleton.prompt(game, parameters),
         'report': meta.get('skeleton'),
         'tutorial': tutorials['tutorial'],
