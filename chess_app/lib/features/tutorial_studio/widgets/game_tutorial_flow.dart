@@ -116,6 +116,7 @@ class GameTutorialProgressDialog extends StatefulWidget {
     required this.startFen,
     required this.uciMoves,
     required this.depth,
+    required this.blackOrientation,
   });
 
   final GameTutorialRunner runner;
@@ -123,6 +124,10 @@ class GameTutorialProgressDialog extends StatefulWidget {
   final String startFen;
   final List<String> uciMoves;
   final int depth;
+
+  /// Which way round every part of the tutorial stands — the orientation the
+  /// trainer has in Analysis, not the side to move.
+  final bool blackOrientation;
 
   @override
   State<GameTutorialProgressDialog> createState() =>
@@ -149,6 +154,7 @@ class _GameTutorialProgressDialogState
         startFen: widget.startFen,
         uciMoves: widget.uciMoves,
         depth: widget.depth,
+        blackOrientation: widget.blackOrientation,
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
         },
@@ -378,6 +384,7 @@ Future<void> makeTutorialFromGame(
   required UserSession session,
   required AnalysisNode root,
   required String gameName,
+  required bool blackOrientation,
   VoidCallback? onOpenEngineSettings,
   GameTutorialRunner Function()? runnerFor,
   Future<void> Function(BuildContext context, ImportedTutorial tutorial)?
@@ -408,6 +415,7 @@ Future<void> makeTutorialFromGame(
       startFen: root.fen,
       uciMoves: uciMoves,
       depth: depth,
+      blackOrientation: blackOrientation,
     ),
   );
   if (!context.mounted) return;

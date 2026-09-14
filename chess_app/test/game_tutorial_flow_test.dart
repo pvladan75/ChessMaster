@@ -47,6 +47,7 @@ class _Runner implements GameTutorialRunner {
   bool cancelled = false;
   int? depthAsked;
   List<String>? movesAsked;
+  bool? orientationAsked;
 
   @override
   void cancel() => cancelled = true;
@@ -57,10 +58,12 @@ class _Runner implements GameTutorialRunner {
     required String startFen,
     required List<String> uciMoves,
     required int depth,
+    required bool blackOrientation,
     void Function(GameTutorialProgress progress)? onProgress,
   }) async {
     depthAsked = depth;
     movesAsked = uciMoves;
+    orientationAsked = blackOrientation;
     for (final s in steps) {
       onProgress?.call(s);
     }
@@ -87,6 +90,7 @@ Future<void> _pump(
   List<String> moves = const ['e2e4', 'e7e5', 'g1f3'],
   List<ImportedTutorial>? opened,
   VoidCallback? onOpenEngineSettings,
+  bool blackOrientation = false,
 }) async {
   tester.view.physicalSize = const Size(360, 640);
   tester.view.devicePixelRatio = 1.0;
@@ -104,6 +108,7 @@ Future<void> _pump(
               session: _session,
               root: root,
               gameName: 'test game',
+              blackOrientation: blackOrientation,
               runnerFor: () => runner,
               onOpenEngineSettings: onOpenEngineSettings,
               openInStudio: (context, tutorial) async => opened?.add(tutorial),

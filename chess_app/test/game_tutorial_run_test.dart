@@ -199,12 +199,15 @@ class _Rig {
   int started = 0, closed = 0, walked = 0, searches = 0;
 
   Future<GameTutorialResult> run(
-          {List<String>? moves, String startFen = _start}) =>
+          {List<String>? moves,
+          String startFen = _start,
+          bool blackOrientation = false}) =>
       runner.run(
         gameName: 'g01',
         startFen: startFen,
         uciMoves: moves ?? _uci(),
         depth: 18,
+        blackOrientation: blackOrientation,
         onProgress: (p) {
           progress.add(p);
           if (stages.isEmpty || stages.last != p.stage) stages.add(p.stage);
@@ -246,6 +249,50 @@ void main() {
         .toList();
     expect(analysis.first.secondsLeft, isNull,
         reason: 'no estimate before two positions have been searched');
+  });
+
+  // Point 3 of the owner's live pass, 14.9.2026. Every part used to adopt
+  // `blackToMoveIn(fen)` — the fallback for a stored step that says nothing —
+  // so a game tutorial turned the board over on every part whose side to move
+  // had changed. Lesson 54 was saved with parts facing white, white, white,
+  // white, black, black, black, white, white, white.
+  // One run per orientation, not a loop inside one test: a run is about five
+  // seconds here and two of them ran past the 30 s default under the full
+  // suite, where the teardown then deleted the store the run was still
+  // writing to. The timeout was the fault and the path error its aftermath.
+  for (final black in [false, true]) {
+    test(
+        'every part of both tutorials faces the way the trainer asked '
+        '(black=$black)', () async {
+      final rig = _Rig();
+      addTearDown(() => rig.dir.deleteSync(recursive: true));
+      final result = await rig.run(blackOrientation: black);
+
+      for (final tutorial in [result.keyMoments, result.wholeGame]) {
+        expect(tutorial.positionList, isNotEmpty);
+        for (var i = 0; i < tutorial.positionList.length; i++) {
+          expect(tutorial.positionList[i]['blackOrientation'], black,
+              reason: 'part ${i + 1} of ${tutorial.title} with black=$black');
+        }
+      }
+    });
+  }
+
+  // The fault this replaced was invisible to a test that only asked whether
+  // the field was there: the fallback writes a bool on every part too. What
+  // says the stamp happened is that the parts disagree with their own FENs.
+  test('the orientation is one answer, not the side to move', () async {
+    final rig = _Rig();
+    addTearDown(() => rig.dir.deleteSync(recursive: true));
+    final result = await rig.run(blackOrientation: true);
+
+    final sides = {
+      for (final step in result.wholeGame.positionList)
+        (step['fen'] as String).split(' ')[1]
+    };
+    expect(sides, containsAll(['w', 'b']),
+        reason: 'the fixture game must have parts of both sides, or this '
+            'test cannot tell a stamp from the fallback');
   });
 
   test('the second run of the same game searches nothing', () async {

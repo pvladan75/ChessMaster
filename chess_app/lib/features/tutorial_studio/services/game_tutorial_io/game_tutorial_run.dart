@@ -120,6 +120,31 @@ Future<FactsEngines> startFactsEngines(String path, int workers) async {
   return (analyzers: pool.analyzers, close: pool.close);
 }
 
+/// Every part of [tutorial] drawn from one side, with [black] deciding which.
+///
+/// **Not part of the skeleton port, and it cannot be.** `skeleton.py` writes a
+/// part's position and line and has no board to face; which way round a board
+/// stands is a property of the screen the trainer pressed the button on. So the
+/// stamp happens here, on the assembled tutorial, and `stepsFor` stays byte for
+/// byte what the harness makes.
+///
+/// Without it every part adopts `blackToMoveIn(fen)` — the fallback a stored
+/// step gets when it says nothing — and a game tutorial says nothing, so the
+/// board turned over on every part whose side to move had changed. One game
+/// became ten diagrams facing four different ways.
+///
+/// The map is copied rather than written through: the caller's assembly is read
+/// again by the report, and a tutorial that changed under it would be a second
+/// fault to find.
+Map<String, dynamic> facingOneWay(Map<String, dynamic> tutorial, bool black) =>
+    {
+      ...tutorial,
+      'positionList': [
+        for (final step in (tutorial['positionList'] as List? ?? const []))
+          {...(step as Map).cast<String, dynamic>(), 'blackOrientation': black},
+      ],
+    };
+
 class GameTutorialRunner {
   GameTutorialRunner({
     required String token,
@@ -177,6 +202,7 @@ class GameTutorialRunner {
     required String startFen,
     required List<String> uciMoves,
     required int depth,
+    required bool blackOrientation,
     void Function(GameTutorialProgress progress)? onProgress,
   }) async {
     void say(GameTutorialProgress p) => onProgress?.call(p);
@@ -298,9 +324,11 @@ class GameTutorialRunner {
           'The words that came back did not fit this game ($problems).');
     }
     return GameTutorialResult(
-      keyMoments:
-          readTutorialJson(jsonEncode(assembled.tutorial), fileName: gameName),
-      wholeGame: readTutorialJson(jsonEncode(assembled.tutorialGame),
+      keyMoments: readTutorialJson(
+          jsonEncode(facingOneWay(assembled.tutorial!, blackOrientation)),
+          fileName: gameName),
+      wholeGame: readTutorialJson(
+          jsonEncode(facingOneWay(assembled.tutorialGame!, blackOrientation)),
           fileName: gameName),
       report: assembled.report,
       momentsOffered: offered.length,

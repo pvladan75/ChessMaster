@@ -42,5 +42,12 @@ void main() {
     expect(body, contains('session: widget.userSession'));
     expect(body, contains('root: _rootNode'));
     expect(body, contains('onOpenEngineSettings: _openEngineSettings'));
+    // The tutorial faces the way the trainer's own board faces. A literal here
+    // would compile, pass every widget test, and hand every trainer who had
+    // flipped the board a tutorial drawn from the other side.
+    expect(
+        body, contains('blackOrientation: _orientation == PlayerColor.black'),
+        reason:
+            'the door must pass the orientation of this screen, not a literal');
   });
 }
