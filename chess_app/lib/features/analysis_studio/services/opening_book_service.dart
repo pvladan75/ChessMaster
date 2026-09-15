@@ -4,6 +4,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/services/app_logger.dart';
 
+/// The row an opening's own line is shown as, among its variations.
+const String kOpeningItselfLabel = 'The opening itself';
+
 class OpeningBookEntry {
   final String eco;
   final String name;
@@ -25,10 +28,16 @@ class OpeningBookEntry {
   /// The opening's own main line has nothing after the colon, and it is named
   /// rather than left blank: an empty row in a list of variations reads as a
   /// bug, and "the opening itself" is a real choice somebody makes.
+  ///
+  /// Not "Main line", though that is the app's word for a line's first
+  /// children. Five openings in the ECO data also carry a variation actually
+  /// named "Main Line" — Caro-Kann, Scandinavian, Semi-Slav, the Englund and
+  /// the Latvian Gambit Accepted — so their lists would show "Main line" and
+  /// "Main Line" side by side for two different positions.
   String get variation {
     final at = name.indexOf(':');
     final rest = at < 0 ? '' : name.substring(at + 1).trim();
-    return rest.isEmpty ? 'Osnovna linija' : rest;
+    return rest.isEmpty ? kOpeningItselfLabel : rest;
   }
 }
 

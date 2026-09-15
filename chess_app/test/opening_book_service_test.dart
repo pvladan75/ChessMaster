@@ -75,7 +75,23 @@ void main() {
     final plain =
         OpeningBookEntry(eco: 'B20', name: 'Sicilian Defense', pgn: '1. e4 c5');
     expect(plain.family, 'Sicilian Defense');
-    expect(plain.variation, 'Osnovna linija');
+    expect(plain.variation, 'The opening itself');
+  });
+
+  test("an opening's own line is not called Main line", () {
+    // Five openings in the ECO data also have a variation named "Main Line",
+    // a different and deeper position. Called "Main line", the plain entry
+    // would sit beside it in the same list reading as the same row.
+    final plain = OpeningBookEntry(
+        eco: 'B10', name: 'Caro-Kann Defense', pgn: '1. e4 c6');
+    final mainLine = OpeningBookEntry(
+        eco: 'B18',
+        name: 'Caro-Kann Defense: Main Line',
+        pgn: '1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5');
+    expect(plain.variation, 'The opening itself');
+    expect(mainLine.variation, 'Main Line');
+    expect(
+        plain.variation.toLowerCase(), isNot(mainLine.variation.toLowerCase()));
   });
 
   test('every opening can be listed without typing anything', () async {
@@ -167,12 +183,12 @@ void main() {
       // what tells them apart.
       // The book holds the plain name more than once for some openings, so
       // this is "there is at least one", not "there is exactly one".
-      expect(find.text('Osnovna linija'), findsWidgets);
+      expect(find.text('The opening itself'), findsWidgets);
       expect(find.textContaining('Brooklyn'), findsWidgets);
 
       await tester.tap(find.byTooltip('Back to openings list'));
       await tester.pump(const Duration(milliseconds: 50));
-      expect(find.text('Osnovna linija'), findsNothing);
+      expect(find.text('The opening itself'), findsNothing);
     }, timeout: const Timeout(Duration(minutes: 3)));
 
     testWidgets('picking a variation answers with the whole line',
@@ -181,7 +197,7 @@ void main() {
 
       await tester.tap(find.text('Alekhine Defense').first);
       await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text('Osnovna linija').first);
+      await tester.tap(find.text('The opening itself').first);
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(picked, isNotNull);
