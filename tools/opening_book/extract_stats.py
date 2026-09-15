@@ -3,6 +3,7 @@
     python extract_stats.py --file LumbrasGigaBase_OTB_Complete.pgn --elo-rule min
     python extract_stats.py --file ... --min-elo 2400 --with-corr
     python extract_stats.py --file ... --max-mb 200          (a trial on the start of the file)
+    python extract_stats.py --prune --db <database>.sqlite
     python extract_stats.py --probe "<FEN>" --db <database>.sqlite
     python extract_stats.py --verify-hash 20000 --file ...
 
@@ -12,7 +13,7 @@ plies of each game.
 
 This is how the server's masters database is built - `docs/PLAN-SKELET.md`,
 decision D5, and `tools/opening_book/README.md` for the exact command. The
-server reads it in `chess_backend/services/mastersBook.js`, which computes the
+server reads it in `chess_backend/services/openingBook.js`, which computes the
 same key for a FEN (`export_polyglot.py` holds the two ends together).
 
 Written by the owner on 13.9.2026 as a test of whether the data can be pulled
@@ -158,6 +159,8 @@ def verdict(tags, cfg):
     level = (we + be) / 2 if cfg['elo_rule'] == 'avg' else min(we, be)
     if level < cfg['min_elo']:
         return 'below_rating', None
+    if cfg.get('max_elo') and level > cfg['max_elo']:
+        return 'above_rating', None
     if not cfg['with_corr']:
         event = tags.get(b'Event', b'').lower()
         if (tags.get(b'Mode') == b'Correspondence' or b'corr' in event
@@ -206,7 +209,7 @@ def process_chunk(job):
     if start == 0 and data.startswith(b'\xef\xbb\xbf'):
         data = data[3:]
     stats = {}
-    counts = {'games': 0, 'taken': 0, 'illegal_move': 0, 'no_result': 0,
+    counts = {'games': 0, 'taken': 0, 'illegal_move': 0, 'no_result': 0, 'above_rating': 0,
               'no_rating': 0, 'below_rating': 0, 'correspondence': 0, 'fen': 0}
     for game in GAME_SPLIT.split(data):
         if not game.strip():
@@ -272,6 +275,8 @@ def open_db(db_path, cfg, chunks, file_name):
     wanted = {'file': file_name, 'min_elo': str(cfg['min_elo']), 'elo_rule': cfg['elo_rule'],
               'with_corr': str(cfg['with_corr']), 'max_ply': str(cfg['max_ply']),
               'chunks': str(len(chunks))}
+    if cfg.get('max_elo'):
+        wanted['max_elo'] = str(cfg['max_elo'])
     have = dict(conn.execute('SELECT key, value FROM meta'))
     if have and have != wanted:
         diff = {k: (have.get(k), v) for k, v in wanted.items() if have.get(k) != v}
@@ -301,6 +306,18 @@ def run(cfg):
                                      '_trial%dmb' % cfg['max_mb'] if cfg['max_mb'] else ''))
     chunks = plan_chunks(path, cfg['max_mb'] * (1 << 20) if cfg['max_mb'] else 0,
                          cfg['chunk_mb'] * (1 << 20))
+    if os.path.exists(db_path):
+        seen = sqlite3.connect('file:%s?mode=ro' % db_path, uri=True)
+        try:
+            already = dict(seen.execute('SELECT key, value FROM meta'))
+        except sqlite3.DatabaseError:
+            already = {}
+        seen.close()
+        if already.get('pruned') == '1':
+            # Adding games to totals whose single-game rows are already gone
+            # would leave the database quietly wrong.
+            sys.exit('The database %s was pruned and cannot be extended. '
+                     'Build a new one.' % db_path)
     conn = open_db(db_path, cfg, chunks, os.path.basename(path))
     pending = [(i, s, e) for i, s, e in conn.execute(
         'SELECT id, start, end FROM chunks WHERE done = 0 ORDER BY id')]
@@ -358,6 +375,50 @@ def run(cfg):
     return db_path
 
 
+def prune(db_path):
+    """Deletes rows played by a single game, keeping the real per-position counts."""
+    conn = sqlite3.connect(db_path)
+    have = dict(conn.execute('SELECT key, value FROM meta'))
+    if have.get('pruned') == '1':
+        sys.exit('The database %s has already been pruned.' % db_path)
+    left = conn.execute('SELECT COUNT(*) FROM chunks WHERE done = 0').fetchone()[0]
+    if left:
+        sys.exit('%d chunks are unfinished. Pruning comes after the whole file is read.'
+                 % left)
+
+    before_rows = conn.execute('SELECT COUNT(*) FROM position_stats').fetchone()[0]
+    before_mb = os.path.getsize(db_path) / (1 << 20)
+    started = time.time()
+
+    conn.execute('PRAGMA journal_mode = WAL')
+    conn.execute('PRAGMA cache_size = -400000')
+    conn.execute('PRAGMA temp_store = MEMORY')
+    conn.execute('DROP TABLE IF EXISTS position_totals')
+    conn.execute('CREATE TABLE position_totals (zobrist INTEGER PRIMARY KEY, '
+                 'w INTEGER, b INTEGER, d INTEGER) WITHOUT ROWID')
+    # The counts are taken BEFORE the delete, and only for positions that keep a
+    # move: so "no row" still means "not in the book", and the number of games a
+    # position was reached stays right even where half its moves were played
+    # once. Measured on the 2200+ file: computing it from what survives is 2.2%
+    # low on average and 80% low for one position.
+    conn.execute('INSERT INTO position_totals (zobrist, w, b, d) '
+                 'SELECT zobrist, SUM(w), SUM(b), SUM(d) FROM position_stats '
+                 'GROUP BY zobrist HAVING SUM(CASE WHEN w + b + d > 1 THEN 1 ELSE 0 END) > 0')
+    conn.commit()
+    positions = conn.execute('SELECT COUNT(*) FROM position_totals').fetchone()[0]
+    conn.execute('DELETE FROM position_stats WHERE w + b + d = 1')
+    conn.execute("INSERT OR REPLACE INTO meta VALUES ('pruned', '1')")
+    conn.commit()
+    after_rows = conn.execute('SELECT COUNT(*) FROM position_stats').fetchone()[0]
+    conn.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+    conn.execute('VACUUM')
+    conn.close()
+    print('Rows %s -> %s (%.1f%% deleted), positions %s, database %.0f MB -> %.0f MB, in %.0f s.'
+          % (format(before_rows, ','), format(after_rows, ','),
+             100.0 * (before_rows - after_rows) / before_rows, format(positions, ','),
+             before_mb, os.path.getsize(db_path) / (1 << 20), time.time() - started))
+
+
 def probe(db_path, fen):
     board = chess.Board(fen)
     conn = sqlite3.connect('file:%s?mode=ro' % db_path, uri=True)
@@ -368,6 +429,12 @@ def probe(db_path, fen):
         rows.append((board.san(move) if board.is_legal(move) else move.uci(), w, b, d))
     rows.sort(key=lambda r: -sum(r[1:]))
     total = sum(sum(r[1:]) for r in rows)
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' "
+                    "AND name = 'position_totals'").fetchone():
+        stored = conn.execute('SELECT w + b + d FROM position_totals WHERE zobrist = ?',
+                              (key,)).fetchone()
+        if stored:
+            total = stored[0]
     print('%s: %s games' % (fen, format(total, ',')))
     for san, w, b, d in rows:
         n = w + b + d
@@ -408,6 +475,8 @@ def main():
     parser.add_argument('--file', help='the PGN file to read')
     parser.add_argument('--db', help='the database to write (default: beside the PGN)')
     parser.add_argument('--min-elo', type=int, default=2200)
+    parser.add_argument('--max-elo', type=int, default=0,
+                        help='upper bound on the same rating --elo-rule reads (0: none)')
     parser.add_argument('--elo-rule', choices=['avg', 'min'], default='avg',
                         help='avg: the average of the two ratings; min: both players at or above it. '
                              'The server\'s database uses min.')
@@ -416,10 +485,17 @@ def main():
     parser.add_argument('--workers', type=int, default=max(1, (os.cpu_count() or 2) // 2))
     parser.add_argument('--chunk-mb', type=int, default=32)
     parser.add_argument('--max-mb', type=int, default=0, help='a trial on the start of the file')
+    parser.add_argument('--prune', action='store_true',
+                        help='delete rows played by a single game (needs --db)')
     parser.add_argument('--probe', metavar='FEN')
     parser.add_argument('--verify-hash', type=int, metavar='GAMES')
     cfg = vars(parser.parse_args())
 
+    if cfg['prune']:
+        if not cfg['db']:
+            sys.exit('--prune needs --db')
+        prune(cfg['db'])
+        return
     if cfg['probe']:
         if not cfg['db']:
             sys.exit('--probe needs --db')

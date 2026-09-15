@@ -47,7 +47,7 @@ def table_text():
         '// Written by tools/opening_book/export_polyglot.py - do not edit by hand.\n'
         '//\n'
         '// 768 for a piece on a square, 4 for castling rights, 8 for an en passant\n'
-        '// file, 1 for White to move. See services/mastersBook.js for how they\n'
+        '// file, 1 for White to move. See services/openingBook.js for how they\n'
         '// combine, and test/polyglot_keys.test.js for the proof they are right.\n'
         '\n'
         'module.exports = Object.freeze([\n%s,\n]);\n' % rows)
