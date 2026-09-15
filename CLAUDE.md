@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2692 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2716 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1343 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -2497,6 +2497,24 @@ evaluation's lines are written that way too — and `sanLine` never converted
 those, so "better was O-O" had always come out as nothing. Found by reading the
 module before deleting it. **Read what a deleted file says, not only what it
 does.**
+
+**The app stopped asking for a rating, ChessDB or a token — 15.9.2026, 2716 in
+the app with 1 skipped**, analyze at 26 infos and zero warnings; the backend is
+untouched at 1343. Phase 4 of `docs/PLAN-OTVARANJA-LOKALNO.md`, batch 71
+(`46c2cb2`), and the picker's „Osnovna linija" (`d0c6b6c`). The arithmetic:
+2692 + 26 (the gate) − 3 (the retired panel test) = 2715 at merge, + 1 for „The
+opening itself". Five mutations against the gate, all caught.
+
+**A worker waiting on its own baseline suite is a batch that times out.** It
+spent most of 75 minutes saying it was waiting for the suite, and handed back
+half the inventory with no report. The harness measures the suite anyway: give
+the worker the number and ask for **one** run, at the end.
+
+**„No other assertion changes" is a claim, and the brief made it without
+searching.** The full suite found two places the brief never looked: the user's
+manual on `site/` quoted three removed controls, and a repertoire test asserted
+the very sentence the brief ordered rewritten. Before writing that line, grep
+`site/` and `test/` for every string the batch removes or rewrites.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -315,10 +315,37 @@ reply with fewer than two games — which only the pruned file can produce. The
   `source` column is added so the next such swap is visible. Foreign keys from
   `repertoire_extra_replies` are checked before the delete, not after.
 
-### P4 — the app (worker batch, gate by the lead)
+### P4 — the app (worker batch, gate by the lead, done 15.9.2026)
 
 The one piece worth a batch: it is bounded, it is specifiable against a frozen
 server contract, and it is a sweep across a dozen files rather than a decision.
+
+**What was built** (batch 71, `46c2cb2`). The explorer service has one path,
+through our server, and the panel says which of five states it is in — sign in,
+no book on this server, book unreachable, deeper than the book, no master game —
+under the ECO name the analysis screen already computes. ChessDB, the source
+switch, the Settings "OPENING EXPLORER" section with its token field, the
+repertoire list's "Opponent rating" menu, the tree legend's "Book: games from
+…+" and every `minRating` the app sent are gone; a token a device still holds is
+removed when settings load. Puzzle assignments keep their own `minRating`.
+
+Two departures from the bullets below, both the owner's or measured. **The
+token field did not stay "for importing your own games"**: importing goes
+through the server's own token and never read it, so a field that did nothing
+and held a secret went too. And the panel's name comes from the
+`displayOpeningName` the screen already had, not a second `lookupByFen`.
+
+**How it went.** The worker timed out at 75 minutes with about half the
+inventory done — most of its time went waiting on its own baseline suite — and
+wrote no report; what it wrote was correct but for two Serbian log lines and a
+few comment rewrites that were broken sentences. The lead finished it in the
+same worktree. The full suite then found **two things the brief missed**: the
+user's manual (`site/mislisha/manual/`) quoted three of the removed controls,
+and `repertoire_build_test.dart` asserted the engine sentence the brief ordered
+rewritten. Both were fixed by the lead; the harness's tree gate failed the
+manual edits, correctly, since the batch had been told to keep out of `site/`.
+Gate 26/26, five mutations on the gate all caught, 2715 in the app at merge,
+analyze at 26 infos.
 
 **The judge's token gate already went with P3**, because a server that no longer
 asks for a token behind an app that still refuses without one is a feature

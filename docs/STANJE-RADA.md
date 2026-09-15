@@ -16,8 +16,8 @@ Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla
 ako ga nema ovde, u arhivi je.
 
 Poslednje ažuriranje: **15.9.2026** — najnovije je „Otvaranja iz naše baze"
-odmah ispod ove glave (faze 0–3 u kodu, faze 4–5 otvorene, provera uživo —
-stavka 164), pa „Izlazak iz
+odmah ispod ove glave (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
+stavke 164 i 165), pa „Izlazak iz
 masters baze, kraj linije bez reči, i tutorijal iz studije", pa
 „Tutorijal iz partije kao priča" (oboje u kodu, ostaje provera uživo — stavke
 163 i 162), pa „Druga provera uživo: šest
@@ -51,7 +51,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Otvaranja iz naše baze — `PLAN-OTVARANJA-LOKALNO.md`, faze 0–3 — 15.9.2026, u kodu
+## Otvaranja iz naše baze — `PLAN-OTVARANJA-LOKALNO.md`, faze 0–4 — 15.9.2026, u kodu
 
 Statistika otvaranja se više ne traži od Lichess-a. Do sada je samo šetnja kroz
 otvaranje u tutorijalu iz partije čitala lokalni SQLite (D5 plana skeleta); sve
@@ -153,16 +153,34 @@ Brojevi: **1343 na backendu** sa `.env` sklonjenim (1329 − 7 − 24 + 29 + 6 +
 upozorenja. Mutacije: 21 na serveru i 9 u aplikaciji, sve uhvaćene, svaka testom
 koji je za nju pisan. Provera uživo: stavka 164.
 
-**Šta sledi, po redu.**
+**Faza 4: aplikacija (batch 71, `46c2cb2`).** Panel u Analizi ide samo na naš
+server i kaže u kom je od pet stanja — prijavi se, knjige nema na ovom serveru,
+knjiga nedostupna, dublje od knjige, nijedna majstorska partija — pod ECO imenom
+koje ekran već računa (`displayOpeningName`). Obrisani su ChessDB, prekidač
+izvora, ceo odeljak „OPENING EXPLORER" u Settings sa poljem za token, meni
+„Opponent rating" na listi repertoara, „Book: games from …+" ispod stabla i
+svaki `minRating` koji je aplikacija slala; token koji uređaj već čuva briše se
+pri učitavanju podešavanja. Zagonetke u domaćem zadržavaju svoj `minRating` — to
+je težina zagonetke, ne knjiga. **Polje za token nije ostalo „za uvoz partija"**
+kako je plan pisao: uvoz ide preko serverovog tokena i to polje nikad nije
+čitao. Usput: „Osnovna linija" u biraču otvaranja je sada „The opening itself"
+(ne „Main line" — pet otvaranja u ECO podacima ima i varijantu „Main Line", pa
+bi dva reda isto glasila za dve različite pozicije), commit `d0c6b6c`.
 
-1. **Faza 4, aplikacija — jedini deo za worker-a.** Brisanje `chessdb_service
-   .dart`, prekidača izvora i `openingDbSource`, uklanjanje rejting-padajuće
-   liste iz panela, imenovanje pozicije iz ECO podataka koje aplikacija već
-   nosi (`OpeningBookService.lookupByFen`), svaki `minRating` koji aplikacija
-   još šalje, i komentari u repertoaru koji još kažu da gradnja „troši Lichess
-   zahtev". **Odluka vlasnika 15.9.2026: gost vidi „Sign in to see the opening
-   book."** Kapiju piše vodeći. Token gate sudije je već otišao sa fazom 3.
-2. **Faza 5**: `deploy/app-setup.sh`, kako fajl stiže na server koji još stoji
+**Worker je istekao posle 75 minuta sa pola posla** i bez izveštaja — većinu
+vremena je čekao sopstveno merenje suite-a. Ono što je napisao bilo je ispravno,
+osim dve srpske log poruke i nekoliko polomljenih rečenica u komentarima; ostatak
+je dovršio vodeći u istom worktree-u. Pun suite je onda našao **dva propusta u
+brief-u**: priručnik na sajtu (`site/mislisha/manual/`) je citirao tri obrisane
+kontrole, a `repertoire_build_test.dart` je proveravao rečenicu koju je brief
+naložio da se prepiše. Oba ispravljena. Kapija 26/26, pet mutacija nad njom, sve
+uhvaćene. **2716 u aplikaciji** sa 1 preskočenim, izmereno na `master`-u (2692 +
+26 kapija − 3 penzionisanog testa panela + 1 za „The opening itself"), analyze
+26 infos; backend nepromenjen na 1343. Provera uživo: stavka 165.
+
+**Šta sledi.**
+
+1. **Faza 5**: `deploy/app-setup.sh`, kako fajl stiže na server koji još stoji
    ugašen, i šta biva kad ga nema. `.env.example` je već ispravljen u fazi 3
    (`LICHESS_EXPLORER_URL` i `LICHESS_MASTERS_URL` se više ne čitaju).
 

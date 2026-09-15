@@ -5875,6 +5875,28 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 165. Panel otvaranja iz naše knjige, bez ChessDB i bez rejtinga — 15.9.2026, nije viđeno uživo
+
+`docs/PLAN-OTVARANJA-LOKALNO.md`, faza 4 (batch 71, `46c2cb2`). Server mora
+biti restartovan i imati `MASTERS_BOOK_PATH`.
+
+1. [ ] **Panel u Analizi, prijavljen.** Otvori Analizu i odigraj 1. e4: naslov
+   panela je ime otvaranja („King's Pawn Game" sa ECO kodom), ispod je broj
+   partija, a procenti poteza se sabiraju do najviše 100 — nema padajuće liste
+   rejtinga ni pomena ChessDB-a. Klik na potez ga igra.
+2. [ ] **Dublje od knjige.** Učitaj poziciju posle 26+ poteza neke partije: panel
+   kaže „This position is deeper than the opening book goes.", a ne „No master
+   game reached this position.".
+3. [ ] **Gost.** Odjavi se i otvori Analizu: panel kaže „Sign in to see the
+   opening book." i ne prikazuje poteze.
+4. [ ] **Server bez knjige.** Zakomentariši `MASTERS_BOOK_PATH`, restartuj:
+   panel kaže „The opening book is not available on this server.". Vrati
+   putanju.
+5. [ ] **Settings.** Nema odeljka „OPENING EXPLORER" ni polja za Lichess token;
+   ostatak ekrana stoji kako je stajao.
+6. [ ] **Repertoar.** Na listi repertoara nema ikonice „Opponent rating", a
+   ispod stabla u gradnji piše samo „Breadth: …", bez „Book: games from …+".
+
 ## 164. Sudija i repertoar bez Lichess tokena — 15.9.2026, nije viđeno uživo
 
 `docs/PLAN-OTVARANJA-LOKALNO.md`, faze 0 i 3 (STANJE-RADA, „Otvaranja iz naše
@@ -5882,8 +5904,8 @@ baze"). Server mora biti restartovan, jer se putanja knjige čita pri
 pokretanju. Sačuvani odgovori u razvojnoj bazi su 15.9.2026 u 13:09 prepisani
 iz fajla od 50 polupoteza.
 
-1. [ ] **Nalog koji nikad nije video lichess.org.** U Settings obriši Lichess
-   token (ili koristi nalog koji ga nema). U Analizi odigraj potez i pritisni
+1. [ ] **Nalog koji nikad nije video lichess.org.** (Posle faze 4 polja za
+   token više nema, a sačuvan token se briše pri pokretanju.) U Analizi odigraj potez i pritisni
    „Judge …": presuda stiže, i nigde na panelu se ne pominje token.
 2. [ ] **Repertoar od nule.** Istim nalogom napravi nov repertoar i pusti
    „Suggest main line" na 12 poteza. Linija se upiše; ako stane pre kraja,
