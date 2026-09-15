@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **15.9.2026** — najnovije je „Izlazak iz masters baze,
-kraj linije bez reči, i tutorijal iz studije" odmah ispod ove glave, pa
+Poslednje ažuriranje: **15.9.2026** — najnovije je „Otvaranja iz naše baze"
+odmah ispod ove glave (faze 0–2 u kodu, faze 3–5 otvorene), pa „Izlazak iz
+masters baze, kraj linije bez reči, i tutorijal iz studije", pa
 „Tutorijal iz partije kao priča" (oboje u kodu, ostaje provera uživo — stavke
 163 i 162), pa „Druga provera uživo: šest
 prijava (A–F)", pa „Skelet: devet prijava sa
@@ -48,6 +49,80 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Otvaranja iz naše baze — `PLAN-OTVARANJA-LOKALNO.md`, faze 0–2 — 15.9.2026, u kodu
+
+Statistika otvaranja se više ne traži od Lichess-a. Do sada je samo šetnja kroz
+otvaranje u tutorijalu iz partije čitala lokalni SQLite (D5 plana skeleta); sve
+ostalo — panel u Analizi, sudija poteza, repertoar — išlo je na Lichess
+explorer, i to na **tuđi token**: sudija traži *korisnikov sopstveni* token za
+sva četiri upita i bez njega odgovara `no-token`, pa je repertoar u praksi bio
+isključen za skoro sve. Dve od te četiri stvari su knjiga, a druge dve su
+procena koja odgovara i **bez ikakvog tokena** (provereno 15.9.2026:
+`lichess.org/api/cloud-eval` vraća 200, dubina 60).
+
+**Odluke vlasnika, 15.9.2026.** Jedna baza, 2200+, bez rejting-opsega — dete
+uči ispravan potez bez obzira na svoj rejting, a ne da oponaša ono što se na
+njegovom nivou greši; filter po rejtingu se **briše iz aplikacije**, ne
+preusmerava. Dubina 50 polupoteza umesto 30. Redovi koje je odigrala jedna
+jedina partija se brišu. Nigde više lični token. ChessDB prekidač odlazi.
+
+**Šta je izmereno pre nego što je odlučeno** (sve u planu, sa brojevima):
+granica od 30 polupoteza seče **svaku** glavnu liniju — osam otvaranja staje
+tačno na 30 sa 117 do 750 partija koje još stoje u poziciji. Brisanje
+jednokratnih redova skida 85.1% redova i 87.3% pozicija, ali te redove drži
+2.2% partija u preživeloj poziciji u proseku i **80%** u najgoroj, pa se pravi
+zbir po poziciji upisuje u `position_totals` **pre** brisanja. I: brisanje
+skraćuje knjigu u **8 od 13** partija iz harness-a, a u svih osam je pozicija na
+kojoj se staje bila dosegnuta **jednom jedinom** partijom (g09 šest polupoteza,
+g03 tri). To je ispravka, ne gubitak, ali menja ono što nov tutorijal kaže.
+
+**Urađeno i mereno.** `tools/opening_book/extract_stats.py` je dobio `--max-elo`
+i `--prune`. **Taj fajl je već bio u repozitorijumu**, na engleskom, od faze 2
+plana skeleta — vlasnikova kopija u `D:\chess_base` je srpski original od koga
+je preveden i od tada su se razišli (prevedena verzija je preimenovala kolone u
+`chunks`, pa baza koju je počela jedna ne može da se nastavi drugom). Merodavna
+je ona iz repozitorijuma i njome se gradi; `services/mastersBook.js` je
+`services/openingBook.js` i čita `position_totals`, razlikuje „niko ovo nije
+igrao" od „fajl ne ide tako duboko" (`beyondBook`), kaže zašto je šetnja stala,
+i odbija neispravan FEN kao lošu molbu umesto kao praznu knjigu; `GET
+/opening-explorer` odgovara iz fajla, a `services/openingExplorerService.js` je
+obrisan sa svojim kešom, pejserom i testom. **1329 na backendu** sa `.env`
+sklonjenim; deset mutacija, svih deset uhvaćeno.
+
+**Šta se gradi u trenutku pisanja.** Ekstrakcija 2200+ na 50 polupoteza nad
+`D:\chess_base\lubras_gigabase\LumbrasGigaBase_OTB_Complete.pgn`, pa `--prune`;
+log je `D:\chess_base\lubras_gigabase\build_ply50.log`. Očekivano ispod 500 MB
+posle sažimanja.
+
+**Šta sledi, po redu.**
+
+1. **Faza 0, kapija.** Kad fajl bude gotov: `--verify-hash`, pa poređenje sa
+   starim fajlom od 30 polupoteza (svaka pozicija sa potezom odigranim bar
+   dvaput mora imati iste brojeve), pa šetnja 13 harness partija — mora stati
+   tačno tamo gde simulacija kaže. Tek onda `MASTERS_BOOK_PATH` u `.env`
+   pokazuje na novi fajl, i `kMastersBookPlies` u
+   `chess_app/lib/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart`
+   ide sa 30 na 50 (test deljene fikstire prati).
+2. **Faza 3, sudija** (vodeći, ne worker — menja ono što se detetu kaže):
+   knjiga lokalno, procena preko servera bez tokena, `no-token` briše iz
+   `routes/openingJudge.js`, `repertoireSpine` i aplikacije; pitanje o
+   rejting-opsegu **nestaje u celini** (`bookAt(source:'lichess')`, `band` u
+   odgovoru, `MIN_BAND_GAMES`); `MIN_MASTER_GAMES` se čita iznova jer su se i
+   baza i sažimanje pomerili ispod njega; `opening_replies` se **jednom čisti**
+   (keš tuđe činjenice) i dobija kolonu `source`, uz proveru stranih ključeva iz
+   `repertoire_extra_replies` pre brisanja.
+3. **Faza 4, aplikacija — jedini deo za worker-a.** Brisanje `chessdb_service
+   .dart`, prekidača izvora i `openingDbSource`, uklanjanje rejting-padajuće
+   liste iz panela, imenovanje pozicije iz ECO podataka koje aplikacija već
+   nosi (`OpeningBookService.lookupByFen`), i uklanjanje priče o tokenu iz
+   repertoara i sudije. Kapiju piše vodeći.
+4. **Faza 5**: `.env.example`, `deploy/app-setup.sh`, `TODO-provera.md`.
+
+**Šta i dalje ide na Lichess kad se ovo završi:** jedan upit, dvaput po
+suđenom potezu, keširan — `api/cloud-eval`. Bez tokena, isti broj za sve.
+Uvoz sopstvenih partija sa lichess.org, Syzygy i uvoz zagonetki nisu baza
+otvaranja i ostaju kakvi jesu.
 
 ## Izlazak iz masters baze, kraj linije bez reči, i tutorijal iz studije — 15.9.2026, u kodu
 

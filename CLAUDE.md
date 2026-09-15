@@ -2372,6 +2372,66 @@ and only UCI moves go out, so a trainer's own comments never reach the model.
 mutation — **an answer about what a feature already does is a claim like any
 other.**
 
+**The opening book becomes ours — 15.9.2026, 1329 on the backend** with `.env`
+moved aside; the app is untouched at 2684 with 1 skipped. Phases 0–2 of
+`docs/PLAN-OTVARANJA-LOKALNO.md`: the extractor grew `--max-elo` and `--prune`,
+the reader is `services/openingBook.js`, and `GET /opening-explorer` answers from a
+file on this server instead of proxying the Lichess explorer on a token every
+student shared. The arithmetic: 1327 − 19 (the explorer service's own tests,
+deleted with it) + 10 (the reader's new half) + 11 (the route) = 1329. Ten
+mutations against the reader, all caught.
+
+**The measurement that decided the shape of the data was taken on the whole
+file, because a slice overstates it.** 85.1% of the rows in the 2200+ book are
+played by exactly one game and 87.3% of positions keep no move at all — but
+those rows hold 2.2% of the games in a surviving position on average and **80%**
+for the worst one. So `--prune` writes `position_totals` **before** the delete
+and only for positions that keep a move: the count a position was reached is
+what the panel prints and what the narration says out loud („698 master games
+reached this position and none played it"), and computing it from what survived
+would have made it quietly too small. „No row" still means „not in the book".
+
+**Pruning shortens the book in eight of the thirteen harness games, and every
+ply it takes was carried by one game.** g09 by six plies, g03 by three. The
+position where the pruned book ends had been reached by a single master game in
+all eight. A correction rather than a cost — but the same simulation is the
+thing to run before believing any future change to the extraction, and it is
+cheap: walk the games against the old file filtering `w+b+d>1`.
+
+**A field added to an answer can reach a language model.** The shared fixture
+`test/fixtures/masters_walk_answer.json` went red the moment `answer()` grew
+`unlisted` and `beyondBook`, and the reason is not the fixture:
+`walkMastersBook` copies a walked position **whole** into the facts a tutorial
+is built from and a model is asked about. `walk()` spells out its five keys now
+rather than spreading, with a test that reads them. The fixture is shared by
+both suites precisely so a change of shape on either end turns one of them red,
+and this is the first time it has had to.
+
+**A grep that timed out is not a grep that found nothing.** The plan was
+written saying the extractor „lives untracked beside a 16 GB dataset and is the
+only program that can rebuild the data" — and it had been in
+`tools/opening_book/` since 14.9.2026, in English, beside `export_polyglot.py`.
+The first search for it was a repository-wide grep that hit the tool timeout and
+was never re-run narrowly. The cost was real rather than cosmetic: the owner's
+Serbian copy was written over the tracked English one, taking a README that
+documents both scripts with it, and the half-built database had been made by the
+wrong copy — the two name the `chunks` columns differently, so neither can
+resume the other's file. Restored, re-patched, and the build restarted by the
+script that is actually in the repository.
+
+**A source-reading test that matches a word fails the comment explaining the
+word.** The new route's own check — „nothing here reaches Lichess any more" —
+failed the route on its header, which says what the route used to be. It strips
+comments and asks about `require`, `fetch` and the retired service's name.
+Third entry in the family that holds the 1600-character function slice and the
+`contains` that matched a doc comment.
+
+**And a threshold cannot test the two halves of the sum under it.** „A position
+past the last ply" was green with the ply computed as `(fullmove - 1) * 2`,
+whose-move-it-is dropped, because a 30-ply file answers the same for 28 and 29.
+`plyOf` is exported and asked directly now. A mutation found it; nothing else
+could have.
+
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
 before carrying on.
