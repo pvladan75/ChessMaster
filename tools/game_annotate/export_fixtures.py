@@ -9,7 +9,7 @@ not written by hand. For each of the ten games of D this writes one file holding
 
  * **the inputs**: the facts file, the plain PGN the prompt quotes, the skeleton
    parameters, and the model's answer exactly as it came (`answer.json` of the
-   run whose tutorials the owner imported on 13.9.2026);
+   story-prompt run the owner read on 14.9.2026, `docs/PLAN-NARACIJA.md`);
  * **what this harness makes of them**: the candidate moments with every slot's
    text and facts, the prompt, the assembly report (chosen, missing and unused
    slots, claims, trims, the whole-game counts), `tutorial.json` and
@@ -43,20 +43,21 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 DEST = os.path.join(REPO, 'chess_app', 'test', 'fixtures', 'game_tutorial')
 
-# The run of each game whose tutorials were imported and read on 13.9.2026.
-# Named, not globbed: g01 has three runs, and the answer is the one thing a
-# fixture cannot recompute.
+# The run of each game whose words the fixtures carry: round 2 of the narration
+# measurement, 14.9.2026 (docs/PLAN-NARACIJA.md) - the story prompt the owner
+# read and chose to replace the old one with. Named, not globbed: each game has
+# several runs, and the answer is the one thing a fixture cannot recompute.
 RUNS = {
-    'g01_scandinavian-defense': '20260913-204123',
-    'g02_french-defense': '20260913-204148',
-    'g03_scandinavian-defense': '20260913-204219',
-    'g04_saragossa-opening': '20260913-204320',
-    'g05_french-defense': '20260913-204429',
-    'g06_zukertort-opening': '20260913-204502',
-    'g07_english-opening': '20260913-204527',
-    'g08_nimzowitsch-defense': '20260913-204608',
-    'g09_caro-kann-defense': '20260913-204645',
-    'g10_english-opening': '20260913-204726',
+    'g01_scandinavian-defense': '20260914-235815',
+    'g02_french-defense': '20260914-235815',
+    'g03_scandinavian-defense': '20260914-235815',
+    'g04_saragossa-opening': '20260914-235815',
+    'g05_french-defense': '20260914-235837',
+    'g06_zukertort-opening': '20260914-235857',
+    'g07_english-opening': '20260914-235905',
+    'g08_nimzowitsch-defense': '20260914-235927',
+    'g09_caro-kann-defense': '20260914-235936',
+    'g10_english-opening': '20260914-235943',
 }
 
 ABOUT = ('Written by tools/game_annotate/export_fixtures.py from skeleton.py. '
@@ -64,7 +65,7 @@ ABOUT = ('Written by tools/game_annotate/export_fixtures.py from skeleton.py. '
 
 
 def run_dir(game):
-    return os.path.join(HERE, 'out', 'H-api-deepseek-flash-effort-low-%s-%s'
+    return os.path.join(HERE, 'out', 'H-api-deepseek-flash-effort-low-story-%s-%s'
                         % (game, RUNS[game]))
 
 
@@ -297,6 +298,38 @@ def edge_cases():
     assert ('%s.question names its answer or its square' % castle['id']
             in castled_expected['report']['claims']), castled_expected['report']['claims']
 
+    # A game that leaves the masters database on its very first move, which no
+    # game of D does: all ten leave it between ply 3 and ply 13, so the
+    # departure sentence always lands on a move node and the branch that writes
+    # it on a part's own board was never reached. A variant of g01 with
+    # `left_book` moved to ply 0 - and ply 0's book made to say what a
+    # departure says, that not one master game played the move - is the one
+    # case that exercises it.
+    departed = copy.deepcopy(skeleton.facts_of('g01_scandinavian-defense'))
+    for row in departed['rows']:
+        (row.get('played') or {}).pop('left_book', None)
+    first = departed['rows'][0]
+    first['played']['left_book'] = True
+    first['book']['played'] = {'move': first['played']['move'], 'games': 0, 'share': 0.0}
+    departed_answer = read(os.path.join(run_dir(ANSWER_GAME), 'answer.json'))
+
+    def departed_assembled():
+        folder = tempfile.mkdtemp(prefix='fixture-')
+        try:
+            meta = {}
+            skeleton.assemble(folder, 'departed', meta, departed_answer, parameters)
+            path = os.path.join(folder, 'tutorial-game.json')
+            return {'tutorialGame': json.loads(read(path)) if os.path.exists(path) else None,
+                    'report': meta.get('skeleton')}
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+
+    departed_expected = with_facts(departed, departed_assembled)
+    assert departed_expected['report']['game'].get('left_book_at') == 0
+    opening_pgn = departed_expected['tutorialGame']['positionList'][0]['pgn']
+    assert 'followed the masters database' in opening_pgn.split('}')[0], opening_pgn[:200]
+    assert '[%cal G' in opening_pgn.split('}')[0], opening_pgn[:200]
+
     return {
         'about': ABOUT,
         'castledFacts': castled,
@@ -305,6 +338,9 @@ def edge_cases():
         'shareWords': [[s, skeleton.share_words(s)] for s in shares],
         'bookFacts': booked,
         'bookMoments': book_moments,
+        'departedFacts': departed,
+        'departedAnswer': departed_answer,
+        'departedExpected': departed_expected,
         'tiedFacts': tied,
         'tiedMoments': with_facts(tied, lambda: skeleton.moments('tied', parameters)),
         'tiedPairs': [[rows[a]['label'], rows[b]['label']] for a, b in

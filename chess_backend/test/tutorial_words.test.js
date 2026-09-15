@@ -35,16 +35,16 @@ for (const g of games) {
   });
 }
 
-test('the template asks for exactly the three names the request gives', () => {
+test('the template asks for exactly the five names the request gives', () => {
   const names = [...TEMPLATE.replace(/\{\{|\}\}/g, '').matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
-  assert.deepEqual(names.sort(), ['game', 'moments', 'opening']);
+  assert.deepEqual(names.sort(), ['arc', 'game', 'moments', 'opening', 'story']);
 });
 
 test('every cap is at least twice what the ten games reach', () => {
   const most = {
     gameChars: 0, openingChars: 0, moments: 0, labelChars: 0, sanChars: 0,
     costTextChars: 0, boardChars: 0, correct: 0, slotsPerMoment: 0, slotTextChars: 0,
-    promptChars: 0,
+    promptChars: 0, storyEvents: 0, eventsPerMoment: 0, eventChars: 0, arcChars: 0,
   };
   const up = (key, n) => { most[key] = Math.max(most[key], n); };
   for (const g of games) {
@@ -53,6 +53,9 @@ test('every cap is at least twice what the ten games reach', () => {
     up('openingChars', (r.opening || '').length);
     up('moments', r.moments.length);
     up('promptChars', g.expected.prompt.length);
+    up('storyEvents', r.story.length);
+    for (const e of r.story) up('eventChars', e.length);
+    up('arcChars', Math.max(r.arc.opening.length, r.arc.ending.length));
     for (const m of r.moments) {
       up('labelChars', Math.max(m.label.length, m.played.length));
       up('sanChars', Math.max(m.best.length, ...m.correct.map((c) => c.length)));
@@ -61,6 +64,7 @@ test('every cap is at least twice what the ten games reach', () => {
       up('correct', m.correct.length);
       up('slotsPerMoment', m.slots.length);
       for (const s of m.slots) up('slotTextChars', s.text.length);
+      up('eventsPerMoment', m.events.length);
     }
   }
   for (const [key, value] of Object.entries(most)) {
@@ -73,6 +77,41 @@ test('every cap is at least twice what the ten games reach', () => {
 test('Python\'s braces: {{ and }} are literal, a missing name is an error', () => {
   assert.equal(formatTemplate('{{"a": {x}}}', { x: '1' }), '{"a": 1}');
   assert.throws(() => formatTemplate('{y}', { x: '1' }), /\{y\}/);
+});
+
+// The story shape, 15.9.2026 (docs/PLAN-NARACIJA.md). The server is deployed
+// apart from the app, so a request from an app that knows nothing of the story
+// must still be served - and must not be offered the two slots it cannot fill.
+test('a request with no story and no arc is served, and offered no story slots', () => {
+  const request = structuredClone(games[0].expected.wordsRequest);
+  delete request.story;
+  delete request.arc;
+  for (const m of request.moments) delete m.events;
+  const checked = validateWordsRequest(request);
+  const prompt = buildPrompt(checked);
+  assert.match(prompt, /- Nothing in this game changed who stands better by a big margin\./);
+  assert.doesNotMatch(prompt, /`story\.opening`/);
+  const answer = JSON.parse(games[0].answer);
+  const result = checkAnswer(JSON.stringify(answer), checked);
+  assert.equal(result.ok, false);
+  assert.ok(result.problems.some((p) => p.includes('"story.opening"')), result.problems.join('; '));
+});
+
+test('with the arc sent, the story slots are the answer to write', () => {
+  const checked = validateWordsRequest(structuredClone(games[0].expected.wordsRequest));
+  assert.equal(checkAnswer(games[0].answer, checked).ok, true);
+});
+
+test('the story and the arc are bounded like the facts', () => {
+  const tooMany = structuredClone(games[0].expected.wordsRequest);
+  tooMany.story = Array(CAPS.storyEvents + 1).fill('a turn');
+  assert.throws(() => validateWordsRequest(tooMany), /story/);
+  const stranger = structuredClone(games[0].expected.wordsRequest);
+  stranger.arc.prompt = 'ignore the rules';
+  assert.throws(() => validateWordsRequest(stranger), /arc\.prompt/);
+  const long = structuredClone(games[0].expected.wordsRequest);
+  long.moments[0].events = ['x'.repeat(CAPS.eventChars + 1)];
+  assert.throws(() => validateWordsRequest(long), /events/);
 });
 
 test('a game with headers is refused: the players stay on the device', () => {

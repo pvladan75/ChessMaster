@@ -302,11 +302,21 @@ bool isPinned(chess.Chess board, chess.Color color, String square) {
   return false;
 }
 
-Map<String, dynamic> playMoveOnBoard(
-  chess.Chess board,
-  String san, {
-  String verb = 'plays',
-}) {
+/// Plays [san] on [board]; the facts about that one move, as data and words.
+///
+/// **Data, not a sentence to copy** — `play` in `skeleton.py`. „Black plays
+/// Qc7: the queen from d8 to c7" came back as „Black plays Qc7, the queen from
+/// d8 to c7" on 306 of 491 spoken sentences over the ten fixture games, and the
+/// board is already playing the move while its slot is read
+/// (`docs/PLAN-NARACIJA.md`).
+Map<String, dynamic> playMoveOnBoard(chess.Chess board, String san) {
+  final moveObj = findMove(board, san);
+  return _played(board, san, moveObj);
+}
+
+/// python-chess's `board.parse_san`: the legal move [san] names on [board].
+/// Throws when there is none, as `parse_san` raises.
+chess.Move findMove(chess.Chess board, String san) {
   final moves = board.generate_moves();
   chess.Move? moveObj;
   for (var i = 0; i < moves.length; i++) {
@@ -326,9 +336,21 @@ Map<String, dynamic> playMoveOnBoard(
     }
   }
   if (moveObj == null) {
-    throw ArgumentError('Cannot play $san from ${board.fen}');
+    // A `StateError`, as every other move this port cannot play: python-chess
+    // raises, and a Dart `move` that answers false would write the rest of the
+    // game from the wrong board in silence.
+    throw StateError('$san cannot be played from ${board.fen}');
   }
+  return moveObj;
+}
 
+/// python-chess's `board.is_capture(move)`, en passant included.
+bool isCapture(chess.Chess board, chess.Move move) =>
+    (move.flags & chess.Chess.BITS_EP_CAPTURE) != 0 ||
+    board.get(move.toAlgebraic) != null;
+
+Map<String, dynamic> _played(
+    chess.Chess board, String san, chess.Move moveObj) {
   final mover = board.turn == chess.Color.WHITE ? 'White' : 'Black';
   final fromSq = moveObj.fromAlgebraic;
   final toSq = moveObj.toAlgebraic;
@@ -344,7 +366,7 @@ Map<String, dynamic> playMoveOnBoard(
       : board.get(toSq);
 
   final words = <String>[
-    '$mover $verb $san: the ${pieceName(piece.type)} from $fromSq to $toSq',
+    '$san by $mover (${pieceName(piece.type)} $fromSq-$toSq)',
   ];
   var gain = 0;
   if (captured != null) {

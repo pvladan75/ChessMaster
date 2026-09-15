@@ -136,6 +136,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
+import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_assembly.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_moments.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
@@ -191,6 +192,10 @@ Object? _asJson(Object? value) => jsonDecode(jsonEncode(value));
 
 String _spaced(String text) => text.replaceAll(RegExp(r'\s+'), ' ').trim();
 
+/// The arrows of one node as text, in the order they were written.
+List<String> _arrows(List<ChessArrow> arrows) =>
+    [for (final a in arrows) a.toString()];
+
 /// Two tutorials agree: every field JSON-equal except each part's `pgn`,
 /// which is compared by what the child's reader reads back.
 void _expectTutorial(
@@ -235,11 +240,28 @@ void _expectTutorial(
       _spaced(harness.rootComment),
       reason: '$name part ${i + 1}: the words before the first move',
     );
+    // **Drawn, not only said.** Until 15.9.2026 this loop compared the words
+    // and nothing else, so an arrow the harness writes and the port does not
+    // — or the other way round — passed the gate in silence. The blue arrow of
+    // a fork had been drawn since 14.9.2026 and was never once compared here.
+    // `[%cal]` is read back out of the comment by the same parser, so the two
+    // dialects (python-chess writes the tag first, this app writes it last)
+    // cannot make this differ.
+    expect(
+      _arrows(port.line.rootArrows),
+      _arrows(harness.rootArrows),
+      reason: '$name part ${i + 1}: what is drawn on its board',
+    );
     for (var m = 0; m < harness.movesSan.length; m++) {
       expect(
         _spaced(port.line.comments[m]),
         _spaced(harness.comments[m]),
         reason: '$name part ${i + 1}, ${harness.movesSan[m]}: its words',
+      );
+      expect(
+        _arrows(port.line.arrows[m]),
+        _arrows(harness.arrows[m]),
+        reason: '$name part ${i + 1}, ${harness.movesSan[m]}: what it draws',
       );
     }
   }

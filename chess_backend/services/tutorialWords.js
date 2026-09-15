@@ -39,6 +39,12 @@ const CAPS = Object.freeze({
   correct: 4,
   slotsPerMoment: 40,
   slotTextChars: 1500,
+  // The story of the game and the arc (docs/PLAN-NARACIJA.md): sentences the
+  // app computes from the engine's evaluations, bounded like a slot's facts.
+  storyEvents: 40,
+  eventsPerMoment: 8,
+  eventChars: 400,
+  arcChars: 1500,
   promptChars: 120000,
   // The answer's: the prompt asks for a title under 60 characters and slots of
   // at most 140, and the harness trims tags to two. These refuse an answer
@@ -52,6 +58,8 @@ const CAPS = Object.freeze({
 
 const MOMENT_ID = /^m\d{1,2}$/;
 const SLOT_ID = /^m\d{1,2}\.[a-z]+(?:\.[a-z0-9]+)?$/;
+/// The two slots that belong to the whole game rather than to a moment.
+const STORY_SLOTS = Object.freeze(['story.opening', 'story.ending']);
 
 function text(value, name, max, { optional = false } = {}) {
   if (optional && (value === null || value === undefined)) return null;
@@ -72,6 +80,28 @@ function validateWordsRequest(body) {
     throw new RangeError('game must be the moves only, without PGN headers.');
   }
   const opening = text(body.opening, 'opening', CAPS.openingChars, { optional: true });
+
+  // **Optional, and absent is empty**, for the reason `turning_point` gives
+  // below: an app already on a trainer's machine sends neither, and the
+  // prompt it gets is the story prompt with nothing to tell.
+  const story = body.story === undefined ? [] : body.story;
+  if (!Array.isArray(story) || story.length > CAPS.storyEvents) {
+    throw new RangeError(`story must be a list of at most ${CAPS.storyEvents} sentences.`);
+  }
+  story.forEach((e, k) => text(e, `story[${k}]`, CAPS.eventChars));
+  let arc = {};
+  if (body.arc !== undefined && body.arc !== null) {
+    if (typeof body.arc !== 'object' || Array.isArray(body.arc)) {
+      throw new RangeError('arc must be an object.');
+    }
+    for (const key of Object.keys(body.arc)) {
+      if (key !== 'opening' && key !== 'ending') throw new RangeError(`arc.${key} is not a part of the arc.`);
+    }
+    arc = {
+      opening: text(body.arc.opening, 'arc.opening', CAPS.arcChars, { optional: true }),
+      ending: text(body.arc.ending, 'arc.ending', CAPS.arcChars, { optional: true }),
+    };
+  }
 
   if (!Array.isArray(body.moments) || body.moments.length === 0) {
     throw new RangeError('moments must be a non-empty list.');
@@ -108,6 +138,10 @@ function validateWordsRequest(body) {
     if (!Array.isArray(m.slots) || m.slots.length === 0 || m.slots.length > CAPS.slotsPerMoment) {
       throw new RangeError(`${at}.slots must hold 1 to ${CAPS.slotsPerMoment} slots.`);
     }
+    const events = m.events === undefined ? [] : m.events;
+    if (!Array.isArray(events) || events.length > CAPS.eventsPerMoment) {
+      throw new RangeError(`${at}.events must be a list of at most ${CAPS.eventsPerMoment} sentences.`);
+    }
     const slots = m.slots.map((s, k) => {
       if (!s || typeof s.id !== 'string' || !SLOT_ID.test(s.id)
           || !s.id.startsWith(`${m.id}.`) || slotIds.has(s.id)) {
@@ -128,10 +162,11 @@ function validateWordsRequest(body) {
       left_book: m.left_book,
       turning_point: m.turning_point === true,
       board: text(m.board, `${at}.board`, CAPS.boardChars, { optional: true }),
+      events: events.map((e, k) => text(e, `${at}.events[${k}]`, CAPS.eventChars)),
       slots,
     };
   });
-  return { game, opening, moments };
+  return { game, opening, story, arc, moments };
 }
 
 /// Python's `str.format` for the names the template uses: `{{` and `}}` are
@@ -159,15 +194,24 @@ function buildPrompt(request) {
         : 'No question here: too many moves are about as good.');
     if (m.turning_point) head += '\nThis is the moment the game turned on.';
     if (m.left_book) head += '\nThis is the move that left the masters database.';
+    for (const event of m.events || []) head += `\nIn the story of the game: ${event}.`;
     if (m.board) head += `\nOn the board: ${m.board}`;
     const lines = [head, '', 'Slots, in the order the student meets them:'];
     for (const slot of m.slots) lines.push(`- \`${slot.id}\`: ${slot.text}`);
     return lines.join('\n');
   });
+  const story = (request.story || []).map((line) => `- ${line}.`).join('\n')
+    || '- Nothing in this game changed who stands better by a big margin.';
+  const arc = request.arc || {};
   const prompt = formatTemplate(TEMPLATE, {
     game: request.game,
     opening: request.opening ? `${request.opening}\n\n` : '',
+    story,
     moments: blocks.join('\n\n'),
+    arc: ['opening', 'ending']
+      .filter((key) => arc[key])
+      .map((key) => `- \`story.${key}\`: ${arc[key]}`)
+      .join('\n'),
   });
   if (prompt.length > CAPS.promptChars) {
     throw new RangeError('The skeleton is too large to write words for.');
@@ -245,6 +289,11 @@ function checkAnswer(reply, request) {
     problems.push('the slots are not an object');
   } else {
     const allSlots = new Set([].concat(...[...offered.values()].map((s) => [...s])));
+    // The story's two slots are offered exactly when the arc they are written
+    // from was sent.
+    for (const id of STORY_SLOTS) {
+      if ((request.arc || {})[id.slice('story.'.length)]) allSlots.add(id);
+    }
     for (const [id, value] of Object.entries(slots)) {
       if (!allSlots.has(id)) {
         problems.push(`wrote slot ${JSON.stringify(id)}, which was not offered`);

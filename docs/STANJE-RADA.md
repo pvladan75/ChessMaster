@@ -15,8 +15,11 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **14.9.2026** — najnovije je „Druga provera uživo: šest
-prijava (A–F)" odmah ispod ove glave, pa „Skelet: devet prijava sa
+Poslednje ažuriranje: **15.9.2026** — najnovije je „Izlazak iz masters baze,
+kraj linije bez reči, i tutorijal iz studije" odmah ispod ove glave, pa
+„Tutorijal iz partije kao priča" (oboje u kodu, ostaje provera uživo — stavke
+163 i 162), pa „Druga provera uživo: šest
+prijava (A–F)", pa „Skelet: devet prijava sa
 prve provere uživo" (sve u kodu, ostaje provera uživo),
 pa faze 4, 3, 2 i 0 plana skeleta. Pre toga „Ispis prati glas, a ne
 fajl" (u kodu, ostaje provera uživo), pa „Oznake van
@@ -45,6 +48,117 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Izlazak iz masters baze, kraj linije bez reči, i tutorijal iz studije — 15.9.2026, u kodu
+
+Tri prijave vlasnika istog dana, prve dve popravke, treća pitanje na koje je
+odgovor „već radi, i evo šta ne radi". Provera uživo: `TODO-provera.md`, stavka
+163.
+
+**1. „And the line goes on" se više ne nudi modelu.** U delu sa najboljom
+linijom svaki potez posle prvog nosio je činjenicu `; the best line goes on -
+not played`, a u delu sa drugim najboljim `; the line goes on` — i model ih je
+vraćao doslovno, na svakom potezu svake linije: „Black would answer Ra7. Not
+played either; best line goes on." To je isti nalaz koji ovaj projekat već ima
+zapisan za detektor motiva (**kad model ponavlja ulaz reč po reč, ulaz je
+proizvod**): čišćenje se radi u onome što se šalje, ne u onome što se traži.
+Oznaka je sada samo `; not played` — dve reči na koje se pravilo iz prompta
+oslanja — a prompt je dobio i pravilo koje nedostaje: *rečenica čiji je jedini
+sadržaj da se linija nastavlja ne piše se; potez koji nema šta da kaže dobija
+prazan slot*. Prazan slot je već bio dozvoljen i tabla nad njim ćuti.
+
+**2. Statistika masters baze stoji na poziciji koja to zaista jeste.**
+Rečenica „This move left the masters database: 698 master games reached this
+position and none played it." pisala se na **potez** kojim se izašlo iz baze — a
+komentar na potezu je u PGN-u komentar pozicije **posle** njega. Đak je dakle
+stajao na tabli do koje nijedna master partija nije stigla i čitao da je do nje
+stiglo 698 partija. Sada je to `mastersDeparture` (`skeleton_assembly.dart`,
+`_masters_departure` u `skeleton.py`): rečenica ide na **prethodni** potez, tamo
+gde je na tabli poslednja pozicija koja je bila u bazi, nabraja poteze koje baza
+tu igra sa procentima i crta ih kao **zelene strelice**, pa imenuje potez koji
+je igrač odigrao — i tek onda se taj potez odigra.
+
+> Up to here the game followed the masters database: 1367 master games reached
+> this position and played Nf6 77%, Bb4+ 15%, c6 3.0%. Black played g6, which
+> none of them did.
+
+Tri imena i tri strelice su isti potezi (`book['alternatives']`, već odsečen na
+tri): spisak imena bez strelica je spisak koji slušalac ne može da prati, a
+strelica bez imena je potez koji niko ne može da potraži. Plava strelica i dalje
+znači „ovo je odigrano", zelena „ovo baza igra" — dve boje jer odgovaraju na dva
+pitanja, a na ovoj tabli đak sreće oba.
+
+Dva nalaza o proveri koja su došla uz ovo.
+
+**Kapija nije poredila nijednu strelicu.** `game_tutorial_skeleton_test.dart`
+poredi `pgn` tako što ga pročita nazad kroz dečji čitač i uporedi poteze i
+komentare — a `[%cal]` čitač skida iz komentara, pa je plava strelica račve,
+nacrtana od 14.9.2026, mogla da nestane a da kapija ostane zelena. Sada se
+porede i strelice, korena i svakog poteza; dokazano mutacijama u oba smera.
+
+**Sve partije izlaze iz baze između 3. i 13. poluopoteza**, pa grana koja
+rečenicu piše na **tablu samog dela** (partija čiji prvi potez nijedna master
+partija nije igrala) nije bila dostižna nijednim podatkom. To je isti oblik koji
+ovaj fajl već zna — *kapija napravljena od stvarnih podataka ne vidi ono što ti
+podaci nikad ne rade* — pa `edge_cases.json` sada nosi i varijantu g01 sa
+`left_book` na poluopotezu 0.
+
+**3. Tutorijal od niza poteza, ne od cele partije — već radi.** Pitanje je bilo
+može li se na automatsko generisanje poslati studija sa jednom ili više početnih
+pozicija, sa sporednim linijama koje već imaju komentare, iz PGN-a ili sa table
+u Analizi. Odgovor, izmeren a ne pročitan
+(`game_tutorial_flow_test.dart`, „a study position and its main line are what
+the run is given", obe polovine dokazane mutacijom):
+
+- **Radi, i radi već sada.** „Make a tutorial from this game" u Analizi šalje
+  `root.fen` kao početnu poziciju i glavnu liniju stabla kao poteze. Pozicija ne
+  mora da bude početna: FEN iz studije putuje kakav jeste. Masters šetnja tu ne
+  nađe ništa, pa tutorijal ćuti o otvaranju (`mastersNote` se javlja samo kad
+  baza nije dostupna, ne kad pozicija nije u njoj).
+- **Sporedne linije se ne šalju.** Vrata idu `children.first` do kraja, tako da
+  je poslato tačno glavna linija. Studija sa granama daje tutorijal od svoje
+  glavne linije, a grane se tiho izostave.
+- **Postojeći komentari se ne koriste.** Na put ide samo lista UCI poteza;
+  `motifs_after_played` u činjenicama je ono što detektor motiva sam napiše za tu
+  poziciju, ne ono što je trener napisao. Trenerove reči nigde ne ulaze.
+- **Više početnih pozicija nije podržano.** Jedno pokretanje = jedan koren i
+  jedna linija. Studija sa nekoliko poglavlja tražila bi nekoliko pokretanja.
+- **Prag i dalje važi**: ako u nizu nema bar dva poteza koja koštaju onoliko
+  koliko je traženo, pokretanje staje pre reči i ništa se ne troši. Kratka
+  studija od pet poteza po pravilu neće imati dva.
+
+Šta bi tek trebalo napisati, ako se to bude tražilo: čitanje sporednih linija
+kao već napisanog dela tutorijala (`LessonStepLine` ih već ume, prikazivač ih
+već nudi kao račvu) i preuzimanje trenerovih komentara umesto da ih model piše.
+Ni jedno ni drugo nije u planu i ništa danas ne zavisi od njih.
+
+## Tutorijal iz partije kao priča — 15.9.2026, u kodu
+
+Odgovor na B, C i naraciju iz druge provere (niže), i na dve dopune vlasnika
+(„partija je borba", „početak nagoveštava, kraj kaže ko je pobedio"). Plan i
+merenje: `docs/PLAN-NARACIJA.md`. Vlasnik je pročitao deset partija napisanih
+tri puta (stari prompt, priča, priča sa početkom i krajem) i odlučio: **priča
+potpuno zamenjuje stari prompt**.
+
+Šta sada važi. Potez se ne najavljuje („Black plays Qc7, the queen from d8 to
+c7" — 306 od 491 izgovorene rečenice sa starim promptom, 2 sa novim). Na grešci
+program sam kaže „In this position White played Bd3." sa plavom strelicom
+odigranog poteza (bez igranja), pa „The best move was…", i tek sledeći deo
+igra najbolju liniju. Prekretnice partije (prva velika greška, šansa data i
+iskorišćena ili propuštena, poslednja propuštena, materijal za aktivnost) računa
+program iz ocena motora i daje ih modelu kao činjenice. Tutorijal počinje
+rečenicom o tome kakva partija sledi, a završava se time ko je izašao kao
+pobednik — iz mata na tabli ili poslednje ocene, jer PGN iz Analize nema
+rezultat. Provera tvrdnji čita ceo momenat, ne jedan slot, i „no mate" nije
+tvrdnja o matu.
+
+Na kraju merenja rečenice na koje provera ne može da vidi i dalje postoje
+(g10: „two chances each side" gde su dve ukupno) — zato arc sada broji po strani.
+
+Aplikacija i server su usklađeni sa harnessom kroz fixture-e (`--check` zelen,
+gate zelen, prompt servera bajt po bajt). Server prima i zahtev bez priče, pa
+već instalirana starija aplikacija i dalje dobija odgovor. Provera uživo:
+`TODO-provera.md`, stavka 162.
 
 ## Druga provera uživo: šest prijava (A–F) — 14.9.2026 uveče
 

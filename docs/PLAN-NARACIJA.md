@@ -116,10 +116,73 @@ app and the server are untouched until the owner has read the result.
   findings, missing slots, answers that do not assemble.
 - The owner reads the transcripts and decides what goes into the app.
 
-## After the decision
+## What the measurement found — 14–15.9.2026
 
-The chosen shape is ported the way the skeleton always is: `skeleton.py` first,
-`export_fixtures.py` regenerates the fixtures, the Dart port and the server's
-template follow, and the fixture gate says the two agree. Languages other than
-English (point F of the same report) are planned after this, because the
+Ten games, `deepseek-flash` at effort low, the comparison published as a private
+artifact for the owner. Totals over the ten whole-game tutorials:
+
+| | today's prompt | story, round 1 | story, round 2 |
+|---|---|---|---|
+| a slot that announces its own move | 306 | 2 | 2 |
+| „the queen from d8 to c7" | 86 | 0 | 0 |
+| sentences sharing their first three words | 304 | 191 | 199 |
+| words spoken | 7,891 | 7,247 | 7,745 |
+| claim-check flags | 4 | 11 | 0 |
+| tutorials that assembled | 10 | 10 | 10 |
+
+A second, accidental run of the first two columns gave 256 / 3 announcements and
+1 / 11 flags, so the effect is not one run's luck.
+
+Round 1's eleven flags were half the check's fault: it read one slot at a time
+while the story carried a pin or a mate over from the slot before. Round 2 reads
+the moment so far and ignores a word said not to be there („no mate"); over round
+1's own answers that keeps four flags, all real overreach („wins a pawn" where the
+facts say nothing of it, a pin named a move early). Round 2 added `story.opening`
+and `story.ending` (`game_arc`): the number of turning points and missed chances,
+tactical against positional motif sentences, and the result — the board's mate,
+or the last evaluation, since every fixture PGN says `[Result "*"]`.
+
+Reading round 2 by hand still finds what no check can: g10's opening says „two
+chances each side lets slip" where the facts count two in all, and its ending
+says „forced mate" where they say White is winning; g07's ending gives the last
+chance to the wrong side. Counts in the arc facts are the next thing to say more
+plainly.
+
+**A lesson about running a measurement, not about narration.** DeepSeek spent
+most of the evening accepting requests and sending `: keep-alive` for 900 s
+without starting them, and the harness recorded each as a finished run with an
+empty answer. It fails now: a non-streamed answer with no choices is a fault, and
+a streamed run that receives only keep-alive for its timeout stops. A retry that
+was meant to be cancelled was not — the process filter matched nothing and nobody
+checked — and ran all twenty requests a second time, about 328k tokens. **Check
+that a cancel took effect, not only that it was sent.**
+
+## The decision, and the port — 15.9.2026
+
+The owner read the three columns and chose **the story prompt, replacing the old
+one completely** — no switch, no choice for the trainer. Ported the way the
+skeleton always is:
+
+- `skeleton.py` has one path; `SKELETON_STORY` is gone, and so are the old
+  move wording, `mN.answer.intro`, and the old lexicon and recap sentences.
+- `chess_backend/services/prompts/tutorial_words.txt` **is** the story prompt;
+  the server validates `story`, `arc` and each moment's `events` — all three
+  optional, so an app already installed is still served — and offers the two
+  `story.*` slots only when the arc was sent.
+- The fixtures carry round 2's ten answers (`export_fixtures.py`, `RUNS`).
+- The Dart port (`board_queries`, `skeleton_moments`, `skeleton_assembly`,
+  `words_request`) is held to them by the existing gate, and
+  `game_tutorial_story_test.dart` holds what the gate cannot say: the arrow is
+  the move played, the program's part is no slot, the first and last words are
+  the story's, the claim check reads the moment, and a silent move is never the
+  first move of a best line.
+
+Two things the port found. **The new „resumed" wording collided with the
+bridge** — „Back to the game. White played…" opened exactly like „Back to the
+game." — and the test written to catch two confusable wordings passed, because
+it skipped any pair that was *equal*. It compares by position now. And the arc's
+counts are said per side („White missed 1, Black missed 1"), because round 2 read
+„2 chances missed" as two each.
+
+Languages other than English (point F of the same report) are next, because the
 program's own sentences would otherwise be translated twice.

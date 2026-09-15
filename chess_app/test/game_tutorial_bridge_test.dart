@@ -67,10 +67,15 @@ void main() {
   test('no two wordings of a bridge can be confused for one another', () {
     final all = [..._openings('resumed'), ..._openings('back_to_game')];
     expect(all, hasLength(6));
-    for (final a in all) {
-      for (final b in all) {
-        if (a == b) continue;
-        expect(a.contains(b), isFalse, reason: '„$a" contains „$b"');
+    // By position, not by value: `a == b` skipped exactly the clash this test
+    // is for. The story wording „Back to the game. White played…" opened like
+    // the bridge „Back to the game." and counted twice in one sentence, with
+    // this test green (docs/PLAN-NARACIJA.md, 15.9.2026).
+    for (var i = 0; i < all.length; i++) {
+      for (var j = 0; j < all.length; j++) {
+        if (i == j) continue;
+        expect(all[i].contains(all[j]), isFalse,
+            reason: '„${all[i]}" contains „${all[j]}"');
       }
     }
   });

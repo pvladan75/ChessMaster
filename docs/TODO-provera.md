@@ -5874,3 +5874,59 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     two tutorials") izbor „For students" / „For a video". Za video broj delova
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
+
+## 163. Izlazak iz masters baze, i kraj linije bez reči — 15.9.2026, nije viđeno uživo
+
+Tri prijave vlasnika od 15.9.2026 (STANJE-RADA, „Izlazak iz masters baze…").
+Isto što i stavka 162: server mora biti restartovan, jer se šablon prompta čita
+pri pokretanju.
+
+1. [ ] **„And the line goes on" više nema.** Kroz ceo tutorijal — u delu sa
+   najboljom linijom i u delu sa drugim najboljim potezom — nijedna rečenica ne
+   kaže samo da se linija nastavlja („the line goes on", „and the line
+   continues"). Tamo gde potez nema šta da kaže, tabla ćuti.
+2. [ ] **Statistika stoji na pravoj poziciji.** Rečenica „Up to here the game
+   followed the masters database: N master games reached this position and
+   played …" pojavljuje se **na potezu pre** onog kojim se izašlo iz baze — dakle
+   dok je na tabli poslednja pozicija koja je zaista bila u bazi — i tek posle nje
+   se odigra potez koji je igrač odigrao.
+3. [ ] **Strelice.** Na toj istoj poziciji nacrtane su **zelene strelice** za one
+   poteze koje rečenica nabraja (jedan do tri), a ne za odigrani. Proveri i u
+   videu.
+4. [ ] **Broj se slaže.** N u rečenici je broj partija koje su stigle do pozicije
+   na tabli, a ne do one posle poteza. Ako je moguće, uporedi sa Lichess
+   masters explorer-om za tu poziciju.
+5. [ ] **Studija, a ne cela partija.** Otvori u Analizi poziciju koja nije
+   početna (FEN ili studija), odigraj nekoliko poteza kao glavnu liniju, dodaj
+   jednu sporednu liniju sa komentarom, pa „Make a tutorial from this game".
+   Očekivano: radi, polazi od te pozicije, ide **samo glavnom linijom**, a
+   sporedna linija i postojeći komentari se **ne** koriste. Ako partija nema bar
+   dva poteza koja koštaju dovoljno, kaže se da nema od čega da se pravi
+   tutorijal i ništa se ne troši.
+
+## 162. Tutorijal iz partije kao priča — 15.9.2026, nije viđeno uživo
+
+`docs/PLAN-NARACIJA.md`: novi prompt (priča) potpuno zamenjuje stari. Mereno na
+deset partija iz harnessa, ali **nijedan tutorijal iz aplikacije sa novim
+promptom nije napravljen uživo**. Treba nova partija (ili ista, ponovo: činjenice
+su keširane, pa motor ide brzo, a reči se plaćaju ponovo). Server mora da bude
+restartovan, jer se šablon prompta čita pri pokretanju.
+
+1. [ ] **Nema najave poteza.** Kroz ceo tutorijal nijedna rečenica ne počinje sa
+   „White plays …" niti kaže „the queen from d8 to c7".
+2. [ ] **Greška ide redom.** Na momentu greške: deo bez poteza koji kaže „In this
+   position White played Bd3. The best move was…", sa **plavom strelicom** tog
+   poteza na tabli (potez se ne odigra); sledeći deo igra najbolju liniju; zatim
+   (ako postoji) drugi najbolji potez; zatim partija nastavlja odigranim potezom.
+   Proveri i u videu da se strelica vidi.
+3. [ ] **Početak i kraj.** Prva rečenica tutorijala kaže kakva partija sledi
+   (mirna ili puna preokreta, taktička ili poziciona) i ne otkriva pobednika;
+   poslednja (na poslednjem potezu partije, ne na rekapitulaciji) kaže ko je
+   izašao kao pobednik i zašto. „The game ended here." se ne pojavljuje.
+4. [ ] **Prekretnice.** Tamo gde je partija promenila tok, rečenica to kaže
+   („takes the chance", „lets the chance go", „the first mistake of the game…"),
+   i to se slaže sa onim što se vidi na tabli.
+5. [ ] **Rekapitulacija.** Poslednji deo „Looking back, the game turned on …" ne
+   pominje pešake (cenu), a na tabli je plava strelica odigranog poteza.
+6. [ ] **„Sentences to check".** U poslednjem dijalogu lista je kratka ili prazna;
+   ako nije, pročitaj te rečenice — to je nalaz za proveru tvrdnji.

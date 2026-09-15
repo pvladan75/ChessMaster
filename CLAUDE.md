@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2659 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2684 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1324 tests, all green
+cd chess_backend && npm test          # node --test, 1327 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2309,6 +2309,68 @@ trade's recapture out of what a move *created* made the same finding count as
 *resolved*, and 2. exd5 said „the white pawn on e4 is no longer hanging" in the
 middle of the trade. It surfaced only when the ten reviewed games were rewritten
 and compared sentence by sentence — the unit tests were green.
+
+**The story prompt replaced the old one on 15.9.2026 — 2679 in the app with 1
+skipped, 1327 on the backend** with `.env` moved aside, analyze at 26 infos. The
+arithmetic: 2659 − 12 (`game_tutorial_answer_intro_test.dart`, whose rule is
+gone with the answer's introduction) + 32 (`game_tutorial_story_test.dart`);
+1324 + 3. `docs/PLAN-NARACIJA.md` has the measurement and the decision.
+
+**A request compared in part is a request compared nowhere in the rest.** The
+words request test held `moments` and `opening` to the harness, and the port
+added `story` and `arc` beside them — so four mutations to the arc's rules,
+including removing checkmate from the result, survived every test. It compares
+the key list now, and both new fields.
+
+**A test for two confusable wordings must compare by position, not by value.**
+`if (a == b) continue` skipped exactly the clash it existed for: the new
+„Back to the game. White played…" opened like the bridge „Back to the game.",
+one sentence counted as two bridges, and the guard stayed green.
+
+**Five more on 15.9.2026 — 2684 in the app with 1 skipped; the backend is
+untouched at 1327**, analyze at 26 infos and zero warnings. Three live findings,
+and the first two are the same lesson twice.
+
+**„And the line goes on" was a fact, not a sentence the model invented.** Every
+ply after the first of an answer line carried `; the best line goes on - not
+played`, and the second-best line carried `; the line goes on` — so the model
+gave them back verbatim, on every ply: „Black would answer Ra7. Not played
+either; best line goes on." Second time in this file: **when a model repeats its
+input word for word, the input is the product.** The marker is `; not played`
+now, which is the two words the prompt's rule keys on, and the prompt gained the
+rule that was missing — a sentence whose only content is that the line carries
+on is not written, and a move with nothing to tell gets the empty slot that was
+already allowed.
+
+**A comment on a move is a comment about the position after it.** „This move
+left the masters database: 698 master games reached this position and none
+played it" was written onto the departing move, so a student stood on a board no
+master game had ever reached and read that 698 had. It goes on the move
+*before* it now, names the moves the database plays there with their shares, and
+draws them as green arrows — blue stays „this is what was played". The same
+mistake in miniature is still in `bookWords`, whose „this position" is read on a
+lead-in slot: measured first, it reaches a slot in one of the ten games and
+never reaches `boardHere`, so it was left alone rather than reworded into
+something circular.
+
+**The gate compared every word of a part's `pgn` and not one arrow.** It reads
+both sides back through the child's parser, which strips `[%cal]` out of the
+comment — so the blue fork arrow, drawn since 14.9.2026, could have vanished
+with the gate still green. Arrows are compared now, root and per move, proved by
+deleting each colour in turn. And **all ten games leave the book between ply 3
+and ply 13**, so the branch that writes the sentence on a part's own board was
+unreachable from real data: `edge_cases.json` carries a g01 whose first move no
+master played. Same family as `edge_cases.json` itself.
+
+**And a question answered by measuring rather than by reading the code**:
+„can a sequence of moves be sent for a tutorial, not a whole game?" It can, and
+it already could — „Make a tutorial from this game" sends `root.fen` and the
+tree's main line, so a study position travels as it stands. What does not travel
+is the rest of the tree: the walk is `children.first`, so sidelines are dropped,
+and only UCI moves go out, so a trainer's own comments never reach the model.
+`game_tutorial_flow_test.dart` says both, and both halves were proved by
+mutation — **an answer about what a feature already does is a claim like any
+other.**
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

@@ -37,8 +37,6 @@ String oneDecimal(double val) {
   return val.toStringAsFixed(1);
 }
 
-String formatMaterial(int mat) => mat >= 0 ? '+$mat' : '$mat';
-
 String costText(Map<String, dynamic> played) {
   final cost = played['cost_pawns'];
   if (cost == 'mate') {
@@ -202,11 +200,269 @@ int answerPlyCount(String fen, String mover, List<String> line,
   return cut;
 }
 
+/// [level] of `standing` as the words a narration uses, from [side]'s view.
+String stands(String side, int? level) {
+  if (level == null) return 'the evaluation is unknown';
+  if (level == 4) return '$side has a forced mate';
+  if (level == -4) return '$side is getting mated';
+  if (level == 0) return 'it is about even';
+  final who = level > 0 ? side : _other(side);
+  const names = ['slightly better', 'clearly better', 'winning'];
+  return '$who is ${names[level.abs() - 1]}';
+}
+
+String _other(String side) => side == 'White' ? 'Black' : 'White';
+
+String points(int n) =>
+    n == 1 ? '1 point of material' : '$n points of material';
+
+bool quickMate(String? evalText) =>
+    evalText != null &&
+    evalText.startsWith('#') &&
+    int.parse(evalText.substring(1)).abs() <= 3;
+
+/// Whether a shown line is material given for activity — `_sacrifice` in
+/// `skeleton.py`.
+///
+/// Asked at the end of the line, never inside it: [answerPlyCount] already runs
+/// a line on while its mover is behind, so a line still behind where it ends is
+/// one whose compensation is not material — and the transient deficit inside
+/// `d4 cxd4 exd4` is a trade in progress, which „ever behind" called a
+/// sacrifice on the first draft of the rule (`docs/PLAN-NARACIJA.md`).
+bool sacrifice(String fen, String mover, List<String> sans, String? endEval) {
+  if (sans.isEmpty) return false;
+  final board = chess.Chess.fromFEN(fen);
+  final sign = mover == 'White' ? 1 : -1;
+  final start = sign * materialOf(board);
+  for (final san in sans) {
+    if (!board.move(san)) {
+      throw StateError('$san cannot be played from ${board.fen}');
+    }
+  }
+  final end = standing(endEval, mover);
+  return sign * materialOf(board) < start &&
+      end != null &&
+      end >= 0 &&
+      !quickMate(endEval);
+}
+
+/// The turning points of a game, in game order, as facts a narration may say —
+/// `game_story` in `skeleton.py`.
+///
+/// The owner's point of 14.9.2026: a comment's core is the swings — the first
+/// mistake that hands one side a big advantage, a chance one side gives the
+/// other and the other takes or misses, the last chance missed, and material
+/// given for activity. Every event is read off the evaluations and the board,
+/// so the model narrates it and cannot invent it.
+///
+/// Each event is `ply`, `kind`, `side` (whose event it is) and `text`.
+List<Map<String, dynamic>> gameStory(List<Map<String, dynamic>> rows) {
+  final events = <Map<String, dynamic>>[];
+  var firstBig = false;
+  final missed = <Map<String, dynamic>>[];
+
+  for (var i = 0; i < rows.length; i++) {
+    final row = rows[i];
+    final played = row['played'] as Map<String, dynamic>?;
+    final cands = row['candidates'] as List?;
+    if (played == null || cands == null || cands.isEmpty) continue;
+    final mover = row['to_move'] as String;
+    final before = standing((cands[0] as Map)['eval'] as String?, mover);
+    final after = standing(played['eval'] as String?, mover);
+    if (before == null || after == null) continue;
+
+    // Material for activity, among the game's own moves: the reply takes on
+    // the square this move landed on, the side is still down against where it
+    // stood after its own next move — so a trade half made is not a
+    // sacrifice — and it is not worse for it, with no mate in three behind the
+    // evaluation. Without the square „16. Kh1 gives up material" on g05: a
+    // piece left loose earlier was taken after it.
+    var takenThere = false;
+    if (i + 1 < rows.length && rows[i + 1]['played'] != null) {
+      final here = chess.Chess.fromFEN(row['fen'] as String);
+      final landed = findMove(here, played['move'] as String).toAlgebraic;
+      here.move(played['move'] as String);
+      final reply =
+          findMove(here, (rows[i + 1]['played'] as Map)['move'] as String);
+      takenThere = reply.toAlgebraic == landed && isCapture(here, reply);
+    }
+    if (takenThere && i + 2 < rows.length && rows[i + 2]['played'] != null) {
+      final sign = mover == 'White' ? 1 : -1;
+      final thenPlayed = rows[i + 2]['played'] as Map<String, dynamic>;
+      final later = chess.Chess.fromFEN(rows[i + 2]['fen'] as String)
+        ..move(thenPlayed['move'] as String);
+      final given = sign *
+          (materialOf(later) -
+              materialOf(chess.Chess.fromFEN(row['fen'] as String)));
+      final then = standing(thenPlayed['eval'] as String?, mover);
+      if (given <= -1 &&
+          then != null &&
+          then >= 0 &&
+          !quickMate(thenPlayed['eval'] as String?)) {
+        events.add({
+          'ply': i,
+          'kind': 'activity',
+          'side': mover,
+          'text': 'with ${played['label']} $mover gives up material, and two '
+              'moves later is still ${points(-given)} behind and '
+              '${stands(mover, then)} - material for activity',
+        });
+      }
+    }
+
+    if (!(after <= -2 && -2 < before)) continue;
+    if (!firstBig) {
+      firstBig = true;
+      events.add({
+        'ply': i,
+        'kind': 'first_big_mistake',
+        'side': mover,
+        'text':
+            '${played['label']} is the first mistake of the game that gives '
+                'one side a big advantage: afterwards ${stands(mover, after)}',
+      });
+    }
+    final next = i + 1 < rows.length ? rows[i + 1] : null;
+    final nextPlayed = next?['played'] as Map<String, dynamic>?;
+    final nextCands = next?['candidates'] as List?;
+    if (next == null ||
+        nextPlayed == null ||
+        nextCands == null ||
+        nextCands.isEmpty) {
+      continue;
+    }
+    final nextMover = next['to_move'] as String;
+    final reply = standing(nextPlayed['eval'] as String?, nextMover);
+    if (reply == null) continue;
+    final chance = _other(mover);
+    final event = <String, dynamic>{
+      'ply': i + 1,
+      'kind': reply >= 2 ? 'chance_taken' : 'chance_missed',
+      'side': chance,
+      'text': '${played['label']} hands $chance a chance, and $chance '
+          '${reply >= 2 ? 'takes' : 'misses'} it with ${nextPlayed['label']}: '
+          'afterwards ${stands(nextMover, reply)}',
+    };
+    events.add(event);
+    if (reply < 2) missed.add(event);
+  }
+  if (missed.isNotEmpty) {
+    final last = missed.last;
+    last['kind'] = 'last_chance_missed';
+    last['text'] = (last['text'] as String).replaceFirst(' misses it with ',
+        ' misses it - the last chance of the game given and not taken - with ');
+  }
+  // Stable, as Python's `sort` is.
+  final ordered = [for (var k = 0; k < events.length; k++) (k, events[k])]
+    ..sort((a, b) {
+      final byPly = (a.$2['ply'] as int).compareTo(b.$2['ply'] as int);
+      return byPly != 0 ? byPly : a.$1.compareTo(b.$1);
+    });
+  return [for (final e in ordered) e.$2];
+}
+
+const _tactical = [
+  'fork', 'pin', 'skewer', 'hanging', 'attacked', 'defender', 'mate', //
+  'discovered', 'overload', 'deflect', 'trapped', 'defended only',
+];
+const _positional = [
+  'isolated', 'backward', 'doubled', 'weak', 'open file', 'open g-file', //
+  'bishop pair', 'centre', 'passed', 'outpost', 'space', 'squares',
+  'half-open', 'pawn chain',
+];
+
+/// What the first words may promise and the last words may say — `game_arc`
+/// in `skeleton.py`.
+///
+/// The owner, 14.9.2026: the beginning should tell what kind of game is coming
+/// and the end who won. The result is the board's (mate, stalemate) or the last
+/// evaluation, because the Analysis export records no result, and a
+/// resignation nobody recorded is not a fact. Counts are said per side, because
+/// „4 turning points (2 chances missed)" was read as „two chances each side
+/// lets slip".
+Map<String, String> gameArc(List<Map<String, dynamic>> rows) {
+  final events = gameStory(rows);
+  final turns = events.where((e) => e['kind'] != 'activity').toList();
+  final missed = events
+      .where((e) =>
+          e['kind'] == 'chance_missed' || e['kind'] == 'last_chance_missed')
+      .toList();
+  final bySide = {
+    for (final side in const ['White', 'Black'])
+      side: missed.where((e) => e['side'] == side).length,
+  };
+  var tactical = 0;
+  var positional = 0;
+  for (final row in rows) {
+    final motifs = row['motifs_after_played'] as String? ?? '';
+    for (final sentence in motifs.split(RegExp(r'(?<=[.])\s+'))) {
+      final low = sentence.toLowerCase();
+      if (_tactical.any(low.contains)) {
+        tactical++;
+      } else if (_positional.any(low.contains)) {
+        positional++;
+      }
+    }
+  }
+  final played = rows.where((r) => r['played'] != null).toList();
+  final last = rows.last;
+  final board = chess.Chess.fromFEN(last['fen'] as String);
+  final String result;
+  final lastCands = last['candidates'] as List?;
+  if (board.in_checkmate) {
+    final white = board.turn == chess.Color.WHITE;
+    result = '${white ? 'White' : 'Black'} is checkmated: '
+        '${white ? 'Black' : 'White'} wins';
+  } else if (board.in_stalemate) {
+    result = 'stalemate: a draw';
+  } else if (lastCands != null && lastCands.isNotEmpty) {
+    result = 'no result is recorded; when the game stops, '
+        '${wordsFor((lastCands[0] as Map)['eval'] as String?)}';
+  } else {
+    result = 'no result is recorded and the last position has no evaluation';
+  }
+  final named = [
+    for (final r in rows)
+      if (r['book'] is Map && (r['book'] as Map)['opening'] != null)
+        (r['book'] as Map)['opening'] as String
+  ];
+  final kind = tactical >= 2 * positional
+      ? 'mostly tactical'
+      : positional > tactical
+          ? 'mostly positional'
+          : 'tactical and positional in turn';
+  final missedWords = missed.isEmpty
+      ? 'none'
+      : [
+          for (final entry in bySide.entries)
+            if (entry.value > 0) '${entry.key} missed ${entry.value}'
+        ].join(', ');
+  final character = '${(played.length + 1) ~/ 2} moves; ${turns.length} '
+      'turning points in all; chances missed: $missedWords; the motif sentences '
+      'of the game are $tactical tactical and $positional positional - $kind';
+  final opening = 'before the first move: $character'
+      '${named.isNotEmpty ? '; the opening is the ${named.last}' : ''}. The '
+      'program names the opening right after this, so do not name it. In one or '
+      'two sentences tell the student what kind of game is coming - quiet or '
+      'full of turns, a tactical or a positional fight - and what to watch for, '
+      'without saying who wins and without naming a move.';
+  final lastLabel = played.isNotEmpty
+      ? (played.last['played'] as Map)['label'] as String
+      : 'no moves';
+  final ending = 'after the last move ($lastLabel): $result; '
+      '${turns.isNotEmpty ? 'the last turning point: ${turns.last['text']}' : 'nothing in the story changed who stands better'}. '
+      'In one sentence end the story: who came out on top and what decided it, '
+      'from the story of the game. Do not invent a resignation, a clock or a '
+      'result that is not here.';
+  return {'opening': opening, 'ending': ending};
+}
+
 List<Map<String, dynamic>> skeletonMoments(
   Map<String, dynamic> facts, {
   SkeletonParameters parameters = const SkeletonParameters(),
 }) {
   final rows = (facts['rows'] as List).cast<Map<String, dynamic>>();
+  final story = gameStory(rows);
 
   final heavy = heavyIndices(rows, parameters.minCost);
 
@@ -227,7 +483,6 @@ List<Map<String, dynamic>> skeletonMoments(
     final mid = 'm$number';
     final row = rows[i];
     final mover = row['to_move'] as String;
-    final black = mover == 'Black';
     final candidates = (row['candidates'] as List).cast<Map<String, dynamic>>();
     final best = candidates[0];
     final near = (parameters.near * 100).round();
@@ -283,8 +538,18 @@ List<Map<String, dynamic>> skeletonMoments(
         });
       }
       final intro = '$mid.lead.intro';
+      // „The board just before these moves, with Black to play. Material is
+      // level." — the owner, 14.9.2026: a sentence with no meaning to a
+      // listener, faithfully made of the fact this slot used to carry.
+      final startCands = rows[start]['candidates'] as List?;
+      final startEval = startCands != null && startCands.isNotEmpty
+          ? (startCands[0] as Map)['eval'] as String?
+          : null;
+      final materialWords = before == 0
+          ? 'material is level'
+          : '${before > 0 ? 'White' : 'Black'} is ${points(before.abs())} up';
       slots[intro] =
-          'the board before these moves (${rows[start]['to_move']} to move); material White minus Black is ${formatMaterial(before)} before them and ${formatMaterial(materialOf(board))} after them';
+          'the scene, a few moves before the moment: ${rows[start]['to_move']} to move, ${wordsFor(startEval)}, $materialWords. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.';
       slotFacts[intro] = {
         'gain': 0,
         'mate': false,
@@ -338,7 +603,6 @@ List<Map<String, dynamic>> skeletonMoments(
 
     // The answer: the best line.
     final board = chess.Chess.fromFEN(row['fen'] as String);
-    final before = materialOf(board);
     final moves = <Map<String, dynamic>>[];
     final lineSans = (best['line'] as String)
         .split(RegExp(r'\s+'))
@@ -350,50 +614,59 @@ List<Map<String, dynamic>> skeletonMoments(
     for (var k = 1; k <= lineMoves.length; k++) {
       final san = lineMoves[k - 1];
       final sid = '$mid.answer.$k';
-      final info = playMoveOnBoard(
-        board,
-        san,
-        verb: k == 1 ? 'should have played' : 'would answer',
-      );
-      slots[sid] =
-          '${info['words']}${k == 1 ? '; not played - the best move the game missed' : '; not played - the line goes on'}';
+      final info = playMoveOnBoard(board, san);
+      // A move of the best line did not happen, and the slot says so in its
+      // own words — a student met „Black plays Qf6 instead of the game move
+      // bxa3" and, one click later, „Black plays Qf6 … this is the best move".
+      //
+      // **Not „the best line goes on".** That phrase was written here as a
+      // fact and came back out of the model as a sentence, on every ply of
+      // every answer line — „Black would answer Ra7. Not played either; best
+      // line goes on." The owner read it on 15.9.2026 and asked for it to
+      // stop. A fact a model has nothing to add to is a fact it repeats, so
+      // the marker is the two words the prompt's rule keys on and nothing
+      // more; the prompt now also says that a move with nothing to tell gets
+      // an empty slot rather than a sentence about the line continuing.
+      var text =
+          '${info['words']}${k == 1 ? '; the best move, which the game did not play' : '; not played'}';
+      final bestEval = best['eval'] as String?;
+      if (k == 1 &&
+          sacrifice(row['fen'] as String, mover, lineMoves, bestEval)) {
+        text +=
+            '; this line gives material for activity: at its end $mover is still material down and ${stands(mover, standing(bestEval, mover))}, and not because of a quick mate';
+      }
+      slots[sid] = text;
       slotFacts[sid] = {
         ...info,
         'motifs': '',
       };
       moves.add({'san': san, 'slot': sid});
     }
-    final intro = '$mid.answer.intro';
-    // **The introduction does not name the move, and that is the point.** It
-    // used to open „$mover should have played ${best['move']} instead of the game
-    // move ${played['move']}", and the slot right after it opens „should have
-    // played ${best['move']}" too — so every answer part said the same move
-    // twice in two consecutive sentences (the owner, 14.9.2026, on „Lost
-    // chances"). The model was faithful; it was handed the same fact twice.
-    // The introduction frames what the game did and what the line is worth,
-    // the first move of the line names it as it appears on the board — which
-    // is also the better lesson, since a move read before it is played is a
-    // move given away. The instruction is written into the fact the way the
-    // question slot's already is; that is the idiom here, not a new one.
-    slots[intro] =
-        'the answer: the game went ${played['move']}, which ${costText(played)}. At the end of the best line ${wordsFor(best['eval'] as String?)}; material White minus Black goes from ${formatMaterial(before)} to ${formatMaterial(materialOf(board))} over the moves shown. Say in one sentence that $mover had something better here, without naming the move or its destination square - the move after this sentence names it.';
-    final change = materialOf(board) - before;
-    final gain = change > 0
-        ? (!black ? change : 0)
-        : (change < 0 ? (black ? -change : 0) : 0);
-    slotFacts[intro] = {
-      'gain': gain,
-      'mate': false,
-      'fork': false,
-      'pin': false,
-      'motifs': '',
+    // **The owner's order at a mistake**, 14.9.2026: first what was played —
+    // drawn as a blue arrow and not played — then „The best move was…", and
+    // only then the line, in a part of its own. The program says it; the model
+    // is not asked to, and the answer part has no introduction.
+    final fork = '$mid.fork';
+    final playedMove = findMove(
+        chess.Chess.fromFEN(row['fen'] as String), played['move'] as String);
+    final program = <String, String>{
+      fork: 'In this position $mover played ${played['move']}. '
+          'The best move was…',
     };
+    parts.add({
+      'kind': 'show',
+      'fen': row['fen'],
+      'intro': fork,
+      'moves': <Map<String, dynamic>>[],
+      'program': true,
+      'arrow': [playedMove.fromAlgebraic, playedMove.toAlgebraic],
+    });
     // Marked, not inferred from the slot ids: what follows this part is the
     // game again, and the student has to be told so.
     parts.add({
       'kind': 'show',
       'fen': row['fen'],
-      'intro': intro,
+      'intro': null,
       'moves': moves,
       'sideline': true,
     });
@@ -436,10 +709,9 @@ List<Map<String, dynamic>> skeletonMoments(
         for (var k = 1; k <= otherShown; k++) {
           final san = otherSans[k - 1];
           final sid = '$mid.other.$k';
-          final info = playMoveOnBoard(otherBoard, san,
-              verb: k == 1 ? 'could have played' : 'would answer');
+          final info = playMoveOnBoard(otherBoard, san);
           slots[sid] =
-              '${info['words']}${k == 1 ? '; the next best move, and not as good as ${best['move']}' : '; the line goes on'}';
+              '${info['words']}${k == 1 ? '; the next best move, and not as good as ${best['move']}' : '; not played'}';
           slotFacts[sid] = {...info, 'motifs': ''};
           otherMoves.add({'san': san, 'slot': sid});
         }
@@ -484,6 +756,11 @@ List<Map<String, dynamic>> skeletonMoments(
       'parts': parts,
       'slots': slots,
       'facts': slotFacts,
+      'program': program,
+      'events': [
+        for (final e in story)
+          if (e['ply'] == i) e['text']
+      ],
     });
   }
 

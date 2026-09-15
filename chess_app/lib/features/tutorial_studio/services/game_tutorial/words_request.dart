@@ -14,7 +14,7 @@ library;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_assembly.dart'
     show bookSummary;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_moments.dart'
-    show skeletonMoments;
+    show gameArc, gameStory, skeletonMoments;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 
 /// The request for the words of [facts]' tutorial.
@@ -25,10 +25,16 @@ Map<String, dynamic> wordsRequestOf(
   required String movetext,
   SkeletonParameters parameters = const SkeletonParameters(),
 }) {
-  final opening = bookSummary(facts['rows'] as List);
+  final rows = (facts['rows'] as List).cast<Map<String, dynamic>>();
+  final opening = bookSummary(rows);
   return {
     'game': movetext,
     'opening': opening.isEmpty ? null : opening,
+    // The turning points and the arc are facts the program computes; the
+    // server writes them into the prompt as it writes the slots
+    // (docs/PLAN-NARACIJA.md).
+    'story': [for (final e in gameStory(rows)) e['text']],
+    'arc': gameArc(rows),
     'moments': [
       for (final m in skeletonMoments(facts, parameters: parameters))
         _momentRequest(m),
@@ -43,6 +49,9 @@ Map<String, dynamic> _momentRequest(Map<String, dynamic> m) {
   final texts = (m['slots'] as Map).cast<String, String>();
   final slots = <Map<String, dynamic>>[];
   for (final part in (m['parts'] as List).cast<Map<String, dynamic>>()) {
+    // The program's own sentence — „In this position White played Bd3." — is
+    // no slot of the model's.
+    if (part['program'] == true) continue;
     final ids = <String>[
       if (part['intro'] != null) part['intro'] as String,
       if (part['instruction'] != null) part['instruction'] as String,
@@ -65,6 +74,7 @@ Map<String, dynamic> _momentRequest(Map<String, dynamic> m) {
     'left_book': m['left_book'],
     'turning_point': m['turning_point'],
     'board': m['board'],
+    'events': m['events'],
     'slots': slots,
   };
 }

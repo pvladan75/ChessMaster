@@ -70,6 +70,13 @@ void main() {
 
       expect(jsonEncode(made['moments']), jsonEncode(expected['moments']));
       expect(made['opening'], expected['opening']);
+      // The story and the arc go into the prompt as facts (docs/PLAN-NARACIJA.md)
+      // and were compared nowhere: four mutations to the arc's rules survived
+      // every test until these two lines. The key list says nothing else was
+      // added to the request on one side only.
+      expect(made.keys.toList(), expected.keys.toList());
+      expect(made['story'], expected['story']);
+      expect(made['arc'], expected['arc']);
       expect(
           _moves(made['game'] as String), _moves(expected['game'] as String));
       expect(made['game'], isNot(contains('[')),

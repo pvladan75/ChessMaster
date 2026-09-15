@@ -172,8 +172,10 @@ void main() {
         final alternative = _alternativeOf(moment);
         if (alternative == null) continue;
 
-        final answerAt = parts
-            .indexWhere((p) => p['intro'] == '${moment['id']}.answer.intro');
+        // The answer part has had no introduction since the program's own
+        // „The best move was…" part took its place (docs/PLAN-NARACIJA.md).
+        final answerAt = parts.indexWhere(
+            (p) => p['sideline'] == true && p['alternative'] != true);
         expect(parts.indexOf(alternative), answerAt + 1,
             reason: '${moment['id']}: the alternative follows the answer');
 
@@ -185,10 +187,7 @@ void main() {
 
         // It opens on the moment's own board, so the child sees the same
         // position they were just asked about.
-        expect(
-            alternative['fen'],
-            parts.firstWhere(
-                (p) => p['intro'] == '${moment['id']}.answer.intro')['fen']);
+        expect(alternative['fen'], parts[answerAt]['fen']);
       }
     }
   });

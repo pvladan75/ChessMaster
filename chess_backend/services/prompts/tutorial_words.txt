@@ -1,18 +1,42 @@
-# Write the words for a chess tutorial
+# Write the words for a chess tutorial, as the story of a game
 
 A trainer's game is being turned into a tutorial that a student of 13 or older
-walks through alone, on a board, with every sentence read aloud. The student plays
-in a club and knows how the pieces move and what a fork and a pin are.
+walks through alone, on a board, with every sentence read aloud one after the
+other. The student plays in a club and knows how the pieces move and what a fork
+and a pin are.
 
 **Everything except the words is already done**, by a program and a chess
 engine: every position, every move, every question and every correct answer.
 None of it can change. You do two things.
 
 1. **Choose** two or three of the moments below - the ones a student learns the
-   most from - by their ids.
+   most from - by their ids. Prefer the moments the story of the game turns on.
 2. **Write** a title (under 60 characters), a one-sentence description, one or
    two tags, and the text of **every slot of the moments you chose**, and of no
    other slot.
+
+## The voice
+
+A game of chess is a fight, and the tutorial tells it. Everything you write is
+heard in order, together with a few sentences the program adds, as **one story**:
+where the fight stands, who is pressing, the chance one side gives the other,
+what was taken or missed, and what it cost.
+
+- **The board plays each move while its slot is read.** Never announce the move
+  („Black plays Qc7") and never describe where a piece goes („the queen from d8
+  to c7") - the student is watching it happen. Say what the move means: what it
+  attacks, defends, prepares, allows or gives away.
+- **Name a move in notation only when it is not the move of this slot.**
+- **Carry on from the slot before.** Do not open two slots with the same words,
+  and do not start every sentence with a colour.
+- **A move slot of a lead-in or of a line may be an empty string** ("") when the
+  move needs no words; the board waits over it in silence. Leave at most half of
+  a part's move slots empty, and never the first move of a best line.
+- **Never write a sentence whose only content is that the line carries on.**
+  „The line goes on", „and the line continues", „this is how the line goes" say
+  nothing a student can use, and they read as the same sentence four times over.
+  If a move has nothing to tell, its slot is the empty string.
+- Short, concrete sentences in the present tense.
 
 ## Rules for every sentence
 
@@ -21,10 +45,9 @@ None of it can change. You do two things.
   material count bears it out; a fork or a pin exists only if the facts name it.
 - **No numbers for evaluations.** The facts turn them into words; use the words.
 - **A move slot is about that one move**, not the move after it.
-- **Keep „played" for what was played.** A slot that says „not played" is a move
-  the game did not contain, and the facts already say „should have played" or
-  „would answer" for it - keep that voice. A student must be able to tell what
-  happened from what should have without doing arithmetic.
+- **Keep what happened apart from what should have.** A slot marked „not played"
+  is a move the game did not contain: say it as a line that was there, never as
+  something that happened.
 - **A question never names a move in notation** - not its answer, and not the
   move played in the game either. Naming the rejected move eliminates a
   candidate and tells the student what not to look at, which is half the
@@ -37,7 +60,7 @@ None of it can change. You do two things.
 Return one JSON object and nothing else - no prose, no code fence:
 
 {{"title": "...", "description": "...", "tags": ["..."], "chosen": ["m2", "m5"],
- "slots": {{"m2.lead.intro": "...", "m2.lead.1": "...", "m2.question": "...", "...": "..."}}}}
+ "slots": {{"story.opening": "...", "m2.lead.intro": "...", "m2.lead.1": "...", "m2.question": "...", "...": "...", "story.ending": "..."}}}}
 
 ## The game
 
@@ -45,6 +68,24 @@ Return one JSON object and nothing else - no prose, no code fence:
 {game}
 ```
 
+## The story of the game
+
+Computed from the engine's evaluations, in game order. These are facts; tell
+them, do not add to them.
+
+{story}
+
+## The beginning and the end
+
+Two slots belong to the whole game, and both tutorials use them: the first words
+the student hears, and the last. Write both, with the same ids, in `slots`.
+
+{arc}
+
 ## The moments
+
+Before the best line of each moment the program itself says „In this position
+<side> played <move>. The best move was…" over the board, with the move played
+drawn as an arrow. Your first slot of the best line follows that sentence.
 
 {moments}

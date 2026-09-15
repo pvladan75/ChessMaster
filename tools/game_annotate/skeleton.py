@@ -45,6 +45,7 @@ import sys
 
 import chess
 import chess.pgn
+import chess.svg
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(HERE, 'input')
@@ -146,15 +147,16 @@ def material(board):
     return white - black
 
 
-def play(board, san, verb='plays'):
+def play(board, san):
     """Play [san] on [board]; the facts about that one move, as data and words.
 
-    `verb` is how the move is introduced, and it is the whole of how a
-    student tells what happened from what should have. A move of the best
-    line never happened, and "Black plays Qf6" reads exactly like the game -
-    which is what a student met on 13.9.2026, one click after "instead of
-    the game move bxa3". The model copies the voice it is given, so the
-    voice is what carries it.
+    **Data, not a sentence to copy.** The move used to arrive as „Black plays
+    Qc7: the queen from d8 to c7", and it came back as „Black plays Qc7, the
+    queen from d8 to c7" on 306 of 491 spoken sentences over the ten fixture
+    games (the owner, 14.9.2026; `docs/PLAN-NARACIJA.md`). The board plays the
+    move while its slot is read, so the move is named for the model's benefit
+    and the voice rule says not to announce it. Whether it was played or only
+    should have been is said by the slot's own ending, not by a verb here.
     """
     move = board.parse_san(san)
     mover = 'White' if board.turn else 'Black'
@@ -162,8 +164,8 @@ def play(board, san, verb='plays'):
     captured = board.piece_at(move.to_square)
     if board.is_en_passant(move):
         captured = chess.Piece(chess.PAWN, not board.turn)
-    words = ['%s %s %s: the %s from %s to %s' % (
-        mover, verb, san, NAME[piece.piece_type], chess.square_name(move.from_square),
+    words = ['%s by %s (%s %s-%s)' % (
+        san, mover, NAME[piece.piece_type], chess.square_name(move.from_square),
         chess.square_name(move.to_square))]
     gain = 0
     if captured:
@@ -324,10 +326,218 @@ def answer_ply_count(fen, mover, line, cfg):
     return cut
 
 
+def _stands(side, level):
+    """`standing` as the words a narration uses, from [side]'s point of view."""
+    if level is None:
+        return 'the evaluation is unknown'
+    if level == 4:
+        return '%s has a forced mate' % side
+    if level == -4:
+        return '%s is getting mated' % side
+    if level == 0:
+        return 'it is about even'
+    who = side if level > 0 else ('Black' if side == 'White' else 'White')
+    return '%s is %s' % (who, ('slightly better', 'clearly better', 'winning')[abs(level) - 1])
+
+
+def _points(n):
+    return '1 point of material' if n == 1 else '%d points of material' % n
+
+
+def _sacrifice(fen, mover, sans, end_eval):
+    """Whether a shown line is material given for activity.
+
+    Asked at the end of the line, never inside it: `answer_ply_count` already
+    runs a line on while its mover is behind, so a line still behind where it
+    ends is one whose compensation is not material - and the transient deficit
+    inside `d4 cxd4 exd4` is a trade in progress, which is what „ever behind"
+    called a sacrifice on the first draft of this.
+    """
+    if not sans:
+        return False
+    board = chess.Board(fen)
+    sign = 1 if mover == 'White' else -1
+    start = sign * material(board)
+    for san in sans:
+        board.push_san(san)
+    end = standing(end_eval, mover)
+    return sign * material(board) < start and end is not None and end >= 0 \
+        and not _quick_mate(end_eval)
+
+
+def _quick_mate(eval_text):
+    return bool(eval_text) and eval_text.startswith('#') and abs(int(eval_text[1:])) <= 3
+
+
+def game_story(rows):
+    """The turning points of a game, in game order, as facts a narration may say.
+
+    The owner's point of 14.9.2026: a comment's core is the swings - the first
+    mistake that hands one side a big advantage, a chance one side gives the
+    other and the other takes or misses, the last chance missed, and material
+    given for activity. Every event is read off the evaluations and the board,
+    so the model narrates it and cannot invent it. `docs/PLAN-NARACIJA.md`.
+
+    Returns a list of {'ply', 'kind', 'side', 'text'}; `ply` is the row whose
+    move the event is about, and `side` is who the event belongs to - the side
+    that made the mistake, took or missed the chance, or gave the material.
+    """
+    events = []
+    first_big = None
+    missed = []
+
+    def other(side):
+        return 'Black' if side == 'White' else 'White'
+
+    for i, row in enumerate(rows):
+        played, cands = row.get('played'), row.get('candidates')
+        if not played or not cands:
+            continue
+        mover = row['to_move']
+        before = standing(cands[0].get('eval'), mover)
+        after = standing(played.get('eval'), mover)
+        if before is None or after is None:
+            continue
+
+        # Material for activity, among the game's own moves: the side is down
+        # material against where it stood before this move, still so after
+        # its own next move - so a trade half made is not a sacrifice - and
+        # not worse for it, with no mate in three behind the evaluation.
+        # And the material has to go where this move went: the reply takes on
+        # the square this move landed on. Without it „16. Kh1 gives up
+        # material" on g05 - a piece left loose earlier was taken after it.
+        taken_there = False
+        if i + 1 < len(rows) and rows[i + 1].get('played') is not None:
+            here = chess.Board(row['fen'])
+            landed = here.parse_san(played['move']).to_square
+            here.push_san(played['move'])
+            reply = here.parse_san(rows[i + 1]['played']['move'])
+            taken_there = reply.to_square == landed and here.is_capture(reply)
+        if taken_there and i + 2 < len(rows) and rows[i + 2].get('played') is not None:
+            sign = 1 if mover == 'White' else -1
+            later = chess.Board(rows[i + 2]['fen'])
+            later.push_san(rows[i + 2]['played']['move'])
+            given = sign * (material(later) - material(chess.Board(row['fen'])))
+            then = standing(rows[i + 2]['played'].get('eval'), mover)
+            if given <= -1 and then is not None and then >= 0 and \
+                    not _quick_mate(rows[i + 2]['played'].get('eval')):
+                events.append({'ply': i, 'kind': 'activity', 'side': mover, 'text': (
+                    'with %s %s gives up material, and two moves later is still '
+                    '%s behind and %s - material for activity' % (
+                        played['label'], mover, _points(-given),
+                        _stands(mover, then)))})
+
+        if not (after <= -2 < before):
+            continue
+        # A chance handed to the other side.
+        if first_big is None:
+            first_big = i
+            events.append({'ply': i, 'kind': 'first_big_mistake', 'side': mover, 'text': (
+                '%s is the first mistake of the game that gives one side a big '
+                'advantage: afterwards %s' % (played['label'], _stands(mover, after)))})
+        nxt = rows[i + 1] if i + 1 < len(rows) else None
+        if not nxt or not nxt.get('played') or not nxt.get('candidates'):
+            continue
+        reply = standing(nxt['played'].get('eval'), nxt['to_move'])
+        if reply is None:
+            continue
+        if reply >= 2:
+            events.append({'ply': i + 1, 'kind': 'chance_taken', 'side': other(mover), 'text': (
+                '%s hands %s a chance, and %s takes it with %s: afterwards %s' % (
+                    played['label'], other(mover), other(mover),
+                    nxt['played']['label'], _stands(nxt['to_move'], reply)))})
+        else:
+            event = {'ply': i + 1, 'kind': 'chance_missed', 'side': other(mover), 'text': (
+                '%s hands %s a chance, and %s misses it with %s: afterwards %s' % (
+                    played['label'], other(mover), other(mover),
+                    nxt['played']['label'], _stands(nxt['to_move'], reply)))}
+            events.append(event)
+            missed.append(event)
+    if missed:
+        last = missed[-1]
+        last['kind'] = 'last_chance_missed'
+        last['text'] = last['text'].replace(' misses it with ', ' misses it - the last chance of the game given and not taken - with ')
+    events.sort(key=lambda e: e['ply'])
+    return events
+
+
+TACTICAL = ('fork', 'pin', 'skewer', 'hanging', 'attacked', 'defender', 'mate',
+            'discovered', 'overload', 'deflect', 'trapped', 'defended only')
+POSITIONAL = ('isolated', 'backward', 'doubled', 'weak', 'open file', 'open g-file',
+              'bishop pair', 'centre', 'passed', 'outpost', 'space', 'squares',
+              'half-open', 'pawn chain')
+
+
+def game_arc(rows):
+    """What the first words may promise and the last words may say.
+
+    The owner, 14.9.2026: the beginning should tell what kind of game is coming
+    - quiet or full of turns, a tactical or a positional fight - and the end who
+    won, where the tutorial said only „The game ended here". Every number is
+    read off the facts; the result is the board's (mate, stalemate) or the last
+    evaluation, because the Analysis export records no result (`[Result "*"]`
+    in every fixture game) and a resignation nobody recorded is not a fact.
+    """
+    events = game_story(rows)
+    turns = [e for e in events if e['kind'] != 'activity']
+    missed = [e for e in events if e['kind'] in ('chance_missed', 'last_chance_missed')]
+    by_side = {side: sum(1 for e in missed if e['side'] == side) for side in ('White', 'Black')}
+    tactical = positional = 0
+    for row in rows:
+        for sentence in re.split(r'(?<=[.])\s+', row.get('motifs_after_played') or ''):
+            low = sentence.lower()
+            if any(w in low for w in TACTICAL):
+                tactical += 1
+            elif any(w in low for w in POSITIONAL):
+                positional += 1
+    played = [r for r in rows if r.get('played')]
+    last = rows[-1]
+    board = chess.Board(last['fen'])
+    moves = len(played)
+    if board.is_checkmate():
+        result = '%s is checkmated: %s wins' % (
+            'White' if board.turn else 'Black', 'Black' if board.turn else 'White')
+    elif board.is_stalemate():
+        result = 'stalemate: a draw'
+    elif last.get('candidates'):
+        result = ('no result is recorded; when the game stops, %s'
+                  % words_for(last['candidates'][0].get('eval')))
+    else:
+        result = 'no result is recorded and the last position has no evaluation'
+    named = [r['book']['opening'] for r in rows if r.get('book') and r['book'].get('opening')]
+    kind = ('mostly tactical' if tactical >= 2 * positional else
+            'mostly positional' if positional > tactical else 'tactical and positional in turn')
+    # Said per side and in words a count cannot be misread from: round 2 of the
+    # measurement read „4 turning points (2 chances missed)" as „two chances
+    # each side lets slip" (g10, 14.9.2026).
+    character = ('%d moves; %d turning points in all; chances missed: %s; the motif '
+                 'sentences of the game are %d tactical and %d positional - %s' % (
+                     (moves + 1) // 2, len(turns),
+                     'none' if not missed else ', '.join(
+                         '%s missed %d' % (side, n) for side, n in by_side.items() if n),
+                     tactical, positional, kind))
+    opening = (
+        'before the first move: %s%s. The program names the opening right after '
+        'this, so do not name it. In one or two sentences tell the student what '
+        'kind of game is coming - quiet or full of turns, a tactical or a '
+        'positional fight - and what to watch for, without saying who wins and '
+        'without naming a move.' % (
+            character, ('; the opening is the %s' % named[-1]) if named else ''))
+    ending = (
+        'after the last move (%s): %s; %s. In one sentence end the story: who came '
+        'out on top and what decided it, from the story of the game. Do not invent '
+        'a resignation, a clock or a result that is not here.' % (
+            played[-1]['played']['label'] if played else 'no moves', result,
+            ('the last turning point: ' + turns[-1]['text']) if turns else
+            'nothing in the story changed who stands better'))
+    return {'opening': opening, 'ending': ending}
+
+
 def moments(name, cfg=None):
     """The candidate moments of a game, each with its parts and its slots."""
     cfg = dict(DEFAULTS, **(cfg or {}))
     rows = facts_of(name)['rows']
+    story = game_story(rows)
 
     heavy = [i for i, row in enumerate(rows)
              if row.get('played') and row.get('candidates')
@@ -340,7 +550,6 @@ def moments(name, cfg=None):
         mid = 'm%d' % number
         row = rows[i]
         mover = row['to_move']
-        black = mover == 'Black'
         best = row['candidates'][0]
         near = int(round(cfg['near'] * 100))
         correct = [c for c in row['candidates']
@@ -376,9 +585,21 @@ def moments(name, cfg=None):
                 moves.append({'san': game_move['move'], 'slot': sid, 'ply': r,
                               'fen_before': rows[r]['fen']})
             intro = '%s.lead.intro' % mid
-            slots[intro] = ('the board before these moves (%s to move); material White '
-                            'minus Black is %+d before them and %+d after them' % (
-                                rows[start]['to_move'], before, material(board)))
+            # „The board just before these moves, with Black to play. Material
+            # is level." - the owner, 14.9.2026: a sentence with no meaning to a
+            # listener, faithfully made of the fact this slot used to carry.
+            start_eval = (rows[start]['candidates'][0].get('eval')
+                          if rows[start].get('candidates') else None)
+            slots[intro] = (
+                'the scene, a few moves before the moment: %s to move, %s, %s. '
+                'Say in one sentence where the fight stands here - who is '
+                'pressing and what the game is about - so the moves after it '
+                'are heard as part of the story. Do not describe the board, '
+                'count material or say what is about to be played.' % (
+                    rows[start]['to_move'], words_for(start_eval),
+                    'material is level' if before == 0 else
+                    '%s is %s up' % (
+                        'White' if before > 0 else 'Black', _points(abs(before)))))
             facts[intro] = {'gain': 0, 'mate': False, 'fork': False, 'pin': False,
                             'motifs': ''}
             parts.append({'kind': 'show', 'fen': rows[start]['fen'],
@@ -406,53 +627,54 @@ def moments(name, cfg=None):
 
         # The answer: the best line.
         board = chess.Board(row['fen'])
-        before = material(board)
         moves = []
         line_sans = best['line'].split()
         shown = answer_ply_count(row['fen'], mover, line_sans, cfg)
         for k, san in enumerate(line_sans[:shown], 1):
             sid = '%s.answer.%d' % (mid, k)
-            info = play(board, san,
-                        verb='should have played' if k == 1
-                        else 'would answer')
-            # A move of the best line did not happen, and „this is the best
-            # move" does not say so. On 13.9.2026 a student met „Black plays
-            # Qf6 instead of the game move bxa3" and, one click later, „Black
-            # plays Qf6 … this is the best move" - the same verb for what
-            # happened and for what should have. The model copies the voice it
-            # is given, so the voice it is given carries the difference now.
+            info = play(board, san)
+            # A move of the best line did not happen, and the slot says so in
+            # its own words: a student met „Black plays Qf6 instead of the game
+            # move bxa3" on 13.9.2026 and, one click later, „Black plays Qf6 …
+            # this is the best move" - the same voice for what happened and for
+            # what should have.
+            # **Not „the best line goes on".** That phrase was written here as
+            # a fact and came back out of the model as a sentence, on every
+            # ply of every answer line - „Black would answer Ra7. Not played
+            # either; best line goes on." The owner read it on 15.9.2026 and
+            # asked for it to stop. A fact a model has nothing to add to is a
+            # fact it repeats, so the marker is the two words the prompt's
+            # rule keys on and nothing more; the prompt now also says that a
+            # move with nothing to tell gets an empty slot rather than a
+            # sentence about the line continuing.
             slots[sid] = info['words'] + (
-                '; not played - the best move the game missed' if k == 1
-                else '; not played - the line goes on')
+                '; the best move, which the game did not play' if k == 1
+                else '; not played')
+            if k == 1 and _sacrifice(row['fen'], mover, line_sans[:shown], best.get('eval')):
+                slots[sid] += ('; this line gives material for activity: at its '
+                               'end %s is still material down and %s, and not '
+                               'because of a quick mate' % (
+                                   mover, _stands(mover, standing(best.get('eval'), mover))))
             facts[sid] = dict(info, motifs='')
             moves.append({'san': san, 'slot': sid})
-        intro = '%s.answer.intro' % mid
-        # **The introduction does not name the move, and that is the point.**
-        # It used to open „%s should have played %s instead of the game move
-        # %s", and the slot right after it opens „should have played %s" too -
-        # so every answer part said the same move twice in two consecutive
-        # sentences (the owner, 14.9.2026, on „Lost chances"). The model was
-        # faithful; it was handed the same fact twice. The introduction frames
-        # what the game did and what the line is worth, the first move of the
-        # line names it as it appears on the board - which is also the better
-        # lesson, since a move read before it is played is a move given away.
-        # The instruction is written into the fact the way the question slot's
-        # already is; that is the idiom here, not a new one.
-        slots[intro] = (
-            'the answer: the game went %s, which %s. At the end of the best '
-            'line %s; material White minus Black goes from %+d to %+d over the '
-            'moves shown. Say in one sentence that %s had something better '
-            'here, without naming the move or its destination square - the '
-            'move after this sentence names it.' % (
-                played['move'], cost_text(played), words_for(best['eval']),
-                before, material(board), mover))
-        change = material(board) - before
-        facts[intro] = {'gain': max(0, change if not black else -change), 'mate': False,
-                        'fork': False, 'pin': False, 'motifs': ''}
+        # **The owner's order at a mistake**, 14.9.2026: first what was played -
+        # drawn as a blue arrow and not played - then „The best move was…", and
+        # only then the line, in a part of its own. The program says it; the
+        # model is not asked to, and the answer part has no introduction.
+        fork = '%s.fork' % mid
+        played_move = chess.Board(row['fen']).parse_san(played['move'])
+        program = {fork: 'In this position %s played %s. The best move was…' % (
+            mover, played['move'])}
+        parts.append({'kind': 'show', 'fen': row['fen'], 'intro': fork,
+                      'moves': [], 'program': True,
+                      # Square names, not indices: this is data the app's port reads back
+                      # out of JSON, where a tuple of ints would be a third encoding.
+                      'arrow': [chess.square_name(played_move.from_square),
+                                chess.square_name(played_move.to_square)]})
         # Marked, not inferred from the slot ids: what follows this part is
         # the game again, and the student has to be told so.
         parts.append({'kind': 'show', 'fen': row['fen'],
-                      'intro': intro, 'moves': moves, 'sideline': True})
+                      'intro': None, 'moves': moves, 'sideline': True})
 
             # **And what the next-best move does instead, where the best one gives
         # something up.** The owner asked for it on 14.9.2026, and asked for it
@@ -489,13 +711,11 @@ def moments(name, cfg=None):
                 other_moves = []
                 for k, san in enumerate(other_sans[:other_shown], 1):
                     sid = '%s.other.%d' % (mid, k)
-                    info = play(other_board, san,
-                                verb='could have played' if k == 1
-                                else 'would answer')
+                    info = play(other_board, san)
                     slots[sid] = info['words'] + (
                         '; the next best move, and not as good as %s'
                         % best['move'] if k == 1
-                        else '; the line goes on')
+                        else '; not played')
                     facts[sid] = dict(info, motifs='')
                     other_moves.append({'san': san, 'slot': sid})
                 other_intro = '%s.other.intro' % mid
@@ -527,7 +747,8 @@ def moments(name, cfg=None):
             'left_book': bool(played.get('left_book')),
             'best': best['move'], 'asks': asks,
             'correct': [c['move'] for c in correct], 'board': board_here,
-            'parts': parts, 'slots': slots, 'facts': facts,
+            'parts': parts, 'slots': slots, 'facts': facts, 'program': program,
+            'events': [e['text'] for e in story if e['ply'] == i],
         })
 
     # **The one moment the game turned on** - point 7 of the owner's live pass,
@@ -656,6 +877,8 @@ def words_request(name, cfg=None):
     for m in moments(name, cfg):
         slots = []
         for part in m['parts']:
+            if part.get('program'):
+                continue
             for sid in ([part.get('intro')] if part.get('intro') else []) + \
                        ([part['instruction']] if part.get('instruction') else []) + \
                        [mv['slot'] for mv in part.get('moves', [])]:
@@ -665,10 +888,13 @@ def words_request(name, cfg=None):
             'played': m['played'], 'cost_text': m['cost_text'], 'best': m['best'],
             'asks': m['asks'], 'correct': m['correct'], 'left_book': m['left_book'],
             'turning_point': m['turning_point'],
-            'board': m['board'], 'slots': slots,
+            'board': m['board'], 'events': m['events'], 'slots': slots,
         })
+    rows = facts_of(name)['rows']
     return {'game': game,
-            'opening': book_summary(facts_of(name)['rows']) or None,
+            'opening': book_summary(rows) or None,
+            'story': [e['text'] for e in game_story(rows)],
+            'arc': game_arc(rows),
             'moments': request_moments}
 
 
@@ -691,15 +917,22 @@ def prompt_from_request(request):
             # blundered", but "this is where you stopped playing what
             # masters play".
             head += '\nThis is the move that left the masters database.'
+        for event in m.get('events') or []:
+            head += '\nIn the story of the game: %s.' % event
         if m['board']:
             head += '\nOn the board: %s' % m['board']
         lines = [head, '', 'Slots, in the order the student meets them:']
         lines += ['- `%s`: %s' % (slot['id'], slot['text']) for slot in m['slots']]
         blocks.append('\n'.join(lines))
     opening = request.get('opening') or ''
+    story = '\n'.join('- %s.' % line for line in request.get('story') or []) \
+        or '- Nothing in this game changed who stands better by a big margin.'
+    arc = request.get('arc') or {}
     return PROMPT.format(
         game=request['game'], opening=(opening + '\n\n') if opening else '',
-        moments='\n\n'.join(blocks))
+        story=story, moments='\n\n'.join(blocks),
+        arc='\n'.join('- `story.%s`: %s' % (k, arc[k]) for k in ('opening', 'ending')
+                      if arc.get(k)))
 
 
 def prompt(name, cfg=None):
@@ -713,14 +946,36 @@ def _clean(text):
     return re.sub(r'\s+', ' ', text).strip()
 
 
+def _draw(node, played, masters):
+    """The arrows of one node: blue for a move that was played, green for the
+    moves masters play.
+
+    Two colours because they answer two different questions, and the student
+    meets both on one board at the departure from the book: „this is what was
+    played" and „this is what the database plays". The codes are the app's own
+    (`ChessArrow`), which is what `[%cal]` carries either way.
+    """
+    arrows = []
+    if played:
+        arrows.append(chess.svg.Arrow(chess.parse_square(played[0]),
+                                      chess.parse_square(played[1]), color='blue'))
+    for a in masters or []:
+        arrows.append(chess.svg.Arrow(chess.parse_square(a[0]),
+                                      chess.parse_square(a[1]), color='green'))
+    if arrows:
+        node.set_arrows(arrows)
+
+
 def _pgn(part, words):
     game = chess.pgn.Game()
     game.setup(chess.Board(part['fen']))
     game.comment = words.get(part['intro'], '') if part.get('intro') else ''
+    _draw(game, part.get('arrow'), part.get('arrows'))
     node = game
     for mv in part['moves']:
         node = node.add_variation(node.board().parse_san(mv['san']))
         node.comment = words.get(mv['slot'], '')
+        _draw(node, None, mv.get('arrows'))
     exporter = chess.pgn.StringExporter(headers=False, variations=False, comments=True)
     text = game.accept(exporter).strip()
     if not text.endswith('*'):
@@ -728,19 +983,25 @@ def _pgn(part, words):
     return text
 
 
-def _claims(sid, text, facts):
+def _claims(sid, text, facts, context=''):
     """What a sentence says that its facts do not bear out."""
     found = []
     low = text.lower()
+    # A story carries a pin or a mate from one slot to the next, and a check
+    # reading one slot at a time flagged „the pin is broken" on the move after
+    # the pin (round one of docs/PLAN-NARACIJA.md). What was shown for the
+    # moment so far - [context] - backs a word too; and a word said not to be
+    # there („no mate") is not a claim that it is.
+    low = re.sub(r"\b(no|not|without|never|isn't|is no longer)\b[^.,;]{0,24}", ' ', low)
     # What the model was shown beside this slot, and the motifs. A word is
     # backed when it is there; the rule it was given is „say only what the
     # facts beside the slot say", so that is the rule it is held to.
-    shown = (facts.get('text', '') + ' ' + facts.get('motifs', '')).lower()
+    shown = (facts.get('text', '') + ' ' + facts.get('motifs', '') + ' ' + context).lower()
     if re.search(r'[+-]\d+\.\d+|\b\d+\.\d+\b', text):
         found.append('%s prints an evaluation' % sid)
     if re.search(r'\b(win|wins|won|winning a)\b', low) and 'winning' not in low \
             and not facts.get('gain') and not facts.get('mate') and not facts.get('question') \
-            and 'winning' not in shown:
+            and 'winning' not in shown and ' mates in ' not in shown:
         found.append('%s says a move wins, and the facts show no material won' % sid)
     if re.search(r'\b(checkmate|mates|mate)\b', low) and not facts.get('mate') \
             and 'mate' not in shown and not facts.get('question'):
@@ -833,17 +1094,40 @@ def assemble(run_dir, name, meta, answer_text, cfg=None):
         for part in parts:
             used.update(s for s in [part.get('intro'), part.get('instruction')] if s)
             used.update(mv['slot'] for mv in part.get('moves', []))
+        context = ' '.join((moment.get('events') or []) + [moment.get('board') or ''])
         for sid in moment['slots']:
+            context += ' ' + moment['slots'][sid]
             if sid not in used:
                 continue
             wanted.add(sid)
+            # A move the model chose to leave in silence, which the voice rule
+            # allows - never the first move of a best line.
+            if given.get(sid) == '' and \
+                    re.search(r'[.](lead|answer|other)[.][0-9]+$', sid) and \
+                    not sid.endswith('.answer.1'):
+                report.setdefault('silent_slots', []).append(sid)
+                continue
             if not given.get(sid):
                 report['missing_slots'].append(sid)
             else:
-                report['claims'].extend(_claims(sid, given[sid], moment['facts'][sid]))
+                report['claims'].extend(_claims(sid, given[sid], moment['facts'][sid],
+                                                context))
         blocks.append((moment, parts))
+    rows = facts_of(name)['rows']
+    arc = game_arc(rows)
+    story_facts = ' '.join(e['text'] for e in game_story(rows))
+    for key in ('opening', 'ending'):
+        sid = 'story.' + key
+        wanted.add(sid)
+        if not given.get(sid):
+            report['missing_slots'].append(sid)
+        else:
+            report['claims'].extend(_claims(
+                sid, given[sid], {'text': arc[key], 'motifs': ''}, story_facts))
     report['unused_slots'] = sorted(set(given) - wanted)
     report['trimmed'] = trimmed
+    for moment, _ in blocks:
+        given.update(moment.get('program') or {})
 
     head = {
         'title': _clean(answer.get('title')),
@@ -852,13 +1136,35 @@ def assemble(run_dir, name, meta, answer_text, cfg=None):
         'language': 'en',
     }
     moments_only = [part for _, parts in blocks for part in parts]
+    key_words = _framed(moments_only, _bridged(moments_only, given, {}), given)
     _write(run_dir, 'tutorial.json',
-           dict(head, positionList=_steps(moments_only,
-                                          _bridged(moments_only, given, {}))))
+           dict(head, positionList=_steps(moments_only, key_words)))
 
     parts, words, report['game'] = whole_game(name, blocks, given, cfg)
     _write(run_dir, 'tutorial-game.json',
            dict(head, title=head['title'] + GAME_TITLE, positionList=_steps(parts, words)))
+
+
+def _framed(parts, words, given):
+    """The story's first words before the first part, its last after the last."""
+    out = dict(words)
+    if not parts:
+        return out
+    opening, ending = given.get('story.opening'), given.get('story.ending')
+    if opening:
+        first = parts[0]
+        key = first.get('intro') or _first_text_key(first, out)
+        if key:
+            first_said = (out.get(key) or '').strip()
+            out[key] = ('%s %s' % (opening, first_said)).strip()
+    if ending:
+        last = parts[-1]
+        keys = [mv['slot'] for mv in last.get('moves') or []] or \
+            [k for k in (last.get('intro'), last.get('instruction')) if k]
+        if keys:
+            said = (out.get(keys[-1]) or '').replace('The game ended here.', '').strip()
+            out[keys[-1]] = ('%s %s' % (said, ending)).strip()
+    return out
 
 
 def _write(run_dir, file_name, tutorial):
@@ -910,10 +1216,29 @@ LEXICON = {
         'Now back to the game as it was played.',
         'Returning to the moves of the game.',
     ],
+    # Where the game picks up again on a moment's own board. The story voice
+    # (docs/PLAN-NARACIJA.md): the same facts, told.
     'resumed': [
-        'Back in the game, {mover} played {move} instead; afterwards {after}.',
-        'Returning to the game, {mover} played {move} instead; afterwards {after}.',
-        'Back on the board, the game continued with {move} instead; afterwards {after}.',
+        'Back in the game, {mover} played {move}, and {after}.',
+        'Returning to the game, {mover} chose {move}, and {after}.',
+        'But the game went on with {move}, and {after}.',
+    ],
+    'story_first_big_mistake': [
+        'This is the first mistake of the game that hands one side a big advantage.',
+    ],
+    'story_chance_taken': [
+        '{mover} takes the chance.',
+        'And {mover} does not let the chance go.',
+    ],
+    'story_chance_missed': [
+        '{mover} lets the chance go.',
+        'The chance was there, and {mover} misses it.',
+    ],
+    'story_last_chance_missed': [
+        'That was the last chance of the game, and {mover} lets it go.',
+    ],
+    'story_activity': [
+        '{mover} is down material, and has activity for it.',
     ],
     # The mover was better and now it is about even.
     'advantage_gone': [
@@ -968,12 +1293,12 @@ def _pick(pool, used):
     return LEXICON[pool][n % len(LEXICON[pool])]
 
 
-def filler_words(rows, r, cfg, resumed, used):
+def filler_words(rows, r, cfg, resumed, used, events=None):
     """The sentence code writes on a game move no chosen moment narrates.
 
     Most such moves get none: a whole game of sentences like „White plays Nf3"
     is a narration nobody listens to past move ten, and the narrated walk
-    already waits over a move with no words. Four moves get one, each built
+    already waits over a move with no words. Three moves get one, each built
     from the facts alone and in the voice of what was played:
 
      * the move a moment's answer just refuted, where the game resumes -
@@ -981,9 +1306,6 @@ def filler_words(rows, r, cfg, resumed, used):
      * a costly mistake the model did not choose, when it changes who is
        better (`mistake_kind`) - a swing in silence reads as though nothing
        happened;
-     * the move that left the masters database, which the per-position
-       statistics could only ever say when a lead-in happened to reach it
-       (one game in ten, measured) and which a whole game always reaches;
      * the last move, for how the game ended.
 
     [used] counts each lexicon pool's uses in this tutorial.
@@ -991,26 +1313,23 @@ def filler_words(rows, r, cfg, resumed, used):
     row = rows[r]
     played = row['played']
     mover = row['to_move']
-    after = words_for(played.get('eval'))
     said = []
     if resumed:
-        # `words_for` can answer without a subject, and „afterwards about even"
-        # is what three of ten games said before this.
         said.append(_pick('resumed', used).format(
             mover=mover, move=played['move'],
-            after=('it is ' + after) if after in ('about even', 'a draw', 'checkmate')
-            else 'the evaluation is unknown' if after == 'unknown' else after))
+            after=_stands(mover, standing(played.get('eval'), mover))))
     elif _cost_value(played.get('cost_pawns')) >= cfg['min_cost'] and row.get('candidates'):
         best = row['candidates'][0]['eval']
         kind = mistake_kind(standing(best, mover), standing(played.get('eval'), mover))
         if kind:
-            said.append('%s plays %s. %s With the best move: %s. After this one: %s.' % (
-                mover, played['move'], _pick(kind, used), words_for(best), after))
-    book = row.get('book')
-    if played.get('left_book') and book:
-        said.append('This move left the masters database: %s reached this position '
-                    'and none played it.' % ('1 master game' if book['games'] == 1
-                                             else '%d master games' % book['games']))
+            # „White plays b4. This hands the opponent the better game. With the
+            # best move: about even. After this one: Black is slightly better."
+            # was the driest sentence of every tutorial; the board plays b4.
+            said.append('%s Now %s.' % (
+                _pick(kind, used), _stands(mover, standing(played.get('eval'), mover))))
+    # The turning points the model did not narrate, said where they happened.
+    for event in events or []:
+        said.append(_pick('story_' + event['kind'], used).format(mover=mover))
     return ' '.join(said)
 
 
@@ -1084,6 +1403,7 @@ def whole_game(name, blocks, given, cfg):
         # that does not replay.
         raise ValueError('%s: a row inside the game has no move played' % name)
     words = dict(given)
+    story = game_story(rows)
     parts = []
     report = {'filler_parts': 0, 'filler_moves': 0, 'filler_sentences': 0,
               'lexicon': {}}
@@ -1103,7 +1423,8 @@ def whole_game(name, blocks, given, cfg):
             san = rows[r]['played']['move']
             sid = 'game.%d' % r
             text = filler_words(rows, r, cfg, resumed=(r == start and start > 0),
-                                used=report['lexicon'])
+                                used=report['lexicon'],
+                                events=[e for e in story if e['ply'] == r])
             board.push_san(san)
             if r == end - 1:
                 text = (text + ' ' + ('Checkmate.' if board.is_checkmate()
@@ -1161,9 +1482,89 @@ def whole_game(name, blocks, given, cfg):
         parts.append(recap)
         report['recap'] = recap['moment']
 
+    left = _masters_departure(parts, words, rows)
+    if left is not None:
+        report['left_book_at'] = left
+
     words = _bridged(parts, words, report['lexicon'])
+    # The recap is the last part, and the story ends on the game's own last move
+    # rather than on a line that was never played.
+    words = _framed([p for p in parts if not p.get('moment')], words, given)
     report['parts'] = len(parts)
     return parts, words, report
+
+
+def _masters_departure(parts, words, rows):
+    """Where the game stopped following the masters, said on the last position
+    that really was in the database.
+
+    The sentence used to be `filler_words`' last line, written onto the move
+    that left the book - which in PGN is the comment on the position *after*
+    it. So a student stood on a position no master game had ever reached and
+    read „698 master games reached this position and none played it". The
+    owner read it on 15.9.2026 and asked for the statistic to be written where
+    it is true: on the position before the move, together with the moves the
+    database does play there, drawn as arrows.
+
+    The three arrows and the three names are the same three moves
+    (`book['alternatives']`, already capped at three by `add_book`), because a
+    list of names with no arrows is a list a listener cannot follow and an
+    arrow with no name is a line nobody can look up.
+
+    Nothing is mutated in place: a moment's parts are shared with the
+    key-moments tutorial, which was assembled before this runs.
+
+    Returns the row index the sentence was written at, or None.
+    """
+    r = next((i for i, row in enumerate(rows)
+              if (row.get('played') or {}).get('left_book') and row.get('book')),
+             None)
+    if r is None:
+        return None
+    row = rows[r]
+    book = row['book']
+    reached = ('1 master game' if book['games'] == 1
+               else '%d master games' % book['games'])
+    alternatives = book.get('alternatives') or []
+    played = ''
+    if alternatives:
+        played = ' and played %s' % ', '.join(
+            '%s %s' % (a['move'], share_words(a['share'])) for a in alternatives)
+    sentence = ('Up to here the game followed the masters database: %s reached '
+                'this position%s. %s played %s, which none of them did.' % (
+                    reached, played, row['to_move'], row['played']['move']))
+
+    board = chess.Board(row['fen'])
+    arrows = []
+    for a in alternatives:
+        move = board.parse_san(a['move'])
+        arrows.append([chess.square_name(move.from_square),
+                       chess.square_name(move.to_square)])
+
+    for index, part in enumerate(parts):
+        moves = part.get('moves') or []
+        at = next((i for i, mv in enumerate(moves) if mv.get('ply') == r), None)
+        if at is None:
+            continue
+        if at > 0:
+            # The move before it: its comment is read on the position the
+            # departing move is about to be played from.
+            slot = moves[at - 1]['slot']
+            fresh = list(moves)
+            if arrows:
+                fresh[at - 1] = dict(fresh[at - 1], arrows=arrows)
+            parts[index] = dict(part, moves=fresh)
+        else:
+            # It is the part's first move, so that position is the part's own
+            # board and the sentence belongs to the root.
+            slot = part.get('intro') or 'game.book.%d' % r
+            fresh = dict(part, intro=slot)
+            if arrows:
+                fresh['arrows'] = arrows
+            parts[index] = fresh
+        words[slot] = ' '.join(t for t in (words.get(slot), sentence) if t).strip()
+        return r
+    return None
 
 
 def _recap(blocks, words, rows):
@@ -1176,12 +1577,15 @@ def _recap(blocks, words, rows):
                        if p.get('sideline') and not p.get('alternative')), None)
         if answer is None or not answer.get('moves'):
             return None
+        # No pawns counted aloud, and the move played drawn again as it was at
+        # the moment itself.
         words['recap.intro'] = (
-            'Looking back: the game turned on %s. It %s, and this is what was '
-            'there instead.' % (moment['played'], moment['cost_text']))
+            'Looking back, the game turned on %s. This is what was there '
+            'instead.' % moment['played'])
+        fork = next((p for p in mparts if p.get('arrow')), None)
         return {'kind': 'show', 'fen': answer['fen'], 'intro': 'recap.intro',
                 'moves': answer['moves'], 'sideline': True,
-                'moment': moment['id']}
+                'moment': moment['id'], 'arrow': fork and fork['arrow']}
     return None
 
 

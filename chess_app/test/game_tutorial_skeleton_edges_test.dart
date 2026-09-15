@@ -24,6 +24,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_assembly.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_moments.dart';
 
@@ -59,6 +60,15 @@ String? _firstDifference(Object? expected, Object? actual, [String at = r'$']) {
 }
 
 Object? _asJson(Object? value) => jsonDecode(jsonEncode(value));
+
+/// The arrows the harness drew on a part's own board, as `[%cal]` names them.
+List<String> _harnessRootArrows(Map<String, dynamic> step) => [
+      for (final a in LessonStepLine.read(
+              fen: step['fen'] as String, pgn: step['pgn'] as String)
+          .line
+          .rootArrows)
+        a.toString()
+    ];
 
 void main() {
   final cases = _cases();
@@ -102,6 +112,33 @@ void main() {
         (assembly.report['claims'] as List)
             .where((c) => '$c'.endsWith('names its answer or its square')),
         isNotEmpty);
+  });
+
+  // Every one of the ten games leaves the masters database between ply 3 and
+  // ply 13, so the departure sentence always lands on a move node and the
+  // branch that writes it on a part's own board — the game whose *first* move
+  // no master played — was never reached. A gate built from real data cannot
+  // see what the data never does.
+  test('a game that leaves the book on its first move says so on its board',
+      () {
+    final expected = cases['departedExpected'] as Map<String, dynamic>;
+    final assembly = assembleSkeleton(
+        cases['departedFacts'] as Map<String, dynamic>,
+        cases['departedAnswer'] as String);
+    expect(
+        _firstDifference(expected['report'], _asJson(assembly.report)), isNull);
+    expect((assembly.report['game'] as Map)['left_book_at'], 0);
+    final first = (expected['tutorialGame']['positionList'] as List).first;
+    final board = (first['pgn'] as String).split('}').first;
+    // On the board the part opens on, and not on the move that leaves it.
+    expect(board, contains('followed the masters database'));
+    expect(board, contains('[%cal G'));
+    final made =
+        (assembly.tutorialGame!['positionList'] as List).first['pgn'] as String;
+    final line = LessonStepLine.read(fen: first['fen'] as String, pgn: made);
+    expect(line.line.rootComment, contains('followed the masters database'));
+    expect([for (final a in line.line.rootArrows) a.toString()],
+        [for (final a in _harnessRootArrows(first)) a]);
   });
 
   // Not from the harness, and it does not need to be: python-chess's

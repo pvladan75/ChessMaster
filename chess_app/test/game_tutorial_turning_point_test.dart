@@ -154,12 +154,12 @@ void main() {
         // sentence written here rather than on anything the model wrote.
         final last = whole.last as Map<String, dynamic>;
         expect(last['kind'], 'show');
-        expect(last['pgn'], contains('Looking back: the game turned on'));
+        expect(last['pgn'], contains('Looking back, the game turned on'));
 
         // Key moments never carries it.
         for (final step in only) {
           expect((step as Map)['pgn'] ?? '',
-              isNot(contains('Looking back: the game turned on')));
+              isNot(contains('Looking back, the game turned on')));
         }
       });
     }
@@ -194,8 +194,14 @@ void main() {
       expect(sans, contains(move['san']));
     }
 
-    // And the sentence says what it cost, in the words the rest of the
-    // tutorial uses for a cost.
-    expect(recap['pgn'], contains(moment['cost_text']));
+    // And the sentence names the move the game turned on, draws it as the
+    // moment's own part did, and counts no pawns aloud.
+    expect(recap['pgn'], contains(moment['played']));
+    final fork = (moment['parts'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((p) => p['program'] == true);
+    final arrow = (fork['arrow'] as List).join();
+    expect(recap['pgn'], contains('[%cal B$arrow]'));
+    expect(recap['pgn'], isNot(contains('pawns')));
   });
 }

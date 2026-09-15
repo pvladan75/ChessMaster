@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/game_from_moves.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
@@ -51,6 +52,7 @@ class _Runner implements GameTutorialRunner {
   final Map<String, dynamic>? askSlice;
   bool cancelled = false;
   int? depthAsked;
+  String? fenAsked;
   List<String>? movesAsked;
   double? minCostAsked;
   SkeletonParameters? sliceChosen;
@@ -69,6 +71,7 @@ class _Runner implements GameTutorialRunner {
     void Function(GameTutorialProgress progress)? onProgress,
   }) async {
     depthAsked = depth;
+    fenAsked = startFen;
     movesAsked = uciMoves;
     minCostAsked = parameters.minCost;
     for (final s in steps) {
@@ -117,7 +120,9 @@ final Map<String, dynamic> _facts = {
 Future<void> _pump(
   WidgetTester tester, {
   required _Runner runner,
+  String startFen = _start,
   List<String> moves = const ['e2e4', 'e7e5', 'g1f3'],
+  void Function(AnalysisNode root)? graft,
   List<ImportedTutorial>? opened,
   VoidCallback? onOpenEngineSettings,
   Future<SkeletonParameters?> Function(
@@ -127,7 +132,8 @@ Future<void> _pump(
   tester.view.physicalSize = const Size(360, 640);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
-  final root = analysisTreeFromMoves(_start, moves).root;
+  final root = analysisTreeFromMoves(startFen, moves).root;
+  graft?.call(root);
   await tester.pumpWidget(MaterialApp(
     theme: AppTheme.dark,
     home: Scaffold(
@@ -187,6 +193,37 @@ void main() {
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt(kGameTutorialDepthPreference), 20);
+  });
+
+  // **What the door sends, when the board is not a game from move one.** The
+  // owner asked on 15.9.2026 whether a sequence of moves — a study, a position
+  // with a line on it — can be made into a tutorial the way a whole game can.
+  // It can, and this is what says so: the position the tree stands on travels
+  // as the start, and the moves are that tree's main line. What does **not**
+  // travel is in the second half of this test: a sideline is not sent, so a
+  // study's branches are not part of what the engine is asked about.
+  testWidgets('a study position and its main line are what the run is given',
+      (tester) async {
+    const study = '4k3/8/8/8/8/8/4P3/4K3 w - - 0 1';
+    final runner = _Runner(finish: (_) => _result());
+    await _pump(
+      tester,
+      runner: runner,
+      startFen: study,
+      moves: const ['e2e4', 'e8d7', 'e4e5'],
+      // A second line off the root, as a study written in Analysis carries.
+      graft: (root) => root.children.add(AnalysisNode(
+          fen: '4k3/8/8/8/8/4K3/4P3/8 b - - 1 1',
+          moveSan: 'Ke1-e3',
+          moveUci: 'e1e3',
+          parent: root)),
+      opened: [],
+    );
+    await _startAt(tester, depth: 18);
+    await tester.pumpAndSettle();
+
+    expect(runner.fenAsked, study);
+    expect(runner.movesAsked, ['e2e4', 'e8d7', 'e4e5']);
   });
 
   testWidgets('a new depth is kept for next time', (tester) async {

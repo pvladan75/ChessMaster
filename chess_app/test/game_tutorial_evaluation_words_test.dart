@@ -123,7 +123,12 @@ void main() {
             final fen = step['fen'] as String;
             final harness = LessonStepLine.read(fen: fen, pgn: step['pgn']);
             expect(harness.rejectedMoves, 0, reason: '$kind: ${step['title']}');
-            expect(harness.line.movesSan, isNotEmpty);
+            // A part with no moves is the program's „In this position …
+            // The best move was…": it is all root words.
+            if (harness.line.movesSan.isEmpty) {
+              expect(harness.line.rootComment.trim(), isNotEmpty,
+                  reason: '$kind: ${step['title']}');
+            }
 
             final app = _rewritten(fen, harness);
             expect(app.replays, isTrue, reason: '$kind: ${step['title']}');

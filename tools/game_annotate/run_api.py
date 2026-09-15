@@ -319,7 +319,19 @@ def ask_openai(provider, model, prompt, timeout, base_url=None,
 def send(request, timeout):
     try:
         with urllib.request.urlopen(request, timeout=timeout) as answer:
-            return json.load(answer), None
+            started = time.time()
+            body = json.load(answer)
+            # An answer with nothing in it is not an answer. On 14.9.2026
+            # DeepSeek accepted twenty requests, sent `: keep-alive` for 900 s
+            # without ever starting them, and closed; the run was recorded as
+            # finished with an empty reply and no tokens, and nothing on the
+            # vendor's console said a request had arrived.
+            if isinstance(body, dict) and not (body.get('choices') or
+                                               body.get('candidates')):
+                return None, ('the server answered after %.0f s with no choices '
+                              '(%s)' % (time.time() - started,
+                                        json.dumps(body)[:300]))
+            return body, None
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode('utf-8', 'replace')[:600]
         # The key travels in the URL or a header, so neither goes into the
@@ -340,14 +352,23 @@ def send_stream(request, timeout):
     fault is reported with it and not kept: half a tutorial is not a result.
     """
     content, reasoning, usage, finish = [], [], None, None
-    started = last = time.time()
+    started = last = data_at = time.time()
     done = False
     try:
         with urllib.request.urlopen(request, timeout=timeout) as answer:
             for raw in answer:
                 line = raw.decode('utf-8', 'replace').strip()
                 if not line.startswith('data:'):
+                    # `: keep-alive` resets the socket's read timeout, so a
+                    # server that accepts a request and never starts it keeps
+                    # a run waiting for as long as it likes - 900 s on
+                    # DeepSeek, 14.9.2026. Silence is measured in data.
+                    if time.time() - data_at > timeout:
+                        return None, ('no data for %d s, only keep-alive: the '
+                                      'request was accepted and never started'
+                                      % timeout)
                     continue
+                data_at = time.time()
                 data = line[5:].strip()
                 if data == '[DONE]':
                     done = True
