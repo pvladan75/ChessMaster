@@ -10,7 +10,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { polyglotKey } = require('../services/mastersBook');
+const { polyglotKey } = require('../services/openingBook');
 const RANDOM = require('../services/polyglotRandom');
 const { cases } = require('./fixtures/polyglot_keys.json');
 

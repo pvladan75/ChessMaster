@@ -15,7 +15,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-sig
 
 const router = require('../routes/openingExplorer');
 const { authenticateToken } = require('../middleware/auth');
-const { createMastersBook } = require('../services/mastersBook');
+const { createOpeningBook } = require('../services/openingBook');
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -45,13 +45,13 @@ test('the walk is behind sign-in', () => {
 
 test('a walk answers with the positions the book holds', (t) => {
   const asked = [];
-  router.useMastersBook({
+  router.useOpeningBook({
     walk: (fens) => {
       asked.push(fens);
       return { positions: [{ fen: START, white: 1, draws: 0, black: 0, moves: [] }] };
     },
   });
-  t.after(() => router.useMastersBook(createMastersBook({ path: '' })));
+  t.after(() => router.useOpeningBook(createOpeningBook({ path: '' })));
   const res = call({ fens: [START] });
   assert.equal(res.statusCode, 200);
   assert.deepEqual(asked, [[START]]);
@@ -59,8 +59,8 @@ test('a walk answers with the positions the book holds', (t) => {
 });
 
 test('a body that is not a list of positions is a 400 with the reason', (t) => {
-  router.useMastersBook(createMastersBook({ path: 'unused.sqlite', openDatabase: () => { throw new Error('not opened'); } }));
-  t.after(() => router.useMastersBook(createMastersBook({ path: '' })));
+  router.useOpeningBook(createOpeningBook({ path: 'unused.sqlite', openDatabase: () => { throw new Error('not opened'); } }));
+  t.after(() => router.useOpeningBook(createOpeningBook({ path: '' })));
   for (const body of [undefined, {}, { fens: 'x' }, { fens: [] }]) {
     const res = call(body);
     assert.equal(res.statusCode, 400, JSON.stringify(body));
@@ -69,15 +69,15 @@ test('a body that is not a list of positions is a 400 with the reason', (t) => {
 });
 
 test('no database on this server is a 503 that says so', () => {
-  router.useMastersBook(createMastersBook({ path: '' }));
+  router.useOpeningBook(createOpeningBook({ path: '' }));
   const res = call({ fens: [START] });
   assert.equal(res.statusCode, 503);
   assert.equal(res.body.reason, 'not-configured');
 });
 
 test('anything else is a 500, not a crash', (t) => {
-  router.useMastersBook({ walk: () => { throw new Error('disk on fire'); } });
-  t.after(() => router.useMastersBook(createMastersBook({ path: '' })));
+  router.useOpeningBook({ walk: () => { throw new Error('disk on fire'); } });
+  t.after(() => router.useOpeningBook(createOpeningBook({ path: '' })));
   const res = call({ fens: [START] });
   assert.equal(res.statusCode, 500);
   assert.ok(!(res.body.error.includes('disk')), 'the cause is logged, not sent');

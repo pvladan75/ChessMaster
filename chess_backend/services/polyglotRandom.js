@@ -2,7 +2,7 @@
 // Written by tools/opening_book/export_polyglot.py - do not edit by hand.
 //
 // 768 for a piece on a square, 4 for castling rights, 8 for an en passant
-// file, 1 for White to move. See services/mastersBook.js for how they
+// file, 1 for White to move. See services/openingBook.js for how they
 // combine, and test/polyglot_keys.test.js for the proof they are right.
 
 module.exports = Object.freeze([
