@@ -73,7 +73,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
   }) async {
@@ -140,7 +139,6 @@ class _FakeApi extends RepertoireApiService {
   Future<StoredBook?> storedBook({
     required String color,
     required String fen,
-    int? minRating,
   }) async {
     bookReads += 1;
     return book;
@@ -151,7 +149,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String fen,
     required String uci,
-    int? minRating,
   }) async =>
       orphans;
 
@@ -160,7 +157,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required List<String> keys,
     bool includeDecisions = false,
-    int? minRating,
   }) async {
     pruned.add(includeDecisions);
     return keys.length;
@@ -171,7 +167,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     int depth = 8,
-    int? minRating,
     int? minGames,
   }) async {
     spineDepth = depth;
@@ -265,8 +260,7 @@ class _FakeJudge implements OpeningJudgeService {
   int asked = 0;
 
   @override
-  Future<OpeningJudgeLookup> judge(String fen, String move,
-      {int? minRating}) async {
+  Future<OpeningJudgeLookup> judge(String fen, String move) async {
     judged += 1;
     if (!bookAvailable) {
       return const OpeningJudgeLookup.unavailable('not-configured');
@@ -285,7 +279,7 @@ class _FakeJudge implements OpeningJudgeService {
   }
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async {
+  Future<OpponentRepliesLookup> replies(String fen) async {
     asked += 1;
     if (!bookAvailable) {
       return const OpponentRepliesLookup.unavailable('not-configured');
@@ -580,8 +574,7 @@ void main() {
 
   testWidgets('the engine answers on request, at the depth that was set',
       (tester) async {
-    // The local engine, so this costs no Lichess allowance — and it is asked
-    // by hand, because a screen that keeps an engine running is warming a phone
+    // The local engine, asked by hand, because a screen that keeps an engine running is warming a phone
     // to answer a question nobody put yet.
     engineAsked = null;
     await pump(tester);
@@ -594,7 +587,7 @@ void main() {
     expect(find.text('Engine'), findsOneWidget);
     expect(engineAsked, isNotNull);
     expect(find.text('+0.20'), findsOneWidget);
-    expect(find.textContaining('does not use Lichess quota'), findsOneWidget);
+    expect(find.textContaining('Local engine.'), findsOneWidget);
   });
 
   testWidgets('the engine line can be played, and is judged like any move',

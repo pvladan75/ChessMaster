@@ -112,8 +112,8 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     _color = _game.turn == chess.Color.WHITE ? 'w' : 'b';
     if (widget.nameFor == null) {
       // The names come from the bundled ECO dataset, so this costs no request
-      // and works with no token at all. It takes a second or two, and the field
-      // fills itself in when it arrives.
+      // and works offline. It takes a second or two, and the field fills itself
+      // in when it arrives.
       OpeningBookService.instance.ensureLoaded().then((_) {
         if (mounted) setState(_suggestName);
       });

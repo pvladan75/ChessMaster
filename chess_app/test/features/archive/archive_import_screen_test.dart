@@ -103,7 +103,6 @@ class FakeArchiveApiService implements ArchiveApiService {
     int? limit,
     bool? judge,
     int? judgeLimit,
-    int? minRating,
   }) async {
     throw UnimplementedError();
   }

@@ -33,7 +33,6 @@ import 'package:chess_app/features/analysis_studio/services/position_info_servic
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
-import 'package:chess_app/features/analysis_studio/services/chessdb_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
@@ -147,22 +146,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   bool _syzygyLoading = false;
   int _syzygyRequestId = 0;
 
-  // Lichess Opening Explorer state
+  // Opening explorer state
   final OpeningExplorerService _openingExplorerService =
       OpeningExplorerService.instance;
   OpeningExplorerResult? _openingExplorerResult;
+  String? _openingExplorerReason;
   bool _openingExplorerLoading = false;
   int _openingExplorerRequestId = 0;
-
-  /// False once a lookup came back unreachable — the panel then shows ChessDB
-  /// instead of an empty Lichess book. Reset on the next lookup, so one bad
-  /// minute does not cost the rest of the session.
-  bool _openingExplorerAvailable = true;
-
-  final ChessDbService _chessDbService = ChessDbService.instance;
-  ChessDbResult? _chessDbResult;
-  bool _chessDbLoading = false;
-  int? _openingExplorerMinRating;
 
   /// The verdict on one move, and the node it belongs to.
   ///
@@ -536,47 +526,21 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Future<void> _fetchOpeningExplorerIfEligible() async {
     final reqId = ++_openingExplorerRequestId;
 
-    final wantsChessDb =
-        AppSettingsService.instance.openingDbSource == 'chessdb';
-    AppLogger.log(
-        '[OpeningExplorer] 🔍 wantsChessDb=$wantsChessDb | FEN: ${_currentNode.fen}');
-
-    if (wantsChessDb) {
-      AppLogger.log('[OpeningExplorer] ⚙️ User selected ChessDB');
-      if (_openingExplorerResult != null || _openingExplorerLoading) {
-        setState(() {
-          _openingExplorerResult = null;
-          _openingExplorerLoading = false;
-        });
-      }
-      await _fetchChessDbFallback(reqId);
-      return;
-    }
-
     setState(() {
       _openingExplorerLoading = true;
       _openingExplorerResult = null;
-      _openingExplorerAvailable = true;
+      _openingExplorerReason = null;
     });
 
-    final lookup = await _openingExplorerService.lookup(
-      _currentNode.fen,
-      minRating: _openingExplorerMinRating,
-    );
+    final lookup = await _openingExplorerService.lookup(_currentNode.fen);
     if (!mounted || reqId != _openingExplorerRequestId) return;
 
-    // A book that could not be reached is not an opening nobody has played.
-    // Only the first of those may turn the panel into ChessDB, and only the
-    // log says which of the two it was.
     if (!lookup.isAvailable) {
-      AppLogger.log(
-          '[OpeningExplorer] ⛔ Unavailable (${lookup.reason}) — using ChessDB');
       setState(() {
-        _openingExplorerAvailable = false;
+        _openingExplorerReason = lookup.reason;
         _openingExplorerResult = null;
         _openingExplorerLoading = false;
       });
-      await _fetchChessDbFallback(reqId);
       return;
     }
 
@@ -586,31 +550,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     setState(() {
       _openingExplorerResult = result;
+      _openingExplorerReason = null;
       _openingExplorerLoading = false;
     });
-  }
-
-  Future<void> _fetchChessDbFallback(int reqId) async {
-    setState(() {
-      _chessDbLoading = true;
-      _chessDbResult = null;
-    });
-
-    final result = await _chessDbService.lookup(_currentNode.fen);
-    if (!mounted || reqId != _openingExplorerRequestId) return;
-
-    AppLogger.log(
-        '[ChessDB] 📊 Result: ${result == null ? "null" : "${result.moves.length} moves"}');
-
-    setState(() {
-      _chessDbResult = result;
-      _chessDbLoading = false;
-    });
-  }
-
-  void _onOpeningExplorerMinRatingChanged(int? minRating) {
-    setState(() => _openingExplorerMinRating = minRating);
-    _fetchOpeningExplorerIfEligible();
   }
 
   void _playUciMove(String uci) {
@@ -652,9 +594,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final lookup = await OpeningJudgeService.instance.judge(
       parent.fen,
       move,
-      // The same rating floor the opening panel is showing, so the two are
-      // never quietly answering about different sets of players.
-      minRating: _openingExplorerMinRating,
     );
     if (!mounted) return;
 
@@ -2053,15 +1992,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               ),
             if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
               OpeningExplorerPanelWidget(
-                useLichess: _openingExplorerAvailable &&
-                    AppSettingsService.instance.openingDbSource != 'chessdb',
                 isLoading: _openingExplorerLoading,
                 result: _openingExplorerResult,
-                minRating: _openingExplorerMinRating,
+                reason: _openingExplorerReason,
+                openingName: displayOpeningName,
                 onMoveSelected: _playUciMove,
-                onMinRatingChanged: _onOpeningExplorerMinRatingChanged,
-                chessDbResult: _chessDbResult,
-                isLoadingChessDb: _chessDbLoading,
               ),
           ],
         );

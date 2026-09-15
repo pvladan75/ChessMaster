@@ -88,12 +88,11 @@ const _advance =
 /// without a book behind it.
 class _SilentJudge implements OpeningJudgeService {
   @override
-  Future<OpeningJudgeLookup> judge(String fen, String move,
-          {int? minRating}) async =>
+  Future<OpeningJudgeLookup> judge(String fen, String move) async =>
       const OpeningJudgeLookup.unavailable('not-configured');
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
+  Future<OpponentRepliesLookup> replies(String fen) async =>
       const OpponentRepliesLookup.unavailable('not-configured');
 
   @override
@@ -113,7 +112,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     String? rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
     List<int>? ids,
@@ -125,7 +123,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     String? rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? fromFen,
     String? viaFen,
     String? viaUci,
@@ -145,7 +142,6 @@ class _FakeApi extends RepertoireApiService {
     required String fen,
     required String uci,
     bool revealed = false,
-    int? minRating,
     bool practice = false,
     bool onlyIfDue = false,
   }) async =>

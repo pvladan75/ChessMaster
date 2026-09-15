@@ -26,7 +26,7 @@ class GateOption {
 ///
 /// SAN is read from the library rather than assembled by hand — the same reason
 /// the rest of the app does: castling alone has three different spellings
-/// between the board, Lichess and the store, and this is the one place a wrong
+/// between the board, the book and the store, and this is the one place a wrong
 /// one would silently pick a different gate.
 List<GateOption> gateOptionsFor(String fen, {List<String> kept = const []}) {
   final chess.Chess game;

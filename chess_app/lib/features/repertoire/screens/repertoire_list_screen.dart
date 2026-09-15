@@ -10,7 +10,6 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// The repertoires a student has started, and the door to a new one.
@@ -60,9 +59,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     // about a third of a second each — and the list is what somebody opens to
     // choose where to work; it must be on screen while the numbers are still
     // being counted.
-    final progress = await _api.progress(
-      minRating: AppSettingsService.instance.repertoireMinRating,
-    );
+    final progress = await _api.progress();
     if (!mounted || progress == null) return;
     setState(() {
       _progress = {for (final row in progress) row.id: row};
@@ -88,7 +85,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
       rootFen: item.rootFen,
       rootPath: item.rootPath,
       gateUci: item.viaUci,
-      minRating: AppSettingsService.instance.repertoireMinRating,
       limit: 1,
     );
     if (!mounted) return;
@@ -124,7 +120,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         // position, there is no fork there for it to narrow, and applying it
         // would filter a position it says nothing about.
         gateUci: at == null ? item.viaUci : null,
-        minRating: AppSettingsService.instance.repertoireMinRating,
         breadth: item.breadth,
         api: widget.api,
         judge: widget.judge,
@@ -140,9 +135,9 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   }
 
   /// Practising what was built. A separate door rather than a mode inside the
-  /// build screen: building spends the reader's Lichess allowance and drilling
-  /// spends nothing, and two things that cost so differently should not look
-  /// like one button with a switch on it.
+  /// build screen: building is deciding what to play and drilling is
+  /// remembering it, and two things that different should not look like one
+  /// button with a switch on it.
   /// The map of a repertoire: how far each of the opponent's answers has been
   /// taken.
   ///
@@ -270,7 +265,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   Future<void> _delete(RepertoireSummary item) async {
     final preview = await _api.removalPreview(
       item.id,
-      minRating: AppSettingsService.instance.repertoireMinRating,
     );
     if (!mounted) return;
 
@@ -493,7 +487,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         rootFen: item.rootFen,
         rootPath: item.rootPath,
         gateUci: item.viaUci,
-        minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
         onBuildAt: (fen) {
           Navigator.of(context).pop();
@@ -545,7 +538,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
       builder: (_) => RepertoireDrillScreen(
         name: 'Combined',
         color: first.color,
-        minRating: AppSettingsService.instance.repertoireMinRating,
         api: widget.api,
         ids: _selectedIds.toList(),
       ),
@@ -568,7 +560,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         rootPath: item.rootPath,
         gateUci: item.viaUci,
         fromFen: from,
-        minRating: AppSettingsService.instance.repertoireMinRating,
         breadth: item.breadth,
         api: widget.api,
         // Landing in an unprepared position is the drill working as intended,
@@ -594,7 +585,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         rootFen: item.rootFen,
         rootPath: item.rootPath,
         gateUci: item.viaUci,
-        minRating: AppSettingsService.instance.repertoireMinRating,
         breadth: item.breadth,
         api: _api,
         onBuildHere: (fen) {
@@ -616,32 +606,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         title: const Text('Repertoire'),
         elevation: 0,
         actions: [
-          // The band the book answers from, on the screen that owns every
-          // repertoire rather than buried in Settings: it decides what "the
-          // most played move" means, which is the sentence the whole build
-          // loop is built on.
-          PopupMenuButton<int>(
-            tooltip: 'Opponent rating',
-            icon: const Icon(Icons.groups_outlined),
-            onSelected: (band) async {
-              await AppSettingsService.instance.setRepertoireMinRating(band);
-              if (!context.mounted) return;
-              setState(() {});
-              AppFeedback.info(context,
-                  'Book now answers from games rated $band and above.');
-            },
-            itemBuilder: (context) => [
-              for (final band in kRepertoireRatingBands)
-                PopupMenuItem(
-                  value: band,
-                  child: Text(
-                    band == AppSettingsService.instance.repertoireMinRating
-                        ? '$band+ ✓'
-                        : '$band+',
-                  ),
-                ),
-            ],
-          ),
           // Emptying a colour, and it is on the app bar rather than on a card
           // for one reason: the state it exists for is the one where there are
           // no cards. Delete every repertoire and the moves stay — they belong

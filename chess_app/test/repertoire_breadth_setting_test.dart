@@ -50,7 +50,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     int depth = 8,
-    int? minRating,
     int? minGames,
   }) async {
     spineCalls += 1;
@@ -62,7 +61,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
   }) async {
@@ -79,7 +77,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     int maxPly = 16,
     String? gateUci,
     String? breadth,
@@ -124,7 +121,6 @@ class _FakeApi extends RepertoireApiService {
   Future<StoredBook?> storedBook({
     required String color,
     required String fen,
-    int? minRating,
   }) async =>
       null;
 
@@ -135,7 +131,6 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     String? gateUci,
     String? breadth,
-    int? minRating,
     int? limit,
   }) async =>
       const RepertoireUnconfirmedWalk();
@@ -143,12 +138,11 @@ class _FakeApi extends RepertoireApiService {
 
 class _SilentJudge implements OpeningJudgeService {
   @override
-  Future<OpeningJudgeLookup> judge(String fen, String move,
-          {int? minRating}) async =>
+  Future<OpeningJudgeLookup> judge(String fen, String move) async =>
       const OpeningJudgeLookup.unavailable('not-configured');
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
+  Future<OpponentRepliesLookup> replies(String fen) async =>
       const OpponentRepliesLookup.unavailable('not-configured');
 
   @override

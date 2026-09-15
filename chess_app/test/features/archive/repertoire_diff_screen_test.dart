@@ -98,8 +98,7 @@ class FakeArchiveApiService implements ArchiveApiService {
           String? speed,
           int? limit,
           bool? judge,
-          int? judgeLimit,
-          int? minRating}) async =>
+          int? judgeLimit}) async =>
       const LeakReport(
           subject: 'test',
           games: 0,

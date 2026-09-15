@@ -107,7 +107,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String fen,
     required String uci,
-    int? minRating,
   }) async =>
       (keys: const <String>[], drafts: 0, decisions: 0);
 
@@ -129,7 +128,6 @@ class _FakeApi extends RepertoireApiService {
   Future<StoredBook?> storedBook({
     required String color,
     required String fen,
-    int? minRating,
   }) async {
     bookReads.add(fen);
     return const StoredBook(
@@ -147,7 +145,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
   }) async =>
@@ -174,7 +171,6 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     String? gateUci,
     String? breadth,
-    int? minRating,
     int? limit,
   }) async {
     unconfirmedCalls += 1;
@@ -186,7 +182,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     int maxPly = 16,
     String? gateUci,
     String? breadth,
@@ -265,8 +260,7 @@ class _FakeApi extends RepertoireApiService {
 /// `_openReplies` down its other path and never moves the board.
 class _RepliesJudge implements OpeningJudgeService {
   @override
-  Future<OpeningJudgeLookup> judge(String fen, String move,
-          {int? minRating}) async =>
+  Future<OpeningJudgeLookup> judge(String fen, String move) async =>
       const OpeningJudgeLookup.unavailable('not-configured');
 
   /// The position it was actually asked about, so a fixture that disagrees
@@ -274,7 +268,7 @@ class _RepliesJudge implements OpeningJudgeService {
   String? lastAsked;
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async {
+  Future<OpponentRepliesLookup> replies(String fen) async {
     lastAsked = fen;
     // Matched on the placement and the side to move, not the whole FEN: the
     // counters and the en-passant square are the board's arithmetic, and a
@@ -304,12 +298,11 @@ class _RepliesJudge implements OpeningJudgeService {
 
 class _SilentJudge implements OpeningJudgeService {
   @override
-  Future<OpeningJudgeLookup> judge(String fen, String move,
-          {int? minRating}) async =>
+  Future<OpeningJudgeLookup> judge(String fen, String move) async =>
       const OpeningJudgeLookup.unavailable('not-configured');
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
+  Future<OpponentRepliesLookup> replies(String fen) async =>
       const OpponentRepliesLookup.unavailable('not-configured');
 
   @override

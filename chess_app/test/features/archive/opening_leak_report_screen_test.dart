@@ -99,7 +99,6 @@ class FakeArchiveApiService implements ArchiveApiService {
     int? limit,
     bool? judge,
     int? judgeLimit,
-    int? minRating,
   }) async {
     judgeAsked.add(judge);
     final asked = judge == true;

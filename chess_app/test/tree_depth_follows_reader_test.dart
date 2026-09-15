@@ -40,7 +40,6 @@ class _WireApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     int? limit,
     String? gateUci,
     String? breadth,
@@ -66,12 +65,11 @@ class _WireApi extends RepertoireApiService {
 
 class _SilentJudge implements OpeningJudgeService {
   @override
-  Future<OpeningJudgeLookup> judge(String fen, String move,
-          {int? minRating}) async =>
+  Future<OpeningJudgeLookup> judge(String fen, String move) async =>
       const OpeningJudgeLookup.unavailable('not-configured');
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
+  Future<OpponentRepliesLookup> replies(String fen) async =>
       const OpponentRepliesLookup.unavailable('not-configured');
 
   @override

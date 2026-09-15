@@ -12,7 +12,7 @@ import 'package:chess_app/theme/app_typography.dart';
 /// The last part of the trainer and the one that teaches least, which is why it
 /// was built last: it adds no new arithmetic. Every number here comes out of
 /// the walk the build screen already asks for, so opening this map costs one
-/// request and no Lichess allowance at all.
+/// request.
 ///
 /// **A branch is named by the opponent's choice**, not the student's — the
 /// Advance, the Exchange, the Two Knights. In a repertoire the first move is
@@ -35,7 +35,6 @@ class RepertoireCoverageScreen extends StatefulWidget {
     required this.color,
     required this.rootFen,
     this.rootPath = const [],
-    this.minRating,
     this.gateUci,
     this.api,
     this.onBuildAt,
@@ -49,7 +48,6 @@ class RepertoireCoverageScreen extends StatefulWidget {
 
   final String rootFen;
   final List<String> rootPath;
-  final int? minRating;
 
   /// The move this repertoire goes through at its root — its **gate**.
   ///
@@ -91,8 +89,8 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
   void initState() {
     super.initState();
     // Named lines, so a branch reads as "Sicilian Defense" and not only as two
-    // moves. Local and offline — no token, no request, and the map still works
-    // if it never loads.
+    // moves. Local and offline — no request, and the map still works if it
+    // never loads.
     OpeningBookService.instance.ensureLoaded();
     _load();
   }
@@ -103,7 +101,6 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
       color: widget.color,
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
-      minRating: widget.minRating,
       gateUci: widget.gateUci,
     );
     if (!mounted) return;

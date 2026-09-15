@@ -92,27 +92,39 @@ const _nobody = 'No master game reached this position.';
 /// A book answer for 1.e4: 1000 games reached it, the three moves listed hold
 /// 900, and 100 are in moves played once that the server no longer lists.
 Map<String, dynamic> _e4Answer({bool beyondBook = false, int total = 1000}) => {
-  'fen': _afterE4,
-  'white': total == 0 ? 0 : 400,
-  'draws': total == 0 ? 0 : 300,
-  'black': total == 0 ? 0 : 300,
-  'opening': null,
-  'moves': total == 0
-      ? const []
-      : const [
-          {'uci': 'c7c5', 'san': 'c5', 'white': 100, 'draws': 50, 'black': 150},
-          {
-            'uci': 'e7e5',
-            'san': 'e5',
-            'white': 250,
-            'draws': 200,
-            'black': 150,
-          },
-          {'uci': 'e7e6', 'san': 'e6', 'white': 20, 'draws': 10, 'black': 30},
-        ],
-  'unlisted': total == 0 ? 0 : 100,
-  'beyondBook': beyondBook,
-};
+      'fen': _afterE4,
+      'white': total == 0 ? 0 : 400,
+      'draws': total == 0 ? 0 : 300,
+      'black': total == 0 ? 0 : 300,
+      'opening': null,
+      'moves': total == 0
+          ? const []
+          : const [
+              {
+                'uci': 'c7c5',
+                'san': 'c5',
+                'white': 100,
+                'draws': 50,
+                'black': 150
+              },
+              {
+                'uci': 'e7e5',
+                'san': 'e5',
+                'white': 250,
+                'draws': 200,
+                'black': 150,
+              },
+              {
+                'uci': 'e7e6',
+                'san': 'e6',
+                'white': 20,
+                'draws': 10,
+                'black': 30
+              },
+            ],
+      'unlisted': total == 0 ? 0 : 100,
+      'beyondBook': beyondBook,
+    };
 
 Future<void> _signIn({String lichessToken = 'lip_still_stored'}) async {
   SharedPreferences.setMockInitialValues({'lichess_api_token': lichessToken});
@@ -220,11 +232,14 @@ void main() {
         expect(result.total, 1000);
         expect(result.unlisted, 100);
         expect(result.beyondBook, isFalse);
-        expect(result.moves.map((m) => m.san), [
-          'e5',
-          'c5',
-          'e6',
-        ], reason: 'most played first');
+        expect(
+            result.moves.map((m) => m.san),
+            [
+              'e5',
+              'c5',
+              'e6',
+            ],
+            reason: 'most played first');
 
         final deep = OpeningExplorerService.withClient(
           MockClient(

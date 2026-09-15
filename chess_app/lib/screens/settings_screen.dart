@@ -2,10 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:chess_app/core/build_info.dart';
 import 'package:chess_app/core/user_manual.dart';
-import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/account_standing_service.dart';
@@ -34,8 +32,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _settings = AppSettingsService.instance;
   final _stockfishService = StockfishService();
-  late final _lichessTokenController =
-      TextEditingController(text: _settings.lichessApiToken);
 
   static const List<(String, String)> _analysisPanelToggles = [
     ('Move tree', 'move_tree'),
@@ -53,24 +49,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _settings.refreshCustomEnginePath();
   }
 
-  /// Opens the Lichess token form with the description filled in and no scope
-  /// asked for. A browser that refuses to open says so — a button that looks
-  /// like it worked and did nothing is the worst of the three outcomes.
-  Future<void> _openLichessTokenPage() async {
-    final uri = Uri.parse(OpeningExplorerService.createTokenUrl);
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      AppFeedback.show(
-        context,
-        () => SnackBar(
-          content: Text('Unable to open lichess.org in browser.',
-              style: AppText.body.copyWith(color: context.colors.canvas)),
-          backgroundColor: context.colors.danger,
-        ),
-      );
-    }
-  }
-
   /// Puts the build line on the clipboard, so it can be pasted into a bug
   /// report without being copied off the screen by hand.
   Future<void> _copyBuildLabel() async {
@@ -81,23 +59,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AppFeedback.show(
       context,
       () => SnackBar(content: Text('Copied: $label')),
-    );
-  }
-
-  Future<void> _saveLichessToken() async {
-    await _settings.setLichessApiToken(_lichessTokenController.text);
-    if (!mounted) return;
-    AppFeedback.show(
-      context,
-      () => SnackBar(
-        content: Text(
-          _settings.lichessApiToken.isEmpty
-              ? 'Token removed.'
-              : 'Lichess token saved.',
-          style: AppText.body.copyWith(color: context.colors.canvas),
-        ),
-        backgroundColor: context.colors.success,
-      ),
     );
   }
 
@@ -537,15 +498,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _lichessTokenController.dispose();
-    super.dispose();
-  }
-
   Future<void> _logout() async {
     // Only the credentials go: prefs.clear() used to also wipe the engine path,
-    // board scale, panel layout and Lichess token, which survive a sign-out.
+    // board scale and panel layout, which survive a sign-out.
     await SessionService.instance.signOut();
     if (!mounted) return;
     context.go(AppRoutes.login);
@@ -1002,100 +957,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Text('What each key does. F1 also opens this.'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push(AppRoutes.shortcuts),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('OPENING EXPLORER',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Data source:',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ChoiceChip(
-                              label: const Text('Lichess'),
-                              selected: _settings.openingDbSource == 'lichess',
-                              onSelected: (_) =>
-                                  _settings.setOpeningDbSource('lichess'),
-                              avatar: const Icon(Icons.bar_chart, size: 16),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: ChoiceChip(
-                              label: const Text('ChessDB'),
-                              selected: _settings.openingDbSource == 'chessdb',
-                              onSelected: (_) =>
-                                  _settings.setOpeningDbSource('chessdb'),
-                              avatar: const Icon(Icons.memory, size: 16),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        _settings.openingDbSource == 'lichess'
-                            ? 'Lichess: move popularity from games played by real players. No setup needed — queries go through our server, which caches responses.'
-                            : 'ChessDB: move quality evaluation from shared engine analysis database (chessdb.cn) — does not show game statistics.',
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted),
-                      ),
-                      const Divider(height: 24),
-                      Text(
-                        'A personal Lichess token is not required. Enter one only if you want your queries to go directly to Lichess on your account instead of through the shared server. The button opens a page with a pre-filled description and no permissions requested — just click "Create".',
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      TextField(
-                        controller: _lichessTokenController,
-                        obscureText: true,
-                        style: AppText.bodyLarge,
-                        decoration: InputDecoration(
-                          labelText: 'Lichess API token (optional)',
-                          hintText: 'lip_...',
-                          isDense: true,
-                          border: const OutlineInputBorder(),
-                          suffixIcon: _settings.lichessApiToken.isNotEmpty
-                              ? Icon(Icons.check_circle,
-                                  color: context.colors.accent, size: 18)
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      // Wrap, not Row: two buttons and a long label fit on a
-                      // desktop and do not on a 360 dp phone, where a release
-                      // build clips the overflow without a word of warning.
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: _openLichessTokenPage,
-                            icon: const Icon(Icons.open_in_new, size: 16),
-                            label: const Text('Create token'),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: _saveLichessToken,
-                            icon: const Icon(Icons.save, size: 16),
-                            label: const Text('Save token'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
                 ),
               ),
 

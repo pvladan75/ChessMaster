@@ -83,7 +83,6 @@ class RepertoireBuildScreen extends StatefulWidget {
     required this.color,
     required this.rootFen,
     this.rootPath = const [],
-    this.minRating,
     this.gateUci,
     this.api,
     this.judge,
@@ -130,10 +129,6 @@ class RepertoireBuildScreen extends StatefulWidget {
   /// pasted position, where there is no line to tell.
   final List<String> rootPath;
 
-  /// The rating band the opponent's replies are counted in. A child meets the
-  /// moves of their own opponents, not a grandmaster's.
-  final int? minRating;
-
   /// The move this repertoire goes through at its root — its **gate**.
   ///
   /// Two repertoires can start from the same position and mean two different
@@ -145,7 +140,7 @@ class RepertoireBuildScreen extends StatefulWidget {
   /// Null is every repertoire with no twin, and behaves exactly as before.
   final String? gateUci;
 
-  /// Injected in tests, which have neither a server nor a Lichess token.
+  /// Injected in tests, which have no server.
   final RepertoireApiService? api;
   final OpeningJudgeService? judge;
 
@@ -199,8 +194,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// for one day, which is one day of it being useless — seeing what you were
   /// building meant leaving the board and coming back.
   ///
-  /// Costs no Lichess allowance, like everything that reads what was built, so
-  /// it can be re-read whenever the store changes.
+  /// Reading what was built costs one request to our own server, so it is
+  /// re-read whenever the store changes.
   RepertoireTree? _tree;
   AnalysisNode? _treeRoot;
 
@@ -316,8 +311,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// Always on screen, whoever is to move. Building a repertoire is a decision
   /// made from the statistics, the evaluation and the builder's own will — not
   /// a guess that gets marked — so there is nothing here to hide until somebody
-  /// admits they do not know. It costs no Lichess request: `opening_replies`
-  /// holds whatever anybody's session already paid for.
+  /// admits they do not know.
   StoredBook? _here;
 
   /// The position that list belongs to. A list drawn for the previous board
@@ -326,9 +320,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   /// What the opponent answers the student's own move with.
   ///
-  /// These were fetched and thrown away: `Dalje` spent a Lichess request on
-  /// them, counted what they covered, and moved on without ever putting them in
-  /// front of the person who paid for them. They are the whole reason the next
+  /// They are the whole reason the next
   /// wave looks the way it does, so they are now shown — on the board, from the
   /// position they are answers to, with how often each is played.
   OpponentReplies? _answers;
@@ -348,7 +340,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   final List<_Pending> _cutHere = [];
 
   /// What the opponent plays after the student's main move here, out of the
-  /// stored book — no Lichess request. Beside the board rather than behind a
+  /// stored book. Beside the board rather than behind a
   /// button, because it is the thing that decides what the next wave looks
   /// like.
   StoredBook? _stored;
@@ -401,8 +393,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// can be shown when there is a screen for it.
   _Pending? _lastCut;
 
-  /// How many questions this session has cost the student's Lichess allowance.
-  /// On screen, because it is their allowance and they should not have to guess.
+  /// How many positions this session has asked the book about. On screen,
+  /// because it is the only sign of how much a session has done.
   int _asked = 0;
 
   bool _busy = false;
@@ -413,7 +405,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// Asked for by hand and answered once, rather than left running: this screen
   /// is a conversation about one position at a time, and an engine that streams
   /// in the background would be turning a phone warm to answer a question
-  /// nobody asked yet. It costs no Lichess allowance at all — it is the local
+  /// nobody asked yet. It is the local
   /// engine, and its depth and number of lines are the reader's to set.
   List<AnalysisLine> _lines = const [];
   bool _thinking = false;
@@ -456,13 +448,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   /// The whole-line pass: how many positions it has done, and of how many.
   ///
-  /// It costs no Lichess allowance at all — only time and a warm phone — which
-  /// is exactly why the price has to be on the button before it is pressed and
-  /// the progress has to be visible while it runs.
+  /// It costs time and a warm phone, which is exactly why the price has to be
+  /// on the button before it is pressed and the progress has to be visible
+  /// while it runs.
 
   /// Set by the stop button. Read between positions rather than mid-search: a
   /// search already running is finished and stored, because throwing away an
-  /// answer that has been paid for helps nobody.
+  /// answer the engine has already worked out helps nobody.
 
   bool get _forWhite => widget.color == 'w';
 
@@ -475,8 +467,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// Picks the walk back up where it was, rather than starting again.
   ///
   /// The queue is not stored anywhere and never was — the server rebuilds it
-  /// from the moves already kept and the books already fetched, which costs no
-  /// Lichess request at all. That is what makes closing this screen safe: come
+  /// from the moves already kept and the books on our server.
+  /// That is what makes closing this screen safe: come
   /// back tomorrow, or on the other machine, and the same positions are
   /// waiting, in the same order.
   ///
@@ -494,7 +486,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       color: widget.color,
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
-      minRating: widget.minRating,
       gateUci: widget.gateUci,
       breadth: _breadth,
     );
@@ -586,7 +577,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// See the end of `_show`.
   Future<void> _loadTree() async {
     // Both at once, and both free: one reads what was decided, the other what
-    // the engine was asked. Neither spends a Lichess request.
+    // the engine was asked.
     // A drawing rooted at a position the reader has walked out of is a picture
     // of somewhere else, so the narrowing lets go by itself. The button stays
     // on the panel for the times the board has not moved.
@@ -600,7 +591,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       rootFen: from ?? widget.rootFen,
       rootPath:
           from == null ? widget.rootPath : [...widget.rootPath, ..._viewPath],
-      minRating: widget.minRating,
       // The gate belongs to the repertoire, not to this view: narrowing asks
       // the walk to start further down, and a gate from the repertoire's own
       // root means nothing there.
@@ -787,8 +777,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// on here, in words. It is offered for reading, and carried into the
   /// student's own comment only if they say so.
   ///
-  /// It spends the AI allowance, not the Lichess one, which is why it is a
-  /// button and not something the screen does on arrival.
+  /// It spends the AI allowance, which is why it is a button and not something
+  /// the screen does on arrival.
   Future<void> _askModel() async {
     final fen = _commentFen;
     if (fen == null || _asking) return;
@@ -942,7 +932,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _standingAfter = (uci: uci, san: san, fen: fen);
     });
     _boardController.loadFen(fen);
-    // Free: it comes out of what anybody's build session already paid for.
+    // Cheap: the replies were stored when the position was built.
     await _loadStoredBook();
   }
 
@@ -1380,9 +1370,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   /// What is played in the position on the board.
   ///
-  /// Free, like everything that reads what somebody has already paid for. This
-  /// is the list the repertoire is now built from, so it is not behind a button
-  /// and not behind an admission.
+  /// Read from the stored replies, so it is cheap. This is the list the
+  /// repertoire is now built from, so it is not behind a button and not behind
+  /// an admission.
   Future<void> _loadHereBook() async {
     final fen = _current;
     if (fen == null) {
@@ -1396,7 +1386,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final book = await _api.storedBook(
       color: widget.color,
       fen: fen,
-      minRating: widget.minRating,
     );
     if (!mounted || _current != fen) return;
     setState(() {
@@ -1412,7 +1401,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final fen = _current;
     if (fen == null || _busy) return;
     setState(() => _busy = true);
-    final lookup = await _judge.replies(fen, minRating: widget.minRating);
+    final lookup = await _judge.replies(fen);
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -1436,10 +1425,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   /// Reads the opponent's book for the position after the main move here.
   ///
-  /// Free: it comes out of `opening_replies`, which holds whatever anybody's
-  /// build session already paid for. A panel that follows the board and
-  /// refetched on every move would spend the reader's allowance on a drawing
-  /// they never asked for — one token serves every child using this app.
+  /// Free: it comes out of `opening_replies`, which holds whatever the server
+  /// already computed.
   Future<void> _loadStoredBook() async {
     final fen = _current;
     // Only while the board is standing after one of the student's own moves.
@@ -1459,7 +1446,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final book = await _api.storedBook(
       color: widget.color,
       fen: after,
-      minRating: widget.minRating,
     );
     if (!mounted) return;
     // The book that arrives is the book for the board it was asked about.
@@ -1488,7 +1474,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final after = _storedFor;
     if (after == null || _busy) return;
     setState(() => _busy = true);
-    final lookup = await _judge.replies(after, minRating: widget.minRating);
+    final lookup = await _judge.replies(after);
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -1563,7 +1549,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _verdictReason = null;
     });
 
-    final lookup = await _judge.judge(fen, uci, minRating: widget.minRating);
+    final lookup = await _judge.judge(fen, uci);
     if (!mounted) return;
     if (_current != fen) return;
     setState(() {
@@ -1573,13 +1559,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _verdictReason = lookup.reason;
     });
 
-    // No second book here. It used to be fetched automatically the moment a
-    // move was played — a Lichess request per move, for a list that is already
-    // on screen above and has been since the position opened. What it carried
-    // that the stored one cannot is how those games *ended*; that is worth
-    // having and is not worth a request per move against a token that serves
-    // every child using this app. If it comes back, it comes back as a column
-    // in `opening_replies`, fetched once for everybody.
+    // No second book here. The list of moves is already on screen above and has
+    // been since the position opened. What it carried that the stored one cannot
+    // is how those games *ended*; that is worth having and if it comes back, it
+    // comes back as a column in `opening_replies`, computed on the server.
   }
 
   /// The moves played from the position in front of the student, and how those
@@ -1609,7 +1592,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         uci: uci,
         san: san,
         rejectedUci: rejected,
-        minRating: widget.minRating,
         includeDecisions: false,
       );
       if (result.result != null && result.result!.decisions > 0) {
@@ -1639,7 +1621,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             uci: uci,
             san: san,
             rejectedUci: rejected,
-            minRating: widget.minRating,
             includeDecisions: true,
           );
           saved = forceResult.error == null;
@@ -1838,9 +1819,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// is the main one must never rest on hue alone.
   ///
   /// The share comes from the stored book for this position, which is on
-  /// screen anyway and costs nothing. Nothing is fetched for an arrow: a
-  /// drawing is not worth a Lichess request the student did not ask for, and
-  /// the star says the thing that matters without one.
+  /// screen anyway and costs nothing. Nothing is fetched for an arrow: the
+  /// star says the thing that matters without one.
   List<EngineArrow> _keptArrows() {
     final book = _hereFor == _current ? _here : null;
     final shares = <String, double>{
@@ -2070,7 +2050,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     for (final move in kept) {
       final after = _fenAfter(node.fen, move.uci);
       if (after == null) continue;
-      final lookup = await _judge.replies(after, minRating: widget.minRating);
+      final lookup = await _judge.replies(after);
       if (!mounted) return;
       _asked += 1;
       final replies = lookup.replies;
@@ -2128,10 +2108,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               'beyond that $tailText.';
     });
 
-    // A stop, not a step. These answers cost a Lichess request and they decide
-    // what the whole next wave looks like; walking straight past them is how
-    // the student ended up building a tree whose shape nobody had seen.
-    // A wave of replies is new branches, so the picture moved too.
+    // A stop, not a step. These answers decide what the whole next wave looks
+    // like; walking straight past them is how the student ended up building a
+    // tree whose shape nobody had seen. A wave of replies is new branches, so
+    // the picture moved too.
     await _loadTree();
     if (shownFen == null || shownUci == null || shownSan == null) {
       await _advance();
@@ -2356,7 +2336,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       color: widget.color,
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
-      minRating: widget.minRating,
       gateUci: widget.gateUci,
       breadth: _breadth,
     );
@@ -2388,7 +2367,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       rootPath: widget.rootPath,
       gateUci: widget.gateUci,
       breadth: _breadth,
-      minRating: widget.minRating,
       limit: 1,
     );
     if (!mounted) return;
@@ -2426,8 +2404,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// sentence, because they were all still there.
   ///
   /// So the colour is counted before that sentence is said, and the reader is
-  /// told which of the two they are looking at. The count costs one query and
-  /// no Lichess request, and it is asked only on the empty answer.
+  /// told which of the two they are looking at. The count costs one query, and
+  /// it is asked only on the empty answer.
   Future<String> _emptyDraftMessage() async {
     final counts = await _api.unconfirmedCounts();
     final held = counts == null
@@ -2539,7 +2517,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       color: widget.color,
       rootFen: fen,
       depth: depth,
-      minRating: widget.minRating,
     );
     if (!mounted) return;
     final result = out.result;
@@ -2558,7 +2535,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _busy = false;
       _asked += result.path.length;
     });
-    // The queue and the picture both changed, and neither costs an allowance.
+    // The queue and the picture both changed.
     // The board stays: the spine was grown from the position in front of the
     // reader, and the first thing to look at is what it wrote under it.
     await _resume(keepBoard: true);
@@ -2671,7 +2648,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       color: widget.color,
       fen: fen,
       uci: move.uci,
-      minRating: widget.minRating,
     );
     await _api.removeMove(color: widget.color, fen: fen, uci: move.uci);
     if (!mounted) return;
@@ -2682,7 +2658,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         swept += await _api.prune(
           color: widget.color,
           keys: orphans.keys,
-          minRating: widget.minRating,
         );
       }
       if (!mounted) return;
@@ -2715,7 +2690,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             color: widget.color,
             keys: orphans.keys,
             includeDecisions: true,
-            minRating: widget.minRating,
           );
         }
       }
@@ -2794,7 +2768,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             padding: const EdgeInsets.only(right: AppSpacing.md),
             child: Center(
               child: Text(
-                // Their allowance, so the number is theirs to see.
+                // See `_asked`.
                 'queries: $_asked',
                 style: AppText.micro.copyWith(color: context.colors.textMuted),
               ),
@@ -2974,7 +2948,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       cutHidden: _tree == null ? 0 : countCutMoves(_tree!),
       showCut: _showCut,
       onToggleCut: _toggleCut,
-      minRating: widget.minRating,
       breadth: _breadth,
       // Named for what it will actually do to *this* card. On the opponent's
       // move it is the cut, under the same words the button uses, so the two
@@ -4059,7 +4032,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Local engine — does not use Lichess quota. Evaluation is from White\'s perspective.',
+            'Local engine. Evaluation is from White\'s perspective.',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),
           const SizedBox(height: 6),

@@ -141,7 +141,6 @@ class ArchiveApiService {
     int? limit,
     bool? judge,
     int? judgeLimit,
-    int? minRating,
   }) async {
     final wire = _wireColor(color);
     final params = <String, String>{
@@ -155,7 +154,6 @@ class ArchiveApiService {
       if (limit != null) 'limit': limit.toString(),
       if (judge != null) 'judge': judge.toString(),
       if (judgeLimit != null) 'judgeLimit': judgeLimit.toString(),
-      if (minRating != null) 'minRating': minRating.toString(),
     };
     final uri = Uri.parse('$backendUrl/games/openings/leaks')
         .replace(queryParameters: params);

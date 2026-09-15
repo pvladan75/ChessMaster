@@ -116,7 +116,7 @@ void main() {
       return http.Response(jsonEncode(verdictBody), 200);
     }));
 
-    final lookup = await service.judge('start fen', 'Bc4', minRating: 1600);
+    final lookup = await service.judge('start fen', 'Bc4');
     final j = lookup.judgement!;
 
     expect(j.verdict, OpeningVerdict.mistake);
@@ -126,7 +126,7 @@ void main() {
     expect(j.punishment, ['Qh4', 'Nf3', 'Qxe4+']);
     expect(j.mastersBeyondBook, isTrue);
 
-    await service.judge('start fen', 'Bc4', minRating: 1600);
+    await service.judge('start fen', 'Bc4');
     expect(calls, 1, reason: 'isti potez se ne plaća dvaput');
   });
 

@@ -290,10 +290,9 @@ class OpeningJudgeService {
 
   Future<OpeningJudgeLookup> judge(
     String fen,
-    String move, {
-    int? minRating,
-  }) async {
-    final cacheKey = '$fen|$move|${minRating ?? 'all'}';
+    String move,
+  ) async {
+    final cacheKey = '$fen|$move';
     final cached = _cache[cacheKey];
     if (cached != null) return cached;
 
@@ -306,7 +305,6 @@ class OpeningJudgeService {
         Uri.parse('$backendUrl/opening-judge').replace(queryParameters: {
       'fen': fen,
       'move': move,
-      if (minRating != null) 'minRating': '$minRating',
     });
 
     try {
@@ -339,8 +337,8 @@ class OpeningJudgeService {
   /// The other half of building a repertoire, read from the same book. The
   /// server decides how many replies that is — the rule is one number in one
   /// place, not a slider each screen sets differently.
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async {
-    final cacheKey = 'replies|$fen|${minRating ?? 'all'}';
+  Future<OpponentRepliesLookup> replies(String fen) async {
+    final cacheKey = 'replies|$fen';
     final cached = _repliesCache[cacheKey];
     if (cached != null) return cached;
 
@@ -352,7 +350,6 @@ class OpeningJudgeService {
     final uri = Uri.parse('$backendUrl/opening-judge/replies')
         .replace(queryParameters: {
       'fen': fen,
-      if (minRating != null) 'minRating': '$minRating',
     });
 
     try {

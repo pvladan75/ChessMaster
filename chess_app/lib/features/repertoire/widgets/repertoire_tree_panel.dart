@@ -205,7 +205,6 @@ class RepertoireTreePanel extends StatelessWidget {
     this.narrowed = false,
     this.onNarrow,
     this.onWiden,
-    this.minRating,
     this.breadth,
     this.deleteLabel,
     this.extraLabel,
@@ -254,15 +253,7 @@ class RepertoireTreePanel extends StatelessWidget {
   final VoidCallback? onNarrow;
   final VoidCallback? onWiden;
 
-  /// The two settings this drawing is made of: which games the book answers
-  /// from, and how much of their answer is taken.
-  ///
-  /// Said on the picture rather than left in a popup, because the picture
-  /// changes shape when either one changes and nothing on screen used to say
-  /// which one it was drawn at. A repertoire set to „Samo glavna linija" and a
-  /// repertoire read at a band it was never fetched in look the same from
-  /// here: thin, for reasons the reader cannot see.
-  final int? minRating;
+  /// How much of the book's answer is taken.
   final String? breadth;
 
   /// What the card's second menu item is called on this particular card.
@@ -281,11 +272,10 @@ class RepertoireTreePanel extends StatelessWidget {
 
   /// Change the width, from the line that already says what it is.
   ///
-  /// The legend below names the two settings the drawing was made at, and one
-  /// of them is the answer to „why does the app keep adding opponent moves I
-  /// did not choose" — so the place that states the width is the place to turn
-  /// it, the same way the cut branches are counted next to the switch that
-  /// brings them back.
+  /// The legend below names the width the drawing was made at, and that is the
+  /// answer to „why does the app keep adding opponent moves I did not choose" —
+  /// so the place that states the width is the place to turn it, the same way
+  /// the cut branches are counted next to the switch that brings them back.
   ///
   /// Null where changing it makes no sense (the walkthrough is a tour, not an
   /// edit) or is impossible (a repertoire read without its id), and then the
@@ -311,18 +301,13 @@ class RepertoireTreePanel extends StatelessWidget {
           'long press (or right click) to open edits.',
           style: AppText.micro.copyWith(color: context.colors.textMuted),
         ),
-        if (minRating != null || breadth != null) ...[
+        if (breadth != null) ...[
           const SizedBox(height: AppSpacing.xxs),
-          // `Wrap`, because these are two sentences on a phone and one on a
-          // desktop, and a release build clips rather than warns.
+          // `Wrap`, because a release build clips rather than warns.
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: AppSpacing.sm,
             children: [
-              if (minRating != null)
-                Text('Book: games from $minRating+',
-                    style: AppText.micro
-                        .copyWith(color: context.colors.textSecondary)),
               if (breadth != null)
                 // The same sentence either way — only the way in changes, and
                 // it is an icon rather than a colour, because a colour is not

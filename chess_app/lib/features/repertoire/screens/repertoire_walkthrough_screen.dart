@@ -29,7 +29,6 @@ class RepertoireWalkthroughScreen extends StatefulWidget {
     required this.api,
     this.rootPath = const [],
     this.gateUci,
-    this.minRating,
     this.breadth,
     this.onBuildHere,
   });
@@ -39,7 +38,6 @@ class RepertoireWalkthroughScreen extends StatefulWidget {
   final String rootFen;
   final List<String> rootPath;
   final String? gateUci;
-  final int? minRating;
   final String? breadth;
   final RepertoireApiService api;
   final void Function(String fen)? onBuildHere;
@@ -80,7 +78,6 @@ class _RepertoireWalkthroughScreenState
       color: widget.color,
       rootFen: widget.rootFen,
       rootPath: widget.rootPath,
-      minRating: widget.minRating,
       gateUci: widget.gateUci,
       breadth: widget.breadth,
       maxPly: 30,
@@ -315,7 +312,6 @@ class _RepertoireWalkthroughScreenState
                 },
                 nodeLook: (node) => _looks[node.id],
                 showCut: false,
-                minRating: widget.minRating,
                 breadth: widget.breadth,
               ),
             ),

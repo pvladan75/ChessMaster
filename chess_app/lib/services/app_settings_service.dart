@@ -3,19 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/theme/board_skins.dart';
 
-/// The rating bands a repertoire can be built against.
-///
-/// Lichess's own Explorer buckets, and only those: a band is a bucket floor and
-/// the answer unions everything above it, so 1600 means "1600 and up". The
-/// server validates against the same list and refuses an unknown value by name,
-/// which is why 1500 and 2100 are not options — they do not exist.
-///
-/// Masters is deliberately not on this ladder. It is a different database
-/// answering a different question — "what is theory" rather than "what will I
-/// meet" — and putting it at the top would quietly change what the number
-/// means.
-const List<int> kRepertoireRatingBands = [1400, 1600, 1800, 2000];
-
 class AppSettingsService extends ChangeNotifier {
   static final AppSettingsService instance = AppSettingsService._internal();
 
@@ -47,22 +34,10 @@ class AppSettingsService extends ChangeNotifier {
   /// really thinks of the position.
   int _analysisDepth = 20;
 
-  /// Which rating band the opening book answers from, for the repertoire.
-  ///
-  /// 1600 by default, and that is a decision rather than a middle value: it is
-  /// the club and youth-competitive baseline, so Top-1 is what the student will
-  /// actually meet rather than what is theoretically best. A repertoire built
-  /// against 2200 games prepares for opponents this child does not have.
-  ///
-  /// Only the values Lichess's Explorer knows. 1500 and 2100 are not among
-  /// them — the server refuses an unknown one by name — so the ladder is theirs
-  /// and not ours.
-  int _repertoireMinRating = 1600;
   int _analysisLines = 3;
   String _customEnginePath = '';
   double _boardSizeScale = 1.0;
   Set<String> _hiddenPanels = {};
-  String _lichessApiToken = '';
   bool _manualCommentMode = false;
 
   /// How long a piece takes to slide from its origin to destination square
@@ -138,11 +113,6 @@ class AppSettingsService extends ChangeNotifier {
   String _boardSkinId = BoardSkin.classic.id;
   String _pieceSkinId = PieceSkin.classic.id;
 
-  /// Which opening database the Analysis Studio Opening Explorer panel
-  /// queries: 'lichess' (real-game move popularity, needs an API token) or
-  /// 'chessdb' (ChessDB.cn's shared engine analysis, no token needed).
-  String _openingDbSource = 'lichess';
-
   ThemeMode get themeMode => _themeMode;
 
   /// The reader-facing name of each mode, in the order Settings offers them.
@@ -203,12 +173,9 @@ class AppSettingsService extends ChangeNotifier {
 
   int get defaultEngineMoveTimeSeconds => _defaultEngineMoveTimeSeconds;
   int get analysisDepth => _analysisDepth;
-  int get repertoireMinRating => _repertoireMinRating;
   int get analysisLines => _analysisLines;
   String get customEnginePath => _customEnginePath;
   double get boardSizeScale => _boardSizeScale;
-  String get lichessApiToken => _lichessApiToken;
-  String get openingDbSource => _openingDbSource;
   bool get endgameIncludeOnline => _endgameIncludeOnline;
   bool get showBoardCoordinates => _showBoardCoordinates;
 
@@ -258,12 +225,6 @@ class AppSettingsService extends ChangeNotifier {
 
     _analysisDepth =
         (prefs.getInt('app_analysis_depth') ?? legacyDepth ?? 20).clamp(6, 50);
-    final storedBand = prefs.getInt('app_repertoire_min_rating');
-    // An unknown value falls back to the default rather than being clamped to
-    // the nearest: the Explorer's buckets are a list, not a range, and 1700
-    // clamped to 1600 would be a silent answer to a question nobody asked.
-    _repertoireMinRating =
-        kRepertoireRatingBands.contains(storedBand) ? storedBand! : 1600;
     _analysisLines = (prefs.getInt('app_analysis_lines') ??
             prefs.getInt('app_multi_pv') ??
             3)
@@ -272,7 +233,10 @@ class AppSettingsService extends ChangeNotifier {
     _boardSizeScale =
         (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
     _hiddenPanels = (prefs.getStringList('app_hidden_panels') ?? []).toSet();
-    _lichessApiToken = prefs.getString('lichess_api_token') ?? '';
+    // A personal Lichess token some devices still hold from when the opening
+    // book was Lichess's. Nothing reads it any more, and a secret nothing uses
+    // is not kept.
+    await prefs.remove('lichess_api_token');
     _manualCommentMode = prefs.getBool('app_manual_comment_mode') ?? false;
     _moveAnimationDurationMs =
         (prefs.getInt('app_move_animation_ms') ?? 200).clamp(0, 500);
@@ -288,8 +252,6 @@ class AppSettingsService extends ChangeNotifier {
     _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
     _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
     _speechLanguage = prefs.getString('app_speech_language') ?? '';
-    final storedSource = prefs.getString('app_opening_db_source');
-    _openingDbSource = (storedSource == 'chessdb') ? 'chessdb' : 'lichess';
     notifyListeners();
   }
 
@@ -342,19 +304,6 @@ class AppSettingsService extends ChangeNotifier {
   /// Saved rather than kept per screen so the next board opens where the last
   /// one was left — the dial is still the board's, but nobody has to set it
   /// again on every screen they visit.
-  /// Changes the band the repertoire's book answers from.
-  ///
-  /// Refuses anything the Explorer does not know, rather than clamping: the
-  /// server would refuse it too, and one silent correction here would mean the
-  /// screen and the server disagreed about what was asked.
-  Future<void> setRepertoireMinRating(int band) async {
-    if (!kRepertoireRatingBands.contains(band)) return;
-    _repertoireMinRating = band;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('app_repertoire_min_rating', band);
-  }
-
   Future<void> setAnalysisDepth(int depth) async {
     _analysisDepth = depth.clamp(6, 50);
     notifyListeners();
@@ -392,13 +341,6 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('app_hidden_panels', _hiddenPanels.toList());
-  }
-
-  Future<void> setLichessApiToken(String token) async {
-    _lichessApiToken = token.trim();
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('lichess_api_token', _lichessApiToken);
   }
 
   Future<void> setManualCommentMode(bool enabled) async {
@@ -495,12 +437,5 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_speech_language', _speechLanguage);
-  }
-
-  Future<void> setOpeningDbSource(String source) async {
-    _openingDbSource = (source == 'chessdb') ? 'chessdb' : 'lichess';
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_opening_db_source', _openingDbSource);
   }
 }

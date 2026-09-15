@@ -106,7 +106,6 @@ class _ListApi extends RepertoireApiService {
     required String color,
     String? rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
     List<int>? ids,

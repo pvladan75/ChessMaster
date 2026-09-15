@@ -82,7 +82,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     String? rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
     List<int>? ids,
@@ -96,7 +95,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     String? rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? fromFen,
     String? viaFen,
     String? viaUci,
@@ -143,7 +141,6 @@ class _FakeApi extends RepertoireApiService {
     required String fen,
     required String uci,
     bool revealed = false,
-    int? minRating,
     bool practice = false,
     bool onlyIfDue = false,
   }) async {

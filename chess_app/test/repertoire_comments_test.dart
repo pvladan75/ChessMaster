@@ -36,7 +36,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
   }) async =>
@@ -60,7 +59,6 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     int maxPly = 16,
     String? gateUci,
     String? breadth,
@@ -136,12 +134,11 @@ class _FakeApi extends RepertoireApiService {
 /// A judge with nothing behind it: nothing here is about what Lichess says.
 class _SilentJudge implements OpeningJudgeService {
   @override
-  Future<OpeningJudgeLookup> judge(String fen, String move,
-          {int? minRating}) async =>
+  Future<OpeningJudgeLookup> judge(String fen, String move) async =>
       const OpeningJudgeLookup.unavailable('not-configured');
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
+  Future<OpponentRepliesLookup> replies(String fen) async =>
       const OpponentRepliesLookup.unavailable('not-configured');
 
   @override
@@ -183,8 +180,7 @@ class _FakeListApi extends RepertoireApiService {
   Future<List<RepertoireSummary>> list() async => items;
 
   @override
-  Future<RepertoireRemoval?> removalPreview(int id, {int? minRating}) async =>
-      preview;
+  Future<RepertoireRemoval?> removalPreview(int id) async => preview;
 
   @override
   Future<bool> deleteRepertoire(

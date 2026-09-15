@@ -88,11 +88,9 @@ void main() {
       rootFen: root,
       gateUci: 'e1g1',
       breadth: 'standard',
-      minRating: 1600,
       limit: 5,
     );
     final asked = api.lastFor('/repertoire/unconfirmed').queryParameters;
-    expect(asked['minRating'], '1600');
     expect(asked['limit'], '5');
     expect(
         asked.entries.where((e) => e.value.isEmpty).map((e) => e.key), isEmpty);

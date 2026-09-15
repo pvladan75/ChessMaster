@@ -280,7 +280,7 @@ class CoverageBranch {
 /// how much of it is finished.
 ///
 /// Derived on the server from the moves already kept and the books already
-/// fetched — so it costs no Lichess request, and it is the same on every
+/// fetched, and it is the same on every
 /// device. This is what replaced a queue that lived in one screen's memory and
 /// died with it.
 class RepertoireFrontier {
@@ -569,10 +569,8 @@ class StoredReply {
 
 /// What the opponent plays in a position, out of what was already fetched.
 ///
-/// **No Lichess request behind this.** `opening_replies` holds what anybody's
-/// build session paid for, so a panel that follows the board is free — and only
-/// a position nobody has ever opened costs anything, which is then an offer
-/// rather than something that happens on its own.
+/// `opening_replies` holds the replies stored while a repertoire was built, so
+/// a panel that follows the board costs one cheap request per move.
 class StoredBook {
   const StoredBook({
     required this.fen,
@@ -602,7 +600,7 @@ class StoredBook {
 /// What the *student* wrote about one position, in their own words.
 ///
 /// The one thing in a repertoire nothing can recompute. An evaluation comes
-/// back at any depth, a book row comes back from Lichess, a move comes back by
+/// back at any depth, a book row comes back from the book, a move comes back by
 /// playing it again; a sentence somebody typed at a board comes back only if it
 /// was kept. That is why it has its own table on the server, its own lifetime,
 /// and why deleting moves leaves it alone unless it is asked for by name.
@@ -1238,8 +1236,7 @@ class DrillAnswer {
   final bool practice;
 
   /// What the opponent plays next, drawn by how often it is really played —
-  /// out of the book stored while the position was built, so a drill costs no
-  /// Lichess request.
+  /// out of the book stored on our server.
   final String? reply;
 
   /// False when the opponent has just played something the student never
@@ -1290,10 +1287,8 @@ class DrillAnswer {
 
 /// The student's own decisions, on our own server.
 ///
-/// Nothing here talks to Lichess, and that is worth keeping straight: the judge
-/// spends the reader's allowance to say what a move is worth, while this only
-/// records what they decided about it. A repertoire built last week can be
-/// read, edited and drilled with no allowance spent at all.
+/// The judge says what a move is worth; this only records what the student
+/// decided about it.
 
 /// One unconfirmed position in the walk.
 /// How much of one repertoire is still waiting, from its own walk.
@@ -1508,7 +1503,6 @@ class RepertoireApiService {
     List<String> rootPath = const [],
     String? gateUci,
     String? breadth,
-    int? minRating,
     int? limit,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/unconfirmed').replace(
@@ -1518,12 +1512,8 @@ class RepertoireApiService {
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (gateUci != null) 'gateUci': gateUci,
         if (breadth != null) 'breadth': breadth,
-        // Interpolated, not empty. These went out as `minRating=` and `limit=`
-        // for as long as this endpoint existed: the server reads
-        // `Number('') || 0`, so every review asked at band 0 — a band the
-        // opening book holds no replies for — and answered "nothing left to
-        // confirm" on a repertoire with drafts waiting in it.
-        if (minRating != null) 'minRating': '$minRating',
+        // Interpolated, not empty. This went out as `limit=` once, and the
+        // server reads `Number('') || 0`.
         if (limit != null) 'limit': '$limit',
       },
     );
@@ -1538,12 +1528,8 @@ class RepertoireApiService {
   /// A walk each, so the list screen asks for this after it has drawn its
   /// cards. Null when the server could not be reached, which the caller shows
   /// as nothing rather than as zero.
-  Future<List<RepertoireProgress>?> progress({int? minRating}) async {
-    final uri = Uri.parse('$backendUrl/repertoire/progress').replace(
-      queryParameters: {
-        if (minRating != null) 'minRating': '$minRating',
-      },
-    );
+  Future<List<RepertoireProgress>?> progress() async {
+    final uri = Uri.parse('$backendUrl/repertoire/progress');
     final res = (await _send(() => _get(uri))).res;
     if (res == null) return null;
     final data = jsonDecode(res.body);
@@ -1590,7 +1576,6 @@ class RepertoireApiService {
     required String uci,
     required String san,
     required String rejectedUci,
-    int? minRating,
     bool includeDecisions = false,
   }) async {
     final sent = await _send(() => _post('$backendUrl/repertoire/alternative', {
@@ -1599,7 +1584,6 @@ class RepertoireApiService {
           'uci': uci,
           'san': san,
           'rejectedUci': rejectedUci,
-          if (minRating != null) 'minRating': minRating,
           'includeDecisions': includeDecisions,
         }));
     final res = sent.res;
@@ -1663,15 +1647,14 @@ class RepertoireApiService {
   /// Where the student actually is: what is still open, in the order it is
   /// worth answering.
   ///
-  /// Costs nothing at Lichess — it is read from the moves already kept and the
-  /// books already fetched. Null when the server could not be reached, which
+  /// It is read from the moves already kept and the books on our server.
+  /// Null when the server could not be reached, which
   /// the caller must tell apart from an empty walk: "nothing is open" and "we
   /// could not find out" are different, and only one of them means finished.
   Future<RepertoireFrontier?> frontier({
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
   }) async {
@@ -1680,7 +1663,6 @@ class RepertoireApiService {
         'color': color,
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
-        if (minRating != null) 'minRating': '$minRating',
         if (gateUci != null) 'gateUci': gateUci,
         // The width, which is stored on the repertoire's row and means nothing
         // until somebody sends it: absent, the server falls back to `standard`
@@ -1780,11 +1762,10 @@ class RepertoireApiService {
   ///
   /// Null when the server did not answer — which the caller must tell apart
   /// from "nothing would be stranded", since one of them is a reason to stop.
-  Future<RepertoireRemoval?> removalPreview(int id, {int? minRating}) async {
+  Future<RepertoireRemoval?> removalPreview(int id) async {
     final uri = Uri.parse('$backendUrl/repertoire/removal').replace(
       queryParameters: {
         'id': '$id',
-        if (minRating != null) 'minRating': '$minRating',
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1901,13 +1882,11 @@ class RepertoireApiService {
   /// confirmed, and it never overwrites a position that already has a move —
   /// which is what makes it safe to run again from anywhere.
   ///
-  /// Reads the opening book on the server, two lookups per move of depth, and
-  /// carries no Lichess token: there is none to spend.
+  /// Reads the opening book on the server, two lookups per move of depth.
   Future<({SpineResult? result, String? error})> buildSpine({
     required String color,
     required String rootFen,
     int depth = 8,
-    int? minRating,
     int? minGames,
   }) async {
     final sent = await _send(() {
@@ -1916,7 +1895,6 @@ class RepertoireApiService {
         'color': color,
         'rootFen': rootFen,
         'depth': depth,
-        if (minRating != null) 'minRating': minRating,
         if (minGames != null) 'minGames': minGames,
       });
       return _client?.post(uri, headers: _headers, body: body) ??
@@ -1935,13 +1913,11 @@ class RepertoireApiService {
   Future<StoredBook?> storedBook({
     required String color,
     required String fen,
-    int? minRating,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/book').replace(
       queryParameters: {
         'color': color,
         'fen': fen,
-        if (minRating != null) 'minRating': '$minRating',
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1961,14 +1937,12 @@ class RepertoireApiService {
     required String color,
     required String fen,
     required String uci,
-    int? minRating,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/node/orphans').replace(
       queryParameters: {
         'color': color,
         'fen': fen,
         'uci': uci,
-        if (minRating != null) 'minRating': '$minRating',
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1990,14 +1964,12 @@ class RepertoireApiService {
     required String color,
     required List<String> keys,
     bool includeDecisions = false,
-    int? minRating,
   }) async {
     if (keys.isEmpty) return 0;
     final sent = await _send(() => _post('$backendUrl/repertoire/prune', {
           'color': color,
           'keys': keys,
           'includeDecisions': includeDecisions,
-          if (minRating != null) 'minRating': minRating,
         }));
     final res = sent.res;
     if (res == null) return 0;
@@ -2129,7 +2101,7 @@ class RepertoireApiService {
   /// The repertoire as a tree of single moves, for drawing.
   ///
   /// Same walk and same two tables as everything else that reads what was
-  /// built, so it costs no Lichess allowance. Null when the server did not
+  /// built. Null when the server did not
   /// answer — which the caller must tell apart from a repertoire with nothing
   /// in it.
   Future<RepertoireTree?> repertoireTree({
@@ -2137,7 +2109,6 @@ class RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     List<String> alongPath = const [],
-    int? minRating,
     int maxPly = 16,
     String? gateUci,
     String? breadth,
@@ -2158,7 +2129,6 @@ class RepertoireApiService {
         // had no card for, and the highlight fell back to the repertoire's
         // root — being thrown to the beginning mid-thought.
         if (alongPath.isNotEmpty) 'alongPath': alongPath.join(' '),
-        if (minRating != null) 'minRating': '$minRating',
         'maxPly': '$maxPly',
         // The gate: with it the picture is one opening, which is the whole
         // reason it exists — two repertoires from one position drew each
@@ -2177,7 +2147,7 @@ class RepertoireApiService {
 
   /// A line to rehearse and the question at the end of it.
   ///
-  /// Costs nothing at Lichess, like everything that reads what was built.
+  /// Costs nothing, like everything that reads what was built.
   /// [fromFen] narrows it to one branch — the ten positions built yesterday are
   /// what somebody sits down to practise, and the rest of the repertoire is in
   /// the way.
@@ -2194,7 +2164,6 @@ class RepertoireApiService {
     required String color,
     String? rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? fromFen,
     String? viaFen,
     String? viaUci,
@@ -2217,7 +2186,6 @@ class RepertoireApiService {
           // Beside the root and never beside `ids`, which carry their own.
           if (breadth != null) 'breadth': breadth,
         },
-        if (minRating != null) 'minRating': '$minRating',
         if (fromFen != null) 'fromFen': fromFen,
         // Which decision to walk through, for somebody standing at a fork who
         // wants the other road rather than the one the schedule offered.
@@ -2263,7 +2231,6 @@ class RepertoireApiService {
     required String fen,
     required String uci,
     bool revealed = false,
-    int? minRating,
     bool practice = false,
     bool onlyIfDue = false,
   }) async {
@@ -2273,7 +2240,6 @@ class RepertoireApiService {
                   'fen': fen,
                   'uci': uci,
                   'revealed': revealed,
-                  if (minRating != null) 'minRating': minRating,
                   if (practice) 'practice': true,
                   if (onlyIfDue) 'onlyIfDue': true,
                 })))
@@ -2286,7 +2252,7 @@ class RepertoireApiService {
   /// Every eval this student has for that side, keyed by position.
   ///
   /// One call per tree draw rather than one per card, and free — it reads what
-  /// was already computed and spends no Lichess allowance and no engine time.
+  /// was already computed and spends no engine time.
   Future<Map<String, RepertoireNote>> notes({required String color}) async {
     final uri = Uri.parse('$backendUrl/repertoire/notes')
         .replace(queryParameters: {'color': color});
@@ -2390,14 +2356,13 @@ class RepertoireApiService {
 
   /// Where the engine plays something other than what was chosen, worst first.
   ///
-  /// Derived from the notes already stored, so it costs nothing at Lichess and
+  /// Derived from the notes already stored, so it costs
   /// nothing in engine time. [fromFen] narrows it to one branch — the ten
   /// positions built yesterday are what somebody sits down to go through.
   Future<DisagreementReport?> disagreements({
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? fromFen,
     String? gateUci,
   }) async {
@@ -2406,7 +2371,6 @@ class RepertoireApiService {
         'color': color,
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
-        if (minRating != null) 'minRating': '$minRating',
         if (fromFen != null) 'fromFen': fromFen,
         if (gateUci != null) 'gateUci': gateUci,
       },
@@ -2430,7 +2394,6 @@ class RepertoireApiService {
     required String color,
     String? rootFen,
     List<String> rootPath = const [],
-    int? minRating,
     String? gateUci,
     String? breadth,
     List<int>? ids,
@@ -2447,7 +2410,6 @@ class RepertoireApiService {
           if (gateUci != null) 'gateUci': gateUci,
           if (breadth != null) 'breadth': breadth,
         },
-        if (minRating != null) 'minRating': '$minRating',
       },
     );
     final res = (await _send(() => _get(uri))).res;

@@ -29,10 +29,8 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 /// weaker pass, and playing something else is a miss even when it is perfectly
 /// good chess. The drill asks about a decision, not about chess.
 ///
-/// **It costs nothing.** No Lichess request is made at any point: the
-/// opponent's replies come out of the book stored while the position was built.
-/// Somebody who has spent their allowance, or never had a token at all, can
-/// still practise everything they own.
+/// **It costs nothing.** The opponent's replies come out of the book stored
+/// while the position was built.
 ///
 /// **The opponent stays inside what was prepared.** Its move is drawn by how
 /// often it is really played, out of the replies the student covered — never
@@ -62,7 +60,6 @@ class RepertoireDrillScreen extends StatefulWidget {
     this.rootFen,
     this.rootPath = const [],
     this.fromFen,
-    this.minRating,
     this.gateUci,
     this.api,
     this.onBuildHere,
@@ -87,8 +84,6 @@ class RepertoireDrillScreen extends StatefulWidget {
   /// positions built yesterday are what somebody sits down to drill, and the
   /// rest of the repertoire is in the way.
   final String? fromFen;
-
-  final int? minRating;
 
   /// The move this repertoire goes through at its root — its **gate**.
   ///
@@ -400,7 +395,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       rootPath: widget.rootPath,
       gateUci: widget.gateUci,
       breadth: widget.breadth,
-      minRating: widget.minRating,
       limit: 1,
     );
     if (!mounted) return;
@@ -429,8 +423,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// sentence, because they were all still there.
   ///
   /// So the colour is counted before that sentence is said, and the reader is
-  /// told which of the two they are looking at. The count costs one query and
-  /// no Lichess request, and it is asked only on the empty answer.
+  /// told which of the two they are looking at. The count costs one query, and
+  /// it is asked only on the empty answer.
   Future<String> _emptyDraftMessage() async {
     final counts = await _api.unconfirmedCounts();
     final held = counts == null
@@ -460,7 +454,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       color: widget.color,
       rootFen: ids == null ? root : null,
       rootPath: ids == null ? widget.rootPath : const [],
-      minRating: widget.minRating,
       gateUci: ids == null ? widget.gateUci : null,
       breadth: ids == null ? widget.breadth : null,
       ids: ids,
@@ -700,7 +693,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         color: widget.color,
         rootFen: ids == null ? root : null,
         rootPath: ids == null ? widget.rootPath : const [],
-        minRating: widget.minRating,
         fromFen: _branchFen,
         viaFen: _viaFen,
         viaUci: _viaUci,
@@ -720,7 +712,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
           color: widget.color,
           rootFen: ids == null ? root : null,
           rootPath: ids == null ? widget.rootPath : const [],
-          minRating: widget.minRating,
           fromFen: _branchFen,
           viaFen: _viaFen,
           viaUci: _viaUci,
@@ -1002,7 +993,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       fen: fen,
       uci: uci,
       revealed: _revealed != null,
-      minRating: widget.minRating,
       // Judged and not stored, in two cases that are the same rule twice:
       // ahead of schedule, and a position met on the way through a branch that
       // was not itself due. A run scored at every position would push the
