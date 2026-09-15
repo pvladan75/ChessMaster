@@ -155,7 +155,7 @@ Each phase names its owner. **Lead** is this session; **worker** is a batch
 under `docs/TASK-*.md` with a gate written first, in the shape
 `skills/worker-batches` prescribes.
 
-### P0 — the data (lead, running)
+### P0 — the data (lead, done 15.9.2026)
 
 - `tools/opening_book/extract_stats.py`: the script, plus `--max-elo` (the same
   rating the `min` rule already reads, bounded above) and `--prune`.
@@ -165,6 +165,34 @@ under `docs/TASK-*.md` with a gate written first, in the shape
 - **The gate:** every position the ply-30 file answers with a move played twice
   or more, the new file answers with the same counts; the thirteen harness games
   leave the book exactly where the simulation above says, and nowhere else.
+
+**What came out.** 2,222 s of extraction at 8 workers, 46 s of pruning.
+10,355,488 games read and 2,567,674 taken — the same two numbers as the ply-30
+file, chunk for chunk. 69,002,376 rows before the prune, **4,507,012 after**
+(93.5% deleted) over 3,552,524 positions, and **145 MB** — not the "under
+500 MB" guessed above, which was a guess taken before pruning; the old file's
+~21 bytes a row times 4.5 million rows, plus the totals, is that size.
+`--verify-hash 20000` agreed with python-chess on 908,577 plies.
+
+**The gate is `tools/opening_book/compare_books.py`**, kept because the next
+change to the extraction needs the same four questions, and it passed all of
+them. One correction to the gate as written above: "the same counts" cannot
+hold, because a deeper extraction also counts games that reach a position only
+*after* ply 30. So it asks that no row the old file backs with two games is
+missing and none is lower, and prints how many rose: **0 of 3,589,929 missing,
+0 lower, 12,039 rose (0.335%, at most +313)**; 0 of 2,683,083 positions without
+a total, none fallen. The thirteen harness games stop exactly where the
+simulation said, all thirteen.
+
+Before it was run on the real file it was run on the wrong one — the old,
+unpruned file passed as "new" — and its first version passed the walk there,
+because it read the new file through the same "played twice" filter as the
+simulation. It reads every row now, the way the server does, and fails eleven
+checks on the wrong file.
+
+`MASTERS_BOOK_PATH` in the development `.env` points at
+`LumbrasGigaBase_OTB_Complete_stats_min2200_ply50.sqlite`. `kMastersBookPlies`
+in `masters_walk.dart` is 50.
 
 ### P1 — `services/openingBook.js` (lead)
 

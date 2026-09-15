@@ -25,9 +25,11 @@ import 'package:chess_app/features/analysis_studio/services/opening_book_service
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/session_service.dart';
 
-/// The database holds the first 30 plies of every game, so the position after
-/// the thirtieth is the last one it can know anything about.
-const int kMastersBookPlies = 30;
+/// The database holds the first 50 plies of every game, so the position after
+/// the fiftieth is the last one it can know anything about. It was 30 until
+/// the book was rebuilt on 15.9.2026 (`docs/PLAN-OTVARANJA-LOKALNO.md`); the
+/// server refuses a walk longer than 64 positions, so 51 still fits.
+const int kMastersBookPlies = 50;
 
 /// What the walk found — by position, in the explorer's shape — and, when it
 /// found nothing because it could not ask, why.

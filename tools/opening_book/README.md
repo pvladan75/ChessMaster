@@ -15,6 +15,7 @@ there is no filter to choose anything else.
 |---|---|
 | `extract_stats.py` | reads a PGN file and writes the database |
 | `export_polyglot.py` | writes the server's Polyglot table and the keys its test checks against |
+| `compare_books.py` | holds a rebuilt database to the one it replaces before it is believed |
 
 Neither is part of the app or the server; both are run by hand.
 
@@ -37,8 +38,10 @@ python tools/opening_book/extract_stats.py --prune \
 | plies | the first 50 | at 30 the book ended mid-theory in **every** main line measured — eight openings all stopped at exactly ply 30 with 117 to 750 games still in the position |
 | single-game rows | deleted (`--prune`) | a move played by one game is not a statistic. 85.1% of the rows in the 30-ply file, and 87.3% of its positions |
 
-The 30-ply file it replaces: 2,567,674 games, 24,143,897 (position, move) rows,
-512 MB, 653 s on six workers.
+Built on 15.9.2026 in 2,222 s on eight workers: 10,355,488 games read, 2,567,674
+taken, 69,002,376 rows before pruning and 4,507,012 after, over 3,552,524
+positions — **145 MB**. The 30-ply file it replaced: the same 2,567,674 games,
+24,143,897 rows unpruned, 512 MB, 653 s on six workers.
 
 The file is not in the repository — it is copied to the server by hand and
 `MASTERS_BOOK_PATH` points at it (`chess_backend/.env.example`,
@@ -91,6 +94,13 @@ positions into `chess_backend/test/fixtures/polyglot_keys.json`, which
 - `--probe "<FEN>" --db <file>` prints what the database holds for a position,
   reading the stored totals when the file has been pruned.
 - `--max-mb 200` builds a trial database from the start of the file.
+- `compare_books.py --old <file> --new <file>` asks four questions of a rebuilt
+  database against the one it replaces: what its `meta` says, whether the same
+  games went in chunk by chunk, whether every row the old file backs with two
+  games is still there with no count lower, and whether the harness games in
+  `tools/game_annotate/input/` leave the book where pruning the old file says.
+  Exit 1 on any failure. The 15.9.2026 file passed all four; run it on the wrong
+  file first, to see it fail.
 
 The owner's first copy of the script, outside the repository, named its progress
 columns in Serbian (`partije`, `uzete`, `preskocene`). A database that copy
