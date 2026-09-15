@@ -381,6 +381,38 @@ is left for the batch, beyond the bullets below:
 
 ### P5 — deploy and docs (lead)
 
+**The file is on the droplet, 15.9.2026.** Copied by hand with `scp` (30 s),
+to `/home/chess/data/opening-book/LumbrasGigaBase_OTB_Complete_stats_min2200_ply50.sqlite`
+— outside the git checkout, so a pull or a fresh clone by `app-setup.sh` never
+touches it — owned by `chess`, mode 0444. The SHA-256 agrees with the local file
+to the last character; opened read-only as `chess`, `quick_check` is ok and
+`meta` and the row counts are the ones P0 measured (max_ply 50, pruned,
+4,507,012 rows over 3,552,524 positions). `MASTERS_BOOK_PATH` in the server's
+`chess_backend/.env` points at it, with the previous `.env` kept beside it as
+`.env.bak-2026-09-15`. The service stays stopped and disabled, as it has been.
+
+**The server's `.env` was brought up to the development one the same day**
+(names only; values compared by hash, never printed; the state before is kept
+as `.env.bak-2026-09-15-2`). `GOOGLE_CLIENT_IDS` gained the Windows desktop
+client — without it every desktop Google sign-in against this server is refused.
+`DEEPSEEK_API_KEY`, `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` and
+`TTS_PROVIDER=azure` were copied; `PUBLIC_BASE_URL` is `https://api.chesstrainers.app`,
+which nginx proxies to port 3000. Deliberately not copied: `AZURE_OPENAI_*` and
+`DASHSCOPE_API_KEY`, which nothing in `chess_backend` reads; the Piper paths,
+because the droplet has no `/opt/piper` (so no fallback voice if Azure fails);
+and `SYZYGY_SIDECAR_URL`, left unset.
+
+**Owner's decision, 15.9.2026: development and the live checks stay on the local
+server**, which reads the same 145 MB book. The droplet's service stays stopped
+and disabled until the switch-over, so Socket.IO sessions and `uploads/` are
+never split between two servers on one database. Azure is the voice there;
+Piper is installed later only if a fallback turns out to be needed.
+
+**Not yet usable there:** the droplet's checkout is at `89aa8c6`, from before
+P1, so the code on it does not read the book at all. It becomes live the next
+time `app-setup.sh` pulls `master`, which is the switch-over this server is
+waiting for anyway.
+
 `.env.example`, `deploy/app-setup.sh`, how the file reaches a server that is
 still stopped, and what happens when it is absent — which must remain "the panel
 says so", not an empty book. `STANJE-RADA.md` and `TODO-provera.md` get their

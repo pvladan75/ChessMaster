@@ -180,6 +180,28 @@ uhvaćene. **2716 u aplikaciji** sa 1 preskočenim, izmereno na `master`-u (2692
 
 **Šta sledi.**
 
+**Fajl je na droplet-u (15.9.2026).** Prebačen ručno `scp`-om u
+`/home/chess/data/opening-book/` (van git checkout-a, vlasnik `chess`, 0444),
+SHA-256 se slaže sa lokalnim, `quick_check` ok, `meta` i broj redova isti kao u
+fazi 0; `MASTERS_BOOK_PATH` u serverskom `.env` pokazuje na njega (stari `.env`
+sačuvan kao `.env.bak-2026-09-15`). Servis i dalje stoji ugašen. **Kod na
+droplet-u je još `89aa8c6`**, pre faze 1, pa knjigu ne čita — oživeće kad
+`app-setup.sh` povuče `master`.
+
+Istog dana je serverski `.env` dopunjen prema razvojnom (samo imena, vrednosti
+upoređene hešom; prethodno stanje u `.env.bak-2026-09-15-2`): `GOOGLE_CLIENT_IDS`
+je dobio Windows desktop klijenta (bez njega svaka Google prijava sa Windows-a
+na ovaj server pada), prekopirani su `DEEPSEEK_API_KEY`, `AZURE_SPEECH_KEY`,
+`AZURE_SPEECH_REGION` i `TTS_PROVIDER=azure`, a `PUBLIC_BASE_URL` je
+`https://api.chesstrainers.app`. Namerno nisu preneti `AZURE_OPENAI_*` i
+`DASHSCOPE_API_KEY` (server ih ne čita), Piper putanje (na droplet-u nema
+`/opt/piper`, pa nema rezervnog glasa ako Azure padne) i `SYZYGY_SIDECAR_URL`.
+
+**Odluka vlasnika, 15.9.2026:** razvoj i provere uživo ostaju na lokalnom
+serveru (isti fajl od 145 MB). Servis na droplet-u ostaje ugašen i isključen do
+prelaska, da se Socket.IO sesije i `uploads/` ne podele između dva servera nad
+istom bazom. Glas je Azure; Piper se instalira kasnije, samo ako zatreba.
+
 1. **Faza 5**: `deploy/app-setup.sh`, kako fajl stiže na server koji još stoji
    ugašen, i šta biva kad ga nema. `.env.example` je već ispravljen u fazi 3
    (`LICHESS_EXPLORER_URL` i `LICHESS_MASTERS_URL` se više ne čitaju).
