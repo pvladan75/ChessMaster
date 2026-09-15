@@ -17,85 +17,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/core/user_manual.dart';
 
-const _manualDir = '../site/mislisha/manual';
+import 'support/dart_source.dart';
 
-/// The string literals of one Dart source, as the compiler would join them.
-///
-/// Read by walking the source rather than by a regular expression over it,
-/// because a regular expression cannot tell code from writing about code: this
-/// repository's comments quote retired labels — „Not 'Snimljeni časovi' any
-/// more" — and a label the manual still names would pass by matching the
-/// comment that says it is gone. Comments are skipped; adjacent literals are
-/// joined, as a long sentence is written across lines; an interpolation becomes
-/// a space, so „Resume session" matches `'Resume session ${code}'`.
-List<String> literalsIn(String src) {
-  final spans = <({int start, int end, String text})>[];
-  const hole = ' ';
-  var i = 0;
-  while (i < src.length) {
-    if (src.startsWith('//', i)) {
-      final end = src.indexOf('\n', i);
-      i = end < 0 ? src.length : end;
-      continue;
-    }
-    if (src.startsWith('/*', i)) {
-      final end = src.indexOf('*/', i + 2);
-      i = end < 0 ? src.length : end + 2;
-      continue;
-    }
-    final c = src[i];
-    if (c != "'" && c != '"') {
-      i++;
-      continue;
-    }
-    final start = i;
-    final raw = i > 0 && src[i - 1] == 'r';
-    final quote = src.startsWith(c * 3, i) ? c * 3 : c;
-    final buf = StringBuffer();
-    var j = i + quote.length;
-    while (j < src.length && !src.startsWith(quote, j)) {
-      if (quote.length == 1 && src[j] == '\n') break;
-      if (!raw && src[j] == r'\' && j + 1 < src.length) {
-        buf.write(src[j + 1] == 'n' ? '\n' : src[j + 1]);
-        j += 2;
-      } else if (!raw && src.startsWith(r'${', j)) {
-        j++; // past the `$`, so the count starts on the brace it opens
-        var depth = 0;
-        do {
-          if (src[j] == '{') depth++;
-          if (src[j] == '}') depth--;
-          j++;
-        } while (j < src.length && depth > 0);
-        buf.write(hole);
-      } else if (!raw &&
-          src[j] == r'$' &&
-          j + 1 < src.length &&
-          RegExp('[A-Za-z_]').hasMatch(src[j + 1])) {
-        j++;
-        while (j < src.length && RegExp('[A-Za-z0-9_]').hasMatch(src[j])) {
-          j++;
-        }
-        buf.write(hole);
-      } else {
-        buf.write(src[j]);
-        j++;
-      }
-    }
-    i = j + quote.length;
-    final text = buf.toString();
-    // Joined to the literal before it when only whitespace stands between.
-    if (spans.isNotEmpty &&
-        src.substring(spans.last.end, start).trim().isEmpty) {
-      final last = spans.removeLast();
-      spans.add((start: last.start, end: i, text: last.text + text));
-    } else {
-      spans.add((start: start, end: i, text: text));
-    }
-  }
-  return [
-    for (final s in spans) s.text.replaceAll(RegExp(r'\s+'), ' ').trim(),
-  ];
-}
+const _manualDir = '../site/mislisha/manual';
 
 /// Every string literal in `lib/`.
 Set<String> _literalsOfLib() => {
