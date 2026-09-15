@@ -632,9 +632,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   /// Judges the move that led to the position on the board.
   ///
-  /// On request and never on its own: this spends the reader's own Lichess
-  /// allowance, and a panel that spends it while somebody clicks through a game
-  /// empties something nobody agreed to give.
+  /// On request and never on its own: each verdict asks Lichess's cloud
+  /// evaluation twice, from one server address shared by everybody, and a panel
+  /// that asked while somebody clicked through a game would spend it on moves
+  /// nobody wanted judged.
   Future<void> _judgeCurrentMove() async {
     final node = _currentNode;
     final parent = node.parent;
@@ -2044,13 +2045,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
               ),
             if (AppSettingsService.instance.isPanelVisible('opening_judge'))
               OpeningJudgePanelWidget(
-                hasToken: OpeningJudgeService.instance.hasPersonalToken,
                 moveSan: _currentNode.moveSan,
                 isLoading: _judgeLoading,
                 judgement: _judgedNodeId == _currentNode.id ? _judgement : null,
                 reason: _judgedNodeId == _currentNode.id ? _judgeReason : null,
                 onJudge: _currentNode.isRoot ? null : _judgeCurrentMove,
-                onOpenSettings: _openAppSettings,
               ),
             if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
               OpeningExplorerPanelWidget(

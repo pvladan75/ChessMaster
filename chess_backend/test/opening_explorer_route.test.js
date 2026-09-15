@@ -124,8 +124,7 @@ test('a position past the end of the file is an answer, not a failure', async (t
 });
 
 test('the rating filter is gone, and two values answer the same', async (t) => {
-  // `minRating` stays on the wire because thirty-odd call sites still pass it
-  // and `opening_replies` is keyed by it. There is one book, so it selects
+  // An older app still sends `minRating`. There is one book, so it selects
   // nothing — and this is what stops the next reader believing it still does.
   const asked = bookAnswering(t, {
     white: 10, draws: 0, black: 0, unlisted: 0, beyondBook: false,

@@ -13,12 +13,15 @@
 // Lichess's cloud evaluation is one fixed number per position, the same for
 // everyone, cached upstream and here.
 //
-// **Whose allowance is spent.** The Explorer counts requests per token, and the
-// server's own token is a single throat for every child in the app. Judging
-// asks up to four upstream questions per move, so it is deliberately not on
-// that token: the caller must send their own, and someone without one is told
-// so rather than quietly served from the shared allowance. The token arrives in
-// a header, is used, and is never stored or logged.
+// **Two questions, and only one of them leaves this server.** What masters
+// played comes from the local opening book (`services/openingBook.js`), and
+// what the position is worth from Lichess's cloud evaluation, which answers
+// without a token (probed 15.9.2026: 200, depth 60). Until
+// `docs/PLAN-OTVARANJA-LOKALNO.md` both books were Lichess explorers, and the
+// caller had to bring a Lichess token of their own for all four questions —
+// which in practice meant nobody could build a repertoire. There is no token
+// anywhere now, and no rating band: one book, 2200+, because a student learns
+// the sound move whatever their own rating.
 //
 // **What the cache holds.** Positions, not people. An evaluation of a position
 // is the same fact whoever asked for it, so a line walked by one child is
@@ -29,28 +32,25 @@ const { Chess } = require('chess.js');
 const {
   createPacer, MIN_REQUEST_GAP_MS, RATE_LIMIT_COOLDOWN_MS,
 } = require('./lichessPacing');
-const { withStandardUci } = require('./openingMoveNotation');
+const { sharedOpeningBook } = require('./openingBook');
 
-const DEFAULT_MASTERS_URL = process.env.LICHESS_MASTERS_URL
-  || 'https://explorer.lichess.ovh/masters';
-const DEFAULT_LICHESS_URL = process.env.LICHESS_EXPLORER_URL
-  || 'https://explorer.lichess.ovh/lichess';
 const DEFAULT_CLOUD_EVAL_URL = process.env.LICHESS_CLOUD_EVAL_URL
   || 'https://lichess.org/api/cloud-eval';
-
-/// The same buckets the Explorer knows, and the same reason they are spelled
-/// out: a request carries the list of buckets it wants, not a floor.
-const RATING_BUCKETS = [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500];
 
 /// How many master games make a move "theory" rather than "someone once tried
 /// it". Ten is low on purpose: a sideline played ten times by masters is a real
 /// line a child may meet, and the panel prints the count beside the verdict so
 /// the reader can weigh it themselves.
+///
+/// **Re-read against the local book on 15.9.2026 rather than carried over.**
+/// It was set against Lichess's masters explorer. Every move of the thirteen
+/// harness games that Lichess's cached answers name was counted in the 2200+
+/// file as well: the median ratio per move is 0.99 and per position 1.00, and
+/// at ten the local book keeps 783 of the 795 moves Lichess called theory and
+/// adds 23 of 376 it did not — every one of them within a few games of the
+/// line (7–9 against 10–18). Fifteen would drop 65 of Lichess's. The same
+/// number means the same thing, so it stays.
 const MIN_MASTER_GAMES = 10;
-
-/// How many games in the chosen rating band make a move worth calling common in
-/// practice. Only a label - the verdict itself comes from the evaluation.
-const MIN_BAND_GAMES = 5;
 
 /// How much the move may cost, in centipawns, and still be playable.
 ///
@@ -90,10 +90,10 @@ const KEEP_REPLIES = 12;
 const MATE_CP = 100000;
 
 class OpeningJudgeUnavailable extends Error {
-  /// `reason` is what the log and the app key off: 'no-token' (the caller has
-  /// no Lichess token of their own), 'unauthorized' (Lichess refused it),
-  /// 'rate-limited', or 'network'. Four different jobs for whoever reads the
-  /// log, so they never collapse into one message.
+  /// `reason` is what the log and the app key off: 'rate-limited' (Lichess
+  /// asked this server to wait) or 'network' (it did not answer, or answered
+  /// with something that is not an evaluation). The book's own failures are
+  /// `OpeningBookUnavailable`, which the routes pass on with their reason.
   constructor(message, { reason = 'network', status = 503, cause } = {}) {
     super(message);
     this.name = 'OpeningJudgeUnavailable';
@@ -101,17 +101,6 @@ class OpeningJudgeUnavailable extends Error {
     this.status = status;
     this.cause = cause;
   }
-}
-
-function ratingBucketsFrom(minRating) {
-  if (minRating === null || minRating === undefined || minRating === '') return null;
-  const min = Number(minRating);
-  if (!RATING_BUCKETS.includes(min)) {
-    throw new RangeError(
-      `Unknown rating threshold "${minRating}". Allowed: ${RATING_BUCKETS.join(', ')}.`
-    );
-  }
-  return RATING_BUCKETS.filter((b) => b >= min);
 }
 
 /// Lichess reports cloud evaluations from White's point of view - `mate: -8`
@@ -131,6 +120,16 @@ function whiteRelativeCp(pv) {
   return null;
 }
 
+/// Lichess writes castling as "king takes rook" — `e1h1`, `e8a8` — the Chess960
+/// convention, and its cloud evaluation's lines are written that way
+/// (verified live on 25.8.2026: `d2d3 d7d6 e1h1 a7a5 f1e1 e8h8 …`). This app's
+/// board, like chess.js, writes `e1g1`. Read literally, the castling move does
+/// not play, and a line stops at it without a word: "better was O-O" became
+/// "better was nothing", and a punishment stopped one move short.
+const KING_TAKES_ROOK = {
+  e1h1: 'e1g1', e1a1: 'e1c1', e8h8: 'e8g8', e8a8: 'e8c8',
+};
+
 /// The first `limit` moves of a UCI line, in the notation a child reads.
 ///
 /// Silence on anything it cannot replay: a line that does not fit the position
@@ -145,7 +144,12 @@ function sanLine(fen, uciMoves, limit) {
     return [];
   }
   const line = [];
-  for (const uci of uciMoves.slice(0, limit)) {
+  for (const written of uciMoves.slice(0, limit)) {
+    // Only where a king stands on the square it castles from: `e1h1` is also
+    // a rook or queen sliding along the first rank.
+    const castles = KING_TAKES_ROOK[written]
+      && board.get(written.slice(0, 2))?.type === 'k';
+    const uci = castles ? KING_TAKES_ROOK[written] : written;
     let played;
     try {
       played = board.move({
@@ -165,13 +169,12 @@ function sanLine(fen, uciMoves, limit) {
 /**
  * Build a judge.
  *
- * `fetchImpl` is injected so tests never touch the network; the three URLs so a
- * test can tell the two Explorers apart by what was asked.
+ * `book` is injected so tests hand over a table instead of a file, and
+ * `fetchImpl` so they never touch the network.
  */
 function createOpeningJudge({
+  book = null,
   fetchImpl = globalThis.fetch,
-  mastersUrl = DEFAULT_MASTERS_URL,
-  lichessUrl = DEFAULT_LICHESS_URL,
   cloudEvalUrl = DEFAULT_CLOUD_EVAL_URL,
   cacheLimit = 4000,
   timeoutMs = 8000,
@@ -181,19 +184,21 @@ function createOpeningJudge({
   now = () => Date.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
-  // Three caches rather than one, because they are three different facts with
-  // three different keys: a verdict is about a move, an evaluation and an
-  // Explorer answer are about a position.
+  // Asked for on the first question rather than at construction, so that
+  // requiring this module never decides which file the server reads.
+  const readBook = () => book ?? sharedOpeningBook();
+
+  // Two caches rather than one: a verdict is about a move, an evaluation about
+  // a position. The book is not cached here — it is a file on this disk, and a
+  // copy of it in memory would be a second place for a number to go stale.
   const verdicts = new Map();
   const evals = new Map();
-  const books = new Map();
   const inFlight = new Map();
   let requests = 0;
   let hits = 0;
 
-  // Judging one move is four requests, so without a queue it is four at once -
-  // and the rule about how fast this server may ask lives in one place, shared
-  // with the opening book.
+  // Judging one move is two evaluations, so without a queue it is two at once -
+  // and the rule about how fast this server may ask Lichess lives in one place.
   const pacer = createPacer({ minGapMs, cooldownMs, now, sleep });
 
   function remember(cache, key, value) {
@@ -203,7 +208,7 @@ function createOpeningJudge({
     }
   }
 
-  async function getJson(url, { token, allowMissing = false } = {}) {
+  async function getJson(url, { allowMissing = false } = {}) {
     // Serving the block ourselves. Asking during it is what lengthens it.
     const blockedFor = pacer.blockedForMs();
     if (blockedFor > 0) {
@@ -218,16 +223,10 @@ function createOpeningJudge({
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const headers = { 'User-Agent': 'chess-coach opening judge' };
-      if (token) headers.Authorization = `Bearer ${token}`;
       const res = await pacer.spaced(
         () => fetchImpl(url, { signal: controller.signal, headers })
       );
 
-      if (res.status === 401 || res.status === 403) {
-        throw new OpeningJudgeUnavailable(
-          'Lichess rejected your token.', { reason: 'unauthorized', status: 502 }
-        );
-      }
       if (res.status === 429) {
         pacer.block();
         throw new OpeningJudgeUnavailable(
@@ -274,55 +273,51 @@ function createOpeningJudge({
     return pending;
   }
 
-  /// What the given book says about this position, as a map from UCI to the
-  /// game counts. Only what the verdict needs; the panel already has the full
-  /// Explorer through its own route.
-  function bookAt(fen, { source, buckets, token }) {
-    const key = `${source}|${fen}|${buckets ? buckets[0] : 'all'}`;
-    return once(key, books, async () => {
-      const params = new URLSearchParams({
-        fen, moves: '30', topGames: '0', recentGames: '0',
+  /// What the book says about this position: every move it lists with its
+  /// counts, the number of games that reached the position, and whether the
+  /// position lies past the depth the file was built to.
+  ///
+  /// `total` is the position's own count, which in a pruned file is more than
+  /// its listed moves add up to — the games in moves played only once. Shares
+  /// are taken of that, so a reply list never claims to cover games it cannot
+  /// see.
+  ///
+  /// Past the depth the file was built to, nothing is listed even where a row
+  /// happens to exist — a count that arrived by transposition from a shallower
+  /// ply is not the book speaking about this position, and a verdict or a
+  /// reply list built on it would say more than the file can.
+  function bookAt(fen) {
+    const here = readBook().answer(fen);
+    if (here.beyondBook === true) {
+      return { total: 0, moves: new Map(), beyondBook: true };
+    }
+    const moves = new Map();
+    for (const m of here.moves) {
+      moves.set(m.uci, {
+        uci: m.uci,
+        san: m.san,
+        games: m.white + m.draws + m.black,
+        // The outcome split travels with the count, because "how often" and
+        // "how well" are different questions and the second is the one a
+        // student is really asking when they compare two candidate moves.
+        white: m.white,
+        draws: m.draws,
+        black: m.black,
       });
-      if (buckets) params.set('ratings', buckets.join(','));
-      const base = source === 'masters' ? mastersUrl : lichessUrl;
-      const data = await getJson(`${base}?${params}`, { token });
-
-      // Rewritten into our own notation first. Lichess castles "king takes
-      // rook" (`e1h1`), this app's board does not, and a castling move left in
-      // their notation is one nothing downstream can play — silently.
-      const raw = (data?.moves || []).map((m) => {
-        const white = m.white ?? 0;
-        const draws = m.draws ?? 0;
-        const black = m.black ?? 0;
-        return {
-          uci: m.uci,
-          san: m.san,
-          games: white + draws + black,
-          // The outcome split travels with the count, because "how often" and
-          // "how well" are different questions and the second is the one a
-          // student is really asking when they compare two candidate moves.
-          white,
-          draws,
-          black,
-        };
-      });
-
-      const moves = new Map();
-      let total = 0;
-      for (const m of withStandardUci(fen, raw)) {
-        moves.set(m.uci, m);
-        total += m.games;
-      }
-      return { total, moves };
-    });
+    }
+    return {
+      total: here.white + here.draws + here.black,
+      moves,
+      beyondBook: false,
+    };
   }
 
   /// Lichess's evaluation of one position, White-relative, or null when the
   /// cloud has never seen it.
-  function evalAt(fen, { token }) {
+  function evalAt(fen) {
     return once(`eval|${fen}`, evals, async () => {
       const params = new URLSearchParams({ fen, multiPv: '1' });
-      const data = await getJson(`${cloudEvalUrl}?${params}`, { token, allowMissing: true });
+      const data = await getJson(`${cloudEvalUrl}?${params}`, { allowMissing: true });
       const pv = data?.pvs?.[0];
       const cp = whiteRelativeCp(pv);
       if (cp === null) return null;
@@ -346,19 +341,15 @@ function createOpeningJudge({
    * Judge one move played from `fen`.
    *
    * `move` may be SAN or UCI; whatever arrives, both forms come back, because
-   * the app has one and the books are keyed by the other.
+   * the app has one and the book is keyed by the other.
    */
-  async function judge(fen, move, { token = '', minRating = null } = {}) {
+  async function judge(fen, move) {
     if (typeof fen !== 'string' || fen.trim() === '') {
       throw new RangeError('Position (FEN) was not provided.');
     }
     if (typeof move !== 'string' || move.trim() === '') {
       throw new RangeError('Move was not provided.');
     }
-
-    // The caller's own mistakes are answered before this server's state, so a
-    // malformed request is told so whether or not a token came with it.
-    const buckets = ratingBucketsFrom(minRating);
 
     let board;
     try {
@@ -381,62 +372,41 @@ function createOpeningJudge({
     const moverIsWhite = played.color === 'w';
     const fenAfter = board.fen();
 
-    if (!token) {
-      throw new OpeningJudgeUnavailable(
-        'Judging a move requires your Lichess token.',
-        { reason: 'no-token', status: 403 }
-      );
-    }
-
-    const key = `${fen}|${uci}|${buckets ? buckets[0] : 'all'}`;
+    const key = `${fen}|${uci}`;
     if (verdicts.has(key)) {
       hits += 1;
       return verdicts.get(key);
     }
 
-    const base = {
-      fen, fenAfter, uci, san: played.san, moverIsWhite,
-      minRating: buckets ? buckets[0] : null,
-    };
+    const base = { fen, fenAfter, uci, san: played.san, moverIsWhite };
 
-    const masters = await bookAt(fen, { source: 'masters', buckets: null, token });
-    const inMasters = masters.moves.get(uci);
+    const masters = bookAt(fen);
     const mastersStat = {
-      games: inMasters?.games ?? 0,
+      games: masters.moves.get(uci)?.games ?? 0,
       total: masters.total,
+      // Past the file's last ply the book has nothing to say — not "nobody
+      // played this". The engine still judges; the panel can say which of the
+      // two silences it is standing in.
+      beyondBook: masters.beyondBook,
     };
 
     if (mastersStat.games >= MIN_MASTER_GAMES) {
-      // The books outrank the engine here on purpose. A move masters keep
+      // The book outranks the engine here on purpose. A move masters keep
       // playing is theory even when the cloud has it a tenth of a pawn worse
       // than the top choice, and telling a child otherwise teaches them to
       // distrust the opening they were given.
-      const value = {
-        ...base, verdict: 'theory', masters: mastersStat, band: null, eval: null,
-      };
+      const value = { ...base, verdict: 'theory', masters: mastersStat, eval: null };
       remember(verdicts, key, value);
       return value;
     }
 
-    const band = await bookAt(fen, { source: 'lichess', buckets, token });
-    const inBand = band.moves.get(uci);
-    const bandStat = { games: inBand?.games ?? 0, total: band.total };
-
-    const [before, after] = await Promise.all([
-      evalAt(fen, { token }),
-      evalAt(fenAfter, { token }),
-    ]);
+    const [before, after] = await Promise.all([evalAt(fen), evalAt(fenAfter)]);
 
     if (!before || !after) {
       // Loud, and its own verdict. Calling an unjudged move a mistake is the
       // exact shape of failure this project keeps paying for.
       const value = {
-        ...base,
-        verdict: 'unknown',
-        reason: 'no-eval',
-        masters: mastersStat,
-        band: bandStat,
-        eval: null,
+        ...base, verdict: 'unknown', reason: 'no-eval', masters: mastersStat, eval: null,
       };
       remember(verdicts, key, value);
       return value;
@@ -462,7 +432,6 @@ function createOpeningJudge({
       ...base,
       verdict: playable ? 'playable' : 'mistake',
       masters: mastersStat,
-      band: bandStat,
       eval: {
         // Mover-relative, because every sentence the panel writes is about the
         // person who played the move. White-relative numbers are kept out of
@@ -486,26 +455,17 @@ function createOpeningJudge({
    * The opponent's replies worth answering in this position, and what is left
    * over.
    *
-   * Lives here rather than in the repertoire service because everything it
-   * needs is already here: the same book cache, the same queue, and the same
-   * rule about whose token is spent. A second place asking Lichess would be a
-   * second place to get the pacing and the token gate wrong.
+   * Lives here rather than in the repertoire service because it is the other
+   * half of the same build loop and reads the same book the verdict does.
    */
-  async function replies(fen, { token = '', minRating = null } = {}) {
+  async function replies(fen) {
     if (typeof fen !== 'string' || fen.trim() === '') {
       throw new RangeError('Position (FEN) was not provided.');
     }
-    const buckets = ratingBucketsFrom(minRating);
-    if (!token) {
-      throw new OpeningJudgeUnavailable(
-        'Building a repertoire requires your Lichess token.',
-        { reason: 'no-token', status: 403 }
-      );
-    }
 
-    const band = await bookAt(fen, { source: 'lichess', buckets, token });
-    const all = [...band.moves.values()].sort((a, b) => b.games - a.games);
-    const total = band.total;
+    const book = bookAt(fen);
+    const all = [...book.moves.values()].sort((a, b) => b.games - a.games);
+    const { total } = book;
 
     const covered = [];
     let running = 0;
@@ -519,9 +479,9 @@ function createOpeningJudge({
         san: move.san,
         games: move.games,
         share: total > 0 ? move.games / total : 0,
-        white: move.white ?? 0,
-        draws: move.draws ?? 0,
-        black: move.black ?? 0,
+        white: move.white,
+        draws: move.draws,
+        black: move.black,
       });
       running += move.games;
     }
@@ -531,8 +491,10 @@ function createOpeningJudge({
     const isCovered = new Set(covered.map((m) => m.uci));
     return {
       fen,
-      minRating: buckets ? buckets[0] : null,
       total,
+      // A position past the file's depth answers with no replies, and says it
+      // is that rather than an opening nobody plays.
+      beyondBook: book.beyondBook,
       replies: covered,
       // Everything the book returned, not only what was covered, so whoever
       // stores this can keep the moves the student is *not* prepared for. A
@@ -543,14 +505,16 @@ function createOpeningJudge({
         san: move.san,
         games: move.games,
         share: total > 0 ? move.games / total : 0,
-        white: move.white ?? 0,
-        draws: move.draws ?? 0,
-        black: move.black ?? 0,
+        white: move.white,
+        draws: move.draws,
+        black: move.black,
         covered: isCovered.has(move.uci),
       })),
       coveredShare: total > 0 ? running / total : 0,
       // Named and counted rather than dropped: this is exactly the set of moves
       // the drill will one day play and the student will not have an answer to.
+      // In a pruned book the games include the moves played only once, which
+      // are counted here and listed nowhere.
       tail: {
         moves: tailMoves,
         games: tailGames,
@@ -565,7 +529,6 @@ function createOpeningJudge({
     stats: () => ({
       verdicts: verdicts.size,
       evals: evals.size,
-      books: books.size,
       requests,
       hits,
       // Seconds left of a Lichess block, so the log can say why the panel has
@@ -573,7 +536,7 @@ function createOpeningJudge({
       blockedForMs: pacer.blockedForMs(),
     }),
     clear: () => {
-      verdicts.clear(); evals.clear(); books.clear();
+      verdicts.clear(); evals.clear();
       requests = 0; hits = 0; pacer.reset();
     },
   };
@@ -582,12 +545,9 @@ function createOpeningJudge({
 module.exports = {
   createOpeningJudge,
   sanLine,
-  ratingBucketsFrom,
   whiteRelativeCp,
   OpeningJudgeUnavailable,
-  RATING_BUCKETS,
   MIN_MASTER_GAMES,
-  MIN_BAND_GAMES,
   COVERAGE_SHARE,
   MAX_REPLIES,
   MIN_REPLIES,

@@ -100,7 +100,7 @@ function keysAlong(rootFen, alongPath) {
 /// Cut branches are not walked. A line the student refused to prepare is not a
 /// line to be rehearsed down.
 async function walkLines(pool, userId, {
-  color, rootFen, minRating = 0, maxPly = MAX_PLY, onlyChosen = false,
+  color, rootFen, maxPly = MAX_PLY, onlyChosen = false,
   gateUci = null, breadth = DEFAULT_BREADTH, alongPath = [],
 } = {}) {
   if (color !== 'w' && color !== 'b') {
@@ -117,7 +117,6 @@ async function walkLines(pool, userId, {
   const kept = gateMoves(
     await keptByPosition(pool, userId, color, { onlyChosen }), rootKey, gateUci);
   const cut = await skippedKeys(pool, userId, color);
-  const band = Number(minRating) || 0;
   const wide = requireBreadth(breadth);
   // Where the reader is standing, so the walk reaches them whatever the breadth
   // says. See `coveredReplies`; computed once here rather than per wave.
@@ -165,7 +164,7 @@ async function walkLines(pool, userId, {
     // breadth. See `coveredReplies`.
     const fens = new Map(branches.map((b) => [fenKey(b.after.fen), b.after.fen]));
     const book = await coveredReplies(
-      pool, userId, color, keys, band, wide, { fens, kept, standing });
+      pool, userId, color, keys, wide, { fens, kept, standing });
 
     const next = [];
     for (const branch of branches) {
@@ -247,11 +246,11 @@ async function walkLines(pool, userId, {
 /// and nobody reads a drawing of all of them, so the depth is a parameter and
 /// the answer says when it was reached.
 async function tree(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, maxPly = 16, gateUci = null,
+  color, rootFen, rootPath = [], maxPly = 16, gateUci = null,
   breadth = DEFAULT_BREADTH, alongPath = [],
 } = {}) {
   const { nodes, root, truncated, kept, cut } = await walkLines(pool, userId, {
-    color, rootFen, minRating, maxPly, gateUci, breadth, alongPath,
+    color, rootFen, maxPly, gateUci, breadth, alongPath,
   });
 
   const byParent = new Map();
@@ -500,7 +499,7 @@ const baseOf = (door) => door.rootPath
 /// is answered once. Per-repertoire schedules would put the same board up twice
 /// in one sitting and call the second time practice.
 async function drillLine(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, fromFen = null,
+  color, rootFen, rootPath = [], fromFen = null,
   viaFen = null, viaUci = null, exclude = [], ahead = false, gateUci = null,
   breadth = DEFAULT_BREADTH, roots = null, now = new Date(),
 } = {}) {
@@ -516,7 +515,6 @@ async function drillLine(pool, userId, {
     const walk = await walkLines(pool, userId, {
       color,
       rootFen: door.rootFen,
-      minRating,
       gateUci: door.viaUci,
       breadth: door.breadth,
       // A rehearsal replays decisions. A line through a move nobody chose is
@@ -708,7 +706,7 @@ async function drillLine(pool, userId, {
 ///
 /// No Lichess request, like everything that reads what was built.
 async function drillBranches(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, gateUci = null,
+  color, rootFen, rootPath = [], gateUci = null,
   breadth = DEFAULT_BREADTH, roots = null, now = new Date(),
 } = {}) {
   const doors = doorsOf({ roots, rootFen, rootPath, gateUci, breadth });
@@ -720,7 +718,6 @@ async function drillBranches(pool, userId, {
     const { nodes, truncated: short } = await walkLines(pool, userId, {
       color,
       rootFen: door.rootFen,
-      minRating,
       gateUci: door.viaUci,
       breadth: door.breadth,
       onlyChosen: true,

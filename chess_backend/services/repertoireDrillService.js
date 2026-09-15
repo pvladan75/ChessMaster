@@ -7,11 +7,9 @@
 // joining a lesson while a repertoire item is (colour, position) that joins
 // nothing.
 //
-// **A drill costs nothing.** No Lichess request is made here at any point: what
-// the opponent plays comes from `opening_replies`, filled when the student
-// built the position and shared by everyone afterwards. A student without a
-// token of their own can still drill what they built last week, and a student
-// with one is not spending it to be asked questions.
+// **A drill costs nothing.** Nothing is asked of anybody here: what the
+// opponent plays comes from `opening_replies`, filled from the local opening
+// book when the student built the position and shared by everyone afterwards.
 //
 // **The student is not asked to grade themselves.** In a drill the answer is
 // objective - it is their own decision, written down - so the quality is
@@ -32,6 +30,7 @@ const {
 // from the same set, and they have disagreed before.
 const { step } = require('./repertoireFrontier');
 const logger = require('./logger');
+const { BOOK_BAND, BOOK_SOURCE } = require('./storedReplies');
 
 /// How an answer is scored, before SM-2 sees it.
 const QUALITY = {
@@ -383,7 +382,7 @@ async function ensureReview(pool, userId, color, key) {
 /// an undecided one in front of it against rows — a guard written into a WHERE
 /// clause is a guard no stub pool can disprove by mutation.
 async function pickReply(pool, {
-  fen, minRating = 0, userId = null, color = null, breadth = DEFAULT_BREADTH,
+  fen, userId = null, color = null, breadth = DEFAULT_BREADTH,
   random = Math.random,
 }) {
   const key = fenKey(fen);
@@ -398,9 +397,9 @@ async function pickReply(pool, {
                WHERE e.user_id = $3 AND e.color = $4
                  AND e.fen_key = r.fen_key AND e.uci = r.uci) AS asked
        FROM opening_replies r
-      WHERE r.fen_key = $1 AND r.min_rating = $2
+      WHERE r.fen_key = $1 AND r.min_rating = $2 AND r.source = $5
       ORDER BY r.games DESC`,
-    [key, minRating ?? 0, userId, color],
+    [key, BOOK_BAND, userId, color, BOOK_SOURCE],
   );
   // The games count is dropped by `withinBreadth`, which answers what the walk
   // needs, and the draw is weighted by games — so the rows are matched back up
@@ -480,23 +479,27 @@ async function pickReply(pool, {
   return { uci: last.uci, san: last.san, covered: true };
 }
 
-/// Stores the book for a position, so the drill never has to ask Lichess.
+/// Stores the book for a position, so the drill never has to read it again.
 ///
-/// Called with whatever the explorer returned, covered moves and all. Rows are
+/// Called with whatever the book returned, covered moves and all. Rows are
 /// replaced rather than added to: a position's book is one fact, and two
 /// half-updated copies of it would be worse than a stale one.
-async function rememberReplies(pool, { fen, minRating = 0, moves }) {
+///
+/// Every row this position has goes, whatever band or source wrote it. A row
+/// from the Lichess rating bands left beside the book's would be read by
+/// nobody and would keep `UNIQUE (fen_key, min_rating, uci)` meaning two
+/// things.
+async function rememberReplies(pool, { fen, moves }) {
   if (!Array.isArray(moves) || moves.length === 0) return 0;
   const key = fenKey(fen);
-  const band = minRating ?? 0;
 
   const values = [];
-  const params = [key, band];
+  const params = [key, BOOK_BAND, BOOK_SOURCE];
   for (const move of moves) {
     const at = params.length;
     params.push(move.uci, move.san, move.games ?? 0, move.share ?? 0,
       move.covered === true);
-    values.push(`($1, $2, $${at + 1}, $${at + 2}, $${at + 3}, $${at + 4}, $${at + 5})`);
+    values.push(`($1, $2, $3, $${at + 1}, $${at + 2}, $${at + 3}, $${at + 4}, $${at + 5})`);
   }
 
   // Replaced, not merged. A position's book is one fact, and merging leaves
@@ -506,12 +509,10 @@ async function rememberReplies(pool, { fen, minRating = 0, moves }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('DELETE FROM opening_replies WHERE fen_key = $1', [key]);
     await client.query(
-      'DELETE FROM opening_replies WHERE fen_key = $1 AND min_rating = $2',
-      [key, band],
-    );
-    await client.query(
-      `INSERT INTO opening_replies (fen_key, min_rating, uci, san, games, share, covered)
+      `INSERT INTO opening_replies
+         (fen_key, min_rating, source, uci, san, games, share, covered)
        VALUES ${values.join(', ')}`,
       params,
     );
@@ -523,6 +524,51 @@ async function rememberReplies(pool, { fen, minRating = 0, moves }) {
     client.release();
   }
   return moves.length;
+}
+
+/// Rewrites every stored position the Lichess explorer filled, from the local
+/// book. Run once at start-up, and a no-op afterwards: it asks only for rows
+/// with no source, and every row it writes has one.
+///
+/// Rewritten rather than deleted. They are a real student's tree — the drill's
+/// opponent, the branches the tree draws — and a deleted row is a branch that
+/// vanishes until somebody opens that position in build mode again, with
+/// nothing on screen saying why.
+///
+/// A position the book cannot speak about (nobody reached it, or it lies past
+/// the file's depth) loses its old rows: they were a band's fact, and keeping
+/// them would be keeping exactly the mix the source column exists to stop. A
+/// book that is not there leaves everything as it is and says so — the rows
+/// are unread either way, and the next start tries again.
+async function refreshStoredReplies(pool, { judge }) {
+  const legacy = await pool.query(
+    'SELECT DISTINCT fen_key FROM opening_replies WHERE source IS NULL',
+  );
+  const report = { positions: legacy.rowCount, rewritten: 0, removed: 0 };
+  for (const { fen_key: key } of legacy.rows) {
+    let answer;
+    try {
+      // A stored key is the FEN without its move counters, which the book
+      // reads for nothing but its depth check.
+      answer = await judge.replies(`${key} 0 1`);
+    } catch (err) {
+      if (err instanceof RangeError) {
+        // A stored key that is not a position. Nobody can read it.
+        await pool.query('DELETE FROM opening_replies WHERE fen_key = $1', [key]);
+        report.removed += 1;
+        continue;
+      }
+      throw err;
+    }
+    if (answer.beyondBook || (answer.all ?? []).length === 0) {
+      await pool.query('DELETE FROM opening_replies WHERE fen_key = $1', [key]);
+      report.removed += 1;
+    } else {
+      await rememberReplies(pool, { fen: key, moves: answer.all });
+      report.rewritten += 1;
+    }
+  }
+  return report;
 }
 
 /// How much is waiting, for the badge and for "ništa nije na redu".
@@ -580,6 +626,7 @@ module.exports = {
   answer,
   pickReply,
   rememberReplies,
+  refreshStoredReplies,
   drillStats,
   QUALITY,
   OUTCOMES,

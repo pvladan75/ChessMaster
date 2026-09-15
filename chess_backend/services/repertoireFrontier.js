@@ -39,6 +39,7 @@
 // the map needs is passing through this loop anyway.
 
 const { Chess } = require('chess.js');
+const { BOOK_BAND, BOOK_SOURCE } = require('./storedReplies');
 const {
   fenKey, skippedKeys, requireBreadth, DEFAULT_BREADTH,
 } = require('./repertoireService');
@@ -146,7 +147,7 @@ function gateMoves(kept, rootKey, gateUci) {
 /// one student prepare more is to leave that column alone and decide at read
 /// time — which the stored `share` on every row makes possible.
 async function coveredReplies(
-  pool, userId, color, keys, minRating, breadth = DEFAULT_BREADTH,
+  pool, userId, color, keys, breadth = DEFAULT_BREADTH,
   { fens = null, kept = null, standing = null } = {},
 ) {
   if (keys.length === 0) return new Map();
@@ -167,9 +168,9 @@ async function coveredReplies(
                WHERE e.user_id = $3 AND e.color = $4
                  AND e.fen_key = r.fen_key AND e.uci = r.uci) AS asked
        FROM opening_replies r
-      WHERE r.min_rating = $1 AND r.fen_key = ANY($2)
+      WHERE r.min_rating = $1 AND r.fen_key = ANY($2) AND r.source = $5
       ORDER BY r.games DESC`,
-    [minRating, keys, userId, color],
+    [BOOK_BAND, keys, userId, color, BOOK_SOURCE],
   );
   const rows = new Map();
   for (const row of result.rows) {
@@ -319,7 +320,7 @@ function withinBreadth(rows, breadth = DEFAULT_BREADTH) {
 /// a decision, not a coin, so an alternate carries the same reach as the
 /// primary — read it as "if you play this, how often do you land here".
 async function frontier(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, limit = 200, gateUci = null,
+  color, rootFen, rootPath = [], limit = 200, gateUci = null,
   breadth = DEFAULT_BREADTH,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
@@ -332,7 +333,6 @@ async function frontier(pool, userId, {
   const kept = gateMoves(
     await keptByPosition(pool, userId, color), fenKey(rootFen), gateUci);
   const cut = await skippedKeys(pool, userId, color);
-  const band = Number(minRating) || 0;
   const wide = requireBreadth(breadth);
   const base = Array.isArray(rootPath)
     ? rootPath.filter((san) => typeof san === 'string' && san !== '')
@@ -443,7 +443,7 @@ async function frontier(pool, userId, {
     // and the picture disagree about what the repertoire contains.
     const fens = new Map(branches.map((b) => [fenKey(b.after.fen), b.after.fen]));
     const book = await coveredReplies(
-      pool, userId, color, keys, band, wide, { fens, kept });
+      pool, userId, color, keys, wide, { fens, kept });
 
     const next = [];
     const dangling = new Set();

@@ -56,11 +56,10 @@ const { fenKey, BREADTHS, DEFAULT_BREADTH } = require('./repertoireService');
 /// position opens it completely — anything else would call a line unreachable
 /// because some other repertoire happens not to take it.
 async function reachable(pool, userId, {
-  color, from, minRating = 0, without = null, breadth = DEFAULT_BREADTH,
+  color, from, without = null, breadth = DEFAULT_BREADTH,
 } = {}) {
   const skipKey = without ? fenKey(without.fen) : null;
   const kept = await keptByPosition(pool, userId, color);
-  const band = Number(minRating) || 0;
 
   const seen = new Set();
   const gates = new Map();
@@ -106,7 +105,7 @@ async function reachable(pool, userId, {
     // unreachable is what the sweep deletes.
     const fens = new Map(branches.map((fen) => [fenKey(fen), fen]));
     const book = await coveredReplies(
-      pool, userId, color, keys, band, breadth, { fens, kept });
+      pool, userId, color, keys, breadth, { fens, kept });
 
     const next = [];
     for (const after of branches) {
@@ -171,7 +170,7 @@ function widestOf(roots) {
 /// many are decisions, so a screen can delete the first silently and ask about
 /// the second. Nothing is written.
 async function orphansOfRemoving(pool, userId, {
-  color, fen, uci, minRating = 0,
+  color, fen, uci,
 } = {}) {
   const roots = await rootsOf(pool, userId, color);
   if (roots.length === 0) {
@@ -189,7 +188,6 @@ async function orphansOfRemoving(pool, userId, {
   // move, then the answer — so seeding it with the position *after* my move
   // lands it on a board where the student has nothing to play and it stops on
   // the spot. The position itself is stranded either way, so it goes in.
-  const band = Number(minRating) || 0;
   const here = fenKey(after.fen);
   // Same rule as the walk above, and here it decides what a delete is allowed
   // to take silently: a reply outside the breadth that leads into the student's
@@ -197,7 +195,7 @@ async function orphansOfRemoving(pool, userId, {
   // fewer decisions than it was about to remove.
   const kept = await keptByPosition(pool, userId, color);
   const book = await coveredReplies(
-    pool, userId, color, [here], band, breadth,
+    pool, userId, color, [here], breadth,
     { fens: new Map([[here, after.fen]]), kept });
   const seeds = [];
   for (const reply of book.get(here) ?? []) {
@@ -206,14 +204,14 @@ async function orphansOfRemoving(pool, userId, {
   }
   const behind = new Set([here]);
   for (const key of await reachable(pool, userId, {
-    color, from: seeds, minRating, breadth,
+    color, from: seeds, breadth,
   })) {
     behind.add(key);
   }
   // Without that move: every other way in, and the position it was played from
   // is still one of them.
   const otherwise = await reachable(pool, userId, {
-    color, from: roots, minRating, breadth, without: { fen, uci },
+    color, from: roots, breadth, without: { fen, uci },
   });
 
   const keys = [...behind].filter((key) => !otherwise.has(key));
@@ -276,7 +274,7 @@ async function promoteWhereNoPrimary(client, userId, color, keys) {
 /// sweep that trusted a list from a minute ago would delete a line that is back
 /// in use.
 async function pruneKeys(pool, userId, {
-  color, keys, includeDecisions = false, minRating = 0,
+  color, keys, includeDecisions = false,
 } = {}) {
   if (!Array.isArray(keys) || keys.length === 0) {
     return { removed: 0, kept: 0, promoted: 0 };
@@ -288,7 +286,7 @@ async function pruneKeys(pool, userId, {
   const breadth = widestOf(roots);
 
   const live = await reachable(pool, userId, {
-    color, from: roots, minRating, breadth,
+    color, from: roots, breadth,
   });
   const stranded = keys.filter((key) => !live.has(key));
   if (stranded.length === 0) return { removed: 0, kept: 0, promoted: 0 };

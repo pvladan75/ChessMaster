@@ -46,7 +46,7 @@ const logger = require('./logger');
 /// would let a review wizard delete work the student had already agreed to
 /// while showing them a screen about scaffolding.
 async function playAlternative(pool, userId, {
-  color, fen, uci, san, rejectedUci, minRating = 0, includeDecisions = false,
+  color, fen, uci, san, rejectedUci, includeDecisions = false,
 } = {}) {
   requireColor(color);
   const key = fenKey(fen);
@@ -79,7 +79,7 @@ async function playAlternative(pool, userId, {
     });
 
     const orphans = await orphansOfRemoving(client, userId, {
-      color, fen, uci: rejectedUci, minRating,
+      color, fen, uci: rejectedUci,
     });
 
     await client.query(

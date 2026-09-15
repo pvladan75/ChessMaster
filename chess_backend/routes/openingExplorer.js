@@ -18,11 +18,12 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const logger = require('../services/logger');
 const { authenticateToken } = require('../middleware/auth');
-const { createOpeningBook, OpeningBookUnavailable } = require('../services/openingBook');
+const { sharedOpeningBook, OpeningBookUnavailable } = require('../services/openingBook');
 
-// The local opening database. Opened on the first question, not at start-up, so
-// a server without the file serves everything else.
-let openingBook = createOpeningBook();
+// The local opening database — the same one the judge reads. Opened on the
+// first question, not at start-up, so a server without the file serves
+// everything else.
+let openingBook = sharedOpeningBook();
 
 /// What the panel draws at most, and what it draws when it does not say.
 const MAX_MOVES = 30;
@@ -41,11 +42,11 @@ const explorerLimiter = rateLimit({
 
 // GET /opening-explorer?fen=...&moves=12
 //
-// `minRating` is still accepted and selects nothing. There is one book — 2200+
-// — because a student learns the sound move whatever their own rating; the
-// parameter survives only because `opening_replies` is keyed by it and the
-// repertoire still passes it everywhere. `test/opening_explorer_route.test.js`
-// holds two values to the same answer so nobody comes to believe it filters.
+// A `minRating` the app still sends is not read. There is one book — 2200+ —
+// because a student learns the sound move whatever their own rating, and no
+// route on this server reads a rating since 15.9.2026; the app stops sending
+// one in phase 4 of the plan. `test/opening_explorer_route.test.js` holds two
+// values to the same answer so nobody comes to believe it filters.
 router.get('/', authenticateToken, explorerLimiter, (req, res) => {
   const { fen, moves } = req.query;
   try {

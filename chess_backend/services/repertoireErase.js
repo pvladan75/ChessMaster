@@ -117,7 +117,7 @@ async function repertoireRow(pool, userId, id) {
 /// When this is the last repertoire of its colour the second set is empty, and
 /// the answer is everything the walk reaches — which is right, and is why the
 /// screen shows the count before it asks.
-async function orphansOfDeleting(pool, userId, { id, minRating = 0 } = {}) {
+async function orphansOfDeleting(pool, userId, { id } = {}) {
   const row = await repertoireRow(pool, userId, id);
   const color = row.color;
 
@@ -131,14 +131,13 @@ async function orphansOfDeleting(pool, userId, { id, minRating = 0 } = {}) {
   // repertoires from one root would each look as though the other reached
   // everything, and deleting either would report that it strands nothing.
   const mine = await reachable(pool, userId, {
-    color, from: [{ fen: row.root_fen, viaUci: row.via_uci }], minRating,
+    color, from: [{ fen: row.root_fen, viaUci: row.via_uci }],
   });
   const otherwise = others.rowCount === 0
     ? new Set()
     : await reachable(pool, userId, {
       color,
       from: others.rows.map((r) => ({ fen: r.root_fen, viaUci: r.via_uci })),
-      minRating,
     });
 
   const keys = [...mine].filter((key) => !otherwise.has(key));
@@ -192,7 +191,7 @@ async function purge(client, userId, color, keys, { includeComments = false }) {
 /// behaviour and recoverable; moves deleted without the repertoire, or the other
 /// way round after a failure, is a state nobody asked for.
 async function deleteRepertoire(pool, userId, {
-  id, withMoves = false, includeComments = false, minRating = 0,
+  id, withMoves = false, includeComments = false,
 } = {}) {
   const numeric = requireId(id);
   if (!withMoves) {
@@ -203,7 +202,7 @@ async function deleteRepertoire(pool, userId, {
     return { removed: gone.rowCount, movesRemoved: 0, positions: 0 };
   }
 
-  const orphans = await orphansOfDeleting(pool, userId, { id: numeric, minRating });
+  const orphans = await orphansOfDeleting(pool, userId, { id: numeric });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

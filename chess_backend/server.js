@@ -39,6 +39,8 @@ const { mayJoinRoom, maySpeakInRoom } = require('./services/roomAccess');
 const { mayRecordRoom } = require('./services/recordingConsent');
 const { cleanupOldExports } = require('./services/retentionService');
 const renderJobs = require('./services/renderJobs');
+const { refreshStoredReplies } = require('./services/repertoireDrillService');
+const { openingJudge } = require('./services/openingJudgeService');
 const { createOpponentPrep } = require('./services/opponentPrep');
 const { createArchiveImporter } = require('./services/gameArchiveImport');
 const { corsVerdict, parseAllowedOrigins } = require('./services/corsPolicy');
@@ -748,6 +750,22 @@ async function startServer() {
         if (count > 0) logger.warn(`[RENDER] ${count} render(s) interrupted by the restart were marked failed`);
       })
       .catch((err) => logger.error(`[RENDER] Could not mark interrupted renders: ${err.message}`));
+
+    // What the opponent plays in a stored position was read from the Lichess
+    // explorer by rating band until 15.9.2026, and those rows are a real
+    // student's tree. They are rewritten from the local book once, here; every
+    // start after that finds none and costs one query. A server without the
+    // book leaves them as they are and says so — nothing reads them either way.
+    refreshStoredReplies(pool, { judge: openingJudge })
+      .then(({ positions, rewritten, removed }) => {
+        if (positions > 0) {
+          logger.warn(`[BOOK] ${positions} stored position(s) from the Lichess explorer: `
+            + `${rewritten} rewritten from the book, ${removed} removed`);
+        }
+      })
+      .catch((err) => logger.error(
+        `[BOOK] Stored replies were not rewritten from the book (${err.reason || 'error'}): ${err.message}`,
+      ));
 
     // exports/ holds rendered MP4s, which are always reproducible from the
     // recording that made them — unlike uploads/ audio, they are safe to age

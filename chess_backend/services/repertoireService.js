@@ -19,6 +19,7 @@
 //     cannot ask about.
 
 const { Chess } = require('chess.js');
+const { BOOK_BAND, BOOK_SOURCE } = require('./storedReplies');
 
 const COLORS = ['w', 'b'];
 const ROLES = ['primary', 'alternate'];
@@ -456,21 +457,17 @@ async function unskipNode(pool, userId, { color, fen }) {
 
 /// What the opponent plays here, out of what has already been fetched.
 ///
-/// No Lichess request, ever. `opening_replies` holds what anybody's build
-/// session paid for — the rows are about a position and a rating band, never
-/// about a person — so a panel that sits beside the board can be drawn from it
-/// for free, and only a position nobody has ever opened costs anything.
-///
-/// That is the whole rule for a panel that follows the board: one token serves
-/// every child using this app, and a list that refetched on every click would
-/// spend their allowance on a drawing nobody asked for.
+/// Nothing is asked of anybody. `opening_replies` holds what anybody's build
+/// session read from the book — the rows are about a position, never about a
+/// person — so a panel that sits beside the board is drawn from what the tree
+/// and the drill already agree on, rather than from a second reading that
+/// could say something else.
 ///
 /// `opened` tells the two empties apart: no rows means nobody has ever looked
 /// here, which is an offer to look rather than "the opponent plays nothing".
-async function storedBook(pool, userId, { color, fen, minRating = 0 }) {
+async function storedBook(pool, userId, { color, fen }) {
   requireColor(color);
   const key = fenKey(fen);
-  const band = Number(minRating) || 0;
 
   const result = await pool.query(
     `SELECT r.uci, r.san, r.games, r.share, r.covered,
@@ -480,15 +477,14 @@ async function storedBook(pool, userId, { color, fen, minRating = 0 }) {
                  AND e.fen_key = r.fen_key AND e.uci = r.uci
             ) AS prepared
        FROM opening_replies r
-      WHERE r.fen_key = $1 AND r.min_rating = $2
+      WHERE r.fen_key = $1 AND r.min_rating = $2 AND r.source = $5
       ORDER BY r.games DESC`,
-    [key, band, userId, color],
+    [key, BOOK_BAND, userId, color, BOOK_SOURCE],
   );
 
   return {
     fen,
     fenKey: key,
-    minRating: band,
     opened: result.rowCount > 0,
     replies: result.rows.map((row) => ({
       uci: row.uci,

@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2684 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2692 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1327 tests, all green
+cd chess_backend && npm test          # node --test, 1343 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2431,6 +2431,72 @@ past the last ply" was green with the ply computed as `(fullmove - 1) * 2`,
 whose-move-it-is dropped, because a 30-ply file answers the same for 28 and 29.
 `plyOf` is exported and asked directly now. A mutation found it; nothing else
 could have.
+
+**Nobody needs a Lichess token for the opening book any more — 15.9.2026, 1343
+on the backend** with `.env` moved aside, **2692 in the app with 1 skipped**,
+analyze at 26 infos and zero warnings. Phases 0 and 3 of
+`docs/PLAN-OTVARANJA-LOKALNO.md`: the ply-50 book is built, pruned to 145 MB and
+held to the old file by `tools/opening_book/compare_books.py`, and the judge,
+its replies, the spine and the leak report read it with no token anywhere. The
+arithmetic: 1329 − 7 (the castling-notation module's test, deleted with it) −
+24 (the old judge test) + 29 (the new one) + 6 (the drill's source and refresh)
++ 1 (the spine) + 1 (the frontier) + 8 (the new route test) = 1343. The app
+gained seven — 3 (panel) + 1 (service) + 3 (the build screen's stop reasons,
+one of them a loop of two) — and measured 2692, not 2691: the 2684 quoted above
+was one short of `master` before this change, which is what re-deriving a count
+is for. Thirty mutations, all caught, each by the test written for it.
+
+**A watching dev server runs your uncommitted code against the real
+database.** The owner's `npm run dev` restarts on every `.js` change, so the
+startup migration and the one-time rewrite of `opening_replies` ran at 12:36,
+mid-edit, before anything was reviewed — and while `.env` still named the old,
+unpruned book, so the rows it wrote were that file's — rewritten again from the
+ply-50 book at 13:09, at the owner's request, and checked: no stored reply with
+fewer than two games. It ran once and unmutated only because the rewrite is
+idempotent and the mutations came after it. A
+mutation harness writing server files beside a watching process is the same
+risk with worse code in it. **Before editing anything the running server
+loads, ask whether its start-up does anything to data.**
+
+**A gate is proved on the wrong input before it is believed on the right one.**
+`compare_books.py` was pointed at the old file as if it were the new one before
+the new one existed, and its first version passed the walk there: it read the
+new file through the same "played twice or more" filter as the simulation it
+compared against, so an unpruned file walked exactly like a pruned one. Only the
+metadata check caught it. It reads every row now, the way the server does, and
+fails eleven checks on the wrong file. Same family as every check in this file
+that could not fail.
+
+**A plan's wording can be a claim nobody could satisfy.** "Every position the
+ply-30 file answers, the new file answers with the same counts" is false for
+any correct deeper extraction — a game that reaches a position only after ply 30
+adds to it. The gate asks "none missing, none lower, and say how many rose"
+(0.335%), and the plan says why it changed.
+
+**"Clear the cache" was the wrong verb for a cache that is somebody's tree.**
+The plan said `opening_replies` would be cleared once. Measured first: the
+drill, the tree and the frontier read nothing else, so clearing would have
+emptied a real student's repertoire of every opponent reply until each position
+was reopened, silently. It gained a `source` column and is rewritten from the
+book instead. Measure what reads a table before deciding its rows are
+disposable.
+
+**A threshold tuned against one source is re-read against the new one, with
+the old answers kept.** `MIN_MASTER_GAMES` stayed at 10 because the harness had
+Lichess's masters answers cached for all thirteen games, and at ten the local
+book keeps 783 of 795 of Lichess's theory moves. `MIN_SPINE_GAMES` stayed at 100
+for the opposite reason: against the rating bands' millions it never bound, and
+against the book it now stops a spine 14 to 32 plies in — which is what it
+always claimed to do. A cache of an old upstream's answers is what makes a swap
+measurable instead of arguable.
+
+**The same notation fault lived in a second place, unconverted.**
+`openingMoveNotation.js` existed because Lichess writes castling as "king takes
+rook", and it converted the explorer's book moves. Its own header said the cloud
+evaluation's lines are written that way too — and `sanLine` never converted
+those, so "better was O-O" had always come out as nothing. Found by reading the
+module before deleting it. **Read what a deleted file says, not only what it
+does.**
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

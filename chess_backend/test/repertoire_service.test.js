@@ -460,5 +460,8 @@ test('the book says which replies this student already prepared', async () => {
 
   assert.match(pool.calls[0].text, /FROM repertoire_extra_replies e/);
   // Keyed by the reader, because preparing a tail move is per student.
-  assert.deepEqual(pool.calls[0].params.slice(2), [5, 'b']);
+  assert.deepEqual(pool.calls[0].params.slice(2, 4), [5, 'b']);
+  // The book's rows, and not a Lichess band's that share its band number.
+  assert.match(pool.calls[0].text, /r\.source = \$5/);
+  assert.deepEqual([pool.calls[0].params[1], pool.calls[0].params[4]], [0, 'book']);
 });

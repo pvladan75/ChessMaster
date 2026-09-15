@@ -18,20 +18,23 @@ function after(...ucis) {
 /// A book that answers from a table keyed by position, and counts what it was
 /// asked. How many requests a spine costs is one of the things being tested, so
 /// a stub replaying answers in order would pass for the wrong reason.
-function stubJudge(byKey, { games = 5000 } = {}) {
+function stubJudge(byKey, { games = 5000, beyond = [] } = {}) {
   const asked = [];
   return {
     asked,
     replies: async (fen) => {
       asked.push(fenKey(fen));
+      if (beyond.includes(fenKey(fen))) {
+        return { fen, beyondBook: true, all: [], replies: [] };
+      }
       const uci = byKey[fenKey(fen)];
-      if (!uci) return { fen, minRating: 1600, all: [], replies: [] };
+      if (!uci) return { fen, beyondBook: false, all: [], replies: [] };
       const board = new Chess(fen);
       const played = board.move({ from: uci.slice(0, 2), to: uci.slice(2, 4) });
       const top = {
         uci, san: played.san, games, share: 0.5, covered: true,
       };
-      return { fen, minRating: 1600, all: [top], replies: [top] };
+      return { fen, beyondBook: false, all: [top], replies: [top] };
     },
   };
 }
@@ -168,6 +171,22 @@ test('a position the book knows nothing about stops the spine', async () => {
   assert.equal(out.stopped.reason, 'thin');
   assert.equal(out.stopped.games, 0);
 });
+
+test('running off the end of the book file is not a line running thin',
+  async () => {
+    // Past the depth the file was built to, the line may be as thick as ever.
+    // "Too thin" there would send the student looking for a sideline that is
+    // not the problem.
+    const pool = stubPool();
+    const judge = stubJudge(OPEN_GAME, { beyond: [fenKey(after('e2e4', 'e7e5'))] });
+    const out = await buildSpine(pool, 7, {
+      color: 'w', rootFen: START, depth: 4, judge,
+    });
+
+    assert.deepEqual(out.stopped, { reason: 'beyond-book', ply: 2 });
+    assert.deepEqual(out.path, ['e4', 'e5']);
+    assert.equal('minRating' in out, false, 'there is one book and no band to report');
+  });
 
 test('the book is asked twice per move and never twice about one position',
   async () => {

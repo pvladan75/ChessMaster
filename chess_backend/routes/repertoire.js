@@ -1,10 +1,14 @@
 // repertoire.js — the student's own opening decisions.
 //
 // Nothing here talks to Lichess, and that is the split worth keeping: the judge
-// route spends the caller's token to say what a move is worth, and this one
-// only records what the student decided about it. So this route works for
-// anybody, token or not — a repertoire built last week can be read, edited and
-// drilled with no allowance spent at all.
+// route asks what a move is worth, and this one only records what the student
+// decided about it. What the opponent plays comes from the local opening book,
+// read once when a position is built and stored for everything after.
+//
+// **No rating travels here any more.** There is one book (2200+, since
+// `docs/PLAN-OTVARANJA-LOKALNO.md`), so a `minRating` the app still sends is
+// not read by any handler: reading it would be believing it still selects
+// something.
 //
 // Every query is scoped to `req.user.id`. A repertoire is nobody else's
 // business, not even a trainer's, until there is a flow that says otherwise.
@@ -58,7 +62,7 @@ const {
 const {
   buildSpine, MAX_SPINE_DEPTH, MIN_SPINE_GAMES,
 } = require('../services/repertoireSpine');
-const { OpeningJudgeUnavailable } = require('../services/openingJudgeService');
+const { OpeningBookUnavailable } = require('../services/openingBook');
 const {
   orphansOfRemoving, pruneKeys,
 } = require('../services/repertoirePrune');
@@ -74,9 +78,9 @@ const {
 } = require('../services/repertoireErase');
 const rateLimit = require('express-rate-limit');
 
-// A spine is up to two dozen book requests in one call, against a token that
-// serves every child using this app. Judging is capped at 40 a minute for a
-// person clicking; this is capped at six because each one is a burst.
+// A spine writes up to two dozen moves in one call. Judging is capped at 40 a
+// minute for a person clicking; this is capped at six because each one is a
+// burst of writes.
 const spineLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 6,
@@ -263,22 +267,20 @@ router.get('/practice/today', authenticateToken, (req, res) => {
   );
 });
 
-// GET /repertoire/progress?minRating=1600
+// GET /repertoire/progress
 //
 // How many positions each repertoire still has nobody's answer in, one entry
 // per repertoire. A walk each, so the list screen asks for this *after* it has
 // drawn its cards rather than before: the number is worth waiting a moment for
 // and the list is not worth waiting at all for.
 //
-// The band is the caller's own. Read as 0 it would walk a book that has no
-// replies at that band and report every repertoire as finished — which is
-// exactly what an empty `minRating=` did to the draft review.
+// There used to be a band here, and reading it wrong walked a book with no
+// replies at that band and reported every repertoire finished — exactly what
+// an empty `minRating=` did to the draft review. One book has no wrong band.
 router.get('/progress', authenticateToken, (req, res) => {
   answer(
     res,
-    repertoireProgress(pool, req.user.id, {
-      minRating: Number(req.query.minRating) || 0,
-    }),
+    repertoireProgress(pool, req.user.id),
     'Could not read repertoire progress.',
   );
 });
@@ -294,7 +296,7 @@ router.get('/progress', authenticateToken, (req, res) => {
 // the number on the card can differ, and the screen with room for a sentence is
 // the one that gets the exact one.
 router.get('/unconfirmed', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, minRating, limit } = req.query;
+  const { color, rootFen, rootPath, limit } = req.query;
   answer(
     res,
     unconfirmedPositions(pool, req.user.id, {
@@ -305,7 +307,6 @@ router.get('/unconfirmed', authenticateToken, (req, res) => {
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
-      minRating: Number(minRating) || 0,
       limit: Number(limit) || 200,
     }),
     'Could not read unconfirmed moves.',
@@ -313,7 +314,7 @@ router.get('/unconfirmed', authenticateToken, (req, res) => {
 });
 
 // POST /repertoire/alternative
-//   { color, fen, uci, san, rejectedUci, minRating, includeDecisions }
+//   { color, fen, uci, san, rejectedUci, includeDecisions }
 //
 // "Not that move, this one." The third answer the draft review needs, beside
 // confirming (`/node/confirm`) and refusing the branch (`/node/skip`).
@@ -335,7 +336,6 @@ router.post('/alternative', authenticateToken, (req, res) => {
       uci: body.uci,
       san: body.san,
       rejectedUci: body.rejectedUci,
-      minRating: Number(body.minRating) || 0,
       includeDecisions: body.includeDecisions === true,
     }),
     'Draft replacement failed.',
@@ -375,7 +375,7 @@ router.delete('/imported', authenticateToken, (req, res) => {
   );
 });
 
-// GET /repertoire/removal?id=12[&minRating=1600] — what deleting a repertoire
+// GET /repertoire/removal?id=12 — what deleting a repertoire
 // would take with it, before anything is deleted.
 //
 // Reachable from this repertoire's root, minus everything reachable from the
@@ -388,7 +388,6 @@ router.get('/removal', authenticateToken, (req, res) => {
     res,
     orphansOfDeleting(pool, req.user.id, {
       id: req.query.id,
-      minRating: Number(req.query.minRating) || 0,
       // The keys themselves stay on the server: they are a list of FENs the
       // screen has no use for, and `positions` — how many of them actually
       // hold moves — is the number the sentence "18 moves in 12 positions" is
@@ -510,7 +509,6 @@ router.delete('/:id', authenticateToken, (req, res) => {
         withMoves: true,
         includeComments: req.query.comments === '1'
           || req.query.comments === 'true',
-        minRating: Number(req.query.minRating) || 0,
       })
       : deleteRepertoire(pool, req.user.id, req.params.id),
     'Could not delete repertoire.',
@@ -537,8 +535,7 @@ router.post('/node/move', authenticateToken, (req, res) => {
   );
 });
 
-// POST /repertoire/spine  { color, rootFen, depth, minRating, minGames }
-// Header: X-Lichess-Token
+// POST /repertoire/spine  { color, rootFen, depth, minGames }
 //
 // The trunk: the most played move for both sides, `depth` of the student's
 // moves deep. Everything it writes is `source = 'auto'` — a draft the drill
@@ -546,31 +543,28 @@ router.post('/node/move', authenticateToken, (req, res) => {
 // position that already has a move, which is what makes it safe to re-run and
 // makes "continue from here" the same operation as "start here".
 //
-// Synchronous on purpose. Two paced requests per move is a few seconds, and the
+// Synchronous on purpose. Two book lookups per move is no time at all, and the
 // one background job this project had was deleted for taking too long and
 // falling over.
 router.post('/spine', authenticateToken, spineLimiter, (req, res) => {
   const body = req.body ?? {};
-  answer(
-    res,
-    buildSpine(pool, req.user.id, {
-      color: body.color,
-      rootFen: body.rootFen,
-      depth: body.depth,
-      minRating: body.minRating,
-      minGames: body.minGames,
-      token: req.get('X-Lichess-Token') || '',
-    }).catch((err) => {
-      // The book is the one thing this cannot do without, and "no token" is a
-      // sentence the caller can act on rather than a five hundred.
-      if (err instanceof OpeningJudgeUnavailable) {
-        const wrapped = new RangeError(err.message);
-        wrapped.reason = err.reason;
-        throw wrapped;
-      }
-      throw err;
-    }),
-    'Could not build spine.',
+  // The book is the one thing this cannot do without. A server without the
+  // file says so with its reason and a 503 — never a spine that stopped at
+  // once, which would read as an opening nobody plays.
+  const unavailable = (err) => {
+    logger.error(`[BOOK] ${err.reason}: ${err.message}`);
+    return res.status(err.status).json({ error: err.message, reason: err.reason });
+  };
+  buildSpine(pool, req.user.id, {
+    color: body.color,
+    rootFen: body.rootFen,
+    depth: body.depth,
+    minGames: body.minGames,
+  }).then(
+    (value) => res.json(value),
+    (err) => (err instanceof OpeningBookUnavailable
+      ? unavailable(err)
+      : answer(res, Promise.reject(err), 'Could not build spine.')),
   );
 });
 
@@ -615,22 +609,20 @@ router.post('/node/primary', authenticateToken, (req, res) => {
   );
 });
 
-// GET /repertoire/book?color=b&fen=...&minRating=1600
+// GET /repertoire/book?color=b&fen=...
 //
-// What the opponent plays here, out of what has already been fetched — by
-// anybody. **No Lichess request.** The panel that sits beside the board follows
-// it around, and one token serves every child using this app, so a list that
-// refetched on every click would spend their allowance on a drawing nobody
-// asked for.
+// What the opponent plays here, out of what has already been stored — by
+// anybody. The panel that sits beside the board follows it around, and reading
+// the stored rows keeps it drawing exactly what the tree and the drill follow.
 //
 // `opened: false` means nobody has ever looked here, which the screen turns
 // into an offer to look rather than into "the opponent plays nothing".
 router.get('/book', authenticateToken, (req, res) => {
-  const { color, fen, minRating } = req.query;
+  const { color, fen } = req.query;
   answer(
     res,
     storedBook(pool, req.user.id, {
-      color, fen, minRating: Number(minRating) || 0,
+      color, fen,
     }),
     'Could not read book.',
   );
@@ -690,7 +682,7 @@ router.get('/notes', authenticateToken, (req, res) => {
 });
 
 // GET /repertoire/disagreements?color=b&rootFen=...&rootPath=e4+c5
-//     [&fromFen=...&minRating=1600&limit=50]
+//     [&fromFen=...&limit=50]
 //
 // The review list: where the engine's move is not the one that was chosen,
 // worst first. This is what the evals are *for* — no flag on any card, one list
@@ -701,7 +693,7 @@ router.get('/notes', authenticateToken, (req, res) => {
 // about is not in the list: "not asked" and "agrees" are different answers, and
 // the counts beside the list say which one a short list means.
 router.get('/disagreements', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, minRating, fromFen, limit } = req.query;
+  const { color, rootFen, rootPath, fromFen, limit } = req.query;
   answer(
     res,
     disagreements(pool, req.user.id, {
@@ -711,7 +703,6 @@ router.get('/disagreements', authenticateToken, (req, res) => {
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
-      minRating: Number(minRating) || 0,
       fromFen: typeof fromFen === 'string' && fromFen.trim() !== ''
         ? fromFen
         : null,
@@ -721,7 +712,7 @@ router.get('/disagreements', authenticateToken, (req, res) => {
   );
 });
 
-// GET /repertoire/node/orphans?color=b&fen=...&uci=g8f6&minRating=1600
+// GET /repertoire/node/orphans?color=b&fen=...&uci=g8f6
 //
 // What removing that move would strand, without removing anything. Asked
 // *before* the removal, because "would this still be reachable without that
@@ -732,17 +723,17 @@ router.get('/disagreements', authenticateToken, (req, res) => {
 // evening's work to a changed second move with no sentence about it is the kind
 // of thing that happens once and ends trust in a feature.
 router.get('/node/orphans', authenticateToken, (req, res) => {
-  const { color, fen, uci, minRating } = req.query;
+  const { color, fen, uci } = req.query;
   answer(
     res,
     orphansOfRemoving(pool, req.user.id, {
-      color, fen, uci, minRating: Number(minRating) || 0,
+      color, fen, uci,
     }),
     'Could not calculate what becomes stranded.',
   );
 });
 
-// POST /repertoire/prune  { color, keys, includeDecisions, minRating }
+// POST /repertoire/prune  { color, keys, includeDecisions }
 //
 // Takes out positions that nothing reaches any more. Drafts go by default;
 // decisions only when the caller says so, which is what the count from
@@ -759,7 +750,6 @@ router.post('/prune', authenticateToken, (req, res) => {
       color: body.color,
       keys: Array.isArray(body.keys) ? body.keys : [],
       includeDecisions: body.includeDecisions === true,
-      minRating: Number(body.minRating) || 0,
     }),
     'Pruning failed.',
   );
@@ -848,14 +838,14 @@ router.post('/attempt', authenticateToken, (req, res) => {
   );
 });
 
-// GET /repertoire/frontier?color=b&rootFen=...&rootPath=e4+c5&minRating=1600
+// GET /repertoire/frontier?color=b&rootFen=...&rootPath=e4+c5
 //
 // Where the student is, rebuilt from what they have already decided and the
 // books already fetched. This is what makes closing the build screen safe: the
 // queue was never a fact worth storing, and deriving it costs no Lichess
 // request at all — so resuming is free, and free on any device.
 router.get('/frontier', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, minRating, limit } = req.query;
+  const { color, rootFen, rootPath, limit } = req.query;
   answer(
     res,
     frontier(pool, req.user.id, {
@@ -866,14 +856,13 @@ router.get('/frontier', authenticateToken, (req, res) => {
         ? rootPath.trim().split(/\s+/)
         : [],
       breadth: breadthOf(req.query),
-      minRating: Number(minRating) || 0,
       limit: Math.min(Math.max(Number(limit) || 200, 1), 500),
     }),
     'Could not calculate repertoire overview.',
   );
 });
 
-// GET /repertoire/tree?color=b&rootFen=...&rootPath=e4+c5&minRating=0&maxPly=16
+// GET /repertoire/tree?color=b&rootFen=...&rootPath=e4+c5&maxPly=16
 //
 // The repertoire as a picture: one node per ply, each saying whose move it is,
 // how often the opponent plays it, and what state the position it leads to is
@@ -883,7 +872,7 @@ router.get('/frontier', authenticateToken, (req, res) => {
 // thousands of moves and nobody reads a drawing of all of them; the answer says
 // when the depth was reached.
 router.get('/tree', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, alongPath, minRating, maxPly } = req.query;
+  const { color, rootFen, rootPath, alongPath, maxPly } = req.query;
   answer(
     res,
     repertoireTree(pool, req.user.id, {
@@ -901,7 +890,6 @@ router.get('/tree', authenticateToken, (req, res) => {
         ? alongPath.trim().split(/\s+/)
         : [],
       breadth: breadthOf(req.query),
-      minRating: Number(minRating) || 0,
       maxPly: Math.min(Math.max(Number(maxPly) || 16, 2), 40),
     }),
     'Could not assemble repertoire tree.',
@@ -938,7 +926,7 @@ router.get('/drill/next', authenticateToken, (req, res) => {
   );
 });
 
-// GET /repertoire/drill/line?color=b&rootFen=...&rootPath=e4+c5&minRating=1600
+// GET /repertoire/drill/line?color=b&rootFen=...&rootPath=e4+c5
 //     [&fromFen=...][&viaFen=...&viaUci=d2d4][&exclude=...&exclude=...]
 //
 // A line to rehearse and the question at the end of it, instead of a bare board
@@ -962,7 +950,7 @@ router.get('/drill/next', authenticateToken, (req, res) => {
 // is answered, through the same `/drill/answer` as before.
 router.get('/drill/line', authenticateToken, (req, res) => {
   const {
-    color, rootFen, rootPath, minRating, fromFen, viaFen, viaUci, ahead,
+    color, rootFen, rootPath, fromFen, viaFen, viaUci, ahead,
   } = req.query;
   const exclude = Array.isArray(req.query.exclude)
     ? req.query.exclude.filter((k) => typeof k === 'string')
@@ -978,7 +966,6 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
-      minRating: Number(minRating) || 0,
       fromFen: typeof fromFen === 'string' && fromFen.trim() !== ''
         ? fromFen
         : null,
@@ -1006,7 +993,7 @@ router.get('/drill/line', authenticateToken, (req, res) => {
   );
 });
 
-// GET /repertoire/drill/branches?color=b&rootFen=...&rootPath=e4+c5&minRating=1600
+// GET /repertoire/drill/branches?color=b&rootFen=...&rootPath=e4+c5
 //
 // The opponent's first answers, each with how many positions in it are waiting.
 // This is what a session is chosen by: a repertoire is a handful of branches,
@@ -1018,7 +1005,7 @@ router.get('/drill/line', authenticateToken, (req, res) => {
 // that are due and leave the rest alone. Costs no Lichess request, like
 // everything that reads what was built.
 router.get('/drill/branches', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, minRating } = req.query;
+  const { color, rootFen, rootPath } = req.query;
   answer(
     res,
     rootsFrom(req.query, req.user.id).then(
@@ -1031,7 +1018,6 @@ router.get('/drill/branches', authenticateToken, (req, res) => {
         rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
           ? rootPath.trim().split(/\s+/)
           : [],
-        minRating: Number(minRating) || 0,
       }),
     ),
     'Could not read drill branches.',
@@ -1053,19 +1039,18 @@ router.get('/drill/reveal', authenticateToken, (req, res) => {
 });
 
 // POST /repertoire/drill/answer
-//   { color, fen, uci, revealed, minRating, practice, onlyIfDue }
+//   { color, fen, uci, revealed, practice, onlyIfDue }
 //
 // Grades the move against what the student decided, reschedules it, and hands
 // back the opponent's reply so the line can go on. The reply comes from the
-// stored book, so a drill costs no Lichess request at all - which is what lets
-// somebody without a token of their own practise what they built last week.
+// stored book, so a drill reads nothing but this server's own tables.
 //
 // `practice` judges and writes nothing. `onlyIfDue` writes only when this
 // position was what the schedule asked for, which is what a line walked on past
 // its question needs — see `answer` for why the two are not the same flag.
 router.post('/drill/answer', authenticateToken, (req, res) => {
   const {
-    color, fen, uci, revealed, minRating, practice, onlyIfDue, breadth,
+    color, fen, uci, revealed, practice, onlyIfDue, breadth,
   } = req.body ?? {};
   answer(
     res,
@@ -1079,7 +1064,6 @@ router.post('/drill/answer', authenticateToken, (req, res) => {
     }).then(async (graded) => {
       const reply = await pickReply(pool, {
         fen: _fenAfterOrSame(fen, graded, uci),
-        minRating: Number(minRating) || 0,
         // Whose preparation counts. A reply this student pressed "prepare this
         // too" on is theirs, and a draw that did not know who was asking would
         // refuse a move they chose by name.

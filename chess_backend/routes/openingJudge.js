@@ -1,20 +1,15 @@
 // openingJudge.js — "what is this move: theory, playable, or a mistake?"
 //
 // Two guards, for two different dangers. `authenticateToken` keeps the route
-// from becoming an open proxy the moment this server is reachable from the
-// internet. The limiter keeps a client stuck in a loop from turning into a scan
-// of a service somebody else runs.
+// from becoming an open proxy onto Lichess's cloud evaluation the moment this
+// server is reachable from the internet. The limiter keeps a client stuck in a
+// loop from turning into a scan of a service somebody else runs.
 //
-// And one rule that is not a guard but a decision: **the Lichess token must be
-// the caller's own**, sent in a header on each request. Judging one move costs
-// up to four upstream questions, and the server's shared token is a single
-// allowance for every child in the app - spending it here would take the
-// opening book away from everyone the first time one person walked a long
-// variation. Whoever has no token of their own is told so plainly, with the
-// place to make one; nobody is served quietly from the shared quota.
-//
-// The token travels in a header and never in the query string, it is never
-// written to the log, and it is not stored anywhere on this server.
+// Until 15.9.2026 there was a third rule: the caller had to send a Lichess
+// token of their own, because judging asked the Lichess explorers four times a
+// move. The book is a file on this server now (`docs/PLAN-OTVARANJA-LOKALNO.md`)
+// and the evaluation answers anonymously, so there is no token to send and no
+// allowance to protect — and a repertoire can be built by anybody signed in.
 
 const express = require('express');
 const router = express.Router();
@@ -25,6 +20,7 @@ const { pool } = require('../db');
 const {
   openingJudge, OpeningJudgeUnavailable,
 } = require('../services/openingJudgeService');
+const { OpeningBookUnavailable } = require('../services/openingBook');
 const { rememberReplies } = require('../services/repertoireDrillService');
 
 // Judging is asked for by hand, one move at a time, and repeats come from the
@@ -37,82 +33,62 @@ const judgeLimiter = rateLimit({
   message: { error: 'Too many requests to judge moves. Please wait a moment.' },
 });
 
-// GET /opening-judge?fen=...&move=...&minRating=1600
-// Header: X-Lichess-Token: <the caller's own token>
-router.get('/', authenticateToken, judgeLimiter, async (req, res) => {
-  const { fen, move, minRating } = req.query;
-  const token = req.get('X-Lichess-Token') || '';
+/// One answer for a failure, the same on both routes. A book that is missing
+/// and a Lichess that is refusing are both loud and both carry their reason,
+/// because from the app they look identical — no verdict — and this line is the
+/// only place the difference survives.
+function refuse(res, err, whatFailed) {
+  if (err instanceof RangeError) {
+    return res.status(400).json({ error: err.message });
+  }
+  if (err instanceof OpeningBookUnavailable) {
+    logger.error(`[BOOK] ${err.reason}: ${err.message}`);
+    return res.status(err.status).json({ error: err.message, reason: err.reason });
+  }
+  if (err instanceof OpeningJudgeUnavailable) {
+    logger.error(`[JUDGE] ${err.reason}: ${err.message}`);
+    return res.status(err.status).json({ error: err.message, reason: err.reason });
+  }
+  logger.error(`[JUDGE] Neočekivana greška: ${err.message}`);
+  return res.status(500).json({ error: whatFailed });
+}
 
+// GET /opening-judge?fen=...&move=...
+//
+// A `minRating` the app still sends selects nothing: there is one book.
+router.get('/', authenticateToken, judgeLimiter, async (req, res) => {
+  const { fen, move } = req.query;
   try {
-    const verdict = await openingJudge.judge(fen, move, {
-      token,
-      minRating: minRating ?? null,
-    });
-    res.json(verdict);
+    res.json(await openingJudge.judge(fen, move));
   } catch (err) {
-    if (err instanceof RangeError) {
-      return res.status(400).json({ error: err.message });
-    }
-    if (err instanceof OpeningJudgeUnavailable) {
-      // A missing token is the caller's situation, not a fault of this server,
-      // so it is not written to the error log - the other three are, because a
-      // refused or spent token is invisible from the app and this line is the
-      // only place the difference survives.
-      if (err.reason !== 'no-token') {
-        logger.error(`[JUDGE] ${err.reason}: ${err.message}`);
-      }
-      return res.status(err.status).json({ error: err.message, reason: err.reason });
-    }
-    logger.error(`[JUDGE] Neočekivana greška: ${err.message}`);
-    res.status(500).json({ error: 'Failed to judge move.' });
+    refuse(res, err, 'Failed to judge move.');
   }
 });
 
-// GET /opening-judge/replies?fen=...&minRating=1600
-// Header: X-Lichess-Token
+// GET /opening-judge/replies?fen=...
 //
 // The other half of the build loop: which of the opponent's answers are worth
 // preparing for, and how much is left uncovered. Same route file because it is
-// the same token, the same cache and the same queue - splitting it would give
-// the pacing rule a second place to be forgotten.
+// the same book and the same judge.
 router.get('/replies', authenticateToken, judgeLimiter, async (req, res) => {
-  const { fen, minRating } = req.query;
-  const token = req.get('X-Lichess-Token') || '';
-
+  const { fen } = req.query;
   try {
-    const answer = await openingJudge.replies(fen, {
-      token,
-      minRating: minRating ?? null,
-    });
+    const answer = await openingJudge.replies(fen);
 
-    // Kept for the drill, which then costs nobody anything. The rows are about
-    // a position and a rating band and never about a person, so one student's
-    // building makes the next student's drill free too. A failure to store is
-    // not a failure to answer: the caller asked what the book says, and it
-    // says it whether or not we managed to write it down.
+    // Kept for the drill and the tree, which read it without asking again. The
+    // rows are about a position and never about a person, so one student's
+    // building draws the next student's tree too. A failure to store is not a
+    // failure to answer: the caller asked what the book says, and it says it
+    // whether or not we managed to write it down.
     try {
-      await rememberReplies(pool, {
-        fen,
-        minRating: answer.minRating ?? 0,
-        moves: answer.all ?? [],
-      });
+      await rememberReplies(pool, { fen, moves: answer.all ?? [] });
     } catch (err) {
       logger.error(`[JUDGE] Odgovori nisu sačuvani: ${err.message}`);
     }
 
     res.json(answer);
   } catch (err) {
-    if (err instanceof RangeError) {
-      return res.status(400).json({ error: err.message });
-    }
-    if (err instanceof OpeningJudgeUnavailable) {
-      if (err.reason !== 'no-token') {
-        logger.error(`[JUDGE] ${err.reason}: ${err.message}`);
-      }
-      return res.status(err.status).json({ error: err.message, reason: err.reason });
-    }
-    logger.error(`[JUDGE] Neočekivana greška: ${err.message}`);
-    res.status(500).json({ error: 'Failed to read opponent replies.' });
+    refuse(res, err, 'Failed to read opponent replies.');
   }
 });
 

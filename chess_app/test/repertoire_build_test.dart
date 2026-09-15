@@ -246,11 +246,14 @@ class _FakeApi extends RepertoireApiService {
 class _FakeJudge implements OpeningJudgeService {
   _FakeJudge({
     this.verdict = OpeningVerdict.theory,
-    this.hasToken = true,
+    this.bookAvailable = true,
   });
 
   final OpeningVerdict verdict;
-  final bool hasToken;
+
+  /// False for a server whose opening book is missing, which refuses with the
+  /// book's own reason rather than judging by the engine alone.
+  final bool bookAvailable;
 
   /// A move White can really play after 4...Nc6. An illegal one would be
   /// dropped by the screen and the wave would come out empty — a fault in the
@@ -262,13 +265,12 @@ class _FakeJudge implements OpeningJudgeService {
   int asked = 0;
 
   @override
-  bool get hasPersonalToken => hasToken;
-
-  @override
   Future<OpeningJudgeLookup> judge(String fen, String move,
       {int? minRating}) async {
     judged += 1;
-    if (!hasToken) return const OpeningJudgeLookup.unavailable('no-token');
+    if (!bookAvailable) {
+      return const OpeningJudgeLookup.unavailable('not-configured');
+    }
     final board = chess.Chess.fromFEN(fen);
     board.move({'from': move.substring(0, 2), 'to': move.substring(2, 4)});
     return OpeningJudgeLookup.ok(OpeningJudgement(
@@ -279,15 +281,15 @@ class _FakeJudge implements OpeningJudgeService {
       moverIsWhite: false,
       mastersGames: 900,
       mastersTotal: 4000,
-      bandGames: 40,
-      bandTotal: 500,
     ));
   }
 
   @override
   Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async {
     asked += 1;
-    if (!hasToken) return const OpponentRepliesLookup.unavailable('no-token');
+    if (!bookAvailable) {
+      return const OpponentRepliesLookup.unavailable('not-configured');
+    }
     // Whose book this is. Asked about the position on the board it is Black's
     // moves; asked about the position after Black has moved it is White's — and
     // the fake has to keep that straight, because the screen plays these moves
@@ -371,7 +373,7 @@ void main() {
   Future<void> pump(
     WidgetTester tester, {
     OpeningVerdict verdict = OpeningVerdict.theory,
-    bool hasToken = true,
+    bool bookAvailable = true,
     Size size = const Size(500, 1000),
     List<String> rootPath = const [],
     RepertoireFrontier? walk,
@@ -396,7 +398,7 @@ void main() {
       ..prepareFails = prepareFails
       ..book = book
       ..kept.addAll(seed);
-    judge = _FakeJudge(verdict: verdict, hasToken: hasToken);
+    judge = _FakeJudge(verdict: verdict, bookAvailable: bookAvailable);
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
         name: 'Smit-Mora, crni',
@@ -927,14 +929,15 @@ void main() {
         reason: 'nema šta da se otvori dok pozicija nema nijedan odgovor');
   });
 
-  testWidgets('without a token the screen says so instead of judging',
+  testWidgets('without the book the screen says so instead of judging',
       (tester) async {
-    await pump(tester, hasToken: false);
+    await pump(tester, bookAvailable: false);
 
     await play(tester, 'b8', 'c6');
 
     expect(
-        find.textContaining('requires your own Lichess token'), findsOneWidget);
+        find.textContaining('opening book is not available'), findsOneWidget);
+    expect(find.textContaining('Lichess token'), findsNothing);
     expect(find.text('Take Nc6'), findsOneWidget,
         reason: 'izbor je i dalje korisnikov — sud je pomoć, ne dozvola');
   });
@@ -1420,6 +1423,50 @@ void main() {
     expect(find.textContaining('stopped because further is too thin'),
         findsOneWidget);
     expect(find.textContaining('40 games'), findsOneWidget);
+  });
+
+  // Past the depth the book was built to, the line may be as thick as ever;
+  // "too thin" would send the student looking for a sideline that is not the
+  // problem. And a stored move that no longer plays is a broken tree, not a
+  // thin one — until 15.9.2026 both read "too thin". One test each: a second
+  // pump in one test keeps the first screen's state, and its fake.
+  for (final (reason, sentence) in [
+    ('beyond-book', 'stopped where the opening book ends'),
+    ('illegal', 'stopped at a stored move that no longer plays'),
+  ]) {
+    testWidgets('a spine that stopped with "$reason" does not call it thin',
+        (tester) async {
+      await pump(tester);
+      api.spine = SpineResult(
+        written: 1,
+        path: const ['Nc6', 'Nf3'],
+        reason: reason,
+        minGames: 100,
+      );
+
+      await tester.tap(find.text('Suggest main line'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('4 moves'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(sentence), findsOneWidget);
+      expect(find.textContaining('too thin'), findsNothing);
+    });
+  }
+
+  testWidgets('a spine that wrote nothing past the book says that, too',
+      (tester) async {
+    await pump(tester);
+    api.spine = const SpineResult(reason: 'beyond-book', minGames: 100);
+
+    await tester.tap(find.text('Suggest main line'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4 moves'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('deeper than the opening book goes'),
+        findsOneWidget);
+    expect(find.textContaining('too thin'), findsNothing);
   });
 
   testWidgets('a spine that wrote nothing does not claim a line',

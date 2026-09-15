@@ -440,6 +440,19 @@ test('the extra replies are read for this student, not for everybody',
     assert.equal(book.params[3], 'w');
   });
 
+test("the walk reads the book's rows, not a Lichess band's", async () => {
+  // Rows written before 15.9.2026 came from the Lichess explorer, and the
+  // band-0 ones share the book's band number. Without the source the tree
+  // would follow two books at once and nothing would say so.
+  const pool = stubPool(sicilianAndOpenGame());
+  await frontier(pool, 7, { color: 'w', rootFen: START, minRating: 1600 });
+
+  const book = pool.calls.find((c) => c.text.includes('FROM opening_replies'));
+  assert.match(book.text, /r\.min_rating = \$1 AND r\.fen_key = ANY\(\$2\) AND r\.source = \$5/);
+  assert.equal(book.params[0], 0, 'one band, whatever the caller sent');
+  assert.equal(book.params[4], 'book');
+});
+
 test('a position whose only moves were generated is a draft, not a decision',
   async () => {
     // The archive seed's whole failure, and the reason this column exists: a

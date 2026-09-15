@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
-import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
 /// One move the student decided to play in a position.
@@ -509,7 +508,8 @@ class SpineResult {
   final List<String> path;
 
   /// Why it stopped: `depth` when it ran the whole way, `thin` when the line
-  /// ran out of games, `illegal` when a stored move would not replay.
+  /// ran out of games, `beyond-book` when it reached the depth the opening book
+  /// was built to, `illegal` when a stored move would not replay.
   final String reason;
 
   /// How many games the move that stopped it had, when it was `thin`.
@@ -1901,8 +1901,8 @@ class RepertoireApiService {
   /// confirmed, and it never overwrites a position that already has a move —
   /// which is what makes it safe to run again from anywhere.
   ///
-  /// Carries the reader's own Lichess token, like the judge and the book: it is
-  /// their allowance being spent, up to two requests per move of depth.
+  /// Reads the opening book on the server, two lookups per move of depth, and
+  /// carries no Lichess token: there is none to spend.
   Future<({SpineResult? result, String? error})> buildSpine({
     required String color,
     required String rootFen,
@@ -1919,12 +1919,8 @@ class RepertoireApiService {
         if (minRating != null) 'minRating': minRating,
         if (minGames != null) 'minGames': minGames,
       });
-      final headers = {
-        ..._headers,
-        'X-Lichess-Token': AppSettingsService.instance.lichessApiToken.trim(),
-      };
-      return _client?.post(uri, headers: headers, body: body) ??
-          http.post(uri, headers: headers, body: body);
+      return _client?.post(uri, headers: _headers, body: body) ??
+          http.post(uri, headers: _headers, body: body);
     });
     final res = sent.res;
     if (res == null) return (result: null, error: sent.error);

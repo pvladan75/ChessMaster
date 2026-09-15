@@ -17,8 +17,7 @@ void main() {
   OpeningJudgement judgement(
     OpeningVerdict verdict, {
     int mastersGames = 0,
-    int bandGames = 0,
-    int? minRating,
+    bool beyondBook = false,
     int? lossCp,
     int? afterCp,
     int? mateAfter,
@@ -33,9 +32,7 @@ void main() {
         moverIsWhite: true,
         mastersGames: mastersGames,
         mastersTotal: 900,
-        bandGames: bandGames,
-        bandTotal: 800,
-        minRating: minRating,
+        mastersBeyondBook: beyondBook,
         lossCp: lossCp,
         afterCp: afterCp,
         mateAfter: mateAfter,
@@ -59,34 +56,83 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('without a token the panel explains itself and offers Settings',
-      (tester) async {
+  testWidgets('nothing on the panel asks for a Lichess token', (tester) async {
+    // Until 15.9.2026 the panel offered nothing to press without the reader's
+    // own token. The book is on the server now and the evaluation anonymous.
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: false,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: null,
         onJudge: () {},
-        onOpenSettings: () {},
       ),
     );
 
-    expect(
-        find.textContaining('requires your own Lichess token'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
-    expect(find.textContaining('Judge'), findsNothing,
-        reason: 'nothing to press when token is missing');
+    expect(find.textContaining('token'), findsNothing);
+    expect(find.text('Judge Bc4'), findsOneWidget);
   });
 
-  testWidgets('with a token and a move, the verdict is asked for by hand',
+  testWidgets('a server without the book says it was the book, not the move',
       (tester) async {
+    // Judged by the engine alone a theory gambit comes back a mistake, so the
+    // server refuses instead. The sentence must not read like a verdict.
+    for (final reason in ['not-configured', 'unreadable', 'inconsistent']) {
+      await pump(
+        tester,
+        OpeningJudgePanelWidget(
+          moveSan: 'Bc4',
+          isLoading: false,
+          judgement: null,
+          reason: reason,
+          onJudge: () {},
+        ),
+      );
+      expect(
+          find.textContaining('opening book is not available'), findsOneWidget,
+          reason: reason);
+    }
+  });
+
+  testWidgets('a verdict past the end of the book says where it came from',
+      (tester) async {
+    await pump(
+      tester,
+      OpeningJudgePanelWidget(
+        moveSan: 'O-O',
+        isLoading: false,
+        judgement: judgement(OpeningVerdict.playable,
+            lossCp: 5, afterCp: 30, beyondBook: true),
+        onJudge: () {},
+      ),
+    );
+
+    expect(find.textContaining('deeper than the opening book goes'),
+        findsOneWidget);
+    // Not "Played by masters: 0 games", which reads as "nobody plays this".
+    expect(find.textContaining('Played by masters'), findsNothing);
+  });
+
+  testWidgets('a verdict inside the book says nothing about its depth',
+      (tester) async {
+    await pump(
+      tester,
+      OpeningJudgePanelWidget(
+        moveSan: 'Bc4',
+        isLoading: false,
+        judgement: judgement(OpeningVerdict.playable, lossCp: 5, afterCp: 30),
+        onJudge: () {},
+      ),
+    );
+
+    expect(find.textContaining('opening book'), findsNothing);
+  });
+
+  testWidgets('a move, and the verdict is asked for by hand', (tester) async {
     var asked = 0;
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: null,
@@ -105,7 +151,6 @@ void main() {
     await pump(
       tester,
       const OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: null,
         isLoading: false,
         judgement: null,
@@ -120,7 +165,6 @@ void main() {
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: judgement(OpeningVerdict.theory, mastersGames: 2000),
@@ -137,15 +181,12 @@ void main() {
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: judgement(
           OpeningVerdict.mistake,
           lossCp: 420,
           afterCp: -400,
-          bandGames: 40,
-          minRating: 1600,
           better: 'Nf3',
           punishment: const ['Qh4', 'Nf3', 'Qxe4+'],
         ),
@@ -155,7 +196,6 @@ void main() {
 
     expect(find.text('Bc4 · Dubious move'), findsOneWidget);
     expect(find.text('Costs 4.20 pawns.'), findsOneWidget);
-    expect(find.text('Played by 1600+ players: 40 games.'), findsOneWidget);
     expect(find.text('Better was Nf3.'), findsOneWidget);
     expect(find.text('Punished with Qh4 Nf3 Qxe4+.'), findsOneWidget);
   });
@@ -164,7 +204,6 @@ void main() {
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: judgement(OpeningVerdict.mistake,
@@ -181,7 +220,6 @@ void main() {
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: judgement(OpeningVerdict.playable, lossCp: 7, afterCp: 15),
@@ -198,7 +236,6 @@ void main() {
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: judgement(OpeningVerdict.unknown),
@@ -215,7 +252,6 @@ void main() {
     await pump(
       tester,
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: null,
@@ -224,8 +260,9 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('quota exceeded'), findsOneWidget);
-    // And the way back is still there, because the quota returns.
+    expect(
+        find.textContaining('not answering for a few minutes'), findsOneWidget);
+    // And the way back is still there, because Lichess answers again.
     expect(find.text('Judge Bc4'), findsOneWidget);
   });
 
@@ -234,29 +271,26 @@ void main() {
     // In a test build it throws, which is the only cheap way to catch it.
     final states = <OpeningJudgePanelWidget>[
       OpeningJudgePanelWidget(
-        hasToken: false,
         moveSan: 'Bc4',
         isLoading: false,
         judgement: null,
-        onOpenSettings: () {},
+        reason: 'not-configured',
+        onJudge: () {},
       ),
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Qxd8+',
         isLoading: false,
         judgement: null,
         onJudge: () {},
       ),
       OpeningJudgePanelWidget(
-        hasToken: true,
         moveSan: 'Qxd8+',
         isLoading: true,
         judgement: judgement(
           OpeningVerdict.mistake,
           lossCp: 420,
           afterCp: -400,
-          bandGames: 12345,
-          minRating: 2500,
+          beyondBook: true,
           better: 'Nbd2',
           punishment: const ['Qh4+', 'Nf3', 'Qxe4+'],
         ),

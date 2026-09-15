@@ -322,7 +322,19 @@ function createOpeningBook({
   return { walk, answer, describe, close };
 }
 
+let shared = null;
+
+/// The server's one book. The explorer, the judge and the repertoire all read
+/// the same file, and each opening its own handle onto several hundred
+/// megabytes would be three caches of one fact. Created on the first call and
+/// opened on the first question, so a server without the file still starts.
+function sharedOpeningBook() {
+  if (shared === null) shared = createOpeningBook();
+  return shared;
+}
+
 module.exports = {
+  sharedOpeningBook,
   createOpeningBook,
   polyglotKey,
   plyOf,

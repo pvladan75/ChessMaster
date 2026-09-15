@@ -265,12 +265,9 @@ class _FakeApi extends RepertoireApiService {
 /// `_openReplies` down its other path and never moves the board.
 class _RepliesJudge implements OpeningJudgeService {
   @override
-  bool get hasPersonalToken => false;
-
-  @override
   Future<OpeningJudgeLookup> judge(String fen, String move,
           {int? minRating}) async =>
-      const OpeningJudgeLookup.unavailable('no-token');
+      const OpeningJudgeLookup.unavailable('not-configured');
 
   /// The position it was actually asked about, so a fixture that disagrees
   /// with the board says so instead of silently answering nothing.
@@ -307,16 +304,13 @@ class _RepliesJudge implements OpeningJudgeService {
 
 class _SilentJudge implements OpeningJudgeService {
   @override
-  bool get hasPersonalToken => false;
-
-  @override
   Future<OpeningJudgeLookup> judge(String fen, String move,
           {int? minRating}) async =>
-      const OpeningJudgeLookup.unavailable('no-token');
+      const OpeningJudgeLookup.unavailable('not-configured');
 
   @override
   Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
-      const OpponentRepliesLookup.unavailable('no-token');
+      const OpponentRepliesLookup.unavailable('not-configured');
 
   @override
   void clearCache() {}

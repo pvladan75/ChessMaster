@@ -17,7 +17,7 @@
 //   * **Per user.** An eval is a fact about a position *and* an engine version,
 //     a depth and a machine. A shared table would need all three in the key to
 //     mean anything and would otherwise agree with nobody — unlike
-//     `opening_replies`, which is about a position and a rating band and is
+//     `opening_replies`, which is about a position and nothing else and is
 //     shared for exactly that reason.
 //   * **A shallower answer never overwrites a deeper one.** The whole-line pass
 //     runs at whatever depth the dials are on; a hand-run search at depth 30 on
@@ -207,12 +207,12 @@ function forStudent(cp, color) {
 /// wants a second look at before confirming it, and the row says `source` so
 /// the screen can tell the two apart.
 async function disagreements(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, fromFen = null,
+  color, rootFen, rootPath = [], fromFen = null,
   gateUci = null, limit = MAX_DISAGREEMENTS,
 } = {}) {
   requireColor(color);
   const { nodes, kept, truncated } = await walkLines(pool, userId, {
-    color, rootFen, minRating, gateUci,
+    color, rootFen, gateUci,
   });
 
   let within = null;

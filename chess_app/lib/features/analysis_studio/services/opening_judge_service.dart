@@ -5,15 +5,14 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
-import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
 /// What the books and the engine, together, make of one move.
 ///
-/// Four values and not three: `unknown` is what the judge says when Lichess has
-/// never evaluated the position, and it is deliberately not folded into
-/// `mistake`. A move nobody has judged, shown as a mistake, is the failure this
-/// codebase keeps meeting - an answer that looks computed and is a guess.
+/// Four values and not three: `unknown` is what the judge says when Lichess's
+/// cloud has never evaluated the position, and it is deliberately not folded
+/// into `mistake`. A move nobody has judged, shown as a mistake, is the failure
+/// this codebase keeps meeting - an answer that looks computed and is a guess.
 enum OpeningVerdict { theory, playable, mistake, unknown }
 
 class OpeningJudgement {
@@ -25,9 +24,7 @@ class OpeningJudgement {
     required this.moverIsWhite,
     required this.mastersGames,
     required this.mastersTotal,
-    required this.bandGames,
-    required this.bandTotal,
-    this.minRating,
+    this.mastersBeyondBook = false,
     this.beforeCp,
     this.afterCp,
     this.lossCp,
@@ -48,9 +45,11 @@ class OpeningJudgement {
 
   final int mastersGames;
   final int mastersTotal;
-  final int bandGames;
-  final int bandTotal;
-  final int? minRating;
+
+  /// The position lies deeper than the opening book was built to go. Then the
+  /// book says nothing about it — which is not the same as "no master played
+  /// this", and the panel must not let the two read alike.
+  final bool mastersBeyondBook;
 
   /// Centipawns, always from the point of view of whoever played the move —
   /// the server converts, so nothing here has to remember that Lichess counts
@@ -85,9 +84,6 @@ class OpeningJudgement {
     final masters = json['masters'] is Map
         ? Map<String, dynamic>.from(json['masters'] as Map)
         : const <String, dynamic>{};
-    final band = json['band'] is Map
-        ? Map<String, dynamic>.from(json['band'] as Map)
-        : const <String, dynamic>{};
     final eval = json['eval'] is Map
         ? Map<String, dynamic>.from(json['eval'] as Map)
         : const <String, dynamic>{};
@@ -100,9 +96,7 @@ class OpeningJudgement {
       moverIsWhite: json['moverIsWhite'] as bool? ?? true,
       mastersGames: (masters['games'] as num?)?.toInt() ?? 0,
       mastersTotal: (masters['total'] as num?)?.toInt() ?? 0,
-      bandGames: (band['games'] as num?)?.toInt() ?? 0,
-      bandTotal: (band['total'] as num?)?.toInt() ?? 0,
-      minRating: (json['minRating'] as num?)?.toInt(),
+      mastersBeyondBook: masters['beyondBook'] as bool? ?? false,
       beforeCp: (eval['beforeCp'] as num?)?.toInt(),
       afterCp: (eval['afterCp'] as num?)?.toInt(),
       lossCp: (eval['lossCp'] as num?)?.toInt(),
@@ -139,8 +133,8 @@ class OpponentReply {
   /// 0..1 of the games played from this position.
   final double share;
 
-  /// How those games ended, from White's side — the Explorer counts results,
-  /// not chances, so this is history and never an evaluation.
+  /// How those games ended, from White's side — the book counts results, not
+  /// chances, so this is history and never an evaluation.
   final int white;
   final int draws;
   final int black;
@@ -187,7 +181,6 @@ class OpponentReplies {
     required this.tailMoves,
     required this.tailShare,
     this.all = const [],
-    this.minRating,
   });
 
   final int total;
@@ -202,7 +195,6 @@ class OpponentReplies {
   final double coveredShare;
   final int tailMoves;
   final double tailShare;
-  final int? minRating;
 
   bool get isEmpty => total == 0;
 
@@ -223,7 +215,6 @@ class OpponentReplies {
       coveredShare: (json['coveredShare'] as num?)?.toDouble() ?? 0,
       tailMoves: (tail['moves'] as num?)?.toInt() ?? 0,
       tailShare: (tail['share'] as num?)?.toDouble() ?? 0,
-      minRating: (json['minRating'] as num?)?.toInt(),
     );
   }
 }
@@ -260,10 +251,11 @@ class OpeningJudgeLookup {
   final OpeningJudgeStatus status;
   final OpeningJudgement? judgement;
 
-  /// Why there is no verdict, in the server's own words: `no-token`,
-  /// `unauthorized`, `rate-limited`, `network`, `bad-request` — or `guest`,
-  /// which never leaves the app. The panel says a different sentence for each,
-  /// because "we could not ask" and "the move is fine" must never look alike.
+  /// Why there is no verdict, in the server's own words: `rate-limited`,
+  /// `network`, the book's `not-configured` / `unreadable` / `inconsistent`,
+  /// `http-…` — or `guest`, which never leaves the app. The panel says a
+  /// different sentence for each, because "we could not ask" and "the move is
+  /// fine" must never look alike.
   final String? reason;
 
   bool get isAvailable => status == OpeningJudgeStatus.ok;
@@ -271,13 +263,12 @@ class OpeningJudgeLookup {
 
 /// Asks the server what one move is worth: theory, playable, or a mistake.
 ///
-/// **This spends the user's own Lichess token, and only theirs.** Judging one
-/// move costs up to four questions upstream, and the token the server keeps for
-/// the opening book is a single allowance shared by everyone in the app —
-/// spending it here would take the book away from all of them the first time
-/// somebody walked a long variation. So the gate is here as well as on the
-/// route: with no personal token, nothing is sent at all and the panel says why
-/// and where to fix it.
+/// **Nobody needs a Lichess token for this any more.** Until 15.9.2026 every
+/// question here carried the reader's own, because the server asked the Lichess
+/// explorers four times a move — and in practice that meant nobody could build
+/// a repertoire. The book is a file on the server now and the evaluation is
+/// Lichess's anonymous cloud (`docs/PLAN-OTVARANJA-LOKALNO.md`), so the one
+/// condition left is being signed in.
 ///
 /// The verdict itself is computed on the server and never here. An engine on a
 /// phone answers from whatever depth it happened to reach, so the same move
@@ -297,23 +288,11 @@ class OpeningJudgeService {
   final Map<String, OpeningJudgeLookup> _cache = {};
   final Map<String, OpponentRepliesLookup> _repliesCache = {};
 
-  static String get _personalToken =>
-      AppSettingsService.instance.lichessApiToken.trim();
-
-  /// Whether the user has a token of their own, which is the whole condition
-  /// for this feature being offered at all.
-  bool get hasPersonalToken => _personalToken.isNotEmpty;
-
   Future<OpeningJudgeLookup> judge(
     String fen,
     String move, {
     int? minRating,
   }) async {
-    if (!hasPersonalToken) {
-      // Not sent, not logged as a failure: this is a setting, not a fault.
-      return const OpeningJudgeLookup.unavailable('no-token');
-    }
-
     final cacheKey = '$fen|$move|${minRating ?? 'all'}';
     final cached = _cache[cacheKey];
     if (cached != null) return cached;
@@ -331,12 +310,8 @@ class OpeningJudgeService {
     });
 
     try {
-      // The Lichess token goes in a header and never in the query string: a URL
-      // is the one part of a request that gets written down by everything it
-      // passes through.
       final res = await _get(uri, {
         'Authorization': 'Bearer ${session.token}',
-        'X-Lichess-Token': _personalToken,
       }).timeout(const Duration(seconds: 12));
 
       if (res.statusCode != 200) {
@@ -361,15 +336,10 @@ class OpeningJudgeService {
 
   /// Which of the opponent's answers are worth preparing for here.
   ///
-  /// The other half of building a repertoire, and the same gate as judging: it
-  /// reads the opening book, so it spends the reader's own allowance. The
+  /// The other half of building a repertoire, read from the same book. The
   /// server decides how many replies that is — the rule is one number in one
   /// place, not a slider each screen sets differently.
   Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async {
-    if (!hasPersonalToken) {
-      return const OpponentRepliesLookup.unavailable('no-token');
-    }
-
     final cacheKey = 'replies|$fen|${minRating ?? 'all'}';
     final cached = _repliesCache[cacheKey];
     if (cached != null) return cached;
@@ -388,7 +358,6 @@ class OpeningJudgeService {
     try {
       final res = await _get(uri, {
         'Authorization': 'Bearer ${session.token}',
-        'X-Lichess-Token': _personalToken,
       }).timeout(const Duration(seconds: 12));
 
       if (res.statusCode != 200) {

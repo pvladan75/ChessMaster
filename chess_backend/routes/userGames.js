@@ -325,14 +325,14 @@ router.get('/imports/:id', authenticateToken, async (req, res) => {
 });
 
 // GET /games/openings/leaks?subject=&color=&fromPly=&toPly=&minGames=&maxScore=&speed=&limit=
-// Optional: &judge=true with header X-Lichess-Token
+// Optional: &judge=true
 //
 // The counting half costs nothing — no engine, no network — and it is the
 // whole report. Judging is an extra opinion on the move the player keeps
-// choosing, it costs requests against the caller's own Lichess allowance, and
-// it is therefore asked for rather than assumed.
+// choosing, it costs two cloud evaluations per position, and it is therefore
+// asked for rather than assumed.
 //
-// A missing or refused token does not take the report down with it. The
+// A judge that cannot answer does not take the report down with it. The
 // numbers were computed before anything was asked of Lichess, and this codebase
 // has twice shipped a bug where the message about the work killed the work.
 router.get('/openings/leaks', authenticateToken, async (req, res) => {
@@ -351,8 +351,6 @@ router.get('/openings/leaks', authenticateToken, async (req, res) => {
 
     if (String(q.judge) === 'true') {
       report.judge = await annotate(report.nodes, {
-        token: req.get('X-Lichess-Token') || '',
-        minRating: q.minRating ?? null,
         limit: Number(q.judgeLimit) > 0 ? Number(q.judgeLimit) : 10,
       });
     }
@@ -367,17 +365,14 @@ router.get('/openings/leaks', authenticateToken, async (req, res) => {
 /// worst positions, and counts what that cost. The count is the point as much
 /// as the verdicts are: it is how anyone finds out whether this report is a
 /// handful of requests or a scan.
-async function annotate(nodes, { token, minRating, limit }) {
-  if (!token) return { requested: true, judged: 0, requests: 0, reason: 'no-token' };
+async function annotate(nodes, { limit }) {
   let judged = 0;
   for (const node of nodes.slice(0, limit)) {
     const favourite = node.moves[0];
     if (!favourite) continue;
     try {
       // eslint-disable-next-line no-await-in-loop
-      node.judgement = await openingJudge.judge(node.fen, favourite.san, {
-        token, minRating,
-      });
+      node.judgement = await openingJudge.judge(node.fen, favourite.san);
       judged += 1;
     } catch (err) {
       // `unknown` is a fourth answer here for the same reason it is one in the

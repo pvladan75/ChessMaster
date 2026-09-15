@@ -5875,6 +5875,29 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 164. Sudija i repertoar bez Lichess tokena — 15.9.2026, nije viđeno uživo
+
+`docs/PLAN-OTVARANJA-LOKALNO.md`, faze 0 i 3 (STANJE-RADA, „Otvaranja iz naše
+baze"). Server mora biti restartovan, jer se putanja knjige čita pri
+pokretanju. Sačuvani odgovori u razvojnoj bazi su 15.9.2026 u 13:09 prepisani
+iz fajla od 50 polupoteza.
+
+1. [ ] **Nalog koji nikad nije video lichess.org.** U Settings obriši Lichess
+   token (ili koristi nalog koji ga nema). U Analizi odigraj potez i pritisni
+   „Judge …": presuda stiže, i nigde na panelu se ne pominje token.
+2. [ ] **Repertoar od nule.** Istim nalogom napravi nov repertoar i pusti
+   „Suggest main line" na 12 poteza. Linija se upiše; ako stane pre kraja,
+   rečenica kaže zašto — „too thin" sa brojem partija, ili „where the opening
+   book ends", a ne jedno umesto drugog.
+3. [ ] **Stari repertoar i dalje ima grane.** Otvori repertoar koji je postojao
+   pre ove promene: stablo crta protivnikove odgovore kao i ranije, a drill ih
+   igra.
+4. [ ] **Server bez knjige.** Zakomentariši `MASTERS_BOOK_PATH` u `.env`,
+   restartuj, i pritisni „Judge …": panel kaže „The opening book is not
+   available on this server", a ne presudu. Vrati putanju.
+5. [ ] **Izveštaj o rupama.** „Judge moves" u izveštaju o otvaranjima radi bez
+   tokena i ne prikazuje baner o tokenu.
+
 ## 163. Izlazak iz masters baze, i kraj linije bez reči — 15.9.2026, nije viđeno uživo
 
 Tri prijave vlasnika od 15.9.2026 (STANJE-RADA, „Izlazak iz masters baze…").

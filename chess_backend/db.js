@@ -1419,6 +1419,14 @@ async function initDB() {
       );
       CREATE INDEX IF NOT EXISTS idx_opening_replies_node
         ON opening_replies(fen_key, min_rating);
+      -- Where a row came from. NULL is every row written before 15.9.2026,
+      -- which came from the Lichess explorer by rating band; the local book
+      -- writes 'book' (services/storedReplies.js). Readers ask for the source,
+      -- so the two never mix, and the old rows are rewritten from the book at
+      -- start-up rather than deleted - they are a real student's tree.
+      -- Nothing holds a foreign key to this table (checked 15.9.2026:
+      -- repertoire_extra_replies names a position and a move, not a row).
+      ALTER TABLE opening_replies ADD COLUMN IF NOT EXISTS source VARCHAR(16);
     `);
     logger.info('Verified database table & indexes: opening_replies');
 

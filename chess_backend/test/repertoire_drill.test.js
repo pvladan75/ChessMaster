@@ -6,9 +6,11 @@ const {
   answer,
   pickReply,
   rememberReplies,
+  refreshStoredReplies,
   drillStats,
   QUALITY,
 } = require('../services/repertoireDrillService');
+const { OpeningBookUnavailable } = require('../services/openingBook');
 const { GRADES } = require('../services/spacedRepetitionService');
 
 const SMITH_MORRA =
@@ -300,7 +302,22 @@ test('a move the student asked for by name counts as prepared', async () => {
 
   assert.equal(drawn.san, 'a3');
   assert.match(pool.calls[0].text, /repertoire_extra_replies/);
-  assert.deepEqual(pool.calls[0].params.slice(2), [7, 'b']);
+  assert.deepEqual(pool.calls[0].params.slice(2, 4), [7, 'b']);
+});
+
+test("the draw reads the book's rows and no band's", async () => {
+  // `opening_replies` held rows from the Lichess explorer by rating band until
+  // 15.9.2026. The band-0 ones look exactly like the book's own, so the draw
+  // asks for the source as well — otherwise two books mix and nothing says so.
+  const pool = replyPool(
+    [{ uci: 'a2a3', san: 'a3', games: 50, covered: true }],
+    landings({ a2a3: {} }));
+
+  await pickReply(pool, { ...ASKING, fen: MORRA_REPLY, minRating: 1600 });
+
+  assert.match(pool.calls[0].text, /r\.min_rating = \$2 AND r\.source = \$5/);
+  assert.equal(pool.calls[0].params[1], 0, 'one band, whatever the caller sent');
+  assert.equal(pool.calls[0].params[4], 'book');
 });
 
 test('a branch the student cut is never played at them', async () => {
@@ -391,12 +408,13 @@ test('a position whose book was never stored answers with nothing', async () => 
   assert.equal(await pickReply(pool, { ...ASKING, fen: MORRA_REPLY }), null);
 });
 
-test('the book is stored per position and band, and refreshed in place',
+test('the book is stored per position, and refreshed in place',
   async () => {
     const pool = stubPool([[]]);
 
     const stored = await rememberReplies(pool, {
       fen: SMITH_MORRA,
+      // Sent by a caller written before there was one book. It selects nothing.
       minRating: 1600,
       moves: [
         { uci: 'g1f3', san: 'Nf3', games: 700, share: 0.7, covered: true },
@@ -410,12 +428,15 @@ test('the book is stored per position and band, and refreshed in place',
     // notation, and merging would have left those unplayable rows in the draw
     // forever, beside the corrected ones.
     assert.match(pool.calls[0].text, /BEGIN/);
-    assert.match(pool.calls[1].text, /DELETE FROM opening_replies/);
-    assert.deepEqual(pool.calls[1].params, [KEY, 1600]);
+    assert.match(pool.calls[1].text, /DELETE FROM opening_replies WHERE fen_key = \$1$/);
+    // Every row of the position, whatever band wrote it: a Lichess band's rows
+    // left beside the book's would be read by nobody and kept for ever.
+    assert.deepEqual(pool.calls[1].params, [KEY]);
     const call = pool.calls[2];
     assert.match(call.text, /INSERT INTO opening_replies/);
     assert.equal(call.params[0], KEY);
-    assert.equal(call.params[1], 1600);
+    assert.equal(call.params[1], 0, 'the one band');
+    assert.equal(call.params[2], 'book', 'and where it came from');
     assert.match(pool.calls[3].text, /COMMIT/);
     // The uncovered move is stored too — that is what makes the drill able to
     // surprise the student without asking Lichess anything.
@@ -573,4 +594,137 @@ test('an answer given ahead of schedule is judged and not written down',
       'vezba van rasporeda je pisala u raspored');
     assert.equal(pool.ran('repertoire_practice_log'), 1,
       'vezba van rasporeda nije zabelezena');
+  });
+
+// --- The rows the Lichess explorer wrote, rewritten from the book ---------------
+
+/// A pool holding `opening_replies` rows by position: a legacy row has no
+/// source. Answers the statements the refresh and the writer make, and refuses
+/// anything else so a new query cannot pass by being ignored.
+function repliesTable(legacy) {
+  const rows = new Map(Object.entries(legacy));
+  const calls = [];
+  const query = async (text, params) => {
+    const flat = text.replace(/\s+/g, ' ').trim();
+    calls.push({ text: flat, params });
+    if (flat === 'SELECT DISTINCT fen_key FROM opening_replies WHERE source IS NULL') {
+      const keys = [...rows].filter(([, r]) => r.some((row) => row.source == null))
+        .map(([key]) => ({ fen_key: key }));
+      return { rows: keys, rowCount: keys.length };
+    }
+    if (flat === 'DELETE FROM opening_replies WHERE fen_key = $1') {
+      rows.delete(params[0]);
+      return { rows: [], rowCount: 0 };
+    }
+    if (flat.startsWith('INSERT INTO opening_replies')) {
+      const [key, band, source] = params;
+      const written = [];
+      for (let at = 3; at < params.length; at += 5) {
+        written.push({ uci: params[at], band, source });
+      }
+      rows.set(key, written);
+      return { rows: [], rowCount: written.length };
+    }
+    if (['BEGIN', 'COMMIT', 'ROLLBACK'].includes(flat)) return { rows: [], rowCount: 0 };
+    throw new Error(`Neočekivan upit: ${flat}`);
+  };
+  return { rows, calls, query, connect: async () => ({ query, release: () => {} }) };
+}
+
+const OPEN_KEY = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -';
+const BROKEN_KEY = 'not a position at all';
+
+test('rows from the Lichess explorer are rewritten from the book, not deleted',
+  async () => {
+    // They are a real student's tree. Deleted, every branch they drew would
+    // vanish until that position was opened in build mode again — with nothing
+    // on the screen saying why.
+    const pool = repliesTable({
+      [KEY]: [{ uci: 'g1f3', source: null }, { uci: 'a2a3', source: null }],
+    });
+    const asked = [];
+    const judge = {
+      replies: async (fen) => {
+        asked.push(fen);
+        return {
+          beyondBook: false,
+          all: [{ uci: 'd7d6', san: 'd6', games: 40, share: 0.4, covered: true }],
+        };
+      },
+    };
+
+    const report = await refreshStoredReplies(pool, { judge });
+
+    assert.deepEqual(report, { positions: 1, rewritten: 1, removed: 0 });
+    // The stored key has no move counters; the book is given a whole FEN.
+    assert.deepEqual(asked, [`${KEY} 0 1`]);
+    assert.deepEqual(pool.rows.get(KEY), [{ uci: 'd7d6', band: 0, source: 'book' }]);
+  });
+
+test('a position the book cannot speak about loses its old rows', async () => {
+  // Kept, they would be exactly the mix the source column exists to stop: a
+  // band's fact read as the book's.
+  const pool = repliesTable({
+    [KEY]: [{ uci: 'g1f3', source: null }],
+    [OPEN_KEY]: [{ uci: 'g1f3', source: null }],
+    [BROKEN_KEY]: [{ uci: 'g1f3', source: null }],
+  });
+  const judge = {
+    replies: async (fen) => {
+      if (fen.startsWith('not')) throw new RangeError('Not a position');
+      return fen.startsWith(KEY)
+        ? { beyondBook: true, all: [] }
+        : { beyondBook: false, all: [] };
+    },
+  };
+
+  const report = await refreshStoredReplies(pool, { judge });
+
+  assert.deepEqual(report, { positions: 3, rewritten: 0, removed: 3 });
+  assert.equal(pool.rows.size, 0);
+});
+
+test('a position past the book keeps nothing even when the book lists moves',
+  async () => {
+    // A transposition can give a deep position a count from a shallower ply.
+    // Past the file's depth the book does not speak, whatever it happens to
+    // hold.
+    const pool = repliesTable({ [KEY]: [{ uci: 'g1f3', source: null }] });
+    const judge = {
+      replies: async () => ({
+        beyondBook: true,
+        all: [{ uci: 'd7d6', san: 'd6', games: 40, share: 1, covered: true }],
+      }),
+    };
+
+    const report = await refreshStoredReplies(pool, { judge });
+
+    assert.deepEqual(report, { positions: 1, rewritten: 0, removed: 1 });
+    assert.equal(pool.rows.has(KEY), false);
+  });
+
+test('the refresh touches only rows with no source, so a second start is free',
+  async () => {
+    const pool = repliesTable({ [KEY]: [{ uci: 'g1f3', source: 'book' }] });
+    const judge = { replies: async () => assert.fail('the book was asked again') };
+
+    const report = await refreshStoredReplies(pool, { judge });
+
+    assert.deepEqual(report, { positions: 0, rewritten: 0, removed: 0 });
+    assert.equal(pool.calls.length, 1);
+  });
+
+test('without the book nothing is removed, and the refusal is not swallowed',
+  async () => {
+    // The rows are unread either way; deleting them because a file was missing
+    // would take a student's tree for a configuration mistake.
+    const pool = repliesTable({ [KEY]: [{ uci: 'g1f3', source: null }] });
+    const judge = {
+      replies: async () => {
+        throw new OpeningBookUnavailable('not configured', { reason: 'not-configured' });
+      },
+    };
+
+    await assert.rejects(() => refreshStoredReplies(pool, { judge }), OpeningBookUnavailable);
+    assert.deepEqual(pool.rows.get(KEY), [{ uci: 'g1f3', source: null }]);
   });

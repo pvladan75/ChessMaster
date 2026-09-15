@@ -88,16 +88,13 @@ const _advance =
 /// without a book behind it.
 class _SilentJudge implements OpeningJudgeService {
   @override
-  bool get hasPersonalToken => false;
-
-  @override
   Future<OpeningJudgeLookup> judge(String fen, String move,
           {int? minRating}) async =>
-      const OpeningJudgeLookup.unavailable('no-token');
+      const OpeningJudgeLookup.unavailable('not-configured');
 
   @override
   Future<OpponentRepliesLookup> replies(String fen, {int? minRating}) async =>
-      const OpponentRepliesLookup.unavailable('no-token');
+      const OpponentRepliesLookup.unavailable('not-configured');
 
   @override
   void clearCache() {}

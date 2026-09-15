@@ -77,14 +77,13 @@ function draftsAt(moves) {
 /// to; the drafts in it stay where they are, and putting the branch back puts
 /// them back in the review with it.
 async function unconfirmedPositions(pool, userId, {
-  color, rootFen, rootPath = [], minRating = 0, gateUci = null,
+  color, rootFen, rootPath = [], gateUci = null,
   breadth = DEFAULT_BREADTH, limit = 200,
 } = {}) {
   requireColor(color);
   const { nodes, root, kept, cut, truncated } = await walkLines(pool, userId, {
     color,
     rootFen,
-    minRating,
     gateUci,
     breadth,
     // Drafts are exactly what is being looked for, so the walk has to follow

@@ -237,9 +237,67 @@ the implementation. The route is eighty lines and two deletions.
   allowance to protect any more, but a public endpoint reading a 500 MB file in
   a loop is a new exposure and this change does not open one.
 
-### P3 — the judge (lead)
+### P3 — the judge (lead, done 15.9.2026)
 
 Not a worker's: it changes what a student is told.
+
+**What was built**, against the bullets below:
+
+- The judge reads `sharedOpeningBook()` — one instance, shared with the explorer
+  route, rather than a second handle onto the file. The band question,
+  `ratingBucketsFrom`, `RATING_BUCKETS`, `MIN_BAND_GAMES`, and `band` and
+  `minRating` in both payloads are gone, and so is `no-token` from the service,
+  both judge routes, the spine route, the leak report's `annotate` and the app.
+  `openingMoveNotation.js` is deleted with its test: it converted the Lichess
+  explorer's castling, and the book writes castling the way the board does.
+- **A position past the book's depth lists nothing**, even where a row exists
+  by transposition, and says `beyondBook` — in the verdict's `masters`, in the
+  reply list, and as a spine's third stop reason, `beyond-book`, which the
+  build screen words apart from "too thin" (and `illegal` apart from both,
+  which it had not been).
+- **A missing book is a 503 with its reason on every route that reads it**,
+  never a verdict from the engine alone: a theory gambit judged that way comes
+  back a mistake.
+- **Found on the way: the cloud evaluation writes castling as "king takes
+  rook"** (`e1h1`), and `sanLine` read it literally, so a line stopped at the
+  castling move without a word — "better was O-O" came out as nothing. Read as
+  castling now, only where a king stands on the square.
+- **`MIN_MASTER_GAMES` stays 10, measured.** Every move Lichess's cached
+  masters answers name in the thirteen harness games was counted in the local
+  file: median ratio 0.99 per move, 1.00 per position; at ten the local book
+  keeps 783 of the 795 moves Lichess called theory and adds 23 of 376, all
+  within a few games of the line.
+- **`MIN_SPINE_GAMES` stays 100, measured.** It never bound against the band
+  counts; against the book the most played line from nine common roots first
+  drops under a hundred games 14 to 32 plies in, and four of the nine run the
+  full 24 plies of `MAX_SPINE_DEPTH`.
+- **The rating is gone from the server, not ignored in one place.** Every
+  repertoire service and route stopped taking `minRating`; the four SQL sites
+  on `opening_replies` bind `BOOK_BAND` and `BOOK_SOURCE`
+  (`services/storedReplies.js`). The app still sends it (P4).
+
+**`opening_replies` was rewritten, not cleared** — a departure from the bullet
+below, for a reason measured on the development database: 396 stored
+position-and-band sets from one user's 1,251 repertoire moves, and the drill,
+the tree and the frontier read nothing else. Cleared, every branch they drew
+would vanish until each position was opened in build mode again, with nothing
+on screen saying why. So `source` is added (NULL for every old row), readers ask
+for `source = 'book'`, and `refreshStoredReplies` rewrites the old rows from the
+book once at start-up — deleting only positions the book cannot speak about.
+Nothing holds a foreign key to the table: `repertoire_extra_replies` names a
+position and a move, not a row.
+
+**And it ran before it was reviewed.** The owner's `npm run dev` watches `.js`
+files, so it restarted on the lead's uncommitted edits and ran the migration and
+the refresh at 12:36 — while `.env` still named the ply-30, unpruned file. The
+development database's replies are therefore that file's, one-game moves
+included (298 positions, 1,442 rows). It ran once and unmutated: nothing was
+written after 12:37, and the mutation run that followed found no NULL rows to
+touch. **Re-run at the owner's request at 13:09 the same day**, against the
+ply-50 book: `UPDATE opening_replies SET source = NULL` and a restart. 1,125
+rows over 272 positions, every one `source = 'book'`, none NULL, and no stored
+reply with fewer than two games — which only the pruned file can produce. The
+26 positions that went are ones the pruned book does not cover.
 
 - The masters question reads the local book. **The band question disappears
   entirely** — there is one book, so `bookAt(source:'lichess')`, `band` in the
@@ -261,6 +319,24 @@ Not a worker's: it changes what a student is told.
 
 The one piece worth a batch: it is bounded, it is specifiable against a frozen
 server contract, and it is a sweep across a dozen files rather than a decision.
+
+**The judge's token gate already went with P3**, because a server that no longer
+asks for a token behind an app that still refuses without one is a feature
+that stays off: `hasPersonalToken`, the `X-Lichess-Token` headers (judge,
+replies, spine, leak report), the panel's no-token state and its "Uses your
+Lichess token", the band sentence, and the leak report's no-token banner. What
+is left for the batch, beyond the bullets below:
+
+- **Owner's decision, 15.9.2026: a guest sees "Sign in to see the opening
+  book."** When ChessDB goes, nothing in the app can show a signed-out reader an
+  opening book, and the route stays behind sign-in (P2). The judge panel's own
+  guest sentence, "Sign in required to judge moves.", stays as it is.
+- Every `minRating` the app still sends — `OpeningJudgeService.judge` and
+  `replies`, `buildSpine`, and the repertoire API's walks — and the model fields
+  that read one back.
+- Comments in the repertoire screens and services that still say a build
+  "spends a Lichess request" or "the reader's allowance" — about fifteen in
+  `repertoire_build_screen.dart` alone.
 
 
 - The explorer panel loses its rating dropdown and names the position from

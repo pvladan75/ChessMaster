@@ -49,25 +49,19 @@ Color _colorOf(BuildContext context, OpeningVerdict verdict) {
 /// mistake, what to play instead and how the move gets punished.
 ///
 /// Asked for by hand rather than on every click, the same way the endgame
-/// trainer asks the tables. Two reasons, and the second is the one that
-/// decides: it spends the reader's own Lichess allowance, and a panel that
-/// spends it silently while somebody clicks through a game is a panel that
-/// empties an allowance nobody agreed to give.
+/// trainer asks the tables: each verdict is two questions to Lichess's cloud
+/// evaluation from one server address shared by everybody, and a panel that
+/// asked them while somebody clicked through a game would spend that address's
+/// patience on moves nobody wanted judged.
 class OpeningJudgePanelWidget extends StatelessWidget {
   const OpeningJudgePanelWidget({
     super.key,
-    required this.hasToken,
     required this.moveSan,
     required this.isLoading,
     required this.judgement,
     this.reason,
     this.onJudge,
-    this.onOpenSettings,
   });
-
-  /// Whether the reader has a Lichess token of their own. Without it the panel
-  /// offers nothing to press: judging is not on the shared allowance.
-  final bool hasToken;
 
   /// The move that led to the position on the board, or null at the start of
   /// the game, where there is nothing to judge.
@@ -83,7 +77,6 @@ class OpeningJudgePanelWidget extends StatelessWidget {
   final String? reason;
 
   final VoidCallback? onJudge;
-  final VoidCallback? onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +118,6 @@ class OpeningJudgePanelWidget extends StatelessWidget {
   }
 
   List<Widget> _body(BuildContext context) {
-    if (!hasToken) return _noToken(context);
     if (moveSan == null) {
       return [
         Text(
@@ -154,10 +146,6 @@ class OpeningJudgePanelWidget extends StatelessWidget {
               icon: const Icon(Icons.gavel, size: 16),
               label: Text('Judge $moveSan'),
             ),
-            Text(
-              'Uses your Lichess token.',
-              style: AppText.micro.copyWith(color: context.colors.textMuted),
-            ),
           ],
         ),
       ];
@@ -165,45 +153,23 @@ class OpeningJudgePanelWidget extends StatelessWidget {
     return _verdict(context, verdict);
   }
 
-  List<Widget> _noToken(BuildContext context) {
-    return [
-      Text(
-        'Move judging requires your own Lichess token — it queries Lichess up to four times '
-        'per move, so it does not use the shared server token.',
-        style: AppText.caption.copyWith(color: context.colors.textMuted),
-      ),
-      const SizedBox(height: 6),
-      Wrap(
-        spacing: 8,
-        runSpacing: 6,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          if (onOpenSettings != null)
-            OutlinedButton.icon(
-              onPressed: onOpenSettings,
-              icon: const Icon(Icons.settings, size: 16),
-              label: const Text('Settings'),
-            ),
-          Text(
-            'The opening database works without it.',
-            style: AppText.micro.copyWith(color: context.colors.textMuted),
-          ),
-        ],
-      ),
-    ];
-  }
-
   Widget _reasonLine(BuildContext context, String reason) {
     // Each one says what actually happened. "We could not ask" and "the move is
     // fine" must never read the same.
+    const book = 'The opening book is not available on this server, '
+        'so the move was not judged.';
     const messages = {
-      'unauthorized': 'Lichess rejected your token. Check it in Settings.',
-      'rate-limited': 'Lichess request quota exceeded. '
-          'Try again in a few minutes.',
+      'rate-limited': 'Lichess is not answering for a few minutes. '
+          'Try again later.',
       'network': 'Server unavailable, move was not judged.',
-      'no-token': 'No Lichess token found.',
       'guest': 'Sign in required to judge moves.',
       'bad-request': 'Cannot judge this move in this position.',
+      // The book's own refusals. Judged by the engine alone, a theory gambit
+      // would come back a mistake, so the server refuses instead — and the
+      // sentence has to say it was the book, not the move.
+      'not-configured': book,
+      'unreadable': book,
+      'inconsistent': book,
     };
     return Text(
       messages[reason] ?? 'Move not judged ($reason).',
@@ -289,13 +255,15 @@ class OpeningJudgePanelWidget extends StatelessWidget {
           // there is nothing left to give.
           lines.add('The position was already worse before it.');
         }
-        if (j.bandGames > 0) {
-          final band = j.minRating == null
-              ? 'in practice'
-              : 'by ${j.minRating}+ players';
-          lines.add('Played $band: ${gamesLabel(j.bandGames)}.');
-        }
         break;
+    }
+
+    // Only where a verdict leans on the engine alone because of it. "Played by
+    // masters: 0 games" would be read as "nobody plays this", which is not
+    // what a book that stops short is saying.
+    if (j.mastersBeyondBook && j.verdict != OpeningVerdict.theory) {
+      lines.add('This position is deeper than the opening book goes, '
+          'so the verdict comes from the engine alone.');
     }
 
     if (j.better != null) lines.add('Better was ${j.better}.');

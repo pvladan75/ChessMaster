@@ -24,8 +24,8 @@ class OpeningLeakReportScreen extends StatefulWidget {
 class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
   String _color = 'w'; // 'w' or 'b'
 
-  /// Off until asked. Judging spends requests against the player's own Lichess
-  /// allowance, and the counted half of this report — which positions, how
+  /// Off until asked. Judging asks Lichess's cloud evaluation twice per
+  /// position, and the counted half of this report — which positions, how
   /// often, how badly — is complete without it.
   bool _judge = false;
   Future<LeakReport>? _reportFuture;
@@ -272,7 +272,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                             Text(
                               'The numbers above are complete without judging. If '
                               'you also want an opinion on a move you play '
-                              'repeatedly, that uses your Lichess token.',
+                              'repeatedly, ask for one.',
                               style: AppText.caption
                                   .copyWith(color: context.colors.textMuted),
                             ),
@@ -286,24 +286,6 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                               label: const Text('Judge moves'),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
-                    if (report.judge.reason == 'no-token') ...[
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: context.colors.warning.withValues(alpha: 0.1),
-                          borderRadius: AppRadii.roundedSm,
-                          border: Border.all(
-                              color: context.colors.warning
-                                  .withValues(alpha: 0.5)),
-                        ),
-                        child: Text(
-                          'The report is shown, but move judging requires a Lichess token in Settings.',
-                          style: AppText.caption
-                              .copyWith(color: context.colors.warning),
                         ),
                       ),
                     ],

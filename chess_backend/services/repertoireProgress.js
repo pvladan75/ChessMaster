@@ -36,7 +36,7 @@ const MAX_ROWS = 40;
 /// A repertoire whose walk throws is reported with nulls rather than zeros. A
 /// zero here means "nothing left", and a walk that could not be read must not
 /// be able to say that.
-async function repertoireProgress(pool, userId, { minRating = 0 } = {}) {
+async function repertoireProgress(pool, userId) {
   const rows = (await pool.query(
     `SELECT id, color, root_fen, root_path, via_uci, breadth
        FROM repertoires
@@ -56,7 +56,6 @@ async function repertoireProgress(pool, userId, { minRating = 0 } = {}) {
           rootFen: row.root_fen,
           gateUci: row.via_uci,
           breadth: row.breadth || DEFAULT_BREADTH,
-          minRating,
         });
         return {
           id: row.id,

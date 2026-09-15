@@ -13,7 +13,6 @@ import 'package:chess_app/features/archive/models/player_profile.dart';
 import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/features/archive/models/trainer_student_archive.dart';
 import 'package:chess_app/features/archive/models/archive_homework_response.dart';
-import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
 /// The colour as the API wants it: `w` or `b`, never `white`.
@@ -53,8 +52,6 @@ class ArchiveApiService {
   final http.Client? _client;
 
   String get _token => SessionService.instance.current.token;
-  String get _lichessToken =>
-      AppSettingsService.instance.lichessApiToken.trim();
 
   Future<http.Response> _get(Uri uri, Map<String, String> headers) =>
       _client?.get(uri, headers: headers) ?? http.get(uri, headers: headers);
@@ -166,9 +163,6 @@ class ArchiveApiService {
     final headers = {
       'Authorization': 'Bearer $_token',
     };
-    if (_lichessToken.isNotEmpty) {
-      headers['X-Lichess-Token'] = _lichessToken;
-    }
 
     final response = await _get(uri, headers);
     if (response.statusCode == 200) {

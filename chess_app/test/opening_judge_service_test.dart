@@ -10,14 +10,13 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 
-/// The gate, the request, and what comes back.
+/// The request, and what comes back.
 ///
-/// The gate is the part worth a test of its own. Judging one move costs up to
-/// four questions of somebody's Lichess allowance, and the server's own token
-/// is a single allowance shared by every child in the app — so a user without a
-/// token of their own must not reach the route at all, rather than reaching it
-/// and being refused. The difference is invisible on screen and is exactly the
-/// thing that would quietly empty the shared quota.
+/// Until 15.9.2026 this file was mostly about a gate: judging carried the
+/// reader's own Lichess token, and a reader without one reached nothing. The
+/// book is on the server now and the evaluation anonymous
+/// (`docs/PLAN-OTVARANJA-LOKALNO.md`), so the only condition left is being
+/// signed in — and the test that matters is that no token rides along.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -28,10 +27,8 @@ void main() {
     'uci': 'f1c4',
     'san': 'Bc4',
     'moverIsWhite': true,
-    'minRating': 1600,
     'verdict': 'mistake',
-    'masters': {'games': 2, 'total': 900},
-    'band': {'games': 40, 'total': 800},
+    'masters': {'games': 2, 'total': 900, 'beyondBook': true},
     'eval': {
       'beforeCp': 20,
       'afterCp': -400,
@@ -56,38 +53,59 @@ void main() {
     );
   }
 
-  test('without a personal token nothing is sent at all', () async {
+  test('a reader with no Lichess token is judged like anybody else', () async {
     await signedIn(lichessToken: '');
-    var called = false;
-    final service = OpeningJudgeService.withClient(MockClient((_) async {
-      called = true;
-      return http.Response('{}', 200);
-    }));
-
-    final lookup = await service.judge('fen', 'Nf3');
-
-    expect(lookup.isAvailable, isFalse);
-    expect(lookup.reason, 'no-token');
-    expect(called, isFalse, reason: 'bez svog tokena se ne šalje ništa');
-  });
-
-  test('the token travels in a header, never in the address', () async {
-    await signedIn(lichessToken: 'lip_secret');
     late http.Request seen;
     final service = OpeningJudgeService.withClient(MockClient((req) async {
       seen = req;
       return http.Response(jsonEncode(verdictBody), 200);
     }));
 
-    await service.judge('start fen', 'Bc4', minRating: 1600);
+    final lookup = await service.judge('start fen', 'Bc4');
 
-    expect(seen.headers['X-Lichess-Token'], 'lip_secret');
+    expect(lookup.isAvailable, isTrue);
     expect(seen.headers['Authorization'], 'Bearer jwt');
-    // A URL is the one part of a request that everything it passes through
-    // writes down.
-    expect(seen.url.toString(), isNot(contains('lip_secret')));
     expect(seen.url.queryParameters['move'], 'Bc4');
-    expect(seen.url.queryParameters['minRating'], '1600');
+  });
+
+  test('a token saved in Settings does not ride along', () async {
+    // It is still kept, for importing one's own games from lichess.org. Sent
+    // here it would be a secret travelling to a route that reads nothing.
+    await signedIn(lichessToken: 'lip_secret');
+    final seen = <http.Request>[];
+    final service = OpeningJudgeService.withClient(MockClient((req) async {
+      seen.add(req);
+      return http.Response(
+          jsonEncode(req.url.path.endsWith('/replies')
+              ? {'total': 0, 'replies': [], 'all': []}
+              : verdictBody),
+          200);
+    }));
+
+    await service.judge('start fen', 'Bc4');
+    await service.replies('start fen');
+
+    expect(seen, hasLength(2));
+    for (final req in seen) {
+      expect(req.headers.keys.map((k) => k.toLowerCase()),
+          isNot(contains('x-lichess-token')));
+      expect(req.url.toString(), isNot(contains('lip_secret')));
+    }
+  });
+
+  test('a guest asks nothing', () async {
+    SharedPreferences.setMockInitialValues({});
+    await AppSettingsService.instance.init();
+    await SessionService.instance.signOut();
+    var called = false;
+    final service = OpeningJudgeService.withClient(MockClient((_) async {
+      called = true;
+      return http.Response('{}', 200);
+    }));
+
+    expect((await service.judge('fen', 'Nf3')).reason, 'guest');
+    expect((await service.replies('fen')).reason, 'guest');
+    expect(called, isFalse);
   });
 
   test('a verdict is read whole, and asked for only once', () async {
@@ -106,7 +124,7 @@ void main() {
     expect(j.lossCp, 420);
     expect(j.better, 'Nf3');
     expect(j.punishment, ['Qh4', 'Nf3', 'Qxe4+']);
-    expect(j.bandGames, 40);
+    expect(j.mastersBeyondBook, isTrue);
 
     await service.judge('start fen', 'Bc4', minRating: 1600);
     expect(calls, 1, reason: 'isti potez se ne plaća dvaput');
@@ -139,7 +157,6 @@ void main() {
       'reason': 'no-eval',
       'san': 'Bc4',
       'masters': {'games': 0, 'total': 0},
-      'band': {'games': 0, 'total': 0},
       'eval': null,
     });
 

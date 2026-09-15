@@ -2585,6 +2585,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// What the spine did, in one sentence that never claims more than it did.
   String _spineNote(SpineResult result, {required List<String> from}) {
     if (result.path.isEmpty) {
+      if (result.reason == 'beyond-book') {
+        return 'Nothing was recorded — this position is deeper than the opening '
+            'book goes.';
+      }
       return 'Nothing was recorded — even at this position the line is too thin '
           '(below ${result.minGames} games).';
     }
@@ -2594,10 +2598,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     );
     final wrote = 'Recorded ${result.written} '
         '${result.written == 1 ? "suggestion" : "suggestions"}';
-    final tail = result.ranTheWholeWay
-        ? '.'
-        : ' — stopped because further is too thin (${result.games} games, threshold '
-            '${result.minGames}).';
+    // Each reason its own sentence. "Too thin" said about the end of the book
+    // file would send the student looking for a sideline that is not the
+    // problem; said about a stored move that no longer replays, it would hide
+    // a broken tree.
+    final tail = switch (result.reason) {
+      'depth' => '.',
+      'beyond-book' => ' — stopped where the opening book ends; '
+          'past this point it has no games to follow.',
+      'illegal' => ' — stopped at a stored move that no longer plays '
+          'from this position.',
+      _ => ' — stopped because further is too thin (${result.games} games, '
+          'threshold ${result.minGames}).',
+    };
     return '$wrote$tail Main line: $line. Confirm what you agree with.';
   }
 
@@ -3326,7 +3339,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     // The same panel the analysis board uses, so a verdict is worded in one
     // place and cannot come to mean two different things.
     return OpeningJudgePanelWidget(
-      hasToken: _judge.hasPersonalToken,
       moveSan: _proposalSan,
       isLoading: _busy,
       judgement: _verdict,
