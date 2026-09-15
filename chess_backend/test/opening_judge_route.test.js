@@ -1,8 +1,8 @@
-// GET /opening-judge, GET /opening-judge/replies and POST /repertoire/spine —
+// GET /opening-judge, GET /opening-judge/replies and GET /repertoire/book —
 // the three routes that read the opening book to tell a student something.
 //
-// Until 15.9.2026 all three demanded the caller's own Lichess token and said
-// `no-token` without one. The book is a file now (`docs/PLAN-OTVARANJA-
+// Until 15.9.2026 the routes that read the book demanded the caller's own
+// Lichess token and said `no-token` without one. The book is a file now (`docs/PLAN-OTVARANJA-
 // LOKALNO.md`), so what is asked here is what the services being right cannot
 // say: that nothing in a request has to carry a token, that a server without
 // the book says so with its reason instead of answering as if nobody played
@@ -81,10 +81,10 @@ const unavailable = () => new OpeningBookUnavailable(
   { reason: 'not-configured', status: 503 },
 );
 
-test('both judge routes are behind sign-in', () => {
+test('every route that reads the book is behind sign-in', () => {
   assert.equal(handlersOf(judgeRouter, 'get', '/')[0], authenticateToken);
   assert.equal(handlersOf(judgeRouter, 'get', '/replies')[0], authenticateToken);
-  assert.equal(handlersOf(repertoireRouter, 'post', '/spine')[0], authenticateToken);
+  assert.equal(handlersOf(repertoireRouter, 'get', '/book')[0], authenticateToken);
 });
 
 test('a move is judged with no Lichess token anywhere in the request', async (t) => {
@@ -107,21 +107,27 @@ test('a move is judged with no Lichess token anywhere in the request', async (t)
 
 test('a server without the book says so, on every route that reads it', async (t) => {
   // Loud on purpose. Judged by the engine alone a theory gambit comes back a
-  // mistake, and a spine that stopped at once reads as an opening nobody plays.
+  // mistake, and an empty panel beside the board reads as an opening nobody
+  // plays.
   quietPool(t);
   stubJudge(t, 'judge', async () => { throw unavailable(); });
   stubJudge(t, 'replies', async () => { throw unavailable(); });
 
   const verdict = await call(judgeRouter, 'get', '/', { query: { fen: START, move: 'e4' } });
   const replies = await call(judgeRouter, 'get', '/replies', { query: { fen: START } });
-  const spine = await call(repertoireRouter, 'post', '/spine', {
-    body: { color: 'w', rootFen: START, depth: 2 },
-  });
-
-  for (const res of [verdict, replies, spine]) {
+  for (const res of [verdict, replies]) {
     assert.equal(res.statusCode, 503);
     assert.equal(res.body.reason, 'not-configured');
   }
+
+  // The panel still answers — the moves the student entered do not depend on
+  // the book — and says why it has no statistics.
+  const book = await call(repertoireRouter, 'get', '/book', {
+    query: { color: 'w', fen: START },
+  });
+  assert.equal(book.statusCode, 200);
+  assert.equal(book.body.opened, false);
+  assert.equal(book.body.unavailable, 'not-configured');
 });
 
 test('a position that is not one is a bad request on the judge routes', async (t) => {
@@ -154,19 +160,29 @@ test('replies are stored at the one band, whatever rating was sent', async (t) =
   assert.deepEqual(insert.params.slice(1, 3), [0, 'book']);
 });
 
-test('a spine answers once, with where it stopped', async (t) => {
-  quietPool(t);
-  stubJudge(t, 'replies', async (fen) => ({
-    fen, total: 0, beyondBook: true, replies: [], all: [],
-  }));
+test('a position never stored is read from the book on the way, once', async (t) => {
+  // No „open the book" step: the first read of a position fills it.
+  const queries = quietPool(t);
+  const asked = [];
+  stubJudge(t, 'replies', async (fen) => {
+    asked.push(fen);
+    return {
+      fen,
+      total: 10,
+      beyondBook: false,
+      replies: [],
+      all: [{ uci: 'e2e4', san: 'e4', games: 10, share: 1, covered: true }],
+    };
+  });
 
-  const res = await call(repertoireRouter, 'post', '/spine', {
-    body: { color: 'w', rootFen: START, depth: 2, minRating: 1600 },
+  const res = await call(repertoireRouter, 'get', '/book', {
+    query: { color: 'w', fen: START },
   });
 
   assert.equal(res.statusCode, 200);
-  assert.equal(res.body.stopped.reason, 'beyond-book');
-  assert.equal('minRating' in res.body, false);
+  assert.deepEqual(asked, [START]);
+  assert.ok(queries.some((q) => q.text.startsWith('INSERT INTO opening_replies')),
+    'what the book said was stored');
 });
 
 test('no judge route reads a Lichess token from the request any more', () => {
@@ -178,7 +194,7 @@ test('no judge route reads a Lichess token from the request any more', () => {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
   for (const file of ['routes/openingJudge.js', 'routes/repertoire.js', 'routes/userGames.js',
-    'services/openingJudgeService.js', 'services/repertoireSpine.js']) {
+    'services/openingJudgeService.js', 'services/repertoireBook.js']) {
     const source = code(file);
     assert.doesNotMatch(source, /X-Lichess-Token/i, `${file} still reads a token header`);
     assert.doesNotMatch(source, /no-token/, `${file} still answers no-token`);

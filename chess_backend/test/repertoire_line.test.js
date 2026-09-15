@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { Chess } = require('chess.js');
 
 const {
-  drillLine, drillBranches, tree, walkLines, lineOrder, keysAlong,
+  drillLine, drillBranches, tree, walkLines,
 } = require('../services/repertoireLine');
 const { fenKey } = require('../services/repertoireService');
 
@@ -29,8 +29,9 @@ function keyAfter(...ucis) {
 
 /// 1.e4 c5 2.Nf3 d6 3.d4 — three decisions on one line, and nothing else.
 ///
-/// Small on purpose: what is being tested is the shape of the line handed back,
-/// and a wide tree would only make the assertions harder to read.
+/// `replies` are the opponent moves the student entered, with the numbers the
+/// book joins in beside them. Small on purpose: what is being tested is the
+/// shape of the line handed back.
 const SICILIAN = {
   moves: [
     { fen_key: fenKey(START), uci: 'e2e4', san: 'e4', role: 'primary' },
@@ -55,13 +56,13 @@ const SICILIAN = {
   ],
 };
 
-/// A pool that answers each of the eight questions this walk asks.
+/// A pool that answers each of the questions this walk asks.
 ///
 /// Matched on a fragment unique to each query rather than replayed in order:
-/// how many times the walk asks the book is itself a thing the tests check, so
-/// a positional stub would pass for the wrong reason.
+/// how many times the walk asks for the entered moves is itself a thing the
+/// tests check, so a positional stub would pass for the wrong reason.
 function stubPool({
-  moves = [], replies = [], skips = [], due = [], fresh = [], known = [],
+  moves = [], replies = [], due = [], fresh = [], known = [],
   reviews = [],
   stats = { positions: 3, seen: 0, due: 0, known: 0 },
 } = {}) {
@@ -83,26 +84,18 @@ function stubPool({
           }];
         }
         if (flat.includes('SELECT fen_key, uci, san, role')) {
-          // `onlyChosen` is params[2]. Modelled, because whether the rehearsal
-          // walks through a generated move is exactly what one test asks.
-          return params[2] === true
+          // Decisions only, and only while the query asks for them: whether
+          // the rehearsal walks through a move the retired spine wrote is
+          // exactly what one test asks.
+          return flat.includes("source = 'chosen'")
             ? moves.filter((m) => (m.source ?? 'chosen') === 'chosen')
             : moves;
         }
-        if (flat.includes('FROM repertoire_skips')) {
-          return skips.map((fen_key) => ({ fen_key }));
-        }
-        if (flat.includes('FROM opening_replies')) {
-          const [band, keys] = params;
-          // The cut and the "prepare this too" flag are columns now, not a
-          // WHERE clause: breadth decides at read time which rows the walk
-          // follows, so the stub hands back the whole book for the position.
-          // `covered` defaults to true, which is what these fixtures have
-          // always meant.
+        if (flat.includes('FROM repertoire_extra_replies e')) {
+          const keys = params[2];
           return replies
-            .filter((r) => Number(r.min_rating ?? 0) === band
-              && keys.includes(r.fen_key))
-            .map((r) => ({ covered: true, asked: false, ...r }));
+            .filter((r) => keys.includes(r.fen_key))
+            .sort((a, b) => Number(b.games ?? 0) - Number(a.games ?? 0));
         }
         if (flat.includes('AS moves')) return [{ moves: 1 }];
         if (flat.includes('r.due_at <= $3')) {
@@ -124,7 +117,7 @@ function stubPool({
           const within = params[2];
           return reviews.filter((row) => within.includes(row.fen_key));
         }
-        throw new Error(`Neočekivan upit: ${flat}`);
+        throw new Error(`Unexpected query: ${flat}`);
       })();
       return { rows, rowCount: rows.length };
     },
@@ -159,8 +152,7 @@ test('a line says which of the decisions it walks, and what the others were',
   async () => {
     // A line runs through whichever move leads to the question — the primary
     // as often as an alternate — and a rehearsal that does not say which is
-    // asking the student to guess. Worse, playing the other move of their own
-    // came back as a mistake, in the same words as a blunder.
+    // asking the student to guess.
     const pool = stubPool({
       ...SICILIAN,
       moves: [
@@ -198,217 +190,36 @@ test('a reply carries no choice of its own', async () => {
   }
 });
 
-/// A fork with a line under one arm, built so that reading it in waves and
-/// reading it down the lines give different answers.
-///
-/// 1.e4 (mine, the main move) with two answers — 1...e5 more often played,
-/// 1...c5 less — and 2.Nf3 d6 3.d4 under the rarer of the two; plus 1.d4
-/// (mine, an alternate) answered 1...d5, which is the most played reply of the
-/// three and still belongs last, because it is behind my second move.
-const FORK = {
-  moves: [
-    { fen_key: fenKey(START), uci: 'e2e4', san: 'e4', role: 'primary' },
-    { fen_key: fenKey(START), uci: 'd2d4', san: 'd4', role: 'alternate' },
-    {
-      fen_key: keyAfter('e2e4', 'e7e5'),
-      uci: 'g1f3', san: 'Nf3', role: 'primary',
-    },
-    {
-      fen_key: keyAfter('e2e4', 'c7c5'),
-      uci: 'g1f3', san: 'Nf3', role: 'primary',
-    },
-    {
-      fen_key: keyAfter('e2e4', 'c7c5', 'g1f3', 'd7d6'),
-      uci: 'd2d4', san: 'd4', role: 'primary',
-    },
-    {
-      fen_key: keyAfter('d2d4', 'd7d5'),
-      uci: 'c2c4', san: 'c4', role: 'primary',
-    },
-  ],
-  // In games order, which is how the query hands them back.
-  replies: [
-    {
-      fen_key: keyAfter('e2e4'),
-      uci: 'e7e5', san: 'e5', games: 550, share: '0.55000',
-    },
-    {
-      fen_key: keyAfter('e2e4'),
-      uci: 'c7c5', san: 'c5', games: 350, share: '0.35000',
-    },
-    {
-      fen_key: keyAfter('d2d4'),
-      uci: 'd7d5', san: 'd5', games: 600, share: '0.60000',
-    },
-    {
-      fen_key: keyAfter('e2e4', 'c7c5', 'g1f3'),
-      uci: 'd7d6', san: 'd6', games: 300, share: '0.60000',
-    },
-  ],
-};
-
-test('a reading goes down one line rather than across a wave', async () => {
-  const { nodes, root, kept } = await walkLines(stubPool(FORK), 7, {
-    color: 'w', rootFen: START,
-  });
-
-  // What the walk itself holds, and why it is the wrong order to read in: every
-  // position at one depth, then every position at the next. In the owner's
-  // words, all the fifth moves and then all the sixth.
-  assert.deepEqual([...nodes.values()].map((n) => n.path.join(' ')), [
-    '', 'e4 e5', 'e4 c5', 'd4 d5', 'e4 c5 Nf3 d6',
-  ]);
-
-  assert.deepEqual(lineOrder(nodes, root, kept).map((n) => n.path.join(' ')), [
-    '',
-    // My main move first, and under it the answer played more often…
-    'e4 e5',
-    // …then the rarer one, followed to the end of its line before anything
-    // else is read. This is the whole change: 2...d6 used to be last.
-    'e4 c5',
-    'e4 c5 Nf3 d6',
-    // And my alternate last, however often the answer to it is played.
-    'd4 d5',
-  ]);
-});
-
-test('a reading holds every position the walk found, once each', async () => {
-  // An order is free to be wrong about what comes first and must never be wrong
-  // about what is in it: the banner counts this list, and a walk that quietly
-  // dropped a branch would say a repertoire is more finished than it is.
-  const { nodes, root, kept } = await walkLines(stubPool(FORK), 7, {
-    color: 'w', rootFen: START,
-  });
-  const read = lineOrder(nodes, root, kept);
-
-  assert.equal(read.length, nodes.size);
-  assert.equal(new Set(read.map((n) => n.key)).size, nodes.size);
-});
-
-test('a fork is read the way it is drawn: by share, not by count', async () => {
-  // The book's two numbers rank a position's replies the same way in real data,
-  // so a fixture is the only place they can be pulled apart — and pulling them
-  // apart is the only way to say which of them decides. `tree` sorts the drawing
-  // by `share`; the reading has to do the same, or the two part company the
-  // first time the book disagrees with itself.
-  const skew = {
-    ...FORK,
-    replies: FORK.replies.map((row) => (row.fen_key === keyAfter('e2e4')
-      ? { ...row, share: row.uci === 'e7e5' ? '0.35000' : '0.55000' }
-      : row)),
-  };
-  const drawn = await tree(stubPool(skew), 7, { color: 'w', rootFen: START });
-  const { nodes, root, kept } = await walkLines(stubPool(skew), 7, {
-    color: 'w', rootFen: START,
-  });
-
-  // The walk still meets 1...e5 first, because the query hands the book back in
-  // games order. Neither the drawing nor the reading keeps it there.
-  assert.deepEqual([...nodes.values()][1].path, ['e4', 'e5']);
-  assert.deepEqual(drawn.children[0].children.map((n) => n.san), ['c5', 'e5']);
-  assert.deepEqual(lineOrder(nodes, root, kept).map((n) => n.path.join(' ')), [
-    '', 'e4 c5', 'e4 c5 Nf3 d6', 'e4 e5', 'd4 d5',
-  ]);
-});
-
-test('the reading and the drawing are the same walk', async () => {
-  // The owner asked for this order in the drawing's own terms — by the tree on
-  // screen, left to right and top to bottom — so the two agreeing is the
-  // requirement rather than a coincidence. `tree` builds the picture from
-  // `kept` and `lineOrder` orders the walk's nodes; this is the test that fails
-  // if one of them is ever changed alone.
-  const drawn = await tree(stubPool(FORK), 7, { color: 'w', rootFen: START });
-  const { nodes, root, kept } = await walkLines(stubPool(FORK), 7, {
-    color: 'w', rootFen: START,
-  });
-
-  // Every position on the drawing, read top-left first. A position is where one
-  // of the opponent's replies lands, which is one card in from each of mine.
-  const onScreen = [];
-  const readOff = (mineHere) => {
-    for (const my of mineHere) {
-      for (const theirs of my.children) {
-        onScreen.push(theirs.fenKey);
-        readOff(theirs.children);
-      }
-    }
-  };
-  readOff(drawn.children);
-
-  assert.deepEqual(
-    // Without the root: the drawing starts at the first move, the walk starts
-    // at the position it is played from.
-    lineOrder(nodes, root, kept).slice(1).map((n) => n.key),
-    onScreen,
-  );
-});
-
-/// 1.e4 with two answers, and **one of them is outside the cut**: 1...c5 is
-/// covered, 1...a6 is not, so no breadth follows it.
-///
-/// And **nothing is decided after 1...a6** — that is the whole point of the
-/// fixture. `coveredReplies` already follows a reply that lands somewhere the
-/// student has decided, so a position with a move in it was never the case that
-/// broke. The one that breaks is the reader standing where they have just
-/// arrived and not yet answered: „izborom poteza za protivnika pozicija ostaje
-/// na tom mestu, ali se u stablo dodaje odmah potez protivnika".
-const OFF_THE_CUT = {
-  moves: [
-    { fen_key: fenKey(START), uci: 'e2e4', san: 'e4', role: 'primary' },
-  ],
-  replies: [
-    {
-      fen_key: keyAfter('e2e4'),
-      uci: 'c7c5', san: 'c5', games: 500, share: '0.50000', covered: true,
-    },
-    {
-      fen_key: keyAfter('e2e4'),
-      uci: 'a7a6', san: 'a6', games: 20, share: '0.02000', covered: false,
-    },
-  ],
-};
-
-test('the walk reaches where the reader is standing, whatever the breadth says',
+test('the walk follows the opponent moves the student entered, and only those',
   async () => {
-    // The live report of 5.9.2026: „ne treba gubiti fokus u stablu poteza".
-    // The mechanism was `findNodeByFen(root, fen) ?? root` in the build screen,
-    // and the reason the position was missing is here — the move had fallen
-    // outside the cut, so nothing followed it and the drawing had no card for
-    // the board. This is the same bug depth already had, fixed on 4.9.2026 by
-    // sending a `maxPly` deep enough to hold the reader.
-    const without = await walkLines(stubPool(OFF_THE_CUT), 7, {
+    // The book decides nothing. A reply that is not entered is not a position
+    // of the repertoire, however often it is played.
+    const { nodes } = await walkLines(stubPool(SICILIAN), 7, {
       color: 'w', rootFen: START,
     });
-    assert.equal(without.nodes.has(keyAfter('e2e4', 'a7a6')), false,
-      'fiksture ne valja: 1...a6 je i bez putanje u šetnji');
 
-    const with_ = await walkLines(stubPool(OFF_THE_CUT), 7, {
-      color: 'w', rootFen: START, alongPath: ['e4', 'a6'],
-    });
-    assert.equal(with_.nodes.has(keyAfter('e2e4', 'a7a6')), true);
-    // And the covered reply is still there: this adds a position, it does not
-    // narrow the walk to the reader's own line.
-    assert.equal(with_.nodes.has(keyAfter('e2e4', 'c7c5')), true);
+    assert.deepEqual([...nodes.values()].map((n) => n.path.join(' ')),
+      ['', 'e4 c5', 'e4 c5 Nf3 d6']);
   });
 
-test('the drawing gets the card for it, not just the walk', async () => {
-  // The walk reaching a position and the picture holding a card for it are two
-  // different facts — `tree` builds from `kept` rather than from what was
-  // reached — and it is the card the reader's focus lands on.
-  const drawn = await tree(stubPool(OFF_THE_CUT), 7, {
-    color: 'w', rootFen: START, alongPath: ['e4', 'a6'],
+test('an entered move the book does not know is walked and drawn', async () => {
+  const fixture = {
+    ...SICILIAN,
+    replies: [
+      ...SICILIAN.replies,
+      { fen_key: keyAfter('e2e4'), uci: 'a7a6', san: 'a6', games: 0, share: 0 },
+    ],
+  };
+  const { nodes } = await walkLines(stubPool(fixture), 7, {
+    color: 'w', rootFen: START,
   });
-  const replies = drawn.children[0].children.map((n) => n.san);
-  assert.deepEqual(replies.includes('a6'), true);
-});
+  assert.ok(nodes.has(keyAfter('e2e4', 'a7a6')));
 
-test('a path that does not replay is refused, not trimmed', () => {
-  // Returning the prefix that happened to work would restore exactly the
-  // behaviour this exists to remove, and would do it silently.
-  assert.throws(() => keysAlong(START, ['e4', 'Qh8']), RangeError);
-  // And an empty path is not an error: every caller written before this asks
-  // for the walk it always got.
-  assert.equal(keysAlong(START, []).size, 0);
+  const drawn = await tree(stubPool(fixture), 7, { color: 'w', rootFen: START });
+  const replies = drawn.children[0].children;
+  assert.deepEqual(replies.map((n) => n.san), ['c5', 'a6']);
+  assert.equal(replies[1].share, 0);
+  assert.equal(replies[1].state, 'open');
 });
 
 /// The same Sicilian, plus a second first move with a line of its own:
@@ -527,9 +338,9 @@ test('the replay starts at the last position known cold', async () => {
 
 test('the line never carries the move it is asking for', async () => {
   // The oldest rule of this drill: a question that arrives with its answer
-  // attached is one a determined child reads out of the network log instead of
-  // out of their memory. The prefix is not an exception to it — those moves are
-  // rehearsal, and the one move that is a question is 3.d4.
+  // attached is one a determined student reads out of the network log instead
+  // of out of their memory. The prefix is not an exception to it — those moves
+  // are rehearsal, and the one move that is a question is 3.d4.
   const pool = stubPool({
     ...SICILIAN,
     fresh: [{ fen_key: DEEP, mistakes: 0 }],
@@ -537,8 +348,8 @@ test('the line never carries the move it is asking for', async () => {
   const line = await drillLine(pool, 7, { color: 'w', rootFen: START });
 
   const wire = JSON.stringify(line);
-  assert.equal(wire.includes('d2d4'), false, 'odgovor je otišao sa pitanjem');
-  assert.equal(wire.includes('"d4"'), false, 'odgovor je otišao sa pitanjem');
+  assert.equal(wire.includes('d2d4'), false, 'the answer went out with the question');
+  assert.equal(wire.includes('"d4"'), false, 'the answer went out with the question');
 });
 
 test('one branch can be drilled on its own', async () => {
@@ -563,8 +374,8 @@ test('one branch can be drilled on its own', async () => {
 
 test('a branch that is no longer there is an empty block, not a bad request',
   async () => {
-    // Cut since, or built under a move that is no longer kept. The request was
-    // well formed and the honest answer is "there is nothing there any more".
+    // Built under a move that is no longer kept. The request was well formed
+    // and the honest answer is "there is nothing there any more".
     const pool = stubPool({
       ...SICILIAN,
       stats: { positions: 0, seen: 0, due: 0, known: 0 },
@@ -588,30 +399,18 @@ test('nothing due and nothing built are two different answers', async () => {
   assert.equal(line.reason, 'nothing-due');
 });
 
-test('a cut branch is not rehearsed', async () => {
-  // A line the student refused to prepare is not a line to be played down. The
-  // walk stops at the cut, so nothing below it can be the question.
-  const pool = stubPool({
-    ...SICILIAN,
-    skips: [MIDDLE],
-    fresh: [{ fen_key: DEEP, mistakes: 0 }, { fen_key: fenKey(START), mistakes: 0 }],
+test('the entered moves are asked for once per wave, not once per branch',
+  async () => {
+    // The same shape the frontier keeps. A walk that asked per branch would
+    // turn one drill question into a minute of database time on a wide
+    // repertoire.
+    const pool = stubPool({ ...SICILIAN, fresh: [{ fen_key: DEEP, mistakes: 0 }] });
+    await drillLine(pool, 7, { color: 'w', rootFen: START });
+
+    const waves = pool.calls.filter(
+      (c) => c.text.includes('FROM repertoire_extra_replies e'));
+    assert.equal(waves.length, 3, `waves: ${waves.length}`);
   });
-  const line = await drillLine(pool, 7, { color: 'w', rootFen: START });
-
-  assert.equal(line.question.fenKey, fenKey(START));
-  const within = pool.paramsOf('mistakes DESC')[2];
-  assert.equal(within.includes(DEEP), false, 'odsečena grana je ušla u vežbu');
-});
-
-test('the book is asked once per wave, not once per branch', async () => {
-  // The same shape the frontier keeps. A walk that asked per branch would turn
-  // one drill question into a minute of database time on a wide repertoire.
-  const pool = stubPool({ ...SICILIAN, fresh: [{ fen_key: DEEP, mistakes: 0 }] });
-  await drillLine(pool, 7, { color: 'w', rootFen: START });
-
-  const waves = pool.calls.filter((c) => c.text.includes('FROM opening_replies'));
-  assert.equal(waves.length, 3, `talasa: ${waves.length}`);
-});
 
 test('the tree draws one node per ply, in the order the student chose', async () => {
   // The walk works in whole waves because that is the unit a question is asked
@@ -633,10 +432,10 @@ test('the tree draws one node per ply, in the order the student chose', async ()
     replies[0].children[0].children[0].children.map((n) => n.san), ['d4']);
 });
 
-test('a move decided and not yet opened is still drawn', async () => {
-  // The case the owner was looking at: c5 chosen, replies never taken. Building
-  // the tree from the positions the walk *reached* would draw a repertoire with
-  // that move missing, which is why it is built from what was kept.
+test('a move with no reply entered after it is still drawn', async () => {
+  // Building the tree from the positions the walk *reached* would draw a
+  // repertoire with that move missing, which is why it is built from what was
+  // kept.
   const pool = stubPool({ moves: SICILIAN.moves, replies: [] });
   const drawn = await tree(pool, 7, { color: 'w', rootFen: START });
 
@@ -644,7 +443,7 @@ test('a move decided and not yet opened is still drawn', async () => {
   assert.deepEqual(drawn.children[0].children, []);
 });
 
-test('every node says what the position after it is', async () => {
+test('every node says whether the position after it is answered', async () => {
   // Without this the tree is a decoration. With it, it is the one place the
   // holes are visible.
   const pool = stubPool(SICILIAN);
@@ -652,23 +451,18 @@ test('every node says what the position after it is', async () => {
 
   const afterC5 = drawn.children[0].children[0];
   assert.equal(afterC5.state, 'decided');
-  // 1.e4 c5 2.Nf3 d6 is decided (3.d4) but its replies were never taken.
   const afterD6 = afterC5.children[0].children[0];
-  assert.equal(afterD6.state, 'unopened');
-});
+  assert.equal(afterD6.state, 'decided');
 
-test('a cut branch is drawn as cut and not walked past', async () => {
-  const pool = stubPool({ ...SICILIAN, skips: [MIDDLE] });
-  const drawn = await tree(pool, 7, { color: 'w', rootFen: START });
-
-  const afterC5 = drawn.children[0].children[0];
-  assert.equal(afterC5.state, 'cut');
-  assert.deepEqual(afterC5.children, []);
+  const unanswered = await tree(stubPool({
+    ...SICILIAN,
+    moves: SICILIAN.moves.slice(0, 2),
+  }), 7, { color: 'w', rootFen: START });
+  assert.equal(
+    unanswered.children[0].children[0].children[0].children[0].state, 'open');
 });
 
 test('the depth is a parameter, and reaching it is said out loud', async () => {
-  // A seeded repertoire runs to thousands of moves and nobody reads a drawing
-  // of all of them.
   const pool = stubPool(SICILIAN);
   const drawn = await tree(pool, 7, { color: 'w', rootFen: START, maxPly: 2 });
 
@@ -682,10 +476,9 @@ test('the depth is a parameter, and reaching it is said out loud', async () => {
   assert.deepEqual(afterC5.children[0].children, []);
 });
 
-test('a rehearsal does not walk through a move nobody chose', async () => {
-  // A line through a generated move is not the student's line, and replaying it
-  // would teach a move they have not agreed to. The picture shows drafts; the
-  // drill does not rehearse them.
+test('a rehearsal does not walk through a move nobody played', async () => {
+  // A row the retired spine wrote as a draft is not the student's line, and
+  // replaying it would teach a move they never played.
   const pool = stubPool({
     moves: SICILIAN.moves.map((m) => (
       m.fen_key === MIDDLE ? { ...m, source: 'auto' } : m)),
@@ -694,11 +487,11 @@ test('a rehearsal does not walk through a move nobody chose', async () => {
   });
   const line = await drillLine(pool, 7, { color: 'w', rootFen: START });
 
-  // 2.Nf3 was generated, so nothing below it is reachable as a rehearsal and
+  // 2.Nf3 was a draft, so nothing below it is reachable as a rehearsal and
   // the question is the root itself.
   assert.equal(line.question.fenKey, fenKey(START));
   const within = pool.paramsOf('mistakes DESC')[2];
-  assert.equal(within.includes(DEEP), false, 'vežba je prošla kroz nacrt');
+  assert.equal(within.includes(DEEP), false, 'the drill walked through a draft');
 });
 
 /// 1.e4 with two answers — c5 and e5 — each with a move of the student's after
@@ -742,7 +535,7 @@ test('branches are the opponent\'s first answers, counted apart', async () => {
 });
 
 test('a position never reviewed counts as due', async () => {
-  // The most overdue thing there is. A branch nobody has ever opened must not
+  // The most overdue thing there is. A branch nobody has ever drilled must not
   // read as finished.
   const pool = stubPool(TWO_BRANCHES);
   const answer = await drillBranches(pool, 7, { color: 'w', rootFen: START });
@@ -788,6 +581,7 @@ test('the branch carries where it starts and how often it is played', async () =
   // reply to it.
   assert.equal(fenKey(sicilian.fen), keyAfter('e2e4', 'c7c5'));
   assert.equal(sicilian.share, 0.5);
+  assert.equal('breadth' in sicilian, false);
 });
 
 test('most waiting first', async () => {
@@ -820,24 +614,21 @@ test('a repertoire with nothing under the root has no branches', async () => {
 //
 // Everything below the drill took one `(rootFen, gateUci)`, so "practise these
 // two openings in one sitting" was a thing the student could want and not ask
-// for. `roots` is a list of doors, each walked with its own gate and its own
-// breadth.
+// for. `roots` is a list of doors, each walked with its own gate.
 
 /// The same graph, opened by two doors: one at the start and one at the
 /// Sicilian after 1.e4 c5. They overlap on purpose — that overlap is the case
 /// the shared schedule is about.
 const TWO_DOORS = [
   {
-    id: 3, name: 'e4 kompletno', rootFen: START, rootPath: [], viaUci: null,
-    breadth: 'standard',
+    id: 3, name: 'e4 complete', rootFen: START, rootPath: [], viaUci: null,
   },
   {
     id: 7,
-    name: 'Sicilijanka',
+    name: 'Sicilian',
     rootFen: after('e2e4', 'c7c5'),
     rootPath: ['e4', 'c5'],
     viaUci: null,
-    breadth: 'standard',
   },
 ];
 
@@ -848,8 +639,8 @@ test('a branch says which repertoire it came from', async () => {
   });
 
   const names = listed.branches.map((b) => b.repertoire?.name);
-  assert.ok(names.includes('e4 kompletno'), `imena: ${names}`);
-  assert.ok(names.includes('Sicilijanka'), `imena: ${names}`);
+  assert.ok(names.includes('e4 complete'), `names: ${names}`);
+  assert.ok(names.includes('Sicilian'), `names: ${names}`);
   // And carries the door it is walked from, so a run of this branch alone can
   // be asked for with the same root and gate the list was built with.
   const sicilian = listed.branches.find((b) => b.repertoire?.id === 7);
@@ -859,28 +650,25 @@ test('a branch says which repertoire it came from', async () => {
 
 test('two openings that start the same way are two rows, not one', async () => {
   // `key` is the pair of moves that opens a branch, and once more than one
-  // repertoire is listed that pair is no longer an identity. Two repertoires
-  // from **one root** is precisely the case the gate was built for — from the
-  // Italian after 3...Bc5 one plays 4.b4 and the other 4.0-0 — and both of
-  // these open with 1.e4 c5. A list keyed by `key` would collapse them, and the
-  // student would tick one opening and drill the other.
+  // repertoire is listed that pair is no longer an identity. A list keyed by
+  // `key` would collapse them, and the student would tick one opening and drill
+  // the other.
   const pool = stubPool({ ...SICILIAN, reviews: [] });
   const listed = await drillBranches(pool, 7, {
     color: 'w',
     roots: [
-      { ...TWO_DOORS[0], id: 3, name: 'e4 kompletno', viaUci: null },
+      { ...TWO_DOORS[0], id: 3, name: 'e4 complete', viaUci: null },
       {
-        id: 9, name: 'Samo 1.e4', rootFen: START, rootPath: [],
-        viaUci: 'e2e4', breadth: 'standard',
+        id: 9, name: 'Only 1.e4', rootFen: START, rootPath: [], viaUci: 'e2e4',
       },
     ],
   });
 
   const ids = listed.branches.map((b) => b.id);
-  assert.equal(new Set(ids).size, ids.length, `id se ponavlja: ${ids}`);
+  assert.equal(new Set(ids).size, ids.length, `an id repeats: ${ids}`);
   // The same two moves, twice, told apart only by the door.
   const shared = listed.branches.filter((b) => b.san === 'e4 c5');
-  assert.equal(shared.length, 2, `grana sa istim parom poteza: ${shared.length}`);
+  assert.equal(shared.length, 2, `branches with the same pair: ${shared.length}`);
   assert.deepEqual(shared.map((b) => b.repertoire.id).sort((a, b) => a - b),
     [3, 9]);
   assert.deepEqual(shared.map((b) => b.gateUci), [null, 'e2e4']);
@@ -923,44 +711,31 @@ test('a combined line is built from the door the question is behind',
 
 test('a combined session is the repertoires named, not the whole colour',
   async () => {
-    // The one thing `only: null` must not go on meaning. With a single ungated
-    // door it still means the whole colour, which is what the schedule is keyed
-    // by; with two doors it means their union, or ticking two openings would
-    // quietly drill a third.
+    // With a single ungated door `only: null` still means the whole colour,
+    // which is what the schedule is keyed by; with two doors it means their
+    // union, or ticking two openings would quietly drill a third.
     const pool = stubPool({
       ...SICILIAN,
       fresh: [{ fen_key: DEEP, mistakes: 0 }],
     });
     await drillLine(pool, 7, { color: 'w', roots: TWO_DOORS });
 
-    // `only` on the counts is the honest place to read it: the queue is always
-    // handed an explicit key list, and it is the *stats* that mean "the whole
-    // colour" when they are given null.
     const asked = pool.paramsOf('AS positions');
-    assert.ok(Array.isArray(asked[3]), 'brojevi nisu suženi na izabrane');
+    assert.ok(Array.isArray(asked[3]), 'the counts were not narrowed to the chosen ones');
     assert.ok(asked[3].includes(DEEP));
 
-    // And with one door and no gate it is still null — unchanged, because that
-    // is what the schedule is keyed by.
     const one = stubPool({ ...SICILIAN, fresh: [{ fen_key: DEEP, mistakes: 0 }] });
     await drillLine(one, 7, { color: 'w', rootFen: START });
     assert.equal(one.paramsOf('AS positions')[3], null);
   });
 
-test('each door is walked with its own breadth', async () => {
-  // Breadth is a property of the repertoire, so a combined session is not one
-  // walk with one width — it is two walks, each as wide as its own row says.
+test('each door of a combined session is walked on its own', async () => {
+  // Two walks, so two sets of queries for the entered moves: the doors do not
+  // share a walk, and each is read from its own root and gate.
   const pool = stubPool({ ...SICILIAN, reviews: [] });
-  await drillBranches(pool, 7, {
-    color: 'w',
-    roots: [
-      { ...TWO_DOORS[0], breadth: 'main' },
-      { ...TWO_DOORS[1], breadth: 'broad' },
-    ],
-  });
+  await drillBranches(pool, 7, { color: 'w', roots: TWO_DOORS });
 
-  // Two walks, so two sets of book queries, and neither door's width was used
-  // for the other: the walks do not share a call.
-  const books = pool.calls.filter((c) => c.text.includes('FROM opening_replies'));
-  assert.ok(books.length >= 2, `talasa: ${books.length}`);
+  const reads = pool.calls.filter(
+    (c) => c.text.includes('FROM repertoire_extra_replies e'));
+  assert.ok(reads.length >= 2, `waves: ${reads.length}`);
 });

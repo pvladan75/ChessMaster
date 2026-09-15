@@ -166,17 +166,22 @@ test('a position with nothing decided is not graded at all', async () => {
     'nema šta da se rasporedi dok pozicija nije izgrađena');
 });
 
-/// A pool for the draw, which asks two questions: the book for the position,
-/// and then what the student holds where each of those replies lands.
+/// A pool for the draw, which asks two questions: the opponent moves the
+/// student entered at the position, with the book's games beside them, and
+/// then what the student holds where each of those replies lands.
 ///
-/// Answered by *which* query it is rather than by call order, because a draw is
-/// two queries now and a test that runs a hundred of them off one pool would
-/// otherwise be feeding the second answer to the first question.
-function replyPool(book, landing) {
+/// Answered by *which* query it is rather than by call order, because a test
+/// that runs a hundred draws off one pool would otherwise be feeding the second
+/// answer to the first question.
+function replyPool(entered, landing) {
   const calls = [];
   const query = async (text, params) => {
     calls.push({ text: text.replace(/\s+/g, ' ').trim(), params });
-    const rows = /opening_replies/.test(text) ? book : landing;
+    // The entered rows are stamped with the one position the draw asked about:
+    // the walk groups them by key, and a row with none is a row it never sees.
+    const rows = /repertoire_extra_replies/.test(text)
+      ? entered.map((row) => ({ fen_key: params[2][0], ...row }))
+      : landing;
     return { rows, rowCount: rows.length };
   };
   return {
@@ -204,45 +209,29 @@ const LANDS = {
 
 /// The second query's rows: what the student holds at each landing position.
 /// Defaults are the permissive ones, so a test only states the thing it is
-/// about — `{ g1f3: { cut: true } }` reads as "they cut the Nf3 branch".
+/// about — `{ g1f3: { decided: false } }` reads as "nothing decided after Nf3".
 const landings = (spec) => Object.entries(spec).map(([uci, state]) => ({
   fen_key: LANDS[uci],
   decided: (state ?? {}).decided !== false,
-  cut: (state ?? {}).cut === true,
 }));
 
-/// Who is asking. Both new conditions are per student, so every draw carries
-/// it — see the RangeError test below for what happens when it does not.
+/// Who is asking. The entered moves are per student, so every draw carries it —
+/// see the RangeError test below for what happens when it does not.
 const ASKING = { userId: 7, color: 'b' };
 
-test('the opponent spars into a line the breadth does not cover', async () => {
-  // The rule, and this function's own doc already states it: „an opponent
-  // drawing from a narrower set than the walk would refuse to spar into a
-  // position the student built." It did exactly that — the breadth was applied
-  // first and the „did they decide this?" test second, so a reply outside the
-  // breadth was gone before anyone asked whether it led into their own work.
-  //
-  // A breadth narrows what the *book* suggests preparing. It was never meant
-  // to narrow what the student already prepared.
+test('the draw reads the opponent moves this student entered', async () => {
   const pool = replyPool(
-    [
-      { uci: 'g1f3', san: 'Nf3', games: 700, covered: true, asked: false },
-      // Outside `main` (second by games) and outside the stored 80%, and the
-      // student has built a line under it all the same.
-      { uci: 'a2a3', san: 'a3', games: 20, covered: false, asked: false },
-    ],
-    landings({ a2a3: {} }),
-  );
+    [{ uci: 'a2a3', san: 'a3', games: 50 }],
+    landings({ a2a3: {} }));
 
-  const out = await pickReply(pool, {
-    ...ASKING,
-    fen: MORRA_REPLY,
-    breadth: 'main',
-    random: () => 0,
-  });
+  const drawn = await pickReply(pool,
+    { ...ASKING, fen: MORRA_REPLY, random: () => 0.5 });
 
-  assert.ok(out !== null, 'grana koju je igrač spremio mora da se igra');
-  assert.equal(out.uci, 'a2a3');
+  assert.equal(drawn.san, 'a3');
+  assert.match(pool.calls[0].text, /FROM repertoire_extra_replies e/);
+  assert.deepEqual(pool.calls[0].params.slice(0, 2), [7, 'b']);
+  // The book is joined for its games at its one band and its own source.
+  assert.deepEqual(pool.calls[0].params.slice(3, 5), [0, 'book']);
 });
 
 test('the opponent is drawn by how often a move is really played', async () => {
@@ -261,92 +250,48 @@ test('the opponent is drawn by how often a move is really played', async () => {
   assert.equal(second.san, 'Bc4');
 });
 
-test('a reply the student never prepared is never played at them', async () => {
-  // This used to be the other way round, deliberately: meeting an uncovered
-  // move showed the student the edge of what they had prepared. The owner
-  // asked for it gone, and the line walk already refused to rehearse one — so
-  // the live opponent was playing moves the rehearsal would not.
+test('an entered move the book does not know still comes up, as a sideline',
+  async () => {
+    // The student entered it to be ready for it, so it has to be played at
+    // them — weighing as much as the least played move the book does know,
+    // never as the main line.
+    const pool = replyPool([
+      { uci: 'g1f3', san: 'Nf3', games: 700 },
+      { uci: 'f1c4', san: 'Bc4', games: 250 },
+      { uci: 'a2a3', san: null, games: 0 },
+    ], landings({ g1f3: {}, f1c4: {}, a2a3: {} }));
+
+    // Tickets: 0-700 Nf3, 700-950 Bc4, 950-1200 a3.
+    const last = await pickReply(pool,
+      { ...ASKING, fen: MORRA_REPLY, random: () => 0.99 });
+    assert.equal(last.uci, 'a2a3');
+    // Named from the board, because the entered row carries no SAN.
+    assert.equal(last.san, 'a3');
+    const middle = await pickReply(pool,
+      { ...ASKING, fen: MORRA_REPLY, random: () => 0.7 });
+    assert.equal(middle.uci, 'f1c4');
+  });
+
+test('entered moves the book knows nothing about are drawn evenly', async () => {
   const pool = replyPool([
-    { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
-    { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
-    { uci: 'a2a3', san: 'a3', games: 50, covered: false },
+    { uci: 'g1f3', san: 'Nf3', games: 0 },
+    { uci: 'f1c4', san: 'Bc4', games: 0 },
   ], landings({ g1f3: {}, f1c4: {} }));
 
-  // The last ticket there is. Under the old rule it drew the uncovered move;
-  // it must now land on the last prepared one instead.
-  const rare = await pickReply(pool,
-    { ...ASKING, fen: MORRA_REPLY, random: () => 0.999 });
-  assert.equal(rare.san, 'Bc4');
-
-  // And the unprepared move is out of the total as well as out of the answer:
-  // a ticket at 0.9 of 950 is Bc4, where 0.9 of 1000 would still have been.
-  const drawn = new Set();
-  for (let i = 0; i < 100; i += 1) {
-    drawn.add((await pickReply(pool,
-      { ...ASKING, fen: MORRA_REPLY, random: () => i / 100 })).san);
-  }
-  assert.deepEqual([...drawn].sort(), ['Bc4', 'Nf3']);
-});
-
-test('a move the student asked for by name counts as prepared', async () => {
-  // "Prepared" means covered *or* pressed "prepare this too" on, the same as
-  // everywhere else. Forgetting the second half would refuse a reply they
-  // chose themselves — and it is stored per student, so the draw has to know
-  // who is asking.
-  const pool = replyPool(
-    [{ uci: 'a2a3', san: 'a3', games: 50, covered: true }],
-    landings({ a2a3: {} }));
-
-  const drawn = await pickReply(pool,
-    { ...ASKING, fen: MORRA_REPLY, random: () => 0.5 });
-
-  assert.equal(drawn.san, 'a3');
-  assert.match(pool.calls[0].text, /repertoire_extra_replies/);
-  assert.deepEqual(pool.calls[0].params.slice(2, 4), [7, 'b']);
-});
-
-test("the draw reads the book's rows and no band's", async () => {
-  // `opening_replies` held rows from the Lichess explorer by rating band until
-  // 15.9.2026. The band-0 ones look exactly like the book's own, so the draw
-  // asks for the source as well — otherwise two books mix and nothing says so.
-  const pool = replyPool(
-    [{ uci: 'a2a3', san: 'a3', games: 50, covered: true }],
-    landings({ a2a3: {} }));
-
-  await pickReply(pool, { ...ASKING, fen: MORRA_REPLY, minRating: 1600 });
-
-  assert.match(pool.calls[0].text, /r\.min_rating = \$2 AND r\.source = \$5/);
-  assert.equal(pool.calls[0].params[1], 0, 'one band, whatever the caller sent');
-  assert.equal(pool.calls[0].params[4], 'book');
-});
-
-test('a branch the student cut is never played at them', async () => {
-  // The bug this pair of tests was written for. `repertoire_skips` stopped the
-  // walk and the coverage map for months while the drill's own opponent kept
-  // playing into the cut branch — so a student was asked to remember a
-  // decision they had made by deleting it.
-  const pool = replyPool([
-    { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
-    { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
-  ], landings({ g1f3: { cut: true }, f1c4: {} }));
-
-  // 0.1 of the old total is Nf3 by a distance. Every ticket there is must now
-  // be Bc4, which is what makes this fail if the condition is taken back out.
-  const drawn = new Set();
-  for (let i = 0; i < 100; i += 1) {
-    drawn.add((await pickReply(pool,
-      { ...ASKING, fen: MORRA_REPLY, random: () => i / 100 })).san);
-  }
-  assert.deepEqual([...drawn], ['Bc4']);
-  assert.match(pool.calls[1].text, /repertoire_skips/);
+  const first = await pickReply(pool,
+    { ...ASKING, fen: MORRA_REPLY, random: () => 0.2 });
+  const second = await pickReply(pool,
+    { ...ASKING, fen: MORRA_REPLY, random: () => 0.8 });
+  assert.equal(first.san, 'Nf3');
+  assert.equal(second.san, 'Bc4');
 });
 
 test('a reply is only played into a position the student decided something in',
   async () => {
-    // The other half of the same hole: the reply was legal, covered and not
-    // cut, and led somewhere the student had never answered. `answer()` would
-    // have graded the next move `unprepared` — a question with nothing behind
-    // it — so the draw asks the same thing `answer()` asks, and asks it first.
+    // The reply was entered and legal, and led somewhere the student had never
+    // answered. `answer()` would have graded the next move `unprepared` — a
+    // question with nothing behind it — so the draw asks the same thing
+    // `answer()` asks, and asks it first.
     const pool = replyPool([
       { uci: 'g1f3', san: 'Nf3', games: 700, covered: true },
       { uci: 'f1c4', san: 'Bc4', games: 250, covered: true },
@@ -378,17 +323,17 @@ test('a spar with no qualifying reply ends instead of walking off the edge',
     const pool = replyPool(
       [{ uci: 'g1f3', san: 'Nf3', games: 700, covered: true }],
       landings({ g1f3: { decided: false } }));
-    // Null, which is what the end of the book has always looked like: the
-    // screen reads it as "grana odigrana do kraja" and stops the run.
+    // Null, which is what the end of a line has always looked like: the screen
+    // reads it as "the branch is played out" and stops the run.
     assert.equal(
       await pickReply(pool, { ...ASKING, fen: MORRA_REPLY }), null);
   });
 
 test('a draw that does not know who is asking is refused, not answered',
   async () => {
-    // Both conditions are per student. Answering null without a student would
-    // read on screen as "the branch is played out", which is a lie a caller
-    // with a missing argument must not be able to tell.
+    // The entered moves are per student. Answering null without a student
+    // would read on screen as "the branch is played out", which is a lie a
+    // caller with a missing argument must not be able to tell.
     const pool = replyPool([], []);
     await assert.rejects(
       () => pickReply(pool, { fen: MORRA_REPLY, color: 'b' }), RangeError);
@@ -397,15 +342,11 @@ test('a draw that does not know who is asking is refused, not answered',
     assert.equal(pool.calls.length, 0, 'odbijeno pre nego što se baza pita');
   });
 
-test('a position with nothing prepared answers with nothing', async () => {
-  const pool = replyPool(
-    [{ uci: 'a2a3', san: 'a3', games: 50, covered: false }], []);
-  assert.equal(await pickReply(pool, { ...ASKING, fen: MORRA_REPLY }), null);
-});
-
-test('a position whose book was never stored answers with nothing', async () => {
+test('a position with nothing entered answers with nothing', async () => {
   const pool = replyPool([], []);
   assert.equal(await pickReply(pool, { ...ASKING, fen: MORRA_REPLY }), null);
+  // And the landing question is never asked about nothing.
+  assert.equal(pool.calls.length, 1);
 });
 
 test('the book is stored per position, and refreshed in place',

@@ -31,16 +31,7 @@ class WalkthroughStop {
 }
 
 /// Whether anything under [move], or [move] itself, is the reader's own.
-///
-/// Counted over what the tour will actually *visit*: a cut branch is not walked,
-/// so work sitting behind one is not work this tour can show, and ranking a
-/// reply above a live book line for it would promise something never delivered.
-///
-/// The brief for this phase said „whose subtree contains at least one move of
-/// the reader's own" without saying which side of the cut that falls on. This
-/// is the reading that keeps the order and the walk telling the same story.
 bool _holdsOwnWork(RepertoireTreeMove move) {
-  if (move.state == 'cut') return false;
   if (move.mine) return true;
   for (final child in move.children) {
     if (_holdsOwnWork(child)) return true;
@@ -54,10 +45,7 @@ bool _holdsOwnWork(RepertoireTreeMove move) {
 /// so two branches the rules cannot separate keep the book's own ranking rather
 /// than an arbitrary one that changes between runs.
 List<RepertoireTreeMove> _ordered(List<RepertoireTreeMove> moves) {
-  final live = [
-    for (final move in moves)
-      if (move.state != 'cut') move,
-  ];
+  final live = [...moves];
   final indexOf = {
     for (var i = 0; i < live.length; i++) live[i]: i,
   };

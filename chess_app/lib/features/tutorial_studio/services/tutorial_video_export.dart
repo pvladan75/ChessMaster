@@ -902,7 +902,7 @@ Future<_ExportChoice?> _askAboutExport({
                     style: AppText.bodyBold
                         .copyWith(color: ctx.colors.textPrimary)),
                 // `RadioGroup` rather than a `groupValue` on every tile, which
-                // is deprecated — see `breadth_dialog.dart`.
+                // is deprecated.
                 RadioGroup<_Voice>(
                   groupValue: answer,
                   onChanged: (v) => setLocal(() => answer = v!),

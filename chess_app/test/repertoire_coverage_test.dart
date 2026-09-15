@@ -25,7 +25,6 @@ class _FakeApi extends RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
   }) async {
     calls += 1;
     return walk;
@@ -52,7 +51,7 @@ void main() {
     api = _FakeApi(walk: walk);
     await tester.pumpWidget(MaterialApp(
       home: RepertoireCoverageScreen(
-        name: 'Smit-Mora, crni',
+        name: 'Smith-Morra, Black',
         color: 'b',
         rootFen: smithMorra,
         rootPath: const ['e4', 'c5', 'd4', 'cxd4', 'c3', 'dxc3', 'Nxc3'],
@@ -64,12 +63,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Two branches: the main one is half of everything and half answered, the
-  /// sideline is rare and untouched.
+  /// Two branches: the main one has three positions answered and one open,
+  /// the sideline — an opponent move the book does not know — one of each.
   RepertoireFrontier twoBranches() => const RepertoireFrontier(
         decided: 4,
-        openReach: 0.4,
         maxPly: 6,
+        open: [
+          FrontierNode(fen: 'a', path: ['Nc6', 'Nf3', 'e6', 'd4']),
+          FrontierNode(fen: 'b', path: ['d6', 'h3']),
+        ],
         branches: [
           CoverageBranch(
             key: 'Nc6 Nf3',
@@ -79,26 +81,21 @@ void main() {
             share: 0.5,
             decided: 3,
             open: 1,
-            undecided: 1,
-            openWithin: 0.4,
             maxPly: 6,
           ),
           CoverageBranch(
-            key: 'd6 Bc4',
-            path: ['d6', 'Bc4'],
-            fen:
-                'rnbqkbnr/pp2pppp/3p4/8/2B1P3/2N5/PP3PPP/R1BQK1NR b KQkq - 1 5',
-            share: 0.1,
+            key: 'd6 h3',
+            path: ['d6', 'h3'],
+            fen: 'rnbqkbnr/pp2pppp/3p4/8/4P3/2N4P/PP3PP1/R1BQKBNR b KQkq - 0 5',
+            share: 0,
             decided: 1,
             open: 1,
-            unopened: 1,
-            openWithin: 1,
             maxPly: 2,
           ),
         ],
       );
 
-  testWidgets('each branch says how often it is played and how far it is done',
+  testWidgets('each branch says how far it is taken, in counts',
       (tester) async {
     await pump(tester, walk: twoBranches());
 
@@ -107,52 +104,31 @@ void main() {
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 Nc6 5.Nf3'),
         findsOneWidget);
     expect(find.textContaining('played in 50%'), findsOneWidget);
-    // Every share is written out. Nothing on this screen is said in colour
-    // alone — a hue is not allowed to be the only place a number lives.
-    expect(
-        find.textContaining('prepared 60% · unanswered 40%'), findsOneWidget);
+    expect(find.textContaining('3 decided · 1 open'), findsOneWidget);
+    // No share of games is offered as progress any more.
+    expect(find.textContaining('unanswered 40%'), findsNothing);
   });
 
-  testWidgets(
-      'a rare sideline is measured against itself, not against the '
-      'whole repertoire', (tester) async {
+  testWidgets('a branch the book does not know carries no share',
+      (tester) async {
     await pump(tester, walk: twoBranches());
 
-    // Played in a tenth of games and entirely unanswered. Measured against the
-    // whole repertoire it would read as nine-tenths finished, which is the
-    // number that would have been wrong.
-    expect(
-        find.textContaining('prepared 0% · unanswered 100%'), findsOneWidget);
-    expect(find.textContaining('played in 10%'), findsOneWidget);
+    expect(find.textContaining('played in 0%'), findsNothing);
+    expect(find.textContaining('1 decided · 1 open'), findsOneWidget);
   });
 
-  testWidgets('a cut branch is not drawn as a finished one', (tester) async {
-    // The map must never turn a refusal into progress: there is nothing open
-    // in a cut branch, and only the number beside it says why.
-    await pump(tester,
-        walk: const RepertoireFrontier(
-          decided: 1,
-          prunedReach: 0.2,
-          branches: [
-            CoverageBranch(
-              key: 'd6 Bc4',
-              path: ['d6', 'Bc4'],
-              fen: 'x',
-              share: 0.2,
-              pruned: 1,
-              prunedWithin: 1,
-            ),
-          ],
-        ));
+  testWidgets('the whole repertoire is summed up in counts', (tester) async {
+    await pump(tester, walk: twoBranches());
 
-    expect(find.textContaining('not preparing 100%'), findsOneWidget);
-    expect(find.textContaining('prepared 100%'), findsNothing);
+    expect(
+        find.textContaining('2 positions have no answer yet'), findsOneWidget);
+    expect(find.textContaining('4 positions are decided'), findsOneWidget);
+    expect(find.textContaining('not preparing'), findsNothing);
   });
 
   testWidgets('a server that did not answer is not an empty repertoire',
       (tester) async {
-    // The oldest sentence in this codebase: "we could not find out" must never
-    // be drawn as "there is nothing here".
+    // "We could not find out" must never be drawn as "there is nothing here".
     await pump(tester);
 
     expect(find.textContaining('could not be loaded'), findsOneWidget);
@@ -164,9 +140,7 @@ void main() {
       'it', (tester) async {
     await pump(tester,
         walk: const RepertoireFrontier(
-          open: [
-            FrontierNode(fen: smithMorra, path: [], reach: 1, kind: 'undecided')
-          ],
+          open: [FrontierNode(fen: smithMorra, path: [])],
         ));
 
     expect(find.text('First move has not been chosen yet.'), findsOneWidget);
@@ -190,8 +164,6 @@ void main() {
 
   testWidgets('a branch with nothing decided is not offered for drilling',
       (tester) async {
-    // Nothing to be asked about there yet, and a button that leads to an empty
-    // screen is worse than no button.
     await pump(tester,
         walk: const RepertoireFrontier(
           branches: [
@@ -201,8 +173,6 @@ void main() {
               fen: 'x',
               share: 0.1,
               open: 1,
-              undecided: 1,
-              openWithin: 1,
             ),
           ],
         ));

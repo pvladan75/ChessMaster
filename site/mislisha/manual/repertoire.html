@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Build an opening repertoire — Mislisha user manual</title>
-<meta name="description" content="Choosing your moves position by position, seeing what is not prepared, and drilling what you decided.">
+<meta name="description" content="Building a repertoire move by move on the board, with the opening book beside it, and drilling what you played.">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -12,9 +12,11 @@
 <header class="top"><a href="/mislisha/manual/">← User manual</a></header>
 
 <h1>Build an opening repertoire</h1>
-<p class="lead">A repertoire here is not a set of puzzles to solve. It is a set
-of decisions you make, one position at a time — what <em>you</em> would play —
-kept so you can rehearse them later and see what is still missing.</p>
+<p class="lead">A repertoire here is built on the board, one move at a time.
+A move you did not enter yourself — filled in for you by the app or by the
+opening book — is a move you never went through, thought about or made your
+own. So every move in your repertoire is one you played; the opening book stands
+beside the board as a reference, never as the author.</p>
 
 <h2>Start one</h2>
 <p><span class="ui">Training</span> tab →
@@ -26,39 +28,49 @@ opening — <span class="ui">Choose opening</span>, or
 <span class="ui">Paste position (FEN)</span> to start from a particular
 position rather than from move one.</p>
 
-<h2>Decide, position by position</h2>
-<p>In <span class="ui">Build</span>, the board shows a position your side has
-to answer, and you play the move you would play. What the app adds to that
-choice:</p>
+<h2>Play the moves</h2>
+<p>In <span class="ui">Build</span>, play the move you would play. It is in your
+repertoire the moment you play it — there is nothing to accept.</p>
 <ul>
-<li><span class="ui">Ask engine</span> — what Stockfish thinks of it.</li>
-<li><span class="ui">Open book (1 query)</span> — what has been played here
-    in master games, asked once rather than continuously.</li>
+<li><strong>Your move.</strong> When you play it for the first time, the most
+    played reply from master games is added with it, and the board moves on
+    past that reply. That one move is the only one the app ever adds: it keeps
+    you from preparing a careful answer to a sideline while the main
+    continuation is missing.</li>
+<li><strong>The opponent's moves.</strong> To prepare another reply, go back to
+    your move — tap it in the tree, or step back with the arrows under the board
+    — and play the opponent's move you want on the board. Any legal move works,
+    including one the book has never seen.</li>
+</ul>
+<p>A good habit: for your side, one move per position; for the opponent, one or
+more.</p>
+
+<h2>What helps you choose</h2>
+<ul>
+<li><strong>The book.</strong> Under the board, the moves played from this
+    position in master games, each with how often it is played and in how many
+    games. Tap one to play it. ★ marks your main move, ✓ a move already in your
+    repertoire.</li>
+<li><span class="ui">Ask engine</span> — what Stockfish thinks of the
+    position.</li>
 <li><span class="ui">Ask AI about position</span> — a sentence about the ideas
     in the position.</li>
 <li><span class="ui">Comment on position</span> — your own note, which is what
     you will read when you meet the position again;
     <span class="ui">Add to my comment</span> keeps what was suggested.</li>
 </ul>
-<p>For the opponent's replies you choose how much to prepare —
-<span class="ui">How many replies to prepare</span> — and
-<span class="ui">Prepare reply</span> takes one on.
-<span class="ui">Do not prepare this</span> puts a line aside deliberately, so
-that „not prepared" and „not decided yet" stay different things.
-<span class="ui">Suggest main line</span> proposes a continuation when you want
-one, and <span class="ui">Continue line</span> goes on down it.</p>
 
-<h2>See what is missing</h2>
-<p><span class="ui">See what is not prepared</span> is the honest view of a
-repertoire: the positions your side can be asked and has no answer for.
+<h2>Find your way around</h2>
+<p>The tree beside the board is your repertoire. A number beside the opponent's
+move says how often it is played; ? marks a position where you have not chosen
+a move yet. <span class="ui">Next position</span> takes you to the next one.
 <span class="ui">Show entire repertoire</span> and
-<span class="ui">Show only from this position</span> choose how much of it to
-look at, and <span class="ui">Review unconfirmed</span> collects the decisions
-that were made automatically and never confirmed by you.</p>
+<span class="ui">Show only from this position</span> choose how much of the tree
+to look at.</p>
 
 <h2>Rehearse it</h2>
-<p><span class="ui">Drill</span> plays the opponent's side and asks you for
-yours, from your own decisions rather than from a database.
+<p><span class="ui">Drill</span> plays the opponent's side — the moves you
+prepared — and asks you for yours.
 <span class="ui">Drill branch</span> and
 <span class="ui">Drill this branch</span> narrow it to the part you are working
 on, <span class="ui">Skip rehearsal</span> passes a position you know, and
@@ -69,13 +81,13 @@ time, in <span class="ui">Review</span> on the
 
 <h2>Tidying up</h2>
 <ul>
+<li>Long press a move in the tree (or right click it) to delete it — yours or
+    the opponent's. If moves of yours come after it and nothing else leads to
+    them, you are asked first.</li>
 <li><span class="ui">Extract into new opening</span> — split a branch off as a
     repertoire of its own.</li>
-<li><span class="ui">Delete moves from database</span> and
-    <span class="ui">Delete your decisions?</span> — removing lines, with the
-    question asked first, because a decision deleted is work lost.</li>
-<li><span class="ui">Restore this branch</span> — what to press when a branch
-    was cut off by mistake.</li>
+<li><span class="ui">Delete moves from database</span> — empty everything saved
+    for White or for Black, with the question asked first.</li>
 </ul>
 
 <footer class="bottom">

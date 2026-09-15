@@ -27,7 +27,6 @@ function stubPool({ rows = [], onWalk = null, failFor = new Set() } = {}) {
         walked.push(params);
         return { rows: [], rowCount: 0 };
       }
-      if (text.includes('FROM repertoire_skips')) return { rows: [], rowCount: 0 };
       return { rows: [], rowCount: 0 };
     },
   };
@@ -39,19 +38,20 @@ const row = (id, extra = {}) => ({
   root_fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
   root_path: [],
   via_uci: null,
-  breadth: 'standard',
   ...extra,
 });
 
-test('one entry per repertoire, in id order', async () => {
+test('one entry per repertoire, in id order, in counts', async () => {
   const pool = stubPool({ rows: [row(3), row(7), row(8)] });
   const out = await repertoireProgress(pool, 1, { minRating: 1600 });
 
   assert.deepEqual(out.items.map((x) => x.id), [3, 7, 8]);
   assert.equal(out.truncated, false);
   for (const item of out.items) {
-    assert.equal(typeof item.open, 'number');
-    assert.equal(typeof item.draft, 'number');
+    assert.deepEqual(Object.keys(item).sort(), ['decided', 'id', 'open']);
+    // A repertoire with nothing decided is one open question: its root.
+    assert.equal(item.open, 1);
+    assert.equal(item.decided, 0);
   }
 });
 
@@ -69,7 +69,7 @@ test('a walk that fails reports null, never zero', async () => {
   const out = await repertoireProgress(pool, 1, { minRating: 1600 });
   assert.equal(out.items.length, 1);
   assert.equal(out.items[0].open, null);
-  assert.equal(out.items[0].draft, null);
+  assert.equal(out.items[0].decided, null);
 });
 
 test('only the caller own rows are asked for', async () => {

@@ -51,13 +51,11 @@ class _FakeApi extends RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
   }) async {
     frontierGates.add(gateUci);
     return const RepertoireFrontier(
       open: [
-        FrontierNode(
-            fen: afterNf6, path: ['O-O', 'Nf6'], reach: 1, kind: 'undecided')
+        FrontierNode(fen: afterNf6, path: ['O-O', 'Nf6'])
       ],
       decided: 1,
     );
@@ -70,8 +68,6 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int maxPly = 16,
     String? gateUci,
-    String? breadth,
-    List<String> alongPath = const [],
   }) async {
     treeGates.add(gateUci);
     // The server does the narrowing; the fake answers with what a gated read

@@ -42,11 +42,10 @@ class _Api extends RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
   }) async =>
       const RepertoireFrontier(
         decided: 1,
-        open: [FrontierNode(fen: _root, path: [], reach: 1, kind: 'undecided')],
+        open: [FrontierNode(fen: _root, path: [])],
       );
 }
 

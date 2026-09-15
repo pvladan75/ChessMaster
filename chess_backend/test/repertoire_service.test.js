@@ -11,18 +11,15 @@ const {
   removeMove,
   recordAttempt,
   weakNodes,
-  skipNode,
-  unskipNode,
-  skippedKeys,
   addExtraReply,
   removeExtraReply,
+  sweepDanglingReplies,
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
-  confirmNode,
-  confirmLine,
   storedBook,
 } = require('../services/repertoireService');
+const { Chess } = require('chess.js');
 
 const SMITH_MORRA =
   'rnbqkbnr/pp1ppppp/8/8/4P3/2N5/PP3PPP/R1BQKBNR b KQkq - 0 4';
@@ -118,7 +115,22 @@ test('keeping the same move twice refreshes the verdict and leaves the role',
     // And a generated move can be promoted to a decision by being played, but
     // never the other way round.
     assert.match(insert, /source = CASE WHEN EXCLUDED\.source = 'chosen'/);
+    // Whether the row is new, which is what decides whether the book's top
+    // reply comes with it. `xmax = 0` is true only for a row this statement
+    // inserted rather than updated.
+    assert.match(insert, /\(xmax = 0\) AS inserted/);
   });
+
+test('a move is written as the student\'s own and nothing else', async () => {
+  const pool = stubPool([[], [{ uci: 'g8f6', role: 'primary' }]]);
+  await assert.rejects(
+    () => addMove(pool, 7, {
+      color: 'b', fen: SMITH_MORRA, uci: 'g8f6', san: 'Nf6', source: 'auto',
+    }),
+    RangeError,
+  );
+  assert.equal(pool.calls.length, 0);
+});
 
 test('promoting demotes the old primary first, in one transaction', async () => {
   const pool = stubPool([[], [], [{ uci: 'b8c6', san: 'Nc6', role: 'primary' }]]);
@@ -185,6 +197,57 @@ test('removing a move that is not there changes nothing', async () => {
   assert.equal(pool.ran('ROLLBACK'), 1);
 });
 
+/// A pool that holds the student's moves and answers the sweep's two queries
+/// from them, so the test reads which positions the sweep kept.
+function sweepPool(moves) {
+  const calls = [];
+  const query = async (text, params) => {
+    const flat = text.replace(/\s+/g, ' ').trim();
+    calls.push({ text: flat, params });
+    if (flat.startsWith('SELECT fen_key, uci FROM repertoire_moves')) {
+      return { rows: moves, rowCount: moves.length };
+    }
+    return { rows: [], rowCount: 3 };
+  };
+  return { calls, query };
+}
+
+test('the opponent moves left after no move of the student\'s are swept', async () => {
+  // An opponent move stands only after a move of theirs. The live set is every
+  // position a remaining move leads to, and everything else goes.
+  const start = new Chess().fen();
+  const pool = sweepPool([{ fen_key: fenKey(start), uci: 'e2e4' }]);
+  const board = new Chess();
+  board.move('e4');
+
+  const gone = await sweepDanglingReplies(pool, 7, 'w');
+
+  const del = pool.calls.find((c) => c.text.startsWith('DELETE FROM repertoire_extra_replies'));
+  assert.ok(del, 'nothing was swept');
+  assert.match(del.text, /NOT \(fen_key = ANY\(\$3::text\[\]\)\)/);
+  assert.deepEqual(del.params, [7, 'w', [fenKey(board.fen())]]);
+  assert.equal(gone, 3);
+});
+
+test('a move that will not replay keeps nothing alive after it', async () => {
+  const pool = sweepPool([{ fen_key: fenKey(SMITH_MORRA), uci: 'a1a8' }]);
+  await sweepDanglingReplies(pool, 7, 'b');
+
+  const del = pool.calls.find((c) => c.text.startsWith('DELETE FROM repertoire_extra_replies'));
+  assert.deepEqual(del.params[2], []);
+});
+
+test('removing a move sweeps the opponent moves after it, in the same transaction',
+  async () => {
+    const pool = stubPool([[], [{ role: 'alternate' }], [], [], []]);
+    await removeMove(pool, 7, { color: 'b', fen: SMITH_MORRA, uci: 'b8c6' });
+
+    const texts = pool.calls.map((c) => c.text);
+    const sweep = texts.findIndex((t) => t.startsWith('DELETE FROM repertoire_extra_replies'));
+    assert.ok(sweep > 0, 'the sweep did not run');
+    assert.ok(sweep < texts.indexOf('COMMIT'), 'the sweep ran outside the transaction');
+  });
+
 test('the primary is read first, then the rest oldest first', async () => {
   const pool = stubPool([[
     { uci: 'g8f6', san: 'Nf6', role: 'primary', verdict: 'theory' },
@@ -247,63 +310,19 @@ test('a repertoire is a name for a starting point, and counts by colour',
     assert.match(pool.calls[0].text, /m.user_id = r.user_id AND m.color = r.color/);
   });
 
-test('a cut branch is stored by position, and cutting twice is not an error',
+test('an opponent move played on the board is entered for this student',
   async () => {
-    // Pressing it again is the same sentence said twice, not a fault to read
-    // about — and by position rather than by line, so a branch stays cut
-    // however the game transposes into it.
-    const pool = stubPool([[{ id: 3, fen_key: fenKey(SMITH_MORRA) }]]);
-    await skipNode(pool, 5, { color: 'b', fen: SMITH_MORRA });
-
-    assert.equal(pool.ran('INSERT INTO repertoire_skips'), 1);
-    assert.equal(pool.ran('ON CONFLICT'), 1);
-    assert.deepEqual(pool.calls[0].params, [5, 'b', fenKey(SMITH_MORRA)]);
-  });
-
-test('a cut branch can be put back', async () => {
-  // Cutting has to be as cheap to undo as to do. A prune nobody can reverse is
-  // not a decision, it is a risk, and people do not take it.
-  const pool = stubPool([[]]);
-  const back = await unskipNode(pool, 5, { color: 'b', fen: SMITH_MORRA });
-
-  assert.equal(pool.ran('DELETE FROM repertoire_skips'), 1);
-  assert.equal(back.skipped, false);
-});
-
-test('the cut branches are read in one query, as a set', async () => {
-  // One query for the whole walk. Asking per node would make the frontier
-  // quadratic in the thing it measures.
-  const pool = stubPool([[{ fen_key: 'a' }, { fen_key: 'b' }]]);
-  const cut = await skippedKeys(pool, 5, 'b');
-
-  assert.equal(pool.calls.length, 1);
-  assert.ok(cut.has('a') && cut.has('b'));
-});
-
-test('a cut needs a colour and a real position', async () => {
-  const pool = stubPool([[]]);
-  await assert.rejects(() => skipNode(pool, 5, { color: 'x', fen: SMITH_MORRA }),
-    RangeError);
-  await assert.rejects(() => skipNode(pool, 5, { color: 'b', fen: 'ovo nije fen' }),
-    RangeError);
-  assert.equal(pool.calls.length, 0, 'loš zahtev je stigao do baze');
-});
-
-test('an opponent move past the cut can be added to the preparation',
-  async () => {
-    // The wave covers 80% of what is played and names the remainder. That is a
-    // good default and a bad wall: the tail was countable and unreachable.
     const pool = stubPool([[{ id: 4, fen_key: fenKey(SMITH_MORRA), uci: 'g1f3' }]]);
     await addExtraReply(pool, 5, {
       color: 'b', fen: SMITH_MORRA, uci: 'g1f3', san: 'Nf3',
     });
 
     assert.equal(pool.ran('INSERT INTO repertoire_extra_replies'), 1);
-    // Per student. `opening_replies.covered` is shared by everybody, and
-    // flipping it for one child would rewrite the walk every other child
-    // follows.
+    // Per student, and nothing about the book: `opening_replies` is shared by
+    // everybody and is not asked whether the move is one it knows.
     assert.deepEqual(pool.calls[0].params,
       [5, 'b', fenKey(SMITH_MORRA), 'g1f3', 'Nf3']);
+    assert.equal(pool.ran('opening_replies'), 0);
   });
 
 test('adding the same move twice is not an error', async () => {
@@ -312,7 +331,7 @@ test('adding the same move twice is not an error', async () => {
   assert.equal(pool.ran('ON CONFLICT'), 1);
 });
 
-test('a move can be taken back out of the preparation', async () => {
+test('an entered opponent move can be taken back out', async () => {
   const pool = stubPool([[]]);
   const out = await removeExtraReply(pool, 5, {
     color: 'b', fen: SMITH_MORRA, uci: 'g1f3',
@@ -322,7 +341,7 @@ test('a move can be taken back out of the preparation', async () => {
   assert.equal(out.prepared, false);
 });
 
-test('preparing a move needs a colour, a position and a move', async () => {
+test('entering a move needs a colour, a position and a move', async () => {
   const pool = stubPool([[]]);
   await assert.rejects(
     () => addExtraReply(pool, 5, { color: 'x', fen: SMITH_MORRA, uci: 'g1f3' }),
@@ -381,57 +400,7 @@ test('a repertoire that is not named by a number is a bad request', async () => 
   assert.equal(pool.calls.length, 0);
 });
 
-test('confirming turns a generated move into a decision, never back',
-  async () => {
-    // The act that makes generating moves safe to offer at all. Until somebody
-    // says "yes, this one", a generated move is scaffolding — drawn, walked
-    // through, and never asked about by the drill.
-    const pool = stubPool([[]]);
-    await confirmNode(pool, 5, { color: 'b', fen: SMITH_MORRA });
-
-    const sql = pool.calls[0].text;
-    assert.match(sql, /SET source = 'chosen'/);
-    // Only drafts. Confirming must be unable to touch a decision, in either
-    // direction.
-    assert.match(sql, /AND source = 'auto'/);
-  });
-
-test('confirming one move names it, and confirming a position does not',
-  async () => {
-    const one = stubPool([[]]);
-    await confirmNode(one, 5, { color: 'b', fen: SMITH_MORRA, uci: 'b8c6' });
-    assert.equal(one.calls[0].params[3], 'b8c6');
-
-    const all = stubPool([[]]);
-    await confirmNode(all, 5, { color: 'b', fen: SMITH_MORRA });
-    assert.equal(all.calls[0].params[3], null);
-  });
-
-test('a line is confirmed in one statement', async () => {
-  // A line half confirmed is a line the student would have to walk twice, and
-  // a loop of updates is exactly where a dropped connection leaves one.
-  const pool = stubPool([[]]);
-  const out = await confirmLine(pool, 5, {
-    color: 'b',
-    fens: [SMITH_MORRA, SMITH_MORRA],
-  });
-
-  assert.equal(pool.calls.length, 1);
-  assert.match(pool.calls[0].text, /fen_key = ANY\(\$3\)/);
-  assert.equal(out.positions, 2);
-});
-
-test('an empty line is a bad request rather than a silent no-op', async () => {
-  const pool = stubPool([[]]);
-  await assert.rejects(
-    () => confirmLine(pool, 5, { color: 'b', fens: [] }), RangeError);
-  assert.equal(pool.calls.length, 0);
-});
-
-test('the stored book is read without asking Lichess anything', async () => {
-  // The rule for a panel that follows the board. One token serves every child
-  // using this app, and a list that refetched on every click would spend their
-  // allowance on a drawing nobody asked for.
+test('the stored book is one read of this server\'s own table', async () => {
   const pool = stubPool([[
     { uci: 'g1f3', san: 'Nf3', games: 500, share: '0.5', covered: true, prepared: false },
   ]]);
@@ -442,11 +411,15 @@ test('the stored book is read without asking Lichess anything', async () => {
   assert.equal(book.opened, true);
   assert.equal(book.replies[0].games, 500);
   assert.equal(book.replies[0].covered, true);
+  // Most played first, and a tie broken the same way every time: the first
+  // row is the reply entered with the student's move, and two reads must not
+  // name two different ones.
+  assert.match(pool.calls[0].text, /ORDER BY r\.games DESC, r\.uci ASC/);
 });
 
-test('a position nobody has opened is an offer, not an empty book', async () => {
+test('a position with nothing stored says so rather than an empty book', async () => {
   // Two different empties, and only one of them means "the opponent plays
-  // nothing here".
+  // nothing here". `repertoireBook.bookAt` fills the other one from the book.
   const pool = stubPool([[]]);
   const book = await storedBook(pool, 5, { color: 'b', fen: SMITH_MORRA });
 
@@ -454,12 +427,12 @@ test('a position nobody has opened is an offer, not an empty book', async () => 
   assert.deepEqual(book.replies, []);
 });
 
-test('the book says which replies this student already prepared', async () => {
+test('the book says which replies this student entered', async () => {
   const pool = stubPool([[]]);
   await storedBook(pool, 5, { color: 'b', fen: SMITH_MORRA });
 
   assert.match(pool.calls[0].text, /FROM repertoire_extra_replies e/);
-  // Keyed by the reader, because preparing a tail move is per student.
+  // Keyed by the reader, because an entered move is per student.
   assert.deepEqual(pool.calls[0].params.slice(2, 4), [5, 'b']);
   // The book's rows, and not a Lichess band's that share its band number.
   assert.match(pool.calls[0].text, /r\.source = \$5/);

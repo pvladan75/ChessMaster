@@ -4,6 +4,16 @@ import 'package:chess_app/features/analysis_studio/services/opening_explorer_ser
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
+/// A game count short enough for a chip: `950`, `12k`, `125k`, `1.1M`.
+String compactGameCount(int games) {
+  if (games >= 1000000) {
+    final millions = games / 1000000;
+    return '${millions >= 10 ? millions.round() : millions.toStringAsFixed(1)}M';
+  }
+  if (games >= 1000) return '${(games / 1000).round()}k';
+  return '$games';
+}
+
 /// Shows move popularity and outcome statistics from the master opening book
 /// on our server.
 class OpeningExplorerPanelWidget extends StatelessWidget {
@@ -13,6 +23,14 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
   final String? openingName;
   final void Function(String uci)? onMoveSelected;
 
+  /// A mark after a move's name — the repertoire screen's ★ for the student's
+  /// main move and ✓ for a move already in the repertoire. Null draws none.
+  final String? Function(String uci)? markOf;
+
+  /// Whether each chip also says how many games played the move. Off for the
+  /// Analysis board, which has always drawn the share alone.
+  final bool showGames;
+
   const OpeningExplorerPanelWidget({
     super.key,
     required this.isLoading,
@@ -20,6 +38,8 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
     this.reason,
     this.openingName,
     this.onMoveSelected,
+    this.markOf,
+    this.showGames = false,
   });
 
   @override
@@ -125,6 +145,11 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
     final colors = context.colors;
     final percent =
         positionTotal == 0 ? 0 : (move.total * 100 / positionTotal).round();
+    final mark = markOf?.call(move.uci);
+    final label = StringBuffer(move.san);
+    if (mark != null) label.write(' $mark');
+    label.write(' ($percent%)');
+    if (showGames) label.write(' · ${compactGameCount(move.total)}');
     return InkWell(
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
       borderRadius: AppRadii.roundedSm,
@@ -141,7 +166,7 @@ class OpeningExplorerPanelWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '${move.san} ($percent%)',
+              label.toString(),
               style: AppText.caption.copyWith(
                 color: colors.textPrimary,
                 fontWeight: FontWeight.w600,

@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2716 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2670 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1343 tests, all green
+cd chess_backend && npm test          # node --test, 1289 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -2515,6 +2515,39 @@ searching.** The full suite found two places the brief never looked: the user's
 manual on `site/` quoted three removed controls, and a repertoire test asserted
 the very sentence the brief ordered rewritten. Before writing that line, grep
 `site/` and `test/` for every string the batch removes or rewrites.
+
+**The repertoire is built on the board — 16.9.2026, 2670 in the app with 1
+skipped, 1289 on the backend** with `.env` moved aside, analyze at 26 infos and
+zero warnings. `docs/PLAN-REPERTOAR-RUCNO.md`: the spine, breadth, drafts, the
+unconfirmed review and skips are gone, and every move in a tree is one the user
+played, except the book's top reply stored with a newly kept move. Both counts
+**fell**, and that is correct. The declarations were re-derived per file against
+`HEAD`. In the app, 2540 → 2492: deleted files −20 (draft review 2, breadth
+dialog 2, unconfirmed 4, breadth setting 6, breadth wire 6), changed files −34
+(build 16, build layout 9, tree legend 3, walkthrough order 3, tree looks 2,
+speech on panels 1), and +6 for the new wire test. On the backend, 1318 → 1264:
+deleted −32 (spine 11, unconfirmed 10, alternative 10, breadth rescue 1),
+rewritten −30 (frontier 15, line 7, service 4, drill 3, prune 1), and +8 for
+`repertoireBook`. Then +3 in the app for the two guards the mutation pass found
+unproved, so 2495 declarations. Run counts moved by −46 and −54. The app's extra
+one is a parametrised loop.
+
+**Twelve mutations against the build screen, and the two survivors are the two
+findings.** A book answer for a position the board has left was never asked
+about — `_loadBook` holds `_boardFen != fen`, and deleting that check kept every
+test green; and the prune after deleting an opponent move was unreachable from
+the build screen's own fake, which has no `removeOpponentMove` and so always
+answered „not done", which is why the test for it belongs in the layout file
+whose fake has one. A third mutation, `if (false)` over a kept move, took the
+null check the next line needs with it: the suite failed to **load**, and a
+harness that reads red as proof would have counted a compile error as a catch.
+Rerun as `already != null && false`, which keeps the promotion, it is caught.
+
+**A mutation harness beside a watching server runs on a copy.** The owner's
+`npm run dev` had already restarted on the edits, so the backend mutations ran
+against a copy of `chess_backend/` in the scratchpad. One survived:
+`if (played)` guarded a chess.js call that throws on an illegal move and never
+returns null, so the line was dead and was deleted.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

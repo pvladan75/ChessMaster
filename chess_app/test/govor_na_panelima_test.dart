@@ -12,7 +12,6 @@ import 'package:chess_app/features/analysis_studio/services/opening_judge_servic
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
-import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
@@ -324,27 +323,6 @@ void main() {
     expect(panel, findsOneWidget,
         reason: 'poruka o tome šta se upravo desilo mora da može da se čuje');
     expect(engine.said, contains(speakable(_shown(tester, panel))));
-  });
-
-  testWidgets('the banner speaks the count it is showing', (tester) async {
-    final engine = await _speech(enabled: true);
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: UnconfirmedBanner(total: 4, onOpenWizard: () {}),
-      ),
-    ));
-    await tester.pumpAndSettle();
-
-    // It is not a question, so it waits to be asked.
-    expect(engine.said, isEmpty);
-    final panel = find.byType(SpeakableInfo);
-    final shown = _shown(tester, panel);
-    expect(shown, '4 unconfirmed in the graph');
-
-    await tester
-        .tap(find.descendant(of: panel, matching: find.byType(IconButton)));
-    await tester.pumpAndSettle();
-    expect(engine.said, [speakable(shown)]);
   });
 
   testWidgets('nothing due says so, and only when asked', (tester) async {

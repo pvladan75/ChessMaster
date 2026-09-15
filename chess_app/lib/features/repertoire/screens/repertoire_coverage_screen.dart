@@ -227,8 +227,7 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
 
   /// The whole repertoire in one line, above the branches it is made of.
   Widget _buildSummary(BuildContext context, RepertoireFrontier walk) {
-    final open = (walk.openReach * 100).clamp(0, 100).round();
-    final cut = (walk.prunedReach * 100).clamp(0, 100).round();
+    final open = walk.open.length;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -243,9 +242,8 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
               style: AppText.bodyBold.copyWith(color: context.colors.accent)),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Unanswered in $open% of games that pass through it'
-            '${cut > 0 ? ", not preparing $cut%" : ""}. '
-            'Goes to move ${walk.depthInMoves}, '
+            '${open == 1 ? "1 position has" : "$open positions have"} no answer '
+            'yet. Goes to move ${walk.depthInMoves}, '
             '${walk.decided == 1 ? "1 position is decided." : "${walk.decided} positions are decided."}',
             style: AppText.caption.copyWith(color: context.colors.textPrimary),
           ),
@@ -264,11 +262,11 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
 
   Widget _buildBranch(BuildContext context, CoverageBranch branch) {
     final name = _nameOf(branch);
-    final ({IconData icon, String label}) state = branch.prunedWithin >= 1
-        ? (icon: Icons.content_cut, label: 'not preparing')
-        : branch.isFinished
-            ? (icon: Icons.check_circle_outline, label: 'prepared')
-            : (icon: Icons.hourglass_empty, label: 'in preparation');
+    final ({IconData icon, String label}) state = branch.isFinished
+        ? (icon: Icons.check_circle_outline, label: 'prepared')
+        : (icon: Icons.hourglass_empty, label: 'in preparation');
+    final positions = branch.decided + branch.open;
+    final answered = positions == 0 ? 0.0 : branch.decided / positions;
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -291,9 +289,10 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
                     style: AppText.bodyBold
                         .copyWith(color: context.colors.textPrimary)),
               ),
-              Text('played in ${_percent(branch.share)}',
-                  style:
-                      AppText.micro.copyWith(color: context.colors.textMuted)),
+              if (branch.share > 0)
+                Text('played in ${_percent(branch.share)}',
+                    style: AppText.micro
+                        .copyWith(color: context.colors.textMuted)),
             ],
           ),
           if (name != null) ...[
@@ -302,25 +301,19 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
                 style: AppText.caption.copyWith(color: context.colors.accent)),
           ],
           const SizedBox(height: AppSpacing.xs),
+          // Positions answered against positions still waiting — counts, not a
+          // share of games: the opponent's side is what the student chose to
+          // prepare, not what the book says is played.
           _CoverageBar(
-            covered: branch.coveredWithin,
-            open: branch.openWithin,
-            cut: branch.prunedWithin,
+            covered: answered,
+            open: positions == 0 ? 0.0 : 1 - answered,
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(
-            'prepared ${_percent(branch.coveredWithin)} · '
-            'unanswered ${_percent(branch.openWithin)}'
-            '${branch.prunedWithin > 0 ? " · not preparing ${_percent(branch.prunedWithin)}" : ""}',
-            style: AppText.caption.copyWith(color: context.colors.textPrimary),
-          ),
-          const SizedBox(height: AppSpacing.xxs),
           Text(
             // Depth in whole moves, because that is how anybody says it: "I am
             // prepared to move six", never "to ply twelve".
             'to move ${((branch.maxPly + 1) / 2).ceil()} after root · '
-            '${branch.decided} decided · ${branch.open} open'
-            '${branch.pruned > 0 ? " · ${branch.pruned} not preparing" : ""} · '
+            '${branch.decided} decided · ${branch.open} open · '
             '${state.label}',
             style: AppText.micro.copyWith(color: context.colors.textMuted),
           ),
@@ -354,21 +347,18 @@ class _RepertoireCoverageScreenState extends State<RepertoireCoverageScreen> {
   }
 }
 
-/// One branch as a bar: what is answered, what is open, what was refused.
+/// One branch as a bar: what is answered and what is open.
 ///
-/// The three parts are told apart by fill *and* by their labels above, never by
-/// hue alone. A cut share is drawn hollow — it is not progress, and it must not
-/// look like the finished part with a different colour on it.
+/// The two parts are told apart by fill *and* by the counts written under the
+/// bar, never by hue alone.
 class _CoverageBar extends StatelessWidget {
   const _CoverageBar({
     required this.covered,
     required this.open,
-    required this.cut,
   });
 
   final double covered;
   final double open;
-  final double cut;
 
   @override
   Widget build(BuildContext context) {
@@ -376,17 +366,10 @@ class _CoverageBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        Widget segment(double share, Color color, {bool hollow = false}) {
+        Widget segment(double share, Color color) {
           final part = width * share.clamp(0, 1);
           if (part <= 0) return const SizedBox.shrink();
-          return Container(
-            width: part,
-            height: 10,
-            decoration: BoxDecoration(
-              color: hollow ? Colors.transparent : color,
-              border: hollow ? Border.all(color: color) : null,
-            ),
-          );
+          return Container(width: part, height: 10, color: color);
         }
 
         return ClipRRect(
@@ -398,7 +381,6 @@ class _CoverageBar extends StatelessWidget {
               children: [
                 segment(covered, colors.accent),
                 segment(open, colors.textMuted.withValues(alpha: 0.35)),
-                segment(cut, colors.textMuted, hollow: true),
               ],
             ),
           ),

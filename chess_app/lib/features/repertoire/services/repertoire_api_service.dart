@@ -28,16 +28,12 @@ class RepertoireMove {
   /// What the judge said when the move was kept, if it was judged.
   final String? verdict;
 
-  /// `chosen` or `auto`. A generated move is a draft: drawn, walked through,
-  /// offered for confirmation, and never asked about by the drill until
-  /// somebody says yes to it.
-  ///
-  /// The archive seed had no such distinction, which is why moves nobody had
-  /// chosen ended up indistinguishable from decisions — and why it was deleted.
+  /// Who wrote the row. Every move is `chosen` now — played on the board by
+  /// the student (docs/PLAN-REPERTOAR-RUCNO.md) — and the server reads nothing
+  /// else, so this is carried and never branched on.
   final String source;
 
   bool get isPrimary => role == 'primary';
-  bool get isDraft => source == 'auto';
 
   factory RepertoireMove.fromJson(Map<String, dynamic> json) => RepertoireMove(
         uci: json['uci'] as String? ?? '',
@@ -64,7 +60,6 @@ class RepertoireSummary {
     this.rootPath = const [],
     this.viaUci,
     this.viaSan,
-    this.breadth = 'standard',
   });
 
   final int id;
@@ -103,13 +98,6 @@ class RepertoireSummary {
   /// flattering: two doors into one graph show the same number.
   final int moves;
 
-  /// How wide this repertoire's walk reads: `main`, `standard` or `broad`.
-  ///
-  /// The server has sent it since the column existed; this model dropped it,
-  /// which is why the setting was inert — the screens had nothing to pass on,
-  /// so every read fell back to the server's `standard`.
-  final String breadth;
-
   bool get forWhite => color == 'w';
 
   factory RepertoireSummary.fromJson(Map<String, dynamic> json) =>
@@ -123,7 +111,6 @@ class RepertoireSummary {
         viaUci: json['viaUci'] as String? ?? json['via_uci'] as String?,
         viaSan: json['viaSan'] as String?,
         moves: (json['moves'] as num?)?.toInt() ?? 0,
-        breadth: json['breadth'] as String? ?? 'standard',
       );
 }
 
@@ -153,13 +140,12 @@ List<String> sanPath(Object? raw) {
   return const [];
 }
 
-/// One position the student still owes an answer to.
+/// One position the student still owes an answer to: after an opponent move
+/// they entered, with no move of their own yet.
 class FrontierNode {
   const FrontierNode({
     required this.fen,
     required this.path,
-    required this.reach,
-    required this.kind,
   });
 
   final String fen;
@@ -168,27 +154,11 @@ class FrontierNode {
   /// path for a breadcrumb that reads from move one.
   final List<String> path;
 
-  /// How often a game played down this repertoire actually arrives here — the
-  /// product of the opponent's shares along the way. It is the order the
-  /// positions come in, and it is why a main line at ply eight is offered
-  /// before a third-choice sideline at ply two.
-  final double reach;
-
-  /// `undecided` — nothing kept here yet, play something.
-  /// `unopened` — decided, but the opponent's replies were never taken, so the
-  /// line stops here until they are.
-  /// `pruned` — cut on purpose. Not a question at all: it arrives in its own
-  /// list so a branch that was refused can be found and put back.
-  final String kind;
-
   int get ply => path.length;
-  bool get isUnopened => kind == 'unopened';
 
   factory FrontierNode.fromJson(Map<String, dynamic> json) => FrontierNode(
         fen: json['fen'] as String? ?? '',
         path: sanPath(json['path']),
-        reach: (json['reach'] as num?)?.toDouble() ?? 0,
-        kind: json['kind'] as String? ?? 'undecided',
       );
 }
 
@@ -206,12 +176,6 @@ class CoverageBranch {
     required this.share,
     this.decided = 0,
     this.open = 0,
-    this.undecided = 0,
-    this.unopened = 0,
-    this.pruned = 0,
-    this.draft = 0,
-    this.openWithin = 0,
-    this.prunedWithin = 0,
     this.maxPly = 0,
   });
 
@@ -225,39 +189,21 @@ class CoverageBranch {
   /// the map without going looking for it.
   final String fen;
 
-  /// How often the opponent goes this way at all. Kept apart from everything
-  /// below it: a branch played in one game in twenty is not urgent however
-  /// unfinished it is, and one played in half of them is urgent even when it is
-  /// nearly done.
+  /// How often the opponent's move that opens it is played in the book. 0 for
+  /// a move the book does not know, which is still a branch like any other.
   final double share;
 
+  /// Positions in the branch the student has a move in.
   final int decided;
+
+  /// Positions in the branch after an entered opponent move with no move of
+  /// the student's yet.
   final int open;
-  final int undecided;
-  final int unopened;
-  final int pruned;
-
-  /// Positions in this branch that are still a generated draft.
-  final int draft;
-
-  /// What share of the games that come down *this* branch run into a position
-  /// with no answer — measured against the branch, never against the whole
-  /// repertoire, where a rare sideline would read as almost finished merely
-  /// because few games go there.
-  final double openWithin;
-
-  /// And what share runs into a branch that was cut. Never added to the one
-  /// above and never subtracted from it: those games are still played.
-  final double prunedWithin;
 
   /// How deep the repertoire goes here, in plies from the repertoire's root.
   final int maxPly;
 
-  /// What is answered: everything that is neither open nor refused.
-  double get coveredWithin =>
-      (1 - openWithin - prunedWithin).clamp(0, 1).toDouble();
-
-  bool get isFinished => openWithin <= 0 && prunedWithin <= 0 && decided > 0;
+  bool get isFinished => open == 0 && decided > 0;
 
   factory CoverageBranch.fromJson(Map<String, dynamic> json) => CoverageBranch(
         key: json['key'] as String? ?? '',
@@ -266,75 +212,41 @@ class CoverageBranch {
         share: (json['share'] as num?)?.toDouble() ?? 0,
         decided: (json['decided'] as num?)?.toInt() ?? 0,
         open: (json['open'] as num?)?.toInt() ?? 0,
-        undecided: (json['undecided'] as num?)?.toInt() ?? 0,
-        unopened: (json['unopened'] as num?)?.toInt() ?? 0,
-        pruned: (json['pruned'] as num?)?.toInt() ?? 0,
-        draft: (json['draft'] as num?)?.toInt() ?? 0,
-        openWithin: (json['openWithin'] as num?)?.toDouble() ?? 0,
-        prunedWithin: (json['prunedWithin'] as num?)?.toDouble() ?? 0,
         maxPly: (json['maxPly'] as num?)?.toInt() ?? 0,
       );
 }
 
 /// The whole shape of a repertoire: where its root is, what is still open, and
-/// how much of it is finished.
+/// how far each branch goes.
 ///
-/// Derived on the server from the moves already kept and the books already
-/// fetched, and it is the same on every
-/// device. This is what replaced a queue that lived in one screen's memory and
-/// died with it.
+/// Derived on the server from the moves the student played, and the same on
+/// every device. Counts only: the opponent's side is what the student chose to
+/// prepare, so a share of games arriving here is not a number it can honestly
+/// give.
 class RepertoireFrontier {
   const RepertoireFrontier({
     this.rootPath = const [],
     this.open = const [],
-    this.pruned = const [],
     this.branches = const [],
     this.decided = 0,
-    this.draft = 0,
-    this.unopened = 0,
     this.maxPly = 0,
-    this.openReach = 0,
-    this.prunedReach = 0,
     this.truncated = false,
   });
 
   final List<String> rootPath;
-  final List<FrontierNode> open;
 
-  /// The branches the student said they are not preparing. Handed back so they
-  /// can be put back: a cut nobody can find again is a hole in the repertoire
-  /// rather than a decision about it.
-  final List<FrontierNode> pruned;
+  /// The positions after an entered opponent move with no move of the
+  /// student's yet, shallower first.
+  final List<FrontierNode> open;
 
   /// The coverage map: how far each of the opponent's first answers has been
   /// taken, most played first. Out of the same walk — there is no second
   /// request behind it, and no second set of numbers to disagree with these.
   final List<CoverageBranch> branches;
 
-  /// Positions where the student has decided on at least one move.
+  /// Positions where the student has a move.
   final int decided;
-
-  /// Positions whose every move was generated and none confirmed. Counted apart
-  /// from [decided] and never added into it: a repertoire that called a
-  /// generated spine "prepared" would be telling the seed's lie with a better
-  /// source.
-  final int draft;
-
-  /// Of the open ones, how many are lines that were decided and then left.
-  final int unopened;
   final int maxPly;
-
-  /// The share of games reaching this repertoire that run into a position with
-  /// no answer yet. The one number that says how finished it is — and the only
-  /// one a wide shallow tree cannot flatter.
-  final double openReach;
-
-  /// The share of games that run into a branch the student cut.
-  ///
-  /// Shown beside [openReach] and never folded into it. Cutting makes
-  /// [openReach] fall without a single question having been answered, and this
-  /// is the number that says those games are still going to be played.
-  final double prunedReach;
 
   /// True when the walk hit its ceiling. Said out loud rather than quietly
   /// returning a short answer, which is this codebase's oldest bug.
@@ -364,20 +276,12 @@ class RepertoireFrontier {
           .whereType<Map>()
           .map((e) => FrontierNode.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
-      pruned: ((json['pruned'] as List?) ?? const [])
-          .whereType<Map>()
-          .map((e) => FrontierNode.fromJson(Map<String, dynamic>.from(e)))
-          .toList(),
       branches: ((json['branches'] as List?) ?? const [])
           .whereType<Map>()
           .map((e) => CoverageBranch.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
       decided: (summary['decided'] as num?)?.toInt() ?? 0,
-      draft: (summary['draft'] as num?)?.toInt() ?? 0,
-      unopened: (summary['unopened'] as num?)?.toInt() ?? 0,
       maxPly: (summary['maxPly'] as num?)?.toInt() ?? 0,
-      openReach: (summary['openReach'] as num?)?.toDouble() ?? 0,
-      prunedReach: (summary['prunedReach'] as num?)?.toDouble() ?? 0,
       truncated: summary['truncated'] as bool? ?? false,
     );
   }
@@ -413,12 +317,13 @@ class RepertoireTreeMove {
   /// `primary` or `alternate`, for the student's own moves.
   final String? role;
 
-  /// How often the opponent plays it.
+  /// How often the opponent plays it, in the book. 0 for a move the book does
+  /// not know.
   final double share;
 
-  /// What the position after it is: `open`, `unopened`, `cut` or `decided`.
-  /// This is what makes the tree worth drawing — without it the picture is a
-  /// decoration, and with it the holes are visible.
+  /// What the position after it is: `open` (no move of the student's yet) or
+  /// `decided`. This is what makes the tree worth drawing — without it the
+  /// picture is a decoration, and with it the holes are visible.
   final String state;
 
   final List<RepertoireTreeMove> children;
@@ -487,61 +392,14 @@ class RepertoireTree {
   }
 }
 
-/// What one run of the auto-spine did.
-class SpineResult {
-  const SpineResult({
-    this.written = 0,
-    this.followed = 0,
-    this.path = const [],
-    this.reason = 'depth',
-    this.games = 0,
-    this.minGames = 100,
-  });
-
-  /// Moves the spine wrote, all of them drafts.
-  final int written;
-
-  /// Positions it walked through because they already had a move — a decision
-  /// or a draft from an earlier run. Never overwritten.
-  final int followed;
-
-  final List<String> path;
-
-  /// Why it stopped: `depth` when it ran the whole way, `thin` when the line
-  /// ran out of games, `beyond-book` when it reached the depth the opening book
-  /// was built to, `illegal` when a stored move would not replay.
-  final String reason;
-
-  /// How many games the move that stopped it had, when it was `thin`.
-  final int games;
-  final int minGames;
-
-  bool get ranTheWholeWay => reason == 'depth';
-
-  factory SpineResult.fromJson(Map<String, dynamic> json) {
-    final stopped = json['stopped'] is Map
-        ? Map<String, dynamic>.from(json['stopped'] as Map)
-        : const <String, dynamic>{};
-    return SpineResult(
-      written: (json['written'] as num?)?.toInt() ?? 0,
-      followed: (json['followed'] as num?)?.toInt() ?? 0,
-      path: sanPath(json['path']),
-      reason: stopped['reason'] as String? ?? 'depth',
-      games: (stopped['games'] as num?)?.toInt() ?? 0,
-      minGames: (json['minGames'] as num?)?.toInt() ?? 100,
-    );
-  }
-}
-
-/// One of the opponent's moves, as the stored book has it.
+/// One move the book knows in a position, with how often it is played.
 class StoredReply {
   const StoredReply({
     required this.uci,
     required this.san,
     required this.games,
     required this.share,
-    this.covered = false,
-    this.prepared = false,
+    this.entered = false,
   });
 
   final String uci;
@@ -549,43 +407,44 @@ class StoredReply {
   final int games;
   final double share;
 
-  /// True for the moves the 80% rule prepared for.
-  final bool covered;
-
-  /// True for the ones this student added by hand from past that cut.
-  final bool prepared;
-
-  bool get isInPreparation => covered || prepared;
+  /// True when this student entered it as an opponent move. Only meaningful
+  /// in a position where the opponent is to move.
+  final bool entered;
 
   factory StoredReply.fromJson(Map<String, dynamic> json) => StoredReply(
         uci: json['uci'] as String? ?? '',
         san: json['san'] as String? ?? '',
         games: (json['games'] as num?)?.toInt() ?? 0,
         share: (json['share'] as num?)?.toDouble() ?? 0,
-        covered: json['covered'] as bool? ?? false,
-        prepared: json['prepared'] as bool? ?? false,
+        // The server's field is still called `prepared`: the column is older
+        // than the model it now serves.
+        entered: json['prepared'] as bool? ?? false,
       );
 }
 
-/// What the opponent plays in a position, out of what was already fetched.
+/// What the opening book says about a position, most played first.
 ///
-/// `opening_replies` holds the replies stored while a repertoire was built, so
-/// a panel that follows the board costs one cheap request per move.
+/// A reference beside the board and nothing more: nothing in it is part of a
+/// repertoire until the student plays it. The server reads the local book for
+/// a position it has never stored, so there is no step to open it.
 class StoredBook {
   const StoredBook({
     required this.fen,
     this.opened = false,
     this.replies = const [],
+    this.unavailable,
   });
 
   final String fen;
 
-  /// False when nobody has ever looked here. Told apart from an empty list on
-  /// purpose: "nobody has looked" and "the opponent plays nothing" are
-  /// different sentences, and only one of them is an invitation.
+  /// False when the book has no games from this position.
   final bool opened;
 
   final List<StoredReply> replies;
+
+  /// The book's own reason when the server could not read it at all — so the
+  /// panel says the book is missing rather than that nobody plays here.
+  final String? unavailable;
 
   factory StoredBook.fromJson(Map<String, dynamic> json) => StoredBook(
         fen: json['fen'] as String? ?? '',
@@ -594,6 +453,7 @@ class StoredBook {
             .whereType<Map>()
             .map((e) => StoredReply.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
+        unavailable: json['unavailable'] as String?,
       );
 }
 
@@ -1290,32 +1150,27 @@ class DrillAnswer {
 /// The judge says what a move is worth; this only records what the student
 /// decided about it.
 
-/// One unconfirmed position in the walk.
 /// How much of one repertoire is still waiting, from its own walk.
 ///
-/// Two piles, never added together: [open] is a position this repertoire
-/// reaches that holds no decision of yours, [draft] is one holding a generated
-/// move waiting for a yes. Null in both when the walk could not be read — a
-/// zero would read as "nothing left", which is the one thing a failure must
-/// not be able to say.
+/// [open] is a position after an opponent move the student entered, with no
+/// move of theirs yet. Null when the walk could not be read — a zero would
+/// read as "nothing left", which is the one thing a failure must not be able
+/// to say.
 class RepertoireProgress {
   const RepertoireProgress({
     required this.id,
     this.open,
-    this.draft,
     this.decided,
   });
 
   final int id;
   final int? open;
-  final int? draft;
   final int? decided;
 
   factory RepertoireProgress.fromJson(Map<String, dynamic> json) =>
       RepertoireProgress(
         id: (json['id'] as num?)?.toInt() ?? 0,
         open: (json['open'] as num?)?.toInt(),
-        draft: (json['draft'] as num?)?.toInt(),
         decided: (json['decided'] as num?)?.toInt(),
       );
 }
@@ -1348,145 +1203,6 @@ class PracticeToday {
       );
 }
 
-class UnconfirmedNode {
-  const UnconfirmedNode({
-    required this.fen,
-    required this.fenKey,
-    required this.path,
-    required this.ply,
-    required this.moves,
-  });
-
-  final String fen;
-  final String fenKey;
-  final List<String> path;
-  final int ply;
-  final List<RepertoireMove> moves;
-
-  factory UnconfirmedNode.fromJson(Map<String, dynamic> json) =>
-      UnconfirmedNode(
-        fen: json['fen'] as String? ?? '',
-        fenKey: json['fenKey'] as String? ?? '',
-        path: sanPath(json['path']),
-        ply: _tolerantInt(json['ply']),
-        moves: ((json['moves'] as List?) ?? const [])
-            .whereType<Map>()
-            .map((e) => RepertoireMove.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
-      );
-}
-
-/// The result of walking the drafts.
-class RepertoireUnconfirmedWalk {
-  const RepertoireUnconfirmedWalk({
-    this.rootPath = const [],
-    this.positions = const [],
-    this.total = 0,
-    this.truncated = false,
-  });
-
-  final List<String> rootPath;
-  final List<UnconfirmedNode> positions;
-  final int total;
-  final bool truncated;
-
-  factory RepertoireUnconfirmedWalk.fromJson(Map<String, dynamic> json) {
-    final root = json['root'] is Map
-        ? Map<String, dynamic>.from(json['root'] as Map)
-        : const <String, dynamic>{};
-    return RepertoireUnconfirmedWalk(
-      rootPath: sanPath(root['path']),
-      positions: ((json['positions'] as List?) ?? const [])
-          .whereType<Map>()
-          .map((e) => UnconfirmedNode.fromJson(Map<String, dynamic>.from(e)))
-          .toList(),
-      total: _tolerantInt(json['total']),
-      truncated: json['truncated'] as bool? ?? false,
-    );
-  }
-}
-
-/// Draft counts for one color.
-class UnconfirmedColorCount {
-  const UnconfirmedColorCount({
-    this.positions = 0,
-    this.moves = 0,
-  });
-
-  final int positions;
-  final int moves;
-
-  factory UnconfirmedColorCount.fromJson(Map<String, dynamic> json) =>
-      UnconfirmedColorCount(
-        positions: _tolerantInt(json['positions']),
-        moves: _tolerantInt(json['moves']),
-      );
-}
-
-/// Draft counts for both colors.
-class RepertoireUnconfirmedCounts {
-  const RepertoireUnconfirmedCounts({
-    this.w = const UnconfirmedColorCount(),
-    this.b = const UnconfirmedColorCount(),
-  });
-
-  final UnconfirmedColorCount w;
-  final UnconfirmedColorCount b;
-
-  factory RepertoireUnconfirmedCounts.fromJson(Map<String, dynamic> json) {
-    final w = json['w'] is Map
-        ? Map<String, dynamic>.from(json['w'] as Map)
-        : const <String, dynamic>{};
-    final b = json['b'] is Map
-        ? Map<String, dynamic>.from(json['b'] as Map)
-        : const <String, dynamic>{};
-    return RepertoireUnconfirmedCounts(
-      w: UnconfirmedColorCount.fromJson(w),
-      b: UnconfirmedColorCount.fromJson(b),
-    );
-  }
-}
-
-/// The result of playing an alternative to a draft.
-class AlternativeResult {
-  const AlternativeResult({
-    required this.played,
-    required this.rejected,
-    this.orphans = 0,
-    this.removed = 0,
-    this.decisions = 0,
-    this.drafts = 0,
-  });
-
-  final RepertoireMove played;
-  final String rejected;
-  final int orphans;
-  final int removed;
-  final int decisions;
-  final int drafts;
-
-  factory AlternativeResult.fromJson(Map<String, dynamic> json) {
-    final played = json['played'] is Map
-        ? Map<String, dynamic>.from(json['played'] as Map)
-        : const <String, dynamic>{};
-    return AlternativeResult(
-      played: RepertoireMove.fromJson(played),
-      rejected: json['rejected'] as String? ?? '',
-      orphans: _tolerantInt(json['orphans']),
-      removed: _tolerantInt(json['removed']),
-      decisions: _tolerantInt(json['decisions']),
-      drafts: _tolerantInt(json['drafts']),
-    );
-  }
-}
-
-int _tolerantInt(dynamic value) {
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  if (value is String) return int.tryParse(value) ?? 0;
-  return 0;
-}
-
 class RepertoireApiService {
   RepertoireApiService({http.Client? client}) : _client = client;
 
@@ -1496,32 +1212,6 @@ class RepertoireApiService {
         'Authorization': 'Bearer ${SessionService.instance.current.token}',
         'Content-Type': 'application/json',
       };
-
-  Future<RepertoireUnconfirmedWalk?> unconfirmedPositions({
-    required String color,
-    required String rootFen,
-    List<String> rootPath = const [],
-    String? gateUci,
-    String? breadth,
-    int? limit,
-  }) async {
-    final uri = Uri.parse('$backendUrl/repertoire/unconfirmed').replace(
-      queryParameters: {
-        'color': color,
-        'rootFen': rootFen,
-        if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
-        if (gateUci != null) 'gateUci': gateUci,
-        if (breadth != null) 'breadth': breadth,
-        // Interpolated, not empty. This went out as `limit=` once, and the
-        // server reads `Number('') || 0`.
-        if (limit != null) 'limit': '$limit',
-      },
-    );
-    final res = (await _send(() => _get(uri))).res;
-    if (res == null) return null;
-    return RepertoireUnconfirmedWalk.fromJson(
-        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
-  }
 
   /// The unanswered count for every repertoire at once.
   ///
@@ -1560,50 +1250,6 @@ class RepertoireApiService {
     if (res == null) return null;
     return PracticeToday.fromJson(
         Map<String, dynamic>.from(jsonDecode(res.body) as Map));
-  }
-
-  Future<RepertoireUnconfirmedCounts?> unconfirmedCounts() async {
-    final uri = Uri.parse('$backendUrl/repertoire/unconfirmed/count');
-    final res = (await _send(() => _get(uri))).res;
-    if (res == null) return null;
-    return RepertoireUnconfirmedCounts.fromJson(
-        Map<String, dynamic>.from(jsonDecode(res.body) as Map));
-  }
-
-  Future<({AlternativeResult? result, String? error})> playAlternative({
-    required String color,
-    required String fen,
-    required String uci,
-    required String san,
-    required String rejectedUci,
-    bool includeDecisions = false,
-  }) async {
-    final sent = await _send(() => _post('$backendUrl/repertoire/alternative', {
-          'color': color,
-          'fen': fen,
-          'uci': uci,
-          'san': san,
-          'rejectedUci': rejectedUci,
-          'includeDecisions': includeDecisions,
-        }));
-    final res = sent.res;
-    if (res == null) return (result: null, error: sent.error);
-    return (
-      result: AlternativeResult.fromJson(
-          Map<String, dynamic>.from(jsonDecode(res.body) as Map)),
-      error: null,
-    );
-  }
-
-  Future<bool> setBreadth({
-    required int id,
-    required String breadth,
-  }) async {
-    final sent = await _send(() => _put('$backendUrl/repertoire/breadth', {
-          'id': id,
-          'breadth': breadth,
-        }));
-    return sent.res != null;
   }
 
   Future<List<RepertoireSummary>> list() async {
@@ -1647,16 +1293,15 @@ class RepertoireApiService {
   /// Where the student actually is: what is still open, in the order it is
   /// worth answering.
   ///
-  /// It is read from the moves already kept and the books on our server.
-  /// Null when the server could not be reached, which
-  /// the caller must tell apart from an empty walk: "nothing is open" and "we
-  /// could not find out" are different, and only one of them means finished.
+  /// It is read from the moves the student played. Null when the server could
+  /// not be reached, which the caller must tell apart from an empty walk:
+  /// "nothing is open" and "we could not find out" are different, and only one
+  /// of them means finished.
   Future<RepertoireFrontier?> frontier({
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/frontier').replace(
       queryParameters: {
@@ -1664,10 +1309,6 @@ class RepertoireApiService {
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
         if (gateUci != null) 'gateUci': gateUci,
-        // The width, which is stored on the repertoire's row and means nothing
-        // until somebody sends it: absent, the server falls back to `standard`
-        // and the queue is computed at 80% for a repertoire set to `main`.
-        if (breadth != null) 'breadth': breadth,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -1821,7 +1462,13 @@ class RepertoireApiService {
         .toList();
   }
 
-  Future<bool> keepMove({
+  /// Keeps a move of the student's, played on the board.
+  ///
+  /// [topReply] is the book's most played reply the server entered with it —
+  /// only for a move kept for the first time, and only where nothing was
+  /// entered after it yet. Null otherwise, and when [saved] is false.
+  Future<({bool saved, ({String uci, String san, String fen})? topReply})>
+      keepMove({
     required String color,
     required String fen,
     required String uci,
@@ -1835,7 +1482,23 @@ class RepertoireApiService {
           'san': san,
           'verdict': verdict,
         }));
-    return sent.res != null;
+    final res = sent.res;
+    if (res == null) return (saved: false, topReply: null);
+    final data = jsonDecode(res.body);
+    final top = data is Map ? data['topReply'] : null;
+    return (
+      saved: true,
+      topReply: top is Map &&
+              top['uci'] is String &&
+              top['san'] is String &&
+              top['fen'] is String
+          ? (
+              uci: top['uci'] as String,
+              san: top['san'] as String,
+              fen: top['fen'] as String,
+            )
+          : null,
+    );
   }
 
   Future<bool> makePrimary({
@@ -1862,54 +1525,8 @@ class RepertoireApiService {
     return (await _send(() => _delete(uri))).res != null;
   }
 
-  /// "I am not preparing this branch."
-  ///
-  /// The only control in the build loop that makes the tree smaller, so it is
-  /// stored rather than said by closing the screen — which says the same thing
-  /// for one session and forgets it. It stops the walk at this position; a move
-  /// already kept here stays kept and stays drilled.
-  Future<bool> skipNode({required String color, required String fen}) async {
-    final sent = await _send(() => _post('$backendUrl/repertoire/node/skip', {
-          'color': color,
-          'fen': fen,
-        }));
-    return sent.res != null;
-  }
-
-  /// The trunk, in one action: the most played move for both sides.
-  ///
-  /// Everything it writes is a draft the drill will not ask about until it is
-  /// confirmed, and it never overwrites a position that already has a move —
-  /// which is what makes it safe to run again from anywhere.
-  ///
-  /// Reads the opening book on the server, two lookups per move of depth.
-  Future<({SpineResult? result, String? error})> buildSpine({
-    required String color,
-    required String rootFen,
-    int depth = 8,
-    int? minGames,
-  }) async {
-    final sent = await _send(() {
-      final uri = Uri.parse('$backendUrl/repertoire/spine');
-      final body = jsonEncode({
-        'color': color,
-        'rootFen': rootFen,
-        'depth': depth,
-        if (minGames != null) 'minGames': minGames,
-      });
-      return _client?.post(uri, headers: _headers, body: body) ??
-          http.post(uri, headers: _headers, body: body);
-    });
-    final res = sent.res;
-    if (res == null) return (result: null, error: sent.error);
-    return (
-      result: SpineResult.fromJson(
-          Map<String, dynamic>.from(jsonDecode(res.body) as Map)),
-      error: null,
-    );
-  }
-
-  /// The opponent's book for a position, out of storage. Costs nothing.
+  /// What the opening book says about a position. The server reads the local
+  /// book for a position it has never stored, so this is always the answer.
   Future<StoredBook?> storedBook({
     required String color,
     required String fen,
@@ -1931,9 +1548,11 @@ class RepertoireApiService {
   /// Asked *before* the removal: "would this still be reachable without that
   /// move" cannot be answered once the move is gone. Nothing is written.
   ///
-  /// Positions, and how many moves in them are drafts and how many decisions —
-  /// the first can go silently, the second has to be asked about.
-  Future<({List<String> keys, int drafts, int decisions})?> orphansOfRemoving({
+  /// [fen] is the position the move is played from, and the move may be the
+  /// student's own or an opponent move they entered. Answers with the
+  /// positions, and how many of the student's moves stand in them — the number
+  /// the screen asks about before anything goes.
+  Future<({List<String> keys, int decisions})?> orphansOfRemoving({
     required String color,
     required String fen,
     required String uci,
@@ -1950,26 +1569,23 @@ class RepertoireApiService {
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return (
       keys: ((data['keys'] as List?) ?? const []).whereType<String>().toList(),
-      drafts: (data['drafts'] as num?)?.toInt() ?? 0,
       decisions: (data['decisions'] as num?)?.toInt() ?? 0,
     );
   }
 
-  /// Takes out positions nothing reaches any more.
+  /// Takes out positions nothing reaches any more, with the opponent moves
+  /// entered after them.
   ///
-  /// Drafts go by default; decisions only when [includeDecisions] says so. The
-  /// server re-checks every key against the roots first, so a list that has
+  /// The server re-checks every key against the roots first, so a list that has
   /// gone stale cannot delete a line that is back in use.
   Future<int> prune({
     required String color,
     required List<String> keys,
-    bool includeDecisions = false,
   }) async {
     if (keys.isEmpty) return 0;
     final sent = await _send(() => _post('$backendUrl/repertoire/prune', {
           'color': color,
           'keys': keys,
-          'includeDecisions': includeDecisions,
         }));
     final res = sent.res;
     if (res == null) return 0;
@@ -1977,47 +1593,11 @@ class RepertoireApiService {
     return (data['removed'] as num?)?.toInt() ?? 0;
   }
 
-  /// A generated move becomes a decision.
+  /// An opponent move, played on the board by the student.
   ///
-  /// Without [uci], every draft in the position; with it, one move. Confirming
-  /// is an act on purpose: until somebody says "yes, this one", a generated
-  /// move is scaffolding, and the drill leaves it alone.
-  Future<bool> confirmNode({
-    required String color,
-    required String fen,
-    String? uci,
-  }) async {
-    final sent =
-        await _send(() => _post('$backendUrl/repertoire/node/confirm', {
-              'color': color,
-              'fen': fen,
-              if (uci != null) 'uci': uci,
-            }));
-    return sent.res != null;
-  }
-
-  /// A whole line at once, in one statement — a line half confirmed is a line
-  /// the student would have to walk twice.
-  Future<bool> confirmLine({
-    required String color,
-    required List<String> fens,
-  }) async {
-    if (fens.isEmpty) return false;
-    final sent =
-        await _send(() => _post('$backendUrl/repertoire/line/confirm', {
-              'color': color,
-              'fens': fens,
-            }));
-    return sent.res != null;
-  }
-
-  /// "Prepare this opponent move too" — one reply past the coverage cut.
-  ///
-  /// [fen] is the position the opponent answers *from*, after the student's own
-  /// move. The wave covers 80% of what is played and names the remainder; this
-  /// is the way through that wall, one move at a time, and the walk follows it
-  /// afterwards so the position is still there tomorrow.
-  Future<bool> prepareReply({
+  /// [fen] is the position the opponent moves *from*, after the student's own
+  /// move. The move does not have to be one the book knows.
+  Future<bool> addOpponentMove({
     required String color,
     required String fen,
     required String uci,
@@ -2032,21 +1612,15 @@ class RepertoireApiService {
     return sent.res != null;
   }
 
-  /// Takes one back out of the preparation.
-  Future<bool> unprepareReply({
+  /// Takes an entered opponent move back out. Ask [orphansOfRemoving] first:
+  /// what only this move reached is left with nothing leading to it.
+  Future<bool> removeOpponentMove({
     required String color,
     required String fen,
     required String uci,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/node/reply')
         .replace(queryParameters: {'color': color, 'fen': fen, 'uci': uci});
-    return (await _send(() => _delete(uri))).res != null;
-  }
-
-  /// Puts a cut branch back.
-  Future<bool> unskipNode({required String color, required String fen}) async {
-    final uri = Uri.parse('$backendUrl/repertoire/node/skip')
-        .replace(queryParameters: {'color': color, 'fen': fen});
     return (await _send(() => _delete(uri))).res != null;
   }
 
@@ -2108,35 +1682,19 @@ class RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    List<String> alongPath = const [],
     int maxPly = 16,
     String? gateUci,
-    String? breadth,
   }) async {
     final uri = Uri.parse('$backendUrl/repertoire/tree').replace(
       queryParameters: {
         'color': color,
         'rootFen': rootFen,
         if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
-        // The line the reader is standing on, in SAN from `rootFen`. The walk
-        // follows it whatever the breadth says, so the drawing always holds a
-        // card for the position on the board.
-        //
-        // The same shape as `maxPly` beside it, and for the same reason: the
-        // picture has to be able to reach the reader. That was fixed for depth
-        // on 4.9.2026; this is the other half of it, for width. Without it a
-        // move played outside the cut left the board on a position the drawing
-        // had no card for, and the highlight fell back to the repertoire's
-        // root — being thrown to the beginning mid-thought.
-        if (alongPath.isNotEmpty) 'alongPath': alongPath.join(' '),
         'maxPly': '$maxPly',
         // The gate: with it the picture is one opening, which is the whole
         // reason it exists — two repertoires from one position drew each
         // other's moves.
         if (gateUci != null) 'gateUci': gateUci,
-        // Same as the gate, and for the same reason: the picture is drawn at
-        // the width the repertoire was set to, not at the server's default.
-        if (breadth != null) 'breadth': breadth,
       },
     );
     final res = (await _send(() => _get(uri))).res;
@@ -2157,9 +1715,9 @@ class RepertoireApiService {
   /// "nothing is due" are different, and only one of them means rest.
   ///
   /// The door is either [ids] — several repertoires drilled as one sitting —
-  /// or a [rootFen], never both: given ids the server reads each door's root,
-  /// gate and breadth from its own row, so sending them beside it would be
-  /// three parallel answers to one question.
+  /// or a [rootFen], never both: given ids the server reads each door's root
+  /// and gate from its own row, so sending them beside it would be two
+  /// parallel answers to one question.
   Future<DrillLine?> drillLine({
     required String color,
     String? rootFen,
@@ -2170,7 +1728,6 @@ class RepertoireApiService {
     List<String> exclude = const [],
     bool ahead = false,
     String? gateUci,
-    String? breadth,
     List<int>? ids,
   }) async {
     final byIds = ids != null && ids.isNotEmpty;
@@ -2183,8 +1740,6 @@ class RepertoireApiService {
           if (rootFen != null) 'rootFen': rootFen,
           if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
           if (gateUci != null) 'gateUci': gateUci,
-          // Beside the root and never beside `ids`, which carry their own.
-          if (breadth != null) 'breadth': breadth,
         },
         if (fromFen != null) 'fromFen': fromFen,
         // Which decision to walk through, for somebody standing at a fork who
@@ -2395,7 +1950,6 @@ class RepertoireApiService {
     String? rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
     List<int>? ids,
   }) async {
     final byIds = ids != null && ids.isNotEmpty;
@@ -2408,7 +1962,6 @@ class RepertoireApiService {
           if (rootFen != null) 'rootFen': rootFen,
           if (rootPath.isNotEmpty) 'rootPath': rootPath.join(' '),
           if (gateUci != null) 'gateUci': gateUci,
-          if (breadth != null) 'breadth': breadth,
         },
       },
     );

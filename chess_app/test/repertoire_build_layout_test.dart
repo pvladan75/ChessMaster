@@ -13,7 +13,6 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
-import 'package:chess_app/features/repertoire/widgets/unconfirmed_banner.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -44,19 +43,11 @@ class _FakeApi extends RepertoireApiService {
 
   int treeCalls = 0;
 
-  /// The line the screen said the reader is standing on.
-  List<String>? lastAlongPath;
-
   /// Which root the drawing was asked for — the repertoire's, or the
   /// position the reader narrowed to.
   String? lastTreeRootFen;
   List<String>? lastTreeRootPath;
   String? lastTreeGate;
-
-  /// How many drafts the frontier reports. Non-zero in the banner tests: at
-  /// zero the banner draws nothing anywhere and every assertion about where it
-  /// sits passes for the wrong reason.
-  int drafts = 0;
 
   /// The position the frontier's open node stands on. Different from the
   /// repertoire's own root in the narrowing tests — with the two the same,
@@ -68,13 +59,18 @@ class _FakeApi extends RepertoireApiService {
   /// fail, because the parameter defaults to `const []`.
   List<String> nodePath = const [];
 
-  /// Whether the branch below the student's move was cut.
-  bool cutTree = false;
-
   /// What the tree's context menu asked the server to do.
   final List<String> promoted = [];
   final List<String> removed = [];
-  final List<String> cut = [];
+  final List<({String fen, String uci})> removedOpponent = [];
+  final List<List<String>> pruned = [];
+
+  /// What removing a move would strand.
+  ({List<String> keys, int decisions})? orphans =
+      (keys: const <String>[], decisions: 0);
+
+  /// A server that does not answer the removal of an opponent move.
+  bool removeOpponentFails = false;
 
   @override
   Future<bool> makePrimary({
@@ -97,18 +93,32 @@ class _FakeApi extends RepertoireApiService {
   }
 
   @override
-  Future<bool> skipNode({required String color, required String fen}) async {
-    cut.add(fen);
+  Future<bool> removeOpponentMove({
+    required String color,
+    required String fen,
+    required String uci,
+  }) async {
+    if (removeOpponentFails) return false;
+    removedOpponent.add((fen: fen, uci: uci));
     return true;
   }
 
   @override
-  Future<({List<String> keys, int drafts, int decisions})?> orphansOfRemoving({
+  Future<({List<String> keys, int decisions})?> orphansOfRemoving({
     required String color,
     required String fen,
     required String uci,
   }) async =>
-      (keys: const <String>[], drafts: 0, decisions: 0);
+      orphans;
+
+  @override
+  Future<int> prune({
+    required String color,
+    required List<String> keys,
+  }) async {
+    pruned.add(keys);
+    return keys.length;
+  }
 
   @override
   Future<List<RepertoireMove>> movesAt({
@@ -119,63 +129,19 @@ class _FakeApi extends RepertoireApiService {
           ? const [RepertoireMove(uci: 'c7c5', san: 'c5', role: 'primary')]
           : const [];
 
-  /// Which positions the stored book was read for. A read is free — it comes
-  /// out of what somebody's session already paid for — but *which* position it
-  /// was asked about is the whole question when the board stands after a move.
-  final List<String> bookReads = [];
-
-  @override
-  Future<StoredBook?> storedBook({
-    required String color,
-    required String fen,
-  }) async {
-    bookReads.add(fen);
-    return const StoredBook(
-      fen: afterC5,
-      opened: true,
-      replies: [
-        StoredReply(
-            uci: 'c2c3', san: 'c3', games: 640, share: 0.64, covered: true),
-      ],
-    );
-  }
-
   @override
   Future<RepertoireFrontier?> frontier({
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
   }) async =>
       RepertoireFrontier(
         // One open position — the root — so the screen has a board rather than
         // the "nothing left in the queue" state.
-        open: [
-          FrontierNode(
-              fen: nodeFen, path: nodePath, reach: 1, kind: 'undecided')
-        ],
+        open: [FrontierNode(fen: nodeFen, path: nodePath)],
         decided: 1,
-        draft: drafts,
       );
-
-  /// How many times the draft review was asked for — the banner's button is an
-  /// action, and after moving it to the app bar this is what proves it still
-  /// does something rather than merely being drawn.
-  int unconfirmedCalls = 0;
-
-  @override
-  Future<RepertoireUnconfirmedWalk?> unconfirmedPositions({
-    required String color,
-    required String rootFen,
-    List<String> rootPath = const [],
-    String? gateUci,
-    String? breadth,
-    int? limit,
-  }) async {
-    unconfirmedCalls += 1;
-    return const RepertoireUnconfirmedWalk();
-  }
 
   @override
   Future<RepertoireTree?> repertoireTree({
@@ -184,39 +150,11 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int maxPly = 16,
     String? gateUci,
-    String? breadth,
-    List<String> alongPath = const [],
   }) async {
     treeCalls += 1;
-    lastAlongPath = alongPath;
     lastTreeRootFen = rootFen;
     lastTreeRootPath = rootPath;
     lastTreeGate = gateUci;
-    if (cutTree) {
-      return const RepertoireTree(
-        rootFen: advance,
-        rootPath: ['e4', 'e6', 'd4', 'd5', 'e5'],
-        children: [
-          RepertoireTreeMove(
-            uci: 'c7c5',
-            san: 'c5',
-            fen: afterC5,
-            mine: true,
-            role: 'primary',
-            children: [
-              RepertoireTreeMove(
-                uci: 'c2c3',
-                san: 'c3',
-                fen: afterC3,
-                mine: false,
-                share: 0.64,
-                state: 'cut',
-              ),
-            ],
-          ),
-        ],
-      );
-    }
     return const RepertoireTree(
       rootFen: advance,
       rootPath: ['e4', 'e6', 'd4', 'd5', 'e5'],
@@ -255,47 +193,6 @@ class _FakeApi extends RepertoireApiService {
 
 /// A judge with nothing behind it. The layout is what is being tested, and a
 /// screen that asked Lichess anything to draw itself would be the bug.
-/// Answers for the position after the student's own move, so the "Dalje"
-/// step has something to open. `_SilentJudge` returns nothing, which sends
-/// `_openReplies` down its other path and never moves the board.
-class _RepliesJudge implements OpeningJudgeService {
-  @override
-  Future<OpeningJudgeLookup> judge(String fen, String move) async =>
-      const OpeningJudgeLookup.unavailable('not-configured');
-
-  /// The position it was actually asked about, so a fixture that disagrees
-  /// with the board says so instead of silently answering nothing.
-  String? lastAsked;
-
-  @override
-  Future<OpponentRepliesLookup> replies(String fen) async {
-    lastAsked = fen;
-    // Matched on the placement and the side to move, not the whole FEN: the
-    // counters and the en-passant square are the board's arithmetic, and a
-    // fixture that guesses them wrong should not look like "no replies".
-    if (!fen.startsWith('rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w')) {
-      return const OpponentRepliesLookup.unavailable('n/a');
-    }
-    return const OpponentRepliesLookup.ok(OpponentReplies(
-      total: 1000,
-      replies: [
-        OpponentReply(
-            uci: 'c2c3', san: 'c3', games: 640, share: 0.64, covered: true),
-      ],
-      all: [
-        OpponentReply(
-            uci: 'c2c3', san: 'c3', games: 640, share: 0.64, covered: true),
-      ],
-      coveredShare: 0.64,
-      tailMoves: 0,
-      tailShare: 0,
-    ));
-  }
-
-  @override
-  void clearCache() {}
-}
-
 class _SilentJudge implements OpeningJudgeService {
   @override
   Future<OpeningJudgeLookup> judge(String fen, String move) async =>
@@ -326,10 +223,8 @@ void main() {
     Size size, {
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
-    bool cutTree = false,
     List<String> nodePath = const [],
     String nodeFen = advance,
-    int drafts = 0,
     String? gateUci,
     OpeningBookEntry? Function(String fen)? openingLookup,
     OpeningJudgeService? judge,
@@ -339,10 +234,8 @@ void main() {
     addTearDown(tester.view.reset);
 
     api = _FakeApi()
-      ..cutTree = cutTree
       ..nodePath = nodePath
-      ..nodeFen = nodeFen
-      ..drafts = drafts;
+      ..nodeFen = nodeFen;
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
         name: 'French Defense: Advance — crni',
@@ -429,13 +322,9 @@ void main() {
 
   testWidgets('tapping your own move stands the board after it',
       (tester) async {
-    // The position after my own move has the opponent to move, so this screen
-    // has no question to ask about it. It used to bounce the tap back to the
-    // position the move was chosen from — which, on the line you are standing
-    // in, is where you already are: the card looked dead. What tapping your own
-    // move means is "show me what comes back", and that list is already stored.
+    // The position after my own move has the opponent to move, and that is
+    // where the opponent's moves are played on the board.
     await pump(tester, const Size(1400, 900));
-    api.bookReads.clear();
 
     await tester.tap(find.textContaining('c5 ★').first);
     await tester.pumpAndSettle();
@@ -443,32 +332,18 @@ void main() {
     expect(tester.takeException(), isNull);
     // The breadcrumb names the board, not the position behind it.
     expect(find.text('1.e4 e6 2.d4 d5 3.e5 c5'), findsOneWidget);
-    // And the book was read for the position after the move, not after the
-    // main move of the position the question belongs to.
-    expect(api.bookReads, contains(afterC5));
-    expect(find.textContaining('After c5'), findsWidgets);
-    // And this is where preparing the opponent's replies lives now: on the
-    // position they are played from, rather than in a second list stacked under
-    // the position before it.
-    expect(find.text('Go'), findsOneWidget);
-  });
-
-  testWidgets('and there is a way back to the question', (tester) async {
-    // Without it the only way out of a tapped move is another tap in the tree,
-    // which is a corner rather than a state.
-    await pump(tester, const Size(1400, 900));
-    await tester.tap(find.textContaining('c5 ★').first);
-    await tester.pumpAndSettle();
-
-    // Scrolled into view first: the controls sit under the board, and a tap on
-    // a widget below the fold lands on whatever is at those coordinates.
-    await tester.ensureVisible(find.text('Back to c5'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Back to c5'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('1.e4 e6 2.d4 d5 3.e5'), findsOneWidget);
-    expect(find.text('What do you play with Black?'), findsOneWidget);
+    expect(find.text('After c5 — which opponent moves do you prepare?'),
+        findsOneWidget);
+    // No button back to the position already on the board: the strip under
+    // it is the way back.
+    expect(find.text('Back to c5'), findsNothing);
+    expect(
+      tester
+          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
+          .isAllowedToMove,
+      isTrue,
+      reason: 'the opponent\'s move is played on the board',
+    );
   });
 
   testWidgets('the context menu on your own move actually does something',
@@ -490,40 +365,52 @@ void main() {
     expect(api.promoted, ['c7c5']);
   });
 
-  testWidgets('deleting the opponent\'s move is the cut, not a removal',
+  testWidgets('deleting the opponent\'s move removes the move they entered',
       (tester) async {
-    // Their moves are not rows anybody chose, so there is nothing to delete.
-    // What somebody means by it is "I am not preparing this", which is a
-    // decision and is stored as one — and the menu says so now, in the same
-    // words as the button, because a label promising a deletion that never
-    // happens is how the two came to look like two different powers over one
-    // branch.
+    // Every opponent move in a repertoire is one the student played, so it is
+    // deleted like one — from the position it is played from.
     await pump(tester, const Size(1400, 900));
 
     await tester.longPress(find.text('4. c3 64% ?'));
     await tester.pumpAndSettle();
-    expect(find.text('Delete this variation'), findsNothing);
-    await tester.tap(find.text('Do not prepare this branch'));
+    expect(find.text('Do not prepare this branch'), findsNothing);
+    await tester.tap(find.text('Delete this opponent move'));
     await tester.pumpAndSettle();
 
-    expect(api.cut, [afterC3]);
+    expect(api.removedOpponent, [(fen: afterC5, uci: 'c2c3')]);
     expect(api.removed, isEmpty);
   });
 
-  testWidgets('a cut branch is not drawn, and says how many are hidden',
+  testWidgets('deleting the opponent\'s move takes what only it reached',
       (tester) async {
-    // A cut stops the walk, but the card stayed: ten cuts left ten dead leaves
-    // widening a drawing that is read to find the holes. Hidden, never gone —
-    // a cut is a decision and has to stay findable.
-    api = _FakeApi();
-    await pump(tester, const Size(1400, 900), cutTree: true);
+    // Positions reached only through the deleted move go with it, or they are
+    // left in the database where no walk can find them.
+    await pump(tester, const Size(1400, 900));
+    api.orphans = (keys: const ['k1'], decisions: 0);
 
-    expect(find.text('4. c3 64% ✂'), findsNothing);
-    expect(find.text('Show branches I am not preparing (1)'), findsOneWidget);
-
-    await tester.tap(find.text('Show branches I am not preparing (1)'));
+    await tester.longPress(find.text('4. c3 64% ?'));
     await tester.pumpAndSettle();
-    expect(find.text('4. c3 64% ✂'), findsWidgets);
+    await tester.tap(find.text('Delete this opponent move'));
+    await tester.pumpAndSettle();
+
+    expect(api.pruned, [
+      ['k1']
+    ]);
+  });
+
+  testWidgets('an opponent move the server kept takes nothing with it',
+      (tester) async {
+    await pump(tester, const Size(1400, 900));
+    api.orphans = (keys: const ['k1'], decisions: 0);
+    api.removeOpponentFails = true;
+
+    await tester.longPress(find.text('4. c3 64% ?'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete this opponent move'));
+    await tester.pumpAndSettle();
+
+    expect(api.pruned, isEmpty);
+    expect(find.textContaining('was not removed'), findsOneWidget);
   });
 
   testWidgets('your own move can be forked into its own opening',
@@ -553,36 +440,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Extract into new opening'), findsNothing);
-  });
-
-  testWidgets('a cut branch is not offered as prepared', (tester) async {
-    // The book's `covered` flag is about the 80% wave and knows nothing about
-    // what this reader refused. So the replies panel offered „Idi" on a branch
-    // the drawing was hiding behind „Prikaži odsečene grane" — two screens,
-    // one repertoire, opposite answers, and the reader looking for the branch
-    // in a tree that had deliberately put it away.
-    api = _FakeApi();
-    await pump(tester, const Size(1400, 900), cutTree: true);
-
-    await tester.tap(find.textContaining('c5 ★').first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Go'), findsNothing);
-    expect(find.text('See what is not prepared'), findsOneWidget);
-    expect(find.textContaining('✂ not preparing'), findsOneWidget);
-  });
-
-  testWidgets('a reply that was not cut still says Idi', (tester) async {
-    // The other half, so the test above cannot pass by the row never saying
-    // „Idi" at all.
-    api = _FakeApi();
-    await pump(tester, const Size(1400, 900));
-
-    await tester.tap(find.textContaining('c5 ★').first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Go'), findsOneWidget);
-    expect(find.textContaining('✂ not preparing'), findsNothing);
   });
 
   testWidgets('the cards are numbered from where the game really is',
@@ -675,97 +532,44 @@ void main() {
     expect(find.textContaining('Tap a line'), findsOneWidget);
   });
 
-  testWidgets('going on lights up the move the board just made',
+  testWidgets('tapping your own move lights up that move in the drawing',
       (tester) async {
     // Reported live 4.9.2026: „pita me za potez, a u stablu mi je fokus na
-    // drugoj poziciji."
-    //
-    // Going on moves the board to the position after the student's own move,
-    // because that is where the opponent's answers belong. It did that by
-    // loading the FEN straight through the board controller, which is the one
-    // way to move the board that tells nothing else on the screen. The tree
-    // highlights `_standingAfter ?? _current`, and `_standingAfter` was still
-    // null -- so the picture went on lighting up the position behind the
-    // board, and the stored book was still the one for the position behind it.
-    final judge = _RepliesJudge();
-    await pump(tester, const Size(1400, 900), judge: judge);
+    // drugoj poziciji." The tree highlights the board, never the position
+    // behind it.
+    await pump(tester, const Size(1400, 900));
 
-    final dalje = find.widgetWithText(FilledButton, 'Next');
-    await tester.ensureVisible(dalje);
+    await tester.tap(find.textContaining('c5 ★').first);
     await tester.pumpAndSettle();
-    await tester.tap(dalje);
-    await tester.pumpAndSettle();
-
-    // The wave was opened at all -- otherwise the rest asserts nothing.
-    expect(judge.lastAsked, isNotNull,
-        reason: 'Dalje mora da otvori odgovore protivnika');
 
     final panel =
         tester.widget<RepertoireTreePanel>(find.byType(RepertoireTreePanel));
     expect(panel.active.moveSan, 'c5',
-        reason: 'stablo mora da svetli na potezu koji tabla pokazuje');
-    // The same thing said the other way: the book under the board belongs to
-    // the position the board is standing on.
-    expect(api.bookReads.last, judge.lastAsked);
+        reason: 'the drawing must light up the move the board shows');
   });
 
-  group('the unconfirmed banner rides in the app bar when there is room', () {
-    // The owner asked on 5.9.2026 whether the empty space beside the title
-    // could be used. It is the one home for this banner that costs no column
-    // any height — over the tree it would only move the cost to the middle one.
-    testWidgets('wide: it is in the bar, and not above the board',
-        (tester) async {
-      await pump(tester, const Size(1400, 900), drafts: 9);
+  testWidgets('nothing retired is drawn under the board', (tester) async {
+    await pump(tester, const Size(1400, 900));
 
-      expect(tester.takeException(), isNull);
-      expect(find.byType(UnconfirmedBanner), findsOneWidget,
-          reason: 'nacrtan je na oba mesta odjednom');
-      // Inside the app bar means above the board, and above the body entirely.
-      final banner = tester.getRect(find.byType(UnconfirmedBanner));
-      final board = tester.getRect(find.byType(BoardWithCoordinates));
-      expect(banner.bottom, lessThanOrEqualTo(kToolbarHeight + 8),
-          reason: 'baner nije u zaglavlju');
-      expect(board.top, lessThan(banner.bottom + 80),
-          reason: 'tabla nije podignuta pošto je baner otišao');
-    });
-
-    testWidgets('narrow: it stays above the board', (tester) async {
-      await pump(tester, const Size(360, 640), drafts: 9);
-
-      expect(find.byType(UnconfirmedBanner), findsOneWidget);
-      final banner = tester.getRect(find.byType(UnconfirmedBanner));
-      expect(banner.top, greaterThan(kToolbarHeight),
-          reason: 'na telefonu u zaglavlju nema mesta za njega');
-    });
-
-    testWidgets('the button works from the bar', (tester) async {
-      // It is an action, not a label. Moving it must not have left it inert.
-      await pump(tester, const Size(1400, 900), drafts: 9);
-      final before = api.treeCalls;
-
-      // The banner's button, not the one in the controls under the board —
-      // both carry this label, and tapping "the text" would have proved the
-      // wrong one still works.
-      await tester.tap(find.descendant(
-        of: find.byType(UnconfirmedBanner),
-        matching: find.text('Review unconfirmed'),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(api.unconfirmedCalls, greaterThan(0),
-          reason: 'dugme u zaglavlju ne radi ništa');
-      expect(api.treeCalls, greaterThanOrEqualTo(before));
-    });
+    for (final gone in const [
+      'Review unconfirmed',
+      'Suggest main line',
+      'Do not prepare this',
+      'Next',
+      'Skip',
+    ]) {
+      expect(find.text(gone), findsNothing, reason: gone);
+    }
+    expect(find.textContaining('queries'), findsNothing);
   });
 
-  group('the opening name rides in the app bar too', () {
+  group('the opening name rides in the app bar', () {
     testWidgets('wide: in the bar; narrow: above the board', (tester) async {
       // Handed a lookup that names the position. Without one the banner draws
       // `SizedBox.shrink()` and every assertion below is about a zero-sized box
       // sitting wherever the layout left it — which is how the first version of
       // these tests passed with the whole move reverted.
-      await pump(tester, const Size(1400, 900),
-          drafts: 9, openingLookup: _named);
+      await pump(tester, const Size(1400, 900), openingLookup: _named);
       expect(tester.takeException(), isNull);
       expect(find.text(_openingLabel), findsOneWidget,
           reason: 'ime otvaranja se uopšte ne crta');
@@ -776,8 +580,7 @@ void main() {
           lessThanOrEqualTo(kToolbarHeight + 8),
           reason: 'ime otvaranja nije u zaglavlju');
 
-      await pump(tester, const Size(360, 640),
-          drafts: 9, openingLookup: _named);
+      await pump(tester, const Size(360, 640), openingLookup: _named);
       expect(find.byType(OpeningBanner), findsOneWidget);
       expect(tester.getRect(find.text(_openingLabel)).top,
           greaterThan(kToolbarHeight),
@@ -797,7 +600,7 @@ void main() {
       var answers = 1;
       OpeningBookEntry? once(String fen) => answers-- > 0 ? _entry : null;
 
-      await pump(tester, const Size(1400, 900), drafts: 9, openingLookup: once);
+      await pump(tester, const Size(1400, 900), openingLookup: once);
       expect(find.text(_openingLabel), findsOneWidget,
           reason: 'ništa nije imenovano ni pre praga');
 
@@ -812,21 +615,18 @@ void main() {
 
     testWidgets('between the thresholds it stays in the column',
         (tester) async {
-      // 900 dp is not wide enough for either: measured 25 px past the edge
-      // with the repertoire's name and the banner alone, 139 with the opening's
-      // name as well, because the banner's button cannot shrink. So both wait
-      // for `ultraWide` and both stay in the column below it.
-      await pump(tester, const Size(900, 800),
-          drafts: 9, openingLookup: _named);
+      // 900 dp is not wide enough: the opening's name waits for `ultraWide`
+      // and stays in the column below it.
+      await pump(tester, const Size(900, 800), openingLookup: _named);
 
       expect(tester.takeException(), isNull);
       expect(find.byType(OpeningBanner), findsOneWidget);
       expect(tester.getRect(find.text(_openingLabel)).top,
           greaterThan(kToolbarHeight),
-          reason: 'ime otvaranja je u zaglavlju gde za njega nema mesta');
-      expect(tester.getRect(find.byType(UnconfirmedBanner)).top,
-          greaterThan(kToolbarHeight),
-          reason: 'baner je u zaglavlju gde za njega nema mesta');
+          reason: 'the opening name is in the bar where it has no room');
+      // And the board is still below it, not under it.
+      expect(tester.getRect(find.byType(BoardWithCoordinates)).top,
+          greaterThan(tester.getRect(find.text(_openingLabel)).top));
     });
   });
 
@@ -1040,11 +840,6 @@ void main() {
       // And the repertoire's gate is dropped, because a gate out of a root the
       // walk no longer starts at means nothing.
       expect(api.lastTreeGate, isNull);
-      // The standing line is said from the new root, not from the repertoire's.
-      // Handed over absolute it would not replay from this position, and the
-      // server refuses a path that does not replay rather than trimming it —
-      // so this would be a 500 rather than a wrong drawing.
-      expect(api.lastAlongPath, isEmpty);
     });
 
     testWidgets('widening puts the whole repertoire back', (tester) async {
@@ -1059,80 +854,6 @@ void main() {
 
       expect(api.lastTreeRootFen, wholeRoot);
       expect(api.lastTreeRootPath, const ['e4', 'e6', 'd4', 'd5', 'e5']);
-    });
-  });
-
-  group('the drawing is asked to reach the reader', () {
-    testWidgets('the tree read carries the line the board is standing on',
-        (tester) async {
-      // The other half of the fix reported live 5.9.2026: „ne treba gubiti
-      // fokus u stablu poteza". The picture is drawn at the repertoire's width,
-      // and a move played outside that width was written and then not drawn —
-      // so the highlight fell back to the repertoire's root, which reads as
-      // being thrown to the beginning mid-thought.
-      //
-      // The server follows this line whatever the breadth says
-      // (`coveredReplies`, and its own tests). What this test holds is the half
-      // that lives here: the screen has to actually send it. It is the same
-      // shape as `maxPly`, which was added for depth on 4.9.2026 — a picture
-      // that cannot reach the reader is the bug, and width was the other half.
-      // A non-empty path on purpose. `alongPath` defaults to `const []`, so
-      // with an empty one this assertion passes whether or not the screen sends
-      // anything — which is a test that cannot fail, and this codebase has
-      // shipped two of those.
-      await pump(tester, const Size(1200, 900),
-          nodePath: const ['c5', 'c3'], nodeFen: afterC3);
-
-      expect(api.treeCalls, greaterThan(0));
-      expect(api.lastAlongPath, ['c5', 'c3']);
-    });
-  });
-
-  group('the unconfirmed banner has room for its own label', () {
-    /// „Pregledaj nepotvrđene" is four characters longer than the „Pregledaj
-    /// nacrt" this banner was built around, and on a 360 dp phone that is a
-    /// 22-pixel overflow. In a release build nothing is painted over it — the
-    /// button is simply clipped and unreachable, which is the whole reason
-    /// CLAUDE.md keeps a section about it. In a test build it throws, which is
-    /// what these two tests are for.
-    Future<void> pumpBanner(WidgetTester tester, double width) async {
-      tester.view.physicalSize = Size(width, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: UnconfirmedBanner(total: 4, onOpenWizard: () {})),
-      ));
-      await tester.pumpAndSettle();
-    }
-
-    testWidgets('a 360 dp phone puts the button under the sentence',
-        (tester) async {
-      await pumpBanner(tester, 360);
-
-      expect(tester.takeException(), isNull, reason: 'preliv na telefonu');
-      // The property is that they are stacked, not that a particular gap is a
-      // particular size. The old form asserted `sentence.dy + 30`, which is a
-      // proxy for the row's height — and it broke the day the banner was
-      // compacted from 134 px to 66, saying nothing about whether the button
-      // had moved. Below the sentence's *bottom* is the thing that was meant.
-      final sentence = tester.getRect(find.text('4 unconfirmed in the graph'));
-      final button = tester.getTopLeft(find.text('Review unconfirmed'));
-      expect(button.dy, greaterThan(sentence.bottom),
-          reason: 'na telefonu dugme ide ispod rečenice');
-    });
-
-    testWidgets('a wide window keeps them on one row', (tester) async {
-      // The half that is easy to lose while fixing the half above: a `Wrap`
-      // solves the phone and stacks the desktop too, because `SpeakableInfo`
-      // is a `Row` with an `Expanded` in it and takes the whole width.
-      await pumpBanner(tester, 1200);
-
-      expect(tester.takeException(), isNull);
-      final sentence =
-          tester.getTopLeft(find.text('4 unconfirmed in the graph'));
-      final button = tester.getTopLeft(find.text('Review unconfirmed'));
-      expect((button.dy - sentence.dy).abs(), lessThan(30),
-          reason: 'u širokom prozoru stoje jedno pored drugog');
     });
   });
 }

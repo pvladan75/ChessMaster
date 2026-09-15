@@ -28,63 +28,24 @@
 // schedule would quietly become a fiction. Only the position at the end of the
 // line is answered, and only it is scheduled.
 //
-// **No Lichess request is made here**, like everything else that reads what was
-// built. The walk is `repertoire_moves` and `opening_replies`, the same two
-// tables the frontier derives its queue from — and the same three helpers,
-// imported rather than copied.
+// The walk is `repertoire_moves` and `repertoire_extra_replies` — the student's
+// moves and the opponent moves they entered — the same two tables the frontier
+// derives its queue from, through the same helpers, imported rather than copied.
 
 const {
   step,
   keptByPosition,
-  coveredReplies,
+  enteredReplies,
   gateMoves,
   MAX_NODES,
   MAX_PLY,
 } = require('./repertoireFrontier');
-const { Chess } = require('chess.js');
-const {
-  fenKey, skippedKeys, requireBreadth, DEFAULT_BREADTH,
-} = require('./repertoireService');
+const { fenKey } = require('./repertoireService');
 const {
   nextItem,
   drillStats,
   KNOWN_REPETITIONS,
 } = require('./repertoireDrillService');
-
-/// The positions the reader walked through on the way to where they stand.
-///
-/// `alongPath` is SAN from `rootFen`, the same encoding `rootPath` already uses
-/// on this route — and it is the server's own words coming back: the client
-/// sends the `path` a previous walk handed it.
-///
-/// **A path that does not replay is refused rather than trimmed.** Returning
-/// the prefix that happened to work would restore exactly the behaviour this
-/// exists to remove — the reader's position missing from the drawing — and it
-/// would do it silently, one layer away from anything that could notice. That
-/// is the shape of fault this codebase keeps paying for.
-function keysAlong(rootFen, alongPath) {
-  const keys = new Set();
-  const moves = Array.isArray(alongPath)
-    ? alongPath.filter((san) => typeof san === 'string' && san !== '')
-    : [];
-  if (moves.length === 0) return keys;
-
-  const board = new Chess(rootFen);
-  for (const san of moves) {
-    let played = null;
-    try {
-      played = board.move(san);
-    } catch {
-      played = null;
-    }
-    if (!played) {
-      throw new RangeError(
-        `Move "${san}" from path cannot be played from the given position.`);
-    }
-    keys.add(fenKey(board.fen()));
-  }
-  return keys;
-}
 
 /// Every position in the repertoire, with the moves that lead to it.
 ///
@@ -97,11 +58,8 @@ function keysAlong(rootFen, alongPath) {
 /// rehearsal, and `keptByPosition` hands the primary back first, so the line
 /// that wins is the one through the moves the student actually settled on.
 ///
-/// Cut branches are not walked. A line the student refused to prepare is not a
-/// line to be rehearsed down.
 async function walkLines(pool, userId, {
-  color, rootFen, maxPly = MAX_PLY, onlyChosen = false,
-  gateUci = null, breadth = DEFAULT_BREADTH, alongPath = [],
+  color, rootFen, maxPly = MAX_PLY, gateUci = null,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Color must be "w" or "b", not "${color}".`);
@@ -112,15 +70,11 @@ async function walkLines(pool, userId, {
   // The gate is applied to `kept` itself, before a single step is taken, and
   // that is why one line covers everything: the walk reads this map, and so
   // does `tree` — which draws from `kept` rather than from what the walk
-  // reached, so a move decided and not yet opened still gets a card. Filtering
-  // in one place is what keeps the picture and the queue from disagreeing.
+  // reached, so a move with no reply entered after it still gets a card.
+  // Filtering in one place is what keeps the picture and the queue from
+  // disagreeing.
   const kept = gateMoves(
-    await keptByPosition(pool, userId, color, { onlyChosen }), rootKey, gateUci);
-  const cut = await skippedKeys(pool, userId, color);
-  const wide = requireBreadth(breadth);
-  // Where the reader is standing, so the walk reaches them whatever the breadth
-  // says. See `coveredReplies`; computed once here rather than per wave.
-  const standing = keysAlong(rootFen, alongPath);
+    await keptByPosition(pool, userId, color), rootKey, gateUci);
   const root = {
     key: rootKey, fen: rootFen, parent: null, ply: 0, path: [], moves: [],
   };
@@ -135,7 +89,6 @@ async function walkLines(pool, userId, {
   while (level.length > 0 && ply < ceiling && !truncated) {
     const branches = [];
     for (const node of level) {
-      if (cut.has(node.key)) continue;
       const here = kept.get(node.key) ?? [];
       for (const move of here) {
         const after = step(node.fen, move.uci);
@@ -159,16 +112,11 @@ async function walkLines(pool, userId, {
     }
 
     const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    // The board for each of those keys, so the book can tell which replies land
-    // somewhere this student has already decided — those are followed at every
-    // breadth. See `coveredReplies`.
-    const fens = new Map(branches.map((b) => [fenKey(b.after.fen), b.after.fen]));
-    const book = await coveredReplies(
-      pool, userId, color, keys, wide, { fens, kept, standing });
+    const replies = await enteredReplies(pool, userId, color, keys);
 
     const next = [];
     for (const branch of branches) {
-      for (const reply of book.get(fenKey(branch.after.fen)) ?? []) {
+      for (const reply of replies.get(fenKey(branch.after.fen)) ?? []) {
         const landed = step(branch.after.fen, reply.uci);
         if (landed === null) continue;
         const key = fenKey(landed.fen);
@@ -221,10 +169,10 @@ async function walkLines(pool, userId, {
   // ends here. Said out loud, like everywhere else.
   if (level.length > 0 && ply >= ceiling) truncated = true;
 
-  // `kept` and `cut` go back with it. They were loaded to walk with and the
-  // tree needs exactly the same two facts about every node — reading them a
-  // second time would be a second chance for the two answers to differ.
-  return { nodes, root, truncated, kept, cut };
+  // `kept` goes back with it. It was loaded to walk with and the tree needs the
+  // same fact about every node — reading it a second time would be a second
+  // chance for the two answers to differ.
+  return { nodes, root, truncated, kept };
 }
 
 /// The repertoire as a tree of single moves, for a picture rather than a queue.
@@ -239,18 +187,16 @@ async function walkLines(pool, userId, {
 ///
 /// Every node says what it is: whose move, its share of games (theirs) or
 /// whether it is the main line (mine), and what state the position it leads to
-/// is in — `open`, `unopened`, `cut` or `decided`. Without those the tree is a
-/// decoration; with them it is the one place the holes are visible.
+/// is in — `open` (nothing kept there yet) or `decided`. Without those the tree
+/// is a decoration; with them it is the one place the holes are visible.
 ///
-/// `maxPly` keeps it a picture. A seeded repertoire runs to thousands of moves
-/// and nobody reads a drawing of all of them, so the depth is a parameter and
-/// the answer says when it was reached.
+/// `maxPly` keeps it a picture: the depth is a parameter and the answer says
+/// when it was reached.
 async function tree(pool, userId, {
   color, rootFen, rootPath = [], maxPly = 16, gateUci = null,
-  breadth = DEFAULT_BREADTH, alongPath = [],
 } = {}) {
-  const { nodes, root, truncated, kept, cut } = await walkLines(pool, userId, {
-    color, rootFen, maxPly, gateUci, breadth, alongPath,
+  const { nodes, root, truncated, kept } = await walkLines(pool, userId, {
+    color, rootFen, maxPly, gateUci,
   });
 
   const byParent = new Map();
@@ -262,15 +208,10 @@ async function tree(pool, userId, {
   }
 
   /// What a position is, in one word, for the card that leads to it.
-  const stateOf = (node) => {
-    if (cut.has(node.key)) return 'cut';
-    if ((kept.get(node.key) ?? []).length === 0) return 'open';
-    if ((byParent.get(node.key) ?? []).length === 0) return 'unopened';
-    return 'decided';
-  };
+  const stateOf = (node) => (
+    (kept.get(node.key) ?? []).length === 0 ? 'open' : 'decided');
 
   const build = (node) => {
-    if (cut.has(node.key)) return [];
     const kids = byParent.get(node.key) ?? [];
     const out = [];
     // In the student's own order: the primary first, then the alternates, the
@@ -316,71 +257,6 @@ async function tree(pool, userId, {
     maxPly,
     truncated,
   };
-}
-
-/// The children of one position, in the order the drawing puts them.
-///
-/// The picture and the reading have to agree. The owner asked for the review of
-/// his drafts in the drawing's own terms — „po grafičkom stablu od leva na
-/// desno i od gore na dole" — so this is that order written down: the student's
-/// own moves first, in their own order (the primary, then the alternates, the
-/// way `keptByPosition` hands them back), and under each of them the opponent's
-/// replies by how often they are played. It is what `tree` builds and therefore
-/// what the panel draws.
-///
-/// Ties fall back to the order the walk found them in, so two branches the
-/// rules cannot separate keep one order rather than a fresh one each run.
-function orderedChildren(kids, mine) {
-  const rank = new Map(mine.map((move, i) => [move.uci, i]));
-  const found = new Map(kids.map((kid, i) => [kid.key, i]));
-  // A child is reached by a pair — my move, then their reply — so my move is
-  // the second from the end of its line, at whatever depth it sits.
-  const mineOf = (kid) => rank.get(kid.moves[kid.moves.length - 2]?.uci)
-    ?? mine.length;
-  return [...kids].sort((a, b) => (mineOf(a) - mineOf(b))
-    || (Number(b.share ?? 0) - Number(a.share ?? 0))
-    || (found.get(a.key) - found.get(b.key)));
-}
-
-/// Every position the walk reached, one line at a time.
-///
-/// `walkLines` goes wave by wave, because a wave is the unit a question is
-/// asked in — and that is the right shape for a queue and the wrong one for a
-/// reading. The owner said it plainly about the draft review on 4.9.2026: he
-/// confirms the fifth move in every branch, then all the sixth. Each position
-/// stops following from the one before it, and following from one another is
-/// the only thing that makes a walk down a repertoire readable.
-///
-/// So: down one line to its end, then back to the last fork and out along the
-/// next, which is the same thing as reading the drawing from the top left.
-///
-/// **The walk's own order is left alone.** The tree, the coverage, the drill
-/// and the delete sweep all read `walkLines`, so changing it would be a change
-/// under every one of them at once. This orders a copy and mutates nothing.
-///
-/// Cut positions stay in the list rather than being dropped here. Nothing is
-/// ever walked past one, so a cut is a leaf — and what to do with that leaf is
-/// the caller's rule to state, which `unconfirmedPositions` does.
-function lineOrder(nodes, root, kept) {
-  const byParent = new Map();
-  for (const node of nodes.values()) {
-    if (node.parent == null) continue;
-    const list = byParent.get(node.parent) ?? [];
-    list.push(node);
-    byParent.set(node.parent, list);
-  }
-
-  const out = [];
-  const stack = [root];
-  while (stack.length > 0) {
-    const node = stack.pop();
-    out.push(node);
-    const kids = orderedChildren(
-      byParent.get(node.key) ?? [], kept.get(node.key) ?? []);
-    // Onto a stack, so the first child goes on last to come off first.
-    for (let i = kids.length - 1; i >= 0; i -= 1) stack.push(kids[i]);
-  }
-  return out;
 }
 
 /// The keys from the root down to a node, the node itself last.
@@ -441,15 +317,13 @@ function nodesVia(nodes, viaKey, viaUci) {
 /// list of one here and the rest of the file only ever sees a list.
 ///
 /// `roots` comes from `repertoiresByIds`, so each door already carries its
-/// name, its gate and its breadth — the caller does not send three parallel
-/// arrays, which is the shape that goes wrong the first time one of them is
-/// shorter than the others.
+/// name and its gate — the caller does not send parallel arrays, which is the
+/// shape that goes wrong the first time one of them is shorter than the other.
 ///
 /// The single-root parameters are still exactly what they were, and a request
 /// that sends them gets the walk it has always got.
 function doorsOf({
   roots = null, rootFen, rootPath = [], gateUci = null,
-  breadth = DEFAULT_BREADTH,
 } = {}) {
   if (Array.isArray(roots) && roots.length > 0) {
     return roots.map((one) => ({
@@ -458,7 +332,6 @@ function doorsOf({
       rootFen: one.rootFen,
       rootPath: Array.isArray(one.rootPath) ? one.rootPath : [],
       viaUci: one.viaUci ?? null,
-      breadth: one.breadth ?? DEFAULT_BREADTH,
     }));
   }
   return [{
@@ -467,7 +340,6 @@ function doorsOf({
     rootFen,
     rootPath: Array.isArray(rootPath) ? rootPath : [],
     viaUci: gateUci,
-    breadth,
   }];
 }
 
@@ -490,7 +362,7 @@ const baseOf = (door) => door.rootPath
 /// every time the button was pressed.
 ///
 /// `roots` runs **one session over several repertoires**. Each is walked with
-/// its own gate and its own breadth, the question is taken from the union, and
+/// its own gate, the question is taken from the union, and
 /// the line is built from whichever walk holds it — so the breadcrumb reads
 /// from that repertoire's own root and the answer says which one it came from.
 ///
@@ -501,9 +373,9 @@ const baseOf = (door) => door.rootPath
 async function drillLine(pool, userId, {
   color, rootFen, rootPath = [], fromFen = null,
   viaFen = null, viaUci = null, exclude = [], ahead = false, gateUci = null,
-  breadth = DEFAULT_BREADTH, roots = null, now = new Date(),
+  roots = null, now = new Date(),
 } = {}) {
-  const doors = doorsOf({ roots, rootFen, rootPath, gateUci, breadth });
+  const doors = doorsOf({ roots, rootFen, rootPath, gateUci });
 
   const walks = [];
   let truncated = false;
@@ -516,11 +388,6 @@ async function drillLine(pool, userId, {
       color,
       rootFen: door.rootFen,
       gateUci: door.viaUci,
-      breadth: door.breadth,
-      // A rehearsal replays decisions. A line through a move nobody chose is
-      // not the student's line, and playing it would teach a move they have
-      // not agreed to.
-      onlyChosen: true,
     });
     truncated = truncated || walk.truncated;
     walks.push({ door, ...walk });
@@ -700,16 +567,12 @@ async function drillLine(pool, userId, {
 /// question with one due date all the same, which is the sentence the branch
 /// sheet has to carry where two are ticked.
 ///
-/// Only decisions are walked (`onlyChosen`). A drill never asks about a move
-/// nobody chose, so counting drafts here would promise questions that will
-/// never be asked.
-///
 /// No Lichess request, like everything that reads what was built.
 async function drillBranches(pool, userId, {
   color, rootFen, rootPath = [], gateUci = null,
-  breadth = DEFAULT_BREADTH, roots = null, now = new Date(),
+  roots = null, now = new Date(),
 } = {}) {
-  const doors = doorsOf({ roots, rootFen, rootPath, gateUci, breadth });
+  const doors = doorsOf({ roots, rootFen, rootPath, gateUci });
 
   const groups = new Map();
   let truncated = false;
@@ -719,8 +582,6 @@ async function drillBranches(pool, userId, {
       color,
       rootFen: door.rootFen,
       gateUci: door.viaUci,
-      breadth: door.breadth,
-      onlyChosen: true,
     });
     truncated = truncated || short;
 
@@ -799,7 +660,6 @@ async function drillBranches(pool, userId, {
       // for with the same root and gate the list was built with.
       root: { fen: group.door.rootFen, path: baseOf(group.door) },
       gateUci: group.door.viaUci,
-      breadth: group.door.breadth,
       fen: group.fen,
       path: group.path,
       san: group.san,
@@ -829,6 +689,5 @@ async function drillBranches(pool, userId, {
 }
 
 module.exports = {
-  drillLine, drillBranches, walkLines, tree, lineOrder, chainTo, subtree,
-  doorsOf, keysAlong,
+  drillLine, drillBranches, walkLines, tree, chainTo, subtree, doorsOf,
 };

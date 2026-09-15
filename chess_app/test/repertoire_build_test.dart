@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
@@ -22,51 +23,42 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 /// move. The position the whole design conversation was about.
 const smithMorra = 'rnbqkbnr/pp1ppppp/8/8/4P3/2N5/PP3PPP/R1BQKBNR b KQkq - 0 4';
 
+String keyOf(String fen) => fen.split(' ').take(4).join(' ');
+
+/// The position after a line of SAN moves. Computed rather than pasted: a
+/// hand-written FEN is a chance to assert against a board that does not exist.
+String fenAfter(String from, List<String> sans) {
+  final board = chess.Chess.fromFEN(from);
+  for (final san in sans) {
+    board.move(san);
+  }
+  return board.fen;
+}
+
 /// A repertoire service with no server behind it: it remembers what was kept
-/// and hands it back, which is all the screen reads.
+/// and entered, and hands it back, which is all the screen reads.
 class _FakeApi extends RepertoireApiService {
   _FakeApi() : super(client: MockClient((_) async => http.Response('{}', 500)));
 
   final Map<String, List<RepertoireMove>> kept = {};
   final List<Map<String, Object?>> attempts = [];
+  final List<({String fen, String uci, String? san})> entered = [];
+  final List<String> removed = [];
+  final List<List<String>> pruned = [];
   String? promoted;
 
-  /// The branches cut, and the ones put back, keyed the way the server keys
-  /// them.
-  final List<String> cut = [];
-  final List<String> restored = [];
+  /// The book's top reply the server enters with a new move, by that move.
+  final Map<String, ({String uci, String san})> topReplies = {};
 
-  /// A server that refuses the cut. The screen must say so rather than showing
-  /// a branch as gone when it is not.
-  bool cutFails = false;
+  /// A server that refuses to keep a move.
+  bool keepFails = false;
 
-  /// The generated moves that were confirmed.
-  final List<String> confirmed = [];
+  /// What removing a move would strand.
+  ({List<String> keys, int decisions})? orphans =
+      (keys: const <String>[], decisions: 0);
 
-  /// What a spine run answers with, and how deep it was asked for.
-  SpineResult? spine;
-  int? spineDepth;
-
-  /// The stored book, and how many times it was read. Null stands for a server
-  /// that did not answer.
-  StoredBook? book;
-  int bookReads = 0;
-
-  /// What removing a move would strand, and what the sweep was asked to take.
-  ({List<String> keys, int drafts, int decisions})? orphans;
-  final List<bool> pruned = [];
-
-  /// The opponent's moves added to the preparation from past the covered wave.
-  final List<String> prepared = [];
-  bool prepareFails = false;
-
-  /// What the walk answers with. Null is the honest default here and stands for
-  /// a server that did not answer — which is what the fake's MockClient does,
-  /// and the path most of these tests happen to take.
   RepertoireFrontier? walk;
   int frontierCalls = 0;
-
-  String _key(String fen) => fen.split(' ').take(4).join(' ');
 
   @override
   Future<RepertoireFrontier?> frontier({
@@ -74,7 +66,6 @@ class _FakeApi extends RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
   }) async {
     frontierCalls += 1;
     return walk;
@@ -85,17 +76,19 @@ class _FakeApi extends RepertoireApiService {
     required String color,
     required String fen,
   }) async =>
-      kept[_key(fen)] ?? const [];
+      List.of(kept[keyOf(fen)] ?? const []);
 
   @override
-  Future<bool> keepMove({
+  Future<({bool saved, ({String uci, String san, String fen})? topReply})>
+      keepMove({
     required String color,
     required String fen,
     required String uci,
     required String san,
     String? verdict,
   }) async {
-    final list = kept.putIfAbsent(_key(fen), () => []);
+    if (keepFails) return (saved: false, topReply: null);
+    final list = kept.putIfAbsent(keyOf(fen), () => []);
     list.add(RepertoireMove(
       uci: uci,
       san: san,
@@ -103,8 +96,25 @@ class _FakeApi extends RepertoireApiService {
       // rule for real, and the fake keeps it so the screen is tested against
       // the same shape.
       role: list.isEmpty ? 'primary' : 'alternate',
-      verdict: verdict,
     ));
+    final top = topReplies[uci];
+    if (top == null) return (saved: true, topReply: null);
+    final board = chess.Chess.fromFEN(fen)
+      ..move({'from': uci.substring(0, 2), 'to': uci.substring(2, 4)});
+    return (
+      saved: true,
+      topReply: (uci: top.uci, san: top.san, fen: board.fen),
+    );
+  }
+
+  @override
+  Future<bool> addOpponentMove({
+    required String color,
+    required String fen,
+    required String uci,
+    String? san,
+  }) async {
+    entered.add((fen: fen, uci: uci, san: san));
     return true;
   }
 
@@ -115,37 +125,20 @@ class _FakeApi extends RepertoireApiService {
     required String uci,
   }) async {
     promoted = uci;
-    final list = kept[_key(fen)] ?? [];
-    kept[_key(fen)] = [
+    final list = kept[keyOf(fen)] ?? [];
+    kept[keyOf(fen)] = [
       for (final move in list)
         RepertoireMove(
           uci: move.uci,
           san: move.san,
           role: move.uci == uci ? 'primary' : 'alternate',
-          verdict: move.verdict,
         ),
     ];
     return true;
   }
 
   @override
-  Future<bool> skipNode({required String color, required String fen}) async {
-    if (cutFails) return false;
-    cut.add(_key(fen));
-    return true;
-  }
-
-  @override
-  Future<StoredBook?> storedBook({
-    required String color,
-    required String fen,
-  }) async {
-    bookReads += 1;
-    return book;
-  }
-
-  @override
-  Future<({List<String> keys, int drafts, int decisions})?> orphansOfRemoving({
+  Future<({List<String> keys, int decisions})?> orphansOfRemoving({
     required String color,
     required String fen,
     required String uci,
@@ -153,66 +146,23 @@ class _FakeApi extends RepertoireApiService {
       orphans;
 
   @override
-  Future<int> prune({
-    required String color,
-    required List<String> keys,
-    bool includeDecisions = false,
-  }) async {
-    pruned.add(includeDecisions);
-    return keys.length;
-  }
-
-  @override
-  Future<({SpineResult? result, String? error})> buildSpine({
-    required String color,
-    required String rootFen,
-    int depth = 8,
-    int? minGames,
-  }) async {
-    spineDepth = depth;
-    final out = spine;
-    if (out == null) return (result: null, error: 'Server nije odgovorio.');
-    return (result: out, error: null);
-  }
-
-  @override
-  Future<bool> confirmNode({
-    required String color,
-    required String fen,
-    String? uci,
-  }) async {
-    confirmed.add(uci ?? '*');
-    final list = kept[_key(fen)] ?? [];
-    kept[_key(fen)] = [
-      for (final move in list)
-        RepertoireMove(
-          uci: move.uci,
-          san: move.san,
-          role: move.role,
-          verdict: move.verdict,
-          source: (uci == null || move.uci == uci) ? 'chosen' : move.source,
-        ),
-    ];
-    return true;
-  }
-
-  @override
-  Future<bool> prepareReply({
+  Future<bool> removeMove({
     required String color,
     required String fen,
     required String uci,
-    String? san,
   }) async {
-    if (prepareFails) return false;
-    prepared.add(uci);
+    removed.add(uci);
+    kept[keyOf(fen)]?.removeWhere((move) => move.uci == uci);
     return true;
   }
 
   @override
-  Future<bool> unskipNode({required String color, required String fen}) async {
-    restored.add(_key(fen));
-    cut.remove(_key(fen));
-    return true;
+  Future<int> prune({
+    required String color,
+    required List<String> keys,
+  }) async {
+    pruned.add(keys);
+    return keys.length;
   }
 
   @override
@@ -226,38 +176,21 @@ class _FakeApi extends RepertoireApiService {
     bool lookedUp = false,
   }) async {
     attempts.add({
-      'fen': _key(fen),
+      'fen': keyOf(fen),
       'uci': uci,
       'san': san,
       'verdict': verdict,
       'kept': kept,
-      'lookedUp': lookedUp,
     });
   }
 }
 
-/// A judge that answers from a table instead of from Lichess, and counts how
-/// many questions the screen asked.
+/// A judge that answers from a table, and counts how often it was asked.
 class _FakeJudge implements OpeningJudgeService {
-  _FakeJudge({
-    this.verdict = OpeningVerdict.theory,
-    this.bookAvailable = true,
-  });
+  _FakeJudge({this.bookAvailable = true});
 
-  final OpeningVerdict verdict;
-
-  /// False for a server whose opening book is missing, which refuses with the
-  /// book's own reason rather than judging by the engine alone.
   final bool bookAvailable;
-
-  /// A move White can really play after 4...Nc6. An illegal one would be
-  /// dropped by the screen and the wave would come out empty — a fault in the
-  /// fake rather than in what is being tested, and one that cost a debugging
-  /// round the first time.
-  static const replyList = ['g1f3'];
-
   int judged = 0;
-  int asked = 0;
 
   @override
   Future<OpeningJudgeLookup> judge(String fen, String move) async {
@@ -268,7 +201,7 @@ class _FakeJudge implements OpeningJudgeService {
     final board = chess.Chess.fromFEN(fen);
     board.move({'from': move.substring(0, 2), 'to': move.substring(2, 4)});
     return OpeningJudgeLookup.ok(OpeningJudgement(
-      verdict: verdict,
+      verdict: OpeningVerdict.theory,
       fen: fen,
       san: board.getHistory().last.toString(),
       uci: move,
@@ -279,129 +212,89 @@ class _FakeJudge implements OpeningJudgeService {
   }
 
   @override
-  Future<OpponentRepliesLookup> replies(String fen) async {
-    asked += 1;
-    if (!bookAvailable) {
-      return const OpponentRepliesLookup.unavailable('not-configured');
-    }
-    // Whose book this is. Asked about the position on the board it is Black's
-    // moves; asked about the position after Black has moved it is White's — and
-    // the fake has to keep that straight, because the screen plays these moves
-    // on that board. It did not, once, and the tail row offered a black move in
-    // a white-to-move position.
-    final whiteToMove = fen.split(' ').length > 1 && fen.split(' ')[1] == 'w';
-    return OpponentRepliesLookup.ok(OpponentReplies(
-      total: 1000,
-      replies: [
-        for (final uci in replyList)
-          OpponentReply(uci: uci, san: uci, games: 500, share: 0.5),
-      ],
-      // What the student reads when choosing: more than the covered few, with
-      // how those games went.
-      all: whiteToMove
-          ? const [
-              OpponentReply(
-                  uci: 'g1f3',
-                  san: 'g1f3',
-                  games: 500,
-                  share: 0.5,
-                  white: 250,
-                  draws: 100,
-                  black: 150,
-                  covered: true),
-              // The tail: legal in this position, uncovered, and the thing
-              // "Spremi" is for. Legal matters — in the Smith-Morra accepted
-              // White has no d-pawn, and a tail move that cannot be played
-              // would silently never join the queue.
-              OpponentReply(uci: 'f1c4', san: 'Bc4', games: 90, share: 0.09),
-              OpponentReply(uci: 'c1f4', san: 'Bf4', games: 60, share: 0.06),
-            ]
-          : const [
-              OpponentReply(
-                  uci: 'b8c6',
-                  san: 'Nc6',
-                  games: 600,
-                  share: 0.6,
-                  white: 200,
-                  draws: 100,
-                  black: 300,
-                  covered: true),
-              OpponentReply(
-                  uci: 'd7d6',
-                  san: 'd6',
-                  games: 300,
-                  share: 0.3,
-                  white: 150,
-                  draws: 60,
-                  black: 90,
-                  covered: true),
-              OpponentReply(
-                  uci: 'a7a6',
-                  san: 'a6',
-                  games: 100,
-                  share: 0.1,
-                  white: 60,
-                  draws: 10,
-                  black: 30),
-            ],
-      coveredShare: 0.85,
-      tailMoves: 3,
-      tailShare: 0.15,
-    ));
-  }
+  Future<OpponentRepliesLookup> replies(String fen) async =>
+      const OpponentRepliesLookup.unavailable('not-configured');
 
   @override
   void clearCache() {}
 }
 
+OpeningExplorerMove _move(String uci, String san, int games) =>
+    OpeningExplorerMove(
+        uci: uci,
+        san: san,
+        white: games ~/ 3,
+        draws: games ~/ 3,
+        black: games - 2 * (games ~/ 3));
+
+/// The book: Black's moves in the Smith-Morra, White's after 4...Nc6.
+OpeningExplorerLookup _book(String fen) {
+  final blackToMove = fen.split(' ')[1] == 'b';
+  if (blackToMove) {
+    return OpeningExplorerLookup.ok(OpeningExplorerResult(
+      fen: fen,
+      white: 334,
+      draws: 333,
+      black: 333,
+      moves: [_move('b8c6', 'Nc6', 600), _move('d7d6', 'd6', 300)],
+    ));
+  }
+  return OpeningExplorerLookup.ok(OpeningExplorerResult(
+    fen: fen,
+    white: 167,
+    draws: 167,
+    black: 166,
+    moves: [_move('g1f3', 'Nf3', 500)],
+  ));
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  // The depth and line-count dials write to the app's settings, which are
-  // SharedPreferences underneath.
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   late _FakeApi api;
   late _FakeJudge judge;
+  late List<String> bookAsked;
   ({int depth, int multiPV})? engineAsked;
 
   Future<void> pump(
     WidgetTester tester, {
-    OpeningVerdict verdict = OpeningVerdict.theory,
     bool bookAvailable = true,
     Size size = const Size(500, 1000),
     List<String> rootPath = const [],
     RepertoireFrontier? walk,
-    bool cutFails = false,
-    bool prepareFails = false,
-    StoredBook? book,
-
-    /// Moves already in the repertoire, keyed the way the server keys them.
-    /// Stands for a position the student built in an earlier session.
     Map<String, List<RepertoireMove>> seed = const {},
     Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
         analyse,
     OpeningBookEntry? Function(String fen)? openingLookup,
+    Future<OpeningExplorerLookup> Function(String fen)? explore,
+    // A held lookup keeps its spinner turning, and a turning spinner never
+    // settles.
+    bool settle = true,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    api = _FakeApi()
-      ..walk = walk
-      ..cutFails = cutFails
-      ..prepareFails = prepareFails
-      ..book = book
-      ..kept.addAll(seed);
-    judge = _FakeJudge(verdict: verdict, bookAvailable: bookAvailable);
+    api = _FakeApi()..walk = walk;
+    for (final entry in seed.entries) {
+      api.kept[entry.key] = List.of(entry.value);
+    }
+    judge = _FakeJudge(bookAvailable: bookAvailable);
+    bookAsked = [];
     await tester.pumpWidget(MaterialApp(
       home: RepertoireBuildScreen(
-        name: 'Smit-Mora, crni',
+        name: 'Smith-Morra, Black',
         color: 'b',
         rootFen: smithMorra,
         rootPath: rootPath,
         api: api,
         judge: judge,
         openingLookup: openingLookup,
+        explore: (fen) async {
+          bookAsked.add(fen);
+          return explore == null ? _book(fen) : await explore(fen);
+        },
         // No engine binary in a test, and no ten-second wait for one.
         analyse: analyse ??
             (fen, depth, multiPV) async {
@@ -425,10 +318,14 @@ void main() {
             },
       ),
     ));
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   }
 
-  /// Plays a move on the board by tapping the two squares.
   Offset squareAt(WidgetTester tester, String name) {
     final finder = find.byType(ChessBoardWithOverlay);
     final widget = tester.widget<ChessBoardWithOverlay>(finder);
@@ -448,491 +345,529 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the screen asks for the student\'s own move', (tester) async {
-    await pump(tester);
-
-    expect(find.text('What do you play with Black?'), findsOneWidget);
-    // Built for Black, so the board is turned that way — the student sees what
-    // they would see over the board.
-    expect(
-      tester
-          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
-          .boardOrientation,
-      PlayerColor.black,
-    );
-  });
-
-  testWidgets('a move is judged as soon as it is played', (tester) async {
-    await pump(tester);
-
-    await play(tester, 'b8', 'c6');
-
-    expect(judge.judged, 1, reason: 'suđenje je poenta ovog režima');
-    expect(find.text('Nc6 · Mainline theory'), findsOneWidget);
-    expect(find.text('Take Nc6'), findsOneWidget);
-    // One: the verdict, and nothing else. A second book used to be fetched the
-    // moment a move was played — a request per move, for a list that has been
-    // on screen since the position opened. Their allowance, so the count is on
-    // screen rather than guessed at.
-    expect(find.textContaining('queries: 1'), findsOneWidget);
-  });
-
-  testWidgets('playing a move fetches no second list', (tester) async {
-    // There used to be one: the moment a move was played, the judge was asked
-    // for the whole book so the reader could see how those games ended. It cost
-    // a Lichess request per move against a token that serves every child using
-    // this app, and it printed a second panel under the one that had been on
-    // screen since the position opened. What it carried that the stored list
-    // cannot — how the games *ended* — is worth having, and is worth having as
-    // a column fetched once for everybody rather than a request per move.
-    await pump(
-      tester,
-      book: const StoredBook(
-        fen: 'x',
-        opened: true,
-        replies: [
-          StoredReply(
-              uci: 'b8c6', san: 'Nc6', games: 900, share: 0.6, covered: true),
-        ],
-      ),
-    );
-
-    expect(find.text('What is played here'), findsOneWidget);
-    await play(tester, 'b8', 'c6');
-
-    // Still one panel, and only the verdict was paid for.
-    expect(find.text('What is played here'), findsOneWidget);
-    expect(judge.asked, 0);
-    expect(find.textContaining('queries: 1'), findsOneWidget);
-  });
-
-  testWidgets('a move already kept is not offered for keeping again',
-      (tester) async {
-    // The owner played his own second move on the board and was asked whether
-    // to accept it — a move that was already in the repertoire. Playing a kept
-    // move is the same act as picking it in the tree: go and look at what comes
-    // after it.
-    await pump(
-      tester,
-      seed: {
-        smithMorra.split(' ').take(4).join(' '): const [
-          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-        ],
-      },
-      book: const StoredBook(fen: 'x', opened: true, replies: []),
-    );
-
-    await play(tester, 'b8', 'c6');
-
-    expect(find.text('Take Nc6'), findsNothing);
-    expect(judge.judged, 0, reason: 'odluka koja postoji se ne sudi ponovo');
-    // Standing after it, looking at what comes back.
-    expect(find.text('Back to Nc6'), findsOneWidget);
-  });
-
-  testWidgets('a kept move is stored, and the first one is the primary',
-      (tester) async {
-    await pump(tester);
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-
-    final stored = api.kept.values.single;
-    expect(stored.single.san, 'Nc6');
-    expect(stored.single.role, 'primary');
-    expect(stored.single.verdict, 'theory');
-    // And the chip for it is on the screen, with the star that says which one
-    // the drill will ask for.
-    expect(find.text('Nc6'), findsWidgets);
-  });
-
-  testWidgets('the main move can be chosen, and the screen says how',
-      (tester) async {
-    // The choice was always here — tapping a chip promoted it — but nothing
-    // said so, and a control nobody can see is a control that does not exist.
-    await pump(tester);
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Your moves here'), findsOneWidget);
-    expect(find.textContaining('Star marks the main move'), findsOneWidget);
-    expect(find.text('main'), findsOneWidget);
-
-    await play(tester, 'd7', 'd6');
-    await tester.tap(find.text('Take d6'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('tap for main'), findsOneWidget);
-    await tester.tap(find.text('tap for main'));
-    await tester.pumpAndSettle();
-
-    expect(api.promoted, 'd7d6');
-  });
-
-  testWidgets('the engine answers on request, at the depth that was set',
-      (tester) async {
-    // The local engine, asked by hand, because a screen that keeps an engine running is warming a phone
-    // to answer a question nobody put yet.
-    engineAsked = null;
-    await pump(tester);
-
-    expect(find.text('Engine'), findsNothing);
-
-    await tester.tap(find.text('Ask engine'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Engine'), findsOneWidget);
-    expect(engineAsked, isNotNull);
-    expect(find.text('+0.20'), findsOneWidget);
-    expect(find.textContaining('Local engine.'), findsOneWidget);
-  });
-
-  testWidgets('the engine line can be played, and is judged like any move',
-      (tester) async {
-    await pump(tester);
-
-    await tester.tap(find.text('Ask engine'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Nc6'));
-    await tester.pumpAndSettle();
-
-    // A suggestion is not a decision: it goes through the same verdict and the
-    // same keep-or-discard as a move played by hand.
-    expect(judge.judged, 1);
-    expect(find.text('Take Nc6'), findsOneWidget);
-  });
-
-  testWidgets(
-      'an engine answer for the old position never lands on the new one',
-      (tester) async {
-    // Reported from the desktop build, with a screenshot: the engine offered
-    // `Bxb2` in a position with no capture on b2, because that move had been
-    // legal one position earlier. A deep search takes seconds, the reader walks
-    // on while it runs, and the answer arrives for a board nobody is looking at.
-    final gate = Completer<List<AnalysisLine>>();
-    await pump(tester, analyse: (fen, depth, multiPV) => gate.future);
-
-    await tester.tap(find.text('Ask engine'));
-    await tester.pump();
-    expect(find.text('Engine'), findsOneWidget, reason: 'razmišlja');
-
-    // Plain pumps from here: the panel draws a spinner while the engine is
-    // thinking, and pumpAndSettle waits on a spinner forever. So each step
-    // pumps until the thing it is waiting for is actually on screen.
-    Future<void> until(Finder finder) async {
-      for (var i = 0; i < 40 && finder.evaluate().isEmpty; i++) {
-        await tester.pump(const Duration(milliseconds: 20));
-      }
-      expect(finder, findsWidgets);
-    }
-
-    // On to the next position while the engine is still thinking.
-    await tester.tapAt(squareAt(tester, 'b8'));
-    await tester.pump();
-    await tester.tapAt(squareAt(tester, 'c6'));
-    await until(find.text('Take Nc6'));
-
-    // The engine panel pushes the buttons below the fold, and a tap that lands
-    // on nothing is a tap that proves nothing.
-    Future<void> press(Finder finder) async {
-      await tester.ensureVisible(finder);
-      await tester.pump(const Duration(milliseconds: 20));
-      await tester.tap(finder);
-      await tester.pump(const Duration(milliseconds: 20));
-    }
-
-    await press(find.text('Take Nc6'));
-    await until(find.text('Your moves here'));
-    await press(find.text('Next'));
-    await until(find.textContaining('Prepared'));
-
-    // Only now does the engine answer — about the board that was left behind.
-    gate.complete([
-      AnalysisLine(
-        multipv: 1,
-        depth: 28,
-        evaluation: '-0.03',
-        bestMoveLan: 'c1b2',
-        bestMoveSan: 'Bxb2',
-        continuationLan: '',
-        continuationSan: 'Bxb2 Bb4+',
-        sanMoveList: const [],
-        fenList: const [],
-        fromSquare: 'c1',
-        toSquare: 'b2',
-      ),
-    ]);
-    for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 20));
-    }
-
-    expect(find.text('Bxb2'), findsNothing,
-        reason: 'odgovor pripada poziciji za koju je tražen, ne ovoj');
-    expect(find.text('-0.03'), findsNothing);
-  });
-
-  testWidgets('changing the depth asks again instead of looking stopped',
-      (tester) async {
-    // Also reported: after moving the depth the engine "stopped working". It
-    // had not — nothing re-ran, so the old answer stayed on screen under a new
-    // number, which is the same thing from the reader's chair.
-    var calls = 0;
-    final depths = <int>[];
-    await pump(tester, analyse: (fen, depth, multiPV) async {
-      calls += 1;
-      depths.add(depth);
-      return const <AnalysisLine>[];
-    });
-
-    await tester.tap(find.text('Ask engine'));
-    await tester.pumpAndSettle();
-    expect(calls, 1);
-
-    await tester.tap(find.text('${depths.first}').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('24').last);
-    await tester.pumpAndSettle();
-
-    expect(calls, 2, reason: 'promena dubine je novo pitanje');
-    expect(depths.last, 24);
-  });
-
-  testWidgets('a discarded move is written down too', (tester) async {
-    // The whole reason the attempts table exists: this is where the first
-    // instinct was wrong, and it is what the drill should ask about first.
-    await pump(tester, verdict: OpeningVerdict.mistake);
-
-    await play(tester, 'd8', 'a5');
-    await tester.tap(find.text('Discard'));
-    await tester.pumpAndSettle();
-
-    final attempt = api.attempts.single;
-    expect(attempt['san'], 'Qa5');
-    expect(attempt['verdict'], 'mistake');
-    expect(attempt['kept'], false);
-    expect(api.kept, isEmpty, reason: 'odbijen potez ne ulazi u repertoar');
-  });
-
-  testWidgets('the statistics stand there without being asked for',
-      (tester) async {
-    // The loop stopped being a quiz. A repertoire is built from the statistics,
-    // the evaluation and the builder's own will, so the book is not behind an
-    // admission that they do not know — and it costs nothing, because it is
-    // read from what somebody's session already paid for.
-    await pump(
-      tester,
-      book: const StoredBook(
-        fen: 'x',
-        opened: true,
-        replies: [
-          StoredReply(
-              uci: 'b8c6', san: 'Nc6', games: 900, share: 0.6, covered: true),
-        ],
-      ),
-    );
-
-    expect(find.text('What is played here'), findsOneWidget);
-    expect(find.text('Ne znam'), findsNothing);
-    expect(judge.asked, 0, reason: 'lista koja se sama pojavi ne sme da košta');
-
-    await play(tester, 'b8', 'c6');
-    // Scrolled to first: the list adds a panel above the controls, so the
-    // button that was on screen before it is now below the fold.
-    await tester.ensureVisible(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-
-    // And nothing is written down as a confession any more: with the list on
-    // screen from the start, "answered by looking" cannot be told from
-    // "answered by thinking", so claiming to know the difference would be a
-    // number that means nothing.
-    expect(api.attempts.single['lookedUp'], false);
-  });
-
-  testWidgets('a move can be played straight out of the statistics',
-      (tester) async {
-    // Choosing from the list is building, not a shortcut past anything: it goes
-    // through the same judging and the same decision as a move dragged on the
-    // board.
-    await pump(
-      tester,
-      book: const StoredBook(
-        fen: 'x',
-        opened: true,
-        replies: [
-          StoredReply(
-              uci: 'b8c6', san: 'Nc6', games: 900, share: 0.6, covered: true),
-        ],
-      ),
-    );
-
-    await tester.ensureVisible(find.text('Play').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Play').first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Take Nc6'), findsOneWidget);
-    await tester.ensureVisible(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    expect(api.kept.values.single.single.san, 'Nc6');
-  });
-
-  testWidgets('going on opens the opponent\'s replies and says what is covered',
-      (tester) async {
-    await pump(tester);
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-
-    // Two book lookups: this position's, which came with the verdict, and the
-    // one after the kept move, which is the next wave.
-    expect(judge.asked, 1);
-    expect(find.textContaining('Prepared 85%'), findsOneWidget);
-    expect(find.textContaining('beyond that another 3'), findsOneWidget);
-
-    // A stop, not a step. These answers cost a request and they decide what the
-    // whole next wave looks like; they used to be counted and thrown away
-    // without ever being shown to the person who paid for them.
-    expect(find.text('Opponent replies'), findsOneWidget);
-    expect(find.textContaining('After Nc6'), findsOneWidget);
-
-    await tester.tap(find.text('Next position'));
-    await tester.pumpAndSettle();
-
-    // And now the board has moved on to a position where it is Black to move.
-    expect(find.text('What do you play with Black?'), findsOneWidget);
-  });
-
-  /// The arrows currently on the board.
   List<EngineArrow> arrows(WidgetTester tester) => tester
       .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
       .engineArrows;
 
-  testWidgets(
-      'the opponent\'s answers are drawn on the board, with how often '
-      'each is played', (tester) async {
-    await pump(tester);
+  final seedNc6 = {
+    keyOf(smithMorra): const [
+      RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+    ],
+  };
 
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
+  group('a move played on the board is kept', () {
+    testWidgets('the screen asks for the student\'s own move', (tester) async {
+      await pump(tester);
 
-    final drawn = arrows(tester);
-    expect(drawn.length, 1);
-    expect(drawn.single.from, 'g1');
-    expect(drawn.single.to, 'f3');
-    // Share, not the result percentage. Share is what decides whether a move
-    // has to be prepared for; putting "how those games went" on an arrow
-    // invites picking the biggest number, which is the wrong lesson.
-    expect(drawn.single.evalText, '50%');
-
-    // The line on screen includes the student's own move, because the board is
-    // standing one move further on than the position they were asked about.
-    expect(find.textContaining('Nc6'), findsWidgets);
-  });
-
-  testWidgets('the moves already chosen are drawn, and the main one is starred',
-      (tester) async {
-    await pump(tester);
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-
-    final first = arrows(tester);
-    expect(first.length, 1);
-    expect(first.single.from, 'b8');
-    expect(first.single.to, 'c6');
-    // The star, not a colour. Which move is the main one must never rest on
-    // hue alone — rank already carries stroke width, and this is a third
-    // channel again. No share beside it here: this fake serves no stored book,
-    // and an arrow is never worth a request of its own.
-    expect(first.single.evalText, '★');
-    expect(first.single.rank, 1);
-
-    // A second move kept here is an alternate: thinner, unstarred, and still
-    // carrying its own share.
-    await play(tester, 'd7', 'd6');
-    await tester.tap(find.text('Take d6'));
-    await tester.pumpAndSettle();
-
-    final both = arrows(tester);
-    expect(both.length, 2);
-    expect(both.first.evalText, '★', reason: 'glavni ostaje glavni');
-    expect(both.last.to, 'd6');
-    expect(both.last.evalText, '');
-    expect(both.last.rank, 2);
-  });
-
-  testWidgets('a kept move without an open book is still drawn, with its star',
-      (tester) async {
-    // The resumed case: a position comes back with a move already in it and no
-    // book behind it. An arrow is not worth a Lichess request nobody asked for,
-    // and the star says the thing that matters without one.
-    await pump(tester, seed: {
-      smithMorra.split(' ').take(4).join(' '): const [
-        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-      ],
+      expect(find.text('What do you play with Black?'), findsOneWidget);
+      expect(
+        tester
+            .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
+            .boardOrientation,
+        PlayerColor.black,
+      );
     });
 
-    final drawn = arrows(tester);
-    expect(drawn.length, 1);
-    expect(drawn.single.evalText, '★');
+    testWidgets('at once, with no button to take it', (tester) async {
+      await pump(tester);
+
+      await play(tester, 'b8', 'c6');
+
+      final stored = api.kept[keyOf(smithMorra)]!;
+      expect(stored.single.san, 'Nc6');
+      expect(stored.single.role, 'primary');
+      expect(find.textContaining('Take'), findsNothing);
+      expect(find.text('Discard'), findsNothing);
+    });
+
+    testWidgets('and the board goes past the reply the book added with it',
+        (tester) async {
+      await pump(tester);
+      api.topReplies['b8c6'] = (uci: 'g1f3', san: 'Nf3');
+
+      await play(tester, 'b8', 'c6');
+
+      // After 4...Nc6 5.Nf3, Black to move again.
+      expect(find.text('What do you play with Black?'), findsOneWidget);
+      expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
+      expect(
+          find.textContaining(
+              'Nc6 is in your repertoire, with the most played reply, Nf3.'),
+          findsOneWidget);
+    });
+
+    testWidgets('with no reply in the book, the board waits after the move',
+        (tester) async {
+      await pump(tester);
+
+      await play(tester, 'b8', 'c6');
+
+      expect(find.text('After Nc6 — which opponent moves do you prepare?'),
+          findsOneWidget);
+      expect(find.textContaining('The book has no reply here'), findsOneWidget);
+    });
+
+    testWidgets('the judge says what it is worth, after the move is kept',
+        (tester) async {
+      await pump(tester);
+
+      await play(tester, 'b8', 'c6');
+
+      expect(judge.judged, 1);
+      expect(find.text('Nc6 · Mainline theory'), findsOneWidget);
+      // One attempt row, written with the verdict once it arrived.
+      final attempt = api.attempts.single;
+      expect(attempt['uci'], 'b8c6');
+      expect(attempt['kept'], true);
+      expect(attempt['verdict'], 'theory');
+    });
+
+    testWidgets('without the book the move is still kept, and it says so',
+        (tester) async {
+      await pump(tester, bookAvailable: false);
+
+      await play(tester, 'b8', 'c6');
+
+      expect(api.kept[keyOf(smithMorra)]!.single.san, 'Nc6');
+      expect(
+          find.textContaining('opening book is not available'), findsWidgets);
+    });
+
+    testWidgets('a move the server refused is not shown as kept',
+        (tester) async {
+      await pump(tester);
+      api.keepFails = true;
+
+      await play(tester, 'b8', 'c6');
+
+      expect(find.textContaining('Move was not saved'), findsOneWidget);
+      expect(find.text('What do you play with Black?'), findsOneWidget);
+      expect(api.attempts, isEmpty);
+    });
+
+    testWidgets('a move already kept is not kept again', (tester) async {
+      await pump(tester, seed: seedNc6);
+
+      await play(tester, 'b8', 'c6');
+
+      expect(api.kept[keyOf(smithMorra)]!.length, 1);
+      expect(judge.judged, 0,
+          reason: 'a decision that exists is not re-judged');
+      expect(find.text('After Nc6 — which opponent moves do you prepare?'),
+          findsOneWidget);
+    });
   });
 
-  testWidgets('nothing can be played onto the board while the answers are up',
-      (tester) async {
-    await pump(tester);
+  group('the opponent\'s moves are played on the board too', () {
+    testWidgets('an opponent move is entered and the board goes on',
+        (tester) async {
+      await pump(tester, seed: seedNc6);
+      await play(tester, 'b8', 'c6');
 
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
+            .isAllowedToMove,
+        isTrue,
+      );
+      await play(tester, 'g1', 'f3');
 
-    // The board is showing a position it is White's turn in. A move dragged
-    // there would be judged as the student's own, in a position that is not the
-    // one they were asked about.
-    expect(
-      tester
-          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
-          .isAllowedToMove,
-      isFalse,
-    );
+      expect(api.entered.single.uci, 'g1f3');
+      expect(
+          keyOf(api.entered.single.fen), keyOf(fenAfter(smithMorra, ['Nc6'])));
+      expect(find.text('What do you play with Black?'), findsOneWidget);
+      expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
+    });
+
+    testWidgets('including a move the book does not know', (tester) async {
+      await pump(tester, seed: seedNc6);
+      await play(tester, 'b8', 'c6');
+
+      await play(tester, 'h2', 'h3');
+
+      expect(api.entered.single.uci, 'h2h3');
+      expect(find.text('4...Nc6 5.h3'), findsOneWidget);
+    });
   });
 
-  testWidgets('nothing is asked for until a move has been kept',
-      (tester) async {
-    await pump(tester);
+  group('the book beside the board', () {
+    testWidgets('is simply there, as chips, with nothing to open',
+        (tester) async {
+      await pump(tester);
 
-    final dalje = find.widgetWithText(FilledButton, 'Next');
-    expect(tester.widget<FilledButton>(dalje).onPressed, isNull,
-        reason: 'nema šta da se otvori dok pozicija nema nijedan odgovor');
+      expect(bookAsked, [smithMorra]);
+      expect(find.textContaining('Nc6 (60%)'), findsOneWidget);
+      expect(find.textContaining('d6 (30%)'), findsOneWidget);
+      expect(find.textContaining('Open book'), findsNothing);
+      expect(find.textContaining('query'), findsNothing);
+      expect(find.text('Play'), findsNothing);
+    });
+
+    testWidgets('each chip says how many games played the move',
+        (tester) async {
+      await pump(tester);
+
+      expect(find.text('Nc6 (60%) · 600'), findsOneWidget);
+    });
+
+    testWidgets('a chip played is a move kept', (tester) async {
+      await pump(tester);
+
+      await tester.tap(find.textContaining('Nc6 (60%)'));
+      await tester.pumpAndSettle();
+
+      expect(api.kept[keyOf(smithMorra)]!.single.uci, 'b8c6');
+    });
+
+    testWidgets('marks the move already kept', (tester) async {
+      await pump(tester, seed: seedNc6);
+
+      expect(find.textContaining('Nc6 ★ (60%)'), findsOneWidget);
+    });
+
+    testWidgets('follows the board to the opponent\'s side', (tester) async {
+      await pump(tester, seed: seedNc6);
+
+      await play(tester, 'b8', 'c6');
+
+      expect(keyOf(bookAsked.last), keyOf(fenAfter(smithMorra, ['Nc6'])));
+      expect(find.textContaining('Nf3 (100%)'), findsOneWidget);
+    });
+
+    testWidgets('an answer for the old position never lands on the new one',
+        (tester) async {
+      final held = Completer<OpeningExplorerLookup>();
+      await pump(tester,
+          seed: seedNc6,
+          settle: false,
+          explore: (fen) => keyOf(fen) == keyOf(smithMorra)
+              ? held.future
+              : Future.value(_book(fen)));
+
+      // Frame by frame rather than pumpAndSettle: the held lookup keeps the
+      // screen busy, and a busy screen never settles.
+      Future<void> pumpFrames() async {
+        for (var i = 0; i < 20; i++) {
+          await tester.pump(const Duration(milliseconds: 20));
+        }
+      }
+
+      await tester.tapAt(squareAt(tester, 'b8'));
+      await pumpFrames();
+      await tester.tapAt(squareAt(tester, 'c6'));
+      await pumpFrames();
+      expect(find.textContaining('Nf3 (100%)'), findsOneWidget);
+
+      held.complete(_book(smithMorra));
+      await pumpFrames();
+
+      expect(find.textContaining('Nf3 (100%)'), findsOneWidget);
+      expect(find.textContaining('d6 (30%)'), findsNothing);
+    });
   });
 
-  testWidgets('without the book the screen says so instead of judging',
-      (tester) async {
-    await pump(tester, bookAvailable: false);
+  group('what is on screen', () {
+    testWidgets('the principle and the advice are in view', (tester) async {
+      await pump(tester);
 
-    await play(tester, 'b8', 'c6');
+      expect(find.textContaining(repertoireBuildPrinciple), findsOneWidget);
+      expect(find.textContaining(repertoireBuildAdvice), findsOneWidget);
+    });
 
-    expect(
-        find.textContaining('opening book is not available'), findsOneWidget);
-    expect(find.textContaining('Lichess token'), findsNothing);
-    expect(find.text('Take Nc6'), findsOneWidget,
-        reason: 'izbor je i dalje korisnikov — sud je pomoć, ne dozvola');
+    testWidgets('nothing retired is offered', (tester) async {
+      await pump(tester, seed: seedNc6);
+
+      for (final gone in const [
+        'Suggest main line',
+        'Review unconfirmed',
+        'Do not prepare this',
+        'Restore this branch',
+        'Next',
+        'Skip',
+      ]) {
+        expect(find.text(gone), findsNothing, reason: gone);
+      }
+      expect(find.textContaining('queries'), findsNothing);
+
+      await play(tester, 'b8', 'c6');
+      expect(find.textContaining('Back to'), findsNothing);
+    });
+
+    testWidgets('the counts are counts', (tester) async {
+      await pump(tester,
+          walk: RepertoireFrontier(
+            decided: 3,
+            open: [
+              FrontierNode(
+                  fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+                  path: const ['Nc6', 'Nf3']),
+            ],
+          ));
+
+      expect(find.text('decided 3 · open 1'), findsOneWidget);
+      expect(find.textContaining('%'), findsWidgets); // the book's chips only
+      expect(find.textContaining('unanswered'), findsOneWidget);
+      expect(find.textContaining('unanswered 0%'), findsNothing);
+    });
+  });
+
+  group('the main move', () {
+    testWidgets('can be chosen, and the screen says how', (tester) async {
+      await pump(tester, seed: {
+        keyOf(smithMorra): const [
+          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+          RepertoireMove(uci: 'd7d6', san: 'd6', role: 'alternate'),
+        ],
+      });
+
+      expect(find.text('Your moves here'), findsOneWidget);
+      expect(find.text('main'), findsOneWidget);
+      await tester.tap(find.text('tap for main'));
+      await tester.pumpAndSettle();
+
+      expect(api.promoted, 'd7d6');
+    });
+
+    testWidgets('is drawn with its star, beside its share', (tester) async {
+      await pump(tester, seed: {
+        keyOf(smithMorra): const [
+          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
+          RepertoireMove(uci: 'd7d6', san: 'd6', role: 'alternate'),
+        ],
+      });
+
+      final drawn = arrows(tester);
+      expect(drawn.length, 2);
+      expect(drawn.first.evalText, '★ 60%');
+      expect(drawn.first.rank, 1);
+      expect(drawn.last.to, 'd6');
+      expect(drawn.last.evalText, '30%');
+      expect(drawn.last.rank, 2);
+    });
+  });
+
+  group('deleting a move', () {
+    testWidgets('that strands nothing goes without a question', (tester) async {
+      await pump(tester, seed: seedNc6);
+
+      await tester.tap(find.byTooltip('Remove'));
+      await tester.pumpAndSettle();
+
+      expect(api.removed, ['b8c6']);
+      expect(find.textContaining('Nc6 was removed'), findsOneWidget);
+    });
+
+    testWidgets('that would take moves of yours with it asks first',
+        (tester) async {
+      await pump(tester, seed: seedNc6);
+      api.orphans = (keys: const ['k1', 'k2'], decisions: 2);
+
+      await tester.tap(find.byTooltip('Remove'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete Nc6?'), findsOneWidget);
+      expect(find.textContaining('2 moves'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(api.removed, isEmpty);
+      expect(api.pruned, isEmpty);
+
+      await tester.tap(find.byTooltip('Remove'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(api.removed, ['b8c6']);
+      expect(api.pruned, [
+        ['k1', 'k2']
+      ]);
+    });
+  });
+
+  group('the engine', () {
+    testWidgets('answers on request, at the depth that was set',
+        (tester) async {
+      engineAsked = null;
+      await pump(tester);
+
+      expect(find.text('Engine'), findsNothing);
+      await tester.tap(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Engine'), findsOneWidget);
+      expect(engineAsked, isNotNull);
+      expect(find.text('+0.20'), findsOneWidget);
+    });
+
+    testWidgets('a line tapped is a move kept, like any other', (tester) async {
+      await pump(tester, size: const Size(500, 1400));
+
+      await tester.tap(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('+0.20'));
+      await tester.pumpAndSettle();
+
+      expect(api.kept[keyOf(smithMorra)]!.single.uci, 'b8c6');
+    });
+
+    testWidgets('an answer for the old position never lands on the new one',
+        (tester) async {
+      final gate = Completer<List<AnalysisLine>>();
+      await pump(tester, analyse: (fen, depth, multiPV) => gate.future);
+      api.topReplies['b8c6'] = (uci: 'g1f3', san: 'Nf3');
+
+      await tester.tap(find.text('Ask engine'));
+      await tester.pump();
+
+      Future<void> until(Finder finder) async {
+        for (var i = 0; i < 40 && finder.evaluate().isEmpty; i++) {
+          await tester.pump(const Duration(milliseconds: 20));
+        }
+        expect(finder, findsWidgets);
+      }
+
+      await tester.tapAt(squareAt(tester, 'b8'));
+      await tester.pump();
+      await tester.tapAt(squareAt(tester, 'c6'));
+      await until(find.text('4...Nc6 5.Nf3'));
+
+      gate.complete([
+        AnalysisLine(
+          multipv: 1,
+          depth: 28,
+          evaluation: '-0.03',
+          bestMoveLan: 'c1b2',
+          bestMoveSan: 'Bxb2',
+          continuationLan: '',
+          continuationSan: 'Bxb2 Bb4+',
+          sanMoveList: const [],
+          fenList: const [],
+          fromSquare: 'c1',
+          toSquare: 'b2',
+        ),
+      ]);
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+
+      expect(find.text('Bxb2'), findsNothing,
+          reason: 'the answer belongs to the position it was asked about');
+      expect(find.text('-0.03'), findsNothing);
+    });
+
+    testWidgets('changing the depth asks again instead of looking stopped',
+        (tester) async {
+      var calls = 0;
+      final depths = <int>[];
+      await pump(tester, analyse: (fen, depth, multiPV) async {
+        calls += 1;
+        depths.add(depth);
+        return const <AnalysisLine>[];
+      });
+
+      await tester.tap(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+
+      await tester.tap(find.text('${depths.first}').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('24').last);
+      await tester.pumpAndSettle();
+
+      expect(calls, 2);
+      expect(depths.last, 24);
+    });
+  });
+
+  group('the walk', () {
+    testWidgets('says which line the board belongs to', (tester) async {
+      await pump(tester, rootPath: const [
+        'e4',
+        'c5',
+        'd4',
+        'cxd4',
+        'c3',
+        'dxc3',
+        'Nxc3',
+      ]);
+
+      expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3'), findsOneWidget);
+    });
+
+    testWidgets(
+        'without a stored root path the line is numbered from the board',
+        (tester) async {
+      await pump(tester,
+          walk: RepertoireFrontier(
+            decided: 1,
+            open: [
+              FrontierNode(
+                fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+                path: const ['Nc6', 'Nf3'],
+              ),
+            ],
+          ));
+
+      expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
+    });
+
+    testWidgets('a walk that could not be read falls back to the root',
+        (tester) async {
+      await pump(tester);
+
+      expect(api.frontierCalls, 1);
+      expect(find.text('What do you play with Black?'), findsOneWidget);
+      expect(find.textContaining('starting from'), findsOneWidget);
+    });
+
+    testWidgets(
+        'open positions come shallower first, and Next position walks them',
+        (tester) async {
+      await pump(tester,
+          walk: RepertoireFrontier(
+            open: [
+              FrontierNode(
+                fen: fenAfter(smithMorra, ['Nc6', 'Nf3', 'e6', 'Bc4']),
+                path: const ['Nc6', 'Nf3', 'e6', 'Bc4'],
+              ),
+              FrontierNode(
+                fen: fenAfter(smithMorra, ['d6', 'Bc4']),
+                path: const ['d6', 'Bc4'],
+              ),
+            ],
+          ));
+
+      expect(find.text('4...d6 5.Bc4'), findsOneWidget);
+      expect(find.text('1 more unanswered position, not counting this one.'),
+          findsOneWidget);
+
+      await tester.ensureVisible(find.text('Next position'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next position'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('4...Nc6 5.Nf3 e6 6.Bc4'), findsOneWidget);
+    });
+
+    testWidgets('Next position waits when nothing else is open',
+        (tester) async {
+      await pump(tester);
+
+      final next = find.widgetWithText(OutlinedButton, 'Next position');
+      expect(tester.widget<OutlinedButton>(next).onPressed, isNull);
+    });
+
+    testWidgets('an empty queue is not a dead end', (tester) async {
+      await pump(tester, walk: const RepertoireFrontier(decided: 4, open: []));
+
+      expect(
+          find.text('You have answered all positions reachable by this '
+              'repertoire.'),
+          findsOneWidget);
+      await tester.tap(find.text('Open repertoire'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BoardWithCoordinates), findsOneWidget);
+    });
   });
 
   testWidgets('the loop fits a 360 dp phone', (tester) async {
@@ -940,751 +875,27 @@ void main() {
     await pump(tester, size: const Size(360, 640));
     expect(tester.takeException(), isNull);
 
+    api.topReplies['b8c6'] = (uci: 'g1f3', san: 'Nf3');
     await play(tester, 'b8', 'c6');
     expect(tester.takeException(), isNull);
-
-    // And so does the answers view, which is where the long sentences are: a
-    // paragraph about what the numbers mean, a row per reply, and a warning
-    // about the tail.
-    //
-    // Scrolled to rather than tapped blind. On a 640 px screen the controls sit
-    // below the board and are genuinely off screen — which is a fact about the
-    // layout worth knowing, not something to work around by widening the test.
-    await tester.ensureVisible(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-
-    await tester.ensureVisible(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    expect(find.text('Opponent replies'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  /// The position after a line of SAN moves. Computed rather than pasted: a
-  /// hand-written FEN is a chance to assert against a board that does not
-  /// exist, and the screen would then be right while the test was wrong.
-  String fenAfter(String from, List<String> sans) {
-    final board = chess.Chess.fromFEN(from);
-    for (final san in sans) {
-      board.move(san);
-    }
-    return board.fen;
-  }
-
-  testWidgets('the screen says which line the board belongs to',
-      (tester) async {
-    // The moves that led to the repertoire's own root, so the line reads from
-    // move one. Without them a Smith-Morra repertoire would open on `4...` and
-    // name nothing before it — which is the confusion this screen was built
-    // with: a position, no history, and a count of an invisible list.
-    await pump(tester, rootPath: const [
-      'e4',
-      'c5',
-      'd4',
-      'cxd4',
-      'c3',
-      'dxc3',
-      'Nxc3',
-    ]);
-
-    expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3'), findsOneWidget);
-  });
-
-  testWidgets('without a stored root path the line is numbered from the board',
-      (tester) async {
-    // A repertoire built from a pasted position has no opening to tell, so the
-    // numbering comes from the FEN — Black to move, move four. Guessing move
-    // one instead would put moves on screen that nobody played.
-    await pump(tester,
-        walk: RepertoireFrontier(
-          decided: 1,
-          open: [
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
-              path: const ['Nc6', 'Nf3'],
-              reach: 0.4,
-              kind: 'undecided',
-            ),
-          ],
-        ));
-
-    expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
-  });
-
-  testWidgets('a walk is picked up where it stopped, not at the root',
-      (tester) async {
-    // The queue is not stored anywhere: the server rebuilds it from the moves
-    // already kept and the books already fetched. Closing the screen used to
-    // throw the walk away and start again at the root, re-spending the Lichess
-    // allowance on replies that had already been paid for.
-    await pump(tester,
-        rootPath: const ['e4', 'c5', 'd4', 'cxd4', 'c3', 'dxc3', 'Nxc3'],
-        walk: RepertoireFrontier(
-          decided: 3,
-          openReach: 0.55,
-          open: [
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
-              path: const ['Nc6', 'Nf3'],
-              reach: 0.4,
-              kind: 'undecided',
-            ),
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
-              path: const ['d6', 'Bc4'],
-              reach: 0.15,
-              kind: 'undecided',
-            ),
-          ],
-        ));
-
-    expect(api.frontierCalls, 1);
-    // Most-reached first: the screen opens on the line the student will meet
-    // most often, and the other one is waiting behind it.
-    expect(find.text('1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 Nc6 5.Nf3'),
-        findsOneWidget);
-    expect(find.text('1 more unanswered position, not counting this one.'),
-        findsOneWidget);
-    expect(find.textContaining('unanswered 55%'), findsOneWidget);
-  });
-
-  testWidgets('a line that was decided and then left says what it needs',
-      (tester) async {
-    await pump(tester,
-        walk: RepertoireFrontier(
-          decided: 2,
-          unopened: 1,
-          open: [
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
-              path: const ['Nc6', 'Nf3'],
-              reach: 0.4,
-              kind: 'unopened',
-            ),
-          ],
-        ));
-
-    // Coming back to a position that already has a move in it reads as a
-    // mistake unless the screen says why it is here.
-    expect(find.textContaining('all that remains is to take the replies'),
-        findsOneWidget);
-  });
-
-  testWidgets(
-      'a walk that could not be read falls back to the root, and says so',
-      (tester) async {
-    // "We could not find out where you were" must never be shown as "there is
-    // nothing left to do". The root is a real question, so the screen works;
-    // the sentence is there so nobody reads a restart as progress.
-    await pump(tester);
-
-    expect(api.frontierCalls, 1);
-    expect(find.text('What do you play with Black?'), findsOneWidget);
-    expect(find.textContaining('starting from'), findsOneWidget);
-  });
-
-  testWidgets('a line opened deep goes in front of a shallow one queued first',
-      (tester) async {
-    // The order is `reach` and nothing else — how often a game actually
-    // arrives at a position. New positions used to be appended, so the main
-    // line opened halfway through a session waited behind every sideline
-    // enqueued before it, and the same walk resumed tomorrow came back in the
-    // server's order instead. Two orders for one walk is the worse half: what
-    // gets learned is the shape of a session, not the shape of the tree.
-    await pump(tester,
-        walk: RepertoireFrontier(
-          open: [
-            FrontierNode(
-              fen: smithMorra,
-              path: const [],
-              reach: 1,
-              kind: 'undecided',
-            ),
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
-              path: const ['d6', 'Bc4'],
-              reach: 0.2,
-              kind: 'undecided',
-            ),
-          ],
-        ));
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next position'));
-    await tester.pumpAndSettle();
-
-    // 5.Nf3 is played in half the games from a position reached in all of
-    // them: 0.50, against the sideline's 0.20. It was queued second and it is
-    // asked first. (The fake book names its moves in UCI, which is why the
-    // line reads `5.g1f3`.)
-    expect(find.text('4...Nc6 5.g1f3'), findsOneWidget);
-    expect(find.text('1 more unanswered position, not counting this one.'),
-        findsOneWidget);
-  });
-
-  testWidgets('a cut branch takes everything under it out of the queue',
-      (tester) async {
-    // The one control in this loop that makes the tree smaller. If what is
-    // under the cut stayed in the queue, the tree would be exactly as big as
-    // before — which is how a control teaches people not to press it.
-    await pump(tester,
-        // On a phone, because this adds a fifth button to a row of Serbian
-        // labels and a release build clips an overflow without drawing a
-        // stripe. In a test build it throws, which is the point of the size.
-        size: const Size(360, 640),
-        walk: RepertoireFrontier(
-          open: [
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
-              path: const ['Nc6', 'Nf3'],
-              reach: 0.6,
-              kind: 'undecided',
-            ),
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['Nc6', 'Nf3', 'e6', 'Bc4']),
-              path: const ['Nc6', 'Nf3', 'e6', 'Bc4'],
-              reach: 0.3,
-              kind: 'undecided',
-            ),
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
-              path: const ['d6', 'Bc4'],
-              reach: 0.2,
-              kind: 'undecided',
-            ),
-          ],
-        ));
-
-    expect(find.text('2 more unanswered positions, not counting this one.'),
-        findsOneWidget);
-    // Scrolled to rather than tapped blind: on a 640 px screen the controls sit
-    // below the board and are genuinely off screen.
-    await tester.ensureVisible(find.text('Do not prepare this'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Do not prepare this'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-
-    expect(api.cut.single,
-        fenAfter(smithMorra, ['Nc6', 'Nf3']).split(' ').take(4).join(' '));
-    // The line below it went with it; the unrelated one did not. „Izašla",
-    // feminine singular, because one position agrees with its verb — the three
-    // forms went through `serbianCount` on 3.9.2026, and this assertion is
-    // what noticed.
-    expect(find.textContaining('1 more position was removed with it'),
-        findsOneWidget);
-    expect(find.text('Last unanswered position reachable by this repertoire.'),
-        findsOneWidget);
-    expect(find.textContaining('4...d6 5.Bc4'), findsOneWidget);
-    // Counted apart from "bez odgovora", and never taken off it: cutting is
-    // work refused, not work done, and those games are still going to be
-    // played.
-    expect(find.textContaining('not preparing 1 (60%)'), findsOneWidget);
-  });
-
-  testWidgets('a cut branch can be put back', (tester) async {
-    // Cutting has to be as cheap to undo as to do. A prune nobody can reverse
-    // is not a decision, it is a risk, and people do not take it.
-    await pump(tester,
-        walk: RepertoireFrontier(
-          open: [
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
-              path: const ['Nc6', 'Nf3'],
-              reach: 0.6,
-              kind: 'undecided',
-            ),
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['d6', 'Bc4']),
-              path: const ['d6', 'Bc4'],
-              reach: 0.2,
-              kind: 'undecided',
-            ),
-          ],
-        ));
-
-    await tester.tap(find.text('Do not prepare this'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Prepare this branch anyway'));
-    await tester.pumpAndSettle();
-
-    expect(api.restored.single,
-        fenAfter(smithMorra, ['Nc6', 'Nf3']).split(' ').take(4).join(' '));
-    expect(find.textContaining('Branch was returned to the queue'),
-        findsOneWidget);
-    // Back in the queue, in its own place — not shoved in front of the
-    // position the student is in the middle of answering.
-    expect(find.text('1 more unanswered position, not counting this one.'),
-        findsOneWidget);
-    expect(find.textContaining('ne spremam'), findsNothing);
-  });
-
-  testWidgets('the repertoire root is never offered as a branch to cut',
-      (tester) async {
-    // Cutting the root is not pruning, it is deleting the repertoire from
-    // inside the screen that builds it — and it is the one cut that leaves no
-    // way back in.
-    await pump(tester);
-
-    expect(find.text('What do you play with Black?'), findsOneWidget);
-    expect(find.text('Do not prepare this'), findsNothing);
-  });
-
-  testWidgets('a cut the server refused is not shown as done', (tester) async {
-    // The oldest bug in this codebase, in its usual shape: a step that fails
-    // quietly and reports success. A branch that looks gone and comes back
-    // tomorrow is worse than one that was never cut.
-    await pump(tester,
-        cutFails: true,
-        walk: RepertoireFrontier(
-          open: [
-            FrontierNode(
-              fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
-              path: const ['Nc6', 'Nf3'],
-              reach: 0.6,
-              kind: 'undecided',
-            ),
-          ],
-        ));
-
-    await tester.tap(find.text('Do not prepare this'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('Branch remained'), findsOneWidget);
-    expect(find.textContaining('ne spremam'), findsNothing);
-    // Still the position that was there: nothing moved on.
-    expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
-  });
-
-  testWidgets('a move past the covered wave can be prepared by hand',
-      (tester) async {
-    // The wall. The wave covers 80% of what is played, up to four moves, and
-    // names the remainder — which was countable and unreachable: twenty-eight
-    // moves carrying a sixth of the games, and no way to say "that one too".
-    await pump(tester);
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-
-    // Folded away by default: ten moves at one per cent each under every
-    // position would bury the answers that decide the next wave.
-    expect(find.text('Bc4'), findsNothing);
-    await tester.tap(find.text('Prepare some of them'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Bc4'), findsOneWidget);
-    await tester.tap(find.text('Prepare').first);
-    await tester.pumpAndSettle();
-
-    // Written down on the server, not only queued here: the frontier follows
-    // covered replies only, so a hand-picked one that was not stored would be
-    // lost the moment the screen closed.
-    expect(api.prepared, ['f1c4']);
-    expect(find.textContaining('Bc4 is now in preparation'), findsOneWidget);
-    expect(find.text('in preparation'), findsOneWidget);
-  });
-
-  testWidgets('a prepared move joins the queue in its own place',
-      (tester) async {
-    // Choosing it deliberately says it must be prepared, not that it has
-    // suddenly become common. It waits behind the lines that are.
-    await pump(tester);
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    // One position came out of the covered wave.
-    expect(find.text('1 more unanswered position, not counting this one.'),
-        findsOneWidget);
-
-    await tester.tap(find.text('Prepare some of them'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Prepare').first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('2 more unanswered positions, not counting this one.'),
-        findsOneWidget);
-  });
-
-  testWidgets('a preparation the server refused is not shown as done',
-      (tester) async {
-    // The oldest shape of bug here: a step that fails quietly and reports
-    // success. A move that looks prepared and is gone tomorrow is worse than
-    // one that was never offered.
-    await pump(tester, prepareFails: true);
-
-    await play(tester, 'b8', 'c6');
-    await tester.tap(find.text('Take Nc6'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Prepare some of them'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Prepare').first);
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('was not added to preparation'), findsOneWidget);
-    expect(find.text('in preparation'), findsNothing);
-    expect(find.text('1 more unanswered position, not counting this one.'),
-        findsOneWidget);
-  });
-
-  testWidgets('a generated move is marked as a draft and can be confirmed',
-      (tester) async {
-    // The act the whole draft idea rests on. Until somebody says yes, a move
-    // nobody chose is scaffolding — drawn and walked through, never drilled.
-    // The archive seed had no such act, which is exactly why it was deleted.
-    await pump(tester, seed: {
-      smithMorra.split(' ').take(4).join(' '): const [
-        RepertoireMove(
-            uci: 'b8c6', san: 'Nc6', role: 'primary', source: 'auto'),
-      ],
-    });
-
-    expect(find.textContaining('not yet your choice'), findsOneWidget);
-    await tester.tap(find.text('Confirm'));
-    await tester.pumpAndSettle();
-
-    expect(api.confirmed, ['b8c6']);
-    expect(find.textContaining('not yet your choice'), findsNothing);
-    expect(find.text('main'), findsOneWidget);
-  });
-
-  testWidgets('a move the student chose is not offered for confirmation',
-      (tester) async {
-    await pump(tester, seed: {
-      smithMorra.split(' ').take(4).join(' '): const [
-        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-      ],
-    });
-
-    expect(find.text('Confirm'), findsNothing);
-    expect(find.text('main'), findsOneWidget);
-  });
-
-  testWidgets('the spine writes a trunk and says it is only a draft',
-      (tester) async {
-    // The answer to "thirty questions before it looks like an opening". What it
-    // writes must never read as something the student decided.
-    await pump(tester);
-    api.spine = const SpineResult(
-      written: 2,
-      path: ['Nc6', 'Nf3', 'e6', 'd4'],
-    );
-
-    await tester.tap(find.text('Suggest main line'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('6 moves'));
-    await tester.pumpAndSettle();
-
-    expect(api.spineDepth, 6);
-    expect(find.textContaining('Recorded 2'), findsOneWidget);
-    expect(find.textContaining('Confirm what you agree with'), findsOneWidget);
-  });
-
-  testWidgets('a spine that stopped early says where and why', (tester) async {
-    // Top-1 at ply twenty is sometimes forty games. A spine that came back
-    // short without a word would be every silent truncation this codebase has
-    // had to fix.
-    await pump(tester);
-    api.spine = const SpineResult(
-      written: 1,
-      path: ['Nc6', 'Nf3'],
-      reason: 'thin',
-      games: 40,
-      minGames: 100,
-    );
-
-    await tester.tap(find.text('Suggest main line'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('4 moves'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('stopped because further is too thin'),
-        findsOneWidget);
-    expect(find.textContaining('40 games'), findsOneWidget);
-  });
-
-  // Past the depth the book was built to, the line may be as thick as ever;
-  // "too thin" would send the student looking for a sideline that is not the
-  // problem. And a stored move that no longer plays is a broken tree, not a
-  // thin one — until 15.9.2026 both read "too thin". One test each: a second
-  // pump in one test keeps the first screen's state, and its fake.
-  for (final (reason, sentence) in [
-    ('beyond-book', 'stopped where the opening book ends'),
-    ('illegal', 'stopped at a stored move that no longer plays'),
-  ]) {
-    testWidgets('a spine that stopped with "$reason" does not call it thin',
-        (tester) async {
-      await pump(tester);
-      api.spine = SpineResult(
-        written: 1,
-        path: const ['Nc6', 'Nf3'],
-        reason: reason,
-        minGames: 100,
-      );
-
-      await tester.tap(find.text('Suggest main line'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('4 moves'));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining(sentence), findsOneWidget);
-      expect(find.textContaining('too thin'), findsNothing);
-    });
-  }
-
-  testWidgets('a spine that wrote nothing past the book says that, too',
-      (tester) async {
-    await pump(tester);
-    api.spine = const SpineResult(reason: 'beyond-book', minGames: 100);
-
-    await tester.tap(find.text('Suggest main line'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('4 moves'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('deeper than the opening book goes'),
-        findsOneWidget);
-    expect(find.textContaining('too thin'), findsNothing);
-  });
-
-  testWidgets('a spine that wrote nothing does not claim a line',
-      (tester) async {
-    await pump(tester);
-    api.spine = const SpineResult(reason: 'thin', minGames: 100);
-
-    await tester.tap(find.text('Suggest main line'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('4 moves'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('Nothing was recorded'), findsOneWidget);
-  });
-
-  testWidgets('a spine the server refused says so', (tester) async {
-    await pump(tester);
-    // `spine` left null: the fake answers the way a server that did not reply
-    // does.
-    await tester.tap(find.text('Suggest main line'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('4 moves'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('Server nije odgovorio'), findsOneWidget);
-    expect(find.textContaining('Upisano'), findsNothing);
-  });
-
-  testWidgets('removing a move sweeps the drafts it stranded, silently',
-      (tester) async {
-    // Drafts go without a word; there is nothing to ask about a move nobody
-    // chose.
-    await pump(tester, seed: {
-      smithMorra.split(' ').take(4).join(' '): const [
-        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-      ],
-    });
-    api.orphans = (keys: ['k1', 'k2'], drafts: 2, decisions: 0);
-
-    await tester.tap(find.byTooltip('Remove'));
-    await tester.pumpAndSettle();
-
-    // One sweep, and it was not allowed to touch decisions.
-    expect(api.pruned, [false]);
-    expect(find.textContaining('Also removed 2 moves'), findsOneWidget);
-  });
-
-  testWidgets('a decision that would be stranded is asked about, not taken',
-      (tester) async {
-    // Losing an evening's work to a changed second move, with no sentence about
-    // it, is the kind of thing that happens once and ends trust in a feature.
-    await pump(tester, seed: {
-      smithMorra.split(' ').take(4).join(' '): const [
-        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-      ],
-    });
-    api.orphans = (keys: ['k1'], drafts: 0, decisions: 3);
-
-    await tester.tap(find.byTooltip('Remove'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Left disconnected'), findsOneWidget);
-    expect(find.textContaining('3 of your decisions'), findsOneWidget);
-    await tester.tap(find.text('Keep'));
-    await tester.pumpAndSettle();
-
-    // Nothing swept: the drafts count was zero and the decisions were kept.
-    expect(api.pruned, isEmpty);
-  });
-
-  testWidgets('saying yes is what lets decisions go', (tester) async {
-    await pump(tester, seed: {
-      smithMorra.split(' ').take(4).join(' '): const [
-        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-      ],
-    });
-    api.orphans = (keys: ['k1'], drafts: 0, decisions: 1);
-
-    await tester.tap(find.byTooltip('Remove'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete them too'));
-    await tester.pumpAndSettle();
-
-    expect(api.pruned, [true]);
-  });
-
-  testWidgets('a removal that stranded nothing says nothing', (tester) async {
-    await pump(tester, seed: {
-      smithMorra.split(' ').take(4).join(' '): const [
-        RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-      ],
-    });
-    api.orphans = (keys: const [], drafts: 0, decisions: 0);
-
-    await tester.tap(find.byTooltip('Remove'));
-    await tester.pumpAndSettle();
-
-    expect(api.pruned, isEmpty);
-    expect(find.textContaining('Also removed'), findsNothing);
-  });
-
-  testWidgets('one list beside the board, for the side to move',
-      (tester) async {
-    // Two of them were on screen at once — what is played here, and what the
-    // opponent answers the main move with — which is two lists about two
-    // different positions stacked under one board. The second one now lives on
-    // the position it is about, one step forward. And it costs nothing: one
-    // token serves every child using this app.
-    await pump(
-      tester,
-      seed: {
-        smithMorra.split(' ').take(4).join(' '): const [
-          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-        ],
-      },
-      book: const StoredBook(
-        fen: 'x',
-        opened: true,
-        replies: [
-          StoredReply(
-              uci: 'g1f3', san: 'Nf3', games: 500, share: 0.5, covered: true),
-          StoredReply(uci: 'f1c4', san: 'Bc4', games: 90, share: 0.09),
-        ],
-      ),
-    );
-
-    // The board's own position, and only that.
-    expect(find.text('What is played here'), findsOneWidget);
-    expect(find.textContaining('After Nc6'), findsNothing);
-    expect(find.text('Nf3'), findsWidgets);
-    // And the judge was never asked anything for this.
-    expect(judge.asked, 0);
-  });
-
-  testWidgets('a position nobody has opened offers to open it, once',
-      (tester) async {
-    // Two different empties. "Nobody has looked" is an invitation; "the
-    // opponent plays nothing" would be a lie.
-    await pump(
-      tester,
-      seed: {
-        smithMorra.split(' ').take(4).join(' '): const [
-          RepertoireMove(uci: 'b8c6', san: 'Nc6', role: 'primary'),
-        ],
-      },
-      book: const StoredBook(fen: 'x'),
-    );
-
-    expect(find.textContaining('No one has opened this position yet'),
-        findsOneWidget);
-    expect(judge.asked, 0);
-
-    await tester.tap(find.text('Open book (1 query)'));
-    await tester.pumpAndSettle();
-
-    // Exactly one, and only because it was asked for.
-    expect(judge.asked, 1);
-    expect(find.textContaining('queries: 1'), findsOneWidget);
   });
 
   testWidgets('the opening banner is never keyed on anything that moves',
       (tester) async {
-    // The banner carries the last opening it was able to name, because the ECO
-    // dataset names openings and not every position in them: walk four moves
-    // into a real line and the lookup returns null, and a banner that rendered
-    // whatever it was just handed would go blank exactly where the student is
-    // working hardest.
-    //
-    // That carried name lives in the widget's State, so **a key that changes
-    // as the walk advances throws it away**. This shipped once: both screens
-    // mounted the banner as `key: ValueKey(_boardJumpCount)` with the counter
-    // incremented on every advance, so the name reset on every question. The
-    // widget's own test passed the whole time — it pumps the banner directly
-    // and never sees the key the screen supplies.
-    //
-    // Hence a composition assertion rather than a behavioural one.
-    //
-    // **This guard used to demand no key at all**, on the reasoning that there
-    // was no key the screen could legitimately need. That stopped being true on
-    // 5.9.2026, when the banner gained a second home: it draws in the app bar
-    // above 1200 dp and above the board below it, and a widget that changes
-    // parent gets a **new** State unless it is identified by a `GlobalKey`. So
-    // the carried name would now be lost by having no key, which is the very
-    // fault this test was written about.
-    //
-    // The rule was never „no key". It was **no key that changes as the walk
-    // advances** — the one that shipped was `ValueKey(_boardJumpCount)`. A
-    // `GlobalKey` held in the State is made once and never changes, so it is
-    // required here and a `ValueKey` still fails.
+    // The banner carries the last opening it was able to name in its State, so
+    // a key that changes as the walk advances throws that name away. A
+    // `GlobalKey` held in the State is made once and never changes.
     await tester.runAsync(() async {});
     await pump(tester,
         openingLookup: (fen) => OpeningBookEntry(
               eco: 'B21',
-              name: 'Sicilijanka, Smit-Mora',
+              name: 'Sicilian, Smith-Morra',
               pgn: '1. e4 c5 2. d4',
             ));
 
     final banner = tester.widget<OpeningBanner>(find.byType(OpeningBanner));
-    expect(banner.key, isA<GlobalKey>(),
-        reason: 'bez stabilnog ključa se nošeno ime gubi pri selidbi');
-    expect(banner.key, isNot(isA<ValueKey>()),
-        reason: 'a changing key resets the carried opening name');
-    expect(find.text('B21 · Sicilijanka, Smit-Mora'), findsOneWidget);
-  });
-  testWidgets('an empty queue is not a dead end', (tester) async {
-    // The finished screen tells the reader to go back to a position and take
-    // more replies. It offered „Nazad" and nothing else, so a repertoire with
-    // a hundred moves in it had no door: no board, no tree, no actions.
-    await pump(tester, walk: const RepertoireFrontier(decided: 4, open: []));
-
-    expect(
-        find.text('You have answered all positions reachable by this '
-            'repertoire.'),
-        findsOneWidget);
-    expect(find.text('Open repertoire'), findsOneWidget);
-
-    await tester.tap(find.text('Open repertoire'));
-    await tester.pumpAndSettle();
-
-    // The board is back, on the repertoire's own root: the question under it
-    // is the one this screen exists to ask.
-    expect(
-        find.text('You have answered all positions reachable by this '
-            'repertoire.'),
-        findsNothing);
-    expect(find.byType(BoardWithCoordinates), findsOneWidget);
+    expect(banner.key, isA<GlobalKey>());
+    expect(banner.key, isNot(isA<ValueKey>()));
+    expect(find.text('B21 · Sicilian, Smith-Morra'), findsOneWidget);
   });
 }

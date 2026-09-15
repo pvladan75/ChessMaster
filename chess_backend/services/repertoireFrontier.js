@@ -1,48 +1,27 @@
 // repertoireFrontier.js — where the student actually is, derived and never stored.
 //
-// The build screen used to keep its queue in memory: close it and the walk was
-// gone, so reopening a repertoire started at the root and re-fetched every
-// reply that had already been paid for. Nothing about that queue was worth
-// storing, because it is not a fact — it is a *consequence* of two tables that
-// are already there:
+// A repertoire is two tables and nothing else (docs/PLAN-REPERTOAR-RUCNO.md):
 //
-//   * `repertoire_moves` — what the student decided, per position.
-//   * `opening_replies`  — what the opponent plays there, written down when the
-//     position was first opened and shared by everyone afterwards.
+//   * `repertoire_moves`         — the student's own moves, per position.
+//   * `repertoire_extra_replies` — the opponent's moves the student entered:
+//     the book's most played reply, entered with the student's move, and every
+//     other one played by hand on the board.
 //
-// Walking those two gives the queue back exactly, and gives it back the same on
-// any device, after any crash, for free. **No Lichess request is made here at
-// any point**, which is the rule the drill already keeps: building spends the
-// allowance, everything that reads what was built spends nothing.
+// **The book decides nothing here.** `opening_replies` is read beside the
+// entered moves only for how often each is played, which is a number for the
+// card and for the drill's draw. A move the book does not know is followed like
+// any other, with a share of 0. Until 15.9.2026 the opponent's side was read
+// out of the book at a breadth, which put moves in the tree the student had
+// never gone through — the thing this model exists to stop.
 //
-// Two kinds of position come out of the walk, and both are questions the build
-// screen can already ask:
-//
-//   * `undecided` — your move, and you have kept nothing here. Play something.
-//   * `unopened`  — your move, you have kept something, but at least one of
-//     your moves has no book behind it, so the line stops. Take the replies.
-//
-// And one kind that comes out of the walk without being a question: a position
-// the student **cut** (`repertoire_skips`). The walk stops there and hands it
-// back separately, because a cut branch must not read as progress. Dropping it
-// silently would let `openReach` fall — "less of your games run into an
-// unanswered position" — when nothing has been answered at all.
-//
-// Everything else is either answered or below the cut, and neither is a place
-// the student needs to be taken back to.
-//
-// The same walk also answers "how far have I got, and where", per branch. A
-// branch is one of the opponent's first answers — the Advance, the Exchange,
-// the Two Knights — because in a repertoire the student's own first move is
-// already decided and it is the opponent's choice that names the thing. The
-// tallies are collected here rather than in a second walk, since every number
-// the map needs is passing through this loop anyway.
+// One kind of position comes out of the walk as a question: `undecided` — the
+// student is to move after an entered opponent move and has kept nothing. A
+// move of the student's with no reply entered after it is the end of that
+// line, not a question.
 
 const { Chess } = require('chess.js');
 const { BOOK_BAND, BOOK_SOURCE } = require('./storedReplies');
-const {
-  fenKey, skippedKeys, requireBreadth, DEFAULT_BREADTH,
-} = require('./repertoireService');
+const { fenKey } = require('./repertoireService');
 
 /// Ceilings, so a wide repertoire cannot turn one request into a minute of
 /// database time. Hit either and the answer says `truncated`, because a
@@ -72,28 +51,57 @@ function step(fen, uci) {
 
 /// Every move this student has decided on for this colour, keyed by position.
 ///
-/// One query rather than one per node. A repertoire is a few hundred rows at
-/// the outside and the walk touches most of them; asking the database node by
-/// node would make the request quadratic in the thing it is measuring.
+/// One query rather than one per node: asking the database node by node would
+/// make the request quadratic in the thing it is measuring.
 ///
-/// `onlyChosen` leaves out the generated ones. The queue and the picture follow
-/// everything — a draft you cannot reach is a draft you cannot confirm — while
-/// the drill's line walk follows decisions only, because a line through a move
-/// nobody chose is not the student's line.
-async function keptByPosition(pool, userId, color, { onlyChosen = false } = {}) {
+/// Decisions only. A row written as a draft by the retired spine is not a move
+/// anybody played, and nothing may walk through it.
+async function keptByPosition(pool, userId, color) {
   const result = await pool.query(
     `SELECT fen_key, uci, san, role, source
        FROM repertoire_moves
-      WHERE user_id = $1 AND color = $2
-        AND ($3 = FALSE OR source = 'chosen')
+      WHERE user_id = $1 AND color = $2 AND source = 'chosen'
       ORDER BY (role = 'primary') DESC, added_at ASC`,
-    [userId, color, onlyChosen],
+    [userId, color],
   );
   const map = new Map();
   for (const row of result.rows) {
     const list = map.get(row.fen_key) ?? [];
     list.push({
       uci: row.uci, san: row.san, role: row.role, source: row.source,
+    });
+    map.set(row.fen_key, list);
+  }
+  return map;
+}
+
+/// The opponent's moves the student entered, for a whole level of the walk.
+///
+/// One query per level. The book is joined for its numbers and nothing else —
+/// a LEFT JOIN, so an entered move the book has never seen is still a row, with
+/// 0 games and a share of 0. Most played first, then the order they were
+/// entered, so two moves the book cannot separate keep one order.
+async function enteredReplies(pool, userId, color, keys) {
+  if (keys.length === 0) return new Map();
+  const result = await pool.query(
+    `SELECT e.fen_key, e.uci, e.san,
+            COALESCE(r.games, 0) AS games, COALESCE(r.share, 0) AS share
+       FROM repertoire_extra_replies e
+       LEFT JOIN opening_replies r
+         ON r.fen_key = e.fen_key AND r.uci = e.uci
+        AND r.min_rating = $4 AND r.source = $5
+      WHERE e.user_id = $1 AND e.color = $2 AND e.fen_key = ANY($3)
+      ORDER BY COALESCE(r.games, 0) DESC, e.created_at ASC, e.uci ASC`,
+    [userId, color, keys, BOOK_BAND, BOOK_SOURCE],
+  );
+  const map = new Map();
+  for (const row of result.rows) {
+    const list = map.get(row.fen_key) ?? [];
+    list.push({
+      uci: row.uci,
+      san: row.san,
+      games: Number(row.games) || 0,
+      share: Number(row.share) || 0,
     });
     map.set(row.fen_key, list);
   }
@@ -112,8 +120,7 @@ async function keptByPosition(pool, userId, color, { onlyChosen = false } = {}) 
 ///
 /// A gate whose move is not among the kept ones leaves the position **empty**
 /// rather than untouched: that is the honest state, and it reads on screen as
-/// "this position is not decided yet", which is exactly true of a repertoire
-/// whose first move has not been kept.
+/// "this position is not decided yet".
 function gateMoves(kept, rootKey, gateUci) {
   if (!gateUci) return kept;
   const here = kept.get(rootKey);
@@ -122,206 +129,16 @@ function gateMoves(kept, rootKey, gateUci) {
   return kept;
 }
 
-/// The book for a whole level of the walk, in one query.
+/// The positions still waiting for the student, and how far each of the
+/// opponent's first answers has been taken.
 ///
-/// The covered moves, plus the ones this student asked for by name. The table
-/// also holds the rest of the tail — everything the explorer returned past the
-/// 80% cut — and neither the frontier nor the drill follows it. Following the
-/// whole tail would grow the queue by moves the build loop never enqueued, and
-/// hand back a walk that does not match the one the student was actually on.
-///
-/// The drill used to draw its opponent from the whole tail, so that meeting an
-/// uncovered move showed the student the edge of what they prepared. It no
-/// longer does (`pickReply`), which makes the live opponent and this walk agree
-/// — they disagreed, and the rehearsal was the one that was right.
-///
-/// The exception is the point of `repertoire_extra_replies`. A move the student
-/// pressed "prepare this too" on **was** enqueued, so the walk has to follow it
-/// — otherwise the position is asked once, and closing the screen loses it. It
-/// is also why that decision is stored per student rather than by flipping
-/// `covered`, which is everybody's.
-///
-/// **Breadth** is the second half of it, and it is a property of the
-/// repertoire rather than of the book. `covered` is the 80% cut and it is one
-/// column shared by every user of this server, so the only honest way to let
-/// one student prepare more is to leave that column alone and decide at read
-/// time — which the stored `share` on every row makes possible.
-async function coveredReplies(
-  pool, userId, color, keys, breadth = DEFAULT_BREADTH,
-  { fens = null, kept = null, standing = null } = {},
-) {
-  if (keys.length === 0) return new Map();
-  const wide = requireBreadth(breadth);
-  // Every row for these positions, cut or not, each saying whether it is inside
-  // the stored cut and whether this student asked for it by name. The narrowing
-  // is `withinBreadth`, below, and it is done in JS on purpose: the rule is then
-  // one readable expression that a test can put rows in front of, instead of
-  // three shapes of WHERE clause that only a live database can disprove.
-  //
-  // The row set this widens to is bounded by what the book writer keeps — a
-  // dozen replies per position — so "everything" here is a dozen small rows,
-  // not a tail.
-  const result = await pool.query(
-    `SELECT r.fen_key, r.uci, r.san, r.games, r.share, r.covered,
-            EXISTS (
-              SELECT 1 FROM repertoire_extra_replies e
-               WHERE e.user_id = $3 AND e.color = $4
-                 AND e.fen_key = r.fen_key AND e.uci = r.uci) AS asked
-       FROM opening_replies r
-      WHERE r.min_rating = $1 AND r.fen_key = ANY($2) AND r.source = $5
-      ORDER BY r.games DESC`,
-    [BOOK_BAND, keys, userId, color, BOOK_SOURCE],
-  );
-  const rows = new Map();
-  for (const row of result.rows) {
-    const list = rows.get(row.fen_key) ?? [];
-    list.push(row);
-    rows.set(row.fen_key, list);
-  }
-  const map = new Map();
-  for (const [key, list] of rows) {
-    const inside = new Set(withinBreadth(list, wide).map((row) => row.uci));
-    // ...and every reply that leads somewhere the student has already decided.
-    //
-    // The rule above this one is the same argument for `repertoire_extra_replies`
-    // — a move they pressed "prepare this too" on is followed at every breadth —
-    // and a move they actually played is the stronger case. Without this, a
-    // repertoire set to `main` walks one reply a position and everything built
-    // under the second is not in the reader's own tree: measured 4.9.2026 on a
-    // live repertoire, four nodes reached and none of its twenty-one drafts,
-    // against seventy-nine and all of them at `standard`.
-    //
-    // That is not a narrower view, it is a view that hides the reader's work
-    // from them, and it was the true cause of three separate live findings: a
-    // spine that "wrote nothing", a draft review that found none, and a tree
-    // that did not grow.
-    //
-    // It can only ever add positions they made themselves, so the walk cannot
-    // grow past their own decisions. Off when the caller passes no board — the
-    // landing position cannot be computed without one, and a caller that does
-    // not care keeps exactly the behaviour it had.
-    // ...and every reply that lands on the line the reader is **standing on**.
-    //
-    // The same argument as the clause above, one step further: a breadth is a
-    // reading of the book, and the reader is not the book. Reported live
-    // 5.9.2026 — „ne treba gubiti fokus u stablu poteza" — and the mechanism
-    // was `findNodeByFen(root, fen) ?? root` in the build screen: a position the
-    // drawing did not contain sent the highlight back to the repertoire's root,
-    // which reads as being thrown to the beginning mid-thought.
-    //
-    // The drawing did not contain it because the move had fallen outside the
-    // breadth. **This is the same bug depth already had**, fixed on 4.9.2026 by
-    // sending a `maxPly` deep enough to hold the reader; `standing` is the other
-    // half of it, for width.
-    //
-    // It is the whole line rather than its last position on purpose. A chain
-    // reached one link at a time still needs every earlier link followed, and
-    // a walk that only knew the final square would never arrive at it.
-    //
-    // Like the clause above it, this can only add positions the reader has
-    // actually walked to, so the walk cannot grow past where somebody stood.
-    const here = fens === null ? null : fens.get(key);
-    const followed = (here === null || here === undefined || kept === null)
-      ? list.filter((row) => inside.has(row.uci))
-      : list.filter((row) => {
-        if (inside.has(row.uci)) return true;
-        const landed = step(here, row.uci);
-        if (landed === null) return false;
-        const landedKey = fenKey(landed.fen);
-        return kept.has(landedKey)
-          || (standing !== null && standing.has(landedKey));
-      });
-    if (followed.length > 0) {
-      // Games order, like `withinBreadth` hands its own back: a reply is not
-      // suddenly the main line because of which test let it through.
-      map.set(key, followed
-        .slice()
-        .sort((a, b) => Number(b.games) - Number(a.games))
-        .map((row) => ({
-          uci: row.uci, san: row.san, share: Number(row.share),
-        })));
-    }
-  }
-  return map;
-}
-
-/// How much of a position's book each breadth follows.
-///
-/// The same greedy rule the 80% cut itself uses — rows in games order until
-/// that much of what is played here is accounted for, and never more than that
-/// many moves — so widening reads as "the cut, further out" rather than as a
-/// second, differently shaped idea. `standard` is not recomputed at all: it is
-/// the stored flag, so a repertoire made before breadth existed walks the tree
-/// it has always walked, down to the row.
-///
-/// The three are **nested**: `main` ⊆ `standard` ⊆ `broad`, because all three
-/// take the most played moves first and differ only in where they stop. That
-/// matters more than the numbers do — widening a repertoire must only ever add
-/// positions, and narrowing it must only ever hide them.
-const BREADTH_RULE = {
-  main: { share: 0, replies: 1 },
-  broad: { share: 0.95, replies: 8 },
-};
-
-/// The replies a breadth follows, out of every row stored for one position.
-///
-/// `rows` must be in games order, which is how the query hands them back.
-///
-/// A move the student pressed "prepare this too" on is followed at **every**
-/// breadth, including `main`. It was enqueued when they asked for it, so
-/// dropping it here would ask the position once and lose it the moment the
-/// screen closed — and that decision is stored per student precisely so it does
-/// not depend on where anybody's cut falls.
-function withinBreadth(rows, breadth = DEFAULT_BREADTH) {
-  const wide = requireBreadth(breadth);
-  const asked = rows.filter((row) => row.asked === true);
-  const reply = (row) => ({
-    uci: row.uci, san: row.san, share: Number(row.share),
-  });
-
-  if (wide === 'standard') {
-    return rows
-      .filter((row) => row.covered === true || row.asked === true)
-      .map(reply);
-  }
-
-  const rule = BREADTH_RULE[wide];
-  const taken = [];
-  let running = 0;
-  for (const row of rows) {
-    if (taken.length >= 1
-      && (running >= rule.share || taken.length >= rule.replies)) break;
-    taken.push(row);
-    running += Number(row.share) || 0;
-  }
-  const seen = new Set(taken.map((row) => row.uci));
-  for (const row of asked) {
-    if (!seen.has(row.uci)) taken.push(row);
-  }
-  // Back into games order, so the caller sees the same ordering at every
-  // breadth — an extra reply is not suddenly the main line because it was
-  // appended last.
-  return taken
-    .sort((a, b) => Number(b.games) - Number(a.games))
-    .map(reply);
-}
-
-/// The positions still waiting for the student, most-reached first.
-///
-/// `reach` is the product of the opponent's shares along the path: how often a
-/// game played down this repertoire actually arrives here. It is the ordering,
-/// and it is why the answer goes down the main line before it goes wide —
-/// 1.e4 c5 2.Nf3 d6 3.d4 at 0.21 outranks a third-choice sideline at move two,
-/// and keeps outranking it until the main line's own probability has decayed
-/// far enough. Breadth-first and depth-first are both guesses at this number.
-/// This is the number.
-///
-/// The student's own moves do not divide it. Which of their moves they play is
-/// a decision, not a coin, so an alternate carries the same reach as the
-/// primary — read it as "if you play this, how often do you land here".
+/// Walked level by level — the student's moves, then the replies entered after
+/// them — so the open positions come back shallower first, in the order the
+/// walk met them. Counts only: how often a position is reached is not a number
+/// this model can honestly produce, because the opponent's side is what the
+/// student chose to prepare rather than what the book says is played.
 async function frontier(pool, userId, {
   color, rootFen, rootPath = [], limit = 200, gateUci = null,
-  breadth = DEFAULT_BREADTH,
 } = {}) {
   if (color !== 'w' && color !== 'b') {
     throw new RangeError(`Color must be "w" or "b", not "${color}".`);
@@ -332,20 +149,15 @@ async function frontier(pool, userId, {
 
   const kept = gateMoves(
     await keptByPosition(pool, userId, color), fenKey(rootFen), gateUci);
-  const cut = await skippedKeys(pool, userId, color);
-  const wide = requireBreadth(breadth);
   const base = Array.isArray(rootPath)
     ? rootPath.filter((san) => typeof san === 'string' && san !== '')
     : [];
 
   const open = [];
-  const pruned = [];
   // One tally per opponent first answer, keyed by the pair of moves that opens
   // it — the student's own move and the reply — because a repertoire may keep
   // more than one first move and "2...d6" then means two different branches.
   const branches = new Map();
-
-  /// The tally a node belongs to, made on first sight.
   const tallyFor = (node) => {
     if (node.branch === undefined) return null;
     let tally = branches.get(node.branch.key);
@@ -354,110 +166,52 @@ async function frontier(pool, userId, {
         key: node.branch.key,
         path: node.branch.path,
         fen: node.branch.fen,
-        // How often the opponent goes this way at all. Kept apart from
-        // everything below it: a branch played in one game in twenty is not
-        // urgent however unfinished it is, and a branch played in half of them
-        // is urgent even when it is nearly done.
         share: node.branch.share,
         decided: 0,
-        draft: 0,
-        undecided: 0,
-        unopened: 0,
-        pruned: 0,
-        openReach: 0,
-        prunedReach: 0,
+        open: 0,
         maxPly: 0,
+        found: branches.size,
       };
       branches.set(node.branch.key, tally);
     }
     return tally;
   };
+
   const seen = new Set([fenKey(rootFen)]);
-  let level = [{ fen: rootFen, path: [], reach: 1 }];
+  let level = [{ fen: rootFen, path: [] }];
   let ply = 0;
   let nodes = 1;
   let decided = 0;
-  let draft = 0;
-  let unopened = 0;
   let maxPly = 0;
   let truncated = false;
 
   while (level.length > 0 && ply < MAX_PLY && !truncated) {
-    // Every position on this level the student has answered, paired with where
-    // their answer leads — collected first so the whole level asks the book in
-    // one query instead of one per branch.
-    const branches = [];
+    const moves = [];
     for (const node of level) {
-      // Counted for every node the walk reaches, answered or not: how deep the
-      // repertoire *goes* is the question, and stopping the count at the last
-      // decided position would report the depth of the second-to-last wave.
       maxPly = Math.max(maxPly, node.path.length);
       const tally = tallyFor(node);
       if (tally !== null) tally.maxPly = Math.max(tally.maxPly, node.path.length);
-      // Cut on purpose. Counted as cut and as nothing else: the walk stops
-      // here, so this is neither a question that is open nor a position the
-      // walk passed through, and a header whose numbers overlap is a header
-      // nobody can add up.
-      if (cut.has(fenKey(node.fen))) {
-        pruned.push(node);
-        if (tally !== null) {
-          tally.pruned += 1;
-          tally.prunedReach += node.reach;
-        }
-        continue;
-      }
       const mine = kept.get(fenKey(node.fen)) ?? [];
       if (mine.length === 0) {
-        open.push({ ...node, kind: 'undecided' });
-        if (tally !== null) {
-          tally.undecided += 1;
-          tally.openReach += node.reach;
-        }
+        open.push(node);
+        if (tally !== null) tally.open += 1;
         continue;
       }
-      // Decided by the student, or still a draft somebody generated. Counted
-      // apart and never added together: a map that called a spine "prepared"
-      // would be the seed's lie with a better source.
-      const chosen = mine.some((move) => move.source !== 'auto');
-      if (chosen) {
-        decided += 1;
-      } else {
-        draft += 1;
-      }
-      if (tally !== null) {
-        if (chosen) {
-          tally.decided += 1;
-        } else {
-          tally.draft += 1;
-        }
-      }
+      decided += 1;
+      if (tally !== null) tally.decided += 1;
       for (const move of mine) {
         const after = step(node.fen, move.uci);
-        if (after === null) continue;
-        branches.push({ node, after });
+        if (after !== null) moves.push({ node, after });
       }
     }
 
-    const keys = [...new Set(branches.map((b) => fenKey(b.after.fen)))];
-    // Same rule as the tree walks by, and it has to be the same or the queue
-    // and the picture disagree about what the repertoire contains.
-    const fens = new Map(branches.map((b) => [fenKey(b.after.fen), b.after.fen]));
-    const book = await coveredReplies(
-      pool, userId, color, keys, wide, { fens, kept });
+    const keys = [...new Set(moves.map((m) => fenKey(m.after.fen)))];
+    const replies = await enteredReplies(pool, userId, color, keys);
 
     const next = [];
-    const dangling = new Set();
-    for (const branch of branches) {
-      const replies = book.get(fenKey(branch.after.fen)) ?? [];
-      if (replies.length === 0) {
-        // Decided, but the opponent's side was never taken. The position that
-        // needs the student back is the one *before* their move, because that
-        // is the board the build screen puts up and where its button lives.
-        dangling.add(branch.node);
-        continue;
-      }
-      for (const reply of replies) {
-        const landed = step(branch.after.fen, reply.uci);
+    for (const { node, after } of moves) {
+      for (const reply of replies.get(fenKey(after.fen)) ?? []) {
+        const landed = step(after.fen, reply.uci);
         if (landed === null) continue;
         const key = fenKey(landed.fen);
         if (seen.has(key)) continue;
@@ -467,128 +221,62 @@ async function frontier(pool, userId, {
           truncated = true;
           break;
         }
-        const path = [...branch.node.path, branch.after.san, landed.san];
-        const reach = branch.node.reach * (reply.share > 0 ? reply.share : 0);
         next.push({
           fen: landed.fen,
-          path,
-          reach,
+          path: [...node.path, after.san, landed.san],
           // Children of the root open a branch; everything deeper inherits the
           // one it is in. A transposition keeps the branch it was first reached
           // through, which is the same first-wins rule the queue itself keeps.
-          branch: branch.node.branch ?? {
-            key: `${branch.after.san} ${landed.san}`,
-            path: [branch.after.san, landed.san],
+          branch: node.branch ?? {
+            key: `${after.san} ${landed.san}`,
+            path: [after.san, landed.san],
             fen: landed.fen,
-            share: reach,
+            share: reply.share,
           },
         });
       }
       if (truncated) break;
-    }
-    for (const node of dangling) {
-      unopened += 1;
-      open.push({ ...node, kind: 'unopened' });
-      const tally = tallyFor(node);
-      if (tally !== null) {
-        tally.unopened += 1;
-        tally.openReach += node.reach;
-      }
     }
 
     level = next;
     ply += 2;
   }
 
-  // Most-reached first, and among equals the shallower one: two positions a
-  // student is equally likely to meet are not equally urgent, and the one
-  // closer to the start decides more games.
-  // The root itself is in no branch — it is the position every branch leaves
-  // from — so a repertoire with nothing decided at the root has an empty map
-  // and one open question, which is exactly the truth about it.
-  open.sort((a, b) => (b.reach - a.reach) || (a.path.length - b.path.length));
-  pruned.sort((a, b) => (b.reach - a.reach) || (a.path.length - b.path.length));
-
   return {
     // The moves that led to the repertoire's own root, handed back once here
-    // rather than repeated on every node. Each node's path starts at the root;
-    // the screen joins the two for a breadcrumb that reads from move one.
+    // rather than repeated on every node.
     root: { fen: rootFen, path: base },
     open: open.slice(0, limit).map((node) => ({
       fen: node.fen,
       fenKey: fenKey(node.fen),
       path: node.path,
       ply: node.path.length,
-      reach: node.reach,
-      kind: node.kind,
+      kind: 'undecided',
     })),
-    // The cut branches, handed back so they can be put back. A prune the
-    // student cannot find again is not a decision, it is a hole they made and
-    // then lost.
-    pruned: pruned.slice(0, limit).map((node) => ({
-      fen: node.fen,
-      fenKey: fenKey(node.fen),
-      path: node.path,
-      ply: node.path.length,
-      reach: node.reach,
-      kind: 'pruned',
-    })),
-    // The coverage map: how far each of the opponent's first answers has been
-    // taken. Most played first, because that is the order they are worth
-    // finishing in — not the order they were built.
+    // Most played first, then the order the walk found them in — an off-book
+    // reply the student entered has a share of 0 and still gets its row.
     branches: [...branches.values()]
-      .sort((a, b) => b.share - a.share)
-      .map((tally) => ({
-        ...tally,
-        open: tally.undecided + tally.unopened,
-        // What share of the games that come down *this* branch run into a
-        // position with no answer. Divided by the branch's own share on
-        // purpose: measured against the whole repertoire, a rare sideline
-        // would read as almost finished merely because few games go there.
-        openWithin: tally.share > 0
-          ? Math.min(1, tally.openReach / tally.share)
-          : 0,
-        prunedWithin: tally.share > 0
-          ? Math.min(1, tally.prunedReach / tally.share)
-          : 0,
-      })),
+      .sort((a, b) => (b.share - a.share) || (a.found - b.found))
+      .map(({ found, ...tally }) => tally),
     summary: {
       decided,
-      // Positions whose every move was generated and none confirmed. Its own
-      // number, beside `decided` rather than inside it.
-      draft,
       open: open.length,
-      undecided: open.length - unopened,
-      unopened,
       maxPly,
-      // What share of the games arriving in this repertoire runs into a
-      // position with no answer yet. The one number that says how finished it
-      // is, and the only one that does not flatter a wide shallow tree.
-      openReach: open.reduce((sum, node) => sum + node.reach, 0),
-      pruned: pruned.length,
-      // Reported beside `openReach` and never subtracted from it, because these
-      // two numbers say opposite things: one is work left, the other is work
-      // refused. Cutting a branch makes `openReach` fall, and only this number
-      // says the games in it are still going to be played.
-      prunedReach: pruned.reduce((sum, node) => sum + node.reach, 0),
       truncated,
     },
   };
 }
 
-// The three pieces of the walk are exported as well as the walk itself. The
-// line drill needs the same two queries and the same "advance one move" over a
-// different question, and a second copy of any of them is a second place for
-// the rule to drift — which is how three hand-written copies of one subquery
-// all managed to forget the same status check.
+// The pieces of the walk are exported as well as the walk itself. The line
+// drill, the orphan sweep and the drill's opponent need the same queries and
+// the same "advance one move", and a second copy of any of them is a second
+// place for the rule to drift.
 module.exports = {
   gateMoves,
   frontier,
   step,
   keptByPosition,
-  coveredReplies,
-  withinBreadth,
-  BREADTH_RULE,
+  enteredReplies,
   MAX_NODES,
   MAX_PLY,
 };

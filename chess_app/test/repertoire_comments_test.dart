@@ -37,12 +37,10 @@ class _FakeApi extends RepertoireApiService {
     required String rootFen,
     List<String> rootPath = const [],
     String? gateUci,
-    String? breadth,
   }) async =>
       const RepertoireFrontier(
         open: [
-          FrontierNode(
-              fen: afterC3, path: ['c5', 'c3'], reach: 1, kind: 'undecided')
+          FrontierNode(fen: afterC3, path: ['c5', 'c3'])
         ],
         decided: 1,
       );
@@ -61,8 +59,6 @@ class _FakeApi extends RepertoireApiService {
     List<String> rootPath = const [],
     int maxPly = 16,
     String? gateUci,
-    String? breadth,
-    List<String> alongPath = const [],
   }) async =>
       const RepertoireTree(
         rootFen: advance,

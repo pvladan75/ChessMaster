@@ -15,8 +15,9 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **15.9.2026** — najnovije je „Otvaranja iz naše baze"
-odmah ispod ove glave (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Repertoar se gradi na
+tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
+„Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
 masters baze, kraj linije bez reči, i tutorijal iz studije", pa
 „Tutorijal iz partije kao priča" (oboje u kodu, ostaje provera uživo — stavke
@@ -48,6 +49,54 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Repertoar se gradi na tabli — `PLAN-REPERTOAR-RUCNO.md` — 16.9.2026, u kodu
+
+Vlasnik je 15.9.2026 tražio da se gradnja repertoara pojednostavi koliko god može,
+i to je pretvorio u pravilo: **potez koji korisnik nije sam uneo je potez kroz
+koji nije prošao**. Svaki unos u stablu je potez odigran na tabli; knjiga
+otvaranja je pomoć pored table. Jedini izuzetak: kad se prvi put zadrži sopstveni
+potez, uz njega se upiše **najigraniji odgovor iz knjige**, kao običan uneti potez
+koji se može obrisati — da se ne gradi odgovor na sporednu varijantu dok glavni
+nastavak fali.
+
+**Šta je izbačeno:** „Suggest main line" (spine), širina (breadth), nepotvrđeni
+potezi i njihov pregled, „Take X"/„Discard", „Next" (talas odgovora), „Do not
+prepare this" i vraćanje odsečene grane, „Back to X", „Open book (1 query)" i
+brojač upita. Procenat „unanswered %" je zamenjen brojem pozicija.
+
+**Model:** strana protivnika je sada samo `repertoire_extra_replies` (ime je
+starije od modela). Šetnje — `frontier`, stablo, linija za dril, orphan detekcija,
+progress — idu kroz jedan `enteredReplies` (`repertoireFrontier.js`), koji knjigu
+čita samo za broj partija i udeo; potez koji knjiga ne zna ima udeo 0 i prati se
+kao svaki drugi. `GET /repertoire/book` sam puni poziciju iz lokalne knjige
+(`repertoireBook.bookAt`), a `POST /node/move` upisuje najigraniji odgovor samo
+kad je potez **nov** (`xmax = 0`) i ništa još nije uneto posle njega. Brisanje
+sopstvenog poteza briše i odgovore koji ostanu bez poteza ispred sebe
+(`sweepDanglingReplies`); brisanje poteza protivnika pita pre nego što odnese
+korisnikove poteze iza njega. Protivnik u drilu igra unete poteze, ponderisane
+brojem partija; potez van knjige teži kao najređi uneti potez koji knjiga zna.
+
+**Ekran:** knjiga je red čipova kao u Analizi (`OpeningExplorerPanelWidget`, uz
+`markOf` ★/✓ i broj partija), tap na čip igra potez. Tabla dozvoljava poteze za
+obe strane. Pravilo i savet („za svoju stranu po mogućstvu jedan potez, za
+protivnika jedan ili više") stoje ispod pitanja; priručnik
+(`site/mislisha/manual/repertoire.html`) je prepisan oko istog pravila.
+
+**P0 — vlasnikov korak:** postojeći repertoari su probni i brišu se. Pre
+korišćenja novog build-a: obrisati repertoare na listi, pa „Delete moves from
+database" za belog i za crnog. Migracija je napisana, puštena na suvo i obrisana
+istog dana — prvi broj je bio 619 nedostižnih pozicija za jednu boju, što je
+izgled podataka iz tri ranija modela.
+
+**Mutacije (server):** 25, uhvaćeno 24; preživela je provera `if (played)` u
+`sweepDanglingReplies`, jer chess.js baca izuzetak umesto da vrati null — linija
+je obrisana.
+
+**Otvoreno:** provera uživo (TODO-provera 166). Kolone `repertoires.breadth` i
+tabela `repertoire_skips` ostaju nečitane, za posebno brisanje.
 
 ---
 

@@ -25,7 +25,7 @@ function keyAfter(...ucis) {
 /// A pool that answers the four questions this service asks, matched on a
 /// fragment unique to each. The notes are held in a map so the upsert's depth
 /// rule can be modelled rather than asserted about in the abstract.
-function stubPool({ moves = [], replies = [], skips = [], notes = [] } = {}) {
+function stubPool({ moves = [], replies = [], notes = [] } = {}) {
   const calls = [];
   const stored = new Map(notes.map((note) => [note.fen_key, { ...note }]));
   return {
@@ -64,17 +64,10 @@ function stubPool({ moves = [], replies = [], skips = [], notes = [] } = {}) {
           );
         }
         if (flat.includes('SELECT fen_key, uci, san, role')) return moves;
-        if (flat.includes('FROM repertoire_skips')) {
-          return skips.map((fen_key) => ({ fen_key }));
-        }
-        if (flat.includes('FROM opening_replies')) {
-          const [band, keys] = params;
-          // The whole book: `covered` and `asked` are columns the breadth rule
-          // reads at walk time, not a filter this query applies.
-          return replies
-            .filter((r) => Number(r.min_rating ?? 0) === band
-              && keys.includes(r.fen_key))
-            .map((r) => ({ covered: true, asked: false, ...r }));
+        if (flat.includes('FROM repertoire_extra_replies e')) {
+          // The opponent moves the student entered, which the walk follows.
+          const keys = params[2];
+          return replies.filter((r) => keys.includes(r.fen_key));
         }
         throw new Error(`Neočekivan upit: ${flat}`);
       })();

@@ -517,32 +517,21 @@ void main() {
       },
     );
 
-    test('a spine sends its colour, root, depth and floor', () async {
+    test('keeping a move sends its colour, position and move, and no token',
+        () async {
       await _signIn();
       late http.Request sent;
       final api = RepertoireApiService(
         client: MockClient((req) async {
           sent = req;
-          return http.Response(
-            jsonEncode({
-              'written': 0,
-              'path': [],
-              'stopped': {'reason': 'depth'},
-            }),
-            200,
-          );
+          return http.Response(jsonEncode({'uci': 'e2e4'}), 200);
         }),
       );
 
-      await api.buildSpine(
-        color: 'w',
-        rootFen: _start,
-        depth: 4,
-        minGames: 100,
-      );
+      await api.keepMove(color: 'w', fen: _start, uci: 'e2e4', san: 'e4');
 
       final body = jsonDecode(sent.body) as Map<String, dynamic>;
-      expect(body.keys.toSet(), {'color', 'rootFen', 'depth', 'minGames'});
+      expect(body.keys.toSet(), {'color', 'fen', 'uci', 'san', 'verdict'});
       expect(
         sent.headers.keys.map((k) => k.toLowerCase()),
         isNot(contains('x-lichess-token')),

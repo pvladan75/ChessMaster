@@ -170,9 +170,6 @@ class WalkthroughCursor implements MoveCursor {
       case MoveTreeNodeLook.gap:
         return 'you have no answer';
       case MoveTreeNodeLook.covered:
-        return move.state == 'unopened'
-            ? 'a decision with no answers taken'
-            : null;
       case MoveTreeNodeLook.authored:
       case MoveTreeNodeLook.refused:
         return null;

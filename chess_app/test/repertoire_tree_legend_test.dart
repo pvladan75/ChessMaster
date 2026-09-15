@@ -4,17 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 
-/// The picture says what it was drawn at.
-///
-/// The width taken out of the book's answer decides the shape of the tree, and
-/// it was not on screen: a repertoire set to the main reply only looks thin,
-/// and until this legend nothing said why.
+/// The picture says what its marks mean, and nothing about settings that no
+/// longer exist.
 AnalysisNode _root() => AnalysisNode(
       fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     );
 
-Future<void> _pump(WidgetTester tester,
-    {String? breadth, VoidCallback? onChangeBreadth}) async {
+Future<void> _pump(WidgetTester tester) async {
   tester.view.physicalSize = const Size(360, 640);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
@@ -27,8 +23,6 @@ Future<void> _pump(WidgetTester tester,
           root: root,
           active: root,
           onSelect: (_) {},
-          breadth: breadth,
-          onChangeBreadth: onChangeBreadth,
         ),
       ),
     ),
@@ -37,74 +31,29 @@ Future<void> _pump(WidgetTester tester,
 }
 
 void main() {
-  testWidgets('the legend names the width', (tester) async {
-    await _pump(tester, breadth: 'main');
-
-    // The stored word is not what a reader is shown.
-    expect(find.text('Breadth: main reply only'), findsOneWidget);
-  });
-
-  testWidgets('each width is written out', (tester) async {
-    await _pump(tester, breadth: 'standard');
-    expect(find.text('Breadth: standard 80%'), findsOneWidget);
-
-    await _pump(tester, breadth: 'broad');
-    expect(find.text('Breadth: broad 95%'), findsOneWidget);
-  });
-
-  testWidgets('nothing is invented when nothing is known', (tester) async {
+  testWidgets('the legend names the marks the cards carry', (tester) async {
     await _pump(tester);
 
-    // The label without a value, so the table's `Širina: ${...}` row does not
-    // reach it — the twenty-first assertion, and the one the automated pass
-    // over the table could not do.
-    expect(find.textContaining('Breadth:'), findsNothing);
+    expect(find.text(RepertoireTreePanel.legend), findsOneWidget);
+    // The two marks `markOfRepertoireMove` writes, and no third.
+    expect(RepertoireTreePanel.legend, contains('★'));
+    expect(RepertoireTreePanel.legend, contains('?'));
+    expect(RepertoireTreePanel.legend, isNot(contains('✂')));
+    expect(RepertoireTreePanel.legend, isNot(contains('…')));
   });
 
-  group('the width is turned where it is named', () {
-    // The legend is the line that says what the drawing was made at, so it is
-    // the honest place to change it — the same rule the cut branches follow,
-    // counted next to the switch that brings them back. Reported live
-    // 5.9.2026: the only door to this dial was the spine dialog, which writes
-    // moves.
-    testWidgets('a caller that can change it gets a button', (tester) async {
-      var opened = 0;
-      await _pump(tester,
-          breadth: 'standard', onChangeBreadth: () => opened += 1);
+  testWidgets('nothing about a breadth or a cut is drawn', (tester) async {
+    await _pump(tester);
 
-      // The same sentence as without it — a reader must not have to learn two
-      // wordings for one fact.
-      expect(find.text('Breadth: standard 80%'), findsOneWidget);
-      await tester.tap(find.text('Breadth: standard 80%'));
-      await tester.pump();
-      expect(opened, 1);
-    });
-
-    testWidgets('a caller that cannot leaves plain text', (tester) async {
-      // The walkthrough draws this panel too, and a tour is not the place to
-      // change a repertoire-wide setting.
-      await _pump(tester, breadth: 'standard');
-
-      expect(find.text('Breadth: standard 80%'), findsOneWidget);
-      expect(
-          find.ancestor(
-            of: find.text('Breadth: standard 80%'),
-            matching: find.byType(TextButton),
-          ),
-          findsNothing);
-    });
+    expect(find.textContaining('Breadth'), findsNothing);
+    expect(find.textContaining('not preparing'), findsNothing);
   });
 
   group('finding the node a position stands on', () {
     // The tree's FENs come from the server; the one the board is standing on is
     // computed locally by the chess engine after a move. Those two agree about
     // the position and can disagree about the halfmove clock and the move
-    // number, which are arithmetic and not position. Compared whole, the search
-    // then finds nothing and the caller falls back to the root: the picture
-    // silently highlights the opening instead of where you are.
-    //
-    // Every other position comparison in this codebase goes through `fenKeyOf`.
-    // This one did not, which is the whole defect.
+    // number, which are arithmetic and not position.
     AnalysisNode treeFromServer() {
       final root = AnalysisNode(
         fen: 'rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3',
@@ -121,25 +70,22 @@ void main() {
     test('the same position with different move counters is the same node', () {
       final root = treeFromServer();
 
-      // The board's arithmetic: same placement, same side to move, same
-      // castling and en-passant — a different halfmove clock and move number.
       final found = findNodeByFen(root,
           'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq c6 7 12');
 
-      expect(found?.moveSan, 'c5', reason: 'brojači poteza nisu pozicija');
+      expect(found?.moveSan, 'c5', reason: 'move counters are not position');
     });
 
     test('a genuinely different position is still not found', () {
-      // The half that would be lost by comparing too little. The en-passant
-      // square is inside the key on purpose: two positions that differ only in
-      // it are different positions, and one of them allows a capture.
+      // The en-passant square is inside the key on purpose: two positions that
+      // differ only in it are different positions, and one allows a capture.
       final root = treeFromServer();
 
       expect(
           findNodeByFen(root,
               'rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4'),
           isNull,
-          reason: 'en passant jeste deo pozicije');
+          reason: 'en passant is part of the position');
       expect(
           findNodeByFen(
               root, 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'),

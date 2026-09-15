@@ -67,9 +67,6 @@ WalkthroughLine walkthroughLine(
       parts.add(share == null
           ? 'Opponent plays ${move.san}.'
           : 'Opponent plays ${move.san} — $share of games.');
-      if (move.state == 'unopened') {
-        parts.add('Decision with no replies taken.');
-      }
       break;
     case MoveTreeNodeLook.gap:
       final share = shareLabel(move.share);
@@ -78,11 +75,9 @@ WalkthroughLine walkthroughLine(
           : 'Against ${move.san}, in $share of games, you have no reply.');
       break;
     case MoveTreeNodeLook.refused:
-      // The tour never walks into a cut branch, so this line should never be
-      // read. It is here because the answer to "what does this card say" must
-      // exist for all four states — a stop with no sentence at all would be a
-      // blank card, which is the one outcome nobody could diagnose.
-      parts.add('I am not preparing this branch.');
+      // No repertoire card is drawn this way any more — the cut is gone — but
+      // the look belongs to the tree widget, and a stop with no sentence would
+      // be a blank card nobody could diagnose.
       break;
   }
 

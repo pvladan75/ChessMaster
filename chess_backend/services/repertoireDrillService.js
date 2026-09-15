@@ -7,9 +7,9 @@
 // joining a lesson while a repertoire item is (colour, position) that joins
 // nothing.
 //
-// **A drill costs nothing.** Nothing is asked of anybody here: what the
-// opponent plays comes from `opening_replies`, filled from the local opening
-// book when the student built the position and shared by everyone afterwards.
+// **A drill costs nothing.** Nothing is asked of anybody here: the opponent
+// plays the moves the student entered, weighted by how often the local book
+// says each is played.
 //
 // **The student is not asked to grade themselves.** In a drill the answer is
 // objective - it is their own decision, written down - so the quality is
@@ -20,15 +20,11 @@
 
 const { schedule, GRADES } = require('./spacedRepetitionService');
 const { logAnswer } = require('./repertoirePractice');
-const {
-  fenKey, requireColor, DEFAULT_BREADTH,
-} = require('./repertoireService');
-// The walk's own "advance one move", not a second copy of it: the opponent's
-// reply has to be played out to know which position it lands on, and that is
-// the same reading of a stored UCI the frontier already does. `withinBreadth`
-// is there for the same reason — the live opponent and the walk have to draw
-// from the same set, and they have disagreed before.
-const { step } = require('./repertoireFrontier');
+const { fenKey, requireColor } = require('./repertoireService');
+// The walk's own "advance one move" and its own reading of the entered replies,
+// not second copies: the live opponent and the walk have to draw from the same
+// set, and they have disagreed before.
+const { step, enteredReplies } = require('./repertoireFrontier');
 const logger = require('./logger');
 const { BOOK_BAND, BOOK_SOURCE } = require('./storedReplies');
 
@@ -338,88 +334,41 @@ async function ensureReview(pool, userId, color, key) {
   return existing.rows[0];
 }
 
-/// What the opponent plays next, drawn by how often it is really played.
+/// What the opponent plays next, out of the moves the student entered.
 ///
 /// Weighted rather than "the most common every time", because a drill that
 /// always answers with the main move rehearses one line and calls it a
-/// repertoire.
+/// repertoire. The weight is how often the book says the move is played; a move
+/// the book does not know weighs as much as the least played entered move that
+/// it does know. The student entered it to be ready for it, so it has to come
+/// up — and as a sideline, not as the main line.
 ///
-/// **A reply has to pass three conditions, not one.** The book has to say the
-/// move is played here; the student must not have *cut* the position it leads
-/// to; and they must have decided something there. Only the first was checked,
-/// and the other two were missing in the same way — the line walk had refused
-/// to go into a cut branch or past the end of the preparation for months
-/// (`repertoire_skips`, `coveredReplies`), while the live opponent walked
-/// straight into both. One of the two was wrong, and it was not the walk.
+/// **A reply has to land on a position the student decided something in.**
+/// „Decided" is `source = 'chosen'`, which is `answer()`'s own definition of
+/// prepared, so the reply can never land on a position that the very next call
+/// would grade `unprepared`: the spar ends on „the branch is played out"
+/// instead of on a question with no answer behind it. `role` is deliberately
+/// not part of it — a position whose only decision is an alternate still has an
+/// answer that `answer()` grades.
 ///
-/// Cut is the plainer of the two: a branch the student deleted is a decision,
-/// and answering them with it asks them to remember the thing they decided by
-/// deleting.
+/// A call that does not say who is asking is refused outright rather than
+/// answered with null. Null is what the end of a line looks like, and a missing
+/// caller must not be able to counterfeit it.
 ///
-/// "Decided something there" is `source = 'chosen'` — which is `answer()`'s own
-/// definition of prepared, and that is the point of using it rather than a
-/// condition of this function's own. The reply can then never land on a
-/// position that the very next call would grade `unprepared`, so the spar ends
-/// on "the branch is played out" instead of on a question with no answer
-/// behind it. `role` is deliberately not part of it: a position whose only
-/// decision is an alternate still has an answer that `answer()` grades.
-///
-/// **Prepared** still means covered *or* pressed "prepare this too" on. That is
-/// per student, and so are both new conditions — which is why a call that does
-/// not say who is asking is refused outright rather than answered with null.
-/// Null is what the end of the book looks like, and a missing caller must not
-/// be able to counterfeit it.
-///
-/// `breadth` no longer narrows anything here, and the reason is the rule it was
-/// added for: an opponent drawing from a narrower set than the walk refuses to
-/// spar into a position the student built. Narrowing first and asking „did they
-/// decide this?" second did precisely that. Asking only the second question is
-/// the whole rule, because a position they chose is their own work and their
-/// own work is followed at every breadth.
-///
-/// All three are computed in SQL and filtered in JS on purpose. The rule is
-/// then one expression that can be read, and a test can put a cut position or
-/// an undecided one in front of it against rows — a guard written into a WHERE
-/// clause is a guard no stub pool can disprove by mutation.
+/// The condition is filtered in JS on purpose: the rule is then one expression
+/// that can be read, and a test can put an undecided position in front of it —
+/// a guard written into a WHERE clause is a guard no stub pool can disprove by
+/// mutation.
 async function pickReply(pool, {
-  fen, userId = null, color = null, breadth = DEFAULT_BREADTH,
-  random = Math.random,
+  fen, userId = null, color = null, random = Math.random,
 }) {
   const key = fenKey(fen);
   requireColor(color);
   if (userId === null || userId === undefined) {
     throw new RangeError('User was not provided.');
   }
-  const rows = await pool.query(
-    `SELECT r.uci, r.san, r.games, r.share, r.covered,
-            EXISTS (
-              SELECT 1 FROM repertoire_extra_replies e
-               WHERE e.user_id = $3 AND e.color = $4
-                 AND e.fen_key = r.fen_key AND e.uci = r.uci) AS asked
-       FROM opening_replies r
-      WHERE r.fen_key = $1 AND r.min_rating = $2 AND r.source = $5
-      ORDER BY r.games DESC`,
-    [key, BOOK_BAND, userId, color, BOOK_SOURCE],
-  );
-  // The games count is dropped by `withinBreadth`, which answers what the walk
-  // needs, and the draw is weighted by games — so the rows are matched back up
-  // by uci rather than re-queried.
-  // Every reply is played out, and the breadth narrows none of them.
-  //
-  // It used to narrow them here, before anything asked where a reply lands, so
-  // a reply outside the breadth was gone before the question „does this lead
-  // into a position the student decided?" could be put. That is the one case
-  // this function's own doc says must not happen.
-  //
-  // And once that question is asked, the breadth has nothing left to decide:
-  // the draw below keeps only replies landing on a position the student chose,
-  // which is their own work by definition, and their own work is followed at
-  // every breadth. A breadth narrows what the *book* suggests preparing; it
-  // was never meant to narrow what they already prepared. So the narrowing is
-  // gone rather than moved, and `breadth` stays in the signature only because
-  // every caller passes it and a parameter that quietly stops being read is
-  // worse than one that says it is not.
-  const covered = rows.rows;
+  const covered = (await enteredReplies(pool, userId, color, [key])).get(key)
+    ?? [];
   if (covered.length === 0) return null;
 
   // Where each reply lands. A stored move that no longer fits the position is
@@ -439,44 +388,42 @@ async function pickReply(pool, {
             EXISTS (
               SELECT 1 FROM repertoire_moves m
                WHERE m.user_id = $1 AND m.color = $2
-                 AND m.fen_key = k.fen_key AND m.source = 'chosen') AS decided,
-            EXISTS (
-              SELECT 1 FROM repertoire_skips s
-               WHERE s.user_id = $1 AND s.color = $2
-                 AND s.fen_key = k.fen_key) AS cut
+                 AND m.fen_key = k.fen_key AND m.source = 'chosen') AS decided
        FROM UNNEST($3::text[]) AS k(fen_key)`,
     [userId, color, keys],
   );
   const decided = new Set();
-  const cut = new Set();
   for (const row of state.rows) {
     if (row.decided === true) decided.add(row.fen_key);
-    if (row.cut === true) cut.add(row.fen_key);
   }
 
   const usable = covered.filter((row) => {
     const landed = landing.get(row.uci);
-    if (landed === undefined) return false;
-    if (cut.has(landed)) return false;
-    return decided.has(landed);
+    return landed !== undefined && decided.has(landed);
   });
-  // Nothing left to play, so the line ends here. That is what a book running
-  // out looks like, and the screen already reads it as "grana odigrana do
-  // kraja" rather than as a failure.
+  // Nothing left to play, so the line ends here, and the screen already reads
+  // that as "the branch is played out" rather than as a failure.
   if (usable.length === 0) return null;
 
-  const total = usable.reduce((sum, row) => sum + Number(row.games), 0);
-  if (total <= 0) return null;
+  const known = usable.map((row) => row.games).filter((games) => games > 0);
+  const floor = known.length === 0 ? 1 : Math.min(...known);
+  const weightOf = (row) => (row.games > 0 ? row.games : floor);
+  const total = usable.reduce((sum, row) => sum + weightOf(row), 0);
 
+  // The SAN is read off the board rather than off the row: an entered move may
+  // have been stored without one, and a move the drill plays is a move it can
+  // name.
+  const named = (row) => ({
+    uci: row.uci,
+    san: step(fen, row.uci)?.san ?? row.san,
+    covered: true,
+  });
   let ticket = random() * total;
   for (const row of usable) {
-    ticket -= Number(row.games);
-    if (ticket < 0) {
-      return { uci: row.uci, san: row.san, covered: true };
-    }
+    ticket -= weightOf(row);
+    if (ticket < 0) return named(row);
   }
-  const last = usable[usable.length - 1];
-  return { uci: last.uci, san: last.san, covered: true };
+  return named(usable[usable.length - 1]);
 }
 
 /// Stores the book for a position, so the drill never has to read it again.

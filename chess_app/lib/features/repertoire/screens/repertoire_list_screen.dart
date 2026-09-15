@@ -79,26 +79,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     _open(made);
   }
 
-  Future<void> _openDrafts(RepertoireSummary item) async {
-    final walk = await _api.unconfirmedPositions(
-      color: item.color,
-      rootFen: item.rootFen,
-      rootPath: item.rootPath,
-      gateUci: item.viaUci,
-      limit: 1,
-    );
-    if (!mounted) return;
-    if (walk != null && walk.positions.isNotEmpty) {
-      _open(item, at: walk.positions.first.fen);
-    } else {
-      _open(item);
-    }
-  }
-
   /// Opening a repertoire, and counting again on the way back.
   ///
   /// Everything that changes these numbers happens on the screen this pushes —
-  /// a move kept, a draft confirmed, a branch cut. Without the reload the list
+  /// a move played, a move deleted. Without the reload the list
   /// went on showing what was true when the app started, which is the same
   /// staleness the banner had and reads worse here: this is the screen somebody
   /// uses to decide where the work is.
@@ -120,7 +104,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         // position, there is no fork there for it to narrow, and applying it
         // would filter a position it says nothing about.
         gateUci: at == null ? item.viaUci : null,
-        breadth: item.breadth,
         api: widget.api,
         judge: widget.judge,
         // Straight from the position on the board into practising that branch.
@@ -524,8 +507,8 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
 
   /// Several openings, one sitting.
   ///
-  /// No root goes with it: the server reads each door's root, gate and breadth
-  /// from its own row, which is why [ids] and [rootFen] are alternatives rather
+  /// No root goes with it: the server reads each door's root and gate from its
+  /// own row, which is why [ids] and [rootFen] are alternatives rather
   /// than parallel parameters.
   void _startCombinedSession() {
     if (_selectedIds.isEmpty) return;
@@ -560,7 +543,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         rootPath: item.rootPath,
         gateUci: item.viaUci,
         fromFen: from,
-        breadth: item.breadth,
         api: widget.api,
         // Landing in an unprepared position is the drill working as intended,
         // so the way on is building that very position — not a dead end and
@@ -585,7 +567,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
         rootFen: item.rootFen,
         rootPath: item.rootPath,
         gateUci: item.viaUci,
-        breadth: item.breadth,
         api: _api,
         onBuildHere: (fen) {
           Navigator.of(context).pop();
@@ -774,36 +755,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
             trailing: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                // This repertoire's own drafts. It used to be the colour's,
-                // so three white repertoires wore the same 42 and none of them
-                // was telling you about itself.
-                if ((_progress[item.id]?.draft ?? 0) > 0)
-                  InkWell(
-                    onTap: () => _openDrafts(item),
-                    borderRadius: AppRadii.roundedPill,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                      margin: const EdgeInsets.only(right: AppSpacing.xs),
-                      decoration: BoxDecoration(
-                        color: context.colors.warning,
-                        borderRadius: AppRadii.roundedPill,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.edit_note,
-                              size: 16, color: context.colors.canvas),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            '${_progress[item.id]!.draft}',
-                            style: AppText.captionBold
-                                .copyWith(color: context.colors.canvas),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 IconButton(
                   tooltip: 'Drill',
                   icon: const Icon(Icons.fitness_center),

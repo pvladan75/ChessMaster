@@ -11,8 +11,7 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 /// What the list says about each repertoire before you open it.
 ///
 /// „N poteza u grafu" is how much was built. The reader asked for how much is
-/// left, per repertoire — the drafts badge used to be per *colour*, so three
-/// white repertoires wore the same number and none of them was about itself.
+/// left, per repertoire.
 class _Api extends RepertoireApiService {
   _Api(this.progressBody)
       : super(
@@ -51,16 +50,16 @@ void main() {
       tester,
       jsonEncode({
         'items': [
-          {'id': 3, 'open': 5, 'draft': 4, 'decided': 10},
-          {'id': 7, 'open': 0, 'draft': 0, 'decided': 12},
+          {'id': 3, 'open': 5, 'decided': 10},
+          {'id': 7, 'open': 0, 'decided': 12},
         ],
       }),
     );
 
     expect(find.text('5 unanswered positions'), findsOneWidget);
     expect(find.text('all answered'), findsOneWidget);
-    // The badge is this repertoire's drafts, not the colour's.
-    expect(find.text('4'), findsOneWidget);
+    // No draft badge: nothing writes a draft any more.
+    expect(find.byIcon(Icons.edit_note), findsNothing);
   });
 
   testWidgets('a walk that could not be read says nothing at all',
@@ -72,8 +71,8 @@ void main() {
       tester,
       jsonEncode({
         'items': [
-          {'id': 3, 'open': null, 'draft': null, 'decided': null},
-          {'id': 7, 'open': null, 'draft': null, 'decided': null},
+          {'id': 3, 'open': null, 'decided': null},
+          {'id': 7, 'open': null, 'decided': null},
         ],
       }),
     );

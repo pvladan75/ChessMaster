@@ -83,8 +83,7 @@ Future<void> pumpTree(
 }
 
 void main() {
-  reachTests();
-  group('which of the four a card is', () {
+  group('which of the three a card is', () {
     test('the state the server sent decides it', () {
       const mine = RepertoireTreeMove(
           uci: 'e2e4', san: 'e4', fen: afterE4, mine: true, role: 'primary');
@@ -92,28 +91,29 @@ void main() {
           uci: 'e7e5', san: 'e5', fen: afterE5, mine: false, state: 'decided');
       const hole = RepertoireTreeMove(
           uci: 'c7c5', san: 'c5', fen: afterC5, mine: false, state: 'open');
-      const cut = RepertoireTreeMove(
-          uci: 'c7c5', san: 'c5', fen: afterC5, mine: false, state: 'cut');
 
       expect(lookOfRepertoireMove(mine), MoveTreeNodeLook.authored);
       expect(lookOfRepertoireMove(covered), MoveTreeNodeLook.covered);
       expect(lookOfRepertoireMove(hole), MoveTreeNodeLook.gap);
-      expect(lookOfRepertoireMove(cut), MoveTreeNodeLook.refused);
     });
 
-    test('a cut branch is refused even on the student\'s own move', () {
-      // `mine` and `cut` can both be true — the student decided a move and
-      // later said they are not preparing what follows. The refusal wins,
-      // because it is the fact that changes what the card means.
-      const mineButCut = RepertoireTreeMove(
-          uci: 'e2e4',
-          san: 'e4',
-          fen: afterE4,
-          mine: true,
-          role: 'primary',
-          state: 'cut');
+    test('a card says its share and whether it is answered, in characters', () {
+      const hole = RepertoireTreeMove(
+          uci: 'c7c5',
+          san: 'c5',
+          fen: afterC5,
+          mine: false,
+          share: 0.31,
+          state: 'open');
+      const offBook = RepertoireTreeMove(
+          uci: 'a7a6', san: 'a6', fen: afterC5, mine: false, state: 'decided');
+      const main = RepertoireTreeMove(
+          uci: 'e2e4', san: 'e4', fen: afterE4, mine: true, role: 'primary');
 
-      expect(lookOfRepertoireMove(mineButCut), MoveTreeNodeLook.refused);
+      expect(markOfRepertoireMove(hole), ' 31% ?');
+      // A move the book does not know carries no number rather than „0%".
+      expect(markOfRepertoireMove(offBook), isNull);
+      expect(markOfRepertoireMove(main), ' ★');
     });
   });
 
@@ -229,88 +229,6 @@ void main() {
       expect(hole.color, isNot(Colors.transparent));
       expect((hole.borderRadius! as BorderRadius).topLeft.x, lessThan(20));
       expect(hole.border!.top.width, mine.border!.top.width);
-    });
-  });
-}
-
-/// 1.e4 (mine) with two answers, and a move of mine under each — so a reach is
-/// a product of the opponent's frequencies and never of my own choices.
-RepertoireTree treeForReach() => const RepertoireTree(
-      rootFen: start,
-      rootPath: [],
-      children: [
-        RepertoireTreeMove(
-          uci: 'e2e4',
-          san: 'e4',
-          fen: afterE4,
-          mine: true,
-          role: 'primary',
-          children: [
-            RepertoireTreeMove(
-              uci: 'e7e5',
-              san: 'e5',
-              fen: afterE5,
-              mine: false,
-              share: 0.5,
-              state: 'decided',
-              children: [
-                RepertoireTreeMove(
-                  uci: 'g1f3',
-                  san: 'Nf3',
-                  fen: afterC5,
-                  mine: true,
-                  role: 'primary',
-                ),
-              ],
-            ),
-            RepertoireTreeMove(
-              uci: 'c7c5',
-              san: 'c5',
-              fen: afterC5,
-              mine: false,
-              share: 0.25,
-              state: 'open',
-            ),
-          ],
-        ),
-      ],
-    );
-
-void reachTests() {
-  group('the chance of ever arriving', () {
-    test('my own moves do not multiply, theirs do', () {
-      // A decision has no probability. Which of my moves I play is a decision,
-      // so it enters as 1; how often the opponent answers a certain way is a
-      // frequency, and those multiply.
-      final reaches = <String, double>{};
-      final root = repertoireTreeToNodes(treeForReach(), reaches: reaches);
-
-      final e4 = root.children.first;
-      expect(reaches[e4.id], 1.0, reason: 'moj potez nije verovatnoća');
-
-      final e5 = e4.children.firstWhere((n) => n.moveSan == 'e5');
-      expect(reaches[e5.id], closeTo(0.5, 1e-9));
-
-      // 1.e4 e5 2.Nf3 — my move again, so the chance of the position after it
-      // is the chance of getting to play it at all.
-      final nf3 = e5.children.single;
-      expect(reaches[nf3.id], closeTo(0.5, 1e-9));
-
-      final c5 = e4.children.firstWhere((n) => n.moveSan == 'c5');
-      expect(reaches[c5.id], closeTo(0.25, 1e-9));
-    });
-
-    test('the sentence carries the clause that makes the number true', () {
-      // The number is conditional on the opponent staying inside what is
-      // prepared. Without the clause it reads as the chance of the line
-      // happening at all, which at a narrow breadth it is nowhere near.
-      expect(
-          reachSentence(0.25), 'Line chance: 25% (within covered repertoire)');
-      expect(reachSentence(0.004), contains('<1%'));
-      // Nothing to say rather than „0%", so a card with no number carries no
-      // tooltip at all.
-      expect(reachSentence(0), isNull);
-      expect(reachSentence(null), isNull);
     });
   });
 }

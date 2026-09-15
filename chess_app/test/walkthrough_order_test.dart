@@ -91,47 +91,6 @@ void main() {
     expect(linesOf(walkthroughOrder(tree)), ['e4', 'e4 e5', 'e4 c5', 'e4 c6']);
   });
 
-  test('a cut branch is not visited, and neither is anything under it', () {
-    // §6.3, and the list the brief asks a worker to print. Six stops: c6 is
-    // played more often than c5 and appears nowhere, because a refused branch
-    // is neither what I play nor what awaits me.
-    final tree = treeOf([
-      mine('e4', children: [
-        theirs('e5', 0.55, children: [
-          mine('Nf3', children: [theirs('Nc6', 0.40, state: 'open')]),
-        ]),
-        theirs('c6', 0.30, state: 'cut', children: [mine('d4')]),
-        theirs('c5', 0.28, children: [mine('Nf3', primary: false)]),
-      ]),
-    ]);
-
-    expect(linesOf(walkthroughOrder(tree)), [
-      'e4',
-      'e4 e5',
-      'e4 e5 Nf3',
-      'e4 e5 Nf3 Nc6',
-      'e4 c5',
-      'e4 c5 Nf3',
-    ]);
-  });
-
-  test('work behind a cut does not lift the reply that leads to it', () {
-    // The brief said „whose subtree contains at least one move of the reader's
-    // own" and did not say which side of a cut that falls on. This is the
-    // reading: the tour cannot show what it does not walk, so a reply whose only
-    // work is behind a cut is ranked as the empty branch it will look like.
-    final tree = treeOf([
-      mine('d4', children: [
-        theirs('Nf6', 0.60),
-        theirs('d5', 0.22, children: [
-          mine('c4', state: 'cut', children: [theirs('e6', 0.5)]),
-        ]),
-      ]),
-    ]);
-
-    expect(linesOf(walkthroughOrder(tree)), ['d4', 'd4 Nf6', 'd4 d5']);
-  });
-
   test('my own moves are ordered by role, and the main one leads', () {
     final tree = treeOf([
       mine('c4', primary: false),
@@ -178,14 +137,6 @@ void main() {
   group('trees that answer nothing', () {
     test('an empty tree is an empty tour', () {
       expect(walkthroughOrder(treeOf(const [])), isEmpty);
-    });
-
-    test('a tree that is entirely cut is an empty tour', () {
-      final tree = treeOf([
-        mine('e4', state: 'cut', children: [theirs('e5', 0.55)]),
-      ]);
-
-      expect(walkthroughOrder(tree), isEmpty);
     });
 
     test('a reply nobody plays sorts last, not first', () {

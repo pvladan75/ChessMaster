@@ -21,7 +21,8 @@ function keyAfter(...ucis) {
   return fenKey(after(...ucis));
 }
 
-/// A pool over the queries these two doors ask: the walk's two (moves, book),
+/// A pool over the queries these two doors ask: the walk's two (moves, entered
+/// replies),
 /// the repertoire rows, the two counts, and the deletes.
 ///
 /// The deletes are recorded rather than modelled — what matters is *which
@@ -55,14 +56,10 @@ function stubPool({
     if (flat.includes('SELECT fen_key, uci, san, role, source')) {
       return { rows: moves, rowCount: moves.length };
     }
-    if (flat.includes('FROM opening_replies')) {
-      const [band, keys] = params;
-      // The whole book for the position: `covered` and `asked` are columns the
-      // breadth rule reads at walk time, not a filter this query applies.
-      const rows = replies
-        .filter((r) => Number(r.min_rating ?? 0) === band
-          && keys.includes(r.fen_key))
-        .map((r) => ({ covered: true, asked: false, ...r }));
+    if (flat.includes('FROM repertoire_extra_replies e')) {
+      // The opponent moves the student entered, which is what the walk follows.
+      const keys = params[2];
+      const rows = replies.filter((r) => keys.includes(r.fen_key));
       return { rows, rowCount: rows.length };
     }
     if (flat.includes('AS positions')) {

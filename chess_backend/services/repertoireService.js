@@ -24,37 +24,11 @@ const { BOOK_BAND, BOOK_SOURCE } = require('./storedReplies');
 const COLORS = ['w', 'b'];
 const ROLES = ['primary', 'alternate'];
 
-/// Who decided a move. `auto` is a draft: drawn and walked through, never
-/// asked about by the drill until somebody confirms it.
-const SOURCES = ['chosen', 'auto'];
-
-/// How wide a repertoire is walked — how many of the opponent's replies at each
-/// position the queue, the tree, the coverage map and the drill follow.
-///
-/// A property of the **repertoire**, not of the book. `opening_replies.covered`
-/// is the 80% cut and it is one column shared by every user of this server, so
-/// widening it for somebody widens it for everybody. Breadth is stored per
-/// repertoire and applied when the rows are read, from the `share` each row was
-/// stored with — see `withinBreadth` in `repertoireFrontier`, which is the one
-/// place the rule is written.
-///
-/// `standard` is the stored cut exactly as it is, so every repertoire made
-/// before the column keeps the tree it had.
-const BREADTHS = ['main', 'standard', 'broad'];
-const DEFAULT_BREADTH = 'standard';
-
-/// Reads a breadth, or refuses. Absent means the default rather than an error:
-/// every caller written before this existed is asking for `standard`, and that
-/// is what it used to get.
-function requireBreadth(breadth) {
-  if (breadth === null || breadth === undefined || breadth === '') {
-    return DEFAULT_BREADTH;
-  }
-  if (!BREADTHS.includes(breadth)) {
-    throw new RangeError(`Breadth must be ${BREADTHS.join(', ')} — not "${breadth}".`);
-  }
-  return breadth;
-}
+/// Who decided a move. Only `chosen` is written: every move in a repertoire is
+/// one somebody played on the board (docs/PLAN-REPERTOAR-RUCNO.md). Rows the
+/// retired spine wrote as `auto` may still exist until a colour is emptied, and
+/// every reader asks for `chosen`, so none of them is walked or drilled.
+const SOURCES = ['chosen'];
 
 /// The first four FEN fields: placement, side to move, castling, en passant.
 ///
@@ -129,12 +103,11 @@ function readGate(rootFen, viaUci) {
 }
 
 async function createRepertoire(pool, userId, {
-  name, color, rootFen, rootPath, viaUci = null, breadth = null,
+  name, color, rootFen, rootPath, viaUci = null,
 }) {
   const clean = typeof name === 'string' ? name.trim() : '';
   if (clean === '') throw new RangeError('Repertoire must have a name.');
   requireColor(color);
-  const wide = requireBreadth(breadth);
   // Validated here so a broken FEN is refused at the door rather than stored
   // and then failing every time the repertoire is opened.
   fenKey(rootFen);
@@ -145,12 +118,11 @@ async function createRepertoire(pool, userId, {
 
   const result = await pool.query(
     `INSERT INTO repertoires
-       (user_id, name, color, root_fen, root_path, via_uci, breadth)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING id, name, color, root_fen, root_path, via_uci, breadth,
-               created_at`,
+       (user_id, name, color, root_fen, root_path, via_uci)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, name, color, root_fen, root_path, via_uci, created_at`,
     [userId, clean, color, rootFen.trim(), pathText(rootPath),
-      gate === null ? null : gate.uci, wide],
+      gate === null ? null : gate.uci],
   );
   const row = result.rows[0];
   return row
@@ -159,7 +131,6 @@ async function createRepertoire(pool, userId, {
       rootPath: pathList(row.root_path),
       viaUci: row.via_uci,
       viaSan: gate === null ? null : gate.san,
-      breadth: row.breadth,
     }
     : row;
 }
@@ -180,7 +151,7 @@ function readGateSan(rootFen, viaUci) {
 async function listRepertoires(pool, userId) {
   const result = await pool.query(
     `SELECT r.id, r.name, r.color, r.root_fen, r.root_path, r.via_uci,
-            r.breadth, r.created_at,
+            r.created_at,
             (SELECT COUNT(*) FROM repertoire_moves m
               WHERE m.user_id = r.user_id AND m.color = r.color) AS moves
        FROM repertoires r
@@ -204,10 +175,6 @@ async function listRepertoires(pool, userId) {
     viaSan: row.via_uci === null
       ? null
       : (readGateSan(row.root_fen, row.via_uci)),
-    // How wide this one is walked. Carried on the row rather than looked up
-    // per screen, because every walk the client asks for has to send it back —
-    // the walks are keyed by position and gate, not by repertoire id.
-    breadth: row.breadth ?? DEFAULT_BREADTH,
     createdAt: row.created_at,
     // Moves are counted per colour, not per repertoire, because that is where
     // they live. Two repertoires for Black show the same number, and that is
@@ -246,6 +213,10 @@ async function nodeMoves(pool, userId, { color, fen }) {
 /// Keeping the same move twice is not an error - it refreshes the verdict and
 /// leaves the role alone, so re-judging an old position cannot silently demote
 /// what the student chose.
+///
+/// `inserted` says which of the two happened. A move kept for the first time
+/// brings the book's top reply with it (`repertoireBook.keepMove`); a move
+/// played again must not, or a reply the student deleted comes back.
 async function addMove(pool, userId, {
   color, fen, uci, san, verdict = null, source = 'chosen',
 }) {
@@ -277,7 +248,8 @@ async function addMove(pool, userId, {
           of it. */
        source = CASE WHEN EXCLUDED.source = 'chosen'
                      THEN 'chosen' ELSE repertoire_moves.source END
-     RETURNING uci, san, role, verdict, source, added_at`,
+     RETURNING uci, san, role, verdict, source, added_at,
+               (xmax = 0) AS inserted`,
     [userId, color, key, uci, san, role, verdict, source],
   );
   return result.rows[0];
@@ -324,6 +296,11 @@ async function promoteMove(pool, userId, { color, fen, uci }) {
 }
 
 /// Drops a move, and never leaves the position without a primary.
+///
+/// The opponent moves entered after it go too, unless another move of the
+/// student's still leads to that position: an opponent move stands only after a
+/// move of theirs, and one left behind would come back as a surprise the day a
+/// transposition reaches it.
 async function removeMove(pool, userId, { color, fen, uci }) {
   requireColor(color);
   const key = fenKey(fen);
@@ -355,8 +332,9 @@ async function removeMove(pool, userId, { color, fen, uci }) {
       );
       promoted = next.rows[0] ?? null;
     }
+    const replies = await sweepDanglingReplies(client, userId, color);
     await client.query('COMMIT');
-    return { removed: true, promoted };
+    return { removed: true, promoted, replies };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -417,54 +395,14 @@ async function weakNodes(pool, userId, { color, limit = 20 } = {}) {
   }));
 }
 
-/// "I am not preparing this" — stored, because it is a decision.
+/// What is played here, out of what has been stored from the book.
 ///
-/// The one control in the build loop that makes the tree *smaller*. Everything
-/// else adds: each wave of replies multiplies the queue, and a repertoire that
-/// answers every sideline is a repertoire nobody finishes. Without somewhere to
-/// put this, the only way to say it is to close the screen — and then the same
-/// dead branch is back tomorrow, on every device.
+/// `opening_replies` holds what the local book says about a position — the rows
+/// are about a position, never about a person. `prepared` marks the ones this
+/// student entered.
 ///
-/// Idempotent, so pressing it twice is not an error the student has to read
-/// about.
-async function skipNode(pool, userId, { color, fen }) {
-  requireColor(color);
-  const key = fenKey(fen);
-  const result = await pool.query(
-    `INSERT INTO repertoire_skips (user_id, color, fen_key)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (user_id, color, fen_key) DO UPDATE SET fen_key = EXCLUDED.fen_key
-     RETURNING id, fen_key, created_at`,
-    [userId, color, key],
-  );
-  return { skipped: true, ...result.rows[0] };
-}
-
-/// Puts a cut branch back. The same button, the other way round.
-///
-/// Cutting is cheap to do and must be cheap to undo, or it stops being a
-/// decision and becomes a risk: nobody prunes a tree they cannot unprune.
-async function unskipNode(pool, userId, { color, fen }) {
-  requireColor(color);
-  const key = fenKey(fen);
-  const result = await pool.query(
-    `DELETE FROM repertoire_skips
-      WHERE user_id = $1 AND color = $2 AND fen_key = $3`,
-    [userId, color, key],
-  );
-  return { skipped: false, removed: result.rowCount };
-}
-
-/// What the opponent plays here, out of what has already been fetched.
-///
-/// Nothing is asked of anybody. `opening_replies` holds what anybody's build
-/// session read from the book — the rows are about a position, never about a
-/// person — so a panel that sits beside the board is drawn from what the tree
-/// and the drill already agree on, rather than from a second reading that
-/// could say something else.
-///
-/// `opened` tells the two empties apart: no rows means nobody has ever looked
-/// here, which is an offer to look rather than "the opponent plays nothing".
+/// `opened: false` means nothing is stored yet; `repertoireBook.bookAt` reads the
+/// book then and stores it, so a screen never has to ask for it.
 async function storedBook(pool, userId, { color, fen }) {
   requireColor(color);
   const key = fenKey(fen);
@@ -478,7 +416,7 @@ async function storedBook(pool, userId, { color, fen }) {
             ) AS prepared
        FROM opening_replies r
       WHERE r.fen_key = $1 AND r.min_rating = $2 AND r.source = $5
-      ORDER BY r.games DESC`,
+      ORDER BY r.games DESC, r.uci ASC`,
     [key, BOOK_BAND, userId, color, BOOK_SOURCE],
   );
 
@@ -495,49 +433,6 @@ async function storedBook(pool, userId, { color, fen }) {
       prepared: row.prepared === true,
     })),
   };
-}
-
-/// A generated move becomes a decision.
-///
-/// Confirming is an act, and that is the whole reason the auto-spine is safe to
-/// offer: until somebody says "yes, this one", a generated move is scaffolding
-/// — drawn, walked through, and never asked about by the drill. Without this
-/// the spine would be the archive seed again, wearing better moves.
-///
-/// Without `uci`, every draft in the position. With it, one move.
-async function confirmNode(pool, userId, { color, fen, uci = null }) {
-  requireColor(color);
-  const key = fenKey(fen);
-  const result = await pool.query(
-    `UPDATE repertoire_moves
-        SET source = 'chosen'
-      WHERE user_id = $1 AND color = $2 AND fen_key = $3
-        AND source = 'auto'
-        AND ($4::text IS NULL OR uci = $4)`,
-    [userId, color, key, uci],
-  );
-  return { confirmed: result.rowCount };
-}
-
-/// A whole line at once — every position along it.
-///
-/// One statement rather than one per position: a line half confirmed is a line
-/// the student would have to walk twice, and a loop of updates is exactly where
-/// a dropped connection leaves one.
-async function confirmLine(pool, userId, { color, fens }) {
-  requireColor(color);
-  if (!Array.isArray(fens) || fens.length === 0) {
-    throw new RangeError('Line was not provided.');
-  }
-  const keys = fens.map(fenKey);
-  const result = await pool.query(
-    `UPDATE repertoire_moves
-        SET source = 'chosen'
-      WHERE user_id = $1 AND color = $2 AND source = 'auto'
-        AND fen_key = ANY($3)`,
-    [userId, color, keys],
-  );
-  return { confirmed: result.rowCount, positions: keys.length };
 }
 
 /// The moves in this colour that nobody was ever asked about.
@@ -656,35 +551,7 @@ async function setGate(pool, userId, { id, viaUci = null } = {}) {
   };
 }
 
-/// Changes how wide a repertoire is walked.
-///
-/// Its own door, and changeable, because breadth is a decision somebody revises:
-/// a trunk is the right shape while an opening is being learned and the wrong
-/// one a month later. Nothing is written to `opening_replies` and no move is
-/// touched — the next walk simply follows more replies, or fewer, and the queue
-/// and the map are recomputed from it.
-///
-/// Narrowing hides positions rather than deleting them. A position built under
-/// `broad` and then narrowed to `main` keeps every move in it; it stops being
-/// walked to, and widening again brings it straight back. That is the whole
-/// reason breadth is read at walk time.
-async function setBreadth(pool, userId, { id, breadth } = {}) {
-  const numeric = Number(id);
-  if (!Number.isInteger(numeric)) {
-    throw new RangeError('Repertoire is not named by a number.');
-  }
-  const wide = requireBreadth(breadth);
-  const written = await pool.query(
-    `UPDATE repertoires SET breadth = $3
-      WHERE id = $1 AND user_id = $2
-      RETURNING id, breadth`,
-    [numeric, userId, wide],
-  );
-  if (written.rowCount === 0) throw new RangeError('That repertoire does not exist.');
-  return { id: numeric, breadth: written.rows[0].breadth };
-}
-
-/// The repertoires named by a list of ids: their doors, gates and breadths.
+/// The repertoires named by a list of ids: their doors and gates.
 ///
 /// This is what a **combined** session is made of. Everything below the drill
 /// takes one `(rootFen, gateUci)`, and a student who wants to practise two
@@ -705,7 +572,7 @@ async function repertoiresByIds(pool, userId, ids) {
     throw new RangeError('No repertoire was chosen.');
   }
   const result = await pool.query(
-    `SELECT id, name, color, root_fen, root_path, via_uci, breadth
+    `SELECT id, name, color, root_fen, root_path, via_uci
        FROM repertoires
       WHERE user_id = $1 AND id = ANY($2::int[])
       ORDER BY created_at ASC`,
@@ -725,7 +592,6 @@ async function repertoiresByIds(pool, userId, ids) {
     rootFen: row.root_fen,
     rootPath: pathList(row.root_path),
     viaUci: row.via_uci,
-    breadth: row.breadth ?? DEFAULT_BREADTH,
   }));
 }
 
@@ -741,15 +607,13 @@ async function deleteRepertoire(pool, userId, id) {
   return { removed: result.rowCount };
 }
 
-/// "Prepare this opponent move too" — one reply past the coverage cut.
+/// An opponent move the student entered — played on the board, or the book's
+/// top reply entered with their own move.
 ///
-/// The build loop stops at 80% of what is played, up to four moves, and names
-/// the remainder. That is a good default and a bad wall, and this is the way
-/// through it: the tail is countable, and now it is reachable.
-///
-/// Stored per student rather than by flipping `opening_replies.covered`, which
-/// is shared by everybody — one child's decision must not rewrite the walk
-/// every other child follows.
+/// This table is the whole opponent side of a repertoire. The name is older
+/// than the model: it was "prepare this one too" when the book decided the rest.
+/// `fen` is the position the opponent moves from — after the student's move.
+/// The move does not have to be in the book.
 async function addExtraReply(pool, userId, { color, fen, uci, san = null }) {
   requireColor(color);
   const key = fenKey(fen);
@@ -765,7 +629,8 @@ async function addExtraReply(pool, userId, { color, fen, uci, san = null }) {
   return { prepared: true, ...result.rows[0] };
 }
 
-/// Takes one back out of the preparation. Same button, the other way round.
+/// Takes an entered opponent move back out. What only it reached is found and
+/// asked about by `repertoirePrune.orphansOfRemoving`, before this is called.
 async function removeExtraReply(pool, userId, { color, fen, uci }) {
   requireColor(color);
   const key = fenKey(fen);
@@ -779,18 +644,45 @@ async function removeExtraReply(pool, userId, { color, fen, uci }) {
   return { prepared: false, removed: result.rowCount };
 }
 
-/// Every position this student has cut, for one colour, as a set.
+/// Deletes the entered opponent moves no move of the student's leads to.
 ///
-/// One query for the whole walk. Asking per node would make the frontier
-/// quadratic in the thing it is measuring, which is the mistake `keptByPosition`
-/// exists to avoid.
-async function skippedKeys(pool, userId, color) {
-  requireColor(color);
-  const result = await pool.query(
-    `SELECT fen_key FROM repertoire_skips WHERE user_id = $1 AND color = $2`,
+/// An opponent move stands only after a move of theirs. Taken as a client so it
+/// runs inside the transaction that removed the moves — a repertoire between
+/// the two is one with replies hanging off nothing.
+///
+/// Computed from the moves rather than from the move just removed, because the
+/// store is a graph: the position after the removed move may still be reached
+/// by another move of theirs, and its replies are then still in use.
+async function sweepDanglingReplies(client, userId, color) {
+  const moves = await client.query(
+    `SELECT fen_key, uci FROM repertoire_moves
+      WHERE user_id = $1 AND color = $2 AND source = 'chosen'`,
     [userId, color],
   );
-  return new Set(result.rows.map((row) => row.fen_key));
+  const live = new Set();
+  for (const row of moves.rows) {
+    try {
+      const board = new Chess(`${row.fen_key} 0 1`);
+      // chess.js throws on a move it cannot play rather than answering null,
+      // so reaching the next line means the move was played.
+      board.move({
+        from: row.uci.slice(0, 2),
+        to: row.uci.slice(2, 4),
+        promotion: row.uci.length > 4 ? row.uci[4] : undefined,
+      });
+      live.add(fenKey(board.fen()));
+    } catch {
+      // A stored move that no longer plays leads nowhere, so nothing it
+      // reached is live.
+    }
+  }
+  const gone = await client.query(
+    `DELETE FROM repertoire_extra_replies
+      WHERE user_id = $1 AND color = $2
+        AND NOT (fen_key = ANY($3::text[]))`,
+    [userId, color, [...live]],
+  );
+  return gone.rowCount;
 }
 
 module.exports = {
@@ -806,24 +698,16 @@ module.exports = {
   removeMove,
   recordAttempt,
   weakNodes,
-  skipNode,
-  unskipNode,
-  skippedKeys,
   addExtraReply,
   removeExtraReply,
-  confirmNode,
-  confirmLine,
+  sweepDanglingReplies,
   storedBook,
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
   setGate,
-  setBreadth,
   repertoiresByIds,
-  requireBreadth,
   COLORS,
   ROLES,
   SOURCES,
-  BREADTHS,
-  DEFAULT_BREADTH,
 };

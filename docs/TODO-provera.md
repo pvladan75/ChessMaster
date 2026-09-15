@@ -5875,6 +5875,45 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 166. Repertoar se gradi na tabli — 16.9.2026, nije viđeno uživo
+
+`docs/PLAN-REPERTOAR-RUCNO.md`. **Pre provere:** obriši postojeće repertoare na
+listi, pa u zaglavlju liste „Delete moves from database" za belog i za crnog —
+stari podaci su iz modela sa širinom i nacrtima. Server mora biti restartovan i
+imati `MASTERS_BOOK_PATH`.
+
+1. [ ] **Nema dugmeta za prihvatanje.** Napravi repertoar za belog od početne
+   pozicije i odigraj e4 na tabli. Potez je odmah u stablu; nigde nema „Take",
+   „Discard", „Open book", brojača upita, „Suggest main line", „Review
+   unconfirmed", „Do not prepare this", „Next" ni „Back to …".
+2. [ ] **Najigraniji odgovor ide sa potezom.** Posle e4 u stablu je i c5 (ili
+   šta god knjiga kaže da je najigranije), tabla stoji posle tog odgovora i pita
+   „What do you play with White?". Poruka ispod kaže koji je odgovor dodat.
+   Drugi odgovori (e5, e6…) **nisu** dodati.
+3. [ ] **Protivnikov potez se igra na tabli.** Klikni svoj potez e4 u stablu (ili
+   strelicom unazad), pa odigraj e5 na tabli. e5 je u stablu kao drugi odgovor, a
+   tabla stoji posle njega. Isto za potez koji knjiga ne zna (npr. a6): ulazi u
+   stablo bez procenta.
+4. [ ] **Ponovo odigran potez ne vraća obrisani odgovor.** Obriši c5 iz stabla
+   (dugo pritisni → „Delete this opponent move"), pa ponovo odigraj e4 sa
+   početne pozicije. c5 se **ne** vraća.
+5. [ ] **Knjiga su čipovi.** Ispod table je red čipova kao u Analizi, sa
+   procentom i brojem partija („Nf3 (45%) · 1.1M"). Klik na čip igra potez. Na
+   potezu koji je već u repertoaru stoji ★ (glavni) ili ✓. Nema tabele sa
+   dugmićima „Play".
+6. [ ] **Brisanje pita kad treba.** Obriši svoj potez posle kojeg postoje tvoji
+   dalji potezi: pita „Delete …?" i kaže koliko tvojih poteza ide s njim. Potez
+   bez ičega iza sebe se briše bez pitanja.
+7. [ ] **Govor.** Uključi govor: ne čita se niz poteza, samo pitanje, broj
+   neodgovorenih pozicija i kratka poruka o dodatom potezu.
+8. [ ] **Pravilo je na ekranu.** Ispod pitanja stoji rečenica da je svaki potez u
+   repertoaru odigran na tabli i savet „For your side, prefer one move per
+   position; for the opponent, enter one or more."
+9. [ ] **Dril.** „Drill" posle nekoliko poteza: protivnik igra samo poteze koje si
+   uneo (i dodati najigraniji), nikad nešto što nije u stablu.
+10. [ ] **Pokrivenost.** Mapa repertoara prikazuje brojeve („3 decided · 1 open")
+    umesto procenata, bez „not preparing".
+
 ## 165. Panel otvaranja iz naše knjige, bez ChessDB i bez rejtinga — 15.9.2026, nije viđeno uživo
 
 `docs/PLAN-OTVARANJA-LOKALNO.md`, faza 4 (batch 71, `46c2cb2`). Server mora

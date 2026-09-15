@@ -57,23 +57,17 @@ const BOTH = {
   ],
 };
 
-function stubPool({ moves = [], replies = [], skips = [], reviews = [] } = {}) {
+/// `replies` are the opponent moves the student entered, with the book's
+/// numbers already beside them.
+function stubPool({ moves = [], replies = [], reviews = [] } = {}) {
   return {
     query: async (text, params) => {
       const flat = text.replace(/\s+/g, ' ').trim();
       const rows = (() => {
         if (flat.includes('SELECT fen_key, uci, san, role')) return moves;
-        if (flat.includes('FROM repertoire_skips')) {
-          return skips.map((fen_key) => ({ fen_key }));
-        }
-        if (flat.includes('FROM opening_replies')) {
-          const [band, keys] = params;
-          // The whole book: `covered` and `asked` are columns the breadth rule
-          // reads at walk time, not a filter this query applies.
-          return replies
-            .filter((r) => Number(r.min_rating ?? 0) === band
-              && keys.includes(r.fen_key))
-            .map((r) => ({ covered: true, asked: false, ...r }));
+        if (flat.includes('FROM repertoire_extra_replies e')) {
+          const keys = params[2];
+          return replies.filter((r) => keys.includes(r.fen_key));
         }
         if (flat.includes('SELECT fen_key, due_at, repetitions')) {
           const within = params[2];
@@ -141,7 +135,7 @@ test('the queue asks only about the gated opening', async () => {
     color: 'w', rootFen: ROOT, gateUci: 'e1g1',
   });
 
-  const reached = [...walk.open, ...walk.pruned].map((node) => node.path.join(' '));
+  const reached = walk.open.map((node) => node.path.join(' '));
   assert.equal(reached.some((line) => line.startsWith('b4')), false,
     'red sadrži poziciju iz druge grane');
   assert.ok(walk.branches.every((branch) => branch.path[0] === 'O-O'),

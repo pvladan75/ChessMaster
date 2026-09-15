@@ -64,7 +64,6 @@ class RepertoireDrillScreen extends StatefulWidget {
     this.api,
     this.onBuildHere,
     this.ids,
-    this.breadth,
   });
 
   final String name;
@@ -104,10 +103,6 @@ class RepertoireDrillScreen extends StatefulWidget {
 
   final List<int>? ids;
 
-  /// The repertoire's width, for a session that runs on one. A combined
-  /// session leaves it null: the server reads each door's width from its row.
-  final String? breadth;
-
   @override
   State<RepertoireDrillScreen> createState() => _RepertoireDrillScreenState();
 }
@@ -123,7 +118,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   DrillStats _stats =
       const DrillStats(positions: 0, due: 0, known: 0, fresh: 0);
   bool _loading = true;
-  int _drafts = 0;
   bool _busy = false;
 
   /// Set once the student has asked to be shown the answer. The next answer is
@@ -381,61 +375,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// moves on when the current branch has nothing left to ask.
   List<DrillBranch> _branchQueue = [];
 
-  /// Leaves the drill at the first position nobody has decided in.
-  ///
-  /// The drill cannot answer the question — it asks about decisions and a draft
-  /// is the absence of one — so it hands the position to the screen that can.
-  Future<void> _goBuildDrafts() async {
-    final root = widget.rootFen;
-    if (root == null || _busy) return;
-    setState(() => _busy = true);
-    final walk = await _api.unconfirmedPositions(
-      color: widget.color,
-      rootFen: root,
-      rootPath: widget.rootPath,
-      gateUci: widget.gateUci,
-      breadth: widget.breadth,
-      limit: 1,
-    );
-    if (!mounted) return;
-    setState(() => _busy = false);
-    if (walk == null) {
-      AppFeedback.error(context, 'Unconfirmed moves could not be read.');
-      return;
-    }
-    if (walk.positions.isEmpty) {
-      final said = await _emptyDraftMessage();
-      if (!mounted) return;
-      AppFeedback.info(context, said);
-      return;
-    }
-    widget.onBuildHere?.call(walk.positions.first.fen);
-  }
-
-  /// „There are none" is only true when there are none **anywhere**.
-  ///
-  /// The review walks this repertoire — its gate, its width — and a draft
-  /// outside either is one it cannot reach. Found live 4.9.2026 with 21 of
-  /// them: a spine written while the width was wider, then read back at „Samo
-  /// glavna linija", where the walk follows one reply a position and every one
-  /// of those drafts sits under the second. The screen said „Nema više
-  /// nepotvrđenih poteza." — which was the walk's honest answer and the wrong
-  /// sentence, because they were all still there.
-  ///
-  /// So the colour is counted before that sentence is said, and the reader is
-  /// told which of the two they are looking at. The count costs one query, and
-  /// it is asked only on the empty answer.
-  Future<String> _emptyDraftMessage() async {
-    final counts = await _api.unconfirmedCounts();
-    final held = counts == null
-        ? 0
-        : (widget.color == 'w' ? counts.w : counts.b).positions;
-    if (held <= 0) return 'No more unconfirmed moves.';
-    return 'There are no unconfirmed moves in this repertoire reachable by '
-        'this breadth — there are $held in the graph. Expand the repertoire '
-        'or confirm them from another branch.';
-  }
-
   /// The branches, and what to do with one.
   ///
   /// Two actions per row on purpose: the queue and the run are different
@@ -455,7 +394,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       rootFen: ids == null ? root : null,
       rootPath: ids == null ? widget.rootPath : const [],
       gateUci: ids == null ? widget.gateUci : null,
-      breadth: ids == null ? widget.breadth : null,
       ids: ids,
     );
     if (!mounted) return;
@@ -699,7 +637,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         exclude: _refused.toList(),
         ahead: _ahead,
         gateUci: ids == null ? widget.gateUci : null,
-        breadth: ids == null ? widget.breadth : null,
         ids: ids,
       );
       if (!mounted) return;
@@ -750,16 +687,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     });
     final fen = _fen;
     if (fen != null) _boardController.loadFen(fen);
-
-    if (_stats.positions == 0 || _stats.due == 0) {
-      final counts = await _api.unconfirmedCounts();
-      if (mounted && counts != null) {
-        setState(() {
-          _drafts =
-              widget.color == 'w' ? counts.w.positions : counts.b.positions;
-        });
-      }
-    }
   }
 
   /// Puts up the line: the board at its start, the question waiting at the end.
@@ -1731,28 +1658,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               style: AppText.caption.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
-            // The draft review is about one repertoire's root. A combined
-            // sitting has ids and no root, so the offer is left out rather
-            // than pointed at a root that is not there.
-            if (_drafts > 0 && widget.rootFen != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                '$_drafts more unconfirmed ${_drafts == 1 ? "move waits" : "moves wait"} in this repertoire.',
-                style: AppText.caption.copyWith(color: context.colors.warning),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              // Deciding is building, so this leaves the drill rather than
-              // opening a window inside it: the position, the book and the
-              // engine are all on the build screen, and none of the three fits
-              // in a sheet over a board.
-              if (widget.onBuildHere != null)
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _goBuildDrafts,
-                  icon: const Icon(Icons.edit_note, size: 18),
-                  label: const Text('Review unconfirmed'),
-                ),
-            ],
             // Where today stands, on the screen that would otherwise say
             // „ništa nije na redu" and stop. SM-2 is right about retention and
             // says nothing about habit: after two good answers a position is

@@ -40,18 +40,11 @@ class _WireApi extends RepertoireApiService {
     required String color,
     required String rootFen,
     List<String> rootPath = const [],
-    int? limit,
     String? gateUci,
-    String? breadth,
   }) async =>
       RepertoireFrontier(
         open: [
-          FrontierNode(
-            fen: _fenAfterLine(),
-            path: _line,
-            reach: 1,
-            kind: 'undecided',
-          ),
+          FrontierNode(fen: _fenAfterLine(), path: _line),
         ],
       );
 
@@ -125,8 +118,7 @@ void main() {
 
   testWidgets('the screen sends a depth at all', (tester) async {
     // The half the arithmetic cannot prove: the number has to leave the app.
-    // It did not, for as long as this endpoint existed — the same shape as the
-    // width, which was stored and never sent.
+    // It did not, for as long as this endpoint existed.
     final api = _WireApi();
     tester.view.physicalSize = const Size(1200, 2000);
     tester.view.devicePixelRatio = 1.0;

@@ -2,8 +2,9 @@
 //
 // Nothing here talks to Lichess, and that is the split worth keeping: the judge
 // route asks what a move is worth, and this one only records what the student
-// decided about it. What the opponent plays comes from the local opening book,
-// read once when a position is built and stored for everything after.
+// played. Every entry in a repertoire is a move played on the board — the
+// student's own, and the opponent's they entered — with the one exception
+// `repertoireBook.keepMove` names (docs/PLAN-REPERTOAR-RUCNO.md).
 //
 // **No rating travels here any more.** There is one book (2200+, since
 // `docs/PLAN-OTVARANJA-LOKALNO.md`), so a `minRating` the app still sends is
@@ -30,39 +31,25 @@ const {
   createRepertoire,
   listRepertoires,
   nodeMoves,
-  addMove,
   promoteMove,
   removeMove,
   recordAttempt,
   weakNodes,
-  skipNode,
-  unskipNode,
   addExtraReply,
   removeExtraReply,
-  confirmNode,
-  confirmLine,
-  storedBook,
   importedMoves,
   forgetImportedMoves,
   deleteRepertoire,
   setGate,
-  setBreadth,
   repertoiresByIds,
 } = require('../services/repertoireService');
-const {
-  unconfirmedPositions, unconfirmedCounts,
-} = require('../services/repertoireUnconfirmed');
-const { playAlternative } = require('../services/repertoireAlternative');
+const { bookAt, keepMove } = require('../services/repertoireBook');
 const { repertoireProgress } = require('../services/repertoireProgress');
 const { practisedSince } = require('../services/repertoirePractice');
 const { frontier } = require('../services/repertoireFrontier');
 const {
   drillLine, drillBranches, tree: repertoireTree,
 } = require('../services/repertoireLine');
-const {
-  buildSpine, MAX_SPINE_DEPTH, MIN_SPINE_GAMES,
-} = require('../services/repertoireSpine');
-const { OpeningBookUnavailable } = require('../services/openingBook');
 const {
   orphansOfRemoving, pruneKeys,
 } = require('../services/repertoirePrune');
@@ -76,19 +63,6 @@ const {
   orphansOfDeleting, deleteRepertoire: deleteRepertoireRow, colorStats,
   eraseColor,
 } = require('../services/repertoireErase');
-const rateLimit = require('express-rate-limit');
-
-// A spine writes up to two dozen moves in one call. Judging is capped at 40 a
-// minute for a person clicking; this is capped at six because each one is a
-// burst of writes.
-const spineLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 6,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many spines in a short period. Please wait a minute.' },
-});
-
 /// The repertoire's **gate**: the one move it goes through at its root.
 ///
 /// Read from the query on every scoped route, because two repertoires can start
@@ -103,28 +77,11 @@ function gateOf(query) {
   return typeof gate === 'string' && gate.trim() !== '' ? gate.trim() : null;
 }
 
-/// How wide the walk goes, from the query.
-///
-/// A property of the repertoire, stored on its row, and sent back on every walk
-/// the client asks for — the walks are keyed by position and gate rather than
-/// by repertoire id, so the row is the client's to carry. Absent means
-/// `standard`, which is the stored 80% cut and what every call written before
-/// the column existed was asking for.
-///
-/// Not validated here: `requireBreadth` does it in the service, where the
-/// answer is a 400 with a sentence rather than a silent fall back to the
-/// default. A breadth this server does not know is a client that thinks it is
-/// asking for something.
-function breadthOf(query) {
-  const wide = query?.breadth;
-  return typeof wide === 'string' && wide.trim() !== '' ? wide.trim() : null;
-}
-
 /// The repertoires a **combined** session runs over, or null for the old shape.
 ///
-/// `ids=3,7`. The doors, their gates and their breadths are read from the rows
-/// rather than sent as three parallel query parameters, which is the shape that
-/// goes wrong the first time one of the three is shorter than the others — and
+/// `ids=3,7`. The doors and their gates are read from the rows rather than sent
+/// as parallel query parameters, which is the shape that goes wrong the first
+/// time one of them is shorter than the other — and
 /// it is also what lets a branch say which repertoire it came from, since the
 /// name comes along with the row.
 ///
@@ -181,11 +138,11 @@ function answer(res, work, whatFailed) {
 // Sent when the position it starts from already holds another repertoire's
 // first move, which is the case that made it necessary.
 router.post('/', authenticateToken, (req, res) => {
-  const { name, color, rootFen, rootPath, viaUci, breadth } = req.body ?? {};
+  const { name, color, rootFen, rootPath, viaUci } = req.body ?? {};
   answer(
     res,
     createRepertoire(pool, req.user.id, {
-      name, color, rootFen, rootPath, viaUci, breadth: breadth ?? null,
+      name, color, rootFen, rootPath, viaUci,
     }),
     'Repertoire could not be created.',
   );
@@ -205,39 +162,6 @@ router.put('/gate', authenticateToken, (req, res) => {
     res,
     setGate(pool, req.user.id, { id, viaUci: viaUci ?? null }),
     'Repertoire gate move could not be saved.',
-  );
-});
-
-// PUT /repertoire/breadth  { id, breadth }
-//
-// How wide this repertoire is walked: 'main', 'standard' or 'broad'. Changeable
-// afterwards, because it is a decision somebody revises — a trunk is the right
-// shape while an opening is being learned and the wrong one a month later.
-//
-// Nothing is written to `opening_replies`, which is shared by every user of
-// this server, and no move is touched: narrowing hides positions and widening
-// brings them straight back.
-//
-// Above `/:id` for the same reason `/gate` is: one path segment.
-router.put('/breadth', authenticateToken, (req, res) => {
-  const { id, breadth } = req.body ?? {};
-  answer(
-    res,
-    setBreadth(pool, req.user.id, { id, breadth }),
-    'Repertoire breadth could not be saved.',
-  );
-});
-
-// GET /repertoire/unconfirmed/count
-//
-// How many drafts each colour holds, both colours in one query, for the badge
-// on the list card. No gate and no walk: the list draws every card at once and
-// walking per card would make the most-opened screen in the app the slowest.
-router.get('/unconfirmed/count', authenticateToken, (req, res) => {
-  answer(
-    res,
-    unconfirmedCounts(pool, req.user.id),
-    'Could not read unconfirmed move count.',
   );
 });
 
@@ -282,63 +206,6 @@ router.get('/progress', authenticateToken, (req, res) => {
     res,
     repertoireProgress(pool, req.user.id),
     'Could not read repertoire progress.',
-  );
-});
-
-// GET /repertoire/unconfirmed?color=b&rootFen=...&rootPath=e4+c5&gateUci=...
-//
-// The positions holding nothing but generated moves, in the order the walk
-// meets them, each with the line that reaches it. This is the review queue: a
-// spine writes drafts, the drill never asks about them, and until this existed
-// the only way to find them again was to read the tree.
-//
-// Gate-aware and breadth-aware, because it is a walk — so the number here and
-// the number on the card can differ, and the screen with room for a sentence is
-// the one that gets the exact one.
-router.get('/unconfirmed', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, limit } = req.query;
-  answer(
-    res,
-    unconfirmedPositions(pool, req.user.id, {
-      color,
-      rootFen,
-      gateUci: gateOf(req.query),
-      breadth: breadthOf(req.query),
-      rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
-        ? rootPath.trim().split(/\s+/)
-        : [],
-      limit: Number(limit) || 200,
-    }),
-    'Could not read unconfirmed moves.',
-  );
-});
-
-// POST /repertoire/alternative
-//   { color, fen, uci, san, rejectedUci, includeDecisions }
-//
-// "Not that move, this one." The third answer the draft review needs, beside
-// confirming (`/node/confirm`) and refusing the branch (`/node/skip`).
-//
-// One transaction, because the two writes must not be able to happen apart: the
-// student's move takes the rejected draft's place, and everything that draft
-// was the only way to goes with it. Half of that is a queue that keeps offering
-// positions under a line the student has just said they will not play.
-//
-// Drafts under it go without asking; decisions are counted and handed back, so
-// the screen can say what would be lost before anything is.
-router.post('/alternative', authenticateToken, (req, res) => {
-  const body = req.body ?? {};
-  answer(
-    res,
-    playAlternative(pool, req.user.id, {
-      color: body.color,
-      fen: body.fen,
-      uci: body.uci,
-      san: body.san,
-      rejectedUci: body.rejectedUci,
-      includeDecisions: body.includeDecisions === true,
-    }),
-    'Draft replacement failed.',
   );
 });
 
@@ -526,76 +393,17 @@ router.get('/node', authenticateToken, (req, res) => {
 });
 
 // POST /repertoire/node/move  { color, fen, uci, san, verdict }
+//
+// A move of the student's, played on the board. Kept for the first time, it
+// brings the book's most played reply with it, entered as an opponent move they
+// can delete; the answer names that reply as `topReply` so the board can go on
+// to the position after it.
 router.post('/node/move', authenticateToken, (req, res) => {
   const { color, fen, uci, san, verdict } = req.body ?? {};
   answer(
     res,
-    addMove(pool, req.user.id, { color, fen, uci, san, verdict }),
+    keepMove(pool, req.user.id, { color, fen, uci, san, verdict }),
     'Could not save move.',
-  );
-});
-
-// POST /repertoire/spine  { color, rootFen, depth, minGames }
-//
-// The trunk: the most played move for both sides, `depth` of the student's
-// moves deep. Everything it writes is `source = 'auto'` — a draft the drill
-// never asks about until somebody confirms it — and it never overwrites a
-// position that already has a move, which is what makes it safe to re-run and
-// makes "continue from here" the same operation as "start here".
-//
-// Synchronous on purpose. Two book lookups per move is no time at all, and the
-// one background job this project had was deleted for taking too long and
-// falling over.
-router.post('/spine', authenticateToken, spineLimiter, (req, res) => {
-  const body = req.body ?? {};
-  // The book is the one thing this cannot do without. A server without the
-  // file says so with its reason and a 503 — never a spine that stopped at
-  // once, which would read as an opening nobody plays.
-  const unavailable = (err) => {
-    logger.error(`[BOOK] ${err.reason}: ${err.message}`);
-    return res.status(err.status).json({ error: err.message, reason: err.reason });
-  };
-  buildSpine(pool, req.user.id, {
-    color: body.color,
-    rootFen: body.rootFen,
-    depth: body.depth,
-    minGames: body.minGames,
-  }).then(
-    (value) => res.json(value),
-    (err) => (err instanceof OpeningBookUnavailable
-      ? unavailable(err)
-      : answer(res, Promise.reject(err), 'Could not build spine.')),
-  );
-});
-
-// POST /repertoire/node/confirm  { color, fen, uci? }
-//
-// A generated move becomes a decision. Without `uci`, every draft in the
-// position; with it, one move.
-//
-// Confirming is an act, and that is what makes generating moves safe to offer
-// at all: until somebody says "yes, this one", a generated move is scaffolding
-// — drawn, walked through, and never asked about by the drill. The archive seed
-// had no such act, which is why it was deleted.
-router.post('/node/confirm', authenticateToken, (req, res) => {
-  const { color, fen, uci } = req.body ?? {};
-  answer(
-    res,
-    confirmNode(pool, req.user.id, { color, fen, uci: uci ?? null }),
-    'Could not confirm move.',
-  );
-});
-
-// POST /repertoire/line/confirm  { color, fens: [...] }
-//
-// A whole line at once. One statement, because a line half confirmed is a line
-// the student would have to walk twice.
-router.post('/line/confirm', authenticateToken, (req, res) => {
-  const { color, fens } = req.body ?? {};
-  answer(
-    res,
-    confirmLine(pool, req.user.id, { color, fens }),
-    'Could not confirm line.',
   );
 });
 
@@ -611,19 +419,17 @@ router.post('/node/primary', authenticateToken, (req, res) => {
 
 // GET /repertoire/book?color=b&fen=...
 //
-// What the opponent plays here, out of what has already been stored — by
-// anybody. The panel that sits beside the board follows it around, and reading
-// the stored rows keeps it drawing exactly what the tree and the drill follow.
+// What is played here, from the local opening book, with `prepared` on the
+// moves this student entered. A position never stored is read from the book
+// and stored on the way, so the panel beside the board is simply there.
 //
-// `opened: false` means nobody has ever looked here, which the screen turns
-// into an offer to look rather than into "the opponent plays nothing".
+// `opened: false` now means the book has no games here; `unavailable` carries
+// the book's reason when the file cannot be read.
 router.get('/book', authenticateToken, (req, res) => {
   const { color, fen } = req.query;
   answer(
     res,
-    storedBook(pool, req.user.id, {
-      color, fen,
-    }),
+    bookAt(pool, req.user.id, { color, fen }),
     'Could not read book.',
   );
 });
@@ -718,10 +524,11 @@ router.get('/disagreements', authenticateToken, (req, res) => {
 // *before* the removal, because "would this still be reachable without that
 // move" cannot be answered once the move is gone.
 //
-// Positions, and how many moves in them are drafts and how many are decisions —
-// so a screen can take the first silently and ask about the second. Losing an
-// evening's work to a changed second move with no sentence about it is the kind
-// of thing that happens once and ends trust in a feature.
+// The positions only that move reaches, and how many of the student's moves
+// stand in them — so a screen can ask before anything goes. `uci` may be the
+// student's move or an opponent move they entered. Losing an evening's work to
+// a deleted move with no sentence about it is the kind of thing that happens
+// once and ends trust in a feature.
 router.get('/node/orphans', authenticateToken, (req, res) => {
   const { color, fen, uci } = req.query;
   answer(
@@ -733,11 +540,11 @@ router.get('/node/orphans', authenticateToken, (req, res) => {
   );
 });
 
-// POST /repertoire/prune  { color, keys, includeDecisions }
+// POST /repertoire/prune  { color, keys }
 //
-// Takes out positions that nothing reaches any more. Drafts go by default;
-// decisions only when the caller says so, which is what the count from
-// `/node/orphans` is for.
+// Takes out positions that nothing reaches any more, with the opponent moves
+// entered after them. The screen asks first, with the count from
+// `/node/orphans`.
 //
 // Every key is re-checked against the roots first: the answer to "is this still
 // unreachable" can change between the question and the confirmation, and a
@@ -749,7 +556,6 @@ router.post('/prune', authenticateToken, (req, res) => {
     pruneKeys(pool, req.user.id, {
       color: body.color,
       keys: Array.isArray(body.keys) ? body.keys : [],
-      includeDecisions: body.includeDecisions === true,
     }),
     'Pruning failed.',
   );
@@ -765,50 +571,17 @@ router.delete('/node/move', authenticateToken, (req, res) => {
   );
 });
 
-// POST /repertoire/node/skip  { color, fen }
-//
-// "I am not preparing this." The only control in the build loop that makes the
-// tree smaller — every other one adds — so it is stored rather than left to be
-// said by closing the screen, which says the same thing for one session and
-// forgets it.
-//
-// It stops the walk at this position and nothing else. A move already kept here
-// stays kept and stays drilled: cutting is about how far to prepare, not about
-// unlearning what was decided.
-router.post('/node/skip', authenticateToken, (req, res) => {
-  const { color, fen } = req.body ?? {};
-  answer(
-    res,
-    skipNode(pool, req.user.id, { color, fen }),
-    'Branch could not be skipped.',
-  );
-});
-
-// DELETE /repertoire/node/skip?color=b&fen=...
-router.delete('/node/skip', authenticateToken, (req, res) => {
-  const { color, fen } = req.query;
-  answer(
-    res,
-    unskipNode(pool, req.user.id, { color, fen }),
-    'Branch could not be unskipped.',
-  );
-});
-
 // POST /repertoire/node/reply  { color, fen, uci, san }
 //
-// "Prepare this opponent move too." The wave covers 80% of what is played, up
-// to four moves, and names the remainder; this is the way through that wall,
-// one move at a time.
-//
-// `fen` is the position the opponent answers *from* — after the student's own
-// move — and `uci` is their reply. Stored per student, never by flipping
-// `opening_replies.covered`, which is shared by everybody.
+// An opponent move, played on the board by the student. `fen` is the position
+// the opponent moves *from* — after the student's own move. The move does not
+// have to be in the book.
 router.post('/node/reply', authenticateToken, (req, res) => {
   const { color, fen, uci, san } = req.body ?? {};
   answer(
     res,
     addExtraReply(pool, req.user.id, { color, fen, uci, san }),
-    'Could not add move to preparation.',
+    'Could not save opponent move.',
   );
 });
 
@@ -818,7 +591,7 @@ router.delete('/node/reply', authenticateToken, (req, res) => {
   answer(
     res,
     removeExtraReply(pool, req.user.id, { color, fen, uci }),
-    'Could not remove move from preparation.',
+    'Could not remove opponent move.',
   );
 });
 
@@ -840,10 +613,9 @@ router.post('/attempt', authenticateToken, (req, res) => {
 
 // GET /repertoire/frontier?color=b&rootFen=...&rootPath=e4+c5
 //
-// Where the student is, rebuilt from what they have already decided and the
-// books already fetched. This is what makes closing the build screen safe: the
-// queue was never a fact worth storing, and deriving it costs no Lichess
-// request at all — so resuming is free, and free on any device.
+// Where the student is, rebuilt from the moves they played. This is what makes
+// closing the build screen safe: the queue was never a fact worth storing, and
+// deriving it costs nothing — so resuming is free, and free on any device.
 router.get('/frontier', authenticateToken, (req, res) => {
   const { color, rootFen, rootPath, limit } = req.query;
   answer(
@@ -855,7 +627,6 @@ router.get('/frontier', authenticateToken, (req, res) => {
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
-      breadth: breadthOf(req.query),
       limit: Math.min(Math.max(Number(limit) || 200, 1), 500),
     }),
     'Could not calculate repertoire overview.',
@@ -872,7 +643,7 @@ router.get('/frontier', authenticateToken, (req, res) => {
 // thousands of moves and nobody reads a drawing of all of them; the answer says
 // when the depth was reached.
 router.get('/tree', authenticateToken, (req, res) => {
-  const { color, rootFen, rootPath, alongPath, maxPly } = req.query;
+  const { color, rootFen, rootPath, maxPly } = req.query;
   answer(
     res,
     repertoireTree(pool, req.user.id, {
@@ -882,14 +653,6 @@ router.get('/tree', authenticateToken, (req, res) => {
       rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
         ? rootPath.trim().split(/\s+/)
         : [],
-      // The line the reader is standing on, in SAN from `rootFen` — the same
-      // encoding `rootPath` uses, because it is the same kind of thing. The
-      // walk follows it whatever the breadth says, so the drawing always
-      // contains the position the board is showing. See `coveredReplies`.
-      alongPath: typeof alongPath === 'string' && alongPath.trim() !== ''
-        ? alongPath.trim().split(/\s+/)
-        : [],
-      breadth: breadthOf(req.query),
       maxPly: Math.min(Math.max(Number(maxPly) || 16, 2), 40),
     }),
     'Could not assemble repertoire tree.',
@@ -987,7 +750,6 @@ router.get('/drill/line', authenticateToken, (req, res) => {
       // so it cannot be used to push an interval out.
       ahead: ahead === '1' || ahead === 'true',
       gateUci: gateOf(req.query),
-      breadth: breadthOf(req.query),
     })),
     'Could not assemble the drill line.',
   );
@@ -1014,7 +776,6 @@ router.get('/drill/branches', authenticateToken, (req, res) => {
         roots,
         rootFen,
         gateUci: gateOf(req.query),
-        breadth: breadthOf(req.query),
         rootPath: typeof rootPath === 'string' && rootPath.trim() !== ''
           ? rootPath.trim().split(/\s+/)
           : [],
@@ -1050,7 +811,7 @@ router.get('/drill/reveal', authenticateToken, (req, res) => {
 // its question needs — see `answer` for why the two are not the same flag.
 router.post('/drill/answer', authenticateToken, (req, res) => {
   const {
-    color, fen, uci, revealed, practice, onlyIfDue, breadth,
+    color, fen, uci, revealed, practice, onlyIfDue,
   } = req.body ?? {};
   answer(
     res,
@@ -1064,17 +825,10 @@ router.post('/drill/answer', authenticateToken, (req, res) => {
     }).then(async (graded) => {
       const reply = await pickReply(pool, {
         fen: _fenAfterOrSame(fen, graded, uci),
-        // Whose preparation counts. A reply this student pressed "prepare this
-        // too" on is theirs, and a draw that did not know who was asking would
-        // refuse a move they chose by name.
+        // Whose repertoire it is: the opponent plays the moves this student
+        // entered, and nobody else's.
         userId: req.user.id,
         color,
-        // And how wide their repertoire is. The live opponent and the line walk
-        // have to draw from the same set of replies — they disagreed once
-        // already, and it was the walk that was right.
-        breadth: typeof breadth === 'string' && breadth.trim() !== ''
-          ? breadth.trim()
-          : null,
       });
       return { ...graded, reply };
     }),
