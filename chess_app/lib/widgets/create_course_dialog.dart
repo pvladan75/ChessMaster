@@ -20,11 +20,15 @@ class CreateCourseDialog extends StatefulWidget {
   /// starting a blank one.
   final Map<String, dynamic>? existingLesson;
 
+  /// Injected by tests; the dialog builds its own otherwise.
+  final LessonApiService? lessonApi;
+
   const CreateCourseDialog({
     super.key,
     required this.userSession,
     required this.onCourseCreated,
     this.existingLesson,
+    this.lessonApi,
   });
 
   @override
@@ -37,7 +41,7 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
   final List<Map<String, dynamic>> selectedPositions = [];
 
   late final LessonApiService _api =
-      LessonApiService(authToken: widget.userSession.token);
+      widget.lessonApi ?? LessonApiService(authToken: widget.userSession.token);
   bool isSaving = false;
   bool isAddingFromLibrary = false;
 
@@ -161,6 +165,14 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
 
     setState(() => isSaving = true);
     final updateInPlace = isEditing && !asNew;
+    // Labels are the trainer's, written in the library and the studio; this
+    // dialog does not edit them. It used to send `tags: ['lekcija_kurs']` on
+    // every save — a Serbian marker nothing reads — so reordering the steps of a
+    // tutorial erased its labels. An update now says nothing about them, which
+    // the server reads as „leave them", and a copy keeps the original's.
+    final existingTags = (widget.existingLesson?['tags'] as List?)
+        ?.map((t) => t.toString())
+        .toList();
     // `selectedPositions` holds each stored step whole, so `id`, `kind`,
     // `solutionSan` and `choices` travel back untouched. That is what keeps the
     // server's 409 from firing on an edit made here, and it is why this dialog
@@ -170,13 +182,12 @@ class _CreateCourseDialogState extends State<CreateCourseDialog> {
             id: widget.existingLesson!['id'] as int,
             title: title,
             description: desc,
-            tags: const ['lekcija_kurs'],
             positionList: selectedPositions,
           )
         : await _api.save(
             title: title,
             description: desc,
-            tags: const ['lekcija_kurs'],
+            tags: existingTags,
             positionList: selectedPositions,
           );
 

@@ -5875,6 +5875,38 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 168. Soba sa dva uređaja — 16.9.2026, nije viđeno uživo
+
+`docs/STANJE-RADA.md`, „Soba iz revizije (blok B)". **Dva uređaja ili dve
+instance aplikacije, dva naloga sa prihvaćenom vezom trener–učenik.** Server
+restartovan. Ovo je prva provera sobe na dva uređaja posle 10.8.2026.
+
+1. [ ] **Tabla prati potez.** Trener odigra e4; učenikova **tabla** (ne samo
+   stablo) pokazuje e4. Trener klikne na raniji potez u stablu; učenikova tabla
+   ide za njim.
+2. [ ] **Kasni ulazak.** Trener odigra nekoliko poteza, pa učenik uđe; učenik
+   vidi poziciju sobe, ne početnu.
+3. [ ] **Učitana pozicija.** Trener učita sačuvanu poziciju ili tutorijal i
+   odigra potez; učenikovo stablo nije prazno i tabla je na istoj poziciji.
+4. [ ] **Okretanje table.** „Force student board to Black" — učenikova tabla se
+   okrene.
+5. [ ] **Deljenje pozicije.** Učenik podeli poziciju treneru; treneru se otvori
+   dijalog i „Load onto board" je učita.
+6. [ ] **Poziv sa spiska učenika.** Trener pozove učenika koji je u aplikaciji;
+   učeniku se odmah otvori poziv, i poziv je i u zvoncu. Nalog bez veze dobija
+   poruku o odbijanju, ne „Invitation sent".
+7. [ ] **Glas.** Oba uključe glas. Trener utiša učenika — učenik se zaista ne
+   čuje; „Unmute" ga vrati. „Mute all students" — isto. Utišan učenik podigne
+   ruku — treneru stigne „wants to speak".
+8. [ ] **Dozvola za motor.** Trener uključi motor za učenike, pa učenik uđe —
+   prekidač motora mu je odmah dostupan.
+9. [ ] **Uloga.** Trener promoviše učenika — samo on dobije obaveštenje; pri
+   običnom ulasku nema obaveštenja o ulozi.
+10. [ ] **Save position.** Posle nekoliko poteza „Save position"; otvori
+    sačuvano — svi potezi su tu.
+11. [ ] **Edit positions.** Tutorijalu sa oznakama promeni redosled koraka i
+    sačuvaj; oznake su ostale.
+
 ## 167. Sigurnosni blok iz revizije — 16.9.2026, nije viđeno uživo
 
 `docs/STANJE-RADA.md`, „Sigurnosni blok iz revizije". Server mora biti

@@ -2577,3 +2577,42 @@ the sound first. It stands on an adult alone in the room now.
 **Security findings are not committed to a public repository before they are
 fixed.** The audit files sit in `.git/info/exclude` until the last finding that
 reads as instructions is closed.
+
+**The room's socket contract, 16.9.2026 — app 2677 with 1 skipped, backend 1350
+with `.env` moved aside, analyze at 26.** The arithmetic: app 2670 + 1 (room
+save) + 2 (course dialog labels) + 4 (tree sync); backend 1338 + 7 (contract) + 3
+(invitation route) + 2 (board events: three for sharing, one speaker test
+deleted with its event).
+
+**A rename on one end of a wire is invisible to both ends' tests.** Commit
+`6a6b0dd` renamed the room's socket events on the server; the app kept the old
+names, and five weeks of green suites and live checks followed. Each end was
+tested alone, and the only thing that could see the break — two clients in one
+room — was never run, because the fallback (`pgn_loaded`) kept the move tree
+looking right on the one device that was watched. **When two ends agree by a
+name, one test has to read both ends.** `test/socket_contract.test.js` does, in
+all four directions, so a handler nothing calls is as loud as a call nothing
+handles.
+
+**A computed name hides from a name-reading test — and the first version of the
+fix wrote one.** `emit(isMuted ? 'a' : 'b')` passed the pairing silently; the
+test now also refuses any emit or listener whose name is not a literal.
+
+**The role in the URL is not the seat in the room.** The voice and sharing
+controls asked `userSession.role == 'ucenik'`, and joining by code arrives as
+`korisnik` — so those handlers would have stayed dead with every name repaired.
+Found only because the listeners were read, not just renamed.
+
+**A test that fails to compile is not a red.** The course dialog's label test
+was „watched failing" under its mutation — and had failed to load, on a wrong
+import path, both with the fix and without it. Read *which* failure it is; this
+file already says so, and it still happened.
+
+**A test's simulation can be weaker than the thing it stands in for.** Calling
+the board's `onMove` without moving the controller first — which the real board
+always does — produced a line whose second move could not play, and a red for
+the wrong reason. The helper plays on the controller, then reports.
+
+**An escaped `\\b` written through a script arrived as a backspace byte**, twice,
+in the contract test's regex — the trap this log already records from
+`gate_english_backend`. `grep -c $'\\x08'` finds it.

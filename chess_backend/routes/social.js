@@ -508,6 +508,9 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
         title,
         message,
       });
+      // The row is written first; this only lets an open app show the
+      // invitation now instead of at the next look at the bell.
+      realtime.emitToUser(targetId, 'lesson_invite_received', { senderId, senderName, roomCode });
     }
 
     // Said out loud when part of the list was dropped: a silent partial success

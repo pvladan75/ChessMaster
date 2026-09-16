@@ -118,20 +118,55 @@ test('a PGN from a seated socket on an open board is relayed', async () => {
   assert.deepEqual(socket.broadcasts.map((b) => b.event), ['pgn_loaded']);
 });
 
-test('a speaker indicator is relayed only into the voice the socket joined', async () => {
-  const outsider = setUp({});
-  outsider.socket.handlers.audio_speaker_active({ roomId: '123456', isSpeaking: true });
-  assert.deepEqual(outsider.socket.broadcasts, []);
-
-  const inside = setUp({ audioRoomId: '123456', audioUserId: 5 });
-  inside.socket.handlers.audio_speaker_active({ roomId: '123456', isSpeaking: true });
-  assert.equal(inside.socket.broadcasts.length, 1);
-});
-
 test('an event with no payload at all does not throw', async () => {
   const { socket } = setUp({ roomId: '123456' });
   await socket.handlers.move();
   await socket.handlers.pgn_loaded();
-  socket.handlers.audio_speaker_active();
+  socket.handlers.student_shares_position();
+  assert.deepEqual(socket.broadcasts, []);
+});
+
+// Sharing a position: restored 16.9.2026 after five weeks with a button that
+// said „Position sent to trainer!" and no handler behind it.
+
+function sharing(seat, members) {
+  const socket = fakeSocket({ userId: 7, userName: 'Student Seven', ...seat });
+  const denied = [];
+  registerRoomBoardEvents(socket, {
+    pool: { query: async () => ({ rows: [], rowCount: 0 }) },
+    canAdministerRoom: async () => false,
+    denyPrivileged: (_s, event, roomId) => denied.push({ event, roomId }),
+    members: () => members,
+  });
+  return socket;
+}
+
+const ROOM = { '123456': { 1: { userId: 1, socketId: 'trainer-socket', role: 'trener' }, 7: { userId: 7, socketId: 'sock-1' } } };
+const FEN = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+
+test('a seated student shares a position with a member of the room, named by the server', async () => {
+  const socket = sharing({ roomId: '123456' }, ROOM);
+  socket.handlers.student_shares_position({ roomId: '123456', targetUserId: 1, fen: FEN, studentName: 'Somebody Else' });
+  assert.equal(socket.broadcasts.length, 1);
+  const sent = socket.broadcasts[0];
+  assert.equal(sent.roomId, 'trainer-socket', 'only to the chosen member, not the whole room');
+  assert.equal(sent.event, 'student_position_shared');
+  assert.equal(sent.payload.studentName, 'Student Seven', 'the name comes from the socket, not the message');
+  assert.equal(sent.payload.fen, FEN);
+});
+
+test('a position is not shared by a socket outside the room, nor with somebody who is not in it', async () => {
+  const outside = sharing({}, ROOM);
+  outside.handlers.student_shares_position({ roomId: '123456', targetUserId: 1, fen: FEN });
+  assert.deepEqual(outside.broadcasts, []);
+
+  const seated = sharing({ roomId: '123456' }, ROOM);
+  seated.handlers.student_shares_position({ roomId: '123456', targetUserId: 99, fen: FEN });
+  assert.deepEqual(seated.broadcasts, []);
+});
+
+test('a share without a position sends nothing', async () => {
+  const socket = sharing({ roomId: '123456' }, ROOM);
+  socket.handlers.student_shares_position({ roomId: '123456', targetUserId: 1, fen: '' });
   assert.deepEqual(socket.broadcasts, []);
 });

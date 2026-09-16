@@ -13,6 +13,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/features/lessons/models/part_titles.dart';
+import 'package:chess_app/core/services/room_tree_sync.dart';
+import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
@@ -210,6 +212,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
       widget.roomCode == 'STUDIO';
   bool get isTrener => isHost;
 
+  /// Seated in a real room without the right to run it. Asked of the seat the
+  /// server granted, never of the role in the URL: joining by code arrives as
+  /// 'korisnik', so a check for 'ucenik' there never fired for anybody who
+  /// typed a code, and the voice and sharing controls were dead for them.
+  bool get _isStudentSeat => widget.roomCode != 'STUDIO' && !isHost;
+
   /// Whether this client may drive the shared board — either by moving a piece
   /// or by stepping through the move tree. Both broadcast the new position to
   /// everyone in the room, so they answer to one rule rather than two.
@@ -366,10 +374,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     _isDisposing = true;
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _stockfishService.detach(this);
-    socket.emit('leaveGame', {
-      'roomId': widget.roomCode,
-      'userId': widget.userSession.id,
-    });
     socket.emit('audio_leave', {
       'roomId': widget.roomCode,
       'userId': widget.userSession.id,
@@ -584,9 +588,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   void _raiseHand() {
-    socket.emit('audio_raise_hand', {
+    socket.emit('audio_hand_raise_toggle', {
       'roomId': widget.roomCode,
-      'userId': widget.userSession.id,
+      'handRaised': true,
     });
     setState(() {
       isHandRaised = true;
@@ -867,21 +871,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     return path;
   }
 
-  MoveNode? findNodeByPath(MoveNode rootNode, List<String> path) {
-    MoveNode curr = rootNode;
-    for (var san in path) {
-      MoveNode? child;
-      for (final c in curr.children) {
-        if (c.san == san) {
-          child = c;
-          break;
-        }
-      }
-      if (child == null) return null;
-      curr = child;
-    }
-    return curr;
-  }
+  MoveNode? findNodeByPath(MoveNode rootNode, List<String> path) =>
+      nodeAtPath(rootNode, path);
 
   void initSocket() {
     // Configure socket.io client connection to server.
@@ -984,8 +975,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
       });
     });
 
+    // The room's position for somebody arriving late. Applied only to a tree
+    // with nothing in it: the server sends it on every join, and a trainer
+    // whose socket reconnects mid-lesson must not have the lesson replaced by
+    // a bare position.
     socket.on('gameState', (data) {
-      if (data != null) {
+      if (data != null && moveTree.root.children.isEmpty) {
         setState(() {
           if (data['currentFen'] != null) {
             controller.loadFen(data['currentFen']);
@@ -1006,6 +1001,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (data != null && data['boardControl'] != null) {
         setState(() {
           boardControl = data['boardControl'];
+          // Sent on joining as well as on a change, so a student who arrives
+          // after the trainer allowed the engine gets it without a toggle.
+          if (data['allowStudentEngine'] is bool) {
+            allowStudentEngine = data['allowStudentEngine'];
+          }
         });
         AppFeedback.show(
           context,
@@ -1023,7 +1023,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         setState(() {
           allowStudentEngine = data['allowStudentEngine'];
           // If permission is revoked, force disable and turn off engine for ucenik
-          if (!allowStudentEngine && widget.userSession.role == 'ucenik') {
+          if (!allowStudentEngine && _isStudentSeat) {
             isEngineEnabled = false;
             _stockfishService.stopAnalysis();
             currentEngineEval = "0.00";
@@ -1035,7 +1035,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
-    socket.on('flip_board_forced', (data) {
+    socket.on('board_flipped', (data) {
       if (data != null && data['orientation'] != null) {
         setState(() {
           boardOrientation = data['orientation'] == 'white'
@@ -1053,7 +1053,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
-    socket.on('moveMade', (data) {
+    socket.on('move', (data) {
       if (data != null) {
         setState(() {
           if (data['currentFen'] != null) {
@@ -1121,15 +1121,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // Real-time synchronization when Trainer loads PGN
     socket.on('pgn_loaded', (data) {
       if (data != null && data['pgn'] != null) {
-        final path = getPathToNode(moveTree.current);
-        final parsed =
-            MoveTree.parsePgn(data['pgn'], startingFen: moveTree.root.fen);
+        // From where the broadcast starts, not from this tree's root: a trainer
+        // who loaded a position sends a line that begins there.
+        final parsed = treeFromBroadcast(data['pgn'],
+            cursorPath: getPathToNode(moveTree.current));
         if (parsed != null) {
-          final matchingNode = findNodeByPath(parsed.root, path);
-          parsed.current = matchingNode ?? parsed.root;
+          final rootMoved = parsed.root.fen != moveTree.root.fen;
           setState(() {
             moveTree = parsed;
             commentController.text = moveTree.current.comment;
+            if (rootMoved) controller.loadFen(moveTree.current.fen);
           });
         }
       }
@@ -1150,14 +1151,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
-    socket.on('user_role_changed', (data) {
+    // Sent only to the member whose seat changed. `changed` is set when a host
+    // moved them; on joining the server sends the seat without it, and that is
+    // not news worth a notice.
+    socket.on('role_changed', (data) {
       if (data != null && mounted) {
-        final targetUserId = data['targetUserId'];
         final newRole = data['newRole'];
-        if (targetUserId == widget.userSession.id) {
+        if (newRole is String) {
           setState(() {
             activeRole = newRole;
           });
+        }
+        if (data['changed'] == true) {
           AppFeedback.show(
             context,
             () => SnackBar(
@@ -1222,7 +1227,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
-    socket.on('recording_status_update', (data) {
+    socket.on('recording_status_changed', (data) {
       if (data != null && mounted) {
         final status = data['status'];
         final startTimeMs = data['recordingStartTimeMs'];
@@ -1271,7 +1276,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         final String fen = data['fen'];
         final String? pgn = data['pgn'];
 
-        if (widget.userSession.role == 'trener') {
+        if (isHost) {
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -1378,7 +1383,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('audio_force_mute_student', (data) {
       final targetUserId = data['targetUserId'];
       if (targetUserId == 'all' || targetUserId == widget.userSession.id) {
-        if (widget.userSession.role == 'ucenik') {
+        if (_isStudentSeat) {
           _agoraService.toggleMute(true);
           socket.emit('audio_mute_toggle', {
             'roomId': widget.roomCode,
@@ -1401,7 +1406,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.on('audio_force_unmute_student', (data) {
       final targetUserId = data['targetUserId'];
       if (targetUserId == widget.userSession.id) {
-        if (widget.userSession.role == 'ucenik') {
+        if (_isStudentSeat) {
           _agoraService.toggleMute(false);
           socket.emit('audio_mute_toggle', {
             'roomId': widget.roomCode,
@@ -1422,7 +1427,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     socket.on('audio_hand_raised_alert', (data) {
       final userName = data['userName'];
-      if (widget.userSession.role == 'trener') {
+      if (isHost) {
         AppFeedback.show(
           context,
           () => SnackBar(
@@ -1964,12 +1969,26 @@ class _ChessGamePageState extends State<ChessGamePage> {
   // REST API: Save current board FEN with description and tags
   Future<void> saveCurrentPosition(
       String title, String description, List<String> tags) async {
+    // One node answers for both fields: the tree's root, which is where the
+    // exported line starts. The `fen` used to come from the board, wherever the
+    // trainer stood, while the `pgn` came from the root — so a line saved from
+    // anywhere past move zero had every move rejected by the reader and was
+    // reported as saved. And the writer reads its own work back first, through
+    // the reader the student's screen uses. test/room_save_position_test.dart.
+    final fen = moveTree.root.fen;
+    final pgn = moveTree.exportToPgn();
+    final reading = LessonStepLine.read(fen: fen, pgn: pgn);
+    if (!reading.replays) {
+      _showError(
+          'This line cannot be saved: ${reading.rejectedMoves} of its moves do not play from its starting position.');
+      return;
+    }
     final error = await _lessonApi.save(
       title: title,
       description: description,
       tags: tags,
-      fen: controller.getFen(),
-      pgn: moveTree.exportToPgn(),
+      fen: fen,
+      pgn: pgn,
     );
     if (!mounted) return;
     if (error != null) {
@@ -2502,7 +2521,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
             'roomId': widget.roomCode,
             'targetUserId': member['userId'],
             'fen': currentFen,
-            'studentName': widget.userSession.name,
           });
           _showSuccess('Position sent to trainer (${member['name']})!');
         },
@@ -3016,8 +3034,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               ),
               const SizedBox(height: AppSpacing.sm),
               _buildMatrixFilterPanel(),
-              if (widget.userSession.role == 'ucenik' &&
-                  widget.roomCode != 'STUDIO') ...[
+              if (_isStudentSeat) ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -3885,14 +3902,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                             size: 16),
                                         onPressed: () {
                                           if (isUserMuted) {
-                                            socket.emit('audio_allow_speech', {
+                                            socket.emit('audio_mute_toggle', {
                                               'roomId': widget.roomCode,
-                                              'targetUserId': user['userId'],
+                                              'userId': user['userId'],
+                                              'isMuted': false,
                                             });
                                           } else {
-                                            socket.emit('audio_mute_student', {
+                                            socket.emit('audio_mute_toggle', {
                                               'roomId': widget.roomCode,
-                                              'targetUserId': user['userId'],
+                                              'userId': user['userId'],
+                                              'isMuted': true,
                                             });
                                           }
                                         },
@@ -3910,8 +3929,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 style: AppText.caption
                                     .copyWith(color: context.colors.textMuted),
                               ),
-                            if (widget.userSession.role == 'trener' &&
-                                audioUsers.length > 1) ...[
+                            if (isHost && audioUsers.length > 1) ...[
                               const SizedBox(height: AppSpacing.md),
                               ElevatedButton(
                                 onPressed: () {
@@ -3926,7 +3944,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 child: const Text('Mute all students'),
                               ),
                             ],
-                            if (widget.userSession.role == 'ucenik' &&
+                            if (_isStudentSeat &&
                                 isAudioMuted &&
                                 isHandRaised) ...[
                               const SizedBox(height: AppSpacing.sm),
@@ -3937,8 +3955,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                       .copyWith(color: context.colors.warning),
                                 ),
                               ),
-                            ] else if (widget.userSession.role == 'ucenik' &&
-                                isAudioMuted) ...[
+                            ] else if (_isStudentSeat && isAudioMuted) ...[
                               const SizedBox(height: AppSpacing.sm),
                               ElevatedButton.icon(
                                 onPressed: _raiseHand,

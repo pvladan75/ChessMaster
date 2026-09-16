@@ -300,12 +300,6 @@ class _HomeScreenState extends State<HomeScreen> {
       unawaited(SessionService.instance.expire());
     });
 
-    _socket.on('user_presence_changed', (data) {
-      if (mounted) {
-        _fetchStudents(withPanel: false);
-      }
-    });
-
     // Anything that raised a notification at the other end — homework set, a
     // note written, a lesson scheduled, a request answered. Without this the
     // bell only ever filled at startup: nothing polls, so a notification
@@ -327,15 +321,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchStudents();
     });
 
-    _socket.on('session_invite_received', (data) {
-      if (!mounted) return;
-      _fetchNotifications();
-      final senderName = data['senderName'] ?? data['trainerName'] ?? 'Friend';
-      final roomCode = data['roomCode'] ?? '';
-      _showInviteDialog(roomCode, senderName);
-    });
-
-    _socket.on('lesson_invite', (data) {
+    // Sent by `POST /invitations/send` after it has written the notification,
+    // so the invitation is in the bell whether or not this arrives.
+    _socket.on('lesson_invite_received', (data) {
       if (!mounted) return;
       _fetchNotifications();
       final senderName = data['trainerName'] ?? data['senderName'] ?? 'Friend';
@@ -888,17 +876,35 @@ class _HomeScreenState extends State<HomeScreen> {
         final String createdRoomCode =
             data['room_code'] ?? data['room']?['room_code'] ?? '';
 
-        _socket.emit('send_lesson_invite', {
-          'studentId': studentId,
-          'roomCode': createdRoomCode,
-        });
-
-        AppFeedback.show(
-          context,
-          () => SnackBar(
-              content: Text(
-                  'Invitation sent for room $createdRoomCode! Connecting...')),
+        // Through the route rather than the socket: the route checks the
+        // relationship and writes the notification, so the invitation reaches
+        // a student who is offline too. The socket event it used to send had
+        // been renamed on the server, reached nobody, and was reported as sent.
+        final invite = await http.post(
+          Uri.parse('$backendUrl/invitations/send'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${widget.session.token}'
+          },
+          body:
+              jsonEncode({'studentId': studentId, 'roomCode': createdRoomCode}),
         );
+        if (!mounted) return;
+
+        if (invite.statusCode == 200) {
+          AppFeedback.show(
+            context,
+            () => SnackBar(
+                content: Text(
+                    'Invitation sent for room $createdRoomCode! Connecting...')),
+          );
+        } else {
+          String reason = 'The invitation could not be sent.';
+          try {
+            reason = (jsonDecode(invite.body)['error'] as String?) ?? reason;
+          } catch (_) {}
+          _showError(reason);
+        }
 
         _socket.disconnect();
         await context.push(AppRoutes.roomPath(createdRoomCode, role: 'trener'));

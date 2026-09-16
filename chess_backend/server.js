@@ -296,20 +296,9 @@ io.on('connection', (socket) => {
     logger.info(`[ONLINE PRESENCE] User registered: ${authUser.name} (ID: ${authUser.id})`);
   });
 
-  socket.on('send_lesson_invite', ({ studentId, roomCode }) => {
-    if (!authUser) {
-      return denyPrivileged(socket, 'send_lesson_invite', roomCode);
-    }
-    logger.info(`[REALTIME INVITE] Sender: ${authUser.name} -> Student ID: ${studentId} | Room: ${roomCode}`);
-    const recipient = onlineUsers[studentId];
-    if (recipient) {
-      io.to(recipient.socketId).emit('lesson_invite_received', {
-        senderId: authUser.id,
-        senderName: authUser.name || 'Trainer',
-        roomCode
-      });
-    }
-  });
+  // Lesson invitations go through `POST /invitations/send`, which checks the
+  // relationship and writes the notification before nudging the socket. The
+  // socket-only path it replaces checked neither.
 
   socket.on('joinGame', async ({ roomId, playerColor }) => {
     // The guest list, before the door. This handler used to join first and ask
@@ -402,6 +391,13 @@ io.on('connection', (socket) => {
           boardControl: room.board_control || 'host_only',
           allowStudentEngine: room.allow_student_engine || false
         });
+        // The position the room is on, for somebody arriving after the first
+        // move. `current_fen` was written on every move and read by nothing
+        // since 10.8.2026, so a late joiner opened on the starting position. The
+        // app applies it only to an empty move tree.
+        if (room.current_fen) {
+          socket.emit('gameState', { currentFen: room.current_fen });
+        }
       }
     } catch (e) {
       logger.error('Error fetching room permissions:', e);
@@ -420,7 +416,7 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
       const targetMember = activeRoomMembers[roomId][targetUserId];
       if (targetMember && targetMember.socketId) {
-        io.to(targetMember.socketId).emit('role_changed', { newRole });
+        io.to(targetMember.socketId).emit('role_changed', { newRole, changed: true });
       }
     }
   });
@@ -519,17 +515,11 @@ io.on('connection', (socket) => {
     logger.info(`[FORCE FLIP] Room ${roomId} -> orientation: ${orientation}`);
   });
 
-  socket.on('toggle_blunder_alert', async ({ roomId, enabled }) => {
-    if (!(await canAdministerRoom(socket, roomId))) {
-      return denyPrivileged(socket, 'toggle_blunder_alert', roomId);
-    }
-    socket.to(roomId).emit('blunder_alert_toggled', { enabled });
-    logger.info(`[BLUNDER ALERT] Room ${roomId} -> enabled: ${enabled}`);
-  });
-
-  // `move` and `pgn_loaded`, and the speaker indicator below them, live in
+  // `move`, `pgn_loaded` and a student sharing a position live in
   // services/roomBoardEvents.js: a socket acts only in the room it was seated in.
-  registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileged });
+  registerRoomBoardEvents(socket, {
+    pool, canAdministerRoom, denyPrivileged, members: () => activeRoomMembers,
+  });
 
   socket.on('audio_join', async ({ roomId, isMuted }) => {
     // Asked again rather than trusted from the board join: voice is the part
@@ -606,8 +596,20 @@ io.on('connection', (socket) => {
       return denyPrivileged(socket, 'audio_mute_toggle', roomId);
     }
     if (roomAudioUsers[roomId] && roomAudioUsers[roomId][targetId]) {
-      roomAudioUsers[roomId][targetId].isMuted = isMuted;
+      const target = roomAudioUsers[roomId][targetId];
+      target.isMuted = isMuted;
+      if (!isSelf && !isMuted) target.handRaised = false;
       io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+      // The roster flag alone only changed a list; the member's own app is what
+      // closes or opens the microphone, so a host's decision is sent to it.
+      // Two literal names rather than a ternary: test/socket_contract.test.js
+      // pairs event names by reading both ends, and a computed name is one it
+      // cannot see.
+      if (!isSelf && target.socketId && isMuted) {
+        io.to(target.socketId).emit('audio_force_mute_student', { targetUserId: targetId });
+      } else if (!isSelf && target.socketId) {
+        io.to(target.socketId).emit('audio_force_unmute_student', { targetUserId: targetId });
+      }
     }
   });
 
@@ -622,7 +624,7 @@ io.on('connection', (socket) => {
         }
       });
       io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
-      io.to(roomId).emit('audio_force_muted_all');
+      socket.to(roomId).emit('audio_force_mute_student', { targetUserId: 'all' });
     }
   });
 
@@ -660,6 +662,12 @@ io.on('connection', (socket) => {
     if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
       roomAudioUsers[roomId][userId].handRaised = handRaised;
       io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
+      if (handRaised === true) {
+        io.to(roomId).emit('audio_hand_raised_alert', {
+          userId,
+          userName: roomAudioUsers[roomId][userId].userName,
+        });
+      }
     }
   });
 

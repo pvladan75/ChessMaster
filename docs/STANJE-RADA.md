@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,53 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Soba iz revizije (blok B) — 16.9.2026, u kodu
+
+Revizija je našla da se imena socket događaja između aplikacije i servera ne
+slažu od commita `6a6b0dd` (10.8.2026): server je preimenovao događaje sobe, a
+aplikacija je zadržala stara imena. Petnaest slušalaca u aplikaciji nije imalo
+pošiljaoca, pet poruka iz aplikacije nije imalo primaoca. **Učenikova tabla nije
+pratila trenerove poteze** — stablo jeste, preko `pgn_loaded`, pa je izgledalo da
+radi — i to se nije videlo pet nedelja jer je svaka provera sobe bila na jednom
+uređaju. Isto tako mrtvi: „Force student board to…", „Position sent to
+trainer!", „Invite to lesson" sa spiska učenika, utišaj/dozvoli govor, „Mute all
+students" i podignuta ruka.
+
+Šta je urađeno:
+
+- **`test/socket_contract.test.js`** čita obe strane (Dart i JS, komentari
+  uklonjeni skenerom koji zna za stringove) i traži da svako ime ima par u oba
+  smera, plus da nijedno ime nije izračunato. Dokazano sa tri mutacije.
+- Aplikacija sluša `move`, `board_flipped`, `role_changed` (obaveštenje samo kad
+  ga domaćin promeni, `changed: true`), `recording_status_changed`,
+  `lesson_invite_received`; utišavanje ide kroz `audio_mute_toggle` sa
+  `userId`, ruka kroz `audio_hand_raise_toggle`.
+- Server šalje utišanom članu `audio_force_mute_student` / `…unmute…`, svima
+  pri „Mute all" isto sa `'all'`, i `audio_hand_raised_alert`; deljenje pozicije
+  je vraćeno u `services/roomBoardEvents.js` (samo onaj ko sedi u sobi, samo
+  članu te sobe, ime sa soketa).
+- **Poziv na čas sa spiska učenika** ide kroz `POST /invitations/send`
+  (provera veze + red u obaveštenjima), koji sada i odmah javlja otvorenoj
+  aplikaciji. Socket `send_lesson_invite`, bez ikakve provere, je obrisan.
+- **Kasni ulazak u sobu** dobija `gameState` sa pozicijom sobe (primenjuje se
+  samo na prazno stablo, da ponovno povezivanje ne obriše trenerovu lekciju) i
+  dozvolu za motor iz `permissions_updated`.
+- **Primljeni PGN** se čita od svog `[FEN]` zaglavlja, ne od korena primaoca
+  (`lib/core/services/room_tree_sync.dart`) — posle trenerovog učitavanja
+  pozicije primalac je dobijao prazno stablo.
+- Glasovne i deljene kontrole pitaju **mesto u sobi**, ne ulogu iz URL-a:
+  ulazak kodom stiže kao `korisnik`, pa provera za `ucenik` nije palila ni za
+  koga ko je ukucao kod.
+- **„Save position" u sobi** je slao `fen` sa table i `pgn` od korena — greška
+  od 6.9.2026, još živa u sobi. Sada oba iz korena i čita se nazad pre čuvanja.
+- **„Edit positions"** više ne piše `tags: ['lekcija_kurs']` preko oznaka
+  tutorijala.
+- Obrisano: `toggle_blunder_alert`, `audio_speaker_active`, `leaveGame`,
+  `user_presence_changed`, `session_invite_received`.
+
+Brojke: aplikacija **2670 → 2677**, backend **1338 → 1350**, analyze 26.
+**Najvažnija provera uživo je sa dva uređaja**: `TODO-provera.md`, stavka 168.
 
 ## Sigurnosni blok iz revizije — 16.9.2026, u kodu
 

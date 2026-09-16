@@ -11,8 +11,7 @@
 //
 // The rule is one sentence: **a socket acts in the room it was seated in.**
 // `joinGame` is the only place a seat is granted (`socket.roomId`), after the
-// guest list; `audio_join` seats a socket in a room's voice (`socket.audioRoomId`)
-// after its own. test/room_board_events.test.js.
+// guest list. test/room_board_events.test.js.
 
 const logger = require('./logger');
 
@@ -21,16 +20,11 @@ function isSeatedIn(socket, roomId) {
   return typeof roomId === 'string' && roomId !== '' && socket.roomId === roomId;
 }
 
-/// True when `audio_join` admitted this socket to `roomId`'s voice.
-function isInVoiceOf(socket, roomId) {
-  return typeof roomId === 'string' && roomId !== '' && socket.audioRoomId === roomId;
-}
-
-/// Registers the board and speaker events on one connected socket.
+/// Registers the board events on one connected socket.
 ///
-/// `canAdministerRoom(socket, roomId)` and `denyPrivileged(socket, event, roomId)`
-/// stay in `server.js`, which owns the member table they read.
-function registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileged }) {
+/// `canAdministerRoom(socket, roomId)`, `denyPrivileged(socket, event, roomId)`
+/// and `members()` stay in `server.js`, which owns the member table they read.
+function registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileged, members = () => ({}) }) {
   /// Enforces the room's board_control setting server-side, for a socket that is
   /// already seated. Rooms that do not exist in the database (the local 'STUDIO'
   /// board) have no shared state to protect.
@@ -75,10 +69,26 @@ function registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileg
     socket.to(roomId).emit('pgn_loaded', { pgn });
   });
 
-  socket.on('audio_speaker_active', ({ roomId, isSpeaking } = {}) => {
-    if (!isInVoiceOf(socket, roomId)) return;
-    socket.to(roomId).emit('audio_speaker_active', { userId: socket.audioUserId, isSpeaking });
+  /// A student offers the position on their board to one member of the room.
+  ///
+  /// Restored 16.9.2026: the handler was deleted on 10.8.2026 while the app
+  /// kept its button and kept saying „Position sent to trainer!". The sender's
+  /// name comes from the socket and the recipient must be seated in the same
+  /// room — a position is not a message channel to anybody with an id.
+  socket.on('student_shares_position', ({ roomId, targetUserId, fen, pgn, title } = {}) => {
+    if (!isSeatedIn(socket, roomId)) return;
+    if (typeof fen !== 'string' || fen.length === 0 || fen.length > 120) return;
+    const room = members()[roomId] || {};
+    const target = room[targetUserId];
+    if (!target || !target.socketId || String(targetUserId) === String(socket.userId)) return;
+    socket.to(target.socketId).emit('student_position_shared', {
+      studentId: socket.userId,
+      studentName: socket.userName || 'Student',
+      title: typeof title === 'string' && title.length <= 200 ? title : 'Position',
+      fen,
+      pgn: typeof pgn === 'string' && pgn.length <= 100000 ? pgn : null,
+    });
   });
 }
 
-module.exports = { registerRoomBoardEvents, isSeatedIn, isInVoiceOf };
+module.exports = { registerRoomBoardEvents, isSeatedIn };
