@@ -163,8 +163,20 @@ and one search field. Every kind keeps its own row actions (a tutorial: open,
 send, video, delete; a position: open in Analysis, add to a tutorial, assign;
 a recording: play). The room's left column reads the same list through the
 same service, filtered to what can go on a board. Positions saved from the room
-and positions from a scanned book are one kind with a source label. This is
-client-side aggregation of lists the app already fetches; no backend change.
+and positions from a scanned book are one kind with a source label.
+
+*Decided while writing the gate, 17.9.2026:* the server already has this view
+— `GET /library/positions` over `services/positionLibrary.js`, three shelves
+(`scan`, `position`, `analysis`) kept apart and read as one list. Rule 12
+says extend it, not build a second merge on the client: phase 3 adds the
+kinds **`tutorial`** (`saved_lessons` with a `position_list`, with its parts
+count and video state) and **`recording`** (`session_recordings` of this
+host) to that service, and the client's `LibraryEntry` grows the same two
+kinds. Puzzle sets are device-local and stay a client-side kind. So this is a
+small backend change after all, in the one file that already owns the rule.
+The room's column keeps its own list and its tag filter in **3a**; **3b**
+moves it onto the shared widget once that widget exists and the tag chips
+have a home in it.
 
 **S4 — Dead UI out.** `showScheduleSessionDialog`, `showScheduledSuccessDialog`,
 `_scheduledSessions`, `showPremiumModal` deleted with their strings; the New
