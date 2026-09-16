@@ -2871,3 +2871,19 @@ title are nine pixels taller than the 9/16 of a 360 × 640 phone a modal sheet
 may take by default. The test written to guard the phone went red on the first
 run, and the column scrolls inside the sheet now — the rule that a new test is
 watched failing, met by accident and worth the note.
+
+**Puzzle progress phase 1 — 17.9.2026, backend 1387 → 1406.** The nineteen are
+the routes gate, `test/puzzle_progress_routes.test.js`. What the worker's
+report taught, in three lines. **A worktree checked out with `autocrlf` turns
+a byte-for-byte fixture test red**: `tutorial_words.test.js` compares the
+prompt with a template file, the worktree wrote that file with CRLF, and ten
+tests failed there that pass in the main tree and on CI — the instrument, not
+the work; the template belongs in `.gitattributes` as `text eol=lf` before the
+next worker meets it. **A worktree made by the agent tool may sit behind the
+commit the brief names** — this one was at `bd64f9c` with the brief saying
+`b879423`; the worker fast-forwarded and said so, which is the right answer,
+and the brief should tell the next one to check `git log -1` first. **A gate
+that reads a bound parameter fails a literal that means the same thing**: the
+Lichess insert had `'lichess'` written into the SQL, the gate looked for it in
+the parameter list, and the worker bound it rather than editing the gate —
+the sentence in the brief about a wrong test working as intended.
