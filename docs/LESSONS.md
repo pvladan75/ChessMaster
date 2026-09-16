@@ -2887,3 +2887,19 @@ that reads a bound parameter fails a literal that means the same thing**: the
 Lichess insert had `'lichess'` written into the SQL, the gate looked for it in
 the parameter list, and the worker bound it rather than editing the gate —
 the sentence in the brief about a wrong test working as intended.
+
+**Reorganisation phase 1 — 17.9.2026, app 2819 → 2831, 1 skipped, analyze 26.**
+The arithmetic: 2819 + 10 in `analysis_teach_menu_test.dart` (the lead's
+sheet) + 4 in `analysis_teach_door_test.dart` (the gate, copied from
+`docs/gates/`) − 2 in `game_tutorial_door_test.dart` (two assertions the gate
+now holds). Measured by the lead in the worker's worktree, not taken from the
+worker's report, which said the same.
+
+**An agent's worktree starts behind the commit its brief names.** Both
+implementer worktrees of this day were made at `bd64f9c` although the briefs
+named `8bb0034` and `b879423` — the files the briefs pointed at were not
+there. Both workers noticed, fast-forwarded, and said so, which is the right
+answer; the brief now has to say *check `git log -1` first and fast-forward to
+the named commit*, because the third worker may not notice. Same family as the
+worktree that ran `flutter pub get` and left the platform registrants
+modified: a tree that is not what the brief says it is.
