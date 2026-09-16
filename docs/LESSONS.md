@@ -2648,3 +2648,21 @@ and the next run's baseline read the mutant. Restore in `finally`, and set
 **Scripts written through a shell heredoc lose their escapes.** Three times in
 one day: `\b` became a backspace, `\n` a newline, an em dash broke the
 decoder. A script that must carry a backslash is written as a file first.
+
+**The owner's four decisions on block C, 16.9.2026 — backend 1376 with `.env`
+moved aside; the app unchanged at 2689 with 1 skipped, analyze at 26.** The
+arithmetic: 1374 − 1 (the test that pinned cutting long text) + 3 (refused at
+title, task and choice, kept whole at the cap). The unenforced free-plan limits
+were deleted rather than wired, with the two „Unlimited …" lines of the Premium
+dialog that sold them.
+
+**A cap on one end moved a cap on another.** Refusing a task over 500
+characters instead of cutting it would have turned a model's 501–600 character
+question into a generated tutorial that failed at save — `tutorialWords.js`
+allowed slots of 600. Grep for the other producers of a field before tightening
+what the field accepts.
+
+**A deleted limit takes its advertisement with it.** The model, the switch, the
+two entitlements and the card's „n / 20" were the obvious half; the Premium
+dialog's „Unlimited saved positions and tutorials (free: up to 20)" was the half
+a user reads.

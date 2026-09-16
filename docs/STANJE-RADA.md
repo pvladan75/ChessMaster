@@ -94,14 +94,26 @@ test žice na obe strane (putanje, parametri, telo, prijava).
 Brojke: aplikacija **2677 → 2689**, backend **1350 → 1374**, analyze 26.
 Provera uživo: `TODO-provera.md`, stavka 169.
 
-**Otvoreno, čeka odluku vlasnika:**
-1. `checkUserLimits` se nigde ne poziva — `ENABLE_LIMITS=true` ne menja ništa, a
-   kartica naloga crta „n / 20" i „n / 5". Uvesti ograničenja ili obrisati
-   funkciju, dva entitlementa i brojeve na kartici.
-2. Tajni ključ Play RTDN-a putuje u URL-u (`?key=`) i time u access logu.
-3. Dug naslov ili zadatak: seći (današnja odluka) ili odbiti sa brojem?
-4. `POST /games/mistakes` nema pozivaoca u aplikaciji — dril grešaka nikad ne
-   dobija greške motora, samo iz tablica.
+**Četiri odluke vlasnika, 16.9.2026 uveče:**
+1. **Ograničenja besplatnog naloga — obrisana.** `checkUserLimits`,
+   `ENABLE_LIMITS`, `unlimited_lessons`/`unlimited_sessions` i brojevi „n / 20",
+   „n / 5" na kartici naloga nisu nikad ništa sprovodili. Obrisani su, zajedno sa
+   dve stavke „Unlimited …" u Premium dijalogu koje su prodavale neograničeno
+   naspram granice koje nije bilo. `limitsService.js` sada samo broji. Plaćene
+   stvari se i dalje zatvaraju kroz `requireEntitlement` / `requireQuota`.
+2. **Ključ RTDN-a u URL-u — ostaje za sada.** Sam po sebi ne daje ništa (poruka
+   je samo token koji se ponovo proverava kod Google-a); zabeleženo u
+   `TODO-objavljivanje.md`, odeljak 6.
+3. **Predug naslov, zadatak ili izbor — odbija se sa brojem**, kao i linija i
+   potez. Stari test koji je tvrdio suprotno je preokrenut i to kaže.
+   Rečenice modela za tutorijal iz partije sada su ograničene na 500 znakova
+   (`answerSlotChars`, bilo je 600), da generisani zadatak ne bi bio odbijen tek
+   pri čuvanju.
+4. **`POST /games/mistakes` — samo zabeleženo.** Ruta za greške motora iz
+   klijentove analize postoji i testirana je, ali je **aplikacija ne poziva**:
+   dril sopstvenih grešaka dobija samo greške iz tablica završnica (serverska
+   provera, `mistakeReviews.js`), a deo `/recurrence` po taktičkom motivu nikad
+   nema podataka. Ne čitati brojeve drila kao da pokrivaju greške motora.
 
 ## Soba iz revizije (blok B) — 16.9.2026, u kodu
 

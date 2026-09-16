@@ -53,7 +53,11 @@ const CAPS = Object.freeze({
   descriptionChars: 500,
   tags: 5,
   tagChars: 60,
-  answerSlotChars: 600,
+  // No more than a part's task may hold (`lessonSteps.js`, MAX_INSTRUCTION):
+  // a question sentence becomes a task, and since 16.9.2026 a longer task is
+  // refused at save rather than cut. Refused here instead, where the answer
+  // is checked and a model can be asked again.
+  answerSlotChars: 500,
 });
 
 const MOMENT_ID = /^m\d{1,2}$/;

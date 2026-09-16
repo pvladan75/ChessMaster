@@ -6,7 +6,7 @@ void main() {
     test('parses the server payload', () {
       final state = EntitlementState.fromJson({
         'tier': 'premium',
-        'entitlements': ['ai_comments', 'mp4_export', 'unlimited_sessions'],
+        'entitlements': ['ai_comments', 'mp4_export', 'assignments'],
         'quotas': {
           'ai_comments': {'limit': 500, 'used': 42},
         },

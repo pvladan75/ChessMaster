@@ -16,8 +16,6 @@ const TIERS = ['free', 'premium', 'pro', 'club'];
 
 const ENT = {
   MP4_EXPORT: 'mp4_export',
-  UNLIMITED_LESSONS: 'unlimited_lessons',
-  UNLIMITED_SESSIONS: 'unlimited_sessions',
   AI_COMMENTS: 'ai_comments',
   // A tutorial's words written from a game (docs/PLAN-SKELET.md, phase 3):
   // premium, and later bought credits (decision D2).
@@ -70,8 +68,6 @@ const PAID_ENTITLEMENTS = [
   ENT.AI_TUTORIALS,
   ENT.ASSIGNMENTS,
   ENT.MP4_EXPORT,
-  ENT.UNLIMITED_LESSONS,
-  ENT.UNLIMITED_SESSIONS,
 ];
 
 const TIER_ENTITLEMENTS = {

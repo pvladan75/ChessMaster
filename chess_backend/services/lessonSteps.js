@@ -76,17 +76,17 @@ function buildLessonStep(step) {
     return { ok: false, status: 400, error: 'Invalid step ID.' };
   }
 
-  // A line over its cap is refused with the number, never cut to fit: `text()`
-  // slices, and a line cut mid-token is exactly the step that does not replay —
-  // stored past the app's own read-back, which ran on the text before it was
-  // sent. Audit of 16.9.2026, `docs/audit/contract.md`, 9.
-  //
-  // Prose is still cut, by an older decision this file's tests keep: a trainer
-  // who pasted a paragraph into a title or a task gets a step, not an error.
-  // Cutting words loses words; cutting a line loses the lesson.
-  const lineTooLong = overLimit(step.pgn, MAX_PGN, 'The line');
-  if (lineTooLong) {
-    return { ok: false, status: 400, error: lineTooLong };
+  // Over a cap is refused with the number, never cut to fit. A line cut
+  // mid-token is the step that does not replay, stored past the app's own
+  // read-back; a title or a task cut at 200 or 500 characters is the trainer's
+  // words lost with „saved" on the screen. Audit of 16.9.2026
+  // (`docs/audit/contract.md`, 9); refusing prose too was the owner's decision
+  // the same day, replacing the older rule that a pasted paragraph is cut.
+  const tooLong = overLimit(step.title, MAX_TITLE, 'The title')
+    ?? overLimit(step.instruction, MAX_INSTRUCTION, 'The task')
+    ?? overLimit(step.pgn, MAX_PGN, 'The line');
+  if (tooLong) {
+    return { ok: false, status: 400, error: tooLong };
   }
 
   // Only the fields a step is made of. Anything else the caller sent stays out
@@ -225,6 +225,10 @@ function buildChoices(value) {
 
   const choices = [];
   for (const raw of value) {
+    const tooLong = overLimit(raw && raw.text, MAX_CHOICE_TEXT, 'A choice');
+    if (tooLong) {
+      return { ok: false, status: 400, error: tooLong };
+    }
     const body = text(raw && raw.text, MAX_CHOICE_TEXT);
     if (!body) {
       return { ok: false, status: 400, error: 'Each choice must have text.' };
@@ -269,9 +273,9 @@ function redactStepForStudent(step) {
   return { ...rest, choices: choices.map(({ text: body }) => ({ text: body })) };
 }
 
-/// The trimmed text cut to [limit], or null when there is none. Right for prose;
-/// a line and a move are measured by [overLimit] first, because cutting either
-/// changes what it means.
+/// The trimmed text, or null when there is none. Every field is measured by
+/// [overLimit] before it reaches here, so the slice never cuts what a caller
+/// sent; it is the last line of defence, not the rule.
 function text(value, limit) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();

@@ -87,7 +87,7 @@ test('an active subscription without an expiry is entitling, a cancelled one is 
 test('free accounts do not carry the paid entitlements', () => {
   const free = entitlementsForTier('free');
   assert.ok(!free.includes(ENT.MP4_EXPORT));
-  assert.ok(!free.includes(ENT.UNLIMITED_SESSIONS));
+  assert.ok(!free.includes(ENT.AI_TUTORIALS));
   assert.ok(free.includes(ENT.AI_COMMENTS)); // metered, not absent
 
   for (const tier of ['premium', 'pro', 'club']) {

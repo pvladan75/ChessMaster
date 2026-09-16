@@ -58,16 +58,15 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
   }
 
   /// `-1` is the server's way of saying there is no ceiling.
-  String _limit(dynamic used, dynamic max, int fallback) {
-    final ceiling = max == -1 ? '∞' : '${max ?? fallback}';
-    return '${used ?? 0} / $ceiling';
-  }
+  /// A count, and no ceiling after it: the free-plan ceilings this card used to
+  /// draw („n / 20", „n / 5") were never enforced by the server and were deleted
+  /// on 16.9.2026.
+  String _count(dynamic used) => '${used ?? 0}';
 
   @override
   Widget build(BuildContext context) {
     final stats = _stats;
     final premium = stats?['account_type'] == 'premium';
-    final limits = stats?['limits'] as Map<String, dynamic>?;
 
     return Card(
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
@@ -114,8 +113,7 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
               title:
                   Text('Saved tutorials / positions', style: AppText.bodyLarge),
               trailing: Text(
-                _limit(stats?['savedLessonsCount'], limits?['maxSavedLessons'],
-                    20),
+                _count(stats?['savedLessonsCount']),
                 style: AppText.bodyLargeBold,
               ),
             ),
@@ -127,8 +125,7 @@ class _AccountStatsCardState extends State<AccountStatsCard> {
               title:
                   Text('Sessions created this month', style: AppText.bodyLarge),
               trailing: Text(
-                _limit(stats?['monthlySessionsCount'],
-                    limits?['maxMonthlySessions'], 5),
+                _count(stats?['monthlySessionsCount']),
                 style: AppText.bodyLargeBold,
               ),
             ),

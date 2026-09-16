@@ -125,17 +125,36 @@ test('a step with no name still gets one, rather than an empty title', () => {
   assert.notEqual(built.entry.title.trim(), '');
 });
 
-test('long text is cut rather than refused', () => {
-  const built = buildLessonStep({
-    fen: FEN,
-    title: 'x'.repeat(500),
-    instruction: 'y'.repeat(900),
-  });
+test('long text is refused with its length rather than cut', () => {
+  // This test used to say the opposite — a pasted paragraph is cut, „nothing
+  // here is wrong, only long". The audit of 16.9.2026 found the cut stored with
+  // „saved" on the screen and nothing telling the trainer their words were
+  // gone, and the owner chose refusal the same day.
+  const title = buildLessonStep({ fen: FEN, title: 'x'.repeat(201) });
+  assert.equal(title.ok, false);
+  assert.equal(title.status, 400);
+  assert.match(title.error, /The title is 201 characters long; a part can hold at most 200/);
 
-  // A trainer who pasted a paragraph gets a step, not an error: nothing here
-  // is wrong, only long.
+  const task = buildLessonStep({ fen: FEN, instruction: 'y'.repeat(501) });
+  assert.equal(task.ok, false);
+  assert.match(task.error, /The task is 501 characters long; a part can hold at most 500/);
+});
+
+test('text at its cap is kept whole', () => {
+  const built = buildLessonStep({ fen: FEN, title: 'x'.repeat(200), instruction: 'y'.repeat(500) });
+  assert.equal(built.ok, true);
   assert.equal(built.entry.title.length, 200);
   assert.equal(built.entry.instruction.length, 500);
+});
+
+test('a choice longer than its cap is refused', () => {
+  const built = buildLessonStep({
+    fen: FEN,
+    kind: 'ask_choice',
+    choices: [{ text: 'z'.repeat(201), correct: true }, { text: 'No', correct: false }],
+  });
+  assert.equal(built.ok, false);
+  assert.match(built.error, /A choice is 201 characters long/);
 });
 
 test('empty text is absent, not stored as an empty string', () => {

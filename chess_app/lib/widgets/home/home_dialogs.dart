@@ -661,8 +661,6 @@ void showPremiumModal(
 }) {
   final colors = context.colors;
   const benefits = [
-    'Unlimited saved positions and tutorials (free: up to 20)',
-    'Unlimited live sessions per month (free: up to 5)',
     'Export recorded sessions to MP4 video format',
     'Higher monthly quota for AI feedback',
   ];

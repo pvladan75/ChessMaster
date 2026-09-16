@@ -63,8 +63,6 @@ class EntitlementState {
 /// Named to match the server's entitlement identifiers.
 abstract final class Entitlements {
   static const mp4Export = 'mp4_export';
-  static const unlimitedLessons = 'unlimited_lessons';
-  static const unlimitedSessions = 'unlimited_sessions';
   static const aiComments = 'ai_comments';
 }
 

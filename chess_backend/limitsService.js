@@ -1,26 +1,16 @@
 // limitsService.js
-// Tier Limits & Resource Usage Service
+// What an account has used: saved tutorials, sessions this month, recordings.
+//
+// Until 16.9.2026 this file also held a model of a free account's ceilings
+// (20 tutorials, 5 sessions a month, no MP4), an `ENABLE_LIMITS` switch and
+// `checkUserLimits` to enforce them. Nothing ever called it, so the switch
+// changed nothing while the account card drew „n / 20" and the Premium dialog
+// sold „unlimited" against a limit the server did not hold. The owner chose to
+// delete the model rather than wire it (audit, `docs/audit/server.md`, 12).
+// Paid features are gated where every other gate lives: `requireEntitlement`
+// and `requireQuota`.
 
 const { resolveTier } = require('./services/entitlementService');
-
-const ENABLE_LIMITS = process.env.ENABLE_LIMITS === 'true'; // Default: false for testing mode
-
-const PAID_LIMITS = {
-  maxSavedLessons: Infinity,
-  maxMonthlySessions: Infinity,
-  mp4ExportAllowed: true
-};
-
-const TIER_LIMITS = {
-  free: {
-    maxSavedLessons: 20,
-    maxMonthlySessions: 5,
-    mp4ExportAllowed: false
-  },
-  premium: PAID_LIMITS,
-  pro: PAID_LIMITS,
-  club: PAID_LIMITS
-};
 
 /**
   * Calculate current resource usage for a user.
@@ -51,70 +41,14 @@ async function getUserStats(pool, userId) {
   );
   const totalRecordingsCount = recordingsRes.rows[0]?.count || 0;
 
-  const limits = TIER_LIMITS[accountType] || TIER_LIMITS.free;
-
   return {
     account_type: accountType,
     savedLessonsCount,
     monthlySessionsCount,
     totalRecordingsCount,
-    limits: {
-      maxSavedLessons: limits.maxSavedLessons === Infinity ? -1 : limits.maxSavedLessons,
-      maxMonthlySessions: limits.maxMonthlySessions === Infinity ? -1 : limits.maxMonthlySessions,
-      mp4ExportAllowed: limits.mp4ExportAllowed
-    },
-    limitsEnabled: ENABLE_LIMITS
   };
 }
 
-/**
-  * Check if user is allowed to perform action based on tier limits.
-  * @param {Object} pool - PG database pool
-  * @param {number} userId - User ID
-  * @param {'save_lesson' | 'create_room' | 'export_mp4'} actionType
-  * @returns {Promise<{ allowed: boolean, reason?: string }>}
-  */
-async function checkUserLimits(pool, userId, actionType) {
-  if (!ENABLE_LIMITS) {
-    return { allowed: true };
-  }
-
-  const stats = await getUserStats(pool, userId);
-  const accountType = stats.account_type;
-
-  if (accountType !== 'free') {
-    return { allowed: true };
-  }
-
-  if (actionType === 'save_lesson') {
-    if (stats.savedLessonsCount >= TIER_LIMITS.free.maxSavedLessons) {
-      return {
-        allowed: false,
-        reason: `You have reached the maximum number of saved tutorials for a free account (${TIER_LIMITS.free.maxSavedLessons}). Upgrade to Premium for unlimited storage.`
-      };
-    }
-  } else if (actionType === 'create_room') {
-    if (stats.monthlySessionsCount >= TIER_LIMITS.free.maxMonthlySessions) {
-      return {
-        allowed: false,
-        reason: `You have reached the monthly session quota for a free account (${TIER_LIMITS.free.maxMonthlySessions}/month). Upgrade to Premium for unlimited sessions.`
-      };
-    }
-  } else if (actionType === 'export_mp4') {
-    if (!TIER_LIMITS.free.mp4ExportAllowed) {
-      return {
-        allowed: false,
-        reason: 'Exporting sessions to MP4 video format is an exclusive feature of Premium accounts.'
-      };
-    }
-  }
-
-  return { allowed: true };
-}
-
 module.exports = {
-  ENABLE_LIMITS,
-  TIER_LIMITS,
   getUserStats,
-  checkUserLimits
 };

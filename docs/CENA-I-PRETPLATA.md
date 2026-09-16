@@ -41,16 +41,13 @@ stavka koja se ne kontroliše.
 
 **Ni mereno ni ograničeno** — prostor za snimke i mejlovi.
 
-**Napisano, a nepriključeno** — `limitsService.js` nosi ceo model besplatnog
-naloga (**5 soba mesečno**, 20 lekcija, bez MP4), broji sobe po
-`rooms.creator_id`, i ima funkciju `checkUserLimits` koja to sprovodi.
-**Ta funkcija nema nijednog pozivaoca**, ni u jednom testu. Uz nju,
-`unlimited_sessions` i `unlimited_lessons` stoje u katalogu prava i ne čita ih
-niko.
-
-Posledica koju treba znati pre objave: `TODO-objavljivanje.md` vodi
-`ENABLE_LIMITS=true` kao poslednji prekidač pred izlazak. Danas ne menja ništa —
-stoji ispred `return { allowed: true }` koji niko ne zove.
+**Napisano, nepriključeno, pa obrisano** — `limitsService.js` je nosio model
+besplatnog naloga (**5 soba mesečno**, 20 lekcija, bez MP4) i funkciju
+`checkUserLimits` koju niko nije zvao, uz `unlimited_sessions` i
+`unlimited_lessons` u katalogu prava koje niko nije čitao. **Obrisano 16.9.2026**
+po odluci vlasnika, zajedno sa `ENABLE_LIMITS` i dve stavke „Unlimited …" u
+Premium dijalogu. Besplatan nalog danas ograničavaju samo kvote i prava; broj
+soba i tutorijala nije ograničen. Ako cena to bude tražila, to je nov posao.
 
 Uzgred, jedan podatak koji već imamo: kod postojećeg modela **plaća onaj ko
 otvara sobu**, i plaća se *otvaranje*, a ne *ulazak*. To je suprotno od ideje da

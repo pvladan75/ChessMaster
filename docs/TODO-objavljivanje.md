@@ -302,6 +302,12 @@ desktop verzija uopšte podeli — nju Play ne raznosi.
       URL-om: `https://VAŠ-HOST/billing/play/rtdn?key=TAJNA`
 - [ ] Poslati test notifikaciju iz Play Console-a. Endpoint je prepoznaje i loguje
       — to je potvrda da je žica spojena.
+- [ ] **Znati pre ovoga:** tajna putuje u URL-u (`?key=`), pa završava u
+      nginx access logu. Sama ne daje ništa — poruka je samo token koji server
+      ponovo proverava kod Google-a — ali je trajna. Revizija 16.9.2026 (server,
+      18) predlaže OIDC token u zaglavlju koji Pub/Sub ume da pošalje, ili bar
+      access log bez query stringa za tu putanju. Vlasnik je odlučio da ostane
+      za sada.
 
 ## 7. Prva prava kupovina
 
@@ -373,15 +379,11 @@ Server to i kaže u odgovoru (`warning`), da razlika ne bude nevidljiva.
 
 ## 8. Tek na kraju
 
-- [ ] `ENABLE_LIMITS=true` u backend `.env`.
-      **Ne ranije.** Dok kupovina ne radi, ovo zaključava besplatne naloge na 5
-      sesija mesečno bez ijednog načina da se otključa.
-- [ ] **Pre toga: priključiti ograničenja uopšte.** Nalaz 26.8.2026 —
-      `checkUserLimits` u `limitsService.js` **nema nijednog pozivaoca**, ni u
-      jednom testu. Model postoji (besplatno = 5 soba mesečno, brojano po
-      `rooms.creator_id`, 20 lekcija), ali ga ne sprovodi niko, pa prekidač
-      iznad danas ne menja ništa. Dok se ne priključi, besplatan nalog je
-      neograničen bez obzira na `.env`.
+- [x] ~~`ENABLE_LIMITS=true` u backend `.env`~~ — **nema ga više.** Model
+      besplatnog naloga (5 soba mesečno, 20 tutorijala) nikad nije bio
+      priključen i obrisan je 16.9.2026 po odluci vlasnika; besplatan nalog se
+      ograničava samo kvotama (`requireQuota`) i pravima (`requireEntitlement`).
+      Ako se ograničenja vrate, to je nov posao, ne prekidač.
 - [ ] **Neposlušan klijent** — proba druge brave na upisu snimka
       (`POST /recordings/save` → 403 i obrisan fajl) traži skript koji emituje
       `recording_status_update {status:'started'}` mimo ekrana, jer aplikacija
