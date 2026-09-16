@@ -13,13 +13,13 @@
 /// which is how a line that belongs to a different position is told from a step
 /// that was always a still diagram.
 ///
-/// `AnalysisStudioScreen._importPgn` must never be used for this and must never
-/// be copied here. It goes through `chess.load_pgn` and `getHistory()`, which
-/// keeps the main line and throws away every comment, every arrow, every
-/// coloured square and every variation. A trainer reopening a tutorial through
-/// it would be shown a board that looked right and would silently lose
-/// everything they had written on it — the recurring fault of this repository,
-/// in the most expensive form it could take.
+/// Until 16.9.2026 `AnalysisStudioScreen._importPgn` went through
+/// `chess.load_pgn` and `getHistory()`, which keeps the main line and throws
+/// away every comment, every arrow, every coloured square and every variation.
+/// A trainer reopening a tutorial through it would have been shown a board that
+/// looked right and silently lost everything written on it. That import now
+/// comes through here too (`analysis_studio/services/pgn_import.dart`); never
+/// put a second reader beside this one.
 ///
 /// What is added here is only the crossing from [MoveNode] to [AnalysisNode].
 /// The two are already near-isomorphic; nothing is parsed twice.

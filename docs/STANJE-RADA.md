@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,42 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Analiza uvozi PGN sa varijantama — 16.9.2026, u kodu
+
+Prijava istog dana: repertoar izvezen kao PGN, nalepljen u Analizu („PGN
+Uvoz"), dobija „Invalid PGN format". Uvoz u Analizi je išao kroz
+`chess.load_pgn` + `getHistory()`, a taj paket odbija **ceo** tekst na dve
+stvari koje ova aplikacija sama piše: varijantu u zagradi i razmak koji
+`PgnExporterService` ostavlja ispred `1.`. Provereno na prijavljenom fajlu:
+bez razmaka i dalje pada, na `Ba5 (5... Be7)`. Isto bi se desilo i sa
+izvozom same Analize čim ima jednu varijantu — a i kad bi prošao, zadržao bi
+samo glavnu liniju.
+
+Izvoz repertoara nije diran: PGN koji piše je ispravan, a „popraviti" ga za
+ovaj uvoz značilo bi izbaciti varijante, dakle ono što repertoar jeste.
+
+**Ispravka:** `features/analysis_studio/services/pgn_import.dart`
+(`readAnalysisPgn`) čita kroz `readStepTree` → `LessonStepLine` →
+`MoveTree.parsePgn`, jedini čitač, isti koji koristi PGN kartica tutorijala.
+Dolaze glavna linija, varijante (i ugnježdene), komentari, strelice i ocene.
+Ekran je samo žica. Ono što se ne može odigrati se **broji i kaže**
+(„N moves could not be played and were left out"), kao i „only the first of N
+games" kad je nalepljeno više partija; tekst bez ijednog poteza i bez `[FEN]`
+se odbija.
+
+`PgnParser.sanitizeForLoadPgn` je ostao bez ijednog pozivaoca, pa je na
+vlasnikovu odluku istog dana obrisan ceo `lib/pgn_parser.dart` (klasa nije imala
+ništa drugo) zajedno sa `test/pgn_parser_sanitize_test.dart` (4 testa).
+Komentari u `step_tree.dart` i `tutorial_pgn_panel.dart` koji su opisivali stari
+uvoz prepravljeni su u prošlo vreme.
+
+Testovi: `test/analysis_pgn_import_test.dart`, 10, na prijavljenom fajlu bajt
+po bajt, na izvozu Analize vraćenom nazad, na Chess.com partiji sa satom i na
+`[FEN]` poziciji. Šest mutacija, sve uhvaćene, svaka testom pisanim za nju. Aplikacija 2712 + 10 − 4 (obrisani
+`pgn_parser_sanitize_test.dart`) = **2718**, 1 preskočen; analyze 26.
+
+Provera uživo: stavka 171.
 
 ## Tri prijave o repertoaru: motor, brojač i PGN — 16.9.2026, u kodu
 

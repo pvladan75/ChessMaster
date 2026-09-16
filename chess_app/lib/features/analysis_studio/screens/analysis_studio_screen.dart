@@ -53,7 +53,7 @@ import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dialog.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
-import 'package:chess_app/pgn_parser.dart' show PgnParser;
+import 'package:chess_app/features/analysis_studio/services/pgn_import.dart';
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
     as dialogs;
@@ -1560,81 +1560,67 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   /// Imports a PGN game as a full move tree.
   ///
-  /// Replays the game's SAN history onto the analysis tree rather than keeping
-  /// only the final position, so the imported game is navigable and can carry
-  /// variations, comments and NAGs like any hand-played line.
+  /// Read by [readAnalysisPgn] — the app's one PGN reader — so variations,
+  /// comments, arrows and assessments arrive with the main line, and a PGN this
+  /// app exported (a repertoire, or an analysis with a sideline) is accepted.
   void _importPgn(String rawPgn) {
     try {
-      final pgn = PgnParser.sanitizeForLoadPgn(rawPgn);
-      final tempGame = chess.Chess();
-      if (!tempGame.load_pgn(pgn)) {
+      final read = readAnalysisPgn(rawPgn);
+      if (read == null) {
         AppFeedback.show(
           context,
           () => SnackBar(
-              content: const Text('⚠️ Invalid PGN format.'),
+              content: const Text(
+                  '⚠️ Invalid PGN format: no move in it could be played.'),
               backgroundColor: context.colors.danger),
         );
         return;
       }
 
-      // A PGN may start from a custom position via the SetUp/FEN headers.
-      final headerFen = tempGame.header['FEN'] as String?;
-      final startFen = (headerFen != null && headerFen.trim().isNotEmpty)
-          ? headerFen.trim()
-          : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-
-      // SAN encodes promotions, so replaying by SAN reproduces the game exactly.
-      final sanHistory = tempGame.getHistory().cast<String>();
-
-      _initAnalysisTree(startFen);
-      _pgnWhiteName = (tempGame.header['White'] as String?)?.trim();
-      _pgnBlackName = (tempGame.header['Black'] as String?)?.trim();
-      _pgnWhiteElo = (tempGame.header['WhiteElo'] as String?)?.trim();
-      _pgnBlackElo = (tempGame.header['BlackElo'] as String?)?.trim();
-      _pgnResult = (tempGame.header['Result'] as String?)?.trim();
-      if (_pgnWhiteName != null &&
-          (_pgnWhiteName!.isEmpty || _pgnWhiteName == '?')) {
-        _pgnWhiteName = null;
-      }
-      if (_pgnBlackName != null &&
-          (_pgnBlackName!.isEmpty || _pgnBlackName == '?')) {
-        _pgnBlackName = null;
+      String? header(String key) {
+        final value = read.headers[key]?.trim();
+        return (value == null || value.isEmpty || value == '?') ? null : value;
       }
 
-      final replay = chess.Chess.fromFEN(startFen);
-      var node = _rootNode;
-      var imported = 0;
-
-      for (final san in sanHistory) {
-        if (!replay.move(san)) {
-          AppLogger.log(
-              '[AnalysisStudio] ⚠️ PGN import stopped at illegal move: $san');
-          break;
-        }
-        final moveObj = replay.history.last.move;
-        final uci = moveObj.fromAlgebraic +
-            moveObj.toAlgebraic +
-            (moveObj.promotion?.name ?? '');
-        node = node.addChild(childFen: replay.fen, san: san, uci: uci);
-        imported++;
-      }
-
-      // Land on the final position; the tree is there to walk back through.
       setState(() {
-        _currentNode = node;
-        _chessGame = chess.Chess.fromFEN(node.fen);
-        _boardController.loadFen(node.fen);
+        _initAnalysisTree(read.root.fen);
+        _rootNode = read.root;
+        _pgnWhiteName = header('White');
+        _pgnBlackName = header('Black');
+        _pgnWhiteElo = header('WhiteElo');
+        _pgnBlackElo = header('BlackElo');
+        _pgnResult = header('Result');
+        // Land on the end of the main line; the tree is there to walk back
+        // through.
+        _currentNode = read.tip;
+        _chessGame = chess.Chess.fromFEN(read.tip.fen);
+        _boardController.loadFen(read.tip.fen);
       });
       _saveDraft();
       _triggerEngineAnalysis();
 
       AppLogger.log(
-          '[AnalysisStudio] 📥 PGN imported: $imported moves of ${sanHistory.length}');
+          '[AnalysisStudio] 📥 PGN imported: ${read.moveCount} moves, '
+          '${read.rejectedMoves} rejected, game 1 of ${read.gameCount}');
+
+      // Loud when anything was left behind: a shorter game shown as the whole
+      // one is the fault this app keeps having.
+      final leftOut = [
+        if (read.rejectedMoves > 0)
+          '${read.rejectedMoves} ${read.rejectedMoves == 1 ? "move" : "moves"} '
+              'could not be played and ${read.rejectedMoves == 1 ? "was" : "were"} left out',
+        if (read.gameCount > 1)
+          'only the first of ${read.gameCount} games was loaded',
+      ];
       AppFeedback.show(
         context,
         () => SnackBar(
-          content: Text('✅ PGN loaded — $imported moves in tree.'),
-          backgroundColor: context.colors.accent,
+          content: Text(leftOut.isEmpty
+              ? '✅ PGN loaded — ${read.moveCount} moves in tree.'
+              : '⚠️ PGN loaded — ${read.moveCount} moves in tree, but '
+                  '${leftOut.join(", and ")}.'),
+          backgroundColor:
+              leftOut.isEmpty ? context.colors.accent : context.colors.warning,
         ),
       );
     } catch (e) {

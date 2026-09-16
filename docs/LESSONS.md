@@ -2762,3 +2762,19 @@ in `render_fairness.test.js` for over ten minutes; the file passes alone in
 0.13 s and the whole suite in 14 s on a rerun, so the hang was not reproduced
 and its cause is not known. A stopped background task does not run its shell's
 `trap`: `.env` stayed aside until it was moved back by hand.
+
+**The Analysis import reads what the app exports — 16.9.2026, 2718 in the app
+with 1 skipped, analyze at 26.** The arithmetic: 2712 + 10 in
+`analysis_pgn_import_test.dart` − 4 in `pgn_parser_sanitize_test.dart`, deleted
+with `lib/pgn_parser.dart` once its one method had no caller. Six mutations, all
+caught.
+
+**A writer checked against its own reader is not checked against the other
+readers.** The repertoire export was proved by reading it back through
+`MoveTree.parsePgn`, and it was right. The Analysis import beside it still went
+through `chess.load_pgn`, which refuses the whole text on a bracketed variation
+and on the space the exporter leaves before `1.` — so the first thing a user did
+with the new file, paste it into Analysis, said „Invalid PGN format". The
+reader had been named as lossy in two doc comments for weeks and left in
+place. Every door a text can come in through is a reader; **when a feature
+starts writing a format, list every place that format can be pasted.**

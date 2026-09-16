@@ -5875,6 +5875,24 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 171. Analiza uvozi PGN sa varijantama — 16.9.2026, nije viđeno uživo
+
+`docs/STANJE-RADA.md`, „Analiza uvozi PGN sa varijantama".
+
+1. [ ] **Prijavljeni fajl.** Otvori `D:\chess\Italian-Game-Evans-Gambit-Accepted-—-White.pgn`,
+   kopiraj ceo tekst, Analiza → postavka table → „PGN Uvoz" → nalepi → učitaj.
+   Poruka „PGN loaded — 50 moves in tree", tabla stoji posle 14. Nxe5.
+2. [ ] **Varijante su u stablu.** Posle 5. c3 u stablu su Ba5, Be7 i Bc5; posle
+   6. d4 je i 6... exd4 sa ugnježdenom 8... dxc3.
+3. [ ] **Komentari su tu.** Na 4... Bxb4 stoji „This is Evans Gambit Accepted".
+4. [ ] **Imena.** Iznad table piše „Repertoire — Opponent".
+5. [ ] **Nazad i napred.** „Export PGN" iz Analize, pa taj tekst ponovo „PGN
+   Uvoz": isto stablo, bez upozorenja.
+6. [ ] **Chess.com/Lichess** kartica i dalje učitava partiju (sa satom posle
+   svakog poteza), bez komentara „0:02:59" u stablu.
+7. [ ] **Pokvaren potez se kaže.** Nalepi `1. e4 e5 2. Nf3 Qxz9 *`: učita se
+   do 2. Nf3, a poruka kaže da je potez izostavljen (žuta, ne zelena).
+
 ## 170. Motor na tabli, brojač koji je otišao, i repertoar kao PGN — 16.9.2026, nije viđeno uživo
 
 Tri od sedam prijava od 16.9.2026 (segment „Opening repertoire"). Server mora

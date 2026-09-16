@@ -11,9 +11,10 @@ import 'package:chess_app/theme/arrow_colors.dart';
 /// T2 of `docs/PLAN-PGN-TEKST.md`. Two things it is for, and the second is the
 /// larger: some edits are text edits — deleting one arrow is deleting eleven
 /// characters — and until this tab the app had **no door** for an annotated
-/// line produced anywhere else. The only PGN import goes through
-/// `AnalysisStudioScreen._importPgn`, which keeps the main line and throws away
-/// every comment, every `[%cal]`, every `[%csl]` and every variation, so a game
+/// line produced anywhere else. The only PGN import went through
+/// `AnalysisStudioScreen._importPgn`, which then kept the main line and threw
+/// away every comment, every `[%cal]`, every `[%csl]` and every variation (it
+/// reads through `readStepTree` since 16.9.2026), so a game
 /// annotated in a book, by an engine or by a language model could not enter a
 /// tutorial except by being replayed move by move and retyped.
 ///
