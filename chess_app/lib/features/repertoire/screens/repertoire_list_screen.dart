@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
+    show exportPgnDialog;
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
+import 'package:chess_app/features/analysis_studio/services/pgn_file_saver.dart'
+    show repertoirePgnFileName;
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_coverage_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_walkthrough_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/features/repertoire/services/repertoire_pgn.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -35,10 +40,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   bool _loading = true;
   List<RepertoireSummary> _items = const [];
 
-  /// How much each repertoire still has waiting, once it has been counted.
-  /// Empty until then, and a card says nothing rather than guessing.
-  Map<int, RepertoireProgress> _progress = const {};
-
   final Set<int> _selectedIds = {};
   bool get _isSelectionMode => _selectedIds.isNotEmpty;
 
@@ -54,15 +55,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     setState(() {
       _items = items;
       _loading = false;
-    });
-    // After the cards, never before them. This is a walk per repertoire —
-    // about a third of a second each — and the list is what somebody opens to
-    // choose where to work; it must be on screen while the numbers are still
-    // being counted.
-    final progress = await _api.progress();
-    if (!mounted || progress == null) return;
-    setState(() {
-      _progress = {for (final row in progress) row.id: row};
     });
   }
 
@@ -558,6 +550,53 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     });
   }
 
+  /// The repertoire as a PGN file.
+  ///
+  /// Asked for the **whole** tree rather than the sixteen plies a screen draws
+  /// by default: a file cut at move eight without saying so is a repertoire
+  /// that looks finished and is not. `GET /repertoire/tree` will not go past
+  /// [repertoireExportMaxPly], so where it does cut, the dialog says so.
+  ///
+  /// The comments come with it. They are the one thing in the file that nothing
+  /// else could rebuild — the moves are in the book and in the engine, the
+  /// student's own sentences are not.
+  Future<void> _exportPgn(RepertoireSummary item) async {
+    final tree = await _api.repertoireTree(
+      color: item.color,
+      rootFen: item.rootFen,
+      rootPath: item.rootPath,
+      gateUci: item.viaUci,
+      maxPly: repertoireExportMaxPly,
+    );
+    final comments = await _api.comments(color: item.color);
+    if (!mounted) return;
+    if (tree == null) {
+      AppFeedback.error(context,
+          'The repertoire could not be read — the server did not answer.');
+      return;
+    }
+    if (tree.isEmpty) {
+      AppFeedback.info(
+          context, 'There are no moves in "${item.name}" to export yet.');
+      return;
+    }
+    await exportPgnDialog(
+      context,
+      repertoirePgn(
+        name: item.name,
+        color: item.color,
+        tree: tree,
+        comments: comments,
+      ),
+      fileName: repertoirePgnFileName(item.name, DateTime.now()),
+      note: tree.truncated
+          ? 'Only the first ${tree.maxPly ~/ 2} moves of each line are in '
+              'this '
+              'file — the repertoire goes deeper than one file shows.'
+          : null,
+    );
+  }
+
   void _walkthrough(RepertoireSummary item) {
     Navigator.of(context)
         .push(MaterialPageRoute(
@@ -722,35 +761,22 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                     color: context.colors.textSecondary,
                   ),
             title: Text(item.name, style: AppText.bodyBold),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${item.forWhite ? "White" : "Black"} · '
-                  // The gate, where there is one. Two repertoires from the same
-                  // position are otherwise two identical rows with different
-                  // names.
-                  '${item.viaSan != null ? "via ${item.viaSan} · " : ""}'
-                  '${item.moves} ${item.moves == 1 ? "move" : "moves"} in graph',
-                  style:
-                      AppText.caption.copyWith(color: context.colors.textMuted),
-                ),
-                // How much is left, which is the question this screen is
-                // opened with — „N poteza u grafu" says how much was built.
-                // Silent until the walk answers: a card that guessed zero
-                // would send somebody past the repertoire that needs them.
-                if (_progress[item.id]?.open != null)
-                  Text(
-                    _progress[item.id]!.open == 0
-                        ? 'all answered'
-                        : '${_progress[item.id]!.open} unanswered ${_progress[item.id]!.open == 1 ? "position" : "positions"}',
-                    style: AppText.caption.copyWith(
-                      color: _progress[item.id]!.open == 0
-                          ? context.colors.textMuted
-                          : context.colors.accent,
-                    ),
-                  ),
-              ],
+            // What the repertoire is and how much of it there is. What is
+            // *not* here is how much is unanswered: the card carried that
+            // number until 16.9.2026, and it went for the same reason as the
+            // sentence on the build screen — since 15.9.2026 a move of the
+            // student's own is kept with the book's top reply beside it, so
+            // carrying a line further is a choice and not a debt. „Gaps in
+            // repertoire" still counts, because that screen is opened on
+            // purpose to see what is unanswered.
+            subtitle: Text(
+              '${item.forWhite ? "White" : "Black"} · '
+              // The gate, where there is one. Two repertoires from the same
+              // position are otherwise two identical rows with different
+              // names.
+              '${item.viaSan != null ? "via ${item.viaSan} · " : ""}'
+              '${item.moves} ${item.moves == 1 ? "move" : "moves"} in graph',
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
             ),
             trailing: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -777,6 +803,9 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                         break;
                       case 'gate':
                         _pickGate(item);
+                        break;
+                      case 'pgn':
+                        _exportPgn(item);
                         break;
                       case 'imported':
                         _cleanImported(item);
@@ -806,6 +835,13 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
                       child: ListTile(
                         leading: Icon(Icons.alt_route),
                         title: Text('Which move it goes through'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'pgn',
+                      child: ListTile(
+                        leading: Icon(Icons.file_download_outlined),
+                        title: Text('Export as PGN'),
                       ),
                     ),
                     PopupMenuItem(

@@ -34,7 +34,8 @@ void main() {
       home: Scaffold(
         body: Builder(
           builder: (context) => ElevatedButton(
-            onPressed: () => exportPgnDialog(context, root),
+            onPressed: () =>
+                exportPgnDialog(context, PgnExporterService.exportToPgn(root)),
             child: const Text('open'),
           ),
         ),

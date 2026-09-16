@@ -92,7 +92,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('decided 2 · open 1'), findsOneWidget);
+    expect(find.text('decided 2'), findsOneWidget);
     final walksBefore = api.walks;
 
     Offset squareAt(String name) {
@@ -115,7 +115,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // The walk was read again, and the line says what it says now.
+    //
+    // „decided" alone since 16.9.2026: „open" was the count of unanswered
+    // positions in shorter words, and it went with the sentence that read it
+    // out. What this test is about is unchanged — a number on screen is a
+    // claim about now — and what is left is still read from the same walk.
     expect(api.walks, greaterThan(walksBefore));
-    expect(find.text('decided 3 · open 1'), findsOneWidget);
+    expect(find.text('decided 3'), findsOneWidget);
   });
 }

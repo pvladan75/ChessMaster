@@ -336,10 +336,23 @@ void showLogsDialog(BuildContext context) {
   );
 }
 
+/// A PGN, as text the reader can copy or save.
+///
+/// It takes the **text** and not the tree: what belongs in the headers of an
+/// analysis session and of a repertoire are two different answers, and a dialog
+/// that exported the tree itself would have to know both. Each caller writes
+/// its own PGN and this shows it.
+///
+/// [fileName] is what the picker opens with — a repertoire is named by its own
+/// name rather than by today's date. [note] is drawn above the text, for the
+/// one thing a reader cannot see by looking at the file: the repertoire says
+/// there whether the server's picture was cut short.
 Future<void> exportPgnDialog(
-    BuildContext context, AnalysisNode rootNode) async {
-  final pgnText = PgnExporterService.exportToPgn(rootNode);
-
+  BuildContext context,
+  String pgnText, {
+  String? fileName,
+  String? note,
+}) async {
   // Not awaited, and that is the fix rather than the shortcut. The clipboard is
   // a platform channel: awaiting it in front of `showDialog` means the dialog
   // opens only once the channel answers — never, in a widget test, and late on
@@ -374,10 +387,22 @@ Future<void> exportPgnDialog(
       content: SizedBox(
         width: 500,
         child: SingleChildScrollView(
-          child: SelectableText(
-            pgnText,
-            style: AppText.body.copyWith(
-                color: ctx.colors.textPrimary, fontFamily: 'monospace'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (note != null) ...[
+                Text(note,
+                    style: AppText.caption
+                        .copyWith(color: ctx.colors.textSecondary)),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              SelectableText(
+                pgnText,
+                style: AppText.body.copyWith(
+                    color: ctx.colors.textPrimary, fontFamily: 'monospace'),
+              ),
+            ],
           ),
         ),
       ),
@@ -395,7 +420,7 @@ Future<void> exportPgnDialog(
             String? path;
             try {
               path = await save(
-                fileName: pgnFileNameFor(DateTime.now()),
+                fileName: fileName ?? pgnFileNameFor(DateTime.now()),
                 pgn: pgnText,
               );
             } catch (e) {

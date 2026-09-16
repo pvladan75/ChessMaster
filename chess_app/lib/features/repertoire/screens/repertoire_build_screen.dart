@@ -362,7 +362,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   RepertoireNote? get _noteHere {
-    final fen = _current;
+    final fen = _boardFen;
     return fen == null ? null : _notes[_keyOf(fen)];
   }
 
@@ -1076,16 +1076,23 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final settings = AppSettingsService.instance;
 
     if (_afterMyMove) {
-      if (!settings.showStatisticsArrows) return const [];
-      final book = _bookFor == _boardFen ? _book : null;
-      if (book == null) return const [];
-      return _shareArrows([
-        for (final move in book.moves)
-          (
-            uci: move.uci,
-            share: book.total == 0 ? 0.0 : move.total / book.total,
-          ),
-      ]);
+      if (settings.showStatisticsArrows) {
+        final book = _bookFor == _boardFen ? _book : null;
+        final shares = book == null
+            ? const <EngineArrow>[]
+            : _shareArrows([
+                for (final move in book.moves)
+                  (
+                    uci: move.uci,
+                    share: book.total == 0 ? 0.0 : move.total / book.total,
+                  ),
+              ]);
+        if (shares.isNotEmpty) return shares;
+      }
+      // The book had nothing to say here, which is the position the engine is
+      // asked about in the first place. Its lines are about this board.
+      if (settings.showEngineArrows) return _engineArrows();
+      return const [];
     }
 
     if (settings.showEngineArrows) {
@@ -1159,7 +1166,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   List<EngineArrow> _engineArrows() {
-    if (_linesFen != _current) return const [];
+    if (_linesFen != _boardFen) return const [];
     final arrows = <EngineArrow>[];
     for (var i = 0; i < _lines.length && i < _analysisLines; i++) {
       final line = _lines[i];
@@ -1191,8 +1198,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     await _askEngine();
   }
 
+  /// The engine, asked about the position **on the board**.
+  ///
+  /// The board and not [_node]: after one of the student's own moves the board
+  /// stands a ply further on, with the opponent to move, and that is exactly
+  /// where the book most often has nothing left to say — so hiding the engine
+  /// there took it away at the one moment there was nothing else to go on.
+  /// Reported live by the owner, 16.9.2026. The comment panel has followed the
+  /// board all along; this now reads the same way.
   Future<void> _askEngine() async {
-    final fen = _current;
+    final fen = _boardFen;
     if (fen == null || _thinking) return;
 
     setState(() {
@@ -1208,7 +1223,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         _analysisDepth,
         _analysisLines,
         onProgress: (partial) {
-          if (!mounted || _current != fen) return;
+          if (!mounted || _boardFen != fen) return;
           setState(() {
             _lines = partial;
             _linesFen = fen;
@@ -1221,7 +1236,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (!mounted) return;
 
     // Asked about one position, answered about that one.
-    if (_current != fen) return;
+    if (_boardFen != fen) return;
 
     setState(() {
       _thinking = false;
@@ -1652,8 +1667,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 if (_verdictSan != null) _buildVerdict(context),
                 _buildBook(context),
                 if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
-                if (!_afterMyMove &&
-                    (_thinking || _linesFen == _current || _noteHere != null))
+                if (_thinking || _linesFen == _boardFen || _noteHere != null)
                   _buildEngine(context),
                 if (_note != null) ...[
                   const SizedBox(height: AppSpacing.sm),
@@ -1690,7 +1704,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   Widget _buildQuestion(BuildContext context) {
-    final left = _queue.length;
     final line = _lineText();
     final walk = _frontier;
     final gate = _gateSan;
@@ -1722,35 +1735,33 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         ],
         // Read aloud: it says what to do on this board, and never reads a line
         // of moves.
+        //
+        // The sentence and nothing else. It used to carry how many positions
+        // were still unanswered, which meant the spoken text changed at every
+        // position and the count was read out over and over — reported live by
+        // the owner, 16.9.2026. It is not only noise: since 15.9.2026 the
+        // student's own move is kept with the book's top reply beside it, so
+        // whether a line is carried further is a choice rather than a debt, and
+        // counting what has not been answered describes a model this screen no
+        // longer works by.
+        //
+        // What follows from dropping it: two positions in a row ask the same
+        // thing, the text does not change, and `SpeechService` says it once.
+        // That is the intent — the instruction is spoken when it turns into a
+        // different instruction.
         Builder(builder: (context) {
           final question = _standingAfter != null
               ? 'After ${_standingAfter!.san} — which opponent moves do you prepare?'
               : (_forWhite
                   ? 'What do you play with White?'
                   : 'What do you play with Black?');
-          final under = left == 0
-              ? 'Last unanswered position in this repertoire.'
-              : (left == 1
-                  ? '1 more unanswered position, not counting this one.'
-                  : '$left more unanswered positions, not counting this one.');
           return SpeakableInfo(
             autoSpeak: true,
-            text: '$question $under',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  question,
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textPrimary),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  under,
-                  style:
-                      AppText.caption.copyWith(color: context.colors.textMuted),
-                ),
-              ],
+            text: question,
+            child: Text(
+              question,
+              style:
+                  AppText.bodyBold.copyWith(color: context.colors.textPrimary),
             ),
           );
         }),
@@ -1770,11 +1781,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     );
   }
 
-  /// How far the repertoire has got, in counts.
+  /// How far the repertoire has got: what has been decided, and nothing about
+  /// what has not.
+  ///
+  /// „open" was the same number as the sentence above it in shorter words, and
+  /// it went with it — a half-fix here is how the rank numbers stayed invisible
+  /// for two days after the file letters were put right. What is left is a
+  /// count of work done, which is not a debt.
   String _progressText(RepertoireFrontier walk) {
     final parts = <String>[
       'decided ${walk.decided}',
-      'open ${walk.open.length}',
       if (walk.truncated) 'preview shortened',
     ];
     return parts.join(' · ');
@@ -1894,12 +1910,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        if (!_afterMyMove)
-          OutlinedButton.icon(
-            onPressed: _busy || _thinking ? null : _askEngine,
-            icon: const Icon(Icons.psychology_outlined, size: 18),
-            label: const Text('Ask engine'),
-          ),
+        OutlinedButton.icon(
+          onPressed: _busy || _thinking ? null : _askEngine,
+          icon: const Icon(Icons.psychology_outlined, size: 18),
+          label: const Text('Ask engine'),
+        ),
         // To the next position after an opponent move with no answer yet.
         OutlinedButton.icon(
           onPressed: _busy || _queue.isEmpty ? null : _advance,
@@ -1965,7 +1980,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           const SizedBox(height: AppSpacing.xs),
           _buildStoredNote(context),
           const SizedBox(height: AppSpacing.xs),
-          for (final line in (_linesFen == _current ? _lines : const []))
+          for (final line in (_linesFen == _boardFen ? _lines : const []))
             InkWell(
               onTap: _busy ? null : () => _playLine(line),
               child: Padding(
@@ -2001,7 +2016,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                 ),
               ),
             ),
-          if (_lines.isNotEmpty && _linesFen == _current)
+          if (_lines.isNotEmpty && _linesFen == _boardFen)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Text('Tap a line to play its first move.',

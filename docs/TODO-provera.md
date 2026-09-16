@@ -5875,6 +5875,56 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 167. Motor na tabli, brojač koji je otišao, i repertoar kao PGN — 16.9.2026, nije viđeno uživo
+
+Tri od sedam prijava od 16.9.2026 (segment „Opening repertoire"). Server mora
+biti restartovan i imati `MASTERS_BOOK_PATH`; za tačku 6 treba lokalni
+Stockfish.
+
+1. [ ] **Brojač je otišao.** Otvori gradnju repertoara: ispod pitanja („What do
+   you play with White?") **nema** rečenice o neodgovorenim pozicijama. U redu
+   ispod stoji samo „decided N" (i „preview shortened" ako je slika skraćena),
+   bez „open N".
+2. [ ] **Govor ne broji.** Uključi govor i pređi kroz nekoliko pozicija: čuje se
+   samo pitanje. Kad dve uzastopne pozicije pitaju isto, rečenica se **ne**
+   ponavlja; kad se pređe sa „What do you play…" na „After … — which opponent
+   moves do you prepare?", čuje se nova rečenica.
+3. [ ] **Kartica u listi ne broji.** Na listi repertoara red ispod imena kaže
+   samo stranu, „via …" ako postoji, i „N moves in graph" — nema „5 unanswered
+   positions" ni „all answered". (Ako gledaš mrežni saobraćaj: lista više ne
+   traži `GET /repertoire/progress` uopšte.)
+4. [ ] **Mapa i dalje broji.** „Gaps in repertoire" i dalje kaže koliko pozicija
+   nema odgovor — to je namerno ostavljeno, jer se ta mapa otvara baš zbog toga.
+5. [ ] **Motor posle sopstvenog poteza.** Odigraj svoj potez i sačekaj da tabla
+   stane posle njega (protivnik na potezu). „Ask engine" je vidljivo, radi, i
+   panel „Engine" pokazuje linije **za tu poziciju** (ne za onu iza nje).
+6. [ ] **Motor kad knjiga ćuti.** Uđi u liniju u kojoj knjiga nema odgovor
+   (poruka „The book has no reply here"). „Ask engine" i dalje postoji, a kad
+   odgovori, na tabli se vidi i strelica motora — tamo gde knjiga nije nacrtala
+   nijednu.
+7. [ ] **Ocena se pamti uz poziciju.** Posle pitanja motora, red „Saved: …"
+   stoji uz dubinu i datum; vrati se na tu poziciju kasnije i ocena je i dalje
+   tu.
+8. [ ] **Izvoz u PGN postoji tamo gde je repertoar.** Lista repertoara → meni
+   „More" na redu → „Export as PGN". Otvara se prozor sa tekstom, tekst je već
+   na klipbordu.
+9. [ ] **Fajl je repertoar.** U tekstu: glavna linija je tvoj glavni potez sa
+   najigranijim odgovorom, ostali tvoji potezi su u zagradama kao varijante.
+   Nigde u fajlu nema ★ ni procenata.
+10. [ ] **Komentari su unutra.** Napiši komentar na neku poziciju u repertoaru,
+    pa izvezi ponovo: rečenica stoji u vitičastim zagradama uz **taj** potez.
+11. [ ] **Fajl se snima pod imenom repertoara.** „Save as .pgn" nudi ime po
+    repertoaru (npr. `Smith-Morra-Black.pgn`), a ne `analysis-2026-09-16.pgn`.
+    Otvori sačuvani fajl u nekom čitaču PGN-a (ChessBase, Lichess uvoz, SCID) i
+    potezi se odigravaju.
+12. [ ] **Repertoar koji počinje dublje.** Izvezi repertoar napravljen iz
+    pozicije („Extract into new opening" ili gradnja od pozicije): ako se put
+    odigrava od prvog poteza, fajl počinje od 1. poteza i nema `[FEN]`; ako ne,
+    ima `[SetUp "1"]` i `[FEN …]`, a linija je napisana rečima („Repertoire
+    line: …").
+13. [ ] **Prazan repertoar se ne izvozi.** Na repertoaru bez ijednog poteza
+    „Export as PGN" kaže da nema poteza i ne otvara prozor sa tekstom.
+
 ## 166. Repertoar se gradi na tabli — 16.9.2026, nije viđeno uživo
 
 `docs/PLAN-REPERTOAR-RUCNO.md`. **Pre provere:** obriši postojeće repertoare na
@@ -5904,8 +5954,9 @@ imati `MASTERS_BOOK_PATH`.
 6. [ ] **Brisanje pita kad treba.** Obriši svoj potez posle kojeg postoje tvoji
    dalji potezi: pita „Delete …?" i kaže koliko tvojih poteza ide s njim. Potez
    bez ičega iza sebe se briše bez pitanja.
-7. [ ] **Govor.** Uključi govor: ne čita se niz poteza, samo pitanje, broj
-   neodgovorenih pozicija i kratka poruka o dodatom potezu.
+7. [ ] **Govor.** Uključi govor: ne čita se niz poteza, samo pitanje i kratka
+   poruka o dodatom potezu. (Broj neodgovorenih pozicija je izgovaran do
+   16.9.2026; uklonjen je — vidi stavku 167.)
 8. [ ] **Pravilo je na ekranu.** Ispod pitanja stoji rečenica da je svaki potez u
    repertoaru odigran na tabli i savet „For your side, prefer one move per
    position; for the opponent, enter one or more."

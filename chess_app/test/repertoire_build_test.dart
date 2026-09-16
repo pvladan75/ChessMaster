@@ -14,6 +14,7 @@ import 'package:chess_app/features/analysis_studio/services/opening_judge_servic
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
@@ -245,6 +246,21 @@ OpeningExplorerLookup _book(String fen) {
     draws: 167,
     black: 166,
     moves: [_move('g1f3', 'Nf3', 500)],
+  ));
+}
+
+/// The same book, except that it runs out the moment White is to move — the
+/// state the owner reported the engine missing from. An empty result and not an
+/// unavailable one: the book answered, and the answer is that it knows nothing
+/// about this position.
+Future<OpeningExplorerLookup> _dryForWhite(String fen) async {
+  if (fen.split(' ')[1] == 'b') return _book(fen);
+  return OpeningExplorerLookup.ok(OpeningExplorerResult(
+    fen: fen,
+    white: 0,
+    draws: 0,
+    black: 0,
+    moves: const [],
   ));
 }
 
@@ -593,7 +609,13 @@ void main() {
       expect(find.textContaining('Back to'), findsNothing);
     });
 
-    testWidgets('the counts are counts', (tester) async {
+    testWidgets('what is counted is work done, not work owed', (tester) async {
+      // Reported live 16.9.2026: the number of unanswered positions was read
+      // out at every position, and since 15.9.2026 it describes a model this
+      // screen no longer works by — a line is carried further because you
+      // choose to, not because something is outstanding. Both places it was
+      // written went together: the sentence under the question, and „open" in
+      // the progress line, which is the same number in shorter words.
       await pump(tester,
           walk: RepertoireFrontier(
             decided: 3,
@@ -604,10 +626,33 @@ void main() {
             ],
           ));
 
-      expect(find.text('decided 3 · open 1'), findsOneWidget);
+      expect(find.text('decided 3'), findsOneWidget);
       expect(find.textContaining('%'), findsWidgets); // the book's chips only
-      expect(find.textContaining('unanswered'), findsOneWidget);
-      expect(find.textContaining('unanswered 0%'), findsNothing);
+      expect(find.textContaining('unanswered'), findsNothing);
+      expect(find.textContaining('open 1'), findsNothing);
+    });
+
+    testWidgets('the spoken sentence is the question and nothing else',
+        (tester) async {
+      // Asserted on the widget rather than on a fake engine: this file has no
+      // speech service in it, and what `SpeakableInfo` is handed is what gets
+      // spoken — `govor_na_panelima_test.dart` holds that end.
+      await pump(tester,
+          walk: RepertoireFrontier(
+            decided: 3,
+            open: [
+              FrontierNode(
+                  fen: fenAfter(smithMorra, ['Nc6', 'Nf3']),
+                  path: const ['Nc6', 'Nf3']),
+            ],
+          ));
+
+      final asked = find.text('What do you play with Black?');
+      final panel =
+          find.ancestor(of: asked, matching: find.byType(SpeakableInfo));
+      expect(panel, findsOneWidget);
+      expect(tester.widget<SpeakableInfo>(panel).text,
+          'What do you play with Black?');
     });
   });
 
@@ -754,6 +799,45 @@ void main() {
       expect(find.text('-0.03'), findsNothing);
     });
 
+    testWidgets(
+        'can be asked after a move of your own, where the book has '
+        'nothing to say', (tester) async {
+      // Reported live 16.9.2026. With no reply in the book the board waits
+      // after your own move with the opponent to move — and that was the one
+      // state where „Ask engine" was not drawn at all, so the engine went
+      // missing at exactly the position there was nothing else to go on.
+      await pump(tester, size: const Size(500, 1400), explore: _dryForWhite);
+
+      await play(tester, 'b8', 'c6');
+      expect(find.text('After Nc6 — which opponent moves do you prepare?'),
+          findsOneWidget);
+
+      await tester.ensureVisible(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Engine'), findsOneWidget);
+      expect(find.text('+0.20'), findsOneWidget,
+          reason: 'the lines belong to the board, not to the position behind '
+              'it');
+    });
+
+    testWidgets('its arrow is drawn where the book left the board bare',
+        (tester) async {
+      await pump(tester, size: const Size(500, 1400), explore: _dryForWhite);
+
+      await play(tester, 'b8', 'c6');
+      expect(arrows(tester), isEmpty, reason: 'the book knows nothing here');
+
+      await tester.ensureVisible(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+
+      expect(arrows(tester).first.evalText, '+0.20');
+    });
+
     testWidgets('changing the depth asks again instead of looking stopped',
         (tester) async {
       var calls = 0;
@@ -837,8 +921,6 @@ void main() {
           ));
 
       expect(find.text('4...d6 5.Bc4'), findsOneWidget);
-      expect(find.text('1 more unanswered position, not counting this one.'),
-          findsOneWidget);
 
       await tester.ensureVisible(find.text('Next position'));
       await tester.pumpAndSettle();

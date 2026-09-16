@@ -37,6 +37,7 @@ import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_pane
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
+import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/core/models/tactical_motif.dart';
 import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
@@ -1383,7 +1384,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   void _exportPgn() {
-    dialogs.exportPgnDialog(context, _rootNode);
+    dialogs.exportPgnDialog(context, PgnExporterService.exportToPgn(_rootNode));
   }
 
   /// The main line from the root, through the engine and the words route, to a

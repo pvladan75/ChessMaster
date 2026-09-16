@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2670 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2693 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1289 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -2548,6 +2548,88 @@ Rerun as `already != null && false`, which keeps the promotion, it is caught.
 against a copy of `chess_backend/` in the scratchpad. One survived:
 `if (played)` guarded a chess.js call that throws on an illegal move and never
 returns null, so the line was dead and was deleted.
+
+**Three of the owner's seven repertoire reports — 16.9.2026, 2693 in the app
+with 1 skipped**, analyze at 26 infos and zero warnings; the backend is
+untouched at 1289. The arithmetic: 2670 + 3 (the engine and the spoken
+sentence) + 13 (the file) + 7 (the door to it). Fifteen mutations, all caught,
+each by the test written for it. Live check: `TODO-provera.md`, item 167.
+
+**Both halves of one report were one state.** „Let the user have the engine
+when the opponent is to move, and when the book has run out" read as two asks
+and is one: after a move of the student's own, the board stands a ply on with
+the opponent to move (`_standingAfter`), and that is exactly where the book
+answers „no reply here" — and `if (!_afterMyMove)` hid both the button and the
+panel there, while `_askEngine` asked about `_node` rather than about the
+board. The comment panel had followed the board since it was written
+(`_commentFen => _boardFen`); the engine had not. **When a screen has two
+notions of „here", the fault is wherever the two disagree**, and a report that
+names two symptoms may be naming one line.
+
+**Dropping a count from a spoken sentence changes when it is spoken.**
+`SpeakableInfo` speaks on mount and whenever its text changes, and
+`SpeechService` swallows a repeat — so while the sentence carried „4 more
+unanswered positions" it changed at every position and was read out every time,
+which is what the owner reported. With the count gone, two positions that ask
+the same thing are the same string and the question is spoken once. That is the
+intent and it is written next to the code, because it is the kind of silence
+that reads as a broken feature to whoever meets it next.
+
+**A number removed has to be removed everywhere it is written, including in
+shorter words.** The sentence said „4 more unanswered positions"; the line two
+below said `open 4`; the card in the repertoire list said „5 unanswered
+positions". Deleting one and keeping the others is the rank numbers staying
+invisible for two days after the file letters were fixed. What stays is
+`decided N` — a count of work done — and the coverage map, which is opened on
+purpose to see what is unanswered.
+
+**The last reader of a number is the last reader of the request behind it.**
+The card was the only caller of `GET /repertoire/progress`, which is a walk per
+repertoire on every open of that list. Removing the line and keeping the fetch
+would have left the server doing a third of a second per repertoire for a
+number nobody draws — so `progress()` and `RepertoireProgress` went with it,
+and the test asserts the path is never asked for rather than that the sentence
+is absent. The route stays; deleting it is the server's own change. **Follow a
+removed number up its own pipe**, and when the pipe ends at the client, do not
+leave the method behind: `disagreements` was left that way on 3.9.2026 and
+turned up this same morning as a capability reachable from nowhere.
+
+**A grep over `lib/` and `site/` is not a grep over `test/`.**
+`repertoire_counts_refresh_test.dart` asserted the whole string `decided 2 ·
+open 1`, in a file about something else entirely, and it was the one red in a
+2692-test run. This file already says to grep the old word in the tests after a
+rename; it was greped everywhere else first.
+
+**The drawing's tree is not the export's tree.** `repertoireTreeToNodes` writes
+a card's label into `AnalysisNode.nag` — ` ★`, ` 45% ?` — and `PgnExporterService`
+writes `nag` straight after the move, so exporting the picture would have put
+`1. e4 ★ 62%` into the file. `repertoire_pgn.dart` builds its own. **A model
+reused for a second purpose carries the first purpose's decorations**, and the
+place that notices is the one that serialises it.
+
+**Which move is the main one needed no convention.** The server already returns
+the student's primary first and the opponent's replies by descending share, and
+PGN's main line is the first child at every step — so the file's main line *is*
+the repertoire's, and the alternates are its variations. The version of this
+that goes wrong is a `{main}` marker invented beside an ordering that already
+says it.
+
+**A fake that cannot supply the number cannot see the number come back.** The
+card test's first version asserted that no „unanswered" sentence is on screen,
+against a `MockClient` answering `{}` to everything — so putting the whole
+feature back left it green, because the restored code asked, got nothing
+usable, and drew nothing. The fake answers the progress request with real
+numbers now, and the screen simply never asks: with that body, the absence
+assertion and „the path is never requested" both go red on the restore.
+**An absence test has to be run against a fixture where the thing could
+appear**, which is the same family as the empty board under the file letters.
+
+**An `unused_element_parameter` warning was a missing test.** The fake API in
+the door test took the comments and no test passed any — which is the analyzer
+saying that nothing asserted the **screen** hands the comments to the exporter,
+a separate line from the exporter writing them. The test was written and a
+mutation fails it. Zero warnings is worth holding for reasons that are not
+tidiness.
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why
