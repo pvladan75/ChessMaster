@@ -745,7 +745,16 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_attempts_user_puzzle
         ON user_puzzle_attempts(user_id, puzzle_id);
     `);
-    logger.info('Verified database table & indexes: user_puzzle_attempts');
+    // docs/PLAN-NAPREDAK-VEZBI.md §3.1: a skip is neither a solve nor a
+    // failure, and a solve with a hint is not a first try. Both additive with
+    // a default, so every row written before them reads as it always did:
+    // solved=false AND skipped=false is a failure, as before.
+    await client.query(`
+      ALTER TABLE user_puzzle_attempts
+        ADD COLUMN IF NOT EXISTS skipped BOOLEAN NOT NULL DEFAULT false,
+        ADD COLUMN IF NOT EXISTS hinted BOOLEAN NOT NULL DEFAULT false;
+    `);
+    logger.info('Verified database table & indexes: user_puzzle_attempts (with skipped, hinted)');
 
     // Create assignments table.
     //

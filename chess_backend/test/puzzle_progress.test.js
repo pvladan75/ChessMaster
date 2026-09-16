@@ -133,8 +133,14 @@ test('asks the database for one user, ordered by time', async () => {
   const out = await progressOf(pool, 42);
   assert.equal(pool.calls.length, 1);
   const { text, params } = pool.calls[0];
-  assert.match(text, /FROM user_puzzle_attempts WHERE user_id = \$1 ORDER BY created_at ASC/);
-  assert.match(text, /puzzle_id, source, solved, skipped, hinted, created_at/);
+  assert.match(text, /FROM user_puzzle_attempts a/);
+  assert.match(text, /WHERE a\.user_id = \$1 ORDER BY a\.created_at ASC/);
+  assert.match(text, /a\.puzzle_id, a\.source, a\.solved, a\.skipped, a\.hinted, a\.created_at/);
+  // The finer group comes from the puzzle's own row: a mate's depth, an
+  // endgame's mode.
+  assert.match(text, /LEFT JOIN puzzles p ON a\.source IN \('mate_puzzle', 'winning_position'\)/);
+  assert.match(text, /LEFT JOIN endgame_puzzles e ON a\.source = 'endgame'/);
+  assert.match(text, /COALESCE\(p\.mate_depth::text, e\.mode\) AS bucket/);
   assert.deepEqual(params, [42]);
   assert.equal(out.lichess.toRetry, 1);
 });
@@ -143,5 +149,5 @@ test('retryIdsOf reads the same log with the same query', async () => {
   const pool = stubPool([row({ puzzle_id: 'a', solved: false })]);
   assert.deepEqual(await retryIdsOf(pool, 7, 'lichess'), ['a']);
   assert.deepEqual(pool.calls[0].params, [7]);
-  assert.match(pool.calls[0].text, /ORDER BY created_at ASC/);
+  assert.match(pool.calls[0].text, /ORDER BY a\.created_at ASC/);
 });
