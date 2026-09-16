@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,102 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Tri prijave o repertoaru: motor, brojač i PGN — 16.9.2026, u kodu
+
+Sedam prijava iz jutra 16.9.2026 (segment „Opening repertoire", 09:27–09:44).
+Urađene su tri, po dogovoru sa vlasnikom; četiri stoje: analiza celog
+repertoara ostaje obrisana (obrisana je 3.9.2026, `0ec7f05`, iz vlasnikovog
+razloga koji i dalje važi — sudija knjige je bolje pitanje za repertoar od
+drugog mišljenja motora), „Ask AI about position" ostaje kakvo je, slanje
+repertoara učeniku se ne dira, a tutorijal od otvaranja čeka.
+
+**Motor se pita o poziciji na tabli, a ne o čvoru.** Posle sopstvenog poteza
+tabla stoji ply dalje, sa protivnikom na potezu — i to je jedino stanje u kome
+se motor uopšte nije mogao pitati: `if (!_afterMyMove)` je sklanjalo i dugme i
+panel, a `_askEngine` je pitao o `_node`, ne o tabli. To je tačno stanje u koje
+se upada kad knjiga nema odgovor („The book has no reply here"), pa je motor
+nedostajao baš tamo gde drugog oslonca nema. Obe polovine prijave su bile jedno
+isto stanje. Panel komentara je od početka pratio tablu; sada i motor. Uz to:
+kad knjiga nema nijednu strelicu na tom mestu, crta se strelica motora — sloj
+po sloj, kako je i pisalo u komentaru te funkcije.
+
+**Brojač neodgovorenih pozicija je otišao sa ekrana i iz govora.** Rečenica
+ispod pitanja („1 more unanswered position, not counting this one") bila je deo
+izgovorenog teksta, pa se menjala na svakoj poziciji i čitala se iznova. Nije
+samo buka: od 15.9.2026 se uz korisnikov potez čuva i najigraniji odgovor, pa
+je nastavak linije izbor, a ne dug — brojanje neodgovorenog opisuje model po
+kome ovaj ekran više ne radi. Sa njom je otišlo i „open N" iz reda ispod
+(`decided 3 · open 1` → `decided 3`), jer je to isti broj u kraćim rečima;
+polovična popravka je ono zbog čega su brojevi redova ostali nevidljivi dva
+dana pošto su slova kolona sređena. **Posledica koja je namerna:** dve
+uzastopne pozicije koje pitaju isto imaju isti tekst, a `SpeechService` istu
+rečenicu ne ponavlja — pitanje se izgovara kad postane drugo pitanje.
+
+Isti broj je stajao i na kartici u listi repertoara („5 unanswered positions" /
+„all answered"), i otišao je na vlasnikovu odluku istog dana. Sa njim je otišao
+i `GET /repertoire/progress` iz aplikacije: to je bila **šetnja po repertoaru**
+na svako otvaranje liste, oko trećine sekunde po repertoaru, i bila je jedini
+čitalac te rute. Klijentska metoda `progress()` i model `RepertoireProgress` su
+obrisani, a ruta na serveru je ostavljena netaknuta — brisanje rute je zaseban
+posao, a ostavljanje mrtve klijentske metode je tačno ono na šta je
+`disagreements` ostavljen 3.9.2026 i što se ovog jutra našlo kao „postoji na
+svakom sloju, a nedostupno". Kartica sada kaže koja je strana, kroz šta ide i
+koliko poteza ima u grafu — dakle koliko je napravljeno.
+
+Mapa repertoara („Gaps in repertoire") nije dirana: ona se otvara namerno da bi
+se videle rupe, i tamo je broj neodgovorenih ono zbog čega se ekran i otvara.
+
+**Repertoar izlazi kao PGN.** „Export as PGN" na meniju repertoara u listi:
+celo stablo, glavni potez kao glavna linija, ostali kao varijante, komentari
+korisnika unutra — podrazumevano, jer su oni jedino u fajlu što knjiga i motor
+ne mogu ponovo da naprave. Tri odluke vrede pamćenja.
+
+*Stablo crteža nije stablo izvoza.* `repertoireTreeToNodes` piše natpis kartice
+u `AnalysisNode.nag` (` ★`, ` 45% ?`), a izvoznik `nag` piše odmah iza poteza —
+izvoz slike bi dao `1. e4 ★ 62%` u fajlu. Stablo se gradi ponovo, čisto
+(`features/repertoire/services/repertoire_pgn.dart`).
+
+*Koji je potez glavni ne treba dogovor.* Server vraća korisnikov primarni potez
+prvi, a protivnikove odgovore po opadajućem udelu; glavna linija u PGN-u je
+prvi potomak na svakom koraku — dakle glavna linija fajla **jeste** glavna
+linija repertoara. Izmišljanje `{main}` oznake bilo bi drugo ime za isto.
+
+*Odakle fajl počinje se proverava, ne pretpostavlja.* Repertoar može da počne
+bilo gde, a `rootPath` je put dotle. Put se odigra od početne pozicije i koristi
+se **samo ako** se završi na korenu koji je server poslao; tada fajl ide od
+prvog poteza, bez `[FEN]`. Ako se ne poklopi, koren je dijagram sa
+`[SetUp]`/`[FEN]`, a linija se napiše rečima („Repertoire line: 1.e4 e5"). Isto
+pravilo kao za zalepljenu partiju bez zaglavlja, 8.9.2026.
+
+Izvoz traži celo stablo (`maxPly` 40, koliko server daje), a kad server kaže da
+je skratio, dijalog to napiše iznad teksta. Dijalog `exportPgnDialog` sada prima
+**tekst**, a ne stablo: šta ide u zaglavlje partije iz Analize i šta iz
+repertoara su dva različita odgovora, a dijalog koji bi sam izvozio morao bi da
+zna oba.
+
+**Merenje (`master`, ništa drugo nije radilo):** 2693 testa u aplikaciji, 1
+preskočen — 2670 pre ovoga, +3 za motor i govor, +13 za sam fajl, +7 za vrata
+do njega; kartica u listi ništa nije promenila u broju, jer je
+`repertoire_progress_card_test.dart` (3 testa o broju koji je otišao) postao
+`repertoire_list_card_test.dart` (3 testa o onome što kartica sada kaže, i o
+tome da se ruta više ne poziva). `flutter analyze` 26 infa, bez upozorenja i grešaka. Backend nije
+diran (1289). Petnaest mutacija, sve uhvaćene, svaku je oborio test pisan za
+nju.
+
+Dve sitnice za pamćenje. `repertoire_counts_refresh_test.dart` je pao na
+`decided 2 · open 1` — reč `open` je grepovana u `lib/` i u `site/`, ali ne i u
+testovima, pa je „posle preimenovanja grepuj staru reč po testovima" opet
+naplaćeno. I: analizator je prijavio `unused_element_parameter` za parametar
+lažnog servisa koji nijedan test ne prosleđuje — to je bila prava rupa, jer
+ništa nije tvrdilo da **ekran** prosleđuje komentare izvozniku; test je dopisan
+i mutacija ga obara.
+
+**Spojeno u `master` 16.9.2026 posle revizije** (grana je bila napravljena pre nje): aplikacija 2689 → **2712**, 1 preskočen; backend 1376; analyze 26.
+
+Provera uživo: stavka 170.
 
 ---
 

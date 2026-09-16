@@ -1150,31 +1150,6 @@ class DrillAnswer {
 /// The judge says what a move is worth; this only records what the student
 /// decided about it.
 
-/// How much of one repertoire is still waiting, from its own walk.
-///
-/// [open] is a position after an opponent move the student entered, with no
-/// move of theirs yet. Null when the walk could not be read — a zero would
-/// read as "nothing left", which is the one thing a failure must not be able
-/// to say.
-class RepertoireProgress {
-  const RepertoireProgress({
-    required this.id,
-    this.open,
-    this.decided,
-  });
-
-  final int id;
-  final int? open;
-  final int? decided;
-
-  factory RepertoireProgress.fromJson(Map<String, dynamic> json) =>
-      RepertoireProgress(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        open: (json['open'] as num?)?.toInt(),
-        decided: (json['decided'] as num?)?.toInt(),
-      );
-}
-
 /// What has actually been practised since the reader's day started.
 ///
 /// [positions] is the number a daily target is read against — distinct
@@ -1212,23 +1187,6 @@ class RepertoireApiService {
         'Authorization': 'Bearer ${SessionService.instance.current.token}',
         'Content-Type': 'application/json',
       };
-
-  /// The unanswered count for every repertoire at once.
-  ///
-  /// A walk each, so the list screen asks for this after it has drawn its
-  /// cards. Null when the server could not be reached, which the caller shows
-  /// as nothing rather than as zero.
-  Future<List<RepertoireProgress>?> progress() async {
-    final uri = Uri.parse('$backendUrl/repertoire/progress');
-    final res = (await _send(() => _get(uri))).res;
-    if (res == null) return null;
-    final data = jsonDecode(res.body);
-    if (data is! Map || data['items'] is! List) return null;
-    return (data['items'] as List)
-        .whereType<Map>()
-        .map((e) => RepertoireProgress.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
-  }
 
   /// How much has been practised since [since] — the start of the reader's own
   /// day, which only the client knows.

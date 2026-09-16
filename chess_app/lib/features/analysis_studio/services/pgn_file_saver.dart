@@ -63,14 +63,34 @@ String pgnFileNameFor(DateTime day) =>
 /// their diacritics: the app writes UTF-8 file names everywhere else and
 /// „opozicija-kraljem" losing its Serbian spelling would be a rename nobody
 /// asked for.
-String tutorialPgnFileName(String title, DateTime day) {
+String tutorialPgnFileName(String title, DateTime day) =>
+    _namedPgnFileName(title, day, whenUnnamed: 'tutorial');
+
+/// What a repertoire's file is called: its own name, by the same rule.
+///
+/// A repertoire always has a name — the list refuses an empty one — so the
+/// fallback is for a caller that has not got one to hand rather than for a
+/// real row.
+String repertoirePgnFileName(String name, DateTime day) =>
+    _namedPgnFileName(name, day, whenUnnamed: 'repertoire');
+
+/// One slug rule for everything named by its own title.
+///
+/// A second copy of it is how two exports come to disagree about which
+/// characters a file name may hold, and this repository has paid for a
+/// duplicated rule often enough to write that down.
+String _namedPgnFileName(
+  String title,
+  DateTime day, {
+  required String whenUnnamed,
+}) {
   final slug = title
       .trim()
       .replaceAll(RegExp(r'''[\/:*?"<>|\x00-\x1f]'''), '')
       .replaceAll(RegExp(r'\s+'), '-')
       .replaceAll(RegExp(r'^[-.]+|[-.]+$'), '');
   if (slug.isEmpty) {
-    return 'tutorial-${day.year}-${_two(day.month)}-${_two(day.day)}.pgn';
+    return '$whenUnnamed-${day.year}-${_two(day.month)}-${_two(day.day)}.pgn';
   }
   final short = slug.length <= 60 ? slug : slug.substring(0, 60);
   return '$short.pgn';
