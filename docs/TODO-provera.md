@@ -454,8 +454,11 @@ Aplikacija je sada `rs.pejovic.chesscoach`.
       ne ažurira. `build_and_deploy.ps1` od sada upozorava na nju posle svake
       instalacije, za slučaj da se pojavi na drugom uređaju. Stara se neće ažurirati,
       to je sada druga aplikacija.
-- [ ] **Google prijava neće raditi na Androidu** dok se ne registruje nov OAuth
+- [x] **Google prijava neće raditi na Androidu** dok se ne registruje nov OAuth
       klijent za novi paket. Vidi `TODO-objavljivanje.md`, korak 2.
+      **Radi od 16.9.2026** — vlasnik je registrovao Android klijent sa debug
+      SHA-1 i zamenio `google-services.json`, i prijavio se na telefonu.
+      Release i Play ključ ostaju za objavljivanje.
 - [ ] Na Windows-u su podaci sada u `AppData\Roaming\rs.pejovic\chess_app` —
       preuzeti Stockfish je ostao na staroj putanji.
 
@@ -5875,7 +5878,20 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
-## 173. Telefon položeno, posle prve provere — 16.9.2026, nije viđeno uživo
+## 174. Četiri prijave: podešavanja, mat, obaveštenje — 16.9.2026, nije viđeno uživo
+
+`docs/STANJE-RADA.md`, „Četiri prijave iste večeri".
+
+1. [ ] **Početni ekran položeno.** Zvono i zupčanik („Settings") su gore desno,
+   u redu sa naslovom kartice; zupčanik otvara podešavanja. Naslov („Training")
+   je ispod sata i baterije, ne preko njih. Okreni uspravno: sve kao pre.
+2. [ ] **Mat bez komentara.** U Analizi odigraj potez koji matira (ili učitaj
+   partiju koja se završava matom i pusti „Review entire game"): ispod matnog
+   poteza nema komentara. Potez koji nije mat i dalje dobija komentar.
+3. [ ] **Nema poruke o vraćenoj analizi.** Uđi u Analizu posle rada u njoj:
+   stablo je tu, a dole nema „Your latest analysis has been restored".
+
+## 173. Telefon položeno, posle prve provere — 16.9.2026, viđeno uživo
 
 `docs/STANJE-RADA.md`, „Telefon položeno: posle prve provere". Ispravke za
 stavke 1, 4 i 7 iz 172; ostale tačke 172 (3, 5, 6, 8, 9) važe i dalje.

@@ -66,14 +66,16 @@ pre plaćenog oglašavanja.
 
 U **Google Cloud Console → Credentials**:
 
-- [ ] Novi **OAuth client ID → Android**, paket `rs.pejovic.chesscoach`.
-- [ ] Dodati SHA-1 **debug** ključa (za razvoj na svojoj mašini).
+- [x] Novi **OAuth client ID → Android**, paket `rs.pejovic.chesscoach`
+      (16.9.2026, vlasnik; prijava na telefonu radi).
+- [x] Dodati SHA-1 **debug** ključa (za razvoj na svojoj mašini).
 - [ ] Dodati SHA-1 **release / upload** ključa.
 - [ ] Dodati i SHA-1 iz **Play Console → Setup → App signing**, ako koristite Play
       App Signing. Bez ovoga prijava radi lokalno a puca u objavljenoj verziji —
       klasična zamka.
-- [ ] Preuzeti nov `google-services.json` i zameniti
-      `chess_app/android/app/google-services.json`.
+- [x] Preuzeti nov `google-services.json` i zameniti
+      `chess_app/android/app/google-services.json` (16.9.2026). Kad se dodaju
+      release i Play ključ, fajl se preuzima ponovo.
 
 **Backend ne dirati.** `GOOGLE_CLIENT_IDS` sadrži *web* klijent
 (`425483567970-jgkipp2df...`), koji je ujedno `serverClientId` u aplikaciji.

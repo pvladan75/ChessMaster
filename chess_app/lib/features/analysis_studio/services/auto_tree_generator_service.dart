@@ -236,7 +236,7 @@ class AutoTreeGeneratorService {
         );
         final positionalDiff = _positionalEvaluator.explainMove(
             beforeFen: currentNode.fen, afterFen: childFen, lastMoveUci: uci);
-        final autoComment = joinSentences([
+        final autoComment = autoMoveComment(afterFen: childFen, parts: [
           _tacticalDetector.describeMoveDiff(tacticalDiff),
           _positionalEvaluator.describeMoveDiff(positionalDiff),
         ]);

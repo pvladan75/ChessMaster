@@ -15,6 +15,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/desktop_shortcuts.dart';
 import 'package:chess_app/services/session_service.dart';
@@ -1136,6 +1137,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final bool isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    // A phone on its side. The rail below is the whole navigation there, and a
+    // bell, four destinations and Settings do not fit 360 dp of height: Settings,
+    // last, was cut off without a word (reported 16.9.2026). There the bell and
+    // Settings go into the title row, and the rail holds only the destinations.
+    final bool shortLandscape = LandscapeBoardLayout.applies(context);
+
+    // One button each, placed by the layout — the rail's foot and head on a
+    // desktop, the title row on a phone on its side.
+    final settingsButton = IconButton(
+      tooltip: 'Settings',
+      icon: Icon(Icons.settings_outlined, color: context.colors.textSecondary),
+      onPressed: () => context.push(AppRoutes.preferences),
+    );
+    final bellButton = widget.session.isGuest
+        ? null
+        : IconButton(
+            tooltip: 'Notifications and Invitations',
+            icon: Badge(
+              isLabelVisible: _unreadNotifications > 0,
+              label: Text('$_unreadNotifications'),
+              child: Icon(Icons.notifications, color: context.colors.warning),
+            ),
+            onPressed: _showNotificationsDialog,
+          );
 
     return CallbackShortcuts(
       bindings: _tabShortcuts(),
@@ -1196,118 +1221,121 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-            body: Column(
-              children: [
-                _buildActiveSessionBanner(),
-                Expanded(
-                  child: Row(
-                    children: [
-                      // The rail stays visible for every tab in landscape. AI Studio's
-                      // landscape board is sized from available *height*, so the rail's
-                      // width costs it nothing — and hiding it used to leave that tab with
-                      // no AppBar, no bottom bar and no rail, i.e. no way out at all.
-                      if (isWide || isLandscape)
-                        NavigationRail(
-                          selectedIndex: _selectedIndex,
-                          onDestinationSelected: _selectTab,
-                          // Icons only, and a reader guessing which is which:
-                          // the labels were written and then not shown. On
-                          // Windows the rail is the whole navigation, so the
-                          // guessing was the navigation. ISSUE-013, 29.8.2026.
-                          labelType: NavigationRailLabelType.all,
-                          minWidth: 76,
-                          selectedLabelTextStyle: AppText.caption
-                              .copyWith(color: context.colors.accent),
-                          unselectedLabelTextStyle: AppText.caption
-                              .copyWith(color: context.colors.textSecondary),
-                          // At the foot of the rail, where a desktop looks for it.
-                          // The same lesson as the bell above: the AppBar is null in
-                          // landscape, and Windows is always landscape, so anything
-                          // that lives only in the bar cannot be reached there at
-                          // all. Settings was put in the bar and was invisible on
-                          // the one platform it was tested on.
-                          trailing: Expanded(
-                            child: Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                    bottom: AppSpacing.md),
-                                child: IconButton(
-                                  tooltip: 'Settings',
-                                  icon: Icon(Icons.settings_outlined,
-                                      color: context.colors.textSecondary),
-                                  onPressed: () =>
-                                      context.push(AppRoutes.preferences),
-                                ),
-                              ),
-                            ),
-                          ),
-                          // The AppBar is null in landscape, and the bell lived in
-                          // it — so on Windows, which is always landscape, there
-                          // was no way to reach notifications at all. The rail is
-                          // the only thing that survives this layout.
-                          leading: widget.session.isGuest
-                              ? null
-                              : Padding(
-                                  padding: const EdgeInsets.only(
-                                      top: AppSpacing.sm,
-                                      bottom: AppSpacing.sm),
-                                  child: IconButton(
-                                    tooltip: 'Notifications and Invitations',
-                                    icon: Badge(
-                                      isLabelVisible: _unreadNotifications > 0,
-                                      label: Text('$_unreadNotifications'),
-                                      child: Icon(Icons.notifications,
-                                          color: context.colors.warning),
+            // Without an app bar nothing else keeps the top of the body out
+            // from under the status bar: on a phone on its side the tab's
+            // title was drawn over the clock.
+            body: SafeArea(
+              top: isLandscape,
+              bottom: false,
+              child: Column(
+                children: [
+                  _buildActiveSessionBanner(),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // The rail stays visible for every tab in landscape. AI Studio's
+                        // landscape board is sized from available *height*, so the rail's
+                        // width costs it nothing — and hiding it used to leave that tab with
+                        // no AppBar, no bottom bar and no rail, i.e. no way out at all.
+                        if (isWide || isLandscape)
+                          NavigationRail(
+                            selectedIndex: _selectedIndex,
+                            onDestinationSelected: _selectTab,
+                            // Icons only, and a reader guessing which is which:
+                            // the labels were written and then not shown. On
+                            // Windows the rail is the whole navigation, so the
+                            // guessing was the navigation. ISSUE-013, 29.8.2026.
+                            labelType: NavigationRailLabelType.all,
+                            minWidth: 76,
+                            selectedLabelTextStyle: AppText.caption
+                                .copyWith(color: context.colors.accent),
+                            unselectedLabelTextStyle: AppText.caption
+                                .copyWith(color: context.colors.textSecondary),
+                            // At the foot of the rail, where a desktop looks for it.
+                            // The same lesson as the bell above: the AppBar is null in
+                            // landscape, and Windows is always landscape, so anything
+                            // that lives only in the bar cannot be reached there at
+                            // all. Settings was put in the bar and was invisible on
+                            // the one platform it was tested on.
+                            trailing: shortLandscape
+                                ? null
+                                : Expanded(
+                                    child: Align(
+                                      alignment: Alignment.bottomCenter,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                            bottom: AppSpacing.md),
+                                        child: settingsButton,
+                                      ),
                                     ),
-                                    onPressed: _showNotificationsDialog,
                                   ),
-                                ),
-                          destinations: [
-                            NavigationRailDestination(
-                                icon: const Icon(Icons.psychology_outlined),
-                                selectedIcon: const Icon(Icons.psychology),
-                                // The same tab as the bottom bar's first
-                                // destination, and it now says so. It was
-                                // "Početna" here and "Trening" there, over one
-                                // TrainingHubScreen: two names for one place,
-                                // and only whichever layout you were looking
-                                // at could tell you which.
-                                label: Text(kTabNames[0])),
-                            NavigationRailDestination(
-                                icon: const Icon(Icons.school_outlined),
-                                selectedIcon: const Icon(Icons.school),
-                                label: Text(kTabNames[1])),
-                            NavigationRailDestination(
-                                icon: const Icon(Icons.library_books_outlined),
-                                selectedIcon: const Icon(Icons.library_books),
-                                label: Text(kTabNames[2])),
-                            NavigationRailDestination(
-                                icon: _peopleIcon(Icons.people_outline),
-                                selectedIcon: _peopleIcon(Icons.people),
-                                label: Text(kTabNames[3])),
-                          ],
-                        ),
-                      if (isWide || isLandscape)
-                        const VerticalDivider(width: 1, thickness: 1),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _TabHeader(title: kTabNames[_selectedIndex]),
-                            Expanded(
-                              child: IndexedStack(
-                                index: _selectedIndex,
-                                children: pages,
+                            // The AppBar is null in landscape, and the bell lived in
+                            // it — so on Windows, which is always landscape, there
+                            // was no way to reach notifications at all. The rail is
+                            // the only thing that survives this layout.
+                            leading: bellButton == null || shortLandscape
+                                ? null
+                                : Padding(
+                                    padding: const EdgeInsets.only(
+                                        top: AppSpacing.sm,
+                                        bottom: AppSpacing.sm),
+                                    child: bellButton,
+                                  ),
+                            destinations: [
+                              NavigationRailDestination(
+                                  icon: const Icon(Icons.psychology_outlined),
+                                  selectedIcon: const Icon(Icons.psychology),
+                                  // The same tab as the bottom bar's first
+                                  // destination, and it now says so. It was
+                                  // "Početna" here and "Trening" there, over one
+                                  // TrainingHubScreen: two names for one place,
+                                  // and only whichever layout you were looking
+                                  // at could tell you which.
+                                  label: Text(kTabNames[0])),
+                              NavigationRailDestination(
+                                  icon: const Icon(Icons.school_outlined),
+                                  selectedIcon: const Icon(Icons.school),
+                                  label: Text(kTabNames[1])),
+                              NavigationRailDestination(
+                                  icon:
+                                      const Icon(Icons.library_books_outlined),
+                                  selectedIcon: const Icon(Icons.library_books),
+                                  label: Text(kTabNames[2])),
+                              NavigationRailDestination(
+                                  icon: _peopleIcon(Icons.people_outline),
+                                  selectedIcon: _peopleIcon(Icons.people),
+                                  label: Text(kTabNames[3])),
+                            ],
+                          ),
+                        if (isWide || isLandscape)
+                          const VerticalDivider(width: 1, thickness: 1),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _TabHeader(
+                                title: kTabNames[_selectedIndex],
+                                actions: shortLandscape
+                                    ? [
+                                        if (bellButton != null) bellButton,
+                                        settingsButton,
+                                      ]
+                                    : const [],
                               ),
-                            ),
-                          ],
+                              Expanded(
+                                child: IndexedStack(
+                                  index: _selectedIndex,
+                                  children: pages,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             bottomNavigationBar: (isWide || isLandscape)
                 ? null
@@ -1398,22 +1426,34 @@ class _HomeScreenState extends State<HomeScreen> {
 /// place to change, and it reads `kTabNames`, so the header and the navigation
 /// label cannot say different things about the same tab.
 class _TabHeader extends StatelessWidget {
-  const _TabHeader({required this.title});
+  const _TabHeader({required this.title, this.actions = const []});
 
   final String title;
+
+  /// Buttons at the end of the row, where a phone on its side keeps what the
+  /// rail has no room for.
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: AppText.headline.copyWith(color: context.colors.textPrimary),
-          overflow: TextOverflow.ellipsis,
-        ),
+      padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          actions.isEmpty ? AppSpacing.md : AppSpacing.xs,
+          AppSpacing.sm,
+          actions.isEmpty ? AppSpacing.sm : 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style:
+                  AppText.headline.copyWith(color: context.colors.textPrimary),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          ...actions,
+        ],
       ),
     );
   }

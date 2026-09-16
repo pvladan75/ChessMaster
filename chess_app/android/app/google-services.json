@@ -41,6 +41,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425483567970:android:6466c5bf69131b0f14a23b",
+        "android_client_info": {
+          "package_name": "rs.pejovic.chesscoach"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "425483567970-r6dmf4a2b2cev6pslmuv80v9gp4n9kfq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "rs.pejovic.chesscoach",
+            "certificate_hash": "3af4701640c04513331af93a6b17cd602a1f1b49"
+          }
+        },
+        {
+          "client_id": "425483567970-jgkipp2dfqmc40kvacn2aginpjnph28s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqs4BGQo4iE5VSrZcfw4p6ppp58IN62Oo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "425483567970-jgkipp2dfqmc40kvacn2aginpjnph28s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

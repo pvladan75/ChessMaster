@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:chess/chess.dart' as chess;
+import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/core/models/game_moment.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
@@ -185,8 +186,12 @@ class GameAnalysisWalkerService {
       final moment = moments[i];
 
       if (overwriteExisting || node.comment.isEmpty) {
-        if (moment.combinedComment.isNotEmpty) {
-          node.comment = moment.combinedComment;
+        // The moment keeps its findings (a tutorial reads them); the node
+        // gets no comment for a mating move.
+        final comment = autoMoveComment(
+            afterFen: moment.fenAfter, parts: [moment.combinedComment]);
+        if (comment.isNotEmpty) {
+          node.comment = comment;
         }
       }
 

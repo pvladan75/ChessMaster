@@ -341,36 +341,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     });
     _refreshArrows();
     _triggerEngineAnalysis();
-
-    if (!mounted) return;
-    AppFeedback.show(
-      context,
-      () => SnackBar(
-        content: const Text('Your latest analysis has been restored.'),
-        backgroundColor: context.colors.accent,
-        duration: const Duration(seconds: 6),
-        // Reported from a phone on 20.8.2026: it sat there for minutes with no
-        // way to get rid of it, since the only action rebuilds the analysis.
-        // Whatever keeps the timer from firing on that device, a message with
-        // no way out is wrong on its own.
-        showCloseIcon: true,
-        closeIconColor: context.colors.canvas,
-        action: SnackBarAction(
-          label: 'Start over',
-          textColor: context.colors.canvas,
-          onPressed: () {
-            AnalysisDraftService.instance.clear();
-            setState(() {
-              _initAnalysisTree(
-                  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-              _engineLinesMap.clear();
-            });
-            _refreshArrows();
-            _triggerEngineAnalysis();
-          },
-        ),
-      ),
-    );
+    // Restored without a word. A notice with „Start over" used to follow, and
+    // on 16.9.2026 the owner asked for it gone: it greeted every visit, and a
+    // fresh board is in Setup Position, under „Starting Position".
   }
 
   /// [game] as the tree, standing on its cursor ply, with the board turned to
@@ -750,7 +723,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         );
         final positionalDiff = _positionalEvaluator.explainMove(
             beforeFen: _currentNode.fen, afterFen: newFen, lastMoveUci: uci);
-        final autoComment = joinSentences([
+        final autoComment = autoMoveComment(afterFen: newFen, parts: [
           _tacticalDetector.describeMoveDiff(tacticalDiff),
           _positionalEvaluator.describeMoveDiff(positionalDiff),
         ]);
@@ -814,7 +787,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
     final tacticalCandidates = <String>[];
     final positionalCandidates = <String>[];
-    if (parentFen != null && moveUci != null) {
+    // No findings offered for a mating move, for the reason
+    // [autoMoveComment] gives: the dialog pre-checks them.
+    if (parentFen != null &&
+        moveUci != null &&
+        !isCheckmate(_currentNode.fen)) {
       final tacticalDiff = _tacticalDetector.explainMove(
         beforeFen: parentFen,
         afterFen: _currentNode.fen,

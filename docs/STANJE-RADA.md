@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Telefon položeno: posle prve provere" (u kodu, provera uživo — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,60 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje — 16.9.2026, u kodu
+
+Stavka 173 je prošla uživo (vlasnik, 16.9.2026 uveče); iz 172 prošla je i 8.
+Iste večeri četiri prijave.
+
+**1. Početni ekran položeno: do podešavanja se nije moglo.** Bočni meni
+(zvono, četiri kartice, „Settings" na dnu) ne staje u 360 dp visine, pa je
+„Settings" bio odsečen bez reči; a naslov kartice je bio nacrtan preko sata i
+baterije. Sada, kad `LandscapeBoardLayout.applies`: zvono i „Settings" su u redu
+sa naslovom, desno, a meni drži samo kartice; telo ekrana bez app bara ima
+`SafeArea` odozgo. Na desktopu je sve kao pre („Settings" na dnu menija, zvono
+na vrhu). Test: `home_landscape_test.dart`, na četiri veličine telefona sa
+statusnom trakom od 24 dp. Napomena: stari ekran u testu nije odsekao
+„Settings" (testni telefon nema baner aktivne sesije ni pravu visinu
+destinacija), pa test drži novi raspored, a ne reprodukuje staru grešku.
+
+**2. Mat bez komentara** — odluka vlasnika: ne bolji komentar, nego nikakav.
+Pod Rh5# je stajalo „The black king on f5 is checkmated. The white rook on h5
+skewers the black king…". Pravilo je `autoMoveComment`
+(`core/services/finding_sentences.dart`): posle poteza koji matira, automatski
+komentar je prazan. Zovu ga sva tri mesta koja sama pišu komentar — potez na
+tabli Analize, „Auto Analysis" (`auto_tree_generator_service`) i pregled
+partije (`game_analysis_walker_service`) — a dijalog za komentar za matni potez
+ne nudi nalaze.
+
+**Prva verzija je bila na pogrešnom mestu** i to je vredno zapamtiti: pravilo u
+`explainMove` detektora oborilo je `game_tutorial_facts_test` — nalazi posle
+mata ulaze u činjenice tutorijala, koje se porede sa harnessom bajt po bajt.
+Nalazi ostaju; ćuti samo komentar. Testovi: `core/mating_move_comment_test.dart`
+(prijavljena pozicija, ulaz sa „skewers" dokazan pre pravila; mat o kome
+pozicioni evaluator ima šta da kaže, nađen šetnjom slučajnih partija; pregled
+partije) i `analysis_mating_move_comment_test.dart` (Rh5# odigran na tabli
+Analize). Mutacije: pravilo izbačeno iz pomoćne funkcije, iz ekrana, iz pregleda
+partije — svaka uhvaćena.
+
+**3. Google prijava na Androidu** — uzrok nije bio u kodu:
+`google-services.json` je i dalje bio za stari paket `com.example.chess_app`.
+Vlasnik je istog dana napravio Android OAuth klijent za `rs.pejovic.chesscoach`
+sa debug SHA-1 i zamenio fajl; prijava radi. Release i Play App Signing SHA-1
+ostaju za objavljivanje (`TODO-objavljivanje.md`, korak 2).
+
+**4. „Your latest analysis has been restored" je uklonjeno.** Analiza se i dalje
+vraća, bez poruke. „Start over" iz te poruke nije nadoknađivan: nova tabla je u
+„Setup Position" → „Starting Position". Test:
+`analysis_draft_restore_quiet_test.dart` (vraćeno stablo, nijedan SnackBar;
+na starom ekranu pada).
+
+Testovi: 2807 → **2819** (+12: 5 početni ekran, 1 obaveštenje, 4 + 2 mat), 1
+preskočen; analyze 26, isti fajlovi.
+
+Provera uživo: stavka 174.
 
 ---
 

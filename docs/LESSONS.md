@@ -2818,3 +2818,23 @@ SDK's Roboto and throws if it cannot, and one test proves the font took
 (`iiii` narrower than `MMMM`) — the golden test's loader returns silently when
 the files are missing, which is the check that cannot fail.
 
+**Four reports on the same evening — 16.9.2026, 2819 in the app with 1 skipped,
+analyze at 26.** The arithmetic: 2807 + 5 in `home_landscape_test.dart` + 1 in
+`analysis_draft_restore_quiet_test.dart` + 4 in
+`core/mating_move_comment_test.dart` + 2 in
+`analysis_mating_move_comment_test.dart`.
+
+**Silence a sentence where it is written, not where its facts are found.** The
+owner wanted no comment under a mating move. The first cut emptied the
+detectors' `explainMove` after a mate, and `game_tutorial_facts_test` went red:
+those findings are a tutorial's facts too, compared with the Python harness
+byte for byte. One reader's wish had been written into the source of a second
+reader. The rule now sits in `autoMoveComment`, which only the three writers of
+a move's comment call, and the facts are as they were.
+
+**A mutation that survives because the fixture has nothing to say is still a
+question.** The positional half of the rule survived: in the reported position,
+and in three hand-picked mates, the positional evaluator had no comment to
+silence. Walking 400 random games to a mate with the rule taken out found 160
+where it did, and the test stands on one of them.
+
