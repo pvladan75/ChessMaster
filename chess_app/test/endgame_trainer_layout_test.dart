@@ -105,6 +105,9 @@ EndgamePuzzle worstCasePuzzle() => EndgamePuzzle.fromJson({
 Widget wrap(Widget child) => MaterialApp(home: child);
 
 void main() {
+  // Real glyphs: these tests measure whether rows fit.
+  setUpAll(loadRoboto);
+
   // A release build paints no overflow stripes and throws no assertion - it
   // just clips. In a test build it does throw, which is the only cheap way to
   // catch it. 360x640 is the phone this project has actually been bitten on.

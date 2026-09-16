@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, provera uživo na telefonu — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Telefon položeno: posle prve provere" (u kodu, provera uživo — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,62 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Telefon položeno: posle prve provere — 16.9.2026, u kodu
+
+Vlasnik je istog dana prošao stavku 172 na telefonu: soba (2) u redu; Analiza
+(1), gradnja repertoara (4) i Android uređivač delova (7) loše; 3, 5, 6, 8 i 9
+još nisu probani. Tri odluke vlasnika, i šta je urađeno:
+
+**1. Sudija poteza je izbačen iz Analize** — panel „Move Verdict", dugme
+„Judge move", i prekidač „Move evaluation" u podešavanjima. Motor i knjiga
+otvaranja odgovaraju na to pitanje. Dugme je postojalo zato što je svaka presuda
+trošila token; to je prestalo 15.9, a upit ka Lichess-ovoj evaluaciji je ostao
+samo zbog njega. **Gradnja repertoara zadržava svoju presudu** (radi sama, bez
+dugmeta), ali njene poruke više ne pominju Lichess („There is no evaluation for
+this position…", „The evaluation service is not answering…").
+
+**2. Traka sa potezima i dugmad repertoara, strogo u jednom redu na ~760 dp.**
+Na telefonu je traka Analize bila dva reda i pojela pola desne kolone. Moj
+test je tvrdio da staje na 800 dp, a telefon je imao oko 760 posle sistemskih
+dugmadi, uz eval traku od 26 dp — test je bio „srećniji od stvarnosti" (pravilo
+6). Sada:
+- `MoveNavigationControls` ima gusti režim (`dense`, sam se uključuje kad
+  `LandscapeBoardLayout.applies`): dugmad 40 dp umesto 48, manji razmak, i to
+  važi i za dugmad koja ekran doda na traku.
+- `LandscapeBoardLayout.minPanelWidth` je **390** umesto 300: najšira traka
+  (Analiza, devet dugmadi) je 384. Plaća tabla, samo tamo gde širina vezuje
+  (telefon od 640 dp, ili visok telefon oko 760).
+- Tri dugmeta gradnje repertoara su u pejzažu jedan red, sitnijim slovima i
+  ikonama, a natpis se skraćuje umesto da se prelama.
+- **Testovi mere pravim fontom.** Test crta svako slovo kao kvadrat širine
+  jednog em, pa je „Move 12 of 30" u testu dva puta šira nego na telefonu.
+  `loadRoboto()` (`test/support/landscape.dart`) učitava Roboto iz Flutter SDK-a
+  i **puca** ako ga nema; jedan test proverava da je font zaista primenjen
+  („iiii" uže od „MMMM").
+- Svi pejzažni testovi ekrana sada idu i na 760×360 i 760×430, i traže da
+  traka bude **jedan red**.
+
+**3. Uređivač delova tutorijala u pejzažu ima dve kartice:**
+- **Board** — tabla levo; desno spisak delova (strelice gore/dole, dodaj, obriši
+  kao ikonice), a pri dnu potez koji deo traži i „Save step" / „Preview".
+- **Text** — naslov, zadatak, vrsta zadatka i izbori preko cele širine, bez
+  table, pa tastatura ima mesta.
+Prevlačenje između kartica je isključeno, jer je na „Board" prevlačenje potez.
+Uspravno je uređivač isti kao pre, a privremeno rešenje od jutros (spisak koji
+skroluje sa dugmadima kad je tastatura gore) je vraćeno, jer ga pejzaž više ne
+koristi.
+
+**SafeArea sa strane je sada u samom `LandscapeBoardLayout`**, ne po ekranima:
+uređivač ga nije imao i polja su bila pod sistemskom dugmadi.
+
+Testovi: 2769 → **2807** (+38), 1 preskočen; analyze 26, isti fajlovi.
+Mutacije, sve uhvaćene testom pisanim za njih: traka nikad gusta, minimum kolone
+vraćen na 300, bez SafeArea, sudija vraćen u Analizu, poruke sa Lichess-om
+vraćene, dugmad repertoara u `Wrap`, test bez pravog fonta, uređivač bez
+kartica.
+
+Provera uživo: stavka 173.
 
 ## Telefon položeno: tabla levo, sve ostalo desno — 16.9.2026, u kodu
 

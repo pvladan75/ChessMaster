@@ -166,6 +166,9 @@ class _FakeApi extends RepertoireApiService {
 }
 
 void main() {
+  // Real glyphs: these tests measure whether rows fit.
+  setUpAll(loadRoboto);
+
   Future<void> pump(
     WidgetTester tester,
     _FakeApi api, {

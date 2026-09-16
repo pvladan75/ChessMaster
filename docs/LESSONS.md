@@ -2801,3 +2801,20 @@ is 915–932 dp wide, past the 840 breakpoint, so the wide layouts written for
 desktop windows picked it up — the room drew two 300 dp sidebars beside a board
 on a 430 dp tall screen. Every `isWide` check has to lose to the landscape one.
 
+**Landscape, after the first look on a phone — 16.9.2026, 2807 in the app with
+1 skipped, analyze at 26.** The arithmetic: 2769 + 32 from running every screen's
+landscape test at two more sizes (760×360 and 760×430: sixteen loops of two) +
+3 more one-row sizes and 2 new tests in `landscape_board_layout_test.dart`
+(side inset, real font) + 1 net in the step editor (two tests replaced by
+three).
+
+**A width test in the test font measures squares.** The repertoire strip's
+"Move N of M" label is about 80 dp in Roboto and about 150 in the test font, so
+the strip "wrapped" in the test and not on the phone — and the Analysis strip,
+all icons, passed the test at 800 dp and wrapped on a real 760. Both halves of
+rule 8 at once: the fixture was luckier than the phone (800, no eval bar, no
+system buttons), and the glyphs were not the phone's. `loadRoboto()` loads the
+SDK's Roboto and throws if it cannot, and one test proves the font took
+(`iiii` narrower than `MMMM`) — the golden test's loader returns silently when
+the files are missing, which is the check that cannot fail.
+

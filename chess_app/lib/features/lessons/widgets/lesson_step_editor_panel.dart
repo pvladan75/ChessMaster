@@ -478,8 +478,15 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     );
   }
 
-  Widget _buildEditor() {
-    if (_steps.isEmpty) return const Text('No steps.');
+  /// Everything the editor draws for the selected step, built once and placed
+  /// by whichever layout is on screen — so the upright column and the two
+  /// landscape tabs cannot drift into being two editors.
+  ({
+    Widget Function(double) board,
+    List<Widget> fields,
+    List<Widget> moveHint,
+    Widget buttons,
+  }) _editorParts() {
     final step = _steps[_selectedIndex];
     final kind = step['kind']?.toString() ?? 'show';
 
@@ -577,6 +584,9 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
           )),
       if (kind == 'ask_choice') _buildChoicesEditor(step),
       const SizedBox(height: AppSpacing.xs),
+    ];
+
+    final moveHint = <Widget>[
       if (kind == 'ask_move') ...[
         Text('Play the correct move on the board', style: AppText.bodyBold),
         if (step['solutionSan'] != null)
@@ -601,22 +611,17 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       ],
     );
 
-    // A phone on its side: the board beside the fields rather than under
-    // them, so the move the trainer plays and the task it answers are on one
-    // screen.
-    if (LandscapeBoardLayout.applies(context)) {
-      return LandscapeBoardLayout(
-        board: board,
-        panels: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: fields,
-        ),
-        footer: [
-          const SizedBox(height: AppSpacing.sm),
-          buttons,
-        ],
-      );
-    }
+    return (
+      board: board,
+      fields: fields,
+      moveHint: moveHint,
+      buttons: buttons,
+    );
+  }
+
+  Widget _buildEditor() {
+    if (_steps.isEmpty) return const Text('No steps.');
+    final parts = _editorParts();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
@@ -626,22 +631,139 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...fields,
+          ...parts.fields,
+          ...parts.moveHint,
           Center(
             child: LayoutBuilder(
-              builder: (context, constraints) => board(
+              builder: (context, constraints) => parts.board(
                   constraints.maxWidth < 300 ? constraints.maxWidth : 300.0),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          buttons,
+          parts.buttons,
         ],
       ),
     );
   }
 
+  /// A phone on its side, in two tabs rather than three columns.
+  ///
+  /// The step list, the board and the fields side by side did not fit a 360 dp
+  /// tall screen, and a keyboard over a board leaves neither usable (TODO-provera
+  /// 172, item 7). **Board** is the board beside the steps, with the move the
+  /// step asks for and the save button; **Text** is the fields across the whole
+  /// width, where the keyboard has room. Swiping between the tabs is off: on
+  /// the Board tab a swipe is a piece being dragged.
+  Widget _buildLandscape() {
+    final canMoveUp = _selectedIndex > 0;
+    final canMoveDown = _selectedIndex < _steps.length - 1;
+    final parts = _steps.isEmpty ? null : _editorParts();
+
+    final stepButtons = Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_upward),
+          tooltip: 'Move up',
+          onPressed: canMoveUp ? _moveUp : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.arrow_downward),
+          tooltip: 'Move down',
+          onPressed: canMoveDown ? _moveDown : null,
+        ),
+        const Spacer(),
+        IconButton(
+          icon: const Icon(Icons.add),
+          tooltip: 'Add step',
+          onPressed: _addStep,
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline),
+          tooltip: 'Delete step',
+          onPressed: _deleteStep,
+        ),
+      ],
+    );
+
+    return SafeArea(
+      top: false,
+      child: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            const TabBar(
+              tabs: [
+                Tab(key: Key('editor-tab-board'), height: 36, text: 'Board'),
+                Tab(key: Key('editor-tab-text'), height: 36, text: 'Text'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  parts == null
+                      ? const Center(child: Text('No steps.'))
+                      : LandscapeBoardLayout(
+                          board: parts.board,
+                          panels: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              stepButtons,
+                              const Divider(height: 1),
+                              for (var i = 0; i < _steps.length; i++)
+                                _stepTile(context, i, dense: true),
+                            ],
+                          ),
+                          footer: [
+                            ...parts.moveHint,
+                            parts.buttons,
+                          ],
+                        ),
+                  parts == null
+                      ? const Center(child: Text('No steps.'))
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ...parts.fields,
+                              const SizedBox(height: AppSpacing.sm),
+                              parts.buttons,
+                            ],
+                          ),
+                        ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stepTile(BuildContext context, int i, {bool dense = false}) {
+    final title = _steps[i]['title']?.toString().trim();
+    final label = (title != null && title.isNotEmpty) ? title : 'Step ${i + 1}';
+    return ListTile(
+      dense: dense,
+      title: Text(
+        label,
+        maxLines: dense ? 1 : null,
+        overflow: dense ? TextOverflow.ellipsis : null,
+      ),
+      selected: i == _selectedIndex,
+      onTap: () {
+        _syncCurrentStepControllers();
+        setState(() => _selectedIndex = i);
+        _loadStep();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (LandscapeBoardLayout.applies(context)) return _buildLandscape();
+
     final canMoveUp = _selectedIndex > 0;
     final canMoveDown = _selectedIndex < _steps.length - 1;
 
@@ -649,80 +771,50 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       children: [
         SizedBox(
           width: 170,
-          child: LayoutBuilder(builder: (context, constraints) {
-            final buttons = Padding(
-              padding: const EdgeInsets.all(AppSpacing.xs),
-              child: Wrap(
-                spacing: AppSpacing.xs,
-                runSpacing: AppSpacing.xs,
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Tooltip(
-                    message: 'Move up',
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_upward),
-                      onPressed: canMoveUp ? _moveUp : null,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                child: Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Tooltip(
+                      message: 'Move up',
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_upward),
+                        onPressed: canMoveUp ? _moveUp : null,
+                      ),
                     ),
-                  ),
-                  Tooltip(
-                    message: 'Move down',
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_downward),
-                      onPressed: canMoveDown ? _moveDown : null,
+                    Tooltip(
+                      message: 'Move down',
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_downward),
+                        onPressed: canMoveDown ? _moveDown : null,
+                      ),
                     ),
-                  ),
-                  OutlinedButton(
-                    onPressed: _addStep,
-                    child: const Text('Add step'),
-                  ),
-                  OutlinedButton(
-                    onPressed: _deleteStep,
-                    child: const Text('Delete step'),
-                  ),
-                ],
-              ),
-            );
-            Widget tile(BuildContext context, int i) {
-              final title = _steps[i]['title']?.toString().trim();
-              final label =
-                  (title != null && title.isNotEmpty) ? title : 'Step ${i + 1}';
-              return ListTile(
-                title: Text(label),
-                selected: i == _selectedIndex,
-                onTap: () {
-                  _syncCurrentStepControllers();
-                  setState(() => _selectedIndex = i);
-                  _loadStep();
-                },
-              );
-            }
-
-            // Too short for the buttons above a list of their own — a phone
-            // on its side with the keyboard up leaves about a hundred dp — so
-            // the buttons scroll with the steps instead of overflowing them.
-            if (constraints.maxHeight < 240) {
-              return ListView(
-                children: [
-                  buttons,
-                  const Divider(height: 1),
-                  for (var i = 0; i < _steps.length; i++) tile(context, i),
-                ],
-              );
-            }
-            return Column(
-              children: [
-                buttons,
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _steps.length,
-                    itemBuilder: tile,
-                  ),
+                    OutlinedButton(
+                      onPressed: _addStep,
+                      child: const Text('Add step'),
+                    ),
+                    OutlinedButton(
+                      onPressed: _deleteStep,
+                      child: const Text('Delete step'),
+                    ),
+                  ],
                 ),
-              ],
-            );
-          }),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _steps.length,
+                  itemBuilder: _stepTile,
+                ),
+              ),
+            ],
+          ),
         ),
         const VerticalDivider(width: 1),
         Expanded(child: _buildEditor()),

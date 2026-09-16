@@ -38,7 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ('Tactical motifs', 'tactical_motifs'),
     ('Positional factors', 'positional_factors'),
     ('Opening Explorer', 'opening_explorer'),
-    ('Move evaluation (theory / playable / mistake)', 'opening_judge'),
     ('Tablebase (Syzygy)', 'syzygy'),
     ('Engine analysis panel', 'engine_analysis'),
   ];

@@ -1941,28 +1941,71 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
   /// The buttons that act on the position on the board.
   Widget _buildControls(BuildContext context) {
+    final drill = !_afterMyMove && widget.onDrillHere != null && _node != null;
+    final buttons = [
+      (
+        Icons.psychology_outlined,
+        'Ask engine',
+        _busy || _thinking ? null : _askEngine,
+      ),
+      // To the next position after an opponent move with no answer yet.
+      (
+        Icons.skip_next,
+        'Next position',
+        _busy || _queue.isEmpty ? null : _advance,
+      ),
+      if (drill)
+        (
+          Icons.fitness_center,
+          'Drill this branch',
+          _busy ? null : () => widget.onDrillHere!(_node!.fen),
+        ),
+    ];
+
+    // On a phone on its side: one row, strictly, in the side column. Wrapped,
+    // the three took two rows of a 360 dp tall screen (TODO-provera 172, item
+    // 4). Smaller type, smaller icons, and a label that is cut short rather
+    // than wrapped where even that does not fit.
+    if (LandscapeBoardLayout.applies(context)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+        child: Row(
+          children: [
+            for (final (i, b) in buttons.indexed) ...[
+              if (i > 0) const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: b.$3,
+                  icon: Icon(b.$1, size: 16),
+                  label:
+                      Text(b.$2, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: OutlinedButton.styleFrom(
+                    textStyle: AppText.caption,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                    minimumSize: const Size(0, 36),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
     // Wrap and not Row: a release build clips an overflow without a stripe.
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        OutlinedButton.icon(
-          onPressed: _busy || _thinking ? null : _askEngine,
-          icon: const Icon(Icons.psychology_outlined, size: 18),
-          label: const Text('Ask engine'),
-        ),
-        // To the next position after an opponent move with no answer yet.
-        OutlinedButton.icon(
-          onPressed: _busy || _queue.isEmpty ? null : _advance,
-          icon: const Icon(Icons.skip_next, size: 18),
-          label: const Text('Next position'),
-        ),
-        if (!_afterMyMove && widget.onDrillHere != null && _node != null)
+        for (final b in buttons)
           OutlinedButton.icon(
-            onPressed: _busy ? null : () => widget.onDrillHere!(_node!.fen),
-            icon: const Icon(Icons.fitness_center, size: 18),
-            label: const Text('Drill this branch'),
+            onPressed: b.$3,
+            icon: Icon(b.$1, size: 18),
+            label: Text(b.$2),
           ),
       ],
     );

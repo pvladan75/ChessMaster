@@ -25,6 +25,9 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'support/landscape.dart';
 
 void main() {
+  // Real glyphs: these tests measure whether rows fit.
+  setUpAll(loadRoboto);
+
   const startFen = '8/8/8/3k4/8/8/3PK3/8 w - - 0 1';
 
   // Long on purpose: a short note fits anywhere, and the report was about what

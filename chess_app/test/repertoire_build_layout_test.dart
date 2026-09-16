@@ -215,6 +215,9 @@ const _openingLabel = 'C54 · Italian Game: Giuoco Pianissimo';
 OpeningBookEntry? _named(String fen) => _entry;
 
 void main() {
+  // Real glyphs: these tests measure whether rows fit.
+  setUpAll(loadRoboto);
+
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -230,6 +233,7 @@ void main() {
     String? gateUci,
     OpeningBookEntry? Function(String fen)? openingLookup,
     OpeningJudgeService? judge,
+    void Function(String fen)? onDrillHere,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -248,6 +252,7 @@ void main() {
         openingLookup: openingLookup,
         api: api,
         judge: judge ?? _SilentJudge(),
+        onDrillHere: onDrillHere,
         analyse: analyse ?? (fen, depth, multiPV) async => const [],
       ),
     ));
@@ -274,8 +279,17 @@ void main() {
   for (final size in landscapePhones) {
     testWidgets('on a phone held sideways at ${sizeLabel(size)}',
         (tester) async {
-      await pump(tester, size, openingLookup: _named);
+      await pump(tester, size, openingLookup: _named, onDrillHere: (_) {});
       expectBoardBeside(tester, size);
+      // The buttons under the strip: one row, all three on screen.
+      final labels = ['Ask engine', 'Next position', 'Drill this branch'];
+      for (final label in labels) {
+        expectOnScreen(tester, size, find.text(label));
+      }
+      expect(
+          labels.map((l) => tester.getCenter(find.text(l)).dy.round()).toSet(),
+          hasLength(1),
+          reason: 'the buttons wrapped at ${sizeLabel(size)}');
       expect(find.byType(AnalysisMoveTreeWidget), findsOneWidget);
       expect(find.text(_openingLabel), findsOneWidget);
     });

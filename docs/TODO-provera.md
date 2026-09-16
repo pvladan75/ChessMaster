@@ -5875,6 +5875,28 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 173. Telefon položeno, posle prve provere — 16.9.2026, nije viđeno uživo
+
+`docs/STANJE-RADA.md`, „Telefon položeno: posle prve provere". Ispravke za
+stavke 1, 4 i 7 iz 172; ostale tačke 172 (3, 5, 6, 8, 9) važe i dalje.
+
+1. [ ] **Analiza, traka u jednom redu.** Sa uključenom eval trakom: svih devet
+   dugmadi (početak, nazad, napred, kraj, okreni, komentar, AI, NAG, obriši) u
+   jednom redu, i dugmad se lako pogađaju prstom.
+2. [ ] **Analiza bez sudije.** Nema panela „Move Verdict" ni dugmeta „Judge
+   move", a u Settings nema prekidača „Move evaluation".
+3. [ ] **Gradnja repertoara.** „Ask engine", „Next position" i „Drill this
+   branch" u jednom redu, čitljivi; traka iznad njih takođe u jednom redu.
+   Presuda na tvom potezu i dalje stiže sama i ne pominje Lichess.
+4. [ ] **Uređivač delova, kartica Board.** Tabla levo, desno spisak delova sa
+   ikonicama gore/dole/dodaj/obriši; izbor dela menja tablu; „Save step" i
+   „Preview" dole desno.
+5. [ ] **Uređivač delova, kartica Text.** Naslov, zadatak i vrsta preko cele
+   širine; kucanje ne zatvara tastaturu; naslov otkucan ovde se vidi u spisku
+   na kartici Board.
+6. [ ] **Ništa pod sistemskom dugmadi** na desnoj (ili levoj) ivici, ni u
+   uređivaču ni na drugim ekranima.
+
 ## 172. Telefon položeno — 16.9.2026, nije viđeno uživo
 
 `docs/STANJE-RADA.md`, „Telefon položeno: tabla levo, sve ostalo desno".

@@ -76,8 +76,15 @@ class LandscapeBoardLayout extends StatelessWidget {
   /// The user's board size setting, 0.6–1.0. It only ever shrinks the board.
   final double boardScale;
 
-  /// Narrower than this and a panel stops being readable.
-  static const double minPanelWidth = 300.0;
+  /// The right column is never narrower than one row of the widest move strip.
+  ///
+  /// The Analysis Studio's: nine dense 40 dp buttons, its 8 dp spacer and the
+  /// strip's own 8 dp padding a side make 384; the rest is room for a centre
+  /// label such as the repertoire's "Move 12 of 30". It was 300 until a phone
+  /// at about 760 dp with the eval bar on wrapped the strip into two rows and
+  /// left the panels a sliver (TODO-provera 172, item 1). The board pays for
+  /// it only where the width binds: a 640 dp phone, or a tall one near 760.
+  static const double minPanelWidth = 390.0;
 
   static const double asideWidth = 22.0;
 
@@ -116,6 +123,10 @@ class LandscapeBoardLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return SafeArea(top: false, child: _scrolling());
+  }
+
+  Widget _scrolling() {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Always inside the scroll view, never only when it is needed. The
@@ -133,6 +144,12 @@ class LandscapeBoardLayout extends StatelessWidget {
         );
       },
     );
+    // Here and not on each screen: on a phone on its side the system buttons
+    // and the camera cut-out are on the left or the right, and the tutorial
+    // step editor, which had no SafeArea of its own, drew its fields under
+    // them (TODO-provera 172, item 7). The app bar owns the top. A SafeArea
+    // above this one has already taken the padding, so nothing is counted
+    // twice.
   }
 
   Widget _layout(Size area) {

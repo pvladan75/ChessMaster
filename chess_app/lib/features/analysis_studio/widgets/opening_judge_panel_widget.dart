@@ -159,8 +159,8 @@ class OpeningJudgePanelWidget extends StatelessWidget {
     const book = 'The opening book is not available on this server, '
         'so the move was not judged.';
     const messages = {
-      'rate-limited': 'Lichess is not answering for a few minutes. '
-          'Try again later.',
+      'rate-limited': 'The evaluation service is not answering for a few '
+          'minutes. Try again later.',
       'network': 'Server unavailable, move was not judged.',
       'guest': 'Sign in required to judge moves.',
       'bad-request': 'Cannot judge this move in this position.',
@@ -233,9 +233,9 @@ class OpeningJudgePanelWidget extends StatelessWidget {
         lines.add('Played by masters: ${gamesLabel(j.mastersGames)}.');
         break;
       case OpeningVerdict.unknown:
-        lines.add(
-            'Lichess has no evaluation for this position, so the move is not judged — '
-            'this is not the same as a bad move.');
+        lines
+            .add('There is no evaluation for this position, so the move is not '
+                'judged — this is not the same as a bad move.');
         break;
       case OpeningVerdict.playable:
       case OpeningVerdict.mistake:

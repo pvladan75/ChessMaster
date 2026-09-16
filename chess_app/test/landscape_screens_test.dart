@@ -7,6 +7,7 @@
 // shows it by clipping, silently.
 
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,6 +43,9 @@ final _session =
     UserSession(id: 1, token: 'tok', email: 'e', name: 'N', role: 'korisnik');
 
 void main() {
+  // Real glyphs: these tests measure whether rows fit.
+  setUpAll(loadRoboto);
+
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   const phones = landscapePhones;
@@ -61,7 +65,15 @@ void main() {
         // The compact bar, and a board as tall as what is under it.
         final body = size.height - LandscapeBoardLayout.compactToolbarHeight;
         final board = tester.getRect(find.byType(BoardWithCoordinates).first);
-        expect(board.height, greaterThan(body - 40));
+        // Height-bound on a short phone, width-bound on a tall one near
+        // 760 dp, where the side column keeps its minimum.
+        // No move judge: the engine and the book answer that question here
+        // (TODO-provera 172, item 1).
+        expect(find.textContaining('Move Verdict'), findsNothing);
+        expect(find.byIcon(Icons.gavel), findsNothing);
+        // The framed board sits in a card with 6 dp of padding a side.
+        expect(board.height,
+            greaterThanOrEqualTo(math.min(body - 16, 300.0) - 12 - 0.5));
       });
     }
 
@@ -329,16 +341,36 @@ void main() {
         );
 
     for (final size in phones) {
-      testWidgets('at ${sizeLabel(size)}', (tester) async {
+      testWidgets('at ${sizeLabel(size)}, the Board tab', (tester) async {
         await pumpAt(tester, size, screen());
+        // Opens on the board, beside the steps, with nothing typed on it.
         expectBoardBeside(tester, size);
+        expect(find.byKey(const Key('step-title')), findsNothing);
+        expectOnScreen(tester, size, find.text('First'));
+        expectOnScreen(tester, size, find.text('Second'));
+        expectOnScreen(tester, size, find.byTooltip('Add step'));
         expectOnScreen(tester, size, find.text('Save step'));
         expectOnScreen(tester, size, find.text('Preview'));
+
+        // A step picked on the board tab is the one the text tab edits.
+        await tester.tap(find.text('Second'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('editor-tab-text')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.byType(LandscapeBoardLayout), findsNothing);
+        final title =
+            tester.widget<TextField>(find.byKey(const Key('step-title')));
+        expect(title.controller!.text, 'Second');
+        expectOnScreen(tester, size, find.byKey(const Key('step-title')));
       });
     }
 
-    testWidgets('typing a title keeps the keyboard open', (tester) async {
+    testWidgets('the Text tab keeps the keyboard open while typing',
+        (tester) async {
       await pumpAt(tester, const Size(800, 360), screen());
+      await tester.tap(find.byKey(const Key('editor-tab-text')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('step-title')));
       await tester.pump();
       tester.view.viewInsets = const FakeViewPadding(bottom: 250);
@@ -348,7 +380,30 @@ void main() {
       expect(tester.testTextInput.isVisible, isTrue);
       await tester.enterText(find.byKey(const Key('step-title')), 'Mate');
       await tester.pump();
-      expect(find.text('Mate'), findsWidgets);
+
+      // And the title typed there is the step's name on the Board tab.
+      tester.view.resetViewInsets();
+      await tester.tap(find.byKey(const Key('editor-tab-board')));
+      await tester.pumpAndSettle();
+      expect(find.text('Mate'), findsOneWidget);
+    });
+
+    testWidgets('nothing is under the system buttons at the side',
+        (tester) async {
+      await pumpAt(tester, const Size(800, 360), screen());
+      tester.view.padding = const FakeViewPadding(right: 48);
+      addTearDown(tester.view.resetPadding);
+      await tester.pumpAndSettle();
+      for (final key in ['editor-tab-text']) {
+        expect(
+            tester.getRect(find.byKey(Key(key))).right, lessThanOrEqualTo(752));
+      }
+      expect(
+          tester.getRect(find.text('Preview')).right, lessThanOrEqualTo(752));
+      await tester.tap(find.byKey(const Key('editor-tab-text')));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byKey(const Key('step-title'))).right,
+          lessThanOrEqualTo(752));
     });
   });
 

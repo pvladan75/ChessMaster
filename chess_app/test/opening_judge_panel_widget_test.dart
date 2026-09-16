@@ -246,6 +246,8 @@ void main() {
     expect(find.text('Bc4 · No verdict'), findsOneWidget);
     expect(find.textContaining('not the same as a bad move'), findsOneWidget);
     expect(find.textContaining('Dubious'), findsNothing);
+    // The reader is not told which service was asked (TODO-provera 172).
+    expect(find.textContaining('Lichess'), findsNothing);
   });
 
   testWidgets('a spent quota says so in its own words', (tester) async {
@@ -262,8 +264,9 @@ void main() {
 
     expect(
         find.textContaining('not answering for a few minutes'), findsOneWidget);
-    // And the way back is still there, because Lichess answers again.
+    // And the way back is still there, because the service answers again.
     expect(find.text('Judge Bc4'), findsOneWidget);
+    expect(find.textContaining('Lichess'), findsNothing);
   });
 
   testWidgets('every state fits a 360 dp phone', (tester) async {

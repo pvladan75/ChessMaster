@@ -93,6 +93,9 @@ Widget screen({BlunderGame? withGame, EndgameFetchOutcome? failing}) =>
     );
 
 void main() {
+  // Real glyphs: these tests measure whether rows fit.
+  setUpAll(loadRoboto);
+
   testWidgets('opens on the first mistake and says whose it was',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);

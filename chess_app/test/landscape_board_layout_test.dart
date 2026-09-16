@@ -13,6 +13,8 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 
+import 'support/landscape.dart';
+
 const _toolbar = LandscapeBoardLayout.compactToolbarHeight;
 
 const _board = Key('board');
@@ -86,6 +88,9 @@ Widget _host({
     );
 
 void main() {
+  // Real glyphs: these tests measure whether rows fit.
+  setUpAll(loadRoboto);
+
   group('applies', () {
     Future<bool> appliesAt(WidgetTester tester, Size size) async {
       await _setScreen(tester, size);
@@ -115,7 +120,8 @@ void main() {
     });
   });
 
-  const phones = [Size(800, 360), Size(932, 430), Size(640, 360)];
+  // Phones where the height binds the board.
+  const phones = [Size(760, 360), Size(800, 360), Size(932, 430)];
 
   for (final size in phones) {
     final label = '${size.width.toInt()}×${size.height.toInt()}';
@@ -147,13 +153,24 @@ void main() {
     });
   }
 
-  for (final size in const [Size(800, 360), Size(932, 430)]) {
+  // Every shape a phone on its side comes in, the width-bound ones included:
+  // the strip is one row on all of them, and that is what the column's minimum
+  // width is for.
+  for (final size in const [
+    Size(640, 360),
+    Size(760, 360),
+    Size(760, 430),
+    Size(800, 360),
+    Size(932, 430),
+  ]) {
     testWidgets(
         'at ${size.width.toInt()}×${size.height.toInt()} the strip is one row',
         (tester) async {
       await _setScreen(tester, size);
-      await tester.pumpWidget(_host());
+      // With the eval bar, which takes its width out of the column.
+      await tester.pumpWidget(_host(aside: true));
       await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
 
       final rows = find
           .descendant(of: find.byKey(_strip), matching: find.byType(IconButton))
@@ -289,5 +306,34 @@ void main() {
         reason:
             'the field was rebuilt, so its focus and the keyboard are gone');
     expect(tester.testTextInput.isVisible, isTrue);
+  });
+
+  testWidgets('nothing is drawn under the system buttons at the side',
+      (tester) async {
+    await _setScreen(tester, const Size(800, 360));
+    // The navigation buttons of a phone on its side: 48 dp on the right.
+    tester.view.padding = const FakeViewPadding(right: 48);
+    addTearDown(tester.view.resetPadding);
+    await tester.pumpWidget(_host(aside: true));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    expect(tester.getRect(find.byKey(_strip)).right, lessThanOrEqualTo(752));
+    expect(tester.getRect(find.byKey(_footer)).right, lessThanOrEqualTo(752));
+  });
+
+  testWidgets('the real font is the one measured', (tester) async {
+    // In the test font every letter is one em wide. If these two come out the
+    // same, loadRoboto did not take and every width here is a square's.
+    await tester.pumpWidget(const MaterialApp(
+      // Inside a Scaffold, as every screen is: the theme's text style, which
+      // names Roboto, only reaches text under a Material.
+      home: Scaffold(
+        body: Column(children: [Text('iiiiiiiiii'), Text('MMMMMMMMMM')]),
+      ),
+    ));
+    final narrow = tester.getSize(find.text('iiiiiiiiii')).width;
+    final wide = tester.getSize(find.text('MMMMMMMMMM')).width;
+    expect(narrow, lessThan(wide * 0.5));
   });
 }

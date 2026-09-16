@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/branch_choice_sheet.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 
 /// First/prev/next/last toolbar for walking a line of moves, with an optional
 /// flip button.
@@ -40,6 +41,17 @@ class MoveNavigationControls extends StatelessWidget {
   /// Smaller icons for a screen where this strip shares a crowded column.
   final double? iconSize;
 
+  /// 40 dp buttons instead of 48, and less padding, so the strip stays one row
+  /// in a landscape phone's side column. Null decides by
+  /// [LandscapeBoardLayout.applies]; every button in the strip — the screen's
+  /// [trailing] ones included — takes the smaller size.
+  final bool? dense;
+
+  /// What a dense strip needs per button, for anyone sizing a column to hold
+  /// one: [LandscapeBoardLayout.minPanelWidth] is derived from it.
+  static const double denseButton = 40.0;
+  static const double densePadding = AppSpacing.sm;
+
   const MoveNavigationControls({
     super.key,
     required this.cursor,
@@ -48,6 +60,7 @@ class MoveNavigationControls extends StatelessWidget {
     this.centerLabel = 'Navigation',
     this.trailing = const [],
     this.iconSize,
+    this.dense,
   });
 
   /// One step forward — and a question first where that step has more than one
@@ -75,6 +88,7 @@ class MoveNavigationControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dense = this.dense ?? LandscapeBoardLayout.applies(context);
     final canGoBack = canNavigate && cursor.canGoBack;
     final canGoForward = canNavigate && cursor.canGoForward;
 
@@ -121,14 +135,28 @@ class MoveNavigationControls extends StatelessWidget {
     );
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+      margin:
+          EdgeInsets.symmetric(vertical: dense ? AppSpacing.xs : AppSpacing.sm),
+      padding: EdgeInsets.symmetric(
+          horizontal: dense ? densePadding : AppSpacing.lg,
+          vertical: dense ? 0 : AppSpacing.xs),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: AppRadii.roundedMd,
       ),
-      child: buttons,
+      child: dense
+          ? IconButtonTheme(
+              data: IconButtonThemeData(
+                style: IconButton.styleFrom(
+                  minimumSize: const Size.square(denseButton),
+                  maximumSize: const Size.square(denseButton),
+                  padding: EdgeInsets.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              child: buttons,
+            )
+          : buttons,
     );
   }
 }

@@ -35,8 +35,6 @@ import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_ser
 import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
-import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
-import 'package:chess_app/features/analysis_studio/widgets/opening_judge_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/core/models/tactical_motif.dart';
@@ -155,18 +153,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   String? _openingExplorerReason;
   bool _openingExplorerLoading = false;
   int _openingExplorerRequestId = 0;
-
-  /// The verdict on one move, and the node it belongs to.
-  ///
-  /// Both, for the reason the endgame trainer keeps its readout's FEN: a
-  /// verdict shown under a board that has moved on is not stale information,
-  /// it is wrong information — every word of it would be read as being about
-  /// the move now on the screen. Keeping the id means nothing has to remember
-  /// to clear it.
-  OpeningJudgement? _judgement;
-  String? _judgedNodeId;
-  String? _judgeReason;
-  bool _judgeLoading = false;
 
   // Tactical motifs for _currentNode, memoized by fen+move so the frequent
   // setState calls while the engine streams eval updates don't re-run the
@@ -572,41 +558,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     await context.push(AppRoutes.preferences);
     // Board scale and panel visibility are read during build, so re-read them.
     if (mounted) setState(() {});
-  }
-
-  /// Judges the move that led to the position on the board.
-  ///
-  /// On request and never on its own: each verdict asks Lichess's cloud
-  /// evaluation twice, from one server address shared by everybody, and a panel
-  /// that asked while somebody clicked through a game would spend it on moves
-  /// nobody wanted judged.
-  Future<void> _judgeCurrentMove() async {
-    final node = _currentNode;
-    final parent = node.parent;
-    final move = node.moveUci ?? node.moveSan;
-    if (parent == null || move == null) return;
-
-    setState(() {
-      _judgeLoading = true;
-      _judgeReason = null;
-      _judgement = null;
-      _judgedNodeId = node.id;
-    });
-
-    final lookup = await OpeningJudgeService.instance.judge(
-      parent.fen,
-      move,
-    );
-    if (!mounted) return;
-
-    setState(() {
-      _judgeLoading = false;
-      // Judged against the node it was asked for. A reader who walked on while
-      // the answer was in the air gets no verdict rather than the wrong one.
-      if (_judgedNodeId != node.id) return;
-      _judgement = lookup.judgement;
-      _judgeReason = lookup.reason;
-    });
   }
 
   Future<void> _openEngineSettings() async {
@@ -1926,14 +1877,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 isLoading: _syzygyLoading,
                 result: _syzygyResult,
                 onMoveSelected: _playUciMove,
-              ),
-            if (AppSettingsService.instance.isPanelVisible('opening_judge'))
-              OpeningJudgePanelWidget(
-                moveSan: _currentNode.moveSan,
-                isLoading: _judgeLoading,
-                judgement: _judgedNodeId == _currentNode.id ? _judgement : null,
-                reason: _judgedNodeId == _currentNode.id ? _judgeReason : null,
-                onJudge: _currentNode.isRoot ? null : _judgeCurrentMove,
               ),
             if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
               OpeningExplorerPanelWidget(
