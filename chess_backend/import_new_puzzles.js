@@ -1,4 +1,6 @@
 require('dotenv').config();
+// Refuses a database that is not local unless it is named with --target=<host>.
+require('./services/destructiveScriptGuard').guardDestructiveScript('Replacing the puzzles table (DROP TABLE puzzles CASCADE)');
 const fs = require('fs');
 const path = require('path');
 const { pool } = require('./db');

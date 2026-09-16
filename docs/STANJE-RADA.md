@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,46 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Sigurnosni blok iz revizije — 16.9.2026, u kodu
+
+Prva revizija cele arhitekture (četiri Fable prolaza, `docs/AUDIT-BRIEF.md`)
+našla je 58 problema; `docs/AUDIT-2026-09.md` je ocena i redosled. Fajlovi
+revizije **nisu u gitu** dok se ne zatvori sve što opisuje kako se nešto
+zloupotrebljava (`.git/info/exclude`). Ovo je blok A, zatvoren istog dana, i
+svaka ispravka ima test koji je viđen crven na starom kodu ili pod mutacijom:
+
+- **Preuzimanje naloga pre registracije.** Ponovna registracija nepotvrđene
+  adrese zadržavala je lozinku i ime prvog koji ju je upisao. Sada ih menja, a
+  `/verify-email` odbija kod ako lozinka koju aplikacija još drži u formi nije
+  sačuvana (`passwordChanged`). `test/registration_takeover.test.js`.
+- **Snimak u tuđoj listi.** `POST /recordings/save` je uzimao `participants` i
+  `audioUrl` iz tela, a `roomId` nije morao biti pozivaočev. Sada: soba mora biti
+  njegova (403 i brisanje otpremljenog fajla), učesnici su samo oni koje je
+  serverov spisak video, `audioUrl` se ne čita. `test/recording_participants.test.js`.
+- **Potez u tuđoj sobi.** `move` i `pgn_loaded` nisu pitali da li je soket seo u
+  sobu. Premešteni su u `services/roomBoardEvents.js` i traže `socket.roomId`;
+  nesmešten soket se tiho ignoriše, jer lokalna „Priprema" (STUDIO) šalje poteze
+  a nikad ne ulazi u sobu — da je dobila `action_denied`, crvena traka bi išla
+  preko svakog poteza. `test/room_board_events.test.js`.
+- **`POST /rooms/join`** je vraćao ceo red sobe svakome, bez ograničenja. Sada
+  pita isti `mayJoinRoom` kao soket, vraća samo mesto (`role`), isti odgovor za
+  „nema sobe" i „nisi na spisku", i ima limit 30 u 15 minuta. `test/rooms_join.test.js`.
+- **Skripte koje brišu bazu** (`clear_users.js`, `import_new_puzzles.js`) odbijaju
+  bazu koja nije lokalna, osim ako se imenuje: `--target=<host>`.
+  `test/destructive_script_guard.test.js` ih stvarno pokreće.
+- **100 MB JSON pre prijave** na `/recordings/*` — sada 2 MB svuda
+  (`middleware/bodyParsers.js`, test preko pravog soketa).
+- **Testovi za postojeće zaštite** koje ništa nije dokazivalo: četiri
+  `trainerOwnsStudent` provere u `routes/assignments.js`, odbijanje tokena za
+  preuzimanje kao prijave, `POST /login`, i donja granica od 13 godina na ruti.
+
+Brojke: backend **1289 → 1338** (+49), aplikacija nepromenjena na 2670, analyze
+26. Provera uživo: `TODO-provera.md`, stavka 167.
+
+Nije rađeno iz revizije, a sledeće je: soba (blok B — imena socket događaja se
+ne slažu od 10.8.2026, prvo provera sa dva uređaja), pa srednji nalazi. Revizija
+sama po sebi nije dokaz: ono što je označeno „Reasoned" još niko nije proverio.
 
 ## Repertoar se gradi na tabli — `PLAN-REPERTOAR-RUCNO.md` — 16.9.2026, u kodu
 

@@ -2545,3 +2545,35 @@ against a copy of `chess_backend/` in the scratchpad. One survived:
 `if (played)` guarded a chess.js call that throws on an illegal move and never
 returns null, so the line was dead and was deleted.
 
+**The security block of the audit, 16.9.2026 — backend 1338 with `.env` moved
+aside; the app is unchanged at 2670 with 1 skipped, analyze at 26.** The
+arithmetic: 1289 + 6 (registration) + 5 (recording participants) + 9 (board
+events) + 6 (room join) + 5 (script guard) + 4 (body parsers) + 3 (scoped
+token) + 8 (assignment guards) + 3 (age floor) = 1338. Every fix was watched red
+on the old code or under a mutation on a copy of `chess_backend/`, and every
+guard test for an existing check was proved by deleting that check.
+
+**An architecture audit found what nine months of feature work had not**, and it
+found it in one afternoon: four read-only Fable runs against a brief that listed
+the decisions not to reopen. Every plan had looked at one feature; nothing had
+looked across the server's doors. Three of the four worst findings were doors
+built correctly on one side and left open on the other — the Google path already
+cleared a pre-registered password and the password path did not; the socket's
+guest list guarded `joinGame` and not `move`; `participants` was filtered for a
+consent stop and trusted for everything else.
+
+**A fix that answers `action_denied` to a stranger answered it to the owner's own
+analysis board.** The local Preparation board connects a socket, never joins a
+room, and reports every move; refusing unseated sockets out loud would have put a
+red bar over every move in it. Found by grepping the app for the event before
+changing its server half — the client that sends an event is the first thing to
+read before tightening who may send it.
+
+**A test that passes on the old code for the wrong reason is caught by running
+it on the old code.** „`audioUrl` from the body is never stored" was green
+before the fix, because the fake database knew nobody's age, so consent removed
+the sound first. It stands on an adult alone in the room now.
+
+**Security findings are not committed to a public repository before they are
+fixed.** The audit files sit in `.git/info/exclude` until the last finding that
+reads as instructions is closed.

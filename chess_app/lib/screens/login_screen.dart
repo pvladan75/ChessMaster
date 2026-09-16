@@ -196,7 +196,17 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       final response = await http.post(
         Uri.parse('$backendUrl/auth/verify-email'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'code': code}),
+        // The password still in the form proves this is the registration the
+        // code was mailed for: registering an unverified address again replaces
+        // its password, and the server refuses a code whose password changed in
+        // between. Empty when the code is typed in a later session, which the
+        // server accepts.
+        body: jsonEncode({
+          'email': email,
+          'code': code,
+          if (_passwordController.text.isNotEmpty)
+            'password': _passwordController.text,
+        }),
       );
 
       if (response.statusCode == 200) {

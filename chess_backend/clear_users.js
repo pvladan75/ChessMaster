@@ -1,5 +1,7 @@
 // clear_users.js - Database User Cleanup Script
 require('dotenv').config();
+// Refuses a database that is not local unless it is named with --target=<host>.
+require('./services/destructiveScriptGuard').guardDestructiveScript('Deleting every account (TRUNCATE users CASCADE)');
 const { pool } = require('./db');
 
 async function clearAllUsers() {

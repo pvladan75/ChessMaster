@@ -5875,6 +5875,24 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 167. Sigurnosni blok iz revizije — 16.9.2026, nije viđeno uživo
+
+`docs/STANJE-RADA.md`, „Sigurnosni blok iz revizije". Server mora biti
+restartovan.
+
+1. [ ] **Registracija i dalje radi.** Nova adresa → kod stiže → unos koda →
+   ulaz u aplikaciju. Odjava, prijava istom lozinkom.
+2. [ ] **Ponovna registracija menja lozinku.** Registruj adresu lozinkom A, ne
+   unosi kod. Registruj istu adresu lozinkom B, unesi najnoviji kod. Prijava
+   lozinkom A ne prolazi, lozinkom B prolazi.
+3. [ ] **Ulazak u sobu kodom.** Trener pravi sobu; učenik sa prihvaćenom vezom
+   ulazi kodom. Nalog bez veze dobija „does not exist, or you are not on its
+   guest list" — isti tekst kao za kod koji ne postoji.
+4. [ ] **Potezi u sobi.** Trener odigra potez; nijedna crvena traka „no
+   permission" nigde. U „Pripremi" (STUDIO) nekoliko poteza — takođe bez trake.
+5. [ ] **Snimak se i dalje čuva.** Odrasla osoba sama u svojoj sobi snimi kratko
+   i sačuva; snimak je u listi i pušta se.
+
 ## 166. Repertoar se gradi na tabli — 16.9.2026, nije viđeno uživo
 
 `docs/PLAN-REPERTOAR-RUCNO.md`. **Pre provere:** obriši postojeće repertoare na

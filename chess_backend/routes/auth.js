@@ -41,12 +41,22 @@ router.post('/register', async (req, res) => {
     if (userCheck.rows.length > 0) {
       const existing = userCheck.rows[0];
       if (!existing.is_verified) {
-        // Generate new verification code for unverified existing registration
+        // Nobody has proven this address yet, so nothing about the waiting row
+        // belongs to anyone: the password and name are replaced with this
+        // registration's, together with the code. Keeping them is how a stranger
+        // who registered somebody's address first kept a working password to the
+        // account the owner then verified — there is no password reset to take it
+        // back. `/verify-email` refuses a code whose password no longer matches,
+        // for a registration slipped in between. test/registration_takeover.test.js.
         const verificationCode = generateVerificationCode();
-        await pool.query('UPDATE users SET verification_code = $1 WHERE email = $2', [verificationCode, email]);
+        const passwordHash = await bcrypt.hash(password, 10);
+        await pool.query(
+          'UPDATE users SET verification_code = $1, password_hash = $2, name = $3 WHERE id = $4 AND is_verified = FALSE',
+          [verificationCode, passwordHash, name, existing.id]
+        );
 
         try {
-          await mailService.sendVerificationCode(email, verificationCode, existing.name);
+          await mailService.sendVerificationCode(email, verificationCode, name);
         } catch (mailErr) {
           logger.error(`Failed to send verification code to ${email}: ${mailErr.message}`);
           return res.status(500).json({ error: 'Failed to send verification code. Please contact support.' });
@@ -126,6 +136,24 @@ router.post(['/verify-email', '/auth/verify-email'], async (req, res) => {
 
     if (outcome !== OUTCOME.OK) {
       return res.status(400).json({ error: 'Invalid verification code.' });
+    }
+
+    // Registering an unverified address again replaces its password, so a
+    // stranger's registration arriving between the owner's and their code entry
+    // would set the password the owner then verifies. The app sends the password
+    // it still holds from the form; when it does, it has to be the stored one.
+    // Without one (the code typed in a later session) the newest registration
+    // stands, which is the owner's unless somebody raced them to the minute.
+    const { password } = req.body;
+    if (typeof password === 'string' && password !== '' && !isPasswordlessHash(user.password_hash)) {
+      const matches = await bcrypt.compare(password, user.password_hash);
+      if (!matches) {
+        logger.warn('Verification refused: the address was registered again with another password');
+        return res.status(400).json({
+          error: 'This address was registered again with a different password. Register again to get a new code.',
+          passwordChanged: true,
+        });
+      }
     }
 
     const updateResult = await pool.query(

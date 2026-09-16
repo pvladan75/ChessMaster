@@ -97,6 +97,23 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
   // half to give up, the same way refusing a child the lesson was.
   let audioRefusal = null;
 
+  // A recording is saved by the owner of the room it was made in, and by nobody
+  // else. `roomId` used to be any string, so a recording could be filed under
+  // somebody else's room — and the checks below, which ask about *that* room's
+  // owner and roster, would answer for a person who was not saving anything.
+  // test/recording_participants.test.js.
+  try {
+    const room = await pool.query('SELECT creator_id FROM rooms WHERE room_code = $1', [roomId]);
+    if (room.rowCount === 0 || Number(room.rows[0].creator_id) !== Number(req.user.id)) {
+      discardUpload();
+      return res.status(403).json({ error: 'Only the owner of the room can save its recording.' });
+    }
+  } catch (err) {
+    discardUpload();
+    logger.error('Error checking the room of a recording:', err);
+    return res.status(500).json({ error: 'Error saving session recording.' });
+  }
+
   const stopped = realtime.consentStop(roomId);
   if (stopped && !stopped.obeyed) {
     // The client was told to stop and never said it did. That is the client
@@ -150,7 +167,10 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
   }
 
   try {
-    let finalAudioUrl = req.body.audioUrl || null;
+    // Never `req.body.audioUrl`: a path the client names was stored as this
+    // recording's sound and later opened by the renderer, so a body could point
+    // a recording at somebody else's file in `uploads/`. The app never sent it.
+    let finalAudioUrl = null;
     let savedAudioPath = null;
 
     // Stored as a path, never as a full URL.
@@ -188,12 +208,22 @@ router.post('/save', authenticateToken, upload.single('audio'), async (req, res)
       await trimPauses(savedAudioPath, pauseIntervals);
     }
 
+    // `participants` is who may list and open this recording, so it is decided
+    // here and not by the body: only accounts the server's own roster saw in the
+    // room. Taken from the body it let any account file a „lesson" — its own
+    // title, timeline and voice — into any other user's list. With no roster
+    // (a restart mid-lesson) nobody but the host is named: a silent replay the
+    // students do not see beats one that names people nobody checked.
     let participantIds = [];
     if (req.body.participants) {
       try {
         participantIds = typeof req.body.participants === 'string' ? JSON.parse(req.body.participants) : req.body.participants;
       } catch (e) {}
     }
+    const seen = new Set(roster ?? []);
+    participantIds = (Array.isArray(participantIds) ? participantIds : [])
+      .map(Number)
+      .filter((id) => Number.isInteger(id) && id !== Number(req.user.id) && seen.has(String(id)));
 
     // The client sends whoever was in the room when the trainer pressed save —
     // which, after a stop for consent, includes the child who had just walked

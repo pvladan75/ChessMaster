@@ -36,6 +36,7 @@ const { authenticateToken, requireRole, authenticateSocket } = require('./middle
 const entitlementService = require('./services/entitlementService');
 const realtime = require('./services/realtime');
 const { mayJoinRoom, maySpeakInRoom } = require('./services/roomAccess');
+const { registerRoomBoardEvents } = require('./services/roomBoardEvents');
 const { mayRecordRoom } = require('./services/recordingConsent');
 const { cleanupOldExports } = require('./services/retentionService');
 const renderJobs = require('./services/renderJobs');
@@ -44,6 +45,7 @@ const { openingJudge } = require('./services/openingJudgeService');
 const { createOpponentPrep } = require('./services/opponentPrep');
 const { createArchiveImporter } = require('./services/gameArchiveImport');
 const { corsVerdict, parseAllowedOrigins } = require('./services/corsPolicy');
+const { mountBodyParsers } = require('./middleware/bodyParsers');
 
 const app = express();
 const server = http.createServer(app);
@@ -89,10 +91,9 @@ realtime.init(io);
 
 const PORT = process.env.PORT || 3000;
 
-// Recording uploads carry audio, so they get a larger ceiling than the rest of the API.
-app.use('/recordings', express.json({ limit: '100mb' }));
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ limit: '2mb', extended: true }));
+// One JSON ceiling for every path, read before authentication — see
+// middleware/bodyParsers.js for why /recordings no longer has its own.
+mountBodyParsers(app);
 
 // Serve static uploads — all of it except the folders named private in
 // middleware/uploadsStatic.js. A trainer's recorded narration is read by the
@@ -132,7 +133,8 @@ app.get(['/', '/health', '/api/health'], (req, res) => {
 // NOTE: the former POST /admin/reset-all-users route was removed. It ran
 // `TRUNCATE users RESTART IDENTITY CASCADE` with no authentication, so any
 // unauthenticated caller could wipe every account, room, lesson and recording.
-// For local resets use `node clear_users.js` against a development database.
+// `clear_users.js` still exists for a local database, and refuses any other
+// one unless it is named with --target=<host> (services/destructiveScriptGuard.js).
 
 // MOUNT ROUTE MODULES
 app.use('/', authRoutes);
@@ -525,41 +527,9 @@ io.on('connection', (socket) => {
     logger.info(`[BLUNDER ALERT] Room ${roomId} -> enabled: ${enabled}`);
   });
 
-  /// Enforces the room's board_control setting server-side. Rooms that do not exist in
-  /// the database (e.g. the local 'STUDIO' board) have no shared state to protect.
-  async function canMoveInRoom(roomId) {
-    let room;
-    try {
-      const res = await pool.query('SELECT board_control FROM rooms WHERE room_code = $1', [roomId]);
-      room = res.rows[0];
-    } catch (err) {
-      logger.error('Error checking board control:', err);
-      return false;
-    }
-    if (!room) return true;
-    const control = room.board_control || 'host_only';
-    if (control !== 'host_only' && control !== 'trainer_only') return true;
-    return canAdministerRoom(socket, roomId);
-  }
-
-  socket.on('move', async ({ roomId, move, currentFen, role, currentMoveIndex, movePath }) => {
-    if (!(await canMoveInRoom(roomId))) {
-      return denyPrivileged(socket, 'move', roomId);
-    }
-    socket.to(roomId).emit('move', { move, currentFen, role, currentMoveIndex, movePath });
-    try {
-      await pool.query('UPDATE rooms SET current_fen = $1 WHERE room_code = $2', [currentFen, roomId]);
-    } catch (err) {
-      logger.error('Error updating room FEN:', err);
-    }
-  });
-
-  socket.on('pgn_loaded', async ({ roomId, pgn }) => {
-    if (!(await canMoveInRoom(roomId))) {
-      return denyPrivileged(socket, 'pgn_loaded', roomId);
-    }
-    socket.to(roomId).emit('pgn_loaded', { pgn });
-  });
+  // `move` and `pgn_loaded`, and the speaker indicator below them, live in
+  // services/roomBoardEvents.js: a socket acts only in the room it was seated in.
+  registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileged });
 
   socket.on('audio_join', async ({ roomId, isMuted }) => {
     // Asked again rather than trusted from the board join: voice is the part
@@ -686,14 +656,11 @@ io.on('connection', (socket) => {
   // Raising a hand only ever applies to the socket that sent it.
   socket.on('audio_hand_raise_toggle', ({ roomId, handRaised }) => {
     const userId = socket.audioUserId;
+    if (socket.audioRoomId !== roomId) return;
     if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
       roomAudioUsers[roomId][userId].handRaised = handRaised;
       io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
     }
-  });
-
-  socket.on('audio_speaker_active', ({ roomId, isSpeaking }) => {
-    socket.to(roomId).emit('audio_speaker_active', { userId: socket.audioUserId, isSpeaking });
   });
 
   socket.on('disconnect', () => {

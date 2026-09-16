@@ -4,7 +4,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
-const { guestAccess, setGuestAccess } = require('../services/roomAccess');
+const rateLimit = require('express-rate-limit');
+const { guestAccess, setGuestAccess, mayJoinRoom } = require('../services/roomAccess');
 
 /// Six digits, from the cryptographic source rather than from `Math.random()`.
 ///
@@ -42,8 +43,26 @@ router.post('/create', authenticateToken, async (req, res) => {
   }
 });
 
+// Joining is a handful of taps a day for a real person, and six digits is a
+// small space: without a limit this route answers a walk through every code.
+const joinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please try again in 15 minutes.' },
+});
+router.joinLimiter = joinLimiter;
+
 // POST /rooms/join
-router.post('/join', authenticateToken, async (req, res) => {
+//
+// Asks the socket's own guest list (`mayJoinRoom`) and answers with the seat —
+// never the `rooms` row. It used to return `SELECT *` to anybody signed in, which
+// told a stranger who made a room, whether its board was open to students and
+// whether guests were let in: a directory for finding a lesson to walk into.
+// „No such room" and „not on the guest list" read the same, so the answer does
+// not confirm that a code exists. test/rooms_join.test.js.
+router.post('/join', joinLimiter, authenticateToken, async (req, res) => {
   const { roomCode } = req.body;
 
   if (!roomCode) {
@@ -51,12 +70,14 @@ router.post('/join', authenticateToken, async (req, res) => {
   }
 
   try {
-    const result = await pool.query('SELECT * FROM rooms WHERE room_code = $1 AND status = $2', [roomCode, 'active']);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'A room with that code does not exist or has been closed' });
+    const seat = await mayJoinRoom(pool, { roomCode: String(roomCode), userId: req.user.id });
+    if (!seat.allowed) {
+      return res.status(404).json({
+        error: 'A room with that code does not exist, or you are not on its guest list.',
+      });
     }
 
-    res.json({ room: result.rows[0] });
+    res.json({ room: { room_code: String(roomCode), role: seat.role } });
   } catch (err) {
     logger.error('Room join error:', err);
     res.status(500).json({ error: 'Error joining room' });

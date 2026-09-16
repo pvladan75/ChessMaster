@@ -23,12 +23,12 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 2670 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1289 tests, all green
+cd chess_backend && npm test          # node --test, 1338 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Measured on `master` on 16.9.2026, after the repertoire became something built
-on the board (`docs/PLAN-REPERTOAR-RUCNO.md`). Every change of these numbers,
+Measured on `master` on 16.9.2026, after the security block of the architecture
+audit (`docs/STANJE-RADA.md`, „Sigurnosni blok iz revizije"). Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and
