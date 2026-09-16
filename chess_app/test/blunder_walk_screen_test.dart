@@ -6,6 +6,9 @@ import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.d
 import 'package:chess_app/features/endgame_trainer/services/endgame_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
+
+import 'support/landscape.dart';
 
 /// Serves one game without a network.
 class _FakeApi extends EndgameApiService {
@@ -377,4 +380,16 @@ void main() {
           reason: 'ishod ${entry.key}');
     }
   });
+
+  for (final size in landscapePhones) {
+    testWidgets('on a phone held sideways at ${sizeLabel(size)}',
+        (tester) async {
+      await pumpAt(tester, size, screen());
+      expectBoardBeside(tester, size);
+      expect(find.byType(MoveNavigationControls), findsOneWidget);
+      for (final label in ['Show', 'Save for later', 'Skip']) {
+        expectOnScreen(tester, size, find.text(label));
+      }
+    });
+  }
 }

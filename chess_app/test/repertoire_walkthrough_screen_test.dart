@@ -11,6 +11,8 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 
+import 'support/landscape.dart';
+
 class _FakeApi extends RepertoireApiService {
   _FakeApi({this.treeToReturn})
       : super(client: MockClient((_) async => http.Response('{}', 500)));
@@ -524,4 +526,18 @@ void main() {
 
     expect(find.text('No moves in this repertoire yet.'), findsOneWidget);
   });
+
+  for (final size in landscapePhones) {
+    testWidgets('on a phone held sideways at ${sizeLabel(size)}',
+        (tester) async {
+      final api = _FakeApi(treeToReturn: buildTestTree());
+      await pump(tester, api, size: size);
+      expectBoardBeside(tester, size);
+      expect(find.text('Your move — main line.'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Next move'));
+      await tester.pumpAndSettle();
+      expectBoardBeside(tester, size);
+    });
+  }
 }

@@ -12,6 +12,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -404,104 +405,131 @@ class _RepertoireNewScreenState extends State<RepertoireNewScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: const Text('New repertoire'),
         elevation: 0,
         actions: const [BoardViewMenu()],
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // The board caps at 420, so the column caps with it: on a desktop
-            // window an unconstrained Column drags the name field across the
-            // whole screen, a metre away from the board it belongs to.
-            final width =
-                constraints.maxWidth < 560 ? constraints.maxWidth : 560.0;
-            final boardSize = (width - 24).clamp(200.0, 420.0);
-            return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Center(
-                    child: SizedBox(
-                  width: width,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: _name,
-                        onChanged: (_) => setState(() => _named = true),
-                        decoration: InputDecoration(
-                          labelText: 'Name',
-                          hintText: 'e.g. Smith-Morra — Black',
-                          helperText: _named || _opening == null
-                              ? null
-                              : 'Suggested from opening database — you can '
-                                  'edit it.',
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Center(
-                        child: SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(value: 'w', label: Text('White')),
-                            ButtonSegment(value: 'b', label: Text('Black')),
+        child: LandscapeBoardLayout.applies(context)
+            ? LandscapeBoardLayout(
+                board: _buildBoard,
+                panels: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ..._buildNameAndSide(),
+                    const SizedBox(height: 10),
+                    ..._buildBelowBoard(context),
+                  ],
+                ),
+                footer: [
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildControls(context),
+                ],
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  // The board caps at 420, so the column caps with it: on a
+                  // desktop window an unconstrained Column drags the name field
+                  // across the whole screen, a metre away from the board it
+                  // belongs to.
+                  final width =
+                      constraints.maxWidth < 560 ? constraints.maxWidth : 560.0;
+                  final boardSize = (width - 24).clamp(200.0, 420.0);
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Center(
+                      child: SizedBox(
+                        width: width,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ..._buildNameAndSide(),
+                            const SizedBox(height: AppSpacing.md),
+                            Center(child: _buildBoard(boardSize)),
+                            const SizedBox(height: 10),
+                            ..._buildBelowBoard(context),
+                            const SizedBox(height: AppSpacing.md),
+                            _buildControls(context),
                           ],
-                          selected: {_color},
-                          onSelectionChanged: (s) {
-                            setState(() {
-                              _color = s.first;
-                              _gateUci = null;
-                              _gateSan = null;
-                              // The side is half of the suggested name.
-                              _suggestName();
-                            });
-                            // What is already played here is a fact about a
-                            // colour, so the other side has its own answer.
-                            _readKeptHere();
-                          },
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      Center(
-                        child: BoardWithCoordinates(
-                          size: boardSize,
-                          orientation:
-                              _forWhite ? PlayerColor.white : PlayerColor.black,
-                          builder: (inner) => ChessBoardWithOverlay(
-                            controller: _boardController,
-                            boardOrientation: _forWhite
-                                ? PlayerColor.white
-                                : PlayerColor.black,
-                            boardSize: inner,
-                            isAllowedToMove: !_saving,
-                            isDrawingMode: false,
-                            drawingStartSquare: null,
-                            arrows: const [],
-                            engineArrows: const [],
-                            onMove: _onMove,
-                            onSquareTapForDrawing: (_) {},
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildLine(context),
-                      const SizedBox(height: 6),
-                      _buildStatus(context),
-                      _buildGate(context),
-                      if (_error != null) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(_error!,
-                            style: AppText.caption
-                                .copyWith(color: context.colors.danger)),
-                      ],
-                      const SizedBox(height: AppSpacing.md),
-                      _buildControls(context),
-                    ],
-                  ),
-                )));
-          },
-        ),
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }
+
+  /// The name, and which side the repertoire is for.
+  List<Widget> _buildNameAndSide() => [
+        TextField(
+          controller: _name,
+          onChanged: (_) => setState(() => _named = true),
+          decoration: InputDecoration(
+            labelText: 'Name',
+            hintText: 'e.g. Smith-Morra — Black',
+            helperText: _named || _opening == null
+                ? null
+                : 'Suggested from opening database — you can '
+                    'edit it.',
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Center(
+          child: SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'w', label: Text('White')),
+              ButtonSegment(value: 'b', label: Text('Black')),
+            ],
+            selected: {_color},
+            onSelectionChanged: (s) {
+              setState(() {
+                _color = s.first;
+                _gateUci = null;
+                _gateSan = null;
+                // The side is half of the suggested name.
+                _suggestName();
+              });
+              // What is already played here is a fact about a
+              // colour, so the other side has its own answer.
+              _readKeptHere();
+            },
+          ),
+        ),
+      ];
+
+  Widget _buildBoard(double boardSize) => BoardWithCoordinates(
+        size: boardSize,
+        orientation: _forWhite ? PlayerColor.white : PlayerColor.black,
+        builder: (inner) => ChessBoardWithOverlay(
+          controller: _boardController,
+          boardOrientation: _forWhite ? PlayerColor.white : PlayerColor.black,
+          boardSize: inner,
+          isAllowedToMove: !_saving,
+          isDrawingMode: false,
+          drawingStartSquare: null,
+          arrows: const [],
+          engineArrows: const [],
+          onMove: _onMove,
+          onSquareTapForDrawing: (_) {},
+        ),
+      );
+
+  /// The line played so far and what it means — under the board upright,
+  /// beside it on its side.
+  List<Widget> _buildBelowBoard(BuildContext context) => [
+        _buildLine(context),
+        const SizedBox(height: 6),
+        _buildStatus(context),
+        _buildGate(context),
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(_error!,
+              style: AppText.caption.copyWith(color: context.colors.danger)),
+        ],
+      ];
 
   Widget _buildLine(BuildContext context) {
     if (_line.isEmpty) {

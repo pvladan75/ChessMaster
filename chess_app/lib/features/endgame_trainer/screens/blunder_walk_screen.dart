@@ -15,6 +15,7 @@ import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -536,6 +537,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: const Text('Game mistakes'),
         actions: const [BoardViewMenu()],
       ),
@@ -558,6 +560,69 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       messageIsGood: _feedbackIsGood,
     );
 
+    final cursor = LinearMoveCursor(
+      fens: _fens,
+      index: walk.cursor,
+      onSeek: _seek,
+    );
+    Widget board(double boardSize) => BoardWithCoordinates(
+          size: boardSize,
+          orientation: _orientation,
+          builder: (inner) => ChessBoardWithOverlay(
+            controller: _boardController,
+            boardOrientation: _orientation,
+            boardSize: inner,
+            isAllowedToMove: _refutation == null &&
+                walk.pending != null &&
+                walk.cursor == walk.pending!.ply,
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: _arrows,
+            engineArrows: const [],
+            onMove: _onMove,
+            onSquareTapForDrawing: (_) {},
+          ),
+        );
+    // Not while a punishment is playing: there is no line to walk there.
+    final strip = _refutation != null
+        ? null
+        : MoveNavigationControls(
+            cursor: cursor,
+            // No chips. Naming the moves under the board says in notation what
+            // the board is already saying in pieces, and it is the form a child
+            // working on a board needs least.
+            centerLabel: 'Move ${walk.cursor} of ${walk.frontier}',
+            onFlipBoard: () => setState(() {
+              _orientation = _orientation == PlayerColor.white
+                  ? PlayerColor.black
+                  : PlayerColor.white;
+            }),
+          );
+
+    // Arrow keys drive the same cursor the strip's buttons do. A game is walked
+    // more than it is clicked through, and a desktop that can only be walked
+    // with the mouse reads as a phone in a window.
+    Widget keys(Widget child) => MoveKeyboardShortcuts(
+          cursor: cursor,
+          onChanged: () {},
+          // Not while a punishment is playing: there is no line to walk there,
+          // and the strip is hidden for the same reason.
+          enabled: _refutation == null,
+          child: child,
+        );
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return keys(LandscapeBoardLayout(
+        board: board,
+        panels: panel,
+        footer: [
+          if (strip != null) strip,
+          const SizedBox(height: AppSpacing.xs),
+          _buildControls(walk),
+        ],
+      ));
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -570,59 +635,12 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
             // as well.
             reserveHeight: wide ? 190 : 320,
             builder: (boardSize) {
-              // Arrow keys drive the same cursor the strip's buttons do. A game
-              // is walked more than it is clicked through, and a desktop that
-              // can only be walked with the mouse reads as a phone in a window.
-              return MoveKeyboardShortcuts(
-                cursor: LinearMoveCursor(
-                  fens: _fens,
-                  index: walk.cursor,
-                  onSeek: _seek,
-                ),
-                onChanged: () {},
-                // Not while a punishment is playing: there is no line to walk
-                // there, and the strip is hidden for the same reason.
-                enabled: _refutation == null,
-                child: Column(
+              return keys(
+                Column(
                   children: [
-                    Center(
-                      child: BoardWithCoordinates(
-                        size: boardSize,
-                        orientation: _orientation,
-                        builder: (inner) => ChessBoardWithOverlay(
-                          controller: _boardController,
-                          boardOrientation: _orientation,
-                          boardSize: inner,
-                          isAllowedToMove: _refutation == null &&
-                              walk.pending != null &&
-                              walk.cursor == walk.pending!.ply,
-                          isDrawingMode: false,
-                          drawingStartSquare: null,
-                          arrows: _arrows,
-                          engineArrows: const [],
-                          onMove: _onMove,
-                          onSquareTapForDrawing: (_) {},
-                        ),
-                      ),
-                    ),
+                    Center(child: board(boardSize)),
                     const SizedBox(height: AppSpacing.sm),
-                    if (_refutation == null)
-                      MoveNavigationControls(
-                        cursor: LinearMoveCursor(
-                          fens: _fens,
-                          index: walk.cursor,
-                          onSeek: _seek,
-                        ),
-                        // No chips. Naming the moves under the board says in
-                        // notation what the board is already saying in pieces, and
-                        // it is the form a child working on a board needs least.
-                        centerLabel: 'Move ${walk.cursor} of ${walk.frontier}',
-                        onFlipBoard: () => setState(() {
-                          _orientation = _orientation == PlayerColor.white
-                              ? PlayerColor.black
-                              : PlayerColor.white;
-                        }),
-                      ),
+                    if (strip != null) strip,
                     if (!wide) ...[
                       const SizedBox(height: AppSpacing.sm),
                       panel,

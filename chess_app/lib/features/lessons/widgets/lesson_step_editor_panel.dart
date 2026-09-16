@@ -12,6 +12,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
 
 class LessonStepEditorPanel extends StatefulWidget {
@@ -485,6 +486,138 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
     final isBlackToMove = (step['fen']?.toString() ?? '').contains(' b ');
     final orientation = isBlackToMove ? PlayerColor.black : PlayerColor.white;
 
+    Widget board(double boardSize) => BoardWithCoordinates(
+          size: boardSize,
+          orientation: orientation,
+          builder: (size) => ChessBoardWithOverlay(
+            controller: _boardCtrl,
+            boardOrientation: orientation,
+            boardSize: size,
+            isAllowedToMove: kind == 'ask_move',
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: const [],
+            squares: const [],
+            engineArrows: const [],
+            onMove: (from, to, promotion) {
+              if (kind == 'ask_move') {
+                final fen = step['fen']?.toString() ?? '';
+                final san = _sanFor(fen, from, to, promotion);
+                if (san != null) {
+                  _updateStep('solutionSan', san);
+                }
+                _boardCtrl.loadFen(fen); // Revert board to step fen
+              }
+            },
+            onSquareTapForDrawing: (_) {},
+          ),
+        );
+
+    final fields = <Widget>[
+      if (_leaksAnswer(step)) _buildAnswerLeakWarning(),
+      TextField(
+        key: const Key('step-title'),
+        controller: _titleCtrl,
+        decoration: const InputDecoration(
+          labelText: 'Step title',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+        onChanged: (val) {
+          final clean = val.trim();
+          setState(() {
+            if (clean.isEmpty) {
+              _steps[_selectedIndex].remove('title');
+            } else {
+              _steps[_selectedIndex]['title'] = clean;
+            }
+          });
+        },
+      ),
+      const SizedBox(height: AppSpacing.xs),
+      TextField(
+        key: const Key('step-instruction'),
+        controller: _instructionCtrl,
+        decoration: const InputDecoration(
+          labelText: 'Task for student',
+          hintText: 'e.g. White to move — find winning material',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+        // Two lines, as it was. The batch shortened it to one while making
+        // room for four new controls; the task is up to 500 characters and
+        // nobody asked for it to get harder to read.
+        maxLines: 2,
+      ),
+      const SizedBox(height: AppSpacing.xs),
+      // The subtree's key changes with the step, with the kind, and every
+      // time a change is taken back — see [_kindEpoch] — which tears the
+      // field down and builds it from the step again. Without that it goes
+      // on showing a kind the step does not have. The field's own key stays
+      // put, because it is the handle the tests reach it by.
+      KeyedSubtree(
+          key: ValueKey('kind-$_selectedIndex-$kind-$_kindEpoch'),
+          child: DropdownButtonFormField<String>(
+            key: const Key('step-kind'),
+            initialValue: kind,
+            isExpanded: true,
+            items: const [
+              DropdownMenuItem(value: 'show', child: Text('Show only')),
+              DropdownMenuItem(
+                  value: 'ask_move', child: Text('Ask for move on board')),
+              DropdownMenuItem(
+                  value: 'ask_choice', child: Text('Ask for answer from list')),
+            ],
+            onChanged: _chooseKind,
+            decoration: const InputDecoration(
+              labelText: 'Task type',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          )),
+      if (kind == 'ask_choice') _buildChoicesEditor(step),
+      const SizedBox(height: AppSpacing.xs),
+      if (kind == 'ask_move') ...[
+        Text('Play the correct move on the board', style: AppText.bodyBold),
+        if (step['solutionSan'] != null)
+          Text('Correct move: ${step['solutionSan']}',
+              style: AppText.body.copyWith(color: context.colors.success)),
+        const SizedBox(height: AppSpacing.xs),
+      ],
+    ];
+
+    final buttons = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        FilledButton(
+          onPressed: _isSaving ? null : _save,
+          child: const Text('Save step'),
+        ),
+        OutlinedButton(
+          onPressed: _preview,
+          child: const Text('Preview'),
+        ),
+      ],
+    );
+
+    // A phone on its side: the board beside the fields rather than under
+    // them, so the move the trainer plays and the task it answers are on one
+    // screen.
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: board,
+        panels: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: fields,
+        ),
+        footer: [
+          const SizedBox(height: AppSpacing.sm),
+          buttons,
+        ],
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -493,126 +626,15 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_leaksAnswer(step)) _buildAnswerLeakWarning(),
-          TextField(
-            key: const Key('step-title'),
-            controller: _titleCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Step title',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            onChanged: (val) {
-              final clean = val.trim();
-              setState(() {
-                if (clean.isEmpty) {
-                  _steps[_selectedIndex].remove('title');
-                } else {
-                  _steps[_selectedIndex]['title'] = clean;
-                }
-              });
-            },
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          TextField(
-            key: const Key('step-instruction'),
-            controller: _instructionCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Task for student',
-              hintText: 'e.g. White to move — find winning material',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            // Two lines, as it was. The batch shortened it to one while making
-            // room for four new controls; the task is up to 500 characters and
-            // nobody asked for it to get harder to read.
-            maxLines: 2,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          // The subtree's key changes with the step, with the kind, and every
-          // time a change is taken back — see [_kindEpoch] — which tears the
-          // field down and builds it from the step again. Without that it goes
-          // on showing a kind the step does not have. The field's own key stays
-          // put, because it is the handle the tests reach it by.
-          KeyedSubtree(
-              key: ValueKey('kind-$_selectedIndex-$kind-$_kindEpoch'),
-              child: DropdownButtonFormField<String>(
-                key: const Key('step-kind'),
-                initialValue: kind,
-                isExpanded: true,
-                items: const [
-                  DropdownMenuItem(value: 'show', child: Text('Show only')),
-                  DropdownMenuItem(
-                      value: 'ask_move', child: Text('Ask for move on board')),
-                  DropdownMenuItem(
-                      value: 'ask_choice',
-                      child: Text('Ask for answer from list')),
-                ],
-                onChanged: _chooseKind,
-                decoration: const InputDecoration(
-                  labelText: 'Task type',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              )),
-          if (kind == 'ask_choice') _buildChoicesEditor(step),
-          const SizedBox(height: AppSpacing.xs),
-          if (kind == 'ask_move') ...[
-            Text('Play the correct move on the board', style: AppText.bodyBold),
-            if (step['solutionSan'] != null)
-              Text('Correct move: ${step['solutionSan']}',
-                  style: AppText.body.copyWith(color: context.colors.success)),
-            const SizedBox(height: AppSpacing.xs),
-          ],
+          ...fields,
           Center(
             child: LayoutBuilder(
-              builder: (context, constraints) {
-                final boardSize =
-                    constraints.maxWidth < 300 ? constraints.maxWidth : 300.0;
-                return BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: orientation,
-                  builder: (size) => ChessBoardWithOverlay(
-                    controller: _boardCtrl,
-                    boardOrientation: orientation,
-                    boardSize: size,
-                    isAllowedToMove: kind == 'ask_move',
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    squares: const [],
-                    engineArrows: const [],
-                    onMove: (from, to, promotion) {
-                      if (kind == 'ask_move') {
-                        final fen = step['fen']?.toString() ?? '';
-                        final san = _sanFor(fen, from, to, promotion);
-                        if (san != null) {
-                          _updateStep('solutionSan', san);
-                        }
-                        _boardCtrl.loadFen(fen); // Revert board to step fen
-                      }
-                    },
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                );
-              },
+              builder: (context, constraints) => board(
+                  constraints.maxWidth < 300 ? constraints.maxWidth : 300.0),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton(
-                onPressed: _isSaving ? null : _save,
-                child: const Text('Save step'),
-              ),
-              OutlinedButton(
-                onPressed: _preview,
-                child: const Text('Preview'),
-              ),
-            ],
-          )
+          buttons,
         ],
       ),
     );
@@ -627,64 +649,80 @@ class _LessonStepEditorPanelState extends State<LessonStepEditorPanel> {
       children: [
         SizedBox(
           width: 170,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.xs),
-                child: Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Tooltip(
-                      message: 'Move up',
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_upward),
-                        onPressed: canMoveUp ? _moveUp : null,
-                      ),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final buttons = Padding(
+              padding: const EdgeInsets.all(AppSpacing.xs),
+              child: Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Tooltip(
+                    message: 'Move up',
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_upward),
+                      onPressed: canMoveUp ? _moveUp : null,
                     ),
-                    Tooltip(
-                      message: 'Move down',
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_downward),
-                        onPressed: canMoveDown ? _moveDown : null,
-                      ),
+                  ),
+                  Tooltip(
+                    message: 'Move down',
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_downward),
+                      onPressed: canMoveDown ? _moveDown : null,
                     ),
-                    OutlinedButton(
-                      onPressed: _addStep,
-                      child: const Text('Add step'),
-                    ),
-                    OutlinedButton(
-                      onPressed: _deleteStep,
-                      child: const Text('Delete step'),
-                    ),
-                  ],
-                ),
+                  ),
+                  OutlinedButton(
+                    onPressed: _addStep,
+                    child: const Text('Add step'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _deleteStep,
+                    child: const Text('Delete step'),
+                  ),
+                ],
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _steps.length,
-                  itemBuilder: (context, i) {
-                    final title = _steps[i]['title']?.toString().trim();
-                    final label = (title != null && title.isNotEmpty)
-                        ? title
-                        : 'Step ${i + 1}';
-                    return ListTile(
-                      title: Text(label),
-                      selected: i == _selectedIndex,
-                      onTap: () {
-                        _syncCurrentStepControllers();
-                        setState(() => _selectedIndex = i);
-                        _loadStep();
-                      },
-                    );
-                  },
+            );
+            Widget tile(BuildContext context, int i) {
+              final title = _steps[i]['title']?.toString().trim();
+              final label =
+                  (title != null && title.isNotEmpty) ? title : 'Step ${i + 1}';
+              return ListTile(
+                title: Text(label),
+                selected: i == _selectedIndex,
+                onTap: () {
+                  _syncCurrentStepControllers();
+                  setState(() => _selectedIndex = i);
+                  _loadStep();
+                },
+              );
+            }
+
+            // Too short for the buttons above a list of their own — a phone
+            // on its side with the keyboard up leaves about a hundred dp — so
+            // the buttons scroll with the steps instead of overflowing them.
+            if (constraints.maxHeight < 240) {
+              return ListView(
+                children: [
+                  buttons,
+                  const Divider(height: 1),
+                  for (var i = 0; i < _steps.length; i++) tile(context, i),
+                ],
+              );
+            }
+            return Column(
+              children: [
+                buttons,
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _steps.length,
+                    itemBuilder: tile,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          }),
         ),
         const VerticalDivider(width: 1),
         Expanded(child: _buildEditor()),

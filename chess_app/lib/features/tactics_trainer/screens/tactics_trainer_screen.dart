@@ -12,6 +12,7 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/tactics_puzzle.dart';
@@ -449,6 +450,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Text(widget.assignmentTitle ?? 'Tactics'),
         actions: [
           const BoardViewMenu(),
@@ -476,6 +478,36 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       return _buildError();
     }
 
+    Widget board(double boardSize) => BoardWithCoordinates(
+          size: boardSize,
+          orientation: _orientation,
+          builder: (size) => ChessBoardWithOverlay(
+            controller: _boardController,
+            boardOrientation: _orientation,
+            boardSize: size,
+            isAllowedToMove: !_boardLocked,
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: const [],
+            engineArrows: const [],
+            onMove: _onMove,
+            onSquareTapForDrawing: (_) {},
+          ),
+        );
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: board,
+        panels: _buildHeader(),
+        footer: [
+          const SizedBox(height: AppSpacing.sm),
+          _buildFeedback(),
+          const SizedBox(height: AppSpacing.sm),
+          _buildControls(),
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // The board is square, so it is bounded by whichever axis is tighter.
@@ -491,24 +523,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             children: [
               _buildHeader(),
               const SizedBox(height: AppSpacing.md),
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: _orientation,
-                  builder: (size) => ChessBoardWithOverlay(
-                    controller: _boardController,
-                    boardOrientation: _orientation,
-                    boardSize: size,
-                    isAllowedToMove: !_boardLocked,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    engineArrows: const [],
-                    onMove: _onMove,
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                ),
-              ),
+              Center(child: board(boardSize)),
               const SizedBox(height: AppSpacing.md),
               _buildFeedback(),
               const SizedBox(height: AppSpacing.md),

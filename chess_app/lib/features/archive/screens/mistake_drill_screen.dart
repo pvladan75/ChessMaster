@@ -14,6 +14,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// How the drill opens a game in Analysis. Null — the default — pushes the real
@@ -207,7 +208,11 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('My mistakes'), elevation: 0),
+      appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
+        title: const Text('My mistakes'),
+        elevation: 0,
+      ),
       body: SafeArea(child: _buildBody()),
     );
   }
@@ -215,6 +220,43 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_current == null) return _buildDone();
+
+    Widget board(double boardSize) => BoardWithCoordinates(
+          size: boardSize,
+          orientation: _orientation,
+          builder: (size) => ChessBoardWithOverlay(
+            controller: _board,
+            boardOrientation: _orientation,
+            boardSize: size,
+            isAllowedToMove: !_revealed,
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: const [],
+            engineArrows: const [],
+            onMove: _onMove,
+            onSquareTapForDrawing: (_) {},
+          ),
+        );
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: board,
+        panels: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildPrompt(),
+            if (_revealed) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _buildAnswerReveal(),
+            ],
+          ],
+        ),
+        footer: [
+          const SizedBox(height: AppSpacing.sm),
+          _revealed ? _buildGradeButtons() : _buildRevealButton(),
+        ],
+      );
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -229,24 +271,7 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
             children: [
               _buildPrompt(),
               const SizedBox(height: 10),
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: _orientation,
-                  builder: (size) => ChessBoardWithOverlay(
-                    controller: _board,
-                    boardOrientation: _orientation,
-                    boardSize: size,
-                    isAllowedToMove: !_revealed,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    engineArrows: const [],
-                    onMove: _onMove,
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                ),
-              ),
+              Center(child: board(boardSize)),
               const SizedBox(height: AppSpacing.md),
               if (_revealed) _buildAnswerReveal(),
               const SizedBox(height: AppSpacing.sm),

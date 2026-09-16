@@ -15,6 +15,7 @@ import 'package:chess_app/models/recording_models.dart';
 import 'package:chess_app/widgets/action_key_shortcuts.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -579,6 +580,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -634,172 +636,177 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             LogicalKeyboardKey.space:
                 maxDurationMs > 0 ? _togglePlayPause : null,
           },
-          child: Column(
-            children: [
-              // Interactive Board View
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: AspectRatio(
-                      aspectRatio: 1.0,
-                      child: LayoutBuilder(
-                        builder: (ctx, constraints) {
-                          return BoardWithCoordinates(
-                            size: constraints.maxWidth,
-                            orientation: boardOrientation,
-                            builder: (boardSize) => Stack(
-                              children: [
-                                SkinnedChessBoard(
-                                  controller: _boardController,
-                                  boardOrientation: boardOrientation,
-                                  enableUserMoves: false,
-                                ),
-                                Positioned.fill(
-                                  child: CustomPaint(
-                                    painter: ChessBoardPainter(
-                                      drawingModeColor: context.colors.accent,
-                                      badgeBorderColor: context.colors.canvas,
-                                      arrows: currentArrows,
-                                      // Never filled: the replay draws
-                                      // the lesson's own arrows, and
-                                      // no engine runs behind it.
-                                      engineArrows: const [],
-                                      boardSize: boardSize,
-                                      orientation: boardOrientation,
-                                    ),
-                                  ),
-                                ),
-                              ],
+          child: LandscapeBoardLayout.applies(context)
+              ? LandscapeBoardLayout(
+                  board: _buildBoard,
+                  // Nothing to read beside a replay but its controls.
+                  panels: const SizedBox.shrink(),
+                  footer: [_buildControlDeck()],
+                )
+              : Column(
+                  children: [
+                    // Interactive Board View
+                    Expanded(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: AspectRatio(
+                            aspectRatio: 1.0,
+                            child: LayoutBuilder(
+                              builder: (ctx, constraints) =>
+                                  _buildBoard(constraints.maxWidth),
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+
+                    // Player Control Deck
+                    _buildControlDeck(),
+                  ],
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBoard(double side) {
+    return BoardWithCoordinates(
+      size: side,
+      orientation: boardOrientation,
+      builder: (boardSize) => Stack(
+        children: [
+          SkinnedChessBoard(
+            controller: _boardController,
+            boardOrientation: boardOrientation,
+            enableUserMoves: false,
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: ChessBoardPainter(
+                drawingModeColor: context.colors.accent,
+                badgeBorderColor: context.colors.canvas,
+                arrows: currentArrows,
+                // Never filled: the replay draws
+                // the lesson's own arrows, and
+                // no engine runs behind it.
+                engineArrows: const [],
+                boardSize: boardSize,
+                orientation: boardOrientation,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // Player Control Deck
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  boxShadow: const [
-                    BoxShadow(blurRadius: 4, color: Colors.black26)
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isAudioAvailable ? Icons.volume_up : Icons.graphic_eq,
-                          size: 14,
-                          color: isPlaying
-                              ? context.colors.accent
-                              : context.colors.textMuted,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isAudioAvailable
-                              ? 'Audio track in sync'
-                              : 'Synchronized playback of moves and arrows',
-                          style: (isPlaying
-                                  ? AppText.captionBold
-                                  : AppText.caption)
-                              .copyWith(
-                            color: isPlaying
-                                ? context.colors.accent
-                                : context.colors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-
-                    // Scrubber Timeline
-                    Row(
-                      children: [
-                        Text(_formatDuration(currentMs),
-                            style: AppText.bodyBold),
-                        Expanded(
-                          child: Slider(
-                            value: currentMs.toDouble().clamp(
-                                0.0,
-                                maxDurationMs > 0
-                                    ? maxDurationMs.toDouble()
-                                    : 1.0),
-                            min: 0.0,
-                            max: maxDurationMs > 0
-                                ? maxDurationMs.toDouble()
-                                : 1.0,
-                            onChanged: (val) => _seekTo(val.toInt()),
-                          ),
-                        ),
-                        Text(_formatDuration(maxDurationMs),
-                            style: AppText.body
-                                .copyWith(color: context.colors.textMuted)),
-                      ],
-                    ),
-
-                    // Playback Buttons & Speed Selector
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // Reset to start
-                        IconButton(
-                          icon: const Icon(Icons.skip_previous),
-                          onPressed: () => _seekTo(0),
-                        ),
-
-                        // Play/Pause Button
-                        FloatingActionButton(
-                          mini: true,
-                          backgroundColor: context.colors.accent,
-                          onPressed: _togglePlayPause,
-                          child: Icon(
-                              isPlaying ? Icons.pause : Icons.play_arrow,
-                              color: context.colors.canvas),
-                        ),
-
-                        // Speed Chips
-                        DropdownButton<double>(
-                          value: playbackSpeed,
-                          underline: const SizedBox(),
-                          items: const [
-                            DropdownMenuItem(
-                                value: 1.0,
-                                child: Text('1.0x', style: AppText.body)),
-                            DropdownMenuItem(
-                                value: 1.25,
-                                child: Text('1.25x', style: AppText.body)),
-                            DropdownMenuItem(
-                                value: 1.5,
-                                child: Text('1.5x', style: AppText.body)),
-                            DropdownMenuItem(
-                                value: 2.0,
-                                child: Text('2.0x', style: AppText.body)),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => playbackSpeed = val);
-                              if (isPlaying) {
-                                _play(); // restart timer with new speed
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
+  /// Play, pause, the scrubber and the speed — under the board upright, beside
+  /// it on its side.
+  Widget _buildControlDeck() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isAudioAvailable ? Icons.volume_up : Icons.graphic_eq,
+                size: 14,
+                color: isPlaying
+                    ? context.colors.accent
+                    : context.colors.textMuted,
+              ),
+              const SizedBox(width: 6),
+              // Flexible: beside the board on a phone on its side the deck is
+              // a column about 440 dp wide, and a Row clips in release.
+              Flexible(
+                child: Text(
+                  isAudioAvailable
+                      ? 'Audio track in sync'
+                      : 'Synchronized playback of moves and arrows',
+                  style: (isPlaying ? AppText.captionBold : AppText.caption)
+                      .copyWith(
+                    color: isPlaying
+                        ? context.colors.accent
+                        : context.colors.textMuted,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 6),
+
+          // Scrubber Timeline
+          Row(
+            children: [
+              Text(_formatDuration(currentMs), style: AppText.bodyBold),
+              Expanded(
+                child: Slider(
+                  value: currentMs.toDouble().clamp(
+                      0.0, maxDurationMs > 0 ? maxDurationMs.toDouble() : 1.0),
+                  min: 0.0,
+                  max: maxDurationMs > 0 ? maxDurationMs.toDouble() : 1.0,
+                  onChanged: (val) => _seekTo(val.toInt()),
+                ),
+              ),
+              Text(_formatDuration(maxDurationMs),
+                  style:
+                      AppText.body.copyWith(color: context.colors.textMuted)),
+            ],
+          ),
+
+          // Playback Buttons & Speed Selector
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Reset to start
+              IconButton(
+                icon: const Icon(Icons.skip_previous),
+                onPressed: () => _seekTo(0),
+              ),
+
+              // Play/Pause Button
+              FloatingActionButton(
+                mini: true,
+                backgroundColor: context.colors.accent,
+                onPressed: _togglePlayPause,
+                child: Icon(isPlaying ? Icons.pause : Icons.play_arrow,
+                    color: context.colors.canvas),
+              ),
+
+              // Speed Chips
+              DropdownButton<double>(
+                value: playbackSpeed,
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(
+                      value: 1.0, child: Text('1.0x', style: AppText.body)),
+                  DropdownMenuItem(
+                      value: 1.25, child: Text('1.25x', style: AppText.body)),
+                  DropdownMenuItem(
+                      value: 1.5, child: Text('1.5x', style: AppText.body)),
+                  DropdownMenuItem(
+                      value: 2.0, child: Text('2.0x', style: AppText.body)),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => playbackSpeed = val);
+                    if (isPlaying) {
+                      _play(); // restart timer with new speed
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

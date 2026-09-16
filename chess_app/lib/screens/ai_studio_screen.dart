@@ -27,6 +27,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
@@ -2592,15 +2593,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     );
 
     if (isLandscape) {
-      // STRICT 1:1 SQUARE LANDSCAPE LAYOUT with SafeArea & 3-side margins (Left, Top, Bottom)
-      final padding = MediaQuery.of(context).padding;
-      final double safeHeight =
-          screenSize.height - padding.top - padding.bottom;
-      final double availableVerticalHeight =
-          safeHeight - (28.0 + (_showEvalBar ? 20.0 : 0.0));
-      final double boardSize = math.max(160.0, availableVerticalHeight - 16.0) *
-          AppSettingsService.instance.boardSizeScale;
-
+      // No app bar in landscape; the one-line header below carries the way
+      // out and the actions, and the board takes the rest of the height.
       final landscapeTopHeader = SizedBox(
         height: 24,
         child: Row(
@@ -2681,166 +2675,133 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
       return Padding(
         padding: const EdgeInsets.only(
-            left: AppSpacing.md,
-            top: AppSpacing.xs,
-            bottom: AppSpacing.sm,
-            right: AppSpacing.sm),
+            left: AppSpacing.xs, top: AppSpacing.xs, right: AppSpacing.xs),
         child: Column(
           children: [
             landscapeTopHeader,
-            const SizedBox(height: AppSpacing.xs),
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // LEFT SIDE (Board & Eval Bar)
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.md),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        BoardWithCoordinates(
-                          size: boardSize,
+              child: LandscapeBoardLayout(
+                boardScale: AppSettingsService.instance.boardSizeScale,
+                board: (side) => BoardWithCoordinates(
+                  size: side,
+                  orientation: _puzzleOrientation,
+                  builder: _buildBoardWithTapAndHighlights,
+                ),
+                boardAside: _showEvalBar
+                    ? (height) => VerticalEvalBarWidget(
+                          eval: _currentRawEval,
+                          evalString: _currentEvalString,
+                          depth: _currentEvalDepth,
+                          height: height,
                           orientation: _puzzleOrientation,
-                          builder: _buildBoardWithTapAndHighlights,
-                        ),
-                        if (_showEvalBar) ...[
-                          const SizedBox(height: AppSpacing.xs),
-                          SizedBox(
-                            width: boardSize,
-                            child: HorizontalEvalBarWidget(
-                              eval: _currentRawEval,
-                              evalString: _currentEvalString,
-                              depth: _currentEvalDepth,
-                              orientation: _puzzleOrientation,
+                        )
+                    : null,
+                panels: Column(
+                  children: [
+                    // PROMINENT LANDSCAPE CONTROL BUTTONS ON THE RIGHT SIDE PANEL
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.biotech, size: 16),
+                            label: const Text('Analysis 🔬',
+                                style: AppText.captionBold),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: context.colors.accentAlt,
+                              foregroundColor: context.colors.canvas,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: AppSpacing.xs),
                             ),
+                            onPressed: _exportToAnalysisStudio,
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.refresh, size: 16),
+                            label: const Text('Try again',
+                                style: AppText.captionBold),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: context.colors.warning,
+                              foregroundColor: context.colors.canvas,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: AppSpacing.xs),
+                            ),
+                            onPressed: _restartCurrentPuzzle,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.arrow_forward, size: 16),
+                            label: const Text('Next position',
+                                style: AppText.captionBold),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: context.colors.accent,
+                              foregroundColor: context.colors.canvas,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: AppSpacing.xs),
+                            ),
+                            onPressed: () {
+                              if (_selectedCategory == 'basic_mate') {
+                                _loadBasicMatePreset(_selectedBasicMateType);
+                              } else {
+                                _fetchNextPuzzle();
+                              }
+                            },
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(width: AppSpacing.xs),
-
-                  // RIGHT SIDE (Controls, Tree & Stockfish Analysis & History)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          // PROMINENT LANDSCAPE CONTROL BUTTONS ON THE RIGHT SIDE PANEL
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.biotech, size: 16),
-                                  label: const Text('Analysis 🔬',
-                                      style: AppText.captionBold),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: context.colors.accentAlt,
-                                    foregroundColor: context.colors.canvas,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                        horizontal: AppSpacing.xs),
-                                  ),
-                                  onPressed: _exportToAnalysisStudio,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.xs),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.refresh, size: 16),
-                                  label: const Text('Try again',
-                                      style: AppText.captionBold),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: context.colors.warning,
-                                    foregroundColor: context.colors.canvas,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                        horizontal: AppSpacing.xs),
-                                  ),
-                                  onPressed: _restartCurrentPuzzle,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.xs),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  icon:
-                                      const Icon(Icons.arrow_forward, size: 16),
-                                  label: const Text('Next position',
-                                      style: AppText.captionBold),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: context.colors.accent,
-                                    foregroundColor: context.colors.canvas,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                        horizontal: AppSpacing.xs),
-                                  ),
-                                  onPressed: () {
-                                    if (_selectedCategory == 'basic_mate') {
-                                      _loadBasicMatePreset(
-                                          _selectedBasicMateType);
-                                    } else {
-                                      _fetchNextPuzzle();
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          _buildSolutionTreeSection(),
-                          const SizedBox(height: AppSpacing.sm),
-                          if (_selectedCategory != 'mate_puzzle')
-                            StockfishAnalysisWidget(
-                              analysisDepth: _analysisDepth,
-                              analysisLines: _analysisLines,
-                              onAnalysisDepthChanged: (value) =>
-                                  _applyAnalysisDials(depth: value),
-                              onAnalysisLinesChanged: (value) =>
-                                  _applyAnalysisDials(lines: value),
-                              isEngineEnabled: _showEvaluation,
-                              isAllowedToUseEngine: true,
-                              isOnline: _stockfishService.isOnline,
-                              isCustomEngineActive:
-                                  _stockfishService.isCustomEngineActive,
-                              onOpenSettings: isCustomEngineSupported
-                                  ? _openEngineSettings
-                                  : null,
-                              onForceRestart: _restartEngineEvaluation,
-                              lines: _engineLinesMap.values.toList(),
-                              orientation: _puzzleOrientation,
-                              isShowEvalBarEnabled: _showEvalBar,
-                              onToggleShowEvalBar: () {
-                                setState(() {
-                                  _showEvalBar = !_showEvalBar;
-                                });
-                              },
-                              onToggleEngine: () {
-                                setState(() {
-                                  _showEvaluation = !_showEvaluation;
-                                  if (_showEvaluation) {
-                                    _selectedGroupedMoveIndices.clear();
-                                    _stockfishService
-                                        .setMultiPV(_analysisLines);
-                                    _stockfishService.analyzePosition(
-                                        _puzzleBoardController.getFen(),
-                                        depth: _analysisDepth);
-                                  } else {
-                                    _engineLinesMap.clear();
-                                    _engineArrows.clear();
-                                  }
-                                });
-                              },
-                            ),
-                          const SizedBox(height: AppSpacing.sm),
-                          if (_puzzleMoveTree != null)
-                            MoveNavigationControls(
-                              cursor: _moveCursor()!,
-                            ),
-                        ],
+                    const SizedBox(height: AppSpacing.sm),
+                    _buildSolutionTreeSection(),
+                    const SizedBox(height: AppSpacing.sm),
+                    if (_selectedCategory != 'mate_puzzle')
+                      StockfishAnalysisWidget(
+                        analysisDepth: _analysisDepth,
+                        analysisLines: _analysisLines,
+                        onAnalysisDepthChanged: (value) =>
+                            _applyAnalysisDials(depth: value),
+                        onAnalysisLinesChanged: (value) =>
+                            _applyAnalysisDials(lines: value),
+                        isEngineEnabled: _showEvaluation,
+                        isAllowedToUseEngine: true,
+                        isOnline: _stockfishService.isOnline,
+                        isCustomEngineActive:
+                            _stockfishService.isCustomEngineActive,
+                        onOpenSettings: isCustomEngineSupported
+                            ? _openEngineSettings
+                            : null,
+                        onForceRestart: _restartEngineEvaluation,
+                        lines: _engineLinesMap.values.toList(),
+                        orientation: _puzzleOrientation,
+                        isShowEvalBarEnabled: _showEvalBar,
+                        onToggleShowEvalBar: () {
+                          setState(() {
+                            _showEvalBar = !_showEvalBar;
+                          });
+                        },
+                        onToggleEngine: () {
+                          setState(() {
+                            _showEvaluation = !_showEvaluation;
+                            if (_showEvaluation) {
+                              _selectedGroupedMoveIndices.clear();
+                              _stockfishService.setMultiPV(_analysisLines);
+                              _stockfishService.analyzePosition(
+                                  _puzzleBoardController.getFen(),
+                                  depth: _analysisDepth);
+                            } else {
+                              _engineLinesMap.clear();
+                              _engineArrows.clear();
+                            }
+                          });
+                        },
                       ),
-                    ),
-                  ),
+                  ],
+                ),
+                footer: [
+                  if (_puzzleMoveTree != null)
+                    MoveNavigationControls(cursor: _moveCursor()!),
                 ],
               ),
             ),

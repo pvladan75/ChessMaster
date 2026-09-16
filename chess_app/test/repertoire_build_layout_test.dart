@@ -18,6 +18,8 @@ import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
+import 'support/landscape.dart';
+
 /// 1.e4 e6 2.d4 d5 3.e5 — the French Advance, Black to move, and the root of
 /// the repertoire in every test here.
 const advance = 'rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3';
@@ -268,6 +270,16 @@ void main() {
     // And the strip, which is the part of the tree that is readable at 360 dp.
     expect(find.byType(RepertoireLineStrip), findsOneWidget);
   });
+
+  for (final size in landscapePhones) {
+    testWidgets('on a phone held sideways at ${sizeLabel(size)}',
+        (tester) async {
+      await pump(tester, size, openingLookup: _named);
+      expectBoardBeside(tester, size);
+      expect(find.byType(AnalysisMoveTreeWidget), findsOneWidget);
+      expect(find.text(_openingLabel), findsOneWidget);
+    });
+  }
 
   testWidgets('on a desktop window they are side by side', (tester) async {
     // Not a claim about `Breakpoints.isWide` — a claim about what is on screen.

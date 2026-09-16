@@ -22,6 +22,8 @@ import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
+import 'support/landscape.dart';
+
 void main() {
   const startFen = '8/8/8/3k4/8/8/3PK3/8 w - - 0 1';
 
@@ -109,6 +111,25 @@ void main() {
     expect(strip.top - board.bottom, lessThan(80),
         reason: 'directly under it, not somewhere further down the page');
   });
+
+  for (final size in landscapePhones) {
+    testWidgets(
+        'on a phone held sideways at ${sizeLabel(size)} the words are beside '
+        'the board and the strip stays put', (tester) async {
+      await openAt(tester, size);
+      await tester.pumpAndSettle();
+      expectBoardBeside(tester, size);
+      final before = stripRect(tester);
+
+      await forward(tester);
+      expectBoardBeside(tester, size);
+      final board = boardRect(tester);
+      final comment = commentRect(tester);
+      expect(comment.left, greaterThan(board.right));
+      // The sentence arrived and the strip did not move for it.
+      expect(stripRect(tester), before);
+    });
+  }
 
   testWidgets('a longer sentence does not move the strip', (tester) async {
     // The measurement the report is really about. Two steps, one with a short

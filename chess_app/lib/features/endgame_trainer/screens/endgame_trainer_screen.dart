@@ -13,6 +13,7 @@ import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -967,14 +968,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     }
 
     if (_drilling) {
-      final open = Breakpoints.isWide(context) && _readoutOpen;
+      final open = _readoutBeside(context) && _readoutOpen;
       return {
         LogicalKeyboardKey.keyN: _boardLocked ? null : _loadNext,
         LogicalKeyboardKey.keyR:
             _boardLocked ? null : (_punishing ? _startPunish : _startDrill),
         LogicalKeyboardKey.keyT: _reading || (_drillEnd != null && !open)
             ? null
-            : () => _showReadout(wide: Breakpoints.isWide(context)),
+            : () => _showReadout(wide: _readoutBeside(context)),
         LogicalKeyboardKey.keyU:
             _boardLocked || _drillRetryFen == null ? null : _retryDrillMove,
       };
@@ -998,6 +999,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Text(
           widget.type == null
               ? 'Endgames'
@@ -1023,6 +1025,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     );
   }
 
+  /// Whether the tablebase findings open beside the board rather than in a
+  /// sheet: wherever there is a column beside the board to hold them.
+  bool _readoutBeside(BuildContext context) =>
+      Breakpoints.isWide(context) || LandscapeBoardLayout.applies(context);
+
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _buildError();
@@ -1044,7 +1051,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     // Beside the board and under what the screen is already saying, so one
     // column holds the whole conversation: what to do, what happened, and - on
     // request - what the tables say about it.
-    final aside = wide && _readoutOpen
+    final aside = _readoutBeside(context) && _readoutOpen
         ? Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1064,6 +1071,36 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           )
         : panel;
 
+    Widget board(double boardSize) => BoardWithCoordinates(
+          size: boardSize,
+          orientation: _orientation,
+          builder: (inner) => ChessBoardWithOverlay(
+            controller: _boardController,
+            boardOrientation: _orientation,
+            boardSize: inner,
+            isAllowedToMove: !_boardLocked &&
+                (_exploring ||
+                    (_drilling ? _drillEnd == null : !solve.isComplete)),
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: const [],
+            engineArrows: const [],
+            onMove: _onMove,
+            onSquareTapForDrawing: (_) {},
+          ),
+        );
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: board,
+        panels: aside,
+        footer: [
+          const SizedBox(height: AppSpacing.sm),
+          _buildControls(solve),
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -1077,28 +1114,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             builder: (boardSize) {
               return Column(
                 children: [
-                  Center(
-                    child: BoardWithCoordinates(
-                      size: boardSize,
-                      orientation: _orientation,
-                      builder: (inner) => ChessBoardWithOverlay(
-                        controller: _boardController,
-                        boardOrientation: _orientation,
-                        boardSize: inner,
-                        isAllowedToMove: !_boardLocked &&
-                            (_exploring ||
-                                (_drilling
-                                    ? _drillEnd == null
-                                    : !solve.isComplete)),
-                        isDrawingMode: false,
-                        drawingStartSquare: null,
-                        arrows: const [],
-                        engineArrows: const [],
-                        onMove: _onMove,
-                        onSquareTapForDrawing: (_) {},
-                      ),
-                    ),
-                  ),
+                  Center(child: board(boardSize)),
                   if (!wide) ...[
                     const SizedBox(height: AppSpacing.md),
                     panel,
@@ -1237,7 +1253,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               label: const Text('Back to position'),
             ),
           Builder(builder: (context) {
-            final wide = Breakpoints.isWide(context);
+            final wide = _readoutBeside(context);
             final open = wide && _readoutOpen;
             return OutlinedButton.icon(
               onPressed: _reading || (_drillEnd != null && !open)

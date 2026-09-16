@@ -13,6 +13,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
@@ -141,6 +142,7 @@ class _RepertoireWalkthroughScreenState
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -225,47 +227,88 @@ class _RepertoireWalkthroughScreenState
       }
     }
 
+    Widget board(double size) => SizedBox(
+          width: size,
+          height: size,
+          child: ChessBoardWithOverlay(
+            controller: _boardController,
+            boardSize: size,
+            boardOrientation: boardOrientation,
+            isAllowedToMove: false,
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: const [],
+            engineArrows: _replyArrows(cursor),
+            onMove: (String from, String to, String promotion) {},
+            onSquareTapForDrawing: (String square) {},
+            lastMoveFrom: lastMoveFrom,
+            lastMoveTo: lastMoveTo,
+          ),
+        );
+
+    final strip = MoveKeyboardShortcuts(
+      cursor: cursor,
+      onChanged: () {},
+      child: MoveNavigationControls(
+        cursor: cursor,
+        // Numbered by the move, not by the beat: a returning beat is not a new
+        // move and the counter going back to it is the truth — that is the
+        // position the reader has been brought back to.
+        centerLabel: _stops.length > 1 && at >= 0
+            ? 'Move ${at + 1} of ${_stops.length}'
+            : null,
+        canNavigate: _beats.length > 1,
+        onFlipBoard: () => setState(() => _flipped = !_flipped),
+      ),
+    );
+
+    AnalysisNode? activeNode() {
+      final currentFen = cursor.currentFen;
+      if (currentFen == null) return _root;
+      return findNodeByFen(_root!, currentFen) ?? _root;
+    }
+
+    Widget treePanel() => RepertoireTreePanel(
+          root: _root!,
+          active: activeNode()!,
+          onSelect: (node) {
+            final key = fenKeyOf(node.fen);
+            final idx = _stops.indexWhere((s) => fenKeyOf(s.move.fen) == key);
+            if (idx < 0) return;
+            final beat =
+                _beats.indexWhere((b) => !b.returning && b.stopIndex == idx);
+            if (beat >= 0) _onSelect(beat);
+          },
+          nodeLook: (node) => _looks[node.id],
+        );
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return SafeArea(
+        top: false,
+        child: LandscapeBoardLayout(
+          board: board,
+          panels: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildCard(context, cursor),
+              if (_root != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                treePanel(),
+              ],
+            ],
+          ),
+          footer: [strip],
+        ),
+      );
+    }
+
     final boardCol = Column(
       children: [
         LayoutBuilder(
-          builder: (context, constraints) {
-            final size =
-                constraints.maxWidth < 600 ? constraints.maxWidth : 600.0;
-            return SizedBox(
-              width: size,
-              height: size,
-              child: ChessBoardWithOverlay(
-                controller: _boardController,
-                boardSize: size,
-                boardOrientation: boardOrientation,
-                isAllowedToMove: false,
-                isDrawingMode: false,
-                drawingStartSquare: null,
-                arrows: const [],
-                engineArrows: _replyArrows(cursor),
-                onMove: (String from, String to, String promotion) {},
-                onSquareTapForDrawing: (String square) {},
-                lastMoveFrom: lastMoveFrom,
-                lastMoveTo: lastMoveTo,
-              ),
-            );
-          },
+          builder: (context, constraints) =>
+              board(constraints.maxWidth < 600 ? constraints.maxWidth : 600.0),
         ),
-        MoveKeyboardShortcuts(
-          cursor: cursor,
-          onChanged: () {},
-          child: MoveNavigationControls(
-            cursor: cursor,
-            // Numbered by the move, not by the beat: a returning beat is not
-            // a new move and the counter going back to it is the truth — that
-            // is the position the reader has been brought back to.
-            centerLabel: _stops.length > 1 && at >= 0
-                ? 'Move ${at + 1} of ${_stops.length}'
-                : null,
-            canNavigate: _beats.length > 1,
-            onFlipBoard: () => setState(() => _flipped = !_flipped),
-          ),
-        ),
+        strip,
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -278,11 +321,6 @@ class _RepertoireWalkthroughScreenState
     );
 
     if (isWide && _root != null) {
-      final currentFen = cursor.currentFen;
-      AnalysisNode? activeNode = _root;
-      if (currentFen != null) {
-        activeNode = findNodeByFen(_root!, currentFen) ?? _root;
-      }
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -295,20 +333,7 @@ class _RepertoireWalkthroughScreenState
             flex: 1,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.md),
-              child: RepertoireTreePanel(
-                root: _root!,
-                active: activeNode!,
-                onSelect: (node) {
-                  final key = fenKeyOf(node.fen);
-                  final idx =
-                      _stops.indexWhere((s) => fenKeyOf(s.move.fen) == key);
-                  if (idx < 0) return;
-                  final beat = _beats
-                      .indexWhere((b) => !b.returning && b.stopIndex == idx);
-                  if (beat >= 0) _onSelect(beat);
-                },
-                nodeLook: (node) => _looks[node.id],
-              ),
+              child: treePanel(),
             ),
           ),
         ],

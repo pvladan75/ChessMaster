@@ -31,6 +31,7 @@ import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/engine_analysis_dials.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
@@ -1451,6 +1452,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         // The opening's name beside the title where there is room for it —
         // `ultraWide`, because at 900 dp the banner and the repertoire's name
         // overflowed the bar.
@@ -1496,6 +1498,35 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_current == null) return _buildDone();
+
+    // Before the width test: a large phone on its side is past `wide`, and the
+    // wide layout's board column assumes a desktop's height under the board.
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: _buildBoard,
+        panels: Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.xs),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_boardFen != null)
+                OpeningBanner(
+                  key: _openingKey,
+                  fen: _boardFen!,
+                  lookup: widget.openingLookup,
+                ),
+              ..._buildPositionPanels(context, commentBeside: false),
+              const SizedBox(height: AppSpacing.lg),
+              _buildTree(context),
+            ],
+          ),
+        ),
+        footer: [
+          _buildNavigation(context),
+          _buildControls(context),
+        ],
+      );
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1597,7 +1628,6 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   /// *to* moves under them.
   Widget _buildBoardColumn(BuildContext context, double boardSize,
       {bool commentBeside = false, bool treeBelow = false}) {
-    final active = _activeNode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1616,31 +1646,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   fen: _boardFen!,
                   lookup: widget.openingLookup,
                 ),
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation:
-                      _forWhite ? PlayerColor.white : PlayerColor.black,
-                  builder: (inner) => ChessBoardWithOverlay(
-                    controller: _boardController,
-                    boardOrientation:
-                        _forWhite ? PlayerColor.white : PlayerColor.black,
-                    boardSize: inner,
-                    // Either side can be played: the student's own moves when
-                    // it is their turn, the opponent's moves they want to
-                    // prepare when it is not.
-                    isAllowedToMove: !_busy,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    lastMoveFrom: _lastMoveFrom,
-                    lastMoveTo: _lastMoveTo,
-                    engineArrows: _boardArrows(),
-                    onMove: _onMove,
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                ),
-              ),
+              Center(child: _buildBoard(boardSize)),
               _buildNavigation(context),
             ],
           ),
@@ -1656,29 +1662,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (active != null) ...[
-                  const SizedBox(height: AppSpacing.xxs),
-                  RepertoireLineStrip(active: active, onSelect: _jumpTo),
-                ],
-                if (!commentBeside) _buildComment(context, dense: true),
-                const SizedBox(height: AppSpacing.md),
-                _buildQuestion(context),
-                const SizedBox(height: AppSpacing.sm),
-                if (_verdictSan != null) _buildVerdict(context),
-                _buildBook(context),
-                if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
-                if (_thinking || _linesFen == _boardFen || _noteHere != null)
-                  _buildEngine(context),
-                if (_note != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  SpeakableInfo(
-                    text: _note!,
-                    autoSpeak: true,
-                    child: Text(_note!,
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted)),
-                  ),
-                ],
+                ..._buildPositionPanels(context, commentBeside: commentBeside),
                 const SizedBox(height: AppSpacing.md),
                 _buildControls(context),
                 if (treeBelow) ...[
@@ -1691,6 +1675,59 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildBoard(double boardSize) => BoardWithCoordinates(
+        size: boardSize,
+        orientation: _forWhite ? PlayerColor.white : PlayerColor.black,
+        builder: (inner) => ChessBoardWithOverlay(
+          controller: _boardController,
+          boardOrientation: _forWhite ? PlayerColor.white : PlayerColor.black,
+          boardSize: inner,
+          // Either side can be played: the student's own moves when it is
+          // their turn, the opponent's moves they want to prepare when it is
+          // not.
+          isAllowedToMove: !_busy,
+          isDrawingMode: false,
+          drawingStartSquare: null,
+          arrows: const [],
+          lastMoveFrom: _lastMoveFrom,
+          lastMoveTo: _lastMoveTo,
+          engineArrows: _boardArrows(),
+          onMove: _onMove,
+          onSquareTapForDrawing: (_) {},
+        ),
+      );
+
+  /// What belongs to the position standing on the board, from the line that
+  /// reached it to the engine's note — the same list in every layout.
+  List<Widget> _buildPositionPanels(BuildContext context,
+      {required bool commentBeside}) {
+    final active = _activeNode;
+    return [
+      if (active != null) ...[
+        const SizedBox(height: AppSpacing.xxs),
+        RepertoireLineStrip(active: active, onSelect: _jumpTo),
+      ],
+      if (!commentBeside) _buildComment(context, dense: true),
+      const SizedBox(height: AppSpacing.md),
+      _buildQuestion(context),
+      const SizedBox(height: AppSpacing.sm),
+      if (_verdictSan != null) _buildVerdict(context),
+      _buildBook(context),
+      if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
+      if (_thinking || _linesFen == _boardFen || _noteHere != null)
+        _buildEngine(context),
+      if (_note != null) ...[
+        const SizedBox(height: AppSpacing.sm),
+        SpeakableInfo(
+          text: _note!,
+          autoSpeak: true,
+          child: Text(_note!,
+              style: AppText.caption.copyWith(color: context.colors.textMuted)),
+        ),
+      ],
+    ];
   }
 
   /// The gate, written as a move — "via 0-0", not "via e1g1".

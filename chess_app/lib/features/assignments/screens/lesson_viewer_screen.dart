@@ -14,6 +14,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -615,6 +616,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Text(widget.detail.assignment.title),
         actions: [
           // In the app bar and not only under the board, because a question
@@ -675,43 +677,45 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
               // The board, and beside or below it the words about it. Built
               // once and placed twice, so the two layouts cannot drift into
               // being two screens.
-              final board = Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: _orientation,
-                  builder: (size) => ChessBoardWithOverlay(
-                    controller: _board,
-                    boardOrientation: _orientation,
-                    boardSize: size,
-                    // Playable on show and ask_move, locked on ask_choice
-                    isAllowedToMove: _step.kind != LessonStepKind.askChoice,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: _currentArrows,
-                    squares: _currentSquares,
-                    engineArrows: const [],
-                    onMove: (from, to, promotion) {
-                      if (_step.kind == LessonStepKind.askMove &&
-                          _verdict?.correct != true &&
-                          _reveal == null) {
-                        final san = _sanFor(_lessonFen, from, to, promotion);
-                        if (san != null) {
-                          submitMove(san);
-                        } else {
-                          _board.loadFen(_lessonFen);
-                        }
-                      } else {
-                        // The child has taken the board. Whatever was
-                        // being read is about a position they have just
-                        // left.
-                        _stopNarration();
-                        if (!_explored) setState(() => _explored = true);
-                      }
-                    },
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                ),
-              );
+              Widget boardAt(double boardSize) => Center(
+                    child: BoardWithCoordinates(
+                      size: boardSize,
+                      orientation: _orientation,
+                      builder: (size) => ChessBoardWithOverlay(
+                        controller: _board,
+                        boardOrientation: _orientation,
+                        boardSize: size,
+                        // Playable on show and ask_move, locked on ask_choice
+                        isAllowedToMove: _step.kind != LessonStepKind.askChoice,
+                        isDrawingMode: false,
+                        drawingStartSquare: null,
+                        arrows: _currentArrows,
+                        squares: _currentSquares,
+                        engineArrows: const [],
+                        onMove: (from, to, promotion) {
+                          if (_step.kind == LessonStepKind.askMove &&
+                              _verdict?.correct != true &&
+                              _reveal == null) {
+                            final san =
+                                _sanFor(_lessonFen, from, to, promotion);
+                            if (san != null) {
+                              submitMove(san);
+                            } else {
+                              _board.loadFen(_lessonFen);
+                            }
+                          } else {
+                            // The child has taken the board. Whatever was
+                            // being read is about a position they have just
+                            // left.
+                            _stopNarration();
+                            if (!_explored) setState(() => _explored = true);
+                          }
+                        },
+                        onSquareTapForDrawing: (_) {},
+                      ),
+                    ),
+                  );
+              final board = boardAt(boardSize);
 
               // Everything this step has to say. On a phone it is the last
               // thing on the screen, so it can grow without moving anything;
@@ -729,6 +733,27 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
               final strip = _tree != null && _tree!.root.children.isNotEmpty
                   ? _buildMoveControls()
                   : const SizedBox.shrink();
+
+              // A phone on its side: the words beside the board as on a wide
+              // window, and the strip and the step buttons pinned under them,
+              // so neither moves when a sentence grows.
+              if (LandscapeBoardLayout.applies(context)) {
+                return LandscapeBoardLayout(
+                  board: boardAt,
+                  panels: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildHeader(done),
+                      const SizedBox(height: AppSpacing.sm),
+                      said,
+                    ],
+                  ),
+                  footer: [
+                    strip,
+                    _buildStepControls(),
+                  ],
+                );
+              }
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.md),

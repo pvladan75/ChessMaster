@@ -9,6 +9,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -182,6 +183,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: const Text('Review'),
         actions: const [BoardViewMenu()],
         bottom: _queue.isEmpty
@@ -212,6 +214,35 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_current == null) return _buildDone();
 
+    Widget board(double boardSize) => BoardWithCoordinates(
+          size: boardSize,
+          orientation: _orientation,
+          builder: (size) => ChessBoardWithOverlay(
+            controller: _board,
+            boardOrientation: _orientation,
+            boardSize: size,
+            isAllowedToMove: false,
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: const [],
+            engineArrows: const [],
+            onMove: (_, __, ___) {},
+            onSquareTapForDrawing: (_) {},
+          ),
+        );
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: board,
+        panels: _buildPrompt(),
+        footer: [
+          if (_revealed && _moves.isNotEmpty) _buildMoveControls(),
+          const SizedBox(height: AppSpacing.sm),
+          _revealed ? _buildGradeButtons() : _buildRevealButton(),
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final heightBased = (constraints.maxHeight - 260).clamp(200.0, 520.0);
@@ -224,24 +255,7 @@ class _ReviewSessionScreenState extends State<ReviewSessionScreen> {
             children: [
               _buildPrompt(),
               const SizedBox(height: 10),
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: _orientation,
-                  builder: (size) => ChessBoardWithOverlay(
-                    controller: _board,
-                    boardOrientation: _orientation,
-                    boardSize: size,
-                    isAllowedToMove: false,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: const [],
-                    engineArrows: const [],
-                    onMove: (_, __, ___) {},
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                ),
-              ),
+              Center(child: board(boardSize)),
               const SizedBox(height: AppSpacing.md),
               if (_revealed && _moves.isNotEmpty) _buildMoveControls(),
               const SizedBox(height: AppSpacing.sm),

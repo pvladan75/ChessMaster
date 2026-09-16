@@ -19,6 +19,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
@@ -1691,20 +1692,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     final screenSize = MediaQuery.of(context).size;
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
-    // Landscape: board width must leave room for the panel column next to it
-    // (kMinPanelWidth), so its true ceiling is screen-derived, not a fixed
-    // constant — on a big monitor the board should actually get bigger.
-    const double kMinPanelWidth = 300.0;
-    final double landscapeHeightBudget =
-        screenSize.height - 120.0 - (_showEvalBar ? 30.0 : 0.0);
-    final double boardSize = (isLandscape
-            ? math.min(
-                landscapeHeightBudget, screenSize.width - kMinPanelWidth - 28.0)
-            : math.min(screenSize.width - 32.0, 700.0)) *
+    // Portrait only; landscape sizes its board from the room it is given.
+    final double boardSize = math.min(screenSize.width - 32.0, 700.0) *
         AppSettingsService.instance.boardSizeScale;
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         titleSpacing: 8.0,
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1752,7 +1746,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         // _jumpToNode does its own setState.
         onChanged: () {},
         child: isLandscape
-            ? _buildLandscapeLayout(boardSize)
+            // The app bar owns the top inset; a notch on a phone held sideways
+            // is on the left or the right.
+            ? SafeArea(top: false, child: _buildLandscapeLayout())
             : _buildPortraitLayout(boardSize),
       ),
     );
@@ -1820,89 +1816,51 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
-  Widget _buildLandscapeLayout(double boardSize) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// The board beside the panels, for every landscape window — a phone held
+  /// sideways and a desktop alike. See [LandscapeBoardLayout] for why the move
+  /// strip is not under the board.
+  Widget _buildLandscapeLayout() {
+    return LandscapeBoardLayout(
+      boardScale: AppSettingsService.instance.boardSizeScale,
+      board: (side) => Card(
+        elevation: 4,
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: BoardWithCoordinates(
+            size: side - 12.0,
+            orientation: _orientation,
+            builder: _buildBoardWidget,
+          ),
+        ),
+      ),
+      boardAside: _showEvalBar
+          ? (height) => VerticalEvalBarWidget(
+                eval: _currentRawEval,
+                evalString: _currentEvalString,
+                depth: _currentEvalDepth,
+                height: height,
+                orientation: _orientation,
+              )
+          : null,
+      header: _activePuzzleSet != null ? _buildPuzzleSetBar() : null,
+      panels: Column(
         children: [
-          // Left Side: Board & Eval Bar
-          //
-          // Scrolls, like the panel column beside it. What sits under the board
-          // — the eval bar, the move strip, the comment panel — is not in the
-          // board's height budget, so on a short window the column ran past the
-          // bottom of the screen and painted the overflow stripes (reported
-          // live on 27.8.2026: "BOTTOM OVERFLOWED BY 12 PIXELS"). Dragging a
-          // piece still wins over the scroll: a Draggable claims the gesture
-          // immediately, while a scroll has to pass the touch slop first — the
-          // room screen has had its board in a scroll view all along.
-          SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_activePuzzleSet != null)
-                  SizedBox(
-                    width: boardSize,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                      child: _buildPuzzleSetBar(),
-                    ),
-                  ),
-                SizedBox(
-                  width: boardSize,
-                  height: boardSize,
-                  child: Card(
-                    elevation: 4,
-                    margin: EdgeInsets.zero,
-                    child: Padding(
-                      padding: const EdgeInsets.all(6.0),
-                      child: BoardWithCoordinates(
-                        size: boardSize - 12.0,
-                        orientation: _orientation,
-                        builder: _buildBoardWidget,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                if (_showEvalBar) ...[
-                  SizedBox(
-                    width: boardSize,
-                    child: HorizontalEvalBarWidget(
-                      eval: _currentRawEval,
-                      evalString: _currentEvalString,
-                      depth: _currentEvalDepth,
-                      orientation: _orientation,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xs),
-                SizedBox(
-                  width: boardSize,
-                  child: _buildNavigationToolbar(),
-                ),
-                SizedBox(
-                  width: boardSize,
-                  child: _buildCurrentCommentPanel(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-
-          // Right Side: Tree & Engine Analysis
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildPositionInfoPanel(),
-                  _buildAnalysisAndTreeSection(),
-                ],
-              ),
-            ),
-          ),
+          _buildPositionInfoPanel(),
+          _buildAnalysisAndTreeSection(),
         ],
       ),
+      footer: [
+        // Lower than its own 90 on a short screen, so the tree above keeps
+        // room to scroll.
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: LandscapeBoardLayout.applies(context) ? 64 : 96,
+          ),
+          child: _buildCurrentCommentPanel(),
+        ),
+        _buildNavigationToolbar(),
+      ],
     );
   }
 

@@ -29,6 +29,7 @@ import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/core/services/board_control_rules.dart' as rules;
 import 'package:chess_app/models/pending_session_intent.dart';
 
@@ -2868,7 +2869,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
         isStudio ||
         (boardControl != 'host_only' && boardControl != 'trainer_only');
     final media = MediaQuery.of(context);
-    final isWide = Breakpoints.isWide(context);
+    // Not on a phone held sideways, however wide it is: a 932 dp phone is past
+    // the breakpoint, and the wide room's two 300 dp sidebars and board
+    // column assume a desktop's height. [LandscapeBoardLayout] has that case.
+    final isWide =
+        Breakpoints.isWide(context) && !LandscapeBoardLayout.applies(context);
     // A phone in landscape is rarely "wide" by dp width, but stacking
     // everything vertically (the portrait layout) leaves no room for
     // anything but the board in that limited height — it needs the same
@@ -2876,10 +2881,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // inline left (lessons) sidebar, which stays in the Drawer.
     final isLandscape = media.orientation == Orientation.landscape;
 
-    // Sizing of ChessBoard
-    // In landscape the left column is the board and nothing else, so it may
-    // take nearly the whole height — a little less when the eval bar is above
-    // it, which is the only other thing sharing that column.
+    // Sizing of ChessBoard, for the wide and the upright layouts. A landscape
+    // board is sized by [LandscapeBoardLayout] from the room it is given.
     // Sirina koju u „wide" rasporedu pojedu dve bocne kolone: leva (lekcije)
     // i desna (kontrole), obe fiksnih 300, plus razdelnik i disanje oko table.
     const sideColumns = 300.0 + 300.0 + 20.0;
@@ -2893,10 +2896,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             // se to ne vidi - tabla se prosto isece s desne strane.
             ? min(media.size.height * 0.62,
                 max(240.0, media.size.width - sideColumns) * 0.96)
-            : isLandscape
-                ? min(media.size.height * (_showEvalBar ? 0.84 : 0.94),
-                    media.size.width * 0.46)
-                : min(media.size.height * 0.65, media.size.width * 0.9)) *
+            : min(media.size.height * 0.65, media.size.width * 0.9)) *
         AppSettingsService.instance.boardSizeScale;
 
     // Left Sidebar Content (Lessons Management)
@@ -4139,6 +4139,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       },
       child: Scaffold(
         appBar: AppBar(
+          toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
           title: Text(isConnected ? gameStatus : 'Connecting...'),
           centerTitle: true,
           actions: [
@@ -4247,65 +4248,34 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ],
                     )
                   : isLandscape
-                      // Phone landscape: no room to stack board + everything else
-                      // vertically, so it goes side by side instead. The left
-                      // column holds nothing but the board (and its eval bar),
-                      // so the board gets the full height of the screen; every
-                      // control, the navigation strip included, is in the
-                      // scrollable right column. Sharing the left column with
-                      // the strip is what used to push ranks 7 and 8 off the
-                      // bottom. The left (lessons) sidebar stays in the Drawer.
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              // Still scrollable, though the column is now only
-                              // the board: the board size is multiplied by a
-                              // user setting that can be larger than 1, and a
-                              // release build clips silently instead of saying
-                              // so.
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const SizedBox(height: 6),
-                                    if (_showEvalBar) ...[
-                                      SizedBox(
-                                        width: boardSize,
-                                        child: HorizontalEvalBarWidget(
-                                          eval: _currentRawEval,
-                                          evalString: currentEngineEval,
-                                          depth: _currentEvalDepth,
-                                          orientation: boardOrientation,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                    ],
-                                    _buildChessBoardWithOverlay(boardSize),
-                                    const SizedBox(height: 6),
-                                  ],
-                                ),
-                              ),
+                      // Side by side: the board takes the height and never
+                      // scrolls, the strip is pinned under the panels beside
+                      // it, and the lessons sidebar stays in the Drawer.
+                      ? SafeArea(
+                          top: false,
+                          child: LandscapeBoardLayout(
+                            boardScale:
+                                AppSettingsService.instance.boardSizeScale,
+                            board: _buildChessBoardWithOverlay,
+                            boardAside: _showEvalBar
+                                ? (height) => VerticalEvalBarWidget(
+                                      eval: _currentRawEval,
+                                      evalString: currentEngineEval,
+                                      depth: _currentEvalDepth,
+                                      height: height,
+                                      orientation: boardOrientation,
+                                    )
+                                : null,
+                            panels: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildStockfishAnalysisWidget(),
+                                const SizedBox(height: AppSpacing.sm),
+                                buildRightSidebar(),
+                              ],
                             ),
-                            const VerticalDivider(width: 1, thickness: 1),
-                            Expanded(
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.lg,
-                                    vertical: AppSpacing.sm),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    buildNavigationControls(),
-                                    _buildStockfishAnalysisWidget(),
-                                    const SizedBox(height: AppSpacing.sm),
-                                    buildRightSidebar(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                            footer: [buildNavigationControls()],
+                          ),
                         )
                       : Column(
                           children: [

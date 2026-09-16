@@ -62,6 +62,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final size in const [Size(800, 360), Size(932, 430)]) {
+    testWidgets(
+        'every tab lays out on a phone held sideways at '
+        '${size.width.toInt()}×${size.height.toInt()}', (tester) async {
+      await pumpOnPhone(
+        tester,
+        // With a PGN caller, so all five tabs are drawn, not two.
+        AnalysisBoardSetupDialog(
+          initialFen: _startFen,
+          onPositionSet: (_) {},
+          onPgnLoaded: (_) {},
+        ),
+        size: size,
+      );
+      expect(tester.takeException(), isNull);
+      final tabs = tester.widget<TabBar>(find.byType(TabBar)).tabs.length;
+      expect(tabs, 5);
+      for (var i = 0; i < tabs; i++) {
+        await selectTab(tester, i);
+        expect(tester.takeException(), isNull, reason: 'tab $i overflows');
+      }
+    });
+  }
+
   testWidgets('every castling chip is on the screen, not past its edge',
       (tester) async {
     await pumpOnPhone(

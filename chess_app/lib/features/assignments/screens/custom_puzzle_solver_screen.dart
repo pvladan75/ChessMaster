@@ -8,6 +8,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/assignment.dart';
@@ -231,6 +232,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     return Scaffold(
       backgroundColor: colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Text(widget.detail.assignment.title),
         actions: [
           const BoardViewMenu(),
@@ -252,51 +254,38 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
         ),
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final heightBased =
-                (constraints.maxHeight - 280).clamp(200.0, 520.0);
-            final widthBased = (constraints.maxWidth - 24).clamp(180.0, 520.0);
-            final boardSize =
-                heightBased < widthBased ? heightBased : widthBased;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                children: [
-                  _header(),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: BoardWithCoordinates(
-                      size: boardSize,
-                      orientation: _orientation,
-                      builder: (size) => ChessBoardWithOverlay(
-                        controller: _board,
-                        boardOrientation: _orientation,
-                        boardSize: size,
-                        // Locked once answered — in this sitting or an
-                        // earlier one. Only the first attempt is recorded, so a
-                        // board that still accepted moves would promise a
-                        // second chance that does not exist.
-                        isAllowedToMove: _verdict == null &&
-                            !_sending &&
-                            _alreadyAnswered == null,
-                        isDrawingMode: false,
-                        drawingStartSquare: null,
-                        arrows: const [],
-                        engineArrows: const [],
-                        onMove: _onMove,
-                        onSquareTapForDrawing: (_) {},
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
+        child: LandscapeBoardLayout.applies(context)
+            ? LandscapeBoardLayout(
+                board: _boardView,
+                panels: _header(),
+                footer: [
+                  const SizedBox(height: AppSpacing.sm),
                   _verdictPanel(),
                 ],
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final heightBased =
+                      (constraints.maxHeight - 280).clamp(200.0, 520.0);
+                  final widthBased =
+                      (constraints.maxWidth - 24).clamp(180.0, 520.0);
+                  final boardSize =
+                      heightBased < widthBased ? heightBased : widthBased;
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      children: [
+                        _header(),
+                        const SizedBox(height: 10),
+                        Center(child: _boardView(boardSize)),
+                        const SizedBox(height: AppSpacing.md),
+                        _verdictPanel(),
+                      ],
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
     );
   }
@@ -371,6 +360,27 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       ],
     );
   }
+
+  Widget _boardView(double boardSize) => BoardWithCoordinates(
+        size: boardSize,
+        orientation: _orientation,
+        builder: (size) => ChessBoardWithOverlay(
+          controller: _board,
+          boardOrientation: _orientation,
+          boardSize: size,
+          // Locked once answered — in this sitting or an earlier one. Only the
+          // first attempt is recorded, so a board that still accepted moves
+          // would promise a second chance that does not exist.
+          isAllowedToMove:
+              _verdict == null && !_sending && _alreadyAnswered == null,
+          isDrawingMode: false,
+          drawingStartSquare: null,
+          arrows: const [],
+          engineArrows: const [],
+          onMove: _onMove,
+          onSquareTapForDrawing: (_) {},
+        ),
+      );
 
   Widget _verdictPanel() {
     final colors = context.colors;

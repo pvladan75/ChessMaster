@@ -390,151 +390,169 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     );
   }
 
+  /// A tab that fills its height where it fits and scrolls where it does not.
+  ///
+  /// The FEN, PGN and platform tabs pin their button to the bottom with a
+  /// `Spacer` or an `Expanded`, which in a plain Column overflows as soon as
+  /// the dialog is shorter than its contents — a phone on its side is 360 dp
+  /// tall, and the column overflowed by 140. At least the tab's height and at
+  /// most what the contents need, and one shape of tree either way, so a field
+  /// being typed into is not rebuilt as the keyboard shrinks the dialog.
+  Widget _fillOrScroll(List<Widget> children) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFenInputTab() {
     final colors = context.colors;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Enter a valid FEN string (Forsyth-Edwards Notation):',
-          style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
+    return _fillOrScroll([
+      Text(
+        'Enter a valid FEN string (Forsyth-Edwards Notation):',
+        style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      TextField(
+        controller: _fenTextController,
+        maxLines: 3,
+        style: AppText.bodyLarge
+            .copyWith(color: colors.textPrimary, fontFamily: 'monospace'),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: colors.canvas,
+          border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
+          errorText: _isFenValid ? null : _fenErrorMessage,
         ),
-        const SizedBox(height: AppSpacing.md),
-        TextField(
-          controller: _fenTextController,
-          maxLines: 3,
+        onChanged: _validateFen,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      // Two buttons with long Serbian labels do not fit a phone side by
+      // side; wrapped, the second drops to its own line instead of past the
+      // edge.
+      Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.xs,
+        children: [
+          OutlinedButton.icon(
+            icon: const Icon(Icons.paste, size: 16),
+            label: const Text('Paste from Clipboard'),
+            onPressed: () async {
+              final data = await Clipboard.getData('text/plain');
+              if (data != null && data.text != null) {
+                _fenTextController.text = data.text!.trim();
+                _validateFen(data.text!.trim());
+              }
+            },
+          ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.restart_alt, size: 16),
+            label: const Text('Starting Position'),
+            onPressed: () {
+              const defaultFen =
+                  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+              _fenTextController.text = defaultFen;
+              _validateFen(defaultFen);
+            },
+          ),
+        ],
+      ),
+      const Spacer(),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.check),
+          label: const Text('Set FEN Position'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          ),
+          onPressed: _isFenValid
+              ? () {
+                  widget.onPositionSet(_fenTextController.text.trim());
+                  Navigator.pop(context);
+                }
+              : null,
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildPgnImportTab() {
+    final colors = context.colors;
+
+    return _fillOrScroll([
+      Text(
+        'Paste PGN text (Portable Game Notation) with a game or variation:',
+        style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      Expanded(
+        child: TextField(
+          controller: _pgnTextController,
+          maxLines: 8,
           style: AppText.bodyLarge
               .copyWith(color: colors.textPrimary, fontFamily: 'monospace'),
           decoration: InputDecoration(
             filled: true,
             fillColor: colors.canvas,
             border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
-            errorText: _isFenValid ? null : _fenErrorMessage,
-          ),
-          onChanged: _validateFen,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        // Two buttons with long Serbian labels do not fit a phone side by
-        // side; wrapped, the second drops to its own line instead of past the
-        // edge.
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
-          children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.paste, size: 16),
-              label: const Text('Paste from Clipboard'),
-              onPressed: () async {
-                final data = await Clipboard.getData('text/plain');
-                if (data != null && data.text != null) {
-                  _fenTextController.text = data.text!.trim();
-                  _validateFen(data.text!.trim());
-                }
-              },
-            ),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.restart_alt, size: 16),
-              label: const Text('Starting Position'),
-              onPressed: () {
-                const defaultFen =
-                    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-                _fenTextController.text = defaultFen;
-                _validateFen(defaultFen);
-              },
-            ),
-          ],
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.check),
-            label: const Text('Set FEN Position'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            ),
-            onPressed: _isFenValid
-                ? () {
-                    widget.onPositionSet(_fenTextController.text.trim());
-                    Navigator.pop(context);
-                  }
-                : null,
+            hintText: '1. e4 e5 2. Nf3 Nc6 3. Bb5 ...',
+            hintStyle: TextStyle(color: colors.textMuted),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildPgnImportTab() {
-    final colors = context.colors;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Paste PGN text (Portable Game Notation) with a game or variation:',
-          style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Expanded(
-          child: TextField(
-            controller: _pgnTextController,
-            maxLines: 8,
-            style: AppText.bodyLarge
-                .copyWith(color: colors.textPrimary, fontFamily: 'monospace'),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: colors.canvas,
-              border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
-              hintText: '1. e4 e5 2. Nf3 Nc6 3. Bb5 ...',
-              hintStyle: TextStyle(color: colors.textMuted),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.paste, size: 16),
-              label: const Text('Paste PGN'),
-              onPressed: () async {
-                final data = await Clipboard.getData('text/plain');
-                if (data != null &&
-                    data.text != null &&
-                    data.text!.trim().isNotEmpty) {
-                  _loadPgnContent(data.text!);
-                }
-              },
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.folder_open, size: 16),
-              label: const Text('Load .pgn file'),
-              onPressed: _pickPgnFile,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.file_open),
-            label: const Text('Import PGN Game'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            ),
-            onPressed: () {
-              final pgn = _pgnTextController.text.trim();
-              if (pgn.isNotEmpty) {
-                widget.onPgnLoaded?.call(pgn);
-                Navigator.pop(context);
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      Row(
+        children: [
+          OutlinedButton.icon(
+            icon: const Icon(Icons.paste, size: 16),
+            label: const Text('Paste PGN'),
+            onPressed: () async {
+              final data = await Clipboard.getData('text/plain');
+              if (data != null &&
+                  data.text != null &&
+                  data.text!.trim().isNotEmpty) {
+                _loadPgnContent(data.text!);
               }
             },
           ),
+          const SizedBox(width: AppSpacing.sm),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.folder_open, size: 16),
+            label: const Text('Load .pgn file'),
+            onPressed: _pickPgnFile,
+          ),
+        ],
+      ),
+      const SizedBox(height: AppSpacing.md),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.file_open),
+          label: const Text('Import PGN Game'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          ),
+          onPressed: () {
+            final pgn = _pgnTextController.text.trim();
+            if (pgn.isNotEmpty) {
+              widget.onPgnLoaded?.call(pgn);
+              Navigator.pop(context);
+            }
+          },
         ),
-      ],
-    );
+      ),
+    ]);
   }
 
   Widget _buildManualBuilderTab() {
@@ -839,79 +857,76 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   Widget _buildPlatformImportTab() {
     final colors = context.colors;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Enter a username to download recent games:',
-          style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            ChoiceChip(
-              label: const Text('Lichess'),
-              selected: _importPlatform == ChessPlatform.lichess,
-              selectedColor: colors.accent.withValues(alpha: 0.22),
-              onSelected: _importLoading
-                  ? null
-                  : (_) =>
-                      setState(() => _importPlatform = ChessPlatform.lichess),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            ChoiceChip(
-              label: const Text('Chess.com'),
-              selected: _importPlatform == ChessPlatform.chessCom,
-              selectedColor: colors.accent.withValues(alpha: 0.22),
-              onSelected: _importLoading
-                  ? null
-                  : (_) =>
-                      setState(() => _importPlatform = ChessPlatform.chessCom),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextField(
-          controller: _importUsernameController,
-          enabled: !_importLoading,
-          style: AppText.bodyLarge.copyWith(color: colors.textPrimary),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: colors.canvas,
-            border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
-            hintText: 'username',
-            hintStyle: TextStyle(color: colors.textMuted),
-            prefixIcon: Icon(Icons.person, color: colors.textMuted),
+    return _fillOrScroll([
+      Text(
+        'Enter a username to download recent games:',
+        style: AppText.bodyLarge.copyWith(color: colors.textSecondary),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      Row(
+        children: [
+          ChoiceChip(
+            label: const Text('Lichess'),
+            selected: _importPlatform == ChessPlatform.lichess,
+            selectedColor: colors.accent.withValues(alpha: 0.22),
+            onSelected: _importLoading
+                ? null
+                : (_) =>
+                    setState(() => _importPlatform = ChessPlatform.lichess),
           ),
-          onSubmitted: (_) => _fetchFromPlatform(),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Loads the last 20 games; if there are more, you choose which to import.',
-          style: AppText.caption.copyWith(color: colors.textMuted),
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: _importLoading
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors.textPrimary,
-                    ),
-                  )
-                : const Icon(Icons.cloud_download),
-            label: Text(_importLoading ? 'Downloading...' : 'Download Games'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            ),
-            onPressed: _importLoading ? null : _fetchFromPlatform,
+          const SizedBox(width: AppSpacing.sm),
+          ChoiceChip(
+            label: const Text('Chess.com'),
+            selected: _importPlatform == ChessPlatform.chessCom,
+            selectedColor: colors.accent.withValues(alpha: 0.22),
+            onSelected: _importLoading
+                ? null
+                : (_) =>
+                    setState(() => _importPlatform = ChessPlatform.chessCom),
           ),
+        ],
+      ),
+      const SizedBox(height: AppSpacing.md),
+      TextField(
+        controller: _importUsernameController,
+        enabled: !_importLoading,
+        style: AppText.bodyLarge.copyWith(color: colors.textPrimary),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: colors.canvas,
+          border: OutlineInputBorder(borderRadius: AppRadii.roundedSm),
+          hintText: 'username',
+          hintStyle: TextStyle(color: colors.textMuted),
+          prefixIcon: Icon(Icons.person, color: colors.textMuted),
         ),
-      ],
-    );
+        onSubmitted: (_) => _fetchFromPlatform(),
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      Text(
+        'Loads the last 20 games; if there are more, you choose which to import.',
+        style: AppText.caption.copyWith(color: colors.textMuted),
+      ),
+      const Spacer(),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          icon: _importLoading
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colors.textPrimary,
+                  ),
+                )
+              : const Icon(Icons.cloud_download),
+          label: Text(_importLoading ? 'Downloading...' : 'Download Games'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          ),
+          onPressed: _importLoading ? null : _fetchFromPlatform,
+        ),
+      ),
+    ]);
   }
 }

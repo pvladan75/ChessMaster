@@ -18,6 +18,7 @@ import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// Being asked what you decided to play, until you no longer have to think.
@@ -1097,6 +1098,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Text('Drill — ${widget.name}'),
         elevation: 0,
         actions: [
@@ -1140,6 +1142,52 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_fen == null) return _buildEmpty(context);
 
+    Widget board(double boardSize) => BoardWithCoordinates(
+          size: boardSize,
+          orientation: _orientation,
+          builder: (inner) => ChessBoardWithOverlay(
+            controller: _boardController,
+            boardOrientation: _orientation,
+            boardSize: inner,
+            // Locked once the answer is in, and open during the rehearsal — the
+            // rehearsal is played by the student, which is the whole difference
+            // between it and a cutscene.
+            isAllowedToMove: !_busy && _answer == null,
+            isDrawingMode: false,
+            drawingStartSquare: null,
+            arrows: (!AppSettingsService.instance.showChosenMoveArrow ||
+                    _prefixArrow == null)
+                ? const []
+                : [_prefixArrow!],
+            engineArrows: const [],
+            lastMoveFrom: _lastMoveFrom,
+            lastMoveTo: _lastMoveTo,
+            onMove: _onMove,
+            onSquareTapForDrawing: (_) {},
+          ),
+        );
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: board,
+        panels: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Unkeyed, as below.
+            OpeningBanner(fen: _fen!),
+            _scopeLine(context),
+            _buildSparLine(context),
+            _buildViaLine(context),
+            _buildPrompt(context),
+          ],
+        ),
+        footer: [
+          const SizedBox(height: AppSpacing.sm),
+          _buildControls(context),
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final boardSize = (constraints.maxWidth - 24).clamp(200.0, 420.0);
@@ -1154,32 +1202,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
               // question, which is the one thing the banner is for.
               if (_fen != null) OpeningBanner(fen: _fen!),
               _scopeLine(context),
-              Center(
-                child: BoardWithCoordinates(
-                  size: boardSize,
-                  orientation: _orientation,
-                  builder: (inner) => ChessBoardWithOverlay(
-                    controller: _boardController,
-                    boardOrientation: _orientation,
-                    boardSize: inner,
-                    // Locked once the answer is in, and open during the
-                    // rehearsal — the rehearsal is played by the student, which
-                    // is the whole difference between it and a cutscene.
-                    isAllowedToMove: !_busy && _answer == null,
-                    isDrawingMode: false,
-                    drawingStartSquare: null,
-                    arrows: (!AppSettingsService.instance.showChosenMoveArrow ||
-                            _prefixArrow == null)
-                        ? const []
-                        : [_prefixArrow!],
-                    engineArrows: const [],
-                    lastMoveFrom: _lastMoveFrom,
-                    lastMoveTo: _lastMoveTo,
-                    onMove: _onMove,
-                    onSquareTapForDrawing: (_) {},
-                  ),
-                ),
-              ),
+              Center(child: board(boardSize)),
               const SizedBox(height: AppSpacing.md),
               _buildSparLine(context),
               _buildViaLine(context),

@@ -22,6 +22,11 @@ abstract final class Breakpoints {
   /// the board**, where the Analysis Studio has always put its comment.
   static const double ultraWide = 1200.0;
 
+  /// Material 3's compact height class: below this a window is too short for
+  /// anything but the board beside its panels. Every phone held sideways is
+  /// under it (360–430 dp); a tablet on its side is not.
+  static const double compactHeight = 480.0;
+
   static bool isWide(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= wide;
 

@@ -8,6 +8,8 @@ import 'package:chess_app/features/endgame_trainer/services/endgame_api_service.
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
+import 'support/landscape.dart';
+
 /// Serves one position without a network.
 class _FakeEndgameApi extends EndgameApiService {
   _FakeEndgameApi(this.result) : super(authToken: '');
@@ -534,4 +536,26 @@ void main() {
     expect(find.text('Play to the end'), findsOneWidget);
     expect(find.text('Punish'), findsNothing);
   });
+
+  for (final size in landscapePhones) {
+    testWidgets('on a phone held sideways at ${sizeLabel(size)}',
+        (tester) async {
+      await pumpAt(
+        tester,
+        size,
+        EndgameTrainerScreen(
+          session: UserSession(
+              token: 't', id: 1, email: 'a@b', name: 'Test', role: 'korisnik'),
+          api: _FakeEndgameApi(
+            EndgameFetchResult(EndgameFetchOutcome.ok, worstCasePuzzle()),
+          ),
+        ),
+      );
+      expectBoardBeside(tester, size);
+      expect(find.textContaining('hold the draw'), findsOneWidget);
+      for (final label in ['Hint', 'Save for later', 'Skip']) {
+        expectOnScreen(tester, size, find.text(label));
+      }
+    });
+  }
 }

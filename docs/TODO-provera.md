@@ -5875,6 +5875,33 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 172. Telefon položeno — 16.9.2026, nije viđeno uživo
+
+`docs/STANJE-RADA.md`, „Telefon položeno: tabla levo, sve ostalo desno".
+Na telefonu, okrenutom položeno. Za svaki ekran: tabla levo, cela vidljiva, i
+**ne pomera se** kad se desna kolona skroluje; traka sa potezima (gde je ima)
+i dugmad su pri dnu desne kolone i vide se bez skrolovanja.
+
+1. [ ] **Analiza.** Uključi eval traku: stoji uspravno levo od table, iste
+   visine. Komentar poteza je iznad trake sa potezima, traka je u jednom redu.
+   „Setup Position / PGN": sve kartice se otvaraju, dugme na dnu kartice je
+   dostupno (skrolom ako treba), i kucanje FEN-a ne zatvara tastaturu.
+2. [ ] **Soba (studio).** Tabla levo, motor i kontrole desno, traka pri dnu;
+   lekcije se otvaraju iz Drawera (hamburger), ne stoje pored table.
+3. [ ] **Učenik:** lekcija (duga rečenica ne pomera traku), pozicije iz
+   domaćeg, taktika, ponavljanje, moje greške — dugmad za ocenu su na ekranu.
+4. [ ] **Repertoar:** novi (kucaj ime — tastatura ostaje otvorena), gradnja
+   (stablo desno ispod pitanja), dril (odigraj potez na tabli), obilazak.
+5. [ ] **Endšpil i greške iz partija:** „Tablebase findings" u drilu se otvara
+   desno, ne kao donji list.
+6. [ ] **Plejer snimka i AI vežbe:** kontrole plejera desno; u AI vežbama
+   strelica nazad gore levo radi.
+7. [ ] **Uređivač delova tutorijala (Android, „Edit tutorial steps").** Kucaj
+   naslov dela: tastatura ostaje, ništa se ne preliva.
+8. [ ] **Okreni nazad uspravno** na bar dva ekrana usred rada: stanje ostaje
+   (potez, stablo), raspored se vraća na stari.
+9. [ ] **Telefon sa notch-om:** ništa ne ulazi pod izrez sa strane.
+
 ## 171. Analiza uvozi PGN sa varijantama — 16.9.2026, nije viđeno uživo
 
 `docs/STANJE-RADA.md`, „Analiza uvozi PGN sa varijantama".

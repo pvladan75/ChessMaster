@@ -2778,3 +2778,26 @@ with the new file, paste it into Analysis, said „Invalid PGN format". The
 reader had been named as lossy in two doc comments for weeks and left in
 place. Every door a text can come in through is a reader; **when a feature
 starts writing a format, list every place that format can be pasted.**
+
+**Landscape on a phone — 16.9.2026, 2769 in the app with 1 skipped, analyze at
+26.** The arithmetic: 2718 + 14 in `landscape_board_layout_test.dart` + 23 in
+`landscape_screens_test.dart` + 2 each in seven existing screen tests. With the
+17 changed files under `lib/` put back to `HEAD`, 34 of the new tests went red;
+the three that stayed green were meant to (an upright screen, a keyboard on a
+layout that always scrolled, a dialog that already fitted at 932×430).
+
+**A layout that changes shape when it needs to scroll will drop the keyboard.**
+The first version of the shared layout wrapped itself in a scroll view only
+when the body fell below its minimum height — and the keyboard is what makes
+it fall. The tree changed shape, the text field was rebuilt, focus went and the
+keyboard closed: typing would have been impossible on every landscape screen
+with a field. Found by a test that taps the field, raises `viewInsets` and
+asserts the `EditableText` state is the *same object*; proven by putting the
+conditional back. **Wrap always, and size to the larger of the space and the
+minimum.**
+
+**Decide "phone on its side" by height, not width.** A large phone on its side
+is 915–932 dp wide, past the 840 breakpoint, so the wide layouts written for
+desktop windows picked it up — the room drew two 300 dp sidebars beside a board
+on a 430 dp tall screen. Every `isWide` check has to lose to the landscape one.
+

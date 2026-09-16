@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, provera uživo na telefonu — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,75 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Telefon položeno: tabla levo, sve ostalo desno — 16.9.2026, u kodu
+
+Odluka vlasnika istog dana: pre objavljivanja Android mora dobro da radi
+položeno. Tabla levo i **ne pomera se**, sve ostalo desno u koloni koja se
+skroluje. Uspravno ostaje kako jeste, kao mogućnost — **orijentacija nije
+zaključana**. Ovim je ukinuta odluka od 5.9.2026 („pejzaž na telefonu se za
+sada ne dira"), koja je bila odlaganje, a ne izbor.
+
+**Jedno pravilo, jedan dom:** `lib/widgets/landscape_board_layout.dart`.
+
+- **Kada:** `LandscapeBoardLayout.applies(context)` — širina veća od visine
+  **i** visina ispod 480 dp (Material 3 „compact height",
+  `Breakpoints.compactHeight`). Po visini, ne po širini: veliki telefon
+  položeno ima 915–932 dp, dakle iznad `Breakpoints.wide` (840), a rasporedi
+  za tu širinu računaju na visinu desktopa. Soba je upravo tako na velikom
+  telefonu dobijala dve bočne kolone od po 300 dp.
+- **Tabla** se meri iz visine koju raspored stvarno dobije (ne „ekran minus
+  120"), a širina ostavlja desnoj koloni bar 300 dp. Podešavanje veličine table
+  (0.6–1.0) samo smanjuje.
+- **Traka sa potezima nije ispod table nego pri dnu desne kolone, zakačena.**
+  Ispod table bi joj uzela visinu, a na 360 dp visokom telefonu ni ne staje u
+  red: devet dugmadi Analize traže 432 dp, a tabla ograničena visinom je oko
+  290 dp široka, pa bi se traka prelomila u dva reda i tabla izgubila još
+  jedan. Desno je jedan red, uvek na istom mestu. Isto važi za dugmad ispod
+  table (ocene, „Show answer", kontrole plejera…): idu u `footer`, koji se
+  skroluje sam u sebi tek kad pređe 60% kolone.
+- **Eval traka stoji uspravno pored table**, iste visine (`boardAside`).
+- **AppBar je 44 umesto 56** (`LandscapeBoardLayout.toolbarHeight`).
+- **Tastatura:** kad visina padne ispod 240 dp, raspored se ne skuplja nego
+  skroluje kao celina. Stablo je **istog oblika** i bez tastature — prva verzija
+  je uvijala u `SingleChildScrollView` samo kad zatreba, pa bi polje u koje se
+  kuca bilo ponovo izgrađeno i tastatura bi se zatvorila. Uhvaćeno testom, pre
+  telefona.
+
+**Ekrani** (svi pitaju isto `applies`): Analiza (za svaki položeni prozor,
+kao i ranije), moje greške, pozicije iz domaćeg, ponavljanje, taktika, novi
+repertoar, gradnja repertoara, dril, obilazak, endšpil, greške iz partija,
+lekcija (učenik), plejer snimka, AI vežbe, soba (lekcije ostaju u Draweru) i
+Android uređivač delova tutorijala. **Nisu dirani** studio tutorijala i
+naracija: otvaraju se samo na Windows-u (`isTutorialStudioAvailable`).
+
+**Nađeno usput, i popravljeno:**
+- Dijalog „Board Setup" (FEN, PGN, Chess.com/Lichess kartice) se na 800×360
+  prelivao za 140 px: `Spacer`/`Expanded` u koloni koja ne može da skroluje.
+  Sada `_fillOrScroll` — popunjava gde staje, skroluje gde ne.
+- Levi spisak delova u Android uređivaču se sa tastaturom prelivao (ostane mu
+  ~50 dp); tada dugmad skroluju zajedno sa spiskom.
+- U plejeru snimka rečenica „Synchronized playback of moves and arrows" nije
+  imala `Flexible`. U testu se preliva za 41 px; testni font je širi od pravog,
+  pa na telefonu verovatno nije, ali red koji ne može da se skupi ionako ne
+  treba da postoji.
+
+**Uspravno nije promenjeno** — nijedan postojeći test nije morao da se menja.
+Sa svih 17 izmenjenih fajlova u `lib/` vraćenih na `HEAD`, 34 nova testa padaju;
+tri ostaju zelena s razlogom (uspravna Analiza, tastatura na starom novom
+repertoaru koji je ceo skrolovao, i dijalog na 932×430 koji je i ranije
+stajao).
+
+Testovi: `landscape_board_layout_test.dart` (14; sedam mutacija, sve uhvaćene
+posle dodavanja testa za visok footer), `landscape_screens_test.dart` (23), po
+dva u sedam postojećih fajlova ekrana (14); zajednička očekivanja u
+`test/support/landscape.dart`. Aplikacija 2718 + 51 = **2769**, 1 preskočen;
+analyze 26, isti fajlovi.
+
+**Nije viđeno:** nijedan ekran na pravom telefonu. Testovi crtaju tekst
+kvadratima, pa ne kažu da li se prava slova lepo prelamaju, kako izgleda
+notch, ni da li Android položeno otvara tastaturu preko celog ekrana.
+Provera uživo: stavka 172.
 
 ## Analiza uvozi PGN sa varijantama — 16.9.2026, u kodu
 

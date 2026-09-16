@@ -9,6 +9,8 @@ import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.da
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
+import 'support/landscape.dart';
+
 /// The Smith-Morra accepted, Black to move.
 const smithMorra = 'rnbqkbnr/pp1ppppp/8/8/4P3/2N5/PP3PPP/R1BQKBNR b KQkq - 0 4';
 
@@ -1041,4 +1043,20 @@ void main() {
       expect(find.text('Another branch'), findsOneWidget);
     });
   });
+
+  for (final size in landscapePhones) {
+    testWidgets('on a phone held sideways at ${sizeLabel(size)}',
+        (tester) async {
+      final api = _FakeApi();
+      await pump(tester, api, size: size);
+      expectBoardBeside(tester, size);
+      expectOnScreen(tester, size, find.text('What do you play as Black?'));
+
+      // The board is still played where it now stands.
+      await play(tester, 'b8', 'c6');
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('Correct'), findsOneWidget);
+      await walkOn(tester);
+    });
+  }
 }
