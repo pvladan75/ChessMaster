@@ -1,0 +1,6 @@
+Roboto, by Christian Robertson — Google Fonts.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+these files except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+Kept here only so widget tests that measure text can draw it in the font the
+app uses on Android; the app itself ships no copy of these files.

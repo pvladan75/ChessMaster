@@ -23,13 +23,13 @@ import 'package:chess_app/widgets/landscape_board_layout.dart';
 /// that fits on the phone "wraps" in the test. Loud when the files are not
 /// there: a silent fallback would measure the squares and say nothing. Call it
 /// from `setUpAll` — outside the fake clock a `testWidgets` body runs on.
+///
+/// The files travel with the tests (`test/fonts/`, Apache 2.0) rather than
+/// being read out of the SDK's cache: two CI runs in a row failed nine files
+/// here because the runner's `material_fonts` directory has no Roboto in it
+/// (16.9.2026). A font read from the machine is a test of the machine.
 Future<void> loadRoboto() async {
-  final root = Platform.environment['FLUTTER_ROOT'];
-  if (root == null) {
-    throw StateError('FLUTTER_ROOT is not set, so the real font cannot be '
-        'found and every width would be measured in the test font.');
-  }
-  final dir = '$root/bin/cache/artifacts/material_fonts';
+  const dir = 'test/fonts';
   final loader = FontLoader('Roboto');
   for (final name in [
     'roboto-regular.ttf',
@@ -38,7 +38,9 @@ Future<void> loadRoboto() async {
   ]) {
     final file = File('$dir/$name');
     if (!file.existsSync()) {
-      throw StateError('$name is not in $dir');
+      throw StateError('$name is not in $dir — the fonts are part of the '
+          'repository, so this is a checkout without them, not a machine '
+          'without a font.');
     }
     loader.addFont(Future.value(file.readAsBytesSync().buffer.asByteData()));
   }
