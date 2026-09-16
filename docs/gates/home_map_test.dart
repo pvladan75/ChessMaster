@@ -72,8 +72,8 @@ void main() {
             reason: 'the rail has no „$label"');
       }
       for (final old in ['Training', 'Sessions', 'Library', 'People']) {
-        expect(find.descendant(of: rail, matching: find.text(old)),
-            findsNothing,
+        expect(
+            find.descendant(of: rail, matching: find.text(old)), findsNothing,
             reason: '„$old" is not a tab any more');
       }
       // Settings keeps its path and opens over what is underneath.
@@ -95,7 +95,6 @@ void main() {
         'Create tutorial (multiple positions)',
         'Create tutorial (multiple steps)',
         'Edit positions',
-        'Save as new version',
         // S4 — dead dialogs
         'Schedule a Session',
         'Schedule and Save',
@@ -112,10 +111,52 @@ void main() {
         'Save current tutorial / position',
         'Tutorial / position name',
         'Tutorials and positions',
+        'Set up position (Board Setup)',
+        'Save current position',
+        'Import PGN (file or text)',
         'Start a session as host or schedule a time for students.',
+        'New Session',
       ]) {
         expect(literals, isNot(contains(gone)), reason: '„$gone" survives');
       }
+    });
+
+    test('the third editor is deleted, not hidden', () {
+      final files = Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .map((f) => f.path.replaceAll('\\', '/'))
+          .toSet();
+      expect(
+          files.where((p) => p.endsWith('create_course_dialog.dart')), isEmpty);
+      final home =
+          codeOf(File('lib/screens/home_screen.dart').readAsStringSync());
+      for (final symbol in [
+        'showScheduleSessionDialog',
+        'showScheduledSuccessDialog',
+        'showPremiumModal',
+        '_scheduledSessions',
+      ]) {
+        expect(home, isNot(contains(symbol)), reason: '$symbol survives');
+      }
+    });
+
+    testWidgets('the visible Join goes through the six-digit check',
+        (tester) async {
+      await openHome(tester);
+      // Sessions is the second tab today (phase 5 moves the field to Home).
+      final sessions = find.text('Sessions');
+      if (sessions.evaluate().isNotEmpty) {
+        await tester.tap(sessions.first);
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      await tester.enterText(
+          find.widgetWithText(TextField, 'Enter room code (e.g. 123456)'),
+          '12');
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Join'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Enter a valid 6-digit code'), findsOneWidget,
+          reason: 'a two-digit code went straight to the room');
     });
 
     test('the new names are there', () {
@@ -128,6 +169,9 @@ void main() {
         'Position name',
         'Open a room and invite your student.',
         'Scan a book',
+        'New session',
+        'Set up position',
+        'Import PGN',
       ]) {
         expect(literals, contains(there), reason: '„$there" is missing');
       }
@@ -142,8 +186,6 @@ void main() {
           .map((f) => f.path.replaceAll('\\', '/'))
           .toSet();
       expect(files.where((p) => p.endsWith('lesson_step_editor_panel.dart')),
-          isEmpty);
-      expect(files.where((p) => p.endsWith('create_course_dialog.dart')),
           isEmpty);
       expect(
           files.where((p) => p.endsWith('tutorial_studio_availability.dart')),
