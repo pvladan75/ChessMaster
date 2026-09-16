@@ -207,6 +207,15 @@ async function authenticateSocket(token) {
   return payload;
 }
 
+/// The token a socket connects with — from the handshake's `auth` and nowhere
+/// else. It used to fall back to the query string, which puts a seven-day
+/// credential into every access log and proxy on the way; the app never sent it
+/// there (audit of 16.9.2026, `docs/audit/server.md`, 17).
+function tokenFromHandshake(handshake) {
+  const token = handshake?.auth?.token;
+  return typeof token === 'string' && token !== '' ? token : undefined;
+}
+
 module.exports = {
   authenticateToken,
   optionalAuth,
@@ -217,5 +226,6 @@ module.exports = {
   authenticateReportToken,
   verifySocketToken,
   authenticateSocket,
+  tokenFromHandshake,
   JWT_SECRET,
 };

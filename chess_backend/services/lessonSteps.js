@@ -12,6 +12,7 @@ const MAX_TITLE = 200;
 const MAX_INSTRUCTION = 500;
 const MAX_SAN = 20;
 const MAX_CHOICE_TEXT = 200;
+const MAX_PGN = 100000;
 const MAX_ACCEPTED = 6;
 const MIN_CHOICES = 2;
 const MAX_CHOICES = 4;
@@ -75,6 +76,19 @@ function buildLessonStep(step) {
     return { ok: false, status: 400, error: 'Invalid step ID.' };
   }
 
+  // A line over its cap is refused with the number, never cut to fit: `text()`
+  // slices, and a line cut mid-token is exactly the step that does not replay —
+  // stored past the app's own read-back, which ran on the text before it was
+  // sent. Audit of 16.9.2026, `docs/audit/contract.md`, 9.
+  //
+  // Prose is still cut, by an older decision this file's tests keep: a trainer
+  // who pasted a paragraph into a title or a task gets a step, not an error.
+  // Cutting words loses words; cutting a line loses the lesson.
+  const lineTooLong = overLimit(step.pgn, MAX_PGN, 'The line');
+  if (lineTooLong) {
+    return { ok: false, status: 400, error: lineTooLong };
+  }
+
   // Only the fields a step is made of. Anything else the caller sent stays out
   // rather than being stored because it happened to arrive.
   const entry = {
@@ -83,7 +97,7 @@ function buildLessonStep(step) {
     fen,
   };
 
-  const pgn = text(step.pgn, 100000);
+  const pgn = text(step.pgn, MAX_PGN);
   if (pgn) entry.pgn = pgn;
 
   // Which way round the board stands when a child opens this step.
@@ -160,6 +174,13 @@ function buildLessonStep(step) {
 /// `customPuzzleJudge.js` already makes, and the scanner can produce exactly
 /// that row, since `solution_san` is null when the printed move did not verify.
 function buildMoveAnswer(fen, step) {
+  const sanTooLong = overLimit(step.solutionSan, MAX_SAN, 'The solution')
+    ?? (Array.isArray(step.acceptedSans)
+      ? step.acceptedSans.map((san) => overLimit(san, MAX_SAN, 'A correct move')).find(Boolean)
+      : null);
+  if (sanTooLong) {
+    return { ok: false, status: 400, error: sanTooLong };
+  }
   const solutionSan = text(step.solutionSan, MAX_SAN);
   if (!solutionSan) {
     return { ok: false, status: 400, error: 'A move question must have a solution.' };
@@ -248,10 +269,22 @@ function redactStepForStudent(step) {
   return { ...rest, choices: choices.map(({ text: body }) => ({ text: body })) };
 }
 
+/// The trimmed text cut to [limit], or null when there is none. Right for prose;
+/// a line and a move are measured by [overLimit] first, because cutting either
+/// changes what it means.
 function text(value, limit) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed.slice(0, limit);
+}
+
+/// The sentence refusing [value] for being longer than [limit], or null.
+function overLimit(value, limit, what) {
+  if (typeof value !== 'string') return null;
+  const length = value.trim().length;
+  return length > limit
+    ? `${what} is ${length} characters long; a part can hold at most ${limit}.`
+    : null;
 }
 
 /// The steps of a saved lesson, however it was saved.

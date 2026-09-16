@@ -143,6 +143,46 @@ void main() {
             '${offenders.take(40).join('\n')}');
   });
 
+  test('no Serbian word without a Serbian letter is left in a literal', () {
+    // The letter test above cannot see „remi", „dobitak" or „Pobeda": there is
+    // no diacritic in them. The audit of 16.9.2026 (`docs/audit/app.md`, 6)
+    // found the endgame trainer printing „Position: remi" on a common screen,
+    // the tablebase panel saying „Pobeda" beside „Draw", and „Nepoznat datum"
+    // in the room's game list — all past this file.
+    //
+    // Every literal is read, not only the ones that look like a sentence:
+    // `outcomeWord` returned a bare lowercase word, which is exactly what
+    // `_readerText` treats as a value. The list is words that are not also
+    // English and not wire values anywhere in `lib/`.
+    final words = RegExp(
+        r'\b(remi|dobitak|gubitak|pobeda|verovatna|nepoznat[aoi]?|datum|'
+        r'koraci|pregled|trening|delovi|tutorijal[a-z]*|lekcij[a-z]+|'
+        r'potez[a-z]*|tabl[aeiu]|prethodni|zatvori)\b',
+        caseSensitive: false);
+    final offenders = <String>[];
+    for (final entry in sources.entries) {
+      var inVocabulary = false;
+      for (var i = 0; i < entry.value.length; i++) {
+        final line = entry.value[i];
+        if (line.contains('= SpeechVocabulary(')) inVocabulary = true;
+        if (inVocabulary) {
+          if (line.trim() == ');') inVocabulary = false;
+          continue;
+        }
+        if (_isComment(line)) continue;
+        for (final match in _literal.allMatches(_withoutInterpolation(line))) {
+          if (words.hasMatch(match.group(0)!)) {
+            offenders.add('${entry.key}:${i + 1}: ${line.trim()}');
+            break;
+          }
+        }
+      }
+    }
+    expect(offenders, isEmpty,
+        reason: '${offenders.length} literals carry a Serbian word:\n'
+            '${offenders.take(40).join('\n')}');
+  });
+
   test('the live thing is a Session and never a Lesson', () {
     // The whole point of the pair. „Lesson" on a screen would mean the live
     // meeting to a reader and the written artefact to the code.

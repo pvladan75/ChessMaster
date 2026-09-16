@@ -392,6 +392,11 @@ Map<String, String> _lookOf(BuildContext context) {
 /// notified, and „Cancel render" stops it.
 ///
 /// Returns the render's last answer, or null when it was hidden.
+/// How many polls in a row may go unanswered before the dialog says so: about
+/// twenty seconds at one poll every 900 ms, longer when each one times out.
+@visibleForTesting
+const int maxUnansweredPolls = 20;
+
 Future<RenderJobStatus?> _showProgress({
   required BuildContext context,
   required LessonApiService api,
@@ -404,6 +409,10 @@ Future<RenderJobStatus?> _showProgress({
   void Function(void Function())? refresh;
   final ending = Completer<RenderJobStatus?>();
   var asking = false;
+  // Polls in a row that got no answer. One is a hiccup; a run of them is a
+  // server that is not going to say, and a bar frozen on its last value while
+  // the dialog polls for ever is the same silence as a failure.
+  var unanswered = 0;
 
   Future<void> poll() async {
     // One question at a time: a slow answer overtaken by the next poll would
@@ -412,7 +421,19 @@ Future<RenderJobStatus?> _showProgress({
     asking = true;
     final at = await api.renderStatus(jobId);
     asking = false;
-    if (at == null || ending.isCompleted) return;
+    if (ending.isCompleted) return;
+    if (at == null) {
+      unanswered += 1;
+      if (unanswered >= maxUnansweredPolls) {
+        ending.complete(const RenderJobStatus(
+          state: RenderJobState.failed,
+          error: 'The server stopped answering about this video. It may still '
+              'finish, so look for it on the tutorial later.',
+        ));
+      }
+      return;
+    }
+    unanswered = 0;
     if (at.finished) {
       ending.complete(at);
       return;

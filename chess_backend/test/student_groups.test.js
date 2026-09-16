@@ -47,6 +47,13 @@ test('somebody else\'s group is refused, not answered emptily', async () => {
   // An empty answer would hide the bug that asked the question.
   const pool = stubPool([no]);
   await assert.rejects(() => listMembers(pool, 7, 3), NotYours);
+  // The fake answers „no row" whatever it is asked, so the refusal alone says
+  // nothing about whose row the question was about. The predicate is pinned on
+  // the text: a query that forgot `trainer_id` would answer „yes" for everybody
+  // in production and still be refused here. Audit of 16.9.2026,
+  // `docs/audit/tests.md`, 2.
+  assert.match(pool.calls[0].text, /FROM student_groups WHERE id = \$1 AND trainer_id = \$2/);
+  assert.deepEqual(pool.calls[0].params, [3, 7]);
 
   const gone = stubPool([no]);
   await assert.rejects(() => deleteGroup(gone, 7, 3), NotYours);

@@ -5875,6 +5875,19 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 169. Ostatak revizije (blok C) — 16.9.2026, nije viđeno uživo
+
+`docs/STANJE-RADA.md`, „Ostatak revizije (blok C)". Server restartovan.
+
+1. [ ] **Trener završnica** piše „Position: draw" / „win" / „loss" — nigde „remi".
+2. [ ] **Tablica u analizi** (Syzygy panel) piše „Win", „Probable win", „Unknown".
+3. [ ] **Registracija u logu servera**: registruj se i unesi kod; u logu nema
+   adrese, samo id (u razvoju: kod uz maskiranu adresu `p***@domen`).
+4. [ ] **PGN sa ocenama u sobi**: učitaj partiju sa `??` i `!` u sobu i sačuvaj
+   poziciju; u sačuvanom su oznake i dalje tu.
+5. [ ] **Izvoz videa** i dalje prikazuje napredak i završava se normalno.
+6. [ ] **Skeniranje PDF-a** i dalje radi (običan broj pokušaja ne udara u granicu).
+
 ## 168. Soba sa dva uređaja — 16.9.2026, nije viđeno uživo
 
 `docs/STANJE-RADA.md`, „Soba iz revizije (blok B)". **Dva uređaja ili dve

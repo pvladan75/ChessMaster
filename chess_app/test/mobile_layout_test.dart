@@ -92,6 +92,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+      // And the dialog drew its button where a finger can reach it: an empty
+      // dialog passes `takeException` too. Audit of 16.9.2026,
+      // `docs/audit/tests.md`, 9.
+      expect(find.text('Assign'), findsOneWidget);
+      final dialog = tester.getRect(find.byType(Dialog).last);
+      final button = tester.getRect(find.text('Assign'));
+      expect(
+          dialog.contains(button.topLeft) &&
+              dialog.contains(button.bottomRight),
+          isTrue,
+          reason: '„Assign" is outside the dialog at 320 px');
     });
 
     testWidgets('the title is prefilled from the suggested weak themes',

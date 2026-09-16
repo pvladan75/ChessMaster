@@ -21,6 +21,7 @@ const multer = require('multer');
 const logger = require('../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { accountLimiter } = require('../middleware/accountLimiter');
 const { METRIC, recordUsage } = require('../services/entitlementService');
 const {
   SCAN_TMP_DIR,
@@ -68,8 +69,19 @@ function loadScanner() {
 
 sweepLeftovers();
 
+// Parsing up to 40 pages of a 25 MB book is seconds of CPU on the thread that
+// also draws films and answers everybody else, and nothing stopped an account
+// sending it in a loop. Counted per account, and checked before multer writes
+// the file.
+const scanLimiter = accountLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: 'Too many scans in a short time. Please wait a few minutes.',
+});
+router.scanLimiter = scanLimiter;
+
 // POST /scans — scan a page range of an uploaded PDF and return candidates.
-router.post('/', authenticateToken, upload.single('document'), async (req, res) => {
+router.post('/', authenticateToken, scanLimiter, upload.single('document'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No document sent.' });
   }

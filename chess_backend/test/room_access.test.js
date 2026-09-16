@@ -351,12 +351,32 @@ test('the guest switch is exposed, and refuses a room that is not yours', () => 
   // The column existed for a day with no way to touch it: a rule nobody can
   // see is a rule nobody can rely on. The route reads and writes it, and it
   // refuses a room that is not yours rather than answering `false`.
+  //
+  // Comments stripped and each handler read by itself: the file's comment says
+  // „a plain 403 for anybody else", so matching `/403/` over the file passed
+  // with both refusals turned into `res.json({ allowGuests: false })` — the
+  // exact failure the message names. Audit of 16.9.2026,
+  // `docs/audit/tests.md`, 7.
   const rooms = fs.readFileSync(
-    path.join(__dirname, '..', 'routes', 'rooms.js'), 'utf8');
+    path.join(__dirname, '..', 'routes', 'rooms.js'), 'utf8')
+    .replace(/^\s*\/\/.*$/gm, '');
 
-  assert.match(rooms, /guest-access/, 'nema rute za prekidač koji soba prima goste');
   assert.match(rooms, /setGuestAccess/);
-  assert.match(rooms, /403/, 'tuđa soba mora da bude odbijena, a ne prećutana');
+  for (const method of ['get', 'patch']) {
+    const start = rooms.indexOf(`router.${method}('/:roomCode/guest-access'`);
+    assert.ok(start >= 0, `nema rute ${method.toUpperCase()} za prekidač koji soba prima goste`);
+    const open = rooms.indexOf('{', rooms.indexOf('=>', start));
+    let depth = 0;
+    let end = open;
+    for (; end < rooms.length; end += 1) {
+      if (rooms[end] === '{') depth += 1;
+      if (rooms[end] === '}') depth -= 1;
+      if (depth === 0) break;
+    }
+    const body = rooms.slice(open, end + 1);
+    assert.match(body, /res\.status\(403\)/,
+      `${method.toUpperCase()} guest-access: tuđa soba mora da bude odbijena, a ne prećutana`);
+  }
 });
 
 test('the two ways to be invited both ask who is inviting', () => {

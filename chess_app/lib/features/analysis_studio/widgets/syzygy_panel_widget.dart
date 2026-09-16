@@ -13,11 +13,11 @@ class _CategoryStyle {
 _CategoryStyle _styleFor(SyzygyCategory category) {
   switch (category) {
     case SyzygyCategory.win:
-      return const _CategoryStyle('Pobeda', Colors.greenAccent);
+      return const _CategoryStyle('Win', Colors.greenAccent);
     case SyzygyCategory.cursedWin:
       return const _CategoryStyle('Win (50-move)', Colors.lightGreen);
     case SyzygyCategory.maybeWin:
-      return const _CategoryStyle('Verovatna pobeda', Colors.lightGreenAccent);
+      return const _CategoryStyle('Probable win', Colors.lightGreenAccent);
     case SyzygyCategory.draw:
       return const _CategoryStyle('Draw', Colors.amberAccent);
     case SyzygyCategory.blessedLoss:
@@ -27,7 +27,7 @@ _CategoryStyle _styleFor(SyzygyCategory category) {
     case SyzygyCategory.loss:
       return const _CategoryStyle('Loss', Colors.redAccent);
     case SyzygyCategory.unknown:
-      return const _CategoryStyle('Nepoznato', Colors.grey);
+      return const _CategoryStyle('Unknown', Colors.grey);
   }
 }
 

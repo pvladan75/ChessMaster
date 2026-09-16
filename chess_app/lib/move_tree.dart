@@ -157,7 +157,7 @@ class PgnGameInfo {
   String get displayName {
     final white = headers['White'] ?? 'White';
     final black = headers['Black'] ?? 'Black';
-    final date = headers['Date'] ?? 'Nepoznat datum';
+    final date = headers['Date'] ?? 'Unknown date';
     final result = headers['Result'] ?? '*';
     return '$white vs $black ($date) - [$result]';
   }
@@ -246,7 +246,10 @@ class MoveTree {
       }
     }
 
-    sb.write('${mainChild.san} ');
+    // The mark is written back: the parser keeps `c5??` on the move, and a
+    // writer that drops it strips a reviewed game the first time the room
+    // saves or broadcasts it.
+    sb.write('${mainChild.san}${mainChild.nag ?? ''} ');
 
     _writeComment(mainChild, sb);
 
@@ -261,7 +264,7 @@ class MoveTree {
         sb.write('$moveNum... ');
       }
 
-      sb.write('${varChild.san} ');
+      sb.write('${varChild.san}${varChild.nag ?? ''} ');
 
       _writeComment(varChild, sb);
 

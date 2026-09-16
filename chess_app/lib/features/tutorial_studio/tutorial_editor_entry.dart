@@ -45,7 +45,7 @@ Future<void> openTutorialEditor(
   return Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => Scaffold(
       appBar: AppBar(
-        title: Text(lesson['title']?.toString() ?? 'Koraci tutorijala'),
+        title: Text(lesson['title']?.toString() ?? 'Tutorial parts'),
       ),
       body: LessonStepEditorPanel(
         session: session,

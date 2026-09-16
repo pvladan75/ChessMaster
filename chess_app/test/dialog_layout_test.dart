@@ -21,6 +21,21 @@ void main() {
     expect(tester.takeException(), isNull);
   }
 
+  /// That the dialog drew its main button, inside itself. `takeException` alone
+  /// passes a dialog that was never built — an overflow cannot happen in a widget
+  /// that is not there — and a release build paints none anyway, so what a phone
+  /// actually needs is the button reachable. Audit of 16.9.2026,
+  /// `docs/audit/tests.md`, 9.
+  void expectButtonInside(WidgetTester tester, String label) {
+    final button = find.text(label);
+    expect(button, findsOneWidget);
+    final dialog = tester.getRect(find.byType(AlertDialog));
+    final rect = tester.getRect(button);
+    expect(dialog.contains(rect.topLeft) && dialog.contains(rect.bottomRight),
+        isTrue,
+        reason: '„$label" is drawn outside the dialog: $rect not in $dialog');
+  }
+
   final session = UserSession(
     token: 't',
     id: 1,
@@ -38,6 +53,7 @@ void main() {
         onCourseCreated: () {},
       ),
     );
+    expectButtonInside(tester, 'Save tutorial');
   });
 
   testWidgets('CreateCourseDialog lays out while editing an existing course',
@@ -58,6 +74,7 @@ void main() {
         },
       ),
     );
+    expectButtonInside(tester, 'Save changes');
   });
 
   testWidgets('SavePositionDialog lays out with the label suggestion list',

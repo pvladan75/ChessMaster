@@ -63,9 +63,24 @@ class DrillJudgeResult {
 
 /// Talks to the endgame endpoint.
 class EndgameApiService {
-  EndgameApiService({required this.authToken});
+  EndgameApiService({required this.authToken, http.Client? client})
+      : _client = client;
 
   final String authToken;
+
+  /// Injected by tests, so the requests themselves can be read: every endgame
+  /// test used to override these methods, which proves the screen and nothing
+  /// about the path, the query or the body (audit of 16.9.2026,
+  /// `docs/audit/tests.md`, 8). Null in the app, which keeps the top-level
+  /// `http` calls it always made.
+  final http.Client? _client;
+
+  Future<http.Response> _get(Uri uri) =>
+      _client?.get(uri, headers: _headers) ?? http.get(uri, headers: _headers);
+
+  Future<http.Response> _post(Uri uri, {Object? body}) =>
+      _client?.post(uri, headers: _headers, body: body) ??
+      http.post(uri, headers: _headers, body: body);
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -113,9 +128,7 @@ class EndgameApiService {
     );
 
     try {
-      final res = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 12));
+      final res = await _get(uri).timeout(const Duration(seconds: 12));
 
       if (res.statusCode == 404) {
         return const EndgameFetchResult(EndgameFetchOutcome.noneMatch);
@@ -159,9 +172,7 @@ class EndgameApiService {
     );
 
     try {
-      final res = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 12));
+      final res = await _get(uri).timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) {
         AppLogger.log('[Endgames] Catalog did not arrive (${res.statusCode}).');
         return null;
@@ -202,9 +213,7 @@ class EndgameApiService {
     );
 
     try {
-      final res = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 12));
+      final res = await _get(uri).timeout(const Duration(seconds: 12));
 
       if (res.statusCode == 404) {
         return const GameFetchResult(EndgameFetchOutcome.noneMatch);
@@ -279,9 +288,7 @@ class EndgameApiService {
       queryParameters: {'fen': fen, 'plies': '$plies'},
     );
     try {
-      final res = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 15));
+      final res = await _get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) {
         AppLogger.log('[Endgames] Line did not arrive (${res.statusCode}).');
         return null;
@@ -311,9 +318,7 @@ class EndgameApiService {
       queryParameters: {'fen': fen, 'goal': goal.name},
     );
     try {
-      final res = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 15));
+      final res = await _get(uri).timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) {
         AppLogger.log('[Endgames] Readout did not arrive (${res.statusCode}).');
         return null;
@@ -340,9 +345,7 @@ class EndgameApiService {
     final uri = Uri.parse('$backendUrl/api/puzzles/endgame/play');
 
     try {
-      final res = await http
-          .post(uri,
-              headers: _headers, body: jsonEncode({'fen': fen, 'move': move}))
+      final res = await _post(uri, body: jsonEncode({'fen': fen, 'move': move}))
           .timeout(const Duration(seconds: 15));
 
       if (res.statusCode == 200) {

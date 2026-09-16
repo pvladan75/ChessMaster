@@ -610,12 +610,12 @@ async function getTrainerAssignments(pool, trainerId, { studentId = null } = {})
   }
 
   const result = await pool.query(
-    `SELECT ${PROGRESS_COLUMNS}, u.name AS student_name, u.email AS student_email
+    `SELECT ${PROGRESS_COLUMNS}, u.name AS student_name
      FROM assignments a
      LEFT JOIN assignment_items ai ON ai.assignment_id = a.id
      LEFT JOIN users u ON u.id = a.student_id
      WHERE a.trainer_id = $1 ${filter}
-     GROUP BY a.id, u.name, u.email
+     GROUP BY a.id, u.name
      ORDER BY a.created_at DESC`,
     params
   );

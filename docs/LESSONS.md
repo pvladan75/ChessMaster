@@ -2613,6 +2613,38 @@ the board's `onMove` without moving the controller first — which the real boar
 always does — produced a line whose second move could not play, and a red for
 the wrong reason. The helper plays on the controller, then reports.
 
-**An escaped `\\b` written through a script arrived as a backspace byte**, twice,
+**An escaped `\b` written through a script arrived as a backspace byte**, twice,
 in the contract test's regex — the trap this log already records from
-`gate_english_backend`. `grep -c $'\\x08'` finds it.
+`gate_english_backend`. `grep -c $'\x08'` finds it.
+
+**Block C of the audit, 16.9.2026 — app 2689 with 1 skipped, backend 1374 with
+`.env` moved aside, analyze at 26.** The arithmetic: app 2677 + 3 (room PGN
+marks) + 1 (no-diacritic Serbian words) + 2 (render poller) + 6 (endgame wire);
+backend 1350 + 6 (per-account limits) + 7 (addresses, lists, tokens) + 1
+(verification code source) + 3 (step caps) + 7 (endgame route auth). Thirty-five
+mutations, all caught — three of them only after the test was fixed.
+
+**A 403 is not the 403 you meant.** The narrative's quota test passed with the
+quota deleted, because the route answered 403 for another reason (opponent
+preparation off). It asserts the quota's own `quotaExceeded` now. A status code
+is a category, not an identity.
+
+**A limiter counted by account cannot be told from one counted by address when
+every request in the test comes from one address.** Deleting the account key
+survived until the test sent a second account from the same address and
+expected it through.
+
+**An old test can be a decision, not a bug.** The audit said the step builder
+should refuse long text; `lesson_steps.test.js` said, in a comment, that a
+trainer who pastes a paragraph gets a step, not an error. The fix took the half
+that breaks meaning (a line cut mid-move, a move cut into another) and left the
+decision to the owner rather than overturning it in passing.
+
+**A harness that crashes mid-mutation leaves the mutation behind.** A Python
+print died on a `cp1250` console after writing a mutant into the scratch copy,
+and the next run's baseline read the mutant. Restore in `finally`, and set
+`PYTHONIOENCODING=utf-8` — this log already said the second half once.
+
+**Scripts written through a shell heredoc lose their escapes.** Three times in
+one day: `\b` became a backspace, `\n` a newline, an em dash broke the
+decoder. A script that must carry a backslash is written as a file first.

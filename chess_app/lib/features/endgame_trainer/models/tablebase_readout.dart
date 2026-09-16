@@ -93,14 +93,14 @@ class TablebaseReadout {
   List<ReadoutMove> get dropping => moves.where((m) => !m.holds).toList();
 }
 
-/// How a position's own verdict reads in Serbian.
+/// How a position's own verdict reads on screen.
 String outcomeWord(String outcome) {
   switch (outcome) {
     case 'win':
-      return 'dobitak';
+      return 'win';
     case 'loss':
-      return 'gubitak';
+      return 'loss';
     default:
-      return 'remi';
+      return 'draw';
   }
 }

@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,54 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Ostatak revizije (blok C) — 16.9.2026, u kodu
+
+Srednji i jeftini nalazi sva četiri traga revizije. Svaka ispravka ima test
+viđen crven na starom kodu ili pod mutacijom (ukupno 35 mutacija, sve uhvaćene).
+
+**Server:**
+- **Troškovi tuđih servisa i procesora imaju granicu.** Narativ o protivniku
+  (Gemini) ide kroz mesečnu AI kvotu i 10/min; izveštaj o rupama sa sudijom pita
+  najviše 20 pozicija i ima 10/min; skeniranje PDF-a 20 u 15 min po nalogu;
+  pismo roditelju 5 na sat po nalogu; sličice pregleda 30/min po nalogu
+  (`middleware/accountLimiter.js` — broji po nalogu, ne po adresi, jer đaci
+  jedne škole dele adresu).
+- **Adrese e-pošte više nisu u logu**: pozivi pišu id korisnika, pino ima
+  `redact` za `email`/`parent_email`, a razvojni ispis kodova maskira adresu.
+  Test čita svaki poziv loggera na serveru.
+- Trenerov spisak domaćih više ne nosi adresu učenika.
+- Verifikacioni kod je iz `crypto.randomInt`.
+- Socket token se čita samo iz `auth` rukovanja, ne iz URL-a.
+- Linija duža od 100 KB i potez duži od poteza se **odbijaju** sa brojem, umesto
+  da se odseku u korak koji se ne može odigrati. Naslov i zadatak se i dalje
+  seku, po ranijoj odluci koju testovi čuvaju — vidi pitanje ispod.
+- IP adresa droplet-a uklonjena iz `TODO-objavljivanje.md`.
+
+**Aplikacija:**
+- PGN pisac sobe sada zapisuje `!`/`?` koje čitač čuva.
+- Srpske reči bez dijakritika na ekranima prevedene (trener završnica je pisao
+  „Position: remi"), a `vocabulary_en_test.dart` sada zna i za takve reči.
+- Traka napretka videa se završava kad server odbije posao (4xx) i posle 20
+  neodgovorenih pitanja, umesto da zauvek čeka.
+
+**Testovi koji nisu mogli da padnu:** vlasništvo grupe i trenera sada proverava
+ceo uslov upita; čuvar „nema četvrte kopije" traži `status = 'accepted'` u svakom
+obliku upita; provera 403 za prekidač gostiju čita telo rute bez komentara;
+dijalozi na telefonu proveravaju da je dugme u dijalogu; trener završnica ima
+test žice na obe strane (putanje, parametri, telo, prijava).
+
+Brojke: aplikacija **2677 → 2689**, backend **1350 → 1374**, analyze 26.
+Provera uživo: `TODO-provera.md`, stavka 169.
+
+**Otvoreno, čeka odluku vlasnika:**
+1. `checkUserLimits` se nigde ne poziva — `ENABLE_LIMITS=true` ne menja ništa, a
+   kartica naloga crta „n / 20" i „n / 5". Uvesti ograničenja ili obrisati
+   funkciju, dva entitlementa i brojeve na kartici.
+2. Tajni ključ Play RTDN-a putuje u URL-u (`?key=`) i time u access logu.
+3. Dug naslov ili zadatak: seći (današnja odluka) ili odbiti sa brojem?
+4. `POST /games/mistakes` nema pozivaoca u aplikaciji — dril grešaka nikad ne
+   dobija greške motora, samo iz tablica.
 
 ## Soba iz revizije (blok B) — 16.9.2026, u kodu
 

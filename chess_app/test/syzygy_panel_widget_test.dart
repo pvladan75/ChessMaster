@@ -43,8 +43,8 @@ void main() {
     // it as a "loss" for Black, the side to move after it).
     expect(result.moves.first.san, 'Qg4+');
 
-    expect(find.textContaining('Pobeda'),
-        findsWidgets); // verdict chip: "Pobeda · DTZ 29"
+    expect(find.textContaining('Win'),
+        findsWidgets); // verdict chip: "Win · DTZ 29"
     expect(find.textContaining('Qg4+'), findsOneWidget);
     expect(find.textContaining('Qa4'), findsOneWidget);
 

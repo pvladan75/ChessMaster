@@ -71,7 +71,12 @@ test('an edge only counts once it has been accepted', async () => {
   const pool = stubPool([[{ '?column?': 1 }]]);
   await trainerOwnsStudent(pool, 1, 2);
 
-  assert.match(pool.calls[0].text, /status\s*=\s*'accepted'/);
+  // The whole predicate, not only the status word: `(trainer_id = $1 OR
+  // student_id = $2)` keeps the word and the params and answers „yes" for
+  // anybody who teaches or is taught by anyone. Audit of 16.9.2026,
+  // `docs/audit/tests.md`, 2.
+  assert.match(pool.calls[0].text,
+    /WHERE trainer_id = \$1 AND student_id = \$2 AND status = 'accepted'/);
   assert.deepEqual(pool.calls[0].params, [1, 2]);
 });
 
@@ -480,10 +485,17 @@ test('no call site reads the edge without filtering on status', () => {
     // end: a trainer's own screens ask "who am I teaching", and a copy that
     // forgets the status puts somebody who never answered into a list the
     // trainer then acts on.
+    //
+    // Tightened on 16.9.2026 (audit, `docs/audit/tests.md`, 6). It asked for the
+    // word `status` anywhere, so `status <> 'declined'` passed; and it matched
+    // one spelling of the select, while `roomAccess.js` and
+    // `assignmentService.js` already write `SELECT 1` and aliases. Any select
+    // from the table, with or without an alias, must say the one status that
+    // grants anything.
     const pattern =
-      /SELECT\s+(?:trainer_id|student_id)\s+FROM\s+trainer_students[\s\S]{0,240}?(?=\)|`)/g;
+      /SELECT\s+(?:\w+\.)?(?:trainer_id|student_id|1)\s+FROM\s+trainer_students(?:\s+(?!WHERE)\w+)?[\s\S]{0,240}?(?=\)|`)/g;
     for (const [snippet] of source.matchAll(pattern)) {
-      if (!/status/.test(snippet)) {
+      if (!/status\s*=\s*'accepted'/.test(snippet)) {
         offenders.push(`${path.basename(file)}: ${snippet.replace(/\s+/g, ' ').trim()}`);
       }
     }

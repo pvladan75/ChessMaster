@@ -5,6 +5,7 @@ const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { accountLimiter } = require('../middleware/accountLimiter');
 const { authenticateToken, signDownloadToken } = require('../middleware/auth');
 const { requireEntitlement } = require('../middleware/entitlements');
 const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
@@ -1151,7 +1152,17 @@ router.delete('/export-video/:jobId', authenticateToken, async (req, res) => {
 // Deliberately **not** in the render queue: a preview is one frame's drawing
 // with no ffmpeg, no file and no metering, and the whole point of it is that it
 // answers while a film is being drawn for somebody else.
-router.post('/:id/preview-frames', authenticateToken, requireEntitlement(ENT.MP4_EXPORT), async (req, res) => {
+// Not queued and not metered, on purpose — but not unlimited either: frames are
+// drawn on the thread the queued film is using, and the queue's fairness does
+// not see them.
+const previewLimiter = accountLimiter({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: 'Too many previews in a short time. Please wait a moment.',
+});
+router.previewLimiter = previewLimiter;
+
+router.post('/:id/preview-frames', authenticateToken, previewLimiter, requireEntitlement(ENT.MP4_EXPORT), async (req, res) => {
   try {
     const lessonRes = await pool.query(
       'SELECT id, title FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)',

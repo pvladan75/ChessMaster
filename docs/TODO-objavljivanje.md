@@ -665,7 +665,7 @@ na novijim nalozima drži zatvorenim dok se ne zatraži otvaranje.
 mail.privateemail.com:465   otvoren
 mail.privateemail.com:587   otvoren
 aspmx.l.google.com:25       otvoren
-1.1.1.1:443                 otvoren   <- kontrola
+<reserved-ip>:443                 otvoren   <- kontrola
 ```
 
 I, što je jedino što stvarno dokazuje, **obe poruke koje aplikacija šalje —
@@ -727,7 +727,7 @@ Redosled (odrađeno):
       mašina, pa buduće presipanje servera ne traži izmenu na bazi. Stari droplet
       skinut. (Da je promašeno, backend ne bi mogao do baze, a greška izgleda kao
       pogrešna lozinka.)
-- [x] **Rezervisani IP** `209.38.55.151` zakačen. Napomena: mašina tu adresu
+- [x] **Rezervisani IP** `<reserved-ip>` zakačen. Napomena: mašina tu adresu
       **ne vidi** na svojim interfejsima — DO je rutira spolja, pa sve mora da
       sluša na `0.0.0.0`, nikad na konkretnoj adresi.
 - [x] Kreiran droplet: Ubuntu 26.04 LTS, AMS3, postojeći SSH ključ.

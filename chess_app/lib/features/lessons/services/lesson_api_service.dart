@@ -603,6 +603,19 @@ class LessonApiService {
           error: body['error']?.toString(),
         );
       }
+      // A refusal is an answer: the server looked and will not say otherwise on
+      // the next poll. Until 16.9.2026 every non-200 but 404 was read as „ask
+      // again", so a job id the server rejected kept a frozen bar polling until
+      // it was closed by hand. A server error or a rate limit may pass, and the
+      // dialog counts those instead (audit, `docs/audit/contract.md`, 10).
+      if (res.statusCode >= 400 &&
+          res.statusCode < 500 &&
+          res.statusCode != 429) {
+        return RenderJobStatus(
+          state: RenderJobState.failed,
+          error: body['error']?.toString(),
+        );
+      }
       if (res.statusCode != 200) return null;
       final percent = body['percent'];
       final eta = body['etaSeconds'];

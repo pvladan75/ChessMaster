@@ -2,6 +2,7 @@ const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
@@ -22,8 +23,11 @@ const authLimiter = rateLimit({
 
 router.use(['/register', '/login', '/verify-email', '/auth/verify-email', '/google', '/auth/google'], authLimiter);
 
+/// Six digits from the cryptographic source. The code is the whole proof that
+/// somebody owns an address, and `Math.random()` is predictable; room codes were
+/// moved to `crypto.randomInt` for that reason and this one had been left.
 function generateVerificationCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return String(crypto.randomInt(100000, 1000000));
 }
 
 // POST /register
@@ -58,7 +62,7 @@ router.post('/register', async (req, res) => {
         try {
           await mailService.sendVerificationCode(email, verificationCode, name);
         } catch (mailErr) {
-          logger.error(`Failed to send verification code to ${email}: ${mailErr.message}`);
+          logger.error(`Failed to send verification code to user ${existing.id}: ${mailErr.message}`);
           return res.status(500).json({ error: 'Failed to send verification code. Please contact support.' });
         }
 
@@ -85,7 +89,7 @@ router.post('/register', async (req, res) => {
     } catch (mailErr) {
       // Roll the registration back so the address stays free for a retry.
       await pool.query('DELETE FROM users WHERE id = $1', [insertResult.rows[0].id]);
-      logger.error(`Failed to send verification code to ${email}: ${mailErr.message}`);
+      logger.error(`Failed to send verification code to a new registration: ${mailErr.message}`);
       return res.status(500).json({ error: 'Failed to send verification code. Please contact support.' });
     }
 
@@ -127,7 +131,7 @@ router.post(['/verify-email', '/auth/verify-email'], async (req, res) => {
     // who knew a registered address could take that account over. See
     // `services/emailVerification.js` for the whole reasoning.
     if (outcome === OUTCOME.ALREADY_VERIFIED) {
-      logger.warn({ email }, 'Verification attempted on an already-verified account');
+      logger.warn({ userId: user.id }, 'Verification attempted on an already-verified account');
       return res.status(400).json({
         error: 'This account is already verified. Sign in with your password or Google.',
         alreadyVerified: true,
@@ -168,7 +172,7 @@ router.post(['/verify-email', '/auth/verify-email'], async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    logger.info({ email: verifiedUser.email }, 'User email successfully verified');
+    logger.info({ userId: verifiedUser.id }, 'User email successfully verified');
 
     res.json({
       token,
@@ -326,7 +330,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
         [email, defaultPasswordHash, name || 'User', 'korisnik']
       );
       user = insertResult.rows[0];
-      logger.info('[GOOGLE_AUTH] Created new Google user:', user.email);
+      logger.info(`[GOOGLE_AUTH] Created new Google user ${user.id}`);
     } else {
       user = userResult.rows[0];
 
@@ -343,7 +347,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
       // goes, and the account becomes a Google account.
       if (!user.is_verified) {
         logger.warn(
-          { email: user.email },
+          { userId: user.id },
           '[GOOGLE_AUTH] Adopting an unverified account: password cleared, nobody had proven this address'
         );
         await pool.query(
@@ -358,7 +362,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
           [user.id]
         );
       }
-      logger.info('[GOOGLE_AUTH] Found existing Google user:', user.email);
+      logger.info(`[GOOGLE_AUTH] Found existing Google user ${user.id}`);
     }
 
     const token = jwt.sign(

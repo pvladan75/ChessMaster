@@ -115,7 +115,10 @@ async function run({
     // `authenticateToken` is skipped and the user is set by hand, exactly as
     // `tutorial_video_export.test.js` does: this file is about the preview, and
     // signing a JWT here would test the middleware a hundred other routes share.
-    const stack = handlers();
+    // The per-account limiter (16.9.2026) is skipped by identity, like the
+    // authentication: it is pinned in `account_rate_limits.test.js`, and a
+    // limiter counting this file's calls would make the tests depend on order.
+    const stack = handlers().filter((h) => h !== lessonsRouter.previewLimiter);
     assert.equal(stack.length, 3,
       'route must carry authenticateToken, requireEntitlement and the handler');
 

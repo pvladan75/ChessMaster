@@ -211,3 +211,26 @@ test('nothing rebuilds this fallback on its own', () => {
 
   assert.deepEqual(offenders, [], 'these resolve the steps of a lesson themselves');
 });
+
+test('a line over its cap is refused with the number, never cut into a line that does not replay', () => {
+  // Audit of 16.9.2026, `docs/audit/contract.md`, 9. Prose may be cut (the test
+  // above); a line may not — cut mid-move, it is a step the student's board
+  // cannot play, stored past the app's own read-back.
+  const built = buildLessonStep({ fen: FEN, pgn: `1. e4 { ${'x'.repeat(100000)} }` });
+  assert.equal(built.ok, false);
+  assert.equal(built.status, 400);
+  assert.match(built.error, /100\d{3} characters long; a part can hold at most 100000/);
+});
+
+test('a line at its cap is kept whole', () => {
+  const pgn = `1. e4 { ${'x'.repeat(99980)} }`;
+  const built = buildLessonStep({ fen: FEN, pgn });
+  assert.equal(built.ok, true);
+  assert.equal(built.entry.pgn, pgn);
+});
+
+test('a solution or a correct move longer than a move can be is refused, not cut into another move', () => {
+  const solution = buildLessonStep({ fen: FEN, kind: 'ask_move', solutionSan: 'Ra1'.padEnd(25, '!') });
+  assert.equal(solution.ok, false);
+  assert.match(solution.error, /The solution is 25 characters long/);
+});

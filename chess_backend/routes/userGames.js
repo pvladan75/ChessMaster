@@ -22,6 +22,8 @@ const {
 } = require('../services/scanTempFiles');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { requireQuota, refundQuota } = require('../middleware/entitlements');
+const { ENT } = require('../services/entitlementService');
 const {
   createArchiveImporter, ArchiveImportUnavailable,
 } = require('../services/gameArchiveImport');
@@ -97,6 +99,39 @@ const importLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many import attempts. Please wait a bit.' },
 });
+
+// Two routes here spend somebody else's service per request, and until the
+// audit of 16.9.2026 neither had a limit (`docs/audit/server.md`, 9). The
+// narrative calls Gemini, whose key has a daily allowance a single account in a
+// loop could empty for every AI comment in the app; it now counts against the
+// same monthly quota as every other AI comment. A leaks report with `judge=true`
+// asked the opening judge about up to 200 positions per call, around the judge's
+// own limiter; the count is capped and the calls are limited like the judge.
+const narrativeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many AI requests. Please wait a moment.' },
+});
+
+const leaksJudgeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => String(req.query?.judge) !== 'true',
+  message: { error: 'Too many requests to judge moves. Please wait a moment.' },
+});
+
+/// How many positions one leaks report may ask the judge about.
+const MAX_JUDGED_POSITIONS = 20;
+
+function judgeLimitOf(query) {
+  const asked = Number(query?.judgeLimit);
+  const wanted = Number.isFinite(asked) && asked > 0 ? Math.floor(asked) : 10;
+  return Math.min(wanted, MAX_JUDGED_POSITIONS);
+}
 
 function fail(res, err, whatFailed) {
   if (err instanceof ArchiveImportUnavailable) {
@@ -264,7 +299,7 @@ router.post('/prep/import', authenticateToken, importLimiter, async (req, res) =
 // sentence — all return the report's own summary with `narrative: null` and a
 // named reason. The table was always the answer; the sentence is decoration,
 // and decoration must not take the thing it decorates down with it.
-router.get('/prep/narrative', authenticateToken, async (req, res) => {
+router.get('/prep/narrative', narrativeLimiter, authenticateToken, requireQuota(ENT.AI_COMMENTS), async (req, res) => {
   const q = req.query ?? {};
   const handle = String(q.subject || '').trim();
   if (!handle) return res.status(400).json({ error: 'Username is missing.' });
@@ -276,6 +311,7 @@ router.get('/prep/narrative', authenticateToken, async (req, res) => {
     // about people it already fetched.
     const own = await isOwnSubject(pool, req.user.id, handle);
     if (!own && !policyFrom().enabled) {
+      await refundQuota(req);
       return res.status(403).json({
         error: 'Opponent preparation is not enabled on this server.',
         reason: 'disabled',
@@ -288,6 +324,8 @@ router.get('/prep/narrative', authenticateToken, async (req, res) => {
       limit: q.limit,
     });
     const said = await narrator.narrate(report);
+    // A report with no sentence cost the account nothing it could use.
+    if (!said || said.narrative == null) await refundQuota(req);
 
     return res.json({
       subject: handle,
@@ -297,6 +335,7 @@ router.get('/prep/narrative', authenticateToken, async (req, res) => {
       ...said,
     });
   } catch (err) {
+    await refundQuota(req);
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
     return fail(res, err, 'Opponent narrative is not available.');
   }
@@ -335,7 +374,7 @@ router.get('/imports/:id', authenticateToken, async (req, res) => {
 // A judge that cannot answer does not take the report down with it. The
 // numbers were computed before anything was asked of Lichess, and this codebase
 // has twice shipped a bug where the message about the work killed the work.
-router.get('/openings/leaks', authenticateToken, async (req, res) => {
+router.get('/openings/leaks', leaksJudgeLimiter, authenticateToken, async (req, res) => {
   const q = req.query ?? {};
   try {
     const report = await leakReport(pool, req.user.id, {
@@ -350,9 +389,7 @@ router.get('/openings/leaks', authenticateToken, async (req, res) => {
     });
 
     if (String(q.judge) === 'true') {
-      report.judge = await annotate(report.nodes, {
-        limit: Number(q.judgeLimit) > 0 ? Number(q.judgeLimit) : 10,
-      });
+      report.judge = await annotate(report.nodes, { limit: judgeLimitOf(q) });
     }
     return res.json(report);
   } catch (err) {
@@ -504,5 +541,9 @@ router.get('/:id/moves', authenticateToken, async (req, res, next) => {
     return res.status(500).json({ error: 'The game is not available.' });
   }
 });
+
+router.narrativeLimiter = narrativeLimiter;
+router.leaksJudgeLimiter = leaksJudgeLimiter;
+router.judgeLimitOf = judgeLimitOf;
 
 module.exports = router;

@@ -31,6 +31,6 @@ class PreviewAssignmentApiService extends AssignmentApiService {
     required int assignmentId,
     required int position,
   }) async {
-    return const StepRevealResult(solutionSan: 'Pregled');
+    return const StepRevealResult(solutionSan: 'Preview');
   }
 }

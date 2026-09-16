@@ -209,3 +209,24 @@ test('an unverified account with the right password is asked to verify, not sign
     assert.equal(r.body.token, undefined);
   });
 });
+
+test('a verification code comes from the cryptographic source', async () => {
+  // The code is the whole proof that somebody owns an address. Pinned by
+  // standing in for `crypto.randomInt` — if the route drew from
+  // `Math.random()` the mailed code would not be the one handed out here.
+  const crypto = require('crypto');
+  const original = crypto.randomInt;
+  crypto.randomInt = (min, max) => {
+    assert.equal(min, 100000);
+    assert.equal(max, 1000000);
+    return 424242;
+  };
+  try {
+    await withServer(async ({ lastCode }) => {
+      await call('/register', { email: ADDRESS, password: 'owner-password', name: 'Owner' });
+      assert.equal(lastCode(), '424242');
+    });
+  } finally {
+    crypto.randomInt = original;
+  }
+});

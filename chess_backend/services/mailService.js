@@ -37,7 +37,7 @@ async function sendVerificationCode(email, code, name) {
     if (isProduction) {
       throw new Error('Email delivery is not configured on this server.');
     }
-    logger.warn(`[MAIL][DEV ONLY] Verification code for ${email}: ${code}`);
+    logger.warn(`[MAIL][DEV ONLY] Verification code for ${logger.maskEmail(email)}: ${code}`);
     return { delivered: false, devFallback: true };
   }
 
@@ -54,7 +54,7 @@ async function sendVerificationCode(email, code, name) {
       `<p>The code is valid for 15 minutes. If you did not request registration, ignore this message.</p>`,
   });
 
-  logger.info(`[MAIL] Verification code sent to ${email}`);
+  logger.info(`[MAIL] Verification code sent to ${logger.maskEmail(email)}`);
   return { delivered: true, devFallback: false };
 }
 
@@ -111,7 +111,7 @@ ${link}
     if (isProduction) {
       throw new Error('Email delivery is not configured on this server.');
     }
-    logger.warn(`[MAIL][DEV ONLY] Link za saglasnost (${email}): ${link}`);
+    logger.warn(`[MAIL][DEV ONLY] Link za saglasnost (${logger.maskEmail(email)}): ${link}`);
     return { delivered: false, devFallback: true };
   }
 
@@ -133,7 +133,7 @@ ${link}
       + `ne morate ništa da uradite.</p>`,
   });
 
-  logger.info(`[MAIL] Parent consent request sent to ${email}`);
+  logger.info(`[MAIL] Parent consent request sent to ${logger.maskEmail(email)}`);
   return { delivered: true, devFallback: false };
 }
 

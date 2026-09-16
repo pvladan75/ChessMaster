@@ -18,6 +18,7 @@ const router = express.Router();
 const logger = require('./../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { accountLimiter } = require('../middleware/accountLimiter');
 const {
   ageOfConsent,
   isUnderMinimumAge,
@@ -200,7 +201,18 @@ async function notifyTrainersOfStatedAge(studentId, studentName) {
 /// relationship that stopped at `awaiting_parent` because no address was on
 /// file would sit there forever with the address now filled in and nobody
 /// asked — a step that skipped silently, which is this codebase's oldest bug.
-router.post('/me/parent-email', authenticateToken, async (req, res) => {
+// Every call mails the address it names, with the caller's and the trainer's
+// names in the letter. Unlimited, that was a relay for unsolicited mail from
+// this project's sender to any address. Five an hour leaves room for a typo and
+// a retry after a failed send.
+const parentEmailLimiter = accountLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: 'Too many attempts to send the parent\'s letter. Please try again later.',
+});
+router.parentEmailLimiter = parentEmailLimiter;
+
+router.post('/me/parent-email', authenticateToken, parentEmailLimiter, async (req, res) => {
   const { email, error } = parseParentEmail(req.body?.parentEmail);
   if (error) return res.status(400).json({ error });
 

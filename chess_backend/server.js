@@ -32,7 +32,7 @@ const consentRoutes = require('./routes/consent');
 const trainerPanelRoutes = require('./routes/trainerPanel');
 const userGamesRoutes = require('./routes/userGames');
 const mistakeDrillRoutes = require('./routes/mistakeDrill');
-const { authenticateToken, requireRole, authenticateSocket } = require('./middleware/auth');
+const { authenticateToken, requireRole, authenticateSocket, tokenFromHandshake } = require('./middleware/auth');
 const entitlementService = require('./services/entitlementService');
 const realtime = require('./services/realtime');
 const { mayJoinRoom, maySpeakInRoom } = require('./services/roomAccess');
@@ -204,7 +204,7 @@ async function flushAudioUsage(socket) {
 // socket.data.user is the ONLY trusted identity — client-supplied userId/role in event
 // payloads is treated as a hint at best and never as authorization.
 io.use(async (socket, next) => {
-  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  const token = tokenFromHandshake(socket.handshake);
   try {
     socket.data.user = await authenticateSocket(token);
     next();

@@ -91,6 +91,10 @@ final Map<String, dynamic> _emptyTutorialRow = {
 /// by changing it, the way the server would.
 class _Render {
   String status = 'done';
+
+  /// What the progress route answers with. Not 200 is a server that refuses
+  /// (4xx) or cannot say (5xx) — the two ways a poll used to freeze the bar.
+  int progressStatus = 200;
   int percent = 0;
   int? etaSeconds;
   int queuedAhead = 0;
@@ -181,6 +185,13 @@ class _TestLessonApi extends LessonApiService {
         );
       }
       if (req.method == 'GET' && _isProgress(req)) {
+        if (job.progressStatus != 200) {
+          return http.Response(
+            jsonEncode({'error': 'Invalid render job.'}),
+            job.progressStatus,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
         return http.Response(
           jsonEncode(job.toJson()),
           200,
@@ -1564,6 +1575,64 @@ void main() {
     expect(find.text('Video ready!'), findsOneWidget);
     expect(find.textContaining('token=fresh'), findsOneWidget,
         reason: 'the link is the one the progress route minted just now');
+  });
+
+  testWidgets(
+      'a progress route that refuses the job ends the bar with its sentence',
+      (tester) async {
+    // Audit of 16.9.2026, `docs/audit/contract.md`, 10: any answer but 200 and
+    // 404 was read as „still drawing", so the bar froze and polled for ever.
+    final requests = <http.Request>[];
+    final render = _Render()
+      ..status = 'running'
+      ..percent = 30
+      ..progressStatus = 400;
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: false,
+      render: render,
+    );
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija', settle: false);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Exporting video'), findsNothing);
+    expect(find.text('Invalid render job.'), findsOneWidget);
+  });
+
+  testWidgets(
+      'a progress route that keeps failing ends the bar after a run of silence',
+      (tester) async {
+    final requests = <http.Request>[];
+    final render = _Render()
+      ..status = 'running'
+      ..percent = 30
+      ..progressStatus = 500;
+    final api = _TestLessonApi(
+      requests: requests,
+      ttsAvailable: false,
+      render: render,
+    );
+
+    await openList(tester, api: api);
+    await startExport(tester, 'Opozicija', settle: false);
+
+    // One failed poll is a hiccup, and the bar stays.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(find.text('Exporting video'), findsOneWidget);
+
+    for (var i = 0; i < maxUnansweredPolls + 2; i++) {
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.text('Exporting video'), findsNothing,
+        reason: 'a server that never answers must not leave the bar polling');
+    expect(find.textContaining('stopped answering'), findsOneWidget);
   });
 
   testWidgets('1080p is asked for by a switch, and remembered', (tester) async {
