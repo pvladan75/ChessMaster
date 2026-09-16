@@ -2,17 +2,18 @@
 
 This document defines core rules, architectural guidelines, and constraints for all AI agents and subagents working in this codebase.
 
+**`CLAUDE.md` is the authority.** This file condenses the parts a worker needs
+while editing; where the two disagree, `CLAUDE.md` wins and this file is stale.
+Rewritten 16.9.2026, when it was found still describing the app as Serbian and
+for children — both untrue since the English pivot (8–9.9.2026).
+
 ---
 
 ## 1. Domain & Language Rules
-- **Target Audience**: Children (ages 7–14) learning chess and chess trainers/coaches.
-- **Language**: All user-facing strings, UI labels, tooltips, dialogs, and button copy **must be in Serbian Latin (sr-Latn)**.
-- **Domain Terminology**:
-  - `Trening` (Training/Drills): Practice drills, puzzle sets, endgame exercises whose progress is saved.
-  - `Lekcija` (Lesson): Structured courses with ordered steps created and assigned by a trainer.
-  - `Repertoar` (Repertoire): Opening move tree built and evaluated position-by-position.
-  - `Potez` (Move), `Mat` (Checkmate), `Šah` (Check), `Remi` (Draw), `Završnica` (Endgame), `Taktika` (Tactics), `Otvaranje` (Opening).
-  - **Never modify user-facing Serbian copy** without explicit user instruction. Preserve all existing copy verbatim.
+- **Audience**: students aged **13 and older** (General Audience) and their trainers. Say *student* or *reader*, never *child*.
+- **Language**: the app and the server are **English only**, with no i18n layer. Serbian survives only in: voice vocabularies for speech (`SpeechVocabulary`), `routes/consent.js` and the parent-consent mail, and the legal texts in `docs/`.
+- **Vocabulary**: `docs/GLOSSARY-EN.md` is the frozen glossary; `test/vocabulary_en_test.dart` and `test/screen_names_en_test.dart` enforce it. **Tutorial** is the artefact a trainer writes; **Session** is the live lesson in a room; *studio* names one screen. In code, `lesson` still means the tutorial — the table, wire type and routes are deliberately not renamed.
+- **Never reword existing user-facing copy** unless the brief says so.
 
 ---
 
@@ -77,9 +78,9 @@ which is the authority — read it when any of these is in play.
 
 ## 4. Testing & Verification Rules
 - **Unit & Widget Tests**:
-  - `flutter test` must pass all 767+ standard tests.
+  - `flutter test` must pass; the current count is in `CLAUDE.md` under "Commands" — a lower number is a regression until explained.
   - Golden screenshot tests are tagged with `@Tags(['golden'])` and configured in `dart_test.yaml` so they stay as visual review artifacts and are skipped during regular CI test runs.
   - To run/update goldens: `flutter test --tags golden --run-skipped --update-goldens test/design_gallery_golden_test.dart`.
 - **Static Analysis**:
   - `flutter analyze` must produce **0 errors** and **0 warnings**.
-  - Baseline info issues (29 pre-existing `curly_braces_in_flow_control_structures`) must not be increased.
+  - Baseline info issues (26 pre-existing `curly_braces_in_flow_control_structures`, see `CLAUDE.md`) must not be increased, and nothing new may be suppressed with an `ignore`.

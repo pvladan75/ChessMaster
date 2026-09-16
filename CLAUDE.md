@@ -191,10 +191,13 @@ being.
 
 **Language:** the user writes in Serbian and reads English, so **reply in
 English** and write new `docs/` in English. Code comments and commit messages
-are English, as before. Two things stay Serbian no matter what: user-facing
-strings in the app, because the users are Serbian children and trainers, and the
-legal texts (`docs/politika-privatnosti.md`, `docs/saglasnost-roditelja.md`),
-because a lawyer approved that exact wording for Serbia. The existing Serbian
+are English, as before. **The app and the server are English only** since the
+pivot of 8–9.9.2026, with no i18n layer; `docs/GLOSSARY-EN.md` is the
+vocabulary and two tests enforce it. What stays Serbian is deliberate and short:
+voice vocabularies for speech, `routes/consent.js` and the parent-consent mail,
+server logs, the role values in `db.js`, and the legal texts
+(`docs/politika-privatnosti.md`, `docs/saglasnost-roditelja.md`), because a
+lawyer approved that exact wording for Serbia. The existing Serbian
 docs stay Serbian — follow whichever register a file already uses, and translate
 one only when asked to.
 
