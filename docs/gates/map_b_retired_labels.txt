@@ -1,0 +1,40 @@
+# Labels the reorganisation removes — the manual must not quote them.
+#
+# One per line, exact. manual_places_test fails a page that quotes one. The
+# same words are asserted gone from chess_app/lib by docs/gates/
+# analysis_teach_door_test.dart (phase 1) and home_map_test.dart (phase 2);
+# this file exists because the manual is written before those phases merge,
+# so the labels are still in lib and manual_labels_test alone cannot see the
+# problem. Deleted with map_b_labels.txt when phase 5 merges.
+#
+# Phase 1 — Analysis
+Create step from this position
+Edit tutorial steps
+Create interactive tutorial
+What are we transferring to the tutorial?
+Position only
+Whole line
+# Phase 2 — the room, dead UI, names
+Create tutorial (multiple positions)
+Edit positions
+Schedule a Session
+Open Preparation with an empty board
+Interactive tutorials
+Library of positions and tutorials
+Recorded material
+You have no saved material.
+Friends & Contacts
+Save current tutorial / position
+Tutorial / position name
+Tutorials and positions
+Set up position (Board Setup)
+Save current position
+Import PGN (file or text)
+New Session
+Start a session as host or schedule a time for students.
+Scan positions
+My saved positions
+# Phase 5 — the old tabs, as tab names (Library survives as the shelf's name)
+Training
+Sessions
+People

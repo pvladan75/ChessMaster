@@ -1,0 +1,52 @@
+# Labels the manual may quote before the app has them — docs/PLAN-REORGANIZACIJA.md, Variant B.
+#
+# One per line, exact. The manual batch (TASK-prirucnik-b.md) writes against
+# the map phases 2–5 build; manual_labels_test accepts a quoted label if it is
+# a string literal in chess_app/lib OR a line here. Phase 5 makes every one of
+# these a literal, then DELETES this file and the allowance in the test — a
+# label that stays here after phase 5 is a label the app never got.
+#
+# The tabs
+Home
+Practise
+Analyse
+Teach
+# Home — the blocks
+Resume
+Today
+To review
+Set for me
+Due for review
+Join a session
+All recordings
+# Teach — the cards and headings
+Tutorials
+Students
+Library
+Groups
+Send a request
+Progress
+Start
+# The library's kind chips
+All
+Positions
+Analyses
+Puzzle sets
+# Row actions
+Open
+Send
+# Names decided for phase 2 (in the app once that phase merges)
+New session
+Open a room and invite your student.
+Recordings
+No recordings yet.
+Students and trainers
+Relationship ended.
+Save position
+Position name
+Enter a name.
+Position saved.
+Scan a book
+Set up position
+Import PGN
+Board
