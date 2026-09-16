@@ -37,6 +37,7 @@ import 'package:chess_app/features/analysis_studio/services/opening_explorer_ser
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/teach_menu.dart';
 import 'package:chess_app/core/models/tactical_motif.dart';
 import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
@@ -240,7 +241,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// The toolbar's actions, as icons on a wide screen and behind a menu on a
   /// narrow one.
   ///
-  /// There are nine of them. An `AppBar` does not wrap or scroll its actions —
+  /// There are ten of them. An `AppBar` does not wrap or scroll its actions —
   /// it clips them, silently — so on a phone the last two were simply not
   /// reachable: "Settings" and "Setup Position / PGN" sat past the right
   /// edge with nothing to say they were there. Reported from a phone on
@@ -258,24 +259,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           'Extend branch (engine best line)', _showQuickExtendDialog),
       _ToolAction(Icons.extension, context.colors.accent, 'Saved puzzle sets',
           _showSavedPuzzleSetsDialog),
-      _ToolAction(Icons.add_task, context.colors.success,
-          'Create step from this position', _createStepFromPosition),
-      _ToolAction(Icons.edit_note, context.colors.success,
-          'Edit tutorial steps', _editLessonSteps),
-      // The one door to the authoring screen, and it is not drawn where that
-      // screen does not exist — decision 5 of docs/PLAN-TUTORIJAL.md. It
-      // replaces neither of the two above: those add one position to something
-      // that already exists, this one starts a tutorial from nothing.
-      if (isTutorialStudioAvailable)
-        _ToolAction(Icons.auto_stories, context.colors.success,
-            'Create interactive tutorial', _openTutorialStudio),
-      // Phase 4 of docs/PLAN-SKELET.md: the whole game turned into a tutorial
-      // by the engine and the words route. Drawn where the studio is, because
-      // the tutorial opens there — and an archive game reaches it by opening
-      // here (D4).
-      if (isTutorialStudioAvailable)
-        _ToolAction(Icons.school, context.colors.success,
-            'Make a tutorial from this game', _makeTutorialFromGame),
+      // S2 of docs/PLAN-REORGANIZACIJA.md: the four doors into teaching
+      // material — two "add to a tutorial" actions and two "start a new
+      // tutorial" actions, the latter pair drawn only where the studio
+      // exists — became one door and one sheet (`TeachMenuSheet`), and the
+      // question of which of the six flows is asked inside it, after the tap.
+      _ToolAction(Icons.school, context.colors.success, 'Use in a tutorial',
+          _openTeachMenu),
       _ToolAction(Icons.share, context.colors.info, 'Export PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Saved analyses',
           _showSavedAnalysesDialog),
@@ -1120,7 +1110,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// There is a choice here because both answers are things a trainer wants: a
   /// lesson about the opposition is the whole line from the diagram, and a
   /// lesson about the position five moves in is what follows *it*. There used
-  /// to be no choice and no question — see [_createStepFromPosition].
+  /// to be no choice and no question — see [_addToTutorial].
   ///
   /// Whichever is picked, the step's `fen` and its `pgn` come from the same
   /// node. That is the entire point of the type.
@@ -1186,64 +1176,39 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     }
   }
 
-  /// Saves the position — and the line that runs through it — as one lesson
-  /// step.
-  ///
-  /// The step is one step, not one per half-move: the viewer replays a `pgn`
-  /// and shows each move's comment and arrows as the student walks it.
-  ///
-  /// What it did before, and why the check below exists: it sent
-  /// `_currentNode.fen` as the position and the whole tree from `_rootNode` as
-  /// the line. Standing anywhere but the root, those two describe different
-  /// games — and `MoveTree.parsePgn` skips a move it cannot play without a
-  /// word, so the student's screen showed a still picture and the trainer was
-  /// told the step had been saved. Two things fix it: one node answers for
-  /// both fields, and the step is read back here before it is sent.
+  /// Opens the one door into teaching material — S2 of
+  /// `docs/PLAN-REORGANIZACIJA.md`. The sheet asks which of the six flows the
+  /// trainer wants; every callback below is one of the three flows this
+  /// screen used to reach with a separate bar action each.
+  Future<void> _openTeachMenu() => showTeachMenu(
+        context,
+        hasLine: _currentNode.children.isNotEmpty,
+        hasGame: _rootNode.children.isNotEmpty,
+        studioAvailable: isTutorialStudioAvailable,
+        onNewFromPosition: () => _openTutorialStudio(wholeLine: false),
+        onNewFromLine: () => _openTutorialStudio(wholeLine: true),
+        onNewFromGame: _makeTutorialFromGame,
+        onAddPosition: () => _addToTutorial(anchor: _currentNode),
+        onAddLine: _addLineToTutorial,
+        onEdit: _editLessonSteps,
+      );
+
   /// Hands the line worked out here over to the tutorial studio.
   ///
-  /// The whole point of the door is that a line reached with the engine becomes
-  /// a tutorial **without being retyped**, so the tree travels and not only a
-  /// FEN. Which of the two is asked here rather than guessed: standing on a
-  /// position with nothing after it, both answers are the same and the question
-  /// is not worth asking.
-  Future<void> _openTutorialStudio() async {
+  /// The whole point of the door is that a line reached with the engine
+  /// becomes a tutorial **without being retyped**, so the tree travels and
+  /// not only a FEN. [wholeLine] used to be asked here with a dialog; the
+  /// question is now the sheet's own two rows — "New tutorial from this
+  /// position" and "New tutorial from this line" — so this method only acts
+  /// on the answer.
+  Future<void> _openTutorialStudio({required bool wholeLine}) async {
     final blackOrientation = _orientation == PlayerColor.black;
-    var handover = TutorialHandover.position(_currentNode.fen,
-        blackOrientation: blackOrientation);
-
-    if (_currentNode.children.isNotEmpty) {
-      final wholeLine = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('What are we transferring to the tutorial?'),
-          content: const Text(
-            'You can take just the position from the board, or the whole line going '
-            'from here — with the variations and comments you wrote.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Position only'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Whole line'),
-            ),
-          ],
-        ),
-      );
-      if (wholeLine == null || !mounted) return;
-      if (wholeLine) {
-        handover = TutorialHandover.tree(_currentNode,
+    final handover = wholeLine
+        ? TutorialHandover.tree(_currentNode,
+            blackOrientation: blackOrientation)
+        : TutorialHandover.position(_currentNode.fen,
             blackOrientation: blackOrientation);
-      }
-    }
 
-    if (!mounted) return;
     final intoOpenDraft = await askTutorialDestination(context);
     if (intoOpenDraft == null || !mounted) return;
 
@@ -1258,12 +1223,24 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     ));
   }
 
-  Future<void> _createStepFromPosition() async {
+  /// Saves [anchor] — and the line that runs through it — as one lesson step.
+  /// The shared body behind the sheet's "Add this position" (anchor:
+  /// `_currentNode`, no question) and "Add this line" ([_askStepAnchor] asks
+  /// From here / From start of line first) rows.
+  ///
+  /// The step is one step, not one per half-move: the viewer replays a `pgn`
+  /// and shows each move's comment and arrows as the student walks it.
+  ///
+  /// What it did before, and why the check below exists: it sent
+  /// `_currentNode.fen` as the position and the whole tree from `_rootNode` as
+  /// the line. Standing anywhere but the root, those two describe different
+  /// games — and `MoveTree.parsePgn` skips a move it cannot play without a
+  /// word, so the student's screen showed a still picture and the trainer was
+  /// told the step had been saved. Two things fix it: one node answers for
+  /// both fields, and the step is read back here before it is sent.
+  Future<void> _addToTutorial({required AnalysisNode anchor}) async {
     final library = PositionLibraryService(authToken: widget.userSession.token);
     final lessons = LessonApiService(authToken: widget.userSession.token);
-
-    final anchor = await _askStepAnchor();
-    if (anchor == null || !mounted) return;
 
     final course = await showDialog(
       context: context,
@@ -1310,6 +1287,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 backgroundColor: context.colors.success,
               ));
     }
+  }
+
+  /// "Add this line to a tutorial…": asks where the line begins, then runs
+  /// the shared body in [_addToTutorial].
+  Future<void> _addLineToTutorial() async {
+    final anchor = await _askStepAnchor();
+    if (anchor == null || !mounted) return;
+    await _addToTutorial(anchor: anchor);
   }
 
   void _exportPgn() {

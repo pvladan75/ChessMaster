@@ -413,7 +413,9 @@ void main() {
           .readAsStringSync();
       // Asserted on the answer rather than on the file, so a failure says what
       // is missing instead of printing 2400 lines of screen at whoever ran it.
-      expect(studio.contains('Create interactive tutorial'), isTrue,
+      // Since phase 1 of docs/PLAN-REORGANIZACIJA.md (S2) the door is the
+      // teach menu sheet, not a bar action of its own.
+      expect(studio.contains('showTeachMenu('), isTrue,
           reason: 'the Studio has no door to the tutorial studio');
       expect(studio.contains('isTutorialStudioAvailable'), isTrue,
           reason: 'the Studio draws the door on Android too');
