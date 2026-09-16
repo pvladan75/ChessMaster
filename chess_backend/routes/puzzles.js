@@ -14,9 +14,61 @@ const {
 const endgameDrill = require('../services/endgameDrill');
 const { tablebase, TablebaseUnavailable } = require('../services/tablebaseService');
 const assignmentService = require('../services/assignmentService');
+const puzzleProgress = require('../services/puzzleProgress');
 const geminiService = require('../geminiService');
 
 const isProduction = process.env.NODE_ENV === 'production';
+
+// The `{ puzzle: {...} }` shape of /puzzles/next, shared with
+// /puzzles/by-id?source=mate_puzzle|winning_position so the two callers
+// cannot drift into two field lists for the same row.
+function buildPuzzlePayload(puzzle) {
+  return {
+    puzzle_id: puzzle.puzzle_id,
+    source: puzzle.source,
+    fen: puzzle.fen,
+    side_to_move: puzzle.side_to_move,
+    eval: puzzle.eval,
+    eval_value: puzzle.eval_value,
+    type: puzzle.type,
+    mate_depth: puzzle.mate_depth,
+    winning_move_uci: puzzle.winning_move_uci,
+    winning_move_san: puzzle.winning_move_san,
+    solutions: puzzle.solutions || {},
+    moves: [puzzle.winning_move_uci],
+    rating: 1500,
+    themes: [puzzle.type],
+  };
+}
+
+// The `{ endgame: {...} }` shape of /puzzles/endgame/next, shared with
+// /puzzles/by-id?source=endgame for the same reason.
+function buildEndgamePayload(item) {
+  return {
+    puzzle_id: item.puzzle_id,
+    fen: item.fen,
+    type: item.endgame_type,
+    mode: item.mode,
+    side_to_move: item.side_to_move,
+    winning_moves: item.winning_moves,
+    solution: item.solution,
+    solution_san: item.solution_san,
+    difficulty: item.difficulty,
+    difficulty_score: item.difficulty_score,
+    piece_count: item.piece_count,
+    pawn_count: item.pawn_count,
+    source: item.source,
+    material: item.material,
+    blunder_elo: item.blunder_elo,
+    played_move: item.played_move,
+    evaluation: item.evaluation,
+    wdl: item.wdl,
+    dtz: item.dtz,
+    game: item.game_white
+      ? { white: item.game_white, black: item.game_black, date: item.game_date }
+      : null,
+  };
+}
 
 // /puzzles/log is reachable without a session and the client also uses it as a
 // connectivity check, so it is capped per-IP.
@@ -97,24 +149,7 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
     }
 
     const puzzle = puzzleRes.rows[0];
-    const responsePayload = {
-      puzzle: {
-        puzzle_id: puzzle.puzzle_id,
-        source: puzzle.source,
-        fen: puzzle.fen,
-        side_to_move: puzzle.side_to_move,
-        eval: puzzle.eval,
-        eval_value: puzzle.eval_value,
-        type: puzzle.type,
-        mate_depth: puzzle.mate_depth,
-        winning_move_uci: puzzle.winning_move_uci,
-        winning_move_san: puzzle.winning_move_san,
-        solutions: puzzle.solutions || {},
-        moves: [puzzle.winning_move_uci],
-        rating: 1500,
-        themes: [puzzle.type]
-      }
-    };
+    const responsePayload = { puzzle: buildPuzzlePayload(puzzle) };
 
     logger.info('\n=================== ♟️ [TRAINING LOG - BACKEND TERMINAL] ===================');
     logger.info(`[1] MOD: ${puzzle.type === 'mate_puzzle' ? `Zagonetke: Mat u ${puzzle.mate_depth || 1} poteza` : 'Pronađite dobitni put'}`);
@@ -258,38 +293,7 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
     }
 
     const item = result.rows[0];
-    res.json({
-      endgame: {
-        puzzle_id: item.puzzle_id,
-        fen: item.fen,
-        type: item.endgame_type,
-        mode: item.mode,
-        side_to_move: item.side_to_move,
-        // Every move that holds the result. The client must accept any of them:
-        // in 68% of mined positions there is more than one.
-        winning_moves: item.winning_moves,
-        solution: item.solution,
-        solution_san: item.solution_san,
-        difficulty: item.difficulty,
-        difficulty_score: item.difficulty_score,
-        piece_count: item.piece_count,
-        pawn_count: item.pawn_count,
-        // Exact where it came from a tablebase, an engine estimate otherwise.
-        source: item.source,
-        // Where the position came from, when it came from a real mistake:
-        // the table it belongs to, how strong the player who erred was, and
-        // what they played instead.
-        material: item.material,
-        blunder_elo: item.blunder_elo,
-        played_move: item.played_move,
-        evaluation: item.evaluation,
-        wdl: item.wdl,
-        dtz: item.dtz,
-        game: item.game_white
-          ? { white: item.game_white, black: item.game_black, date: item.game_date }
-          : null,
-      },
-    });
+    res.json({ endgame: buildEndgamePayload(item) });
   } catch (err) {
     logger.error('Error fetching endgame puzzle:', err);
     res.status(500).json({ error: 'Error fetching endgame.' });
@@ -534,11 +538,37 @@ router.get('/puzzles/themes', authenticateToken, async (req, res) => {
 // will. Every trainable theme on the puzzle moves, so a fork-and-pin puzzle
 // informs both.
 router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
-  const { puzzleId, solved, msTaken, playedSan } = req.body;
+  const {
+    puzzleId, solved, msTaken, playedSan, source = 'lichess', skipped, hinted,
+  } = req.body;
   const userId = req.user.id;
 
   if (!puzzleId || typeof solved !== 'boolean') {
     return res.status(400).json({ error: 'puzzleId and solved are required.' });
+  }
+  if (!puzzleProgress.isKnownSource(source)) {
+    return res.status(400).json({ error: `Unknown puzzle source: ${source}` });
+  }
+
+  const isSkipped = skipped === true;
+  const isHinted = hinted === true;
+
+  // A puzzle from a drill that has no Elo (endgames, basic mates, blunder-walk
+  // stops) writes only the attempt row: no Lichess lookup, no rating write, no
+  // homework marking — none of those exist for a source with no Elo to move.
+  if (source !== 'lichess') {
+    try {
+      await pool.query(
+        `INSERT INTO user_puzzle_attempts
+           (user_id, puzzle_id, source, solved, skipped, hinted)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [userId, puzzleId, source, solved, isSkipped, isHinted]
+      );
+      return res.json({ success: true, source, solved, skipped: isSkipped });
+    } catch (err) {
+      logger.error('Error recording puzzle attempt:', err);
+      return res.status(500).json({ error: 'Error saving result.' });
+    }
   }
 
   try {
@@ -594,9 +624,9 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
     // future progress view both stay honest.
     await pool.query(
       `INSERT INTO user_puzzle_attempts
-         (user_id, puzzle_id, source, solved, puzzle_rating, rating_before, rating_after, themes, ms_taken)
-       VALUES ($1, $2, 'lichess', $3, $4, $5, $6, $7, $8)`,
-      [userId, puzzleId, solved, puzzleRating, currentRating, newRating, themes, Number.isInteger(msTaken) ? msTaken : null]
+         (user_id, puzzle_id, source, solved, skipped, hinted, puzzle_rating, rating_before, rating_after, themes, ms_taken)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [userId, puzzleId, source, solved, isSkipped, isHinted, puzzleRating, currentRating, newRating, themes, Number.isInteger(msTaken) ? msTaken : null]
     );
 
     // Homework is marked from the same attempt rather than from a separate
@@ -630,35 +660,102 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/puzzles/by-id/:puzzleId - one specific Lichess puzzle.
+// GET /api/puzzles/by-id/:puzzleId - one specific puzzle, from the pool named
+// by ?source= (default the Lichess set).
 //
 // Needed because an assignment names its puzzles: the student must get exactly
 // what the trainer set, not whatever the adaptive selector would have chosen.
+// Each pool answers in the same shape its own "/next" route builds
+// (buildPuzzlePayload, buildEndgamePayload), so a caller cannot tell whether
+// the puzzle came from an assignment or the ordinary drill.
 router.get('/puzzles/by-id/:puzzleId', authenticateToken, async (req, res) => {
+  const { puzzleId } = req.params;
+  const { source } = req.query;
+
   try {
-    const result = await pool.query(
-      'SELECT * FROM lichess_puzzles WHERE puzzle_id = $1',
-      [req.params.puzzleId]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Puzzle not found.' });
+    if (!source || source === 'lichess') {
+      const result = await pool.query(
+        'SELECT * FROM lichess_puzzles WHERE puzzle_id = $1',
+        [puzzleId]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Puzzle not found.' });
+      }
+      return res.json({ puzzle: puzzleSelection.toClientPuzzle(result.rows[0]) });
     }
-    res.json({ puzzle: puzzleSelection.toClientPuzzle(result.rows[0]) });
+
+    if (source === 'mate_puzzle' || source === 'winning_position') {
+      const result = await pool.query('SELECT * FROM puzzles WHERE puzzle_id = $1', [puzzleId]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Puzzle not found.' });
+      }
+      return res.json({ puzzle: buildPuzzlePayload(result.rows[0]) });
+    }
+
+    if (source === 'endgame') {
+      const result = await pool.query('SELECT * FROM endgame_puzzles WHERE puzzle_id = $1', [puzzleId]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Puzzle not found.' });
+      }
+      return res.json({ endgame: buildEndgamePayload(result.rows[0]) });
+    }
+
+    // basic_mate has no table row (the client builds the position from a
+    // preset) and blunder_game is named by <game id>:<ply>, not a single
+    // puzzle id — neither has a by-id in this phase.
+    return res.status(400).json({ error: `Unsupported puzzle source for by-id: ${source}` });
   } catch (err) {
     logger.error('Error fetching puzzle by id:', err);
     res.status(500).json({ error: 'Error fetching puzzle.' });
   }
 });
 
+// GET /api/puzzles/progress - the fold of the signed-in user's whole attempt
+// log, one source per key, absent when a source has nothing seen yet.
+router.get('/puzzles/progress', authenticateToken, async (req, res) => {
+  try {
+    res.json(await puzzleProgress.progressOf(pool, req.user.id));
+  } catch (err) {
+    logger.error('Error reading puzzle progress:', err);
+    res.status(500).json({ error: 'Error reading puzzle progress.' });
+  }
+});
+
+// GET /api/puzzles/retry?source= - the ids of one source's unsolved puzzles,
+// oldest failure first (docs/PLAN-NAPREDAK-VEZBI.md §3.2: the queue is a
+// query, not a table).
+router.get('/puzzles/retry', authenticateToken, async (req, res) => {
+  const { source } = req.query;
+  if (!puzzleProgress.isKnownSource(source)) {
+    return res.status(400).json({ error: `Unknown puzzle source: ${source}` });
+  }
+  try {
+    res.json({ source, ids: await puzzleProgress.retryIdsOf(pool, req.user.id, source) });
+  } catch (err) {
+    logger.error('Error reading puzzle retry queue:', err);
+    res.status(500).json({ error: 'Error reading retry queue.' });
+  }
+});
+
 // POST /api/puzzles/submit - Submit puzzle result & update Elo rating
 router.post('/puzzles/submit', authenticateToken, async (req, res) => {
-  const { puzzleId, solved, theme } = req.body;
+  const {
+    puzzleId, solved, theme, skipped, hinted,
+  } = req.body;
   const userId = req.user.id;
 
+  if (!puzzleId || typeof solved !== 'boolean') {
+    return res.status(400).json({ error: 'puzzleId and solved are required.' });
+  }
+
   try {
-    const puzzleRes = await pool.query('SELECT eval_value FROM puzzles WHERE puzzle_id = $1', [puzzleId]);
-    const puzzleEval = parseFloat(puzzleRes.rows[0]?.eval_value || 1.5);
+    const puzzleRes = await pool.query('SELECT eval_value, type FROM puzzles WHERE puzzle_id = $1', [puzzleId]);
+    const puzzleRow = puzzleRes.rows[0];
+    const puzzleEval = parseFloat(puzzleRow?.eval_value || 1.5);
     const puzzleRating = Math.round(1500 + (puzzleEval * 50));
+    // The mate/winning-position drill picks its own type; a missing row falls
+    // back to the same category the rating estimate above already assumes.
+    const source = puzzleRow?.type || 'mate_puzzle';
 
     const userRes = await pool.query(
       'SELECT overall_rating, theme_ratings, puzzles_solved, puzzles_failed FROM user_puzzle_ratings WHERE user_id = $1',
@@ -699,6 +796,15 @@ router.post('/puzzles/submit', authenticateToken, async (req, res) => {
          puzzles_failed = EXCLUDED.puzzles_failed,
          updated_at = CURRENT_TIMESTAMP`,
       [userId, newRating, JSON.stringify(themeRatings), solvedCount, failedCount]
+    );
+
+    // One attempt row per submit, sourced from the puzzle's own type — the
+    // same log every other drill writes to (docs/PLAN-NAPREDAK-VEZBI.md §3.1).
+    await pool.query(
+      `INSERT INTO user_puzzle_attempts
+         (user_id, puzzle_id, source, solved, skipped, hinted, puzzle_rating, rating_before, rating_after, themes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [userId, puzzleId, source, solved, skipped === true, hinted === true, puzzleRating, currentRating, newRating, [source]]
     );
 
     res.json({
