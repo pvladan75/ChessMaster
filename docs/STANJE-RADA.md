@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **16.9.2026** — najnovije je „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,80 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Reorganizacija aplikacije — plan sa tri varijante — 16.9.2026, predlog
+
+Vlasnik je istog dana zatražio plan reorganizacije **sa stanovišta korisnika**:
+funkcije su razbacane, isti posao (pisanje tutorijala) ima četiri ulaza pod
+četiri imena (Studio; četiri dugmeta u Analizi; „Create tutorial (multiple
+positions)" u levom meniju Pripreme i sobe; stari panel na Androidu), a budući
+korisnik se neće snaći. Tražio je više varijanti, skice ekrana, i da se
+ponovo razmotri pisanje tutorijala na Androidu (odluka 5 `PLAN-TUTORIJAL.md`),
+ako postoji rešenje.
+
+Plan je [PLAN-REORGANIZACIJA.md](PLAN-REORGANIZACIJA.md), skice u
+[skice/reorganizacija.html](skice/reorganizacija.html) (otvoriti u browseru).
+Ovim se **ponovo otvara** red „Reorganising the app by function — out" iz
+`PLAN-ZAVRSNICA.md`: priručnik je kupio vreme, ne popravku.
+
+Šta je nađeno (inventar svih ekrana, oznaka po oznaka; F1–F12 u planu):
+jedan artefakt i četiri editora; 13 akcija u traci Analize, četiri od njih
+vrata za tutorijal ka tri različita odredišta; šest polica na pet mesta
+(pozicija sačuvana iz sobe ne postoji nigde na početnom ekranu); panel
+trenera pod „People"; mrtav UI (zakazivanje sesije, Premium dijalog) i
+podnaslov „New Session" koji obećava zakazivanje; na Androidu nema ni jednog
+pravog ulaza za pisanje.
+
+Tri varijante: **A** — ista četiri taba, jedna vrata po poslu (temelj S1–S6:
+jedan editor, jedan meni „Use in a tutorial" u Analizi, jedna biblioteka svega
+što se čuva, mrtav UI napolje, panel na Sessions); **B** — tabovi po glagolu:
+Home · Practise · Analyse · Teach, Home adaptivan iz podataka a ne iz uloge
+(**preporučeno**, gradi se kao A pa promena ljuske); **C** — dve ljuske po
+tome da li korisnik podučava. Android studio: rešenje je *jedan kontroler,
+dva rasporeda, jedan deo u jednom trenutku* — kontroler iz §4 plana redizajna
+nikad nije izvučen iz ekrana (2693 reda), pa je to najveća stavka, i vođina.
+Ništa u studiju nije vezano za Windows osim rasporeda.
+
+**Ništa nije u kodu.** Brojke pri pisanju: 2819 / 1 preskočen / 26 info / 1376.
+
+**Odluke vlasnika, 17.9.2026** (upisane u §9 plana): **varijanta B**, gradi
+se kao A pa promena ljuske; **studio na telefonu — da** (kontroler se izvlači,
+raspored Line | Task | Parts, stari editori se brišu); tabovi **Home ·
+Practise · Analyse · Teach**; „People" se ukida kao tab i ide u Teach i Home;
+tabla za analizu je **telo taba Analyse**.
+
+**Faza 0 gotova, 17.9.2026 (vođa, Fable):** rečnik tabova u
+`GLOSSARY-EN.md`; kapije u `docs/gates/` — `home_map_test.dart` (grupe po
+fazama 5, 2 i 6c) i `analysis_teach_door_test.dart` (faza 1), obe **crvene
+na `master`-u na prvom stringu koji imenuju**; šav za fazu 1 napisan i zelen:
+`features/analysis_studio/widgets/teach_menu.dart` (list „Use in a tutorial",
+šest redova, crta samo ono što mu je dato) sa `test/analysis_teach_menu_test.dart`
+(10 testova; test na 360 dp uhvatio je prelivanje od 9 px u prvom pokretanju).
+Raspodela po modelima je u §8 plana: Fable — faze 0 i 6a; Opus — vođa faza
+1–5; Sonnet `implementer` — faze 1, 2, 3, 4 (kod), 6b, 6c i faze 1–2 plana
+napretka; Gemini — tabela stringova i stranice priručnika 2–8 (tražiti očitanje
+kvote pre pokretanja); Haiku — pretrage.
+
+**Faza 1 briefovana Sonnet-u 17.9.2026** (worktree; brief u sesiji): jedan
+`_ToolAction` „Use in a tutorial" umesto četiri, dijalog „What are we
+transferring" nestaje, dva stara testa koja čitaju izvor prepisuju se na novi
+oblik, stranica `analysis.html` priručnika opisuje list. Kapija: kopija
+`docs/gates/analysis_teach_door_test.dart` u `test/`.
+
+Istog jutra vlasnik je tražio i **napredak u vežbama** — šta je rešeno, šta
+promašeno, i kako vratiti promašene zagonetke. Predlog je
+[PLAN-NAPREDAK-VEZBI.md](PLAN-NAPREDAK-VEZBI.md): `user_puzzle_attempts`
+već postoji i indeksiran je kako treba, ali ga piše samo taktika — `/submit`
+(matovi, dobitne pozicije), završnice i šetnja kroz partiju ne pišu ništa, a
+preskakanje se nigde ne beleži. Plan: `source` imenuje vežbu, dve kolone
+(`skipped`, `hinted`), stanja se *izvode* iz prvog i poslednjeg reda; red za
+ponavljanje je **upit** (poslednji pokušaj nije rešen), a SM-2 tek kao
+opciona faza 3 posle drugog promašaja, kroz postojeći `schedule()`. Na
+karticama huba jedan red („Solved 48 · 9 to retry") i dugme „Retry failed".
+Ništa u kodu; dodir sa fazom 5 reorganizacije je isti hub widget, pa se
+redosled bira pre briefa.
 
 ---
 

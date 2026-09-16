@@ -1,0 +1,421 @@
+<title>Mislisha Reorganisation Sketches</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f2f4f3; --surface:#ffffff; --ink:#1c2426; --mute:#65716f; --line:#cfd6d3; --soft:#e7ecea;
+  --accent:#3f7a4f; --accent-soft:#dcebe0; --teach:#a86a1f; --teach-soft:#f3e6d2; --learn:#2f6f9f; --learn-soft:#dbe8f3;
+  --gone:#b23a3a; --sqd:#9fb3a5; --sql:#e3eae5; --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --sans:'IBM Plex Sans',system-ui,Segoe UI,Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#161b1c; --surface:#1f2628; --ink:#e4eae8; --mute:#98a5a2; --line:#37423f; --soft:#28322f;
+  --accent:#7cbd8c; --accent-soft:#25392b; --teach:#e0a45a; --teach-soft:#3d2e19; --learn:#7fb3dc; --learn-soft:#1e3242;
+  --gone:#e07070; --sqd:#4f6357; --sql:#2a3631;}}
+:root[data-theme="dark"]{
+  --ground:#161b1c; --surface:#1f2628; --ink:#e4eae8; --mute:#98a5a2; --line:#37423f; --soft:#28322f;
+  --accent:#7cbd8c; --accent-soft:#25392b; --teach:#e0a45a; --teach-soft:#3d2e19; --learn:#7fb3dc; --learn-soft:#1e3242;
+  --gone:#e07070; --sqd:#4f6357; --sql:#2a3631;}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-inline:16px}
+h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px;text-wrap:balance}
+.lede{color:var(--mute);max-width:64ch;margin:0 0 28px}
+h2{font-size:20px;font-weight:600;margin:48px 0 6px;padding-top:16px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:15px;font-weight:600;margin:22px 0 8px}
+p{max-width:66ch}
+p.note{color:var(--mute);font-size:14px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:13px;color:var(--mute);margin:0 0 8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.frames{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;margin:12px 0 6px}
+.fig{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fig figcaption{font-size:12.5px;color:var(--mute);max-width:36ch}
+/* frames */
+.desk{width:min(560px,100%);aspect-ratio:16/10;display:grid;grid-template-columns:70px 1fr;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:10px;line-height:1.35}
+.rail{background:var(--soft);display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;border-right:1px solid var(--line)}
+.rail .it{width:58px;text-align:center;padding:5px 2px;border-radius:6px;color:var(--mute);font-family:var(--mono);font-size:8.5px}
+.rail .it b{display:block;font-size:12px;font-weight:400}
+.rail .it.on{background:var(--accent-soft);color:var(--accent)}
+.rail .sp{flex:1}
+.pane{padding:10px 12px;display:flex;flex-direction:column;gap:7px;overflow:hidden;min-width:0}
+.hdr{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600}
+.hdr small{font-weight:400;color:var(--mute);font-family:var(--mono);font-size:8.5px}
+.phone{width:206px;height:412px;flex:none;background:var(--surface);border:2px solid var(--line);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;font-size:9.5px;line-height:1.35}
+.phone.land{width:412px;height:206px;flex-direction:row}
+.phone .body{flex:1;padding:8px;display:flex;flex-direction:column;gap:6px;overflow:hidden;min-width:0}
+.bar{display:flex;justify-content:space-around;padding:5px 2px 6px;border-top:1px solid var(--line);background:var(--soft)}
+.bar span{font-family:var(--mono);font-size:7.5px;color:var(--mute);text-align:center;width:38px}
+.bar span b{display:block;font-size:11px;font-weight:400}
+.bar span.on{color:var(--accent)}
+.land .bar{flex-direction:column;justify-content:flex-start;gap:8px;border-top:0;border-right:1px solid var(--line);padding:8px 4px}
+.appbar{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:10px;padding:0 0 2px;border-bottom:1px solid var(--line)}
+/* atoms */
+.card{border:1px solid var(--line);border-radius:6px;padding:6px 7px;display:flex;flex-direction:column;gap:3px}
+.card h5{margin:0;font-size:10px;font-weight:600}
+.card p{margin:0;font-size:8.5px;color:var(--mute);max-width:none}
+.card .acts{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+.btn{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:8.5px;white-space:nowrap}
+.btn.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.x{color:var(--gone);border-color:var(--gone);text-decoration:line-through}
+.blk{display:flex;flex-direction:column;gap:2px}
+.blk h6{margin:0;font-family:var(--mono);font-size:7.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.row{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:9px;padding:2px 0;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:0}
+.row .r{display:flex;gap:3px}
+.tag{font-family:var(--mono);font-size:7.5px;padding:0 4px;border-radius:3px;background:var(--soft);color:var(--mute)}
+.tag.t{background:var(--teach-soft);color:var(--teach)} .tag.l{background:var(--learn-soft);color:var(--learn)} .tag.g{background:var(--accent-soft);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:3px}
+.chip{border:1px solid var(--line);border-radius:10px;padding:0 6px;font-size:8px}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.field{border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:8.5px;color:var(--mute);flex:1}
+.board{aspect-ratio:1;width:100%;max-width:100%;background:repeating-conic-gradient(var(--sqd) 0 25%,var(--sql) 0 50%) 0 0/25% 25%;border:1px solid var(--line);border-radius:3px}
+.strip{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:8.5px;padding:2px 4px;border:1px solid var(--line);border-radius:4px}
+.seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg span{flex:1;text-align:center;padding:2px 0;font-size:8.5px;border-right:1px solid var(--line)}
+.seg span:last-child{border-right:0}
+.seg span.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tools{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.tb{border:1px solid var(--line);border-radius:3px;padding:1px 5px;font-size:8.5px;white-space:nowrap}
+.tb.g{border-color:var(--accent);color:var(--accent)}
+.tb.x{border-color:var(--gone);color:var(--gone);text-decoration:line-through}
+.tb.m{background:var(--soft)}
+.sepv{width:1px;height:14px;background:var(--line)}
+.menu{border:1px solid var(--line);border-radius:5px;background:var(--surface);padding:3px 0;font-size:9px;width:max-content;max-width:100%;box-shadow:0 3px 10px rgba(0,0,0,.12)}
+.menu div{padding:2px 9px}
+.menu div.d{color:var(--mute)}
+.menu hr{border:0;border-top:1px solid var(--line);margin:3px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+.col{display:flex;flex-direction:column;gap:5px;min-width:0}
+.box{border:1px solid var(--line);border-radius:6px;padding:6px 7px;display:flex;flex-direction:column;gap:3px;font-size:9px}
+.box h5{margin:0 0 1px;font-size:9.5px;font-weight:600}
+.box .l{padding:1px 0;border-bottom:1px dashed var(--line)}
+.box .l:last-child{border-bottom:0}
+.box .l.x{color:var(--gone);text-decoration:line-through}
+.box .l.n{color:var(--accent);font-weight:600}
+.empty{font-size:8.5px;color:var(--mute);font-style:italic}
+table.cmp{border-collapse:collapse;font-size:14px;margin:10px 0 0;width:100%}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:6px 10px 6px 0;text-align:left;vertical-align:top}
+table.cmp th{font-weight:600}
+.wide{overflow-x:auto}
+@media (max-width:640px){.desk{grid-template-columns:56px 1fr;aspect-ratio:auto;min-height:340px}.rail .it{width:48px;font-size:7.5px}.phone.land{width:100%;max-width:412px}.two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<h1>Screens for the reorganisation</h1>
+<p class="lede">Sketches for <code>docs/PLAN-REORGANIZACIJA.md</code>, 16.9.2026. Three variants of the home, the shared changes every variant makes to Analysis and the room, and the Tutorial Studio on a phone. Labels are the ones the plan proposes; a struck-through label is one that goes.</p>
+<div class="legend">
+  <span><i style="background:var(--accent)"></i>a control the plan adds or keeps</span>
+  <span><i style="background:var(--gone)"></i>gone</span>
+  <span><i style="background:var(--teach)"></i>shown when you teach someone</span>
+  <span><i style="background:var(--learn)"></i>shown when someone teaches you</span>
+</div>
+
+<!-- ───────────────────────── TODAY ───────────────────────── -->
+<h2>Today, for comparison</h2>
+<p>Four tabs. The Library tab holds two tools and a Windows-only card; the Analysis bar holds thirteen actions, four of them tutorial doors; the room's left column is a library, a setup dialog and an editor in one.</p>
+<div class="frames">
+  <figure class="fig">
+    <div class="desk">
+      <div class="rail"><div class="it"><b>◔</b>Training</div><div class="it"><b>▣</b>Sessions</div><div class="it on"><b>▤</b>Library</div><div class="it"><b>☺</b>People</div><div class="sp"></div><div class="it"><b>⚙</b>Settings</div></div>
+      <div class="pane">
+        <div class="hdr">Library <small>Chess Trainer</small></div>
+        <div class="card"><h5>Interactive tutorials</h5><p>Windows only — draws nothing on a phone.</p><div class="acts"><span class="btn p">New tutorial</span><span class="btn">Import from a file</span><span class="btn">Saved tutorials</span></div></div>
+        <div class="card"><h5>Library of positions and tutorials</h5><p>Manage your saved positions, PGN files, and tutorials.</p><div class="acts"><span class="btn">Open Preparation with an empty board</span></div></div>
+        <div class="card"><h5>Analysis 🔬</h5><p>Engine, opening database, and variation tree.</p><div class="acts"><span class="btn">Open Analysis</span></div></div>
+        <div class="card"><h5>Positions from your book</h5><div class="acts"><span class="btn p">Scan positions</span><span class="btn">My saved positions</span></div></div>
+      </div>
+    </div>
+    <figcaption>The Library tab today. Positions saved from the room are not listed anywhere here; Analysis is a button on a shelf.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="col" style="width:min(460px,100%)">
+      <div class="box"><h5>Analysis — app bar today (Windows, ≥ 840 dp)</h5>
+        <div class="tools"><span class="tb m">Board view ▾</span><span class="tb">Setup Position / PGN</span><span class="tb">Review entire game</span><span class="tb">Auto Analysis ⚡</span><span class="tb">Extend branch</span><span class="tb">Saved puzzle sets</span><span class="tb g">Create step from this position</span><span class="tb g">Edit tutorial steps</span><span class="tb g">Create interactive tutorial</span><span class="tb g">Make a tutorial from this game</span><span class="tb">Export PGN</span><span class="tb">Saved analyses</span><span class="tb">Settings</span><span class="tb">Engine Logs 📜</span></div>
+        <div class="empty">The four green ones lead to three different places: a picker with no screen, the studio, or the old step panel.</div>
+      </div>
+      <div class="box"><h5>Room / Preparation — left column today</h5>
+        <div class="l"><b>Tutorials and positions</b></div>
+        <div class="l">Set up position (Board Setup)</div><div class="l">Save current position → „Save current tutorial / position"</div><div class="l">Import PGN (file or text)</div><div class="l">Create tutorial (multiple positions) → a third editor</div>
+        <div class="l">Paste FEN string… ⏎</div><div class="l">Search tutorials · All · Mine · From trainer</div>
+        <div class="l">▸ Sicilian: the Najdorf — <span class="tag">6 positions</span> ⋮ Edit tutorial · Rename · Edit positions · Save as new version</div>
+        <div class="l">▸ Rook ending, 1.Kf2 — <span class="tag">position</span> ✎ 🗑</div>
+      </div>
+    </div>
+    <figcaption>The two places the owner named. The room's list is the only place a position saved from the board can be found again.</figcaption>
+  </figure>
+</div>
+
+<!-- ───────────────────────── SHARED ───────────────────────── -->
+<h2>What every variant changes — Analysis and the room</h2>
+<p>One door in Analysis, the questions behind it. The room's column split into what it is: the board's actions and the library.</p>
+<div class="frames">
+  <figure class="fig">
+    <div class="col" style="width:min(520px,100%)">
+      <div class="box"><h5>Analysis — app bar after (≥ 840 dp)</h5>
+        <div class="tools"><span class="tb m">Board view ▾</span><span class="tb">Setup</span><span class="sepv"></span><span class="tb">Review game</span><span class="tb">Auto analysis</span><span class="tb">Extend line</span><span class="sepv"></span><span class="tb">Save analysis</span><span class="tb">Puzzle sets</span><span class="tb">Export PGN</span><span class="sepv"></span><span class="tb g">Use in a tutorial ▾</span><span class="sepv"></span><span class="tb m">⋮</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-top:4px">
+          <div class="menu"><div>New tutorial from this position</div><div>New tutorial from this line</div><div>New tutorial from this game</div><hr><div>Add this position to a tutorial…</div><div>Add this line to a tutorial…</div><hr><div>Open a tutorial to edit…</div></div>
+          <div class="menu"><div class="d">⋮</div><div>Settings</div><div>Engine logs</div></div>
+        </div>
+        <div class="empty">Phone: Board view · Setup · Use in a tutorial · ⋮ — the engine and keep groups fold into ⋮. Rows that need the studio appear on a phone only after the phone studio (§7) lands.</div>
+      </div>
+    </div>
+    <figcaption>Thirteen actions become ten in four groups; the tutorial question is asked once, after the tap.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="col" style="width:min(300px,100%)">
+      <div class="box"><h5>Room / Preparation — left column after</h5>
+        <div class="l"><b>Board</b></div>
+        <div class="l">Set up position</div><div class="l">Import PGN</div><div class="l">Save position</div>
+        <div class="l"><span class="field">Paste FEN</span> ⏎</div>
+        <div class="l" style="margin-top:4px"><b>Library</b> <span class="field">search</span></div>
+        <div class="l"><span class="chip on">All</span> <span class="chip">Mine</span> <span class="chip">From trainer</span></div>
+        <div class="l">▸ Sicilian: the Najdorf <span class="tag t">tutorial · 6 parts</span> ⋮</div>
+        <div class="l">▸ Rook ending, 1.Kf2 <span class="tag">position</span> ⋮</div>
+        <div class="l">▸ Endgame, from the book p. 41 <span class="tag">position · book</span> ⋮</div>
+        <div class="l x">Create tutorial (multiple positions)</div>
+        <div class="l x">⋮ Edit positions · Save as new version</div>
+        <div class="empty">⋮ on a tutorial: Open in Tutorial Studio · Send to student · Delete. On a position: Open · Rename · Delete.</div>
+      </div>
+    </div>
+    <figcaption>Same list as the Home library, filtered to what fits on a board. Preparation's app bar says „Preparation", no room code.</figcaption>
+  </figure>
+</div>
+
+<!-- ───────────────────────── VARIANT A ───────────────────────── -->
+<h2>Variant A — same four tabs, one door per job</h2>
+<p>The foundation only. The trainer panel moves from People to Sessions; the Library tab becomes a tools row and one list of everything you keep; nothing else moves.</p>
+<div class="frames">
+  <figure class="fig">
+    <div class="desk">
+      <div class="rail"><div class="it"><b>◔</b>Training</div><div class="it on"><b>▣</b>Sessions</div><div class="it"><b>▤</b>Library</div><div class="it"><b>☺</b>People</div><div class="sp"></div><div class="it"><b>⚙</b>Settings</div></div>
+      <div class="pane">
+        <div class="hdr">Sessions <small>🔔 2</small></div>
+        <div class="blk"><h6>Today <span class="tag t">you teach</span></h6><div class="row"><span>17:00 · Marko · Endgames, part 2</span><span class="btn p">Enter</span></div></div>
+        <div class="blk"><h6>To review</h6><div class="row"><span>Ana · Mates in 2 · 7 of 10</span><span class="btn">Review</span></div><div class="row"><span>Marko · Najdorf tutorial · stopped at 3 of 6</span><span class="btn">Open</span></div></div>
+        <div class="two">
+          <div class="card"><h5>New session</h5><p>Open a room and invite your student.</p><div class="acts"><span class="btn p">Start</span></div></div>
+          <div class="card"><h5>Preparation</h5><p>Your board and your library, no student.</p><div class="acts"><span class="btn">Open</span></div></div>
+        </div>
+        <div class="row"><span class="field">Enter room code</span><span class="btn">Join</span></div>
+        <div class="two">
+          <div class="card"><h5>My assignments <span class="tag l">set for you</span></h5><p>2 open · 1 due Thursday</p></div>
+          <div class="card"><h5>Review</h5><p>4 positions are waiting.</p></div>
+        </div>
+        <div class="blk"><h6>Recordings</h6><div class="row"><span>Endgames, part 1 · 12.9. · 34 min</span><span class="btn">Play</span></div></div>
+      </div>
+    </div>
+    <figcaption>Sessions with the panel on top. Blocks are drawn only when they have rows, so a student without students never sees „Today".</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>Library</span><span>🔔 ⚙</span></div>
+        <div class="blk"><h6>Tools</h6><div class="row"><span>Analysis</span><span class="btn">Open</span></div><div class="row"><span>Scan a book</span><span class="btn">Open</span></div></div>
+        <div class="blk"><h6>Everything you keep</h6>
+          <div class="chips"><span class="chip on">All</span><span class="chip">Tutorials</span><span class="chip">Positions</span><span class="chip">Analyses</span><span class="chip">Recordings</span><span class="chip">Puzzle sets</span></div>
+          <div class="field" style="margin:3px 0">Search</div>
+          <div class="row"><span>Sicilian: the Najdorf <span class="tag t">tutorial</span></span><span>⋮</span></div>
+          <div class="row"><span>Rook ending, 1.Kf2 <span class="tag">position</span></span><span>⋮</span></div>
+          <div class="row"><span>Game vs. Ana, 9.9. <span class="tag">analysis</span></span><span>⋮</span></div>
+          <div class="row"><span>Endgames, part 1 <span class="tag">recording</span></span><span>⋮</span></div>
+          <div class="row"><span>From the book, p. 41 <span class="tag">position</span></span><span>⋮</span></div>
+          <div class="row"><span>Blunders, game 3 <span class="tag">puzzle set</span></span><span>⋮</span></div>
+        </div>
+        <div class="empty">Tutorials card (New · Import) sits above the list on Windows, and on Android after §7.</div>
+      </div>
+      <div class="bar"><span><b>◔</b>Training</span><span><b>▣</b>Sessions</span><span class="on"><b>▤</b>Library</span><span><b>☺</b>People</span></div>
+    </div>
+    <figcaption>Library on a phone: two tools, one list. Six shelves become one with a chip per kind.</figcaption>
+  </figure>
+</div>
+
+<!-- ───────────────────────── VARIANT B ───────────────────────── -->
+<h2>Variant B — tabs by what you want to do <span class="tag g" style="font-size:11px;vertical-align:middle">recommended</span></h2>
+<p>Home · Practise · Analyse · Teach, and Settings. Home is built from data: the blocks it shows depend on whether anyone teaches you and whether you teach anyone. Teach holds the tutorials, Preparation, sessions, students and the library. Analyse is the board itself.</p>
+<div class="frames">
+  <figure class="fig">
+    <div class="desk">
+      <div class="rail"><div class="it on"><b>⌂</b>Home</div><div class="it"><b>◔</b>Practise</div><div class="it"><b>▦</b>Analyse</div><div class="it"><b>✎</b>Teach</div><div class="sp"></div><div class="it"><b>⚙</b>Settings</div></div>
+      <div class="pane">
+        <div class="hdr">Home <small>🔔 2 · Welcome, Vladan</small></div>
+        <div class="blk"><h6>Resume</h6><div class="chips"><span class="chip on">▶ Session 482913</span><span class="chip">▶ Analysis</span></div></div>
+        <div class="blk"><h6>Today <span class="tag t">you teach</span></h6><div class="row"><span>17:00 · Marko · Endgames, part 2 · room 482913</span><span class="btn p">Enter</span></div></div>
+        <div class="blk"><h6>To review <span class="tag t">you teach</span></h6><div class="row"><span>Ana · Mates in 2 · 7 of 10 · submitted yesterday</span><span class="btn">Review</span></div><div class="row"><span>Marko · Najdorf · stopped at 3 of 6</span><span class="btn">Open</span></div></div>
+        <div class="blk"><h6>Set for me <span class="tag l">your trainer</span></h6><div class="row"><span>Rook endings, 12 positions · due Thu</span><span class="btn">Open</span></div><div class="row"><span>Due for review: 4 positions</span><span class="btn">Review</span></div></div>
+        <div class="blk"><h6>Join a session</h6><div class="row"><span class="field">Enter room code</span><span class="btn">Join</span></div></div>
+        <div class="blk"><h6>Recordings</h6><div class="row"><span>Endgames, part 1 · 12.9. · 34 min</span><span class="btn">Play</span></div><div class="row"><span class="empty">All recordings →</span></div></div>
+      </div>
+    </div>
+    <figcaption>Home for someone who both teaches and is taught — the rare case that proves the rule: both blocks, no role switch.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="desk">
+      <div class="rail"><div class="it"><b>⌂</b>Home</div><div class="it"><b>◔</b>Practise</div><div class="it"><b>▦</b>Analyse</div><div class="it on"><b>✎</b>Teach</div><div class="sp"></div><div class="it"><b>⚙</b>Settings</div></div>
+      <div class="pane">
+        <div class="hdr">Teach</div>
+        <div class="two">
+          <div class="card"><h5>Tutorials</h5><p>Write a tutorial the student walks alone.</p><div class="acts"><span class="btn p">New</span><span class="btn">Import</span></div></div>
+          <div class="card"><h5>Preparation</h5><p>Your board, your library, no student.</p><div class="acts"><span class="btn">Open</span></div></div>
+        </div>
+        <div class="card"><h5>New session</h5><p>Open a room and invite your student.</p><div class="acts"><span class="btn p">Start</span><span class="field">Enter room code</span><span class="btn">Join</span></div></div>
+        <div class="blk"><h6>Students</h6><div class="row"><span>Marko · your student</span><span class="r"><span class="btn">Progress</span></span></div><div class="row"><span>Ana · awaiting parental consent</span><span class="r"><span class="btn">Progress</span></span></div><div class="row"><span class="empty">Groups · Send a request (I am a trainer / I am a student)</span></div></div>
+        <div class="blk"><h6>Library</h6><div class="chips"><span class="chip on">All</span><span class="chip">Tutorials</span><span class="chip">Positions</span><span class="chip">Analyses</span><span class="chip">Recordings</span><span class="chip">Puzzle sets</span><span class="field" style="flex:0 0 70px">search</span></div>
+          <div class="row"><span>Sicilian: the Najdorf <span class="tag t">tutorial · 6 parts</span></span><span class="r"><span class="btn">Open</span><span class="btn">Send</span>⋮</span></div>
+          <div class="row"><span>Rook ending, 1.Kf2 <span class="tag">position</span></span><span class="r"><span class="btn">Analyse</span>⋮</span></div>
+          <div class="row"><span>Endgames, part 1 <span class="tag">recording · 34 min</span></span><span class="r"><span class="btn">Play</span>⋮</span></div>
+        </div>
+      </div>
+    </div>
+    <figcaption>Teach: three cards, the students, the library. A person who teaches nobody sees the cards and „Teach a friend: send a request".</figcaption>
+  </figure>
+</div>
+<div class="frames">
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>Home</span><span>🔔 ⚙</span></div>
+        <div class="blk"><h6>Resume</h6><div class="chips"><span class="chip on">▶ Session 482913</span><span class="chip">▶ Analysis</span></div></div>
+        <div class="blk"><h6>Today <span class="tag t">you teach</span></h6><div class="row"><span>17:00 · Marko · Endgames 2</span><span class="btn p">Enter</span></div></div>
+        <div class="blk"><h6>To review</h6><div class="row"><span>Ana · Mates in 2 · 7/10</span><span class="btn">Review</span></div></div>
+        <div class="blk"><h6>Set for me <span class="tag l">your trainer</span></h6><div class="row"><span>Rook endings · due Thu</span><span class="btn">Open</span></div><div class="row"><span>Due for review: 4</span><span class="btn">Review</span></div></div>
+        <div class="blk"><h6>Join a session</h6><div class="row"><span class="field">Enter room code</span><span class="btn">Join</span></div></div>
+        <div class="blk"><h6>Recordings</h6><div class="row"><span>Endgames, part 1 · 34 min</span><span class="btn">Play</span></div></div>
+      </div>
+      <div class="bar"><span class="on"><b>⌂</b>Home</span><span><b>◔</b>Practise</span><span><b>▦</b>Analyse</span><span><b>✎</b>Teach</span></div>
+    </div>
+    <figcaption>Home on a phone: the same blocks, one column.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>Analyse</span><span>Board view · Setup · <span style="color:var(--accent)">Use in a tutorial</span> · ⋮</span></div>
+        <div class="board"></div>
+        <div class="strip"><span>◀◀ ◀</span><span>1.e4 c5 2.Nf3 d6 <b>3.d4</b></span><span>▶ ▶▶</span></div>
+        <div class="row"><span>B90 · Sicilian, Najdorf</span><span class="tag">+0.3 · d22</span></div>
+        <div class="row"><span>3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6</span><span class="tag">+0.3</span></div>
+        <div class="row"><span>3.Bb5+ Bd7 4.Bxd7+ Qxd7</span><span class="tag">+0.2</span></div>
+        <div class="row"><span class="empty">Saved analyses · My games · Scan a book — under ⋮ on a phone, a row above the board on desktop.</span></div>
+      </div>
+      <div class="bar"><span><b>⌂</b>Home</span><span><b>◔</b>Practise</span><span class="on"><b>▦</b>Analyse</span><span><b>✎</b>Teach</span></div>
+    </div>
+    <figcaption>Analyse on a phone: the board is the tab. Landscape keeps the 16.9.2026 layout, board left and the strip right.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>Teach</span><span>🔔 ⚙</span></div>
+        <div class="card"><h5>Tutorials</h5><p>Write a tutorial the student walks alone.</p><div class="acts"><span class="btn p">New</span><span class="btn">Import</span><span class="btn">All (7)</span></div></div>
+        <div class="card"><h5>Preparation</h5><p>Your board, your library, no student.</p><div class="acts"><span class="btn">Open</span></div></div>
+        <div class="card"><h5>New session</h5><div class="acts"><span class="btn p">Start</span><span class="field">Room code</span><span class="btn">Join</span></div></div>
+        <div class="blk"><h6>Students</h6><div class="row"><span>Marko</span><span class="btn">Progress</span></div><div class="row"><span>Ana · awaiting consent</span><span class="btn">Progress</span></div><div class="row"><span class="empty">Groups · Send a request</span></div></div>
+        <div class="row"><span><b>Library</b> · 23 items</span><span class="btn">Open</span></div>
+      </div>
+      <div class="bar"><span><b>⌂</b>Home</span><span><b>◔</b>Practise</span><span><b>▦</b>Analyse</span><span class="on"><b>✎</b>Teach</span></div>
+    </div>
+    <figcaption>Teach on a phone: the library is its own screen behind a row, because 200 positions under three cards is a scroll nobody wants.</figcaption>
+  </figure>
+</div>
+<p class="note">Question 4 of the plan: People merged into Teach and Home (drawn here), or kept as a fifth destination. Four tabs plus Settings is what fits the landscape rail at 360 dp without the cut that item 174 fixed.</p>
+
+<!-- ───────────────────────── VARIANT C ───────────────────────── -->
+<h2>Variant C — the app knows whether you teach</h2>
+<p>Variant B with two tab lists. <em>teaches</em> is true when the user has an accepted student, has saved a tutorial, or switched „Show teaching tools" on in Settings. Home is built once and both shells use it.</p>
+<div class="frames">
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>My trainer</span><span>🔔 ⚙</span></div>
+        <div class="blk"><h6>Set for me <span class="tag l">Vladan teaches you</span></h6><div class="row"><span>Rook endings · due Thu</span><span class="btn p">Open</span></div><div class="row"><span>Mates in 2 · done · 7/10</span><span class="btn">Review</span></div></div>
+        <div class="blk"><h6>Due for review</h6><div class="row"><span>4 positions</span><span class="btn">Review</span></div></div>
+        <div class="blk"><h6>Join a session</h6><div class="row"><span class="field">Enter room code</span><span class="btn">Join</span></div></div>
+        <div class="blk"><h6>Trainers</h6><div class="row"><span>Vladan · your trainer</span><span>⋮</span></div><div class="row"><span class="empty">Send a request to a trainer</span></div></div>
+        <div class="blk"><h6>Recordings</h6><div class="row"><span>Endgames, part 1</span><span class="btn">Play</span></div></div>
+      </div>
+      <div class="bar"><span><b>⌂</b>Home</span><span><b>◔</b>Practise</span><span><b>▦</b>Analyse</span><span class="on"><b>☺</b>My trainer</span></div>
+    </div>
+    <figcaption>The student's shell. No Preparation, no New session, no Tutorials card anywhere.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>Students</span><span>🔔 ⚙</span></div>
+        <div class="blk"><h6>Today</h6><div class="row"><span>17:00 · Marko · Endgames 2</span><span class="btn p">Enter</span></div></div>
+        <div class="blk"><h6>To review</h6><div class="row"><span>Ana · Mates in 2 · 7/10</span><span class="btn">Review</span></div><div class="row"><span>Marko · Najdorf · stopped 3/6</span><span class="btn">Open</span></div></div>
+        <div class="blk"><h6>My students</h6><div class="row"><span>Marko</span><span class="btn">Progress</span></div><div class="row"><span>Ana · awaiting consent</span><span class="btn">Progress</span></div><div class="row"><span>Jovan · inactive 3 weeks</span><span class="btn">Progress</span></div></div>
+        <div class="row"><span class="empty">Groups · Send a request</span></div>
+      </div>
+      <div class="bar"><span><b>⌂</b>Home</span><span><b>✎</b>Teach</span><span class="on"><b>☺</b>Students</span><span><b>▦</b>Analyse</span><span><b>◔</b>Practise</span></div>
+    </div>
+    <figcaption>The trainer's shell: five destinations, the panel and the students on one tab, Teach keeps tutorials, Preparation, sessions, library.</figcaption>
+  </figure>
+</div>
+<div class="wide"><table class="cmp">
+  <tr><th>Variant</th><th>Fixes</th><th>Leaves</th><th>Touches</th><th>Risk</th></tr>
+  <tr><td>A</td><td>F1 F2 F4 F5 F6 F10 F11</td><td>F8; trainer's and student's work on one tab</td><td>three home widgets, the Analysis bar, the room's column, one new Library screen; six manual pages</td><td>low</td></tr>
+  <tr><td>B</td><td>A + F8; the two kinds of work separated by data</td><td>a student still sees a Teach tab</td><td>A + the home shell, a Home tab, a Teach tab, shortcuts, back history, landscape at four sizes; manual pages 0–1</td><td>medium</td></tr>
+  <tr><td>C</td><td>B + a student never sees teaching cards</td><td>—</td><td>B + a second tab list, a Settings switch, the predicate and its test</td><td>medium, plus the switch itself</td></tr>
+</table></div>
+
+<!-- ───────────────────────── PHONE STUDIO ───────────────────────── -->
+<h2>The Tutorial Studio on a phone (§7 of the plan)</h2>
+<p>One controller, two layouts, one part at a time. The board and the move strip stay pinned; under them a three-way strip — Line, Task, Parts — holds what the desktop shows in panels. Landscape uses the layout every board screen got on 16.9.2026.</p>
+<div class="frames">
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>‹ Sicilian: the Najdorf</span><span><span class="btn p">Save</span> ⋮</span></div>
+        <div class="board"></div>
+        <div class="strip"><span>◀◀ ◀</span><span>1.e4 c5 <b>2.Nf3</b> d6</span><span>▶ ▶▶</span></div>
+        <div class="seg"><span class="on">Line</span><span>Task</span><span>Parts</span></div>
+        <div class="blk"><h6>Comment on 2.Nf3</h6><div class="field" style="min-height:34px">White develops and prepares d4. The knight also watches e5.</div></div>
+        <div class="row"><span>Draw <span class="tag">arrows · squares</span></span><span class="r"><span class="btn">Flip</span><span class="btn">Tree</span></span></div>
+      </div>
+      <div class="bar"><span class="empty" style="width:auto">⋮ Undo · Redo · Preview · Record narration · Export video · Save as .pgn · Position setup · Discard</span></div>
+    </div>
+    <figcaption>Portrait, the Line strip: the cursor's move and its comment. Everything the desktop bar holds is in ⋮.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>‹ Sicilian: the Najdorf</span><span><span class="btn p">Save</span> ⋮</span></div>
+        <div class="board"></div>
+        <div class="strip"><span>◀◀ ◀</span><span>1.e4 c5 2.Nf3 d6 <b>3.d4</b></span><span>▶ ▶▶</span></div>
+        <div class="seg"><span>Line</span><span class="on">Task</span><span>Parts</span></div>
+        <div class="blk"><h6>Task type</h6><div class="chips"><span class="chip">Show</span><span class="chip on">Find the move</span><span class="chip">Choose the answer</span></div></div>
+        <div class="blk"><h6>Task for student</h6><div class="field">How does White open the centre?</div></div>
+        <div class="row"><span>Answer: <b>3.d4</b> — the move on the board</span><span class="tag g">ok</span></div>
+      </div>
+      <div class="bar"><span class="empty" style="width:auto">The answer-leak refusal, once, in the controller.</span></div>
+    </div>
+    <figcaption>The Task strip: kind, the question, the answers. Same fields as the desktop's question card.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="phone">
+      <div class="body">
+        <div class="appbar"><span>‹ Sicilian: the Najdorf</span><span><span class="btn p">Save</span> ⋮</span></div>
+        <div class="board"></div>
+        <div class="strip"><span>◀◀ ◀</span><span>1.e4 c5 <b>2.Nf3</b></span><span>▶ ▶▶</span></div>
+        <div class="seg"><span>Line</span><span>Task</span><span class="on">Parts</span></div>
+        <div class="row"><span>1 · ▷ The first moves <span class="tag">4 moves</span></span><span>⋮</span></div>
+        <div class="row" style="background:var(--accent-soft);border-radius:3px;padding:2px 3px"><span>2 · ? Open the centre <span class="tag">6 moves</span></span><span>⋮</span></div>
+        <div class="row"><span>3 · ☰ Which plan? <span class="tag">3 answers</span></span><span>⋮</span></div>
+        <div class="chips"><span class="chip on">+ Show</span><span class="chip on">+ Find the move</span><span class="chip on">+ Choose the answer</span></div>
+        <div class="empty">⋮ on a part: Move up · Move down · Clone · Rename · Delete</div>
+      </div>
+      <div class="bar"><span class="empty" style="width:auto">Tapping a part selects it; the board shows its starting position.</span></div>
+    </div>
+    <figcaption>The Parts strip: the list the desktop keeps on the left. Up and down, no drag, as decided in batch 55.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="phone land">
+      <div class="bar"><span class="empty" style="width:auto;writing-mode:vertical-rl;font-size:8px">‹ back · Save · ⋮</span></div>
+      <div class="body" style="flex-direction:row;gap:8px">
+        <div class="col" style="flex:0 0 46%"><div class="board"></div><div class="strip"><span>◀◀ ◀</span><span>2.Nf3</span><span>▶ ▶▶</span></div></div>
+        <div class="col" style="flex:1"><div class="seg"><span class="on">Line</span><span>Task</span><span>Parts</span></div><div class="blk"><h6>Comment on 2.Nf3</h6><div class="field" style="min-height:44px">White develops and prepares d4.</div></div><div class="row"><span>Draw</span><span class="r"><span class="btn">Flip</span><span class="btn">Tree</span></span></div><div class="row"><span class="empty">Preview ▶</span></div></div>
+      </div>
+    </div>
+    <figcaption>Landscape, height under 480 dp: board left, the same strip right — the shape of every board screen since 16.9.2026.</figcaption>
+  </figure>
+</div>
+<p class="note">What the phone gives up: the whole flow at a glance, two panes, keyboard shortcuts. What it gets back: fixing a comment on the bus, adding one part from a position saved in Preparation, and one app on both devices.</p>
+</div>

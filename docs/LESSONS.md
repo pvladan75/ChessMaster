@@ -2838,3 +2838,36 @@ and in three hand-picked mates, the positional evaluator had no comment to
 silence. Walking 400 random games to a mate with the rule taken out found 160
 where it did, and the test stands on one of them.
 
+
+**Phase 0 of the reorganisation and of the puzzle progress — 17.9.2026, backend
+1376 → 1387, app unchanged at 2819 (+10 in `analysis_teach_menu_test.dart` on
+the working tree, not yet in the quoted number).** The eleven are
+`test/puzzle_progress.test.js`: the fold that derives solved-first-try, failed
+and skipped from the first and the latest row of each puzzle, and the one SQL
+line behind it. Five mutations, each caught by the test it names.
+
+**A `trap` in a tool call that is moved to the background never fires.** The
+first full backend run with `.env` moved aside did not return inside the tool's
+ten minutes and was pushed to the background; when it was looked at, no node
+process existed, no output had been written, and `.env` was still aside — the
+`mv … && trap` pattern the rule prescribes restores nothing if the shell that
+set the trap is killed. Restored by hand from the backup. The second run,
+started detached with a hard `timeout` and the restore *after* it in the same
+script, took 14 seconds. Two rules from it: **copy, never move, the thing a
+trap is meant to put back**, and a suite that took 14 s the second time did not
+hang the first time — the tool did, so look at the process list before blaming
+the tests.
+
+**A widget test that measures in the real font is a test of where the font is.**
+Two CI runs in a row (8437b3e, bd64f9c) failed nine layout files in `setUpAll`:
+`loadRoboto()` reads the SDK's `material_fonts` cache, and on the runner that
+directory has no `roboto-regular.ttf`. The loader was right to throw — a
+silent fallback would have measured squares and said nothing — but the path was
+the machine's. The fonts now travel with the tests (`test/fonts/`, Apache 2.0,
+three files), and the loader reads the repository, not the SDK.
+
+**The sheet's own overflow test caught its own overflow.** Six dense rows and a
+title are nine pixels taller than the 9/16 of a 360 × 640 phone a modal sheet
+may take by default. The test written to guard the phone went red on the first
+run, and the column scrolls inside the sheet now — the rule that a new test is
+watched failing, met by accident and worth the note.

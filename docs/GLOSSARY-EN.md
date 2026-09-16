@@ -53,6 +53,21 @@ place the word appears and it never reaches a screen.
 Serbian: it names the work rather than the furniture, and it is the word a
 trainer already uses. „Prep" is fine in prose, never as a title.
 
+## The tabs — decided 17.9.2026, `docs/PLAN-REORGANIZACIJA.md`
+
+| Tab | What it is |
+|---|---|
+| **Home** | What is for me now: resume, today's sessions, what is set for me, join a session, recordings. Built from data, never from a role |
+| **Practise** | The hub: repertoire, my games, my mistakes, tactics, mates, endgames. Nothing here needs another person |
+| **Analyse** | The Analysis board itself, with saved analyses, my games and the book scanner beside it |
+| **Teach** | Tutorials, Preparation, sessions, students, and the Library — everything you keep |
+
+A tab is a verb, or a shelf; never a person. **„People" is gone** as a tab
+(its rows are on Teach and Home), and „Training", „Sessions" and „Library" are
+not tab names any more — „Library" survives as the name of the shelf inside
+Teach and of the room's left column. British spelling, *Practise* with an *s*,
+because it is the verb and the tab is a verb.
+
 ## The parts of a tutorial
 
 | Serbian | English | Note |
