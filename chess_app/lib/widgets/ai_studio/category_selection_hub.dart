@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
@@ -15,6 +17,16 @@ class CategorySelectionHubWidget extends StatelessWidget {
   final VoidCallback onSelectMyGames;
   final VoidCallback onSelectMistakesDrill;
 
+  /// What the player has done with each source's puzzles, by source name
+  /// (`PuzzleSource.*`), as `PuzzleAttemptApi.progress()` answers it. Null
+  /// when nothing was read; a card whose source is absent draws no line —
+  /// a card with nothing seen says nothing (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  final Map<String, SourceProgress>? progress;
+
+  /// „Retry failed" on a card, with that card's source. Drawn only for a
+  /// retryable source with something to retry.
+  final void Function(String source)? onRetry;
+
   const CategorySelectionHubWidget({
     super.key,
     required this.onSelectMatePuzzle,
@@ -27,6 +39,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectRepertoire,
     required this.onSelectMyGames,
     required this.onSelectMistakesDrill,
+    this.progress,
+    this.onRetry,
   });
 
   /// The label above a group of cards.
