@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
@@ -28,6 +29,12 @@ class SavedPositionsScreen extends StatefulWidget {
   const SavedPositionsScreen({super.key, required this.session});
 
   final UserSession session;
+
+  /// What „Check with engine" may search to: from 12, every depth up to
+  /// [AppSettingsService.kMaxEngineDepth]. It stopped at 24 until 17.9.2026.
+  static final List<int> depths = [
+    for (var d = 12; d <= AppSettingsService.kMaxEngineDepth; d++) d
+  ];
 
   @override
   State<SavedPositionsScreen> createState() => _SavedPositionsScreenState();
@@ -620,7 +627,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
                   isDense: true,
                   onChanged: (value) =>
                       value == null ? null : setState(() => _depth = value),
-                  items: const [12, 16, 20, 24]
+                  items: SavedPositionsScreen.depths
                       .map((d) => DropdownMenuItem(value: d, child: Text('$d')))
                       .toList(),
                 ),

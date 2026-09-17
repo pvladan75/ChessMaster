@@ -197,12 +197,14 @@ void main() {
     testWidgets('asks the threshold beside the depth', (tester) async {
       await open(tester);
       expect(find.byKey(const Key('game-tutorial-threshold')), findsOneWidget);
-      expect(find.byKey(const Key('game-tutorial-depth-20')), findsOneWidget);
+      expect(find.byKey(const Key('game-tutorial-depth')), findsOneWidget);
     });
 
     testWidgets('both are remembered for next time', (tester) async {
       await open(tester);
-      await tester.tap(find.byKey(const Key('game-tutorial-depth-20')));
+      tester
+          .widget<Slider>(find.byKey(const Key('game-tutorial-depth')))
+          .onChanged!(20);
       await tester.pumpAndSettle();
       await _setSlider(tester, const Key('game-tutorial-threshold'), 2.5);
       await tester.tap(find.byKey(const Key('game-tutorial-start')));

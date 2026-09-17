@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **16.9.2026** — najnovije je „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **17.9.2026** — najnovije je „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,99 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Domaći zadatak — plan usvojen, varijanta A — 17.9.2026, faza 0 u radu
+
+Vlasnik je istog dana usvojio plan i izabrao **A**; odgovori na §8 su u §9
+plana: kvota jedna po učeniku za ceo domaći; sva tri cilja i trener bira
+boju; brana „pokušano" podrazumevano, „mora rešeno" po stavci, ručno
+otključavanje; greške iz partija ostaju poseban tok; Teach kartica + čip u
+Biblioteci.
+
+**Faza 0 u kodu** (17.9.2026, vođa, inline). Presuda već postoji —
+`drill_outcome.dart`, `outcomeFor` — i pokriva sve remije preko
+`chess.dart`; plan je to precenio kao „samo mat". Dodato: **razlog**
+(`GameEnding`: mat, pat, nedovoljan materijal, trostruko ponavljanje, 50
+poteza, granica poteza, predaja), `GameVerdict`, `verdictFor` sa `plyCap` i
+`resigned` kao ulazima, `endingLabel` kao jedini dom reči; `outcomeFor` je
+sada `verdictFor` bez razloga. Ekran vežbi čita presudu i **posle
+čitaočevog poteza** (pat ili uzimanje do nedovoljnog materijala ranije su
+padali u motorov potez u završenoj partiji), remi dobija dijalog iste
+težine kao poraz, jedan graditelj dijaloga za oba. Bez dugmeta za predaju —
+faza 2. Čuvar: `drill_outcome_test`, tabela završetaka, sedam mutacija.
+Provera uživo — stavka 181.
+
+## Domaći zadatak — plan sa tri varijante — 17.9.2026, predlog
+
+Vlasnik: trener treba da pravi **domaći** — naslov, uputstvo, stavke u
+redosledu koji bira, sa branom „ne pre nego što je prethodna urađena" — i da
+u njega stavlja sve što je i do sad slao; pravljenje i slanje su dve odvojene
+radnje; i pažljivo sa **zadatkom** na poziciji (nađi potez / odigraj protiv
+motora / održi remi), jer ga danas nema. Plan je u `PLAN-DOMACI-ZADATAK.md`:
+inventar pet puteva slanja i jedne tabele ispod njih, tabela zadataka po
+stavci (šta je „urađeno" za branu, šta „rešeno" za izveštaj), tri varijante —
+**A, preporučena**: domaći kao artefakt (`homeworks`, `homework_items`) koji
+se šalje kao roditelj + po jedan `assignments` red po stavci, pa ekrani
+učenika ostaju netaknuti; B: domaći kao tutorijal sa novim vrstama delova
+(odbačeno, rečnik); C: jedan zadatak sa mešanim stavkama (odbačeno, svaki
+ekran učenika uči novo). Jedina nova sposobnost: „odigraj do kraja" protiv
+motora sa ciljem (pobeda / remi / preživi N), što prvo traži presudu partije
+na tabli — danas ekran vežbi zna samo mat. Brana ne sme da zarobi:
+„urađeno" je pokušano, „rešeno" na zahtev, i trener može da otključa. Pet
+pitanja u §8 čekaju vlasnika (kvota pri slanju više učenika ponovo otvara
+pitanje zatvoreno 6.9.2026).
+
+## Settings, pregled po odeljcima: „Board and panel appearance" — 17.9.2026, u kodu
+
+Vlasnik prolazi kroz Settings odeljak po odeljak s pravilom: podešavanje koje
+se ne primenjuje svuda izlazi iz Settings i ide tamo gde se primenjuje.
+Provera uživo — stavka 180.
+
+- **Board size** — `boardSizeScale` čitaju samo soba (`chess_game_screen`),
+  ekran vežbi (`ai_studio_screen`) i Analiza; ostalih petnaestak tabli ga
+  nije videlo. Klizač je izbačen iz Settings i stoji u `BoardViewMenu`
+  (`boardSize: true`) na ta tri ekrana. Analiza sada sluša
+  `AppSettingsService`, da tabla prati klizač dok je meni otvoren.
+- **Panels in Analysis** — svih šest ključeva čita samo Analiza. Kvačice su u
+  listu `analysis_panels_sheet.dart`, akcija „Panels" u traci Analize (na
+  telefonu u „More tools").
+- **Board coordinates** — važi na svakoj tabli (`BoardWithCoordinates`), pa
+  ostaje u Settings, pored prekidača u meniju table. Jedina rupa: „Upoznaj
+  repertoar" je nudio prekidač nad tablom bez koordinata — tabla je sada
+  uokvirena.
+
+Čuvari: `board_view_menu_reach_test` (klizač tačno gde se skala čita, na
+svakom meniju tog ekrana; meni table uvek znači i koordinate; Analiza prati
+klizač) i `analysis_panels_sheet_test` (paneli se čitaju samo u Analizi i
+biraju samo iz lista). Svaki proveren mutacijom.
+
+- **Manual comment selection** — čitaju ga samo Analiza i
+  `auto_tree_generator_service`. Prešao je u isti list Analize („Panels and
+  comments"), rečen pozitivno: „Comment new moves automatically".
+
+U odeljku ostaju „Board coordinates" i „Move animation".
+
+**Dubina motora do 50, svuda gde se bira** (vlasnik, 17.9.2026). Jedan broj,
+`AppSettingsService.kMaxEngineDepth`: meni dubine na tabli (bio 6–30 pa
+koraci po 4, sada svaka vrednost 6–50), „Review entire game" (bio do 30 — a
+otvarao se na zapamćenoj dubini table, pa je dubina iznad 30 pravila klizač
+preko sopstvenog kraja), „Auto Analysis" (već 50), „Check with engine" (bio
+12/16/20/24, sada 12–50), i tutorijal iz partije (bio 18/20/22, sada klizač
+18–50; D1 iz `PLAN-SKELET.md` i dalje važi za donju granicu, vreme iznad 22
+nije mereno i dijalog to kaže). Čuvar: `engine_depth_ceiling_test` i
+proširenja testova dijala i tutorijala, svi provereni mutacijom.
+
+**Motor kao protivnik** („Engine strength when playing against you" i
+„Maximum engine think time") čita samo ekran vežbi, pa je prešao na njega
+(vlasnik, 17.9.2026): dugme robota u zaglavlju, list
+`engine_opponent_sheet.dart`. Odeljak „Stockfish engine" u Settings sad
+drži samo napomenu gde se šta bira i lokalni .exe na Windows-u. Kad zadatak
+„odigraj poziciju protiv motora" bude postojao (danas ne postoji —
+`AssignmentKind` je `puzzles` ili `lesson`; vidi `PLAN-DOMACI-ZADATAK.md`),
+jačinu određuje trener uz zadatak i ovaj list se tamo ne nudi. Čuvar:
+`engine_opponent_sheet_test`. Poznato, nije dirano: „Check with engine" prekida
+pretragu posle 30 s na dubini iznad 20 i vraća ono što je stiglo, pa dubina
+50 tamo u praksi nije 50.
 
 ## Reorganizacija aplikacije — plan sa tri varijante — 16.9.2026, predlog
 

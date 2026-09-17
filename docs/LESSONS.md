@@ -3208,3 +3208,71 @@ found no film left its button — and routing a busy door through it woke both
 `biblioteka_tab.dart` was deleted; the file was still tracked, untouched, and
 a source-reading test was still reading it. The `git rm` never reached the
 commit. `git ls-files` answers the question; the handoff does not.
+
+**Settings reviewed: board size and Analysis panels move to their screens —
+17.9.2026, app 2879 → 2886.** The arithmetic: + 2 in `board_view_menu_test`
+(no slider unless asked; the slider sets the scale), + 3 in the new
+`board_view_menu_reach_test` (the slider exactly where the scale is read, a
+board menu always over a framed board, the Analysis board following the
+slider), + 2 in the new `analysis_panels_sheet_test` (panels read only by
+the Studio and chosen only in its sheet; a panel unticked disappears under
+the open sheet). Analyze 26, the same list; backend unchanged.
+
+**A setting in Settings claims to apply everywhere.** „Board size" sized three
+boards of eighteen, and the six „Panels in Analysis" boxes were read by one
+screen, which the reader had to leave to change. Answered by grepping the
+readers, not by reading the Settings page. The same sweep found the other
+side of it: the walkthrough offered „Coordinates" over a board that drew
+none. Once a control sits on the screen it changes, the screen has to listen:
+the Analysis Studio re-read the scale only when a page on top of it closed,
+which the test caught by mutation before any phone did.
+
+**The comment switch leaves Settings, and every depth picker reaches 50 —
+17.9.2026, app 2886 → 2892.** The arithmetic: + 1 in
+`analysis_panels_sheet_test` (the sheet's switch is the manual mode reversed;
+the source guard now covers the comment setting too, inside an existing
+test), + 4 in the new `engine_depth_ceiling_test` (the ceiling, the scanner's
+depths, the Review dialog at a remembered 42, Auto Analysis at 50), + 1 in
+`game_tutorial_flow_test` (the slider runs 18 to 50). Changed in place, no
+count: two dial tests and two `game_tutorial_slice_test` tests that tapped
+the old radio buttons. Analyze 26, the same list.
+
+**A limit written in five places is five limits.** The board remembered
+depths up to 50 while the Review dialog, opened from that board, stopped at
+30 — a remembered 42 put the slider's value past its own end. It had not
+happened only because the board's dial skipped from 30 to 34. The ceiling is
+now `AppSettingsService.kMaxEngineDepth`, and the dialogs read it (rule 12).
+
+**Grep a key before changing the widget that carries it.** The first full run
+after replacing the tutorial's radio buttons failed two tests in a file that
+the search for the list's *name* had not found: they tapped the radios by
+their key string.
+
+**The engine opponent moves onto the exercise screen — 17.9.2026, app
+2892 → 2895.** + 3 in the new `engine_opponent_sheet_test` (read only by the
+exercise screen and set only in its sheet, and the screen offers the sheet
+wherever it offers its board menu; the sheet sets level and time; the button
+opens it). Analyze 26, the same list.
+
+**A guard on who reads a setting does not see the button go missing.** The
+first version checked readers and writers; removing the portrait header's
+button passed it, because the screen still read the setting. The guard now
+counts the screen's board menus against its opponent buttons. Same shape as
+the arrow-switch guard: a setting with a reader and no control on the screen
+it was moved to is the „menu that does nothing" from the other side.
+
+**Homework, phase 0: the game's ending has a name — 17.9.2026, app
+2895 → 2906.** + 11 in `drill_outcome_test`: five endings, one position
+each, every one proven to satisfy its rule and none of the other four; a
+running game; the move limit; resignation; the board before the inputs;
+`outcomeFor` equal to the verdict's outcome; every ending has words. Seven
+mutations, seven right reds. Analyze 26.
+
+**Measure the gap before planning to fill it.** The plan said the exercise
+screen „detects checkmate and nothing else". It read its verdict through a
+function that already covered every draw by rule; the grep that produced the
+sentence matched `in_checkmate` in the screen and stopped there. The gap was
+real but different — the reason was missing, and the verdict was read after
+the engine's move only — and the phase shrank from a service to a widening
+of one function. Rule 12 from the other side: before writing a second
+implementation, find the first; before *planning* one, find it too.

@@ -33,15 +33,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _settings = AppSettingsService.instance;
   final _stockfishService = StockfishService();
 
-  static const List<(String, String)> _analysisPanelToggles = [
-    ('Move tree', 'move_tree'),
-    ('Tactical motifs', 'tactical_motifs'),
-    ('Positional factors', 'positional_factors'),
-    ('Opening Explorer', 'opening_explorer'),
-    ('Tablebase (Syzygy)', 'syzygy'),
-    ('Engine analysis panel', 'engine_analysis'),
-  ];
-
   Future<void> _openEngineSettings() async {
     await showEngineSettingsDialog(context,
         stockfishService: _stockfishService);
@@ -647,87 +638,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // What is left in Settings is the *opponent*: how
-                      // strongly the engine plays and how long it may think.
-                      // How deep a board analyses, and how many lines it shows,
-                      // moved onto the boards themselves on 27.8.2026 — one
-                      // number used to answer both questions, so turning the
-                      // opponent down to help a beginner also made every
-                      // evaluation in the app shallower.
-                      const Text('Engine strength when playing against you:',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: AppSpacing.sm),
-                      SegmentedButton<String>(
-                        segments: [
-                          for (final entry in AppSettingsService
-                              .kEnginePlayLevelNames.entries)
-                            ButtonSegment<String>(
-                              value: entry.key,
-                              label: Text(entry.value),
-                            ),
-                        ],
-                        selected: {_settings.enginePlayLevel},
-                        showSelectedIcon: false,
-                        onSelectionChanged: (picked) {
-                          if (picked.isEmpty) return;
-                          _settings.setEnginePlayLevel(picked.first);
-                        },
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'The engine moves as soon as it reaches its level depth — '
-                        'Easy ${AppSettingsService.kEnginePlayDepths['lako']}, '
-                        'Medium ${AppSettingsService.kEnginePlayDepths['srednje']}, '
-                        'Hard ${AppSettingsService.kEnginePlayDepths['tesko']} '
-                        'moves ahead.',
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted),
-                      ),
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Expanded, not a bare Text: this label is 38
-                          // characters and the row it sits in overflowed by 303
-                          // pixels on a 360 dp phone — invisibly, because a
-                          // release build clips instead of striping.
-                          const Expanded(
-                            child: Text('Maximum engine think time:',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                          ),
-                          Text(
-                            '${_settings.defaultEngineMoveTimeSeconds} s',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.accent),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _settings.defaultEngineMoveTimeSeconds
-                            .toDouble()
-                            .clamp(1.0, 60.0),
-                        min: 1,
-                        max: 60,
-                        divisions: 59,
-                        label: '${_settings.defaultEngineMoveTimeSeconds} s',
-                        activeColor: context.colors.accent,
-                        onChanged: (val) {
-                          _settings.setEngineMoveTimeSeconds(val.round());
-                        },
-                      ),
-                      Text(
-                        'The engine moves as soon as it reaches its level depth OR when '
-                        'this time expires — whichever comes first.',
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted),
-                      ),
-                      const Divider(height: 24),
+                      // The opponent's strength and think time moved onto
+                      // the exercise screen on 17.9.2026, the one screen that
+                      // reads them; the analysis dials went onto every board
+                      // on 27.8.2026. What is left here is where things are.
                       Text(
                         'Analysis depth and number of lines are set on the board '
                         'itself, below the "Show evaluation" toggle — on '
-                        'every screen where evaluation is shown. The last '
-                        'selection applies to the next board you open.',
+                        'every screen where evaluation is shown. How strongly '
+                        'the engine plays against you is set on the exercise '
+                        'screen. The last selection applies to the next board '
+                        'you open.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
                       ),
@@ -775,38 +696,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text('Board size:',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                          ),
-                          Text(
-                            '${(_settings.boardSizeScale * 100).round()}%',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.accent),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _settings.boardSizeScale.clamp(0.6, 1.0),
-                        min: 0.6,
-                        max: 1.0,
-                        divisions: 8,
-                        label: '${(_settings.boardSizeScale * 100).round()}%',
-                        activeColor: context.colors.accent,
-                        onChanged: (val) {
-                          _settings.setBoardSizeScale(val);
-                        },
-                      ),
-                      Text(
-                        'Reduce board size to free up more space for panels beside it.',
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted),
-                      ),
-                      const Divider(height: 24),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Board coordinates',
@@ -856,42 +745,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'How long a piece slides to the destination square. Far left disables animation.',
                         style: AppText.caption
                             .copyWith(color: context.colors.textMuted),
-                      ),
-                      const Divider(height: 24),
-                      const Text('Panels in Analysis:',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: AppSpacing.xs),
-                      ..._analysisPanelToggles.map((panel) => CheckboxListTile(
-                            contentPadding: EdgeInsets.zero,
-                            controlAffinity: ListTileControlAffinity.leading,
-                            dense: true,
-                            visualDensity: VisualDensity.compact,
-                            value: _settings.isPanelVisible(panel.$2),
-                            title: Text(panel.$1, style: AppText.bodyLarge),
-                            activeColor: context.colors.accent,
-                            onChanged: (val) {
-                              _settings.setPanelVisible(panel.$2, val ?? true);
-                            },
-                          )),
-                      const Divider(height: 24),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        value: _settings.manualCommentMode,
-                        title: const Text(
-                            'Manual comment selection in move tree',
-                            style: AppText.bodyLarge),
-                        subtitle: Text(
-                          'Disable automatic comments — choose manually which findings to keep from the list.',
-                          style: AppText.caption
-                              .copyWith(color: context.colors.textMuted),
-                        ),
-                        activeColor: context.colors.accent,
-                        onChanged: (val) {
-                          _settings.setManualCommentMode(val ?? false);
-                        },
                       ),
                     ],
                   ),

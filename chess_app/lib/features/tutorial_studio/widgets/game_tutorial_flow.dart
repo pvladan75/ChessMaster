@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
@@ -26,9 +27,15 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
-/// The depths offered (D1): 18 is where the thresholds were validated, and
-/// nothing lower is offered until it is measured the same way.
-const List<int> kGameTutorialDepths = [18, 20, 22];
+/// The shallowest depth offered (D1): 18 is where the thresholds were
+/// validated, and nothing lower is offered until it is measured the same way.
+const int kGameTutorialMinDepth = 18;
+
+/// The deepest: the app's one ceiling. Until 17.9.2026 the trainer chose
+/// between 18, 20 and 22 only — the three depths phase 0 had timed; the owner
+/// asked for every depth up to 50 wherever a depth is chosen. Past 22 the time
+/// is not measured, and the dialog says so rather than guessing.
+const int kGameTutorialMaxDepth = AppSettingsService.kMaxEngineDepth;
 
 const String kGameTutorialDepthPreference = 'app_game_tutorial_depth';
 const String kGameTutorialThresholdPreference = 'app_game_tutorial_threshold';
@@ -55,9 +62,12 @@ typedef GameTutorialSettings = ({int depth, double minCost});
 /// workers: 39–109 s a game at 18, 1.9–3.8 times that at 20, 3.6–7.1 at 22.
 String gameTutorialDepthTime(int depth) => switch (depth) {
       18 => 'under 2 minutes',
+      // Not timed; bounded by the next measured depth, which is never faster.
+      19 => 'under 7 minutes',
       20 => '1 to 7 minutes',
+      21 => 'under 13 minutes',
       22 => '2 to 13 minutes',
-      _ => '',
+      _ => 'not measured — longer than depth 22, which takes 2 to 13 minutes',
     };
 
 /// The depth and the threshold, remembered from last time; null when the
@@ -72,7 +82,11 @@ Future<GameTutorialSettings?> chooseGameTutorialDepth(
     BuildContext context) async {
   final prefs = await SharedPreferences.getInstance();
   final remembered = prefs.getInt(kGameTutorialDepthPreference);
-  var depth = kGameTutorialDepths.contains(remembered) ? remembered! : 18;
+  var depth = remembered != null &&
+          remembered >= kGameTutorialMinDepth &&
+          remembered <= kGameTutorialMaxDepth
+      ? remembered
+      : kGameTutorialMinDepth;
   var minCost = roundThreshold(
       prefs.getDouble(kGameTutorialThresholdPreference) ??
           kGameTutorialDefaultThreshold);
@@ -98,22 +112,20 @@ Future<GameTutorialSettings?> chooseGameTutorialDepth(
                 style: AppText.body.copyWith(color: ctx.colors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.sm),
-              RadioGroup<int>(
-                groupValue: depth,
-                onChanged: (value) => setState(() => depth = value ?? depth),
-                child: Column(
-                  children: [
-                    for (final d in kGameTutorialDepths)
-                      RadioListTile<int>(
-                        key: Key('game-tutorial-depth-$d'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        value: d,
-                        title: Text('Depth $d'),
-                        subtitle: Text(gameTutorialDepthTime(d)),
-                      ),
-                  ],
-                ),
+              Text('Depth $depth', style: AppText.bodyBold),
+              Text(
+                key: const Key('game-tutorial-depth-time'),
+                gameTutorialDepthTime(depth),
+                style: AppText.body.copyWith(color: ctx.colors.textSecondary),
+              ),
+              Slider(
+                key: const Key('game-tutorial-depth'),
+                value: depth.toDouble(),
+                min: kGameTutorialMinDepth.toDouble(),
+                max: kGameTutorialMaxDepth.toDouble(),
+                divisions: kGameTutorialMaxDepth - kGameTutorialMinDepth,
+                label: '$depth',
+                onChanged: (value) => setState(() => depth = value.round()),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(

@@ -448,7 +448,7 @@ stopping. Each has its own test now.
 
 | | question | answer |
 |---|---|---|
-| D1 | the depth | **the trainer's choice**, 18 / 20 / 22, default 18; nothing lower until measured (owner, 13.9.2026) |
+| D1 | the depth | **the trainer's choice**, 18 / 20 / 22, default 18; nothing lower until measured (owner, 13.9.2026). Widened 17.9.2026 by the owner to every depth from 18 to 50; above 22 the time is not measured and the dialog says so |
 | D2 | who gets it | **premium accounts, and free accounts that buy credits**. No credit system exists yet, so phase 3 gates on a new `AI_TUTORIALS` entitlement granted to the paid tiers and records every use with its tokens; credits are a plan of their own, and the usage rows are what it will read |
 | D3 | the provider | **`deepseek-flash`, `reasoning_effort: low`** — the model of every validated run. Measured on the ten games: 24–69 s and 10.5–22.8 k tokens a tutorial, 15.5 k on average, of which about two thirds are the answer and its thinking |
 | D4 | where the door is | **both**: Analysis and the game archive. The archive has no screen for one game, so (owner, 14.9.2026) an archive mistake gets **"Open this game in Analysis"**, with a server route that returns the game's moves, and the Analysis door covers archive games — one door |

@@ -14,17 +14,50 @@ import 'package:chess/chess.dart' as chess;
 /// side the reader is playing. Both are read here, and neither is guessed from
 /// the category or from who happened to move last.
 enum DrillOutcome {
-  /// The reader delivered mate.
+  /// The reader delivered mate, or the engine gave up.
   readerWon,
 
-  /// The reader was mated.
+  /// The reader was mated, or resigned.
   readerLost,
 
-  /// Stalemate, or a draw by rule.
+  /// Stalemate, a draw by rule, or the move limit.
   drawn,
 
   /// The game is still going.
   undecided,
+}
+
+/// Why the game is over — the half of the verdict a report and a homework
+/// goal need (`docs/PLAN-DOMACI-ZADATAK.md`, §3): „hold" is met by any draw,
+/// „survive" by reaching the limit, and the student is told which it was.
+///
+/// The first five are read off the board. The last two cannot be: the board
+/// does not know how many moves a trainer allowed, or that somebody gave up,
+/// so [verdictFor] takes them as inputs.
+enum GameEnding {
+  checkmate,
+  stalemate,
+  insufficientMaterial,
+  threefoldRepetition,
+  fiftyMoves,
+
+  /// The drill's move limit was reached with the game still undecided. Read as
+  /// a draw: a „win" goal is not met, a „hold" or „survive" goal is.
+  moveLimit,
+  resignation,
+}
+
+/// The verdict: the outcome for the reader and the reason. [ending] is null
+/// exactly when [outcome] is [DrillOutcome.undecided].
+class GameVerdict {
+  const GameVerdict(this.outcome, this.ending);
+
+  final DrillOutcome outcome;
+  final GameEnding? ending;
+
+  bool get isOver => outcome != DrillOutcome.undecided;
+
+  static const undecided = GameVerdict(DrillOutcome.undecided, null);
 }
 
 /// The side to move in [fen] — the side a drill hands to the reader.
@@ -44,15 +77,64 @@ chess.Color sideToMoveOf(String fen) {
 /// Deliberately takes no category and no "who moved last". Those are the two
 /// inputs that produced the wrong answer, and neither is needed: a mate names
 /// its victim by whose turn it is.
-DrillOutcome outcomeFor(chess.Chess game, chess.Color userColor) {
+///
+/// The board is asked first and in a fixed order — mate, then stalemate, then
+/// the draws by rule — so a position that satisfies two rules at once (a
+/// stalemate with bare kings) is always named the same way. [resigned] loses
+/// only a game the board has not already ended, and [plyCap] ends only a game
+/// nothing else has: the plies are counted from the position the drill was
+/// loaded at, which is what `game.history` holds after `Chess.fromFEN`.
+GameVerdict verdictFor(
+  chess.Chess game,
+  chess.Color userColor, {
+  int? plyCap,
+  bool resigned = false,
+}) {
   if (game.in_checkmate) {
-    return game.turn == userColor
-        ? DrillOutcome.readerLost
-        : DrillOutcome.readerWon;
+    return GameVerdict(
+      game.turn == userColor ? DrillOutcome.readerLost : DrillOutcome.readerWon,
+      GameEnding.checkmate,
+    );
   }
-  if (game.in_stalemate || game.in_draw) return DrillOutcome.drawn;
-  return DrillOutcome.undecided;
+  if (game.in_stalemate) {
+    return const GameVerdict(DrillOutcome.drawn, GameEnding.stalemate);
+  }
+  if (game.insufficient_material) {
+    return const GameVerdict(
+        DrillOutcome.drawn, GameEnding.insufficientMaterial);
+  }
+  if (game.in_threefold_repetition) {
+    return const GameVerdict(
+        DrillOutcome.drawn, GameEnding.threefoldRepetition);
+  }
+  if (game.half_moves >= 100) {
+    return const GameVerdict(DrillOutcome.drawn, GameEnding.fiftyMoves);
+  }
+  if (resigned) {
+    return const GameVerdict(DrillOutcome.readerLost, GameEnding.resignation);
+  }
+  if (plyCap != null && game.history.length >= plyCap) {
+    return const GameVerdict(DrillOutcome.drawn, GameEnding.moveLimit);
+  }
+  return GameVerdict.undecided;
 }
+
+/// The outcome alone, for the callers that only ask who won. One rule: this
+/// is [verdictFor] with the reason dropped, never a second reading.
+DrillOutcome outcomeFor(chess.Chess game, chess.Color userColor) =>
+    verdictFor(game, userColor).outcome;
+
+/// How an ending is named to the reader. One home for the words, so the
+/// drill's dialog, a homework's report and a tutorial's sentence agree.
+String endingLabel(GameEnding ending) => switch (ending) {
+      GameEnding.checkmate => 'checkmate',
+      GameEnding.stalemate => 'stalemate',
+      GameEnding.insufficientMaterial => 'not enough material to mate',
+      GameEnding.threefoldRepetition => 'the same position three times',
+      GameEnding.fiftyMoves => 'fifty moves without a capture or a pawn move',
+      GameEnding.moveLimit => 'the move limit was reached',
+      GameEnding.resignation => 'resignation',
+    };
 
 /// Whether a move by [movingColor] means the reader has taken over the other
 /// side.

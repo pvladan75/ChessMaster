@@ -151,6 +151,13 @@ class AppSettingsService extends ChangeNotifier {
     }
   }
 
+  /// The deepest search any picker in the app offers (owner, 17.9.2026: „50
+  /// maksimalno gde god korisnik bira"). One number, so a dialog that stops
+  /// at 30 while the board it opens from remembers 42 cannot happen again —
+  /// the Review dialog's slider did exactly that, and a remembered depth
+  /// above its maximum is an assertion in debug and a clipped thumb in release.
+  static const int kMaxEngineDepth = 50;
+
   /// The three levels, and what each one is worth in plies.
   static const Map<String, int> kEnginePlayDepths = {
     'lako': 18,
@@ -223,8 +230,8 @@ class AppSettingsService extends ChangeNotifier {
       await prefs.setString('app_engine_play_level', _enginePlayLevel);
     }
 
-    _analysisDepth =
-        (prefs.getInt('app_analysis_depth') ?? legacyDepth ?? 20).clamp(6, 50);
+    _analysisDepth = (prefs.getInt('app_analysis_depth') ?? legacyDepth ?? 20)
+        .clamp(6, kMaxEngineDepth);
     _analysisLines = (prefs.getInt('app_analysis_lines') ??
             prefs.getInt('app_multi_pv') ??
             3)
@@ -305,7 +312,7 @@ class AppSettingsService extends ChangeNotifier {
   /// one was left — the dial is still the board's, but nobody has to set it
   /// again on every screen they visit.
   Future<void> setAnalysisDepth(int depth) async {
-    _analysisDepth = depth.clamp(6, 50);
+    _analysisDepth = depth.clamp(6, kMaxEngineDepth);
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('app_analysis_depth', _analysisDepth);

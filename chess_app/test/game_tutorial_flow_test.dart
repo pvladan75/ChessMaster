@@ -163,7 +163,9 @@ Future<void> _startAt(WidgetTester tester, {int? depth}) async {
   await tester.tap(find.byKey(const Key('door')));
   await tester.pumpAndSettle();
   if (depth != null) {
-    await tester.tap(find.byKey(Key('game-tutorial-depth-$depth')));
+    tester
+        .widget<Slider>(find.byKey(const Key('game-tutorial-depth')))
+        .onChanged!(depth.toDouble());
     await tester.pumpAndSettle();
   }
   await tester.tap(find.byKey(const Key('game-tutorial-start')));
@@ -182,10 +184,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('door')));
     await tester.pumpAndSettle();
-    for (final d in kGameTutorialDepths) {
-      expect(find.text(gameTutorialDepthTime(d)), findsOneWidget);
-    }
-    // Remembered from last time: 20 is preselected, so Start uses it.
+    // Remembered from last time: 20 is preselected, with its measured time.
+    expect(find.text('Depth 20'), findsOneWidget);
+    expect(find.text(gameTutorialDepthTime(20)), findsOneWidget);
     await tester.tap(find.byKey(const Key('game-tutorial-start')));
     await tester.pumpAndSettle();
     expect(runner.depthAsked, 20);
@@ -193,6 +194,35 @@ void main() {
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt(kGameTutorialDepthPreference), 20);
+  });
+
+  // The owner, 17.9.2026: every depth up to 50 wherever a depth is chosen.
+  // Dragged, not set: the track itself has to reach the end.
+  testWidgets('the depth slider runs from 18 to 50, and says 50 is not timed',
+      (tester) async {
+    final runner = _Runner(finish: (_) => _result());
+    await _pump(tester, runner: runner, opened: []);
+
+    await tester.tap(find.byKey(const Key('door')));
+    await tester.pumpAndSettle();
+    expect(find.text('Depth 18'), findsOneWidget);
+
+    final slider = find.byKey(const Key('game-tutorial-depth'));
+    await tester.drag(slider, const Offset(2000, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Depth 50'), findsOneWidget);
+    expect(find.text(gameTutorialDepthTime(50)), findsOneWidget);
+    expect(gameTutorialDepthTime(50), contains('not measured'));
+
+    await tester.drag(slider, const Offset(-2000, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Depth 18'), findsOneWidget, reason: 'nothing below 18');
+
+    await tester.drag(slider, const Offset(2000, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('game-tutorial-start')));
+    await tester.pumpAndSettle();
+    expect(runner.depthAsked, 50);
   });
 
   // **What the door sends, when the board is not a game from move one.** The

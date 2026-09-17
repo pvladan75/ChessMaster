@@ -245,8 +245,8 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       Slider(
         value: _engineDepth.toDouble(),
         min: 5,
-        max: 30,
-        divisions: 25,
+        max: AppSettingsService.kMaxEngineDepth.toDouble(),
+        divisions: AppSettingsService.kMaxEngineDepth - 5,
         activeColor: context.colors.warning,
         onChanged: (val) => setState(() => _engineDepth = val.round()),
       ),

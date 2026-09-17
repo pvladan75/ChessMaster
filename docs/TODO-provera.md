@@ -5878,6 +5878,66 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 181. Domaći, faza 0: presuda partije na ekranu vežbi — 17.9.2026, nije viđeno uživo
+
+`docs/PLAN-DOMACI-ZADATAK.md`, §7 faza 0. Ekran vežbi, „Basic mates" ili
+„Winning position" — remi se sada saopštava kao i poraz, dijalogom koji kaže
+*zbog čega*, i motor se ne pita za potez u završenoj partiji.
+
+1. [ ] **Pat vašim potezom** (npr. K+Q vs K: stavi damu tako da kralj nema
+   potez, a nije šah): odmah dijalog „Draw — The game is drawn: stalemate.
+   Try again." sa „Try again" i „Next Position"; motor **ne** vuče, ništa se
+   ne vrti. Ranije: tišina.
+2. [ ] **Nedovoljan materijal vašim potezom** (uzmi poslednju figuru tako da
+   ostane K+B vs K ili K+N vs K): isti dijalog, „not enough material to
+   mate".
+3. [ ] **Pat potezom motora** (teško izazvati; ako se desi): dijalog umesto
+   ranije poruke „Stalemate / Draw" pri dnu.
+4. [ ] **Mat i dalje kao pre**: vaš mat → „VICTORY!", motorov mat →
+   „Checkmate". Mate-in-N zagonetke nepromenjene.
+
+## 180. Veličina table i paneli Analize prelaze iz Settings na ekran — 17.9.2026, nije viđeno uživo
+
+Pregled odeljka „Board and panel appearance" (vlasnik, 17.9.2026). „Board
+size" je menjao tablu na samo tri ekrana (soba, ekran vežbi, Analiza), a
+šest kvačica „Panels in Analysis" čita samo Analiza — oboje je izbačeno iz
+Settings. „Board coordinates" važi na svakoj tabli i ostaje.
+
+1. [ ] **Settings**: u „Board and panel appearance" više nema „Board size"
+   ni „Panels in Analysis"; ostaju koordinate, animacija poteza i ručni
+   komentari.
+2. [ ] **Analiza**: ikonica mreže (Board view) → „Board size" sa klizačem
+   60–100%; tabla se smanjuje **dok je meni otvoren**, bez izlaska sa ekrana.
+   Isto portret i položeno.
+3. [ ] **Soba** (ikonica mreže pored flip-a) i **ekran vežbi** (meni u
+   zaglavlju, portret i položeno): isti klizač, tabla prati. Vrednost je zajednička za
+   sva tri ekrana i ostaje posle ponovnog pokretanja.
+4. [ ] **Drugi ekrani** (npr. taktike, repertoar): u meniju table **nema**
+   klizača.
+5. [ ] **Analiza → „Panels"** (na telefonu u ⋮ „More tools", na Windows-u
+   ikonica): skini „Move tree" — stablo nestaje ispod otvorenog lista; vrati
+   ga. Izbor ostaje posle ponovnog pokretanja.
+6. [ ] **Upoznaj repertoar**: tabla sada ima slova i brojeve po ivici, a
+   „Coordinates" u meniju ih pali i gasi (ranije prekidač nije radio ništa).
+7. [ ] **Komentari u Analizi**: „Manual comment selection" više nije u
+   Settings. Analiza → „Panels and comments" → „Comment new moves
+   automatically": uključeno — odigran potez dobija komentar; isključeno —
+   ne dobija. Važi i za Auto Analysis.
+8. [ ] **Dubina do 50, svaka vrednost**: meni „depth" na tabli Analize,
+   repertoara i vežbi ima 6–50 bez preskakanja (natpisi su sada engleski:
+   „depth", „lines", „Again"); „Review entire game" i „Auto Analysis" idu do
+   50; „Check with engine" u sačuvanim pozicijama 12–50.
+9. [ ] **„Make a tutorial from this game"**: klizač dubine 18–50 umesto tri
+   izbora; ispod broja vreme — za 18/20/22 izmereno, iznad 22 „not
+   measured". Zapamćena dubina se vraća sledeći put.
+10. [ ] **Motor kao protivnik**: u Settings odeljak „Stockfish engine" više
+    nema jačine ni vremena razmišljanja (ostaje napomena i, na Windows-u,
+    lokalni .exe). Na ekranu vežbi ikonica robota (pored ikonice mreže,
+    portret i položeno) otvara list „Engine opponent": Easy/Medium/Hard i
+    klizač 1–60 s. Promeni na Hard usred partije — sledeći potez motora
+    ide dublje (u logu „Zadata dubina dostignuta (30 >= 30)"). Vrednosti
+    ostaju posle ponovnog pokretanja.
+
 ## 179. Reorganizacija, faze 6a–6c: studio na telefonu, jedan urednik — 17.9.2026, nije viđeno uživo
 
 `docs/PLAN-REORGANIZACIJA.md`, §7 (6a kontroler, vođa; 6b raspored za

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
@@ -42,10 +43,12 @@ class EngineAnalysisDials extends StatelessWidget {
   /// Drops the word before each dial, for a panel with no room for it.
   final bool compact;
 
-  /// Every second ply from 6 up. Odd depths are not interesting enough to
-  /// double the length of the menu.
-  static const List<int> depths = [
-    6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 34, 38, 42, 46, 50 //
+  /// Every depth from 6 to [AppSettingsService.kMaxEngineDepth]. Until
+  /// 17.9.2026 it was every second ply and then steps of four past 30; the
+  /// owner asked for every value up to 50, and a menu that scrolls is cheaper
+  /// than a depth nobody can ask for.
+  static final List<int> depths = [
+    for (var d = 6; d <= AppSettingsService.kMaxEngineDepth; d++) d
   ];
 
   static const List<int> lineCounts = [1, 2, 3, 4, 5];
@@ -59,14 +62,14 @@ class EngineAnalysisDials extends StatelessWidget {
       children: [
         _dial(
           context,
-          label: 'dubina',
+          label: 'depth',
           value: depth,
           values: depths,
           onChanged: onDepthChanged,
         ),
         _dial(
           context,
-          label: compact ? 'linije' : 'linija',
+          label: 'lines',
           value: lines,
           values: lineCounts,
           onChanged: onLinesChanged,
@@ -75,7 +78,7 @@ class EngineAnalysisDials extends StatelessWidget {
           TextButton.icon(
             onPressed: enabled ? onRestart : null,
             icon: const Icon(Icons.refresh, size: 14),
-            label: const Text('Ponovo'),
+            label: const Text('Again'),
           ),
       ],
     );

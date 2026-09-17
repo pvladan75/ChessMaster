@@ -84,6 +84,111 @@ void main() {
     });
   });
 
+  // Phase 0 of docs/PLAN-DOMACI-ZADATAK.md: the reason the game ended, one
+  // position per ending. Each is proven to end by exactly its rule and by
+  // none of the other four the board can read, so a rule that fires for the
+  // wrong position — or two that overlap — is caught here and not in a
+  // student's homework report.
+  group('verdictFor names the ending', () {
+    final boardEndings = <GameEnding, chess.Chess Function()>{
+      GameEnding.checkmate: _whiteIsMated,
+      GameEnding.stalemate: () =>
+          chess.Chess.fromFEN('7k/5Q2/6K1/8/8/8/8/8 b - - 0 1'),
+      GameEnding.insufficientMaterial: () =>
+          chess.Chess.fromFEN('k7/8/8/8/8/8/8/K6B w - - 0 1'),
+      // Knights out and back twice: the start position for the third time.
+      GameEnding.threefoldRepetition: () =>
+          _afterMoves(['Nf3', 'Nf6', 'Ng1', 'Ng8', 'Nf3', 'Nf6', 'Ng1', 'Ng8']),
+      // Loaded at 99 half-moves; one quiet rook move makes it a hundred.
+      GameEnding.fiftyMoves: () {
+        final game = chess.Chess.fromFEN('8/8/8/8/8/k7/8/K5R1 w - - 99 80');
+        expect(game.move('Rg2'), isTrue);
+        return game;
+      },
+    };
+    bool holds(chess.Chess g, GameEnding e) => switch (e) {
+          GameEnding.checkmate => g.in_checkmate,
+          GameEnding.stalemate => g.in_stalemate,
+          GameEnding.insufficientMaterial => g.insufficient_material,
+          GameEnding.threefoldRepetition => g.in_threefold_repetition,
+          GameEnding.fiftyMoves => g.half_moves >= 100,
+          _ => false,
+        };
+
+    for (final entry in boardEndings.entries) {
+      test('${entry.key.name}, and none of the other board endings', () {
+        final game = entry.value();
+        for (final other in boardEndings.keys) {
+          expect(holds(game, other), other == entry.key,
+              reason: '${other.name} on the ${entry.key.name} fixture');
+        }
+        final verdict = verdictFor(game, chess.Color.WHITE);
+        expect(verdict.ending, entry.key);
+        expect(verdict.isOver, isTrue);
+        expect(
+            verdict.outcome,
+            entry.key == GameEnding.checkmate
+                ? DrillOutcome.readerLost
+                : DrillOutcome.drawn);
+      });
+    }
+
+    test('a running game has no ending', () {
+      final verdict = verdictFor(chess.Chess(), chess.Color.WHITE);
+      expect(verdict, same(GameVerdict.undecided));
+      expect(verdict.ending, isNull);
+      expect(verdict.isOver, isFalse);
+    });
+
+    test(
+        'the move limit ends an undecided game as a draw, counted from the '
+        'position the drill loaded', () {
+      final game = chess.Chess.fromFEN(
+          'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      for (final san in ['e4', 'e5', 'Nf3', 'Nc6']) {
+        expect(game.move(san), isTrue);
+      }
+      expect(verdictFor(game, chess.Color.WHITE, plyCap: 5).isOver, isFalse);
+      final capped = verdictFor(game, chess.Color.WHITE, plyCap: 4);
+      expect(capped.outcome, DrillOutcome.drawn);
+      expect(capped.ending, GameEnding.moveLimit);
+    });
+
+    test('resigning loses a game the board has not ended', () {
+      final verdict =
+          verdictFor(chess.Chess(), chess.Color.BLACK, resigned: true);
+      expect(verdict.outcome, DrillOutcome.readerLost);
+      expect(verdict.ending, GameEnding.resignation);
+    });
+
+    test('the board is asked before the inputs', () {
+      // Mated and „resigned" in the same call: the mate is what happened.
+      final mated = _whiteIsMated();
+      expect(verdictFor(mated, chess.Color.WHITE, resigned: true).ending,
+          GameEnding.checkmate);
+      // Stalemate with the limit also reached: the stalemate is named.
+      final stale = chess.Chess.fromFEN('7k/5Q2/6K1/8/8/8/8/8 b - - 0 1');
+      expect(verdictFor(stale, chess.Color.WHITE, plyCap: 0).ending,
+          GameEnding.stalemate);
+    });
+
+    test('outcomeFor is the verdict with the reason dropped', () {
+      for (final make in boardEndings.values) {
+        final game = make();
+        for (final side in [chess.Color.WHITE, chess.Color.BLACK]) {
+          expect(outcomeFor(game, side), verdictFor(game, side).outcome);
+        }
+      }
+    });
+
+    test('every ending has words', () {
+      for (final ending in GameEnding.values) {
+        expect(endingLabel(ending), isNotEmpty);
+      }
+      expect(endingLabel(GameEnding.stalemate), 'stalemate');
+    });
+  });
+
   group('isSideSwap', () {
     test('moving for the other side is a swap', () {
       expect(isSideSwap(chess.Color.WHITE, chess.Color.BLACK), isTrue);

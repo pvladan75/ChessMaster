@@ -21,6 +21,8 @@ void main() {
       // The old ceiling was 28, and it was a leftover from when this number
       // also decided how long the opponent thought before moving.
       expect(EngineAnalysisDials.depths.last, 50);
+      // And every depth on the way, not steps (owner, 17.9.2026).
+      expect(EngineAnalysisDials.depths, [for (var d = 6; d <= 50; d++) d]);
       expect(EngineAnalysisDials.lineCounts, [1, 2, 3, 4, 5]);
     });
 
@@ -32,7 +34,7 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: EngineAnalysisDials(
-            depth: 27,
+            depth: 5,
             lines: 2,
             onDepthChanged: (_) {},
             onLinesChanged: (_) {},
@@ -41,7 +43,7 @@ void main() {
       ));
 
       expect(tester.takeException(), isNull);
-      expect(find.text('27'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
     });
 
     testWidgets('picking a depth reports it', (tester) async {
@@ -59,10 +61,11 @@ void main() {
 
       await tester.tap(find.text('20'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('42').last);
+      // An odd depth: only on the list since every depth is.
+      await tester.tap(find.text('23').last);
       await tester.pumpAndSettle();
 
-      expect(picked, 42);
+      expect(picked, 23);
     });
 
     testWidgets('while a search runs, the dials do not take a new one',

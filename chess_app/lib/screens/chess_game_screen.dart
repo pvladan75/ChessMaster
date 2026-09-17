@@ -2937,7 +2937,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       // that bar already carries five actions and a status icon, and a sixth
       // is how a row runs past the edge of a 360 dp phone with no warning
       // painted in a release build.
-      trailing: const [BoardViewMenu(arrows: true)],
+      trailing: const [BoardViewMenu(arrows: true, boardSize: true)],
     );
   }
 

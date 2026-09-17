@@ -17,6 +17,7 @@ import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
@@ -227,12 +228,14 @@ class _RepertoireWalkthroughScreenState
       }
     }
 
-    Widget board(double size) => SizedBox(
-          width: size,
-          height: size,
-          child: ChessBoardWithOverlay(
+    // Framed like every other board: this screen's menu carries the
+    // coordinates switch, and until 17.9.2026 it changed nothing here.
+    Widget board(double size) => BoardWithCoordinates(
+          size: size,
+          orientation: boardOrientation,
+          builder: (inner) => ChessBoardWithOverlay(
             controller: _boardController,
-            boardSize: size,
+            boardSize: inner,
             boardOrientation: boardOrientation,
             isAllowedToMove: false,
             isDrawingMode: false,

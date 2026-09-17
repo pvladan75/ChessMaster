@@ -8,6 +8,8 @@ import 'package:chess_app/widgets/ai_studio/pgn_solution_tree_widget.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -26,6 +28,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/models/drill_outcome.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/engine_opponent_sheet.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
@@ -809,15 +812,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         // reader on delivering it and marked the drill solved.
         // The engine has just moved, so the side to move is the reader's —
         // that is the fallback if a drill somehow loaded without a side.
-        final outcome =
-            outcomeFor(_puzzleGame!, _userColor ?? _puzzleGame!.turn);
-        if (outcome == DrillOutcome.readerLost) {
+        final verdict =
+            verdictFor(_puzzleGame!, _userColor ?? _puzzleGame!.turn);
+        if (verdict.outcome == DrillOutcome.readerLost) {
           _showEndgameLossDialog();
-        } else if (outcome == DrillOutcome.readerWon) {
+        } else if (verdict.outcome == DrillOutcome.readerWon) {
           setState(() => _puzzleSolved = true);
           _showEndgameWinDialog();
-        } else if (outcome == DrillOutcome.drawn) {
-          _showSnackBar('🤝 Stalemate / Draw in the position.');
+        } else if (verdict.outcome == DrillOutcome.drawn) {
+          _showEndgameDrawDialog(verdict.ending!);
         } else {
           if (_selectedCategory != 'mate_puzzle' &&
               (_showEvaluation || _showEvalBar)) {
@@ -833,7 +836,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   void _triggerOpponentBotResponse() async {
     if (_selectedCategory == 'mate_puzzle') return;
-    if (_puzzleGame == null || _puzzleGame!.in_checkmate) return;
+    // Any ending, not only mate: a reader who stalemates the engine used to
+    // leave it here asked for a move in a finished game.
+    if (_puzzleGame == null ||
+        verdictFor(_puzzleGame!, _userColor ?? _puzzleGame!.turn).isOver) {
+      return;
+    }
     resetBoardState(isNewPuzzle: false);
     setState(() {
       _isVerifyingUserMove = false;
@@ -1561,8 +1569,24 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // than as a bare `in_checkmate` so that both verdicts in this screen come
     // from one rule instead of two that can drift apart — which is how they
     // drifted apart in the first place.
-    if (outcomeFor(_puzzleGame!, _userColor ?? movingColor) ==
-            DrillOutcome.readerWon &&
+    final verdict = verdictFor(_puzzleGame!, _userColor ?? movingColor);
+    if (verdict.outcome == DrillOutcome.drawn &&
+        _selectedCategory != 'mate_puzzle') {
+      // The reader's own move drew the game — a stalemate, or a capture that
+      // left too little to mate with. Until 17.9.2026 this fell through to
+      // the engine's turn, and the engine was asked to move in a finished
+      // game; the reader saw nothing happen.
+      await _sendBackendLog({
+        'mode': _categoryDisplayName,
+        'dynamicFen': currentFen,
+        'userMove': userLan,
+        'status': 'DRAWN',
+        'reason': endingLabel(verdict.ending!),
+      });
+      _showEndgameDrawDialog(verdict.ending!);
+      return;
+    }
+    if (verdict.outcome == DrillOutcome.readerWon &&
         _selectedCategory != 'mate_puzzle') {
       print('\n==================================================');
       print(
@@ -2216,20 +2240,40 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   /// others. A child who has just been mated deserves the same weight of answer
   /// as one who has just mated — and, more plainly, needs to be told which of
   /// the two happened.
-  void _showEndgameLossDialog() {
+  void _showEndgameLossDialog() => _showDrillEndedDialog(
+        icon: Icons.flag,
+        color: context.colors.danger,
+        title: 'Checkmate',
+        body: 'Stockfish delivered checkmate. Try again.',
+      );
+
+  /// A draw ends the drill the way a loss does — it is not the mate the drill
+  /// asked for — and says which rule ended it, in the words of [endingLabel].
+  void _showEndgameDrawDialog(GameEnding ending) => _showDrillEndedDialog(
+        icon: Icons.handshake,
+        color: context.colors.warning,
+        title: 'Draw',
+        body: 'The game is drawn: ${endingLabel(ending)}. Try again.',
+      );
+
+  void _showDrillEndedDialog({
+    required IconData icon,
+    required ui.Color color,
+    required String title,
+    required String body,
+  }) {
     if (!mounted) return;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.flag, color: context.colors.danger, size: 28),
+            Icon(icon, color: color, size: 28),
             const SizedBox(width: AppSpacing.sm),
-            const Text('Checkmate',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text('Stockfish delivered checkmate. Try again.'),
+        content: Text(body),
         actions: [
           TextButton.icon(
             icon: const Icon(Icons.refresh),
@@ -2653,7 +2697,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             // solve the position, and the banner above it says whose move it
             // is — a reader who turns it around is then looking at a board
             // that contradicts the sentence naming their colour.
-            const BoardViewMenu(size: 20, arrows: true),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // The opponent is chosen where it plays, not in Settings.
+                EngineOpponentButton(size: 20, color: context.colors.textMuted),
+                const SizedBox(width: AppSpacing.sm),
+                const BoardViewMenu(size: 20, arrows: true, boardSize: true),
+              ],
+            ),
           ],
         ),
       ),
@@ -2771,8 +2823,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            EngineOpponentButton(size: 18, color: context.colors.textSecondary),
+            const SizedBox(width: AppSpacing.sm),
             BoardViewMenu(
-                size: 18, color: context.colors.textSecondary, arrows: true),
+                size: 18,
+                color: context.colors.textSecondary,
+                arrows: true,
+                boardSize: true),
             const SizedBox(width: AppSpacing.sm),
             IconButton(
               icon: Icon(Icons.biotech,

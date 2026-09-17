@@ -13,6 +13,7 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/features/analysis_studio/widgets/analysis_panels_sheet.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -214,6 +215,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (game != null) _loadGame(game);
     if (tree != null) _loadTree(tree);
     _initEngine();
+    AppSettingsService.instance.addListener(_onAppSettingsChanged);
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
     });
@@ -224,8 +226,17 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     }
   }
 
+  /// The board size slider and the panel checkboxes are on this screen — its
+  /// board menu and its Panels sheet — so what they change has to follow them
+  /// while the screen is showing, not only after a page opened on top of it
+  /// has closed. Both are read during build.
+  void _onAppSettingsChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _puzzleRevealTimer?.cancel();
     // A debounced write would be lost with this screen, so force it out first.
     unawaited(AnalysisDraftService.instance.flush(
@@ -279,6 +290,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _ToolAction(Icons.share, context.colors.info, 'Export PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Saved analyses',
           _showSavedAnalysesDialog),
+      _ToolAction(Icons.view_quilt_outlined, context.colors.textMuted,
+          'Panels and comments', () => showAnalysisPanelsSheet(context)),
       _ToolAction(Icons.settings, context.colors.textMuted, 'Settings',
           _openAppSettings),
       _ToolAction(Icons.terminal, context.colors.warning, 'Engine Logs 📜',
@@ -293,7 +306,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     // Kept out of the list and never folded into the overflow menu: it is the
     // one control here that changes what the board *looks* like, and it draws
     // its own state, which a `_ToolAction` cannot.
-    const coordinates = BoardViewMenu(arrows: true);
+    const coordinates = BoardViewMenu(arrows: true, boardSize: true);
 
     if (Breakpoints.isWide(context)) {
       return [coordinates, ...actions.map(asIcon)];
@@ -539,7 +552,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// lands exactly where they left off.
   Future<void> _openAppSettings() async {
     await context.push(AppRoutes.preferences);
-    // Board scale and panel visibility are read during build, so re-read them.
     if (mounted) setState(() {});
   }
 

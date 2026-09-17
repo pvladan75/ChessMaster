@@ -221,8 +221,8 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
               Slider(
                 value: _engineDepth.toDouble(),
                 min: 5,
-                max: 50,
-                divisions: 45,
+                max: AppSettingsService.kMaxEngineDepth.toDouble(),
+                divisions: AppSettingsService.kMaxEngineDepth - 5,
                 activeColor: context.colors.warning,
                 onChanged: (val) => setState(() => _engineDepth = val.round()),
               ),
