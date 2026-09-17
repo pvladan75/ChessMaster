@@ -186,6 +186,31 @@ i to na postojećoj ruti `POST /assignments`, ne samo u domacem. Stub-pool
 test to nije mogao da vidi; sad postoji `test/puzzle_resolution.test.js` na
 pravoj bazi.
 
+**Faza 3b u kodu** (17.9.2026, implementer + ocenjivanje kod vođe).
+`chess_app/lib/features/homework/`: model, klijent za `/homeworks`, editor
+(naslov, uputstvo, stavke gore/dole/izbaci, dva prekidača, „Dodaj" za četiri
+vrste), dva birača koja nisu postojala (kriterijumi za set zagonetki i
+„odigraj do kraja"), lista domaćih i kartica na Teach tabu; u Biblioteci su
+šest čipova zamrznuti, pa domaći ima vrata pored liste, ne sedmi čip.
+
+Ključ stavke (`item_key`) putuje sa stavkom, nikada sa indeksom reda — na
+njega gledaju deca poslatog domaćeg, i tri od dvanaest testova kapije su
+upravo o tome.
+
+Tri ispravke pri ocenjivanju, svaka sa svojim crvenim testom pre zelenog:
+**trener bira boju kojom učenik igra** (odgovor vlasnika, §9 — birač je boju
+čitao iz FEN-a, čime se nije mogao zadati „održi remi, motor je na potezu",
+iako to oba kraja već sude); **brisanje šablona pita pre nego što obriše** i
+kaže šta *ne* dira — već poslati domaći ostaju učenicima; i **moja kapija je
+nosila nepotreban `as http.Request`**, zbog kojeg je `flutter analyze` bio
+jedan info iznad osnove — implementer ga je našao, odbio da menja kapiju i
+prijavio, što je pravilo koje radi.
+
+Brif je bio pogrešan tamo gde se sukobio sa kapijom (tvrdio je da prvi red ne
+treba da ima prekidač brane, a kapija tapka upravo taj prekidač) — kapija je
+bila u pravu: kontrola sakrivena na prvom redu pojela bi izbor stavke koju je
+trener premestio na vrh. Brif sada to i kaže.
+
 **Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
 na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
 vraća `assignments_kind_check` (proširen) i dodaje `assignments_homework_shape`;

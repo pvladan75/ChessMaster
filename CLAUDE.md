@@ -21,13 +21,13 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2943 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2966 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1503 with TEST_DATABASE_URL, 1441 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Measured on `master` on 17.9.2026 (after the Settings review moved board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, and phases 0–4 of the homework plan, bar 3b), with every built phase of the
+Measured on `master` on 17.9.2026 (after the Settings review moved board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, and phases 0–4 of the homework plan, the trainer's editor included), with every built phase of the
 reorganisation merged (`docs/PLAN-REORGANIZACIJA.md`: the shell Home · Practise ·
 Analyse · Teach, the room's column on the shared library list, the studio's
 `TutorialDraftController`, the studio on a phone, one tutorial editor everywhere)

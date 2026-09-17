@@ -5878,11 +5878,21 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
-## 183. Domaći, faze 3a–4: šablon i slanje (server) — 17.9.2026, nije viđeno uživo
+## 183. Domaći, faze 3a–4: šablon, editor i slanje — 17.9.2026, nije viđeno uživo
 
-Bez ekrana za sada (faza 3b je kod implementera), pa se ovo gleda kad ekrani
-budu gotovi — ili ručno, kroz zahteve, ako vlasnik želi ranije.
+Slanje još nema svoj prozor (faza 4, app pola), pa se stavke 2–5 gledaju kad
+on bude gotov — ili ručno, kroz zahteve, ako vlasnik želi ranije. Sve ostalo
+je prohodno kroz ekrane.
 
+0. [ ] **Vrata**: kartica „Homework" na Teach tabu i vrata „Homework" u
+   Biblioteci otvaraju istu listu; na telefonu se oboje vide bez skrolovanja
+   udesno. „New homework" otvara prazan editor.
+0b. [ ] **„Odigraj do kraja"**: u biraču izaberi poziciju gde je beli na
+   potezu, pa izaberi da učenik igra **crnim** — rečenica ispod kaže da motor
+   otvara. Pošlji i proveri kod učenika: motor odigra prvi potez sam.
+0c. [ ] **Brisanje šablona** pita pre brisanja; ako je domaći već poslat,
+   rečenica kaže da poslato ostaje — i posle brisanja učenikov domaći je
+   netaknut.
 1. [ ] **Napiši domaci** sa četiri stavke (tutorijal, pozicije, set
    zagonetki, „odigraj do kraja"), sa branom na drugoj i „mora rešeno" na
    četvrtoj; preuredi ih — posle čuvanja redosled je novi, a stavke su iste

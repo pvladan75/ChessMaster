@@ -3401,3 +3401,31 @@ The mutation „steps travel by index" survived: the tutorial fixture's steps
 were `p0, p1, p2`, which is exactly what `p${index}` produces. The ids are
 now `s21x, s28x, s35x` and the mutation dies. Rule 6, and the third time in
 two days that a survivor was the fixture's fault rather than the code's.
+
+**Homework, phase 3b: the trainer's editor — 17.9.2026, app 2943 → 2966
+tests, 1 skipped; analyze back to the 26 known infos.** 12 from the gate, 6
+from the implementer, 5 from grading. Backend untouched.
+
+**A brief that contradicts its own gate costs the worker a round.** The brief
+said „do not offer the gate switch on the first row"; the gate taps exactly
+that row's switch (`homework-gate-ia1b2c3d4`, position 0 in the fixture). The
+implementer stopped, said so, and kept the gate — the second time in two days
+that sentence about stopping rather than working around has paid for itself.
+The gate was the right one: a control hidden on row 1 swallows the setting of
+an item the trainer dragged to the top, invisible and un-editable until they
+move it back. **Read the brief against the gate before handing both over.**
+
+**The gate itself was one info above baseline.** `requests.add(request as
+http.Request)` — `MockClient` already types its handler's parameter, so the
+cast was `unnecessary_cast`. The worker measured it the only honest way
+(remove the file, analyze, put it back: 26 → 27), refused to edit the gate,
+and reported it. A gate is code and gets reviewed like code.
+
+**A default is not a choice.** The „play it out" picker read the student's
+side off the FEN's turn field, which reads correctly on every fixture in
+`docs/gates/engine_game_cases.json` and cannot express „hold this draw, engine
+to move" — a task `ai_studio_screen.dart` and `judgeEngineGame` both already
+handle (`turn != task.side` makes the engine open; own moves are counted by
+turn). The FEN is now the default and the trainer picks. The test that proves
+it uses the *same* position twice, once with each side to move: a suite that
+only ever tries a white-to-move FEN cannot tell a real reading from `'w'`.
