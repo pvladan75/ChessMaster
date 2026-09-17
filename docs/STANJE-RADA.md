@@ -118,6 +118,19 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Napredak u vežbama, faza 2 gotova, 17.9.2026, spojeno `1677f34`** (implementer,
+Sonnet): svih pet vežbi piše ishod, preskakanje i pomoć (taktika kroz svoj
+servis, ostalo kroz `PuzzleAttemptApi`); kartice huba crtaju „Solved N · M to
+retry" i „Retry failed (M)" samo iz pročitanog; taktika, matovi, dobitne
+pozicije i završnice serviraju promašene po id-u. Radnik je našao da dobitne
+pozicije i osnovni matovi ranije **nisu beležili ništa**, kao ni dva dugmeta
+lista „Incorrect Move" — sve spojeno. Bez mašinskog testa ostaje beleženje u
+`ai_studio_screen.dart` (pravi motor u `initState`) — provera uživo 176. Id
+partije u šetnji je neproziran na žici (`7da960b`). **`master`: 2878, 1
+preskočen, analyze 26; backend 1412.** Stavke za proveru uživo: **175**
+(reorganizacija 1–3a) i **176** (napredak). Sledeće: faza 5 (ljuska), pa 3b,
+pa 6.
+
 **Faza 3a gotova, 17.9.2026, spojeno `2671241`** (implementer, Sonnet): server
 u `/library/positions` lista i `tutorial` (sa brojem delova, videom, jezikom)
 i `recording`; `LibraryList` (šest čipova: All · Tutorials · Positions ·

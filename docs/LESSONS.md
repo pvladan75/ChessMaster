@@ -2950,3 +2950,31 @@ line.
 **Two suites on one machine, and `opening_book_service_test` times out** —
 rule 19 again: the phase-3 worker saw it while the progress worker's suite
 ran beside it. Grade one tree at a time.
+
+**Puzzle progress phase 2 — 17.9.2026, app 2859 → 2878.** The arithmetic:
++ 8 in `hub_progress_test.dart` (the gate) + 11 in the three drill recording
+tests the worker wrote against a fake client. Backend unchanged at 1412.
+
+**A brief's premise is a claim, and the worker is the first reader who can
+test it.** The brief said the mate drill's `_submitPuzzleResult(true)` fired
+for winning positions and basic mates too; it did not — those two recorded
+nothing, ever, and the „Incorrect Move" sheet's two buttons recorded nothing
+either. All three surfaced in the report's section 3, which is why that
+section is asked for before the numbers. **An `int` on the wire for an id
+that is a string in the model drops rows in silence** — the worker parsed and
+skipped, said so, and the wire now takes the id as it is; the fixture with
+`'bg_test'` is the test.
+
+**The one screen with no seam is the one with no test.** `ai_studio_screen.dart`
+starts a real engine in `initState`, so its recording — mates, winning
+positions, basic mates — is checked by reading and by the live item 176, not
+by a test. Phase 6a's lesson applies here too: a 3200-line screen that owns its
+services cannot be handed to a widget test, and the day it gets a controller
+is the day it gets one.
+
+**A doc edit that dies before the commit line under it.** Twice in a row a
+Python heredoc failed to parse — first blamed on the console's encoding, then
+found to be a plain `"` inside a double-quoted string — and the `git commit`
+chained after it went through with the *other* files, recording half a phase.
+Read the tool's output above the commit line before trusting it; put a script
+with quotes and dashes in a file, not a heredoc.
