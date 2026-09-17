@@ -145,6 +145,7 @@ void main() {
         'plyCap': 40,
       })!;
       Map<String, dynamic>? sentBody;
+      String? sentUrl;
       await http.runWithClient(() async {
         await _pump(tester, const Size(800, 900), task: task);
         await _playMove(tester, 'd1', 'd8', whiteAtBottom: true);
@@ -154,11 +155,18 @@ void main() {
         expect(find.textContaining('checkmate'), findsWidgets);
       },
           () => MockClient((request) async {
+                sentUrl = request.url.toString();
                 sentBody = jsonDecode(request.body) as Map<String, dynamic>;
                 return http.Response('{"ok":true}', 200);
               }));
 
       expect(sentBody, isNotNull, reason: 'the result must be posted');
+      // The address, not only the payload: a MockClient answers any URL, so a
+      // wrong one is invisible unless it is asserted (CLAUDE.md rule 7). The
+      // first version of the screen posted to `/api/assignments/...`, which
+      // this server does not serve.
+      expect(sentUrl, endsWith('/assignments/42/game-result'));
+      expect(sentUrl, isNot(contains('/api/')));
       expect(sentBody!['moves'], ['Rd8#']);
       expect(sentBody!.containsKey('goalMet'), isFalse,
           reason: 'the client never sends a verdict');
@@ -175,6 +183,7 @@ void main() {
         'plyCap': 40,
       })!;
       Map<String, dynamic>? sentBody;
+      String? sentUrl;
       await http.runWithClient(() async {
         await _pump(tester, const Size(800, 900), task: task);
         await _playMove(tester, 'a6', 'a5', whiteAtBottom: false);
@@ -186,6 +195,7 @@ void main() {
         expect(find.textContaining('checkmate'), findsWidgets);
       },
           () => MockClient((request) async {
+                sentUrl = request.url.toString();
                 sentBody = jsonDecode(request.body) as Map<String, dynamic>;
                 return http.Response('{"ok":true}', 200);
               }));
@@ -203,6 +213,7 @@ void main() {
         'plyCap': 40,
       })!;
       Map<String, dynamic>? sentBody;
+      String? sentUrl;
       await http.runWithClient(() async {
         await _pump(tester, const Size(800, 900), task: task);
         await _playMove(tester, 'f1', 'f7', whiteAtBottom: true);
@@ -212,6 +223,7 @@ void main() {
         expect(find.textContaining('stalemate'), findsWidgets);
       },
           () => MockClient((request) async {
+                sentUrl = request.url.toString();
                 sentBody = jsonDecode(request.body) as Map<String, dynamic>;
                 return http.Response('{"ok":true}', 200);
               }));
@@ -229,6 +241,7 @@ void main() {
         'plyCap': 40,
       })!;
       Map<String, dynamic>? sentBody;
+      String? sentUrl;
       await http.runWithClient(() async {
         await _pump(tester, const Size(800, 900), task: task);
         await _playMove(tester, 'e1', 'd2', whiteAtBottom: true);
@@ -241,6 +254,7 @@ void main() {
         expect(find.textContaining('survive'), findsWidgets);
       },
           () => MockClient((request) async {
+                sentUrl = request.url.toString();
                 sentBody = jsonDecode(request.body) as Map<String, dynamic>;
                 return http.Response('{"ok":true}', 200);
               }));
@@ -259,6 +273,7 @@ void main() {
         'plyCap': 40,
       })!;
       Map<String, dynamic>? sentBody;
+      String? sentUrl;
       await http.runWithClient(() async {
         await _pump(tester, const Size(800, 900), task: task);
         await _playMove(tester, 'a6', 'a5', whiteAtBottom: false);
@@ -270,6 +285,7 @@ void main() {
         expect(find.textContaining('checkmate'), findsWidgets);
       },
           () => MockClient((request) async {
+                sentUrl = request.url.toString();
                 sentBody = jsonDecode(request.body) as Map<String, dynamic>;
                 return http.Response('{"ok":true}', 200);
               }));

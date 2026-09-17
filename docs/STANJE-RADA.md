@@ -141,6 +141,24 @@ jer je bar u 360 dp inače prelivao 18 px), a banner cilja stoji nad tablom.
 Čuvar: widget test koji pumpa pravi ekran u portretu — brojanje u izvoru to
 nije moglo da vidi (pravilo 10). Provera uživo — stavka 182.
 
+**Faza 3a u kodu** (17.9.2026, vođa). `services/homeworkTemplate.js` i
+`routes/homeworks.js` (`GET/POST/GET :id/PUT/DELETE`, montirano na
+`/homeworks`): domaći se piše, čita, menja i povlači, **bez kvote** — kvota
+se plaća pri slanju. Lista stavki se usklađuje **po ključu**: stavka koja se
+vrati sa svojim ključem ga zadržava, nova ga dobija kovanog, a ona koju
+urednik nije poslao se briše; `position` se prepisuje iz redosleda liste i
+ne znači ništa drugo. Svaki `task` se čita po vrsti (tutorijal, pozicije,
+set zagonetki, „odigraj do kraja" kroz isti `parseEngineGameTask` kojim
+server sudi partiju), a ono na šta pokazuje mora biti trenerovo i upotrebljivo
+(pozicija bez rešenja ili pod revizijom se odbija **tu**, a ne kod deteta na
+tabli).
+
+Kapija faze — **preuređenje čuva svaki ključ** — dokazana na pravoj bazi, uz
+14 mutacija; backend 1470 → 1486 sa bazom, 1441 bez.
+
+**Faza 3b čeka implementera**: `docs/briefs/BRIEF-DOMACI-FAZA3-APP.md`,
+kapija `docs/gates/homework_editor_test.dart` (danas crvena na master-u).
+
 **Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
 na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
 vraća `assignments_kind_check` (proširen) i dodaje `assignments_homework_shape`;

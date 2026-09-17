@@ -2499,7 +2499,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (assignmentId != null) {
       try {
         final res = await http.post(
-          Uri.parse('$backendUrl/api/assignments/$assignmentId/game-result'),
+          // No `/api` here: every other assignment call is `$backendUrl/
+          // assignments/...` (`assignment_api_service.dart`), and the server
+          // mounts the router at `/assignments`. The first version of this
+          // line said `/api/assignments` and its test could not see it: a
+          // `MockClient` answers whatever URL it is handed, so the fake was
+          // asked no question about the address (CLAUDE.md rule 7).
+          Uri.parse('$backendUrl/assignments/$assignmentId/game-result'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ${widget.userSession.token}',

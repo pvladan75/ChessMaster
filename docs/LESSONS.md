@@ -3352,3 +3352,24 @@ square a full em wide, and the AppBar's title row only overflows in that
 measurement (rule 8). The font is loaded now and nothing is consumed — and
 the same test then caught a real 18 px overflow the lead's own app-bar
 actions introduced.
+
+**Homework, phase 3a: the template a trainer writes — 17.9.2026, backend
+1470 → 1486 with the test database (1441 without).** + 16 in the new
+`homework_template.test.js`: the reorder gate, keys minted rather than
+indexed, an item added in the middle, an item removed, a key from another
+homework treated as new, the per-kind task validation, ownership, the twenty
+ceiling, and the routes' status codes. 14 mutations, each red on the right
+test. App unchanged.
+
+**The third time, designed in rather than migrated.**
+`assignment_items.step_key` and `review_items.step_key` were both migrations
+away from an index used as an identity. `homework_items.item_key` is minted
+from the start, and the reconcile step is written so a reorder rewrites
+`position` and touches no key — with a test that fails if a key is ever
+derived from an index.
+
+**A key the client sends is a claim, not a fact.** The editor sends each
+item's key back, so `saveHomework` first reads which keys the homework really
+holds: a key belonging to another homework is treated as a new item instead
+of writing over somebody else's row. Proved by a test that hands one
+homework's key to another and then reads the first one back untouched.
