@@ -11,6 +11,24 @@ jobs:
     name: Flutter Analyze, Test & Build APK
     runs-on: ubuntu-latest
 
+    # A throwaway PostgreSQL for the backend tests that must prove SQL — a
+    # CHECK, a partial index, a WHERE clause — which the stub pools cannot see
+    # (chess_backend/test/support/pgTestDb.js). Nothing here is a secret: the
+    # container exists for the length of this job and holds only test rows.
+    # Without TEST_DATABASE_URL those tests fail in CI rather than skip.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7.0.1
@@ -63,6 +81,8 @@ jobs:
           npm ci
 
       - name: Run Backend Tests
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
         run: |
           cd chess_backend
           npm test

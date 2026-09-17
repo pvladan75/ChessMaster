@@ -40,8 +40,13 @@ const pool = new Pool({
   ssl: buildSslConfig()
 });
 
-async function initDB() {
-  const client = await pool.connect();
+/// Builds or migrates the schema, idempotently, on [target] — the process's
+/// pool unless another is given. The parameter exists for the tests that run
+/// the schema against a real throwaway database
+/// (`test/support/pgTestDb.js`): a CHECK or a partial index cannot be proven
+/// against the canned rows the rest of the suite uses.
+async function initDB(target = pool) {
+  const client = await target.connect();
   try {
     logger.info('Successfully connected to DigitalOcean PostgreSQL database.');
 
@@ -889,6 +894,102 @@ async function initDB() {
         ADD COLUMN IF NOT EXISTS played_san VARCHAR(20);
     `);
     logger.info('Verified database table & indexes: assignment_items (puzzle and lesson items)');
+
+    // Homework: a container the trainer writes once and sends many times
+    // (docs/PLAN-DOMACI-ZADATAK.md, variant A, phase 1).
+    //
+    // Two halves, deliberately apart, because the owner's rule is that making a
+    // homework and sending it are independent acts. `homeworks` and
+    // `homework_items` are the *template* — edited freely, owned by the
+    // trainer. Sending copies it into `assignments`: one parent row of
+    // `kind = 'homework'` per student, and one ordinary assignment per item
+    // pointing at it. An edit to the template after sending changes nothing a
+    // student already has, because what they have are assignments.
+    //
+    // `item_key` is minted, never an index — the lesson that `step_key` above
+    // paid for: an index used as an identity re-aims a child's answers the day
+    // the list is reordered. `position` orders and nothing else.
+    //
+    // `task` is what the item asks (plan §3). Its shape belongs to the phase
+    // that reads it; the column only promises an object.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS homeworks (
+        id SERIAL PRIMARY KEY,
+        trainer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        instructions TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_homeworks_trainer
+        ON homeworks(trainer_id, updated_at DESC);
+
+      CREATE TABLE IF NOT EXISTS homework_items (
+        id SERIAL PRIMARY KEY,
+        homework_id INTEGER NOT NULL REFERENCES homeworks(id) ON DELETE CASCADE,
+        item_key VARCHAR(16) NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        kind VARCHAR(20) NOT NULL
+          CHECK (kind IN ('lesson', 'positions', 'puzzles', 'engine_game')),
+        task JSONB NOT NULL DEFAULT '{}'::jsonb
+          CHECK (jsonb_typeof(task) = 'object'),
+        gate BOOLEAN NOT NULL DEFAULT FALSE,
+        require_solved BOOLEAN NOT NULL DEFAULT FALSE,
+        UNIQUE (homework_id, item_key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_homework_items_order
+        ON homework_items(homework_id, position);
+    `);
+    logger.info('Verified database tables & indexes: homeworks, homework_items');
+
+    // The sent half: a homework on `assignments` is a parent, and its items are
+    // children of it.
+    //
+    // `parent_id` cascades: withdrawing a homework withdraws everything in it,
+    // and a child alone cannot be withdrawn (the route refuses) — a parent with
+    // a hole in it could never complete. `homework_id` does not cascade: the
+    // copies a student holds outlive the trainer deleting the template.
+    //
+    // `gate` is „not before the previous item is done"; `require_solved`
+    // narrows „done" to „solved"; `gate_opened_at` is the trainer's escape
+    // hatch for one student (plan §6). The rule that reads them lives in
+    // `services/homeworkService.js` and only there.
+    //
+    // The kind CHECK is dropped and re-added rather than altered, the same way
+    // `users_role_check` is at the top of this file, so it stays idempotent.
+    await client.query(`
+      ALTER TABLE assignments
+        ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES assignments(id) ON DELETE CASCADE,
+        ADD COLUMN IF NOT EXISTS homework_id INTEGER REFERENCES homeworks(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS item_key VARCHAR(16),
+        ADD COLUMN IF NOT EXISTS position INTEGER,
+        ADD COLUMN IF NOT EXISTS gate BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS require_solved BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS gate_opened_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS task JSONB;
+
+      ALTER TABLE assignments DROP CONSTRAINT IF EXISTS assignments_kind_check;
+      ALTER TABLE assignments ADD CONSTRAINT assignments_kind_check
+        CHECK (kind IN ('puzzles', 'lesson', 'homework', 'engine_game'));
+
+      -- A homework is never inside another, a child always knows its place,
+      -- and nothing is its own parent.
+      ALTER TABLE assignments DROP CONSTRAINT IF EXISTS assignments_homework_shape;
+      ALTER TABLE assignments ADD CONSTRAINT assignments_homework_shape
+        CHECK (
+          (kind <> 'homework' OR parent_id IS NULL)
+          AND (parent_id IS NULL OR (position IS NOT NULL AND item_key IS NOT NULL))
+          AND (parent_id IS DISTINCT FROM id)
+        );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_child_position
+        ON assignments(parent_id, position) WHERE parent_id IS NOT NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_child_item
+        ON assignments(parent_id, item_key) WHERE parent_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_assignments_homework
+        ON assignments(homework_id) WHERE homework_id IS NOT NULL;
+    `);
+    logger.info('Verified columns, constraints & indexes: assignments (homework parents and children)');
 
     // Create assignment_notes table — what the two of them say to each other
     // about one piece of homework.

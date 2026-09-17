@@ -23,6 +23,29 @@ const { stepsOfLesson } = require('../services/lessonSteps');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
 const { markReviewed } = require('../services/trainerPanelService');
+const homework = require('../services/homeworkService');
+
+/// Answers 423 and returns true when [assignmentId] is a homework item still
+/// locked for the caller. Asked **before** anything is judged or revealed: a
+/// guard inside the write alone would let a route judge a locked position and
+/// hand back its solution while recording nothing.
+///
+/// The trainer who set the item is never refused — the gate is the student's.
+async function refuseIfLocked(req, res, assignmentId) {
+  const lock = await homework.lockOf(pool, assignmentId);
+  if (!lock.locked) return false;
+  const own = await pool.query(
+    'SELECT 1 FROM assignments WHERE id = $1 AND student_id = $2',
+    [assignmentId, req.user.id]
+  );
+  if (own.rows.length === 0) return false;
+  res.status(423).json({
+    error: 'This item unlocks when the one before it is done.',
+    locked: true,
+    blockedBy: lock.blockedBy,
+  });
+  return true;
+}
 const {
   homeworkFromArchive, HomeworkRefused,
 } = require('../services/homeworkFromArchive');
@@ -251,6 +274,8 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
   }
 
   try {
+    if (await refuseIfLocked(req, res, assignmentId)) return;
+
     // One query establishes both that this assignment is the caller's own
     // homework and that the position is part of it.
     const item = await pool.query(
@@ -348,6 +373,7 @@ router.post('/:id/step/:position', authenticateToken, async (req, res) => {
   }
 
   try {
+    if (await refuseIfLocked(req, res, id)) return;
     const marked = await assignments.markLessonStepDone(pool, {
       studentId: req.user.id,
       assignmentId: id,
@@ -375,6 +401,7 @@ router.post('/:id/step/:position/answer', authenticateToken, async (req, res) =>
   }
 
   try {
+    if (await refuseIfLocked(req, res, id)) return;
     const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
     if (!step) {
       return res.status(404).json({ error: 'That step is not part of your assignment.' });
@@ -447,6 +474,7 @@ router.post('/:id/step/:position/reveal', authenticateToken, async (req, res) =>
   }
 
   try {
+    if (await refuseIfLocked(req, res, id)) return;
     const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
     if (!step) {
       return res.status(404).json({ error: 'That step is not part of your assignment.' });
@@ -535,6 +563,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
       // be used to discover which assignment ids are real.
       return res.status(404).json({ error: 'Assignment not found.' });
     }
+    if (detail.locked) {
+      return res.status(423).json({
+        error: 'This item unlocks when the one before it is done.',
+        locked: true,
+        blockedBy: detail.blockedBy,
+      });
+    }
     res.json(detail);
   } catch (err) {
     logger.error('Error fetching assignment detail:', err);
@@ -554,6 +589,9 @@ router.get('/:id/review', authenticateToken, async (req, res) => {
   }
 
   try {
+    // A locked item's review would list its positions — and, for a trainer's
+    // own positions, what the answers were — before the student reached it.
+    if (await refuseIfLocked(req, res, id)) return;
     const review = await buildReview(pool, id, req.user.id);
     if (!review) {
       return res.status(404).json({ error: 'Assignment not found.' });
@@ -666,18 +704,48 @@ router.delete('/:id/notes/:noteId', authenticateToken, async (req, res) => {
 
 // DELETE /assignments/:id — only the trainer who set it may withdraw it.
 router.delete('/:id', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
+  }
   try {
-    const result = await pool.query(
-      'DELETE FROM assignments WHERE id = $1 AND trainer_id = $2 RETURNING id',
-      [req.params.id, req.user.id]
-    );
-    if (result.rows.length === 0) {
+    const outcome = await homework.withdrawAssignment(pool, {
+      assignmentId: id,
+      trainerId: req.user.id,
+    });
+    if (outcome === 'child') {
+      return res.status(409).json({
+        error: 'This is one item of a homework. Withdraw the homework instead.',
+      });
+    }
+    if (outcome !== 'ok') {
       return res.status(404).json({ error: 'Assignment not found or not yours.' });
     }
     res.json({ success: true });
   } catch (err) {
     logger.error('Error deleting assignment:', err);
     res.status(500).json({ error: 'Error deleting assignment.' });
+  }
+});
+
+// POST /assignments/:id/open-gate — the trainer unlocks one homework item for
+// the student it was sent to (docs/PLAN-DOMACI-ZADATAK.md, §6). 404 for
+// „not yours", „not an item" and „already open" alike: none of them has
+// anything to open.
+router.post('/:id/open-gate', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
+  }
+  try {
+    const opened = await homework.openGate(pool, { assignmentId: id, trainerId: req.user.id });
+    if (!opened) {
+      return res.status(404).json({ error: 'Nothing to unlock here.' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Error opening homework gate:', err);
+    res.status(500).json({ error: 'Error unlocking the item.' });
   }
 });
 

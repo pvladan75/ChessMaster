@@ -23,11 +23,11 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 2906 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1412 tests, all green
+cd chess_backend && npm test          # node --test, 1437 with TEST_DATABASE_URL, 1413 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Measured on `master` on 17.9.2026 (after the Settings review moved board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, and phase 0 of the homework plan), with every built phase of the
+Measured on `master` on 17.9.2026 (after the Settings review moved board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, and phases 0–1 of the homework plan), with every built phase of the
 reorganisation merged (`docs/PLAN-REORGANIZACIJA.md`: the shell Home · Practise ·
 Analyse · Teach, the room's column on the shared library list, the studio's
 `TutorialDraftController`, the studio on a phone, one tutorial editor everywhere)
@@ -36,6 +36,21 @@ with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append t
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and
 a floor below the suite hides exactly what it is for.
+
+**The backend has a real-database half** since phase 1 of
+`docs/PLAN-DOMACI-ZADATAK.md`: `test/homework_gate.test.js` builds a fresh
+database through `test/support/pgTestDb.js`, runs `initDB` on it and drops it.
+CI runs it against a `postgres:17` service container; **in CI a missing
+`TEST_DATABASE_URL` fails the run**, it does not skip. On this workstation the
+suite skips it (one line marked `﹣`) unless a throwaway cluster is started —
+never the managed database and never the local `postgresql-x64-17` service:
+
+```bash
+"/c/Program Files/PostgreSQL/17/bin/initdb.exe" -D "$SCRATCH/pgtest" -U postgres -A trust -E UTF8 --no-locale
+"/c/Program Files/PostgreSQL/17/bin/pg_ctl.exe" -D "$SCRATCH/pgtest" -o "-p 54329 -c listen_addresses=localhost" -w start
+TEST_DATABASE_URL=postgres://postgres@localhost:54329/postgres npm test
+"/c/Program Files/PostgreSQL/17/bin/pg_ctl.exe" -D "$SCRATCH/pgtest" -m fast -w stop
+```
 
 They are here so a suite that quietly stops
 running half of itself is visible; if the number you get is lower, find out why

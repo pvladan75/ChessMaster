@@ -19,6 +19,12 @@ const { assignableProblem } = require('./customPuzzleJudge');
 const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
 const { stepsOfLesson, redactStepForStudent } = require('./lessonSteps');
+const homework = require('./homeworkService');
+
+/// Refuses a write into a homework item that is still locked. Interpolated
+/// into every UPDATE a student's answer goes through, so the gate holds at
+/// the moment of writing and not only on the screen (homeworkService.js).
+const NOT_LOCKED = `NOT ${homework.childLockedSql('a')}`;
 
 /// Ceiling on one assignment, so a mis-typed count cannot materialise thousands
 /// of rows or hand a child an impossible pile of work.
@@ -300,6 +306,7 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
        AND a.kind = 'lesson'
        AND ai.position = $3
        AND ai.attempted_at IS NULL
+       AND ${NOT_LOCKED}
      RETURNING ai.id, ai.step_key, a.lesson_id`,
     [assignmentId, studentId, position]
   );
@@ -349,6 +356,7 @@ async function recordLessonStepAnswer(pool, {
        AND a.student_id = $2
        AND a.kind = 'lesson'
        AND ai.position = $3
+       AND ${NOT_LOCKED}
      RETURNING ai.id, ai.step_key, a.lesson_id`,
     [assignmentId, studentId, position, correct === true, playedSan]
   );
@@ -386,6 +394,7 @@ async function revealLessonStep(pool, { studentId, assignmentId, position }) {
        AND a.student_id = $2
        AND a.kind = 'lesson'
        AND ai.position = $3
+       AND ${NOT_LOCKED}
      RETURNING ai.id, ai.step_key, a.lesson_id`,
     [assignmentId, studentId, position]
   );
@@ -413,23 +422,34 @@ async function revealLessonStep(pool, { studentId, assignmentId, position }) {
 /// goes out. The student's name comes back from the same statement rather than
 /// from a second query, which would see a different instant.
 async function markCompleteIfDone(pool, assignmentId) {
+  // `kind <> 'homework'`: a sent homework has no items of its own, so the
+  // NOT EXISTS below would be vacuously true and stamp it complete the first
+  // time anything asked. Its completion is its children's, and is decided in
+  // homeworkService.markHomeworkCompleteIfDone.
   const done = await pool.query(
     `WITH finished AS (
        UPDATE assignments SET completed_at = CURRENT_TIMESTAMP
-        WHERE id = $1 AND completed_at IS NULL
+        WHERE id = $1 AND completed_at IS NULL AND kind <> 'homework'
           AND NOT EXISTS (
             SELECT 1 FROM assignment_items
             WHERE assignment_id = $1 AND attempted_at IS NULL
           )
-       RETURNING id, trainer_id, student_id, title
+       RETURNING id, trainer_id, student_id, title, parent_id
      )
-     SELECT f.id, f.trainer_id, f.title, u.name AS student_name
+     SELECT f.id, f.trainer_id, f.title, f.parent_id, u.name AS student_name
        FROM finished f LEFT JOIN users u ON u.id = f.student_id`,
     [assignmentId]
   );
   if (done.rows.length === 0) return null;
 
   const row = done.rows[0];
+  // An item of a homework tells nobody on its own — five notices for one
+  // homework is noise the trainer learns to ignore. The homework tells them
+  // once, when its last item lands.
+  if (row.parent_id) {
+    await homework.markHomeworkCompleteIfDone(pool, row.parent_id);
+    return row;
+  }
   await notify(pool, {
     recipientId: row.trainer_id,
     senderId: row.student_id,
@@ -469,6 +489,7 @@ async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken, 
          AND a.student_id = $3
          AND ai.puzzle_id = $4
          AND ai.attempted_at IS NULL
+         AND ${NOT_LOCKED}
        RETURNING ai.assignment_id`,
       [
         solved,
@@ -582,7 +603,9 @@ const PROGRESS_COLUMNS = `
   a.*,
   COUNT(ai.id)::int AS total_items,
   COUNT(ai.attempted_at)::int AS attempted_items,
-  COUNT(*) FILTER (WHERE ai.solved)::int AS solved_items
+  COUNT(*) FILTER (WHERE ai.solved)::int AS solved_items,
+  (SELECT COUNT(*)::int FROM assignments c WHERE c.parent_id = a.id) AS child_total,
+  (SELECT COUNT(c.completed_at)::int FROM assignments c WHERE c.parent_id = a.id) AS child_completed
 `;
 
 /// Everything a student needs to see their own homework.
@@ -592,7 +615,7 @@ async function getStudentAssignments(pool, studentId) {
      FROM assignments a
      LEFT JOIN assignment_items ai ON ai.assignment_id = a.id
      LEFT JOIN users u ON u.id = a.trainer_id
-     WHERE a.student_id = $1
+     WHERE a.student_id = $1 AND a.parent_id IS NULL
      GROUP BY a.id, u.name
      ORDER BY a.completed_at NULLS FIRST, a.due_at NULLS LAST, a.created_at DESC`,
     [studentId]
@@ -614,7 +637,7 @@ async function getTrainerAssignments(pool, trainerId, { studentId = null } = {})
      FROM assignments a
      LEFT JOIN assignment_items ai ON ai.assignment_id = a.id
      LEFT JOIN users u ON u.id = a.student_id
-     WHERE a.trainer_id = $1 ${filter}
+     WHERE a.trainer_id = $1 AND a.parent_id IS NULL ${filter}
      GROUP BY a.id, u.name
      ORDER BY a.created_at DESC`,
     params
@@ -634,6 +657,18 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
   if (result.rows.length === 0) return null;
 
   const assignment = result.rows[0];
+
+  // A locked item is not opened for the student — the gate holds on the
+  // server, not only on their screen. The trainer who set it reads it freely.
+  if (assignment.student_id === userId && assignment.trainer_id !== userId) {
+    const lock = await homework.lockOf(pool, assignmentId);
+    if (lock.locked) return { locked: true, blockedBy: lock.blockedBy };
+  }
+
+  if (assignment.kind === 'homework') {
+    return { ...assignment, children: await homework.childrenOf(pool, assignmentId) };
+  }
+
   const items = await pool.query(
     `SELECT puzzle_id, position, puzzle_rating, solved, ms_taken, played_san, attempted_at
      FROM assignment_items WHERE assignment_id = $1 ORDER BY position`,
@@ -777,7 +812,7 @@ async function getStudentProgress(pool, studentId, { days = 30 } = {}) {
          COUNT(*)::int AS total,
          COUNT(completed_at)::int AS completed,
          COUNT(*) FILTER (WHERE completed_at IS NULL AND due_at < CURRENT_TIMESTAMP)::int AS overdue
-       FROM assignments WHERE student_id = $1`,
+       FROM assignments WHERE student_id = $1 AND parent_id IS NULL`,
       [studentId]
     ),
   ]);

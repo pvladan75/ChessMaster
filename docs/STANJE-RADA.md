@@ -76,6 +76,33 @@ težine kao poraz, jedan graditelj dijaloga za oba. Bez dugmeta za predaju —
 faza 2. Čuvar: `drill_outcome_test`, tabela završetaka, sedam mutacija.
 Provera uživo — stavka 181.
 
+**Faza 1 u kodu** (17.9.2026, vođa — šema je nepovratna). Tabele
+`homeworks` i `homework_items` (šablon, `item_key` kovan, nikad indeks) i
+kolone na `assignments`: `parent_id` (kaskada), `homework_id` (SET NULL —
+poslata kopija preživljava brisanje šablona), `item_key`, `position`,
+`gate`, `require_solved`, `gate_opened_at`, `task`; `kind` sada i
+`homework`, `engine_game`; CHECK oblika i jedinstveni položaj i stavka po
+roditelju. Pravilo — kad je stavka prošla, kad je zaključana, kad je domaći
+gotov — živi **samo** u `services/homeworkService.js`, kao SQL delovi
+ubačeni i u čitaoce i u svaki UPDATE koji upisuje odgovor, pa brana drži u
+trenutku upisa. Rute odbijaju zaključanu stavku (423) **pre** nego što se
+išta oceni ili otkrije rešenje; `POST /:id/open-gate` je ručno otključavanje;
+stavka se ne povlači sama (409). Liste, tabla trenera i izveštaj broje
+domaći jednom; stavka ne šalje obaveštenje, domaći jednom.
+
+**Novo u testovima: prava baza.** `test/homework_gate.test.js` pravi svežu
+bazu (`test/support/pgTestDb.js`), pušta `initDB` i briše je; 24 testa, 22
+mutacije. CI dobija `postgres:17` servis (još **neviđeno kako prolazi u
+CI-ju**); bez `TEST_DATABASE_URL` u CI-ju test pada, na radnoj stanici se
+preskače. `initDB(target)` sada prima pool. Uzgred dokazano: cela postojeća
+šema se gradi na praznoj bazi i dvaput zaredom (idempotentna).
+
+**Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
+na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
+vraća `assignments_kind_check` (proširen) i dodaje `assignments_homework_shape`;
+postojeći redovi prolaze oba (proverena prazna i dvostruka izgradnja, ne
+tvoji podaci). Ništa se ne briše.
+
 ## Domaći zadatak — plan sa tri varijante — 17.9.2026, predlog
 
 Vlasnik: trener treba da pravi **domaći** — naslov, uputstvo, stavke u

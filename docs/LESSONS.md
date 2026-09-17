@@ -3276,3 +3276,27 @@ real but different — the reason was missing, and the verdict was read after
 the engine's move only — and the phase shrank from a service to a widening
 of one function. Rule 12 from the other side: before writing a second
 implementation, find the first; before *planning* one, find it too.
+
+**Homework, phase 1: the schema and the gate, on a real database —
+17.9.2026, backend 1412 → 1437.** + 24 in the new `homework_gate.test.js`,
++ 1 for its suite line: 1437 with `TEST_DATABASE_URL`, 1413 without, where
+the suite reports as one skipped line (`﹣`) although node's `skipped`
+counter says 0. 22 mutations, each red on the right test. App unchanged.
+
+**A stub pool cannot fail a WHERE clause.** Every backend test until this
+one answered queries with canned rows, and the gate of this phase is nothing
+but WHERE clauses and CHECKs. A local PostgreSQL 17 binary was already on the
+machine, so the tests build a throwaway cluster and database instead of a new
+dependency; CI gets a service container, and in CI a missing URL fails the
+run — a gate that skips wherever it is not configured cannot fail (rule 1).
+
+**A harness that cannot read the result reports every mutant as survived.**
+The first mutation run said all sixteen survived, with a pass count of `?`:
+Python decoded node's `✔` as cp1250 and the regex found nothing. Sixteen
+„survived" and zero information. The harness now refuses to report a run it
+cannot parse. Rule 3 again — a result is only a result if it is the right one.
+
+**Two survivors, two blind spots in the tests, none in the code.** A helper
+that read „passed" before „locked" could not see a completed item become
+locked; the trainer's use of the review route was never exercised, so a guard
+that refused the trainer too survived. Both were asserted directly after.

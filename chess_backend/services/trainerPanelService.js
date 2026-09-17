@@ -88,6 +88,7 @@ async function dueSoon(pool, trainerId, { hours = DUE_SOON_HOURS, limit = SECTIO
        JOIN users u ON u.id = a.student_id
        LEFT JOIN assignment_items ai ON ai.assignment_id = a.id
       WHERE a.trainer_id = $1
+        AND a.parent_id IS NULL
         AND a.completed_at IS NULL
         AND a.due_at IS NOT NULL
         AND a.due_at < now() + make_interval(hours => $2)
@@ -118,6 +119,7 @@ async function awaitingReview(pool, trainerId, { limit = SECTION_LIMIT } = {}) {
        JOIN users u ON u.id = a.student_id
        LEFT JOIN assignment_items ai ON ai.assignment_id = a.id
       WHERE a.trainer_id = $1
+        AND a.parent_id IS NULL
         AND a.completed_at IS NOT NULL
         AND a.reviewed_at IS NULL
       GROUP BY a.id, u.id, u.name
@@ -164,6 +166,7 @@ async function stalled(
        JOIN users u ON u.id = a.student_id
        LEFT JOIN assignment_items ai ON ai.assignment_id = a.id
       WHERE a.trainer_id = $1
+        AND a.parent_id IS NULL
         AND a.completed_at IS NULL
         AND (a.due_at IS NULL OR a.due_at >= now() + make_interval(hours => $2))
       GROUP BY a.id, u.id, u.name
