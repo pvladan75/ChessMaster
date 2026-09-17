@@ -424,7 +424,7 @@ void main() {
         expectBoardBeside(tester, size);
         expect(find.byType(MoveNavigationControls), findsOneWidget);
         // The lessons sidebar is in the drawer, not beside the board.
-        expect(find.text('Tutorials and positions'), findsNothing);
+        expect(find.text('Library'), findsNothing);
       });
     }
   });

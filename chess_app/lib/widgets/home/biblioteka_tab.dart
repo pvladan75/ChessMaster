@@ -44,49 +44,6 @@ class HomeBibliotekaTab extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.library_books,
-                              color: context.colors.accent, size: 28),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Text(
-                              'Library of positions and tutorials',
-                              style: AppText.headline
-                                  .copyWith(color: context.colors.textPrimary),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        'Manage your saved positions, PGN files, and tutorials.',
-                        style: AppText.body
-                            .copyWith(color: context.colors.textSecondary),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.dashboard_customize),
-                        label:
-                            const Text('Open Preparation with an empty board'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                          padding: AppSpacing.buttonPadding,
-                        ),
-                        onPressed: onOpenStudio,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Card(
-                shape: AppRadii.cardShape,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
                           Icon(Icons.biotech,
                               color: context.colors.accent, size: 28),
                           const SizedBox(width: AppSpacing.md),
@@ -152,7 +109,7 @@ class HomeBibliotekaTab extends StatelessWidget {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.document_scanner_outlined),
-                          label: const Text('Scan positions'),
+                          label: const Text('Scan a book'),
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                             padding: AppSpacing.buttonPadding,

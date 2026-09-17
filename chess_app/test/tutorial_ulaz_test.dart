@@ -244,7 +244,7 @@ void main() {
   group('where the door is drawn', () {
     testWidgets('on Windows, the card is there', (tester) async {
       await pump(tester);
-      expect(find.text('Interactive tutorials'), findsOneWidget);
+      expect(find.text('Tutorials'), findsOneWidget);
       expect(find.text('New tutorial'), findsOneWidget);
       expect(find.text('Saved tutorials'), findsOneWidget);
     });
@@ -255,7 +255,7 @@ void main() {
       // is not there.
       debugTutorialStudioAvailable = false;
       await pump(tester);
-      expect(find.text('Interactive tutorials'), findsNothing);
+      expect(find.text('Tutorials'), findsNothing);
       expect(find.text('New tutorial'), findsNothing);
     });
   });

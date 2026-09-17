@@ -66,7 +66,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
         .toList();
 
     return AlertDialog(
-      title: const Text('Save current tutorial / position'),
+      title: const Text('Save position'),
       // The width must be tight: AlertDialog wraps its children in an
       // IntrinsicWidth, and a loose maxWidth would let that intrinsic pass
       // descend into the suggestion list below, which cannot report intrinsics.
@@ -83,7 +83,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                 TextField(
                   controller: titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Tutorial / position name',
+                    labelText: 'Position name',
                     hintText: 'E.g. Sicilian Defense - Najdorf',
                   ),
                 ),
@@ -201,7 +201,7 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
               AppFeedback.show(
                 context,
                 () => SnackBar(
-                    content: const Text('Enter tutorial name.'),
+                    content: const Text('Enter a name.'),
                     backgroundColor: context.colors.danger),
               );
               return;

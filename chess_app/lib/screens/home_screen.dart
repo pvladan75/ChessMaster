@@ -163,9 +163,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _notifications = [];
   bool _isLoadingNotifications = false;
 
-  List<dynamic> _scheduledSessions = [];
-  bool _isLoadingScheduled = false;
-
   /// The trainer's panel, and the number the "Ljudi" badge shows.
   ///
   /// Empty for anybody who teaches nobody, which is most people who open this
@@ -208,7 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchRecordings();
       _fetchFriends();
       _fetchNotifications();
-      _fetchScheduledSessions();
       _fetchDueReviews();
       _fetchPanel();
     }
@@ -539,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _fetchStudents();
         AppFeedback.show(
           context,
-          () => const SnackBar(content: Text('Friend removed from the list.')),
+          () => const SnackBar(content: Text('Relationship ended.')),
         );
       }
     } catch (e) {
@@ -765,69 +761,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _fetchScheduledSessions() async {
-    setState(() => _isLoadingScheduled = true);
-    try {
-      final res = await http.get(
-        Uri.parse('$backendUrl/sessions/scheduled'),
-        headers: {'Authorization': 'Bearer ${widget.session.token}'},
-      );
-      if (res.statusCode == 200) {
-        setState(
-            () => _scheduledSessions = jsonDecode(res.body)['sessions'] ?? []);
-      }
-    } catch (e) {
-      print("Error fetching scheduled sessions: $e");
-    } finally {
-      if (mounted) setState(() => _isLoadingScheduled = false);
-    }
-  }
-
-  void _showScheduleSessionDialog() {
-    final availableFriends = _students.isNotEmpty ? _students : _friends;
-    dialogs.showScheduleSessionDialog(
-      context,
-      availableFriends: availableFriends,
-      onSchedule: _scheduleSession,
-    );
-  }
-
-  Future<void> _scheduleSession(String title, String desc, DateTime scheduledAt,
-      List<int> friendIds) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$backendUrl/sessions/schedule'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.session.token}'
-        },
-        body: jsonEncode({
-          'title': title,
-          'description': desc,
-          'scheduledAt': scheduledAt.toIso8601String(),
-          'friendIds': friendIds,
-        }),
-      );
-
-      final data = jsonDecode(res.body);
-      if (res.statusCode == 201) {
-        _fetchScheduledSessions();
-        _showScheduledSuccessDialog(data['message'] ?? 'Session scheduled!',
-            data['calendarUrl'], data['session']['room_code']);
-      } else {
-        _showError(data['error'] ?? 'Error scheduling session.');
-      }
-    } catch (e) {
-      _showError('Network error while scheduling.');
-    }
-  }
-
-  void _showScheduledSuccessDialog(
-      String message, String? calendarUrl, String roomCode) {
-    dialogs.showScheduledSuccessDialog(context,
-        message: message, calendarUrl: calendarUrl, roomCode: roomCode);
   }
 
   void _openStudentProgress(Map<String, dynamic> student) {
@@ -1095,7 +1028,11 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenAssignments: _openMyAssignments,
             onOpenReviews: _openReviews,
             dueReviewCount: _dueReviews,
-            onJoinRoom: _joinInviteRoom,
+            // The visible Join button on this tab shares `_codeController`
+            // with `_joinRoom`, so it goes through the same six-digit check
+            // and `POST /rooms/join` rather than jumping straight into a
+            // room the way an invite link does.
+            onJoinRoom: (_) => _joinRoom(),
             onRefreshRecordings: _fetchRecordings,
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),
           );

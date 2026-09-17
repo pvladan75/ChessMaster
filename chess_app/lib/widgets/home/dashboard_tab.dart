@@ -130,12 +130,12 @@ class HomeDashboardTab extends StatelessWidget {
                               Icon(Icons.video_call,
                                   size: 36, color: colors.accent),
                               const SizedBox(height: AppSpacing.md),
-                              Text('New Session',
+                              Text('New session',
                                   style: AppText.title
                                       .copyWith(color: colors.accent)),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                'Start a session as host or schedule a time for students.',
+                                'Open a room and invite your student.',
                                 style: AppText.caption
                                     .copyWith(color: colors.textSecondary),
                               ),
@@ -355,7 +355,7 @@ class HomeDashboardTab extends StatelessWidget {
                               Icon(Icons.video_library, color: colors.brand),
                               const SizedBox(width: AppSpacing.sm),
                               Text(
-                                'Recorded material',
+                                'Recordings',
                                 style: AppText.title
                                     .copyWith(color: colors.textPrimary),
                               ),
@@ -376,7 +376,7 @@ class HomeDashboardTab extends StatelessWidget {
                               vertical: AppSpacing.lg),
                           child: Center(
                             child: Text(
-                              'You have no saved material.',
+                              'No recordings yet.',
                               style: AppText.body
                                   .copyWith(color: colors.textMuted),
                             ),
@@ -391,7 +391,7 @@ class HomeDashboardTab extends StatelessWidget {
                               const Divider(height: 1),
                           itemBuilder: (ctx, idx) {
                             final rec = recordings[idx];
-                            final title = rec['title'] ?? 'Recorded material';
+                            final title = rec['title'] ?? 'Recording';
                             final dateStr = DateTime.parse(rec['created_at'])
                                 .toLocal()
                                 .toString()

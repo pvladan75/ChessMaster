@@ -205,22 +205,21 @@ class HomeFriendsTab extends StatelessWidget {
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: Text(
-                              'Friends & Contacts',
+                              'Students and trainers',
                               style: AppText.headline
                                   .copyWith(color: colors.textPrimary),
                             ),
                           ),
-                          if (myStudents.isNotEmpty)
-                            IconButton(
-                              icon: Icon(Icons.groups, color: colors.brand),
-                              tooltip: 'Student groups',
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      GroupsScreen(students: students),
-                                ),
+                          IconButton(
+                            icon: Icon(Icons.groups, color: colors.brand),
+                            tooltip: 'Student groups',
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    GroupsScreen(students: students),
                               ),
                             ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.lg),

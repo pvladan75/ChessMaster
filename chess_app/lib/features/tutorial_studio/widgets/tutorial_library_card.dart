@@ -116,7 +116,7 @@ class TutorialLibraryCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
-                      'Interactive tutorials',
+                      'Tutorials',
                       style: AppText.headline
                           .copyWith(color: context.colors.textPrimary),
                     ),
