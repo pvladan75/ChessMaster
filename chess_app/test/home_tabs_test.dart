@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
+import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
 import 'package:chess_app/widgets/home/dashboard_tab.dart';
 import 'package:chess_app/features/training/widgets/resume_strip.dart';
 import 'package:chess_app/services/game_session_service.dart';
@@ -59,14 +60,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
   }
 
-  testWidgets('the app opens on practice, not on other people', (tester) async {
+  testWidgets('the app opens on Home — what is for me now', (tester) async {
+    // Phase 5 of docs/PLAN-REORGANIZACIJA.md: the first tab is what is left
+    // open, the trainer's day and what was set for me, built from data. The
+    // hub is one tab over, and an unvisited tab is an empty box.
     tester.view.physicalSize = const Size(1400, 1800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
     await openHome(tester);
-    expect(find.byType(TrainingHubScreen), findsOneWidget,
-        reason: 'prvi tab mora biti Trening');
+    expect(find.byType(HomeDashboardTab), findsOneWidget,
+        reason: 'the first tab must be Home');
+    expect(find.byType(TrainingHubScreen), findsNothing);
   });
 
   testWidgets('four tabs, and settings is not one of them', (tester) async {
@@ -76,7 +81,7 @@ void main() {
 
     await openHome(tester);
 
-    for (final label in ['Training', 'Sessions', 'Library', 'People']) {
+    for (final label in ['Home', 'Practise', 'Analyse', 'Teach']) {
       expect(find.text(label), findsWidgets, reason: 'nema taba „$label"');
     }
     // Settings has a path of its own and opens over what is underneath. A tab
@@ -104,11 +109,12 @@ void main() {
     final rail = find.byType(NavigationRail);
     expect(rail, findsOneWidget);
     expect(
-      find.descendant(of: rail, matching: find.text('Training')),
+      find.descendant(of: rail, matching: find.text('Home')),
       findsOneWidget,
-      reason: 'rail mora da zove prvi tab isto kao donja traka',
+      reason: 'the rail must call the first tab what the bottom bar calls it',
     );
-    expect(find.text('Home'), findsNothing);
+    expect(find.text('Training'), findsNothing);
+    expect(find.text('Početna'), findsNothing);
   });
 
   testWidgets('the rail is still there after an exercise is closed',
@@ -122,6 +128,9 @@ void main() {
     final router = await openHomeRouter(tester);
     expect(find.byType(NavigationRail), findsOneWidget, reason: 'pre ulaska');
 
+    // The drills are on Practise, one tab over.
+    await tester.tap(find.byIcon(Icons.psychology_outlined));
+    await tester.pump(const Duration(milliseconds: 200));
     await tester.ensureVisible(find.text('Mate in 2').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Mate in 2').first);
@@ -220,15 +229,16 @@ void main() {
     addTearDown(tester.view.reset);
 
     await openHome(tester);
-    expect(find.byType(TrainingHubScreen), findsOneWidget);
+    expect(find.byType(HomeDashboardTab), findsOneWidget);
+    expect(find.byType(TrainingHubScreen), findsNothing);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.byType(HomeDashboardTab), findsOneWidget,
-        reason: 'Ctrl+2 mora da otvori drugi tab');
+    expect(find.byType(TrainingHubScreen), findsOneWidget,
+        reason: 'Ctrl+2 must open the second tab, Practise');
   });
 
   testWidgets('the recordings card does not call the material a lesson',
@@ -248,8 +258,11 @@ void main() {
           codeController: TextEditingController(),
           recordings: const [],
           isLoadingRecordings: false,
-          onCreateSessionTap: () {},
-          onOpenStudio: () {},
+          panel: TrainerPanel.empty,
+          onEnterLesson: (_) {},
+          onOpenPanelAssignment: (_) {},
+          onOpenStudent: (_, __) {},
+          hasTrainer: false,
           onOpenAssignments: () {},
           onOpenReviews: () {},
           onJoinRoom: (_) {},
@@ -301,15 +314,15 @@ void main() {
     // the Library tab's own card is headed „Library" too (phase 3 of
     // docs/PLAN-REORGANIZACIJA.md), and a claim about the whole screen stops
     // being true the day the screen grows (rule 5).
-    expect(find.text('Training'), findsNWidgets(2));
-    final libraryBefore = find.text('Library').evaluate().length;
+    expect(find.text('Home'), findsNWidgets(2));
+    final teachBefore = find.text('Teach').evaluate().length;
 
-    await tester.tap(find.byIcon(Icons.library_books_outlined));
+    await tester.tap(find.byIcon(Icons.school_outlined));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Library').evaluate().length, libraryBefore + 1,
+    expect(find.text('Teach').evaluate().length, teachBefore + 1,
         reason: 'the header must follow the tab');
-    expect(find.text('Training'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
   });
 
   testWidgets('the embedded hub does not bring a second title', (tester) async {
@@ -318,6 +331,9 @@ void main() {
     addTearDown(tester.view.reset);
 
     await openHome(tester);
+    // The hub is the second tab now; an unvisited tab is an empty box.
+    await tester.tap(find.byIcon(Icons.psychology_outlined));
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(
       find.descendant(

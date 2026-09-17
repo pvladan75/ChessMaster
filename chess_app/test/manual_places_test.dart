@@ -2,10 +2,9 @@
 //
 // docs/PLAN-REORGANIZACIJA.md, Variant B: Home · Practise · Analyse · Teach.
 // manual_labels_test holds that every quoted label exists; this holds that
-// each page points at the right tab and quotes nothing the reorganisation
-// removed. The retired list lives in docs/gates/map_b_retired_labels.txt
-// because, while the manual is rewritten ahead of the code, those words are
-// still literals in lib/ and the labels test alone would pass them.
+// each page points at the right tab. Until phase 5 it also refused the labels
+// the reorganisation retired, from a list beside the gates; with phase 5 those
+// words are gone from lib/, so the labels test catches a page that quotes one.
 //
 // Written 17.9.2026, red on the manual as it stood (every page named
 // „Sessions", „Library" or „People" as a tab).
@@ -36,12 +35,6 @@ const _tabOf = <String, List<String>>{
   'for-students': ['Home'],
 };
 
-Set<String> _retired() => {
-      for (final line
-          in File('../docs/gates/map_b_retired_labels.txt').readAsLinesSync())
-        if (line.trim().isNotEmpty && !line.startsWith('#')) line.trim(),
-    };
-
 String _html(String name) => File('$_manualDir/$name.html').readAsStringSync();
 
 void main() {
@@ -69,15 +62,4 @@ void main() {
       }
     });
   }
-
-  test('no page quotes a label the reorganisation removed', () {
-    final retired = _retired();
-    expect(retired, isNotEmpty);
-    final hits = <String>[
-      for (final name in _tabOf.keys)
-        for (final label in labelsIn(_html(name)))
-          if (retired.contains(label)) '$name: „$label"',
-    ];
-    expect(hits, isEmpty, reason: hits.join('\n'));
-  });
 }

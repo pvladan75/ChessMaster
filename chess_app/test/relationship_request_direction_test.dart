@@ -43,8 +43,6 @@ Widget _tab({
       onRoleChanged: onRoleChanged,
       onRefresh: onRefresh ?? () async {},
       onFixParentEmail: onFixParentEmail ?? () {},
-      onEnterLesson: (_) {},
-      onOpenPanelAssignment: (_) {},
     );
 
 void main() {

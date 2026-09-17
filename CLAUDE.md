@@ -21,15 +21,15 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2878 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2882 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1412 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Measured on `master` on 16.9.2026, after block C of the architecture audit, the
-owner's four decisions on it, and the merge of `feat/repertoire-engine-count-pgn`, the Analysis PGN import,
-and the landscape phone layout (`docs/STANJE-RADA.md`, „Telefon položeno"). Every change of these numbers,
+Measured on `master` on 17.9.2026, after phase 5 of the reorganisation (the shell
+is Home · Practise · Analyse · Teach, `docs/PLAN-REORGANIZACIJA.md`) and phases
+1–2 of the puzzle progress plan. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and

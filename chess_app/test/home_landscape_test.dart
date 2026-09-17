@@ -46,7 +46,7 @@ void main() {
       expectOnScreen(tester, size, find.byTooltip('Settings'));
       expectOnScreen(
           tester, size, find.byTooltip('Notifications and Invitations'));
-      final title = tester.getRect(find.text('Training').last);
+      final title = tester.getRect(find.text('Home').last);
       final settings = tester.getRect(find.byTooltip('Settings'));
       expect(settings.center.dy, closeTo(title.center.dy, 24),
           reason: 'Settings is in the title row, not somewhere below it');

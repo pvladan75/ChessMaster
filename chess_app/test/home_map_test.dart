@@ -1,14 +1,11 @@
 // The map of the app after docs/PLAN-REORGANIZACIJA.md, Variant B.
 //
-// Lives in docs/gates/ until the phases make it green — a red suite hides the
-// next real failure (the rule every anchor in this project follows). Run it by
-// copying it into chess_app/test/ and running that one file. Each group is one
-// phase's half of the gate, so a phase is graded by its group and the others
-// may stay red until their turn.
-//
-// Written 17.9.2026, proved red on `master` at bd64f9c: the tabs group fails on
-// the four old names, the phase-2 group on the strings the plan deletes, the
-// phase-6c group on the three files that still exist.
+// Written 17.9.2026 as a gate in docs/gates/, red on `master` at bd64f9c; it
+// moved here with phase 5, green, when the shell became Home · Practise ·
+// Analyse · Teach. Each group is one phase's half of it: the phase-2 group
+// (dead UI, the room, the names) and the phase-5 group (the tabs). The
+// phase-6c group — the two other editors deleted — is still a gate, in
+// docs/gates/one_editor_test.dart.
 
 import 'dart:io';
 
@@ -175,21 +172,6 @@ void main() {
       ]) {
         expect(literals, contains(there), reason: '„$there" is missing');
       }
-    });
-  });
-
-  group('phase 6c — one editor', () {
-    test('the two other editors and the platform guard are gone', () {
-      final files = Directory('lib')
-          .listSync(recursive: true)
-          .whereType<File>()
-          .map((f) => f.path.replaceAll('\\', '/'))
-          .toSet();
-      expect(files.where((p) => p.endsWith('lesson_step_editor_panel.dart')),
-          isEmpty);
-      expect(
-          files.where((p) => p.endsWith('tutorial_studio_availability.dart')),
-          isEmpty);
     });
   });
 }

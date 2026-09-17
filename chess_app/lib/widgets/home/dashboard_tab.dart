@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
+import 'package:chess_app/features/trainer_panel/widgets/trainer_panel_view.dart';
+import 'package:chess_app/features/training/widgets/resume_strip.dart';
 import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -12,8 +15,19 @@ class HomeDashboardTab extends StatelessWidget {
   final TextEditingController codeController;
   final List<dynamic> recordings;
   final bool isLoadingRecordings;
-  final VoidCallback onCreateSessionTap;
-  final VoidCallback onOpenStudio;
+
+  /// The trainer's day — today's sessions, homework to review — drawn only
+  /// when it has rows. Phase 5 of docs/PLAN-REORGANIZACIJA.md moved it here
+  /// from the People tab: it is about now, not about who.
+  final TrainerPanel panel;
+  final void Function(String roomCode) onEnterLesson;
+  final void Function(PanelAssignment assignment) onOpenPanelAssignment;
+  final void Function(int id, String name) onOpenStudent;
+
+  /// Whether anybody teaches this user. The student's blocks — what was set
+  /// for them, what is due for review — are drawn for a student, and for
+  /// anyone with something due; a player with neither sees neither.
+  final bool hasTrainer;
   final VoidCallback onOpenAssignments;
   final VoidCallback onOpenReviews;
 
@@ -29,8 +43,11 @@ class HomeDashboardTab extends StatelessWidget {
     required this.codeController,
     required this.recordings,
     required this.isLoadingRecordings,
-    required this.onCreateSessionTap,
-    required this.onOpenStudio,
+    required this.panel,
+    required this.onEnterLesson,
+    required this.onOpenPanelAssignment,
+    required this.onOpenStudent,
+    required this.hasTrainer,
     required this.onOpenAssignments,
     required this.onOpenReviews,
     this.dueReviewCount = 0,
@@ -110,222 +127,171 @@ class HomeDashboardTab extends StatelessWidget {
 
               const SizedBox(height: AppSpacing.xl),
 
-              // Action Cards Grid (Multiplayer Session & Studio)
-              Row(
-                children: [
-                  Expanded(
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppRadii.roundedLg,
-                        side: BorderSide(color: colors.accent, width: 1.5),
-                      ),
-                      child: InkWell(
-                        onTap: onCreateSessionTap,
-                        borderRadius: AppRadii.roundedLg,
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.video_call,
-                                  size: 36, color: colors.accent),
-                              const SizedBox(height: AppSpacing.md),
-                              Text('New session',
-                                  style: AppText.title
-                                      .copyWith(color: colors.accent)),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                'Open a room and invite your student.',
-                                style: AppText.caption
-                                    .copyWith(color: colors.textSecondary),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppRadii.roundedLg,
-                        side: BorderSide(color: colors.brand, width: 1.5),
-                      ),
-                      child: InkWell(
-                        onTap: onOpenStudio,
-                        borderRadius: AppRadii.roundedLg,
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.dashboard,
-                                  size: 36, color: colors.brand),
-                              const SizedBox(height: AppSpacing.md),
-                              Text('Preparation',
-                                  style: AppText.title
-                                      .copyWith(color: colors.brand)),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                'Your saved positions and tutorials on the board — without a student.',
-                                style: AppText.caption
-                                    .copyWith(color: colors.textSecondary),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              // What is left open, and what needs a trainer today. Both
+              // draw nothing when they have nothing.
+              const ResumeStrip(),
+              TrainerPanelView(
+                panel: panel,
+                onEnterLesson: onEnterLesson,
+                onOpenAssignment: onOpenPanelAssignment,
+                onOpenStudent: onOpenStudent,
               ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              // Homework. Sits directly under the session shortcuts because for
-              // a student it is the reason to open the app between lessons.
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: AppRadii.roundedLg,
-                  side: BorderSide(color: colors.info, width: 1.5),
-                ),
-                child: InkWell(
-                  onTap: onOpenAssignments,
-                  borderRadius: AppRadii.roundedLg,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Row(
-                      children: [
-                        Icon(Icons.assignment_turned_in,
-                            size: 32, color: colors.info),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'My assignments',
-                                style:
-                                    AppText.title.copyWith(color: colors.info),
-                              ),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                'Drills assigned by your trainer and your progress by topic.',
-                                style: AppText.caption
-                                    .copyWith(color: colors.textSecondary),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, color: colors.textMuted),
-                      ],
-                    ),
+              // The student's side: drawn for someone who has a trainer, and
+              // for anyone with a review due — never as two empty cards.
+              if (hasTrainer || dueReviewCount > 0) ...[
+                // Homework. Sits directly under the session shortcuts because for
+                // a student it is the reason to open the app between lessons.
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppRadii.roundedLg,
+                    side: BorderSide(color: colors.info, width: 1.5),
                   ),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              // Spaced repetition. Shown even at zero so the student learns the
-              // feature exists before anything is due; the badge is what pulls
-              // them back on the days it is not.
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: AppRadii.roundedLg,
-                  side: BorderSide(
-                    color: dueReviewCount > 0
-                        ? colors.warning
-                        : colors.borderStrong,
-                    width: 1.5,
-                  ),
-                ),
-                child: InkWell(
-                  onTap: onOpenReviews,
-                  borderRadius: AppRadii.roundedLg,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Row(
-                      children: [
-                        Badge(
-                          isLabelVisible: dueReviewCount > 0,
-                          label: Text('$dueReviewCount'),
-                          child: Icon(
-                            Icons.repeat,
-                            size: 32,
-                            color: dueReviewCount > 0
-                                ? colors.warning
-                                : colors.textMuted,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Review',
-                                style: AppText.title.copyWith(
-                                  color: dueReviewCount > 0
-                                      ? colors.warning
-                                      : colors.textPrimary,
+                  child: InkWell(
+                    onTap: onOpenAssignments,
+                    borderRadius: AppRadii.roundedLg,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Row(
+                        children: [
+                          Icon(Icons.assignment_turned_in,
+                              size: 32, color: colors.info),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Set for me',
+                                  style: AppText.title
+                                      .copyWith(color: colors.info),
                                 ),
-                              ),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                dueReviewCount > 0
-                                    ? (dueReviewCount == 1
-                                        ? '1 position is waiting for review.'
-                                        : '$dueReviewCount positions are waiting for review.')
-                                    : 'Positions from tutorials return for review when their time comes.',
-                                style: AppText.caption
-                                    .copyWith(color: colors.textSecondary),
-                              ),
-                            ],
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  'Drills and tutorials your trainer set you, and your progress.',
+                                  style: AppText.caption
+                                      .copyWith(color: colors.textSecondary),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Icon(Icons.chevron_right, color: colors.textMuted),
-                      ],
+                          Icon(Icons.chevron_right, color: colors.textMuted),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
+
+                // Spaced repetition. Shown even at zero so the student learns the
+                // feature exists before anything is due; the badge is what pulls
+                // them back on the days it is not.
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppRadii.roundedLg,
+                    side: BorderSide(
+                      color: dueReviewCount > 0
+                          ? colors.warning
+                          : colors.borderStrong,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: onOpenReviews,
+                    borderRadius: AppRadii.roundedLg,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Row(
+                        children: [
+                          Badge(
+                            isLabelVisible: dueReviewCount > 0,
+                            label: Text('$dueReviewCount'),
+                            child: Icon(
+                              Icons.repeat,
+                              size: 32,
+                              color: dueReviewCount > 0
+                                  ? colors.warning
+                                  : colors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Due for review',
+                                  style: AppText.title.copyWith(
+                                    color: dueReviewCount > 0
+                                        ? colors.warning
+                                        : colors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  dueReviewCount > 0
+                                      ? (dueReviewCount == 1
+                                          ? '1 position is waiting for review.'
+                                          : '$dueReviewCount positions are waiting for review.')
+                                      : 'Positions from tutorials return for review when their time comes.',
+                                  style: AppText.caption
+                                      .copyWith(color: colors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, color: colors.textMuted),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.lg),
+              ],
 
               // Join Room Card
               Card(
                 shape: AppRadii.cardShape,
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: codeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Enter room code (e.g. 123456)',
-                            prefixIcon: Icon(Icons.vpn_key),
-                            border: OutlineInputBorder(),
-                            isDense: true,
+                      Text('Join a session',
+                          style: AppText.title
+                              .copyWith(color: colors.textPrimary)),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: codeController,
+                              decoration: const InputDecoration(
+                                labelText: 'Enter room code (e.g. 123456)',
+                                prefixIcon: Icon(Icons.vpn_key),
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.login),
-                        label: const Text('Join'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(48, 48),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: 14,
+                          const SizedBox(width: AppSpacing.md),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.login),
+                            label: const Text('Join'),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                                vertical: 14,
+                              ),
+                            ),
+                            onPressed: () {
+                              final code = codeController.text.trim();
+                              if (code.isNotEmpty) onJoinRoom(code);
+                            },
                           ),
-                        ),
-                        onPressed: () {
-                          final code = codeController.text.trim();
-                          if (code.isNotEmpty) onJoinRoom(code);
-                        },
+                        ],
                       ),
                     ],
                   ),

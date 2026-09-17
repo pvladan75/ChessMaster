@@ -5878,6 +5878,34 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 177. Reorganizacija, faza 5: Home · Practise · Analyse · Teach — 17.9.2026, nije viđeno uživo
+
+`docs/PLAN-REORGANIZACIJA.md`, faza 5 (vođa). Priručnik na sajtu sada opisuje
+aplikaciju kakva jeste; sajt sme na droplet.
+
+1. [ ] **Četiri taba**, na Windows-u levo, na telefonu dole: Home, Practise,
+   Analyse, Teach; „Settings" je zupčanik, ne tab. Ctrl+1…4 ih menja.
+2. [ ] **Home** otvara aplikaciju. Bez trenera i bez učenika: pozdrav, polje
+   „Join a session" i „Recordings" — ni „Set for me" ni „Today". Sa učenikom
+   koji je predao domaći: blok „To review" sa dugmetom; sa trenerom: „Set for
+   me" i „Due for review". Napuštena sesija: čip „Resume session …" na vrhu.
+3. [ ] **Practise** je stari hub, bez trake „Resume" (ona je na Home);
+   naslov „Practise". Linije napretka iz stavke 176 i dalje na karticama.
+4. [ ] **Analyse**: tabla je odmah tu, sa svojom trakom (Setup, motor, „Use in
+   a tutorial"…); iznad nje „My games" i „Scan a book"; **nema** drugog
+   naslova iznad trake. Prvi ulazak pokreće motor; promena taba i povratak
+   zatiče isto stablo. Telefon položeno: tabla levo kao u stavci 172.
+5. [ ] **Teach**: kartica tutorijala (Windows), „Preparation" → „Open",
+   „New session" → „Start", „Library" → „Open library", pa „Students" —
+   kartica „Students and trainers" sa „Send a request", dugme „Groups" uvek
+   vidljivo, red učenika ima „Progress" (isključen dok roditelj ne potvrdi).
+   Na telefonu se tab skroluje ceo, bez unutrašnjeg skrola.
+6. [ ] **Zvono** sa zahtevima: bedž na ikoni „Teach" (bio na „People"); zvono
+   otvara isti dijalog „Notifications and Invitations".
+7. [ ] **Telefon položeno** (stavka 174): naslov taba i zupčanik gore desno na
+   Home, Practise i Teach; na Analyse je red sa „My games"/„Scan a book" pa
+   traka Analize — zvono tu nije dostupno (poznato).
+
 ## 176. Napredak u vežbama: šta je rešeno, šta se vraća — 17.9.2026, nije viđeno uživo
 
 `docs/PLAN-NAPREDAK-VEZBI.md`, faze 1 i 2 (spojeno `da433d3`, `1677f34`).

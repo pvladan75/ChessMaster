@@ -2978,3 +2978,34 @@ found to be a plain `"` inside a double-quoted string — and the `git commit`
 chained after it went through with the *other* files, recording half a phase.
 Read the tool's output above the commit line before trusting it; put a script
 with quotes and dashes in a file, not a heredoc.
+
+**Reorganisation phase 5 — 17.9.2026, app 2878 → 2882.** The arithmetic: + 5
+from `home_map_test.dart`, the gate that moved into `test/` green (four in the
+phase-2 group, one in the phase-5 group; its 6c group stayed behind as
+`docs/gates/one_editor_test.dart`) − 1 in `manual_places_test.dart`, whose
+„no page quotes a retired label" test went with the retired list it read,
+because the words are gone from `lib/` and the labels test now catches them.
+Backend unchanged at 1412; analyze 26.
+
+**A source-reading test names a file, and a phase that deletes the file
+breaks it a suite later.** `screen_names_en_test` read the Library tab to
+check that the cards for Preparation and Analysis said what was different
+between them; phase 5 deleted the tab and made Analysis a tab of its own, and
+the named tests were green because none of them was this one. The full suite
+was run before the commit for exactly this — and the one red was the right
+red. The rule survived the file: the two doors that now share a room are
+Preparation and New session on Teach, and the test reads those. Proved by
+mutation: „no student" removed from the card, the test red, restored.
+
+**The header is drawn by the shell, and one tab draws its own.** Analyse
+mounts the Analysis screen whole, with its app bar; drawing the shell's
+`_TabHeader` above it put two bars on one screen. The header is skipped for
+that tab alone, in portrait — in short landscape the screen already draws
+nothing above the board and the shell's bar is the only one. Item 177 says
+which.
+
+**A gate's date stays on the file that moved.** `home_map_test` kept its
+„written 17.9.2026, red on master at bd64f9c" line when it moved into
+`test/`; the day it went green is the day the shell changed, and a reader who
+finds it in the suite should know it was once a gate and where the rest of it
+is.

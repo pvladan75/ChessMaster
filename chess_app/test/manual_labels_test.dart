@@ -28,23 +28,6 @@ Set<String> _literalsOfLib() => {
           ...literalsIn(file.readAsStringSync()),
     };
 
-/// Labels the manual may quote before the app has them.
-///
-/// docs/PLAN-REORGANIZACIJA.md, Variant B: the manual is rewritten to the new
-/// map (batch `prirucnik-b`) before phases 2–5 put the words into `lib/`, so
-/// for that window a quoted label may also be a line of
-/// `docs/gates/map_b_labels.txt`. **Phase 5 deletes that file and this
-/// function** — with the file gone the allowance is empty and the check is
-/// exactly what it was. A missing file is the normal state, not an error.
-Set<String> _promisedLabels() {
-  final file = File('../docs/gates/map_b_labels.txt');
-  if (!file.existsSync()) return const {};
-  return {
-    for (final line in file.readAsLinesSync())
-      if (line.trim().isNotEmpty && !line.startsWith('#')) line.trim(),
-  };
-}
-
 String _unescapeHtml(String s) => s
     .replaceAll('&quot;', '"')
     .replaceAll('&#39;', "'")
@@ -93,7 +76,7 @@ void main() {
   });
 
   test('every label a page quotes is a label the app has', () {
-    final literals = {..._literalsOfLib(), ..._promisedLabels()};
+    final literals = _literalsOfLib();
     final missing = <String>[
       for (final page in pages)
         for (final label in missingLabels(page.readAsStringSync(), literals))

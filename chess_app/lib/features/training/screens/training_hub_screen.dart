@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/screens/home_screen.dart' show kTabNames;
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
-
-import '../widgets/resume_strip.dart';
 
 /// What there is to practise, as a list of cards and nothing else.
 ///
@@ -93,7 +92,7 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
               // `kTabNames[0]` — it said „Trening" until 11.9.2026, three days
               // after the English pivot, because a Serbian word with no
               // Serbian letter in it is invisible to the language gate.
-              title: const Text('Training'),
+              title: Text(kTabNames[1]),
               elevation: 0,
             ),
       body: SafeArea(
@@ -104,7 +103,6 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
             children: [
               // What was left open, above what there is to start. Shows nothing
               // when nothing was left, which is most visits.
-              const ResumeStrip(),
               CategorySelectionHubWidget(
                 onSelectTactics: () => _pushAndRefresh(AppRoutes.tactics),
                 onSelectEndgameWin: () =>

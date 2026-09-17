@@ -53,8 +53,6 @@ void main() {
             onRoleChanged: (_) {},
             onRefresh: () async {},
             onFixParentEmail: onFixParentEmail ?? () {},
-            onEnterLesson: (_) {},
-            onOpenPanelAssignment: (_) {},
           ),
         ),
       );
@@ -72,8 +70,8 @@ void main() {
     // Homework and progress are what an accepted edge unlocks, so the button
     // that leads to them is off. A row that looked ordinary would be the same
     // failure as a control that works while its button is hidden.
-    final progress = tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, Icons.insights),
+    final progress = tester.widget<TextButton>(
+      find.widgetWithIcon(TextButton, Icons.insights),
     );
     expect(progress.onPressed, isNull);
   });

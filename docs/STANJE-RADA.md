@@ -118,6 +118,17 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Faza 5 gotova, 17.9.2026 (vođa, Fable): ljuska je Home · Practise · Analyse ·
+Teach.** „People" je ušao u Teach (učenici, grupe, zahtevi) i Home (panel
+trenera, „Set for me", „Join a session"); Home crta blokove samo iz podataka
+(`hasTrainer`, dospeli pregledi); Analyse montira ekran Analize kao telo taba,
+pri prvom ulasku, sa „My games" i „Scan a book" iznad i bez drugog naslova;
+`HomeBibliotekaTab` obrisan; kapija `home_map_test` prešla u `test/` (grupa 6c
+ostala kao `docs/gates/one_editor_test.dart`); `map_b_*` fajlovi i dopuštenje
+u testu priručnika obrisani — **priručnik sad opisuje aplikaciju kakva jeste i
+sajt sme na droplet**. Provera uživo: **177**. Sledeće: 3b (kolona sobe na
+`LibraryList`), pa 6a (kontroler studija, vođa), 6b, 6c.
+
 **Napredak u vežbama, faza 2 gotova, 17.9.2026, spojeno `1677f34`** (implementer,
 Sonnet): svih pet vežbi piše ishod, preskakanje i pomoć (taktika kroz svoj
 servis, ostalo kroz `PuzzleAttemptApi`); kartice huba crtaju „Solved N · M to

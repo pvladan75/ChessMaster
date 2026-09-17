@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/groups/screens/groups_screen.dart';
-import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
-import 'package:chess_app/features/trainer_panel/widgets/trainer_panel_view.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
@@ -43,20 +41,9 @@ class HomeFriendsTab extends StatelessWidget {
   /// screen that owns the session.
   final VoidCallback onFixParentEmail;
 
-  /// The trainer's day, drawn above the list of people.
-  ///
-  /// It lives here rather than in a fifth tab because teaching is a position in
-  /// a relationship, not a property of an account: a destination of its own
-  /// would be empty for everybody who teaches nobody. This tab is already the
-  /// one that exists because of a relationship, and it already knows how to
-  /// draw nothing when there is none.
-  final TrainerPanel panel;
-
-  /// Enters a lesson this trainer is hosting.
-  final void Function(String roomCode) onEnterLesson;
-
-  /// Opens one piece of homework from the panel.
-  final void Function(PanelAssignment assignment) onOpenPanelAssignment;
+  /// Inside the Teach tab, under its own scroll: no pull-to-refresh and no
+  /// padding of its own. On its own it scrolls and refreshes as before.
+  final bool embedded;
 
   const HomeFriendsTab({
     super.key,
@@ -71,9 +58,7 @@ class HomeFriendsTab extends StatelessWidget {
     required this.onRefresh,
     required this.onOpenProgress,
     required this.onFixParentEmail,
-    this.panel = TrainerPanel.empty,
-    required this.onEnterLesson,
-    required this.onOpenPanelAssignment,
+    this.embedded = false,
   });
 
   /// Everyone, in whatever state the relationship is.
@@ -138,16 +123,19 @@ class HomeFriendsTab extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (iTeachThem)
-              IconButton(
-                icon: const Icon(Icons.insights, size: 20),
-                tooltip: awaitingParent
+              Tooltip(
+                message: awaitingParent
                     ? 'Available once parent confirms'
                     : (isPending
                         ? 'Available once student accepts'
                         : 'Progress and assignments'),
-                onPressed: notYet
-                    ? null
-                    : () => onOpenProgress(Map<String, dynamic>.from(r)),
+                child: TextButton.icon(
+                  icon: const Icon(Icons.insights, size: 18),
+                  label: const Text('Progress'),
+                  onPressed: notYet
+                      ? null
+                      : () => onOpenProgress(Map<String, dynamic>.from(r)),
+                ),
               ),
             IconButton(
               icon: Icon(Icons.delete, color: colors.danger, size: 20),
@@ -164,6 +152,7 @@ class HomeFriendsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (embedded) return _body(context);
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: _body(context),
@@ -177,21 +166,16 @@ class HomeFriendsTab extends StatelessWidget {
       // Always scrollable so the pull gesture exists even when the list is
       // short enough to fit — which is exactly when there is nothing on screen
       // to explain why it looks stale.
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: AppSpacing.screenPadding,
+      physics: embedded
+          ? const NeverScrollableScrollPhysics()
+          : const AlwaysScrollableScrollPhysics(),
+      padding: embedded ? EdgeInsets.zero : AppSpacing.screenPadding,
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 700),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TrainerPanelView(
-                panel: panel,
-                onEnterLesson: onEnterLesson,
-                onOpenAssignment: onOpenPanelAssignment,
-                onOpenStudent: (id, name) =>
-                    onOpenProgress({'id': id, 'name': name}),
-              ),
               Card(
                 shape: AppRadii.cardShape,
                 child: Padding(
@@ -210,9 +194,9 @@ class HomeFriendsTab extends StatelessWidget {
                                   .copyWith(color: colors.textPrimary),
                             ),
                           ),
-                          IconButton(
+                          OutlinedButton.icon(
                             icon: Icon(Icons.groups, color: colors.brand),
-                            tooltip: 'Student groups',
+                            label: const Text('Groups'),
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) =>
@@ -273,7 +257,7 @@ class HomeFriendsTab extends StatelessWidget {
                                 vertical: 14,
                               ),
                             ),
-                            child: const Text('Send request'),
+                            child: const Text('Send a request'),
                           ),
                         ],
                       ),

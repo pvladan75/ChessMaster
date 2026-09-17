@@ -28,7 +28,8 @@ import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 
 import 'package:chess_app/widgets/home/home_dialogs.dart' as dialogs;
 import 'package:chess_app/widgets/home/dashboard_tab.dart';
-import 'package:chess_app/widgets/home/biblioteka_tab.dart';
+import 'package:chess_app/widgets/home/analyse_tab.dart';
+import 'package:chess_app/widgets/home/teach_tab.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/widgets/home/friends_tab.dart';
 import 'package:chess_app/models/relationship_request_target.dart';
@@ -41,7 +42,7 @@ import 'package:chess_app/features/trainer_panel/services/trainer_panel_api_serv
 /// one and the same screen, and only whichever layout you were looking at could
 /// tell you which. A name typed twice drifts; this one is read by the rail, the
 /// bottom bar and the header above the pages.
-const List<String> kTabNames = ['Training', 'Sessions', 'Library', 'People'];
+const List<String> kTabNames = ['Home', 'Practise', 'Analyse', 'Teach'];
 
 class HomeScreen extends StatefulWidget {
   final UserSession session;
@@ -935,7 +936,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// clear. A badge that cannot reach zero is a badge that stops being read,
   /// which is why deadlines and quiet students are on the panel and not in this
   /// number.
-  Widget _peopleIcon(IconData icon) {
+  Widget _teachIcon(IconData icon) {
     return Badge(
       isLabelVisible: _panel.waiting > 0,
       label: Text('${_panel.waiting}'),
@@ -1015,61 +1016,61 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<Widget> pages = List.generate(4, (i) {
       if (!_visitedTabs.contains(i)) return const SizedBox.shrink();
       switch (i) {
-        // 0 is the crossroads, and it sits at the bottom of this switch as the
-        // default rather than being listed twice.
-        case 1:
+        case 0:
+          // What is for me now: what is left open, the trainer's day, what
+          // was set for me, a room to join, the recordings.
           return HomeDashboardTab(
             userName: widget.session.name,
             codeController: _codeController,
             recordings: _recordings,
             isLoadingRecordings: _isLoadingRecordings,
-            onCreateSessionTap: _showCreateRoomWithFriendsDialog,
-            onOpenStudio: _openStudioRoom,
+            panel: _panel,
+            onEnterLesson: (code) => _navigateToGame(code, 'host'),
+            onOpenPanelAssignment: _openPanelAssignment,
+            onOpenStudent: (id, name) =>
+                _openStudentProgress({'id': id, 'name': name}),
+            hasTrainer: _trainers.any((t) => t['status'] == 'accepted'),
             onOpenAssignments: _openMyAssignments,
             onOpenReviews: _openReviews,
             dueReviewCount: _dueReviews,
-            // The visible Join button on this tab shares `_codeController`
-            // with `_joinRoom`, so it goes through the same six-digit check
-            // and `POST /rooms/join` rather than jumping straight into a
-            // room the way an invite link does.
             onJoinRoom: (_) => _joinRoom(),
             onRefreshRecordings: _fetchRecordings,
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),
           );
+        case 1:
+          // The crossroads of practice. Everything it offers is a route, so
+          // the tab holds a list of cards and nothing heavier.
+          return TrainingHubScreen(session: widget.session, embedded: true);
         case 2:
-          return HomeBibliotekaTab(
-            tutorialCard: TutorialLibraryCard(session: widget.session),
-            onOpenStudio: _openStudioRoom,
-            onOpenAnalysis: () => context.push(AppRoutes.analysis),
+          // The board is the tab. Built on first visit only (the stack above
+          // sees to that): it starts an engine, and nobody pays for it who
+          // never opens it.
+          return AnalyseTab(
+            session: widget.session,
+            onOpenMyGames: () => context.push(AppRoutes.archiveHome),
             onOpenScanner: () => context.push(AppRoutes.scan),
-            onOpenSavedPositions: () => context.push(AppRoutes.savedPositions),
-            onOpenLibrary: () => context.push(AppRoutes.library),
-          );
-        case 3:
-          return HomeFriendsTab(
-            studentEmailController: _studentEmailController,
-            isLoadingStudents: _isLoadingStudents,
-            students: _students,
-            trainers: _trainers,
-            iAmTrainerInRequest: _iAmTrainerInRequest,
-            onRoleChanged: (v) => setState(() => _iAmTrainerInRequest = v),
-            onRefresh: _fetchStudents,
-            onAddStudent: _addStudent,
-            onDeleteStudent: _deleteStudent,
-            onOpenProgress: _openStudentProgress,
-            onFixParentEmail: _askForParentEmail,
-            panel: _panel,
-            onEnterLesson: (code) => _navigateToGame(code, 'host'),
-            onOpenPanelAssignment: _openPanelAssignment,
           );
         default:
-          // The crossroads, not the working screen. Everything it offers is a
-          // route now, so the tab holds a list of cards and nothing heavier.
-          //
-          // First, and default, because it is the one thing that is true for
-          // everybody who opens the app. Rooms and homework need a second
-          // person; practice does not.
-          return TrainingHubScreen(session: widget.session, embedded: true);
+          return TeachTab(
+            tutorialCard: TutorialLibraryCard(session: widget.session),
+            onOpenPreparation: _openStudioRoom,
+            onStartSession: _showCreateRoomWithFriendsDialog,
+            onOpenLibrary: () => context.push(AppRoutes.library),
+            studentsSection: HomeFriendsTab(
+              embedded: true,
+              studentEmailController: _studentEmailController,
+              isLoadingStudents: _isLoadingStudents,
+              students: _students,
+              trainers: _trainers,
+              iAmTrainerInRequest: _iAmTrainerInRequest,
+              onRoleChanged: (v) => setState(() => _iAmTrainerInRequest = v),
+              onRefresh: _fetchStudents,
+              onAddStudent: _addStudent,
+              onDeleteStudent: _deleteStudent,
+              onOpenProgress: _openStudentProgress,
+              onFixParentEmail: _askForParentEmail,
+            ),
+          );
       }
     });
 
@@ -1221,8 +1222,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                             destinations: [
                               NavigationRailDestination(
-                                  icon: const Icon(Icons.psychology_outlined),
-                                  selectedIcon: const Icon(Icons.psychology),
+                                  icon: const Icon(Icons.home_outlined),
+                                  selectedIcon: const Icon(Icons.home),
                                   // The same tab as the bottom bar's first
                                   // destination, and it now says so. It was
                                   // "Početna" here and "Trening" there, over one
@@ -1231,17 +1232,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   // at could tell you which.
                                   label: Text(kTabNames[0])),
                               NavigationRailDestination(
-                                  icon: const Icon(Icons.school_outlined),
-                                  selectedIcon: const Icon(Icons.school),
+                                  icon: const Icon(Icons.psychology_outlined),
+                                  selectedIcon: const Icon(Icons.psychology),
                                   label: Text(kTabNames[1])),
                               NavigationRailDestination(
-                                  icon:
-                                      const Icon(Icons.library_books_outlined),
-                                  selectedIcon: const Icon(Icons.library_books),
+                                  icon: const Icon(Icons.biotech_outlined),
+                                  selectedIcon: const Icon(Icons.biotech),
                                   label: Text(kTabNames[2])),
                               NavigationRailDestination(
-                                  icon: _peopleIcon(Icons.people_outline),
-                                  selectedIcon: _peopleIcon(Icons.people),
+                                  icon: _teachIcon(Icons.school_outlined),
+                                  selectedIcon: _teachIcon(Icons.school),
                                   label: Text(kTabNames[3])),
                             ],
                           ),
@@ -1251,15 +1251,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _TabHeader(
-                                title: kTabNames[_selectedIndex],
-                                actions: shortLandscape
-                                    ? [
-                                        if (bellButton != null) bellButton,
-                                        settingsButton,
-                                      ]
-                                    : const [],
-                              ),
+                              if (_selectedIndex != 2 || shortLandscape)
+                                _TabHeader(
+                                  title: kTabNames[_selectedIndex],
+                                  actions: shortLandscape
+                                      ? [
+                                          if (bellButton != null) bellButton,
+                                          settingsButton,
+                                        ]
+                                      : const [],
+                                ),
                               Expanded(
                                 child: IndexedStack(
                                   index: _selectedIndex,
@@ -1282,20 +1283,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     onDestinationSelected: _selectTab,
                     destinations: [
                       NavigationDestination(
-                          icon: const Icon(Icons.psychology_outlined),
-                          selectedIcon: const Icon(Icons.psychology),
+                          icon: const Icon(Icons.home_outlined),
+                          selectedIcon: const Icon(Icons.home),
                           label: kTabNames[0]),
                       NavigationDestination(
-                          icon: const Icon(Icons.school_outlined),
-                          selectedIcon: const Icon(Icons.school),
+                          icon: const Icon(Icons.psychology_outlined),
+                          selectedIcon: const Icon(Icons.psychology),
                           label: kTabNames[1]),
                       NavigationDestination(
-                          icon: const Icon(Icons.library_books_outlined),
-                          selectedIcon: const Icon(Icons.library_books),
+                          icon: const Icon(Icons.biotech_outlined),
+                          selectedIcon: const Icon(Icons.biotech),
                           label: kTabNames[2]),
                       NavigationDestination(
-                          icon: _peopleIcon(Icons.people_outline),
-                          selectedIcon: _peopleIcon(Icons.people),
+                          icon: _teachIcon(Icons.school_outlined),
+                          selectedIcon: _teachIcon(Icons.school),
                           label: kTabNames[3]),
                     ],
                   ),

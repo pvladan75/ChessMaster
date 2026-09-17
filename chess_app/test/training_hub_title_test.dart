@@ -32,7 +32,7 @@ void main() {
 
     expect(
       find.descendant(
-          of: find.byType(AppBar), matching: find.text(kTabNames.first)),
+          of: find.byType(AppBar), matching: find.text(kTabNames[1])),
       findsOneWidget,
     );
   });
