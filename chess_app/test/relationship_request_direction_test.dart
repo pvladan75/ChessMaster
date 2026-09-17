@@ -320,7 +320,7 @@ void main() {
       )));
 
       await tester.fling(
-          find.text('Friends & Contacts'), const Offset(0, 300), 1000);
+          find.text('Students and trainers'), const Offset(0, 300), 1000);
       await tester.pumpAndSettle();
 
       expect(refreshed, 1, reason: 'the pull gesture must reach the callback');

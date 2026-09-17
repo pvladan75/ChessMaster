@@ -27,7 +27,6 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_servi
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
-import 'package:chess_app/widgets/create_course_dialog.dart';
 
 const _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -219,31 +218,5 @@ void main() {
 
       await _close(tester);
     });
-  });
-
-  testWidgets('the course editor lists stored parts as „Part N"',
-      (tester) async {
-    tester.view.physicalSize = const Size(1200, 1000);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: CreateCourseDialog(
-          userSession: _trainer,
-          onCourseCreated: () {},
-          existingLesson: {
-            'id': 42,
-            'title': 'Opozicija',
-            'position_list': _oldSteps,
-          },
-        ),
-      ),
-    ));
-    await tester.pumpAndSettle();
-
-    expect(find.text('1. Part 1'), findsOneWidget);
-    expect(find.text('2. Part 2'), findsOneWidget);
-    await _close(tester);
   });
 }

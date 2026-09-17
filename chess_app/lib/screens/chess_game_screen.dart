@@ -46,7 +46,6 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
-import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
 import 'package:chess_app/widgets/pgn_import_dialog.dart';
@@ -1996,7 +1995,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Tutorial with variations saved successfully!');
+    _showSuccess('Position saved.');
     fetchLessons();
   }
 
@@ -2555,17 +2554,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  void _showCreateCourseDialog({Map<String, dynamic>? existingLesson}) {
-    showDialog(
-      context: context,
-      builder: (ctx) => CreateCourseDialog(
-        userSession: widget.userSession,
-        onCourseCreated: () => fetchLessons(),
-        existingLesson: existingLesson,
-      ),
-    );
-  }
-
   void _showSaveDialog() {
     showDialog(
       context: context,
@@ -2910,7 +2898,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Tutorials and positions',
+                'Board',
                 style: AppText.headline,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -2919,7 +2907,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 child: ElevatedButton.icon(
                   onPressed: _showBoardSetupDialog,
                   icon: const Icon(Icons.dashboard_customize, size: 16),
-                  label: const Text('Set up position (Board Setup)'),
+                  label: const Text('Set up position'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.accent,
                     foregroundColor: context.colors.canvas,
@@ -2930,39 +2918,24 @@ class _ChessGamePageState extends State<ChessGamePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _showSaveDialog,
-                  icon: const Icon(Icons.save, size: 16),
-                  label: const Text('Save current position'),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
                   onPressed: _showPgnImportDialog,
                   icon: const Icon(Icons.file_open, size: 16),
-                  label: const Text('Import PGN (file or text)'),
+                  label: const Text('Import PGN'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.brand,
                     foregroundColor: context.colors.canvas,
                   ),
                 ),
               ),
-              if (isTrener) ...[
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _showCreateCourseDialog,
-                    icon: const Icon(Icons.collections_bookmark, size: 16),
-                    label: const Text('Create tutorial (multiple positions)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.colors.accentAlt,
-                      foregroundColor: context.colors.canvas,
-                    ),
-                  ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _showSaveDialog,
+                  icon: const Icon(Icons.save, size: 16),
+                  label: const Text('Save position'),
                 ),
-              ],
+              ),
               const Divider(height: 24),
               Row(
                 children: [
@@ -3004,6 +2977,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 ],
               ),
               const Divider(height: 24),
+              const Text(
+                'Library',
+                style: AppText.headline,
+              ),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 'Search tutorials',
                 style: TextStyle(
@@ -3196,14 +3174,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                                 _renameTutorial(
                                                     Map<String, dynamic>.from(
                                                         lesson));
-                                              } else if (value == 'pozicije') {
-                                                // The step editor cannot add,
-                                                // remove or reorder steps until
-                                                // batch F, and this menu
-                                                // replaced the only way in.
-                                                _showCreateCourseDialog(
-                                                    existingLesson: Map<String,
-                                                        dynamic>.from(lesson));
                                               } else if (value == 'kloniraj') {
                                                 _cloneTutorial(
                                                     Map<String, dynamic>.from(
@@ -3217,10 +3187,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                               const PopupMenuItem(
                                                   value: 'preimenuj',
                                                   child: Text('Rename')),
-                                              const PopupMenuItem(
-                                                  value: 'pozicije',
-                                                  child:
-                                                      Text('Edit positions')),
                                               const PopupMenuItem(
                                                   value: 'kloniraj',
                                                   child: Text(

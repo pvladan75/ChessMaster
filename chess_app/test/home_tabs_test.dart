@@ -260,8 +260,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Recorded material'), findsOneWidget);
-    expect(find.text('You have no saved material.'), findsOneWidget);
+    expect(find.text('Recordings'), findsOneWidget);
+    expect(find.text('No recordings yet.'), findsOneWidget);
     expect(find.textContaining('Snimljeni časovi'), findsNothing,
         reason: 'kartica opet zove materijal snimljenim časom');
   });

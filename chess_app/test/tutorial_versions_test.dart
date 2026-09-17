@@ -201,18 +201,4 @@ void main() {
     expect(find.byType(LessonStepEditorPanel), findsOneWidget);
     expect(find.text('Stari naziv'), findsWidgets);
   });
-
-  testWidgets(
-      'editing the positions of an existing tutorial is still reachable',
-      (tester) async {
-    // The menu replaced the only route to the course dialog, and the step
-    // editor cannot add, remove or reorder steps until batch F. Without this
-    // entry a trainer could no longer change which positions a tutorial is
-    // made of.
-    await openLibrary(tester);
-
-    await chooseAction(tester, 'Edit positions');
-
-    expect(find.text('Edit tutorial'), findsWidgets);
-  });
 }

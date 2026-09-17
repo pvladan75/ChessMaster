@@ -9,7 +9,6 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
-import 'package:chess_app/widgets/create_course_dialog.dart';
 
 /// Phase 7b of `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`: the trainer's editor.
 ///
@@ -240,37 +239,6 @@ void main() {
           reason: 'the trainer cannot write a step from anywhere in the app: '
               'nothing under lib/ constructs LessonStepEditorPanel, so it is '
               'reachable only from this test file');
-    });
-  });
-
-  group('one place a step’s words are written', () {
-    testWidgets('the course dialog no longer asks for an instruction',
-        (tester) async {
-      // The owner's decision, 5.9.2026: the dialog keeps the order and the
-      // picking, the studio panel keeps the content.
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => CreateCourseDialog(
-                  userSession: session,
-                  onCourseCreated: () {},
-                  existingLesson: lessonWithIds(),
-                ),
-              ),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ));
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-
-      expect(find.byTooltip('Zadatak za učenika'), findsNothing,
-          reason:
-              'the per-step instruction is written in the studio panel now');
     });
   });
 }

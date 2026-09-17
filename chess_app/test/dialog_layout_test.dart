@@ -1,8 +1,6 @@
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/position_picker_dialog.dart';
-import 'package:chess_app/models/user_session.dart';
-import 'package:chess_app/widgets/create_course_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,62 +18,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   }
-
-  /// That the dialog drew its main button, inside itself. `takeException` alone
-  /// passes a dialog that was never built — an overflow cannot happen in a widget
-  /// that is not there — and a release build paints none anyway, so what a phone
-  /// actually needs is the button reachable. Audit of 16.9.2026,
-  /// `docs/audit/tests.md`, 9.
-  void expectButtonInside(WidgetTester tester, String label) {
-    final button = find.text(label);
-    expect(button, findsOneWidget);
-    final dialog = tester.getRect(find.byType(AlertDialog));
-    final rect = tester.getRect(button);
-    expect(dialog.contains(rect.topLeft) && dialog.contains(rect.bottomRight),
-        isTrue,
-        reason: '„$label" is drawn outside the dialog: $rect not in $dialog');
-  }
-
-  final session = UserSession(
-    token: 't',
-    id: 1,
-    email: 'a@b.c',
-    name: 'Trener',
-    role: 'trener',
-  );
-
-  testWidgets('CreateCourseDialog lays out with saved positions',
-      (tester) async {
-    await pumpDialog(
-      tester,
-      CreateCourseDialog(
-        userSession: session,
-        onCourseCreated: () {},
-      ),
-    );
-    expectButtonInside(tester, 'Save tutorial');
-  });
-
-  testWidgets('CreateCourseDialog lays out while editing an existing course',
-      (tester) async {
-    await pumpDialog(
-      tester,
-      CreateCourseDialog(
-        userSession: session,
-        onCourseCreated: () {},
-        existingLesson: {
-          'id': 99,
-          'title': 'Kurs',
-          'description': 'opis',
-          'position_list': List.generate(
-            4,
-            (i) => {'id': i, 'title': 'Korak $i', 'fen': 'fen$i'},
-          ),
-        },
-      ),
-    );
-    expectButtonInside(tester, 'Save changes');
-  });
 
   testWidgets('SavePositionDialog lays out with the label suggestion list',
       (tester) async {
