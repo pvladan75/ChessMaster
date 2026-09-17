@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
-import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
@@ -260,21 +259,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
         session: widget.session, api: _lessons, lesson: row);
   }
 
-  /// The main line of a loaded tree, as the moves `AnalysisStudioScreen`
-  /// already knows how to open a game from. Variations, comments and arrows
-  /// do not travel this way — that needs a constructor parameter the studio
-  /// screen does not have, and this phase does not touch that screen.
-  List<String> _mainLineUci(AnalysisNode root) {
-    final moves = <String>[];
-    var node = root;
-    while (node.children.isNotEmpty) {
-      node = node.children.first;
-      final uci = node.moveUci;
-      if (uci != null) moves.add(uci);
-    }
-    return moves;
-  }
-
   Future<void> _openAnalysis(LibraryEntry entry) async {
     final id = int.tryParse(entry.id);
     if (id == null) return;
@@ -285,15 +269,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
       AppFeedback.error(context, 'Could not load that analysis.');
       return;
     }
+    // The whole tree, as it was saved: a game would be its main line and
+    // would drop the sidelines, comments and arrows.
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => AnalysisStudioScreen(
         userSession: widget.session,
-        initialGame: (
-          startFen: root.fen,
-          uciMoves: _mainLineUci(root),
-          cursorPly: 0,
-          blackOrientation: false,
-        ),
+        initialTree: root,
       ),
     ));
   }
