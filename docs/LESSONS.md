@@ -3300,3 +3300,23 @@ cannot parse. Rule 3 again — a result is only a result if it is the right one.
 that read „passed" before „locked" could not see a completed item become
 locked; the trainer's use of the review route was never exercised, so a guard
 that refused the trainer too survived. Both were asserted directly after.
+
+**Homework, phase 2a: „play it out", judged by the server — 17.9.2026,
+backend 1437 → 1470.** + 28 in the new `engine_game_task.test.js` (16 fixture
+cases, 5 refusals, and 7 of its own), + 5 in `homework_gate.test.js` for the
+route. 1470 with the database, 1441 without. 24 mutations, each red on the
+right test. App unchanged; its half is a brief and a gate.
+
+**A fixture typed from memory is not a fixture.** Five of sixteen cases in the
+shared file were wrong when written: three had a queen moving to a square it
+already stood on, one claimed a mate that left the king an escape, and one
+claimed a threefold repetition two plies before it was one. They were found by
+replaying every case on a real board — and only after the probe was fixed,
+because its first version printed the *claim* beside the case name instead of
+what the board said, so five broken cases read as five green lines.
+
+**A guard in front of a guard hides a mutation.** „Anyone may play this game"
+survived, because the test used a gated item: the lock refused the request
+before the ownership check was reached. The same shape as two survivors in
+phase 1 — the test has to stand on the boundary the check owns, not behind an
+earlier one (rule 6).

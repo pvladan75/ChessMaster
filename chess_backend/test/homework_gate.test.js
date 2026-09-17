@@ -575,6 +575,163 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal(whole.status, 200);
   });
 
+  // ---- „play it out", recorded from the moves (phase 2) ------------------
+
+  /// A sent engine_game item: one assignment with a task and one item to hold
+  /// the game, as phase 4 will write it.
+  async function sentGame({ trainerId, studentId }, task, { gate = false } = {}) {
+    const parent = await pool.query(
+      `INSERT INTO assignments (trainer_id, student_id, title, kind)
+       VALUES ($1, $2, 'Thursday', 'homework') RETURNING id`,
+      [trainerId, studentId]
+    );
+    const parentId = parent.rows[0].id;
+    const ids = [];
+    for (const [index, entry] of [{ kind: 'puzzles' }, { kind: 'engine_game', task }].entries()) {
+      const child = await pool.query(
+        `INSERT INTO assignments
+           (trainer_id, student_id, title, kind, parent_id, position, item_key, gate, task)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+        [trainerId, studentId, `item ${index}`, entry.kind, parentId, index, `k${index}`,
+          index === 1 ? gate : false, entry.task ? JSON.stringify(entry.task) : null]
+      );
+      const id = child.rows[0].id;
+      ids.push(id);
+      await pool.query(
+        `INSERT INTO assignment_items (assignment_id, position, step_key) VALUES ($1, 0, 'game')`,
+        [id]
+      );
+    }
+    return { parentId, gameId: ids[1] };
+  }
+
+  const HOLD_TASK = {
+    fen: '7k/8/6K1/8/8/8/8/5Q2 w - - 0 1',
+    side: 'w',
+    goal: 'hold',
+    level: 'srednje',
+    thinkSeconds: 2,
+    plyCap: 40,
+  };
+
+  test('a finished game is judged from its moves and recorded', async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, HOLD_TASK);
+
+    const r = await route('post', '/:id/game-result', {
+      userId: who.studentId,
+      params: { id: String(gameId) },
+      body: { moves: ['Qf7'] },
+    });
+    assert.equal(r.status, 200);
+    assert.deepEqual(
+      { goalMet: r.body.goalMet, ending: r.body.ending, outcome: r.body.outcome },
+      { goalMet: true, ending: 'stalemate', outcome: 'drawn' }
+    );
+
+    const item = await pool.query(
+      'SELECT solved, game_moves, game_ending, attempted_at FROM assignment_items WHERE assignment_id = $1',
+      [gameId]
+    );
+    assert.equal(item.rows[0].solved, true);
+    assert.equal(item.rows[0].game_moves, 'Qf7');
+    assert.equal(item.rows[0].game_ending, 'stalemate');
+    assert.ok(item.rows[0].attempted_at, 'the item counts as attempted');
+    assert.ok(await completedAt(gameId), 'its one item is done, so the item is');
+  });
+
+  test('a game the student lost is recorded as not met, and still counts as done', async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, { ...HOLD_TASK, goal: 'win' });
+    const r = await route('post', '/:id/game-result', {
+      userId: who.studentId, params: { id: String(gameId) }, body: { moves: ['Qf7'] },
+    });
+    assert.equal(r.body.goalMet, false, 'a draw is not a win');
+    const item = await pool.query(
+      'SELECT solved FROM assignment_items WHERE assignment_id = $1', [gameId]
+    );
+    assert.equal(item.rows[0].solved, false);
+    assert.ok(await completedAt(gameId));
+  });
+
+  test('an unfinished game, an impossible move and a second attempt are all refused', async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, HOLD_TASK);
+
+    const running = await route('post', '/:id/game-result', {
+      userId: who.studentId, params: { id: String(gameId) }, body: { moves: ['Qf2'] },
+    });
+    assert.equal(running.status, 422);
+    assert.match(running.body.error, /not over/);
+
+    const illegal = await route('post', '/:id/game-result', {
+      userId: who.studentId, params: { id: String(gameId) }, body: { moves: ['Qd8'] },
+    });
+    assert.equal(illegal.status, 422);
+
+    const nothing = await pool.query(
+      'SELECT attempted_at FROM assignment_items WHERE assignment_id = $1', [gameId]
+    );
+    assert.equal(nothing.rows[0].attempted_at, null, 'neither refusal wrote anything');
+
+    const done = await route('post', '/:id/game-result', {
+      userId: who.studentId, params: { id: String(gameId) }, body: { moves: ['Qf7'] },
+    });
+    assert.equal(done.status, 200);
+    const again = await route('post', '/:id/game-result', {
+      userId: who.studentId, params: { id: String(gameId) }, body: { moves: ['Qf7'] },
+    });
+    assert.equal(again.status, 409, 'only the first attempt counts');
+  });
+
+  test("a game is not somebody else's to play, and a locked one is not played at all", async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, HOLD_TASK, { gate: true });
+
+    const locked = await route('post', '/:id/game-result', {
+      userId: who.studentId, params: { id: String(gameId) }, body: { moves: ['Qf7'] },
+    });
+    assert.equal(locked.status, 423);
+
+    // On an **open** game, so it is ownership refusing and not the lock: with
+    // the lock in front, a mutation that let anyone play survived this test.
+    const other = await people();
+    const open = await sentGame(other, HOLD_TASK);
+    const asTrainer = await route('post', '/:id/game-result', {
+      userId: other.trainerId, params: { id: String(open.gameId) }, body: { moves: ['Qf7'] },
+    });
+    assert.equal(asTrainer.status, 404, 'the trainer does not answer their own homework');
+    const untouched = await pool.query(
+      'SELECT attempted_at FROM assignment_items WHERE assignment_id = $1', [open.gameId]
+    );
+    assert.equal(untouched.rows[0].attempted_at, null);
+
+    const item = await pool.query(
+      'SELECT attempted_at FROM assignment_items WHERE assignment_id = $1', [gameId]
+    );
+    assert.equal(item.rows[0].attempted_at, null);
+
+    // Straight at the service, past the route's guard: the write has its own,
+    // because a check made only in the route is a check one caller can miss.
+    const direct = await assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: ['Qf7'],
+    });
+    assert.equal(direct.ok, false);
+    assert.equal(direct.status, 404);
+    const still = await pool.query(
+      'SELECT attempted_at FROM assignment_items WHERE assignment_id = $1', [gameId]
+    );
+    assert.equal(still.rows[0].attempted_at, null);
+  });
+
+  test('the student is given the task, and the engine it must be played against', async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, HOLD_TASK);
+    const detail = await assignments.getAssignmentDetail(pool, gameId, who.studentId);
+    assert.equal(detail.kind, 'engine_game');
+    assert.deepEqual(detail.task, HOLD_TASK);
+  });
+
   test('only the trainer opens a gate through the route', async () => {
     const who = await people();
     const { children } = await sent(who, [{}, { gate: true }]);

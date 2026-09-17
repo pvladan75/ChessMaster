@@ -895,6 +895,23 @@ async function initDB(target = pool) {
     `);
     logger.info('Verified database table & indexes: assignment_items (puzzle and lesson items)');
 
+    // What a „play it out" item holds once it has been played
+    // (docs/PLAN-DOMACI-ZADATAK.md §3, phase 2): the game, and why it ended.
+    //
+    // The moves are the record — `solved` alone cannot say whether a draw was
+    // held with three pieces or given away in four moves, and the trainer's
+    // review is exactly where that matters. SAN separated by spaces, as the
+    // server itself replayed and accepted it (`services/engineGameTask.js`),
+    // never as the client spelled it. `game_ending` is one of that file's
+    // `ENDINGS`; it is the half of the verdict a goal is read against, since
+    // „hold" is met by any draw and „survive" by reaching the number asked.
+    await client.query(`
+      ALTER TABLE assignment_items
+        ADD COLUMN IF NOT EXISTS game_moves TEXT,
+        ADD COLUMN IF NOT EXISTS game_ending VARCHAR(24);
+    `);
+    logger.info('Verified columns: assignment_items.game_moves, game_ending');
+
     // Homework: a container the trainer writes once and sends many times
     // (docs/PLAN-DOMACI-ZADATAK.md, variant A, phase 1).
     //

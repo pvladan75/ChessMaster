@@ -97,11 +97,33 @@ CI-ju**); bez `TEST_DATABASE_URL` u CI-ju test pada, na radnoj stanici se
 preskače. `initDB(target)` sada prima pool. Uzgred dokazano: cela postojeća
 šema se gradi na praznoj bazi i dvaput zaredom (idempotentna).
 
+**Faza 2a u kodu** (17.9.2026, vođa — presuda je vlast, ne pomoć).
+„Odigraj do kraja": `services/engineGameTask.js` drži oblik zadatka (pozicija,
+strana, cilj win/hold/survive sa brojem poteza, jačina i vreme motora,
+granica poteza) i presudu — i **server sudi ponovo iz poteza**, jer ni jedan
+drugi odgovor u aplikaciji klijent ne ocenjuje sam. Nove kolone
+`assignment_items.game_moves` i `game_ending`; ruta
+`POST /assignments/:id/game-result` prima poteze (bez ishoda!), odbija partiju
+koja nije završena, potez koji pozicija ne može, drugi pokušaj (409) i
+zaključanu stavku (423).
+
+**Jedan fikstur za dva kraja**: `docs/gates/engine_game_cases.json` — čita ga i
+`test/engine_game_task.test.js` na serveru i (faza 2b) `engine_game_goal_test.dart`
+u aplikaciji, jer aplikacija mora da stane na tabli u istom trenutku u kome
+server kaže da je partija gotova. Prvi nacrt fikstura je imao četiri slučaja sa
+nelegalnim potezima i jedan koji nije bio završetak za koji se izdavao —
+svaki je sada odigran na pravoj tabli. 24 mutacije, svaka crvena na pravom
+testu. Backend 1437 → 1470 sa bazom.
+
+**Faza 2b čeka implementera**: `docs/briefs/BRIEF-DOMACI-FAZA2-APP.md`, kapija
+`docs/gates/engine_game_goal_test.dart` (danas crvena na master-u).
+
 **Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
 na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
 vraća `assignments_kind_check` (proširen) i dodaje `assignments_homework_shape`;
 postojeći redovi prolaze oba (proverena prazna i dvostruka izgradnja, ne
-tvoji podaci). Ništa se ne briše.
+tvoji podaci). Ništa se ne briše. Faza 2a dodaje još dve kolone na
+`assignment_items`.
 
 ## Domaći zadatak — plan sa tri varijante — 17.9.2026, predlog
 

@@ -728,6 +728,39 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /assignments/:id/game-result — the student has played an assigned game
+// to its end (docs/PLAN-DOMACI-ZADATAK.md §3, phase 2).
+//
+// The body carries the moves, and nothing about who won: the verdict is the
+// server's, from the task the trainer set.
+router.post('/:id/game-result', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
+  }
+  const { moves, resigned } = req.body || {};
+  if (!Array.isArray(moves) && typeof moves !== 'string') {
+    return res.status(400).json({ error: 'The moves are required.' });
+  }
+
+  try {
+    if (await refuseIfLocked(req, res, id)) return;
+    const result = await assignments.recordEngineGameResult(pool, {
+      studentId: req.user.id,
+      assignmentId: id,
+      moves,
+      resigned: resigned === true,
+    });
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error });
+    }
+    res.json(result);
+  } catch (err) {
+    logger.error('Error recording an assigned game:', err);
+    res.status(500).json({ error: 'Error recording the game.' });
+  }
+});
+
 // POST /assignments/:id/open-gate — the trainer unlocks one homework item for
 // the student it was sent to (docs/PLAN-DOMACI-ZADATAK.md, §6). 404 for
 // „not yours", „not an item" and „already open" alike: none of them has

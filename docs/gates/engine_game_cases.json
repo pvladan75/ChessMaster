@@ -1,0 +1,146 @@
+{
+  "_comment": [
+    "The shared fixture for „play it out\" — docs/PLAN-DOMACI-ZADATAK.md §3, phase 2.",
+    "Two ends have to agree about when an assigned game is over and whether the goal",
+    "was met: the app decides it on the board, to stop the game and say what happened,",
+    "and the server decides it again when the result is recorded, because no answer in",
+    "this app is marked by the client. When two ends must agree, they share one fixture",
+    "(CLAUDE.md rule 12) — this file. The backend reads it in",
+    "chess_backend/test/engine_game_task.test.js, the app in",
+    "chess_app/test/engine_game_goal_test.dart.",
+    "moves are SAN from the task's fen. ownMoves counts the student's own moves.",
+    "Endings: checkmate, stalemate, insufficientMaterial, threefoldRepetition,",
+    "fiftyMoves, moveLimit, moveTarget, resignation. outcome: won, lost, drawn, undecided."
+  ],
+  "cases": [
+    {
+      "name": "win met: the student mates",
+      "task": { "fen": "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1", "side": "w", "goal": "win", "plyCap": 40 },
+      "moves": ["Rd8#"],
+      "expect": { "ending": "checkmate", "outcome": "won", "goalMet": true, "ownMoves": 1 }
+    },
+    {
+      "name": "win missed: the student is mated",
+      "task": { "fen": "6k1/5ppp/p7/8/8/8/5PPP/3R2K1 b - - 0 1", "side": "b", "goal": "win", "plyCap": 40 },
+      "moves": ["a5", "Rd8#"],
+      "expect": { "ending": "checkmate", "outcome": "lost", "goalMet": false, "ownMoves": 1 }
+    },
+    {
+      "name": "win missed: a draw is not a win",
+      "task": { "fen": "7k/8/6K1/8/8/8/8/5Q2 w - - 0 1", "side": "w", "goal": "win", "plyCap": 40 },
+      "moves": ["Qf7"],
+      "expect": { "ending": "stalemate", "outcome": "drawn", "goalMet": false, "ownMoves": 1 }
+    },
+    {
+      "name": "hold met: a stalemate is a draw held",
+      "task": { "fen": "7k/8/6K1/8/8/8/8/5Q2 w - - 0 1", "side": "w", "goal": "hold", "plyCap": 40 },
+      "moves": ["Qf7"],
+      "expect": { "ending": "stalemate", "outcome": "drawn", "goalMet": true, "ownMoves": 1 }
+    },
+    {
+      "name": "hold met: a win is more than a draw",
+      "task": { "fen": "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1", "side": "w", "goal": "hold", "plyCap": 40 },
+      "moves": ["Rd8#"],
+      "expect": { "ending": "checkmate", "outcome": "won", "goalMet": true, "ownMoves": 1 }
+    },
+    {
+      "name": "hold met: too little left to mate with",
+      "task": { "fen": "7k/8/8/8/8/8/6b1/K6B w - - 0 1", "side": "w", "goal": "hold", "plyCap": 40 },
+      "moves": ["Bxg2"],
+      "expect": { "ending": "insufficientMaterial", "outcome": "drawn", "goalMet": true, "ownMoves": 1 }
+    },
+    {
+      "name": "hold missed: mated while holding",
+      "task": { "fen": "6k1/5ppp/p7/8/8/8/5PPP/3R2K1 b - - 0 1", "side": "b", "goal": "hold", "plyCap": 40 },
+      "moves": ["a5", "Rd8#"],
+      "expect": { "ending": "checkmate", "outcome": "lost", "goalMet": false, "ownMoves": 1 }
+    },
+    {
+      "name": "survive met: the number of own moves asked for is reached",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "survive", "surviveMoves": 3, "plyCap": 40 },
+      "moves": ["Rh2", "Kd8", "Rh3", "Ke8", "Rh4"],
+      "expect": { "ending": "moveTarget", "outcome": "undecided", "goalMet": true, "ownMoves": 3 }
+    },
+    {
+      "name": "survive: still running one move short",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "survive", "surviveMoves": 3, "plyCap": 40 },
+      "moves": ["Rh2", "Kd8", "Rh3", "Ke8"],
+      "expect": { "ending": null, "outcome": "undecided", "goalMet": false, "ownMoves": 2 }
+    },
+    {
+      "name": "survive met early: a draw before the number is still not losing",
+      "task": { "fen": "7k/8/6K1/8/8/8/8/5Q2 w - - 0 1", "side": "w", "goal": "survive", "surviveMoves": 10, "plyCap": 40 },
+      "moves": ["Qf7"],
+      "expect": { "ending": "stalemate", "outcome": "drawn", "goalMet": true, "ownMoves": 1 }
+    },
+    {
+      "name": "survive missed: mated before the number",
+      "task": { "fen": "6k1/5ppp/p7/8/8/8/5PPP/3R2K1 b - - 0 1", "side": "b", "goal": "survive", "surviveMoves": 10, "plyCap": 40 },
+      "moves": ["a5", "Rd8#"],
+      "expect": { "ending": "checkmate", "outcome": "lost", "goalMet": false, "ownMoves": 1 }
+    },
+    {
+      "name": "the move limit ends a game nothing else ended; a win goal is not met",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "win", "plyCap": 4 },
+      "moves": ["Rh2", "Kd8", "Rh3", "Ke8"],
+      "expect": { "ending": "moveLimit", "outcome": "drawn", "goalMet": false, "ownMoves": 2 }
+    },
+    {
+      "name": "the move limit meets a hold goal",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "hold", "plyCap": 4 },
+      "moves": ["Rh2", "Kd8", "Rh3", "Ke8"],
+      "expect": { "ending": "moveLimit", "outcome": "drawn", "goalMet": true, "ownMoves": 2 }
+    },
+    {
+      "name": "the same position three times is a draw",
+      "task": { "fen": "4k2r/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "hold", "plyCap": 40 },
+      "moves": ["Rh2", "Rh7", "Rh1", "Rh8", "Rh2", "Rh7", "Rh1", "Rh8"],
+      "expect": { "ending": "threefoldRepetition", "outcome": "drawn", "goalMet": true, "ownMoves": 4 }
+    },
+    {
+      "name": "resigning loses, whatever the board says",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "hold", "plyCap": 40 },
+      "moves": ["Rh2"],
+      "resigned": true,
+      "expect": { "ending": "resignation", "outcome": "lost", "goalMet": false, "ownMoves": 1 }
+    },
+    {
+      "name": "nothing played yet is nothing decided",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "win", "plyCap": 40 },
+      "moves": [],
+      "expect": { "ending": null, "outcome": "undecided", "goalMet": false, "ownMoves": 0 }
+    }
+  ],
+  "rejected": [
+    {
+      "name": "a move the position cannot play",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "win", "plyCap": 40 },
+      "moves": ["Qd8"],
+      "reason": "illegal move"
+    },
+    {
+      "name": "a goal nobody defined",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "draw", "plyCap": 40 },
+      "moves": [],
+      "reason": "bad task"
+    },
+    {
+      "name": "survive with no number to survive",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "w", "goal": "survive", "plyCap": 40 },
+      "moves": [],
+      "reason": "bad task"
+    },
+    {
+      "name": "a side that is not on the board",
+      "task": { "fen": "4k3/8/8/8/8/8/8/4K2R w - - 0 1", "side": "x", "goal": "win", "plyCap": 40 },
+      "moves": [],
+      "reason": "bad task"
+    },
+    {
+      "name": "a position that is not a position",
+      "task": { "fen": "not a fen", "side": "w", "goal": "win", "plyCap": 40 },
+      "moves": [],
+      "reason": "bad task"
+    }
+  ]
+}

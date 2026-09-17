@@ -20,6 +20,7 @@ const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
 const { stepsOfLesson, redactStepForStudent } = require('./lessonSteps');
 const homework = require('./homeworkService');
+const { judgeEngineGame } = require('./engineGameTask');
 
 /// Refuses a write into a homework item that is still locked. Interpolated
 /// into every UPDATE a student's answer goes through, so the gate holds at
@@ -513,6 +514,56 @@ async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken, 
   }
 }
 
+/// Records a „play it out" game the student has finished against the engine.
+///
+/// The moves are judged here, from the task, and not taken on trust: the app
+/// plays the game on its own board and has to decide there when it is over,
+/// but „the goal was met" arriving from a student's device would be the client
+/// marking its own work — which no other answer in this app does.
+///
+/// Refuses rather than records: a game that is not over yet, a move the
+/// position cannot play, an item already answered. Only the first attempt
+/// counts, the same rule as every other item.
+async function recordEngineGameResult(pool, { studentId, assignmentId, moves, resigned = false }) {
+  const found = await pool.query(
+    `SELECT a.id, a.task
+       FROM assignments a
+      WHERE a.id = $1 AND a.student_id = $2 AND a.kind = 'engine_game'
+        AND ${NOT_LOCKED}`,
+    [assignmentId, studentId]
+  );
+  if (found.rows.length === 0) return { ok: false, status: 404, error: 'That game is not yours to play.' };
+
+  const verdict = judgeEngineGame({ task: found.rows[0].task, moves, resigned });
+  if (!verdict.ok) return { ok: false, status: 422, error: verdict.error };
+  if (verdict.ending === null) {
+    return { ok: false, status: 422, error: 'The game is not over yet.' };
+  }
+
+  const written = await pool.query(
+    `UPDATE assignment_items
+        SET solved = $2,
+            attempted_at = CURRENT_TIMESTAMP,
+            game_moves = $3,
+            game_ending = $4
+      WHERE assignment_id = $1 AND attempted_at IS NULL
+      RETURNING id`,
+    [assignmentId, verdict.goalMet, verdict.moves.join(' '), verdict.ending]
+  );
+  if (written.rows.length === 0) {
+    return { ok: false, status: 409, error: 'This game has already been played.' };
+  }
+
+  await markCompleteIfDone(pool, assignmentId);
+  return {
+    ok: true,
+    goalMet: verdict.goalMet,
+    ending: verdict.ending,
+    outcome: verdict.outcome,
+    ownMoves: verdict.ownMoves,
+  };
+}
+
 /// Sets homework from positions the trainer scanned or typed themselves.
 ///
 /// Unlike the Lichess flow this takes an explicit list rather than a query: the
@@ -862,6 +913,7 @@ module.exports = {
   revealLessonStep,
   markCompleteIfDone,
   recordPuzzleResult,
+  recordEngineGameResult,
   getStudentAssignments,
   getTrainerAssignments,
   getAssignmentDetail,
