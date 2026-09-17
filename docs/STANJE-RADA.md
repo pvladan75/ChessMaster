@@ -118,6 +118,19 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Faza 3a gotova, 17.9.2026, spojeno `2671241`** (implementer, Sonnet): server
+u `/library/positions` lista i `tutorial` (sa brojem delova, videom, jezikom)
+i `recording`; `LibraryList` (šest čipova: All · Tutorials · Positions ·
+Analyses · Recordings · Puzzle sets, pretraga, red po stavci sa akcijama koje
+mu se daju); `LibraryScreen` na `/library` spaja serverske police sa
+lokalnim skupovima zagonetki; kartica „Everything you keep" → „Open library"
+na tabu Library; pet akcija reda tutorijala izvučeno u `TutorialRowActions`
+i deljeno sa dijalogom. Vođa je dodao `initialTree` ekranu Analize, pa se
+sačuvana analiza otvara cela (`8c3d418`). **3b** (kolona sobe na istu listu)
+ostaje posle faze 5. **`master`: 2859, 1 preskočen, analyze 26; backend
+1412.** U toku: faza 2 plana napretka (vežbe pišu ishode, kartice čitaju,
+„Retry failed"), Sonnet.
+
 **Faza 2 gotova, 17.9.2026, spojeno `6a7ac83`** (implementer, Sonnet): treći
 editor (`CreateCourseDialog`) obrisan, „Create tutorial (multiple positions)"
 i „Edit positions" nestali iz sobe; leva kolona sobe je „Board" (Set up

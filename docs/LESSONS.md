@@ -2926,3 +2926,27 @@ dialog overflows in silence in a release build.
 batch's pages were merged *before* phase 2 so that phase 2's quote edits to the
 same five pages lost cleanly to the rewritten ones (`git checkout --ours`),
 instead of the batch losing to phase 2's older sentences.
+
+**Reorganisation phase 3a — 17.9.2026, app 2839 → 2859, backend 1406 → 1412.**
+The arithmetic: + 9 in `library_list_test.dart` (the gate) + 11 in
+`puzzle_attempt_api_test.dart` (the lead's wire for the progress plan, on the
+same day); backend + 6 in `library_kinds.test.js`.
+
+**A card must not repeat the name of the tab it sits on.** The worker headed
+the Library tab's new card „Library"; `home_tabs_test` counts how many times a
+tab's name is drawn and read the card as a second header. The test's absolute
+count was made relative first (rule 5 — a claim about the whole screen), and
+then the card was renamed „Everything you keep", because a reader under a
+heading „Library" does not need the word again a hand's width below it.
+
+**A seam the brief forbids the worker to add is the lead's to add the same
+day.** The Library opens a saved analysis; the Analysis screen took a FEN or a
+main line, so the worker flattened the tree and said so — variations,
+comments and arrows dropped. `initialTree` went in beside `initialGame` in
+one lead commit and the screen opens the tree whole. The report's section 3
+is where this was found; a report without it would have shipped the main
+line.
+
+**Two suites on one machine, and `opening_book_service_test` times out** —
+rule 19 again: the phase-3 worker saw it while the progress worker's suite
+ran beside it. Grade one tree at a time.
