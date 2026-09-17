@@ -22,11 +22,11 @@ import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_scree
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/assignments/screens/assignment_review_screen.dart';
-import 'package:chess_app/features/assignments/screens/custom_assignment_overview_screen.dart';
-import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/assignments/screens/my_assignments_screen.dart';
 import 'package:chess_app/features/assignments/screens/student_progress_screen.dart';
 import 'package:chess_app/features/assignments/widgets/assignment_detail_gate.dart';
+import 'package:chess_app/features/assignments/widgets/assignment_item_destination.dart';
+import 'package:chess_app/features/homework/screens/homework_assignment_screen.dart';
 import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/archive/screens/archive_import_screen.dart';
 import 'package:chess_app/features/archive/screens/archive_home_screen.dart';
@@ -156,9 +156,11 @@ final List<RouteBase> appRouteTable = [
       title: state.uri.queryParameters['title'] ?? '',
     ),
   ),
-  // These two are built from the whole assignment rather than from its id, so
-  // the id is turned into one first. Tapping through from the list hands the
-  // object over and nothing is fetched.
+  // These three are built from the whole assignment rather than from its id,
+  // so the id is turned into one first. Tapping through from the list hands
+  // the object over and nothing is fetched. Which screen the detail then
+  // opens on is `assignmentItemScreen`'s decision, not this route's — a
+  // second copy of that decision is exactly what it exists to prevent.
   GoRoute(
     path: AppRoutes.assignmentOverview,
     builder: (context, state) => AssignmentDetailGate(
@@ -167,7 +169,7 @@ final List<RouteBase> appRouteTable = [
       detail: state.extra is AssignmentDetail
           ? state.extra as AssignmentDetail
           : null,
-      builder: (detail) => CustomAssignmentOverviewScreen(
+      builder: (detail) => assignmentItemScreen(
         session: SessionService.instance.current,
         detail: detail,
       ),
@@ -181,7 +183,7 @@ final List<RouteBase> appRouteTable = [
       detail: state.extra is AssignmentDetail
           ? state.extra as AssignmentDetail
           : null,
-      builder: (detail) => LessonViewerScreen(
+      builder: (detail) => assignmentItemScreen(
         session: SessionService.instance.current,
         detail: detail,
       ),
@@ -199,20 +201,17 @@ final List<RouteBase> appRouteTable = [
       detail: state.extra is AssignmentDetail
           ? state.extra as AssignmentDetail
           : null,
-      builder: (detail) {
-        final pending = detail.pending;
-        if (pending.isEmpty) {
-          return const _NothingLeftScreen();
-        }
-        return TacticsTrainerScreen(
-          session: SessionService.instance.current,
-          assignmentId: detail.assignment.id,
-          assignmentTitle: detail.assignment.title,
-          // Only what is left, so coming back to a half-done assignment picks
-          // up where the student stopped instead of starting over.
-          puzzleIds: pending.map((item) => item.puzzleId!).toList(),
-        );
-      },
+      builder: (detail) => assignmentItemScreen(
+        session: SessionService.instance.current,
+        detail: detail,
+      ),
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.assignmentHomework,
+    builder: (context, state) => HomeworkAssignmentScreen(
+      session: SessionService.instance.current,
+      assignmentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
     ),
   ),
   GoRoute(
@@ -395,39 +394,6 @@ final List<RouteBase> appRouteTable = [
     builder: (context, state) => const DesignGalleryScreen(),
   ),
 ];
-
-/// An assignment opened when there is nothing left in it.
-///
-/// Reachable now that this is a path: the list checks before it navigates, but
-/// a link or a restored session does not, and answering the last puzzle on
-/// another device makes it true while the screen is being opened.
-class _NothingLeftScreen extends StatelessWidget {
-  const _NothingLeftScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Assignment')),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle_outline,
-                size: 48, color: context.colors.success),
-            const SizedBox(height: AppSpacing.md),
-            const Text('This assignment is already completed.'),
-            const SizedBox(height: AppSpacing.lg),
-            FilledButton.icon(
-              onPressed: () => context.pop(),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// Shown instead of a crash when a link points somewhere that does not exist.
 class _InvalidRouteScreen extends StatelessWidget {

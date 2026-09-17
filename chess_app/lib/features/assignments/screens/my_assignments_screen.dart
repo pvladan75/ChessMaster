@@ -12,9 +12,12 @@ import 'package:chess_app/widgets/app_feedback.dart';
 
 /// What a student sees: the homework they have been set, and what is left.
 class MyAssignmentsScreen extends StatefulWidget {
-  const MyAssignmentsScreen({super.key, required this.session});
+  const MyAssignmentsScreen({super.key, required this.session, this.api});
 
   final UserSession session;
+
+  /// For tests, which have no server to answer.
+  final AssignmentApiService? api;
 
   @override
   State<MyAssignmentsScreen> createState() => _MyAssignmentsScreenState();
@@ -29,7 +32,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
   @override
   void initState() {
     super.initState();
-    _api = AssignmentApiService(authToken: widget.session.token);
+    _api = widget.api ?? AssignmentApiService(authToken: widget.session.token);
     _refresh();
   }
 
@@ -58,14 +61,26 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
     if (mounted) _refresh();
   }
 
+  /// A homework opens on its own screen (`HomeworkAssignmentScreen`), never
+  /// on the item-picking logic below — a parent has no items of its own.
+  Future<void> _openHomework(Assignment assignment) async {
+    await context.push(AppRoutes.assignmentHomeworkPath(assignment.id));
+    if (mounted) _refresh();
+  }
+
   Future<void> _open(Assignment assignment) async {
-    final detail = await _api.fetchDetail(assignment.id);
+    final result = await _api.fetchDetail(assignment.id);
     if (!mounted) return;
+    final detail = result.detail;
 
     if (detail == null) {
       AppFeedback.show(
         context,
-        () => const SnackBar(content: Text('Could not open assignment.')),
+        () => SnackBar(
+          content: Text(result.locked
+              ? 'This item is locked until an earlier one is done.'
+              : 'Could not open assignment.'),
+        ),
       );
       return;
     }
@@ -214,12 +229,80 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
     );
   }
 
+  /// A homework is one row, whatever it holds — it has no puzzles or steps of
+  /// its own to count, only children, so it reads `child_total`/
+  /// `child_completed` rather than the item counters every other kind uses.
+  Widget _buildHomeworkCard(Assignment assignment) {
+    final done = assignment.childTotal > 0 &&
+        assignment.childCompleted >= assignment.childTotal;
+
+    return Card(
+      key: Key('assignment-row-${assignment.id}'),
+      color: context.colors.surface,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: InkWell(
+        onTap: () => _openHomework(assignment),
+        borderRadius: AppRadii.roundedMd,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    done ? Icons.check_circle : Icons.assignment_turned_in,
+                    color:
+                        done ? context.colors.success : context.colors.accent,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      assignment.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+              if (assignment.instructions != null &&
+                  assignment.instructions!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(assignment.instructions!, style: AppText.bodyLarge),
+              ],
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                value: assignment.progress,
+                backgroundColor: context.colors.surfaceRaised,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                assignment.itemsSummary,
+                style:
+                    AppText.body.copyWith(color: context.colors.textSecondary),
+              ),
+              if (assignment.trainerName != null)
+                Text(
+                  'Assigned by: ${assignment.trainerName}',
+                  style: TextStyle(
+                      fontSize: 11.5, color: context.colors.textMuted),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAssignmentCard(Assignment assignment) {
+    if (assignment.isHomework) return _buildHomeworkCard(assignment);
+
     final overdue = assignment.isOverdue;
     final done = assignment.isComplete;
     final isLesson = assignment.kind == AssignmentKind.lesson;
 
     return Card(
+      key: Key('assignment-row-${assignment.id}'),
       color: context.colors.surface,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(

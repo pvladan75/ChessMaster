@@ -64,6 +64,11 @@ abstract final class AppRoutes {
   /// An assignment that is a lesson rather than a set of positions.
   static const String assignmentLesson = '/assignments/:id/lesson';
 
+  /// A sent homework: its items, in the trainer's order, with what is done,
+  /// open or locked. `:id` is the parent — a homework has no items of its
+  /// own, only children, so it is never one of the three paths above.
+  static const String assignmentHomework = '/assignments/:id/homework';
+
   /// The puzzles of an assignment that are still unanswered, in order. Its own
   /// path rather than a list of ids on `/tactics`: a list of ids is not a path,
   /// and "what is left of this homework" is a place - the remainder is worked
@@ -127,6 +132,8 @@ abstract final class AppRoutes {
   static String assignmentTacticsPath(int id) => '/assignments/$id/tactics';
 
   static String assignmentLessonPath(int id) => '/assignments/$id/lesson';
+
+  static String assignmentHomeworkPath(int id) => '/assignments/$id/homework';
 
   static String studentProgressPath(int id, {String? name}) =>
       '/students/$id${name == null || name.isEmpty ? '' : '?name=${Uri.encodeComponent(name)}'}';

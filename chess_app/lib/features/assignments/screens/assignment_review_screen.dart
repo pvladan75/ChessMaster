@@ -22,11 +22,15 @@ class AssignmentReviewScreen extends StatefulWidget {
     required this.session,
     required this.assignmentId,
     required this.title,
+    this.api,
   });
 
   final UserSession session;
   final int assignmentId;
   final String title;
+
+  /// For tests, which have no server to answer.
+  final AssignmentApiService? api;
 
   @override
   State<AssignmentReviewScreen> createState() => _AssignmentReviewScreenState();
@@ -34,7 +38,7 @@ class AssignmentReviewScreen extends StatefulWidget {
 
 class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
   late final AssignmentApiService _api =
-      AssignmentApiService(authToken: widget.session.token);
+      widget.api ?? AssignmentApiService(authToken: widget.session.token);
 
   AssignmentReview? _review;
   bool _loading = true;

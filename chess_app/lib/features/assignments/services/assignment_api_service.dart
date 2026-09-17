@@ -24,9 +24,15 @@ class CreateAssignmentResult {
 }
 
 class AssignmentApiService {
-  AssignmentApiService({required this.authToken});
+  AssignmentApiService({required this.authToken, http.Client? client})
+      : _client = client ?? http.Client();
 
   final String authToken;
+
+  /// The seam: every request in this file goes through this client, so a
+  /// test can answer it. Without this, the file called the top-level
+  /// `http.get`/`http.post` directly, which no test could fake.
+  final http.Client _client;
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -53,7 +59,7 @@ class AssignmentApiService {
     int count = 10,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/assignments'),
             headers: _headers,
@@ -99,7 +105,7 @@ class AssignmentApiService {
     DateTime? dueAt,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/assignments/lesson'),
             headers: _headers,
@@ -138,7 +144,7 @@ class AssignmentApiService {
   Future<void> markLessonStep(
       {required int assignmentId, required int position}) async {
     try {
-      await http
+      await _client
           .post(
             Uri.parse('$backendUrl/assignments/$assignmentId/step/$position'),
             headers: _headers,
@@ -161,7 +167,7 @@ class AssignmentApiService {
     int? msTaken,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/assignments/$assignmentId/custom-attempt'),
             headers: _headers,
@@ -188,7 +194,7 @@ class AssignmentApiService {
     int? choiceIndex,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse(
                 '$backendUrl/assignments/$assignmentId/step/$position/answer'),
@@ -213,7 +219,7 @@ class AssignmentApiService {
     required int position,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse(
                 '$backendUrl/assignments/$assignmentId/step/$position/reveal'),
@@ -238,7 +244,7 @@ class AssignmentApiService {
 
   Future<List<Assignment>> _fetchList(String url) async {
     try {
-      final res = await http
+      final res = await _client
           .get(Uri.parse(url), headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return const [];
@@ -253,17 +259,72 @@ class AssignmentApiService {
     }
   }
 
-  Future<AssignmentDetail?> fetchDetail(int id) async {
+  /// What asking for one assignment's detail can answer, as three answers
+  /// rather than two: the detail itself,
+  /// „not yet — here is what blocks it" when the server refuses a locked
+  /// item (`{locked: true, blockedBy}`, whatever status it rides on), or
+  /// neither when the request could not be answered at all — and „the
+  /// server did not answer“ must not read as „you are locked out“, which is
+  /// why [locked] is its own flag rather than „no detail and no blocker“.
+  /// `AssignmentDetail
+  /// .fromJson` would read a locked body as an assignment with no title and
+  /// no items, so this is read here rather than left for every caller to
+  /// notice on its own.
+  Future<({AssignmentDetail? detail, bool locked, int? lockedBy})> fetchDetail(
+      int id) async {
     try {
-      final res = await http
+      final res = await _client
           .get(Uri.parse('$backendUrl/assignments/$id'), headers: _headers)
           .timeout(const Duration(seconds: 12));
-      if (res.statusCode != 200) return null;
-      return AssignmentDetail.fromJson(
-          jsonDecode(res.body) as Map<String, dynamic>);
+
+      Map<String, dynamic>? body;
+      try {
+        body = jsonDecode(res.body) as Map<String, dynamic>;
+      } catch (_) {
+        body = null;
+      }
+
+      // Read from the body, not from the status: the server answers a
+      // locked item with 423 (`routes/assignments.js`), and a check written
+      // against one status would break the moment the other arrived.
+      if (body != null && body['locked'] == true) {
+        return (
+          detail: null,
+          locked: true,
+          lockedBy: (body['blockedBy'] as num?)?.toInt(),
+        );
+      }
+      if (res.statusCode != 200 || body == null) {
+        return (detail: null, locked: false, lockedBy: null);
+      }
+      return (
+        detail: AssignmentDetail.fromJson(body),
+        locked: false,
+        lockedBy: null,
+      );
     } catch (e) {
       AppLogger.log('[Assignments] Could not load assignment: $e');
-      return null;
+      return (detail: null, locked: false, lockedBy: null);
+    }
+  }
+
+  /// The trainer's escape hatch: unlocks one child of a homework for the
+  /// student it was sent to. Null when it worked, the server's own sentence
+  /// when it did not — 404 covers „not yours", „not an item" and „already
+  /// open" alike, so there is only ever one message to show.
+  Future<String?> openGate(int assignmentId) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/assignments/$assignmentId/open-gate'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) return null;
+      return _errorFrom(res.body, 'Could not unlock this item.');
+    } catch (e) {
+      AppLogger.log('[Assignments] Unlock failed: $e');
+      return 'Cannot connect to server.';
     }
   }
 
@@ -274,7 +335,7 @@ class AssignmentApiService {
   /// yet.
   Future<AssignmentReview?> fetchReview(int id) async {
     try {
-      final res = await http
+      final res = await _client
           .get(Uri.parse('$backendUrl/assignments/$id/review'),
               headers: _headers)
           .timeout(const Duration(seconds: 12));
@@ -297,7 +358,7 @@ class AssignmentApiService {
     int? itemId,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/assignments/$assignmentId/notes'),
             headers: _headers,
@@ -325,7 +386,7 @@ class AssignmentApiService {
   Future<String?> deleteNote(
       {required int assignmentId, required int noteId}) async {
     try {
-      final res = await http
+      final res = await _client
           .delete(
             Uri.parse('$backendUrl/assignments/$assignmentId/notes/$noteId'),
             headers: _headers,
@@ -340,7 +401,7 @@ class AssignmentApiService {
 
   Future<String?> delete(int id) async {
     try {
-      final res = await http
+      final res = await _client
           .delete(Uri.parse('$backendUrl/assignments/$id'), headers: _headers)
           .timeout(const Duration(seconds: 12));
       if (res.statusCode == 200) return null;
@@ -360,7 +421,7 @@ class AssignmentApiService {
     String? note,
   }) async {
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/assignments/report/$studentId'),
             headers: _headers,
@@ -395,7 +456,7 @@ class AssignmentApiService {
       {int? studentId, int days = 30}) async {
     final path = studentId == null ? 'me' : '$studentId';
     try {
-      final res = await http
+      final res = await _client
           .get(Uri.parse('$backendUrl/assignments/progress/$path?days=$days'),
               headers: _headers)
           .timeout(const Duration(seconds: 12));

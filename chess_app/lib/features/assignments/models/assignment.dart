@@ -1,10 +1,29 @@
 /// Homework as the two sides see it: what was set, and how far it has got.
 library;
 
+import 'package:chess_app/features/homework/models/homework_child.dart';
+
 /// One assignment, with its progress counters already aggregated by the server.
 /// What kind of work an assignment holds. Puzzles are graded; a lesson is
-/// stepped through, so it has progress but no notion of correctness.
-enum AssignmentKind { puzzles, lesson }
+/// stepped through, so it has progress but no notion of correctness; a
+/// homework is a parent of its own children (docs/PLAN-DOMACI-ZADATAK.md §6);
+/// an engine game is „play it out", reachable only from inside a homework.
+enum AssignmentKind { puzzles, lesson, homework, engineGame }
+
+AssignmentKind _kindOf(dynamic wire) {
+  switch (wire?.toString()) {
+    case 'lesson':
+      return AssignmentKind.lesson;
+    case 'homework':
+      return AssignmentKind.homework;
+    case 'engine_game':
+      return AssignmentKind.engineGame;
+    default:
+      // An unknown kind stays the ordinary one, not a homework whose
+      // children would never load and not a game with no task to read.
+      return AssignmentKind.puzzles;
+  }
+}
 
 class Assignment {
   final int id;
@@ -19,12 +38,26 @@ class Assignment {
   final int attemptedItems;
   final int solvedItems;
 
+  /// Who set this assignment. Read from the payload and compared against the
+  /// session's own id — never a flag a caller could pass wrongly — to decide
+  /// whether the reader is the trainer.
+  final int? trainerId;
+
   /// Present on a student's list.
   final String? trainerName;
 
   /// Present on a trainer's list.
   final String? studentName;
   final int? studentId;
+
+  /// A homework counts its children, not its (non-existent) items — a parent
+  /// has no `assignment_items` at all.
+  final int childTotal;
+  final int childCompleted;
+
+  /// The task, for `kind == AssignmentKind.engineGame` — a bare engine-game
+  /// assignment fetched by its own id. `null` for every other kind.
+  final Map<String, dynamic>? task;
 
   const Assignment({
     required this.id,
@@ -38,10 +71,16 @@ class Assignment {
     this.totalItems = 0,
     this.attemptedItems = 0,
     this.solvedItems = 0,
+    this.trainerId,
     this.trainerName,
     this.studentName,
     this.studentId,
+    this.childTotal = 0,
+    this.childCompleted = 0,
+    this.task,
   });
+
+  bool get isHomework => kind == AssignmentKind.homework;
 
   bool get isComplete =>
       completedAt != null || (totalItems > 0 && attemptedItems >= totalItems);
@@ -51,7 +90,15 @@ class Assignment {
   bool get isOverdue =>
       !isComplete && dueAt != null && dueAt!.isBefore(DateTime.now());
 
-  double get progress => totalItems == 0 ? 0 : attemptedItems / totalItems;
+  /// A homework's progress counts its children: a parent has no
+  /// `assignment_items` at all, so the item-based number would read every
+  /// homework as 0.
+  double get progress {
+    if (isHomework) {
+      return childTotal == 0 ? 0 : childCompleted / childTotal;
+    }
+    return totalItems == 0 ? 0 : attemptedItems / totalItems;
+  }
 
   /// Accuracy over what has actually been attempted.
   ///
@@ -62,6 +109,14 @@ class Assignment {
       ? null
       : ((solvedItems / attemptedItems) * 100).round();
 
+  /// The one line a row shows about how far a **homework** has got. It
+  /// counts items — children — because a parent holds no puzzles and no
+  /// steps of its own, so the item counters every other kind uses would read
+  /// „0/0 completed“ for a homework of five items. One wording, one home:
+  /// the student's list, the homework screen and the trainer's list all say
+  /// it the same way.
+  String get itemsSummary => '$childCompleted of $childTotal items';
+
   static DateTime? _date(dynamic value) =>
       value == null ? null : DateTime.tryParse(value.toString())?.toLocal();
 
@@ -69,9 +124,7 @@ class Assignment {
         id: (json['id'] as num?)?.toInt() ?? 0,
         title: json['title']?.toString() ?? '',
         instructions: json['instructions']?.toString(),
-        kind: json['kind']?.toString() == 'lesson'
-            ? AssignmentKind.lesson
-            : AssignmentKind.puzzles,
+        kind: _kindOf(json['kind']),
         lessonId: (json['lesson_id'] as num?)?.toInt(),
         dueAt: _date(json['due_at']),
         completedAt: _date(json['completed_at']),
@@ -81,9 +134,15 @@ class Assignment {
         totalItems: (json['total_items'] as num?)?.toInt() ?? 0,
         attemptedItems: (json['attempted_items'] as num?)?.toInt() ?? 0,
         solvedItems: (json['solved_items'] as num?)?.toInt() ?? 0,
+        trainerId: (json['trainer_id'] as num?)?.toInt(),
         trainerName: json['trainer_name']?.toString(),
         studentName: json['student_name']?.toString(),
         studentId: (json['student_id'] as num?)?.toInt(),
+        childTotal: (json['child_total'] as num?)?.toInt() ?? 0,
+        childCompleted: (json['child_completed'] as num?)?.toInt() ?? 0,
+        task: json['task'] is Map
+            ? Map<String, dynamic>.from(json['task'] as Map)
+            : null,
       );
 }
 
@@ -329,12 +388,18 @@ class AssignmentDetail {
   /// for it. `docs/PLAN-JEZIK-GLASA.md`.
   final String? lessonLanguage;
 
+  /// The homework's own items, in the trainer's order. Empty for anything
+  /// that is not a homework — a parent has no `assignment_items`, so this is
+  /// the only place its work is listed.
+  final List<HomeworkChild> children;
+
   const AssignmentDetail({
     required this.assignment,
     required this.items,
     this.steps = const [],
     this.customPositions = const [],
     this.lessonLanguage,
+    this.children = const [],
   });
 
   /// True when this homework is made of the trainer's own positions.
@@ -373,6 +438,10 @@ class AssignmentDetail {
             .map((e) => CustomPosition.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
         lessonLanguage: json['lessonLanguage']?.toString(),
+        children: ((json['children'] as List?) ?? const [])
+            .map((e) => HomeworkChild.fromJson(Map<String, dynamic>.from(e)))
+            .whereType<HomeworkChild>()
+            .toList(),
       );
 }
 

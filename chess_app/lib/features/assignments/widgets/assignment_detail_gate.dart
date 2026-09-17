@@ -52,6 +52,15 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
   bool _loading = false;
   String? _error;
 
+  /// Set instead of [_error] when the server refused the fetch because the
+  /// item is locked — a payload that says „locked" is not a screen, so this
+  /// is read here rather than let `AssignmentDetail.fromJson` turn it into an
+  /// assignment with no title and no items.
+  /// Its own answer, not „no detail and no blocker": a server that did not
+  /// answer must not be reported to a student as a closed gate.
+  bool _locked = false;
+  int? _lockedBy;
+
   @override
   void initState() {
     super.initState();
@@ -63,16 +72,22 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
     setState(() {
       _loading = true;
       _error = null;
+      _locked = false;
+      _lockedBy = null;
     });
-    final detail = await _api.fetchDetail(widget.assignmentId);
+    final result = await _api.fetchDetail(widget.assignmentId);
     if (!mounted) return;
     setState(() {
       _loading = false;
-      _detail = detail;
+      _detail = result.detail;
+      _locked = result.locked;
+      _lockedBy = result.lockedBy;
       // Said out loud rather than shown as an empty screen. A blank assignment
       // reads as an assignment with nothing in it, which is a different thing
       // from one that could not be fetched.
-      _error = detail == null ? 'Could not load assignment.' : null;
+      _error = result.detail == null && !result.locked
+          ? 'Could not load assignment.'
+          : null;
     });
   }
 
@@ -81,6 +96,7 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
     final detail = _detail;
     if (detail != null) return widget.builder(detail);
 
+    final lockedBy = _locked ? _lockedBy : null;
     return Scaffold(
       appBar: AppBar(title: const Text('Assignment')),
       body: Center(
@@ -89,10 +105,20 @@ class _AssignmentDetailGateState extends State<AssignmentDetailGate> {
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.cloud_off,
-                      size: 40, color: context.colors.textMuted),
+                  Icon(
+                    _locked ? Icons.lock_outline : Icons.cloud_off,
+                    size: 40,
+                    color: context.colors.textMuted,
+                  ),
                   const SizedBox(height: AppSpacing.md),
-                  Text(_error ?? 'Assignment not found.'),
+                  Text(
+                    _locked
+                        ? (lockedBy != null
+                            ? 'Locked — item #$lockedBy has to be done first.'
+                            : 'Locked until an earlier item is done.')
+                        : (_error ?? 'Assignment not found.'),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   FilledButton.icon(
                     onPressed: _load,

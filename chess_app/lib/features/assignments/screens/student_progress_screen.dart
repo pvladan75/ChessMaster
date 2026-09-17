@@ -129,6 +129,15 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     if (mounted) _refresh();
   }
 
+  /// A homework's review would be built from `assignment_items`, and a
+  /// parent has none — that review is an empty page. The lock is visible on
+  /// the homework screen, so the unlock belongs there too; the review of one
+  /// child, opened from that screen, is an ordinary assignment's and works.
+  Future<void> _openHomework(Assignment assignment) async {
+    await context.push(AppRoutes.assignmentHomeworkPath(assignment.id));
+    if (mounted) _refresh();
+  }
+
   Future<void> _deleteAssignment(Assignment assignment) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -446,10 +455,15 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             else
               ..._assignments.map((assignment) => ListTile(
                     contentPadding: EdgeInsets.zero,
-                    // Opens what actually happened, position by position. The
-                    // numbers on this row say that something went wrong; only
-                    // the review says where.
-                    onTap: () => _openReview(assignment),
+                    // A homework's review is empty — a parent has no items —
+                    // so it opens on its own screen instead, which also
+                    // carries the trainer's unlock. Everything else opens
+                    // what actually happened, position by position: the
+                    // numbers on this row say that something went wrong;
+                    // only the review says where.
+                    onTap: assignment.isHomework
+                        ? () => _openHomework(assignment)
+                        : () => _openReview(assignment),
                     leading: Icon(
                       assignment.isComplete
                           ? Icons.check_circle
@@ -465,8 +479,13 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                     title: Text(assignment.title,
                         style: const TextStyle(fontSize: 14)),
                     subtitle: Text(
-                      '${assignment.attemptedItems}/${assignment.totalItems} completed'
-                      '${assignment.accuracy == null ? '' : ' · accuracy ${assignment.accuracy}%'}',
+                      // A homework holds children, not items of its own, so
+                      // the item counters would read „0/0 completed“ for a
+                      // homework of five.
+                      assignment.isHomework
+                          ? assignment.itemsSummary
+                          : '${assignment.attemptedItems}/${assignment.totalItems} completed'
+                              '${assignment.accuracy == null ? '' : ' · accuracy ${assignment.accuracy}%'}',
                       style: AppText.body,
                     ),
                     trailing: IconButton(
