@@ -99,7 +99,9 @@ Map<String, dynamic> _saved() => {
           'item_key': 'ie5f6a7b8',
           'position': 1,
           'kind': 'positions',
-          'task': {'puzzleIds': ['cust_x1', 'cust_x2']},
+          'task': {
+            'puzzleIds': ['cust_x1', 'cust_x2']
+          },
           'gate': true,
           'require_solved': false,
         },
@@ -107,7 +109,12 @@ Map<String, dynamic> _saved() => {
           'item_key': 'i90c1d2e3',
           'position': 2,
           'kind': 'puzzles',
-          'task': {'count': 6, 'themes': ['pin'], 'minRating': null, 'maxRating': null},
+          'task': {
+            'count': 6,
+            'themes': ['pin'],
+            'minRating': null,
+            'maxRating': null
+          },
           'gate': false,
           'require_solved': false,
         },
@@ -124,7 +131,8 @@ class _Recorder {
         if (request.method == 'GET') {
           return http.Response(jsonEncode(_saved()), 200);
         }
-        return http.Response(jsonEncode(_saved()), request.method == 'POST' ? 201 : 200);
+        return http.Response(
+            jsonEncode(_saved()), request.method == 'POST' ? 201 : 200);
       });
 
   Map<String, dynamic>? bodyOf(String method) {
@@ -154,11 +162,10 @@ Future<_Recorder> _open(WidgetTester tester,
   return recorder;
 }
 
-List<String> _keysInBody(Map<String, dynamic> body) =>
-    (body['items'] as List)
-        .map((i) => (i as Map<String, dynamic>)['itemKey'] as String?)
-        .map((k) => k ?? '(new)')
-        .toList();
+List<String> _keysInBody(Map<String, dynamic> body) => (body['items'] as List)
+    .map((i) => (i as Map<String, dynamic>)['itemKey'] as String?)
+    .map((k) => k ?? '(new)')
+    .toList();
 
 void main() {
   // Real glyphs: the rows below are measured as well as searched.
@@ -176,9 +183,12 @@ void main() {
       expect(tester.takeException(), isNull);
 
       // In the trainer's order, top to bottom.
-      final first = tester.getRect(find.byKey(const Key('homework-item-ia1b2c3d4')));
-      final second = tester.getRect(find.byKey(const Key('homework-item-ie5f6a7b8')));
-      final third = tester.getRect(find.byKey(const Key('homework-item-i90c1d2e3')));
+      final first =
+          tester.getRect(find.byKey(const Key('homework-item-ia1b2c3d4')));
+      final second =
+          tester.getRect(find.byKey(const Key('homework-item-ie5f6a7b8')));
+      final third =
+          tester.getRect(find.byKey(const Key('homework-item-i90c1d2e3')));
       expect(first.top, lessThan(second.top));
       expect(second.top, lessThan(third.top));
     });
@@ -244,8 +254,8 @@ void main() {
       final recorder = await _open(tester);
 
       await tester.enterText(find.byKey(const Key('homework-title')), 'Friday');
-      await tester.enterText(
-          find.byKey(const Key('homework-instructions')), 'Tutorial, then two positions.');
+      await tester.enterText(find.byKey(const Key('homework-instructions')),
+          'Tutorial, then two positions.');
       await tester.tap(find.byKey(const Key('homework-save')));
       await tester.pumpAndSettle();
 
@@ -258,8 +268,10 @@ void main() {
         (tester) async {
       final recorder = await _open(tester, homeworkId: null);
 
-      expect(recorder.lastOf('GET'), isNull, reason: 'there is nothing to load');
-      await tester.enterText(find.byKey(const Key('homework-title')), 'New one');
+      expect(recorder.lastOf('GET'), isNull,
+          reason: 'there is nothing to load');
+      await tester.enterText(
+          find.byKey(const Key('homework-title')), 'New one');
       await tester.tap(find.byKey(const Key('homework-save')));
       await tester.pumpAndSettle();
 
@@ -311,13 +323,18 @@ void main() {
       const item = HomeworkItem(
         itemKey: null,
         kind: HomeworkItemKind.engineGame,
-        task: {'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1', 'side': 'w', 'goal': 'win'},
+        task: {
+          'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1',
+          'side': 'w',
+          'goal': 'win'
+        },
         gate: false,
         requireSolved: false,
       );
       final wire = item.toJson();
       expect(wire.containsKey('itemKey'), isFalse);
-      expect(wire['kind'], 'engine_game', reason: 'the wire spelling, not the enum');
+      expect(wire['kind'], 'engine_game',
+          reason: 'the wire spelling, not the enum');
     });
 
     test('the wire spellings are the ones the server checks', () {
@@ -328,7 +345,8 @@ void main() {
       for (final kind in HomeworkItemKind.values) {
         expect(kindFromWire(wireKindOf(kind)), kind);
       }
-      expect(kindFromWire('video'), isNull, reason: 'an unknown kind is refused');
+      expect(kindFromWire('video'), isNull,
+          reason: 'an unknown kind is refused');
     });
 
     test('an unreadable item is refused rather than guessed', () {

@@ -15,6 +15,7 @@ class TeachTab extends StatelessWidget {
   const TeachTab({
     super.key,
     this.tutorialCard,
+    this.homeworkCard,
     required this.onOpenPreparation,
     required this.onStartSession,
     required this.onOpenLibrary,
@@ -24,6 +25,11 @@ class TeachTab extends StatelessWidget {
   /// The tutorial card, where the studio exists; null draws nothing (the card
   /// decides for itself and draws nothing off Windows until phase 6c).
   final Widget? tutorialCard;
+
+  /// The homework card, beside the tutorial one — phase 3b of
+  /// `docs/PLAN-DOMACI-ZADATAK.md`. Null draws nothing, the same rule as
+  /// [tutorialCard].
+  final Widget? homeworkCard;
 
   final VoidCallback onOpenPreparation;
   final VoidCallback onStartSession;
@@ -63,6 +69,7 @@ class TeachTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (tutorialCard != null) tutorialCard!,
+              if (homeworkCard != null) homeworkCard!,
               if (wide)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

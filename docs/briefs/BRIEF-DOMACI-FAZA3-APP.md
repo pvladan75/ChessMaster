@@ -53,9 +53,17 @@ the two switches (`gate`, `requireSolved`), and one **Add** control that offers
 the four kinds. Every control carries the key the gate's header lists.
 
 Beside the „done means solved" switch, say what it does in one line: *a student
-who cannot solve this cannot go on* (plan §6). The first item's gate switch
-changes nothing — the server ignores a gate with nothing before it — so do not
-offer it on the first row.
+who cannot solve this cannot go on* (plan §6).
+
+The first item's gate changes nothing once the homework is sent — the server
+ignores a gate with nothing before it — but **the switch is still offered on
+every row, including the first**, and the gate test taps exactly that row's
+switch. A control hidden on row 1 would silently swallow the setting of an
+item the trainer moved to the top: invisible, un-editable, and back again
+after the next reorder. Say it has no effect while the item is first; do not
+take it away. (**Corrected 17.9.2026** — this paragraph used to say the
+opposite and contradicted the gate, which is what the implementer stopped
+and reported.)
 
 **3. The doors.** A „Homework" card on the Teach tab and a „Homework" chip in
 the Library, both opening the list of the trainer's homeworks, with *New
@@ -80,7 +88,11 @@ Add, in a second file, widget tests for what the gate cannot reach:
 3. **A refusal is shown.** With a client answering 400 and
    `{"error":"item 2: a positions item needs at least one position."}`, that
    sentence reaches the screen, and the editor does not claim it saved.
-4. **The first row offers no gate switch**, the others do.
+4. **The side the student plays is the trainer's choice**, not a reading of
+   the FEN: with a white-to-move position and „Black“ chosen, the saved task
+   carries `side: 'b'`. The whole stack already supports it — the student's
+   screen lets the engine open (`ai_studio_screen.dart`, `turn != task.side`)
+   and the server counts the student's own moves by turn.
 
 Pass condition, run from `chess_app/`:
 

@@ -31,6 +31,7 @@ import 'package:chess_app/widgets/home/dashboard_tab.dart';
 import 'package:chess_app/widgets/home/analyse_tab.dart';
 import 'package:chess_app/widgets/home/teach_tab.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
+import 'package:chess_app/features/homework/widgets/homework_library_card.dart';
 import 'package:chess_app/widgets/home/friends_tab.dart';
 import 'package:chess_app/models/relationship_request_target.dart';
 import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
@@ -1053,6 +1054,7 @@ class _HomeScreenState extends State<HomeScreen> {
         default:
           return TeachTab(
             tutorialCard: TutorialLibraryCard(session: widget.session),
+            homeworkCard: HomeworkLibraryCard(session: widget.session),
             onOpenPreparation: _openStudioRoom,
             onStartSession: _showCreateRoomWithFriendsDialog,
             onOpenLibrary: () => context.push(AppRoutes.library),

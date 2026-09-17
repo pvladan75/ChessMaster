@@ -6,6 +6,8 @@ import 'package:chess_app/features/analysis_studio/screens/analysis_studio_scree
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
+import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
+import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
@@ -36,6 +38,7 @@ class LibraryScreen extends StatefulWidget {
     this.positionLibrary,
     this.assignmentApi,
     this.groupApi,
+    this.homeworkApi,
   });
 
   final UserSession session;
@@ -53,6 +56,9 @@ class LibraryScreen extends StatefulWidget {
   final AssignmentApiService? assignmentApi;
   final GroupApiService? groupApi;
 
+  /// Seam for the "Homework" door's list; same rule as the seams above.
+  final HomeworkApiService? homeworkApi;
+
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
@@ -62,6 +68,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       PositionLibraryService(authToken: widget.session.token);
   late final LessonApiService _lessons =
       widget.lessonApi ?? LessonApiService(authToken: widget.session.token);
+  late final HomeworkApiService _homework =
+      widget.homeworkApi ?? HomeworkApiService(authToken: widget.session.token);
   late final TutorialRowActions _tutorialActions = TutorialRowActions(
     lessonApi: _lessons,
     assignmentApi: widget.assignmentApi ??
@@ -389,14 +397,43 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: LibraryList(
-        entries: _entries ?? const [],
-        onOpen: _open,
-        actionsFor: _actionsFor,
-        labels: _labels,
-        initialChip: widget.initialChip,
-        originChips: widget.initialFromTrainer != null,
-        initialFromTrainer: widget.initialFromTrainer,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _homeworkDoor(),
+          const SizedBox(height: AppSpacing.sm),
+          Expanded(
+            child: LibraryList(
+              entries: _entries ?? const [],
+              onOpen: _open,
+              actionsFor: _actionsFor,
+              labels: _labels,
+              initialChip: widget.initialChip,
+              originChips: widget.initialFromTrainer != null,
+              initialFromTrainer: widget.initialFromTrainer,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A homework template is not a shelf entry — it has no FEN and comes from
+  /// a different endpoint (`/homeworks`, not `positionLibrary.js`) — so it is
+  /// not a seventh [LibraryKind]: [LibraryList]'s six chips are frozen and
+  /// the manual quotes them. This is a door beside the list rather than a
+  /// chip inside it, opening the same [HomeworkListScreen] the Teach tab's
+  /// card does (`docs/PLAN-DOMACI-ZADATAK.md` §5, §9 item 5).
+  Widget _homeworkDoor() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ActionChip(
+        key: const Key('library-homework-chip'),
+        avatar: const Icon(Icons.assignment_outlined, size: 18),
+        label: const Text('Homework'),
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => HomeworkListScreen(api: _homework),
+        )),
       ),
     );
   }
