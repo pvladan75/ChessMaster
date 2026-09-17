@@ -44,7 +44,8 @@ void main() {
         ['lichess', 'mate_puzzle', 'winning_position', 'endgame']);
     expect(PuzzleSource.basicMateId('easy', '8/8/8/8/8/8/8/K6k w - - 0 1'),
         'basic:easy:8/8/8/8/8/8/8/K6k w - -');
-    expect(PuzzleSource.blunderGameId(42, 17), '42:17');
+    expect(PuzzleSource.blunderGameId('42', 17), '42:17');
+    expect(PuzzleSource.blunderGameId('bg_test', 3), 'bg_test:3');
   });
 
   test('a mate goes to /submit with its outcome and no source', () async {

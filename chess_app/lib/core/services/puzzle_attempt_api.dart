@@ -49,7 +49,10 @@ abstract final class PuzzleSource {
     return 'basic:$preset:${fields.take(4).join(' ')}';
   }
 
-  static String blunderGameId(int gameId, int ply) => '$gameId:$ply';
+  /// A game's id is opaque here — the archive names it, and it is a string
+  /// on the wire — so nothing is parsed: an id that is not a number is still
+  /// this game's id, and a stop in it is still recorded.
+  static String blunderGameId(String gameId, int ply) => '$gameId:$ply';
 }
 
 /// What a player has done with one source's puzzles, as the server folds it.
