@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
-import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
@@ -24,18 +22,16 @@ import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart
 import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
-import 'package:chess_app/features/lessons/models/lesson_labels.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
-import 'package:chess_app/features/tutorial_studio/services/draft_history.dart';
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_controller.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
-import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_narration_screen.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_export_dialog.dart';
@@ -155,51 +151,23 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// on the way in and again whenever the recording screen closes — phase 5.
   NarrationTake? _narrationTake;
 
-  late TutorialDraft _draft;
-  PlayerColor _orientation = PlayerColor.white;
+  /// The tutorial being written — the draft, which part is open, the cursor,
+  /// the history, the saved version. Phase 6a of
+  /// `docs/PLAN-REORGANIZACIJA.md`: this screen is one layout over it and
+  /// keeps no copy of any of that. What stays here is the screen's own: a
+  /// board controller, the drawing mode, the text fields and their epoch,
+  /// the dialogs and the messages.
+  late final TutorialDraftController _c;
 
-  /// Undo and redo — phase 1 of `docs/PLAN-STUDIO-ISTORIJA.md`. Fed by
-  /// [_persist], the one place every change passes through.
-  final DraftHistory _history = DraftHistory();
-
-  /// The step id each part has been given, by [TutorialSection.localKey].
-  ///
-  /// Learned from the draft on screen before every restore — a save has put
-  /// its ids there by then — and handed back to a part an undo restores
-  /// without one. Kept across restores, so a part undone out of existence and
-  /// back still finds its id. Without it, an
-  /// undo past a save followed by another save would send the part with no id,
-  /// the server would mint a new one, and every schedule row and recorded
-  /// answer naming the old id would point at nothing, silently.
-  final Map<String, String> _stepIdsByKey = {};
-
-  /// The saved version — phase 2 of `docs/PLAN-STUDIO-ISTORIJA.md`: the row
-  /// fetched from the server when the studio opened, replaced by what each
-  /// successful save sent. Null while it is not known, which is also when
-  /// „Discard changes" is not offered: a version nobody could read is not one
-  /// to go back to.
-  ///
-  /// Kept as a snapshot to restore and a [TutorialDraft.contentSignature] to
-  /// compare, never compared as encoded text — the encoding carries the cursor
-  /// and node ids, which change without anybody editing anything.
-  String? _savedSnapshot;
-  String? _savedSignature;
-
-  /// Whether the draft on screen differs from [_savedSnapshot] in anything the
-  /// trainer wrote. Refreshed where the draft changes, not computed while
-  /// building: a signature of a large tutorial is 38 KB of JSON.
-  bool _hasUnsavedChanges = false;
-
-  String? _lastMoveFrom;
-  String? _lastMoveTo;
+  /// The controller's [TutorialDraftController.generation] the fields were
+  /// last built from, and the cursor the board was last loaded from.
+  int _seenGeneration = -1;
+  AnalysisNode? _seenCursor;
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _labelsController = TextEditingController();
   final TextEditingController _instructionController = TextEditingController();
-  LessonStepKind _currentKind = LessonStepKind.show;
   final List<TextEditingController> _choiceControllers = [];
-  int? _currentCorrectChoice;
-  String? _currentSolutionSan;
 
   /// Bumped whenever the fields are refilled from the model rather than by the
   /// trainer typing into them.
@@ -220,9 +188,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// out has to leave the slot exactly as it was found.
   bool _leftWithoutWriting = false;
 
+  TutorialDraft get _draft => _c.draft;
+
   /// The line being written, and where the trainer is standing on it.
-  AnalysisNode get _root => _draft.section.root;
-  AnalysisNode get _current => _draft.section.cursorNode;
+  AnalysisNode get _root => _c.root;
+  AnalysisNode get _current => _c.cursor;
+
+  /// The way the open part faces. The part's, not the screen's: a field of
+  /// the screen's own was what let one part's orientation be written over
+  /// another's.
+  PlayerColor get _orientation =>
+      _c.section.blackOrientation ? PlayerColor.black : PlayerColor.white;
 
   /// The handed-over line, when the screen was opened through the Studio's
   /// door. Null for every other way in.
@@ -236,7 +212,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     super.initState();
     final handover = _handover;
 
-    _draft = switch (widget.entry) {
+    final draft = switch (widget.entry) {
       // The saved tutorial is the draft. Nothing is taken out of the local slot
       // until it has said which tutorial it belongs to — see
       // [_adoptStoredDraft].
@@ -259,23 +235,16 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     };
 
     if (handover != null) {
-      _draft.section.root = handover.root;
-      _draft.section.cursorNode = handover.root;
-      // Onto the part, not onto the screen: `_loadSelectedSection` below reads
-      // the orientation out of the part, so setting the field here would be
-      // overwritten one line later.
-      _draft.section.blackOrientation = handover.blackOrientation;
+      draft.section.root = handover.root;
+      draft.section.cursorNode = handover.root;
+      draft.section.blackOrientation = handover.blackOrientation;
     }
-    // Every field of the open part, not just the two that used to be set here
-    // by hand. `_loadSelectedSection` is the one place a part's kind, task,
-    // offered answers, recorded move and orientation are read into the editor —
-    // and until 7.9.2026 the opening path skipped it, so those fields sat at
-    // their defaults and the first `_persist()` wrote the defaults back over
-    // the part. Reopening a saved question and pressing „Sačuvaj tutorijal"
-    // turned it into a plain position, silently. See
-    // `test/tutorial_reopen_test.dart`.
-    _loadSelectedSection();
-    _startHistory();
+    _c = TutorialDraftController(draft: draft);
+    _c.addListener(_onController);
+    // Every field of the open part, from the part — the lesson of 7.9.2026: a
+    // field left at its default is a default written back over the part on
+    // the next change. See `test/tutorial_reopen_test.dart`.
+    _refillFields();
     unawaited(_adoptStoredDraft());
     unawaited(_loadNarrationTake());
   }
@@ -316,10 +285,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     //
     // Unless the trainer backed out of the stored-draft question, in which case
     // this screen holds a blank draft and writing it would delete theirs.
-    if (!_leftWithoutWriting) {
-      _syncSelectedSection();
-      unawaited(TutorialDraftService.instance.flush(_draft));
-    }
+    if (!_leftWithoutWriting) unawaited(_c.flush());
+    _c.removeListener(_onController);
+    _c.dispose();
     super.dispose();
   }
 
@@ -348,17 +316,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       case TutorialEntryFromAnalysis(:final intoOpenDraft):
         if (stored == null || !intoOpenDraft) return;
         final handover = _handover!;
-        setState(() {
-          _draft = stored;
-          // The parts already written stay; the one being written is the line
-          // the trainer just handed over.
-          _draft.selected = _draft.sections.length - 1;
-          _draft.section.root = handover.root;
-          _draft.section.cursorNode = handover.root;
-          _draft.section.storedPgn = null;
-          _loadSelectedSection();
-        });
-        _startHistory();
+        // The parts already written stay; the one being written is the line
+        // the trainer just handed over.
+        stored.selected = stored.sections.length - 1;
+        stored.section.root = handover.root;
+        stored.section.cursorNode = handover.root;
+        stored.section.storedPgn = null;
+        _c.adopt(stored);
 
       case TutorialEntrySaved():
         // A draft that never belonged to a tutorial, or belonged to a different
@@ -368,7 +332,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 stored.lessonId == _draft.lessonId
             ? stored
             : null;
-        if (mine != null) _adopt(mine);
+        if (mine != null) _c.adopt(mine);
         await _compareWithSaved(keptOnDevice: mine != null);
 
       case TutorialEntryImported():
@@ -380,16 +344,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         return;
 
       case TutorialEntryBlank():
-        if (stored == null || _isEmptyDraft(stored)) return;
+        if (stored == null || TutorialDraftController.isEmptyDraft(stored)) {
+          return;
+        }
         final choice = await _askAboutStoredDraft(stored);
         if (!mounted) return;
         switch (choice) {
           case _DraftChoice.resume:
-            setState(() {
-              _draft = stored;
-              _loadSelectedSection();
-            });
-            _startHistory();
+            _c.adopt(stored);
           case _DraftChoice.fresh:
             // Thrown away rather than left behind: a draft the trainer has
             // just declined must not be waiting for them the next time they
@@ -405,13 +367,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         }
     }
   }
-
-  /// Nothing worth offering: one part, no moves, no words, no name.
-  static bool _isEmptyDraft(TutorialDraft draft) =>
-      draft.title.trim().isEmpty &&
-      draft.sections.length == 1 &&
-      draft.sections.single.root.children.isEmpty &&
-      draft.sections.single.root.comment.trim().isEmpty;
 
   /// Asks about the draft in the slot, **by name**.
   ///
@@ -456,18 +411,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   static String _partsWord(int count) => count == 1 ? 'part' : 'parts';
 
-  /// Makes [draft] the one being written, and the place undo stops.
-  ///
-  /// Called before the saved version is known, or with the saved version
-  /// itself, so the draft never differs from it here.
-  void _adopt(TutorialDraft draft) {
-    setState(() {
-      _draft = draft;
-      _loadSelectedSection();
-    });
-    _startHistory();
-  }
-
   /// Reads the saved version of the open tutorial and holds the draft on
   /// screen against it — phase 2 of `docs/PLAN-STUDIO-ISTORIJA.md`.
   ///
@@ -503,31 +446,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     }
 
     final saved = TutorialDraft.fromLesson(row);
-    final untouched = !_history.canUndo && !_history.canRedo;
-    // A draft kept from before the language field says nothing about it, and
-    // saving it says nothing either — the server keeps its own. It reads as the
-    // server's here, rather than as a change nobody made, and not as a step
-    // undo could take back to „not known".
-    if (!_draft.languageKnown && saved.languageKnown) {
-      _draft.language = saved.language;
-      if (untouched) _startHistory();
-    }
-    _savedSnapshot = jsonEncode(saved.toJson());
-    _savedSignature = saved.contentSignature();
-    final differs = _differsFromSaved();
+    final untouched = _c.untouched;
+    final differs = _c.rememberSaved(saved);
 
-    if (!differs || !untouched) {
-      setState(() => _hasUnsavedChanges = differs);
-      return;
-    }
+    if (!differs || !untouched) return;
     if (!keptOnDevice) {
       // Nothing of the trainer's is on screen, only the row the library list
       // handed over — which is older than the last save when that save was
       // made elsewhere. The saved version is simply the tutorial.
-      _adopt(saved);
+      _c.adopt(saved);
       return;
     }
-    setState(() => _hasUnsavedChanges = true);
     final choice = await _askAboutUnsavedChanges();
     if (!mounted) return;
     if (choice == _UnsavedChoice.saved) _discardChanges();
@@ -570,37 +499,36 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     return answer ?? _UnsavedChoice.mine;
   }
 
-  /// „Discard changes": the saved version, put back as a change of its own.
-  ///
-  /// Recorded like any other change, so a mistaken press is one Ctrl+Z away —
-  /// which is also what makes it safe to offer beside the undo buttons.
+  /// „Discard changes": the saved version, put back as a change of its own —
+  /// recorded like any other, so a mistaken press is one Ctrl+Z away.
   void _discardChanges() {
-    final snapshot = _savedSnapshot;
-    if (snapshot == null) return;
-    final saved = TutorialDraft.fromJson(
-        Map<String, dynamic>.from(jsonDecode(snapshot) as Map));
-    _giveBackIds(saved);
-    setState(() {
-      _annotationController.stop();
-      _draft = saved;
-      _loadSelectedSection();
-    });
-    _persist();
+    _annotationController.stop();
+    _c.discardChanges();
   }
 
-  bool _differsFromSaved([String? signature]) =>
-      _savedSignature != null &&
-      (signature ?? _draft.contentSignature()) != _savedSignature;
+  /// The one place this screen hears the controller. A structural change
+  /// rebuilds the fields from the model; a cursor that moved puts its position
+  /// on the board; everything redraws.
+  void _onController() {
+    if (!mounted) return;
+    if (_c.generation != _seenGeneration) {
+      _refillFields();
+    } else if (!identical(_seenCursor, _c.cursor)) {
+      _boardController.loadFen(_c.cursor.fen);
+      _seenCursor = _c.cursor;
+    }
+    setState(() {});
+  }
 
   /// Fills the fields from the part that is open. Every write in this direction
   /// bumps [_fieldsEpoch].
-  void _loadSelectedSection() {
+  void _refillFields() {
+    _seenGeneration = _c.generation;
     _annotationController.cancelPending();
-    final section = _draft.section;
+    final section = _c.section;
     _titleController.text = _draft.title;
     _labelsController.text = _draft.tags.join(', ');
     _instructionController.text = section.instruction ?? '';
-    _currentKind = section.kind;
     for (final c in _choiceControllers) {
       c.dispose();
     }
@@ -610,134 +538,19 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         for (final choice in section.choices)
           TextEditingController(text: choice.text),
       ]);
-    final correct = section.choices.indexWhere((c) => c.correct);
-    _currentCorrectChoice = correct == -1 ? null : correct;
-    _currentSolutionSan = section.solutionSan;
-    // The orientation belongs to the part, and it is read back here for the
-    // same reason the kind and the task are: `_syncSelectedSection` writes the
-    // screen's orientation into whichever part is open, so a part opened while
-    // the screen stood the other way round had its stored choice overwritten
-    // by the way the previous part happened to be looking.
-    _orientation =
-        section.blackOrientation ? PlayerColor.black : PlayerColor.white;
-    _boardController.loadFen(_current.fen);
-    _lastMoveFrom = null;
-    _lastMoveTo = null;
+    _boardController.loadFen(_c.cursor.fen);
+    _seenCursor = _c.cursor;
     _fieldsEpoch++;
   }
 
-  /// Writes the fields back into the part that is open.
-  ///
-  /// The fields are the live editing surface and the section is the record;
-  /// they meet here, in one place, before anything is persisted, committed or
-  /// sent. The same shape `LessonStepEditorPanel._syncCurrentStepControllers`
-  /// already uses.
-  void _syncSelectedSection() {
-    final section = _draft.section;
-    final instruction = _instructionController.text.trim();
-    section.instruction = instruction.isEmpty ? null : instruction;
-    section.kind = _currentKind;
-    section.solutionSan = _currentSolutionSan;
-    section.blackOrientation = _orientation == PlayerColor.black;
-    section.choices
-      ..clear()
-      ..addAll([
-        for (var i = 0; i < _choiceControllers.length; i++)
-          TutorialChoice(
-            text: _choiceControllers[i].text,
-            correct: i == _currentCorrectChoice,
-          ),
-      ]);
+  void _undo() {
+    _annotationController.stop();
+    _c.undo();
   }
 
-  /// Writes the open part back, keeps the draft on this device, and records
-  /// the change for undo.
-  ///
-  /// [typingIn] names the text field a change came from, so that a sentence
-  /// typed without a pause is one undo step rather than one per letter.
-  void _persist({String? typingIn}) {
-    _syncSelectedSection();
-    TutorialDraftService.instance.scheduleSave(_draft);
-    _recordHistory(typingIn: typingIn);
-  }
-
-  void _recordHistory({String? typingIn}) {
-    final couldUndo = _history.canUndo;
-    final couldRedo = _history.canRedo;
-    final hadUnsaved = _hasUnsavedChanges;
-    final signature = _draft.contentSignature();
-    _history.record(
-      jsonEncode(_draft.toJson()),
-      signature,
-      typingIn: typingIn,
-    );
-    _hasUnsavedChanges = _differsFromSaved(signature);
-    // Only three buttons depend on this, and most calls change none of them.
-    if (mounted &&
-        (couldUndo != _history.canUndo ||
-            couldRedo != _history.canRedo ||
-            hadUnsaved != _hasUnsavedChanges)) {
-      setState(() {});
-    }
-  }
-
-  /// The draft this screen now holds is where undo stops.
-  void _startHistory() {
-    _history.start(jsonEncode(_draft.toJson()), _draft.contentSignature());
-  }
-
-  void _rememberStepIds(TutorialDraft draft) {
-    for (final section in draft.sections) {
-      final id = section.stepId;
-      if (id != null) _stepIdsByKey[section.localKey] = id;
-    }
-  }
-
-  void _undo() => _restore(_history.undo());
-
-  void _redo() => _restore(_history.redo());
-
-  /// Puts a snapshot back as the draft being written.
-  ///
-  /// Not through [_persist]: a restore is not a change, and recording it would
-  /// make the next undo undo the undo. The on-device slot is still written, so
-  /// closing the window keeps what is on screen.
-  void _restore(String? snapshot) {
-    if (snapshot == null) return;
-    final restored = TutorialDraft.fromJson(
-        Map<String, dynamic>.from(jsonDecode(snapshot) as Map));
-    _giveBackIds(restored);
-
-    setState(() {
-      _annotationController.stop();
-      _draft = restored;
-      // Every field of the open part, from the part — the lesson of 7.9.2026:
-      // a field left at its default is a default written back over the part on
-      // the next change.
-      _loadSelectedSection();
-      _hasUnsavedChanges = _differsFromSaved();
-    });
-    TutorialDraftService.instance.scheduleSave(_draft);
-  }
-
-  /// **The identities a save handed out survive going back past it.**
-  ///
-  /// A snapshot from before the first save has no lesson id, and restoring it
-  /// as it is would make the next save create a second tutorial. Its parts
-  /// have no step ids either; each gets back the one its key was given, unless
-  /// another part already holds it.
-  void _giveBackIds(TutorialDraft restored) {
-    restored.lessonId ??= _draft.lessonId;
-    _rememberStepIds(_draft);
-    final held = {
-      for (final s in restored.sections)
-        if (s.stepId != null) s.stepId!,
-    };
-    for (final section in restored.sections) {
-      if (section.stepId != null) continue;
-      final id = _stepIdsByKey[section.localKey];
-      if (id != null && held.add(id)) section.stepId = id;
-    }
+  void _redo() {
+    _annotationController.stop();
+    _c.redo();
   }
 
   /// The one cursor this screen is walked by — the strip's buttons and the
@@ -751,32 +564,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       AnalysisNodeCursor(currentNode: _current, onSelect: _jumpTo);
 
   void _jumpTo(AnalysisNode node) {
-    setState(() {
-      // Drawing is left, not just interrupted. A half-drawn arrow was already
-      // forgotten here — it would otherwise land on a position its first
-      // square does not belong to — but the mode itself stayed on, so the next
-      // click on the new beat's board drew instead of doing what it looked
-      // like it would do. Asked for live on 7.9.2026: the toolbar must not
-      // still be lit on a beat the trainer has only just arrived at.
-      _annotationController.stop();
-      _draft.section.cursorNode = node;
-      _boardController.loadFen(node.fen);
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
-    });
-    _persist();
-  }
-
-  /// Whether [node] is [_current] or stands above it on the line.
-  ///
-  /// Asked before a move is deleted: the trainer is usually standing on or
-  /// below the move they are taking back, and a cursor left pointing into a
-  /// detached subtree is a board showing a position the part no longer holds.
-  bool _cursorIsAtOrBelow(AnalysisNode node) {
-    for (AnalysisNode? n = _current; n != null; n = n.parent) {
-      if (identical(n, node)) return true;
-    }
-    return false;
+    // Drawing is left, not just interrupted. A half-drawn arrow was already
+    // forgotten here — it would otherwise land on a position its first
+    // square does not belong to — but the mode itself stayed on, so the next
+    // click on the new beat's board drew instead of doing what it looked
+    // like it would do. Asked for live on 7.9.2026: the toolbar must not
+    // still be lit on a beat the trainer has only just arrived at.
+    _annotationController.stop();
+    _c.jumpTo(node);
   }
 
   /// Takes a move back, with everything written under it.
@@ -799,7 +594,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // way to throw that away and it is „Obriši deo".
     if (parent == null) return;
 
-    if (_carriesWork(node)) {
+    if (TutorialDraftController.carriesWork(node)) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -822,32 +617,16 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       if (!mounted || confirmed != true) return;
     }
 
-    // Moved off it before it is detached, not after: `_jumpTo` loads the
-    // board from the node it is given, and a cursor inside the subtree being
-    // removed would be pointing at a position the part no longer has.
-    if (_cursorIsAtOrBelow(node)) _jumpTo(parent);
-    setState(() => parent.removeChild(node));
-    _persist();
+    _annotationController.stop();
+    _c.deleteNode(node);
   }
-
-  /// Whether [node] holds anything beyond the move itself.
-  static bool _carriesWork(AnalysisNode node) =>
-      node.children.isNotEmpty ||
-      node.comment.trim().isNotEmpty ||
-      node.arrows.isNotEmpty ||
-      node.squares.isNotEmpty;
 
   /// Makes a sideline the line the child walks.
   ///
   /// It matters more here than in the Analysis Studio: the „Tok" timeline and
   /// the narrated walk both follow first children, so which branch is main is
   /// a decision about the lesson rather than about how the tree is drawn.
-  void _promoteNode(AnalysisNode node) {
-    final parent = node.parent;
-    if (parent == null) return;
-    setState(() => parent.promoteToMainLine(node));
-    _persist();
-  }
+  void _promoteNode(AnalysisNode node) => _c.promoteNode(node);
 
   /// A move the board reported, dragged or tapped.
   ///
@@ -857,56 +636,20 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// how the two quietly part company.
   void _onMove(String from, String to, String promotion) {
     _annotationController.cancelPending();
-    final played = playedMove(
-      fen: _current.fen,
-      from: from,
-      to: to,
-      promotion: promotion,
-    );
-    if (played == null) {
-      _boardController.loadFen(_current.fen);
-      return;
+    switch (_c.playMove(from, to, promotion)) {
+      case MoveOutcome.illegal:
+      case MoveOutcome.solutionRecorded:
+        // The board has already moved the piece; the part has not.
+        _boardController.loadFen(_current.fen);
+      case MoveOutcome.played:
+        break;
     }
-
-    if (_currentKind == LessonStepKind.askMove) {
-      setState(() {
-        _currentSolutionSan = played.san;
-      });
-      _boardController.loadFen(_current.fen);
-      _persist();
-      return;
-    }
-
-    final child = _current.addChild(
-      childFen: played.fen,
-      san: played.san,
-      uci: played.uci,
-    );
-
-    setState(() {
-      _draft.section.cursorNode = child;
-      _boardController.loadFen(played.fen);
-      _lastMoveFrom = from;
-      _lastMoveTo = to;
-    });
-    _persist();
   }
 
   /// Starts the part over on [fen], with nothing written after it.
   void _startFrom(String fen) {
     _annotationController.cancelPending();
-    setState(() {
-      final fresh = AnalysisNode(fen: fen);
-      _draft.section
-        ..root = fresh
-        ..cursorNode = fresh
-        // The stored text described the line that was just thrown away.
-        ..storedPgn = null;
-      _boardController.loadFen(fen);
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
-    });
-    _persist();
+    _c.startFrom(fen);
   }
 
   /// Turns **every** part over, each from the way it stands now.
@@ -918,33 +661,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// tutorial with parts 1 and 3 from Black and part 2 from White comes out
   /// 1 and 3 from White and 2 from Black — so a deliberate mix survives, and
   /// one part is set on its own in „Preview tutorial" ([_setPartOrientation]).
-  void _flipBoard() {
-    setState(() {
-      for (final section in _draft.sections) {
-        section.blackOrientation = !section.blackOrientation;
-      }
-      // The open part is the screen's own field, and `_persist` writes the
-      // field over the part — so it is the field that has to turn.
-      _orientation = _orientation == PlayerColor.white
-          ? PlayerColor.black
-          : PlayerColor.white;
-    });
-    _persist();
-  }
+  void _flipBoard() => _c.flipAll();
 
   /// One part turned from „Preview tutorial", which is where the trainer sees
   /// a part the way a student will.
-  void _setPartOrientation(int index, bool black) {
-    if (index < 0 || index >= _draft.sections.length) return;
-    setState(() {
-      if (index == _draft.selected) {
-        _orientation = black ? PlayerColor.black : PlayerColor.white;
-      } else {
-        _draft.sections[index].blackOrientation = black;
-      }
-    });
-    _persist();
-  }
+  void _setPartOrientation(int index, bool black) =>
+      _c.setPartOrientation(index, black);
 
   /// The second and third of the three ways a start position gets here — a FEN
   /// typed in and the board editor. The first is the handover. It is the
@@ -1011,13 +733,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             key: const Key('tutorial-undo'),
             icon: const Icon(Icons.undo),
             tooltip: 'Undo (Ctrl+Z)',
-            onPressed: _history.canUndo ? _undo : null,
+            onPressed: _c.canUndo ? _undo : null,
           ),
           IconButton(
             key: const Key('tutorial-redo'),
             icon: const Icon(Icons.redo),
             tooltip: 'Redo (Ctrl+Y)',
-            onPressed: _history.canRedo ? _redo : null,
+            onPressed: _c.canRedo ? _redo : null,
           ),
           // Beside undo and redo because it is one of them: back to the saved
           // version, and itself undoable. Measured as Windows draws the bar
@@ -1028,7 +750,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             key: const Key('discard-changes'),
             icon: const Icon(Icons.restore),
             tooltip: 'Discard changes',
-            onPressed: _hasUnsavedChanges ? _discardChanges : null,
+            onPressed: _c.hasUnsavedChanges ? _discardChanges : null,
           ),
           IconButton(
             icon: Icon(Icons.tune, color: context.colors.accent),
@@ -1212,8 +934,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   arrows: _current.arrows,
                   squares: _current.squares,
                   engineArrows: const [],
-                  lastMoveFrom: _lastMoveFrom,
-                  lastMoveTo: _lastMoveTo,
+                  lastMoveFrom: _c.lastMove?.from,
+                  lastMoveTo: _c.lastMove?.to,
                   onMove: _onMove,
                   onSquareTapForDrawing: _onSquareTapForDrawing,
                 ),
@@ -1300,7 +1022,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
     if (changed) {
       setState(() {});
-      _persist();
+      _c.persist();
     }
   }
 
@@ -1316,33 +1038,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
     setState(() {});
     if (changed) {
-      _persist();
+      _c.persist();
     }
   }
 
-  /// Puts the generated names back in order after the parts have moved.
-  ///
-  /// Only the names the studio wrote itself — a title the trainer typed is
-  /// theirs and survives every reorder. See [isGeneratedSectionTitle], which is
-  /// the one place that rule lives.
-  void _renumberGeneratedTitles() {
-    for (var i = 0; i < _draft.sections.length; i++) {
-      final title = _draft.sections[i].title;
-      if (title.trim().isEmpty || isGeneratedSectionTitle(title)) {
-        _draft.sections[i].title = generatedSectionTitle(i);
-      }
-    }
-  }
-
-  void _selectSection(int index) {
-    if (index < 0 || index >= _draft.sections.length) return;
-    _syncSelectedSection();
-    _draft.selected = index;
-    _draft.section.cursorNode = _draft.section.root;
-    _loadSelectedSection();
-    setState(() {});
-    _persist();
-  }
+  void _selectSection(int index) => _c.select(index);
 
   /// „Novi prikaz" — the next demonstration, and the board it opens on.
   ///
@@ -1373,16 +1073,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       ),
     );
     if (!mounted || continueFromEnd == null) return;
-
-    _syncSelectedSection();
-    _draft.addSection(
-      continueFromEnd: continueFromEnd,
-      title: generatedSectionTitle(_draft.sections.length),
-    );
-    _renumberGeneratedTitles();
-    _loadSelectedSection();
-    setState(() {});
-    _persist();
+    _c.addSection(continueFromEnd: continueFromEnd);
   }
 
   /// „Traži potez na tabli" / „Traži odgovor iz liste" — the question goes on
@@ -1396,32 +1087,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// A part with no line has nothing to cut, so it simply becomes the question
   /// — which is the same act, with the first and third parts empty.
   void _askHere(LessonStepKind kind) {
-    _syncSelectedSection();
-    final part = _draft.section;
-
-    if (!canSplitForQuestion(part)) {
-      setState(() => _currentKind = kind);
-      _syncSelectedSection();
-      _persist();
-      return;
+    if (_c.askHere(kind)) {
+      AppFeedback.success(context, 'Question placed at this position.');
     }
-
-    final parts = splitForQuestion(part, _current, kind: kind);
-    setState(() {
-      _draft.replaceSelected(parts);
-      // The question is the one the trainer just asked for, so it is the one
-      // they are left standing on — with the board on the position it asks
-      // about.
-      _draft.selected = _draft.sections.indexOf(parts.firstWhere(
-        (p) => p.kind != LessonStepKind.show,
-        orElse: () => parts.first,
-      ));
-    });
-    _renumberGeneratedTitles();
-    _loadSelectedSection();
-    setState(() {});
-    _persist();
-    AppFeedback.success(context, 'Question placed at this position.');
   }
 
   /// „Insert a line here" — phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`.
@@ -1438,18 +1106,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// parts goes from 114 px to 70 at 1366 × 768 and from 87 to 43 at
   /// 840 × 700, which is one row of parts.
   void _insertLine() {
-    _syncSelectedSection();
-    final cut = splitForLine(_draft.section, _current);
-    setState(() {
-      _annotationController.stop();
-      _draft.replaceSelected(cut.parts);
-      _draft.selected = _draft.sections.indexOf(cut.line);
-    });
-    // No renumbering: [TutorialSection.label] names a part with no name of its
-    // own by where it stands, on screen and on the wire alike.
-    _loadSelectedSection();
-    setState(() {});
-    _persist();
+    _annotationController.stop();
+    _c.insertLine();
     AppFeedback.success(context, 'New line inserted. Play it on the board.');
   }
 
@@ -1469,43 +1127,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       builder: (_) => _RenameDialog(initial: own, hint: section.label(index)),
     );
     if (!mounted || name == null) return;
-    setState(() {
-      section.title =
-          name.trim().isEmpty ? generatedSectionTitle(index) : name.trim();
-    });
-    _persist();
+    _c.renameSection(index, name);
   }
 
-  void _moveSection(int from, int to) {
-    if (from < 0 || from >= _draft.sections.length) return;
-    if (to < 0 || to >= _draft.sections.length || from == to) return;
-    _syncSelectedSection();
-    _draft.moveSection(from, to);
-    _renumberGeneratedTitles();
-    _loadSelectedSection();
-    setState(() {});
-    _persist();
-  }
+  void _moveSection(int from, int to) => _c.moveSection(from, to);
 
-  void _cloneSection(int index) {
-    if (index < 0 || index >= _draft.sections.length) return;
-    _syncSelectedSection();
-    _draft.cloneSection(index);
-    _renumberGeneratedTitles();
-    _loadSelectedSection();
-    setState(() {});
-    _persist();
-  }
+  void _cloneSection(int index) => _c.cloneSection(index);
 
   void _removeSection(int index) {
-    if (!_draft.removeSection(index)) {
+    if (!_c.removeSection(index)) {
       AppFeedback.info(context, 'The last part cannot be deleted.');
-      return;
     }
-    _renumberGeneratedTitles();
-    _loadSelectedSection();
-    setState(() {});
-    _persist();
   }
 
   /// Make a video of what is being written, from where it is being written.
@@ -1563,7 +1195,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       AppFeedback.info(context, 'Save the tutorial first, then record it.');
       return;
     }
-    _syncSelectedSection();
     // Asked, not assumed: the server derives the longest take from its render
     // budget. When it cannot be asked the screen stops at the shorter fallback,
     // because a take cut early is always accepted and one cut late is not.
@@ -1572,7 +1203,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => TutorialNarrationScreen(
         lessonId: id,
-        title: _titleController.text.trim(),
+        title: _draft.title.trim(),
         draft: _draft,
         store: _narrationStore,
         maxMs: maxMs,
@@ -1596,7 +1227,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// schedule, and a preview that wrote to the server would be a save nobody
   /// asked for.
   void _previewAsStudent() {
-    _syncSelectedSection();
     final steps = _draft.positionList;
 
     Navigator.of(context).push(MaterialPageRoute(
@@ -1605,7 +1235,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         detail: AssignmentDetail(
           assignment: Assignment(
             id: _draft.lessonId ?? 0,
-            title: _titleController.text.trim(),
+            title: _draft.title.trim(),
           ),
           items: [
             for (var i = 0; i < steps.length; i++)
@@ -1676,8 +1306,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       builder: (_) => _CommentDialog(initial: node.comment),
     );
     if (!mounted || saved == null) return;
-    setState(() => node.comment = saved);
-    _persist();
+    _c.setComment(node, saved);
   }
 
   /// Reads the trainer's text and, if it replays, makes it the part's line.
@@ -1762,28 +1391,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       return;
     }
 
-    setState(() {
-      section.root = read.root;
-      // The end of the line, not its beginning. A trainer presses „Primeni"
-      // having just typed a move on the end of the text, and being thrown back
-      // to the opening position means finding their way to it again on every
-      // application — reported live on 7.9.2026, on the very fix that made a
-      // line ending in `Nxb4*` applicable at all. It is also what „Tok" then
-      // shows: the last card is the one they wrote.
-      section.cursorNode = endOfMainLine(read.root);
-      // Nothing to invalidate by hand. `isPristine` compares `treeSignature`
-      // against the tree itself, and this is a different tree — which is the
-      // whole reason P1 chose a signature over a `bool edited`: a flag is the
-      // version of this that one mutator forgets to set. Deleting the stored
-      // text here was watched surviving a mutation, because it was doing
-      // nothing.
-
-      _annotationController.cancelPending();
-      _boardController.loadFen(section.cursorNode.fen);
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
-    });
-    _persist();
+    // The end of the line, not its beginning — the controller's rule. A
+    // trainer presses „Apply" having just typed a move on the end of the
+    // text, and being thrown back to the opening position means finding their
+    // way to it again on every application (reported live on 7.9.2026). It is
+    // also what „Flow" then shows: the last card is the one they wrote.
+    // Nothing to invalidate by hand: `isPristine` compares `treeSignature`
+    // against the tree itself, and this is a different tree.
+    _annotationController.cancelPending();
+    _c.replaceLine(read.root);
     AppFeedback.success(context, 'Applied.');
   }
 
@@ -1827,57 +1443,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   static String _movesWord(int count) => count == 1 ? 'move' : 'moves';
 
   Future<void> _saveTutorial() async {
-    if (_titleController.text.trim().isEmpty) {
-      AppFeedback.error(context, 'Tutorial must have a title.');
-      return;
-    }
-
-    _syncSelectedSection();
-
-    // Named, not counted. A trainer with fourteen parts and a refusal that says
-    // „a part" has been told they are wrong and not where — which is the same
-    // as not being told. `LessonStepEditorPanel` named them, and D8 retires that
-    // panel, so the naming comes here with the rule.
-    final leaking = _draft.sections.where((s) => s.leaksAnswer).toList();
-    if (leaking.isNotEmpty) {
-      AppFeedback.error(
-        context,
-        'Not saved. ${_namesOf(leaking)} has a line with the answer '
-        '— remove the line or change the task type.',
-      );
-      return;
-    }
-
-    for (final section in _draft.sections) {
-      if (section.kind != LessonStepKind.askChoice) continue;
-      final answers = section.choices.where((c) => c.text.trim().isNotEmpty);
-      if (answers.length < 2 || answers.length > 4) {
-        AppFeedback.error(
-            context, 'Multiple choice question requires two to four answers.');
-        return;
-      }
-      if (answers.where((c) => c.correct).length != 1) {
-        AppFeedback.error(context, 'Exactly one answer must be correct.');
-        return;
-      }
-    }
-
-    _draft.title = _titleController.text.trim();
-    // What is sent, taken before it is sent: a trainer can type while the
-    // request is out, and those words are not saved just because the answer
-    // arrived after them. Its ids are handed back by [_giveBackIds] if it is
-    // ever restored.
-    final sentSnapshot = jsonEncode(_draft.toJson());
-    final sentSignature = _draft.contentSignature();
-    final error = await commitDraft(_draft, _lessonApi);
-
+    // The refusals and the request are the controller's; what is said about
+    // them is this screen's.
+    final error = await _c.save(_lessonApi);
     if (!mounted) return;
     if (error == null) {
-      _savedSnapshot = sentSnapshot;
-      _savedSignature = sentSignature;
-      // The draft now knows its lesson id and every step id, so the next press
-      // of this button edits this tutorial instead of making a second one.
-      _persist();
       AppFeedback.success(context, 'Tutorial saved.');
     } else {
       AppFeedback.error(context, error);
@@ -1898,10 +1468,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       // draft is what `TutorialDraftService` stores, so a title that lives only
       // here comes back empty next time — with every part still in place, which
       // is what made it invisible.
-      onChanged: (value) {
-        _draft.title = value;
-        _persist(typingIn: 'title');
-      },
+      onChanged: _c.setTitle,
     );
   }
 
@@ -1923,16 +1490,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         labelText: 'Labels',
         hintText: 'endgame, rook',
       ),
-      onChanged: (value) {
-        // Normalised into the draft and **not** back into the field: rewriting
-        // the text under the caret would delete the comma the trainer has just
-        // typed, every time. The field holds what was typed; the draft holds
-        // what it means.
-        _draft.tags
-          ..clear()
-          ..addAll(normaliseLabels(value.split(',')));
-        _persist(typingIn: 'labels');
-      },
+      // Normalised into the draft and **not** back into the field: rewriting
+      // the text under the caret would delete the comma the trainer has just
+      // typed, every time. The field holds what was typed; the draft holds
+      // what it means.
+      onChanged: _c.setLabels,
     );
   }
 
@@ -1967,15 +1529,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 child: Text(language.label, overflow: TextOverflow.ellipsis),
               ),
           ],
-          onChanged: (code) {
-            // A menu calls back for the answer it already shows too. Picking
-            // „Not set" on a draft that never knew its language must not turn
-            // silence into „not said", which would clear a language set
-            // elsewhere — the three states `LanguageWrite` exists for.
-            if (code == _draft.language) return;
-            setState(() => _draft.language = code);
-            _persist();
-          },
+          onChanged: _c.setLanguage,
         ),
       ),
     );
@@ -2091,15 +1645,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// The parts, quoted, for a sentence that names what is wrong — by the
-  /// names the list of parts shows, so the trainer can find them there.
-  ///
-  /// It used to quote the stored title, which is „Part 2" for a part the list
-  /// calls by its first sentence, and was „Deo 2" before that.
-  String _namesOf(List<TutorialSection> sections) => sections
-      .map((s) => '"${s.label(_draft.sections.indexOf(s))}"')
-      .join(', ');
-
   /// Said on the way in, about parts that were already saved this way.
   ///
   /// §7.2 of the plan: a tutorial written before this refusal existed can carry
@@ -2125,7 +1670,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
-                  'The student would see the answer: ${_namesOf(leaking)} asks for a move, but '
+                  'The student would see the answer: ${_c.namesOf(leaking)} asks for a move, but '
                   'has a line the student can browse with the "Next '
                   'move" button.',
                   style: AppText.body
@@ -2267,28 +1812,20 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       if (!mounted) return;
       if (drop != true) {
         // The dropdown keeps the value it was given in its own state, so the
-        // subtree is rebuilt to put „Samo prikaži" back in front of the
+        // subtree is rebuilt to put „Show only" back in front of the
         // trainer. Same reason [_fieldsEpoch] exists at all.
         setState(() => _fieldsEpoch++);
         return;
       }
-      setState(_dropLine);
+      _annotationController.cancelPending();
+      _c.setKind(value, dropLine: true);
+      // The cursor is the root again, whose position may already be on the
+      // board — so the listener sees no move and the board is loaded here.
+      _boardController.loadFen(_current.fen);
+      return;
     }
 
-    setState(() => _currentKind = value);
-    _persist();
-  }
-
-  /// Takes the moves off the open part, keeping the position it asks about and
-  /// everything written on that position.
-  void _dropLine() {
-    final section = _draft.section;
-    section.root.children.clear();
-    section.cursorNode = section.root;
-    _boardController.loadFen(section.root.fen);
-    _lastMoveFrom = null;
-    _lastMoveTo = null;
-    _annotationController.cancelPending();
+    _c.setKind(value);
   }
 
   Widget _questionCard() {
@@ -2315,7 +1852,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               key: ValueKey('kind-$_fieldsEpoch'),
               child: DropdownButtonFormField<LessonStepKind>(
                 key: const Key('example-kind'),
-                initialValue: _currentKind,
+                initialValue: _c.section.kind,
                 decoration: const InputDecoration(labelText: 'Task type'),
                 items: const [
                   DropdownMenuItem(
@@ -2331,13 +1868,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            if (_currentKind != LessonStepKind.show) ...[
+            if (_c.section.kind != LessonStepKind.show) ...[
               TextField(
                 key: const Key('example-instruction'),
                 controller: _instructionController,
                 decoration:
                     const InputDecoration(labelText: 'Task for student'),
-                onChanged: (_) => _persist(typingIn: 'instruction'),
+                onChanged: _c.setInstruction,
                 // Same reason as the sentence on a beat card: a question a
                 // child reads is longer than one line, and a field that scrolls
                 // sideways hides its own beginning. It **grows** with the text
@@ -2350,11 +1887,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
-            if (_currentKind == LessonStepKind.askMove) ...[
-              if (_currentSolutionSan != null)
-                Text('Correct move: $_currentSolutionSan'),
+            if (_c.section.kind == LessonStepKind.askMove) ...[
+              if (_c.section.solutionSan != null)
+                Text('Correct move: ${_c.section.solutionSan}'),
             ],
-            if (_currentKind == LessonStepKind.askChoice) ...[
+            if (_c.section.kind == LessonStepKind.askChoice) ...[
               Text('Offered answers', style: AppText.bodyBold),
               // `RadioGroup` rather than a `groupValue` on every button: that pair
               // of arguments is deprecated, and the batch that wrote them silenced
@@ -2363,11 +1900,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               // adding them. This is also the shape `LessonStepEditorPanel` uses,
               // which the brief named.
               RadioGroup<int>(
-                groupValue: _currentCorrectChoice,
-                onChanged: (val) {
-                  setState(() => _currentCorrectChoice = val);
-                  _persist();
-                },
+                groupValue: _c.correctChoice,
+                onChanged: _c.setCorrectChoice,
                 child: Column(
                   children: [
                     for (int i = 0; i < _choiceControllers.length; i++)
@@ -2378,24 +1912,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                             child: TextField(
                               key: Key('example-choice-$i'),
                               controller: _choiceControllers[i],
-                              onChanged: (_) => _persist(typingIn: 'choice:$i'),
+                              onChanged: (text) => _c.setChoiceText(i, text),
                             ),
                           ),
                           IconButton(
                             key: Key('example-choice-delete-$i'),
                             icon: const Icon(Icons.delete),
                             onPressed: () {
-                              setState(() {
-                                _choiceControllers.removeAt(i);
-                                if (_currentCorrectChoice == i) {
-                                  _currentCorrectChoice = null;
-                                } else if (_currentCorrectChoice != null &&
-                                    _currentCorrectChoice! > i) {
-                                  _currentCorrectChoice =
-                                      _currentCorrectChoice! - 1;
-                                }
-                              });
-                              _persist();
+                              // The field and the answer leave together, so
+                              // the two lists stay aligned.
+                              setState(() => _choiceControllers.removeAt(i));
+                              _c.removeChoice(i);
                             },
                           )
                         ],
@@ -2408,7 +1935,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   setState(() {
                     _choiceControllers.add(TextEditingController());
                   });
-                  _persist();
+                  _c.addChoice();
                 },
                 child: const Text('Add answer'),
               ),
@@ -2461,15 +1988,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               root: _root,
               current: _current,
               onSelect: _jumpTo,
-              onCommentChanged: (node, text) {
-                // `setState`, because the sentence is also the part's name:
-                // the panel calls [TutorialSection.label], which reads the
-                // first thing the part says. The beat cards keep their own
-                // controllers and focus nodes, so rebuilding them under the
-                // caret costs a frame and changes nothing the trainer sees.
-                setState(() => node.comment = text);
-                _persist(typingIn: 'comment:${node.id}');
-              },
+              // Redrawn on every letter, because the sentence is also the
+              // part's name: the panel calls [TutorialSection.label], which
+              // reads the first thing the part says. The beat cards keep
+              // their own controllers and focus nodes, so rebuilding them
+              // under the caret costs a frame and changes nothing the trainer
+              // sees.
+              onCommentChanged: (node, text) =>
+                  _c.setComment(node, text, typing: true),
               question: _questionCard(),
               onDelete: _deleteNode,
               // None when there is no line to cut, so the button is not drawn

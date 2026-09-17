@@ -3048,3 +3048,44 @@ for.** The tap's „Loaded step 1/1" sits behind the room's own „Position
 loaded and synchronized!" for the first one's full timer. The test asserts on
 the course bar over the board — the thing the tap actually does — and says
 why the snackbar is not the assertion.
+
+**Reorganisation phase 6a — 17.9.2026, app 2894 → 2908.** The arithmetic:
++ 14 in `tutorial_draft_controller_test.dart`, every one of them a plain
+`test()` with no frame pumped. The 46 studio test files (543 tests) passed
+unedited, which was the other half of the gate. Backend unchanged at 1412;
+analyze 26.
+
+**The screen was the model, and the extraction is mostly deletion.** The
+studio kept the open part's kind, task, answers, recorded move and
+orientation in fields of its own and wrote them back in
+`_syncSelectedSection` before anything was persisted — the shape behind the
+bug of 7.9.2026, where a field left at its default was written over the part.
+With the fields writing through to the model there is nothing to sync, and
+the six places that called sync-then-persist became one method each on the
+controller. 2693 lines became 2219 and 660 of them are the controller.
+
+**Two signals, not one.** A controller that notifies on every change makes
+the screen rebuild its text fields on every keystroke, and a text field
+rebuilt from the model under the caret moves the caret. So `notifyListeners`
+means „redraw" and `generation` means „the open part or the draft was
+replaced — rebuild your fields", and typing bumps the first only when the
+undo buttons change and the second never. The board follows the cursor's
+identity the same way: loaded when the node the cursor stands on is a
+different object, not on every notify.
+
+**A rule the editor implied lived in a field, and a frameless test found it.**
+A stored question with two right answers came back with one because the
+screen's radio group could hold only one and the first sync wrote that back.
+With write-through nothing normalised it, and the refusals test — a widget
+test — went red. The rule now runs where a draft comes in, and the
+controller's own test pins it. The old place was accidental; the new one is a
+sentence with a reason.
+
+**A save with unchanged content replaces the current history step, so an
+undo goes past it in one move.** The first ids test asked for an undo after
+a rename after a save, which restored the post-save snapshot and never
+exercised `_giveBackIds` — the mutation survived. The test now undoes
+straight after the save and lands on the snapshot from before any id
+existed, which is the case the method is for. A surviving mutation is a
+question about the test (rule 2), and here the answer was that the test had
+not read `DraftHistory.record`.

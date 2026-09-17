@@ -1,0 +1,678 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+
+import 'package:chess_app/core/services/legal_moves.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/assignments/models/assignment.dart'
+    show LessonStepKind;
+import 'package:chess_app/features/lessons/models/lesson_labels.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/tutorial_studio/services/draft_history.dart';
+import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
+import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
+
+/// What a move the board reported turned into.
+enum MoveOutcome {
+  /// The position does not allow it. The board must be put back.
+  illegal,
+
+  /// The part asks for a move, so the move is its answer and the line does not
+  /// grow. The board must be put back on the position it asks about.
+  solutionRecorded,
+
+  /// The line grew by one move and the cursor stands on it.
+  played,
+}
+
+/// The tutorial being written — phase 6a of `docs/PLAN-REORGANIZACIJA.md`,
+/// the class `docs/PLAN-STUDIO-REDIZAJN.md` §4 drew and the screen never got.
+///
+/// **What it holds:** the draft, which part is open and where the cursor
+/// stands in it, the undo history, the step ids a save handed out, the saved
+/// version to go back to, and the last move played. **What it does not hold:**
+/// a board controller, a text field, a dialog, a snackbar, a frame. Every
+/// mutation is a method here; the desktop screen is one layout over it and
+/// the phone layout (6b) is another, and neither keeps a copy of any of this.
+///
+/// **The draft is the single source of truth.** Until 6a the screen kept the
+/// open part's kind, task, answers, recorded move and orientation in fields of
+/// its own and wrote them back in `_syncSelectedSection` before anything was
+/// persisted — the shape that let a field left at its default overwrite the
+/// part (7.9.2026). Here a field writes through: [setInstruction] writes the
+/// part's instruction and there is no second place it lives.
+///
+/// **Two signals.** [notifyListeners] says „redraw"; [generation] says „the
+/// open part or the whole draft was replaced — rebuild your fields from the
+/// model". Typing never bumps the generation, because rebuilding a text field
+/// under the caret moves the caret. Every change also passes through
+/// [persist], which keeps the draft on this device and records it for undo.
+///
+/// Most of the gate for this class runs with no widget tree at all: build a
+/// two-part tutorial with a question, assert the `positionList`, never pump a
+/// frame — `test/tutorial_draft_controller_test.dart`.
+class TutorialDraftController extends ChangeNotifier {
+  TutorialDraftController({
+    required TutorialDraft draft,
+    TutorialDraftService? slot,
+    DraftHistory? history,
+  })  : _draft = draft,
+        _slot = slot ?? TutorialDraftService.instance,
+        _history = history ?? DraftHistory() {
+    _normaliseChoices(_draft);
+    _startHistory();
+  }
+
+  TutorialDraft _draft;
+  final TutorialDraftService _slot;
+  final DraftHistory _history;
+
+  TutorialDraft get draft => _draft;
+
+  /// The part that is open.
+  TutorialSection get section => _draft.section;
+
+  /// The line being written, and where the trainer is standing on it.
+  AnalysisNode get root => section.root;
+  AnalysisNode get cursor => section.cursorNode;
+
+  int _generation = 0;
+
+  /// Bumped when the open part changes or the draft is replaced — adopt,
+  /// restore, select, add, move, clone, remove, a question placed, a line
+  /// inserted. Never on typing, a move or a mark. A layout that keeps text
+  /// controllers rebuilds them from the model when this changes.
+  int get generation => _generation;
+
+  ({String from, String to})? _lastMove;
+
+  /// The move just played on the open part, for the board's highlight; null
+  /// once the cursor moves any other way.
+  ({String from, String to})? get lastMove => _lastMove;
+
+  bool get canUndo => _history.canUndo;
+  bool get canRedo => _history.canRedo;
+
+  /// Nothing has changed since the draft was adopted — no step to undo or
+  /// redo. The moment the saved version may still be swapped in unasked.
+  bool get untouched => !_history.canUndo && !_history.canRedo;
+
+  /// The step id each part has been given, by [TutorialSection.localKey].
+  ///
+  /// Learned from the draft before every restore — a save has put its ids
+  /// there by then — and handed back to a part an undo restores without one.
+  /// Kept across restores, so a part undone out of existence and back still
+  /// finds its id. Without it, an undo past a save followed by another save
+  /// would send the part with no id, the server would mint a new one, and
+  /// every schedule row and recorded answer naming the old id would point at
+  /// nothing, silently.
+  final Map<String, String> _stepIdsByKey = {};
+
+  /// The saved version — phase 2 of `docs/PLAN-STUDIO-ISTORIJA.md`: the row
+  /// fetched when the studio opened, replaced by what each successful save
+  /// sent. Null while it is not known, which is also when „Discard changes"
+  /// is not offered: a version nobody could read is not one to go back to.
+  ///
+  /// Kept as a snapshot to restore and a [TutorialDraft.contentSignature] to
+  /// compare, never compared as encoded text — the encoding carries the cursor
+  /// and node ids, which change without anybody editing anything.
+  String? _savedSnapshot;
+  String? _savedSignature;
+
+  bool _hasUnsavedChanges = false;
+
+  /// Whether the draft differs from the saved version in anything the trainer
+  /// wrote. Refreshed where the draft changes, not computed on read: a
+  /// signature of a large tutorial is 38 KB of JSON.
+  bool get hasUnsavedChanges => _hasUnsavedChanges;
+
+  bool get savedVersionKnown => _savedSnapshot != null;
+
+  // ── the draft as a whole ─────────────────────────────────────────────────
+
+  /// Makes [draft] the one being written, and the place undo stops.
+  void adopt(TutorialDraft draft) {
+    _normaliseChoices(draft);
+    _draft = draft;
+    _lastMove = null;
+    _generation++;
+    _startHistory();
+    _hasUnsavedChanges = _differsFromSaved();
+    notifyListeners();
+  }
+
+  /// Holds the draft against the version the server keeps. Returns whether
+  /// they differ in anything the trainer wrote.
+  ///
+  /// A draft kept from before the language field says nothing about it, and
+  /// saving it says nothing either — the server keeps its own. It reads as the
+  /// server's here rather than as a change nobody made, and not as a step undo
+  /// could take back to „not known".
+  bool rememberSaved(TutorialDraft saved) {
+    if (!_draft.languageKnown && saved.languageKnown) {
+      _draft.language = saved.language;
+      if (untouched) _startHistory();
+    }
+    _savedSnapshot = jsonEncode(saved.toJson());
+    _savedSignature = saved.contentSignature();
+    final differs = _differsFromSaved();
+    _setUnsaved(differs);
+    return differs;
+  }
+
+  /// „Discard changes": the saved version, put back as a change of its own —
+  /// recorded like any other, so a mistaken press is one undo away.
+  void discardChanges() {
+    final snapshot = _savedSnapshot;
+    if (snapshot == null) return;
+    final saved = _decode(snapshot);
+    _giveBackIds(saved);
+    _draft = saved;
+    _lastMove = null;
+    _generation++;
+    persist();
+    notifyListeners();
+  }
+
+  void undo() => _restore(_history.undo());
+
+  void redo() => _restore(_history.redo());
+
+  /// Keeps the draft on this device and records the change for undo.
+  ///
+  /// Every change passes through here. [typingIn] names the text field a
+  /// change came from, so that a sentence typed without a pause is one undo
+  /// step rather than one per letter. Listeners are told only when one of the
+  /// three things that depend on this — undo, redo, discard — changed, since
+  /// the change itself has already been announced by whoever made it.
+  void persist({String? typingIn}) {
+    _slot.scheduleSave(_draft);
+    final couldUndo = _history.canUndo;
+    final couldRedo = _history.canRedo;
+    final hadUnsaved = _hasUnsavedChanges;
+    final signature = _draft.contentSignature();
+    _history.record(jsonEncode(_draft.toJson()), signature, typingIn: typingIn);
+    _hasUnsavedChanges = _differsFromSaved(signature);
+    if (couldUndo != _history.canUndo ||
+        couldRedo != _history.canRedo ||
+        hadUnsaved != _hasUnsavedChanges) {
+      notifyListeners();
+    }
+  }
+
+  /// Writes the draft to this device now, not after the debounce — for a
+  /// screen closing, whose pending timer would die with it.
+  Future<void> flush() => _slot.flush(_draft);
+
+  // ── the parts ────────────────────────────────────────────────────────────
+
+  void select(int index) {
+    if (index < 0 || index >= _draft.sections.length) return;
+    _draft.selected = index;
+    section.cursorNode = section.root;
+    _partChanged();
+  }
+
+  /// The next demonstration, and the board it opens on: „From here" keeps
+  /// the child's board from reloading; „New board" starts a fresh example.
+  void addSection({required bool continueFromEnd}) {
+    _draft.addSection(
+      continueFromEnd: continueFromEnd,
+      title: generatedSectionTitle(_draft.sections.length),
+    );
+    _renumberGeneratedTitles();
+    _partChanged();
+  }
+
+  void moveSection(int from, int to) {
+    if (from < 0 || from >= _draft.sections.length) return;
+    if (to < 0 || to >= _draft.sections.length || from == to) return;
+    _draft.moveSection(from, to);
+    _renumberGeneratedTitles();
+    _partChanged();
+  }
+
+  void cloneSection(int index) {
+    if (index < 0 || index >= _draft.sections.length) return;
+    _draft.cloneSection(index);
+    _renumberGeneratedTitles();
+    _partChanged();
+  }
+
+  /// False when it is the last part, which cannot be deleted.
+  bool removeSection(int index) {
+    if (!_draft.removeSection(index)) return false;
+    _renumberGeneratedTitles();
+    _partChanged();
+    return true;
+  }
+
+  /// A name of the trainer's own, or none: an empty name is the generated one.
+  void renameSection(int index, String name) {
+    if (index < 0 || index >= _draft.sections.length) return;
+    _draft.sections[index].title =
+        name.trim().isEmpty ? generatedSectionTitle(index) : name.trim();
+    persist();
+    notifyListeners();
+  }
+
+  /// The question goes on the beat the trainer is standing on: the
+  /// demonstration in the part in front, the question on a bare position, and
+  /// what followed carried on after it. [splitForQuestion] decides all of that.
+  ///
+  /// Returns whether the part was split. A part with no line has nothing to
+  /// cut, so it simply becomes the question — the same act with the first and
+  /// third parts empty, and false here.
+  bool askHere(LessonStepKind kind) {
+    final part = section;
+    if (!canSplitForQuestion(part)) {
+      part.kind = kind;
+      persist();
+      notifyListeners();
+      return false;
+    }
+    final parts = splitForQuestion(part, cursor, kind: kind);
+    _draft.replaceSelected(parts);
+    // The question is the one the trainer just asked for, so it is the one
+    // they are left standing on — with the board on the position it asks
+    // about.
+    _draft.selected = _draft.sections.indexOf(parts.firstWhere(
+      (p) => p.kind != LessonStepKind.show,
+      orElse: () => parts.first,
+    ));
+    _renumberGeneratedTitles();
+    _partChanged();
+    return true;
+  }
+
+  /// The part is cut at the beat the trainer is standing on, and they are left
+  /// on the new line's first position, to play it. No renumbering:
+  /// [TutorialSection.label] names a part with no name of its own by where it
+  /// stands, on screen and on the wire alike.
+  void insertLine() {
+    final cut = splitForLine(section, cursor);
+    _draft.replaceSelected(cut.parts);
+    _draft.selected = _draft.sections.indexOf(cut.line);
+    _partChanged();
+  }
+
+  // ── the line of the open part ────────────────────────────────────────────
+
+  /// A move the board reported, dragged or tapped.
+  MoveOutcome playMove(String from, String to, String promotion) {
+    final played = playedMove(
+      fen: cursor.fen,
+      from: from,
+      to: to,
+      promotion: promotion,
+    );
+    if (played == null) return MoveOutcome.illegal;
+
+    if (section.kind == LessonStepKind.askMove) {
+      section.solutionSan = played.san;
+      persist();
+      notifyListeners();
+      return MoveOutcome.solutionRecorded;
+    }
+
+    final child = cursor.addChild(
+      childFen: played.fen,
+      san: played.san,
+      uci: played.uci,
+    );
+    section.cursorNode = child;
+    _lastMove = (from: from, to: to);
+    persist();
+    notifyListeners();
+    return MoveOutcome.played;
+  }
+
+  void jumpTo(AnalysisNode node) {
+    section.cursorNode = node;
+    _lastMove = null;
+    persist();
+    notifyListeners();
+  }
+
+  /// Takes a move back, with everything written under it. The root is the
+  /// part's starting position rather than a move, and is left alone.
+  ///
+  /// The cursor is moved off the subtree before it is detached: a cursor left
+  /// inside it would be a board showing a position the part no longer holds.
+  /// One change, one undo step — the move back and the move away together.
+  void deleteNode(AnalysisNode node) {
+    final parent = node.parent;
+    if (parent == null) return;
+    if (_cursorIsAtOrBelow(node)) {
+      section.cursorNode = parent;
+      _lastMove = null;
+    }
+    parent.removeChild(node);
+    persist();
+    notifyListeners();
+  }
+
+  /// Makes a sideline the line the child walks.
+  void promoteNode(AnalysisNode node) {
+    final parent = node.parent;
+    if (parent == null) return;
+    parent.promoteToMainLine(node);
+    persist();
+    notifyListeners();
+  }
+
+  /// Starts the part over on [fen], with nothing written after it.
+  void startFrom(String fen) {
+    final fresh = AnalysisNode(fen: fen);
+    section
+      ..root = fresh
+      ..cursorNode = fresh
+      // The stored text described the line that was just thrown away.
+      ..storedPgn = null;
+    _lastMove = null;
+    persist();
+    notifyListeners();
+  }
+
+  /// A whole line read from text, made the part's line. The cursor goes to
+  /// the end of it — the last move is the one that was just written.
+  void replaceLine(AnalysisNode root) {
+    section.root = root;
+    section.cursorNode = endOfMainLine(root);
+    _lastMove = null;
+    persist();
+    notifyListeners();
+  }
+
+  /// The words of one move. [typing] says the text is being typed into a
+  /// field, so a sentence is one undo step; a dialog's answer is a change of
+  /// its own.
+  void setComment(AnalysisNode node, String text, {bool typing = false}) {
+    node.comment = text;
+    persist(typingIn: typing ? 'comment:${node.id}' : null);
+    notifyListeners();
+  }
+
+  // ── the open part's question ─────────────────────────────────────────────
+
+  /// The kind the trainer picked. [dropLine] takes the moves off the part
+  /// first, keeping the position it asks about and everything written on
+  /// it — the screen asks before passing true, because a line deleted over a
+  /// dropdown is a loss the trainer did not agree to.
+  void setKind(LessonStepKind kind, {bool dropLine = false}) {
+    if (dropLine) {
+      section.root.children.clear();
+      section.cursorNode = section.root;
+      _lastMove = null;
+    }
+    section.kind = kind;
+    persist();
+    notifyListeners();
+  }
+
+  void setInstruction(String text) {
+    final trimmed = text.trim();
+    section.instruction = trimmed.isEmpty ? null : trimmed;
+    persist(typingIn: 'instruction');
+  }
+
+  void setChoiceText(int index, String text) {
+    if (index < 0 || index >= section.choices.length) return;
+    section.choices[index] =
+        TutorialChoice(text: text, correct: section.choices[index].correct);
+    persist(typingIn: 'choice:$index');
+  }
+
+  /// Which answer is the right one; null for none yet.
+  void setCorrectChoice(int? index) {
+    for (var i = 0; i < section.choices.length; i++) {
+      section.choices[i] =
+          TutorialChoice(text: section.choices[i].text, correct: i == index);
+    }
+    persist();
+    notifyListeners();
+  }
+
+  int? get correctChoice {
+    final i = section.choices.indexWhere((c) => c.correct);
+    return i == -1 ? null : i;
+  }
+
+  void addChoice() {
+    section.choices.add(const TutorialChoice(text: '', correct: false));
+    persist();
+    notifyListeners();
+  }
+
+  /// The flag travels with the answer, so removing one above the right one
+  /// needs no index arithmetic — the reason §4 chose `{text, correct}` over a
+  /// list and an index.
+  void removeChoice(int index) {
+    if (index < 0 || index >= section.choices.length) return;
+    section.choices.removeAt(index);
+    persist();
+    notifyListeners();
+  }
+
+  /// Turns **every** part over, each from the way it stands now, so a
+  /// deliberate mix survives and a tutorial does not end up facing two ways
+  /// after one press (14.9.2026).
+  void flipAll() {
+    for (final part in _draft.sections) {
+      part.blackOrientation = !part.blackOrientation;
+    }
+    persist();
+    notifyListeners();
+  }
+
+  /// One part turned on its own — from „Preview tutorial".
+  void setPartOrientation(int index, bool black) {
+    if (index < 0 || index >= _draft.sections.length) return;
+    _draft.sections[index].blackOrientation = black;
+    persist();
+    notifyListeners();
+  }
+
+  // ── the tutorial's own fields ────────────────────────────────────────────
+
+  void setTitle(String text) {
+    _draft.title = text;
+    persist(typingIn: 'title');
+  }
+
+  /// Comma-separated, normalised into the draft; the field keeps what was
+  /// typed, so the comma the trainer just wrote is not deleted under them.
+  void setLabels(String text) {
+    _draft.tags
+      ..clear()
+      ..addAll(normaliseLabels(text.split(',')));
+    persist(typingIn: 'labels');
+  }
+
+  /// A menu calls back for the answer it already shows too. Picking „Not set"
+  /// on a draft that never knew its language must not turn silence into „not
+  /// said" — the three states `LanguageWrite` exists for.
+  void setLanguage(String? code) {
+    if (code == _draft.language) return;
+    _draft.language = code;
+    persist();
+    notifyListeners();
+  }
+
+  // ── saving ───────────────────────────────────────────────────────────────
+
+  /// Why the draft cannot be sent as it stands, in the trainer's words, or
+  /// null. Parts are named, not counted: a refusal that says „a part" to
+  /// somebody with fourteen has told them they are wrong and not where.
+  String? validate() {
+    if (_draft.title.trim().isEmpty) return 'Tutorial must have a title.';
+
+    final leaking = _draft.sections.where((s) => s.leaksAnswer).toList();
+    if (leaking.isNotEmpty) {
+      return 'Not saved. ${namesOf(leaking)} has a line with the answer '
+          '— remove the line or change the task type.';
+    }
+
+    for (final part in _draft.sections) {
+      if (part.kind != LessonStepKind.askChoice) continue;
+      final answers = part.choices.where((c) => c.text.trim().isNotEmpty);
+      if (answers.length < 2 || answers.length > 4) {
+        return 'Multiple choice question requires two to four answers.';
+      }
+      if (answers.where((c) => c.correct).length != 1) {
+        return 'Exactly one answer must be correct.';
+      }
+    }
+    return null;
+  }
+
+  /// Sends the draft — the first time creates the tutorial, every time after
+  /// edits the same one (`commitDraft`). Returns the refusal or the server's
+  /// own sentence, or null when it was saved.
+  ///
+  /// What is sent is taken before it is sent: a trainer can type while the
+  /// request is out, and those words are not saved just because the answer
+  /// arrived after them. Its ids are handed back by [_giveBackIds] if it is
+  /// ever restored.
+  Future<String?> save(LessonApiService api) async {
+    final refusal = validate();
+    if (refusal != null) return refusal;
+
+    _draft.title = _draft.title.trim();
+    final sentSnapshot = jsonEncode(_draft.toJson());
+    final sentSignature = _draft.contentSignature();
+    final error = await commitDraft(_draft, api);
+    if (error != null) return error;
+
+    _savedSnapshot = sentSnapshot;
+    _savedSignature = sentSignature;
+    // The draft now knows its lesson id and every step id, so the next save
+    // edits this tutorial instead of making a second one.
+    persist();
+    notifyListeners();
+    return null;
+  }
+
+  /// The parts, quoted, by the names the list of parts shows — so the trainer
+  /// can find them there.
+  String namesOf(List<TutorialSection> parts) =>
+      parts.map((s) => '"${s.label(_draft.sections.indexOf(s))}"').join(', ');
+
+  /// Nothing worth offering: one part, no moves, no words, no name.
+  static bool isEmptyDraft(TutorialDraft draft) =>
+      draft.title.trim().isEmpty &&
+      draft.sections.length == 1 &&
+      draft.sections.single.root.children.isEmpty &&
+      draft.sections.single.root.comment.trim().isEmpty;
+
+  /// Whether [node] holds anything beyond the move itself — what a deletion
+  /// is worth asking about.
+  static bool carriesWork(AnalysisNode node) =>
+      node.children.isNotEmpty ||
+      node.comment.trim().isNotEmpty ||
+      node.arrows.isNotEmpty ||
+      node.squares.isNotEmpty;
+
+  // ── inside ───────────────────────────────────────────────────────────────
+
+  void _partChanged() {
+    _lastMove = null;
+    _generation++;
+    persist();
+    notifyListeners();
+  }
+
+  /// Puts the generated names back in order after the parts have moved. Only
+  /// the names the studio wrote itself — a title the trainer typed is theirs.
+  void _renumberGeneratedTitles() {
+    for (var i = 0; i < _draft.sections.length; i++) {
+      final title = _draft.sections[i].title;
+      if (title.trim().isEmpty || isGeneratedSectionTitle(title)) {
+        _draft.sections[i].title = generatedSectionTitle(i);
+      }
+    }
+  }
+
+  bool _cursorIsAtOrBelow(AnalysisNode node) {
+    for (AnalysisNode? n = cursor; n != null; n = n.parent) {
+      if (identical(n, node)) return true;
+    }
+    return false;
+  }
+
+  /// A question with two right answers has no representation in the editor
+  /// — the answers are a radio group — so a stored one keeps the first, the
+  /// one the list already showed as chosen. Done where a draft comes in,
+  /// never in silence at a save: `tutorial_studio_refusals_test`.
+  static void _normaliseChoices(TutorialDraft draft) {
+    for (final part in draft.sections) {
+      final first = part.choices.indexWhere((c) => c.correct);
+      for (var i = 0; i < part.choices.length; i++) {
+        final choice = part.choices[i];
+        if (choice.correct && i != first) {
+          part.choices[i] = TutorialChoice(text: choice.text, correct: false);
+        }
+      }
+    }
+  }
+
+  void _startHistory() {
+    _history.start(jsonEncode(_draft.toJson()), _draft.contentSignature());
+  }
+
+  /// Puts a snapshot back as the draft being written.
+  ///
+  /// Not through [persist]: a restore is not a change, and recording it would
+  /// make the next undo undo the undo. The on-device slot is still written, so
+  /// closing the window keeps what is on screen.
+  void _restore(String? snapshot) {
+    if (snapshot == null) return;
+    final restored = _decode(snapshot);
+    _giveBackIds(restored);
+    _draft = restored;
+    _lastMove = null;
+    _generation++;
+    _hasUnsavedChanges = _differsFromSaved();
+    _slot.scheduleSave(_draft);
+    notifyListeners();
+  }
+
+  /// **The identities a save handed out survive going back past it.**
+  ///
+  /// A snapshot from before the first save has no lesson id, and restoring it
+  /// as it is would make the next save create a second tutorial. Its parts
+  /// have no step ids either; each gets back the one its key was given, unless
+  /// another part already holds it.
+  void _giveBackIds(TutorialDraft restored) {
+    restored.lessonId ??= _draft.lessonId;
+    for (final part in _draft.sections) {
+      final id = part.stepId;
+      if (id != null) _stepIdsByKey[part.localKey] = id;
+    }
+    final held = {
+      for (final s in restored.sections)
+        if (s.stepId != null) s.stepId!,
+    };
+    for (final part in restored.sections) {
+      if (part.stepId != null) continue;
+      final id = _stepIdsByKey[part.localKey];
+      if (id != null && held.add(id)) part.stepId = id;
+    }
+  }
+
+  static TutorialDraft _decode(String snapshot) => TutorialDraft.fromJson(
+      Map<String, dynamic>.from(jsonDecode(snapshot) as Map));
+
+  bool _differsFromSaved([String? signature]) =>
+      _savedSignature != null &&
+      (signature ?? _draft.contentSignature()) != _savedSignature;
+
+  void _setUnsaved(bool value) {
+    if (_hasUnsavedChanges == value) return;
+    _hasUnsavedChanges = value;
+    notifyListeners();
+  }
+}

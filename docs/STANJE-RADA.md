@@ -118,6 +118,18 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Faza 6a gotova, 17.9.2026 (vođa, Fable): `TutorialDraftController` izvučen
+iz ekrana studija.** Klasa koju je `PLAN-STUDIO-REDIZAJN.md` §4 nacrtao a
+ekran nikad nije dobio: nacrt, otvoreni deo i kursor, istorija, id-jevi koje je
+čuvanje dodelilo, sačuvana verzija, poslednji potez — sve iza metoda, bez
+table, polja, dijaloga i kadra. Polja pišu direktno u model (nema više
+`_syncSelectedSection`); dva signala (`notifyListeners` = precrtaj,
+`generation` = ponovo napuni polja iz modela). Ekran za Windows je raspored
+nad kontrolerom (2693 → 2219 linija); 543 testa studija prošla **neizmenjena**;
+`tutorial_draft_controller_test.dart` — 14 testova bez kadra. Nema stavke za
+proveru uživo: ništa vidljivo se nije promenilo. Sledeće: **6b** (raspored za
+telefon Line | Task | Parts nad istim kontrolerom, implementer), pa 6c.
+
 **Faza 3b gotova, 17.9.2026 (vođa, Fable): kolona sobe je deljena lista.**
 Leva kolona sobe i Pripreme crta `LibraryList` sužen na All · Tutorials ·
 Positions, sa čipovima Mine / From trainer i panelom oznaka — oba su sada
