@@ -17,6 +17,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -81,12 +82,19 @@ class AiStudioScreen extends ConsumerStatefulWidget {
   /// Which preset to load, for `basic_mate`.
   final String? basicMateLevel;
 
+  /// Walks `PuzzleAttemptApi.retryIds(initialCategory)` and serves each by id
+  /// instead of asking `/puzzles/next` — the hub's „Retry failed" button on
+  /// the mates and winning-position cards (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  /// Not meaningful for `basic_mate`, which has no by-id route.
+  final bool retry;
+
   const AiStudioScreen({
     super.key,
     required this.userSession,
     this.initialCategory,
     this.mateDepth,
     this.basicMateLevel,
+    this.retry = false,
   });
 
   @override
@@ -256,6 +264,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   final List<PendingMoveAnimation> _pendingAnimations = [];
   MoveTree? _puzzleMoveTree;
   String? _initialPuzzleFen;
+
+  /// The failed-puzzle ids, fetched once, when [AiStudioScreen.retry] is set.
+  /// Null until asked for; empty is a real answer, not "not yet asked".
+  List<String>? _retryQueue;
+  int _retryIndex = 0;
+  bool _retryQueueEmpty = false;
 
   final Map<String, String> _basicMatePresets = {
     'K+Q vs K': '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
@@ -1095,6 +1109,64 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
+  /// The retry queue is fetched once and then walked in order; an id already
+  /// served does not come back even if a later request is slow, because
+  /// [_retryIndex] moves before the request goes out.
+  Future<Map<String, dynamic>?> _fetchNextRetryPuzzle() async {
+    final category = _selectedCategory ?? PuzzleSource.matePuzzle;
+    if (_retryQueue == null) {
+      final ids = await PuzzleAttemptApi(authToken: widget.userSession.token)
+          .retryIds(category);
+      _retryQueue = ids ?? [];
+      _retryIndex = 0;
+    }
+    if (_retryIndex >= _retryQueue!.length) {
+      if (mounted) setState(() => _retryQueueEmpty = true);
+      return null;
+    }
+    final id = _retryQueue![_retryIndex];
+    _retryIndex++;
+    return PuzzleApiService.instance.fetchPuzzleById(
+      id: id,
+      source: category,
+      userToken: widget.userSession.token,
+    );
+  }
+
+  /// „Next Position" pressed before the puzzle is solved is a skip, recorded
+  /// so it does not read as "never seen" on the hub card
+  /// (docs/PLAN-NAPREDAK-VEZBI.md §4). Solved puzzles reach this only through
+  /// the win/loss dialogs, which already recorded the attempt themselves.
+  void _goToNextPuzzle() {
+    if (!_puzzleSolved && !_puzzleFailed) {
+      if (_selectedCategory == 'basic_mate') {
+        _recordBasicMateAttempt(solved: false, skipped: true);
+      } else {
+        _submitPuzzleResult(false, skipped: true, showResultDialog: false);
+      }
+    }
+    if (_selectedCategory == 'basic_mate') {
+      _loadBasicMatePreset(_selectedBasicMateType);
+    } else {
+      _fetchNextPuzzle();
+    }
+  }
+
+  /// Basic mates have no server row and no rating — `PuzzleAttemptApi.record`
+  /// writes straight to `/attempt`, id'd by the preset and the FEN it started
+  /// from (before any move), the key the repertoire's own nodes already use.
+  /// Fired, not awaited: recording must never hold up the board.
+  void _recordBasicMateAttempt({required bool solved, bool skipped = false}) {
+    final startFen = _initialPuzzleFen;
+    if (startFen == null) return;
+    unawaited(PuzzleAttemptApi(authToken: widget.userSession.token).record(
+      source: PuzzleSource.basicMate,
+      puzzleId: PuzzleSource.basicMateId(_selectedBasicMateType, startFen),
+      solved: solved,
+      skipped: skipped,
+    ));
+  }
+
   Future<void> _fetchNextPuzzle() async {
     _resetEngineState();
     final String currentId =
@@ -1111,12 +1183,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     try {
       final categoryParam = _selectedCategory ?? 'mate_puzzle';
-      final resData = await PuzzleApiService.instance.fetchNextPuzzle(
-        type: categoryParam,
-        mateDepth: _selectedMateDepth.toString(),
-        excludeId: currentId,
-        userToken: widget.userSession.token,
-      );
+      final resData = widget.retry
+          ? await _fetchNextRetryPuzzle()
+          : await PuzzleApiService.instance.fetchNextPuzzle(
+              type: categoryParam,
+              mateDepth: _selectedMateDepth.toString(),
+              excludeId: currentId,
+              userToken: widget.userSession.token,
+            );
 
       if (resData != null) {
         final p = resData['puzzle'] ?? resData;
@@ -1173,7 +1247,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             (_showEvaluation || _showEvalBar)) {
           _stockfishService.analyzePosition(fen, depth: _analysisDepth);
         }
-      } else {
+      } else if (!_retryQueueEmpty) {
+        // An empty retry queue is a real answer, not a failed fetch — its own
+        // screen, not a snackbar (docs/PLAN-NAPREDAK-VEZBI.md §4).
         _showSnackBar('Unable to load position.');
       }
     } catch (e) {
@@ -1501,9 +1577,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         'reason': 'User successfully delivered checkmate on the board!',
       });
 
-      if (_selectedCategory == 'basic_mate' ||
-          _selectedCategory == 'winning_position') {
+      if (_selectedCategory == 'basic_mate') {
         setState(() => _puzzleSolved = true);
+        _recordBasicMateAttempt(solved: true);
+        _showEndgameWinDialog();
+      } else if (_selectedCategory == 'winning_position') {
+        setState(() => _puzzleSolved = true);
+        // Records and moves the rating without opening a second dialog —
+        // `_showEndgameWinDialog` already tells the player they won.
+        _submitPuzzleResult(true, showResultDialog: false);
         _showEndgameWinDialog();
       } else {
         _submitPuzzleResult(true);
@@ -1970,6 +2052,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               'type': 'buttonClick',
                               'button': 'Modal - Show Solution'
                             });
+                            // A wrong move was already made and rejected —
+                            // this is a failure, not a skip; recorded once,
+                            // here, since the replay itself never was.
+                            _submitPuzzleResult(false, showResultDialog: false);
                             _playFullSolutionReplay();
                           },
                         ),
@@ -1991,6 +2077,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                               'type': 'buttonClick',
                               'button': 'Modal - Next Puzzle'
                             });
+                            // Same reasoning as "Show Solution" above: a wrong
+                            // move already happened, so giving up here is a
+                            // failure, not a skip.
+                            _submitPuzzleResult(false, showResultDialog: false);
                             _fetchNextPuzzle();
                           },
                         ),
@@ -2248,11 +2338,25 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
-  Future<void> _submitPuzzleResult(bool solved) async {
-    setState(() {
-      _puzzleSolved = solved;
-      _puzzleFailed = !solved;
-    });
+  /// Posts to `/submit`, which both moves the mate/winning-position rating and
+  /// — since the merge of docs/PLAN-NAPREDAK-VEZBI.md phase 1 — writes the
+  /// attempt row the hub's progress cards read. Kept as a raw post rather than
+  /// `PuzzleAttemptApi.record` so `newRating`/`ratingChange` come back on the
+  /// same request that records the attempt.
+  ///
+  /// [showResultDialog] is false when the caller already shows its own
+  /// victory dialog (`_showEndgameWinDialog`, for `winning_position`) — this
+  /// still records and updates the rating either way.
+  Future<void> _submitPuzzleResult(bool solved,
+      {bool skipped = false, bool showResultDialog = true}) async {
+    // A skip is neither a solve nor a failure to show on this puzzle — the
+    // caller is about to move on and reset both anyway.
+    if (!skipped) {
+      setState(() {
+        _puzzleSolved = solved;
+        _puzzleFailed = !solved;
+      });
+    }
 
     try {
       final res = await http.post(
@@ -2264,6 +2368,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         body: jsonEncode({
           'puzzleId': _currentPuzzle?['puzzle_id'],
           'solved': solved,
+          'skipped': skipped,
         }),
       );
 
@@ -2276,7 +2381,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _userRating = newRating;
         });
 
-        if (solved && mounted) {
+        if (solved && showResultDialog && mounted) {
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -2430,6 +2535,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   }
 
   String _getCategoryTitle() {
+    final base = _categoryTitleBase();
+    return widget.retry ? '$base — retry' : base;
+  }
+
+  String _categoryTitleBase() {
     switch (_selectedCategory) {
       case 'mate_puzzle':
         return 'Mate in 1, 2, or 3';
@@ -2477,7 +2587,40 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   // --- 2. ACTIVE BOARD GAME SCREEN ---
 
+  /// The retry queue's own empty screen — a real answer ("nothing failed"),
+  /// not the network failure the ordinary board-loading path would show
+  /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  Widget _buildRetryEmptyState() {
+    final ownRoute = widget.initialCategory != null;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.task_alt, size: 56, color: context.colors.success),
+            const SizedBox(height: 14),
+            Text('Nothing to retry.',
+                textAlign: TextAlign.center, style: AppText.headline),
+            const SizedBox(height: AppSpacing.xl),
+            OutlinedButton.icon(
+              onPressed: ownRoute
+                  ? () => context.pop()
+                  : () => setState(() => _selectedCategory = null),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActiveBoardScreen() {
+    if (widget.retry && _retryQueueEmpty) {
+      return _buildRetryEmptyState();
+    }
+
     final screenSize = MediaQuery.of(context).size;
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
@@ -2581,13 +2724,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           style: ElevatedButton.styleFrom(
               backgroundColor: context.colors.accent,
               foregroundColor: context.colors.canvas),
-          onPressed: () {
-            if (_selectedCategory == 'basic_mate') {
-              _loadBasicMatePreset(_selectedBasicMateType);
-            } else {
-              _fetchNextPuzzle();
-            }
-          },
+          onPressed: _goToNextPuzzle,
         ),
       ],
     );
@@ -2661,13 +2798,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               tooltip: 'Next Position',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-              onPressed: () {
-                if (_selectedCategory == 'basic_mate') {
-                  _loadBasicMatePreset(_selectedBasicMateType);
-                } else {
-                  _fetchNextPuzzle();
-                }
-              },
+              onPressed: _goToNextPuzzle,
             ),
           ],
         ),

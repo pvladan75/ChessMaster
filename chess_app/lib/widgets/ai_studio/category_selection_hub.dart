@@ -43,6 +43,30 @@ class CategorySelectionHubWidget extends StatelessWidget {
     this.onRetry,
   });
 
+  /// „Solved N" or „Solved N · M to retry", drawn only when the source was
+  /// seen at all — a card with nothing seen says nothing
+  /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  String? _progressLine(String source) {
+    final p = progress?[source];
+    if (p == null || p.seen == 0) return null;
+    return p.toRetry > 0
+        ? 'Solved ${p.solved} · ${p.toRetry} to retry'
+        : 'Solved ${p.solved}';
+  }
+
+  /// „Retry failed (M)", only for a retryable source with something to
+  /// retry.
+  Widget? _retryButton(String source) {
+    final p = progress?[source];
+    if (p == null || p.toRetry <= 0) return null;
+    if (!PuzzleSource.retryable.contains(source)) return null;
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.replay),
+      label: Text('Retry failed (${p.toRetry})'),
+      onPressed: () => onRetry?.call(source),
+    );
+  }
+
   /// The label above a group of cards.
   ///
   /// The hub is ordered by phase of the game rather than by where the material
@@ -147,6 +171,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
       description:
           'Puzzles from the Lichess database, matched to your rating and the theme '
           'you struggle with most. Rating is tracked per motif separately.',
+      progressLine: _progressLine(PuzzleSource.lichess),
+      retryButton: _retryButton(PuzzleSource.lichess),
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: colors.info.withValues(alpha: 0.08),
@@ -169,6 +195,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
       title: 'Puzzles: Mate in 1, 2 or 3 moves',
       description:
           'Solve forced checkmate sequences in the requested number of moves.',
+      progressLine: _progressLine(PuzzleSource.matePuzzle),
+      retryButton: _retryButton(PuzzleSource.matePuzzle),
       action: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
@@ -202,6 +230,9 @@ class CategorySelectionHubWidget extends StatelessWidget {
           'with few pieces the outcome is exact, not evaluated — any '
           'move that preserves the result is accepted, not just one. Before '
           'starting, choose the endgame type and difficulty level.',
+      progressLine: _progressLine(PuzzleSource.endgame),
+      secondaryLine: _progressLine(PuzzleSource.blunderGame),
+      retryButton: _retryButton(PuzzleSource.endgame),
       action: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
@@ -233,6 +264,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
       title: 'Practice basic checkmates',
       description:
           'Checkmate the opponent in classic mating positions against Stockfish.',
+      progressLine: _progressLine(PuzzleSource.basicMate),
       action: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
@@ -273,6 +305,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
       title: 'Find the winning path',
       description:
           'Play winning positions out against Stockfish with optional Blunder Alert.',
+      progressLine: _progressLine(PuzzleSource.winningPosition),
+      retryButton: _retryButton(PuzzleSource.winningPosition),
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: colors.success.withValues(alpha: 0.22),
@@ -432,12 +466,27 @@ class _CategoryCard extends StatelessWidget {
   final String description;
   final Widget action;
 
+  /// „Solved N" / „Solved N · M to retry" for the card's own source, or null
+  /// when nothing was read or nothing was seen.
+  final String? progressLine;
+
+  /// A second progress line for a source folded into this card without its
+  /// own card (blunder games, inside the endgames card).
+  final String? secondaryLine;
+
+  /// „Retry failed (M)", joined into a `Wrap` with [action] so the row still
+  /// fits a 360 dp phone.
+  final Widget? retryButton;
+
   const _CategoryCard({
     required this.accentColor,
     required this.icon,
     required this.title,
     required this.description,
     required this.action,
+    this.progressLine,
+    this.secondaryLine,
+    this.retryButton,
   });
 
   @override
@@ -479,8 +528,30 @@ class _CategoryCard extends StatelessWidget {
               description,
               style: AppText.body.copyWith(color: colors.textSecondary),
             ),
+            if (progressLine != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                progressLine!,
+                style: AppText.bodyBold.copyWith(color: accentColor),
+              ),
+            ],
+            if (secondaryLine != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                secondaryLine!,
+                style: AppText.body.copyWith(color: colors.textSecondary),
+              ),
+            ],
             const SizedBox(height: AppSpacing.lg),
-            action,
+            if (retryButton != null)
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [action, retryButton!],
+              )
+            else
+              action,
           ],
         ),
       ),

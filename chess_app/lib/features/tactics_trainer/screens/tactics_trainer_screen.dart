@@ -4,6 +4,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/speech_service.dart';
@@ -31,6 +32,9 @@ class TacticsTrainerScreen extends StatefulWidget {
     this.assignmentId,
     this.assignmentTitle,
     this.puzzleIds,
+    this.retry = false,
+    this.api,
+    this.attemptApi,
   });
 
   final UserSession session;
@@ -41,7 +45,24 @@ class TacticsTrainerScreen extends StatefulWidget {
   final String? assignmentTitle;
   final List<String>? puzzleIds;
 
+  /// Walks the failed puzzles from `PuzzleAttemptApi.retryIds('lichess')`
+  /// instead of the adaptive selector — the hub's „Retry failed" button.
+  /// Unlike an assignment, a wrong move here may be tried again and „Skip"
+  /// records a skip; it is not homework.
+  final bool retry;
+
+  /// Injected in tests, which have no server.
+  final TacticsApiService? api;
+
+  /// Injected in tests — fake the client, assert the request (rule 7) — for
+  /// the retry queue and, indirectly, the request `api` builds (§4).
+  final PuzzleAttemptApi? attemptApi;
+
   bool get isAssignment => puzzleIds != null && puzzleIds!.isNotEmpty;
+
+  /// Assignment and retry both serve one puzzle at a time from a fixed list
+  /// of ids, in order, rather than asking the adaptive selector.
+  bool get _walksQueue => isAssignment || retry;
 
   @override
   State<TacticsTrainerScreen> createState() => _TacticsTrainerScreenState();
@@ -95,10 +116,36 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   /// route.
   final List<String> _skipped = [];
 
+  /// Set once the retry queue has been asked for and come back empty — its
+  /// own screen, distinct from an assignment's „nothing left" (this is not
+  /// homework and there is nothing to submit).
+  bool _retryEmpty = false;
+
+  late final PuzzleAttemptApi _attemptApi =
+      widget.attemptApi ?? PuzzleAttemptApi(authToken: widget.session.token);
+
   @override
   void initState() {
     super.initState();
-    _api = TacticsApiService(authToken: widget.session.token);
+    _api = widget.api ?? TacticsApiService(authToken: widget.session.token);
+    if (widget.retry) {
+      _loadRetryQueue();
+    } else {
+      _loadNext();
+    }
+  }
+
+  Future<void> _loadRetryQueue() async {
+    final ids = await _attemptApi.retryIds(PuzzleSource.lichess);
+    if (!mounted) return;
+    if (ids == null || ids.isEmpty) {
+      setState(() {
+        _loading = false;
+        _retryEmpty = true;
+      });
+      return;
+    }
+    _queue = ids;
     _loadNext();
   }
 
@@ -116,11 +163,22 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     // than in the button, because every way out of a puzzle comes through this
     // one method.
     final leaving = _puzzle;
-    if (widget.isAssignment &&
-        leaving != null &&
-        !(_session?.isComplete ?? false) &&
-        !_skipped.contains(leaving.id)) {
-      _skipped.add(leaving.id);
+    final leavingUnfinished =
+        leaving != null && !(_session?.isComplete ?? false);
+    if (widget.isAssignment) {
+      if (leavingUnfinished && !_skipped.contains(leaving.id)) {
+        _skipped.add(leaving.id);
+      }
+    } else if (leavingUnfinished) {
+      // Free practice and retry: a skip is worth recording, so a puzzle
+      // walked past without an answer does not read as "never seen" on the
+      // hub card. Fired, not awaited — recording must never hold up the next
+      // position.
+      unawaited(_api.submitAttempt(
+        puzzleId: leaving.id,
+        solved: false,
+        skipped: true,
+      ));
     }
 
     // Moving to the next puzzle is the reader saying they are done with the
@@ -139,7 +197,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       _boardLocked = true;
     });
 
-    if (widget.isAssignment) {
+    if (widget._walksQueue) {
       await _loadAssignmentPuzzle(token);
       return;
     }
@@ -160,7 +218,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     _startPuzzle(response.puzzle, response.selection);
   }
 
-  /// Serves the assignment's puzzles in the order the trainer set them.
+  /// Serves the assignment's or the retry queue's puzzles in order, one by
+  /// id. `_queue` is already populated for retry mode by the time this runs
+  /// (`_loadRetryQueue`), so the fallback below only fires for an assignment.
   Future<void> _loadAssignmentPuzzle(int token) async {
     final ids = _queue ??= List<String>.from(widget.puzzleIds!);
     if (_assignmentIndex >= ids.length) {
@@ -387,6 +447,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       msTaken: elapsed,
       // What they tried before they found it — or instead of finding it.
       playedSan: _session?.firstWrongSan,
+      hinted: _session?.usedHint == true,
     );
 
     if (!mounted) return;
@@ -451,7 +512,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
-        title: Text(widget.assignmentTitle ?? 'Tactics'),
+        title: Text(
+            widget.retry ? 'Retry' : (widget.assignmentTitle ?? 'Tactics')),
         actions: [
           const BoardViewMenu(),
           BoardFlipButton(
@@ -470,6 +532,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   Widget _buildBody() {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (widget.retry && (_retryEmpty || _assignmentFinished)) {
+      return _buildRetryDone();
     }
     if (_assignmentFinished) {
       return _buildAssignmentDone();
@@ -547,6 +612,34 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       _assignmentFinished = false;
     });
     _loadNext();
+  }
+
+  /// Retry's own empty/done screen — distinct from an assignment's, because
+  /// this is not homework and there is nothing to submit or leave unfinished.
+  Widget _buildRetryDone() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.task_alt, size: 56, color: context.colors.success),
+            const SizedBox(height: 14),
+            const Text(
+              'Nothing to retry.',
+              textAlign: TextAlign.center,
+              style: AppText.headline,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Back'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildAssignmentDone() {
@@ -680,6 +773,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Puzzle: $_assignmentIndex of ${widget.puzzleIds!.length}',
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
+              ),
+            ] else if (widget.retry) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Puzzle: $_assignmentIndex of ${_queue?.length ?? 0}',
                 style:
                     AppText.caption.copyWith(color: context.colors.textMuted),
               ),

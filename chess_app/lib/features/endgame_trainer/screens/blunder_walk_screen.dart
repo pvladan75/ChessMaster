@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
+import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/services/app_settings_service.dart';
@@ -60,6 +61,7 @@ class BlunderWalkScreen extends StatefulWidget {
     this.maxElo,
     this.material,
     this.api,
+    this.attemptApi,
   });
 
   final UserSession session;
@@ -72,12 +74,20 @@ class BlunderWalkScreen extends StatefulWidget {
   /// Injected in tests, which have no server.
   final EndgameApiService? api;
 
+  /// Injected in tests — fake the client, assert the request (rule 7) — for
+  /// the attempt log this screen writes to per stop
+  /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  final PuzzleAttemptApi? attemptApi;
+
   @override
   State<BlunderWalkScreen> createState() => _BlunderWalkScreenState();
 }
 
 class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   final ChessBoardController _boardController = ChessBoardController();
+
+  late final PuzzleAttemptApi _attemptApi =
+      widget.attemptApi ?? PuzzleAttemptApi(authToken: widget.session.token);
 
   late final EndgameApiService _api =
       widget.api ?? EndgameApiService(authToken: widget.session.token);
@@ -173,7 +183,29 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     _loadNext();
   }
 
+  /// Writes one stop's outcome to the attempt log — found unaided, revealed
+  /// with "Show", or walked past unanswered (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  /// Fired, not awaited: recording must never hold up the board.
+  void _recordStop(GameBlunder blunder,
+      {required bool found, bool skipped = false}) {
+    final gameId = int.tryParse(_walk?.game.id ?? '');
+    if (gameId == null) return;
+    unawaited(_attemptApi.record(
+      source: PuzzleSource.blunderGame,
+      puzzleId: PuzzleSource.blunderGameId(gameId, blunder.ply),
+      solved: found,
+      hinted: !found && !skipped,
+      skipped: skipped,
+    ));
+  }
+
   Future<void> _loadNext() async {
+    // Leaving a stop that is still standing, unanswered, is a skip.
+    final pending = _walk?.pending;
+    if (pending != null) {
+      _recordStop(pending, found: false, skipped: true);
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -489,6 +521,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// it is the part this whole screen exists to show.
   void _afterStop(GameBlunder blunder, {String? found}) {
     final walk = _walk!;
+    _recordStop(blunder, found: found != null);
 
     final verdict = found == null
         ? 'Holding moves were: ${blunder.shouldPlay.join(', ')}.'

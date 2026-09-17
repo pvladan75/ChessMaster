@@ -79,9 +79,22 @@ class AttemptResult {
 /// The server reads that from its own table, so a client cannot inflate a rating
 /// by claiming it solved something hard.
 class TacticsApiService {
-  TacticsApiService({required this.authToken});
+  TacticsApiService({required this.authToken, http.Client? client})
+      : _client = client;
 
   final String authToken;
+
+  /// Injected by tests, so the request can be read rather than guessed at
+  /// (rule 7: fake the client, assert the request). Null in the app, which
+  /// keeps the top-level `http` calls it always made.
+  final http.Client? _client;
+
+  Future<http.Response> _get(Uri uri) =>
+      _client?.get(uri, headers: _headers) ?? http.get(uri, headers: _headers);
+
+  Future<http.Response> _post(Uri uri, {Object? body}) =>
+      _client?.post(uri, headers: _headers, body: body) ??
+      http.post(uri, headers: _headers, body: body);
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -102,9 +115,7 @@ class TacticsApiService {
     );
 
     try {
-      final res = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 12));
+      final res = await _get(uri).timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) {
         AppLogger.log('[Tactics] Server rejected request (${res.statusCode}).');
         return null;
@@ -128,10 +139,9 @@ class TacticsApiService {
   /// gets exactly what the trainer set rather than what the selector would pick.
   Future<TacticsPuzzle?> fetchPuzzleById(String puzzleId) async {
     try {
-      final res = await http
-          .get(Uri.parse('$backendUrl/api/puzzles/by-id/$puzzleId'),
-              headers: _headers)
-          .timeout(const Duration(seconds: 12));
+      final res =
+          await _get(Uri.parse('$backendUrl/api/puzzles/by-id/$puzzleId'))
+              .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return null;
 
       final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -152,21 +162,22 @@ class TacticsApiService {
     required bool solved,
     int? msTaken,
     String? playedSan,
+    bool skipped = false,
+    bool hinted = false,
   }) async {
     try {
-      final res = await http
-          .post(
-            Uri.parse('$backendUrl/api/puzzles/attempt'),
-            headers: _headers,
-            body: jsonEncode({
-              'puzzleId': puzzleId,
-              'solved': solved,
-              if (msTaken != null) 'msTaken': msTaken,
-              if (playedSan != null && playedSan.trim().isNotEmpty)
-                'playedSan': playedSan.trim(),
-            }),
-          )
-          .timeout(const Duration(seconds: 12));
+      final res = await _post(
+        Uri.parse('$backendUrl/api/puzzles/attempt'),
+        body: jsonEncode({
+          'puzzleId': puzzleId,
+          'solved': solved,
+          'skipped': skipped,
+          'hinted': hinted,
+          if (msTaken != null) 'msTaken': msTaken,
+          if (playedSan != null && playedSan.trim().isNotEmpty)
+            'playedSan': playedSan.trim(),
+        }),
+      ).timeout(const Duration(seconds: 12));
 
       if (res.statusCode != 200) return null;
       return AttemptResult.fromJson(
@@ -179,8 +190,7 @@ class TacticsApiService {
 
   Future<List<ThemeRating>> fetchThemeRatings() async {
     try {
-      final res = await http
-          .get(Uri.parse('$backendUrl/api/puzzles/themes'), headers: _headers)
+      final res = await _get(Uri.parse('$backendUrl/api/puzzles/themes'))
           .timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return const [];
 
