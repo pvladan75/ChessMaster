@@ -1043,6 +1043,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenAnalysis: () => context.push(AppRoutes.analysis),
             onOpenScanner: () => context.push(AppRoutes.scan),
             onOpenSavedPositions: () => context.push(AppRoutes.savedPositions),
+            onOpenLibrary: () => context.push(AppRoutes.library),
           );
         case 3:
           return HomeFriendsTab(

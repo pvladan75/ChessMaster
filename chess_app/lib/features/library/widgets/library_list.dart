@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/library/models/library_entry.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
 
 /// One list of everything a user keeps — phase 3 of
 /// `docs/PLAN-REORGANIZACIJA.md` (S3).
@@ -64,10 +66,109 @@ enum LibraryChip {
 }
 
 class _LibraryListState extends State<LibraryList> {
+  late LibraryChip _chip = widget.initialChip ?? LibraryChip.all;
+  final TextEditingController _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// The line under the title: what kind of thing this is, in the trainer's
+  /// terms — not `entry.subtitle`, whose wording serves the picker dialog
+  /// rather than this row.
+  String _subtitleFor(LibraryEntry entry) {
+    switch (entry.kind) {
+      case LibraryKind.tutorial:
+        final parts = '${entry.partsCount ?? 0} parts';
+        return entry.hasVideo ? '$parts · video' : parts;
+      case LibraryKind.scan:
+        return entry.subtitle;
+      case LibraryKind.position:
+        return 'saved position';
+      case LibraryKind.analysis:
+        return 'analysis';
+      case LibraryKind.recording:
+        final d = entry.createdAt;
+        return d == null ? '' : '${d.day}.${d.month}.${d.year}';
+      case LibraryKind.puzzleSet:
+        return 'puzzle set';
+    }
+  }
+
+  IconData _iconFor(LibraryKind kind) => switch (kind) {
+    LibraryKind.scan => Icons.menu_book_outlined,
+    LibraryKind.position => Icons.push_pin_outlined,
+    LibraryKind.analysis => Icons.biotech_outlined,
+    LibraryKind.tutorial => Icons.auto_stories_outlined,
+    LibraryKind.recording => Icons.videocam_outlined,
+    LibraryKind.puzzleSet => Icons.extension_outlined,
+  };
+
   @override
   Widget build(BuildContext context) {
-    // Phase 3a builds this. The seam exists so the gate compiles and fails on
-    // what it asserts, not on a missing file.
-    return const SizedBox.shrink();
+    final colors = context.colors;
+    final query = _search.text.trim().toLowerCase();
+    final shown = widget.entries
+        .where((e) => _chip.shows(e))
+        .where((e) => query.isEmpty || e.title.toLowerCase().contains(query))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final chip in LibraryChip.values)
+              ChoiceChip(
+                label: Text(chip.label),
+                selected: _chip == chip,
+                onSelected: (_) => setState(() => _chip = chip),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _search,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(
+            hintText: LibraryList.searchHint,
+            prefixIcon: Icon(Icons.search, size: 18),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: shown.isEmpty
+              ? Center(
+                  child: Text(
+                    LibraryList.empty,
+                    style: AppText.body.copyWith(color: colors.textSecondary),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: shown.length,
+                  itemBuilder: (context, index) {
+                    final entry = shown[index];
+                    final actions = widget.actionsFor?.call(entry) ?? const [];
+                    return ListTile(
+                      leading: Icon(_iconFor(entry.kind), color: colors.accent),
+                      title: Text(entry.title),
+                      subtitle: Text(_subtitleFor(entry)),
+                      trailing: actions.isEmpty
+                          ? null
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: actions,
+                            ),
+                      onTap: () => widget.onOpen(entry),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
   }
 }

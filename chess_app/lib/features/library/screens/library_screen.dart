@@ -1,0 +1,370 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
+import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
+import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
+import 'package:chess_app/features/groups/services/group_api_service.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/library/models/library_entry.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
+import 'package:chess_app/features/library/widgets/library_list.dart';
+import 'package:chess_app/features/position_scanner/widgets/assign_positions_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
+import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
+
+/// Everything the trainer keeps, in one place — phase 3a of
+/// `docs/PLAN-REORGANIZACIJA.md` (S3). [LibraryList] draws the chips, the
+/// search field and the rows; this screen fetches, opens and acts.
+///
+/// Two sources, read once and held together: the server's five shelves
+/// (`PositionLibraryService.list()`, over `positionLibrary.js`) and the
+/// device's own puzzle sets, which the server never sees.
+class LibraryScreen extends StatefulWidget {
+  const LibraryScreen({super.key, required this.session});
+
+  final UserSession session;
+
+  @override
+  State<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends State<LibraryScreen> {
+  late final PositionLibraryService _library =
+      PositionLibraryService(authToken: widget.session.token);
+  late final LessonApiService _lessons =
+      LessonApiService(authToken: widget.session.token);
+  late final TutorialRowActions _tutorialActions = TutorialRowActions(
+    lessonApi: _lessons,
+    assignmentApi: AssignmentApiService(authToken: widget.session.token),
+    groupApi: GroupApiService(),
+  );
+
+  List<LibraryEntry>? _entries;
+  bool _loading = true;
+  bool _failed = false;
+
+  /// The raw `saved_lessons` rows behind the `tutorial` entries — fetched
+  /// once alongside the list rather than per tap or per button, because every
+  /// action a tutorial row offers (send, export, delete…) needs the row
+  /// `GET /lessons` returns, not the shelf's slimmer [LibraryEntry].
+  List<Map<String, dynamic>> _rawTutorials = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Map<String, dynamic>? _rawTutorialFor(LibraryEntry entry) {
+    for (final row in _rawTutorials) {
+      if (row['id']?.toString() == entry.id) return row;
+    }
+    return null;
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
+
+    final items = await _library.list();
+    final sets = await LocalPuzzleSetStorageService.instance.loadSets();
+    final rawRows = await _lessons.fetchAll();
+    if (!mounted) return;
+
+    if (items == null) {
+      setState(() {
+        _loading = false;
+        _failed = true;
+      });
+      return;
+    }
+
+    final rawTutorials = [
+      for (final row in rawRows)
+        if (row is Map && row['position_list'] is List)
+          Map<String, dynamic>.from(row),
+    ];
+
+    final puzzleSets = [
+      for (final set in sets)
+        LibraryEntry(
+          kind: LibraryKind.puzzleSet,
+          id: set.id,
+          title: set.title,
+          fen: '',
+          assignable: false,
+          createdAt: set.createdAt,
+        ),
+    ];
+
+    setState(() {
+      _loading = false;
+      _entries = [...items, ...puzzleSets];
+      _rawTutorials = rawTutorials;
+    });
+  }
+
+  /// One row's trailing controls, per kind. A kind with nothing to offer
+  /// draws none — [LibraryList] shows nothing rather than an empty row of
+  /// buttons.
+  List<Widget> _actionsFor(LibraryEntry entry) {
+    switch (entry.kind) {
+      case LibraryKind.tutorial:
+        final row = _rawTutorialFor(entry);
+        if (row == null) return const [];
+        return [
+          if (TutorialRowActions.isRendering(row))
+            IconButton(
+              icon: Icon(Icons.movie, size: 20, color: context.colors.accent),
+              tooltip: 'Rendering — show progress',
+              onPressed: () => _watchRender(row),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.videocam_outlined, size: 20),
+              tooltip: 'Export video',
+              onPressed: () => _exportVideo(row),
+            ),
+          if (TutorialRowActions.hasVideo(row))
+            IconButton(
+              icon: const Icon(Icons.file_download_outlined, size: 20),
+              tooltip: 'Download video',
+              onPressed: () => _tutorialActions.downloadVideo(context, row),
+            ),
+          IconButton(
+            icon: const Icon(Icons.send_outlined, size: 20),
+            tooltip: 'Send to student',
+            onPressed: () => _tutorialActions.send(context, row),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                size: 20, color: context.colors.danger),
+            tooltip: 'Delete tutorial',
+            onPressed: () => _deleteTutorial(entry, row),
+          ),
+        ];
+      case LibraryKind.scan:
+        return [
+          IconButton(
+            icon: const Icon(Icons.playlist_add, size: 20),
+            tooltip: 'Add to tutorial',
+            onPressed: () => _addToTutorial(entry),
+          ),
+          IconButton(
+            icon: const Icon(Icons.assignment_outlined, size: 20),
+            tooltip: 'Assign to student',
+            onPressed: () => _assign(entry),
+          ),
+        ];
+      case LibraryKind.position:
+        return [
+          IconButton(
+            icon: const Icon(Icons.playlist_add, size: 20),
+            tooltip: 'Add to tutorial',
+            onPressed: () => _addToTutorial(entry),
+          ),
+        ];
+      case LibraryKind.recording:
+        return [
+          IconButton(
+            icon: const Icon(Icons.play_circle_outline, size: 20),
+            tooltip: 'Play',
+            onPressed: () => _openRecording(entry),
+          ),
+        ];
+      case LibraryKind.analysis:
+      case LibraryKind.puzzleSet:
+        return const [];
+    }
+  }
+
+  Future<void> _watchRender(Map<String, dynamic> row) async {
+    await _tutorialActions.watchRender(context, row);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _exportVideo(Map<String, dynamic> row) async {
+    await _tutorialActions.exportVideo(context, row);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _deleteTutorial(
+      LibraryEntry entry, Map<String, dynamic> row) async {
+    final deleted = await _tutorialActions.delete(context, row);
+    if (!mounted || !deleted) return;
+    setState(() {
+      _entries = _entries?.where((e) => e != entry).toList();
+      _rawTutorials = _rawTutorials.where((r) => r != row).toList();
+    });
+  }
+
+  Future<void> _addToTutorial(LibraryEntry entry) async {
+    final course = await showDialog<CourseSummary>(
+      context: context,
+      builder: (context) => CoursePickerDialog(service: _library),
+    );
+    if (course == null || !mounted) return;
+
+    final error = await _lessons.appendStep(
+      lessonId: course.id,
+      step: {
+        'title': entry.title,
+        'fen': entry.fen,
+        if (entry.instruction != null) 'instruction': entry.instruction,
+        if (entry.solutionSan != null) 'solutionSan': entry.solutionSan,
+      },
+    );
+    if (!mounted) return;
+    if (error != null) {
+      AppFeedback.error(context, error);
+      return;
+    }
+    AppFeedback.success(context, 'Added to "${course.title}".');
+  }
+
+  Future<void> _assign(LibraryEntry entry) async {
+    final message = await showDialog<String>(
+      context: context,
+      builder: (context) => AssignPositionsDialog(
+        session: widget.session,
+        puzzleIds: [entry.id],
+      ),
+    );
+    if (message == null || !mounted) return;
+    AppFeedback.show(context, () => SnackBar(content: Text(message)));
+  }
+
+  void _openRecording(LibraryEntry entry) {
+    final id = int.tryParse(entry.id);
+    if (id == null) return;
+    context.push(AppRoutes.replayPath(id));
+  }
+
+  Future<void> _openTutorial(LibraryEntry entry) async {
+    final row = _rawTutorialFor(entry);
+    if (row == null) {
+      AppFeedback.error(context, 'Tutorial not found.');
+      return;
+    }
+    await openTutorialEditor(context,
+        session: widget.session, api: _lessons, lesson: row);
+  }
+
+  /// The main line of a loaded tree, as the moves `AnalysisStudioScreen`
+  /// already knows how to open a game from. Variations, comments and arrows
+  /// do not travel this way — that needs a constructor parameter the studio
+  /// screen does not have, and this phase does not touch that screen.
+  List<String> _mainLineUci(AnalysisNode root) {
+    final moves = <String>[];
+    var node = root;
+    while (node.children.isNotEmpty) {
+      node = node.children.first;
+      final uci = node.moveUci;
+      if (uci != null) moves.add(uci);
+    }
+    return moves;
+  }
+
+  Future<void> _openAnalysis(LibraryEntry entry) async {
+    final id = int.tryParse(entry.id);
+    if (id == null) return;
+    final root = await AnalysisPersistenceService.instance
+        .loadAnalysis(id: id, userToken: widget.session.token);
+    if (!mounted) return;
+    if (root == null) {
+      AppFeedback.error(context, 'Could not load that analysis.');
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AnalysisStudioScreen(
+        userSession: widget.session,
+        initialGame: (
+          startFen: root.fen,
+          uciMoves: _mainLineUci(root),
+          cursorPly: 0,
+          blackOrientation: false,
+        ),
+      ),
+    ));
+  }
+
+  void _open(LibraryEntry entry) {
+    switch (entry.kind) {
+      case LibraryKind.tutorial:
+        _openTutorial(entry);
+      case LibraryKind.position:
+      case LibraryKind.scan:
+        context.push(AppRoutes.analysisPath(fen: entry.fen));
+      case LibraryKind.analysis:
+        _openAnalysis(entry);
+      case LibraryKind.recording:
+        _openRecording(entry);
+      case LibraryKind.puzzleSet:
+        // No door into puzzle mode outside the Analysis screen it was
+        // extracted in — see the report. Drawn, but tapping it does nothing.
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Scaffold(
+      backgroundColor: colors.canvas,
+      appBar: AppBar(
+        title: const Text('Library'),
+        backgroundColor: colors.surface,
+        actions: [
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
+      body: _body(),
+    );
+  }
+
+  Widget _body() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+
+    if (_failed) {
+      final colors = context.colors;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off, size: 48, color: colors.textMuted),
+              const SizedBox(height: AppSpacing.md),
+              const Text('The library could not be loaded.'),
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton(onPressed: _load, child: const Text('Try again')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: LibraryList(
+        entries: _entries ?? const [],
+        onOpen: _open,
+        actionsFor: _actionsFor,
+      ),
+    );
+  }
+}

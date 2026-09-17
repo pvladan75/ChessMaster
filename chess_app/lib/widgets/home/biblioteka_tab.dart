@@ -12,6 +12,7 @@ class HomeBibliotekaTab extends StatelessWidget {
   final VoidCallback onOpenAnalysis;
   final VoidCallback onOpenScanner;
   final VoidCallback onOpenSavedPositions;
+  final VoidCallback onOpenLibrary;
 
   const HomeBibliotekaTab({
     super.key,
@@ -20,6 +21,7 @@ class HomeBibliotekaTab extends StatelessWidget {
     required this.onOpenAnalysis,
     required this.onOpenScanner,
     required this.onOpenSavedPositions,
+    required this.onOpenLibrary,
   });
 
   @override
@@ -35,6 +37,52 @@ class HomeBibliotekaTab extends StatelessWidget {
               // Spacing is the card's own — see TutorialLibraryCard. The tab
               // cannot tell a card that draws nothing from one that is absent.
               if (tutorialCard != null) tutorialCard!,
+              Card(
+                shape: AppRadii.cardShape,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.collections_bookmark_outlined,
+                              color: context.colors.accent, size: 28),
+                          const SizedBox(width: AppSpacing.md),
+                          // Not „Library" — that is the tab's own name, a
+                          // hand's width above, and a card that repeats it
+                          // told home_tabs_test the header had doubled.
+                          Text(
+                            'Everything you keep',
+                            style: AppText.headline
+                                .copyWith(color: context.colors.textPrimary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Tutorials, positions, analyses and recordings, in one list.',
+                        style: AppText.body
+                            .copyWith(color: context.colors.textSecondary),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.collections_bookmark_outlined),
+                          label: const Text('Open library'),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                            padding: AppSpacing.buttonPadding,
+                          ),
+                          onPressed: onOpenLibrary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
               Card(
                 shape: AppRadii.cardShape,
                 child: Padding(
