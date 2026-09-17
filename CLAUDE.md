@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2831 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2839 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1406 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000

@@ -2903,3 +2903,26 @@ answer; the brief now has to say *check `git log -1` first and fast-forward to
 the named commit*, because the third worker may not notice. Same family as the
 worktree that ran `flutter pub get` and left the platform registrants
 modified: a tree that is not what the brief says it is.
+
+**Reorganisation phase 2 and the manual batch — 17.9.2026, app 2831 → 2839,
+1 skipped, analyze 26.** The arithmetic: 2831 + 15 in `manual_places_test.dart`
+(1 + 13 pages + 1) − 7 deleted with `create_course_dialog.dart` (2 in
+`course_dialog_labels_test`, 2 in `dialog_layout_test`, 1 each in
+`lesson_editor_test`, `part_titles_shown_test`, `tutorial_versions_test`).
+Measured on `master` with nothing else running — the reading before it said
+229 analyzer issues and no suite at all, taken while a worktree was being
+created beside it; rule 19 holds for the analyzer too.
+
+**An enum that grows breaks every `values` loop that meant three of them.**
+`LibraryKind` gained `tutorial`, `recording` and `puzzleSet` for the one
+library; `PositionPickerDialog` drew a chip per `LibraryKind.values`, six chips
+wrapped to a second row, and `dialog_layout_test` overflowed by 17 pixels. The
+picker now names its three shelves (`pickerKinds`). The rule: a `for (x in
+Enum.values)` in a widget is a claim that every future member belongs there —
+write the list the widget means, or the day the enum grows is the day a
+dialog overflows in silence in a release build.
+
+**The manual outran the code by design, and the merge order followed it.** The
+batch's pages were merged *before* phase 2 so that phase 2's quote edits to the
+same five pages lost cleanly to the rewritten ones (`git checkout --ours`),
+instead of the batch losing to phase 2's older sentences.

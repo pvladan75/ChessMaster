@@ -118,6 +118,19 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Faza 2 gotova, 17.9.2026, spojeno `6a7ac83`** (implementer, Sonnet): treći
+editor (`CreateCourseDialog`) obrisan, „Create tutorial (multiple positions)"
+i „Edit positions" nestali iz sobe; leva kolona sobe je „Board" (Set up
+position, Import PGN, Save position, FEN) i „Library"; mrtvi dijalozi
+(zakazivanje, Premium) obrisani; vidljivo „Join" prolazi kroz proveru šest
+cifara; „Student groups" uvek nacrtano; nova imena (New session, Recordings,
+Students and trainers, Tutorials, Scan a book, Save position). Sedam testova
+otišlo sa editorom. **`master` posle svega: 2839, 1 preskočen, analyze 26;
+backend 1406.** Faza 3a (jedna biblioteka: server dobija police `tutorial` i
+`recording`, `LibraryList` + `LibraryScreen`) briefovana i pokrenuta; šavovi
+vođe u `facac0a` (model, seam, dve kapije), a birač pozicija je pri tom uhvaćen
+kako crta čip po svakoj vrednosti enuma — sad imenuje svoje tri police.
+
 **Faza 1 gotova, 17.9.2026, spojeno `bfeaadb`** (implementer, Sonnet): jedno
 dugme „Use in a tutorial" i list sa šest redova umesto četiri dugmeta; dijalog
 „What are we transferring" nestao; 2819 → 2831, analyze 26. Backend faza 1
