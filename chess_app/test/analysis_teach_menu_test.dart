@@ -20,7 +20,6 @@ void main() {
   Widget host({
     bool hasLine = true,
     bool hasGame = true,
-    bool studioAvailable = true,
   }) =>
       MaterialApp(
         theme: ThemeData.light()
@@ -33,7 +32,6 @@ void main() {
                   context,
                   hasLine: hasLine,
                   hasGame: hasGame,
-                  studioAvailable: studioAvailable,
                   onNewFromPosition: () => calls.add('newPosition'),
                   onNewFromLine: () => calls.add('newLine'),
                   onNewFromGame: () => calls.add('newGame'),
@@ -59,8 +57,7 @@ void main() {
       .map((t) => (t.title as Text).data!)
       .toList();
 
-  testWidgets('with a line, a game and the studio: seven rows, in order',
-      (tester) async {
+  testWidgets('with a line and a game: six rows, in order', (tester) async {
     await open(tester, host());
     expect(find.text(TeachMenuSheet.title), findsOneWidget);
     expect(rowsShown(tester), [
@@ -72,17 +69,6 @@ void main() {
       'Open a tutorial to edit…',
     ]);
     expect(find.byType(Divider), findsNWidgets(2));
-  });
-
-  testWidgets('without the studio, only what a phone can do today',
-      (tester) async {
-    await open(tester, host(studioAvailable: false));
-    expect(rowsShown(tester), [
-      'Add this position to a tutorial…',
-      'Add this line to a tutorial…',
-      'Open a tutorial to edit…',
-    ]);
-    expect(find.byType(Divider), findsOneWidget);
   });
 
   testWidgets('on a bare position: no line rows, no game row', (tester) async {

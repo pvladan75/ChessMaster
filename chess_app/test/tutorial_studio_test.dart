@@ -14,9 +14,9 @@
 // examples, and the single `POST /lessons/save`. Those are batch E, and the
 // gate for them is written before that batch, not now. What is here is the
 // shell: a position to start from, a tree that grows as the trainer plays, a
-// strip that walks it, a draft that outlives the screen, and — the two checks
-// this plan exists for — no second copy of the board, the tree or the cursor,
-// and one named predicate deciding where the door is drawn.
+// strip that walks it, a draft that outlives the screen, and — the check
+// this plan exists for — no second copy of the board, the tree or the
+// cursor.
 
 import 'dart:io';
 
@@ -32,7 +32,6 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -388,37 +387,19 @@ void main() {
       );
     });
 
-    test('the door is behind one named predicate, in one place', () {
-      // Decision 5: Windows-only for now, and which other screens stop making
-      // sense on a phone is a decision the owner takes later — with the screen
-      // in front of them. That decision is a one-line change only while the
-      // predicate has one home.
-      addTearDown(() => debugTutorialStudioAvailable = null);
-
-      debugTutorialStudioAvailable = true;
-      expect(isTutorialStudioAvailable, isTrue);
-      debugTutorialStudioAvailable = false;
-      expect(isTutorialStudioAvailable, isFalse);
-      debugTutorialStudioAvailable = null;
-      expect(isTutorialStudioAvailable, Platform.isWindows,
-          reason: 'the predicate stopped reading the platform');
-
+    test('the Analysis screen has a door to the tutorial studio', () {
       // The Studio's door is read from source: the Studio does not build in a
       // widget test (an engine, a tablebase and three network services start
-      // with it), and this is the weakest check in this file — it says the
-      // door consults the predicate, not that it disappears. Proved by
-      // mutation before it was trusted: deleting the guard turns it red.
+      // with it). Since phase 1 of docs/PLAN-REORGANIZACIJA.md (S2) the door
+      // is the teach menu sheet, not a bar action of its own; since phase 6c
+      // it is drawn on every platform, with no guard left to read.
       final studio = File(
               'lib/features/analysis_studio/screens/analysis_studio_screen.dart')
           .readAsStringSync();
       // Asserted on the answer rather than on the file, so a failure says what
       // is missing instead of printing 2400 lines of screen at whoever ran it.
-      // Since phase 1 of docs/PLAN-REORGANIZACIJA.md (S2) the door is the
-      // teach menu sheet, not a bar action of its own.
       expect(studio.contains('showTeachMenu('), isTrue,
           reason: 'the Studio has no door to the tutorial studio');
-      expect(studio.contains('isTutorialStudioAvailable'), isTrue,
-          reason: 'the Studio draws the door on Android too');
     });
   });
 }

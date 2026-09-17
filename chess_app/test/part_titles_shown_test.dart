@@ -25,7 +25,6 @@ import 'package:chess_app/features/library/services/position_library_service.dar
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 
@@ -150,9 +149,6 @@ void main() {
   });
 
   group('the room', () {
-    setUp(() => debugTutorialStudioAvailable = false);
-    tearDown(() => debugTutorialStudioAvailable = null);
-
     testWidgets('loads, steps and lists a tutorial\'s parts as „Part N"',
         (tester) async {
       tester.view.physicalSize = const Size(1200, 800);

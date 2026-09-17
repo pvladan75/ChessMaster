@@ -22,7 +22,6 @@ import 'package:chess_app/features/archive/services/archive_api_service.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/assignments/screens/custom_puzzle_solver_screen.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
-import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
@@ -318,93 +317,6 @@ void main() {
         expectOnScreen(tester, size, find.byTooltip('Next Position'));
       });
     }
-  });
-
-  group('Tutorial step editor (Android)', () {
-    Widget screen() => Scaffold(
-          appBar: AppBar(title: const Text('Tutorial parts')),
-          body: LessonStepEditorPanel(
-            session: _session,
-            api: LessonApiService(
-              authToken: 't',
-              client: MockClient((_) async => http.Response('{}', 500)),
-            ),
-            lesson: const {
-              'id': 7,
-              'title': 'Back rank',
-              'position_list': [
-                {'id': 'a1', 'fen': mateInOne, 'title': 'First'},
-                {'id': 'b2', 'fen': mateInOne, 'title': 'Second'},
-              ],
-            },
-          ),
-        );
-
-    for (final size in phones) {
-      testWidgets('at ${sizeLabel(size)}, the Board tab', (tester) async {
-        await pumpAt(tester, size, screen());
-        // Opens on the board, beside the steps, with nothing typed on it.
-        expectBoardBeside(tester, size);
-        expect(find.byKey(const Key('step-title')), findsNothing);
-        expectOnScreen(tester, size, find.text('First'));
-        expectOnScreen(tester, size, find.text('Second'));
-        expectOnScreen(tester, size, find.byTooltip('Add step'));
-        expectOnScreen(tester, size, find.text('Save step'));
-        expectOnScreen(tester, size, find.text('Preview'));
-
-        // A step picked on the board tab is the one the text tab edits.
-        await tester.tap(find.text('Second'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key('editor-tab-text')));
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
-        expect(find.byType(LandscapeBoardLayout), findsNothing);
-        final title =
-            tester.widget<TextField>(find.byKey(const Key('step-title')));
-        expect(title.controller!.text, 'Second');
-        expectOnScreen(tester, size, find.byKey(const Key('step-title')));
-      });
-    }
-
-    testWidgets('the Text tab keeps the keyboard open while typing',
-        (tester) async {
-      await pumpAt(tester, const Size(800, 360), screen());
-      await tester.tap(find.byKey(const Key('editor-tab-text')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('step-title')));
-      await tester.pump();
-      tester.view.viewInsets = const FakeViewPadding(bottom: 250);
-      addTearDown(tester.view.resetViewInsets);
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(tester.testTextInput.isVisible, isTrue);
-      await tester.enterText(find.byKey(const Key('step-title')), 'Mate');
-      await tester.pump();
-
-      // And the title typed there is the step's name on the Board tab.
-      tester.view.resetViewInsets();
-      await tester.tap(find.byKey(const Key('editor-tab-board')));
-      await tester.pumpAndSettle();
-      expect(find.text('Mate'), findsOneWidget);
-    });
-
-    testWidgets('nothing is under the system buttons at the side',
-        (tester) async {
-      await pumpAt(tester, const Size(800, 360), screen());
-      tester.view.padding = const FakeViewPadding(right: 48);
-      addTearDown(tester.view.resetPadding);
-      await tester.pumpAndSettle();
-      for (final key in ['editor-tab-text']) {
-        expect(
-            tester.getRect(find.byKey(Key(key))).right, lessThanOrEqualTo(752));
-      }
-      expect(
-          tester.getRect(find.text('Preview')).right, lessThanOrEqualTo(752));
-      await tester.tap(find.byKey(const Key('editor-tab-text')));
-      await tester.pumpAndSettle();
-      expect(tester.getRect(find.byKey(const Key('step-title'))).right,
-          lessThanOrEqualTo(752));
-    });
   });
 
   group('Studio room', () {

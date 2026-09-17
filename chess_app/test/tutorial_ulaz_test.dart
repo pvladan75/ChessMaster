@@ -50,9 +50,11 @@
 // Nothing else. „Deo" is D7 and lands with the screen in P5, so this batch does
 // not rename „Primer" anywhere.
 //
-// **Where it is drawn.** Behind `isTutorialStudioAvailable`, the one named
-// predicate, read and never rewritten. A second `Platform.isWindows` anywhere
-// in `lib/` is a finding, and the last test in this file is what says so.
+// **Where it is drawn.** Unconditionally, since phase 6c of
+// `docs/PLAN-REORGANIZACIJA.md` retired the platform guard on 17.9.2026 — the
+// studio it opens onto exists on every platform now. A `Platform.isWindows`
+// anywhere in `lib/` for an unrelated, legitimate reason is still frozen to
+// the list the last test in this file checks.
 //
 // **What each action does.**
 //
@@ -120,7 +122,6 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
@@ -210,10 +211,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await TutorialDraftService.instance.clear();
-    debugTutorialStudioAvailable = true;
   });
-
-  tearDown(() => debugTutorialStudioAvailable = null);
 
   Future<void> pump(WidgetTester tester, {LessonApiService? api}) async {
     tester.view.physicalSize = const Size(1600, 1000);
@@ -242,21 +240,11 @@ void main() {
   }
 
   group('where the door is drawn', () {
-    testWidgets('on Windows, the card is there', (tester) async {
+    testWidgets('the card is there', (tester) async {
       await pump(tester);
       expect(find.text('Tutorials'), findsOneWidget);
       expect(find.text('New tutorial'), findsOneWidget);
       expect(find.text('Saved tutorials'), findsOneWidget);
-    });
-
-    testWidgets('everywhere else, it is not', (tester) async {
-      // Decision 5 of docs/PLAN-TUTORIJAL.md: the studio is a desktop screen
-      // and Android is 360–410 dp. The card must not be a door to a screen that
-      // is not there.
-      debugTutorialStudioAvailable = false;
-      await pump(tester);
-      expect(find.text('Tutorials'), findsNothing);
-      expect(find.text('New tutorial'), findsNothing);
     });
   });
 
@@ -421,29 +409,25 @@ void main() {
   });
 
   group('what the card must not become', () {
-    test('the tutorial studio has exactly one availability predicate', () {
+    test('no file decides a platform question for itself', () {
       // **This test asserted something false when it was written, and batch 56
       // reported it rather than working around it.** It had exempted
       // `engine_settings_dialog.dart` at a path that does not exist — it lives
-      // in `lib/widgets/`, not under `analysis_studio/` — and it had assumed the
-      // predicate was the only place in `lib/` that asks about Windows at all.
-      // Four other files ask, legitimately and for unrelated reasons: the
-      // desktop sign-in, the engine download, the native Stockfish binding and
-      // the room screen. A gate is worth nothing if what it claims is untrue,
-      // and a gate naming a file that is not there cannot be noticed by
-      // failing.
+      // in `lib/widgets/`, not under `analysis_studio/` — and it had assumed a
+      // predicate this project no longer has (phase 6c of
+      // `docs/PLAN-REORGANIZACIJA.md` retired the tutorial studio's platform
+      // guard on 17.9.2026) was the only place in `lib/` that asks about
+      // Windows at all. Five files ask, legitimately and for unrelated
+      // reasons: the desktop sign-in, the engine download, the native
+      // Stockfish binding, the room screen and the engine settings dialog. A
+      // gate is worth nothing if what it claims is untrue, and a gate naming
+      // a file that is not there cannot be noticed by failing.
       //
-      // The rule that is actually worth keeping is narrower. „Which screens
-      // stop making sense on a phone" must stay a one-line change, so the
-      // *tutorial studio's* availability has exactly one home. Everything else
-      // asking the platform a different question is not this rule's business.
-      //
-      // So: the list is frozen, and a **sixth** file is the finding. The same
-      // idiom this project already uses for the analyzer — compare the list,
-      // not the count. Adding a genuine new desktop capability means adding a
-      // line here, deliberately, which is the point.
+      // So: the list is frozen. The same idiom this project already uses for
+      // the analyzer — compare the list, not the count. Adding a genuine new
+      // desktop capability means adding a line here, deliberately, which is
+      // the point.
       const known = {
-        'lib/features/tutorial_studio/tutorial_studio_availability.dart',
         'lib/screens/chess_game_screen.dart',
         'lib/services/desktop_google_sign_in_io.dart',
         'lib/services/engine_download_service.dart',
@@ -475,18 +459,18 @@ void main() {
       final card = File('lib/features/tutorial_studio/widgets/'
               'tutorial_library_card.dart')
           .readAsStringSync();
-      expect(card.contains('isTutorialStudioAvailable'), isTrue);
+      expect(card.contains('isTutorialStudioAvailable'), isFalse,
+          reason: 'phase 6c retired the platform guard; the card draws '
+              'itself unconditionally now');
       expect(card.contains('TutorialEntry.blank'), isTrue);
       expect(card.contains('TutorialEntry.saved'), isTrue);
 
       // The tab stays a tab: it draws what it is given and knows nothing about
-      // tutorials, entries or platforms.
+      // tutorials or entries.
       final tab =
           File('lib/widgets/home/biblioteka_tab.dart').readAsStringSync();
       expect(tab.contains('TutorialEntry'), isFalse,
           reason: 'the library tab has started deciding what a tutorial is');
-      expect(tab.contains('isTutorialStudioAvailable'), isFalse,
-          reason: 'the platform question belongs in the card, in one place');
     });
   });
 }

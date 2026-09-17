@@ -12,9 +12,9 @@ import 'package:chess_app/theme/app_typography.dart';
 /// a vocabulary comes apart.
 ///
 /// The sheet draws only what it was given (rule 15): a row whose condition is
-/// false is not drawn greyed out, it is absent. `studioAvailable` is decision 5
-/// of `docs/PLAN-TUTORIJAL.md` and goes with phase 6c, when every row is drawn
-/// on every platform.
+/// false is not drawn greyed out, it is absent. Since phase 6c of
+/// `docs/PLAN-REORGANIZACIJA.md` every row is drawn on every platform; only
+/// `hasLine` and `hasGame` still hide one.
 ///
 /// Every callback runs **after** the sheet has closed, so a row that pushes a
 /// screen pushes it over the Analysis board and not over the sheet.
@@ -23,7 +23,6 @@ class TeachMenuSheet extends StatelessWidget {
     super.key,
     required this.hasLine,
     required this.hasGame,
-    required this.studioAvailable,
     required this.onNewFromPosition,
     required this.onNewFromLine,
     required this.onNewFromGame,
@@ -37,9 +36,6 @@ class TeachMenuSheet extends StatelessWidget {
 
   /// The tree has a main line at all — the game flow refuses an empty one.
   final bool hasGame;
-
-  /// The Tutorial Studio exists on this device.
-  final bool studioAvailable;
 
   final VoidCallback onNewFromPosition;
   final VoidCallback onNewFromLine;
@@ -73,12 +69,9 @@ class TeachMenuSheet extends StatelessWidget {
         );
 
     final newRows = <Widget>[
-      if (studioAvailable)
-        row(newFromPosition, Icons.auto_stories_outlined, onNewFromPosition),
-      if (studioAvailable && hasLine)
-        row(newFromLine, Icons.timeline, onNewFromLine),
-      if (studioAvailable && hasGame)
-        row(newFromGame, Icons.school_outlined, onNewFromGame),
+      row(newFromPosition, Icons.auto_stories_outlined, onNewFromPosition),
+      if (hasLine) row(newFromLine, Icons.timeline, onNewFromLine),
+      if (hasGame) row(newFromGame, Icons.school_outlined, onNewFromGame),
     ];
     final addRows = <Widget>[
       row(addPosition, Icons.add_task, onAddPosition),
@@ -117,7 +110,6 @@ Future<void> showTeachMenu(
   BuildContext context, {
   required bool hasLine,
   required bool hasGame,
-  required bool studioAvailable,
   required VoidCallback onNewFromPosition,
   required VoidCallback onNewFromLine,
   required VoidCallback onNewFromGame,
@@ -134,7 +126,6 @@ Future<void> showTeachMenu(
     builder: (_) => TeachMenuSheet(
       hasLine: hasLine,
       hasGame: hasGame,
-      studioAvailable: studioAvailable,
       onNewFromPosition: onNewFromPosition,
       onNewFromLine: onNewFromLine,
       onNewFromGame: onNewFromGame,
