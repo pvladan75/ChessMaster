@@ -124,7 +124,11 @@ class _MatrixFilterPanelState extends State<MatrixFilterPanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // A Wrap, not a Row: in the Library on a 411 dp phone the
+                // label and both chips overflowed by 48 px (17.9.2026).
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  runSpacing: AppSpacing.xs,
                   children: [
                     Text('Match mode: ',
                         style:

@@ -5904,11 +5904,18 @@ telefon i 6c jedan urednik, implementeri). Windows i telefon.
    sa istim delovima, komentarima i pitanjem — i obratno.
 9. [ ] **Soba na telefonu**: „Edit tutorial" na redu tutorijala otvara studio
    (ranije stari panel); Analiza → „Use in a tutorial" nudi i redove studija.
-11. [ ] **„Saved tutorials" na telefonu** (prijava vlasnika 17.9.2026: na
-    telefonu dijalog bez ijednog tutorijala, na Windows-u svi): Teach →
-    Tutorials → „Saved tutorials" sada pokazuje listu ispod pretrage i
-    oznaka; oznake zauzimaju najviše dva reda i skroluju se same, lista se
-    skroluje ispod njih; tap na oznaku filtrira, tap na red otvara studio.
+11. [ ] **„Saved tutorials" otvara Library** (prijave vlasnika 17.9.2026:
+    na telefonu dijalog bez tutorijala, pa redovi bez naslova i položeno bez
+    liste; vlasnik izabrao varijantu B — dijalog uklonjen). Teach → Tutorials →
+    „Saved tutorials" otvara ekran Library na čipu „Tutorials" i „Mine":
+    - **portret**: naslov tutorijala čitljiv, četiri dugmeta (video, preuzmi,
+      pošalji, obriši) u redu ispod naslova;
+    - **položeno**: čipovi, oznake i pretraga odlaze nagore sa listom kad se
+      skroluje; redovi su dostupni;
+    - **„From trainer"**: trenerovi tutorijali bez dugmadi, tap kaže da je
+      tutorijal trenerov;
+    - **Windows**: dugmad ostaju u istoj liniji sa naslovom;
+    - tap na red otvara studio; „Label Filter Matrix" i „Search" sužavaju.
 10. [ ] **Priručnik** (write-a-tutorial, analysis, getting-started) više ne
     pominje Windows kao uslov.
 

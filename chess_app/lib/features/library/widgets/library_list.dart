@@ -30,6 +30,7 @@ class LibraryList extends StatefulWidget {
     this.originChips = false,
     this.labels = const [],
     this.shrinkWrap = false,
+    this.initialFromTrainer,
   });
 
   final List<LibraryEntry> entries;
@@ -63,6 +64,19 @@ class LibraryList extends StatefulWidget {
   /// whole. The default fills what it is given, which inside a
   /// SingleChildScrollView is nothing at all.
   final bool shrinkWrap;
+
+  /// Which of [mine] and [fromTrainer] is selected when the list opens; null
+  /// is neither, so everyone's rows show. Only read with [originChips].
+  final bool? initialFromTrainer;
+
+  /// Below this width a row's actions go on a line of their own under its
+  /// title. Beside it, four 48 dp buttons left a title on a phone no width
+  /// at all — the owner's screenshot of 17.9.2026 showed rows of icons and
+  /// no names.
+  static const double actionsBesideFrom = 480;
+
+  /// Below this height the filters scroll with the list rather than above it.
+  static const double headerScrollsBelow = 480;
 
   static const String searchHint = 'Search';
   static const String empty = 'Nothing here yet.';
@@ -100,7 +114,8 @@ class _LibraryListState extends State<LibraryList> {
   final TextEditingController _search = TextEditingController();
 
   /// null is everyone; true only the trainer's rows; false only mine.
-  bool? _fromTrainer;
+  late bool? _fromTrainer =
+      widget.originChips ? widget.initialFromTrainer : null;
 
   List<String> _include = const [];
   List<String> _exclude = const [];
@@ -183,93 +198,129 @@ class _LibraryListState extends State<LibraryList> {
         .where((e) => _searchShown(e, query))
         .toList();
 
-    final list = shown.isEmpty
-        ? Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                LibraryList.empty,
-                style: AppText.body.copyWith(color: colors.textSecondary),
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = widget.shrinkWrap ||
+          constraints.maxHeight < LibraryList.headerScrollsBelow;
+      final list = shown.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  LibraryList.empty,
+                  style: AppText.body.copyWith(color: colors.textSecondary),
+                ),
               ),
-            ),
-          )
-        : ListView.builder(
-            shrinkWrap: widget.shrinkWrap,
-            physics:
-                widget.shrinkWrap ? const NeverScrollableScrollPhysics() : null,
-            itemCount: shown.length,
-            itemBuilder: (context, index) {
-              final entry = shown[index];
-              final actions = widget.actionsFor?.call(entry) ?? const [];
-              return ListTile(
-                leading: Icon(_iconFor(entry.kind), color: colors.accent),
-                title: Text(entry.title),
-                subtitle: Text(_subtitleFor(entry)),
-                trailing: actions.isEmpty
-                    ? null
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: actions,
-                      ),
-                onTap: () => widget.onOpen(entry),
-              );
-            },
-          );
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final beside =
+                    constraints.maxWidth >= LibraryList.actionsBesideFrom;
+                return ListView.builder(
+                  shrinkWrap: compact,
+                  physics:
+                      compact ? const NeverScrollableScrollPhysics() : null,
+                  itemCount: shown.length,
+                  itemBuilder: (context, index) {
+                    final entry = shown[index];
+                    final actions = widget.actionsFor?.call(entry) ?? const [];
+                    final tile = ListTile(
+                      leading: Icon(_iconFor(entry.kind), color: colors.accent),
+                      title: Text(entry.title, overflow: TextOverflow.ellipsis),
+                      subtitle: Text(_subtitleFor(entry)),
+                      trailing: (beside && actions.isNotEmpty)
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min, children: actions)
+                          : null,
+                      onTap: () => widget.onOpen(entry),
+                    );
+                    return KeyedSubtree(
+                      key: ValueKey(
+                          'library-row-${entry.kind.name}-${entry.id}'),
+                      child: (beside || actions.isEmpty)
+                          ? tile
+                          // Under the tile, not in its subtitle: a tap lands on
+                          // a widget's centre, and a tile tall enough to hold a
+                          // row of buttons puts its centre on one of them —
+                          // the phone layout of phase 6b learned that on
+                          // „Clone part".
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                tile,
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 56, bottom: 4),
+                                  child: Wrap(children: actions),
+                                ),
+                              ],
+                            ),
+                    );
+                  },
+                );
+              },
+            );
 
-    return Column(
-      mainAxisSize: widget.shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            for (final chip in widget.chips)
-              ChoiceChip(
-                label: Text(chip.label),
-                selected: _chip == chip,
-                onSelected: (_) => setState(() => _chip = chip),
-              ),
-            if (widget.originChips) ...[
-              FilterChip(
-                label: const Text(LibraryList.mine),
-                selected: _fromTrainer == false,
-                onSelected: (on) =>
-                    setState(() => _fromTrainer = on ? false : null),
-              ),
-              FilterChip(
-                label: const Text(LibraryList.fromTrainer),
-                selected: _fromTrainer == true,
-                onSelected: (on) =>
-                    setState(() => _fromTrainer = on ? true : null),
-              ),
+      final column = Column(
+        mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final chip in widget.chips)
+                ChoiceChip(
+                  label: Text(chip.label),
+                  selected: _chip == chip,
+                  onSelected: (_) => setState(() => _chip = chip),
+                ),
+              if (widget.originChips) ...[
+                FilterChip(
+                  label: const Text(LibraryList.mine),
+                  selected: _fromTrainer == false,
+                  onSelected: (on) =>
+                      setState(() => _fromTrainer = on ? false : null),
+                ),
+                FilterChip(
+                  label: const Text(LibraryList.fromTrainer),
+                  selected: _fromTrainer == true,
+                  onSelected: (on) =>
+                      setState(() => _fromTrainer = on ? true : null),
+                ),
+              ],
             ],
-          ],
-        ),
-        if (widget.labels.isNotEmpty)
-          MatrixFilterPanel(
-            availableUserLabels: widget.labels,
-            selectedIncludeTags: _include,
-            selectedExcludeTags: _exclude,
-            filterMatchMode: _matchMode,
-            onFilterChanged: (include, exclude, mode) => setState(() {
-              _include = include;
-              _exclude = exclude;
-              _matchMode = mode;
-            }),
           ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _search,
-          onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(
-            hintText: LibraryList.searchHint,
-            prefixIcon: Icon(Icons.search, size: 18),
+          if (widget.labels.isNotEmpty)
+            MatrixFilterPanel(
+              availableUserLabels: widget.labels,
+              selectedIncludeTags: _include,
+              selectedExcludeTags: _exclude,
+              filterMatchMode: _matchMode,
+              onFilterChanged: (include, exclude, mode) => setState(() {
+                _include = include;
+                _exclude = exclude;
+                _matchMode = mode;
+              }),
+            ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              hintText: LibraryList.searchHint,
+              prefixIcon: Icon(Icons.search, size: 18),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        if (widget.shrinkWrap) list else Expanded(child: list),
-      ],
-    );
+          const SizedBox(height: 8),
+          if (compact) list else Expanded(child: list),
+        ],
+      );
+      // Below [headerScrollsBelow] the chips, the label panel and the search
+      // box scroll away with the rows instead of standing over them: on a
+      // phone held sideways (640 × 360) they took the whole height.
+      return (compact && !widget.shrinkWrap)
+          ? SingleChildScrollView(child: column)
+          : column;
+    });
   }
 }

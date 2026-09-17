@@ -3177,3 +3177,34 @@ labels, where it fits. It is the second of the two release-build traps in
 the size, and the fix is the rule's: nothing above a list may take all its
 room. Found by the owner, reproduced by measuring before a line was
 changed, and the test is the owner's own labels.
+
+**„Saved tutorials" opens the Library — 17.9.2026, app 2879 → 2879.** The
+arithmetic: − 3 in the first `saved_tutorials_phone_test.dart` (the dialog
+at two phone sizes and Windows), replaced by 7 on the Library (four sizes in
+both orientations, the trainer's own tutorials, search and a label, Windows);
+− 4 in `tutorial_import_flow_test.dart`, the group that tested the dialog's
+own chips and search box, whose rules now live in `library_list_test`.
+Analyze 26; backend unchanged.
+
+**A first fix measured on a lucky fixture is a second report.** The fix for
+the empty dialog was tested with tutorials that had no film — three buttons,
+not four — and titles of two words, and it passed. The owner's phone had
+films and sentences for names: each row was four icons and no title, and
+held sideways the chips took the height again. Rule 6, again, the same day:
+the fixture has to be what the owner's screen holds, and the second test is
+built from their screenshot, not from the first test.
+
+**When a second copy of a list breaks, delete the copy.** The dialog was the
+Library's list, search, labels and four actions written a second time, in a
+container that cannot give a phone room. Offered three ways, the owner chose
+to open the Library instead; the rows' fit on a phone was then fixed once, in
+`LibraryList`, for the Library, the Saved-tutorials door and the room's
+column together. The Library had its own dormant faults the dialog did not —
+a trainer's tutorials offered send and delete to a student, a download that
+found no film left its button — and routing a busy door through it woke both
+(rule 14), which is when they were fixed.
+
+**A recorded deletion is a claim, and it can be false.** Phase 5 wrote that
+`biblioteka_tab.dart` was deleted; the file was still tracked, untouched, and
+a source-reading test was still reading it. The `git rm` never reached the
+commit. `git ls-files` answers the question; the handoff does not.

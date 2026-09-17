@@ -14,7 +14,9 @@ import 'package:chess_app/features/tutorial_studio/services/pgn_question_split.d
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_import_dialog.dart';
-import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
+import 'package:chess_app/features/library/screens/library_screen.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/library_list.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -64,6 +66,7 @@ class TutorialLibraryCard extends StatelessWidget {
     this.assignmentApi,
     this.groupApi,
     this.pickFiles,
+    this.positionLibrary,
   });
 
   final UserSession session;
@@ -82,6 +85,10 @@ class TutorialLibraryCard extends StatelessWidget {
   /// of the import a widget test cannot drive. Defaulted to the real one, like
   /// every other seam on this card, so only a test ever passes it.
   final TutorialFilePicker? pickFiles;
+
+  /// The shelf „Saved tutorials" opens the Library on. Same rule as the
+  /// seams above.
+  final PositionLibraryService? positionLibrary;
 
   @override
   Widget build(BuildContext context) {
@@ -336,465 +343,23 @@ class TutorialLibraryCard extends StatelessWidget {
     return files;
   }
 
+  /// „Saved tutorials" is the Library, opened on the trainer's own
+  /// tutorials. Until 17.9.2026 it was a dialog of its own — a second copy of
+  /// the list, its search and its labels — which on a phone gave its rows no
+  /// height in portrait and no width for a title in landscape (the owner's
+  /// screenshots). One list, one home: `docs/PLAN-REORGANIZACIJA.md` S3.
   Future<void> _onOpenSavedTutorial(BuildContext context) async {
-    final service = api ?? LessonApiService(authToken: session.token);
-    final rawRows = await service.fetchAll();
-    if (!context.mounted) return;
-
-    // `lastFetchFailed` is the whole answer. The `identical(rawRows, const [])`
-    // that stood beside it happened to be harmless — `jsonDecode` builds a new
-    // list, so a genuinely empty library is never the canonical `const []` —
-    // but it read as though it were doing the work, and it would start
-    // misfiring the day `fetchAll` returned a plain `[]` on failure. A second
-    // condition that cannot be right when the first is wrong is not a
-    // safeguard.
-    if (service.lastFetchFailed) {
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Saved tutorials'),
-          content: const Text('Could not load tutorials.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    // Two questions, and the second one is newer than this card.
-    //
-    // A row with no `position_list` is a diagram rather than a tutorial, and
-    // opening the studio on it opens something with no parts.
-    //
-    // And `is_trainer_lesson` is true for exactly the rows `GET /lessons`
-    // reaches through `acceptedTrainersOf` — everything the trainers who teach
-    // this account have ever saved. **This is somebody else's work**, and it
-    // has no business on the shelf a trainer writes from: a student on Windows
-    // opened one in the studio, edited it, and found out only at save, where
-    // the server refused them. Reported live on 8.9.2026. Since 7.9.2026 the
-    // row also carries a bin and a „pošalji" they could never have used — an
-    // action drawn where it cannot work, which is the fault this list had just
-    // been fixed to stop being.
-    //
-    // The flag is the same one `chess_game_screen`'s lesson list splits its two
-    // sections by, and the one `assign_lesson_dialog` already filters on; this
-    // was the one reader that ignored it.
-    final tutorials = <Map<String, dynamic>>[];
-    for (final item in rawRows) {
-      if (item is! Map) continue;
-      if (item['is_trainer_lesson'] == true) continue;
-      final posList = item['position_list'];
-      // A list, empty or not — but never `null`, which is what a plain saved
-      // lesson has and what keeps those out of a sheet about tutorials.
-      //
-      // The empty ones used to be hidden too, which meant a tutorial whose
-      // parts had all been deleted could not be reached to be deleted itself,
-      // and the refusal below ("nothing to show yet") could never fire on
-      // anything. A feature that is complete, tested and unreachable is a
-      // shape this project has met before.
-      if (posList is List) {
-        tutorials.add(Map<String, dynamic>.from(item));
-      }
-    }
-
-    if (tutorials.isEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Saved tutorials'),
-          content: const Text('You have no saved tutorials.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    final picked = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (ctx) => _SavedTutorialsDialog(
-        tutorials: tutorials,
-        lessonApi: service,
-        assignmentApi:
-            assignmentApi ?? AssignmentApiService(authToken: session.token),
-        groupApi: groupApi ?? GroupApiService(),
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => LibraryScreen(
+        session: session,
+        initialChip: LibraryChip.tutorials,
+        initialFromTrainer: false,
+        lessonApi: api,
+        positionLibrary: positionLibrary,
+        assignmentApi: assignmentApi,
+        groupApi: groupApi,
       ),
-    );
-
-    if (picked != null && context.mounted) {
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => TutorialStudioScreen(
-          session: session,
-          entry: TutorialEntry.saved(picked),
-        ),
-      ));
-    }
-  }
-}
-
-/// The trainer's own tutorials, and the three things they can do with one.
-///
-/// It used to be a list that could only be **opened**, which is how „ne postoji
-/// mogućnost brisanja tutorijala" and „tutorijal ne može da se pošalje đaku"
-/// were both true on 7.9.2026 while the server had `DELETE /lessons/:id` and
-/// `POST /assignments/lesson` all along, and the app called them from two
-/// screens a trainer writing a tutorial has no reason to be on. **A capability
-/// that exists at every layer and is reachable from nowhere the user goes is a
-/// capability they do not have.**
-///
-/// Stateful for one reason: a row that was deleted has to leave the list
-/// without closing it, so the trainer can delete a second one.
-class _SavedTutorialsDialog extends StatefulWidget {
-  const _SavedTutorialsDialog({
-    required this.tutorials,
-    required this.lessonApi,
-    required this.assignmentApi,
-    required this.groupApi,
-  });
-
-  final List<Map<String, dynamic>> tutorials;
-  final LessonApiService lessonApi;
-  final AssignmentApiService assignmentApi;
-  final GroupApiService groupApi;
-
-  @override
-  State<_SavedTutorialsDialog> createState() => _SavedTutorialsDialogState();
-}
-
-class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
-  late final List<Map<String, dynamic>> _rows = [...widget.tutorials];
-
-  /// The four actions a row offers, shared with the Library screen
-  /// (`lib/features/library/screens/library_screen.dart`) so neither writes
-  /// a second copy of a confirmation, a request or a render's bookkeeping.
-  late final TutorialRowActions _actions = TutorialRowActions(
-    lessonApi: widget.lessonApi,
-    assignmentApi: widget.assignmentApi,
-    groupApi: widget.groupApi,
-  );
-
-  /// True while a row is being deleted or sent, so neither can be started
-  /// twice on a list that is about to change under it.
-  bool _busy = false;
-
-  /// How many tutorials there have to be before a search box is worth the
-  /// height it takes.
-  static const int _filterFrom = 6;
-
-  /// Two rows of chips at the height a phone draws them. Android pads a chip
-  /// to a 48 dp touch target and a desktop does not, so the same labels take
-  /// twice the height there; more than two rows scroll inside this box.
-  static const double _chipsMaxHeight = 2 * 48.0 + AppSpacing.xs;
-
-  static int? _idOf(Map<String, dynamic> row) {
-    final raw = row['id'];
-    return raw is int ? raw : int.tryParse('$raw');
-  }
-
-  static String _titleOf(Map<String, dynamic> row) =>
-      row['title']?.toString() ?? '';
-
-  static List<String> _labelsOf(Map<String, dynamic> row) => [
-        for (final tag in (row['tags'] as List?) ?? const []) tag.toString(),
-      ];
-
-  /// What the trainer has typed into the search box.
-  String _query = '';
-
-  /// Which labels are being filtered by. Empty means „every tutorial".
-  final Set<String> _selectedLabels = {};
-
-  /// Every label in the list, in the order they are first met.
-  ///
-  /// Read off the rows rather than from `GET /lessons/labels`: that endpoint
-  /// answers with the labels of everything this account can see — saved
-  /// positions included — and a chip for a label no tutorial here carries is a
-  /// chip that empties the list when it is pressed. These rows are all in
-  /// memory anyway.
-  List<String> get _availableLabels {
-    final labels = <String>[];
-    final seen = <String>{};
-    for (final row in _rows) {
-      for (final label in _labelsOf(row)) {
-        if (seen.add(label.toLowerCase())) labels.add(label);
-      }
-    }
-    labels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return labels;
-  }
-
-  /// The rows that survive the search box and the chips.
-  ///
-  /// A tutorial matches a selection when it carries **any** of the chosen
-  /// labels, not all of them: most tutorials carry one label, and an
-  /// intersection of two is empty almost every time — a filter that answers
-  /// „nothing" to an obvious question is a filter nobody presses twice.
-  List<Map<String, dynamic>> get _visibleRows {
-    final query = _query.trim().toLowerCase();
-    return [
-      for (final row in _rows)
-        if (_matches(row, query)) row,
-    ];
-  }
-
-  bool _matches(Map<String, dynamic> row, String query) {
-    if (query.isNotEmpty) {
-      final haystack =
-          '${_titleOf(row)} ${row['description'] ?? ''}'.toLowerCase();
-      if (!haystack.contains(query)) return false;
-    }
-    if (_selectedLabels.isEmpty) return true;
-    final labels = _labelsOf(row).map((l) => l.toLowerCase()).toSet();
-    return _selectedLabels.any((l) => labels.contains(l.toLowerCase()));
-  }
-
-  Future<void> _delete(Map<String, dynamic> row) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    final deleted = await _actions.delete(context, row);
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      // Only on success. A row that is still on the server must stay on the
-      // screen, or the trainer is told it is gone by its absence.
-      if (deleted) _rows.removeWhere((r) => _idOf(r) == _idOf(row));
-    });
-  }
-
-  Future<void> _send(Map<String, dynamic> row) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    await _actions.send(context, row);
-    if (!mounted) return;
-    setState(() => _busy = false);
-  }
-
-  Future<void> _exportVideo(Map<String, dynamic> row) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    // Marked the moment the server accepts it (inside `TutorialRowActions`),
-    // so a render the trainer hides stays on its row — the place they will
-    // look for it.
-    await _actions.exportVideo(context, row);
-    if (!mounted) return;
-    setState(() => _busy = false);
-  }
-
-  /// Whether a film of this tutorial is being drawn for this account.
-  ///
-  /// The list says so (`render_job_id`) and this dialog says so the moment it
-  /// starts one — item 5 of part two of `docs/PLAN-SNIMANJE.md`. A render the
-  /// trainer hid has to be somewhere they can find it again, and the row they
-  /// started it from is where they will look.
-  bool _isRendering(Map<String, dynamic> row) =>
-      TutorialRowActions.isRendering(row);
-
-  /// The render running for this row, shown again.
-  Future<void> _watchRender(Map<String, dynamic> row) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    await _actions.watchRender(context, row);
-    if (!mounted) return;
-    setState(() => _busy = false);
-  }
-
-  /// Whether this tutorial has a film waiting for it.
-  ///
-  /// The list says so (`has_video`), which is what lets the button be drawn
-  /// only where it can do something — an action offered on a row that cannot
-  /// perform it is this repository's most frequent fault.
-  bool _hasVideo(Map<String, dynamic> row) => TutorialRowActions.hasVideo(row);
-
-  /// „Download video" — the film rendered earlier, fetched now.
-  ///
-  /// **This is the whole reason the tutorial keeps its filename.** The link
-  /// handed out when a film is rendered carries a token that dies in thirty
-  /// minutes, so closing that dialog used to mean rendering the film again.
-  Future<void> _downloadVideo(Map<String, dynamic> row) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    await _actions.downloadVideo(context, row);
-    if (!mounted) return;
-    setState(() => _busy = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Saved tutorials'),
-      // The list's height is what is left under the search box and the
-      // chips, so neither of those may take all of it. Until 17.9.2026 this
-      // was a fixed 400 dp with the chips wrapping freely above the list: on
-      // a phone fourteen labels wrapped into seven 48 dp rows, overflowed the
-      // cap by 288 px, and left the list no height at all. A release build
-      // draws no warning, so the owner saw a dialog with chips and no
-      // tutorials. `test/saved_tutorials_phone_test.dart`.
-      content: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight:
-              (MediaQuery.sizeOf(context).height * 0.6).clamp(320.0, 560.0),
-        ),
-        child: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // The search box and the chips are drawn only where they can do
-              // something. A trainer with four tutorials does not need a filter
-              // above them, and the list this dialog can show is short enough
-              // that the controls would be taller than the thing they filter.
-              if (_rows.length > _filterFrom) ...[
-                TextField(
-                  key: const Key('tutorial-search'),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    prefixIcon: Icon(Icons.search, size: 18),
-                    hintText: 'Search by name',
-                  ),
-                  onChanged: (value) => setState(() => _query = value),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-              if (_availableLabels.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: ConstrainedBox(
-                    constraints:
-                        const BoxConstraints(maxHeight: _chipsMaxHeight),
-                    child: SingleChildScrollView(
-                      child: Wrap(
-                        spacing: AppSpacing.xs,
-                        runSpacing: AppSpacing.xs,
-                        children: [
-                          for (final label in _availableLabels)
-                            FilterChip(
-                              label: Text(label, style: AppText.caption),
-                              selected: _selectedLabels.contains(label),
-                              onSelected: (on) => setState(() {
-                                if (on) {
-                                  _selectedLabels.add(label);
-                                } else {
-                                  _selectedLabels.remove(label);
-                                }
-                              }),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              Flexible(
-                fit: FlexFit.loose,
-                child: _visibleRows.isEmpty
-                    ? Center(
-                        child: Text(
-                          _rows.isEmpty
-                              ? 'You have no saved tutorials.'
-                              : 'No tutorial matches that.',
-                        ),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: _visibleRows.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (ctx, index) {
-                          final row = _visibleRows[index];
-                          return ListTile(
-                            title: Text(
-                              _titleOf(row),
-                              // A tutorial is named by its first sentence, so this
-                              // title is as long as a sentence and it shares the row
-                              // with three actions. Without the ellipsis it pushes
-                              // them off the right-hand edge of a 360 dp phone, where
-                              // a release build draws no warning and the buttons are
-                              // simply not there.
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            // Its labels, so the chips above are answerable:
-                            // a filter whose result does not say why a row is
-                            // in it is a filter that has to be trusted.
-                            subtitle: _labelsOf(row).isEmpty
-                                ? null
-                                : Text(
-                                    _labelsOf(row).join(', '),
-                                    style: AppText.caption.copyWith(
-                                        color: context.colors.textSecondary),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                            onTap: () => Navigator.of(context).pop(row),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // A film being drawn for this row is shown,
-                                // rather than offered a second time: one film
-                                // per tutorial, and a hidden render has to be
-                                // somewhere a trainer can find it again. A
-                                // still icon, not a spinner — its shape says
-                                // it, and an animation on a row never settles.
-                                if (_isRendering(row))
-                                  IconButton(
-                                    icon: Icon(Icons.movie,
-                                        size: 20, color: context.colors.accent),
-                                    tooltip: 'Rendering — show progress',
-                                    onPressed:
-                                        _busy ? null : () => _watchRender(row),
-                                  )
-                                else
-                                  IconButton(
-                                    icon: const Icon(Icons.videocam_outlined,
-                                        size: 20),
-                                    tooltip: 'Export video',
-                                    onPressed:
-                                        _busy ? null : () => _exportVideo(row),
-                                  ),
-                                if (_hasVideo(row))
-                                  IconButton(
-                                    icon: const Icon(
-                                        Icons.file_download_outlined,
-                                        size: 20),
-                                    tooltip: 'Download video',
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _downloadVideo(row),
-                                  ),
-                                IconButton(
-                                  icon:
-                                      const Icon(Icons.send_outlined, size: 20),
-                                  tooltip: 'Send to student',
-                                  onPressed: _busy ? null : () => _send(row),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete_outline,
-                                      size: 20, color: context.colors.danger),
-                                  tooltip: 'Delete tutorial',
-                                  onPressed: _busy ? null : () => _delete(row),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-      ],
-    );
+    ));
   }
 }
 

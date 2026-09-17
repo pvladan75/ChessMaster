@@ -34,6 +34,8 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_servi
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
+import 'support/shelf_over_lessons.dart';
+
 const String _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 /// The library, plus the DELETE requests it was asked for.
@@ -148,6 +150,7 @@ void main() {
             api: api,
             assignmentApi: assignments,
             groupApi: students,
+            positionLibrary: shelfOver(api),
           ),
         ),
       ),
@@ -161,7 +164,7 @@ void main() {
   Finder actionOn(String title, String tooltip) => find.descendant(
         of: find.ancestor(
           of: find.text(title),
-          matching: find.byType(ListTile),
+          matching: libraryRow,
         ),
         matching: find.byTooltip(tooltip),
       );

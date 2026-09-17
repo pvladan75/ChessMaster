@@ -27,23 +27,46 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// (`PositionLibraryService.list()`, over `positionLibrary.js`) and the
 /// device's own puzzle sets, which the server never sees.
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key, required this.session});
+  const LibraryScreen({
+    super.key,
+    required this.session,
+    this.initialChip,
+    this.initialFromTrainer,
+    this.lessonApi,
+    this.positionLibrary,
+    this.assignmentApi,
+    this.groupApi,
+  });
 
   final UserSession session;
+
+  /// Where the list opens — the Tutorials card's „Saved tutorials" opens it on
+  /// [LibraryChip.tutorials] and on the trainer's own (false). Until
+  /// 17.9.2026 that button opened a dialog of its own, a second copy of this
+  /// list that gave its rows no room on a phone.
+  final LibraryChip? initialChip;
+  final bool? initialFromTrainer;
+
+  /// Seams for a test; defaulted to real services against this session.
+  final LessonApiService? lessonApi;
+  final PositionLibraryService? positionLibrary;
+  final AssignmentApiService? assignmentApi;
+  final GroupApiService? groupApi;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  late final PositionLibraryService _library =
+  late final PositionLibraryService _library = widget.positionLibrary ??
       PositionLibraryService(authToken: widget.session.token);
   late final LessonApiService _lessons =
-      LessonApiService(authToken: widget.session.token);
+      widget.lessonApi ?? LessonApiService(authToken: widget.session.token);
   late final TutorialRowActions _tutorialActions = TutorialRowActions(
     lessonApi: _lessons,
-    assignmentApi: AssignmentApiService(authToken: widget.session.token),
-    groupApi: GroupApiService(),
+    assignmentApi: widget.assignmentApi ??
+        AssignmentApiService(authToken: widget.session.token),
+    groupApi: widget.groupApi ?? GroupApiService(),
   );
 
   List<LibraryEntry>? _entries;
@@ -124,6 +147,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// draws none — [LibraryList] shows nothing rather than an empty row of
   /// buttons.
   List<Widget> _actionsFor(LibraryEntry entry) {
+    // Somebody else's material — readable because they teach this account —
+    // is not this account's to send, render or delete. The dialog this screen
+    // replaced left those rows out for that reason (reported 8.9.2026).
+    if (entry.fromTrainer) return const [];
     switch (entry.kind) {
       case LibraryKind.tutorial:
         final row = _rawTutorialFor(entry);
@@ -145,7 +172,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             IconButton(
               icon: const Icon(Icons.file_download_outlined, size: 20),
               tooltip: 'Download video',
-              onPressed: () => _tutorialActions.downloadVideo(context, row),
+              onPressed: () => _downloadVideo(row),
             ),
           IconButton(
             icon: const Icon(Icons.send_outlined, size: 20),
@@ -196,6 +223,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Future<void> _watchRender(Map<String, dynamic> row) async {
     await _tutorialActions.watchRender(context, row);
+    if (mounted) setState(() {});
+  }
+
+  /// Redrawn afterwards: a film the retention timer has taken takes its
+  /// button with it (`TutorialRowActions` clears `has_video`), and a row
+  /// still offering it is a button that answers the same refusal forever.
+  Future<void> _downloadVideo(Map<String, dynamic> row) async {
+    await _tutorialActions.downloadVideo(context, row);
     if (mounted) setState(() {});
   }
 
@@ -257,6 +292,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _openTutorial(LibraryEntry entry) async {
+    if (entry.fromTrainer) {
+      // A student on Windows once opened their trainer's tutorial in the
+      // studio, edited it, and was refused only at save (8.9.2026).
+      AppFeedback.info(context, 'This tutorial belongs to your trainer.');
+      return;
+    }
     final row = _rawTutorialFor(entry);
     if (row == null) {
       AppFeedback.error(context, 'Tutorial not found.');
@@ -353,6 +394,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
         onOpen: _open,
         actionsFor: _actionsFor,
         labels: _labels,
+        initialChip: widget.initialChip,
+        originChips: widget.initialFromTrainer != null,
+        initialFromTrainer: widget.initialFromTrainer,
       ),
     );
   }

@@ -28,6 +28,8 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
+import 'support/shelf_over_lessons.dart';
+
 const String _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 /// A real 1x1 PNG. The frames a preview draws are the server's business; what
@@ -298,6 +300,7 @@ void main() {
             api: api,
             assignmentApi: AssignmentApiService(authToken: 'tok'),
             groupApi: GroupApiService(),
+            positionLibrary: shelfOver(api),
           ),
         ),
       ),
@@ -310,7 +313,7 @@ void main() {
   Finder actionOn(String title, String tooltip) => find.descendant(
         of: find.ancestor(
           of: find.text(title),
-          matching: find.byType(ListTile),
+          matching: libraryRow,
         ),
         matching: find.byTooltip(tooltip),
       );
@@ -318,7 +321,7 @@ void main() {
   Finder iconButtonOn(String title, String tooltip) => find.descendant(
         of: find.ancestor(
           of: find.text(title),
-          matching: find.byType(ListTile),
+          matching: libraryRow,
         ),
         matching: find.byWidgetPredicate(
           (w) => w is IconButton && w.tooltip == tooltip,
@@ -549,11 +552,12 @@ void main() {
     // `takeException` alone is not a layout assertion — an overflow throws in a
     // test build and paints nothing in a release one. What „unreachable" means
     // is that the button is not inside the dialog.
-    final dialog = tester.getRect(find.byType(AlertDialog).last);
+    // The Library is a screen since 17.9.2026; its edge is the phone's.
+    final screen = tester.getRect(find.byType(Scaffold).last);
     final button = tester
         .getRect(iconButtonOn(longTitle['title'] as String, 'Download video'));
-    expect(button.right, lessThanOrEqualTo(dialog.right + 0.5),
-        reason: 'the download button is inside the dialog, not past its edge');
+    expect(button.right, lessThanOrEqualTo(screen.right + 0.5),
+        reason: 'the download button is on the screen, not past its edge');
   });
 
   testWidgets('the row and the finished dialog both fit a 360 dp phone',
@@ -595,6 +599,7 @@ void main() {
             api: api,
             assignmentApi: AssignmentApiService(authToken: 'tok'),
             groupApi: GroupApiService(),
+            positionLibrary: shelfOver(api),
           ),
         ),
       ),
@@ -610,7 +615,7 @@ void main() {
     // that is what is measured.
     // Not `takeException`: what matters is whether a finger can reach the
     // button, so that is what is measured.
-    final dialog = tester.getRect(find.byType(AlertDialog));
+    final dialog = tester.getRect(find.byType(Scaffold).last);
     for (final tooltip in [
       'Export video',
       'Send to student',
@@ -1936,6 +1941,7 @@ void main() {
             api: api,
             assignmentApi: AssignmentApiService(authToken: 'tok'),
             groupApi: GroupApiService(),
+            positionLibrary: shelfOver(api),
           ),
         ),
       ),

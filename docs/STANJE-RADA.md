@@ -118,6 +118,23 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**„Saved tutorials" otvara Library — varijanta B vlasnika, 17.9.2026.** Prva
+popravka (oznake u dva reda) nije bila dovoljna: vlasnikovi snimci su pokazali
+redove bez naslova u portretu (četiri dugmeta od 48 dp u dijalogu širokom
+~280 dp; test je imao tutorijale bez videa, tri dugmeta, i kratke naslove) i
+listu bez visine u položenom. Vlasnik je izabrao da se dijalog ukloni: dugme
+otvara `LibraryScreen` na „Tutorials" i „Mine" (jedna lista, S3). `LibraryList`
+ispod 480 dp širine stavlja radnje u red ispod naslova, a ispod 480 dp visine
+filteri se skroluju sa listom; red za „Match mode" u panelu oznaka je `Wrap`
+(prelivao 48 px na telefonu). `LibraryScreen` dobio: ulaze za test, početni
+čip i „Mine", trenerovi tutorijali bez radnji i bez otvaranja u studiju,
+osvežavanje reda posle preuzimanja videa. Dijalog (~400 linija) obrisan; testovi
+koji su išli kroz njega sada idu kroz Library (`test/support/
+shelf_over_lessons.dart` odgovara na `/library/positions` iz istih redova).
+Usput: `lib/widgets/home/biblioteka_tab.dart` je obrisan — faza 5 je zapisala da
+je obrisan, a `git rm` nikad nije stigao u commit; ništa ga nije uvozilo.
+Provera uživo: stavka 179, tačka 11.
+
 **Popravka posle prijave, 17.9.2026: „Saved tutorials" na telefonu bez
 tutorijala.** Tutorijali su stizali; dijalog im nije ostavljao visinu.
 Sadržaj je bio ograničen na 400 dp, a oznake iznad liste na Androidu imaju

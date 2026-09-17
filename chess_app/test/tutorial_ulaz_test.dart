@@ -125,6 +125,8 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_servi
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
+import 'support/shelf_over_lessons.dart';
+
 const String openingFen =
     'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -221,7 +223,11 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
-          child: TutorialLibraryCard(session: session, api: api),
+          child: TutorialLibraryCard(
+            session: session,
+            api: api,
+            positionLibrary: api == null ? null : shelfOver(api),
+          ),
         ),
       ),
     ));
@@ -335,7 +341,8 @@ void main() {
       await tester.tap(find.text('Saved tutorials'));
       await tester.pumpAndSettle();
 
-      expect(find.text('You have no saved tutorials.'), findsOneWidget,
+      // The Library's own words since „Saved tutorials" opens it (17.9.2026).
+      expect(find.text('Nothing here yet.'), findsOneWidget,
           reason: 'an empty box tells the trainer nothing about whether it '
               'failed or there is nothing there');
       expect(openedWith(tester), isNull);
@@ -349,7 +356,7 @@ void main() {
       await tester.tap(find.text('Saved tutorials'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not load tutorials.'), findsOneWidget);
+      expect(find.text('The library could not be loaded.'), findsOneWidget);
       expect(openedWith(tester), isNull);
     });
   });
@@ -463,14 +470,15 @@ void main() {
           reason: 'phase 6c retired the platform guard; the card draws '
               'itself unconditionally now');
       expect(card.contains('TutorialEntry.blank'), isTrue);
-      expect(card.contains('TutorialEntry.saved'), isTrue);
-
-      // The tab stays a tab: it draws what it is given and knows nothing about
-      // tutorials or entries.
-      final tab =
-          File('lib/widgets/home/biblioteka_tab.dart').readAsStringSync();
-      expect(tab.contains('TutorialEntry'), isFalse,
-          reason: 'the library tab has started deciding what a tutorial is');
+      // A saved tutorial is opened from the Library since 17.9.2026, through
+      // the one door every screen uses — not by a list of the card's own.
+      expect(card.contains('LibraryScreen('), isTrue);
+      expect(card.contains('TutorialEntry.saved'), isFalse,
+          reason: 'the card has grown a second way to open a saved tutorial');
+      final door =
+          File('lib/features/tutorial_studio/tutorial_editor_entry.dart')
+              .readAsStringSync();
+      expect(door.contains('TutorialEntry.saved'), isTrue);
     });
   });
 }

@@ -28,6 +28,8 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
+import 'support/shelf_over_lessons.dart';
+
 const String _start =
     'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const String _rook = '6k1/5pp1/7p/8/8/8/5PPP/R5K1 w - - 0 1';
@@ -107,28 +109,6 @@ class _SavingApi extends LessonApiService {
   }
 }
 
-/// The library list, for the filtering group.
-class _ListApi extends LessonApiService {
-  _ListApi(List<Map<String, dynamic>> rows)
-      : super(
-          authToken: 'tok',
-          client: MockClient((req) async => http.Response(
-                jsonEncode(rows),
-                200,
-                headers: {'content-type': 'application/json; charset=utf-8'},
-              )),
-        );
-}
-
-Map<String, dynamic> row(int id, String title, List<String> tags) => {
-      'id': id,
-      'title': title,
-      'tags': tags,
-      'position_list': [
-        {'id': 's$id', 'fen': _start, 'title': 'Deo 1', 'kind': 'show'},
-      ],
-    };
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -161,6 +141,7 @@ void main() {
             session: session,
             api: api,
             pickFiles: () async => files,
+            positionLibrary: api == null ? null : shelfOver(api),
           ),
         ),
       ),
@@ -406,87 +387,6 @@ void main() {
 
       expect(api.posted.length, 1);
       expect(outcomes.single.saved, isTrue);
-    });
-  });
-
-  group('finding one tutorial among many', () {
-    Future<void> openList(WidgetTester tester, LessonApiService api) async {
-      await pump(tester, files: const [], api: api);
-      await tester.tap(find.text('Saved tutorials'));
-      await tester.pumpAndSettle();
-    }
-
-    testWidgets('a label filters the list, and the rows say which they carry',
-        (tester) async {
-      final api = _ListApi([
-        row(1, 'Opposition', ['endgame']),
-        row(2, 'Greek gift', ['attack']),
-        row(3, 'Vancura', ['endgame', 'rook']),
-      ]);
-      await openList(tester, api);
-
-      expect(find.text('endgame'), findsWidgets);
-      await tester.tap(find.widgetWithText(FilterChip, 'attack'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Greek gift'), findsOneWidget);
-      expect(find.text('Opposition'), findsNothing);
-      expect(find.text('Vancura'), findsNothing);
-    });
-
-    testWidgets('two labels are a union rather than an intersection',
-        (tester) async {
-      // Most tutorials carry one label, so an intersection is empty almost
-      // every time — a filter that answers "nothing" to an obvious question is
-      // a filter nobody presses twice.
-      final api = _ListApi([
-        row(1, 'Opposition', ['endgame']),
-        row(2, 'Greek gift', ['attack']),
-      ]);
-      await openList(tester, api);
-
-      await tester.tap(find.widgetWithText(FilterChip, 'attack'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilterChip, 'endgame'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Opposition'), findsOneWidget);
-      expect(find.text('Greek gift'), findsOneWidget);
-    });
-
-    testWidgets('the search box appears once there is a list to search',
-        (tester) async {
-      final few = _ListApi([row(1, 'Opposition', const [])]);
-      await openList(tester, few);
-      expect(find.byKey(const Key('tutorial-search')), findsNothing,
-          reason:
-              'a search box above four rows is taller than what it filters');
-
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-
-      final many = _ListApi([
-        for (var i = 1; i <= 8; i++) row(i, 'Tutorial $i', const []),
-      ]);
-      await openList(tester, many);
-      expect(find.byKey(const Key('tutorial-search')), findsOneWidget);
-
-      await tester.enterText(find.byKey(const Key('tutorial-search')), 'al 7');
-      await tester.pumpAndSettle();
-      expect(find.text('Tutorial 7'), findsOneWidget);
-      expect(find.text('Tutorial 3'), findsNothing);
-    });
-
-    testWidgets('a search that matches nothing says so', (tester) async {
-      final api = _ListApi([
-        for (var i = 1; i <= 8; i++) row(i, 'Tutorial $i', const []),
-      ]);
-      await openList(tester, api);
-      await tester.enterText(
-          find.byKey(const Key('tutorial-search')), 'nothing like this');
-      await tester.pumpAndSettle();
-
-      expect(find.text('No tutorial matches that.'), findsOneWidget);
     });
   });
 }
