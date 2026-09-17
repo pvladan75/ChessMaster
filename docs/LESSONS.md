@@ -3429,3 +3429,26 @@ handle (`turn != task.side` makes the engine open; own moves are counted by
 turn). The FEN is now the default and the trainer picks. The test that proves
 it uses the *same* position twice, once with each side to move: a suite that
 only ever tries a white-to-move FEN cannot tell a real reading from `'w'`.
+
+**A fresh clone on Windows had ten red backend tests — 18.9.2026.** The
+phase-5 worktree reported `test/tutorial_words.test.js` failing 10 of 27 and
+called it „pre-existing"; on this checkout the same file passes 27 of 27, so
+it was neither pre-existing nor the worker's doing. A worktree is a fresh
+checkout, and `chess_backend/services/prompts/tutorial_words.txt` — stored
+LF, carrying only `text=auto` — comes out of a fresh checkout on Windows as
+CRLF. That file's bytes are the contract: the server must build, byte for
+byte, the prompt `skeleton.py` wrote into the fixtures, and the test compares
+them. This checkout was green only because its working copy predates the
+conversion.
+
+Proved both ways before fixing: the working copy converted to CRLF by hand
+made the same 10 fail here, and after `chess_backend/services/prompts/*.txt
+text eol=lf` a delete-and-check-out brought the file back as LF and all 27
+passed. CI is Linux, so it never saw this; the next person to clone the
+repository on Windows would have.
+
+Two rules out of it. **A worker's „pre-existing failure" is a claim about
+master, and master is where it has to be measured** — this is the third time
+in three days that a reported pre-existing problem was the worker's own
+environment. And **a file whose bytes are a contract needs `eol=lf`, not
+`text=auto`**: `*.sh` already had it for the same reason, one layer away.

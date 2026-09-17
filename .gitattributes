@@ -14,3 +14,15 @@
 # straight from the working copy to a Linux host, and CRLF makes bash fail with
 # "$'\r': command not found".
 *.sh text eol=lf
+
+# A prompt whose bytes are the contract keeps LF too.
+# `chess_backend/services/prompts/tutorial_words.txt` is read at runtime and
+# must produce, byte for byte, the prompt `tools/game_annotate/skeleton.py`
+# wrote into the fixtures under `chess_app/test/fixtures/game_tutorial/`;
+# `chess_backend/test/tutorial_words.test.js` compares the two. Under
+# `text=auto` alone, a clone on Windows checks the template out as CRLF and
+# those ten tests go red on a machine that changed nothing - and the prompt
+# the server actually sends stops being the prompt that was measured. Found
+# on 18.9.2026 in a fresh agent worktree, which is a fresh checkout and so
+# had the CRLF copy while this one had LF.
+chess_backend/services/prompts/*.txt text eol=lf
