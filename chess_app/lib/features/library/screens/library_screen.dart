@@ -50,6 +50,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
   bool _loading = true;
   bool _failed = false;
 
+  /// The labels this user has given their positions and tutorials; the list
+  /// filters by them (phase 3b — the manual's Preparation page had promised
+  /// it since the batch that rewrote it).
+  List<String> _labels = const [];
+
   /// The raw `saved_lessons` rows behind the `tutorial` entries — fetched
   /// once alongside the list rather than per tap or per button, because every
   /// action a tutorial row offers (send, export, delete…) needs the row
@@ -78,6 +83,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final items = await _library.list();
     final sets = await LocalPuzzleSetStorageService.instance.loadSets();
     final rawRows = await _lessons.fetchAll();
+    final labels = await _lessons.fetchLabels();
     if (!mounted) return;
 
     if (items == null) {
@@ -110,6 +116,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       _loading = false;
       _entries = [...items, ...puzzleSets];
       _rawTutorials = rawTutorials;
+      _labels = labels;
     });
   }
 
@@ -345,6 +352,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         entries: _entries ?? const [],
         onOpen: _open,
         actionsFor: _actionsFor,
+        labels: _labels,
       ),
     );
   }

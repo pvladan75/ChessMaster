@@ -5878,6 +5878,32 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 178. Reorganizacija, faza 3b: kolona sobe je deljena lista — 17.9.2026, nije viđeno uživo
+
+`docs/PLAN-REORGANIZACIJA.md`, faza 3b (vođa). Leva kolona sobe i Pripreme
+(Windows; na telefonu fioka) čita istu listu kao Library na Teach.
+
+1. [ ] **Kolona**: pod „Board" isti tasteri kao pre (Set up position, Import
+   PGN, Save position, FEN); pod „Library" čipovi All · Tutorials · Positions
+   pa Mine · From trainer, ispod „Label Filter Matrix" (samo ako imate
+   oznake), pa polje „Search", pa redovi — bez sličice table, sa ikonom vrste
+   i redom „N parts" / „saved position" / izvorom iz knjige.
+2. [ ] **Tap na tutorijal** stavlja prvi deo na tablu i otvara traku delova
+   iznad table; tap na poziciju stavlja je na tablu (i sa linijom, ako je
+   sačuvana sa PGN-om). Pozicija iz skenirane knjige je pod Positions i ide
+   na tablu isto.
+3. [ ] **Radnje**: tutorijal ima ⋮ (Edit tutorial · Rename · Save as new
+   version) i kantu; pozicija olovku i kantu. Kod učenika, trenerovi redovi
+   (From trainer) nemaju ništa.
+4. [ ] **Oznake**: uključi jednu oznaku u matrici — lista se sužava i za
+   tutorijale i za pozicije (tutorijal nosi svoje oznake od ove faze); dugi
+   pritisak isključuje.
+5. [ ] **Pretraga** hvata i naslov i oznaku.
+6. [ ] **Pad servera** dok se kolona puni: „The library could not be loaded."
+   i „Try again", ne prazna lista.
+7. [ ] **Library na Teach** sada ima istu matricu oznaka ispod čipova (ako
+   imate oznake).
+
 ## 177. Reorganizacija, faza 5: Home · Practise · Analyse · Teach — 17.9.2026, nije viđeno uživo
 
 `docs/PLAN-REORGANIZACIJA.md`, faza 5 (vođa). Priručnik na sajtu sada opisuje

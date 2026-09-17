@@ -16,6 +16,9 @@ import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/core/services/room_tree_sync.dart';
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/library/models/library_entry.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/library_list.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -45,9 +48,7 @@ import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
-import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
-import 'package:chess_app/widgets/matrix_filter_panel.dart';
 import 'package:chess_app/widgets/pgn_import_dialog.dart';
 import 'package:chess_app/widgets/move_history_view.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
@@ -72,12 +73,16 @@ class ChessGamePage extends StatefulWidget {
   /// answer. Same seam as `LessonViewerScreen.api`.
   final LessonApiService? lessonApi;
 
+  /// The shelf the left column reads (phase 3b). Same seam, same reason.
+  final PositionLibraryService? positionLibrary;
+
   const ChessGamePage({
     super.key,
     required this.roomCode,
     required this.userSession,
     this.initialRole,
     this.lessonApi,
+    this.positionLibrary,
   });
 
   @override
@@ -173,15 +178,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// decides that a drawing is worth telling anyone about.
   final BoardAnnotationController _annotation = BoardAnnotationController();
 
-  List<dynamic> lessons = [];
-  bool isLoadingLessons = false;
+  /// The shelf, read through the one service (phase 3b of
+  /// docs/PLAN-REORGANIZACIJA.md). Null until the first answer, and null
+  /// again when the server could not be reached — an empty list is „nothing
+  /// saved", which must not look the same on screen.
+  List<LibraryEntry>? _libraryEntries;
+  bool _libraryLoading = false;
+  late PositionLibraryService _library;
 
   /// Everything this screen does to `saved_lessons`. Phase 7a pulled five
   /// raw `http` calls out of this file and onto it; the editor batch needs a
   /// seam a test can fake, and this file is 4,346 lines long.
   late LessonApiService _lessonApi;
   final TextEditingController fenPasteController = TextEditingController();
-  final TextEditingController searchController = TextEditingController();
   final TextEditingController commentController = TextEditingController();
 
   /// Holds back the comment broadcast until the trainer stops typing.
@@ -194,11 +203,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
   static List<String> _persistedLabels = [];
   static bool _shouldPersistLabels = false;
 
+  /// The labels this user has used; the column's list filters by them.
   List<String> _availableUserLabels = [];
-  List<String> _selectedIncludeTags = [];
-  List<String> _selectedExcludeTags = [];
-  String _filterMatchMode = 'all'; // 'all' (AND) or 'any' (OR)
-  String _lessonCategoryFilter = 'all'; // 'all', 'mine', 'trainer'
 
   // Active course being stepped through live (trainer-driven; students just see
   // whatever position loadLessonPosition broadcasts).
@@ -238,6 +244,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     super.initState();
     _lessonApi = widget.lessonApi ??
         LessonApiService(authToken: widget.userSession.token);
+    _library = widget.positionLibrary ??
+        PositionLibraryService(authToken: widget.userSession.token);
     if (widget.roomCode == 'STUDIO') {
       activeRole = 'host';
       boardOrientation = PlayerColor.white;
@@ -279,7 +287,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     initSocket();
 
     // Fetch saved positions & user labels for all users
-    fetchLessons();
+    fetchLibrary();
     fetchUserLabels();
 
     // Set up Stockfish service evaluation listener
@@ -384,7 +392,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     _commentBroadcast?.cancel();
     commentController.dispose();
     fenPasteController.dispose();
-    searchController.dispose();
     super.dispose();
   }
 
@@ -1772,27 +1779,124 @@ class _ChessGamePageState extends State<ChessGamePage> {
     setState(() => _availableUserLabels = labels);
   }
 
-  // REST API: Fetch saved lessons (with search and matrix label filters)
-  Future<void> fetchLessons({
-    String? searchQuery,
-    List<String>? includeTags,
-    List<String>? excludeTags,
-    String? matchMode,
-  }) async {
-    setState(() => isLoadingLessons = true);
-
-    final fetched = await _lessonApi.fetchAll(
-      searchQuery: searchQuery ?? searchController.text.trim(),
-      includeTags: includeTags ?? _selectedIncludeTags,
-      excludeTags: excludeTags ?? _selectedExcludeTags,
-      matchMode: matchMode ?? _filterMatchMode,
-    );
-
+  /// The shelf, through `GET /library/positions` — the same read the Library
+  /// screen makes (phase 3b). Filtering is the widget's; nothing goes on the
+  /// wire but the token.
+  Future<void> fetchLibrary() async {
+    setState(() => _libraryLoading = true);
+    final items = await _library.list();
     if (!mounted) return;
     setState(() {
-      lessons = fetched;
-      isLoadingLessons = false;
+      _libraryEntries = items;
+      _libraryLoading = false;
     });
+  }
+
+  /// The `saved_lessons` row behind an entry — the parts of a tutorial, the
+  /// description of a position — read when an action needs it rather than
+  /// held beside the shelf. Says so when it cannot.
+  Future<Map<String, dynamic>?> _rowOf(LibraryEntry entry) async {
+    final id = int.tryParse(entry.id);
+    final row = id == null ? null : await _lessonApi.fetchRow(id);
+    if (row == null && mounted) _showError('Could not load "${entry.title}".');
+    return row;
+  }
+
+  /// Tapping a row: a tutorial walks in from its first part, a position goes
+  /// up as it is. What the column's list has always done on a tap.
+  Future<void> _putOnBoard(LibraryEntry entry) async {
+    switch (entry.kind) {
+      case LibraryKind.tutorial:
+        final row = await _rowOf(entry);
+        if (row == null || !mounted) return;
+        final steps = row['position_list'];
+        if (steps is! List || steps.isEmpty) {
+          _showError('This tutorial has no parts.');
+          return;
+        }
+        setState(() {
+          _activeCourseItems = steps;
+          _activeCourseIndex = 0;
+          _activeCourseTitle = row['title']?.toString();
+        });
+        final first = steps.first;
+        loadLessonPosition(first['fen'], first['pgn']);
+        _showSuccess(
+            'Loaded step 1/${steps.length} from tutorial: "${shownPartTitle(first['title']?.toString(), 0) ?? row['title']}"');
+      case LibraryKind.position:
+      case LibraryKind.scan:
+        setState(() => _activeCourseItems = null);
+        loadLessonPosition(entry.fen, entry.pgn);
+      case LibraryKind.analysis:
+      case LibraryKind.recording:
+      case LibraryKind.puzzleSet:
+        // Not on this column's chips.
+        break;
+    }
+  }
+
+  /// A row's trailing controls. Someone else's material has none — a student
+  /// cannot edit or delete what their trainer keeps.
+  List<Widget> _libraryActionsFor(LibraryEntry entry) {
+    if (entry.fromTrainer) return const [];
+    switch (entry.kind) {
+      case LibraryKind.tutorial:
+        return [
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert,
+                size: 18, color: context.colors.textMuted),
+            tooltip: 'Options',
+            onSelected: (value) async {
+              final row = await _rowOf(entry);
+              if (row == null || !mounted) return;
+              switch (value) {
+                case 'uredi':
+                  _openTutorialEditor(row);
+                case 'preimenuj':
+                  _renameTutorial(row);
+                case 'kloniraj':
+                  _cloneTutorial(row);
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'uredi', child: Text('Edit tutorial')),
+              PopupMenuItem(value: 'preimenuj', child: Text('Rename')),
+              PopupMenuItem(
+                  value: 'kloniraj', child: Text('Save as new version')),
+            ],
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                size: 18, color: context.colors.danger),
+            tooltip: 'Delete',
+            onPressed: () => _confirmDeleteLesson(entry),
+          ),
+        ];
+      case LibraryKind.position:
+        return [
+          IconButton(
+            icon: Icon(Icons.edit_outlined,
+                size: 18, color: context.colors.textMuted),
+            tooltip: 'Edit',
+            onPressed: () async {
+              final row = await _rowOf(entry);
+              if (row == null || !mounted) return;
+              _editSinglePosition(row);
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                size: 18, color: context.colors.danger),
+            tooltip: 'Delete',
+            onPressed: () => _confirmDeleteLesson(entry),
+          ),
+        ];
+      case LibraryKind.scan:
+      case LibraryKind.analysis:
+      case LibraryKind.recording:
+      case LibraryKind.puzzleSet:
+        return const [];
+    }
   }
 
   void _openTutorialEditor(Map<String, dynamic> lesson) {
@@ -1844,7 +1948,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
     } else {
       _showSuccess('Tutorial renamed.');
-      fetchLessons();
+      fetchLibrary();
     }
   }
 
@@ -1857,22 +1961,27 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
 
     _showSuccess('Tutorial saved as new version.');
-    await fetchLessons();
+    await fetchLibrary();
 
+    // The point of the action: the trainer is left in the copy.
     if (!mounted) return;
-    final cloned = lessons.firstWhere((l) => l['id'] == newId,
-        orElse: () => <String, dynamic>{});
-    if (cloned.isNotEmpty) {
-      _openTutorialEditor(Map<String, dynamic>.from(cloned));
+    final cloned = await _lessonApi.fetchRow(newId);
+    if (!mounted) return;
+    if (cloned == null) {
+      _showError('The copy was made but could not be opened.');
+      return;
     }
+    _openTutorialEditor(cloned);
   }
 
-  Future<void> _confirmDeleteLesson(Map<String, dynamic> lesson) async {
+  Future<void> _confirmDeleteLesson(LibraryEntry entry) async {
+    final id = int.tryParse(entry.id);
+    if (id == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete tutorial?'),
-        content: Text('"${lesson['title']}" will be permanently deleted.'),
+        content: Text('"${entry.title}" will be permanently deleted.'),
         actions: [
           TextButton(
               child: const Text('Cancel'),
@@ -1887,14 +1996,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
     if (confirmed != true) return;
 
-    final error = await _lessonApi.delete(lesson['id'] as int);
+    final error = await _lessonApi.delete(id);
     if (!mounted) return;
     if (error != null) {
       _showError(error);
       return;
     }
     _showSuccess('Tutorial deleted.');
-    fetchLessons();
+    fetchLibrary();
   }
 
   // Rename/re-describe a single (non-course) saved position. FEN/PGN stay
@@ -1963,7 +2072,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       return;
     }
     _showSuccess('Position updated.');
-    fetchLessons();
+    fetchLibrary();
   }
 
   // REST API: Save current board FEN with description and tags
@@ -1996,7 +2105,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       return;
     }
     _showSuccess('Position saved.');
-    fetchLessons();
+    fetchLibrary();
   }
 
   // Socket: Load lesson position to board and broadcast
@@ -2493,23 +2602,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
-  Widget _buildMatrixFilterPanel() {
-    return MatrixFilterPanel(
-      availableUserLabels: _availableUserLabels,
-      selectedIncludeTags: _selectedIncludeTags,
-      selectedExcludeTags: _selectedExcludeTags,
-      filterMatchMode: _filterMatchMode,
-      onFilterChanged: (include, exclude, mode) {
-        setState(() {
-          _selectedIncludeTags = include;
-          _selectedExcludeTags = exclude;
-          _filterMatchMode = mode;
-        });
-        fetchLessons();
-      },
-    );
-  }
-
   void _showShareStudentPositionModal() {
     showDialog(
       context: context,
@@ -2889,357 +2981,155 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     // Left Sidebar Content (Lessons Management)
     Widget buildLeftSidebar() {
-      return Container(
-        width: 300,
+      // Material, not a coloured Container — the same reason as the right
+      // sidebar: the shared list's rows are ListTiles, and a ColoredBox
+      // between a tile and its nearest Material hides the tile's ink and
+      // trips an assertion on every frame.
+      return Material(
         color: Theme.of(context).cardColor,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Board',
-                style: AppText.headline,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _showBoardSetupDialog,
-                  icon: const Icon(Icons.dashboard_customize, size: 16),
-                  label: const Text('Set up position'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.colors.accent,
-                    foregroundColor: context.colors.canvas,
-                  ),
+        child: SizedBox(
+          width: 300,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Board',
+                  style: AppText.headline,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _showPgnImportDialog,
-                  icon: const Icon(Icons.file_open, size: 16),
-                  label: const Text('Import PGN'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.colors.brand,
-                    foregroundColor: context.colors.canvas,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _showSaveDialog,
-                  icon: const Icon(Icons.save, size: 16),
-                  label: const Text('Save position'),
-                ),
-              ),
-              const Divider(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: fenPasteController,
-                      decoration: const InputDecoration(
-                        hintText: 'Paste FEN string...',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
-                      ),
-                      style: AppText.body,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  IconButton(
-                    icon: Icon(Icons.input, color: context.colors.brand),
-                    onPressed: () {
-                      // Drugi ulaz za poziciju, mimo dijaloga za postavljanje
-                      // — pa mu treba ista provera. Zalepljen FEN bez kralja
-                      // je isto sto i rucno postavljen bez kralja: motor ga ne
-                      // prezivljava.
-                      final fen = fenPasteController.text.trim();
-                      if (fen.isEmpty) {
-                        _showError('Please paste a valid FEN.');
-                        return;
-                      }
-                      final razlog = fenIllegalReason(fen);
-                      if (razlog != null) {
-                        _showError(razlog);
-                        return;
-                      }
-                      loadLessonPosition(fen, null);
-                      fenPasteController.clear();
-                    },
-                    tooltip: 'Load FEN',
-                  )
-                ],
-              ),
-              const Divider(height: 24),
-              const Text(
-                'Library',
-                style: AppText.headline,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Search tutorials',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.textMuted),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by title or tag...',
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear, size: 18),
-                    onPressed: () {
-                      searchController.clear();
-                      fetchLessons();
-                    },
-                  ),
-                  border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
-                ),
-                style: AppText.body,
-                onSubmitted: (val) {
-                  fetchLessons(searchQuery: val.trim());
-                },
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _buildMatrixFilterPanel(),
-              if (_isStudentSeat) ...[
+                const SizedBox(height: AppSpacing.lg),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _showShareStudentPositionModal,
-                    icon: const Icon(Icons.share, size: 16),
-                    label: const Text('Show my position to trainer'),
+                    onPressed: _showBoardSetupDialog,
+                    icon: const Icon(Icons.dashboard_customize, size: 16),
+                    label: const Text('Set up position'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          context.colors.warning.withValues(alpha: 0.2),
-                      foregroundColor: context.colors.textPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      backgroundColor: context.colors.accent,
+                      foregroundColor: context.colors.canvas,
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  Text(
-                    'Category: ',
-                    style: AppText.captionBold
-                        .copyWith(color: context.colors.textMuted),
+                const SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _showPgnImportDialog,
+                    icon: const Icon(Icons.file_open, size: 16),
+                    label: const Text('Import PGN'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: context.colors.brand,
+                      foregroundColor: context.colors.canvas,
+                    ),
                   ),
-                  ChoiceChip(
-                    label: const Text('All', style: AppText.micro),
-                    selected: _lessonCategoryFilter == 'all',
-                    onSelected: (val) {
-                      if (val) setState(() => _lessonCategoryFilter = 'all');
-                    },
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _showSaveDialog,
+                    icon: const Icon(Icons.save, size: 16),
+                    label: const Text('Save position'),
                   ),
-                  ChoiceChip(
-                    label: const Text('Mine', style: AppText.micro),
-                    selected: _lessonCategoryFilter == 'mine',
-                    onSelected: (val) {
-                      if (val) setState(() => _lessonCategoryFilter = 'mine');
-                    },
+                ),
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: fenPasteController,
+                        decoration: const InputDecoration(
+                          hintText: 'Paste FEN string...',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.sm),
+                        ),
+                        style: AppText.body,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    IconButton(
+                      icon: Icon(Icons.input, color: context.colors.brand),
+                      onPressed: () {
+                        // Drugi ulaz za poziciju, mimo dijaloga za postavljanje
+                        // — pa mu treba ista provera. Zalepljen FEN bez kralja
+                        // je isto sto i rucno postavljen bez kralja: motor ga ne
+                        // prezivljava.
+                        final fen = fenPasteController.text.trim();
+                        if (fen.isEmpty) {
+                          _showError('Please paste a valid FEN.');
+                          return;
+                        }
+                        final razlog = fenIllegalReason(fen);
+                        if (razlog != null) {
+                          _showError(razlog);
+                          return;
+                        }
+                        loadLessonPosition(fen, null);
+                        fenPasteController.clear();
+                      },
+                      tooltip: 'Load FEN',
+                    )
+                  ],
+                ),
+                const Divider(height: 24),
+                const Text(
+                  'Library',
+                  style: AppText.headline,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                if (_isStudentSeat) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _showShareStudentPositionModal,
+                      icon: const Icon(Icons.share, size: 16),
+                      label: const Text('Show my position to trainer'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            context.colors.warning.withValues(alpha: 0.2),
+                        foregroundColor: context.colors.textPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
                   ),
-                  ChoiceChip(
-                    label: const Text('From trainer', style: AppText.micro),
-                    selected: _lessonCategoryFilter == 'trainer',
-                    onSelected: (val) {
-                      if (val) {
-                        setState(() => _lessonCategoryFilter = 'trainer');
-                      }
-                    },
-                  ),
+                  const SizedBox(height: AppSpacing.md),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              isLoadingLessons
-                  ? const Center(
+                // The shared list (phase 3b), narrowed to what can go on a
+                // board. Chips, search and the label filter are its own; this
+                // screen only fetches, puts a row on the board and acts on it.
+                if (_libraryEntries == null && _libraryLoading)
+                  const Center(
                       child: Padding(
                           padding: EdgeInsets.all(AppSpacing.lg),
                           child: CircularProgressIndicator()))
-                  : () {
-                      final displayedLessons = lessons.where((l) {
-                        if (_lessonCategoryFilter == 'mine') {
-                          return l['is_trainer_lesson'] != true;
-                        } else if (_lessonCategoryFilter == 'trainer') {
-                          return l['is_trainer_lesson'] == true;
-                        }
-                        return true;
-                      }).toList();
-
-                      if (displayedLessons.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppSpacing.lg),
-                            child: Text(
-                              'No saved tutorials in this category.',
-                              style: TextStyle(color: context.colors.textMuted),
-                            ),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: displayedLessons.length,
-                        itemBuilder: (context, index) {
-                          final lesson = displayedLessons[index];
-                          final isTrainerLesson =
-                              lesson['is_trainer_lesson'] == true;
-                          final positionList = lesson['position_list'];
-                          final isCourse = positionList != null &&
-                              (positionList is List) &&
-                              positionList.isNotEmpty;
-
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                                vertical: AppSpacing.xs),
-                            child: ListTile(
-                              leading: BoardThumbnail(
-                                fen: isCourse
-                                    ? ((positionList.first['fen'] as String?) ??
-                                        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
-                                    : ((lesson['fen'] as String?) ??
-                                        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'),
-                                size: 40,
-                              ),
-                              title: Text(
-                                lesson['title'],
-                                style: AppText.bodyLargeBold,
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (isTrainerLesson)
-                                    Text(
-                                      'Saved tutorial from trainer',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          color: context.colors.warning,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  if (isCourse)
-                                    Text(
-                                      'Tutorial with ${positionList.length} positions',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          color: context.colors.brand,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  if (lesson['description'] != null &&
-                                      lesson['description']
-                                          .toString()
-                                          .isNotEmpty) ...[
-                                    const SizedBox(height: AppSpacing.xxs),
-                                    Text(
-                                      lesson['description'],
-                                      style: AppText.caption.copyWith(
-                                          color: context.colors.textMuted),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              trailing: isTrainerLesson
-                                  ? null
-                                  : Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (isCourse)
-                                          PopupMenuButton<String>(
-                                            icon: Icon(Icons.more_vert,
-                                                size: 18,
-                                                color:
-                                                    context.colors.textMuted),
-                                            tooltip: 'Options',
-                                            onSelected: (value) {
-                                              if (value == 'uredi') {
-                                                _openTutorialEditor(
-                                                    Map<String, dynamic>.from(
-                                                        lesson));
-                                              } else if (value == 'preimenuj') {
-                                                _renameTutorial(
-                                                    Map<String, dynamic>.from(
-                                                        lesson));
-                                              } else if (value == 'kloniraj') {
-                                                _cloneTutorial(
-                                                    Map<String, dynamic>.from(
-                                                        lesson));
-                                              }
-                                            },
-                                            itemBuilder: (context) => [
-                                              const PopupMenuItem(
-                                                  value: 'uredi',
-                                                  child: Text('Edit tutorial')),
-                                              const PopupMenuItem(
-                                                  value: 'preimenuj',
-                                                  child: Text('Rename')),
-                                              const PopupMenuItem(
-                                                  value: 'kloniraj',
-                                                  child: Text(
-                                                      'Save as new version')),
-                                            ],
-                                          )
-                                        else
-                                          IconButton(
-                                            icon: Icon(Icons.edit_outlined,
-                                                size: 18,
-                                                color:
-                                                    context.colors.textMuted),
-                                            tooltip: 'Edit',
-                                            onPressed: () =>
-                                                _editSinglePosition(
-                                                    Map<String, dynamic>.from(
-                                                        lesson)),
-                                          ),
-                                        IconButton(
-                                          icon: Icon(Icons.delete_outline,
-                                              size: 18,
-                                              color: context.colors.danger),
-                                          tooltip: 'Delete',
-                                          onPressed: () => _confirmDeleteLesson(
-                                              Map<String, dynamic>.from(
-                                                  lesson)),
-                                        ),
-                                      ],
-                                    ),
-                              onTap: () {
-                                if (isCourse) {
-                                  setState(() {
-                                    _activeCourseItems = positionList;
-                                    _activeCourseIndex = 0;
-                                    _activeCourseTitle = lesson['title'];
-                                  });
-                                  final firstPos = positionList[0];
-                                  loadLessonPosition(
-                                      firstPos['fen'], firstPos['pgn']);
-                                  _showSuccess(
-                                      'Loaded step 1/${positionList.length} from tutorial: "${shownPartTitle(firstPos['title']?.toString(), 0) ?? lesson['title']}"');
-                                } else {
-                                  setState(() => _activeCourseItems = null);
-                                  loadLessonPosition(
-                                      lesson['fen'], lesson['pgn']);
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      );
-                    }(),
-            ],
+                else if (_libraryEntries == null)
+                  Column(
+                    children: [
+                      const Text('The library could not be loaded.'),
+                      TextButton(
+                          onPressed: fetchLibrary,
+                          child: const Text('Try again')),
+                    ],
+                  )
+                else
+                  LibraryList(
+                    entries: _libraryEntries!,
+                    chips: const [
+                      LibraryChip.all,
+                      LibraryChip.tutorials,
+                      LibraryChip.positions,
+                    ],
+                    originChips: true,
+                    labels: _availableUserLabels,
+                    shrinkWrap: true,
+                    onOpen: _putOnBoard,
+                    actionsFor: _libraryActionsFor,
+                  ),
+              ],
+            ),
           ),
         ),
       );

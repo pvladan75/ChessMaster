@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/matrix_filter_panel.dart';
 
 /// One list of everything a user keeps — phase 3 of
 /// `docs/PLAN-REORGANIZACIJA.md` (S3).
@@ -10,11 +11,14 @@ import 'package:chess_app/theme/app_typography.dart';
 /// Six shelves lived in five places; this widget is the one place. It draws
 /// only what it is given (rule 15): the entries, a row of kind chips, a search
 /// field, and a row per entry with whatever [actionsFor] hands back for it.
-/// Fetching, opening and deleting are the caller's — `LibraryScreen` on Home
-/// and, in 3b, the room's left column — so the same list can sit under two
+/// Fetching, opening and deleting are the caller's — `LibraryScreen` on Teach
+/// and, since 3b, the room's left column — so the same list can sit under two
 /// different sets of actions without knowing either.
 ///
-/// The chips are frozen here; the manual quotes them.
+/// The chips are frozen here; the manual quotes them. The column brought
+/// three needs of its own (phase 3b): only the chips for what can go on a
+/// board, a split by who keeps the row, and the label filter it already had —
+/// which is why the filter's home is here and not on either screen.
 class LibraryList extends StatefulWidget {
   const LibraryList({
     super.key,
@@ -22,6 +26,10 @@ class LibraryList extends StatefulWidget {
     required this.onOpen,
     this.actionsFor,
     this.initialChip,
+    this.chips = LibraryChip.values,
+    this.originChips = false,
+    this.labels = const [],
+    this.shrinkWrap = false,
   });
 
   final List<LibraryEntry> entries;
@@ -36,8 +44,30 @@ class LibraryList extends StatefulWidget {
   /// Which chip is selected when the list opens; null is „All".
   final LibraryChip? initialChip;
 
+  /// The kind chips to draw, in order. „All" shows the union of the others
+  /// given, so a column that lists only what can go on a board never shows a
+  /// recording under All. The Library screen passes the six; the room three.
+  final List<LibraryChip> chips;
+
+  /// Draw [mine] and [fromTrainer], which split the list by
+  /// [LibraryEntry.fromTrainer]. A student in a room reads their trainer's
+  /// material beside their own; a trainer alone has no use for the two.
+  final bool originChips;
+
+  /// The labels this user has used. Non-empty draws the label panel, which
+  /// filters by [LibraryEntry.themes] — include, exclude, all-or-any — the
+  /// way the room's column did over the wire until 3b.
+  final List<String> labels;
+
+  /// Take only the height the rows need, for a column that scrolls as a
+  /// whole. The default fills what it is given, which inside a
+  /// SingleChildScrollView is nothing at all.
+  final bool shrinkWrap;
+
   static const String searchHint = 'Search';
   static const String empty = 'Nothing here yet.';
+  static const String mine = 'Mine';
+  static const String fromTrainer = 'From trainer';
 
   @override
   State<LibraryList> createState() => _LibraryListState();
@@ -69,6 +99,42 @@ class _LibraryListState extends State<LibraryList> {
   late LibraryChip _chip = widget.initialChip ?? LibraryChip.all;
   final TextEditingController _search = TextEditingController();
 
+  /// null is everyone; true only the trainer's rows; false only mine.
+  bool? _fromTrainer;
+
+  List<String> _include = const [];
+  List<String> _exclude = const [];
+  String _matchMode = 'all';
+
+  /// What „All" means here: every kind one of the given chips shows.
+  Set<LibraryKind> get _allKinds => {
+        for (final chip in widget.chips)
+          if (chip.kinds != null) ...chip.kinds!,
+      };
+
+  bool _kindShown(LibraryEntry entry) {
+    if (_chip != LibraryChip.all) return _chip.shows(entry);
+    return _allKinds.isEmpty || _allKinds.contains(entry.kind);
+  }
+
+  bool _originShown(LibraryEntry entry) =>
+      _fromTrainer == null || entry.fromTrainer == _fromTrainer;
+
+  bool _labelsShown(LibraryEntry entry) {
+    if (_include.isEmpty && _exclude.isEmpty) return true;
+    final themes = entry.themes.toSet();
+    if (_exclude.any(themes.contains)) return false;
+    if (_include.isEmpty) return true;
+    return _matchMode == 'all'
+        ? _include.every(themes.contains)
+        : _include.any(themes.contains);
+  }
+
+  bool _searchShown(LibraryEntry entry, String query) =>
+      query.isEmpty ||
+      entry.title.toLowerCase().contains(query) ||
+      entry.themes.any((t) => t.toLowerCase().contains(query));
+
   @override
   void dispose() {
     _search.dispose();
@@ -98,38 +164,100 @@ class _LibraryListState extends State<LibraryList> {
   }
 
   IconData _iconFor(LibraryKind kind) => switch (kind) {
-    LibraryKind.scan => Icons.menu_book_outlined,
-    LibraryKind.position => Icons.push_pin_outlined,
-    LibraryKind.analysis => Icons.biotech_outlined,
-    LibraryKind.tutorial => Icons.auto_stories_outlined,
-    LibraryKind.recording => Icons.videocam_outlined,
-    LibraryKind.puzzleSet => Icons.extension_outlined,
-  };
+        LibraryKind.scan => Icons.menu_book_outlined,
+        LibraryKind.position => Icons.push_pin_outlined,
+        LibraryKind.analysis => Icons.biotech_outlined,
+        LibraryKind.tutorial => Icons.auto_stories_outlined,
+        LibraryKind.recording => Icons.videocam_outlined,
+        LibraryKind.puzzleSet => Icons.extension_outlined,
+      };
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final query = _search.text.trim().toLowerCase();
     final shown = widget.entries
-        .where((e) => _chip.shows(e))
-        .where((e) => query.isEmpty || e.title.toLowerCase().contains(query))
+        .where(_kindShown)
+        .where(_originShown)
+        .where(_labelsShown)
+        .where((e) => _searchShown(e, query))
         .toList();
 
+    final list = shown.isEmpty
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                LibraryList.empty,
+                style: AppText.body.copyWith(color: colors.textSecondary),
+              ),
+            ),
+          )
+        : ListView.builder(
+            shrinkWrap: widget.shrinkWrap,
+            physics:
+                widget.shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+            itemCount: shown.length,
+            itemBuilder: (context, index) {
+              final entry = shown[index];
+              final actions = widget.actionsFor?.call(entry) ?? const [];
+              return ListTile(
+                leading: Icon(_iconFor(entry.kind), color: colors.accent),
+                title: Text(entry.title),
+                subtitle: Text(_subtitleFor(entry)),
+                trailing: actions.isEmpty
+                    ? null
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: actions,
+                      ),
+                onTap: () => widget.onOpen(entry),
+              );
+            },
+          );
+
     return Column(
+      mainAxisSize: widget.shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
           spacing: 8,
           runSpacing: 4,
           children: [
-            for (final chip in LibraryChip.values)
+            for (final chip in widget.chips)
               ChoiceChip(
                 label: Text(chip.label),
                 selected: _chip == chip,
                 onSelected: (_) => setState(() => _chip = chip),
               ),
+            if (widget.originChips) ...[
+              FilterChip(
+                label: const Text(LibraryList.mine),
+                selected: _fromTrainer == false,
+                onSelected: (on) =>
+                    setState(() => _fromTrainer = on ? false : null),
+              ),
+              FilterChip(
+                label: const Text(LibraryList.fromTrainer),
+                selected: _fromTrainer == true,
+                onSelected: (on) =>
+                    setState(() => _fromTrainer = on ? true : null),
+              ),
+            ],
           ],
         ),
+        if (widget.labels.isNotEmpty)
+          MatrixFilterPanel(
+            availableUserLabels: widget.labels,
+            selectedIncludeTags: _include,
+            selectedExcludeTags: _exclude,
+            filterMatchMode: _matchMode,
+            onFilterChanged: (include, exclude, mode) => setState(() {
+              _include = include;
+              _exclude = exclude;
+              _matchMode = mode;
+            }),
+          ),
         const SizedBox(height: 8),
         TextField(
           controller: _search,
@@ -140,34 +268,7 @@ class _LibraryListState extends State<LibraryList> {
           ),
         ),
         const SizedBox(height: 8),
-        Expanded(
-          child: shown.isEmpty
-              ? Center(
-                  child: Text(
-                    LibraryList.empty,
-                    style: AppText.body.copyWith(color: colors.textSecondary),
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: shown.length,
-                  itemBuilder: (context, index) {
-                    final entry = shown[index];
-                    final actions = widget.actionsFor?.call(entry) ?? const [];
-                    return ListTile(
-                      leading: Icon(_iconFor(entry.kind), color: colors.accent),
-                      title: Text(entry.title),
-                      subtitle: Text(_subtitleFor(entry)),
-                      trailing: actions.isEmpty
-                          ? null
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: actions,
-                            ),
-                      onTap: () => widget.onOpen(entry),
-                    );
-                  },
-                ),
-        ),
+        if (widget.shrinkWrap) list else Expanded(child: list),
       ],
     );
   }

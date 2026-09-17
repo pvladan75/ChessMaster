@@ -190,7 +190,7 @@ async function listTutorials(pool, userId, { search }) {
   }
 
   const result = await pool.query(
-    `SELECT id, title, fen, language, created_at,
+    `SELECT id, title, fen, language, created_at, tags,
             jsonb_array_length(position_list) AS parts_count,
             (video_filename IS NOT NULL) AS has_video,
             (SELECT j.id FROM tutorial_render_jobs j
@@ -219,7 +219,9 @@ async function listTutorials(pool, userId, { search }) {
     assignable: false,
     blockedReason: null,
     instruction: null,
-    themes: [],
+    // The labels its author gave it — the room's column filters by them
+    // (phase 3b), the same way it filters a saved position.
+    themes: row.tags || [],
     hasSolution: false,
     needsReview: false,
   }));

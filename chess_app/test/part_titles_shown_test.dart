@@ -21,6 +21,7 @@ import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
@@ -158,28 +159,43 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      final api = LessonApiService(
-        authToken: 'tok',
-        client: MockClient((req) async {
-          if (req.method == 'GET' && req.url.path.endsWith('/labels')) {
-            return http.Response('[]', 200);
-          }
-          if (req.method == 'GET' && req.url.path.endsWith('/lessons')) {
-            return http.Response(
-              jsonEncode([
+      // Since phase 3b the column lists the shelf (`/library/positions`) and
+      // reads the tutorial's row (`/lessons/42`) when it is tapped.
+      final client = MockClient((req) async {
+        if (req.method == 'GET' && req.url.path.endsWith('/labels')) {
+          return http.Response('[]', 200);
+        }
+        if (req.method == 'GET' &&
+            req.url.path.endsWith('/library/positions')) {
+          return http.Response(
+            jsonEncode({
+              'items': [
                 {
-                  'id': 42,
+                  'kind': 'tutorial',
+                  'id': '42',
                   'title': 'Opozicija',
-                  'tags': <String>[],
-                  'position_list': _oldSteps,
+                  'fen': _oldSteps.first['fen'],
+                  'partsCount': 2,
                 },
-              ]),
-              200,
-            );
-          }
-          return http.Response('{}', 200);
-        }),
-      );
+              ],
+            }),
+            200,
+          );
+        }
+        if (req.method == 'GET' && req.url.path.endsWith('/lessons/42')) {
+          return http.Response(
+            jsonEncode({
+              'id': 42,
+              'title': 'Opozicija',
+              'tags': <String>[],
+              'position_list': _oldSteps,
+            }),
+            200,
+          );
+        }
+        return http.Response('{}', 200);
+      });
+      final api = LessonApiService(authToken: 'tok', client: client);
 
       await tester.pumpWidget(MaterialApp(
         home: ChessGamePage(
@@ -187,6 +203,8 @@ void main() {
           roomCode: 'STUDIO',
           initialRole: 'trener',
           lessonApi: api,
+          positionLibrary:
+              PositionLibraryService(authToken: 'tok', client: client),
         ),
       ));
       await tester.pumpAndSettle();

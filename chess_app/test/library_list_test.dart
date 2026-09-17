@@ -41,22 +41,34 @@ void main() {
   final opened = <LibraryEntry>[];
   setUp(opened.clear);
 
-  Widget host(List<LibraryEntry> entries,
-          {List<Widget> Function(LibraryEntry)? actionsFor}) =>
+  Widget host(
+    List<LibraryEntry> entries, {
+    List<Widget> Function(LibraryEntry)? actionsFor,
+    List<LibraryChip> chips = LibraryChip.values,
+    bool originChips = false,
+    List<String> labels = const [],
+    bool shrinkWrap = false,
+  }) =>
       MaterialApp(
-        theme:
-            ThemeData.light().copyWith(extensions: const [AppColorTokens.light]),
+        theme: ThemeData.light()
+            .copyWith(extensions: const [AppColorTokens.light]),
         home: Scaffold(
           body: LibraryList(
             entries: entries,
             onOpen: opened.add,
             actionsFor: actionsFor,
+            chips: chips,
+            originChips: originChips,
+            labels: labels,
+            shrinkWrap: shrinkWrap,
           ),
         ),
       );
 
+  // The list's own rows: the label panel's expansion tile is a ListTile too.
   List<String> titlesShown(WidgetTester tester) => tester
-      .widgetList<ListTile>(find.byType(ListTile))
+      .widgetList<ListTile>(find.descendant(
+          of: find.byType(ListView), matching: find.byType(ListTile)))
       .map((t) => (t.title as Text).data!)
       .toList();
 
@@ -163,5 +175,154 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.byType(ChoiceChip), findsNWidgets(6));
+  });
+
+  // Phase 3b of docs/PLAN-REORGANIZACIJA.md — the room's left column reads
+  // this widget too. It needs four things the Library screen did not: a subset
+  // of the chips (only what can go on a board), a split by who keeps the row,
+  // the label filter the room already had, and a height of its own inside a
+  // column that scrolls.
+  group('phase 3b — the room\'s column', () {
+    const board = [
+      LibraryChip.all,
+      LibraryChip.tutorials,
+      LibraryChip.positions
+    ];
+
+    testWidgets('a subset of chips draws only those, and All shows their union',
+        (tester) async {
+      await tester.pumpWidget(host(_six, chips: board));
+      await tester.pumpAndSettle();
+      final chips = tester
+          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+          .map((c) => (c.label as Text).data)
+          .toList();
+      expect(chips, ['All', 'Tutorials', 'Positions']);
+      // Not the six: an analysis or a recording is not on this column's All.
+      expect(titlesShown(tester),
+          ['Sicilian: the Najdorf', 'Rook ending, 1.Kf2', 'Diagram 41']);
+    });
+
+    final mine = _entry(LibraryKind.tutorial, 'Moj tutorijal', parts: 2);
+    final theirs = LibraryEntry(
+      kind: LibraryKind.tutorial,
+      id: 'theirs',
+      title: 'Trenerov tutorijal',
+      fen: '',
+      assignable: false,
+      partsCount: 3,
+      fromTrainer: true,
+    );
+
+    testWidgets('Mine and From trainer split the list by who keeps it',
+        (tester) async {
+      await tester.pumpWidget(host([mine, theirs], originChips: true));
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Moj tutorijal', 'Trenerov tutorijal']);
+
+      await tester.tap(find.widgetWithText(FilterChip, 'From trainer'));
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Trenerov tutorijal']);
+
+      await tester.tap(find.widgetWithText(FilterChip, 'Mine'));
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Moj tutorijal']);
+
+      // Tapping the chosen one again is „everyone" — there is no third chip
+      // for that, the kind row's All already has the word.
+      await tester.tap(find.widgetWithText(FilterChip, 'Mine'));
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Moj tutorijal', 'Trenerov tutorijal']);
+    });
+
+    testWidgets('without originChips the two chips are not drawn',
+        (tester) async {
+      await tester.pumpWidget(host([mine, theirs]));
+      await tester.pumpAndSettle();
+      expect(find.text('Mine'), findsNothing);
+      expect(find.text('From trainer'), findsNothing);
+    });
+
+    final endgame = LibraryEntry(
+      kind: LibraryKind.position,
+      id: 'p1',
+      title: 'Lucena',
+      fen: '',
+      assignable: false,
+      themes: const ['endgame', 'rook'],
+    );
+    final opening = LibraryEntry(
+      kind: LibraryKind.position,
+      id: 'p2',
+      title: 'Najdorf, 6.Bg5',
+      fen: '',
+      assignable: false,
+      themes: const ['opening'],
+    );
+
+    testWidgets('the labels filter by the themes a row carries',
+        (tester) async {
+      await tester.pumpWidget(host([endgame, opening],
+          labels: const ['endgame', 'opening', 'rook']));
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Lucena', 'Najdorf, 6.Bg5']);
+
+      await tester.tap(find.text('Label Filter Matrix'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('endgame'));
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Lucena']);
+
+      // A long press excludes; ALL (AND) wants every included label.
+      await tester.longPress(find.text('endgame'));
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Najdorf, 6.Bg5']);
+    });
+
+    testWidgets('no labels, no panel', (tester) async {
+      await tester.pumpWidget(host([endgame, opening]));
+      await tester.pumpAndSettle();
+      expect(find.text('Label Filter Matrix'), findsNothing);
+    });
+
+    testWidgets('search matches a label as well as the title', (tester) async {
+      await tester.pumpWidget(host([endgame, opening]));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.widgetWithText(TextField, LibraryList.searchHint), 'rook');
+      await tester.pumpAndSettle();
+      expect(titlesShown(tester), ['Lucena']);
+    });
+
+    testWidgets('inside a scrolling column it takes its own height',
+        (tester) async {
+      // The room's column is a SingleChildScrollView; a list that asks for
+      // all the height there is gets none, and throws.
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData.light()
+            .copyWith(extensions: const [AppColorTokens.light]),
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 400),
+                  LibraryList(
+                    entries: _six,
+                    onOpen: opened.add,
+                    chips: board,
+                    shrinkWrap: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ListTile), findsNWidgets(3));
+    });
   });
 }

@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
@@ -23,7 +24,12 @@ import 'package:chess_app/screens/chess_game_screen.dart';
 /// `lesson_rename_keeps_steps.test.js` exists on the server because of it.
 class _RecordingApi extends LessonApiService {
   _RecordingApi._(this.seen, http.Client client)
-      : super(authToken: 'tok', client: client);
+      : library = PositionLibraryService(authToken: 'tok', client: client),
+        super(authToken: 'tok', client: client);
+
+  /// The shelf the room's column reads since phase 3b, answered by the same
+  /// client so one fake tells one story.
+  final PositionLibraryService library;
 
   /// Answers the way the real server answers, and remembers what it was asked.
   ///
@@ -46,36 +52,55 @@ class _RecordingApi extends LessonApiService {
 
         final cloned = seen.any((r) => r.path.contains('/clone'));
 
+        final original = {
+          'id': 42,
+          'title': 'Stari naziv',
+          'description': 'Opis',
+          'tags': <String>[],
+          'position_list': [
+            {'id': 'aaaa1111', 'fen': _fen, 'title': 'Korak 1'},
+          ],
+        };
+        final copy = {
+          'id': 43,
+          'title': 'Stari naziv (kopija)',
+          'description': 'Opis',
+          'tags': <String>[],
+          'position_list': [
+            {'id': 'bbbb2222', 'fen': _fen, 'title': 'Korak 1'},
+          ],
+        };
+
         if (req.method == 'GET' && req.url.path.endsWith('/labels')) {
           return http.Response('[]', 200);
         }
-        if (req.method == 'GET' && req.url.path.endsWith('/lessons')) {
+        // The shelf: what the column lists. The copy appears only once it has
+        // been made, the way a refetch after a clone would see it.
+        if (req.method == 'GET' &&
+            req.url.path.endsWith('/library/positions')) {
           return http.Response(
-            jsonEncode([
-              {
-                'id': 42,
-                'title': 'Stari naziv',
-                'description': 'Opis',
-                'tags': <String>[],
-                'position_list': [
-                  {'id': 'aaaa1111', 'fen': _fen, 'title': 'Korak 1'},
-                ],
-              },
-              // The copy appears in the list only once it has been made, the
-              // way a refetch after a clone would see it.
-              if (cloned)
-                {
-                  'id': 43,
-                  'title': 'Stari naziv (kopija)',
-                  'description': 'Opis',
-                  'tags': <String>[],
-                  'position_list': [
-                    {'id': 'bbbb2222', 'fen': _fen, 'title': 'Korak 1'},
-                  ],
-                },
-            ]),
+            jsonEncode({
+              'items': [
+                for (final row in [original, if (cloned) copy])
+                  {
+                    'kind': 'tutorial',
+                    'id': '${row['id']}',
+                    'title': row['title'],
+                    'fen': _fen,
+                    'partsCount': 1,
+                    'fromTrainer': false,
+                  },
+              ],
+            }),
             200,
           );
+        }
+        // One row, when an action needs more than the shelf carries.
+        if (req.method == 'GET' && req.url.path.endsWith('/lessons/42')) {
+          return http.Response(jsonEncode(original), 200);
+        }
+        if (req.method == 'GET' && req.url.path.endsWith('/lessons/43')) {
+          return http.Response(jsonEncode(copy), 200);
         }
         if (req.method == 'POST' && req.url.path.contains('/clone')) {
           return http.Response(
@@ -133,6 +158,7 @@ void main() {
         roomCode: 'STUDIO',
         initialRole: 'trener',
         lessonApi: api,
+        positionLibrary: api.library,
       ),
     ));
     await tester.pumpAndSettle();

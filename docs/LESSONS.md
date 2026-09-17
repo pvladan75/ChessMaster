@@ -3009,3 +3009,42 @@ which.
 `test/`; the day it went green is the day the shell changed, and a reader who
 finds it in the suite should know it was once a gate and where the rest of it
 is.
+
+**Reorganisation phase 3b — 17.9.2026, app 2882 → 2894.** The arithmetic:
++ 7 in `library_list_test.dart` (the phase-3b group: a subset of chips, the
+Mine / From trainer split, no origin chips unasked, the label filter, no
+labels no panel, search by label, own height in a scrolling column) + 5 in
+`room_library_test.dart` (two that read the screen, three that drive the
+column). Backend unchanged at 1412 — the tutorial shelf's tags were asserted
+inside the existing tutorial test. Analyze 26.
+
+**A second list is a second search, a second filter and a second row.** The
+room's column had its own search field (server-side, by title and tag), its
+own label matrix (server-side, include/exclude/mode on the wire), its own
+three category chips and its own row widget with a board thumbnail — 350
+lines beside a widget that drew the same things for the Library screen. What
+it needed that the widget lacked was four parameters, and the label filter,
+once it had a home in the widget, came to the Library screen for free — where
+the manual had promised it since the batch that rewrote the page. Rule 12 is
+cheaper than it looks when the second copy is read for what it *needs* rather
+than what it *does*.
+
+**A ListTile under a coloured Container asserts, and only a widget test with
+tiles in it sees that.** The column was `Container(color:)`; the old rows
+were `Card`s, which are Materials, so nothing asserted. The shared list's rows
+are bare tiles, and the room test threw three assertions per frame — the same
+fault the right sidebar's comment describes, fixed the same way.
+
+**A fake that answers the old read keeps an old test green until the read
+moves.** `part_titles_shown_test` served `/lessons` and answered `{}` to
+everything else; when the column moved to `/library/positions` the room drew
+nothing and the test failed on a tap — the right red, from the full suite, not
+from the eleven files run first. Two fakes were extended (that one and the
+versions test's); each now serves the shelf and the row from one client so one
+fake tells one story.
+
+**A snackbar that queues behind another is not a message a test can wait
+for.** The tap's „Loaded step 1/1" sits behind the room's own „Position
+loaded and synchronized!" for the first one's full timer. The test asserts on
+the course bar over the board — the thing the tap actually does — and says
+why the snackbar is not the assertion.

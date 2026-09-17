@@ -41,7 +41,7 @@ test('a tutorial is a saved lesson with parts, read through acceptedTrainersOf',
   const pool = stubPool([[{
     id: 7, title: 'Sicilian: the Najdorf', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     parts_count: 6, has_video: true, render_job_id: null, language: 'en',
-    from_trainer: false, created_at: '2026-09-10T10:00:00Z',
+    from_trainer: false, created_at: '2026-09-10T10:00:00Z', tags: ['endgame'],
   }]]);
   const rows = await lib.listTutorials(pool, 5, { search: null });
   assert.equal(pool.calls.length, 1);
@@ -63,6 +63,10 @@ test('a tutorial is a saved lesson with parts, read through acceptedTrainersOf',
   assert.equal(row.fromTrainer, false);
   assert.equal(row.assignable, false, 'a tutorial is sent, not set as a puzzle');
   assert.ok(row.createdAt);
+  // Phase 3b: the room's column filters the shared list by label, so a
+  // tutorial has to carry the labels its author gave it, like a position does.
+  assert.match(text, /\btags\b/, 'the tutorial shelf must read tags');
+  assert.deepEqual(row.themes, ['endgame']);
 });
 
 test('a tutorial with a render in flight says so', async () => {

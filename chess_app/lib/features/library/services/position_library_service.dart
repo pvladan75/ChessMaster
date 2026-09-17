@@ -15,9 +15,14 @@ import '../models/library_entry.dart';
 /// `saved_lessons` now lives. A service that reads one table and writes another
 /// is a service two features will reach for and one of them will be surprised.
 class PositionLibraryService {
-  PositionLibraryService({required this.authToken});
+  PositionLibraryService({required this.authToken, http.Client? client})
+      : _client = client ?? http.Client();
 
   final String authToken;
+
+  /// Injectable for tests — the room's column reads through this service,
+  /// and a widget test of the room answers for the shelf here.
+  final http.Client _client;
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -39,7 +44,7 @@ class PositionLibraryService {
         .replace(queryParameters: query.isEmpty ? null : query);
 
     try {
-      final response = await http
+      final response = await _client
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 30));
       if (response.statusCode != 200) return null;
@@ -60,7 +65,7 @@ class PositionLibraryService {
   /// other.
   Future<List<CourseSummary>?> listCourses() async {
     try {
-      final response = await http
+      final response = await _client
           .get(Uri.parse('$backendUrl/lessons'), headers: _headers)
           .timeout(const Duration(seconds: 30));
       if (response.statusCode != 200) return null;

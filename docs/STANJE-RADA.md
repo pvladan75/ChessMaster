@@ -118,6 +118,18 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Faza 3b gotova, 17.9.2026 (vođa, Fable): kolona sobe je deljena lista.**
+Leva kolona sobe i Pripreme crta `LibraryList` sužen na All · Tutorials ·
+Positions, sa čipovima Mine / From trainer i panelom oznaka — oba su sada
+deo vidžeta (`originChips`, `labels`), pa i ekran Library filtrira po
+oznakama, kako priručnik već obećava. Kolona čita `GET /library/positions`
+kao i Library; red iz `saved_lessons` (delovi tutorijala, opis pozicije) vuče
+se tek kad ga radnja traži (`fetchRow`); polica tutorijala nosi svoje oznake
+(kapija pozadine). Radnje na redu nepromenjene; trenerovi redovi ih nemaju.
+Nestali: sopstvena pretraga kolone, matrica oznaka u sobi, tri čipa
+kategorije i sopstveni red sa sličicom. Provera uživo: **178**. Sledeće:
+6a (kontroler studija, vođa), 6b, 6c.
+
 **Faza 5 gotova, 17.9.2026 (vođa, Fable): ljuska je Home · Practise · Analyse ·
 Teach.** „People" je ušao u Teach (učenici, grupe, zahtevi) i Home (panel
 trenera, „Set for me", „Join a session"); Home crta blokove samo iz podataka

@@ -307,6 +307,25 @@ class LessonApiService {
     }
   }
 
+  /// One `saved_lessons` row by id, a tutorial or a single position alike —
+  /// what the room's column reads when an action needs more than the shelf's
+  /// entry carries (the parts of a tutorial, the description of a position).
+  /// Null for anything but the row that was asked for.
+  Future<Map<String, dynamic>?> fetchRow(int id) async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/lessons/$id'), headers: _headers)
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      if (body is! Map || body['id'] != id) return null;
+      return Map<String, dynamic>.from(body);
+    } catch (e) {
+      AppLogger.log('[Lessons] Could not load row $id: $e');
+      return null;
+    }
+  }
+
   /// The labels this user has used, for the filter panel.
   Future<List<String>> fetchLabels() async {
     try {
