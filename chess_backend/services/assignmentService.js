@@ -106,19 +106,27 @@ async function resolvePuzzles(pool, { studentId, themes, minRating, maxRating, c
   const cleanThemes = trainableThemes(themes || []);
 
   const conditions = ['p.rating BETWEEN $1 AND $2'];
-  const params = [minRating || 400, maxRating || 3200];
+  const filters = [minRating || 400, maxRating || 3200];
 
   if (cleanThemes.length > 0) {
-    params.push(cleanThemes);
+    filters.push(cleanThemes);
     // Overlap, not containment: "pin or fork" is what a trainer means when they
     // tick two boxes, not "puzzles that are both at once".
-    conditions.push(`p.themes && $${params.length}::varchar[]`);
+    conditions.push(`p.themes && $${filters.length}::varchar[]`);
   }
 
-  params.push(studentId);
-  const studentParam = `$${params.length}`;
-  params.push(wanted);
-  const limitParam = `$${params.length}`;
+  // The two queries below take different parameter lists, and that is the
+  // point of building them apart. They used to share one: the fallback drops
+  // the `NOT EXISTS`, so the student's id it still carried was a parameter
+  // nothing referenced, and PostgreSQL cannot type one of those - "could not
+  // determine data type of parameter $4". It fired only when the first query
+  // came back empty, which is exactly what the fallback is for: a filter that
+  // matches nothing answered 500 instead of "no puzzles match". Found
+  // 17.9.2026 while sending a homework whose puzzle set was deliberately
+  // impossible; no stub-pool test could have seen it.
+  const unseenParams = [...filters, studentId, wanted];
+  const studentParam = `$${filters.length + 1}`;
+  const limitParam = `$${filters.length + 2}`;
 
   const unseen = await pool.query(
     `SELECT p.puzzle_id, p.rating FROM lichess_puzzles p
@@ -129,7 +137,7 @@ async function resolvePuzzles(pool, { studentId, themes, minRating, maxRating, c
        )
      ORDER BY RANDOM()
      LIMIT ${limitParam}`,
-    params
+    unseenParams
   );
 
   if (unseen.rows.length > 0) return unseen.rows;
@@ -138,8 +146,8 @@ async function resolvePuzzles(pool, { studentId, themes, minRating, maxRating, c
     `SELECT p.puzzle_id, p.rating FROM lichess_puzzles p
      WHERE ${conditions.join(' AND ')}
      ORDER BY RANDOM()
-     LIMIT ${limitParam}`,
-    params
+     LIMIT $${filters.length + 1}`,
+    [...filters, wanted]
   );
   return anyMatch.rows;
 }

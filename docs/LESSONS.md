@@ -3373,3 +3373,31 @@ item's key back, so `saveHomework` first reads which keys the homework really
 holds: a key belonging to another homework is treated as a new item instead
 of writing over somebody else's row. Proved by a test that hands one
 homework's key to another and then reads the first one back untouched.
+
+**Homework, phase 4: sending — 17.9.2026, backend 1486 → 1503 with the test
+database (1441 without).** + 12 in the new `homework_send.test.js`, + 5 in
+`puzzle_resolution.test.js`. 15 mutations, each red on the right test. App
+unchanged.
+
+**A whole homework or nothing.** `sendHomework` plans every item — loading
+the tutorial, re-checking each position, resolving the puzzle set for *this*
+student — before it opens its transaction, so a refusal writes nothing and
+the route can hand the quota unit back. Four tests send a homework whose
+content went bad in between and then count the student's assignments: zero,
+not „the good items landed".
+
+**The bug the impossible fixture found.** A homework with a deliberately
+unmatchable puzzle set (theme `zugzwang`, rating 3200–3400) made
+`resolvePuzzles` throw `could not determine data type of parameter $4`: the
+fallback query drops the `NOT EXISTS`, so the student's id it still carried
+was a parameter nothing referenced. It fires only when the first query comes
+back empty — the one case the fallback exists for — so a trainer's narrow
+filter answered 500 on `POST /assignments` instead of „no puzzles match".
+Eight months of stub-pool tests could not see it, because a stub answers
+whatever it is told; the real-database test that found it took four lines.
+
+**A fixture whose ids look like indexes cannot see an index used as an id.**
+The mutation „steps travel by index" survived: the tutorial fixture's steps
+were `p0, p1, p2`, which is exactly what `p${index}` produces. The ids are
+now `s21x, s28x, s35x` and the mutation dies. Rule 6, and the third time in
+two days that a survivor was the fixture's fault rather than the code's.

@@ -5878,6 +5878,27 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 183. Domaći, faze 3a–4: šablon i slanje (server) — 17.9.2026, nije viđeno uživo
+
+Bez ekrana za sada (faza 3b je kod implementera), pa se ovo gleda kad ekrani
+budu gotovi — ili ručno, kroz zahteve, ako vlasnik želi ranije.
+
+1. [ ] **Napiši domaci** sa četiri stavke (tutorijal, pozicije, set
+   zagonetki, „odigraj do kraja"), sa branom na drugoj i „mora rešeno" na
+   četvrtoj; preuredi ih — posle čuvanja redosled je novi, a stavke su iste
+   (ne pojavljuju se duplikati i ne gube se izbori).
+2. [ ] **Pošalji jednom učeniku**: učenikova lista ima **jedan** red
+   („Thursday", 0/4), ne četiri; jedno obaveštenje „New homework".
+3. [ ] **Kvota**: na besplatnom planu slanje troši jednu jedinicu po učeniku
+   (pet stavki unutra ne menja ništa); odbijeno slanje ne troši ništa.
+4. [ ] **Pozicija pod revizijom**: obeleži jednu poziciju iz domaćeg kao
+   „needs review", pošalji — odbija se sa rečenicom o reviziji i učenik ne
+   dobija **ništa** (ni tutorijal koji je bio u redu).
+5. [ ] **Izmeni šablon posle slanja** (dodaj i obriši stavku): već poslati
+   domaći se ne menja — isti naslov, iste stavke, isti napredak.
+6. [ ] **Uzak filter zagonetki** (tema + rejting 3200–3400): ruta kaže da
+   nema zagonetki po tim kriterijumima; ranije je vraćala 500.
+
 ## 182. Domaći, faza 2: zadata partija, i portret ekrana vežbi — 17.9.2026, nije viđeno uživo
 
 `docs/PLAN-DOMACI-ZADATAK.md`, faze 2a i 2b. Zadata partija se još ne šalje

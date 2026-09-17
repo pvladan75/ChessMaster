@@ -14,6 +14,10 @@ const logger = require('../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const template = require('../services/homeworkTemplate');
+const { sendHomework } = require('../services/homeworkSend');
+const { requireQuota, refundQuota } = require('../middleware/entitlements');
+const { ENT } = require('../services/entitlementService');
+const { notify } = require('../services/notifications');
 
 const router = express.Router();
 
@@ -79,6 +83,57 @@ router.put('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error saving a homework:', err);
     res.status(500).json({ error: 'Error saving the homework.' });
+  }
+});
+
+// POST /homeworks/:id/send — one homework to one student.
+//
+// One student per request, and therefore **one quota unit per student per
+// homework** whatever it holds (owner, 17.9.2026). A dialog that was given
+// three students sends three requests and pays three units; the five items
+// inside cost nothing extra, which is what „the homework is the unit" means.
+//
+// The unit goes back on every refusal, because a refusal writes nothing:
+// `sendHomework` plans every item before it opens its transaction.
+router.post('/:id/send', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  const studentId = Number.parseInt(req.body?.studentId, 10);
+  if (!Number.isInteger(id) || !Number.isInteger(studentId)) {
+    await refundQuota(req);
+    return res.status(400).json({ error: 'A homework and a student are required.' });
+  }
+
+  try {
+    const result = await sendHomework(pool, {
+      trainerId: req.user.id,
+      studentId,
+      homeworkId: id,
+      dueAt: req.body?.dueAt || null,
+      note: typeof req.body?.note === 'string' && req.body.note.trim()
+        ? req.body.note.trim()
+        : null,
+    });
+    if (!result.ok) {
+      await refundQuota(req);
+      return res.status(result.status).json({ error: result.error });
+    }
+
+    // Do the thing, then say it: the homework is already in the student's list,
+    // and the notice only reports it. One notice for the homework, none for its
+    // items — five notices for one homework is noise a trainer learns to skip.
+    await notify(pool, {
+      recipientId: studentId,
+      senderId: req.user.id,
+      title: 'New homework',
+      message: `${req.user.name || 'Trainer'} sent you: ${result.assignment.title}`,
+      kind: 'assignment_new',
+      refId: result.assignment.id,
+    });
+    res.status(201).json(result.assignment);
+  } catch (err) {
+    await refundQuota(req);
+    logger.error('Error sending a homework:', err);
+    res.status(500).json({ error: 'Error sending the homework.' });
   }
 });
 

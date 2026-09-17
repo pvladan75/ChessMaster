@@ -159,6 +159,33 @@ Kapija faze — **preuređenje čuva svaki ključ** — dokazana na pravoj bazi,
 **Faza 3b čeka implementera**: `docs/briefs/BRIEF-DOMACI-FAZA3-APP.md`,
 kapija `docs/gates/homework_editor_test.dart` (danas crvena na master-u).
 
+**Faza 4 u kodu** (17.9.2026, vođa — kvota i transakcija).
+`services/homeworkSend.js` i `POST /homeworks/:id/send`: šablon se prepisuje
+u `assignments` — roditelj `kind='homework'` po učeniku i po jedan običan
+zadatak za svaku stavku, sa njenim `item_key`, `position`, `gate` i
+`require_solved`. Sadržaj se razrešava **sada i za tog učenika**: koraci
+tutorijala se snimaju (pa kasnija izmena tutorijala ne pomera napola
+završen zadatak), set zagonetki bira ono što to dete nije rešavalo, a
+pozicija se **ponovo** proverava — ako je u međuvremenu pod revizijom ili
+bez rešenja, ceo domaji se odbija i **ništa se ne upisuje** (sve u jednoj
+transakciji; polovičan domaji je brana koja pokazuje u prazno).
+
+**Kvota**: jedan učenik po zahtevu, dakle **jedna jedinica po učeniku po
+domaćem**, bez obzira na broj stavki (vlasnik, §9 plana). Svaki izlaz koji
+ništa ne upiše vraća jedinicu — i to je prošireno testom koji čita rutu i
+traži `refundQuota` pred **svakim** odbijanjem i u `catch`, a nijedan na
+uspešnom putu. Jedno obaveštenje: učenik dobija „New homework", stavke ne
+javljaju ništa.
+
+**Uzgred nađen i popravljen stariji kvar**: `resolvePuzzles` je u rezervnom
+upitu (onom koji radi kad ništa neviđeno ne ostane) nosio parametar koji
+više nije nigde referenciran, a PostgreSQL takav ne ume da otipizuje —
+„could not determine data type of parameter $4". Filter koji ne pronalazi
+ništa je zato odgovarao **500** umesto „nema zagonetki po tim kriterijumima",
+i to na postojećoj ruti `POST /assignments`, ne samo u domacem. Stub-pool
+test to nije mogao da vidi; sad postoji `test/puzzle_resolution.test.js` na
+pravoj bazi.
+
 **Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
 na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
 vraća `assignments_kind_check` (proširen) i dodaje `assignments_homework_shape`;
