@@ -73,6 +73,29 @@ class PuzzleApiService {
     }
   }
 
+  /// Serves one named puzzle, in the same shape as [fetchNextPuzzle] — how a
+  /// retry queue is walked (docs/PLAN-NAPREDAK-VEZBI.md §4): `source` says
+  /// which table the id belongs to.
+  Future<Map<String, dynamic>?> fetchPuzzleById({
+    required String id,
+    required String source,
+    required String userToken,
+  }) async {
+    final uri = Uri.parse('$backendUrl/api/puzzles/by-id/$id')
+        .replace(queryParameters: {'source': source});
+    try {
+      final res = await http
+          .get(uri, headers: _headers(userToken))
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      print('[PUZZLE_API_SERVICE] Error fetching puzzle by id: $e');
+    }
+    return null;
+  }
+
   Future<Map<String, dynamic>?> fetchNextEndgamePuzzle({
     required String difficulty,
     String? excludeId,

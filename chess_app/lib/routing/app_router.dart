@@ -246,6 +246,7 @@ final List<RouteBase> appRouteTable = [
         initialCategory: category,
         mateDepth: state.uri.queryParameters['depth'],
         basicMateLevel: state.uri.queryParameters['level'],
+        retry: state.uri.queryParameters['retry'] == '1',
       );
     },
   ),
@@ -253,6 +254,7 @@ final List<RouteBase> appRouteTable = [
     path: AppRoutes.tactics,
     builder: (context, state) => TacticsTrainerScreen(
       session: SessionService.instance.current,
+      retry: state.uri.queryParameters['retry'] == '1',
     ),
   ),
   GoRoute(
@@ -267,6 +269,7 @@ final List<RouteBase> appRouteTable = [
         material: query['material'],
         band: query['band'],
         oppositeOnly: query['oppositeBishops'] == 'true',
+        retry: query['retry'] == '1',
       );
     },
   ),

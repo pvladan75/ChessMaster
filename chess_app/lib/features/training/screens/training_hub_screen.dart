@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -18,7 +19,7 @@ import '../widgets/resume_strip.dart';
 /// It draws no board and holds no engine, so it costs nothing to keep mounted
 /// behind whatever it opened, and coming back to it is a pop rather than a
 /// rebuild.
-class TrainingHubScreen extends StatelessWidget {
+class TrainingHubScreen extends StatefulWidget {
   const TrainingHubScreen({
     super.key,
     required this.session,
@@ -34,10 +35,56 @@ class TrainingHubScreen extends StatelessWidget {
   final bool embedded;
 
   @override
+  State<TrainingHubScreen> createState() => _TrainingHubScreenState();
+}
+
+class _TrainingHubScreenState extends State<TrainingHubScreen> {
+  Map<String, SourceProgress>? _progress;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgress();
+  }
+
+  /// A guest has no attempt log to read. Null draws no line on any card,
+  /// which is also what a failed read draws — the two look the same to the
+  /// player, and both are correct here (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  Future<void> _loadProgress() async {
+    if (widget.session.isGuest) return;
+    final progress =
+        await PuzzleAttemptApi(authToken: widget.session.token).progress();
+    if (!mounted) return;
+    setState(() => _progress = progress);
+  }
+
+  /// Pushes a drill and refreshes the cards when the reader comes back —
+  /// `context.push` already resolves on the pop, which is the cheapest way
+  /// to notice a drill just wrote to the log this screen stays mounted
+  /// through.
+  Future<void> _pushAndRefresh(String path) async {
+    await context.push(path);
+    _loadProgress();
+  }
+
+  void _onRetry(String source) {
+    switch (source) {
+      case PuzzleSource.lichess:
+        _pushAndRefresh('${AppRoutes.tactics}?retry=1');
+      case PuzzleSource.matePuzzle:
+        _pushAndRefresh(AppRoutes.drillPath('mate_puzzle', retry: true));
+      case PuzzleSource.winningPosition:
+        _pushAndRefresh(AppRoutes.drillPath('winning_position', retry: true));
+      case PuzzleSource.endgame:
+        _pushAndRefresh('${AppRoutes.endgames}?retry=1');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: embedded
+      appBar: widget.embedded
           ? null
           : AppBar(
               // The title the reader sees, which is not the name the code uses.
@@ -59,25 +106,27 @@ class TrainingHubScreen extends StatelessWidget {
               // when nothing was left, which is most visits.
               const ResumeStrip(),
               CategorySelectionHubWidget(
-                onSelectTactics: () => context.push(AppRoutes.tactics),
+                onSelectTactics: () => _pushAndRefresh(AppRoutes.tactics),
                 onSelectEndgameWin: () =>
-                    context.push('${AppRoutes.endgamePicker}?mode=win'),
+                    _pushAndRefresh('${AppRoutes.endgamePicker}?mode=win'),
                 onSelectEndgameDraw: () =>
-                    context.push('${AppRoutes.endgamePicker}?mode=draw'),
+                    _pushAndRefresh('${AppRoutes.endgamePicker}?mode=draw'),
                 onSelectBlunderGames: () =>
-                    context.push(AppRoutes.blunderGames),
-                onSelectRepertoire: () => context.push(AppRoutes.repertoire),
-                onSelectMyGames: () => context.push(AppRoutes.archiveHome),
+                    _pushAndRefresh(AppRoutes.blunderGames),
+                onSelectRepertoire: () => _pushAndRefresh(AppRoutes.repertoire),
+                onSelectMyGames: () => _pushAndRefresh(AppRoutes.archiveHome),
                 onSelectMistakesDrill: () =>
-                    context.push(AppRoutes.archiveMistakes),
+                    _pushAndRefresh(AppRoutes.archiveMistakes),
                 // These three used to be a value on the working screen's state.
                 // They are places, so they have paths.
-                onSelectMatePuzzle: (depth) => context
-                    .push(AppRoutes.drillPath('mate_puzzle', depth: depth)),
-                onSelectBasicMate: (level) => context
-                    .push(AppRoutes.drillPath('basic_mate', level: level)),
+                onSelectMatePuzzle: (depth) => _pushAndRefresh(
+                    AppRoutes.drillPath('mate_puzzle', depth: depth)),
+                onSelectBasicMate: (level) => _pushAndRefresh(
+                    AppRoutes.drillPath('basic_mate', level: level)),
                 onSelectWinningPosition: () =>
-                    context.push(AppRoutes.drillPath('winning_position')),
+                    _pushAndRefresh(AppRoutes.drillPath('winning_position')),
+                progress: _progress,
+                onRetry: _onRetry,
               ),
             ],
           ),

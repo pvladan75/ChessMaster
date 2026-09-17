@@ -133,13 +133,21 @@ abstract final class AppRoutes {
 
   /// The drill, with the exercise it is opening. [depth] belongs to the mate
   /// puzzles and [level] to basic mating; passing the wrong one is harmless and
-  /// ignored, which is why they are named rather than positional.
-  static String drillPath(String category, {String? depth, String? level}) {
+  /// ignored, which is why they are named rather than positional. [retry] opens
+  /// the failed-puzzles queue instead of the next puzzle
+  /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  static String drillPath(
+    String category, {
+    String? depth,
+    String? level,
+    bool retry = false,
+  }) {
     final query = <String>[
       'category=$category',
       if (depth != null && depth.isNotEmpty) 'depth=$depth',
       if (level != null && level.isNotEmpty)
         'level=${Uri.encodeComponent(level)}',
+      if (retry) 'retry=1',
     ].join('&');
     return '$trainingDrill?$query';
   }

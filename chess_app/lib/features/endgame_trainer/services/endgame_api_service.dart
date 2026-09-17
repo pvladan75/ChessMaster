@@ -161,6 +161,42 @@ class EndgameApiService {
     }
   }
 
+  /// Serves one named position — how the hub's „Retry failed" walks the
+  /// endgame retry queue (docs/PLAN-NAPREDAK-VEZBI.md §4), in the same shape
+  /// [fetchNext] returns so the trainer screen cannot tell the two apart.
+  Future<EndgameFetchResult> fetchById(String id) async {
+    final uri = Uri.parse('$backendUrl/api/puzzles/by-id/$id')
+        .replace(queryParameters: {'source': 'endgame'});
+
+    try {
+      final res = await _get(uri).timeout(const Duration(seconds: 12));
+      if (res.statusCode == 404) {
+        return const EndgameFetchResult(EndgameFetchOutcome.noneMatch);
+      }
+      if (res.statusCode != 200) {
+        AppLogger.log(
+            '[Endgames] Server rejected by-id request (${res.statusCode}).');
+        return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
+      }
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final data = body['endgame'];
+      if (data is! Map<String, dynamic>) {
+        return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
+      }
+
+      final puzzle = EndgamePuzzle.fromJson(data);
+      if (!puzzle.isPlayable) {
+        AppLogger.log('[Endgames] Position ${puzzle.id} has no moves.');
+        return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
+      }
+      return EndgameFetchResult(EndgameFetchOutcome.ok, puzzle);
+    } catch (e) {
+      AppLogger.log('[Endgames] Error fetching by id: $e');
+      return const EndgameFetchResult(EndgameFetchOutcome.unavailable);
+    }
+  }
+
   /// What there is to practise, counted.
   ///
   /// One request per visit to the picker: the counts come split by rating band,

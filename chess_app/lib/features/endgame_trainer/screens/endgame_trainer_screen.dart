@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/speech_service.dart';
@@ -53,6 +56,8 @@ class EndgameTrainerScreen extends StatefulWidget {
     this.oppositeOnly = false,
     this.fen,
     this.api,
+    this.attemptApi,
+    this.retry = false,
   });
 
   final UserSession session;
@@ -84,6 +89,17 @@ class EndgameTrainerScreen extends StatefulWidget {
   /// edge cannot be reached.
   final EndgameApiService? api;
 
+  /// Injected in tests — fake the client, assert the request (rule 7) — for
+  /// the attempt log this screen writes to on every stop
+  /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  final PuzzleAttemptApi? attemptApi;
+
+  /// Walks `PuzzleAttemptApi.retryIds('endgame')` and serves each by id
+  /// instead of the ordinary filtered fetch — the hub's „Retry failed"
+  /// button (docs/PLAN-NAPREDAK-VEZBI.md §4). No picker: the retry list is
+  /// its own filter.
+  final bool retry;
+
   @override
   State<EndgameTrainerScreen> createState() => _EndgameTrainerScreenState();
 }
@@ -93,6 +109,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   late final EndgameApiService _api =
       widget.api ?? EndgameApiService(authToken: widget.session.token);
+  late final PuzzleAttemptApi _attemptApi =
+      widget.attemptApi ?? PuzzleAttemptApi(authToken: widget.session.token);
 
   EndgameSolveSession? _solve;
   chess.Chess? _game;
@@ -184,6 +202,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   int _drillMoves = 0;
 
+  /// The failed-puzzle ids, fetched once, when [EndgameTrainerScreen.retry]
+  /// is set. Null until asked for; empty is a real answer.
+  List<String>? _retryQueue;
+  int _retryIndex = 0;
+  bool _retryQueueEmpty = false;
+
   @override
   void initState() {
     super.initState();
@@ -199,7 +223,39 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     super.dispose();
   }
 
+  /// The retry queue is fetched once and walked in order, one id per call.
+  Future<EndgamePuzzle?> _fetchNextRetryPuzzle() async {
+    if (_retryQueue == null) {
+      final ids = await _attemptApi.retryIds(PuzzleSource.endgame);
+      _retryQueue = ids ?? [];
+      _retryIndex = 0;
+    }
+    if (_retryIndex >= _retryQueue!.length) {
+      if (mounted) setState(() => _retryQueueEmpty = true);
+      return null;
+    }
+    final id = _retryQueue![_retryIndex];
+    _retryIndex++;
+    final result = await _api.fetchById(id);
+    return result.hasPuzzle ? result.puzzle : null;
+  }
+
   Future<void> _loadNext() async {
+    // Leaving a puzzle that never reached a verdict is a skip — a real
+    // position, so worth recording, unlike the synthetic 'custom' fen used to
+    // explore or replay one position outside the drill.
+    final leaving = _solve;
+    if (leaving != null &&
+        !_countedThisPuzzle &&
+        leaving.puzzle.id != 'custom') {
+      unawaited(_attemptApi.record(
+        source: PuzzleSource.endgame,
+        puzzleId: leaving.puzzle.id,
+        solved: false,
+        skipped: true,
+      ));
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -219,6 +275,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         source: 'syzygy',
         piecesOnBoard: 7, // Allow play out
       );
+    } else if (widget.retry) {
+      final result = await _fetchNextRetryPuzzle();
+      if (result == null) {
+        // The queue was asked for and is empty — a real answer, not a fetch
+        // failure. `_retryQueueEmpty` is already set.
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+      puzzle = result;
     } else {
       final result = await _api.fetchNext(
         type: widget.type,
@@ -378,6 +443,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _countedThisPuzzle = true;
       _attempted++;
       if (solve.countsAsSolved) _solved++;
+      if (solve.puzzle.id != 'custom') {
+        // Fired, not awaited — the board has already moved on to the reply.
+        unawaited(_attemptApi.record(
+          source: PuzzleSource.endgame,
+          puzzleId: solve.puzzle.id,
+          solved: solve.countsAsSolved,
+          hinted: solve.usedHint || _readouts > 0,
+        ));
+      }
     }
 
     _found.add(uci);
@@ -1001,9 +1075,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       appBar: AppBar(
         toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
         title: Text(
-          widget.type == null
-              ? 'Endgames'
-              : (kEndgameTypeNames[widget.type] ?? 'Endgames'),
+          (widget.type == null
+                  ? 'Endgames'
+                  : (kEndgameTypeNames[widget.type] ?? 'Endgames')) +
+              (widget.retry ? ' — retry' : ''),
         ),
         actions: [
           const BoardViewMenu(),
@@ -1032,6 +1107,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
+    if (widget.retry && _retryQueueEmpty) return _buildRetryEmptyState();
     if (_error != null) return _buildError();
 
     final solve = _solve;
@@ -1347,6 +1423,29 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// The retry queue's own empty screen — a real answer ("nothing failed"),
+  /// not the fetch failure `_buildError` reports.
+  Widget _buildRetryEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.task_alt, size: 40, color: context.colors.success),
+            const SizedBox(height: AppSpacing.md),
+            const Text('Nothing to retry.', textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton(
+              onPressed: () => Navigator.of(context).maybePop(),
+              child: const Text('Back'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
