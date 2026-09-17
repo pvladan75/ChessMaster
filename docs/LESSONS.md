@@ -3159,3 +3159,21 @@ buttons put its centre on „Clone part", and a tap meant to select part 0
 cloned it. The buttons moved out of the tile. The gate's byte-equality
 test caught it as a third part where two were expected — which is what a
 test on the wire sees that a test on the screen does not.
+
+**„Saved tutorials" empty on a phone — 17.9.2026, app 2876 → 2879.** The
+arithmetic: + 3 in `saved_tutorials_phone_test.dart` (two phone sizes and
+Windows). Backend unchanged; analyze 26.
+
+**A touch target is a size the desktop never draws.** The owner saw the
+dialog on Android with its search box, fourteen label chips and no
+tutorials, while Windows listed them all. The rows had loaded — the chips
+are read off them. Flutter's default `materialTapTargetSize` pads a chip to
+48 dp on Android and iOS and leaves it at 30 on a desktop, so the same
+fourteen labels wrapped into seven rows in a narrower dialog, overflowed a
+fixed 400 dp cap by 288 px, and left a `Flexible` list zero height. Every
+widget test of this dialog ran with the test's default platform and a few
+labels, where it fits. It is the second of the two release-build traps in
+`CLAUDE.md` — the overflow that paints nothing — with the platform deciding
+the size, and the fix is the rule's: nothing above a list may take all its
+room. Found by the owner, reproduced by measuring before a line was
+changed, and the test is the owner's own labels.

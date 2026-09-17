@@ -118,6 +118,16 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Popravka posle prijave, 17.9.2026: „Saved tutorials" na telefonu bez
+tutorijala.** Tutorijali su stizali; dijalog im nije ostavljao visinu.
+Sadržaj je bio ograničen na 400 dp, a oznake iznad liste na Androidu imaju
+48 dp (Flutter ih tamo dopunjuje do mete za dodir, na Windows-u ne) — 14
+oznaka u sedam redova, prelivanje od 288 px, lista visine 0. Release build to
+ne javlja, samo odseče. Sada: oznake najviše dva reda sa sopstvenim
+skrolovanjem, visina dijaloga iz ekrana (60 %, 320–560 dp).
+`test/saved_tutorials_phone_test.dart` (3 testa, crven na `ce4998d`, mutacija
+„oznake bez granice" crvena). Provera uživo: stavka 179, tačka 11.
+
 **Faza 6b gotova, 17.9.2026, spojeno `c361694` (implementer, ocenio vođa):
 studio na telefonu — i time je plan reorganizacije izgrađen ceo.**
 `tutorial_studio_phone_layout.dart` (`part` ekrana): Line | Task | Parts nad

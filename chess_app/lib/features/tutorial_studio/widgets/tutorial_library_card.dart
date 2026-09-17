@@ -489,6 +489,11 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   /// height it takes.
   static const int _filterFrom = 6;
 
+  /// Two rows of chips at the height a phone draws them. Android pads a chip
+  /// to a 48 dp touch target and a desktop does not, so the same labels take
+  /// twice the height there; more than two rows scroll inside this box.
+  static const double _chipsMaxHeight = 2 * 48.0 + AppSpacing.xs;
+
   static int? _idOf(Map<String, dynamic> row) {
     final raw = row['id'];
     return raw is int ? raw : int.tryParse('$raw');
@@ -625,8 +630,18 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Saved tutorials'),
+      // The list's height is what is left under the search box and the
+      // chips, so neither of those may take all of it. Until 17.9.2026 this
+      // was a fixed 400 dp with the chips wrapping freely above the list: on
+      // a phone fourteen labels wrapped into seven 48 dp rows, overflowed the
+      // cap by 288 px, and left the list no height at all. A release build
+      // draws no warning, so the owner saw a dialog with chips and no
+      // tutorials. `test/saved_tutorials_phone_test.dart`.
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 400),
+        constraints: BoxConstraints(
+          maxHeight:
+              (MediaQuery.sizeOf(context).height * 0.6).clamp(320.0, 560.0),
+        ),
         child: SizedBox(
           width: double.maxFinite,
           child: Column(
@@ -652,23 +667,29 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
               if (_availableLabels.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Wrap(
-                    spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      for (final label in _availableLabels)
-                        FilterChip(
-                          label: Text(label, style: AppText.caption),
-                          selected: _selectedLabels.contains(label),
-                          onSelected: (on) => setState(() {
-                            if (on) {
-                              _selectedLabels.add(label);
-                            } else {
-                              _selectedLabels.remove(label);
-                            }
-                          }),
-                        ),
-                    ],
+                  child: ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(maxHeight: _chipsMaxHeight),
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        children: [
+                          for (final label in _availableLabels)
+                            FilterChip(
+                              label: Text(label, style: AppText.caption),
+                              selected: _selectedLabels.contains(label),
+                              onSelected: (on) => setState(() {
+                                if (on) {
+                                  _selectedLabels.add(label);
+                                } else {
+                                  _selectedLabels.remove(label);
+                                }
+                              }),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               Flexible(
