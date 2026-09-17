@@ -5878,6 +5878,65 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 176. Napredak u vežbama: šta je rešeno, šta se vraća — 17.9.2026, nije viđeno uživo
+
+`docs/PLAN-NAPREDAK-VEZBI.md`, faze 1 i 2 (spojeno `da433d3`, `1677f34`).
+
+1. [ ] **Kartice ćute dok nema ničega.** Nov nalog, tab Training: nijedna kartica
+   ne piše „Solved 0" ni dugme „Retry failed".
+2. [ ] **Linija posle prvog pokušaja.** Reši jedan mat u 2, promaši drugi, preskoči
+   treći („Next Position"). Vrati se na hub: kartica matova piše
+   „Solved 1 · 2 to retry" i dugme „Retry failed (2)".
+3. [ ] **Retry servira baš te.** Pritisni „Retry failed (2)": naslov ima „— retry",
+   stižu upravo promašena i preskočena zagonetka, po redu. Reši jednu; hub
+   posle povratka kaže „Solved 2 · 1 to retry".
+4. [ ] **Taktika, završnice, šetnja kroz partiju** pišu isto: po jedan pokušaj u
+   svakoj, pa linija na kartici. Završnice: „Win" i „Hold a draw" se sabiraju na
+   jednoj kartici; za šetnju kroz partiju linija bez dugmeta (nema by-id).
+5. [ ] **Osnovni matovi**: preset odigran do mata → linija na kartici; bez dugmeta.
+6. [ ] **Domaći zadatak nije dirnut.** Preskakanje u zadatku i dalje ne beleži
+   ništa (jedan pokušaj, kao do sada).
+7. [ ] **Server**: `GET /api/puzzles/progress` sa tokenom vraća po izvoru
+   `seen/solved/firstTry/failed/skipped/toRetry`; `mate_puzzle` ima
+   `buckets` po dubini, `endgame` po režimu.
+
+## 175. Reorganizacija, faze 1–3a: jedna vrata, jedna biblioteka, imena — 17.9.2026, nije viđeno uživo
+
+`docs/PLAN-REORGANIZACIJA.md`, faze 1, 2 i 3a (spojeno `bfeaadb`, `6a7ac83`,
+`2671241`). **Priručnik na sajtu već opisuje tabove iz faze 5** — ne isporučivati
+sajt pre nje.
+
+1. [ ] **Analiza ima jedna vrata.** U traci je jedno dugme „Use in a tutorial"
+   (ikona škole); ostala četiri (Create step, Edit tutorial steps, Create
+   interactive tutorial, Make a tutorial from this game) ne postoje. Na
+   Windows-u list ima šest redova; na telefonu tri (bez „New tutorial…").
+   Na 360 dp list se skroluje, ništa ne preliva.
+2. [ ] **Svaki red radi ono što piše**: „New tutorial from this line" otvara
+   Studio sa celom linijom; „Add this position to a tutorial…" pita samo koji
+   tutorijal; „Add this line…" pita još i „Where does the step begin?";
+   „Open a tutorial to edit…" otvara birač.
+3. [ ] **Soba i Priprema**: leva kolona ima naslov „Board" (Set up position,
+   Import PGN, Save position, FEN) pa „Library"; nema „Create tutorial
+   (multiple positions)"; meni reda tutorijala nema „Edit positions".
+   „Save position" dijalog: naslov „Save position", polje „Position name".
+4. [ ] **Priprema nije sesija.** Iz Pripreme na početni ekran: nema banera
+   „Active session (code: STUDIO)" ni čipa „Resume session STUDIO".
+5. [ ] **Join proverava kod.** Na tabu Sessions ukucaj „12" i „Join": poruka
+   „Enter a valid 6-digit code", ništa se ne otvara.
+6. [ ] **Imena**: kartica „New session" (podnaslov „Open a room and invite your
+   student."), „Recordings" / „No recordings yet.", „Students and trainers",
+   „Tutorials" (bila „Interactive tutorials"), „Scan a book"; ikona
+   „Student groups" vidljiva i bez učenika.
+7. [ ] **Biblioteka**: tab Library → kartica „Everything you keep" →
+   „Open library". Čipovi All · Tutorials · Positions · Analyses · Recordings ·
+   Puzzle sets; pretraga; pozicija iz sobe i pozicija iz knjige obe pod
+   „Positions" (knjiga sa izvorom). Tutorijal: red ima Send / Export video /
+   Delete i otvara Studio; sačuvana analiza se otvara **cela** (sa
+   varijantama i komentarima); snimak → Play; skup zagonetki je nacrtan bez
+   akcije (poznato, 3b).
+8. [ ] **Server nedostupan** u biblioteci kaže „The library could not be
+   loaded." sa „Try again", ne „Nothing here yet.".
+
 ## 174. Četiri prijave: podešavanja, mat, obaveštenje — 16.9.2026, nije viđeno uživo
 
 `docs/STANJE-RADA.md`, „Četiri prijave iste večeri".
