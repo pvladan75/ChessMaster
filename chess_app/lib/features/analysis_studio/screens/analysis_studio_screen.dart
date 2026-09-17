@@ -79,11 +79,19 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// it wins over the draft kept on the device: the caller asked for this game.
   final AnalysisGame? initialGame;
 
+  /// A whole saved tree to open — variations, comments and arrows included —
+  /// how the Library opens a saved analysis (phase 3 of
+  /// `docs/PLAN-REORGANIZACIJA.md`). [initialGame] is a main line and would
+  /// drop the sidelines; a tree that was saved with them is opened as it was
+  /// saved. Wins over the device draft for the same reason the other two do.
+  final AnalysisNode? initialTree;
+
   const AnalysisStudioScreen({
     super.key,
     required this.userSession,
     this.initialFen,
     this.initialGame,
+    this.initialTree,
   });
 
   @override
@@ -195,7 +203,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   @override
   void initState() {
     super.initState();
-    final startFen = widget.initialGame?.startFen ??
+    final tree = widget.initialTree;
+    final startFen = tree?.fen ??
+        widget.initialGame?.startFen ??
         widget.initialFen ??
         'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     AppLogger.log(
@@ -203,13 +213,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _initAnalysisTree(startFen);
     final game = widget.initialGame;
     if (game != null) _loadGame(game);
+    if (tree != null) _loadTree(tree);
     _initEngine();
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
     });
     // An explicit initialFen or game means the caller wants exactly that
     // (e.g. exported from a game), so it must not be overwritten by a draft.
-    if (widget.initialFen == null && game == null) {
+    if (widget.initialFen == null && game == null && tree == null) {
       _restoreDraft();
     }
   }
@@ -338,6 +349,16 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   /// [game] as the tree, standing on its cursor ply, with the board turned to
   /// the side the player had.
+  /// Opens a saved tree whole, standing on its root.
+  void _loadTree(AnalysisNode tree) {
+    _rootNode = tree;
+    _currentNode = tree;
+    _chessGame = chess.Chess.fromFEN(tree.fen);
+    _boardController.loadFen(tree.fen);
+    final side = tree.fen.split(' ')[1];
+    _orientation = side == 'b' ? PlayerColor.black : PlayerColor.white;
+  }
+
   void _loadGame(AnalysisGame game) {
     final tree = analysisTreeFromMoves(game.startFen, game.uciMoves);
     _rootNode = tree.root;
