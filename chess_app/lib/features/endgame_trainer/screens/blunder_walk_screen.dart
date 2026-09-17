@@ -188,8 +188,10 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// Fired, not awaited: recording must never hold up the board.
   void _recordStop(GameBlunder blunder,
       {required bool found, bool skipped = false}) {
-    final gameId = int.tryParse(_walk?.game.id ?? '');
+    final gameId = _walk?.game.id;
     if (gameId == null) return;
+    // The id is opaque on the wire: a game named 'bg_test' in a fixture is
+    // recorded like a game named '42'.
     unawaited(_attemptApi.record(
       source: PuzzleSource.blunderGame,
       puzzleId: PuzzleSource.blunderGameId(gameId, blunder.ply),
