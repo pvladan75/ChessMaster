@@ -16,25 +16,49 @@ enum LibraryKind {
   /// A saved variation tree. Listed without the tree; whoever takes one loads
   /// it separately, because the tree is the heavy half.
   analysis,
+
+  /// A tutorial — `saved_lessons` *with* steps. Phase 3 of
+  /// `docs/PLAN-REORGANIZACIJA.md` (S3): one library of everything a user
+  /// keeps, so the shelf the studio writes to is on it too.
+  tutorial,
+
+  /// A recording of a session, this user's own. Played, never put on a board.
+  recording,
+
+  /// A puzzle set written by „Review entire game". Device-local: the server
+  /// never sees one, so it has no wire name and `libraryKindFrom` never
+  /// answers it — the client adds these rows itself.
+  puzzleSet,
 }
 
 LibraryKind? libraryKindFrom(String? raw) => switch (raw) {
       'scan' => LibraryKind.scan,
       'position' => LibraryKind.position,
       'analysis' => LibraryKind.analysis,
+      'tutorial' => LibraryKind.tutorial,
+      'recording' => LibraryKind.recording,
       _ => null,
     };
 
+/// The name the server knows a kind by. A puzzle set has none — asking the
+/// server for one is a programming error, not a request.
 String libraryKindWire(LibraryKind kind) => switch (kind) {
       LibraryKind.scan => 'scan',
       LibraryKind.position => 'position',
       LibraryKind.analysis => 'analysis',
+      LibraryKind.tutorial => 'tutorial',
+      LibraryKind.recording => 'recording',
+      LibraryKind.puzzleSet => throw ArgumentError(
+          'a puzzle set is device-local and has no wire kind'),
     };
 
 String libraryKindLabel(LibraryKind kind) => switch (kind) {
       LibraryKind.scan => 'from book',
       LibraryKind.position => 'saved positions',
       LibraryKind.analysis => 'analyses',
+      LibraryKind.tutorial => 'tutorials',
+      LibraryKind.recording => 'recordings',
+      LibraryKind.puzzleSet => 'puzzle sets',
     };
 
 class LibraryEntry {
@@ -55,6 +79,10 @@ class LibraryEntry {
     this.sourceTitle,
     this.sourcePage,
     this.sourceLabel,
+    this.partsCount,
+    this.hasVideo = false,
+    this.rendering = false,
+    this.createdAt,
   });
 
   final LibraryKind kind;
@@ -94,6 +122,17 @@ class LibraryEntry {
   final int? sourcePage;
   final String? sourceLabel;
 
+  /// A tutorial's number of parts; null for every other kind.
+  final int? partsCount;
+
+  /// A tutorial or a recording that has a film ready to download.
+  final bool hasVideo;
+
+  /// A tutorial whose film is being drawn right now.
+  final bool rendering;
+
+  final DateTime? createdAt;
+
   factory LibraryEntry.fromJson(Map<String, dynamic> json) => LibraryEntry(
         kind: libraryKindFrom(json['kind']?.toString()) ?? LibraryKind.position,
         id: json['id']?.toString() ?? '',
@@ -112,6 +151,10 @@ class LibraryEntry {
         sourceTitle: _text(json['sourceTitle']),
         sourcePage: (json['sourcePage'] as num?)?.toInt(),
         sourceLabel: _text(json['sourceLabel']),
+        partsCount: (json['partsCount'] as num?)?.toInt(),
+        hasVideo: json['hasVideo'] == true,
+        rendering: json['rendering'] == true,
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       );
 
   static String? _text(dynamic value) {

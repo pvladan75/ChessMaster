@@ -26,6 +26,17 @@ enum PickerPurpose {
 /// editor read saved lessons and analyses, "Moje pozicije" read the scanner's
 /// table — and a scanned position could not be put into a lesson at all.
 class PositionPickerDialog extends StatefulWidget {
+  /// The shelves a part of a tutorial can be taken from. Not
+  /// `LibraryKind.values`: the library also lists tutorials, recordings and
+  /// puzzle sets (phase 3 of `docs/PLAN-REORGANIZACIJA.md`), and none of
+  /// those is a position — the day the enum grew, this dialog drew six chips
+  /// and overflowed by 17 pixels in `dialog_layout_test`.
+  static const List<LibraryKind> pickerKinds = [
+    LibraryKind.scan,
+    LibraryKind.position,
+    LibraryKind.analysis,
+  ];
+
   const PositionPickerDialog({
     super.key,
     required this.service,
@@ -171,7 +182,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                       _load();
                     },
                   ),
-                  for (final kind in LibraryKind.values)
+                  for (final kind in PositionPickerDialog.pickerKinds)
                     ChoiceChip(
                       label: Text(libraryKindLabel(kind)),
                       selected: _kind == kind,
@@ -261,6 +272,12 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
               LibraryKind.scan => Icons.menu_book_outlined,
               LibraryKind.position => Icons.push_pin_outlined,
               LibraryKind.analysis => Icons.biotech_outlined,
+              // The picker lists what can become a part of a tutorial; the
+              // server never sends these three kinds to it, and if one ever
+              // arrives it is drawn, not dropped in silence.
+              LibraryKind.tutorial => Icons.auto_stories_outlined,
+              LibraryKind.recording => Icons.videocam_outlined,
+              LibraryKind.puzzleSet => Icons.extension_outlined,
             },
             size: 18,
             color: usable ? colors.accent : colors.textMuted,
