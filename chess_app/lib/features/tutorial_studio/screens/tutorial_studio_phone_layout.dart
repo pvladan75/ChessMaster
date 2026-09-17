@@ -20,7 +20,17 @@ extension _PhoneLayout on _TutorialStudioScreenState {
     final landscape = LandscapeBoardLayout.applies(context);
     return Scaffold(
       appBar: _phoneAppBar(),
-      body: landscape ? _phoneLandscapeBody() : _phonePortraitBody(constraints),
+      // The arrow keys drive the same cursor the strip's buttons do, here as
+      // on the desktop: a phone rarely has them, a tablet with a keyboard
+      // does, and `move_keys_everywhere_test` holds every screen with the
+      // strip to it.
+      body: MoveKeyboardShortcuts(
+        cursor: _moveCursor(),
+        // _jumpTo does its own redraw through the controller.
+        onChanged: () {},
+        child:
+            landscape ? _phoneLandscapeBody() : _phonePortraitBody(constraints),
+      ),
     );
   }
 

@@ -17,7 +17,9 @@
 // the phone layout's Save away and watch (a) fail.
 //
 // If you believe a test in this gate is wrong, stop and say so in the report
-// — do not work around it.
+// — do not work around it. The 6b worker did, twice, and both were the
+// gate's: the override reset moved into [close], and the device slot is
+// cleared between the two halves of the byte-equality test.
 
 import 'dart:convert';
 
@@ -85,7 +87,6 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await TutorialDraftService.instance.clear();
   });
-  tearDown(() => debugDefaultTargetPlatformOverride = null);
 
   /// The studio as a phone draws it: a touch platform, and a window narrower
   /// than [Breakpoints.wide]. The platform is read through the theme, which
@@ -98,13 +99,17 @@ void main() {
     addTearDown(tester.view.reset);
 
     final api = _RecordingApi();
-    await tester.pumpWidget(MaterialApp(
-      home: TutorialStudioScreen(
-        session: session,
-        entry: TutorialEntry.fromAnalysis(TutorialHandover.position(_startFen)),
-        lessonApi: api,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TutorialStudioScreen(
+          session: session,
+          entry: TutorialEntry.fromAnalysis(
+            TutorialHandover.position(_startFen),
+          ),
+          lessonApi: api,
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: 'overflow on opening');
     return api;
@@ -116,21 +121,30 @@ void main() {
     addTearDown(tester.view.reset);
 
     final api = _RecordingApi();
-    await tester.pumpWidget(MaterialApp(
-      home: TutorialStudioScreen(
-        session: session,
-        entry: TutorialEntry.fromAnalysis(TutorialHandover.position(_startFen)),
-        lessonApi: api,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TutorialStudioScreen(
+          session: session,
+          entry: TutorialEntry.fromAnalysis(
+            TutorialHandover.position(_startFen),
+          ),
+          lessonApi: api,
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     return api;
   }
 
-  /// Tears the tree down without waiting out the draft's 600 ms debounce.
+  /// Tears the tree down without waiting out the draft's 600 ms debounce,
+  /// and puts the platform back. **Inside the test, not in a `tearDown`**:
+  /// the binding checks that the override is null before the test body has
+  /// returned, so a `tearDown` is too late — the 6b worker proved it with a
+  /// repro that had no app code in it at all.
   Future<void> close(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 100));
+    debugDefaultTargetPlatformOverride = null;
   }
 
   ChessBoardWithOverlay board(WidgetTester tester) => tester
@@ -207,14 +221,15 @@ void main() {
   group('portrait, 360 × 640', () {
     const portrait = Size(360, 640);
 
-    testWidgets('opens as Line | Task | Parts, not Flow | Tree | PGN',
-        (tester) async {
+    testWidgets('opens as Line | Task | Parts, not Flow | Tree | PGN', (
+      tester,
+    ) async {
       await openPhone(tester, portrait);
 
       for (final tab in [
         'phone-tab-line',
         'phone-tab-task',
-        'phone-tab-parts'
+        'phone-tab-parts',
       ]) {
         expect(find.byKey(Key(tab)), findsOneWidget, reason: tab);
       }
@@ -222,8 +237,11 @@ void main() {
       expect(find.text('Task'), findsOneWidget);
       expect(find.text('Parts'), findsOneWidget);
       for (final desktop in ['Flow', 'Tree', 'PGN']) {
-        expect(find.text(desktop), findsNothing,
-            reason: '„$desktop" is the desktop\'s tab');
+        expect(
+          find.text(desktop),
+          findsNothing,
+          reason: '„$desktop" is the desktop\'s tab',
+        );
       }
       expect(find.byType(ChessBoardWithOverlay), findsOneWidget);
       expect(find.byKey(const Key('phone-save')), findsOneWidget);
@@ -231,25 +249,36 @@ void main() {
       await close(tester);
     });
 
-    testWidgets('the same taps save the same positionList as the desktop',
-        (tester) async {
+    testWidgets('the same taps save the same positionList as the desktop', (
+      tester,
+    ) async {
       final phone = await openPhone(tester, portrait);
       await phoneScript(tester);
-      expect(phone.saves, hasLength(1),
-          reason: 'the phone\'s Save must send the tutorial, once');
+      expect(
+        phone.saves,
+        hasLength(1),
+        reason: 'the phone\'s Save must send the tutorial, once',
+      );
       final fromPhone = jsonEncode(phone.saves.single['positionList']);
       await close(tester);
+      // The phone half left its draft in the device's slot, and the desktop
+      // half — opened through the Studio's door, which adopts an open draft
+      // by design — would carry on with it and PUT to the tutorial the phone
+      // just made. Two clean opens, one slot each.
+      await TutorialDraftService.instance.clear();
 
-      debugDefaultTargetPlatformOverride = null;
       final desktop = await openDesktop(tester);
       await desktopScript(tester);
       expect(desktop.saves, hasLength(1));
       final fromDesktop = jsonEncode(desktop.saves.single['positionList']);
       await close(tester);
 
-      expect(fromPhone, fromDesktop,
-          reason: 'one controller, two layouts: the wire must not know '
-              'which one wrote the tutorial');
+      expect(
+        fromPhone,
+        fromDesktop,
+        reason: 'one controller, two layouts: the wire must not know '
+            'which one wrote the tutorial',
+      );
       expect(phone.saves.single['title'], desktop.saves.single['title']);
     });
 
@@ -261,10 +290,14 @@ void main() {
       await play(tester, 'e2', 'e4');
       await tapKey(tester, 'phone-tab-line');
       expect(find.byKey(const Key('phone-comment')), findsOneWidget);
-      expect(find.byType(BoardAnnotationBar), findsOneWidget,
-          reason: 'arrows and squares are drawn with the shared bar');
+      expect(
+        find.byType(BoardAnnotationBar),
+        findsOneWidget,
+        reason: 'arrows and squares are drawn with the shared bar',
+      );
       final controls = tester.widget<MoveNavigationControls>(
-          find.byType(MoveNavigationControls).first);
+        find.byType(MoveNavigationControls).first,
+      );
       expect(controls.onFlipBoard, isNotNull, reason: 'the flip is reachable');
 
       // Task: the kind, the text, the answers.
@@ -283,7 +316,7 @@ void main() {
       for (final kind in [
         'New demonstration',
         'Find the move',
-        'Choose the answer'
+        'Choose the answer',
       ]) {
         expect(find.text(kind), findsOneWidget, reason: kind);
       }
@@ -296,7 +329,7 @@ void main() {
         'Move down',
         'Clone part',
         'Rename',
-        'Delete part'
+        'Delete part',
       ]) {
         expect(find.byTooltip(action), findsWidgets, reason: action);
       }
@@ -304,8 +337,11 @@ void main() {
       // root, the starting position.
       expect(board(tester).controller.getFen(), isNot(_startFen));
       await tapKey(tester, 'phone-part-0');
-      expect(board(tester).controller.getFen(), _startFen,
-          reason: 'tapping a part selects it and the board follows');
+      expect(
+        board(tester).controller.getFen(),
+        _startFen,
+        reason: 'tapping a part selects it and the board follows',
+      );
 
       // The overflow: what the app bar has no room for.
       await tapKey(tester, 'phone-more');
@@ -321,8 +357,11 @@ void main() {
         expect(find.text(item), findsOneWidget, reason: item);
       }
       await tapText(tester, 'Undo');
-      expect(find.byKey(const Key('phone-part-1')), findsNothing,
-          reason: 'Undo in the overflow is the controller\'s undo');
+      expect(
+        find.byKey(const Key('phone-part-1')),
+        findsNothing,
+        reason: 'Undo in the overflow is the controller\'s undo',
+      );
 
       await close(tester);
     });
@@ -331,20 +370,27 @@ void main() {
   group('landscape, 640 × 360', () {
     const landscape = Size(640, 360);
 
-    testWidgets('the board on the left, whole height; the tabs on the right',
-        (tester) async {
+    testWidgets('the board on the left, whole height; the tabs on the right', (
+      tester,
+    ) async {
       await openPhone(tester, landscape);
 
       final boardRect = tester.getRect(find.byType(ChessBoardWithOverlay));
       final tabs = tester.getTopLeft(find.byKey(const Key('phone-tab-line')));
-      expect(boardRect.left, lessThan(tabs.dx),
-          reason: 'the board stands left of the tabs');
-      expect(boardRect.height, greaterThan(200),
-          reason: 'the board takes the height, not a strip of it');
+      expect(
+        boardRect.left,
+        lessThan(tabs.dx),
+        reason: 'the board stands left of the tabs',
+      );
+      expect(
+        boardRect.height,
+        greaterThan(200),
+        reason: 'the board takes the height, not a strip of it',
+      );
       for (final tab in [
         'phone-tab-line',
         'phone-tab-task',
-        'phone-tab-parts'
+        'phone-tab-parts',
       ]) {
         expect(find.byKey(Key(tab)), findsOneWidget, reason: tab);
       }

@@ -118,6 +118,22 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Faza 6b gotova, 17.9.2026, spojeno `c361694` (implementer, ocenio vođa):
+studio na telefonu — i time je plan reorganizacije izgrađen ceo.**
+`tutorial_studio_phone_layout.dart` (`part` ekrana): Line | Task | Parts nad
+istim kontrolerom; tabla i gusta traka poteza gore, tabovi prikovani, sadržaj
+taba ispod; položeno kroz `LandscapeBoardLayout`; traka za crtanje u tabu
+Line; prelivanje (⋮) nosi Undo, Redo, Discard changes, Preview, Record
+narration, Export video, Save as .pgn, Position setup. Bira se na dodirnoj
+platformi užoj od praga; Windows prozor iste širine zadržava uski raspored
+radne površine. Kapija (4 testa, 360 × 640 i 640 × 360: isti dodiri daju isti
+`positionList` kao Windows, svaka radnja dodirom, ništa ne preliva) zelena,
+mutacija „Save isključen" crvena. Radnik je našao dve greške u kapiji i stao
+— obe su bile kapijine (reset platforme u `tearDown` stiže prekasno; nacrt
+telefona curio u Windows polovinu kroz uređajski slot). Nije napravljen:
+Tree kao dijalog za čitanje (§7 ga pominje, kapija ne traži). **Ostaje samo
+red 7 plana: provera uživo, stavke 175–179**, koju vlasnik radi na kraju.
+
 **Faza 6c gotova, 17.9.2026, spojeno `8af285f` (implementer, ocenio vođa):
 jedan urednik tutorijala, svuda.** `LessonStepEditorPanel` i predikat
 platforme obrisani; vrata (`openTutorialEditor`) otvaraju studio na svakoj

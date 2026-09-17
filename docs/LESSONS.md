@@ -3118,3 +3118,44 @@ that broke `home_map_test` broke `one_editor_test`, and a chained
 read — the heredoc lesson, again, with a `;` instead of a `&&`. Fixed with
 an editor, not a shell substitution, and the unpushed commit amended. A
 check that cannot compile is not a red.
+
+**Reorganisation phase 6b — 17.9.2026, app 2872 → 2876.** The arithmetic:
++ 4 in `tutorial_phone_layout_test.dart`, the gate moved into `test/`. The
+studio set stands at 561 (543 after 6a, + 14 controller tests, + 4 gate).
+Backend unchanged at 1412; analyze 26 — after five warnings the worker never
+saw, because it never ran analyze: an extension on a `State` calling
+`setState`, which is protected. Three one-line methods on the state fixed it;
+the grade is the lead's measurement, not the report.
+
+**A worker that stops on a gate it believes wrong is the sentence in every
+brief doing its job.** Two defects, both the gate's, both proved with a
+repro before the report: a `tearDown` that resets
+`debugDefaultTargetPlatformOverride` runs after the binding has already
+checked it is null, so the reset belongs inside the test; and the
+byte-equality test opened the desktop half through the Studio's door, which
+adopts an open draft by design, so the phone's draft leaked across and the
+desktop PUT to the tutorial the phone had just made. The worker patched a
+local copy to show its layout passed, deleted the copy, and left the gate
+untouched. Rule 6 in a new coat: the fixture (one device slot for two
+screens) was luckier than the real thing.
+
+**`Theme.of(context).platform` is Android inside `flutter test`.** Every
+narrow-window test of the desktop studio would have routed into the phone
+layout; eleven cases in four files did. The layout reads the test override
+where a test set it and `dart:io` otherwise — the same split the deleted
+platform guard used, and the reason it was a one-line change to reverse.
+
+**A rule held per file is a rule a second file escapes.**
+`move_keys_everywhere_test` reads each file that draws the move strip and
+asks for the keyboard shortcuts in the same file; the phone layout is a
+`part` and drew the strip without them — and, since the phone branch
+returns its own `Scaffold` before the desktop's wrapper, it really did not
+answer the arrow keys. The full suite on master found it; the worker's
+studio set could not. The rule was right, the layout was wrong, and the fix
+was the wrapper the rule asks for.
+
+**A tap lands on a widget's centre.** A `ListTile` whose subtitle held five
+buttons put its centre on „Clone part", and a tap meant to select part 0
+cloned it. The buttons moved out of the tile. The gate's byte-equality
+test caught it as a third part where two were expected — which is what a
+test on the wire sees that a test on the screen does not.

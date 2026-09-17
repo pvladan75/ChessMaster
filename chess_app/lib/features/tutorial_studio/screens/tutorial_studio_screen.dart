@@ -182,7 +182,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// in its own state, and a rebuild alone will not move it. Without this a
   /// restored draft would read „Samo prikaži" over a part that asks for a move
   /// — the trainer believing they asked something they did not. The same trap
-  /// `LessonStepEditorPanel._kindEpoch` was written for.
+  /// the old step editor's `_kindEpoch` was written for.
   int _fieldsEpoch = 0;
   int _selectedTab = 0;
 
@@ -1304,7 +1304,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   /// The tutorial as a child will meet it, without saving anything.
   ///
-  /// It was buried in `LessonStepEditorPanel`, which D8 retires on Windows, and
+  /// It was buried in the old step editor (deleted in phase 6c), and
   /// it is the fastest answer to „does this feel right" that this screen can
   /// give — so it comes across rather than being lost with the panel.
   ///
@@ -1877,7 +1877,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// agree to. Refusing outright is no better — it leaves them with a position
   /// they cannot ask about and no way forward. The demonstration belongs in the
   /// part *before* the question, which the viewer joins without reloading the
-  /// board. Carried over from `LessonStepEditorPanel`, which D8 retires.
+  /// board. Carried over from the old step editor (deleted in phase 6c).
   Future<void> _chooseKind(LessonStepKind? value) async {
     if (value == null) return;
 
@@ -1995,7 +1995,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               // of arguments is deprecated, and the batch that wrote them silenced
               // the analyzer with a file-level `ignore_for_file` instead — which
               // kept the count at 29 by hiding three infos rather than by not
-              // adding them. This is also the shape `LessonStepEditorPanel` uses,
+              // adding them. This is also the shape the old step editor (deleted in phase 6c) uses,
               // which the brief named.
               RadioGroup<int>(
                 groupValue: _c.correctChoice,
