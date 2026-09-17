@@ -8,26 +8,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
-import 'package:chess_app/features/lessons/widgets/lesson_step_editor_panel.dart';
 import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 
 /// P8b of `docs/PLAN-STUDIO-REDIZAJN.md`: the last two things the old step
 /// editor was still needed for.
 ///
-/// **The door** (D8). On Windows the studio is the editor; everywhere else
-/// `LessonStepEditorPanel` stays exactly as it is, because it is reachable on
-/// every platform and deleting it would take tutorial editing off Android
-/// altogether. One predicate, one door — and deleting the panel later is one
-/// edit in one file rather than a hunt through two screens.
+/// **The door** (D8, reversed by phase 6c of `docs/PLAN-REORGANIZACIJA.md`
+/// on 17.9.2026). The studio is the editor everywhere now; the second editor
+/// and the platform guard that chose between them are retired.
 ///
-/// **The preview**, which was buried in the panel and is the fastest answer a
-/// trainer has to „does this feel right". Nothing it does reaches the server.
+/// **The preview**, which was buried in the old editor and is the fastest
+/// answer a trainer has to „does this feel right". Nothing it does reaches
+/// the server.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -72,8 +69,6 @@ void main() {
     await TutorialDraftService.instance.clear();
   });
 
-  tearDown(() => debugTutorialStudioAvailable = null);
-
   Future<void> pumpDoor(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1.0;
@@ -104,30 +99,10 @@ void main() {
   }
 
   group('which editor opens', () {
-    testWidgets('where the studio exists, the studio is the editor',
-        (tester) async {
-      debugTutorialStudioAvailable = true;
-
+    testWidgets('the studio is the editor, everywhere', (tester) async {
       await pumpDoor(tester);
 
       expect(find.byType(TutorialStudioScreen), findsOneWidget);
-      expect(find.byType(LessonStepEditorPanel), findsNothing,
-          reason: 'the panel D8 retires is still what „Uredi" opens on the '
-              'platform that has the studio');
-
-      await close(tester);
-    });
-
-    testWidgets('where it does not, the old panel is untouched',
-        (tester) async {
-      debugTutorialStudioAvailable = false;
-
-      await pumpDoor(tester);
-
-      expect(find.byType(LessonStepEditorPanel), findsOneWidget,
-          reason: 'editing a tutorial disappeared from Android, which is a '
-              'capability loss nobody asked for');
-      expect(find.byType(TutorialStudioScreen), findsNothing);
 
       await close(tester);
     });

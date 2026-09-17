@@ -216,6 +216,28 @@ void main() {
     expect(c.validate(), isNull);
   });
 
+  // Re-homed from `test/lesson_answer_stays_hidden_test.dart` ("what is not
+  // restricted"), which pinned this rule against `LessonStepEditorPanel`, now
+  // retired (phase 6c of `docs/PLAN-REORGANIZACIJA.md`). The refusal is
+  // `leaksAnswer`, `kind == askMove && hasLine` — a list of answers is text,
+  // its `correct` flags are redacted, and a line under a plan question is
+  // usually the whole point.
+  test('a question from a list may keep its line', () {
+    final c = _blank(title: 'Choices with a line');
+    c.playMove('e2', 'e4', '');
+    c.setKind(LessonStepKind.askChoice);
+    c.addChoice();
+    c.addChoice();
+    c.setChoiceText(0, 'Wrong');
+    c.setChoiceText(1, 'Right');
+    c.setCorrectChoice(1);
+
+    expect(c.section.hasLine, isTrue, reason: 'the line was not touched');
+    expect(c.validate(), isNull,
+        reason: 'only askMove leaks its line — a chosen answer is redacted '
+            'before a child ever sees it');
+  });
+
   test('the right answer travels with its text when another is removed', () {
     final c = _blank(title: 'Choices');
     c.setKind(LessonStepKind.askChoice);

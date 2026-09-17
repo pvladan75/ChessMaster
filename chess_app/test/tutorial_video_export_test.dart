@@ -23,7 +23,6 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
@@ -281,10 +280,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await TutorialDraftService.instance.clear();
-    debugTutorialStudioAvailable = true;
   });
-
-  tearDown(() => debugTutorialStudioAvailable = null);
 
   Future<void> openList(
     WidgetTester tester, {

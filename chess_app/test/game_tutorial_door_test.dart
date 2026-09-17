@@ -7,11 +7,11 @@
 //
 // Since phase 1 of `docs/PLAN-REORGANIZACIJA.md` (S2), the door itself is a
 // row of the sheet in `chess_app/lib/features/analysis_studio/widgets/
-// teach_menu.dart`, behind `studioAvailable` — proved in
-// `analysis_teach_menu_test.dart` — and not a bar action behind its own
-// predicate any more. `docs/gates/analysis_teach_door_test.dart` (copied to
-// `test/analysis_teach_door_test.dart`) already reads this exact call for the
-// same reason, so only that one assertion survives here.
+// teach_menu.dart` — proved in `analysis_teach_menu_test.dart` — and not a bar
+// action behind its own predicate any more. Since phase 6c the sheet's rows
+// are drawn on every platform. `docs/gates/analysis_teach_door_test.dart`
+// (copied to `test/analysis_teach_door_test.dart`) already reads this exact
+// call for the same reason, so only that one assertion survives here.
 
 import 'dart:io';
 

@@ -19,7 +19,7 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// How the drill opens a game in Analysis. Null — the default — pushes the real
 /// screen; a test sets it, because Analysis starts an engine the test has none of.
-/// Same shape as `debugTutorialStudioAvailable`.
+/// A test's override; null in a real build.
 @visibleForTesting
 Future<void> Function(BuildContext context, AnalysisGame game)?
     debugOpenGameInAnalysis;

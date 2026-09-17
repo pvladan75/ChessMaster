@@ -31,7 +31,6 @@ import 'package:chess_app/features/assignments/services/assignment_api_service.d
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
@@ -129,10 +128,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await TutorialDraftService.instance.clear();
-    debugTutorialStudioAvailable = true;
   });
-
-  tearDown(() => debugTutorialStudioAvailable = null);
 
   Future<void> openList(
     WidgetTester tester, {

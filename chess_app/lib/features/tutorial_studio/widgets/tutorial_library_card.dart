@@ -15,7 +15,6 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_import_dialog.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -51,7 +50,6 @@ Future<bool?> askTutorialDestination(BuildContext context) {
 
 /// The front door to the Tutorial Studio on the Library tab.
 ///
-/// Draws itself only when [isTutorialStudioAvailable] is true.
 /// A file the trainer picked, read.
 typedef PickedTutorialFile = ({String name, String text});
 
@@ -87,12 +85,9 @@ class TutorialLibraryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isTutorialStudioAvailable) return const SizedBox.shrink();
-
-    // The gap below belongs to the card rather than to the tab. The tab cannot
-    // tell a card that draws nothing from a card that is not there, so spacing
-    // it from the outside left 24 px of dead air at the top of the Library tab
-    // on every phone — where this card is deliberately absent.
+    // The gap below belongs to the card rather than to the tab, so the tab
+    // never carries dead air at the top of the Library tab for a card that
+    // is always there to draw it.
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Card(

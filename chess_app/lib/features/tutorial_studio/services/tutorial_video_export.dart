@@ -1192,7 +1192,7 @@ Future<_ExportChoice?> _askAboutExport({
 /// sets this to something that fetches and reports, which is everything about
 /// the sample except the sound.
 ///
-/// Same shape as `debugTutorialStudioAvailable`, and null in a real build.
+/// A test's override; null in a real build.
 Future<bool> Function(LessonApiService api, String voice)? debugPlayVoiceSample;
 
 Future<bool> _playSample(LessonApiService api, String voice) async {

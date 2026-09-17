@@ -66,7 +66,6 @@ import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/game_tutorial_flow.dart';
 
@@ -1205,7 +1204,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         context,
         hasLine: _currentNode.children.isNotEmpty,
         hasGame: _rootNode.children.isNotEmpty,
-        studioAvailable: isTutorialStudioAvailable,
         onNewFromPosition: () => _openTutorialStudio(wholeLine: false),
         onNewFromLine: () => _openTutorialStudio(wholeLine: true),
         onNewFromGame: _makeTutorialFromGame,

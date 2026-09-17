@@ -25,7 +25,6 @@ import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_scree
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save.dart';
-import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
 
@@ -144,10 +143,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await TutorialDraftService.instance.clear();
-    debugTutorialStudioAvailable = true;
   });
-
-  tearDown(() => debugTutorialStudioAvailable = null);
 
   Future<void> pump(
     WidgetTester tester, {
@@ -192,14 +188,6 @@ void main() {
     testWidgets('is on the card, beside the other two', (tester) async {
       await pump(tester, files: const []);
       expect(find.text('Import from a file'), findsOneWidget);
-    });
-
-    testWidgets('is not drawn where the studio is not', (tester) async {
-      // The import ends in the studio. A door to a screen that does not exist
-      // on this platform is the fault this card was written to stop.
-      debugTutorialStudioAvailable = false;
-      await pump(tester, files: const []);
-      expect(find.text('Import from a file'), findsNothing);
     });
 
     testWidgets('picking nothing opens nothing', (tester) async {

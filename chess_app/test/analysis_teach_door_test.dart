@@ -48,8 +48,8 @@ void main() {
         reason: 'the bar action is named once, in the screen');
     expect(code, contains('showTeachMenu('),
         reason: 'the screen never opens the sheet');
-    // The studio rows stay behind the studio's own predicate until phase 6c.
-    expect(code, contains('studioAvailable: isTutorialStudioAvailable'));
+    // Since phase 6c the rows are drawn on every platform, behind nothing.
+    expect(code, isNot(contains('studioAvailable')));
     // The game flow keeps its session and engine settings, and no orientation
     // (the owner, 14.9.2026) — same rule game_tutorial_door_test held.
     final start = code.indexOf('makeTutorialFromGame(');
@@ -77,8 +77,8 @@ void main() {
   });
 
   test('the manual names the door the app has', () {
-    final page = File('../site/mislisha/manual/analysis.html')
-        .readAsStringSync();
+    final page =
+        File('../site/mislisha/manual/analysis.html').readAsStringSync();
     expect(page, contains('<span class="ui">Use in a tutorial</span>'));
     expect(page, isNot(contains('What are we transferring')));
   });
