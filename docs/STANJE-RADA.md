@@ -108,6 +108,21 @@ Raspodela po modelima je u §8 plana: Fable — faze 0 i 6a; Opus — vođa faza
 napretka; Gemini — tabela stringova i stranice priručnika 2–8 (tražiti očitanje
 kvote pre pokretanja); Haiku — pretrage.
 
+**Priručnik je prepisan na novu mapu, 17.9.2026, spojeno `16295b3`** (Gemini
+batch `prirucnik-b`, jedna runda, svih dvanaest kapija zeleno na 2844). Dvanaest
+strana opisuje aplikaciju **kakva će biti posle faza 2–5** — to je specifikacija
+po kojoj se te faze grade. Oznake koje aplikacija još nema su redovi
+`docs/gates/map_b_labels.txt` (test priručnika ih prihvata), a oznake koje
+nestaju su u `map_b_retired_labels.txt` (novi `manual_places_test` ih odbija i
+vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
+testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
+opisuje tabove kojih u aplikaciji još nema.
+
+**Faza 1 gotova, 17.9.2026, spojeno `bfeaadb`** (implementer, Sonnet): jedno
+dugme „Use in a tutorial" i list sa šest redova umesto četiri dugmeta; dijalog
+„What are we transferring" nestao; 2819 → 2831, analyze 26. Backend faza 1
+plana napretka spojena `da433d3`: 1387 → 1406.
+
 **Faza 1 briefovana Sonnet-u 17.9.2026** (worktree; brief u sesiji): jedan
 `_ToolAction` „Use in a tutorial" umesto četiri, dijalog „What are we
 transferring" nestaje, dva stara testa koja čitaju izvor prepisuju se na novi
