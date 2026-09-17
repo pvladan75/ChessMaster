@@ -5878,6 +5878,27 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 182. Domaći, faza 2: zadata partija, i portret ekrana vežbi — 17.9.2026, nije viđeno uživo
+
+`docs/PLAN-DOMACI-ZADATAK.md`, faze 2a i 2b. Zadata partija se još ne šalje
+(to je faza 4), pa se tačke 1–3 gledaju na **portretu ekrana vežbi**, a 4–5
+kad slanje bude gotovo.
+
+1. [ ] **Telefon uspravno, „Basic mates"**: u app baru gore desno stoje
+   ikonica robota („Engine opponent") i ikonica mreže („Board view") —
+   ranije ih uspravno **nije bilo nigde**. Naslov se skraćuje sa „…" ako
+   treba, ništa ne prelazi ivicu.
+2. [ ] **Rečenica cilja** stoji nad tablom uspravno (npr. „Practice: …
+   (Checkmate Stockfish)"), kao i položeno u zaglavlju.
+3. [ ] **Nema više kartice „Back to selection"** ispod table — izlaz je
+   strelica u app baru (i ona radi).
+4. [ ] **Zadata partija** (posle faze 4): tabla na trenerovoj poziciji i
+   strani; **nema** ikonice robota; rečenica kaže cilj (pobeda / remi /
+   preživi N poteza); „Resign" umesto „Try Again"/„Next Position".
+5. [ ] **Kraj partije**: dijalog kaže zbog čega je partija gotova i da li je
+   cilj ispunjen; trener u pregledu vidi poteze i završetak; drugi pokušaj
+   nije moguć.
+
 ## 181. Domaći, faza 0: presuda partije na ekranu vežbi — 17.9.2026, nije viđeno uživo
 
 `docs/PLAN-DOMACI-ZADATAK.md`, §7 faza 0. Ekran vežbi, „Basic mates" ili

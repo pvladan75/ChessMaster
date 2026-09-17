@@ -26,6 +26,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/models/drill_outcome.dart';
+import 'package:chess_app/core/models/engine_game_task.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/engine_opponent_sheet.dart';
@@ -91,6 +92,18 @@ class AiStudioScreen extends ConsumerStatefulWidget {
   /// Not meaningful for `basic_mate`, which has no by-id route.
   final bool retry;
 
+  /// The task, for `initialCategory == 'engine_game'` — a homework item's
+  /// „play it out" (docs/PLAN-DOMACI-ZADATAK.md §3, phase 2). The strength
+  /// travels on the task, not on Settings: the student does not choose the
+  /// opponent the trainer chose, so [EngineOpponentButton] is not offered on
+  /// this game.
+  final EngineGameTask? engineGameTask;
+
+  /// The assignment [engineGameTask] belongs to, so the finished game can be
+  /// posted to `POST /assignments/:id/game-result`. Null only when there is
+  /// nothing to post to (a task with no assignment cannot be graded).
+  final int? assignmentId;
+
   const AiStudioScreen({
     super.key,
     required this.userSession,
@@ -98,6 +111,8 @@ class AiStudioScreen extends ConsumerStatefulWidget {
     this.mateDepth,
     this.basicMateLevel,
     this.retry = false,
+    this.engineGameTask,
+    this.assignmentId,
   });
 
   @override
@@ -273,6 +288,40 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   List<String>? _retryQueue;
   int _retryIndex = 0;
   bool _retryQueueEmpty = false;
+
+  /// The task an `engine_game` assignment plays. Set once, when the category
+  /// launches, from [AiStudioScreen.engineGameTask] — never rebuilt from
+  /// screen state, because the task the screen plays must be the task the
+  /// server judges (docs/PLAN-DOMACI-ZADATAK.md §3, "one node answers for
+  /// both").
+  EngineGameTask? _engineGameTask;
+
+  /// Every move played in an `engine_game`, the student's and the engine's,
+  /// in SAN — the whole payload `POST /assignments/:id/game-result` needs.
+  /// The server judges the moves again from the task; the app never sends a
+  /// verdict.
+  final List<String> _engineGameMoves = [];
+
+  /// Guards against posting (and dialoguing) twice for one game — the server
+  /// itself refuses a second attempt with 409, but the guard here is what
+  /// keeps the engine's own reply from racing a resignation that just ended
+  /// the same game.
+  bool _engineGameFinished = false;
+
+  /// The engine's strength for an `engine_game`, read from the task rather
+  /// than from Settings — the mutation this guards against is „let the
+  /// strength come from settings", which the trainer's own choice must win
+  /// over.
+  int get _engineGameDepth {
+    final level =
+        _engineGameTask?.level ?? AppSettingsService.instance.enginePlayLevel;
+    return AppSettingsService.kEnginePlayDepths[level] ??
+        AppSettingsService.instance.enginePlayDepth;
+  }
+
+  int get _engineGameThinkSeconds =>
+      _engineGameTask?.thinkSeconds ??
+      AppSettingsService.instance.defaultEngineMoveTimeSeconds;
 
   final Map<String, String> _basicMatePresets = {
     'K+Q vs K': '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1',
@@ -622,8 +671,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _latestEngineBestMove = bestMove;
           _latestEngineEval = evaluation;
           // The opponent's strength, from Settings — not the depth this
-          // board happens to be showing its evaluation at.
-          final targetDepth = AppSettingsService.instance.enginePlayDepth;
+          // board happens to be showing its evaluation at. On an assigned
+          // game the strength is the task's, not the reader's.
+          final targetDepth = _selectedCategory == 'engine_game'
+              ? _engineGameDepth
+              : AppSettingsService.instance.enginePlayDepth;
           if (depth >= targetDepth || isFinal) {
             _executeOpponentEngineMoveDueToTimeoutOrDepth(
                 'Zadata dubina dostignuta ($depth >= $targetDepth)');
@@ -753,7 +805,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
     }
 
-    final targetDepth = AppSettingsService.instance.enginePlayDepth;
+    final targetDepth = _selectedCategory == 'engine_game'
+        ? _engineGameDepth
+        : AppSettingsService.instance.enginePlayDepth;
 
     print('\n--------------------------------------------------');
     print('[TRAINING_LOG] 1) MOD: $_categoryDisplayName');
@@ -804,6 +858,17 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       if (_puzzleGame != null) {
         _activeFen = _puzzleGame!.fen;
         resetBoardState(isNewPuzzle: false);
+
+        if (_selectedCategory == 'engine_game') {
+          final gameVerdict = engineGameVerdict(
+            task: _engineGameTask!,
+            game: _puzzleGame!,
+            ownMoves: _userMoveCount,
+          );
+          if (gameVerdict.ending != null) _finishEngineGame(gameVerdict);
+          // Still running: wait for the student's next move.
+          return;
+        }
 
         // Read off the board and the reader's side, never off the category.
         // This used to branch on which drill it was, and everything that was
@@ -868,8 +933,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _opponentMoveTimer?.cancel();
     _latestEngineBestMove = null;
     _latestEngineEval = null;
-    final moveTimeSec =
-        AppSettingsService.instance.defaultEngineMoveTimeSeconds;
+    // On an assigned game the think time is the task's, not the reader's —
+    // the student does not choose the opponent the trainer chose.
+    final moveTimeSec = _selectedCategory == 'engine_game'
+        ? _engineGameThinkSeconds
+        : AppSettingsService.instance.defaultEngineMoveTimeSeconds;
     _opponentMoveTimer = Timer(Duration(seconds: moveTimeSec), () {
       if (_isOpponentTurn && mounted) {
         _executeOpponentEngineMoveDueToTimeoutOrDepth(
@@ -882,8 +950,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // The engine is *playing* here, so how deep it thinks is the opponent's
     // strength and not the depth this board shows its evaluation at. One
     // number used to answer both, so an easier opponent quietly made every
-    // evaluation in the app shallower.
-    final targetDepth = AppSettingsService.instance.enginePlayDepth;
+    // evaluation in the app shallower. On an assigned game that strength is
+    // the task's.
+    final targetDepth = _selectedCategory == 'engine_game'
+        ? _engineGameDepth
+        : AppSettingsService.instance.enginePlayDepth;
     _stockfishService.analyzePosition(_puzzleGame!.fen, depth: targetDepth);
   }
 
@@ -1035,8 +1106,64 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     if (category == 'basic_mate') {
       _loadBasicMatePreset(_selectedBasicMateType);
+    } else if (category == 'engine_game') {
+      _loadEngineGameTask();
     } else {
       _fetchNextPuzzle();
+    }
+  }
+
+  /// Sets the board up for the task the trainer sent, rather than fetching
+  /// anything from the puzzle server. The task is read once, from
+  /// [AiStudioScreen.engineGameTask] — never rebuilt from screen state,
+  /// because the position the screen plays must be the position the server
+  /// judges (docs/PLAN-DOMACI-ZADATAK.md §3).
+  void _loadEngineGameTask() {
+    final task = widget.engineGameTask;
+    if (task == null) {
+      _showSnackBar('This game could not be opened.');
+      return;
+    }
+    _engineGameTask = task;
+    _engineGameMoves.clear();
+    _engineGameFinished = false;
+
+    _puzzleGame = chess.Chess.fromFEN(task.fen);
+    _activeFen = task.fen;
+    _initialPuzzleFen = task.fen;
+    _userColor = task.side;
+    _puzzleMoveTree = MoveTree(startingFen: task.fen);
+
+    setState(() {
+      _selectedCategory = 'engine_game';
+      _puzzleOrientation = task.side == chess.Color.WHITE
+          ? PlayerColor.white
+          : PlayerColor.black;
+      _isLoadingPuzzle = false;
+      _puzzleSolved = false;
+      _puzzleFailed = false;
+      _expectedMoves = [];
+      _moveIndex = 0;
+      _userMoveCount = 0;
+      _lastMoveFrom = null;
+      _lastMoveTo = null;
+      _isOpponentTurn = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          _puzzleBoardController.loadFen(task.fen);
+        } catch (_) {}
+      }
+    });
+
+    // Either side may be asked to play (docs/PLAN-DOMACI-ZADATAK.md §3, "any
+    // position, either side"). When the position hands the first move to the
+    // engine rather than the student, it has to be told to move before the
+    // board waits on the student for a turn that is not theirs.
+    if (_puzzleGame!.turn != task.side) {
+      _triggerOpponentBotResponse();
     }
   }
 
@@ -1426,6 +1553,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
         _recordMoveInTree(fromStr, toStr, san: san);
+        if (_selectedCategory == 'engine_game') _engineGameMoves.add(san);
       } else {
         _puzzleBoardController.makeMove(from: fromStr, to: toStr);
         final animatedPiece = _puzzleBoardController.game.get(toStr);
@@ -1562,6 +1690,24 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _lastMoveFrom = fromStr;
       _lastMoveTo = toStr;
     });
+
+    // An assigned game reads its own verdict — including „survive", which
+    // no board rule knows about — and never falls into the puzzle-specific
+    // steps below, which read a solution tree this task does not have.
+    if (_selectedCategory == 'engine_game') {
+      _engineGameMoves.add(san);
+      final gameVerdict = engineGameVerdict(
+        task: _engineGameTask!,
+        game: _puzzleGame!,
+        ownMoves: _userMoveCount,
+      );
+      if (gameVerdict.ending != null) {
+        await _finishEngineGame(gameVerdict);
+      } else {
+        _triggerOpponentBotResponse();
+      }
+      return;
+    }
 
     // --- STEP 0: IMMEDIATE CHECKMATE VICTORY ON BOARD (FOR BASIC MATES & WINNING POSITIONS) ---
     // Same reading as the engine's branch, through the same function: the
@@ -2335,6 +2481,105 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     );
   }
 
+  /// Ends an assigned game: posts the moves, then says what happened.
+  ///
+  /// **Do the thing, then say it** (`CLAUDE.md`, "the recurring bug"): the
+  /// post is sent — and awaited — before the dialog opens, and a failed post
+  /// is reported through [_showSnackBar] (`AppFeedback`, which cannot throw)
+  /// rather than left to take the dialog down with it. The verdict shown is
+  /// the one this screen read off its own board; the server judges the same
+  /// moves again and answers with its own, which this screen does not need
+  /// back to tell the student what just happened.
+  Future<void> _finishEngineGame(EngineGameVerdict verdict) async {
+    if (_engineGameFinished) return;
+    _engineGameFinished = true;
+    if (mounted) setState(() {});
+
+    final assignmentId = widget.assignmentId;
+    if (assignmentId != null) {
+      try {
+        final res = await http.post(
+          Uri.parse('$backendUrl/api/assignments/$assignmentId/game-result'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${widget.userSession.token}',
+          },
+          body: jsonEncode({
+            'moves': List<String>.from(_engineGameMoves),
+            if (verdict.ending == GameEnding.resignation) 'resigned': true,
+          }),
+        );
+        if (res.statusCode != 200) {
+          _showSnackBar(
+              'This result could not be recorded (HTTP ${res.statusCode}).');
+        }
+      } catch (e) {
+        _showSnackBar('This result could not be recorded.');
+      }
+    }
+
+    _showEngineGameEndedDialog(verdict);
+  }
+
+  /// The Resign button: ends the game with `resigned: true`, whatever the
+  /// board says (the same rule `verdictFor` already applies to a drill).
+  void _resignEngineGame() {
+    if (_selectedCategory != 'engine_game' ||
+        _engineGameTask == null ||
+        _engineGameFinished ||
+        _puzzleGame == null) {
+      return;
+    }
+    final verdict = engineGameVerdict(
+      task: _engineGameTask!,
+      game: _puzzleGame!,
+      ownMoves: _userMoveCount,
+      resigned: true,
+    );
+    _finishEngineGame(verdict);
+  }
+
+  /// Names the ending and says whether the goal was met — the two things the
+  /// gate asks this dialog to say (`docs/briefs/BRIEF-DOMACI-FAZA2-APP.md`).
+  void _showEngineGameEndedDialog(EngineGameVerdict verdict) {
+    if (!mounted) return;
+    final ending = verdict.ending!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              verdict.goalMet ? Icons.emoji_events : Icons.flag,
+              color: verdict.goalMet
+                  ? context.colors.warning
+                  : context.colors.danger,
+              size: 28,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(verdict.goalMet ? 'Goal met' : 'Goal not met',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text('The game ended: ${endingLabel(ending)}.'),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Back'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (widget.initialCategory != null) {
+                context.pop();
+              } else {
+                setState(() => _selectedCategory = null);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _resetCurrentPuzzle() {
     _resetEngineState();
     _sendBackendLog({
@@ -2551,14 +2796,35 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                       Icon(Icons.psychology,
                           color: context.colors.warning, size: 20),
                       const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        _selectedCategory == null
-                            ? 'Chess trainer and exercises'
-                            : _getCategoryTitle(),
-                        style: AppText.subtitle,
+                      // Flexible, because the bar now carries two actions:
+                      // the title is the part that may give way, and a title
+                      // that does not yield clips the controls instead — in a
+                      // release build, silently.
+                      Flexible(
+                        child: Text(
+                          _selectedCategory == null
+                              ? 'Chess trainer and exercises'
+                              : _getCategoryTitle(),
+                          style: AppText.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
+                  actions: _selectedCategory == null
+                      ? null
+                      : [
+                          // Reachable in portrait at last: both of these change
+                          // how the board is read, and both were built into a
+                          // card nothing drew. Sized for a 38 px bar.
+                          if (_selectedCategory != 'engine_game')
+                            EngineOpponentButton(
+                                size: 18, color: context.colors.textMuted),
+                          const BoardViewMenu(
+                              size: 18, arrows: true, boardSize: true),
+                          const SizedBox(width: AppSpacing.xs),
+                        ],
                 ),
               ),
         // Arrow keys drive the same cursor the strip's buttons do. With no line
@@ -2591,8 +2857,28 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         return 'Basic checkmate practice';
       case 'winning_position':
         return 'Find the winning path';
+      case 'engine_game':
+        return 'Play it out';
       default:
         return 'Chess trainer and exercises';
+    }
+  }
+
+  /// The banner's sentence: the goal in words, and for „survive" how many of
+  /// the student's own moves are left (`docs/briefs/BRIEF-DOMACI-FAZA2-APP.md`).
+  String _engineGameGoalSentence() {
+    final task = _engineGameTask;
+    if (task == null) return 'Play it out';
+    final sideWord = task.side == chess.Color.WHITE ? 'White' : 'Black';
+    switch (task.goal) {
+      case EngineGameGoal.win:
+        return '$sideWord to move — win the game';
+      case EngineGameGoal.hold:
+        return '$sideWord to move — hold a draw';
+      case EngineGameGoal.survive:
+        final total = task.surviveMoves ?? 0;
+        final remaining = (total - _userMoveCount).clamp(0, total);
+        return '$sideWord to move — survive $remaining more of your moves';
     }
   }
 
@@ -2673,43 +2959,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         ? '${_puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move - Mate in $_selectedMateDepth'
         : (_selectedCategory == 'basic_mate'
             ? 'Practice: $_selectedBasicMateType (Checkmate Stockfish)'
-            : '${_puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move - Find the winning path');
+            : (_selectedCategory == 'engine_game'
+                ? _engineGameGoalSentence()
+                : '${_puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move - Find the winning path'));
 
-    final backButtonCard = Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 14.0, vertical: AppSpacing.sm),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.arrow_back, size: 16),
-              label: Text('Back to selection', style: AppText.body),
-              onPressed: () {
-                _resetEngineState();
-                setState(() {
-                  _selectedCategory = null;
-                });
-              },
-            ),
-            // No flip button here. The board is turned toward whoever has to
-            // solve the position, and the banner above it says whose move it
-            // is — a reader who turns it around is then looking at a board
-            // that contradicts the sentence naming their colour.
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The opponent is chosen where it plays, not in Settings.
-                EngineOpponentButton(size: 20, color: context.colors.textMuted),
-                const SizedBox(width: AppSpacing.sm),
-                const BoardViewMenu(size: 20, arrows: true, boardSize: true),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+    // What used to be a „back to selection" card lived here and was never
+    // placed in the portrait tree — so its board menu and its opponent button
+    // were unreachable on a phone held upright, while the landscape header
+    // carried both. The way out is the app bar's arrow; the two controls are
+    // now the app bar's actions, and the goal banner is above the board.
 
     final goalBanner = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -2762,22 +3020,37 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               foregroundColor: context.colors.canvas),
           onPressed: _exportToAnalysisStudio,
         ),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.refresh, size: 16),
-          label: const Text('Try Again'),
-          style: ElevatedButton.styleFrom(
-              backgroundColor: context.colors.warning,
-              foregroundColor: context.colors.canvas),
-          onPressed: _restartCurrentPuzzle,
-        ),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.arrow_forward),
-          label: const Text('Next Position'),
-          style: ElevatedButton.styleFrom(
-              backgroundColor: context.colors.accent,
-              foregroundColor: context.colors.canvas),
-          onPressed: _goToNextPuzzle,
-        ),
+        // An assigned game is one attempt, judged by the server: „Try Again"
+        // and „Next Position" belong to a drill that can be repeated freely,
+        // not to a game a second play of would just be refused (409).
+        if (_selectedCategory == 'engine_game') ...[
+          if (!_engineGameFinished)
+            ElevatedButton.icon(
+              icon: const Icon(Icons.flag, size: 16),
+              label: const Text('Resign'),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: context.colors.danger,
+                  foregroundColor: context.colors.canvas),
+              onPressed: _resignEngineGame,
+            ),
+        ] else ...[
+          ElevatedButton.icon(
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Try Again'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.warning,
+                foregroundColor: context.colors.canvas),
+            onPressed: _restartCurrentPuzzle,
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Next Position'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.accent,
+                foregroundColor: context.colors.canvas),
+            onPressed: _goToNextPuzzle,
+          ),
+        ],
       ],
     );
 
@@ -2823,8 +3096,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            EngineOpponentButton(size: 18, color: context.colors.textSecondary),
-            const SizedBox(width: AppSpacing.sm),
+            if (_selectedCategory != 'engine_game') ...[
+              EngineOpponentButton(
+                  size: 18, color: context.colors.textSecondary),
+              const SizedBox(width: AppSpacing.sm),
+            ],
             BoardViewMenu(
                 size: 18,
                 color: context.colors.textSecondary,
@@ -2903,42 +3179,62 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                             onPressed: _exportToAnalysisStudio,
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.refresh, size: 16),
-                            label: const Text('Try again',
-                                style: AppText.captionBold),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: context.colors.warning,
-                              foregroundColor: context.colors.canvas,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: AppSpacing.xs),
+                        if (_selectedCategory == 'engine_game') ...[
+                          if (!_engineGameFinished) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.flag, size: 16),
+                                label: const Text('Resign',
+                                    style: AppText.captionBold),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: context.colors.danger,
+                                  foregroundColor: context.colors.canvas,
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 10, horizontal: AppSpacing.xs),
+                                ),
+                                onPressed: _resignEngineGame,
+                              ),
                             ),
-                            onPressed: _restartCurrentPuzzle,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.arrow_forward, size: 16),
-                            label: const Text('Next position',
-                                style: AppText.captionBold),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: context.colors.accent,
-                              foregroundColor: context.colors.canvas,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: AppSpacing.xs),
+                          ],
+                        ] else ...[
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Try again',
+                                  style: AppText.captionBold),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: context.colors.warning,
+                                foregroundColor: context.colors.canvas,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: AppSpacing.xs),
+                              ),
+                              onPressed: _restartCurrentPuzzle,
                             ),
-                            onPressed: () {
-                              if (_selectedCategory == 'basic_mate') {
-                                _loadBasicMatePreset(_selectedBasicMateType);
-                              } else {
-                                _fetchNextPuzzle();
-                              }
-                            },
                           ),
-                        ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.arrow_forward, size: 16),
+                              label: const Text('Next position',
+                                  style: AppText.captionBold),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: context.colors.accent,
+                                foregroundColor: context.colors.canvas,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: AppSpacing.xs),
+                              ),
+                              onPressed: () {
+                                if (_selectedCategory == 'basic_mate') {
+                                  _loadBasicMatePreset(_selectedBasicMateType);
+                                } else {
+                                  _fetchNextPuzzle();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -3004,6 +3300,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     return Column(
       children: [
+        // The sentence naming whose move it is and what is being asked. Built
+        // and then dropped when the landscape header took it over; the phone
+        // held upright had no goal on screen at all.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: goalBanner,
+        ),
+
         // STATIC NON-SCROLLABLE CHESS BOARD AT TOP
         Padding(
           padding:

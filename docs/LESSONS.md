@@ -3320,3 +3320,35 @@ survived, because the test used a gated item: the lock refused the request
 before the ownership check was reached. The same shape as two survivors in
 phase 1 — the test has to stand on the boundary the check owns, not behind an
 earlier one (rule 6).
+
+**Homework, phase 2b: the app half, graded and merged — 17.9.2026, app
+2906 → 2943.** + 34 from the implementer (24 the gate, 10 the screen), + 2
+from the lead's correction of the gate, + 1 for the portrait reachability
+test. Analyze 26, the same list; backend untouched. Four mutations on the
+lead's own fixes, each red on the right test.
+
+**A gate can be wrong, and „stop and say so" is what saves it.** The gate
+asked the app to refuse a task using information the task does not contain:
+the fixture's „illegal move" entry carries a task byte-for-byte identical to
+an accepted case. The worker's report opened with it and did not touch the
+test — the sentence every brief carries earned its keep. The fix also closed
+the hole that made the mistake possible: a test now asserts both kinds of
+refusal are present, so neither loop can pass by being empty.
+
+**A guard that counts controls in the source cannot see them reach the
+screen.** `engine_opponent_sheet_test` counted board menus against opponent
+buttons in `ai_studio_screen.dart` and passed — while both, plus the goal
+banner, sat in a `backButtonCard` that portrait never placed in its tree. The
+lead had reported that button as „in both headers" on the strength of that
+count. Found by the worker while reading the screen, fixed by moving the two
+controls into the app bar, and proved by a widget test that pumps the real
+screen at 360×640. Rule 10 from the side that is easiest to miss: the layer
+was right and the control was unreachable.
+
+**„A pre-existing overflow" was the test's own font.** The worker's screen
+test consumed a first-frame `RenderFlex overflowed by 134 pixels`, documented
+as reproducing on master. It does not: without `loadRoboto` every glyph is a
+square a full em wide, and the AppBar's title row only overflows in that
+measurement (rule 8). The font is loaded now and nothing is consumed — and
+the same test then caught a real 18 px overflow the lead's own app-bar
+actions introduced.

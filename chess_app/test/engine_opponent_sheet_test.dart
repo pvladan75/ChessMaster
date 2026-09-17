@@ -13,8 +13,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/engine_opponent_sheet.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/screens/ai_studio_screen.dart';
+import 'package:chess_app/widgets/board_view_menu.dart';
+import 'support/landscape.dart';
 
 void main() {
+  // Real glyphs: the screen below is measured, not just searched.
+  setUpAll(loadRoboto);
+
   test('the opponent is read by the exercise screen and set only in its sheet',
       () {
     const reader = 'screens/ai_studio_screen.dart';
@@ -82,6 +90,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(AppSettingsService.instance.defaultEngineMoveTimeSeconds, 60);
     expect(find.text('60 s'), findsOneWidget);
+  });
+
+  // The half the source-reading guard above cannot see. Until 17.9.2026 the
+  // exercise screen built its portrait header into a card and never placed it,
+  // so on a phone held upright neither this button nor the board menu existed —
+  // and counting them in the source said everything was fine (CLAUDE.md rule
+  // 10: every layer can be right and the control still unreachable).
+  testWidgets('both controls are reachable in portrait, on the real screen',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await AppSettingsService.instance.init();
+    await pumpAt(
+      tester,
+      const Size(360, 640),
+      ProviderScope(
+        child: AiStudioScreen(
+          userSession: UserSession(
+              id: 1, token: 't', email: 'e', name: 'N', role: 'korisnik'),
+          initialCategory: 'basic_mate',
+          basicMateLevel: 'Srednje',
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byTooltip('Engine opponent'), findsOneWidget);
+    expect(find.byType(BoardViewMenu), findsOneWidget);
+    // The goal banner was dropped the same way and is back above the board:
+    // upright, the screen said nowhere what was being asked.
+    expect(find.textContaining('Practice:'), findsOneWidget);
+
+    // And it opens from there, which is the point of it being on screen.
+    await tester.tap(find.byTooltip('Engine opponent'));
+    await tester.pumpAndSettle();
+    expect(find.text('Strength'), findsOneWidget);
   });
 
   testWidgets('the button opens the sheet', (tester) async {

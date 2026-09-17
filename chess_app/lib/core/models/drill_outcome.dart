@@ -45,6 +45,13 @@ enum GameEnding {
   /// a draw: a „win" goal is not met, a „hold" or „survive" goal is.
   moveLimit,
   resignation,
+
+  /// A homework „survive" goal's own target: the number of the student's own
+  /// moves the trainer asked for was reached with the game still undecided.
+  /// No board can know this — it is `EngineGameTask.surviveMoves`
+  /// (`lib/core/models/engine_game_task.dart`), not a rule of chess — so it is
+  /// added on top of the five above rather than read here.
+  moveTarget,
 }
 
 /// The verdict: the outcome for the reader and the reason. [ending] is null
@@ -134,6 +141,7 @@ String endingLabel(GameEnding ending) => switch (ending) {
       GameEnding.fiftyMoves => 'fifty moves without a capture or a pawn move',
       GameEnding.moveLimit => 'the move limit was reached',
       GameEnding.resignation => 'resignation',
+      GameEnding.moveTarget => 'the number of moves to survive was reached',
     };
 
 /// Whether a move by [movingColor] means the reader has taken over the other

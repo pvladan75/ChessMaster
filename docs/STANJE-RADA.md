@@ -115,8 +115,31 @@ nelegalnim potezima i jedan koji nije bio završetak za koji se izdavao —
 svaki je sada odigran na pravoj tabli. 24 mutacije, svaka crvena na pravom
 testu. Backend 1437 → 1470 sa bazom.
 
-**Faza 2b čeka implementera**: `docs/briefs/BRIEF-DOMACI-FAZA2-APP.md`, kapija
-`docs/gates/engine_game_goal_test.dart` (danas crvena na master-u).
+**Faza 2b u kodu** (17.9.2026, implementer; ocenio i spojio vođa).
+`lib/core/models/engine_game_task.dart` (oblik zadatka i presuda kroz
+`verdictFor`, bez drugog čitanja table), `GameEnding.moveTarget`, i ekran
+vežbi koji igra zadatu partiju: tabla na zadatoj poziciji i strani, **jačina
+motora sa zadatka** a ne iz Settings-a, bez lista „Engine opponent", rečenica
+cilja, dugme „Resign", i po završetku **prvo pošalji pa reci** — potezi idu na
+`POST /assignments/:id/game-result`, pa se otvara dijalog. App 2906 → 2943,
+analyze 26 nepromenjeno.
+
+**Kapija je bila pogrešna, a radnik je stao umesto da je zaobiđe** — tačno ono
+što brief traži. `rejected` deo fikstura ima dve vrste odbijanja, a samo jedna
+je odbijanje *zadatka*: „illegal move" nosi zadatak identičan prihvaćenom
+slučaju, jer je pogrešna lista poteza, koju `fromJson` nikad ne vidi. Vođa je
+ispravio kapiju (četiri „bad task" kroz `fromJson`, peti kroz tablu, plus test
+da su obe vrste prisutne — inače bi svaka petlja mogla da prođe prazna).
+
+**Nađena i popravljena regresija u portretu** (uzgred, dok se ocenjivalo):
+ekran vežbi je pravio `backButtonCard` i `goalBanner` i **nikad ih nije
+stavljao u drvo** u portretu — pa na telefonu uspravno nije bilo ni menija
+table, ni dugmeta protivnika (koje je vođa tu dodao 17.9. i prijavio kao „u
+oba zaglavlja" — netačno), ni rečenice cilja. Mrtva kartica je izbrisana, dva
+kontrolera su sad `actions` u app baru (naslov je `Flexible` sa `ellipsis`,
+jer je bar u 360 dp inače prelivao 18 px), a banner cilja stoji nad tablom.
+Čuvar: widget test koji pumpa pravi ekran u portretu — brojanje u izvoru to
+nije moglo da vidi (pravilo 10). Provera uživo — stavka 182.
 
 **Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
 na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
