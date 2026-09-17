@@ -297,13 +297,17 @@ void main() {
     // named once. Before the header existed, the first tab was named twice
     // (its own Scaffold brought an AppBar) and the other three once - which
     // is exactly the inconsistency that was reported.
+    // Counted relative to what the page already says, not as an absolute:
+    // the Library tab's own card is headed „Library" too (phase 3 of
+    // docs/PLAN-REORGANIZACIJA.md), and a claim about the whole screen stops
+    // being true the day the screen grows (rule 5).
     expect(find.text('Training'), findsNWidgets(2));
-    expect(find.text('Library'), findsOneWidget);
+    final libraryBefore = find.text('Library').evaluate().length;
 
     await tester.tap(find.byIcon(Icons.library_books_outlined));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Library'), findsNWidgets(2),
+    expect(find.text('Library').evaluate().length, libraryBefore + 1,
         reason: 'the header must follow the tab');
     expect(find.text('Training'), findsOneWidget);
   });

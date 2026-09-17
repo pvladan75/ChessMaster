@@ -136,7 +136,7 @@ test('a search term reaches every shelf', async () => {
   const pool = stubPool([[]]);
   await listLibrary(pool, 5, { search: '  mat  ' });
 
-  assert.equal(pool.calls.length, 3);
+  assert.equal(pool.calls.length, 5);
   for (const call of pool.calls) {
     assert.ok(call.params.includes('%mat%'), `not filtered: ${call.text.slice(0, 40)}`);
   }

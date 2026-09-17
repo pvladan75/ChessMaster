@@ -18,8 +18,8 @@
 const { acceptedTrainersOf } = require('./relationshipService');
 const { assignableProblem } = require('./customPuzzleJudge');
 
-/// The three shelves, by the name the API uses for them.
-const KINDS = ['scan', 'position', 'analysis'];
+/// The five shelves, by the name the API uses for them.
+const KINDS = ['scan', 'position', 'analysis', 'tutorial', 'recording'];
 
 /// Rows a caller may filter to. Anything else is a typo, and a typo that
 /// silently returned everything would look like the filter working.
@@ -173,7 +173,94 @@ async function listAnalyses(pool, userId, { search }) {
   }));
 }
 
-/// Everything the caller can put into a lesson, from all three shelves.
+/// Tutorials — `saved_lessons` rows *with* a step list. A row without one is a
+/// single saved position (`listSavedPositions`), not one of these.
+///
+/// Same rights clause as `listSavedPositions`, read through
+/// `acceptedTrainersOf` rather than restated: a fourth hand-written copy is
+/// exactly the mistake `CLAUDE.md` already logged twice.
+async function listTutorials(pool, userId, { search }) {
+  const params = [userId];
+  let where = `position_list IS NOT NULL
+               AND (user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))`;
+  if (search) {
+    params.push(`%${search}%`);
+    where += ` AND (title ILIKE $${params.length}
+                 OR COALESCE(description, '') ILIKE $${params.length})`;
+  }
+
+  const result = await pool.query(
+    `SELECT id, title, fen, language, created_at,
+            jsonb_array_length(position_list) AS parts_count,
+            (video_filename IS NOT NULL) AS has_video,
+            (SELECT j.id FROM tutorial_render_jobs j
+              WHERE j.lesson_id = saved_lessons.id AND j.user_id = $1
+                AND j.status = 'running'
+              LIMIT 1) AS render_job_id,
+            (trainer_id != $1 AND user_id != $1) AS from_trainer
+       FROM saved_lessons
+      WHERE ${where}
+      ORDER BY created_at DESC
+      LIMIT 500`,
+    params
+  );
+
+  return result.rows.map((row) => ({
+    kind: 'tutorial',
+    id: String(row.id),
+    title: row.title || 'Untitled',
+    fen: row.fen,
+    partsCount: row.parts_count,
+    hasVideo: row.has_video === true,
+    rendering: row.render_job_id != null,
+    language: row.language,
+    fromTrainer: row.from_trainer === true,
+    createdAt: row.created_at,
+    assignable: false,
+    blockedReason: null,
+    instruction: null,
+    themes: [],
+    hasSolution: false,
+    needsReview: false,
+  }));
+}
+
+/// Recordings — a trainer's own `session_recordings`. Never shown to the
+/// student side: only the host who made the recording can see or replay it.
+async function listRecordings(pool, userId, { search }) {
+  const params = [userId];
+  let where = 'host_id = $1';
+  if (search) {
+    params.push(`%${search}%`);
+    where += ` AND title ILIKE $${params.length}`;
+  }
+
+  const result = await pool.query(
+    `SELECT id, title, video_url, created_at
+       FROM session_recordings
+      WHERE ${where}
+      ORDER BY created_at DESC
+      LIMIT 500`,
+    params
+  );
+
+  return result.rows.map((row) => ({
+    kind: 'recording',
+    id: String(row.id),
+    title: row.title || 'Untitled',
+    fen: '',
+    hasVideo: row.video_url != null,
+    createdAt: row.created_at,
+    assignable: false,
+    blockedReason: null,
+    instruction: null,
+    themes: [],
+    hasSolution: false,
+    needsReview: false,
+  }));
+}
+
+/// Everything the caller can put into a lesson, from all five shelves.
 ///
 /// `kind` narrows it to one shelf; anything unrecognised is refused by the
 /// route rather than quietly ignored, because a filter that appears to do
@@ -187,10 +274,21 @@ async function listLibrary(pool, userId, { kind = null, search = null } = {}) {
     scan: listScanned,
     position: listSavedPositions,
     analysis: listAnalyses,
+    tutorial: listTutorials,
+    recording: listRecordings,
   };
 
   const groups = await Promise.all(wanted.map((k) => readers[k](pool, userId, options)));
   return groups.flat();
 }
 
-module.exports = { listLibrary, listScanned, listSavedPositions, listAnalyses, isKind, KINDS };
+module.exports = {
+  listLibrary,
+  listScanned,
+  listSavedPositions,
+  listAnalyses,
+  listTutorials,
+  listRecordings,
+  isKind,
+  KINDS,
+};

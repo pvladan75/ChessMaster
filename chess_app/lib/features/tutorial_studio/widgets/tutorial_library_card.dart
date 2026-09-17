@@ -3,22 +3,18 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import 'package:chess_app/constants.dart';
 
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
-import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/pgn_game_import.dart';
 import 'package:chess_app/features/tutorial_studio/services/pgn_question_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save.dart';
-import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_import_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_studio_availability.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -481,6 +477,15 @@ class _SavedTutorialsDialog extends StatefulWidget {
 class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   late final List<Map<String, dynamic>> _rows = [...widget.tutorials];
 
+  /// The four actions a row offers, shared with the Library screen
+  /// (`lib/features/library/screens/library_screen.dart`) so neither writes
+  /// a second copy of a confirmation, a request or a render's bookkeeping.
+  late final TutorialRowActions _actions = TutorialRowActions(
+    lessonApi: widget.lessonApi,
+    assignmentApi: widget.assignmentApi,
+    groupApi: widget.groupApi,
+  );
+
   /// True while a row is being deleted or sent, so neither can be started
   /// twice on a list that is about to change under it.
   bool _busy = false;
@@ -552,135 +557,35 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   }
 
   Future<void> _delete(Map<String, dynamic> row) async {
-    final id = _idOf(row);
-    if (id == null || _busy) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete tutorial?'),
-        content:
-            Text('"${_titleOf(row)}" will be permanently deleted, along with '
-                'all parts.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Delete', style: TextStyle(color: ctx.colors.danger)),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || confirmed != true) return;
-
+    if (_busy) return;
     setState(() => _busy = true);
-    final error = await widget.lessonApi.delete(id);
+    final deleted = await _actions.delete(context, row);
     if (!mounted) return;
     setState(() {
       _busy = false;
       // Only on success. A row that is still on the server must stay on the
       // screen, or the trainer is told it is gone by its absence.
-      if (error == null) _rows.removeWhere((r) => _idOf(r) == id);
+      if (deleted) _rows.removeWhere((r) => _idOf(r) == _idOf(row));
     });
-    if (error != null) {
-      AppFeedback.error(context, error);
-      return;
-    }
-    AppFeedback.success(context, 'Tutorial deleted.');
   }
 
   Future<void> _send(Map<String, dynamic> row) async {
-    final id = _idOf(row);
-    if (id == null || _busy) return;
-
+    if (_busy) return;
     setState(() => _busy = true);
-    final students = await widget.groupApi.myStudents();
+    await _actions.send(context, row);
     if (!mounted) return;
     setState(() => _busy = false);
-
-    // Pending ones are in that list on purpose — the home screen draws them
-    // greyed out — and a relationship nobody has accepted grants nothing.
-    // Offering the name would be offering something the server is right to
-    // refuse.
-    final accepted = students.where((s) => s['status'] == 'accepted').toList();
-    if (accepted.isEmpty) {
-      AppFeedback.info(
-          context, 'You have no students who have accepted the invitation.');
-      return;
-    }
-
-    final studentId = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Send to student'),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 320),
-          child: SizedBox(
-            width: double.maxFinite,
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: accepted.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (ctx, i) => ListTile(
-                title: Text(accepted[i]['name']?.toString() ?? 'Student'),
-                onTap: () {
-                  final raw = accepted[i]['id'];
-                  Navigator.of(ctx)
-                      .pop(raw is int ? raw : int.tryParse('$raw'));
-                },
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || studentId == null) return;
-
-    setState(() => _busy = true);
-    final result = await widget.assignmentApi.createLessonAssignment(
-      studentId: studentId,
-      lessonId: id,
-      title: _titleOf(row),
-    );
-    if (!mounted) return;
-    setState(() => _busy = false);
-
-    if (!result.success) {
-      AppFeedback.error(context, result.error ?? 'Failed to send.');
-      return;
-    }
-    AppFeedback.success(context, 'Tutorial sent to student.');
   }
 
   Future<void> _exportVideo(Map<String, dynamic> row) async {
-    final id = _idOf(row);
-    if (id == null || _busy) return;
-
+    if (_busy) return;
     setState(() => _busy = true);
-    final state = await exportTutorialVideo(
-      context: context,
-      api: widget.lessonApi,
-      lessonId: id,
-      title: _titleOf(row),
-      draft: TutorialDraft.fromLesson(row),
-      // Marked the moment the server accepts it, so a render the trainer hides
-      // stays on its row — the place they will look for it.
-      onStarted: (jobId) => row['render_job_id'] = jobId,
-    );
+    // Marked the moment the server accepts it (inside `TutorialRowActions`),
+    // so a render the trainer hides stays on its row — the place they will
+    // look for it.
+    await _actions.exportVideo(context, row);
     if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _settleRender(row, state);
-    });
+    setState(() => _busy = false);
   }
 
   /// Whether a film of this tutorial is being drawn for this account.
@@ -689,32 +594,16 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   /// starts one — item 5 of part two of `docs/PLAN-SNIMANJE.md`. A render the
   /// trainer hid has to be somewhere they can find it again, and the row they
   /// started it from is where they will look.
-  bool _isRendering(Map<String, dynamic> row) => row['render_job_id'] != null;
-
-  /// What a render's end means for its row: a film to download, and no render
-  /// running. A hidden one is still running and keeps its place.
-  void _settleRender(Map<String, dynamic> row, RenderJobState? state) {
-    if (state == null || state == RenderJobState.running) return;
-    row['render_job_id'] = null;
-    if (state == RenderJobState.done) row['has_video'] = true;
-  }
+  bool _isRendering(Map<String, dynamic> row) =>
+      TutorialRowActions.isRendering(row);
 
   /// The render running for this row, shown again.
   Future<void> _watchRender(Map<String, dynamic> row) async {
-    final jobId = row['render_job_id']?.toString();
-    if (jobId == null || _busy) return;
-
+    if (_busy) return;
     setState(() => _busy = true);
-    final state = await watchTutorialRender(
-      context: context,
-      api: widget.lessonApi,
-      jobId: jobId,
-    );
+    await _actions.watchRender(context, row);
     if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _settleRender(row, state);
-    });
+    setState(() => _busy = false);
   }
 
   /// Whether this tutorial has a film waiting for it.
@@ -722,7 +611,7 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   /// The list says so (`has_video`), which is what lets the button be drawn
   /// only where it can do something — an action offered on a row that cannot
   /// perform it is this repository's most frequent fault.
-  bool _hasVideo(Map<String, dynamic> row) => row['has_video'] == true;
+  bool _hasVideo(Map<String, dynamic> row) => TutorialRowActions.hasVideo(row);
 
   /// „Download video" — the film rendered earlier, fetched now.
   ///
@@ -730,34 +619,11 @@ class _SavedTutorialsDialogState extends State<_SavedTutorialsDialog> {
   /// handed out when a film is rendered carries a token that dies in thirty
   /// minutes, so closing that dialog used to mean rendering the film again.
   Future<void> _downloadVideo(Map<String, dynamic> row) async {
-    final id = _idOf(row);
-    if (id == null || _busy) return;
-
+    if (_busy) return;
     setState(() => _busy = true);
-    final link = await widget.lessonApi.fetchTutorialVideo(id);
+    await _actions.downloadVideo(context, row);
     if (!mounted) return;
     setState(() => _busy = false);
-
-    if (link.ok) {
-      await launchUrl(
-        Uri.parse(resolveMediaUrl(link.downloadUrl!)),
-        mode: LaunchMode.externalApplication,
-      );
-      return;
-    }
-    // The server's own sentence: „there is no film" and „the film has been
-    // deleted to save space, export it again" are different answers, and only
-    // one of them means pressing the camera.
-    if (!mounted) return;
-    AppFeedback.info(
-      context,
-      link.error ?? 'This tutorial has no video yet.',
-    );
-    if (link.status == LessonVideoStatus.expired) {
-      // The row is stale now — the list said it had a film and the server says
-      // it is gone, so the next draw must not offer the same dead button.
-      setState(() => row['has_video'] = false);
-    }
   }
 
   @override
