@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -49,6 +52,9 @@ import 'package:chess_app/widgets/game_screen/board_annotation_controller.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
+
+part 'tutorial_studio_phone_layout.dart';
 
 /// The room a trainer writes a tutorial in. Phase 4 of
 /// `docs/PLAN-TUTORIJAL.md`.
@@ -180,6 +186,26 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   int _fieldsEpoch = 0;
   int _selectedTab = 0;
 
+  /// Which of Line/Task/Parts is open on the phone layout ([_PhoneLayout]).
+  /// The screen's own, like [_selectedTab] — the controller holds none of it.
+  int _phoneTab = 0;
+
+  void _selectPhoneTab(int tab) => setState(() => _phoneTab = tab);
+
+  /// An answer's field and the answer itself arrive and leave together, so
+  /// the two lists stay aligned. Called by both layouts' question cards;
+  /// `setState` is protected, which is why an extension cannot do this
+  /// itself.
+  void _addChoiceField() {
+    setState(() => _choiceControllers.add(TextEditingController()));
+    _c.addChoice();
+  }
+
+  void _removeChoiceField(int index) {
+    setState(() => _choiceControllers.removeAt(index));
+    _c.removeChoice(index);
+  }
+
   /// Set when the trainer backs out of the „unfinished tutorial" question.
   ///
   /// The screen flushes its draft on the way out, and the draft it is holding
@@ -223,15 +249,19 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           title: title,
           sections: [
             TutorialSection.blank(
-                fen: TutorialDraft.startFen, title: generatedSectionTitle(0)),
+              fen: TutorialDraft.startFen,
+              title: generatedSectionTitle(0),
+            ),
           ],
         ),
-      TutorialEntryFromAnalysis() => TutorialDraft(sections: [
-          TutorialSection.blank(
-            fen: handover?.root.fen ?? TutorialDraft.startFen,
-            title: generatedSectionTitle(0),
-          ),
-        ]),
+      TutorialEntryFromAnalysis() => TutorialDraft(
+          sections: [
+            TutorialSection.blank(
+              fen: handover?.root.fen ?? TutorialDraft.startFen,
+              title: generatedSectionTitle(0),
+            ),
+          ],
+        ),
     };
 
     if (handover != null) {
@@ -599,9 +629,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Delete move?'),
-          content:
-              Text('"${node.moveNumberLabel}${node.moveSan}" and everything '
-                  'written after it will be deleted.'),
+          content: Text(
+            '"${node.moveNumberLabel}${node.moveSan}" and everything '
+            'written after it will be deleted.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -709,14 +740,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          _UndoIntent: CallbackAction<_UndoIntent>(onInvoke: (_) {
-            _undo();
-            return null;
-          }),
-          _RedoIntent: CallbackAction<_RedoIntent>(onInvoke: (_) {
-            _redo();
-            return null;
-          }),
+          _UndoIntent: CallbackAction<_UndoIntent>(
+            onInvoke: (_) {
+              _undo();
+              return null;
+            },
+          ),
+          _RedoIntent: CallbackAction<_RedoIntent>(
+            onInvoke: (_) {
+              _redo();
+              return null;
+            },
+          ),
         },
         child: _buildScreen(context),
       ),
@@ -724,10 +759,41 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   }
 
   Widget _buildScreen(BuildContext context) {
+    // Phase 6b of `docs/PLAN-REORGANIZACIJA.md` §7: a touch platform narrower
+    // than [Breakpoints.wide] gets Line | Task | Parts over this same
+    // controller, in `tutorial_studio_phone_layout.dart`.
+    //
+    // **Neither signal alone is right, so this reads both.** `dart:io`'s
+    // `Platform` is what `tutorial_studio_availability.dart` already reads
+    // for „is this Windows" — real and host-independent on a device, but
+    // blind to `debugDefaultTargetPlatformOverride`, which is exactly what
+    // the phone gate sets and how it stands at 360 dp without touching a real
+    // device. `Theme.of(context).platform` sees that override, but
+    // `flutter test` defaults it to `TargetPlatform.android` whenever nothing
+    // overrides it — which is every one of the studio's own narrow-window
+    // tests — so reading the theme alone routed them into this layout too and
+    // broke four files that test the desktop's own narrow branch. The
+    // override is read directly, and only when a test has actually set it,
+    // is this a phone; everywhere else — including inside `flutter test` on
+    // whatever host it runs on — `dart:io` decides, exactly as it already
+    // does for the door to this screen.
+    final override = debugDefaultTargetPlatformOverride;
+    final isTouch = override == TargetPlatform.android ||
+        override == TargetPlatform.iOS ||
+        (override == null && !kIsWeb && (Platform.isAndroid || Platform.isIOS));
+    if (!Breakpoints.isWide(context) && isTouch) {
+      return LayoutBuilder(
+        builder: (context, constraints) => _buildPhone(constraints),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tutorial Studio',
-            overflow: TextOverflow.ellipsis, maxLines: 1, style: AppText.title),
+        title: const Text(
+          'Tutorial Studio',
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          style: AppText.title,
+        ),
         actions: [
           IconButton(
             key: const Key('tutorial-undo'),
@@ -827,8 +893,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             // is the one that has the most to put in a row.
             final boardPaneWidth =
                 constraints.maxWidth - 460 - AppSpacing.md * 3;
-            final maxHeightLimit =
-                (constraints.maxHeight - 120).clamp(280.0, double.infinity);
+            final maxHeightLimit = (constraints.maxHeight - 120).clamp(
+              280.0,
+              double.infinity,
+            );
             final boardSize = wide
                 ? boardPaneWidth.clamp(280.0, maxHeightLimit)
                 : constraints.maxWidth - AppSpacing.lg * 2;
@@ -846,7 +914,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 slivers: [
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+                      AppSpacing.md,
+                      AppSpacing.md,
+                      AppSpacing.md,
+                      0,
+                    ),
                     sliver: SliverToBoxAdapter(
                       child: Column(children: [board, _authoringColumn()]),
                     ),
@@ -864,7 +936,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                           alignment: Alignment.topLeft,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md),
+                              horizontal: AppSpacing.md,
+                            ),
                             child: _editorTabs(),
                           ),
                         ),
@@ -873,7 +946,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
+                      AppSpacing.md,
+                      0,
+                      AppSpacing.md,
+                      AppSpacing.md,
+                    ),
                     sliver: SliverToBoxAdapter(child: _editorPanels()),
                   ),
                 ],
@@ -886,11 +963,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 children: [
                   Expanded(
                     key: const Key('board-pane'),
-                    child: Center(
-                      child: SingleChildScrollView(
-                        child: board,
-                      ),
-                    ),
+                    child: Center(child: SingleChildScrollView(child: board)),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   _authoringPaneWide(),
@@ -907,42 +980,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: boardSize,
-          height: boardSize,
-          child: Card(
-            elevation: 4,
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              child: BoardWithCoordinates(
-                size: boardSize - AppSpacing.sm * 2,
-                orientation: _orientation,
-                builder: (inner) => ChessBoardWithOverlay(
-                  controller: _boardController,
-                  boardOrientation: _orientation,
-                  boardSize: inner,
-                  isAllowedToMove: true,
-                  isDrawingMode: _annotationController.isDrawing,
-                  drawingStartSquare: _annotationController.pendingFrom,
-                  // The arrows and the rings the trainer drew on this move.
-                  // The node has carried them since phase 2 of the interactive
-                  // lesson plan and nothing wrote one until P7a: every arrow in
-                  // every lesson before that got there by being typed into a
-                  // PGN by hand. The bar below writes them now, through
-                  // `BoardAnnotationController`.
-                  arrows: _current.arrows,
-                  squares: _current.squares,
-                  engineArrows: const [],
-                  lastMoveFrom: _c.lastMove?.from,
-                  lastMoveTo: _c.lastMove?.to,
-                  onMove: _onMove,
-                  onSquareTapForDrawing: _onSquareTapForDrawing,
-                ),
-              ),
-            ),
-          ),
-        ),
+        _boardCard(boardSize),
         SizedBox(
           width: boardSize,
           child: BoardAnnotationBar(
@@ -968,6 +1006,53 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       ],
     );
   }
+
+  /// The board framed in a card, at [boardSize] — what every layout with
+  /// height to spare for a border draws. Split out of [_boardColumn] for the
+  /// phone's landscape layout (6b), which gives the board slot exactly a
+  /// square (`LandscapeBoardLayout`) and has no height to lose to one — it
+  /// calls [_chessBoard] straight through [BoardWithCoordinates] instead.
+  Widget _boardCard(double boardSize) {
+    return SizedBox(
+      width: boardSize,
+      height: boardSize,
+      child: Card(
+        elevation: 4,
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: BoardWithCoordinates(
+            size: boardSize - AppSpacing.sm * 2,
+            orientation: _orientation,
+            builder: _chessBoard,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The board itself, at whatever [BoardWithCoordinates] leaves it — no
+  /// second copy of its wiring anywhere else in this screen.
+  Widget _chessBoard(double boardSize) => ChessBoardWithOverlay(
+        controller: _boardController,
+        boardOrientation: _orientation,
+        boardSize: boardSize,
+        isAllowedToMove: true,
+        isDrawingMode: _annotationController.isDrawing,
+        drawingStartSquare: _annotationController.pendingFrom,
+        // The arrows and the rings the trainer drew on this move. The node
+        // has carried them since phase 2 of the interactive lesson plan and
+        // nothing wrote one until P7a: every arrow in every lesson before
+        // that got there by being typed into a PGN by hand. The bar beside it
+        // writes them now, through `BoardAnnotationController`.
+        arrows: _current.arrows,
+        squares: _current.squares,
+        engineArrows: const [],
+        lastMoveFrom: _c.lastMove?.from,
+        lastMoveTo: _c.lastMove?.to,
+        onMove: _onMove,
+        onSquareTapForDrawing: _onSquareTapForDrawing,
+      );
 
   void _toggleArrowMode() {
     setState(() {
@@ -1200,15 +1285,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // because a take cut early is always accepted and one cut late is not.
     final maxMs = await _lessonApi.narrationMaxMs(id) ?? narrationFallbackMaxMs;
     if (!mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => TutorialNarrationScreen(
-        lessonId: id,
-        title: _draft.title.trim(),
-        draft: _draft,
-        store: _narrationStore,
-        maxMs: maxMs,
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TutorialNarrationScreen(
+          lessonId: id,
+          title: _draft.title.trim(),
+          draft: _draft,
+          store: _narrationStore,
+          maxMs: maxMs,
+        ),
       ),
-    ));
+    );
     // A trainer who recorded again has answered the banner, and one who did not
     // is still owed it. Read rather than assumed: the screen may have kept a
     // take, replaced one, or left the old one exactly where it was.
@@ -1229,27 +1316,29 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   void _previewAsStudent() {
     final steps = _draft.positionList;
 
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => LessonViewerScreen(
-        session: widget.session,
-        detail: AssignmentDetail(
-          assignment: Assignment(
-            id: _draft.lessonId ?? 0,
-            title: _draft.title.trim(),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LessonViewerScreen(
+          session: widget.session,
+          detail: AssignmentDetail(
+            assignment: Assignment(
+              id: _draft.lessonId ?? 0,
+              title: _draft.title.trim(),
+            ),
+            items: [
+              for (var i = 0; i < steps.length; i++)
+                AssignmentItem(puzzleId: null, position: i, attemptedAt: null),
+            ],
+            steps: steps.map(LessonStep.fromJson).toList(),
+            // The trainer hears what the child will hear, in the voice of the
+            // language the tutorial says it is in.
+            lessonLanguage: _draft.language,
           ),
-          items: [
-            for (var i = 0; i < steps.length; i++)
-              AssignmentItem(puzzleId: null, position: i, attemptedAt: null),
-          ],
-          steps: steps.map(LessonStep.fromJson).toList(),
-          // The trainer hears what the child will hear, in the voice of the
-          // language the tutorial says it is in.
-          lessonLanguage: _draft.language,
+          api: PreviewAssignmentApiService(),
+          onPartOrientationChanged: _setPartOrientation,
         ),
-        api: PreviewAssignmentApiService(),
-        onPartOrientationChanged: _setPartOrientation,
       ),
-    ));
+    );
   }
 
   /// The open part as text, with the map of where each node sits in it.
@@ -1617,9 +1706,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               children: [
                 _editorTabs(),
                 const SizedBox(height: AppSpacing.xs),
-                Expanded(
-                  child: SingleChildScrollView(child: _editorPanels()),
-                ),
+                Expanded(child: SingleChildScrollView(child: _editorPanels())),
               ],
             ),
           ),
@@ -1665,16 +1752,20 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber,
-                  size: 18, color: context.colors.onDangerContainer),
+              Icon(
+                Icons.warning_amber,
+                size: 18,
+                color: context.colors.onDangerContainer,
+              ),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
                   'The student would see the answer: ${_c.namesOf(leaking)} asks for a move, but '
                   'has a line the student can browse with the "Next '
                   'move" button.',
-                  style: AppText.body
-                      .copyWith(color: context.colors.onDangerContainer),
+                  style: AppText.body.copyWith(
+                    color: context.colors.onDangerContainer,
+                  ),
                 ),
               ),
             ],
@@ -1740,14 +1831,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.mic_off_outlined,
-                      size: 18, color: context.colors.onInfoContainer),
+                  Icon(
+                    Icons.mic_off_outlined,
+                    size: 18,
+                    color: context.colors.onInfoContainer,
+                  ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
                       said,
-                      style: AppText.body
-                          .copyWith(color: context.colors.onInfoContainer),
+                      style: AppText.body.copyWith(
+                        color: context.colors.onInfoContainer,
+                      ),
                     ),
                   ),
                 ],
@@ -1837,9 +1932,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
           borderRadius: AppRadii.roundedMd,
-          border: Border.all(
-            color: context.colors.border,
-          ),
+          border: Border.all(color: context.colors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1856,13 +1949,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 decoration: const InputDecoration(labelText: 'Task type'),
                 items: const [
                   DropdownMenuItem(
-                      value: LessonStepKind.show, child: Text('Show only')),
+                    value: LessonStepKind.show,
+                    child: Text('Show only'),
+                  ),
                   DropdownMenuItem(
-                      value: LessonStepKind.askMove,
-                      child: Text('Ask for move on board')),
+                    value: LessonStepKind.askMove,
+                    child: Text('Ask for move on board'),
+                  ),
                   DropdownMenuItem(
-                      value: LessonStepKind.askChoice,
-                      child: Text('Ask for answer from list')),
+                    value: LessonStepKind.askChoice,
+                    child: Text('Ask for answer from list'),
+                  ),
                 ],
                 onChanged: _chooseKind,
               ),
@@ -1872,8 +1969,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               TextField(
                 key: const Key('example-instruction'),
                 controller: _instructionController,
-                decoration:
-                    const InputDecoration(labelText: 'Task for student'),
+                decoration: const InputDecoration(
+                  labelText: 'Task for student',
+                ),
                 onChanged: _c.setInstruction,
                 // Same reason as the sentence on a beat card: a question a
                 // child reads is longer than one line, and a field that scrolls
@@ -1924,7 +2022,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                               setState(() => _choiceControllers.removeAt(i));
                               _c.removeChoice(i);
                             },
-                          )
+                          ),
                         ],
                       ),
                   ],
@@ -2098,8 +2196,9 @@ class _RenameDialog extends StatefulWidget {
 }
 
 class _RenameDialogState extends State<_RenameDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
 
   @override
   void dispose() {
@@ -2145,8 +2244,9 @@ class _CommentDialog extends StatefulWidget {
 }
 
 class _CommentDialogState extends State<_CommentDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
 
   @override
   void dispose() {
@@ -2210,7 +2310,10 @@ class _PinnedEditorTabs extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-          BuildContext context, double shrinkOffset, bool overlapsContent) =>
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) =>
       child;
 
   @override
