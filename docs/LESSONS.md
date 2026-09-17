@@ -3089,3 +3089,32 @@ straight after the save and lands on the snapshot from before any id
 existed, which is the case the method is for. A surviving mutation is a
 question about the test (rule 2), and here the answer was that the test had
 not read `DraftHistory.record`.
+
+**Reorganisation phase 6c — 17.9.2026, app 2908 → 2872.** A drop, and an
+expected one, written into the brief before the worker started. The
+arithmetic: − 30 in the four test files of the deleted panel
+(`lesson_editor_test` 7, `lesson_step_order_test` 12,
+`lesson_step_order_extra_test` 3, `lesson_answer_stays_hidden_test` 8);
+− 6 in `landscape_screens_test` (the panel's group, three tests over four
+phone sizes — the brief said „one case", the worker read the file and said
+six); − 4 single tests whose whole point was „without the studio"
+(`tutorial_editor_door_test`, `tutorial_ulaz_test`,
+`tutorial_import_flow_test`, `analysis_teach_menu_test`); + 1 in
+`tutorial_draft_controller_test` (a rule re-homed: a question from a list
+may keep its line); + 3 in `one_editor_test.dart`, the gate moved into
+`test/`. Backend unchanged at 1412; analyze 26.
+
+**A deletion batch is graded on what it kept.** The brief told the worker
+to read the deleted panel's tests for rules that outlive the panel before
+deleting them, and it found one the studio side did not pin. It moved the
+rule onto the controller and proved it by mutation before deleting the
+file. The report's section 1 named two tests the brief had not — a menu
+test the parameter removal broke, and a guard test that froze the
+deleted file's name in a set — which is what that section is for.
+
+**A gate written by hand had a `''` in it, twice.** The same escape
+that broke `home_map_test` broke `one_editor_test`, and a chained
+`git commit` recorded the broken gate before the test's compile error was
+read — the heredoc lesson, again, with a `;` instead of a `&&`. Fixed with
+an editor, not a shell substitution, and the unpushed commit amended. A
+check that cannot compile is not a red.

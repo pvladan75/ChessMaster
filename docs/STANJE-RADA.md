@@ -118,6 +118,17 @@ vezuje svaku stranu za njen tab). **Faza 5 briše oba fajla i dopuštenje u
 testu.** Do tada: **sajt se ne isporučuje na droplet** — priručnik na `master`-u
 opisuje tabove kojih u aplikaciji još nema.
 
+**Faza 6c gotova, 17.9.2026, spojeno `8af285f` (implementer, ocenio vođa):
+jedan urednik tutorijala, svuda.** `LessonStepEditorPanel` i predikat
+platforme obrisani; vrata (`openTutorialEditor`) otvaraju studio na svakoj
+platformi; kartica „Tutorials" na Teach crta se i na telefonu; redovi „Use in
+a tutorial" u Analizi više nisu iza platforme; priručnik ne govori da je
+pisanje tutorijala Windows funkcija. Četiri fajla testova panela otišla sa
+njim (30 testova); pravilo koje su držali („pitanje iz liste sme da zadrži
+liniju") preseljeno na kontroler. Provera uživo: **179** (na kraju, sa 6b).
+Odluka 5 iz `PLAN-TUTORIJAL.md` time je povučena u kodu; raspored za telefon
+je **6b**.
+
 **Faza 6a gotova, 17.9.2026 (vođa, Fable): `TutorialDraftController` izvučen
 iz ekrana studija.** Klasa koju je `PLAN-STUDIO-REDIZAJN.md` §4 nacrtao a
 ekran nikad nije dobio: nacrt, otvoreni deo i kursor, istorija, id-jevi koje je

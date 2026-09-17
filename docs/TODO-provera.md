@@ -5878,6 +5878,35 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 179. Reorganizacija, faze 6a–6c: studio na telefonu, jedan urednik — 17.9.2026, nije viđeno uživo
+
+`docs/PLAN-REORGANIZACIJA.md`, §7 (6a kontroler, vođa; 6b raspored za
+telefon i 6c jedan urednik, implementeri). Windows i telefon.
+
+1. [ ] **Windows, nepromenjeno**: Tutorial Studio radi kao pre 6a — potez,
+   komentar, deo, pitanje, undo/redo, „Discard changes", čuvanje, video,
+   naracija, .pgn. (543 testa studija prošla neizmenjena; ovo je pogled.)
+2. [ ] **Telefon, portret**: Teach → kartica „Tutorials" postoji (ranije
+   samo Windows) → „New tutorial" otvara studio sa tablom gore, trakom
+   poteza, pa tabovima „Line | Task | Parts"; ništa ne prelazi ivicu ekrana.
+3. [ ] **Line**: komentar na potez na kome stojite; „Insert a line here" i
+   „Delete this move" gde imaju smisla; crtanje strelica i polja istom
+   trakom kao u sobi; okretanje table.
+4. [ ] **Task**: vrsta (Show only / Ask for move on board / Ask for answer
+   from list), tekst zadatka, odgovori sa dodavanjem i brisanjem, „Correct
+   move" posle poteza na tabli kod pitanja za potez.
+5. [ ] **Parts**: „New part" sa tri vrste, lista delova, gore/dole/kloniraj/
+   preimenuj/obriši, tap bira deo i tabla ga prati.
+6. [ ] **Prelivanje (⋮)**: Undo, Redo, Discard changes, Preview tutorial,
+   Record narration, Export video, Save as .pgn, Position setup.
+7. [ ] **Telefon položeno**: tabla levo celom visinom, tabovi desno.
+8. [ ] **Isti sadržaj**: tutorijal sačuvan sa telefona otvara se na Windows-u
+   sa istim delovima, komentarima i pitanjem — i obratno.
+9. [ ] **Soba na telefonu**: „Edit tutorial" na redu tutorijala otvara studio
+   (ranije stari panel); Analiza → „Use in a tutorial" nudi i redove studija.
+10. [ ] **Priručnik** (write-a-tutorial, analysis, getting-started) više ne
+    pominje Windows kao uslov.
+
 ## 178. Reorganizacija, faza 3b: kolona sobe je deljena lista — 17.9.2026, nije viđeno uživo
 
 `docs/PLAN-REORGANIZACIJA.md`, faza 3b (vođa). Leva kolona sobe i Pripreme

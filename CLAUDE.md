@@ -21,16 +21,17 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2908 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2872 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1412 tests, all green
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Measured on `master` on 17.9.2026, after phases 5, 3b and 6a of the
+Measured on `master` on 17.9.2026, after phases 5, 3b, 6a and 6c of the
 reorganisation (the shell Home · Practise · Analyse · Teach, the room's column on
-the shared library list, the studio's `TutorialDraftController`,
-`docs/PLAN-REORGANIZACIJA.md`) and phases 1–2 of the puzzle progress plan. Every change of these numbers,
+the shared library list, the studio's `TutorialDraftController`, one tutorial
+editor everywhere, `docs/PLAN-REORGANIZACIJA.md`) and phases 1–2 of the puzzle
+progress plan. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and
