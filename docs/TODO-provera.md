@@ -5878,6 +5878,33 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 185. Zadatak (Exercise), faze 1–2b: napravljen u Preparation, rešen kao niz — 18.9.2026, nije viđeno uživo
+
+`docs/PLAN-EXERCISE.md`. Pri prvom pokretanju servera migracija dodaje kolone
+na `custom_puzzles`, dodaje `assignment_items.judged_by` i **briše**
+`require_solved` sa `assignments` i `homework_items`.
+
+1. [ ] **Preparation → „Make exercise"** (pored „Save position"): sa praznom
+   tablom piše da prvo treba odigrati rešenje i nema „Save".
+2. [ ] Odigraj dva poteza belog sa odgovorom crnog, i jednu varijantu na
+   **prvom belom** potezu: list pokazuje „1. … (or …) …  2. …", „Find the
+   moves", i „Save" radi tek kad se upiše ime.
+3. [ ] Ako glavna linija završava protivnikovim potezom, piše da taj potez
+   nije deo rešenja.
+4. [ ] Posle „Save": poruka „Exercise saved.", i zadatak je u Biblioteci među
+   pozicijama iz knjige (zvaće se „Scanned position" — ime stiže u fazi 4).
+5. [ ] **Domaći → Add → positions**: zadatak se bira i šalje kao i skenirana
+   pozicija.
+6. [ ] **Učenik**: prvi tačan potez → „Correct. Keep going.", na tabli je
+   protivnikov odgovor; pogrešan potez → „Not that move. Try again.", tabla se
+   vraća, rešenje se **ne** prikazuje; poslednji tačan potez završava zadatak.
+7. [ ] Učenik odigra **prihvaćenu alternativu**: tabla nastavlja od trenerovog
+   poteza, pa odgovor.
+8. [ ] **Pregled**: posle pogrešnog pa tačnog, stavka ostaje „netačno" (pamti
+   se prvi pokušaj), a trener vidi ceo niz.
+9. [ ] U editoru domaćeg **nema** prekidača „Solved", a učenik ne vidi „must
+   be solved". (Stavka 184.7 time otpada.)
+
 ## 184. Domaći, faza 5: učenikov domaći i trenerovo otključavanje — 18.9.2026, nije viđeno uživo
 
 Za ovo treba poslat domaći, a prozor za slanje je još app-pola faze 4 — do
@@ -5899,8 +5926,7 @@ tada se šalje ručno kroz zahtev (`POST /homeworks/:id/send`).
 5. [ ] **Review po stavki** radi sa obe strane (roditelj ga nema).
 6. [ ] **Vraćanje sa stavke** osvežava stanje — sledeća stavka se otvara
    bez povlačenja liste nadole.
-7. [ ] **Brana ne zaključava dete**: stavka sa „mora rešeno" to i piše, pa
-   učenik zna zašto sledeća neće da se otvori.
+7. [–] *Povučeno 18.9.2026:* „mora rešeno" je izbačeno (stavka 185.9).
 
 ## 183. Domaći, faze 3a–4: šablon, editor i slanje — 17.9.2026, nije viđeno uživo
 

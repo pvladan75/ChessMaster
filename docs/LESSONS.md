@@ -3951,3 +3951,33 @@ went red on exactly that line.
 **My own fixture was wrong once, and the code was right.** „A mate inside N
 moves" used a nine-piece position with `win` + N, which the new rule refuses.
 The red said so in one run. A fixture is code; it gets the same suspicion.
+
+## 18.9.2026 — The exercise, phase 2b: graded by machine, and what the worker's own mutation found
+
+The implementer built the app half of the line against
+`docs/gates/exercise_make_test.dart`. App **3053 → 3077** (+18 gate, +6 own), 1
+skipped, 0 failed, analyze the same 26 infos — the worker's numbers, and the
+lead's re-measurement on master after taking the commit, agree. Grading, in
+the order that costs least: the gate compared byte for byte with the copy in
+`test/`; the file list (nothing outside `chess_app/`); a grep of the diff for
+`// ignore`; then 12 mutations over the gate and the worker's own file, each
+red on the right test; then the full suite with nothing else running.
+
+**The sentence in the brief that asks for a mutation paid for itself.** „Watch
+each new test fail once on wrong code" is where the worker found its own bug: a
+line's first wrong move was written into the map that also locks the board, so
+a move the server said could be retried froze the screen instead. Two facts —
+„this position has a verdict" and „this board is finished" — had one home. The
+fix is two maps, and the report says so under *what the brief got wrong*. **Ask
+a worker to break its own tests; it is the only review that runs.**
+
+**A brief should say what exists, not only what to build.** It told the worker
+to add a `@visibleForTesting` hook „if there is no way to play a move in a
+widget test". There was a way — `tap_to_move_test.dart` drives the real board —
+and the worker found it. It also had to add an `api` seam to the solver that
+the brief's file list did not name. Both are the lead not having grepped the
+tests before writing „if". **Before writing „if there is no way", look.**
+
+**Prove the library's half of the gate first** held up: the brief opened with
+„Dart `chess` refuses `Rd8` for `Rd8#`", the worker imported `findMove` and
+never met the problem.
