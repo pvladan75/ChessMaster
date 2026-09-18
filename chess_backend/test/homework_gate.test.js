@@ -894,4 +894,156 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal((await route('post', '/:id/open-gate', { userId: who.trainerId, params })).status, 200);
     assert.equal((await route('get', '/:id', { userId: who.studentId, params })).status, 200);
   });
+
+  // ---- „for N moves", judged by the position reached (PLAN-EXERCISE 3a) ----
+
+  const fm = require('../../docs/gates/engine_game_cases.json').forMoves;
+  const KEEP_WIN = fm.judged[0]; // a win kept for two moves, KRK
+  const { createTablebase } = require('../services/tablebaseService');
+
+  /// A tablebase **client** with a fake network under it — the real probe, the
+  /// real cache, the real error mapping — that remembers what it was asked.
+  function tablebaseAnswering(category, { down = false } = {}) {
+    const asked = [];
+    const tablebase = createTablebase({
+      retries: 0,
+      minGapMs: 0,
+      sleep: async () => {},
+      fetchImpl: async (url) => {
+        asked.push(String(url));
+        if (down) throw new Error('network down');
+        return { ok: true, status: 200, json: async () => ({ category, moves: [] }) };
+      },
+    });
+    return { tablebase, asked };
+  }
+
+  const gameItem = async (gameId) => (await pool.query(
+    'SELECT solved, judged_by, game_ending, attempted_at FROM assignment_items WHERE assignment_id = $1',
+    [gameId]
+  )).rows[0];
+
+  test('a win kept for N moves is judged by the tablebase, asked about the position reached', async () => {
+    for (const [category, met] of [['loss', true], ['draw', false]]) {
+      const who = await people();
+      const { gameId } = await sentGame(who, KEEP_WIN.task);
+      const { tablebase, asked } = tablebaseAnswering(category);
+
+      const r = await assignments.recordEngineGameResult(pool, {
+        studentId: who.studentId, assignmentId: gameId, moves: KEEP_WIN.moves, tablebase,
+      });
+      assert.equal(r.ok, true, r.error);
+      assert.deepEqual(
+        { goalMet: r.goalMet, judgedBy: r.judgedBy, pending: r.pending, ending: r.ending },
+        { goalMet: met, judgedBy: 'tablebase', pending: false, ending: 'moveTarget' }
+      );
+      assert.equal(asked.length, 1);
+      assert.ok(
+        asked[0].includes(encodeURIComponent(KEEP_WIN.expect.fen)),
+        `asked about the final position, not the first: ${asked[0]}`
+      );
+      const item = await gameItem(gameId);
+      assert.equal(item.solved, met);
+      assert.equal(item.judged_by, 'tablebase');
+    }
+  });
+
+  test('a tablebase that does not answer leaves the game played, not judged — and a later read judges it', async () => {
+    const who = await people();
+    const { parentId, gameId } = await sentGame(who, KEEP_WIN.task);
+
+    const r = await assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: KEEP_WIN.moves,
+      tablebase: tablebaseAnswering('loss', { down: true }).tablebase,
+    });
+    assert.equal(r.ok, true, r.error);
+    assert.deepEqual({ goalMet: r.goalMet, judgedBy: r.judgedBy, pending: r.pending },
+      { goalMet: null, judgedBy: null, pending: true });
+
+    const waiting = await gameItem(gameId);
+    assert.ok(waiting.attempted_at, 'played');
+    assert.equal(waiting.solved, null, 'not failed: not judged');
+    assert.equal(waiting.judged_by, null);
+    assert.ok(await completedAt(gameId), 'attempted is done, for the gate and for completion');
+    const before = (await homework.childrenOf(pool, parentId)).find((c) => c.id === gameId);
+    assert.deepEqual({ pending: before.pending_items, solved: before.solved_items }, { pending: 1, solved: 0 });
+
+    // Still down on the next read: the homework opens all the same, unchanged.
+    const stillDown = await assignments.getAssignmentDetail(pool, parentId, who.studentId, {
+      tablebase: tablebaseAnswering('loss', { down: true }).tablebase,
+    });
+    assert.equal(stillDown.children.find((c) => c.id === gameId).pending_items, 1);
+
+    // Back up: either side's read judges it.
+    const { tablebase, asked } = tablebaseAnswering('loss');
+    const read = await assignments.getAssignmentDetail(pool, parentId, who.trainerId, { tablebase });
+    const after = read.children.find((c) => c.id === gameId);
+    assert.deepEqual({ pending: after.pending_items, solved: after.solved_items }, { pending: 0, solved: 1 });
+    assert.ok(asked[0].includes(encodeURIComponent(KEEP_WIN.expect.fen)));
+    assert.equal((await gameItem(gameId)).judged_by, 'tablebase');
+
+    // And it is asked once: a judged game is not asked about again.
+    const again = tablebaseAnswering('draw');
+    await assignments.getAssignmentDetail(pool, parentId, who.studentId, { tablebase: again.tablebase });
+    assert.equal(again.asked.length, 0);
+    assert.equal((await gameItem(gameId)).solved, true);
+  });
+
+  test('a blocked tablebase is not queued behind: the game waits', async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, KEEP_WIN.task);
+    const r = await assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: KEEP_WIN.moves,
+      tablebase: { blockedForMs: () => 40000, probe: async () => { throw new Error('must not be asked'); } },
+    });
+    assert.equal(r.pending, true);
+  });
+
+  test('a fault is not „no answer": recording fails loudly and writes nothing, reading still reads', async () => {
+    const who = await people();
+    const { parentId, gameId } = await sentGame(who, KEEP_WIN.task);
+    const broken = { blockedForMs: () => 0, probe: async () => { throw new TypeError('a bug, not the network'); } };
+
+    await assert.rejects(
+      assignments.recordEngineGameResult(pool, {
+        studentId: who.studentId, assignmentId: gameId, moves: KEEP_WIN.moves, tablebase: broken,
+      }),
+      TypeError
+    );
+    assert.equal((await gameItem(gameId)).attempted_at, null);
+
+    await assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: KEEP_WIN.moves,
+      tablebase: tablebaseAnswering('loss', { down: true }).tablebase,
+    });
+    const read = await assignments.getAssignmentDetail(pool, parentId, who.studentId, { tablebase: broken });
+    assert.equal(read.children.length, 2, 'the asking cannot stop the reading');
+    assert.equal(read.children.find((c) => c.id === gameId).pending_items, 1);
+  });
+
+  test('the rules judge what no tablebase is needed for, and nobody is asked', async () => {
+    const big = fm.judged.find((c) => c.expect.ending === 'moveTarget' && !c.expect.needsTablebase);
+    const mate = fm.judged.find((c) => c.expect.ending === 'checkmate');
+    for (const c of [big, mate]) {
+      const who = await people();
+      const { gameId } = await sentGame(who, c.task);
+      const { tablebase, asked } = tablebaseAnswering('loss');
+      const r = await assignments.recordEngineGameResult(pool, {
+        studentId: who.studentId, assignmentId: gameId, moves: c.moves, tablebase,
+      });
+      assert.equal(r.ok, true, r.error);
+      assert.deepEqual({ goalMet: r.goalMet, judgedBy: r.judgedBy, pending: r.pending },
+        { goalMet: c.expect.goalMet, judgedBy: 'rules', pending: false }, c.name);
+      assert.equal(asked.length, 0, c.name);
+    }
+  });
+
+  test('judged_by is one of three words, or nothing', async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, KEEP_WIN.task);
+    await assert.rejects(
+      pool.query(`UPDATE assignment_items SET judged_by = 'guess' WHERE assignment_id = $1`, [gameId]),
+      (err) => err.code === '23514'
+    );
+  });
 });

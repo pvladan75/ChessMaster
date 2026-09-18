@@ -20,7 +20,7 @@ const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
 const { stepsOfLesson, redactStepForStudent } = require('./lessonSteps');
 const homework = require('./homeworkService');
-const { judgeEngineGame } = require('./engineGameTask');
+const { judgeEngineGame, goalMetByTablebase } = require('./engineGameTask');
 
 /// Refuses a write into a homework item that is still locked. Interpolated
 /// into every UPDATE a student's answer goes through, so the gate holds at
@@ -532,7 +532,41 @@ async function recordPuzzleResult(pool, { studentId, puzzleId, solved, msTaken, 
 /// Refuses rather than records: a game that is not over yet, a move the
 /// position cannot play, an item already answered. Only the first attempt
 /// counts, the same rule as every other item.
-async function recordEngineGameResult(pool, { studentId, assignmentId, moves, resigned = false }) {
+/// What the tablebase says of the position a game reached — or that it said
+/// nothing.
+///
+/// Three answers, and the third is the point: `{ judged: false }` is „the
+/// tablebase did not answer", which is not „the goal was missed". Only
+/// `TablebaseUnavailable` is that answer; anything else is a fault and is
+/// thrown, because swallowing it would turn a bug into a homework that waits
+/// for ever.
+async function askTablebase(tablebase, { task, fen }) {
+  const { wdlOf, TablebaseUnavailable } = require('./tablebaseService');
+  try {
+    // A caller with a student waiting does not queue behind a block.
+    if (typeof tablebase.blockedForMs === 'function' && tablebase.blockedForMs() > 0) {
+      return { judged: false };
+    }
+    const probed = await tablebase.probe(fen);
+    return { judged: true, goalMet: goalMetByTablebase({ task, fen, category: probed.category, wdlOf }) };
+  } catch (err) {
+    if (err instanceof TablebaseUnavailable) {
+      logger.warn(`[GAME] Tablebase gave no verdict, the game waits: ${err.message}`);
+      return { judged: false };
+    }
+    throw err;
+  }
+}
+
+/// The shared tablebase, required late: importing it builds a pacer, and most
+/// callers of this file never judge a game.
+function sharedTablebase() {
+  return require('./tablebaseService').tablebase;
+}
+
+async function recordEngineGameResult(pool, {
+  studentId, assignmentId, moves, resigned = false, tablebase = sharedTablebase(),
+}) {
   const found = await pool.query(
     `SELECT a.id, a.task
        FROM assignments a
@@ -548,15 +582,28 @@ async function recordEngineGameResult(pool, { studentId, assignmentId, moves, re
     return { ok: false, status: 422, error: 'The game is not over yet.' };
   }
 
+  // A game that stopped at its move target is judged by the position it
+  // reached, when a tablebase can say what that is. When it cannot be asked
+  // the game is still recorded — played, attempted for the gate — with no
+  // verdict, and `judgePendingGames` asks again on a later read.
+  let goalMet = verdict.goalMet;
+  let judgedBy = 'rules';
+  if (verdict.needsTablebase) {
+    const asked = await askTablebase(tablebase, { task: verdict.task, fen: verdict.fen });
+    goalMet = asked.judged ? asked.goalMet : null;
+    judgedBy = asked.judged ? 'tablebase' : null;
+  }
+
   const written = await pool.query(
     `UPDATE assignment_items
         SET solved = $2,
             attempted_at = CURRENT_TIMESTAMP,
             game_moves = $3,
-            game_ending = $4
+            game_ending = $4,
+            judged_by = $5
       WHERE assignment_id = $1 AND attempted_at IS NULL
       RETURNING id`,
-    [assignmentId, verdict.goalMet, verdict.moves.join(' '), verdict.ending]
+    [assignmentId, goalMet, verdict.moves.join(' '), verdict.ending, judgedBy]
   );
   if (written.rows.length === 0) {
     return { ok: false, status: 409, error: 'This game has already been played.' };
@@ -565,11 +612,52 @@ async function recordEngineGameResult(pool, { studentId, assignmentId, moves, re
   await markCompleteIfDone(pool, assignmentId);
   return {
     ok: true,
-    goalMet: verdict.goalMet,
+    goalMet,
+    judgedBy,
+    pending: judgedBy === null,
     ending: verdict.ending,
     outcome: verdict.outcome,
     ownMoves: verdict.ownMoves,
   };
+}
+
+/// Games that were played and not judged, under [assignmentId] — itself, or
+/// its children when it is a homework — asked again.
+///
+/// Called on a read by either side. **Best effort and silent about it**: a
+/// tablebase that still does not answer leaves the row exactly as it was, and
+/// the read goes on; this must never be able to fail the screen it is called
+/// from. The verdict is re-derived from the stored moves, not from a position
+/// kept beside them — the moves are the record.
+async function judgePendingGames(pool, { assignmentId, tablebase = sharedTablebase() }) {
+  const pending = await pool.query(
+    `SELECT ai.id, ai.game_moves, a.task
+       FROM assignment_items ai
+       JOIN assignments a ON a.id = ai.assignment_id
+      WHERE (a.id = $1 OR a.parent_id = $1)
+        AND a.kind = 'engine_game'
+        AND ai.attempted_at IS NOT NULL
+        AND ai.judged_by IS NULL
+        AND ai.solved IS NULL
+        AND ai.game_ending = 'moveTarget'`,
+    [assignmentId]
+  );
+  let judged = 0;
+  for (const row of pending.rows) {
+    const verdict = judgeEngineGame({ task: row.task, moves: row.game_moves || '' });
+    if (!verdict.ok || !verdict.needsTablebase) continue;
+    // eslint-disable-next-line no-await-in-loop
+    const asked = await askTablebase(tablebase, { task: verdict.task, fen: verdict.fen });
+    if (!asked.judged) continue;
+    // eslint-disable-next-line no-await-in-loop
+    const written = await pool.query(
+      `UPDATE assignment_items SET solved = $2, judged_by = 'tablebase'
+        WHERE id = $1 AND judged_by IS NULL`,
+      [row.id, asked.goalMet]
+    );
+    judged += written.rowCount;
+  }
+  return judged;
 }
 
 /// Sets homework from positions the trainer scanned or typed themselves.
@@ -704,7 +792,7 @@ async function getTrainerAssignments(pool, trainerId, { studentId = null } = {})
   return result.rows;
 }
 
-async function getAssignmentDetail(pool, assignmentId, userId) {
+async function getAssignmentDetail(pool, assignmentId, userId, { tablebase } = {}) {
   const result = await pool.query(
     `SELECT a.*, t.name AS trainer_name, s.name AS student_name
      FROM assignments a
@@ -722,6 +810,18 @@ async function getAssignmentDetail(pool, assignmentId, userId) {
   if (assignment.student_id === userId && assignment.trainer_id !== userId) {
     const lock = await homework.lockOf(pool, assignmentId);
     if (lock.locked) return { locked: true, blockedBy: lock.blockedBy };
+  }
+
+  // A game the tablebase could not judge when it ended is asked about again
+  // now, before anything is counted. Do the thing, then say it — and the
+  // asking must not be able to stop the reading: a fault here is logged and
+  // the homework opens as it was.
+  if (assignment.kind === 'homework' || assignment.kind === 'engine_game') {
+    try {
+      await judgePendingGames(pool, { assignmentId, ...(tablebase ? { tablebase } : {}) });
+    } catch (err) {
+      logger.error('A waiting game could not be judged on this read:', err);
+    }
   }
 
   if (assignment.kind === 'homework') {
@@ -922,6 +1022,7 @@ module.exports = {
   markCompleteIfDone,
   recordPuzzleResult,
   recordEngineGameResult,
+  judgePendingGames,
   getStudentAssignments,
   getTrainerAssignments,
   getAssignmentDetail,

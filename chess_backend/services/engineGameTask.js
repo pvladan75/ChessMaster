@@ -63,12 +63,38 @@ function parseEngineGameTask(raw) {
     return { ok: false, error: `The goal must be one of ${GOALS.join(', ')}.` };
   }
 
+  // „For N moves". `survive` has always needed the number; since phase 3a of
+  // `docs/PLAN-EXERCISE.md` a `win` or a `hold` may carry one too — keep the
+  // win, or hold the draw, for the next N of the student's own moves — and
+  // the game is then judged by the position it reaches (`goalMetByTablebase`).
+  //
+  // The field keeps its first name on the wire. The plan proposed renaming it
+  // `forMoves`; the app in the tree reads and writes `surviveMoves`, and a
+  // rename bought a nicer word at the price of a server and an app that
+  // disagree until the next phase lands.
   let surviveMoves = null;
-  if (goal === 'survive') {
+  const saidMoves = raw.surviveMoves !== undefined && raw.surviveMoves !== null;
+  if (goal === 'survive' || saidMoves) {
     surviveMoves = Number.parseInt(raw.surviveMoves, 10);
     if (!Number.isInteger(surviveMoves) || surviveMoves < 1 || surviveMoves > MAX_SURVIVE_MOVES) {
-      return { ok: false, error: 'Surviving needs a number of moves, from 1.' };
+      return {
+        ok: false,
+        error: goal === 'survive'
+          ? 'Surviving needs a number of moves, from 1.'
+          : `"For N moves" needs a number from 1 to ${MAX_SURVIVE_MOVES}.`,
+      };
     }
+  }
+  // A win kept for N moves is only a fact a tablebase can state: „not mated
+  // yet" says nothing about whether the win is still there. Pieces only leave
+  // the board, so a position within reach now is within reach at the end.
+  // Refused here, where the trainer can change it, rather than judged by a
+  // guess in front of a student.
+  if (goal === 'win' && surviveMoves !== null && pieceCount(board.fen()) > TABLEBASE_PIECES) {
+    return {
+      ok: false,
+      error: `Keeping a win for some moves can be judged only with ${TABLEBASE_PIECES} pieces or fewer on the board.`,
+    };
   }
 
   // The engine's strength: the three levels the app already plays at. Left to
@@ -155,7 +181,7 @@ function judgeEngineGame({ task: rawTask, moves, resigned = false }) {
   else if (board.isDraw()) ending = 'fiftyMoves';
   else if (resigned === true) ending = 'resignation';
   else if (list.length >= task.plyCap) ending = 'moveLimit';
-  else if (task.goal === 'survive' && ownMoves >= task.surviveMoves) ending = 'moveTarget';
+  else if (task.surviveMoves !== null && ownMoves >= task.surviveMoves) ending = 'moveTarget';
 
   let outcome = 'undecided';
   if (ending === 'checkmate') {
@@ -177,12 +203,21 @@ function judgeEngineGame({ task: rawTask, moves, resigned = false }) {
     else if (task.goal === 'survive') goalMet = outcome !== 'lost';
   }
 
+  // A game that stopped at its move target has no result of its own: nobody
+  // won, nobody lost, the trainer's N moves simply ran out. What it reached is
+  // the verdict, and with few enough pieces a tablebase knows it exactly. This
+  // function stays pure — it says the question needs asking; the caller asks.
+  // Until it is answered `goalMet` above is what the rules alone can say: for
+  // hold and survive „not lost", which is true; for a win, false.
+  const needsTablebase = ending === 'moveTarget' && pieceCount(board.fen()) <= TABLEBASE_PIECES;
+
   return {
     ok: true,
     task,
     ending,
     outcome,
     goalMet,
+    needsTablebase,
     ownMoves,
     plies: list.length,
     fen: board.fen(),
@@ -190,8 +225,38 @@ function judgeEngineGame({ task: rawTask, moves, resigned = false }) {
   };
 }
 
+/// How many pieces stand on the board of [fen], kings included.
+function pieceCount(fen) {
+  return String(fen).split(' ')[0].replace(/[^a-zA-Z]/g, '').length;
+}
+
+/// Seven is as far as any tablebase reaches.
+const TABLEBASE_PIECES = 7;
+
+/**
+ * Whether the position a game reached meets its goal, given what the
+ * tablebase says of it.
+ *
+ * [category] is the tablebase's word for the side **to move** in [fen]; the
+ * student may be either side, so it is turned round when they are not. A
+ * cursed win and a blessed loss are draws: the fifty-move rule makes them so,
+ * and a game played on would end as one. `wdlOf` throws for 'unknown' and the
+ * 'maybe' categories — no outcome is not an outcome, and must not read as a
+ * failed homework.
+ */
+function goalMetByTablebase({ task, fen, category, wdlOf }) {
+  const forMover = wdlOf(category);
+  const turn = String(fen).split(' ')[1];
+  const forStudent = turn === task.side ? forMover : -forMover;
+  if (task.goal === 'win') return forStudent === 2;
+  return forStudent >= -1;
+}
+
 module.exports = {
   GOALS,
+  TABLEBASE_PIECES,
+  pieceCount,
+  goalMetByTablebase,
   ENDINGS,
   DEFAULT_PLY_CAP,
   MAX_PLY_CAP,

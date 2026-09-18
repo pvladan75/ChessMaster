@@ -86,8 +86,8 @@ test('the engine the trainer chose is part of the task, and refused if invented'
   assert.equal(parseEngineGameTask({ ...base, thinkSeconds: 61 }).ok, false);
   assert.equal(parseEngineGameTask({ ...base, plyCap: 0 }).ok, false);
   assert.equal(parseEngineGameTask({ ...base, plyCap: 601 }).ok, false);
-  assert.equal(parseEngineGameTask({ ...base, surviveMoves: 3 }).task.surviveMoves, null,
-    'a number to survive means nothing to a win goal');
+  // A number of moves on a win used to be dropped here. Since phase 3a of
+  // docs/PLAN-EXERCISE.md it is kept: see engine_game_for_moves.test.js.
 });
 
 test('an illegal move is refused, not skipped', () => {

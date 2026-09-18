@@ -3911,3 +3911,43 @@ runs against a library; run the library's half of it.**
 to know whether a wrong move may be played again. It could have been read off
 `solutionSan == null` — true today, and a coincidence of two other rules. The
 route now sends `retry`.
+
+## 18.9.2026 — The exercise, phase 3a: a game judged by where it ends
+
+Phase 3a of `docs/PLAN-EXERCISE.md`. Backend **1564 → 1592** with the test
+database (+22 `engine_game_for_moves`, +6 in `homework_gate`), **1486 → 1508**
+without (+22; the six need the database). 15 mutations, each red on the right
+test, none surviving — the first pass in this plan where that happened, and the
+first where the fixture was written *before* the tests, with a test of the
+fixture itself (both answers for every goal, both sides to move).
+
+**The plan said rename; the tree said no.** `surviveMoves` was to become
+`forMoves`. The app on master reads and writes `surviveMoves`, and 3b is a
+later phase — so a rename on the server alone is a master where a trainer's
+„survive 4" task stops being understood. The owner's „no compatibility for old
+homeworks" is about *data*; this was about the two halves of the same commit
+history. The field keeps its name and is simply allowed on more goals. **A
+rename across a wire is one change on both ends or no change.**
+
+**A red test can be an earlier decision** (again, and recorded the same way):
+„a number to survive means nothing to a win goal" was §9.2 of the homework
+plan, asserted in `engine_game_task.test.js`. It is superseded, the assertion
+is gone, and the comment left in its place says where the rule went.
+
+**„No answer" and „a fault" are different, and only one of them may wait.**
+`askTablebase` turns `TablebaseUnavailable` — and nothing else — into
+`{ judged: false }`. A `TypeError` from the same call throws: recording fails
+with nothing written, because a bug swallowed as „the tablebase is down" is a
+homework that waits for ever. On a *read* the same fault is logged and the
+read goes on, because the asking must not be able to stop the screen it is
+asked from. Same error, opposite handling, and each has a mutation.
+
+**Fake the client under the real one.** The tablebase in the tests is
+`createTablebase({ fetchImpl })` — the real probe, cache and error mapping over
+a fake network that records URLs — so „asked about the position reached, not
+the first" is an assertion on the request. A mutation that probed `task.fen`
+went red on exactly that line.
+
+**My own fixture was wrong once, and the code was right.** „A mate inside N
+moves" used a nine-piece position with `win` + N, which the new rule refuses.
+The red said so in one run. A fixture is code; it gets the same suspicion.
