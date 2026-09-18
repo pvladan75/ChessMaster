@@ -16,6 +16,15 @@
 // [Exercise], and the caller — which still has a live context — says so. A
 // refusal is different: it is shown *in* the sheet, in the server's own
 // words, and the sheet stays open so the trainer can fix it.
+//
+// Phase 5 (`docs/PLAN-EXERCISE.md`, decision 5, `docs/briefs/
+// BRIEF-EXERCISE-FAZA5-APP.md`) asks the tablebase and the engine what they
+// know of the exercise **as it is made**, through the injected [checker] —
+// while the trainer fills in the name, never blocking Save. A finding is
+// never applied by itself: only the trainer's own tap on *Accept* moves a
+// finding's moves into the solution, through `acceptFinding`.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/move_tree.dart';
@@ -25,9 +34,11 @@ import 'package:chess_app/widgets/save_position_dialog.dart'
     show LabelChipInput;
 
 import '../models/exercise.dart';
+import '../models/exercise_check.dart';
 import '../models/exercise_line.dart';
 import '../models/exercise_task_words.dart';
 import '../services/exercise_api_service.dart';
+import '../services/exercise_checker.dart';
 
 const Map<String, String> _kEngineLevelLabels = {
   'lako': 'Easy',
@@ -90,11 +101,16 @@ class MakeExerciseSheet extends StatefulWidget {
     required this.api,
     required this.moveTree,
     required this.availableUserLabels,
+    this.checker = defaultExerciseChecker,
   });
 
   final ExerciseApiService api;
   final MoveTree moveTree;
   final List<String> availableUserLabels;
+
+  /// What asks the tablebase and the engine — the real one by default, which
+  /// costs nothing to hold until [ExerciseChecker.check] is actually called.
+  final ExerciseChecker checker;
 
   @override
   State<MakeExerciseSheet> createState() => _MakeExerciseSheetState();
@@ -129,12 +145,89 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
   late final ExerciseLineReading _reading =
       ExerciseLine.fromTree(widget.moveTree);
 
+  /// The find exercise's solution as it will be saved: [_reading]'s own
+  /// steps, plus whatever the trainer has accepted from a finding. Never
+  /// touched by the check itself — only `acceptFinding`, from the trainer's
+  /// own tap, changes it.
+  List<ExerciseStep> _steps = const [];
+
+  /// What the tablebase or the engine found of the *current* choice — a
+  /// finding from one task must not still be showing under another, so every
+  /// call to [_runCheck] replaces this outright.
+  List<ExerciseFinding> _findings = const [];
+
+  /// Whether a check is still in flight. The line saying so goes the moment
+  /// [ExerciseChecker.check] answers — findings or none — so the sheet never
+  /// shows a spinner that outlives the checker's own timeout.
+  bool _checking = false;
+
+  /// Guards a check's answer against a staler one still in flight: only the
+  /// most recently started check may write to [_findings].
+  int _checkToken = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_reading.ok) _steps = _reading.steps;
+    unawaited(_runCheck());
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _instructionController.dispose();
     _forMovesController.dispose();
     super.dispose();
+  }
+
+  /// The task to check, in the checker's own shape — null when there is
+  /// nothing yet worth asking about (no valid line; no side chosen).
+  Map<String, dynamic>? get _taskForCheck {
+    if (_ask == ExerciseAsk.find) {
+      return _reading.ok ? const {'type': 'find'} : null;
+    }
+    if (_gameSide == null) return null;
+    return {
+      'type': 'game',
+      'side': _gameSide,
+      'goal': _ask == ExerciseAsk.win ? 'win' : 'hold',
+    };
+  }
+
+  /// Starts a check of the *current* choice. The check advises; it never
+  /// blocks Save, and its own timeout is where „Checking…" ends, whether or
+  /// not anybody answered.
+  Future<void> _runCheck() async {
+    final token = ++_checkToken;
+    final task = _taskForCheck;
+    if (task == null) {
+      setState(() {
+        _checking = false;
+        _findings = const [];
+      });
+      return;
+    }
+    setState(() {
+      _checking = true;
+      _findings = const [];
+    });
+    final findings = await widget.checker.check(
+      fen: widget.moveTree.root.fen,
+      task: task,
+      steps: _ask == ExerciseAsk.find ? _steps : null,
+    );
+    if (!mounted || token != _checkToken) return;
+    setState(() {
+      _checking = false;
+      _findings = findings;
+    });
+  }
+
+  void _acceptFinding(ExerciseFinding finding) {
+    setState(() {
+      _steps = acceptFinding(_steps, finding);
+      _findings = _findings.where((f) => f != finding).toList();
+    });
   }
 
   /// „For N moves", within 1..50, or null when the field cannot be read as
@@ -194,7 +287,7 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                 : _instructionController.text.trim(),
             themes: _labels,
             task: const {'type': 'find'},
-            solution: _reading.steps,
+            solution: _steps,
           )
         : ExerciseDraft(
             name: _nameController.text.trim(),
@@ -250,7 +343,10 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                         key: Key('exercise-ask-${ask.name}'),
                         label: Text(ask.label),
                         selected: _ask == ask,
-                        onSelected: (_) => setState(() => _ask = ask),
+                        onSelected: (_) {
+                          setState(() => _ask = ask);
+                          unawaited(_runCheck());
+                        },
                       ),
                   ],
                 ),
@@ -266,13 +362,11 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                         style: AppText.body.copyWith(color: colors.textMuted)),
                   ] else ...[
                     Text(
-                      reading.steps.length == 1
-                          ? 'Find the move'
-                          : 'Find the moves',
+                      _steps.length == 1 ? 'Find the move' : 'Find the moves',
                       style: AppText.bodyLargeBold,
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(_solutionText(reading.steps),
+                    Text(_solutionText(_steps),
                         style:
                             AppText.body.copyWith(color: colors.textSecondary)),
                     if (reading.droppedReply) ...[
@@ -339,13 +433,19 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                         key: const Key('exercise-side-w'),
                         label: const Text('White'),
                         selected: _gameSide == 'w',
-                        onSelected: (_) => setState(() => _gameSide = 'w'),
+                        onSelected: (_) {
+                          setState(() => _gameSide = 'w');
+                          unawaited(_runCheck());
+                        },
                       ),
                       ChoiceChip(
                         key: const Key('exercise-side-b'),
                         label: const Text('Black'),
                         selected: _gameSide == 'b',
-                        onSelected: (_) => setState(() => _gameSide = 'b'),
+                        onSelected: (_) {
+                          setState(() => _gameSide = 'b');
+                          unawaited(_runCheck());
+                        },
                       ),
                     ],
                   ),
@@ -370,6 +470,35 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                     exerciseJudgeWords(_judge),
                     key: const Key('exercise-judge-words'),
                     style: AppText.body.copyWith(color: colors.textSecondary),
+                  ),
+                ],
+                if (_checking) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text('Checking…',
+                      key: const Key('exercise-check-status'),
+                      style: AppText.body.copyWith(color: colors.textMuted)),
+                ],
+                for (final finding in _findings) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(finding.words,
+                            key: Key('exercise-finding-${finding.hashCode}'),
+                            style: AppText.body
+                                .copyWith(color: colors.textSecondary)),
+                      ),
+                      if (finding.sans.isNotEmpty) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        TextButton(
+                          key: Key(
+                              'exercise-finding-accept-${finding.hashCode}'),
+                          onPressed: () => _acceptFinding(finding),
+                          child: const Text('Accept'),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
                 const SizedBox(height: AppSpacing.lg),
