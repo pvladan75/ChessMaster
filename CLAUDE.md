@@ -21,13 +21,13 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 2966 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 2994 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1503 with TEST_DATABASE_URL, 1441 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Measured on `master` on 17.9.2026 (after the Settings review moved board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, and phases 0–4 of the homework plan, the trainer's editor included), with every built phase of the
+Measured on `master` on 17.9.2026 (after the Settings review moved board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, and phases 0–5 of the homework plan bar the send dialog), with every built phase of the
 reorganisation merged (`docs/PLAN-REORGANIZACIJA.md`: the shell Home · Practise ·
 Analyse · Teach, the room's column on the shared library list, the studio's
 `TutorialDraftController`, the studio on a phone, one tutorial editor everywhere)
@@ -140,7 +140,11 @@ Each of these has been paid for more than once. The stories are in
 18. **Run `flutter analyze` after the change and read its summary line**; check
     that nothing new is suppressed with an `ignore`.
 19. **Measure a suite with nothing else running.** `opening_book_service_test`
-    times out beside a heavy process.
+    times out beside a heavy process — and the heaviest process in the suite is
+    usually `game_tutorial_run_test`, which drives Stockfish over ten games and
+    needed 12 minutes on its own on 18.9.2026. Under load, both blow the
+    runner's three-minute per-test timeout and report as failures that pass in
+    isolation, so check *which* tests failed and how before believing a red.
 20. **Before editing anything the running server loads, ask what its startup
     does to data** — the owner's nodemon restarts on every `.js` save. Moving
     `.env` aside is done with a `trap` that restores it in the same command.

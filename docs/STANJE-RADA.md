@@ -211,6 +211,28 @@ treba da ima prekidač brane, a kapija tapka upravo taj prekidač) — kapija je
 bila u pravu: kontrola sakrivena na prvom redu pojela bi izbor stavke koju je
 trener premestio na vrh. Brif sada to i kaže.
 
+**Faza 5 u kodu** (18.9.2026, implementer + ocenjivanje kod vođe).
+Poslati domaći je **jedan red** u „My Assignments" („1 of 3 items"), a
+otvaranje daje stavke u trenerovom redosledu: završeno, otvoreno, ili
+zaključano **sa imenom stavke** koja ga drži (`blocked_by` je *id*, ne
+pozicija — ekran ga razrešava kroz stavke koje već ima). Trener čita isti
+ekran i na zaključanoj stavki ima „Unlock for student"; učeniku to piše da
+mu je trener otvorio stavku ranije.
+
+**Ovo je i jedina vrata do faze 2b**: do sada ništa u `lib/` nije moglo da
+otvori zadatu partiju — ekran i serverov sudija su bili napisani, a jedini
+pozivalac u repozitorijumu bio je test, jer stavka „odigraj do kraja"
+postoji samo unutar domaćeg.
+
+Tri stvari koje je faza morala prvo da reši: `AssignmentApiService` je zvao
+`http.get` direktno (nijedan test nije mogao da odgovori — sada prima
+klijenta); „koji ekran otvara stavka" je bilo rešeno na tri mesta u ruteru,
+sada je jedno (`assignmentItemScreen`), kroz koje ide i ruter; i pitanje za
+jedan zadatak sada ima **tri** odgovora — detalj, „zaključano, evo šta ga
+drži", ili „nije odgovoreno". Server za zaključanu stavku vraća **423**
+(brif je tvrdio 200), pa se zaključanost čita iz tela, ne iz statusa, a
+„server nije odgovorio" ne sme da stigne do deteta kao „zaključano ti je".
+
 **Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
 na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
 vraća `assignments_kind_check` (proširen) i dodaje `assignments_homework_shape`;

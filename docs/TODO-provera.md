@@ -5878,6 +5878,30 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 184. Domaći, faza 5: učenikov domaći i trenerovo otključavanje — 18.9.2026, nije viđeno uživo
+
+Za ovo treba poslat domaći, a prozor za slanje je još app-pola faze 4 — do
+tada se šalje ručno kroz zahtev (`POST /homeworks/:id/send`).
+
+1. [ ] **Učenik**: „My Assignments" ima **jedan** red za domaći, sa „1 of 3
+   items" (ne „0/0 completed"); otvaranje daje stavke u trenerovom
+   redosledu, sa Done / Open / Locked.
+2. [ ] **Zaključana stavka** se ne otvara na dodir i piše **ime** stavke
+   koja je drži zatvorenu (ne „item #502").
+3. [ ] **„Odigraj do kraja" se otvara iz domaćeg** — tabla sa zadatom
+   pozicijom, jačina engin-a je trenerova (nema izbora jačine), a kraj
+   partije se javlja serveru. Ovo je jedini put do faze 2b, pa se ovde
+   prvi put i vidi.
+4. [ ] **Trener** iz učenikovog napretka otvara isti ekran (ne prazan
+   review): na zaključanoj stavki „Unlock for student"; posle toga učenik
+   vidi „Unlocked early by your trainer", a trener „You unlocked this
+   early".
+5. [ ] **Review po stavki** radi sa obe strane (roditelj ga nema).
+6. [ ] **Vraćanje sa stavke** osvežava stanje — sledeća stavka se otvara
+   bez povlačenja liste nadole.
+7. [ ] **Brana ne zaključava dete**: stavka sa „mora rešeno" to i piše, pa
+   učenik zna zašto sledeća neće da se otvori.
+
 ## 183. Domaći, faze 3a–4: šablon, editor i slanje — 17.9.2026, nije viđeno uživo
 
 Slanje još nema svoj prozor (faza 4, app pola), pa se stavke 2–5 gledaju kad

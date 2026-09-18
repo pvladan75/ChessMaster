@@ -3452,3 +3452,37 @@ master, and master is where it has to be measured** — this is the third time
 in three days that a reported pre-existing problem was the worker's own
 environment. And **a file whose bytes are a contract needs `eol=lf`, not
 `text=auto`**: `*.sh` already had it for the same reason, one layer away.
+
+**Homework, phase 5: the student's screen — 18.9.2026, app 2966 → 2994
+tests, 1 skipped; analyze unchanged at the 26 known infos.** 15 from the
+gate, 6 from the implementer, 7 from grading. Backend untouched.
+
+**A feature can be finished, proved and unreachable.** Phase 2b built the
+assigned game and the server's judge, mutation-proved both, and shipped a
+screen whose only caller in the whole repository was its own test — because
+a „play it out" item exists only inside a homework, and the homework screen
+did not exist yet. Rule 10 again, and the lesson for planning: when a phase
+builds a screen nothing yet opens, write down which later phase is its door.
+
+**No test could answer the network here, and nobody noticed for months.**
+`AssignmentApiService` called the top-level `http.get`, so the student's
+list, the assignment detail and everything built on them had never had a test
+that could see a wrong address or a missing field. The seam took twenty
+minutes; the phase could not have been graded without it. Ask of any service:
+*what would a test have to fake to see this go wrong?*
+
+**Two answers where there are three.** `fetchDetail` first came back as
+„the detail, or a blocker id", so „the server did not answer" and „you are
+locked out" were the same answer with a null in it — the shape the account
+guard was rewritten for in August. It now says `locked` in its own field.
+The same reading fixed a second thing: the server answers a locked item with
+**423**, not 200 as my brief claimed, and a check written against the status
+would have passed the companion test (which sent 200) and failed in front of
+a student. **Read the flag, not the status, and fixture the status the
+server actually sends.**
+
+**A surviving mutation was the mutation's fault.** Making the review button's
+condition always true left the test green, because the outer guard on the
+whole row of actions still suppressed it for an untouched item. Both guards
+mutated together, the test went red. Rule 2 holds either way: the survivor
+is a question, and here the answer was „you mutated dead ground".
