@@ -75,16 +75,22 @@ partije koja se zadaje učeniku ne sme da bude nevidljivo: dijagram ne može da
 kaže da li je kralj već mrdao, pa je to pretpostavka, i stoji tamo gde trener
 može da je ispravi.
 
-**Pravilo za stranu, vlasnikovim rečima: „last action always wins".** Pastovanje
-FEN-a postavlja prekidač onako kako FEN kaže; klik na prekidač prepisuje FEN.
-Uz promenu strane briše se i en passant polje, jer `e3` znači „crni sme tu da
-uzme *ovog poteza*" i ništa drugo — prenet preko promene strane tvrdi uzimanje
-koje ne može da se desi.
+**Pravilo za stranu je menjano tri puta istog dana i treće je ostalo.** Prvo je
+prekidač bio podrazumevana vrednost, pa „last action always wins" (pastovanje
+postavlja prekidač, klik prepisuje FEN) — pa je vlasnik našao bolje: **ako FEN
+kaže ko je na potezu, izbora nema** (prekidač se uopšte ne crta, strana se
+ispisuje kao činjenica), **a ako FEN ćuti, pita se — bez ponuđenog odgovora.**
+Ništa nije unapred izabrano i „Add" se odbija dok se ne izabere, jer odgovor
+ponuđen unapred je odgovor pola-dat, a ovaj odlučuje koju stranu učenik igra.
+Svaka promena FEN-a briše izbor: druga pozicija je drugo pitanje.
+
+Za dopunu table koristi se izabrana strana, a en passant polje se briše kad se
+strana menja, jer `e3` znači „crni sme tu da uzme *ovog poteza*" i ništa drugo.
 
 **Cena, rečena naglas.** §9 stavka 2 plana domaćeg je ranije odgovorila
 suprotno: trener bira boju učenika *nasuprot* potezu pozicije, baš da bi se
-moglo zadati „drži ovaj remi, motor je na potezu". Sa novim pravilom se ta dva
-ne mogu razići, pa **učenik uvek počinje**. Dva testa koja su čuvala staro
+moglo zadati „drži ovaj remi, motor je na potezu". Ni jedno od tri nova pravila
+to ne ume, pa **učenik uvek počinje**. Dva testa koja su čuvala staro
 pravilo su prepisana, sa zapisanim razlogom — nisu obrisana. Runtime i dalje
 ume oba slučaja (`ai_studio_screen` traži potez motora kad `turn != task.side`,
 server broji učenikove poteze po tome čiji je bio potez), pa sve što je ranije

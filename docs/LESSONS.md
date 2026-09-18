@@ -3731,11 +3731,20 @@ whether a king has moved. So the completed FEN is *written into the field the
 trainer is looking at* rather than used out of sight: a guess about the rules
 of a game being set for a student belongs where it can be corrected.
 
-**„Last action always wins“ is a rule you can test; „the switch is the default
-until touched“ is not.** Two controls said the same thing and the question was
-which. The first attempt kept the trainer's tap when the new FEN happened to
-name the same side — behaviour that depends on a position two pastes ago, and
-invisible from outside. The owner's rule is symmetric and needs no memory.
+**Three rules for one control in one afternoon, and the third needs no rule at
+all.** Two controls said the same thing and the question was which wins. First
+the switch was a default; then „last action always wins“, which is at least
+symmetric and testable. The owner then found the one that dissolves the
+question: **if the FEN names its side there is nothing to decide, so the switch
+is not drawn; if it does not, the trainer is asked — with nothing
+pre-selected.** A control that can contradict its own data is a rule waiting to
+be written; a control that only exists when the data is silent is not. **When
+two inputs keep needing a precedence rule, ask whether one of them should be
+absent.**
+
+And the reason for the empty selection is worth keeping on its own: an answer
+offered in advance is an answer half-given, and this one decides which colour a
+student is asked to play.
 
 **A test that cannot fail will pass a mutation twice.** The paste-wins test had
 the owner tap the side the FEN already named, so the assertion held whatever
