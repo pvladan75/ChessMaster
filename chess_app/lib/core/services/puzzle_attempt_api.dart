@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
@@ -94,6 +95,61 @@ class SourceProgress {
   static int _int(dynamic v) => (v as num?)?.toInt() ?? 0;
 }
 
+/// Attempt writes still in flight, and the one thing that makes a read of the
+/// log correct straight after one.
+///
+/// **The log is written on one screen and read on another.** A drill fires its
+/// last attempt and does not wait for it — recording must never hold up the
+/// board — and the reader leaves at once, which resolves the hub's
+/// `context.push` and sends `progress()` immediately. The read can therefore
+/// overtake the write and be answered with the log as it was one attempt ago.
+///
+/// Reported live on 18.9.2026 (TODO-provera 176.2): solve, miss, skip, come
+/// back, and the mates card is one behind. Waiting does not mend it — nothing
+/// re-reads on a wait — but pushing any other screen and popping straight back
+/// does, because that is a second read. `hub_refresh_after_drill_test` proves
+/// the client re-reads; this is the ordering it was missing.
+///
+/// Three paths write the log — [PuzzleAttemptApi.record], the puzzle screen's
+/// own post to `/submit`, and `TacticsApiService.submitAttempt` — so the
+/// barrier is here, beside the sources, rather than in any one of them.
+abstract final class PuzzleAttemptWrites {
+  static final Set<Future<void>> _inFlight = <Future<void>>{};
+
+  /// Registers [write] and hands it straight back, so a caller can keep firing
+  /// and forgetting. Failures are swallowed here and nowhere else: this
+  /// barrier is about *when* a write is over, never about whether it worked.
+  static Future<T> track<T>(Future<T> write) {
+    late final Future<void> done;
+    done = write.then((_) {}, onError: (_) {}).whenComplete(() {
+      _inFlight.remove(done);
+    });
+    _inFlight.add(done);
+    return write;
+  }
+
+  /// Completes once every write started before this call has finished.
+  ///
+  /// Bounded, and deliberately quiet when the bound is reached: a write that
+  /// will not finish must not stop the reader from reading. The worst case is
+  /// then the stale number this exists to prevent, which is where we already
+  /// were — never a screen that does not load.
+  static Future<void> settled({
+    Duration limit = const Duration(seconds: 5),
+  }) async {
+    if (_inFlight.isEmpty) return;
+    try {
+      await Future.wait(_inFlight.toList()).timeout(limit);
+    } catch (e) {
+      AppLogger.log('[Puzzles] read did not wait for every write: $e');
+    }
+  }
+
+  /// For tests: forget anything still tracked.
+  @visibleForTesting
+  static void reset() => _inFlight.clear();
+}
+
 class PuzzleAttemptApi {
   PuzzleAttemptApi({required this.authToken, http.Client? client})
       : _client = client ?? http.Client();
@@ -138,9 +194,9 @@ class PuzzleAttemptApi {
       if (!toSubmit && msTaken != null) 'msTaken': msTaken,
     };
     try {
-      final res = await _client
+      final res = await PuzzleAttemptWrites.track(_client
           .post(uri, headers: _headers, body: jsonEncode(body))
-          .timeout(const Duration(seconds: 12));
+          .timeout(const Duration(seconds: 12)));
       if (res.statusCode != 200) {
         AppLogger.log('[Puzzles] attempt not recorded: ${res.statusCode}');
       }

@@ -51,6 +51,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Already here underneath flutter_test; named so the analyzer stops
+  # counting its import as an undeclared one. Used by
+  # puzzle_attempt_writes_test to run a five-second timeout without
+  # spending five seconds of anybody's clock.
+  fake_async: ^1.3.1
 
 flutter:
   uses-material-design: true

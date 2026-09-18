@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'package:chess_app/core/services/puzzle_attempt_api.dart';
+
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
 import '../models/tactics_puzzle.dart';
@@ -92,9 +94,14 @@ class TacticsApiService {
   Future<http.Response> _get(Uri uri) =>
       _client?.get(uri, headers: _headers) ?? http.get(uri, headers: _headers);
 
+  /// Tracked through [PuzzleAttemptWrites], so a read of the attempt log
+  /// cannot overtake a row this service is still writing — the tactics half of
+  /// the stale hub card reported on 18.9.2026.
   Future<http.Response> _post(Uri uri, {Object? body}) =>
-      _client?.post(uri, headers: _headers, body: body) ??
-      http.post(uri, headers: _headers, body: body);
+      PuzzleAttemptWrites.track(
+        _client?.post(uri, headers: _headers, body: body) ??
+            http.post(uri, headers: _headers, body: body),
+      );
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',

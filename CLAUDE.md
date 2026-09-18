@@ -21,13 +21,13 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3023 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3030 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1503 with TEST_DATABASE_URL, 1441 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
-Measured on `master` on 18.9.2026 (after the owner's live pass of 18.9 and the five fixes it asked for: local scratch state is handed over with the account, Analysis opens with the engine off, the endgames card names both of its lines, the „Teach“ badge says what it counts, and the studio on a phone has a row of moves to read the line back), with the Settings review before it (board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, the whole of the homework plan bar the owner's live pass) and every built phase of the
+Measured on `master` on 18.9.2026 (after the owner's live pass of 18.9 and the five fixes it asked for: local scratch state is handed over with the account, Analysis opens with the engine off, the endgames card names both of its lines, the „Teach“ badge says what it counts, and the studio on a phone has a row of moves to read the line back; then the sixth, where a read of the attempt log overtook the write it was meant to see, and the deletion of a second hub nothing could reach), with the Settings review before it (board size, the Analysis panels and the comment switch onto their screens, every depth picker to 50, the engine opponent onto the exercise screen, the whole of the homework plan bar the owner's live pass) and every built phase of the
 reorganisation merged (`docs/PLAN-REORGANIZACIJA.md`: the shell Home · Practise ·
 Analyse · Teach, the room's column on the shared library list, the studio's
 `TutorialDraftController`, the studio on a phone, one tutorial editor everywhere)

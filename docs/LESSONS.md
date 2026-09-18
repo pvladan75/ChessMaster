@@ -3579,3 +3579,53 @@ bytes, replacing a substring and writing bytes — never by splitting and
 re-joining lines with a terminator the writer will translate again. Same shape
 as the doubled CR in `docs/TODO-provera.md` that `.gitattributes` was written
 for: **one conversion applied twice.**
+
+**The same pass, second round: the stale card was a read, not a write — app
+3023 → 3030 tests, 1 skipped; analyze back at the 26 known infos; backend
+unchanged at 1441.**
+
+**The owner's measurement beat the lead's reasoning, twice.** Round one read
+the code, found the skip correctly recorded at both ends, and concluded the
+screenshot had been taken one puzzle early. It had not. What settled it was a
+fact no amount of reading would have produced: *waiting does not mend it, but
+going to any other screen and straight back does.* That sentence is a
+description of a second **read**, and it moved the whole search off the write
+path in one step. **When a report and the code disagree, ask the reporter for
+the thing the code cannot tell you — what makes it change.**
+
+**A fire-and-forget write and a read on the way back need an order between
+them, and neither screen owns it.** Recording must not hold up the board, so
+the attempt is fired and not awaited; the hub's `context.push` resolves the
+moment the reader leaves, so `progress()` goes out at once and can be answered
+with the log as it was one attempt ago. Three paths write that log and one
+reads it, so the barrier (`PuzzleAttemptWrites`) sits beside the source list
+rather than in any one of them. It is bounded at five seconds and deliberately
+quiet when the bound is reached: a write that will not finish may leave a stale
+number — where we already were — but must never leave a screen that does not
+load.
+
+**Rule out the loud suspect by measuring it, not by reading it.** „The refresh
+is never called“ was the obvious cause and it was wrong:
+`hub_refresh_after_drill_test` pushes a route, pops it, and watches the read
+happen — and the fake answers a *different* tally each time, so a card that
+never re-read and one that did are told apart by what they say, not by a
+counter the test keeps to itself. The seam it needed (`attemptApi` on the hub)
+is the one the three drill screens already carried.
+
+**A mutation harness that silently does nothing reports a surviving mutation.**
+Removing the tracking from the barrier left every test green — for a moment a
+real question about the tests. The replacement had simply not matched, because
+the script called `str.replace` without asserting the target was there. With
+the same mutation actually applied, three tests went red. **Assert that a
+mutation applied before believing what it proves**; an unverified mutation is
+not evidence, and this is the fifth face of the same bug the whole file is
+about.
+
+**Dead UI answers a question nobody can ask.** Hunting for where the number is
+read turned up a second `CategorySelectionHubWidget` inside the puzzle screen,
+passed no progress at all. The first instinct — and what was asked for — was
+to wire it to the same read. It could not be reached: both call sites always
+pass an `initialCategory` (the route falls back to `'mate_puzzle'`), and every
+path back to the hub is guarded by `!ownRoute`, so it was painted for one
+frame as a drill opened. **Before wiring a screen up, ask who can stand on
+it.** Deleting it took 145 lines out and put 83 back.

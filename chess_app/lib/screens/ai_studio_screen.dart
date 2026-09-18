@@ -1,6 +1,5 @@
 import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chess_app/widgets/ai_studio/category_selection_hub.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/ai_studio/solution_tree_models.dart';
 import 'package:chess_app/widgets/ai_studio/solution_graph_widget.dart';
@@ -2574,11 +2573,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             label: const Text('Back'),
             onPressed: () {
               Navigator.pop(ctx);
-              if (widget.initialCategory != null) {
-                context.pop();
-              } else {
-                setState(() => _selectedCategory = null);
-              }
+              context.pop();
             },
           ),
         ],
@@ -2654,7 +2649,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
 
     try {
-      final res = await http.post(
+      // Tracked, so the hub's read cannot overtake this row on the way back
+      // (see PuzzleAttemptWrites). Still not awaited by the caller: the board
+      // must not wait for a message about the board.
+      final res = await PuzzleAttemptWrites.track(http.post(
         Uri.parse('$backendUrl/api/puzzles/submit'),
         headers: {
           'Content-Type': 'application/json',
@@ -2665,7 +2663,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           'solved': solved,
           'skipped': skipped,
         }),
-      );
+      ));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -2745,99 +2743,80 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     // all-in-one screen, back returns to the list inside it. The second is what
     // is left of the crossroads, and it goes with its last caller.
     final ownRoute = widget.initialCategory != null;
-    return PopScope(
-      canPop: ownRoute || _selectedCategory == null,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (!ownRoute && _selectedCategory != null) {
-          _resetEngineState();
-          setState(() {
-            _selectedCategory = null;
-          });
-        }
-      },
-      child: Scaffold(
-        // No bar in landscape: that layout is a deliberate square board sized
-        // off the window's height, and a bar costs it 38 pixels. The way out
-        // there is the arrow in the landscape header, which knows the same
-        // thing this one does - see `ownRoute` in _buildPuzzlesTab.
-        appBar: isLandscape
-            ? null
-            : PreferredSize(
-                preferredSize: const Size.fromHeight(38.0),
-                child: AppBar(
-                  toolbarHeight: 38.0,
-                  // One arrow, not two. The bar puts its own back button in
-                  // when the screen is a pushed route, and this screen already
-                  // carries one in its title row.
-                  automaticallyImplyLeading: false,
-                  title: Row(
-                    children: [
-                      if (ownRoute || _selectedCategory != null) ...[
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, size: 18),
-                          padding: EdgeInsets.zero,
-                          // The 38px toolbar has just enough room for a tap
-                          // target a bit past the bare 18px icon — better
-                          // than nothing, though still short of the 48dp
-                          // Material guideline (no room for that here).
-                          constraints:
-                              const BoxConstraints(minWidth: 34, minHeight: 34),
-                          // Leaving means leaving. Setting the category back to
-                          // null showed the crossroads that still lives inside
-                          // this screen - on top of the shell, so the side tabs
-                          // were gone and the way out was a screen that no
-                          // longer belongs to anybody.
-                          onPressed: ownRoute
-                              ? () => context.pop()
-                              : () {
-                                  _resetEngineState();
-                                  setState(() {
-                                    _selectedCategory = null;
-                                  });
-                                },
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                      ],
-                      Icon(Icons.psychology,
-                          color: context.colors.warning, size: 20),
-                      const SizedBox(width: AppSpacing.sm),
-                      // Flexible, because the bar now carries two actions:
-                      // the title is the part that may give way, and a title
-                      // that does not yield clips the controls instead — in a
-                      // release build, silently.
-                      Flexible(
-                        child: Text(
-                          _selectedCategory == null
-                              ? 'Chess trainer and exercises'
-                              : _getCategoryTitle(),
-                          style: AppText.subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+    return Scaffold(
+      // No bar in landscape: that layout is a deliberate square board sized
+      // off the window's height, and a bar costs it 38 pixels. The way out
+      // there is the arrow in the landscape header, which knows the same
+      // thing this one does - see `ownRoute` in _buildPuzzlesTab.
+      appBar: isLandscape
+          ? null
+          : PreferredSize(
+              preferredSize: const Size.fromHeight(38.0),
+              child: AppBar(
+                toolbarHeight: 38.0,
+                // One arrow, not two. The bar puts its own back button in
+                // when the screen is a pushed route, and this screen already
+                // carries one in its title row.
+                automaticallyImplyLeading: false,
+                title: Row(
+                  children: [
+                    if (ownRoute || _selectedCategory != null) ...[
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        padding: EdgeInsets.zero,
+                        // The 38px toolbar has just enough room for a tap
+                        // target a bit past the bare 18px icon — better
+                        // than nothing, though still short of the 48dp
+                        // Material guideline (no room for that here).
+                        constraints:
+                            const BoxConstraints(minWidth: 34, minHeight: 34),
+                        // Leaving means leaving. This used to be able to set
+                        // the category back to null instead, which drew a
+                        // second crossroads inside this screen - on top of
+                        // the shell, so the side tabs were gone. That screen
+                        // state was deleted on 18.9.2026; there is one hub.
+                        onPressed: () => context.pop(),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
                     ],
-                  ),
-                  actions: _selectedCategory == null
-                      ? null
-                      : [
-                          // Reachable in portrait at last: both of these change
-                          // how the board is read, and both were built into a
-                          // card nothing drew. Sized for a 38 px bar.
-                          if (_selectedCategory != 'engine_game')
-                            EngineOpponentButton(
-                                size: 18, color: context.colors.textMuted),
-                          const BoardViewMenu(
-                              size: 18, arrows: true, boardSize: true),
-                          const SizedBox(width: AppSpacing.xs),
-                        ],
+                    Icon(Icons.psychology,
+                        color: context.colors.warning, size: 20),
+                    const SizedBox(width: AppSpacing.sm),
+                    // Flexible, because the bar now carries two actions:
+                    // the title is the part that may give way, and a title
+                    // that does not yield clips the controls instead — in a
+                    // release build, silently.
+                    Flexible(
+                      child: Text(
+                        _selectedCategory == null
+                            ? 'Chess trainer and exercises'
+                            : _getCategoryTitle(),
+                        style: AppText.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
+                actions: _selectedCategory == null
+                    ? null
+                    : [
+                        // Reachable in portrait at last: both of these change
+                        // how the board is read, and both were built into a
+                        // card nothing drew. Sized for a 38 px bar.
+                        if (_selectedCategory != 'engine_game')
+                          EngineOpponentButton(
+                              size: 18, color: context.colors.textMuted),
+                        const BoardViewMenu(
+                            size: 18, arrows: true, boardSize: true),
+                        const SizedBox(width: AppSpacing.xs),
+                      ],
               ),
-        // Arrow keys drive the same cursor the strip's buttons do. With no line
-        // on the board there is nothing to walk, and the strip is hidden for
-        // that same reason.
-        body: SafeArea(child: _withMoveKeys(_buildPuzzlesTab())),
-      ),
+            ),
+      // Arrow keys drive the same cursor the strip's buttons do. With no line
+      // on the board there is nothing to walk, and the strip is hidden for
+      // that same reason.
+      body: SafeArea(child: _withMoveKeys(_buildPuzzlesTab())),
     );
   }
 
@@ -2890,36 +2869,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   // --- TAB 1: PUZZLES UI ---
 
-  Widget _buildPuzzlesTab() {
-    return _selectedCategory == null
-        ? _buildCategorySelectionHub()
-        : _buildActiveBoardScreen();
-  }
-
-  // --- 1. SELECTION HUB VIEW ---
-
-  Widget _buildCategorySelectionHub() {
-    return CategorySelectionHubWidget(
-      onSelectMatePuzzle: (depth) {
-        setState(() => _selectedMateDepth = depth);
-        _launchCategory('mate_puzzle');
-      },
-      onSelectBasicMate: (presetDifficulty) {
-        _selectedCategory = 'basic_mate';
-        _loadBasicMatePreset(presetDifficulty);
-      },
-      onSelectWinningPosition: () => _launchCategory('winning_position'),
-      onSelectTactics: () => context.push(AppRoutes.tactics),
-      onSelectEndgameWin: () =>
-          context.push('${AppRoutes.endgamePicker}?mode=win'),
-      onSelectEndgameDraw: () =>
-          context.push('${AppRoutes.endgamePicker}?mode=draw'),
-      onSelectBlunderGames: () => context.push(AppRoutes.blunderGames),
-      onSelectRepertoire: () => context.push(AppRoutes.repertoire),
-      onSelectMyGames: () => context.push(AppRoutes.archiveHome),
-      onSelectMistakesDrill: () => context.push(AppRoutes.archiveMistakes),
-    );
-  }
+  Widget _buildPuzzlesTab() => _buildActiveBoardScreen();
 
   // --- 2. ACTIVE BOARD GAME SCREEN ---
 
@@ -2927,7 +2877,6 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   /// not the network failure the ordinary board-loading path would show
   /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
   Widget _buildRetryEmptyState() {
-    final ownRoute = widget.initialCategory != null;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -2940,9 +2889,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 textAlign: TextAlign.center, style: AppText.headline),
             const SizedBox(height: AppSpacing.xl),
             OutlinedButton.icon(
-              onPressed: ownRoute
-                  ? () => context.pop()
-                  : () => setState(() => _selectedCategory = null),
+              onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back),
               label: const Text('Back'),
             ),
@@ -3074,23 +3021,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               IconButton(
                 icon: Icon(Icons.arrow_back,
                     size: 18, color: context.colors.textPrimary),
-                tooltip: widget.initialCategory != null
-                    ? 'Back to training'
-                    : 'Back to category selection',
+                tooltip: 'Back to training',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 // Reported from the desktop build: this arrow set the category
-                // back to null, which drew the crossroads that still lives
-                // inside this screen - on top of the shell, so the side tabs
-                // were gone. Opened as a route, leaving means leaving.
-                onPressed: widget.initialCategory != null
-                    ? () => context.pop()
-                    : () {
-                        _resetEngineState();
-                        setState(() {
-                          _selectedCategory = null;
-                        });
-                      },
+                // back to null, which drew a second crossroads inside this
+                // screen - on top of the shell, so the side tabs were gone.
+                // Leaving means leaving.
+                onPressed: () => context.pop(),
               ),
               const SizedBox(width: AppSpacing.sm),
             ],

@@ -23,9 +23,16 @@ class TrainingHubScreen extends StatefulWidget {
     super.key,
     required this.session,
     this.embedded = false,
+    this.attemptApi,
   });
 
   final UserSession session;
+
+  /// The reader of the attempt log, injectable for tests — the same seam the
+  /// three drill screens already carry. A test cannot otherwise see *whether*
+  /// this screen reads again when a drill hands it back, which is the whole
+  /// question behind the cards being stale.
+  final PuzzleAttemptApi? attemptApi;
 
   /// True when this sits inside the home screen's tab stack, which now draws
   /// the tab's name itself for all four tabs. Its own AppBar would then be a
@@ -49,10 +56,17 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
   /// A guest has no attempt log to read. Null draws no line on any card,
   /// which is also what a failed read draws — the two look the same to the
   /// player, and both are correct here (docs/PLAN-NAPREDAK-VEZBI.md §4).
+  late final PuzzleAttemptApi _api =
+      widget.attemptApi ?? PuzzleAttemptApi(authToken: widget.session.token);
+
   Future<void> _loadProgress() async {
     if (widget.session.isGuest) return;
-    final progress =
-        await PuzzleAttemptApi(authToken: widget.session.token).progress();
+    // A drill fires its last attempt and does not wait for it, and the pop that
+    // brings the reader here resolves at once — so without this the read can
+    // overtake the write and answer with the log as it was one attempt ago.
+    // That is the stale card reported live on 18.9.2026.
+    await PuzzleAttemptWrites.settled();
+    final progress = await _api.progress();
     if (!mounted) return;
     setState(() => _progress = progress);
   }

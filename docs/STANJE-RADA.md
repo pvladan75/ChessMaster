@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **18.9.2026** — najnovije je „Vlasnikova provera 18.9.2026: šest nalaza, pet ispravljenih“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **18.9.2026** — najnovije je „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -55,11 +55,12 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Vlasnikova provera 18.9.2026: šest nalaza, pet ispravljenih — u kodu
+## Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno — u kodu
 
 Vlasnik je prošao stavke 175–179 (reorganizacija, faze 1–3a, 3b, 5, 6a–6c, i
-napredak u vežbama) i ostavio komentare u QA alatu. Šest nalaza; pet je
-ispravljeno istog dana, šesti nije potvrđen.
+napredak u vežbama) i ostavio komentare u QA alatu. Šest nalaza, svih šest
+zatvoreno istog dana — šesti tek pošto je vlasnik izmerio ono što je prvi krug
+dijagnoze promašio. Uz njih i sedmi nalaz, nađen usput.
 
 **1. „Resume analysis" je otvarao tuđe stablo** (stavka 177.2). Nov nalog,
 prva prijava, i na Home stoji čip koji vodi u analizu **prethodnog naloga**.
@@ -124,13 +125,34 @@ raziđu. Jedna zamka usput: `Scrollable.ensureVisible` penje se kroz **sve**
 roditeljske skrolove, pa je centrirao potez i u stranici — tabla je skakala
 nagore na svaki odigran potez. Traži se pozicija samog reda.
 
-**6. Nepotvrđeno: „Solved 1 · 1 to retry" umesto „2 to retry"** (stavka
-176.2). Put kroz kod je pregledan i preskakanje se ne gubi: „Next Position" na
-nerešenoj zagonetki šalje `skipped: true`, server broji i promašaj i preskok u
-`toRetry`, i oba kraja imaju testove. Sledeća stavka (3) je prošla sa „Retry
-failed (2)", što odgovara stanju sa **dva** preostala — pa je najverovatnije da
-je slika snimljena posle druge zagonetke, pre preskoka treće. Stavka je
-ostavljena otvorena sa uputstvom da se ponovi po redu.
+**6. „Solved 1 · 1 to retry" umesto „2 to retry"** (stavka 176.2) — nije bilo
+u pisanju nego u čitanju. Prvi krug dijagnoze je pogrešno zaključio da je slika
+snimljena prerano; vlasnik je ponovio isti red i **izmerio ono što je odlučilo
+stvar**: čekanje ne pomaže (deset sekundi ništa), ali odlazak na bilo koji
+drugi ekran i povratak odmah osveži broj. To je opis drugog čitanja, ne
+drugog upisa.
+
+Zapis je bio ispravan sve vreme. Ono čega nije bilo je **redosled**: pokušaj se
+šalje „ispali i zaboravi" — tabla ne sme da čeka poruku o tabli — a
+`context.push` se razrešava čim se ekran napusti, pa je čitanje huba preticalo
+upis i dobijalo dnevnik kakav je bio jedan pokušaj ranije. `PuzzleAttemptWrites`
+sada drži upise u letu (sva tri pisca: `PuzzleAttemptApi.record`, sopstveni
+`post` ekrana sa zagonetkama i `TacticsApiService`), a hub čeka `settled()` pre
+čitanja. Granica je omeđena na pet sekundi i namerno ćuti kad istekne: upis koji
+neće da se završi sme da ostavi star broj, ali ne sme da zaustavi ekran.
+
+Usput je izmereno i ono što je prvo osumnjičeno pa oslobođeno: `TrainingHubScreen`
+**čita ponovo** kad mu se ekran vrati (`hub_refresh_after_drill_test`), pa
+krivica nikad nije bila „osvežavanje se ne poziva".
+
+**7. Drugi hub, koji se nije mogao dohvatiti, obrisan.** Tražeći gde se broj
+čita, našao se drugi `CategorySelectionHubWidget` unutar ekrana sa zagonetkama,
+bez ijednog čitanja napretka. Ispostavilo se da nije slep nego mrtav: oba mesta
+koja prave `AiStudioScreen` uvek šalju `initialCategory` (ruta ima
+`?? 'mate_puzzle'`), a svaki put koji vraća `_selectedCategory` na `null` stoji
+iza `!ownRoute` — dakle hub se crtao tačno jedan kadar pri otvaranju vežbe.
+Obrisan sa svojim mrtvim granama (−145 redova, +83): jedan hub u aplikaciji,
+ništa što treba držati u koraku, i nema više bleska praznih kartica.
 
 **Bez promene u kodu, ispravljen opis** (stavka 175.1): „Ima 6 u windows-u, a
 tri u androidu. Da li sad može i na androidu?" — može i **već jeste**, od faze

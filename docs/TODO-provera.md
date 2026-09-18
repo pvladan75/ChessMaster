@@ -6158,15 +6158,20 @@ aplikaciju kakva jeste; sajt sme na droplet.
 2. [ ] **Linija posle prvog pokušaja.** Reši jedan mat u 2, promaši drugi, preskoči
    treći („Next Position"). Vrati se na hub: kartica matova piše
    „Solved 1 · 2 to retry" i dugme „Retry failed (2)".
-   **18.9.2026 viđeno „Solved 1 · 1 to retry"** i stavka označena kao loša.
-   Traženo je kroz kod i nije nađen put kojim se preskakanje gubi: „Next
-   Position" na nerešenoj zagonetki šalje `skipped: true`, a server broji i
-   promašaj i preskok u `toRetry` (`services/puzzleProgress.js`, pokriveno
-   testovima s obe strane). Sledeća stavka (3) je ipak prošla sa „Retry
-   failed (2)", što odgovara stanju sa **dva** preostala — pa je najverovatnije
-   da je slika snimljena posle druge zagonetke, pre preskoka treće.
-   **Ponoviti tačno po redu i pogledati broj tek na kraju**; ako i tada piše
-   1, javi i ide u dubinsku dijagnostiku.
+   **Prijavljeno 18.9.2026 kao „Solved 1 · 1 to retry", nađeno i ispravljeno
+   istog dana — ali nije bilo u pisanju nego u čitanju.** Zapis je bio
+   ispravan sve vreme: „Next Position" na nerešenoj zagonetki šalje
+   `skipped: true`, a server broji i promašaj i preskok u `toRetry`. Kartica
+   je pokazivala **staro čitanje**. Vlasnik je to i izmerio: čekanje ne pomaže
+   (ništa se ne čita ponovo od samog stajanja), ali odlazak na bilo koji drugi
+   ekran i povratak odmah osveži broj — jer je to drugo čitanje.
+   Uzrok: pokušaj se šalje „ispali i zaboravi" (tabla ne sme da čeka poruku o
+   tabli), a `context.push` se razrešava čim se ekran napusti, pa je čitanje
+   preticalo upis. Sada `PuzzleAttemptWrites` drži upise u letu, a hub čeka
+   `settled()` pre nego što pročita. Čuvari: `puzzle_attempt_writes_test`
+   (pet testova) i `hub_refresh_after_drill_test` (čitanje se dešava, i čeka).
+   Provera: reši → promaši → preskoči, pa **odmah** nazad — broj mora biti
+   tačan bez odlaska na drugi ekran.
 3. [ ] **Retry servira baš te.** Pritisni „Retry failed (2)": naslov ima „— retry",
    stižu upravo promašena i preskočena zagonetka, po redu. Reši jednu; hub
    posle povratka kaže „Solved 2 · 1 to retry".
