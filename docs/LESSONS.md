@@ -3981,3 +3981,49 @@ tests before writing „if". **Before writing „if there is no way", look.**
 **Prove the library's half of the gate first** held up: the brief opened with
 „Dart `chess` refuses `Rd8` for `Rd8#`", the worker imported `findMove` and
 never met the problem.
+
+## 19.9.2026 — The exercise, phases 3b and 4: two workers at once, and a brief that contradicted a test
+
+Two implementers in two worktrees, files divided between them in both briefs;
+the two commits landed one on top of the other with no conflict. App **3083 →
+3125** (+25 phase 3b, +15 net phase 4 — +14 gate, +11 own, +1, −4 and −7 with
+the dialog that went — and +2 from the lead), 1 skipped, 0 failed; analyze the
+same 26 infos; backend **1594** with the test database, measured. Both numbers
+were written down before the run and matched.
+
+**Read a brief against the tests that exist, not only against its own gate.**
+The 3b brief said „keep `engine_game_screen_test` green, unchanged" and asked
+for the rule that breaks one of its cases: „survive 2 moves" reaches three
+pieces, so since phase 3a a tablebase judges it, and that test's fake server
+answered `{"ok":true}` — no verdict. The screen rightly said „not judged yet";
+the test expected „Goal met". The worker left the test alone, left the rule
+alone, proved the red was not load, and wrote it up. The test was re-aimed by
+the lead: the fake answers as `recordEngineGameResult` does. **A fake that
+answers less than the real server does is a fixture that was always lucky.**
+
+**What two workers share is written before either starts.** The words for a
+task — „Win as White", „Draw or better as Black, for 4 moves" — are needed by
+the sheet (3b) and by the Library's rows (4). Briefed separately they would
+have been written twice. `exercise_task_words.dart` went in first, with its
+tests, and both briefs say „use it; do not word a task anywhere else".
+
+**My premise was wrong, and reading the code said so before a worker did.**
+The owner approved „rename the Scans chip, six stay six". There was no Scans
+chip: `LibraryChip.positions` held both. It was found while writing the phase 4
+gate, amended in the plan, and put to the owner as the one-line choice it is
+(seven chips, confirmed). **A decision made on a description of the code is
+made on the description; check it against the code before briefing it.**
+
+**`dart format` can create the one lint this project counts.** It splits a
+long `if (...) return x;` onto two lines without braces, which is exactly
+`curly_braces_in_flow_control_structures`. It happened to the lead's own file.
+Format first, analyze after.
+
+**A surviving mutation found an untested promise** — the board turned to the
+student's side, in three widgets. Eleven own tests and a gate, and none looked
+at `isWhiteBottom`.
+
+**A worker's background process outlives the worker.** One left `find /
+-iname flutter_chess_board*` crawling the whole disk for two hours after it had
+reported. It was found by its command line and stopped. The brief for the next
+worker says: no search from `/`, and stop what you start.

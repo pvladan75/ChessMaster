@@ -5878,6 +5878,34 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 186. Zadatak (Exercise), faze 3a–4: partija na N poteza, Biblioteka i sličice — 19.9.2026, nije viđeno uživo
+
+1. [ ] **Preparation → „Make exercise"**: prvo se bira šta se traži — „Find the
+   move", „Win", „Draw or better". Za partiju: „To the end" / „For N moves",
+   strana koju učenik igra (**ništa nije unapred izabrano**, „Save" ne radi dok
+   se ne izabere), jačina.
+2. [ ] Ispod pitanja piše **ko sudi**: sa 7 ili manje figura i „For N moves" —
+   tablebase; sa više figura — samo „not checkmated"; „Win" na N poteza sa
+   više od 7 figura — odbijeno, „Save" ne radi.
+3. [ ] Za partiju **ne treba** odigrana linija — samo pozicija.
+4. [ ] **Biblioteka**: sedam čipova, „Exercises" posle „Tutorials"; ispod njega
+   dva reda filtera (šta traži / odakle je) i „New exercise" koje otvara
+   Preparation. Pod „Positions" tih redova **nema**.
+5. [ ] Redovi pozicija i zadataka imaju **sličicu table**; zadatak za crnog je
+   okrenut ka crnom. Dodir na sličicu otvara veću tablu sa imenom, zadatkom i
+   „White/Black to move" **rečima**; „Open" otvara stavku. Dugačka lista se
+   skroluje glatko na telefonu.
+6. [ ] **Domaći → Add**: „A tutorial · Exercises · A puzzle set" — nema „Play
+   it out". Birač nudi samo zadatke (gola pozicija se ne nudi). Jedan „find" i
+   jedan „game" zadatak daju **dva reda**.
+7. [ ] **Učenik, „Win for 2 moves"** sa ≤7 figura: posle drugog poteza partija
+   staje, i tek kad server odgovori piše „Goal met" ili „Goal not met".
+8. [ ] Isto to **bez interneta ka tablebase-u**: piše „not judged yet" (nije
+   neuspeh), red u domaćem „Played — not judged yet" sa peščanim satom; sledeća
+   stavka je otključana; kad se domaći kasnije ponovo otvori, presuda stigne.
+9. [ ] U **sobi**, kolona biblioteke ima čip „Exercises" i zadatak se učitava
+   na tablu kao ranije skenirana pozicija.
+
 ## 185. Zadatak (Exercise), faze 1–2b: napravljen u Preparation, rešen kao niz — 18.9.2026, nije viđeno uživo
 
 `docs/PLAN-EXERCISE.md`. Pri prvom pokretanju servera migracija dodaje kolone
@@ -5892,7 +5920,7 @@ na `custom_puzzles`, dodaje `assignment_items.judged_by` i **briše**
 3. [ ] Ako glavna linija završava protivnikovim potezom, piše da taj potez
    nije deo rešenja.
 4. [ ] Posle „Save": poruka „Exercise saved.", i zadatak je u Biblioteci među
-   pozicijama iz knjige (zvaće se „Scanned position" — ime stiže u fazi 4).
+   zadacima, pod svojim imenom (čip „Exercises", stavka 186.4).
 5. [ ] **Domaći → Add → positions**: zadatak se bira i šalje kao i skenirana
    pozicija.
 6. [ ] **Učenik**: prvi tačan potez → „Correct. Keep going.", na tabli je

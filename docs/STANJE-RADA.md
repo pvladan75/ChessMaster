@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **18.9.2026** — najnovije je „Zadatak (Exercise) — plan, faze 1, 2a, 2b i 3a u kodu“ (provera uživo — stavka 185) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **18.9.2026** — najnovije je „Zadatak (Exercise) — plan, faze 1–4 u kodu“ (provera uživo — stavke 185 i 186; ostaju faza 5 i opciona 6) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -55,7 +55,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Zadatak (Exercise) — plan — 18.9.2026, faze 1, 2a, 2b i 3a u kodu
+## Zadatak (Exercise) — plan — 18–19.9.2026, faze 1–4 u kodu
 
 Vlasnik: **trener ne šalje poziciju nego zadatak sa ciljem** — pozicija + cilj,
 sa imenom i oznakama, stavka u Biblioteci, dodaje se u domaći. Plan je
@@ -140,7 +140,22 @@ protivnikov potez se odbacuje i to se kaže; rešavač igra niz — jedan odgovo
 potezu, „Try again" posle pogrešnog, a izveštaj pamti prvi pokušaj. Kapija bajt
 u bajt ista, ništa van `chess_app/`, 12 mutacija vođe, svaka crvena na pravom
 testu. Aplikacija 3053 → 3077, analyze istih 26. Provera uživo: stavka 185.
-**Faze 3b i 4 su predate** (18.9.2026), dva implementera u dva worktree-a, sa
+**Faze 3b i 4 u kodu** (19.9.2026, dva implementera; ocenio i preuzeo vođa).
+3b: list „Make exercise" prvo pita šta se traži (nađi potez / pobeda / remi ili
+bolje), za partiju još koliko dugo i koju stranu igra učenik (ništa nije unapred
+izabrano), i kaže ko će suditi; ekran vežbi na N-tom potezu čeka server i kaže
+**njegovu** presudu ili „not judged yet"; red domaćeg piše „Played — not judged
+yet". 4: sedmi čip „Exercises" sa dva filtera (šta traži, odakle je),
+„Positions" samo za gole pozicije, sličica table u redovima i pregled na dodir
+(ko je na potezu — rečima), u domaćem „Add" nudi tri stvari umesto četiri i
+gola pozicija više ne može u domaći; „Play it out" dijalog sa lepljenjem FEN-a
+je obrisan. Aplikacija 3083 → 3125, analyze istih 26, backend 1594 sa bazom.
+Radnik 3b je **stao** na protivrečnosti u brifu (test koji je trebalo da ostane
+netaknut a pravilo ga obara) umesto da oslabi jedno od ta dva; test je
+preusmerio vođa. Jedna mutacija faze 4 je preživela (tabla okrenuta ka strani
+učenika) — sada ima svoj test. Ostaje: faza 5 (provera pri čuvanju) i opciona 6.
+
+*Kako su predate* (18.9.2026), dva implementera u dva worktree-a, sa
 razgraničenim fajlovima: kapije `docs/gates/exercise_game_test.dart` i
 `exercise_library_test.dart`, brifovi `BRIEF-EXERCISE-FAZA3B-APP.md` i
 `-FAZA4-APP.md`. Vođa je pre toga napisao ono što obe dele —
