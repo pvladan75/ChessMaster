@@ -145,7 +145,10 @@ void main() {
 
     final column = find.byType(LibraryList);
     expect(column, findsOneWidget);
-    for (final chip in ['All', 'Tutorials', 'Positions']) {
+    // Exercises added `docs/PLAN-EXERCISE.md` phase 4, 18.9.2026: without it
+    // a scan is unreachable from the room's board (CLAUDE.md rule 10), now
+    // that „Positions" no longer holds one.
+    for (final chip in ['All', 'Tutorials', 'Exercises', 'Positions']) {
       expect(find.descendant(of: column, matching: find.text(chip)),
           findsOneWidget,
           reason: chip);
@@ -169,6 +172,12 @@ void main() {
       (tester) async {
     await _openRoom(tester);
 
+    // The Exercises chip added by phase 4 of `docs/PLAN-EXERCISE.md` makes
+    // the header one line taller, so the row this test taps can start below
+    // the fold — the column is a `SingleChildScrollView`, scrolled here the
+    // same way a trainer's own scroll would reach it.
+    await tester.ensureVisible(find.text('Vezani top'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Vezani top'));
     await tester.pumpAndSettle();
 

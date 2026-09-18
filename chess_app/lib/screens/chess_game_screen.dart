@@ -3129,6 +3129,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     chips: const [
                       LibraryChip.all,
                       LibraryChip.tutorials,
+                      LibraryChip.exercises,
                       LibraryChip.positions,
                     ],
                     originChips: true,

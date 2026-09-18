@@ -72,16 +72,23 @@ void main() {
       .map((t) => (t.title as Text).data!)
       .toList();
 
-  testWidgets('six chips, in order, and All shows every kind', (tester) async {
+  testWidgets('seven chips, in order, and All shows every kind',
+      (tester) async {
     await tester.pumpWidget(host(_six));
     await tester.pumpAndSettle();
     final chips = tester
         .widgetList<ChoiceChip>(find.byType(ChoiceChip))
         .map((c) => (c.label as Text).data)
         .toList();
+    // Until 18.9.2026 this was six, with „Positions" holding both a saved
+    // board and a book's diagram. Superseded the same day
+    // (`docs/PLAN-EXERCISE.md`, decision 2, as amended when phase 4 was
+    // briefed): a trainer does not send a position, they send an exercise,
+    // so a scan is told apart as its own chip.
     expect(chips, [
       'All',
       'Tutorials',
+      'Exercises',
       'Positions',
       'Analyses',
       'Recordings',
@@ -90,15 +97,22 @@ void main() {
     expect(titlesShown(tester).length, 6);
   });
 
-  testWidgets('Positions holds a saved board and a book\'s diagram alike',
+  testWidgets('Exercises and Positions are told apart, not shared',
       (tester) async {
+    // Superseded 18.9.2026, same decision as above: a scan is an exercise,
+    // not a position — it moved to its own chip and Positions narrowed to a
+    // bare board.
     await tester.pumpWidget(host(_six));
     await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Exercises'));
+    await tester.pumpAndSettle();
+    expect(titlesShown(tester), ['Diagram 41']);
+    expect(find.textContaining('Mat u 333'), findsOneWidget);
+
     await tester.tap(find.widgetWithText(ChoiceChip, 'Positions'));
     await tester.pumpAndSettle();
-    expect(titlesShown(tester), ['Rook ending, 1.Kf2', 'Diagram 41']);
-    // The source rides on the row, so the two are told apart there.
-    expect(find.textContaining('Mat u 333'), findsOneWidget);
+    expect(titlesShown(tester), ['Rook ending, 1.Kf2']);
   });
 
   testWidgets('each other chip shows its one kind', (tester) async {
@@ -174,7 +188,7 @@ void main() {
     await tester.pumpWidget(host(_six));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.byType(ChoiceChip), findsNWidgets(6));
+    expect(find.byType(ChoiceChip), findsNWidgets(7));
   });
 
   // Phase 3b of docs/PLAN-REORGANIZACIJA.md — the room's left column reads
@@ -183,9 +197,13 @@ void main() {
   // the label filter the room already had, and a height of its own inside a
   // column that scrolls.
   group('phase 3b — the room\'s column', () {
+    // `docs/PLAN-EXERCISE.md` phase 4 added `exercises` here: without it a
+    // scan is unreachable from the room's board (CLAUDE.md rule 10), now
+    // that „Positions" no longer holds one.
     const board = [
       LibraryChip.all,
       LibraryChip.tutorials,
+      LibraryChip.exercises,
       LibraryChip.positions
     ];
 
@@ -197,7 +215,7 @@ void main() {
           .widgetList<ChoiceChip>(find.byType(ChoiceChip))
           .map((c) => (c.label as Text).data)
           .toList();
-      expect(chips, ['All', 'Tutorials', 'Positions']);
+      expect(chips, ['All', 'Tutorials', 'Exercises', 'Positions']);
       // Not the six: an analysis or a recording is not on this column's All.
       expect(titlesShown(tester),
           ['Sicilian: the Najdorf', 'Rook ending, 1.Kf2', 'Diagram 41']);

@@ -20,9 +20,18 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 import '../models/homework.dart';
+import '../models/homework_items_from_exercises.dart';
 import '../services/homework_api_service.dart';
 import '../widgets/homework_item_pickers.dart';
 import '../widgets/homework_send_dialog.dart';
+
+/// The three things „Add" can put in a homework. Until
+/// `docs/PLAN-EXERCISE.md` phase 4 there were four — „Positions" and „Play it
+/// out" were two doors onto what is now one: an exercise, of either shape,
+/// picked from the Library. **Exercises** is not a [HomeworkItemKind] on its
+/// own: picking one can add a `positions` item, an `engineGame` item, or
+/// both, through [homeworkItemsFromExercises].
+enum _AddChoice { tutorial, exercises, puzzleSet }
 
 class HomeworkEditorScreen extends StatefulWidget {
   const HomeworkEditorScreen({
@@ -149,8 +158,21 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
     });
   }
 
+  /// One row per item; used when a single pick can add more than one (an
+  /// „Exercises" pick can add a `positions` item, an `engineGame` item, or
+  /// both — see [homeworkItemsFromExercises]).
+  void _addItems(Iterable<HomeworkItem> items) {
+    if (items.isEmpty) return;
+    setState(() {
+      for (final item in items) {
+        _newCounter++;
+        _rows.add(_Row('new-$_newCounter', item));
+      }
+    });
+  }
+
   Future<void> _onAdd() async {
-    final kind = await showModalBottomSheet<HomeworkItemKind>(
+    final choice = await showModalBottomSheet<_AddChoice>(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Column(
@@ -159,34 +181,26 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
             ListTile(
               leading: const Icon(Icons.auto_stories_outlined),
               title: const Text('A tutorial'),
-              onTap: () => Navigator.pop(sheetContext, HomeworkItemKind.lesson),
+              onTap: () => Navigator.pop(sheetContext, _AddChoice.tutorial),
             ),
             ListTile(
               leading: const Icon(Icons.push_pin_outlined),
-              title: const Text('Positions'),
-              onTap: () =>
-                  Navigator.pop(sheetContext, HomeworkItemKind.positions),
+              title: const Text('Exercises'),
+              onTap: () => Navigator.pop(sheetContext, _AddChoice.exercises),
             ),
             ListTile(
               leading: const Icon(Icons.extension_outlined),
               title: const Text('A puzzle set'),
-              onTap: () =>
-                  Navigator.pop(sheetContext, HomeworkItemKind.puzzles),
-            ),
-            ListTile(
-              leading: const Icon(Icons.smart_toy_outlined),
-              title: const Text('Play it out'),
-              onTap: () =>
-                  Navigator.pop(sheetContext, HomeworkItemKind.engineGame),
+              onTap: () => Navigator.pop(sheetContext, _AddChoice.puzzleSet),
             ),
           ],
         ),
       ),
     );
-    if (kind == null || !mounted) return;
+    if (choice == null || !mounted) return;
 
-    switch (kind) {
-      case HomeworkItemKind.lesson:
+    switch (choice) {
+      case _AddChoice.tutorial:
         final course = await showDialog<CourseSummary>(
           context: context,
           builder: (_) => CoursePickerDialog(
@@ -197,7 +211,7 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
         if (course == null || !mounted) return;
         _addRow(HomeworkItemKind.lesson, {'lessonId': course.id});
 
-      case HomeworkItemKind.positions:
+      case _AddChoice.exercises:
         final chosen = await showDialog<List<LibraryEntry>>(
           context: context,
           builder: (_) => PositionPickerDialog(
@@ -206,20 +220,12 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
           ),
         );
         if (chosen == null || chosen.isEmpty || !mounted) return;
-        _addRow(HomeworkItemKind.positions, {
-          'puzzleIds': [for (final entry in chosen) entry.id],
-        });
+        _addItems(homeworkItemsFromExercises(chosen));
 
-      case HomeworkItemKind.puzzles:
+      case _AddChoice.puzzleSet:
         final task = await pickPuzzleCriteria(context);
         if (task == null || !mounted) return;
         _addRow(HomeworkItemKind.puzzles, task);
-
-      case HomeworkItemKind.engineGame:
-        final task = await pickEngineGameTask(context,
-            positionLibrary: _positionLibrary);
-        if (task == null || !mounted) return;
-        _addRow(HomeworkItemKind.engineGame, task);
     }
   }
 

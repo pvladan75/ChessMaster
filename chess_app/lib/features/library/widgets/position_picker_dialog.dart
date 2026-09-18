@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/library_entry.dart';
 import '../services/position_library_service.dart';
@@ -111,6 +112,13 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
     _debounce = Timer(const Duration(milliseconds: 350), _load);
   }
 
+  /// The kind chips this purpose offers. A bare position (or an analysis)
+  /// cannot be put in a homework — decision 1 of `docs/PLAN-EXERCISE.md` —
+  /// so the homework door lists exercises only.
+  List<LibraryKind> get _kindChips => widget.purpose == PickerPurpose.homework
+      ? const [LibraryKind.scan]
+      : PositionPickerDialog.pickerKinds;
+
   bool _usable(LibraryEntry entry) =>
       widget.purpose == PickerPurpose.lesson || entry.assignable;
 
@@ -142,7 +150,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
           const SizedBox(width: AppSpacing.sm),
           Text(
             widget.purpose == PickerPurpose.homework
-                ? 'Choose positions for homework'
+                ? 'Choose exercises for homework'
                 : 'Choose from library',
             style: const TextStyle(fontSize: 16),
           ),
@@ -182,7 +190,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                       _load();
                     },
                   ),
-                  for (final kind in PositionPickerDialog.pickerKinds)
+                  for (final kind in _kindChips)
                     ChoiceChip(
                       label: Text(libraryKindLabel(kind)),
                       selected: _kind == kind,
@@ -240,14 +248,21 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
       );
     }
 
-    final entries = _entries ?? const <LibraryEntry>[];
+    // A bare position (or an analysis) cannot be put in a homework, whatever
+    // kind chip is selected — the server can still send every kind when „all"
+    // is chosen, so this is read here rather than trusted from the chip row.
+    final entries = (_entries ?? const <LibraryEntry>[])
+        .where((e) => _kindChips.contains(e.kind))
+        .toList();
     if (entries.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
         child: Text(
           _search.text.trim().isEmpty
-              ? 'No saved positions. Scan diagrams from a book or '
-                  'save a position from Analysis.'
+              ? (widget.purpose == PickerPurpose.homework
+                  ? 'No exercises yet. Make one in Preparation.'
+                  : 'No saved positions. Scan diagrams from a book or '
+                      'save a position from Analysis.')
               : 'Nothing matches your search.',
           textAlign: TextAlign.center,
           style: AppText.body.copyWith(color: colors.textSecondary),
@@ -267,21 +282,35 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
         return ListTile(
           dense: true,
           enabled: usable,
-          leading: Icon(
-            switch (entry.kind) {
-              LibraryKind.scan => Icons.menu_book_outlined,
-              LibraryKind.position => Icons.push_pin_outlined,
-              LibraryKind.analysis => Icons.biotech_outlined,
-              // The picker lists what can become a part of a tutorial; the
-              // server never sends these three kinds to it, and if one ever
-              // arrives it is drawn, not dropped in silence.
-              LibraryKind.tutorial => Icons.auto_stories_outlined,
-              LibraryKind.recording => Icons.videocam_outlined,
-              LibraryKind.puzzleSet => Icons.extension_outlined,
-            },
-            size: 18,
-            color: usable ? colors.accent : colors.textMuted,
-          ),
+          // A list of boards shows the boards — decision 3 of
+          // `docs/PLAN-EXERCISE.md` — for the two kinds this dialog can even
+          // offer one for; every other kind keeps its icon.
+          leading: (entry.kind == LibraryKind.scan ||
+                  entry.kind == LibraryKind.position)
+              ? RepaintBoundary(
+                  child: BoardThumbnail(
+                    fen: entry.fen,
+                    size: 32,
+                    isWhiteBottom: entry.task?['side'] != 'b',
+                  ),
+                )
+              : Icon(
+                  switch (entry.kind) {
+                    LibraryKind.analysis => Icons.biotech_outlined,
+                    // The picker lists what can become a part of a tutorial;
+                    // the server never sends these two kinds to it, and if
+                    // one ever arrives it is drawn, not dropped in silence.
+                    LibraryKind.tutorial => Icons.auto_stories_outlined,
+                    LibraryKind.recording => Icons.videocam_outlined,
+                    // scan and position are handled by the thumbnail above.
+                    LibraryKind.scan ||
+                    LibraryKind.position ||
+                    LibraryKind.puzzleSet =>
+                      Icons.extension_outlined,
+                  },
+                  size: 18,
+                  color: usable ? colors.accent : colors.textMuted,
+                ),
           title: Text(
             entry.title,
             maxLines: 1,

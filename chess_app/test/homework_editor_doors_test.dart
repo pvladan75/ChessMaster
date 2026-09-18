@@ -79,6 +79,23 @@ class _MultiRecorder {
                     'fen': '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
                     'assignable': true,
                   },
+                  // A game exercise — made in Preparation since phase 3b, and
+                  // picked here through the same „Exercises" door as a
+                  // find-the-move one (`docs/PLAN-EXERCISE.md` phase 4).
+                  {
+                    'kind': 'scan',
+                    'id': 'cust_2',
+                    'title': 'Win it',
+                    'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1',
+                    'assignable': true,
+                    'origin': 'manual',
+                    'task': {
+                      'type': 'game',
+                      'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1',
+                      'side': 'w',
+                      'goal': 'win',
+                    },
+                  },
                 ],
               }),
               200);
@@ -216,8 +233,14 @@ void main() {
   });
 
   group('adding an item', () {
-    testWidgets('one of each kind carries the right kind and task',
-        (tester) async {
+    // Until `docs/PLAN-EXERCISE.md` phase 4, 18.9.2026, „Positions" and „Play
+    // it out" were two separate doors. Superseded the same day: a trainer
+    // does not send a position, they send an exercise, so both are now one
+    // door — „Exercises" — and picking a find one together with a game one
+    // adds two rows (`homeworkItemsFromExercises`).
+    testWidgets(
+        'a tutorial, two exercises and a puzzle set carry the right '
+        'kind and task', (tester) async {
       final recorder = _MultiRecorder();
       final api =
           HomeworkApiService(authToken: 'tok', client: recorder.client());
@@ -246,14 +269,16 @@ void main() {
       await tester.tap(find.text('My Tutorial'));
       await tester.pumpAndSettle();
 
-      // Positions.
+      // Exercises — one find, one game, picked together.
       await tester.tap(find.byKey(const Key('homework-add')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Positions'));
+      await tester.tap(find.text('Exercises'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mate in 2'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Add (1)'));
+      await tester.tap(find.text('Win it'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add (2)'));
       await tester.pumpAndSettle();
 
       // A puzzle set — defaults are enough.
@@ -264,17 +289,15 @@ void main() {
       await tester.tap(find.byKey(const Key('homework-puzzle-submit')));
       await tester.pumpAndSettle();
 
-      // Play it out.
+      expect(tester.takeException(), isNull);
+      // Three doors, not four: „Play it out" is gone from the sheet — an
+      // existing row already labelled that way (the game exercise just
+      // added) must not make this a false pass.
       await tester.tap(find.byKey(const Key('homework-add')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Play it out'));
+      expect(find.widgetWithText(ListTile, 'Play it out'), findsNothing);
+      await tester.tapAt(const Offset(1, 1)); // dismiss the sheet
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('homework-engine-fen')),
-          '4k3/8/8/8/8/8/8/4K2R w - - 0 1');
-      await tester.tap(find.byKey(const Key('homework-engine-submit')));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
 
       await tester.tap(find.byKey(const Key('homework-save')));
       await tester.pumpAndSettle();
@@ -283,14 +306,14 @@ void main() {
       final body = recorder.bodyOf('/homeworks', 'POST');
       final items = (body['items'] as List).cast<Map<String, dynamic>>();
       expect(items.map((i) => i['kind']),
-          ['lesson', 'positions', 'puzzles', 'engine_game']);
+          ['lesson', 'positions', 'engine_game', 'puzzles']);
 
       expect(items[0]['task']['lessonId'], 5);
       expect(items[1]['task']['puzzleIds'], ['cust_1']);
-      expect(items[2]['task']['count'], isA<int>());
-      expect(items[3]['task']['fen'], '4k3/8/8/8/8/8/8/4K2R w - - 0 1');
-      expect(items[3]['task']['side'], 'w');
-      expect(items[3]['task']['goal'], 'win');
+      expect(items[2]['task']['fen'], '4k3/8/8/8/8/8/8/4K2R w - - 0 1');
+      expect(items[2]['task']['side'], 'w');
+      expect(items[2]['task']['goal'], 'win');
+      expect(items[3]['task']['count'], isA<int>());
 
       // New items send no key at all.
       for (final item in items) {

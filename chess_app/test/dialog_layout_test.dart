@@ -63,6 +63,11 @@ void main() {
 
   testWidgets('an entry that cannot be homework says so instead of vanishing',
       (tester) async {
+    // The fixture was a bare position until `docs/PLAN-EXERCISE.md` phase 4,
+    // 18.9.2026: for `PickerPurpose.homework` a position is no longer greyed
+    // out, it is not offered at all — only an exercise can be homework. This
+    // rule (blocked-but-visible) still applies to an exercise the server
+    // refuses, so the fixture moved to a scan.
     await pumpDialog(
       tester,
       PositionPickerDialog(
@@ -70,8 +75,8 @@ void main() {
         purpose: PickerPurpose.homework,
         loader: ({kind, search}) async => [
           const LibraryEntry(
-            kind: LibraryKind.position,
-            id: '3',
+            kind: LibraryKind.scan,
+            id: 'cust_3',
             title: 'Završnica',
             fen: '8/8/8/8/8/8/8/K6k w - - 0 1',
             assignable: false,
@@ -84,6 +89,36 @@ void main() {
     // Hiding it would read as a bug — the trainer knows they saved it.
     expect(find.text('Završnica'), findsOneWidget);
     expect(find.textContaining('has no solution'), findsOneWidget);
+  });
+
+  testWidgets('a bare position is not offered for homework, only an exercise',
+      (tester) async {
+    await pumpDialog(
+      tester,
+      PositionPickerDialog(
+        service: PositionLibraryService(authToken: 't'),
+        purpose: PickerPurpose.homework,
+        loader: ({kind, search}) async => [
+          const LibraryEntry(
+            kind: LibraryKind.position,
+            id: '3',
+            title: 'Završnica',
+            fen: '8/8/8/8/8/8/8/K6k w - - 0 1',
+            assignable: true,
+          ),
+          const LibraryEntry(
+            kind: LibraryKind.scan,
+            id: 'cust_9',
+            title: 'Mate in 1',
+            fen: '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
+            assignable: true,
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text('Završnica'), findsNothing);
+    expect(find.text('Mate in 1'), findsOneWidget);
   });
 
   testWidgets('an unreachable server is not reported as an empty shelf',

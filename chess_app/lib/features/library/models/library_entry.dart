@@ -83,6 +83,8 @@ class LibraryEntry {
     this.hasVideo = false,
     this.rendering = false,
     this.createdAt,
+    this.origin = 'book',
+    this.task,
   });
 
   final LibraryKind kind;
@@ -133,6 +135,22 @@ class LibraryEntry {
 
   final DateTime? createdAt;
 
+  /// Who wrote this exercise — `'book'` | `'manual'` | `'mistakes'`. Only a
+  /// scan carries one on the wire; every other kind reads the default, which
+  /// is never asked (`docs/PLAN-EXERCISE.md`, phase 4, `exerciseOriginOf`
+  /// reads only what an exercise actually is).
+  final String origin;
+
+  /// What the student is asked to do, as `GET /library/positions` sends it —
+  /// `{type:'find'}` or the game task shape, with its own `fen`. Null on
+  /// every row written before tasks existed, which `exerciseAskOf` reads as
+  /// „find".
+  final Map<String, dynamic>? task;
+
+  /// A scan is the one kind this phase calls an exercise — a position plus a
+  /// task. A bare position is not: decision 1 of `docs/PLAN-EXERCISE.md`.
+  bool get isExercise => kind == LibraryKind.scan;
+
   factory LibraryEntry.fromJson(Map<String, dynamic> json) => LibraryEntry(
         kind: libraryKindFrom(json['kind']?.toString()) ?? LibraryKind.position,
         id: json['id']?.toString() ?? '',
@@ -155,6 +173,8 @@ class LibraryEntry {
         hasVideo: json['hasVideo'] == true,
         rendering: json['rendering'] == true,
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+        origin: _text(json['origin']) ?? 'book',
+        task: (json['task'] as Map?)?.cast<String, dynamic>(),
       );
 
   static String? _text(dynamic value) {

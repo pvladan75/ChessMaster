@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/exercises/models/exercise_task_words.dart';
+import 'package:chess_app/features/library/models/exercise_filter.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
+
+import 'board_preview_dialog.dart';
 
 /// One list of everything a user keeps — phase 3 of
 /// `docs/PLAN-REORGANIZACIJA.md` (S3).
@@ -31,6 +36,7 @@ class LibraryList extends StatefulWidget {
     this.labels = const [],
     this.shrinkWrap = false,
     this.initialFromTrainer,
+    this.onNewExercise,
   });
 
   final List<LibraryEntry> entries;
@@ -69,6 +75,12 @@ class LibraryList extends StatefulWidget {
   /// is neither, so everyone's rows show. Only read with [originChips].
   final bool? initialFromTrainer;
 
+  /// „New exercise" under the Exercises chip — a door to Preparation, where
+  /// the sheet that makes one lives (`docs/PLAN-EXERCISE.md`, phase 4). Null
+  /// draws nothing: the room's column has no use for it, only the Library
+  /// screen does.
+  final VoidCallback? onNewExercise;
+
   /// Below this width a row's actions go on a line of their own under its
   /// title. Beside it, four 48 dp buttons left a title on a phone no width
   /// at all — the owner's screenshot of 17.9.2026 showed rows of icons and
@@ -87,13 +99,19 @@ class LibraryList extends StatefulWidget {
   State<LibraryList> createState() => _LibraryListState();
 }
 
-/// The chips, in the order they are drawn. „Positions" holds both a position
-/// saved from a board and one read out of a book — one kind to the reader,
-/// with the source on the row.
+/// The chips, in the order they are drawn.
+///
+/// Until 18.9.2026 „Positions" held both a position saved from a board and
+/// one read out of a book — „one kind to the reader", with the source on the
+/// row. **Superseded the same day** (`docs/PLAN-EXERCISE.md`, decision 2, as
+/// amended when phase 4 was briefed): a trainer does not send a position,
+/// they send an exercise, so a scan is now told apart as [exercises] and
+/// [positions] narrows to a bare board.
 enum LibraryChip {
   all('All', null),
   tutorials('Tutorials', {LibraryKind.tutorial}),
-  positions('Positions', {LibraryKind.position, LibraryKind.scan}),
+  exercises('Exercises', {LibraryKind.scan}),
+  positions('Positions', {LibraryKind.position}),
   analyses('Analyses', {LibraryKind.analysis}),
   recordings('Recordings', {LibraryKind.recording}),
   puzzleSets('Puzzle sets', {LibraryKind.puzzleSet});
@@ -120,6 +138,11 @@ class _LibraryListState extends State<LibraryList> {
   List<String> _include = const [];
   List<String> _exclude = const [];
   String _matchMode = 'all';
+
+  /// The Exercises chip's two filters — single-choice, clearable, and never
+  /// drawn under any other chip.
+  ExerciseAsk? _ask;
+  ExerciseOrigin? _origin;
 
   /// What „All" means here: every kind one of the given chips shows.
   Set<LibraryKind> get _allKinds => {
@@ -165,7 +188,11 @@ class _LibraryListState extends State<LibraryList> {
         final parts = '${entry.partsCount ?? 0} parts';
         return entry.hasVideo ? '$parts · video' : parts;
       case LibraryKind.scan:
-        return entry.subtitle;
+        // An exercise's subtitle starts with what it asks; the source (book,
+        // page) rides after it when there is one.
+        final words = exerciseTaskWords(entry.task);
+        final source = entry.subtitle;
+        return source.isEmpty ? words : '$words · $source';
       case LibraryKind.position:
         return 'saved position';
       case LibraryKind.analysis:
@@ -187,16 +214,52 @@ class _LibraryListState extends State<LibraryList> {
         LibraryKind.puzzleSet => Icons.extension_outlined,
       };
 
+  void _previewBoard(BuildContext context, LibraryEntry entry) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => BoardPreviewDialog(
+        entry: entry,
+        onOpen: () => widget.onOpen(entry),
+      ),
+    );
+  }
+
+  /// A position or an exercise leads with its board — decision 3 of
+  /// `docs/PLAN-EXERCISE.md`: a list of boards shows the boards. Every other
+  /// kind keeps its icon. 64 piece widgets per row in a long list, so each
+  /// one gets its own [RepaintBoundary].
+  Widget _leadingFor(BuildContext context, LibraryEntry entry) {
+    if (entry.kind != LibraryKind.scan && entry.kind != LibraryKind.position) {
+      return Icon(_iconFor(entry.kind), color: context.colors.accent);
+    }
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () => _previewBoard(context, entry),
+        child: BoardThumbnail(
+          fen: entry.fen,
+          size: 56,
+          isWhiteBottom: entry.task?['side'] != 'b',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final query = _search.text.trim().toLowerCase();
-    final shown = widget.entries
+    final kindFiltered = widget.entries
         .where(_kindShown)
         .where(_originShown)
         .where(_labelsShown)
         .where((e) => _searchShown(e, query))
         .toList();
+    // Drawn and read only under the Exercises chip — elsewhere the two
+    // fields stay set but unused, so switching chips and back does not lose
+    // what was chosen.
+    final shown = _chip == LibraryChip.exercises
+        ? filterExercises(kindFiltered, ask: _ask, origin: _origin)
+        : kindFiltered;
 
     return LayoutBuilder(builder: (context, constraints) {
       final compact = widget.shrinkWrap ||
@@ -224,7 +287,7 @@ class _LibraryListState extends State<LibraryList> {
                     final entry = shown[index];
                     final actions = widget.actionsFor?.call(entry) ?? const [];
                     final tile = ListTile(
-                      leading: Icon(_iconFor(entry.kind), color: colors.accent),
+                      leading: _leadingFor(context, entry),
                       title: Text(entry.title, overflow: TextOverflow.ellipsis),
                       subtitle: Text(_subtitleFor(entry)),
                       trailing: (beside && actions.isNotEmpty)
@@ -290,6 +353,49 @@ class _LibraryListState extends State<LibraryList> {
               ],
             ],
           ),
+          // Only under the Exercises chip: „New exercise" and the two
+          // filters. `Wrap` on a phone so neither pushes the list off the
+          // screen (CLAUDE.md's release-build overflow lesson).
+          if (_chip == LibraryChip.exercises) ...[
+            const SizedBox(height: 8),
+            if (widget.onNewExercise != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  key: const Key('library-new-exercise'),
+                  onPressed: widget.onNewExercise,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('New exercise'),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final ask in ExerciseAsk.values)
+                  ChoiceChip(
+                    label: Text(ask.label),
+                    selected: _ask == ask,
+                    onSelected: (on) => setState(() => _ask = on ? ask : null),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final origin in ExerciseOrigin.values)
+                  ChoiceChip(
+                    label: Text(origin.label),
+                    selected: _origin == origin,
+                    onSelected: (on) =>
+                        setState(() => _origin = on ? origin : null),
+                  ),
+              ],
+            ),
+          ],
           if (widget.labels.isNotEmpty)
             MatrixFilterPanel(
               availableUserLabels: widget.labels,
