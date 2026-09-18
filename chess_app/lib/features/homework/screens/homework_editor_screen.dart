@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
@@ -21,17 +22,23 @@ import 'package:chess_app/widgets/app_feedback.dart';
 import '../models/homework.dart';
 import '../services/homework_api_service.dart';
 import '../widgets/homework_item_pickers.dart';
+import '../widgets/homework_send_dialog.dart';
 
 class HomeworkEditorScreen extends StatefulWidget {
   const HomeworkEditorScreen({
     super.key,
     this.homeworkId,
     required this.api,
+    this.groupApi,
   });
 
   /// Null for a homework never saved — the first save is a `POST`.
   final int? homeworkId;
   final HomeworkApiService api;
+
+  /// The student list the send dialog offers. For tests, which have no
+  /// server to answer.
+  final GroupApiService? groupApi;
 
   @override
   State<HomeworkEditorScreen> createState() => _HomeworkEditorScreenState();
@@ -64,9 +71,19 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
   bool _loading = false;
   bool _saving = false;
 
+  /// The id this editor is working on: what it was opened with, or what the
+  /// first save minted. Sending needs a homework the server knows about.
+  int? _savedId;
+
+  /// The copies already sent, as the server last listed them. They are a
+  /// record of what students hold, not a view of the template being edited
+  /// here — editing this homework does not change any of them.
+  List<HomeworkSentCopy> _sent = const [];
+
   @override
   void initState() {
     super.initState();
+    _savedId = widget.homeworkId;
     if (widget.homeworkId != null) _load();
   }
 
@@ -89,6 +106,7 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
         _rows = [
           for (final item in homework.items) _Row(item.itemKey!, item),
         ];
+        _sent = homework.sent;
       }
     });
     if (homework == null) {
@@ -215,7 +233,11 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
     setState(() => _saving = true);
     final instructions = _instructionsController.text.trim();
     final homework = Homework(
-      id: widget.homeworkId,
+      // What was saved, not what this screen was opened with: the first save
+      // of a new homework is a POST and mints an id, and a second save that
+      // still said „no id" would POST again and leave the trainer with two
+      // copies of the same homework.
+      id: _savedId,
       title: _titleController.text.trim(),
       instructions: instructions.isEmpty ? null : instructions,
       items: [for (final row in _rows) row.item],
@@ -231,7 +253,33 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
       AppFeedback.error(context, widget.api.lastError ?? 'Could not save.');
       return;
     }
+    setState(() {
+      _savedId = saved.id ?? _savedId;
+      // The server mints a key for every item it has not seen before and
+      // sends them all back. Adopting them here is what makes the next save
+      // an edit of these items rather than a delete-and-mint of new ones.
+      _rows = [
+        for (final item in saved.items)
+          _Row(item.itemKey ?? 'new-${_newCounter++}', item),
+      ];
+      _sent = saved.sent;
+    });
     AppFeedback.success(context, 'Homework saved.');
+  }
+
+  /// Sending is the second act, and it needs a homework the server knows
+  /// about: a template that has never been saved has nothing to copy from.
+  Future<void> _onSend() async {
+    final id = _savedId;
+    if (id == null) return;
+    final sent = await showHomeworkSendDialog(
+      context,
+      api: widget.api,
+      homeworkId: id,
+      title: _titleController.text.trim(),
+      groupApi: widget.groupApi,
+    );
+    if (sent && mounted) _load();
   }
 
   String _kindLabel(HomeworkItem item) {
@@ -368,6 +416,36 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
     );
   }
 
+  /// One copy a student already holds. Its progress is that copy's own, and
+  /// editing this template does not touch it.
+  Widget _buildSentRow(BuildContext context, HomeworkSentCopy copy) {
+    final colors = context.colors;
+    final when = copy.sentAt;
+    return Padding(
+      key: Key('homework-sent-${copy.assignmentId}'),
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Row(
+        children: [
+          Icon(
+            copy.isComplete ? Icons.check_circle : Icons.outbox_outlined,
+            size: 16,
+            color: copy.isComplete ? colors.success : colors.textMuted,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Text(
+              '${copy.studentName}'
+              '${when == null ? '' : ' \u00b7 ${when.day}.${when.month}.${when.year}.'}'
+              ' \u00b7 ${copy.itemsDone} of ${copy.itemsTotal} items',
+              style: AppText.body.copyWith(color: colors.textSecondary),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -376,6 +454,18 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
       appBar: AppBar(
         title: Text(widget.homeworkId == null ? 'New homework' : 'Homework'),
         backgroundColor: colors.surface,
+        actions: [
+          // Off until the homework exists on the server. A tooltip says why,
+          // because a greyed control with no reason is a puzzle.
+          IconButton(
+            key: const Key('homework-send'),
+            icon: const Icon(Icons.send_outlined),
+            tooltip: _savedId == null
+                ? 'Save it first, then it can be sent'
+                : 'Send to a student',
+            onPressed: _savedId == null || _saving ? null : _onSend,
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -408,6 +498,12 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
                       label: const Text('Add'),
                       onPressed: _onAdd,
                     ),
+                    if (_sent.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Text('Already sent',
+                          style: Theme.of(context).textTheme.labelLarge),
+                      for (final copy in _sent) _buildSentRow(context, copy),
+                    ],
                     const SizedBox(height: AppSpacing.sm),
                     ElevatedButton(
                       key: const Key('homework-save'),

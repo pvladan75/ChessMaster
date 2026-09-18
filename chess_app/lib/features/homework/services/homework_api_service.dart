@@ -143,6 +143,46 @@ class HomeworkApiService {
     }
   }
 
+  /// Sends this homework to **one** student, which is what makes the quota
+  /// rule true: the server charges one unit per request, so one student is
+  /// one unit however many items the homework holds (the owner's answer to
+  /// `docs/PLAN-DOMACI-ZADATAK.md` §9). A caller sending to three students
+  /// makes three requests and spends three units.
+  ///
+  /// Null when it was sent; otherwise the server's own sentence, which names
+  /// what refused — a position under review, a puzzle set that matches
+  /// nothing, a quota that is spent. Nothing is written on a refusal, so the
+  /// student gets the whole homework or none of it.
+  Future<String?> send({
+    required int homeworkId,
+    required int studentId,
+    DateTime? dueAt,
+    String? note,
+  }) async {
+    lastError = null;
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/homeworks/$homeworkId/send'),
+            headers: _headers,
+            body: jsonEncode({
+              'studentId': studentId,
+              if (dueAt != null) 'dueAt': dueAt.toIso8601String(),
+              if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode == 201) return null;
+      final error = _errorFrom(res.body, 'Could not send (${res.statusCode}).');
+      lastError = error;
+      return error;
+    } catch (e) {
+      AppLogger.log('[Homework] Send failed: $e');
+      lastError = 'Cannot connect to server.';
+      return lastError;
+    }
+  }
+
   /// Withdraws a homework. True on success; false with [lastError] set
   /// otherwise.
   Future<bool> remove(int id) async {

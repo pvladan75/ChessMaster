@@ -5,18 +5,24 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 import '../models/homework.dart';
 import '../services/homework_api_service.dart';
+import '../widgets/homework_send_dialog.dart';
 import 'homework_editor_screen.dart';
 
 class HomeworkListScreen extends StatefulWidget {
-  const HomeworkListScreen({super.key, required this.api});
+  const HomeworkListScreen({super.key, required this.api, this.groupApi});
 
   final HomeworkApiService api;
+
+  /// The student list the send dialog offers. For tests, which have no
+  /// server to answer.
+  final GroupApiService? groupApi;
 
   @override
   State<HomeworkListScreen> createState() => _HomeworkListScreenState();
@@ -48,6 +54,22 @@ class _HomeworkListScreenState extends State<HomeworkListScreen> {
           HomeworkEditorScreen(homeworkId: homeworkId, api: widget.api),
     ));
     if (mounted) _load();
+  }
+
+  /// Sending is its own act, from the row: writing a homework and giving it
+  /// to somebody are two things, and the list is where a trainer picks which
+  /// homework to give.
+  Future<void> _send(Homework homework) async {
+    if (homework.id == null) return;
+    final sent = await showHomeworkSendDialog(
+      context,
+      api: widget.api,
+      homeworkId: homework.id!,
+      title: homework.title,
+      groupApi: widget.groupApi,
+    );
+    // „Sent to" on the row is now out of date.
+    if (sent && mounted) _load();
   }
 
   /// Deleting a template is asked about first — it is one tap beside a row,
@@ -152,11 +174,22 @@ class _HomeworkListScreenState extends State<HomeworkListScreen> {
               '${sent > 0 ? ' · sent to $sent' : ''}',
             ),
             onTap: () => _openEditor(homeworkId: homework.id),
-            trailing: IconButton(
-              key: Key('homework-list-delete-${homework.id}'),
-              icon: Icon(Icons.delete_outline, color: colors.danger),
-              tooltip: 'Delete',
-              onPressed: () => _delete(homework),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: Key('homework-list-send-${homework.id}'),
+                  icon: Icon(Icons.send_outlined, color: colors.accent),
+                  tooltip: 'Send to a student',
+                  onPressed: () => _send(homework),
+                ),
+                IconButton(
+                  key: Key('homework-list-delete-${homework.id}'),
+                  icon: Icon(Icons.delete_outline, color: colors.danger),
+                  tooltip: 'Delete',
+                  onPressed: () => _delete(homework),
+                ),
+              ],
             ),
           ),
         );

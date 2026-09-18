@@ -233,6 +233,24 @@ drži", ili „nije odgovoreno". Server za zaključanu stavku vraća **423**
 (brif je tvrdio 200), pa se zaključanost čita iz tela, ne iz statusa, a
 „server nije odgovorio" ne sme da stigne do deteta kao „zaključano ti je".
 
+**Faza 4, app pola** (18.9.2026, vođa). Prozor za slanje
+(`widgets/homework_send_dialog.dart`) otvara se iz reda u listi domaćih i iz
+editora (tamo je ugašen dok domaci nije sačuvan — nema šta da se prepiše sa
+servera, i tooltip to kaže). Bira učenike, rok i napomenu, pa šalje **jedan
+zahtev po učeniku** — time je pravilo kvote istinito, jer server naplaćuje
+jednu jedinicu po zahtevu. Nude se samo učenici koji su **prihvatili** poziv;
+odbijenom učeniku se kaže serverova rečenica, a oni koji su domaci dobili se
+i dalje prijavljuju kao poslati — pola slanja je činjenica, ne greška koju
+treba progutati. Editor ispod stavki pokazuje šta je već otišlo („Ana ·
+17.9.2026 · 1 of 4 items"), i to iz dece te kopije, ne iz šablona koji se
+upravo menja.
+
+**Uzgred nađeno i popravljeno u editoru iz faze 3b**: dva čuvanja u istom
+sedenju pravila su **dva domaća**. Id se čitao iz widget-a, koji POST nikad
+ne ažurira, pa je drugo čuvanje ponovo POST-ovalo. Sada se čita iz onoga što
+je sačuvano, a redovi preuzimaju ključeve koje je server iskovao — zbog toga
+je drugo čuvanje izmena tih stavki, a ne brisanje i kovanje novih.
+
 **Za vlasnika, pre sledećeg pokretanja backenda:** migracija se izvršava
 na upravljanoj bazi pri prvom startu — dodaje kolone i dve tabele, briše i
 vraća `assignments_kind_check` (proširen) i dodaje `assignments_homework_shape`;

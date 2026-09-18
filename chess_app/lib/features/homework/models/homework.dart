@@ -117,6 +117,56 @@ class HomeworkItem {
   }
 }
 
+/// One copy of this homework already sent, as `GET /homeworks/:id` lists it
+/// under `sent` (`homeworkTemplate.loadHomework`).
+///
+/// A copy is an ordinary parent assignment and goes on living after the
+/// template is edited or deleted — `assignments.homework_id` is
+/// `ON DELETE SET NULL` — so this is a record of what a student *has*, not a
+/// view of what the template says today. That is the whole reason writing a
+/// homework and sending it are two acts.
+class HomeworkSentCopy {
+  const HomeworkSentCopy({
+    required this.assignmentId,
+    required this.studentId,
+    required this.studentName,
+    this.sentAt,
+    this.completedAt,
+    this.itemsTotal = 0,
+    this.itemsDone = 0,
+  });
+
+  final int assignmentId;
+  final int studentId;
+  final String studentName;
+  final DateTime? sentAt;
+  final DateTime? completedAt;
+
+  /// The children of that copy, not the template's items: an item added to
+  /// the template afterwards is not in a homework already sent.
+  final int itemsTotal;
+  final int itemsDone;
+
+  bool get isComplete => completedAt != null;
+
+  static DateTime? _date(dynamic value) =>
+      value == null ? null : DateTime.tryParse(value.toString())?.toLocal();
+
+  static HomeworkSentCopy? fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] as num?)?.toInt();
+    if (id == null) return null;
+    return HomeworkSentCopy(
+      assignmentId: id,
+      studentId: (json['student_id'] as num?)?.toInt() ?? 0,
+      studentName: json['student_name']?.toString() ?? 'Student',
+      sentAt: _date(json['created_at']),
+      completedAt: _date(json['completed_at']),
+      itemsTotal: (json['child_total'] as num?)?.toInt() ?? 0,
+      itemsDone: (json['child_completed'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 /// A homework template: a title, an optional note, and its items in order.
 class Homework {
   const Homework({
@@ -126,6 +176,7 @@ class Homework {
     required this.items,
     this.itemCount,
     this.sentCount,
+    this.sent = const [],
     this.updatedAt,
   });
 
@@ -139,6 +190,10 @@ class Homework {
   /// send the items themselves — the list screen's row, not the editor's.
   final int? itemCount;
   final int? sentCount;
+
+  /// The copies already sent, newest first. Only `GET /homeworks/:id` carries
+  /// them; the summary in the list carries [sentCount] instead.
+  final List<HomeworkSentCopy> sent;
   final DateTime? updatedAt;
 
   /// What the editor sends: title, instructions and the items in the order
@@ -169,6 +224,17 @@ class Homework {
       }
     }
 
+    // A copy this app cannot read is dropped rather than refusing the whole
+    // homework: the items are the contract the editor writes back, while
+    // these are a record of what has already gone out, and one unreadable
+    // row of it must not shut the editor.
+    final sent = <HomeworkSentCopy>[];
+    for (final raw in (json['sent'] as List?) ?? const []) {
+      if (raw is! Map) continue;
+      final copy = HomeworkSentCopy.fromJson(Map<String, dynamic>.from(raw));
+      if (copy != null) sent.add(copy);
+    }
+
     return Homework(
       id: (json['id'] as num?)?.toInt(),
       title: title,
@@ -176,6 +242,7 @@ class Homework {
       items: items,
       itemCount: (json['item_count'] as num?)?.toInt(),
       sentCount: (json['sent_count'] as num?)?.toInt(),
+      sent: sent,
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
     );
   }

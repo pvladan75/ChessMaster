@@ -3486,3 +3486,30 @@ condition always true left the test green, because the outer guard on the
 whole row of actions still suppressed it for an untouched item. Both guards
 mutated together, the test went red. Rule 2 holds either way: the survivor
 is a question, and here the answer was „you mutated dead ground".
+
+**Homework, phase 4's app half: sending — 18.9.2026, app 2994 → 3008
+tests, 1 skipped; analyze unchanged at the 26 known infos.** 14 new, 10
+mutations each red on the right test, the phase-3b gate green throughout.
+
+**A quota rule is kept by the shape of the request, not by a sentence.** One
+student is one request because the server charges one unit per request; a
+batched send would have to answer „two of your three" with a single status
+code, and the trainer would not learn which two. The dialog therefore loops,
+names every student the server refused with the server's own sentence, and
+still reports the ones that went — half a send is a fact, not an error to
+swallow.
+
+**A screen that speaks after it closes says nothing.** The dialog first popped
+itself and then called `AppFeedback`, whose context was by then gone — so the
+guard correctly stayed silent and the trainer would have learned nothing at
+all. The result now travels back to the caller, which still has a screen to
+say it on. Same shape as the two older cases: **do the thing, then say it —
+from somewhere that still exists.**
+
+**Saving twice made two homeworks.** Phase 3b's editor built its save payload
+with `id: widget.homeworkId`, which a POST never updates, so the second save
+in one sitting posted again. Nothing caught it because no test saved twice —
+the gate asserts what one save sends. The id now comes from what was saved,
+and the rows adopt the keys the server minted, which is what makes the second
+save an edit rather than a delete-and-mint. **Ask of any create-or-update
+screen: what does the second one do?**

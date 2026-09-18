@@ -5904,9 +5904,8 @@ tada se šalje ručno kroz zahtev (`POST /homeworks/:id/send`).
 
 ## 183. Domaći, faze 3a–4: šablon, editor i slanje — 17.9.2026, nije viđeno uživo
 
-Slanje još nema svoj prozor (faza 4, app pola), pa se stavke 2–5 gledaju kad
-on bude gotov — ili ručno, kroz zahteve, ako vlasnik želi ranije. Sve ostalo
-je prohodno kroz ekrane.
+Sve je prohodno kroz ekrane od 18.9.2026 — prozor za slanje otvara se iz reda
+u listi domaćih i iz editora.
 
 0. [ ] **Vrata**: kartica „Homework" na Teach tabu i vrata „Homework" u
    Biblioteci otvaraju istu listu; na telefonu se oboje vide bez skrolovanja
@@ -5932,6 +5931,16 @@ je prohodno kroz ekrane.
    domaći se ne menja — isti naslov, iste stavke, isti napredak.
 6. [ ] **Uzak filter zagonetki** (tema + rejting 3200–3400): ruta kaže da
    nema zagonetki po tim kriterijumima; ranije je vraćala 500.
+7. [ ] **Prozor za slanje**: nudi samo učenike koji su prihvatili poziv;
+   izaberi dvoje, pošalji — obojica dobijaju po jedan red, a kvota se
+   umanji za **dva**. Rok i napomena stignu do učenika.
+8. [ ] **Odbijanje jednog učenika** (npr. potrošena kvota na drugom nalogu
+   ili pozicija pod revizijom): rečenica imenuje tog učenika, a onaj drugi
+   je i dalje dobio domaci.
+9. [ ] **Slanje iz editora**: dugme je ugašeno dok domaci nije sačuvan; posle
+   čuvanja radi, a ispod stavki piše šta je već poslato i dokle je stiglo.
+10. [ ] **Dva čuvanja u istom sedenju** prave **jedan** domaci, ne dva (i
+   posle drugog čuvanja stavke su iste, bez duplikata).
 
 ## 182. Domaći, faza 2: zadata partija, i portret ekrana vežbi — 17.9.2026, nije viđeno uživo
 
