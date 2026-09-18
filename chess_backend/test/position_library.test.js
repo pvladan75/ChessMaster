@@ -68,6 +68,58 @@ test('an exercise whose answer is a stored line has a solution, whatever the pri
   assert.equal(item.assignable, true);
 });
 
+test('an exercise on the shelf says its name, where it came from and what it asks — never its solution', async () => {
+  // `docs/PLAN-EXERCISE.md` phase 4: the shelf filters by task and by origin.
+  const pool = stubPool([[
+    scannedRow(),
+    scannedRow({
+      puzzle_id: 'ex_made',
+      name: 'Back rank',
+      origin: 'manual',
+      solution_san: null,
+      solution: [{ accept: ['Ra8#', 'Rd1'], reply: null }],
+    }),
+    scannedRow({
+      puzzle_id: 'ex_game',
+      name: 'Hold it',
+      origin: 'manual',
+      solution_san: null,
+      task: { type: 'game', side: 'w', goal: 'hold', surviveMoves: 4 },
+    }),
+  ]]);
+  const [book, made, game] = await listScanned(pool, 5, {});
+
+  // A scan has no name: the book stands in, as before, and rows written
+  // before `origin` existed read as from a book.
+  assert.equal(book.title, 'Mat u 333 #122');
+  assert.equal(book.origin, 'book');
+  assert.deepEqual(book.task, { type: 'find' });
+
+  assert.equal(made.title, 'Back rank');
+  assert.equal(made.origin, 'manual');
+  assert.deepEqual(made.task, { type: 'find' });
+  assert.equal(JSON.stringify(made).includes('Rd1'), false, 'the accepted moves stay on the server');
+
+  assert.equal(game.title, 'Hold it');
+  assert.equal(game.task.type, 'game');
+  assert.equal(game.task.goal, 'hold');
+  assert.equal(game.task.surviveMoves, 4);
+  // Asked as what it is: a game exercise is assignable as a game. With the
+  // find-the-move default every game on the shelf would read „cannot be set".
+  assert.equal(game.assignable, true);
+  assert.equal(game.blockedReason, null);
+  assert.equal(game.hasSolution, false);
+
+  assert.match(pool.calls[0].text, /\bname\b/);
+  assert.match(pool.calls[0].text, /\borigin\b/);
+});
+
+test('the search reads the name too', async () => {
+  const pool = stubPool([[]]);
+  await listScanned(pool, 5, { search: 'rank' });
+  assert.match(pool.calls[0].text, /COALESCE\(name, ''\) ILIKE/);
+});
+
 test('a scanned position without a solution says why it cannot be assigned', async () => {
   const pool = stubPool([[scannedRow({ solution_san: null })]]);
   const [item] = await listScanned(pool, 5, {});

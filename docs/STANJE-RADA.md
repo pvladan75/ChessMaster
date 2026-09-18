@@ -140,7 +140,15 @@ protivnikov potez se odbacuje i to se kaže; rešavač igra niz — jedan odgovo
 potezu, „Try again" posle pogrešnog, a izveštaj pamti prvi pokušaj. Kapija bajt
 u bajt ista, ništa van `chess_app/`, 12 mutacija vođe, svaka crvena na pravom
 testu. Aplikacija 3053 → 3077, analyze istih 26. Provera uživo: stavka 185.
-Sledeće: 3b (`[implementer]`) i 4 (`[implementer]`); kapije piše vođa.
+**Faze 3b i 4 su predate** (18.9.2026), dva implementera u dva worktree-a, sa
+razgraničenim fajlovima: kapije `docs/gates/exercise_game_test.dart` i
+`exercise_library_test.dart`, brifovi `BRIEF-EXERCISE-FAZA3B-APP.md` i
+`-FAZA4-APP.md`. Vođa je pre toga napisao ono što obe dele —
+`exercise_task_words.dart` (šta zadatak traži, rečima; ko sudi partiji) — i
+serversku polovinu faze 4 (`origin`, `task` i ime u listi Biblioteke).
+**Ispravka odluke 2:** čip „from book" nikad nije postojao — „Positions" je
+držao i sačuvane i skenirane pozicije — pa se dodaje sedmi čip „Exercises", a
+„Positions" ostaje za gole pozicije.
 
 *Kako je predata* (`[implementer]`): kapija
 `docs/gates/exercise_make_test.dart`, brif

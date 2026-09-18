@@ -34,8 +34,14 @@ function isKind(value) {
 /// whatever they play. Only scanned positions ever carry a solution today, but
 /// the question is asked of every kind so that changes in one place when one of
 /// the others learns to.
+///
+/// An exercise is asked *as what it is*: a game exercise is assignable as a
+/// game. The default of `assignableProblem` — „as a find-the-move item" —
+/// protects the paths that can only build one; the shelf is not such a path,
+/// and with the default every game exercise on it would read „cannot be set".
 function assignability(row) {
-  const problem = assignableProblem(row);
+  const type = exerciseOf(row).task?.type ?? 'find';
+  const problem = assignableProblem(row, { as: type });
   return { assignable: problem === null, blockedReason: problem };
 }
 
@@ -51,14 +57,15 @@ async function listScanned(pool, userId, { search }) {
   let where = 'owner_id = $1';
   if (search) {
     params.push(`%${search}%`);
-    where += ` AND (COALESCE(instruction, '') ILIKE $${params.length}
+    where += ` AND (COALESCE(name, '') ILIKE $${params.length}
+                 OR COALESCE(instruction, '') ILIKE $${params.length}
                  OR COALESCE(source_title, '') ILIKE $${params.length}
                  OR COALESCE(source_label, '') ILIKE $${params.length}
                  OR array_to_string(themes, ' ') ILIKE $${params.length})`;
   }
 
   const result = await pool.query(
-    `SELECT puzzle_id, side_to_move, ${exerciseColumns()}, instruction, themes,
+    `SELECT puzzle_id, side_to_move, name, origin, ${exerciseColumns()}, instruction, themes,
             source_title, source_page, source_label, created_at
        FROM custom_puzzles
       WHERE ${where}
@@ -73,12 +80,19 @@ async function listScanned(pool, userId, { search }) {
   return result.rows.map((row) => ({
     kind: 'scan',
     id: row.puzzle_id,
-    // A scanned position has no name of its own. The book and the printed
-    // number are what the trainer recognises it by, so they stand in for one
-    // rather than a title being invented.
-    title: [row.source_title, row.source_label && `#${row.source_label}`]
-      .filter(Boolean)
-      .join(' ') || 'Scanned position',
+    // An exercise made by hand has a name. A scanned one has none of its own:
+    // the book and the printed number are what the trainer recognises it by,
+    // so they stand in for one rather than a title being invented.
+    title: (typeof row.name === 'string' && row.name.trim())
+      || [row.source_title, row.source_label && `#${row.source_label}`]
+        .filter(Boolean)
+        .join(' ')
+      || 'Scanned position',
+    // What wrote it, and what it asks (`docs/PLAN-EXERCISE.md`, phase 4): the
+    // shelf filters by both. The task is what `exerciseOf` reads — never the
+    // solution, which this list has no business carrying.
+    origin: row.origin ?? 'book',
+    task: exerciseOf(row).task,
     fen: row.fen,
     sideToMove: row.side_to_move,
     instruction: row.instruction,
