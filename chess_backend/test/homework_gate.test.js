@@ -587,6 +587,114 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     for (const item of shown) assert.equal(item.solutionSan, 'Rd8#');
   });
 
+  // ---- a line: docs/PLAN-EXERCISE.md, phase 2a ----------------------------
+
+  /// A homework whose first item is one exercise asking for the fixture's
+  /// two-move line, and whose second item waits behind it.
+  async function sentLine(who, { requireSolved = false } = {}) {
+    const fixture = require('../../docs/gates/exercise_line_cases.json');
+    const { parentId, children } = await sent(who, [{ puzzles: 1, requireSolved }, { gate: true }]);
+    const puzzleId = `ex_${who.tag}_${Math.random().toString(36).slice(2, 8)}`;
+    await pool.query(
+      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, task, solution, origin)
+       VALUES ($1, $2, $3, 'w', '{"type":"find"}', $4, 'manual')`,
+      [puzzleId, who.trainerId, fixture.positions.scholar, JSON.stringify(fixture.solutions.scholarLine.steps)]
+    );
+    await pool.query(
+      'UPDATE assignment_items SET puzzle_id = $1 WHERE assignment_id = $2',
+      [puzzleId, children[0].id]
+    );
+    const play = (moves) => route('post', '/:id/custom-attempt', {
+      userId: who.studentId,
+      params: { id: String(children[0].id) },
+      body: { puzzleId, moves, msTaken: 700 },
+    });
+    const item = async () => (await pool.query(
+      'SELECT attempted_at, solved, played_san FROM assignment_items WHERE assignment_id = $1',
+      [children[0].id]
+    )).rows[0];
+    return { parentId, play, item };
+  }
+
+  test('a line gives up one reply at a time, and a line half played is not an attempt', async () => {
+    const who = await people();
+    const { parentId, play, item } = await sentLine(who);
+
+    const first = await play(['Qf3']);
+    assert.equal(first.status, 200);
+    assert.equal(first.body.correct, true);
+    assert.equal(first.body.done, false);
+    assert.equal(first.body.reply, 'g6');
+    assert.equal(first.body.continuesOn, 'Qh5', 'an accepted alternative goes on from the author\'s move');
+    assert.equal(first.body.solutionSan, null);
+    assert.equal(JSON.stringify(first.body).includes('Qxe5'), false, 'move two must not travel with move one');
+
+    assert.equal((await item()).attempted_at, null, 'nothing is written in the middle of a line');
+    assert.deepEqual(await states(parentId), ['open', 'locked'], 'and the gate behind it stays shut');
+
+    const second = await play(['Qf3', 'Qxe5']);
+    assert.equal(second.body.correct, true);
+    assert.equal(second.body.done, true);
+    assert.equal(second.body.reply, null);
+    const written = await item();
+    assert.notEqual(written.attempted_at, null);
+    assert.equal(written.solved, true);
+    assert.equal(written.played_san, 'Qxe5+');
+    assert.deepEqual(await states(parentId), ['passed', 'open']);
+  });
+
+  test('a wrong move in a line may be tried again, and the report keeps the first verdict', async () => {
+    const who = await people();
+    const { parentId, play, item } = await sentLine(who);
+
+    await play(['Qh5']);
+    const wrong = await play(['Qh5', 'Qxh7']);
+    assert.equal(wrong.body.correct, false);
+    assert.equal(wrong.body.done, false);
+    assert.equal(wrong.body.step, 1);
+    assert.equal(wrong.body.reply, null);
+    assert.equal(wrong.body.solutionSan, null, 'an answer shown is an answer no longer asked');
+    assert.equal(JSON.stringify(wrong.body).includes('Qxe5'), false);
+    const first = await item();
+    assert.equal(first.solved, false);
+    assert.equal(first.played_san, 'Qxh7');
+    // Attempted is done, for a gate that did not ask for solved.
+    assert.deepEqual(await states(parentId), ['passed', 'open']);
+
+    const again = await play(['Qh5', 'Qxe5+']);
+    assert.equal(again.body.correct, true);
+    assert.equal(again.body.done, true);
+    const after = await item();
+    assert.equal(after.solved, false, 'the first verdict stands');
+    assert.equal(after.played_san, 'Qxh7');
+    assert.deepEqual(after.attempted_at, first.attempted_at);
+  });
+
+  test('measured for the owner: with "must be solved", one wrong move in a line locks what follows until the trainer opens it', async () => {
+    // `docs/PLAN-EXERCISE.md` §8.3. Not a rule anybody chose for lines — the
+    // consequence of two rules that were chosen: the first verdict is final,
+    // and "done means solved" reads that verdict. Pinned so that changing
+    // either one is a decision and shows up here.
+    const who = await people();
+    const { parentId, play } = await sentLine(who, { requireSolved: true });
+
+    await play(['Qh5']);
+    await play(['Qh5', 'Qxh7']);
+    const finished = await play(['Qh5', 'Qxe5+']);
+    assert.equal(finished.body.done, true, 'the student did finish the line, on the second try');
+    assert.deepEqual(await states(parentId), ['open', 'locked']);
+  });
+
+  test('moves that are not moves are refused before anything is read', async () => {
+    const who = await people();
+    const { play, item } = await sentLine(who);
+    for (const bad of [[1, 2], 'Qh5', [null]]) {
+      const r = await play(bad);
+      assert.equal(r.status, 400, JSON.stringify(bad));
+    }
+    assert.equal((await item()).attempted_at, null);
+  });
+
   test('a locked lesson step is refused on every student route', async () => {
     const who = await people();
     const { children } = await sent(who, [{}, { steps: 1, gate: true }]);

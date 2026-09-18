@@ -1,0 +1,110 @@
+{
+  "about": "Shared by the server's line judge (chess_backend/test/exercise_line.test.js) and the app's writer and solver (docs/PLAN-EXERCISE.md, phases 2a and 2b). One fixture, so the two ends cannot drift: the app writes a solution, reads it back by these rules, and the server judges by them.",
+  "positions": {
+    "scholar": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+    "backRank": "6k1/5ppp/8/8/8/8/5PPP/3RR1K1 w - - 0 1"
+  },
+  "solutions": {
+    "scholarLine": {
+      "position": "scholar",
+      "about": "1.Qh5 (or Qf3) g6 2.Qxe5+. Qf3 is an accepted alternative at move one; the reply g6 was written after Qh5.",
+      "steps": [
+        { "accept": ["Qh5", "Qf3"], "reply": "g6" },
+        { "accept": ["Qxe5+"], "reply": null }
+      ],
+      "normalised": [
+        { "accept": ["Qh5", "Qf3"], "reply": "g6" },
+        { "accept": ["Qxe5+"], "reply": null }
+      ]
+    },
+    "backRankMate": {
+      "position": "backRank",
+      "about": "Rd8 mates and so does Re8. Written without the '#', the way a hand writes it; read back with it, the way the board spells it.",
+      "steps": [{ "accept": ["Rd8"], "reply": null }],
+      "normalised": [{ "accept": ["Rd8#"], "reply": null }]
+    }
+  },
+  "judged": [
+    {
+      "name": "the author's first move earns the reply and nothing more",
+      "solution": "scholarLine", "moves": ["Qh5"],
+      "expect": { "correct": true, "done": false, "step": 0, "playedSan": "Qh5", "reply": "g6", "continuesOn": null, "reason": "the author's move" }
+    },
+    {
+      "name": "an accepted alternative is right, and the line goes on from the author's move",
+      "solution": "scholarLine", "moves": ["Qf3"],
+      "expect": { "correct": true, "done": false, "step": 0, "playedSan": "Qf3", "reply": "g6", "continuesOn": "Qh5", "reason": "another correct move" }
+    },
+    {
+      "name": "both moves finish the line",
+      "solution": "scholarLine", "moves": ["Qh5", "Qxe5+"],
+      "expect": { "correct": true, "done": true, "step": 1, "playedSan": "Qxe5+", "reply": null, "continuesOn": null, "reason": "the author's move" }
+    },
+    {
+      "name": "after an alternative the second move is judged on the author's board, where it is legal",
+      "solution": "scholarLine", "moves": ["Qf3", "Qxe5"],
+      "expect": { "correct": true, "done": true, "step": 1, "playedSan": "Qxe5+", "reply": null, "continuesOn": null, "reason": "the author's move" }
+    },
+    {
+      "name": "a move written without its check is the same move",
+      "solution": "scholarLine", "moves": ["Qh5", "Qxe5"],
+      "expect": { "correct": true, "done": true, "step": 1, "playedSan": "Qxe5+" }
+    },
+    {
+      "name": "a wrong first move is wrong, and earns no reply",
+      "solution": "scholarLine", "moves": ["d4"],
+      "expect": { "correct": false, "done": false, "step": 0, "playedSan": "d4", "reply": null, "continuesOn": null }
+    },
+    {
+      "name": "a wrong second move is wrong at the second step",
+      "solution": "scholarLine", "moves": ["Qh5", "Qxh7"],
+      "expect": { "correct": false, "done": false, "step": 1, "playedSan": "Qxh7", "reply": null }
+    },
+    {
+      "name": "every move in the list is judged: a right last move does not excuse a wrong first",
+      "solution": "scholarLine", "moves": ["d4", "Qxe5+"],
+      "expect": { "correct": false, "done": false, "step": 0, "playedSan": "d4" }
+    },
+    {
+      "name": "a move the board cannot play is wrong and has no name",
+      "solution": "scholarLine", "moves": ["Qh6"],
+      "expect": { "correct": false, "done": false, "step": 0, "playedSan": null }
+    },
+    {
+      "name": "more moves than the line has is not an answer",
+      "solution": "scholarLine", "moves": ["Qh5", "Qxe5+", "Qxh8"],
+      "expect": { "correct": false, "done": false, "playedSan": null }
+    },
+    {
+      "name": "no move is not an answer",
+      "solution": "scholarLine", "moves": [],
+      "expect": { "correct": false, "done": false, "playedSan": null }
+    },
+    {
+      "name": "the author's mate",
+      "solution": "backRankMate", "moves": ["Rd8"],
+      "expect": { "correct": true, "done": true, "step": 0, "playedSan": "Rd8#", "reason": "the author's move" }
+    },
+    {
+      "name": "a different mate is still mate",
+      "solution": "backRankMate", "moves": ["Re8"],
+      "expect": { "correct": true, "done": true, "step": 0, "playedSan": "Re8#", "reason": "a different mate, but mate" }
+    },
+    {
+      "name": "a move that does not mate is wrong where the task was to mate",
+      "solution": "backRankMate", "moves": ["Kf1"],
+      "expect": { "correct": false, "done": false, "step": 0, "playedSan": "Kf1" }
+    }
+  ],
+  "refused": [
+    { "name": "an empty line", "position": "scholar", "steps": [], "why": "at least one move" },
+    { "name": "a step that accepts nothing", "position": "scholar", "steps": [{ "accept": [] }], "why": "nothing is accepted" },
+    { "name": "a main move the board cannot play", "position": "scholar", "steps": [{ "accept": ["Qh6"] }], "why": "\"Qh6\" cannot be played" },
+    { "name": "an alternative the board cannot play", "position": "scholar", "steps": [{ "accept": ["Qh5", "Qh6"] }], "why": "\"Qh6\" cannot be played" },
+    { "name": "the same move accepted twice", "position": "scholar", "steps": [{ "accept": ["Qh5", "Qh5"] }], "why": "accepted twice" },
+    { "name": "a reply the board cannot play", "position": "scholar", "steps": [{ "accept": ["Qh5"], "reply": "Ke8" }, { "accept": ["Qxe5+"] }], "why": "the reply \"Ke8\" cannot be played" },
+    { "name": "a line that goes on with no reply to go on from", "position": "scholar", "steps": [{ "accept": ["Qh5"] }, { "accept": ["Qxe5+"] }], "why": "no reply to go on from" },
+    { "name": "a line that ends on a reply", "position": "scholar", "steps": [{ "accept": ["Qh5"], "reply": "g6" }, { "accept": ["Qxe5+"], "reply": "Qe7" }], "why": "ends on a reply" },
+    { "name": "a second move blocked by the reply before it", "position": "scholar", "steps": [{ "accept": ["Qh5"], "reply": "g6" }, { "accept": ["Qxf7#"] }], "why": "move 2: \"Qxf7#\" cannot be played" }
+  ]
+}

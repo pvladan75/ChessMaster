@@ -85,4 +85,75 @@ function judgeAttempt({ fen, solutionSan, moveSan, acceptedSans = [] }) {
 // „Can this be given to a student at all?" used to be answered here. It moved
 // to `exercise.js` with everything else that reads what a row asks.
 
-module.exports = { judgeAttempt, bareSan };
+/**
+ * Judge the moves a student has played so far in a line.
+ *
+ * [solution] is what `exercise.readSolution` returns — one step per move of
+ * the student, `accept[0]` the move the line goes on from, `reply` the move
+ * that answers it. [moves] are the student's own moves only, first to last;
+ * the replies are this side's to give, one at a time, and **never ahead of
+ * the move that earns them**: the answer to move two is not in the response to
+ * move one.
+ *
+ * Every move in the list is judged, not only the last. A client that sent
+ * `['anything', 'anything', 'Qxe5#']` would otherwise be asking to be judged on
+ * the last step of a line it never played.
+ *
+ * **The line goes on from the author's move**, whatever accepted move was
+ * played — the rule tutorials already keep. The replies were written after the
+ * author's move and may not even be legal after another; `continuesOn` tells
+ * the caller which move to show before the reply. A different mate is
+ * accepted where the author's move mates — `judgeAttempt`'s rule — which can
+ * only be the last step, since a line cannot go on after mate.
+ *
+ * Returns `{ correct, done, reason, playedSan, step, reply, continuesOn }`.
+ * `step` is the index of the move the verdict is about.
+ */
+function judgeLine({ fen, solution, moves }) {
+  const nothing = { done: false, playedSan: null, step: 0, reply: null, continuesOn: null };
+  if (!fen || !Array.isArray(solution) || solution.length === 0) {
+    return { ...nothing, correct: false, reason: 'The position or the solution is missing.' };
+  }
+  if (!Array.isArray(moves) || moves.length === 0) {
+    return { ...nothing, correct: false, reason: 'No move was sent.' };
+  }
+  if (moves.length > solution.length) {
+    return { ...nothing, correct: false, reason: 'More moves were sent than the line has.' };
+  }
+
+  let board;
+  try {
+    board = new Chess(fen);
+  } catch {
+    return { ...nothing, correct: false, reason: 'The position is not valid.' };
+  }
+
+  for (let i = 0; i < moves.length; i += 1) {
+    const step = solution[i];
+    const [main, ...others] = step.accept;
+    const verdict = judgeAttempt({
+      fen: board.fen(), solutionSan: main, acceptedSans: others, moveSan: moves[i],
+    });
+    if (!verdict.correct) {
+      return { ...nothing, ...verdict, step: i };
+    }
+    const authors = board.move(main);
+    const onTheLine = bareSan(authors.san) === bareSan(verdict.playedSan);
+    if (step.reply) board.move(step.reply);
+
+    if (i === moves.length - 1) {
+      const done = i === solution.length - 1;
+      return {
+        ...verdict,
+        step: i,
+        done,
+        reply: step.reply ?? null,
+        continuesOn: !done && !onTheLine ? authors.san : null,
+      };
+    }
+  }
+  // Unreachable: the loop returns on its last turn.
+  return { ...nothing, correct: false, reason: 'No move was sent.' };
+}
+
+module.exports = { judgeAttempt, judgeLine, bareSan };

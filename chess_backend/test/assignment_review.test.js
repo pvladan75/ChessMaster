@@ -77,6 +77,38 @@ test('an unanswered position hides its solution but says that it has one', () =>
   assert.equal(item.attempted, false);
 });
 
+test('a line is hidden and released whole, by the same rule as one move', () => {
+  // `docs/PLAN-EXERCISE.md` phase 2a: an exercise may ask for a line. A
+  // student who has not answered sees none of it — not the first move, and not
+  // the rest under another key.
+  const fixture = require('../../docs/gates/exercise_line_cases.json');
+  const line = {
+    fen: fixture.positions.scholar,
+    custom_fen: fixture.positions.scholar,
+    solution_san: null,
+    solution: fixture.solutions.scholarLine.steps,
+  };
+
+  const unanswered = shapeItem(
+    customRow({ ...line, attempted_at: null, solved: null, played_san: null }),
+    { isTrainer: false }
+  );
+  assert.equal(unanswered.solution, null);
+  assert.equal(unanswered.solutionSan, null);
+  assert.equal(unanswered.solutionHidden, true);
+  assert.equal(JSON.stringify(unanswered).includes('Qxe5'), false);
+
+  const trainers = shapeItem(
+    customRow({ ...line, attempted_at: null, solved: null, played_san: null }),
+    { isTrainer: true }
+  );
+  assert.deepEqual(trainers.solution, fixture.solutions.scholarLine.normalised);
+  assert.equal(trainers.solutionSan, 'Qh5');
+
+  const answered = shapeItem(customRow({ ...line, played_san: 'Qxh7', solved: false }), { isTrainer: false });
+  assert.deepEqual(answered.solution, fixture.solutions.scholarLine.normalised);
+});
+
 test('an answered position releases the solution beside the move played', () => {
   const item = shapeItem(customRow(), { isTrainer: false });
 

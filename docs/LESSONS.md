@@ -3811,3 +3811,51 @@ find-the-move item unless the caller says it can send a game. No writer of
 game exercises exists yet; four paths that build puzzle-kind assignments do.
 Rule 14 from the other side — look at what the *next* phase will newly
 exercise, and make the wrong use fail today.
+
+## 18.9.2026 — The exercise, phase 2a: a line judged one move at a time
+
+Phase 2a of `docs/PLAN-EXERCISE.md`: `judgeLine` in `customPuzzleJudge.js`, the
+attempt route taking `moves`, `services/exerciseAuthoring.js` and
+`routes/exercises.js` (POST, GET one, PUT), and the shared fixture
+`docs/gates/exercise_line_cases.json`. Backend **1522 → 1565** with the test
+database (+26 `exercise_line`, +12 `exercise_authoring`, +4 in
+`homework_gate`, +1 in `assignment_review`), **1454 → 1486** without (the same
+minus the seven database tests of `exercise_authoring` and the four in
+`homework_gate`). 17 mutations, each red on the right test; two survived the
+first pass.
+
+**A key added to a response is a new way for the answer to leak.** The review
+learned to carry the whole line (`solution`) beside `solutionSan`, guarded by
+the same `reveal` — and the mutation that dropped the guard **survived**: every
+reveal test looked at `solutionSan`. A student who had not answered would have
+been handed the line under the other key. **When a second field carries the
+same secret, the test of the first does not cover it; assert on the serialised
+body that the secret is absent, not on one key that it is null.**
+
+**Code no test can reach is a mutation that cannot die, so delete it before it
+is written down as a rule.** `judgeLine` first had a branch „a different mate
+ends the line early". A main move that mates can only be the last step — a
+line cannot go on after mate — so the branch could never change an answer. It
+went; the doc comment says why the case cannot arise.
+
+**Judge every move in the list, not the last one.** The route takes the
+student's moves so far. A judge that replays the author's line and checks only
+the newest move is asking the client to be honest about the earlier ones:
+`['anything', 'Qxe5+']` would be judged on the last step of a line never
+played. The fixture has that case by name.
+
+**The line goes on from the author's move, whatever accepted move was played**
+— the rule tutorials already keep, reused rather than re-decided. The replies
+were written after the author's move and may be illegal after another;
+`continuesOn` tells the app which move to show before the reply.
+
+**Measured rather than argued (§8.3):** with „must be solved" on, one wrong
+move in a line keeps the next item locked even after the student finishes the
+line on a second try, until the trainer opens it. Nobody chose that for lines;
+it follows from „the first verdict is final" and „done means solved". It is
+pinned as a test named *measured for the owner*, so changing either rule shows
+up as a decision.
+
+**The shell layer eats backslashes and chokes on apostrophes in long
+heredocs.** Files with escapes or prose are written with the Write tool; the
+shell is for commands.

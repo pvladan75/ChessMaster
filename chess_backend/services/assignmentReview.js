@@ -13,7 +13,7 @@
 const { Chess } = require('chess.js');
 const { assignmentParticipant } = require('./assignmentService');
 const { stepsOfLesson } = require('./lessonSteps');
-const { exerciseColumns, firstMoveOf } = require('./exercise');
+const { exerciseColumns, exerciseOf, firstMoveOf } = require('./exercise');
 
 /// Whether the answer may be shown to whoever is asking.
 ///
@@ -122,6 +122,8 @@ function shapeItem(row, { isTrainer, step }) {
       themes: row.custom_themes || [],
       solutionSan: reveal ? (firstMoveOf(row)?.solutionSan ?? null) : null,
       solutionHidden: !reveal && firstMoveOf(row) !== null,
+      // The whole line, for an exercise that asks for more than one move.
+      solution: reveal ? exerciseOf(row).solution : null,
     };
   }
 

@@ -188,7 +188,7 @@ so in the report — do not work around it.*
 | # | Phase | Who | Gate |
 |---|---|---|---|
 | 1 | **Schema and the one reader**: `custom_puzzles.name/origin/task/solution`, the `origin` backfill, `services/exercise.js` (`exerciseOf`, `assignableProblem` moved in), every reader of `solution_san` moved onto it. Glossary row for **Exercise**. **Built 18.9.2026**, in a worktree, because the owner's nodemon runs `initDB` on every save: also `exerciseColumns()` — the SELECT fragment, so a consumer never names the column — `readSolution` (the line's replay, which phase 2a judges with), `firstMoveOf`, and `assignableProblem(row, { as })`, which refuses a game exercise as a find-the-move item **by default**, so the four paths that build puzzle-kind assignments cannot be handed one when phase 3 starts writing them. The gate as first written was too strong: the scan pipeline and the mistake archive are *writers* of `solution_san` and keep it; the guard is an allow-list with a reason per file | lead (schema, migration) | `test/exercise.test.js` (12), `exercise_schema.test.js` on a real PostgreSQL (5: NOT NULL without a default, the CHECK, the backfill with an `hwx…` id as the trap for an unescaped `_` in `LIKE`, and **both writers run against the real table**), `exercise_one_reader.test.js` (3, comments lexed out, SQL kept), one route test in `homework_gate.test.js`, one in `position_library.test.js`; 14 mutations, each red on the right test — three survived the first pass and are why the writer tests exist; backend 1503 → 1522 with the database, 1441 → 1454 without, no `.env` in the worktree |
-| 2a | **The line, server half**: the per-move judge in `customPuzzleJudge.js`, the attempt route taking `moves`, `POST /exercises` and `PUT /exercises/:id` for hand-made ones (validating that the line replays) | lead (the judge is authority) | shared fixture `docs/gates/exercise_line_cases.json` — lines with alternatives, a mate that is not the line's move, a line that does not replay, a reply that is illegal; route tests: the reply is released one move at a time and never ahead; first verdict survives a retry; a locked item still answers 423 before judging |
+| 2a | **The line, server half**: the per-move judge in `customPuzzleJudge.js`, the attempt route taking `moves`, `POST /exercises` and `PUT /exercises/:id` for hand-made ones (validating that the line replays). **Built 18.9.2026**: `judgeLine` judges **every** move in the list and goes on from the author's move (`continuesOn`); the route writes the verdict once — first wrong move or end of line — and a line never releases its answer, only the reply; `services/exerciseAuthoring.js` stores what the readers read back, not the payload, keeps an exercise's position for good (409), and answers 404 for „not yours"; also `GET /exercises/:id`, which the editor in 2b needs, and the whole line in the review under the same reveal rule as one move. 26 + 12 + 4 + 1 tests, 17 mutations each red on the right test, backend 1522 → 1565 with the database and 1454 → 1486 without. The wire 2b builds on is §7a | lead (the judge is authority) | shared fixture `docs/gates/exercise_line_cases.json` — lines with alternatives, a mate that is not the line's move, a line that does not replay, a reply that is illegal; route tests: the reply is released one move at a time and never ahead; first verdict survives a retry; a locked item still answers 423 before judging |
 | 2b | **The line, app half**: *Make exercise* in Preparation and in the Library; the tree flattened and read back; the solver playing a line with „try again" | `[implementer]` | the lead's gate file `docs/gates/exercise_make_test.dart` over the same fixture: writer → reader round trip, a variation at the student's move lands in `accept` and one at the opponent's does not, the sheet at 360 × 640, the action reachable from both doors; analyze list unchanged |
 | 3a | **The final position, server half**: `forMoves`, the tablebase verdict in the game-result route, `judged_by`, *played, not judged* and its retry on read | lead | fixture extended: win/hold for N with ≤7 pieces, each category including cursed and blessed, a fake tablebase **client** that is unreachable, blocked, and late — asserting on the request; mutations on the side-to-move flip and on „unavailable reads as failed" |
 | 3b | **The final position, app half**: the two questions in the sheet, the sentence that says which judge this exercise will get, the three endings on the exercise screen | `[implementer]` | lead's gate file over the shared fixture; „not judged yet" drawn and not styled as a failure; existing `engine_game_screen_test` unchanged |
@@ -196,6 +196,29 @@ so in the report — do not work around it.*
 | 5 | **The check on save**: tablebase moves into `accept`, the impossible-task warning, the engine's second opinion | `[implementer]` | fake tablebase and fake engine clients; the check failing or timing out never stops the save — proven by mutation |
 | 6 | **The device's engine for larger positions** — optional, decided after the live pass of 1–5 (§8) | lead + `[implementer]` | — |
 | 7 | **Live pass** | owner | `TODO-provera.md`, items from 185 |
+
+### 7a. The wire phase 2b builds on
+
+`POST /exercises`, `PUT /exercises/:id` — body `{ name, fen, instruction?,
+themes?, task, solution? }`; `task` is `{ type: 'find' }` with `solution:
+[{ accept: [san, …], reply: san | null }, …]`, or `{ type: 'game', side, goal,
+… }` as the engine-game task without its `fen`. `PUT` may omit `fen` and may
+not change it. Answers `{ exercise: { id, fen, sideToMove, name, instruction,
+themes, origin, task, solution, needsReview, assignable, blockedReason } }`,
+201 on create; 422 with the reason when the line does not replay; 409 for a
+changed position; 404 for „not yours" and „not there" alike. `GET
+/exercises/:id` answers the same shape.
+
+`POST /assignments/:id/custom-attempt` — body `{ puzzleId, moves: [san, …],
+msTaken }`, the student's own moves so far (`moveSan` is still read as a line of
+one). Answers `{ correct, reason, playedSan, done, step, reply, continuesOn,
+solutionSan }`: `reply` is the one move the last right move earned;
+`continuesOn` is the author's move to show first when an accepted alternative
+was played; `solutionSan` is set only for a one-move exercise. A wrong move in
+a line may be sent again; the report keeps the first verdict.
+
+Both ends stand on `docs/gates/exercise_line_cases.json` — `judged` for the
+solver, `refused` and `normalised` for the writer's read-back.
 
 Order: 1 → 2a → 2b is the shortest path to something the owner can watch — a
 hand-made exercise, sent and solved. 3 and 4 are independent of each other and
@@ -214,9 +237,12 @@ of 2b.
    „Easy" engine gives the draw back and holding it proves little;
    `bestReply` in `tablebaseService.js` exists, and the endgame trainer plays it. It costs a request per move and a child
    waiting on a pacer. Not in this plan; ask again after the live pass.
-3. **„Must be solved" and a failed first try.** The first verdict is final, so
+3. **„Must be solved" and a failed first try — measured in 2a, the owner's to decide.** The first verdict is final, so
    a gated item with *done means solved* stays locked after one wrong move
    until the trainer opens it. That is today's behaviour for one move and the
    escape hatch exists, but a four-move line fails more often than one move.
-   The brief for 2a measures it and brings the owner the choice rather than
-   making it.
+   Measured 18.9.2026 (`homework_gate.test.js`, *measured for the owner*): the
+   next item stays locked even after the student finishes the line on a second
+   try. Either it stays so (the trainer's unlock is the way out), or, for lines
+   only, „solved" comes to mean *finished the line*, however many tries — the
+   report would still show that the first try failed.

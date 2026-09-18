@@ -255,6 +255,7 @@ function deriveInstruction(fen, solutionSan) {
 
 module.exports = {
   prepareRow,
+  cleanThemes,
   uploadRejection,
   MAX_DOCUMENT_BYTES,
   prepareRows,
