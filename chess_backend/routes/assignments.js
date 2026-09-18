@@ -350,6 +350,10 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
       step: verdict.step,
       reply: verdict.reply,
       continuesOn: verdict.continuesOn,
+      // Said, not left to be inferred from which other fields are null: a
+      // wrong move in a line may be played again, a wrong answer to a
+      // one-move exercise is final and is shown its solution.
+      retry: !verdict.correct && !oneMove && Array.isArray(solution),
       solutionSan: oneMove ? solution[0].accept[0] : null,
     });
   } catch (err) {

@@ -1,6 +1,6 @@
 // Phase 5 of docs/PLAN-DOMACI-ZADATAK.md: what the copied gate
 // (test/homework_student_test.dart) cannot reach — a finished homework, both
-// shapes of phone, the "must be solved" notice scoped to its own row, a stale
+// shapes of phone, a stale
 // screen answered with a lock instead of an empty assignment, and that coming
 // back re-reads the homework rather than trusting what the screen already
 // has.
@@ -37,7 +37,6 @@ Map<String, dynamic> _child({
   required String title,
   required String kind,
   required int position,
-  bool requireSolved = false,
   String? completedAt,
   bool locked = false,
   int? blockedBy,
@@ -50,7 +49,6 @@ Map<String, dynamic> _child({
       'item_key': 'i$id',
       'lesson_id': null,
       'gate': true,
-      'require_solved': requireSolved,
       'gate_opened_at': null,
       'completed_at': completedAt,
       'task': null,
@@ -92,7 +90,6 @@ Map<String, dynamic> _finishedParent() => {
             title: 'Solve two',
             kind: 'puzzles',
             position: 1,
-            requireSolved: true,
             completedAt: '2026-09-17T10:30:00.000Z'),
         _child(
             id: 603,
@@ -103,9 +100,8 @@ Map<String, dynamic> _finishedParent() => {
       ],
     };
 
-/// One open item with `requireSolved`, one without — so the notice can be
-/// checked as present on one row and absent, specifically, on the other.
-Map<String, dynamic> _mixedParent() => {
+/// Two open items, neither done — a homework in the middle of being worked.
+Map<String, dynamic> _openParent() => {
       'id': 7,
       'title': 'Thursday',
       'instructions': 'Read first, then solve.',
@@ -121,14 +117,8 @@ Map<String, dynamic> _mixedParent() => {
       'child_total': 2,
       'child_completed': 0,
       'children': [
-        _child(
-            id: 701,
-            title: 'Must be solved',
-            kind: 'puzzles',
-            position: 0,
-            requireSolved: true),
-        _child(
-            id: 702, title: 'No such condition', kind: 'puzzles', position: 1),
+        _child(id: 701, title: 'First set', kind: 'puzzles', position: 0),
+        _child(id: 702, title: 'Second set', kind: 'puzzles', position: 1),
       ],
     };
 
@@ -229,38 +219,6 @@ void main() {
     }
   });
 
-  group('"must be solved" is scoped to its own row', () {
-    testWidgets('said on the row that carries it, not on the other',
-        (tester) async {
-      tester.view.physicalSize = const Size(400, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      final client = _clientAnswering(_mixedParent());
-      await tester.pumpWidget(_wrap(HomeworkAssignmentScreen(
-        session: _session(_studentId),
-        assignmentId: 7,
-        api: AssignmentApiService(authToken: 'tok', client: client),
-      )));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('homework-child-701')),
-          matching: find.textContaining('must be solved'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('homework-child-702')),
-          matching: find.textContaining('must be solved'),
-        ),
-        findsNothing,
-      );
-    });
-  });
-
   group('a stale screen', () {
     testWidgets(
         'a locked answer says which item is in the way, not an empty '
@@ -303,7 +261,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       final requests = <http.Request>[];
-      final client = _clientAnswering(_mixedParent(), onRequest: (r) {
+      final client = _clientAnswering(_openParent(), onRequest: (r) {
         requests.add(r);
       });
 

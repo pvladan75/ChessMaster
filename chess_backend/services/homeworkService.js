@@ -18,22 +18,16 @@
 const logger = require('./logger');
 const { notify } = require('./notifications');
 
-/// An item has **passed** when it is complete and, if the trainer asked for
-/// „must be solved", nothing in it was answered wrongly or revealed.
+/// An item has **passed** when it is complete.
 ///
 /// „Complete" is the existing `completed_at`, written by `markCompleteIfDone`
-/// when every item has been attempted — so by default a passed item is an
-/// *attempted* one (owner, 17.9.2026). A reading step has `solved` NULL and
-/// never fails this; a revealed step does, because being shown the answer is
-/// not solving it.
+/// when every item has been attempted — so a passed item is an *attempted*
+/// one (owner, 17.9.2026). There is no „must be solved": the owner removed it
+/// on 18.9.2026, because a gate that reads the verdict can hold a student on
+/// one board for good, and the review already shows the trainer what was
+/// solved. Still a function, so the rule keeps one home if it ever grows.
 function childPassedSql(alias) {
-  return `(${alias}.completed_at IS NOT NULL AND (
-    NOT ${alias}.require_solved OR NOT EXISTS (
-      SELECT 1 FROM assignment_items gx
-       WHERE gx.assignment_id = ${alias}.id
-         AND (gx.solved = FALSE OR gx.revealed_at IS NOT NULL)
-    )
-  ))`;
+  return `(${alias}.completed_at IS NOT NULL)`;
 }
 
 /// An item is **locked** when it is a child with a gate that the trainer has
@@ -80,7 +74,7 @@ function blockedBySql(alias) {
 async function childrenOf(pool, parentId) {
   const result = await pool.query(
     `SELECT c.id, c.title, c.kind, c.position, c.item_key, c.lesson_id,
-            c.gate, c.require_solved, c.gate_opened_at, c.completed_at, c.task,
+            c.gate, c.gate_opened_at, c.completed_at, c.task,
             COUNT(ai.id)::int AS total_items,
             COUNT(ai.attempted_at)::int AS attempted_items,
             COUNT(*) FILTER (WHERE ai.solved)::int AS solved_items,

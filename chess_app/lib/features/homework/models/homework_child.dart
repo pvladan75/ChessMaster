@@ -22,7 +22,6 @@ class HomeworkChild {
     required this.itemKey,
     this.lessonId,
     this.gate = true,
-    this.requireSolved = false,
     this.gateOpenedAt,
     this.completedAt,
     this.task,
@@ -43,7 +42,6 @@ class HomeworkChild {
   final String itemKey;
   final int? lessonId;
   final bool gate;
-  final bool requireSolved;
   final DateTime? gateOpenedAt;
   final DateTime? completedAt;
 
@@ -93,7 +91,6 @@ class HomeworkChild {
       itemKey: json['item_key']?.toString() ?? '',
       lessonId: (json['lesson_id'] as num?)?.toInt(),
       gate: json['gate'] != false,
-      requireSolved: json['require_solved'] == true,
       gateOpenedAt: _date(json['gate_opened_at']),
       completedAt: _date(json['completed_at']),
       task: json['task'] is Map

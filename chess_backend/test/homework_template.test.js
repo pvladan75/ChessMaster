@@ -99,7 +99,7 @@ describe('the homework a trainer writes', { skip: skip ? skip.skip : false }, ()
     const homework = await create(who, [
       { kind: 'lesson', task: { lessonId } },
       { kind: 'positions', task: { puzzleIds: [positionId] }, gate: true },
-      { kind: 'engine_game', task: GAME_TASK, gate: true, requireSolved: true },
+      { kind: 'engine_game', task: GAME_TASK, gate: true },
     ]);
 
     assert.equal(homework.title, 'Thursday');
@@ -107,7 +107,6 @@ describe('the homework a trainer writes', { skip: skip ? skip.skip : false }, ()
     assert.deepEqual(homework.items.map((i) => i.position), [0, 1, 2]);
     assert.deepEqual(homework.items.map((i) => i.kind), ['lesson', 'positions', 'engine_game']);
     assert.deepEqual(homework.items.map((i) => i.gate), [false, true, true]);
-    assert.deepEqual(homework.items.map((i) => i.require_solved), [false, false, true]);
 
     // Minted, not an index: nothing in a key may be read as „the third item".
     const keys = homework.items.map((i) => i.item_key);
@@ -158,7 +157,6 @@ describe('the homework a trainer writes', { skip: skip ? skip.skip : false }, ()
           kind: i.kind,
           task: i.task,
           gate: i.gate,
-          requireSolved: i.require_solved,
         })),
       },
     });

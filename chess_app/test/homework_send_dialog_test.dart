@@ -111,7 +111,6 @@ class _Recorder {
             'kind': 'lesson',
             'task': {'lessonId': 31},
             'gate': false,
-            'require_solved': false,
           },
         ],
         'sent': sent,
@@ -135,7 +134,6 @@ class _Recorder {
               'maxRating': null
             },
             'gate': false,
-            'require_solved': false,
           },
         ],
         'sent': <dynamic>[],

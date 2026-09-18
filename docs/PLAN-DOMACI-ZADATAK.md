@@ -263,7 +263,9 @@ Variant **A**. And, question by question:
    whatever the number of items inside. The children cost nothing.
 2. **Play it out**: all three goals, win / hold / survive N. **The trainer
    picks the side** the student plays; the engine takes the other.
-3. **The gate**: „done" is *attempted* by default; „must be solved" is the
+3. *(Superseded 18.9.2026: „must be solved" was removed — `PLAN-EXERCISE.md`
+   §8.3. „Done" is attempted, with no option. As decided on 17.9:)*
+   **The gate**: „done" is *attempted* by default; „must be solved" is the
    trainer's option per item; manual unlock is the escape hatch. As §6.
 4. **The student's own mistakes** stay the separate path they are. Not in the
    template.

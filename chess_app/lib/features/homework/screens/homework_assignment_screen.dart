@@ -282,15 +282,6 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
                         AppText.body.copyWith(color: context.colors.textMuted),
                   ),
                 ),
-              if (child.requireSolved)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Every position must be solved, not just attempted.',
-                    style:
-                        AppText.body.copyWith(color: context.colors.textMuted),
-                  ),
-                ),
               if (child.openedByTrainer)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),

@@ -113,7 +113,6 @@ function parseItem(raw, { index }) {
       kind: raw.kind,
       task: cleanTask,
       gate: raw.gate === true,
-      requireSolved: raw.requireSolved === true,
     },
   };
 }
@@ -251,15 +250,14 @@ async function saveHomework(pool, { trainerId, homeworkId = null, payload }) {
     for (const row of rows) {
       await client.query(
         `INSERT INTO homework_items
-           (homework_id, item_key, position, kind, task, gate, require_solved)
-         VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
+           (homework_id, item_key, position, kind, task, gate)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6)
          ON CONFLICT (homework_id, item_key) DO UPDATE
             SET position = EXCLUDED.position,
                 kind = EXCLUDED.kind,
                 task = EXCLUDED.task,
-                gate = EXCLUDED.gate,
-                require_solved = EXCLUDED.require_solved`,
-        [id, row.key, row.position, row.kind, JSON.stringify(row.task), row.gate, row.requireSolved]
+                gate = EXCLUDED.gate`,
+        [id, row.key, row.position, row.kind, JSON.stringify(row.task), row.gate]
       );
     }
 
@@ -287,7 +285,7 @@ async function loadHomework(pool, homeworkId, trainerId) {
   if (found.rows.length === 0) return null;
 
   const items = await pool.query(
-    `SELECT item_key, position, kind, task, gate, require_solved
+    `SELECT item_key, position, kind, task, gate
        FROM homework_items WHERE homework_id = $1 ORDER BY position`,
     [homeworkId]
   );

@@ -105,12 +105,25 @@ njemu će stajati i aplikacija u 2b; žica je opisana u §7a plana. Backend
 pregled je poneo ceo niz pod novim ključem, a svi testovi otkrivanja gledali
 su stari ključ.
 
-**Čeka vlasnika (§8.3, izmereno):** uz „mora biti rešeno", jedan pogrešan
-potez u nizu drži sledeću stavku zaključanom i kad učenik iz drugog pokušaja
-završi niz — dok trener ne otključa. Ili ostaje tako, ili za nizove „rešeno"
-znači „završio niz".
+**„Mora biti rešeno" je izbačeno** (vlasnik, 18.9.2026; §8.3 plana). Izmereno
+je da uz taj prekidač jedan pogrešan potez u nizu drži sledeću stavku
+zaključanom i kad učenik iz drugog pokušaja završi niz; vlasnik je pitao da li
+prekidač uopšte treba, i nije trebao — bio je jedina stvar u domaćem koja može
+da zarobi učenika, a pregled treneru ionako pokazuje šta je rešeno. Obe kolone
+`require_solved` su obrisane migracijom, `childPassedSql` je samo
+`completed_at IS NOT NULL`, prekidač je skinut iz editora, a obaveštenje sa
+učenikovog ekrana. „Gotovo" je svuda „pokušano". Backend 1565 → 1564 sa bazom,
+1486 bez, nepromenjeno (svi dirnuti testovi traže bazu).
 
-Sledeće: faza 2b (`[implementer]`; kapiju piše vođa). Otvoreno namerno, §8: motor na
+Aplikacija posle izbacivanja: 3054 → 3053 (ceo prolaz, 18.9.2026), analyze
+istih 26.
+
+**Faza 2b je predata** (`[implementer]`): kapija
+`docs/gates/exercise_make_test.dart`, brif
+`docs/briefs/BRIEF-EXERCISE-FAZA2B-APP.md`. Sužena je na vrata u Preparation i
+rešavač; vrata u Biblioteci idu u fazu 4, a partija sa table u 3b. Pre predaje
+je izmereno da Dart `chess` paket odbija `Rd8` kad je potez `Rd8#`, a serverov
+chess.js ga igra — brif time počinje. Otvoreno namerno, §8: motor na
 uređaju za više od sedam figura, tablebase kao protivnik, i „mora biti rešeno"
 posle prvog pogrešnog poteza u nizu.
 

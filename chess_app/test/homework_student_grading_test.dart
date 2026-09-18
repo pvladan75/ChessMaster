@@ -62,7 +62,6 @@ Map<String, dynamic> _parent() => {
           'item_key': 'ia1b2c3d4',
           'lesson_id': 31,
           'gate': false,
-          'require_solved': false,
           'gate_opened_at': null,
           'completed_at': '2026-09-17T10:00:00.000Z',
           'total_items': 3,
@@ -79,7 +78,6 @@ Map<String, dynamic> _parent() => {
           'position': 1,
           'item_key': 'ie5f6a7b8',
           'gate': true,
-          'require_solved': false,
           'gate_opened_at': null,
           'completed_at': null,
           'total_items': 2,
@@ -96,7 +94,6 @@ Map<String, dynamic> _parent() => {
           'position': 2,
           'item_key': 'i90c1d2e3',
           'gate': true,
-          'require_solved': false,
           'gate_opened_at': '2026-09-17T11:00:00.000Z',
           'completed_at': null,
           'task': {

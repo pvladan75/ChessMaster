@@ -3859,3 +3859,55 @@ up as a decision.
 **The shell layer eats backslashes and chokes on apostrophes in long
 heredocs.** Files with escapes or prose are written with the Write tool; the
 shell is for commands.
+
+## 18.9.2026 — „Must be solved" removed: a feature whose escape hatch is its best argument against it
+
+Put to the owner as two options for lines (leave it, or let „solved" mean
+„finished the line"), and the owner asked the better question: is the switch
+needed at all? It was not. Backend **1565 → 1564** with the test database (−2
+tests of the rule, −1 *measured for the owner*, +2: „done is attempted and
+nothing else", and the column gone from both tables), **1486, unchanged,** without — every test touched needs the database, which I first got wrong by subtracting them anyway.
+The app's count is in the entry below this one, re-derived from a full run.
+
+**When a feature needs an escape hatch, ask what the feature is for before
+polishing the hatch.** The gate's job is order — read the tutorial first. „Must
+be solved" made it a mastery gate, which can hold a student on one board for
+good; the trainer's unlock existed largely to undo that. The trainer loses
+nothing they were using: the review shows solved and failed per item.
+
+**A DROP COLUMN tested on a fresh database cannot fail.** A fresh schema never
+had the column, so „the column is gone" passed with the DROP deleted. The test
+now plants the column the way every older database has it, runs `initDB`, and
+then looks. Same shape as the backfill test in phase 1: **a migration is tested
+from the state it migrates, not from the state it produces.**
+
+**Removing a parameter from an INSERT shifts every placeholder after it.**
+`$10::jsonb` had to become `$9::jsonb` by hand in `homeworkSend.js`; a fake pool
+would have accepted the shifted list. The real-database tests are what made
+this a two-minute fix rather than a live 500.
+
+**A fixture removed with the feature it was named after may have a second
+user.** `_mixedParent` was built for the „must be solved" notice and also fed
+„coming back re-reads". The compile error caught it; it came back as
+`_openParent`, named for what it is rather than what it was first for.
+
+## 18.9.2026 — The app after „must be solved", and the gate for phase 2b
+
+App **3054 → 3053** (a full run, 1 skipped, 0 failed): the group „must be
+solved is scoped to its own row" went with the notice it tested; the editor's
+„two switches" test became „the gate switch", with an assertion that nothing of
+the old switch travels. Analyze: the same 26 infos.
+
+**Prove a gate's assumptions about code that exists, before handing it over.**
+The 2b gate reads a fixture containing `Rd8` for a move whose real spelling is
+`Rd8#`. A scratch test said what no reading would have: the Dart `chess`
+package's `move('Rd8')` answers **false**, where the server's chess.js plays
+it. Two parsers that must agree, disagreeing on decoration. The brief now
+opens with that fact and points at `findMove`, which already strips it — so the
+worker neither trips on it nor writes a second matcher. **A gate is code that
+runs against a library; run the library's half of it.**
+
+**Say it on the wire rather than let the client infer it.** The solver needed
+to know whether a wrong move may be played again. It could have been read off
+`solutionSan == null` — true today, and a coincidence of two other rules. The
+route now sends `retry`.

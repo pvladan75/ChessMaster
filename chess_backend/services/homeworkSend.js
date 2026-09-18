@@ -217,8 +217,8 @@ async function sendHomework(pool, { trainerId, studentId, homeworkId, dueAt = nu
       const childRes = await client.query(
         `INSERT INTO assignments
            (trainer_id, student_id, title, kind, parent_id, position, item_key,
-            gate, require_solved, task, lesson_id, themes, min_rating, max_rating)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13, $14)
+            gate, task, lesson_id, themes, min_rating, max_rating)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13)
          RETURNING *`,
         [
           trainerId,
@@ -229,7 +229,6 @@ async function sendHomework(pool, { trainerId, studentId, homeworkId, dueAt = nu
           item.position,
           item.item_key,
           item.gate,
-          item.require_solved,
           item.kind === 'engine_game' ? JSON.stringify(item.task) : null,
           plan.lessonId,
           item.kind === 'puzzles' ? item.task.themes : [],

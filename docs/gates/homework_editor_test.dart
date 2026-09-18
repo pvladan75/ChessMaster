@@ -27,8 +27,7 @@
 //       final HomeworkItemKind kind;
 //       final Map<String, dynamic> task;
 //       final bool gate;
-//       final bool requireSolved;
-//       HomeworkItem copyWith({bool? gate, bool? requireSolved, Map<String, dynamic>? task});
+//       HomeworkItem copyWith({bool? gate, Map<String, dynamic>? task});
 //       Map<String, dynamic> toJson();               // itemKey omitted when null
 //       static HomeworkItem? fromJson(Map<String, dynamic> json);  // null when unreadable
 //     }
@@ -63,7 +62,6 @@
 //   Key('homework-down-<itemKey or new-N>')     move it later
 //   Key('homework-remove-<itemKey or new-N>')   take it out
 //   Key('homework-gate-<itemKey or new-N>')     „not before the previous is done"
-//   Key('homework-solved-<itemKey or new-N>')   „done means solved"
 // where `new-N` numbers the items added in this sitting, in the order added.
 
 import 'dart:convert';
@@ -83,36 +81,40 @@ import 'support/landscape.dart';
 /// Three saved items, as the server returns them: a tutorial, a set of
 /// positions and a puzzle set, with keys that are nothing like their indexes.
 Map<String, dynamic> _saved() => {
-      'id': 7,
-      'title': 'Thursday',
-      'instructions': 'Read first, then solve.',
-      'items': [
-        {
-          'item_key': 'ia1b2c3d4',
-          'position': 0,
-          'kind': 'lesson',
-          'task': {'lessonId': 31},
-          'gate': false,
-          'require_solved': false,
-        },
-        {
-          'item_key': 'ie5f6a7b8',
-          'position': 1,
-          'kind': 'positions',
-          'task': {'puzzleIds': ['cust_x1', 'cust_x2']},
-          'gate': true,
-          'require_solved': false,
-        },
-        {
-          'item_key': 'i90c1d2e3',
-          'position': 2,
-          'kind': 'puzzles',
-          'task': {'count': 6, 'themes': ['pin'], 'minRating': null, 'maxRating': null},
-          'gate': false,
-          'require_solved': false,
-        },
-      ],
-    };
+  'id': 7,
+  'title': 'Thursday',
+  'instructions': 'Read first, then solve.',
+  'items': [
+    {
+      'item_key': 'ia1b2c3d4',
+      'position': 0,
+      'kind': 'lesson',
+      'task': {'lessonId': 31},
+      'gate': false,
+    },
+    {
+      'item_key': 'ie5f6a7b8',
+      'position': 1,
+      'kind': 'positions',
+      'task': {
+        'puzzleIds': ['cust_x1', 'cust_x2'],
+      },
+      'gate': true,
+    },
+    {
+      'item_key': 'i90c1d2e3',
+      'position': 2,
+      'kind': 'puzzles',
+      'task': {
+        'count': 6,
+        'themes': ['pin'],
+        'minRating': null,
+        'maxRating': null,
+      },
+      'gate': false,
+    },
+  ],
+};
 
 /// Drives the editor with a client that records every request and answers with
 /// whatever the body said, so a save looks like a save.
@@ -120,12 +122,15 @@ class _Recorder {
   final List<http.Request> requests = [];
 
   http.Client client() => MockClient((request) async {
-        requests.add(request);
-        if (request.method == 'GET') {
-          return http.Response(jsonEncode(_saved()), 200);
-        }
-        return http.Response(jsonEncode(_saved()), request.method == 'POST' ? 201 : 200);
-      });
+    requests.add(request);
+    if (request.method == 'GET') {
+      return http.Response(jsonEncode(_saved()), 200);
+    }
+    return http.Response(
+      jsonEncode(_saved()),
+      request.method == 'POST' ? 201 : 200,
+    );
+  });
 
   Map<String, dynamic>? bodyOf(String method) {
     final sent = requests.where((r) => r.method == method);
@@ -139,34 +144,39 @@ class _Recorder {
   }
 }
 
-Future<_Recorder> _open(WidgetTester tester,
-    {int? homeworkId = 7, Size size = const Size(360, 800)}) async {
+Future<_Recorder> _open(
+  WidgetTester tester, {
+  int? homeworkId = 7,
+  Size size = const Size(360, 800),
+}) async {
   final recorder = _Recorder();
   final api = HomeworkApiService(authToken: 'tok', client: recorder.client());
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(MaterialApp(
-    theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
-    home: HomeworkEditorScreen(homeworkId: homeworkId, api: api),
-  ));
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+      home: HomeworkEditorScreen(homeworkId: homeworkId, api: api),
+    ),
+  );
   await tester.pumpAndSettle();
   return recorder;
 }
 
-List<String> _keysInBody(Map<String, dynamic> body) =>
-    (body['items'] as List)
-        .map((i) => (i as Map<String, dynamic>)['itemKey'] as String?)
-        .map((k) => k ?? '(new)')
-        .toList();
+List<String> _keysInBody(Map<String, dynamic> body) => (body['items'] as List)
+    .map((i) => (i as Map<String, dynamic>)['itemKey'] as String?)
+    .map((k) => k ?? '(new)')
+    .toList();
 
 void main() {
   // Real glyphs: the rows below are measured as well as searched.
   setUpAll(loadRoboto);
 
   group('the editor', () {
-    testWidgets('opens a saved homework and shows its items in order',
-        (tester) async {
+    testWidgets('opens a saved homework and shows its items in order', (
+      tester,
+    ) async {
       final recorder = await _open(tester);
 
       expect(recorder.lastOf('GET')?.url.path, endsWith('/homeworks/7'));
@@ -176,15 +186,22 @@ void main() {
       expect(tester.takeException(), isNull);
 
       // In the trainer's order, top to bottom.
-      final first = tester.getRect(find.byKey(const Key('homework-item-ia1b2c3d4')));
-      final second = tester.getRect(find.byKey(const Key('homework-item-ie5f6a7b8')));
-      final third = tester.getRect(find.byKey(const Key('homework-item-i90c1d2e3')));
+      final first = tester.getRect(
+        find.byKey(const Key('homework-item-ia1b2c3d4')),
+      );
+      final second = tester.getRect(
+        find.byKey(const Key('homework-item-ie5f6a7b8')),
+      );
+      final third = tester.getRect(
+        find.byKey(const Key('homework-item-i90c1d2e3')),
+      );
       expect(first.top, lessThan(second.top));
       expect(second.top, lessThan(third.top));
     });
 
-    testWidgets('a reorder sends the same keys in the new order — the gate',
-        (tester) async {
+    testWidgets('a reorder sends the same keys in the new order — the gate', (
+      tester,
+    ) async {
       final recorder = await _open(tester);
 
       // The last item moves to the top: two taps of „up".
@@ -198,16 +215,20 @@ void main() {
       final body = recorder.bodyOf('PUT');
       expect(body, isNotNull, reason: 'a saved homework is saved with PUT');
       expect(recorder.lastOf('PUT')?.url.path, endsWith('/homeworks/7'));
-      expect(_keysInBody(body!), ['i90c1d2e3', 'ia1b2c3d4', 'ie5f6a7b8'],
-          reason: 'every key travels with its item; only the order changed');
+      expect(
+        _keysInBody(body!),
+        ['i90c1d2e3', 'ia1b2c3d4', 'ie5f6a7b8'],
+        reason: 'every key travels with its item; only the order changed',
+      );
       // No position is sent: ordering is the list, and the server numbers it.
       for (final item in body['items'] as List) {
         expect((item as Map).containsKey('position'), isFalse);
       }
     });
 
-    testWidgets('an item taken out is simply absent, and the rest keep keys',
-        (tester) async {
+    testWidgets('an item taken out is simply absent, and the rest keep keys', (
+      tester,
+    ) async {
       final recorder = await _open(tester);
 
       await tester.tap(find.byKey(const Key('homework-remove-ie5f6a7b8')));
@@ -218,12 +239,10 @@ void main() {
       expect(_keysInBody(recorder.bodyOf('PUT')!), ['ia1b2c3d4', 'i90c1d2e3']);
     });
 
-    testWidgets('the two switches travel per item', (tester) async {
+    testWidgets('the gate switch travels per item', (tester) async {
       final recorder = await _open(tester);
 
       await tester.tap(find.byKey(const Key('homework-gate-ia1b2c3d4')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('homework-solved-ia1b2c3d4')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('homework-save')));
       await tester.pumpAndSettle();
@@ -232,20 +251,27 @@ void main() {
           .cast<Map<String, dynamic>>();
       final first = items.firstWhere((i) => i['itemKey'] == 'ia1b2c3d4');
       expect(first['gate'], isTrue);
-      expect(first['requireSolved'], isTrue);
       // Untouched items keep what they had: the second one gates already.
       final second = items.firstWhere((i) => i['itemKey'] == 'ie5f6a7b8');
       expect(second['gate'], isTrue);
-      expect(second['requireSolved'], isFalse);
+      // „Done means solved" was a second switch; the owner removed it on
+      // 18.9.2026 (`docs/PLAN-EXERCISE.md` §8.3). Nothing of it may travel.
+      for (final item in items) {
+        expect(item.containsKey('requireSolved'), isFalse);
+      }
+      expect(find.byKey(const Key('homework-solved-ia1b2c3d4')), findsNothing);
     });
 
-    testWidgets('the title and the instructions are what was typed',
-        (tester) async {
+    testWidgets('the title and the instructions are what was typed', (
+      tester,
+    ) async {
       final recorder = await _open(tester);
 
       await tester.enterText(find.byKey(const Key('homework-title')), 'Friday');
       await tester.enterText(
-          find.byKey(const Key('homework-instructions')), 'Tutorial, then two positions.');
+        find.byKey(const Key('homework-instructions')),
+        'Tutorial, then two positions.',
+      );
       await tester.tap(find.byKey(const Key('homework-save')));
       await tester.pumpAndSettle();
 
@@ -254,12 +280,20 @@ void main() {
       expect(body['instructions'], 'Tutorial, then two positions.');
     });
 
-    testWidgets('a homework that was never saved is created, not updated',
-        (tester) async {
+    testWidgets('a homework that was never saved is created, not updated', (
+      tester,
+    ) async {
       final recorder = await _open(tester, homeworkId: null);
 
-      expect(recorder.lastOf('GET'), isNull, reason: 'there is nothing to load');
-      await tester.enterText(find.byKey(const Key('homework-title')), 'New one');
+      expect(
+        recorder.lastOf('GET'),
+        isNull,
+        reason: 'there is nothing to load',
+      );
+      await tester.enterText(
+        find.byKey(const Key('homework-title')),
+        'New one',
+      );
       await tester.tap(find.byKey(const Key('homework-save')));
       await tester.pumpAndSettle();
 
@@ -272,8 +306,9 @@ void main() {
     });
 
     for (final size in [const Size(360, 800), const Size(800, 360)]) {
-      testWidgets('fits at ${size.width.toInt()}×${size.height.toInt()}',
-          (tester) async {
+      testWidgets('fits at ${size.width.toInt()}×${size.height.toInt()}', (
+        tester,
+      ) async {
         await _open(tester, size: size);
         expect(tester.takeException(), isNull);
         // Every row's controls are on screen, not clipped past the edge.
@@ -292,8 +327,11 @@ void main() {
     test('an item survives the round trip, key and all', () {
       final homework = Homework.fromJson(_saved())!;
       expect(homework.id, 7);
-      expect(homework.items.map((i) => i.itemKey),
-          ['ia1b2c3d4', 'ie5f6a7b8', 'i90c1d2e3']);
+      expect(homework.items.map((i) => i.itemKey), [
+        'ia1b2c3d4',
+        'ie5f6a7b8',
+        'i90c1d2e3',
+      ]);
       expect(homework.items.map((i) => i.kind), [
         HomeworkItemKind.lesson,
         HomeworkItemKind.positions,
@@ -311,13 +349,20 @@ void main() {
       const item = HomeworkItem(
         itemKey: null,
         kind: HomeworkItemKind.engineGame,
-        task: {'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1', 'side': 'w', 'goal': 'win'},
+        task: {
+          'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1',
+          'side': 'w',
+          'goal': 'win',
+        },
         gate: false,
-        requireSolved: false,
       );
       final wire = item.toJson();
       expect(wire.containsKey('itemKey'), isFalse);
-      expect(wire['kind'], 'engine_game', reason: 'the wire spelling, not the enum');
+      expect(
+        wire['kind'],
+        'engine_game',
+        reason: 'the wire spelling, not the enum',
+      );
     });
 
     test('the wire spellings are the ones the server checks', () {
@@ -328,7 +373,11 @@ void main() {
       for (final kind in HomeworkItemKind.values) {
         expect(kindFromWire(wireKindOf(kind)), kind);
       }
-      expect(kindFromWire('video'), isNull, reason: 'an unknown kind is refused');
+      expect(
+        kindFromWire('video'),
+        isNull,
+        reason: 'an unknown kind is refused',
+      );
     });
 
     test('an unreadable item is refused rather than guessed', () {

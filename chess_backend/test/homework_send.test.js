@@ -142,7 +142,7 @@ describe('sending a homework', { skip: skip ? skip.skip : false }, () => {
       { kind: 'lesson', task: { lessonId } },
       { kind: 'positions', task: { puzzleIds: [positionId] }, gate: true },
       { kind: 'puzzles', task: { count: 2, themes: ['pin'] } },
-      { kind: 'engine_game', task: GAME_TASK, gate: true, requireSolved: true },
+      { kind: 'engine_game', task: GAME_TASK, gate: true },
     ]);
 
     const sent = await send.sendHomework(pool, {
@@ -163,7 +163,6 @@ describe('sending a homework', { skip: skip ? skip.skip : false }, () => {
     assert.deepEqual(children.map((c) => c.item_key), tpl.items.map((i) => i.item_key));
     assert.deepEqual(children.map((c) => c.position), tpl.items.map((i) => i.position));
     assert.deepEqual(children.map((c) => c.gate), [false, true, false, true]);
-    assert.deepEqual(children.map((c) => c.require_solved), [false, false, false, true]);
 
     // Each child's items: the tutorial's steps, the position, the puzzles, and
     // one row for the game.

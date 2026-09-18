@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3054 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3053 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1565 with TEST_DATABASE_URL, 1486 without
+cd chess_backend && npm test          # node --test, 1564 with TEST_DATABASE_URL, 1486 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -31,7 +31,7 @@ Measured on `master` on 18.9.2026 (after the owner's live pass of 18.9 and the f
 reorganisation merged (`docs/PLAN-REORGANIZACIJA.md`: the shell Home · Practise ·
 Analyse · Teach, the room's column on the shared library list, the studio's
 `TutorialDraftController`, the studio on a phone, one tutorial editor everywhere)
-and phases 1–2 of the puzzle progress plan; then phases 1 and 2a of `docs/PLAN-EXERCISE.md`, which touched the backend only (the app's count is from before it and unchanged). Only the owner's live pass is open. Every change of these numbers,
+and phases 1–2 of the puzzle progress plan; then phases 1 and 2a of `docs/PLAN-EXERCISE.md`, backend only, and the removal of „must be solved" from both ends (the app went 3054 → 3053, a full run on 18.9.2026). Only the owner's live pass is open. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and

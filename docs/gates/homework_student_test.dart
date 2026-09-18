@@ -45,7 +45,7 @@
 //   enum HomeworkChildState { done, open, locked }
 //   HomeworkChild — `lib/features/homework/models/homework_child.dart`:
 //       id, title, kind (the wire spelling), position, itemKey, lessonId,
-//       gate, requireSolved, gateOpenedAt, completedAt, task,
+//       gate, gateOpenedAt, completedAt, task,
 //       totalItems, attemptedItems, solvedItems, passed, locked, blockedBy,
 //       state, openedByTrainer; `fromJson` refuses a row it cannot read.
 //
@@ -107,12 +107,12 @@ const _studentId = 1;
 const _trainerId = 9;
 
 UserSession _session(int id) => UserSession(
-      token: 'tok',
-      id: id,
-      email: 'a@example.com',
-      name: id == _trainerId ? 'Trainer' : 'Student',
-      role: id == _trainerId ? 'trener' : 'ucenik',
-    );
+  token: 'tok',
+  id: id,
+  email: 'a@example.com',
+  name: id == _trainerId ? 'Trainer' : 'Student',
+  role: id == _trainerId ? 'trener' : 'ucenik',
+);
 
 /// One tutorial (done), two positions (open), one game (locked behind the
 /// positions) — the shape §6 of the plan describes.
@@ -127,7 +127,6 @@ Map<String, dynamic> _child({
   required String itemKey,
   int? lessonId,
   bool gate = true,
-  bool requireSolved = false,
   String? gateOpenedAt,
   String? completedAt,
   Map<String, dynamic>? task,
@@ -137,26 +136,24 @@ Map<String, dynamic> _child({
   bool passed = false,
   bool locked = false,
   int? blockedBy,
-}) =>
-    {
-      'id': id,
-      'title': title,
-      'kind': kind,
-      'position': position,
-      'item_key': itemKey,
-      'lesson_id': lessonId,
-      'gate': gate,
-      'require_solved': requireSolved,
-      'gate_opened_at': gateOpenedAt,
-      'completed_at': completedAt,
-      'task': task,
-      'total_items': totalItems,
-      'attempted_items': attemptedItems,
-      'solved_items': solvedItems,
-      'passed': passed,
-      'locked': locked,
-      'blocked_by': blockedBy,
-    };
+}) => {
+  'id': id,
+  'title': title,
+  'kind': kind,
+  'position': position,
+  'item_key': itemKey,
+  'lesson_id': lessonId,
+  'gate': gate,
+  'gate_opened_at': gateOpenedAt,
+  'completed_at': completedAt,
+  'task': task,
+  'total_items': totalItems,
+  'attempted_items': attemptedItems,
+  'solved_items': solvedItems,
+  'passed': passed,
+  'locked': locked,
+  'blocked_by': blockedBy,
+};
 
 const _gameTask = {
   'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1',
@@ -167,56 +164,56 @@ const _gameTask = {
 /// The parent as `GET /assignments/7` sends it. [gameOpen] is the state after
 /// the trainer has used the escape hatch on the third item.
 Map<String, dynamic> _parent({bool gameOpen = false}) => {
-      'id': 7,
-      'title': 'Thursday',
-      'instructions': 'Read first, then solve.',
-      'kind': 'homework',
-      'trainer_id': _trainerId,
-      'student_id': _studentId,
-      'trainer_name': 'Trainer',
-      'due_at': null,
-      'completed_at': null,
-      'total_items': 0,
-      'attempted_items': 0,
-      'solved_items': 0,
-      'child_total': 3,
-      'child_completed': 1,
-      'children': [
-        _child(
-          id: 501,
-          title: 'My Tutorial',
-          kind: 'lesson',
-          position: 0,
-          itemKey: 'ia1b2c3d4',
-          lessonId: 31,
-          gate: false,
-          completedAt: '2026-09-17T10:00:00.000Z',
-          task: {'lessonId': 31},
-          totalItems: 3,
-          attemptedItems: 3,
-          passed: true,
-        ),
-        _child(
-          id: 502,
-          title: 'Two positions',
-          kind: 'puzzles',
-          position: 1,
-          itemKey: 'ie5f6a7b8',
-          totalItems: 2,
-        ),
-        _child(
-          id: 503,
-          title: 'Play it out: win it',
-          kind: 'engine_game',
-          position: 2,
-          itemKey: 'i90c1d2e3',
-          task: _gameTask,
-          gateOpenedAt: gameOpen ? '2026-09-17T11:00:00.000Z' : null,
-          locked: !gameOpen,
-          blockedBy: gameOpen ? null : 502,
-        ),
-      ],
-    };
+  'id': 7,
+  'title': 'Thursday',
+  'instructions': 'Read first, then solve.',
+  'kind': 'homework',
+  'trainer_id': _trainerId,
+  'student_id': _studentId,
+  'trainer_name': 'Trainer',
+  'due_at': null,
+  'completed_at': null,
+  'total_items': 0,
+  'attempted_items': 0,
+  'solved_items': 0,
+  'child_total': 3,
+  'child_completed': 1,
+  'children': [
+    _child(
+      id: 501,
+      title: 'My Tutorial',
+      kind: 'lesson',
+      position: 0,
+      itemKey: 'ia1b2c3d4',
+      lessonId: 31,
+      gate: false,
+      completedAt: '2026-09-17T10:00:00.000Z',
+      task: {'lessonId': 31},
+      totalItems: 3,
+      attemptedItems: 3,
+      passed: true,
+    ),
+    _child(
+      id: 502,
+      title: 'Two positions',
+      kind: 'puzzles',
+      position: 1,
+      itemKey: 'ie5f6a7b8',
+      totalItems: 2,
+    ),
+    _child(
+      id: 503,
+      title: 'Play it out: win it',
+      kind: 'engine_game',
+      position: 2,
+      itemKey: 'i90c1d2e3',
+      task: _gameTask,
+      gateOpenedAt: gameOpen ? '2026-09-17T11:00:00.000Z' : null,
+      locked: !gameOpen,
+      blockedBy: gameOpen ? null : 502,
+    ),
+  ],
+};
 
 /// Answers the three addresses this screen uses and records every request, so
 /// a wrong address is visible: a `MockClient` answers whatever it is asked.
@@ -228,78 +225,81 @@ class _Recorder {
   final List<http.Request> requests = [];
 
   http.Client client() => MockClient((request) async {
-        requests.add(request);
-        final path = request.url.path;
-        if (path == '/assignments/7' && request.method == 'GET') {
-          return http.Response(jsonEncode(_parent(gameOpen: gameOpen)), 200);
-        }
-        if (path == '/assignments/mine' && request.method == 'GET') {
-          return http.Response(
-              jsonEncode({
-                'assignments': [
-                  {
-                    'id': 7,
-                    'title': 'Thursday',
-                    'kind': 'homework',
-                    'instructions': 'Read first, then solve.',
-                    'trainer_id': _trainerId,
-                    'student_id': _studentId,
-                    'trainer_name': 'Trainer',
-                    'total_items': 0,
-                    'attempted_items': 0,
-                    'solved_items': 0,
-                    'child_total': 3,
-                    'child_completed': 1,
-                  },
-                ],
-              }),
-              200);
-        }
-        if (path.startsWith('/assignments/progress/')) {
-          return http.Response(jsonEncode({'hasData': false}), 200);
-        }
-        if (path == '/assignments/502' && request.method == 'GET') {
-          // The child's own detail, for the screen its row opens.
-          return http.Response(
-              jsonEncode({
-                'id': 502,
-                'title': 'Two positions',
-                'kind': 'puzzles',
-                'total_items': 2,
-                'attempted_items': 0,
-                'solved_items': 0,
-                'items': [
-                  {'puzzle_id': 'cust_1', 'position': 0},
-                  {'puzzle_id': 'cust_2', 'position': 1},
-                ],
-                'customPositions': [
-                  {
-                    'puzzle_id': 'cust_1',
-                    'fen': '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
-                    'side_to_move': 'w',
-                    'instruction': 'White to play and win.',
-                    'source_title': 'Mate in 2',
-                  },
-                  {
-                    'puzzle_id': 'cust_2',
-                    'fen': '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
-                    'side_to_move': 'w',
-                    'instruction': 'And again.',
-                    'source_title': 'The other one',
-                  },
-                ],
-              }),
-              200);
-        }
-        if (path == '/assignments/503/open-gate' && request.method == 'POST') {
-          return http.Response(jsonEncode({'success': true}), 200);
-        }
-        return http.Response('{"error":"not found"}', 404);
-      });
+    requests.add(request);
+    final path = request.url.path;
+    if (path == '/assignments/7' && request.method == 'GET') {
+      return http.Response(jsonEncode(_parent(gameOpen: gameOpen)), 200);
+    }
+    if (path == '/assignments/mine' && request.method == 'GET') {
+      return http.Response(
+        jsonEncode({
+          'assignments': [
+            {
+              'id': 7,
+              'title': 'Thursday',
+              'kind': 'homework',
+              'instructions': 'Read first, then solve.',
+              'trainer_id': _trainerId,
+              'student_id': _studentId,
+              'trainer_name': 'Trainer',
+              'total_items': 0,
+              'attempted_items': 0,
+              'solved_items': 0,
+              'child_total': 3,
+              'child_completed': 1,
+            },
+          ],
+        }),
+        200,
+      );
+    }
+    if (path.startsWith('/assignments/progress/')) {
+      return http.Response(jsonEncode({'hasData': false}), 200);
+    }
+    if (path == '/assignments/502' && request.method == 'GET') {
+      // The child's own detail, for the screen its row opens.
+      return http.Response(
+        jsonEncode({
+          'id': 502,
+          'title': 'Two positions',
+          'kind': 'puzzles',
+          'total_items': 2,
+          'attempted_items': 0,
+          'solved_items': 0,
+          'items': [
+            {'puzzle_id': 'cust_1', 'position': 0},
+            {'puzzle_id': 'cust_2', 'position': 1},
+          ],
+          'customPositions': [
+            {
+              'puzzle_id': 'cust_1',
+              'fen': '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
+              'side_to_move': 'w',
+              'instruction': 'White to play and win.',
+              'source_title': 'Mate in 2',
+            },
+            {
+              'puzzle_id': 'cust_2',
+              'fen': '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
+              'side_to_move': 'w',
+              'instruction': 'And again.',
+              'source_title': 'The other one',
+            },
+          ],
+        }),
+        200,
+      );
+    }
+    if (path == '/assignments/503/open-gate' && request.method == 'POST') {
+      return http.Response(jsonEncode({'success': true}), 200);
+    }
+    return http.Response('{"error":"not found"}', 404);
+  });
 
   List<http.Request> to(String path, {String? method}) => requests
       .where(
-          (r) => r.url.path == path && (method == null || r.method == method))
+        (r) => r.url.path == path && (method == null || r.method == method),
+      )
       .toList();
 }
 
@@ -315,12 +315,11 @@ String _stateOf(WidgetTester tester, int id) {
 }
 
 Widget _wrap(Widget home) => ProviderScope(
-      child: MaterialApp(
-        theme:
-            ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
-        home: home,
-      ),
-    );
+  child: MaterialApp(
+    theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+    home: home,
+  ),
+);
 
 /// Pumps the student's homework screen for [sessionId] and returns its
 /// recorder.
@@ -334,11 +333,15 @@ Future<_Recorder> _openHomework(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  await tester.pumpWidget(_wrap(HomeworkAssignmentScreen(
-    session: _session(sessionId),
-    assignmentId: 7,
-    api: AssignmentApiService(authToken: 'tok', client: recorder.client()),
-  )));
+  await tester.pumpWidget(
+    _wrap(
+      HomeworkAssignmentScreen(
+        session: _session(sessionId),
+        assignmentId: 7,
+        api: AssignmentApiService(authToken: 'tok', client: recorder.client()),
+      ),
+    ),
+  );
   await tester.pumpAndSettle();
   return recorder;
 }
@@ -347,19 +350,25 @@ void main() {
   setUpAll(loadRoboto);
 
   group('the model reads what the server sends', () {
-    test('a kind is the wire spelling, and an unknown one is not a homework',
-        () {
-      AssignmentKind kindOf(String wire) =>
-          Assignment.fromJson({'id': 1, 'title': 't', 'kind': wire}).kind;
+    test(
+      'a kind is the wire spelling, and an unknown one is not a homework',
+      () {
+        AssignmentKind kindOf(String wire) =>
+            Assignment.fromJson({'id': 1, 'title': 't', 'kind': wire}).kind;
 
-      expect(kindOf('homework'), AssignmentKind.homework);
-      expect(kindOf('engine_game'), AssignmentKind.engineGame);
-      expect(kindOf('lesson'), AssignmentKind.lesson);
-      expect(kindOf('puzzles'), AssignmentKind.puzzles);
-      expect(kindOf('something-new'), AssignmentKind.puzzles,
-          reason: 'an unknown kind stays the ordinary one, not a homework '
-              'whose children would never load');
-    });
+        expect(kindOf('homework'), AssignmentKind.homework);
+        expect(kindOf('engine_game'), AssignmentKind.engineGame);
+        expect(kindOf('lesson'), AssignmentKind.lesson);
+        expect(kindOf('puzzles'), AssignmentKind.puzzles);
+        expect(
+          kindOf('something-new'),
+          AssignmentKind.puzzles,
+          reason:
+              'an unknown kind stays the ordinary one, not a homework '
+              'whose children would never load',
+        );
+      },
+    );
 
     test('a homework counts its children, not its items', () {
       final homework = Assignment.fromJson(_parent());
@@ -403,17 +412,19 @@ void main() {
       // `completed_at IS NULL` — and that is the point: if it ever did, a
       // finished item must not be drawn as a locked one. The same ordering
       // mistake already survived a mutation once, in the server's own tests.
-      final finished = HomeworkChild.fromJson(_child(
-        id: 504,
-        title: 'Finished',
-        kind: 'puzzles',
-        position: 3,
-        itemKey: 'i5a6b7c8',
-        completedAt: '2026-09-17T12:00:00.000Z',
-        passed: true,
-        locked: true,
-        blockedBy: 503,
-      ));
+      final finished = HomeworkChild.fromJson(
+        _child(
+          id: 504,
+          title: 'Finished',
+          kind: 'puzzles',
+          position: 3,
+          itemKey: 'i5a6b7c8',
+          completedAt: '2026-09-17T12:00:00.000Z',
+          passed: true,
+          locked: true,
+          blockedBy: 503,
+        ),
+      );
       expect(finished!.state, HomeworkChildState.done);
     });
 
@@ -438,16 +449,18 @@ void main() {
   });
 
   group("the student's homework screen", () {
-    testWidgets('lists the items in the trainer\'s order, with their state',
-        (tester) async {
+    testWidgets('lists the items in the trainer\'s order, with their state', (
+      tester,
+    ) async {
       await _openHomework(tester);
 
       expect(find.byKey(const Key('homework-progress')), findsOneWidget);
       expect(find.text('1 of 3 items'), findsOneWidget);
 
       final first = tester.getRect(find.byKey(const Key('homework-child-501')));
-      final second =
-          tester.getRect(find.byKey(const Key('homework-child-502')));
+      final second = tester.getRect(
+        find.byKey(const Key('homework-child-502')),
+      );
       final third = tester.getRect(find.byKey(const Key('homework-child-503')));
       expect(first.top, lessThan(second.top));
       expect(second.top, lessThan(third.top));
@@ -469,13 +482,15 @@ void main() {
           matching: find.textContaining('Two positions'),
         ),
         findsOneWidget,
-        reason: 'blocked_by is 502, whose title is „Two positions" — an id '
+        reason:
+            'blocked_by is 502, whose title is „Two positions" — an id '
             'read as an index would name „My Tutorial" or nothing at all',
       );
     });
 
-    testWidgets('does not open a locked item, and asks the server nothing',
-        (tester) async {
+    testWidgets('does not open a locked item, and asks the server nothing', (
+      tester,
+    ) async {
       final recorder = await _openHomework(tester);
 
       await tester.tap(find.byKey(const Key('homework-child-503')));
@@ -487,21 +502,27 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('opens an open item on the screen for its kind',
-        (tester) async {
+    testWidgets('opens an open item on the screen for its kind', (
+      tester,
+    ) async {
       await _openHomework(tester);
 
       await tester.tap(find.byKey(const Key('homework-child-502')));
       await tester.pumpAndSettle();
 
       final gate = tester.widget<AssignmentDetailGate>(
-          find.byType(AssignmentDetailGate));
-      expect(gate.assignmentId, 502,
-          reason: 'the child is the assignment that is opened, not its parent');
+        find.byType(AssignmentDetailGate),
+      );
+      expect(
+        gate.assignmentId,
+        502,
+        reason: 'the child is the assignment that is opened, not its parent',
+      );
     });
 
-    testWidgets('opens „play it out" on the assigned game, with its task',
-        (tester) async {
+    testWidgets('opens „play it out" on the assigned game, with its task', (
+      tester,
+    ) async {
       // The trainer has opened the third item, so it is the student's to play.
       await _openHomework(tester, gameOpen: true);
 
@@ -527,61 +548,75 @@ void main() {
     testWidgets('offers the student no unlock', (tester) async {
       await _openHomework(tester);
 
-      expect(find.byKey(const Key('homework-child-unlock-503')), findsNothing,
-          reason: 'the escape hatch is the trainer\'s; the session here is '
-              'the student the homework was sent to');
+      expect(
+        find.byKey(const Key('homework-child-unlock-503')),
+        findsNothing,
+        reason:
+            'the escape hatch is the trainer\'s; the session here is '
+            'the student the homework was sent to',
+      );
     });
   });
 
   group('the trainer, on the same screen', () {
-    testWidgets('unlocks one item for this student and re-reads it',
-        (tester) async {
+    testWidgets('unlocks one item for this student and re-reads it', (
+      tester,
+    ) async {
       final recorder = await _openHomework(tester, sessionId: _trainerId);
 
-      expect(find.byKey(const Key('homework-child-unlock-503')), findsOneWidget);
+      expect(
+        find.byKey(const Key('homework-child-unlock-503')),
+        findsOneWidget,
+      );
 
       // What the server will answer with after the unlock.
       recorder.gameOpen = true;
       await tester.tap(find.byKey(const Key('homework-child-unlock-503')));
       await tester.pumpAndSettle();
 
-      expect(recorder.to('/assignments/503/open-gate', method: 'POST'),
-          hasLength(1),
-          reason: 'the address carries the item — a MockClient answers any URL');
-      expect(recorder.to('/assignments/7', method: 'GET'), hasLength(2),
-          reason: 'the screen reads the homework again rather than guessing '
-              'what the unlock did');
+      expect(
+        recorder.to('/assignments/503/open-gate', method: 'POST'),
+        hasLength(1),
+        reason: 'the address carries the item — a MockClient answers any URL',
+      );
+      expect(
+        recorder.to('/assignments/7', method: 'GET'),
+        hasLength(2),
+        reason:
+            'the screen reads the homework again rather than guessing '
+            'what the unlock did',
+      );
 
       expect(_stateOf(tester, 503), 'Open');
     });
   });
 
   group('the door from the student\'s own list', () {
-    testWidgets('a homework is one row, and it opens the homework screen',
-        (tester) async {
+    testWidgets('a homework is one row, and it opens the homework screen', (
+      tester,
+    ) async {
       final recorder = _Recorder();
       tester.view.physicalSize = const Size(400, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      final api =
-          AssignmentApiService(authToken: 'tok', client: recorder.client());
+      final api = AssignmentApiService(
+        authToken: 'tok',
+        client: recorder.client(),
+      );
       final router = GoRouter(
         initialLocation: '/',
         routes: [
           GoRoute(
             path: '/',
-            builder: (_, __) => MyAssignmentsScreen(
-              session: _session(_studentId),
-              api: api,
-            ),
+            builder: (_, __) =>
+                MyAssignmentsScreen(session: _session(_studentId), api: api),
           ),
           GoRoute(
             path: AppRoutes.assignmentHomework,
             builder: (_, state) => HomeworkAssignmentScreen(
               session: _session(_studentId),
-              assignmentId:
-                  int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+              assignmentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
               api: api,
             ),
           ),
@@ -589,29 +624,35 @@ void main() {
       );
       addTearDown(router.dispose);
 
-      await tester.pumpWidget(ProviderScope(
-        child: MaterialApp.router(
-          routerConfig: router,
-          theme: ThemeData.dark()
-              .copyWith(extensions: const [AppColorTokens.dark]),
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp.router(
+            routerConfig: router,
+            theme: ThemeData.dark().copyWith(
+              extensions: const [AppColorTokens.dark],
+            ),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('assignment-row-7')), findsOneWidget);
-      expect(find.text('1 of 3 items'), findsOneWidget,
-          reason: 'a homework row counts its items, not its (zero) puzzles');
+      expect(
+        find.text('1 of 3 items'),
+        findsOneWidget,
+        reason: 'a homework row counts its items, not its (zero) puzzles',
+      );
 
       await tester.tap(find.byKey(const Key('assignment-row-7')));
       await tester.pumpAndSettle();
 
       expect(find.byType(HomeworkAssignmentScreen), findsOneWidget);
-      expect(router.state.uri.toString(),
-          AppRoutes.assignmentHomeworkPath(7));
+      expect(router.state.uri.toString(), AppRoutes.assignmentHomeworkPath(7));
     });
 
-    testWidgets('and the app\'s own route table builds that screen',
-        (tester) async {
+    testWidgets('and the app\'s own route table builds that screen', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({
         'remember_me': true,
         'user_token': 'test-token',
@@ -629,8 +670,9 @@ void main() {
       );
       addTearDown(router.dispose);
 
-      await tester
-          .pumpWidget(ProviderScope(child: MaterialApp.router(routerConfig: router)));
+      await tester.pumpWidget(
+        ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      );
       // Not settled: with no server the screen holds its spinner, which is
       // enough to prove which screen the path built.
       await tester.pump();

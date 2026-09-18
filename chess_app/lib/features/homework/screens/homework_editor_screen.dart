@@ -134,11 +134,6 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
     setState(() => _rows[index].item = _rows[index].item.copyWith(gate: value));
   }
 
-  void _setRequireSolved(int index, bool value) {
-    setState(() =>
-        _rows[index].item = _rows[index].item.copyWith(requireSolved: value));
-  }
-
   void _addRow(HomeworkItemKind kind, Map<String, dynamic> task) {
     setState(() {
       _newCounter++;
@@ -149,7 +144,6 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
           kind: kind,
           task: task,
           gate: false,
-          requireSolved: false,
         ),
       ));
     });
@@ -384,26 +378,6 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
                   index == 0
                       ? 'Gate (no effect on the first item)'
                       : 'Gate: not before the previous item is done',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.caption.copyWith(color: colors.textSecondary),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Transform.scale(
-                scale: 0.75,
-                child: Switch(
-                  key: Key('homework-solved-$key'),
-                  value: item.requireSolved,
-                  onChanged: (v) => _setRequireSolved(index, v),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'Solved: a student who cannot solve this cannot go on',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.caption.copyWith(color: colors.textSecondary),

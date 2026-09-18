@@ -27,8 +27,7 @@
 //       final HomeworkItemKind kind;
 //       final Map<String, dynamic> task;
 //       final bool gate;
-//       final bool requireSolved;
-//       HomeworkItem copyWith({bool? gate, bool? requireSolved, Map<String, dynamic>? task});
+//       HomeworkItem copyWith({bool? gate, Map<String, dynamic>? task});
 //       Map<String, dynamic> toJson();               // itemKey omitted when null
 //       static HomeworkItem? fromJson(Map<String, dynamic> json);  // null when unreadable
 //     }
@@ -63,7 +62,6 @@
 //   Key('homework-down-<itemKey or new-N>')     move it later
 //   Key('homework-remove-<itemKey or new-N>')   take it out
 //   Key('homework-gate-<itemKey or new-N>')     „not before the previous is done"
-//   Key('homework-solved-<itemKey or new-N>')   „done means solved"
 // where `new-N` numbers the items added in this sitting, in the order added.
 
 import 'dart:convert';
@@ -93,7 +91,6 @@ Map<String, dynamic> _saved() => {
           'kind': 'lesson',
           'task': {'lessonId': 31},
           'gate': false,
-          'require_solved': false,
         },
         {
           'item_key': 'ie5f6a7b8',
@@ -103,7 +100,6 @@ Map<String, dynamic> _saved() => {
             'puzzleIds': ['cust_x1', 'cust_x2']
           },
           'gate': true,
-          'require_solved': false,
         },
         {
           'item_key': 'i90c1d2e3',
@@ -116,7 +112,6 @@ Map<String, dynamic> _saved() => {
             'maxRating': null
           },
           'gate': false,
-          'require_solved': false,
         },
       ],
     };
@@ -228,12 +223,10 @@ void main() {
       expect(_keysInBody(recorder.bodyOf('PUT')!), ['ia1b2c3d4', 'i90c1d2e3']);
     });
 
-    testWidgets('the two switches travel per item', (tester) async {
+    testWidgets('the gate switch travels per item', (tester) async {
       final recorder = await _open(tester);
 
       await tester.tap(find.byKey(const Key('homework-gate-ia1b2c3d4')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('homework-solved-ia1b2c3d4')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('homework-save')));
       await tester.pumpAndSettle();
@@ -242,11 +235,15 @@ void main() {
           .cast<Map<String, dynamic>>();
       final first = items.firstWhere((i) => i['itemKey'] == 'ia1b2c3d4');
       expect(first['gate'], isTrue);
-      expect(first['requireSolved'], isTrue);
       // Untouched items keep what they had: the second one gates already.
       final second = items.firstWhere((i) => i['itemKey'] == 'ie5f6a7b8');
       expect(second['gate'], isTrue);
-      expect(second['requireSolved'], isFalse);
+      // „Done means solved" was a second switch; the owner removed it on
+      // 18.9.2026 (`docs/PLAN-EXERCISE.md` §8.3). Nothing of it may travel.
+      for (final item in items) {
+        expect(item.containsKey('requireSolved'), isFalse);
+      }
+      expect(find.byKey(const Key('homework-solved-ia1b2c3d4')), findsNothing);
     });
 
     testWidgets('the title and the instructions are what was typed',
@@ -329,7 +326,6 @@ void main() {
           'goal': 'win'
         },
         gate: false,
-        requireSolved: false,
       );
       final wire = item.toJson();
       expect(wire.containsKey('itemKey'), isFalse);

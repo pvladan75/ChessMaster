@@ -45,7 +45,7 @@
 //   enum HomeworkChildState { done, open, locked }
 //   HomeworkChild — `lib/features/homework/models/homework_child.dart`:
 //       id, title, kind (the wire spelling), position, itemKey, lessonId,
-//       gate, requireSolved, gateOpenedAt, completedAt, task,
+//       gate, gateOpenedAt, completedAt, task,
 //       totalItems, attemptedItems, solvedItems, passed, locked, blockedBy,
 //       state, openedByTrainer; `fromJson` refuses a row it cannot read.
 //
@@ -127,7 +127,6 @@ Map<String, dynamic> _child({
   required String itemKey,
   int? lessonId,
   bool gate = true,
-  bool requireSolved = false,
   String? gateOpenedAt,
   String? completedAt,
   Map<String, dynamic>? task,
@@ -146,7 +145,6 @@ Map<String, dynamic> _child({
       'item_key': itemKey,
       'lesson_id': lessonId,
       'gate': gate,
-      'require_solved': requireSolved,
       'gate_opened_at': gateOpenedAt,
       'completed_at': completedAt,
       'task': task,

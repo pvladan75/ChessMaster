@@ -67,10 +67,10 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
       const kind = item.steps ? 'lesson' : 'puzzles';
       const child = await pool.query(
         `INSERT INTO assignments
-           (trainer_id, student_id, title, kind, parent_id, position, item_key, gate, require_solved)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+           (trainer_id, student_id, title, kind, parent_id, position, item_key, gate)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
         [trainerId, studentId, `item ${index}`, kind, parentId, index * 10, `k${index}`,
-          item.gate === true, item.requireSolved === true]
+          item.gate === true]
       );
       const id = child.rows[0].id;
       const puzzleIds = [];
@@ -282,35 +282,43 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.deepEqual(await states(parentId), ['passed', 'open']);
   });
 
-  test('„must be solved": a wrong answer keeps the next item locked', async () => {
+  test('done is attempted and nothing else: a wrong answer and a revealed step both pass', async () => {
+    // There was a „must be solved" switch. The owner removed it on 18.9.2026
+    // (`docs/PLAN-EXERCISE.md` §8.3): it was the one thing in a homework that
+    // could hold a student on a board for good, and the review already shows
+    // the trainer what was solved.
     const who = await people();
-    const { parentId, children } = await sent(who, [{ requireSolved: true, puzzles: 2 }, { gate: true }]);
-    await solve(who.studentId, children[0].puzzleIds[0], true);
-    await solve(who.studentId, children[0].puzzleIds[1], false);
+    const wrong = await sent(who, [{ puzzles: 2 }, { gate: true }]);
+    await solve(who.studentId, wrong.children[0].puzzleIds[0], true);
+    await solve(who.studentId, wrong.children[0].puzzleIds[1], false);
+    assert.ok(await completedAt(wrong.children[0].id));
+    assert.deepEqual(await states(wrong.parentId), ['passed', 'open']);
 
-    assert.ok(await completedAt(children[0].id), 'attempted in full, so complete');
-    assert.deepEqual(await states(parentId), ['open', 'locked'], 'complete is not passed');
-  });
-
-  test('„must be solved": a revealed step is not a solved one', async () => {
-    const who = await people();
-    const { parentId, children } = await sent(who, [{ steps: 2, requireSolved: true }, { gate: true }]);
+    const other = await people();
+    const shown = await sent(other, [{ steps: 2 }, { gate: true }]);
     await assignments.markLessonStepDone(pool, {
-      studentId: who.studentId, assignmentId: children[0].id, position: 0,
+      studentId: other.studentId, assignmentId: shown.children[0].id, position: 0,
     });
     await assignments.revealLessonStep(pool, {
-      studentId: who.studentId, assignmentId: children[0].id, position: 1,
+      studentId: other.studentId, assignmentId: shown.children[0].id, position: 1,
     });
-    assert.ok(await completedAt(children[0].id));
-    assert.deepEqual(await states(parentId), ['open', 'locked']);
+    assert.deepEqual(await states(shown.parentId), ['passed', 'open']);
+  });
 
-    // And a read step — solved NULL — never fails it.
-    const other = await people();
-    const clean = await sent(other, [{ steps: 1, requireSolved: true }, { gate: true }]);
-    await assignments.markLessonStepDone(pool, {
-      studentId: other.studentId, assignmentId: clean.children[0].id, position: 0,
-    });
-    assert.deepEqual(await states(clean.parentId), ['passed', 'open']);
+  test('the column that narrowed „done" to „solved" is gone from both tables', async () => {
+    // A fresh database never had it, so this plants it the way every database
+    // made before 18.9.2026 has it, and runs the migration: a test of a DROP
+    // on a table that was never given the column cannot fail.
+    await pool.query('ALTER TABLE assignments ADD COLUMN IF NOT EXISTS require_solved BOOLEAN NOT NULL DEFAULT FALSE');
+    await pool.query('ALTER TABLE homework_items ADD COLUMN IF NOT EXISTS require_solved BOOLEAN NOT NULL DEFAULT FALSE');
+    const { initDB } = require('../db');
+    await initDB(pool);
+
+    const found = await pool.query(
+      `SELECT table_name FROM information_schema.columns
+        WHERE column_name = 'require_solved' AND table_schema = current_schema()`
+    );
+    assert.deepEqual(found.rows, []);
   });
 
   test('the trainer opens a locked item for that student, and only the trainer can', async () => {
@@ -577,6 +585,8 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     // The printed move is just a move now.
     const printed = await attempt(asked[2], 'Re1');
     assert.equal(printed.body.correct, false);
+    assert.equal(printed.body.retry, false, 'a one-move exercise is answered once');
+    assert.equal(printed.body.solutionSan, 'Rd8#');
 
     const review = await route('get', '/:id/review', {
       userId: who.trainerId, params: { id: String(children[0].id) },
@@ -591,9 +601,9 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
 
   /// A homework whose first item is one exercise asking for the fixture's
   /// two-move line, and whose second item waits behind it.
-  async function sentLine(who, { requireSolved = false } = {}) {
+  async function sentLine(who) {
     const fixture = require('../../docs/gates/exercise_line_cases.json');
-    const { parentId, children } = await sent(who, [{ puzzles: 1, requireSolved }, { gate: true }]);
+    const { parentId, children } = await sent(who, [{ puzzles: 1 }, { gate: true }]);
     const puzzleId = `ex_${who.tag}_${Math.random().toString(36).slice(2, 8)}`;
     await pool.query(
       `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, task, solution, origin)
@@ -627,6 +637,7 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal(first.body.reply, 'g6');
     assert.equal(first.body.continuesOn, 'Qh5', 'an accepted alternative goes on from the author\'s move');
     assert.equal(first.body.solutionSan, null);
+    assert.equal(first.body.retry, false, 'a right move is not retried');
     assert.equal(JSON.stringify(first.body).includes('Qxe5'), false, 'move two must not travel with move one');
 
     assert.equal((await item()).attempted_at, null, 'nothing is written in the middle of a line');
@@ -654,6 +665,7 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal(wrong.body.step, 1);
     assert.equal(wrong.body.reply, null);
     assert.equal(wrong.body.solutionSan, null, 'an answer shown is an answer no longer asked');
+    assert.equal(wrong.body.retry, true);
     assert.equal(JSON.stringify(wrong.body).includes('Qxe5'), false);
     const first = await item();
     assert.equal(first.solved, false);
@@ -668,21 +680,6 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal(after.solved, false, 'the first verdict stands');
     assert.equal(after.played_san, 'Qxh7');
     assert.deepEqual(after.attempted_at, first.attempted_at);
-  });
-
-  test('measured for the owner: with "must be solved", one wrong move in a line locks what follows until the trainer opens it', async () => {
-    // `docs/PLAN-EXERCISE.md` §8.3. Not a rule anybody chose for lines — the
-    // consequence of two rules that were chosen: the first verdict is final,
-    // and "done means solved" reads that verdict. Pinned so that changing
-    // either one is a decision and shows up here.
-    const who = await people();
-    const { parentId, play } = await sentLine(who, { requireSolved: true });
-
-    await play(['Qh5']);
-    await play(['Qh5', 'Qxh7']);
-    const finished = await play(['Qh5', 'Qxe5+']);
-    assert.equal(finished.body.done, true, 'the student did finish the line, on the second try');
-    assert.deepEqual(await states(parentId), ['open', 'locked']);
   });
 
   test('moves that are not moves are refused before anything is read', async () => {

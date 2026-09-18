@@ -978,7 +978,6 @@ async function initDB(target = pool) {
         task JSONB NOT NULL DEFAULT '{}'::jsonb
           CHECK (jsonb_typeof(task) = 'object'),
         gate BOOLEAN NOT NULL DEFAULT FALSE,
-        require_solved BOOLEAN NOT NULL DEFAULT FALSE,
         UNIQUE (homework_id, item_key)
       );
       CREATE INDEX IF NOT EXISTS idx_homework_items_order
@@ -994,9 +993,15 @@ async function initDB(target = pool) {
     // a hole in it could never complete. `homework_id` does not cascade: the
     // copies a student holds outlive the trainer deleting the template.
     //
-    // `gate` is „not before the previous item is done"; `require_solved`
-    // narrows „done" to „solved"; `gate_opened_at` is the trainer's escape
-    // hatch for one student (plan §6). The rule that reads them lives in
+    // `gate` is „not before the previous item is done", and done is
+    // *attempted*; `gate_opened_at` is the trainer's escape hatch for one
+    // student (plan §6). There was a third column, `require_solved`, which
+    // narrowed „done" to „solved". The owner removed it on 18.9.2026: it was
+    // the one thing in a homework that could trap a student, the review
+    // already tells the trainer what was solved, and a line of several moves
+    // fails once far more often than one move does (`docs/PLAN-EXERCISE.md`
+    // §8.3). It is dropped below rather than left unread — a column nobody
+    // reads is a rule somebody will believe. The rule that reads them lives in
     // `services/homeworkService.js` and only there.
     //
     // The kind CHECK is dropped and re-added rather than altered, the same way
@@ -1008,9 +1013,11 @@ async function initDB(target = pool) {
         ADD COLUMN IF NOT EXISTS item_key VARCHAR(16),
         ADD COLUMN IF NOT EXISTS position INTEGER,
         ADD COLUMN IF NOT EXISTS gate BOOLEAN NOT NULL DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS require_solved BOOLEAN NOT NULL DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS gate_opened_at TIMESTAMPTZ,
         ADD COLUMN IF NOT EXISTS task JSONB;
+
+      ALTER TABLE assignments DROP COLUMN IF EXISTS require_solved;
+      ALTER TABLE homework_items DROP COLUMN IF EXISTS require_solved;
 
       ALTER TABLE assignments DROP CONSTRAINT IF EXISTS assignments_kind_check;
       ALTER TABLE assignments ADD CONSTRAINT assignments_kind_check

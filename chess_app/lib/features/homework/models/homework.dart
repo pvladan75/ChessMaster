@@ -3,10 +3,9 @@
 ///
 /// This file is read by `docs/gates/homework_editor_test.dart`; its header
 /// states the exact shape below. Two wire spellings meet here on purpose:
-/// what the server *sends* about a saved item uses `item_key` /
-/// `require_solved` (`chess_backend/services/homeworkTemplate.js`), and what
-/// the editor *sends back* uses `itemKey` / `requireSolved` and omits
-/// `position` altogether — order is the list, and the server renumbers it
+/// what the server *sends* about a saved item uses `item_key`
+/// (`chess_backend/services/homeworkTemplate.js`), and what the editor
+/// *sends back* uses `itemKey` and omits `position` altogether — order is the list, and the server renumbers it
 /// from scratch on every save. A key that followed the index instead of
 /// travelling with its item is the exact bug `assignment_items.step_key` and
 /// `review_items.step_key` were both migrated to fix.
@@ -49,7 +48,6 @@ class HomeworkItem {
     required this.kind,
     required this.task,
     required this.gate,
-    required this.requireSolved,
   });
 
   final String? itemKey;
@@ -63,16 +61,14 @@ class HomeworkItem {
   /// „Not before the previous item is done." Meaningless on the first row —
   /// the server ignores a gate with nothing before it — but still part of
   /// the wire shape every item carries.
+  ///
+  /// „Done" is *attempted*. There was a second switch that narrowed it to
+  /// *solved*; the owner removed it on 18.9.2026 (`docs/PLAN-EXERCISE.md`
+  /// §8.3), because it was the one thing here that could trap a student.
   final bool gate;
-
-  /// „Done" means *solved*, not merely attempted. Off by default
-  /// (`docs/PLAN-DOMACI-ZADATAK.md` §6): a gate that traps a student who
-  /// tried and could not solve it is worse than no gate.
-  final bool requireSolved;
 
   HomeworkItem copyWith({
     bool? gate,
-    bool? requireSolved,
     Map<String, dynamic>? task,
   }) =>
       HomeworkItem(
@@ -80,7 +76,6 @@ class HomeworkItem {
         kind: kind,
         task: task ?? this.task,
         gate: gate ?? this.gate,
-        requireSolved: requireSolved ?? this.requireSolved,
       );
 
   /// What the editor sends. `itemKey` is left out entirely when there is
@@ -91,7 +86,6 @@ class HomeworkItem {
         'kind': wireKindOf(kind),
         'task': task,
         'gate': gate,
-        'requireSolved': requireSolved,
       };
 
   /// Reads one item as the server sent it (`GET /homeworks/:id`), or refuses.
@@ -112,7 +106,6 @@ class HomeworkItem {
       kind: kind,
       task: Map<String, dynamic>.from(taskRaw),
       gate: json['gate'] == true,
-      requireSolved: json['require_solved'] == true,
     );
   }
 }
