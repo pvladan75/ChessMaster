@@ -27,7 +27,7 @@
 const logger = require('./logger');
 const assignments = require('./assignmentService');
 const { loadHomework } = require('./homeworkTemplate');
-const { assignableProblem } = require('./customPuzzleJudge');
+const { assignableProblem, exerciseColumns } = require('./exercise');
 
 /// What each kind of item becomes as an assignment of its own.
 const CHILD_KIND = {
@@ -103,7 +103,7 @@ async function planItems(pool, { trainerId, studentId, items }) {
       }
       case 'positions': {
         const found = await pool.query(
-          `SELECT puzzle_id, solution_san, needs_review FROM custom_puzzles
+          `SELECT puzzle_id, ${exerciseColumns()} FROM custom_puzzles
             WHERE owner_id = $1 AND puzzle_id = ANY($2::varchar[])`,
           [trainerId, item.task.puzzleIds]
         );

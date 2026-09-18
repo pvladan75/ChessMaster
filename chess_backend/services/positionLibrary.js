@@ -16,7 +16,7 @@
 // check, and only the row a caller reads is common.
 
 const { acceptedTrainersOf } = require('./relationshipService');
-const { assignableProblem } = require('./customPuzzleJudge');
+const { assignableProblem, exerciseColumns, exerciseOf } = require('./exercise');
 
 /// The five shelves, by the name the API uses for them.
 const KINDS = ['scan', 'position', 'analysis', 'tutorial', 'recording'];
@@ -29,7 +29,7 @@ function isKind(value) {
 
 /// Whether this entry can be set as homework, and if not, why not.
 ///
-/// The rule lives in `customPuzzleJudge` and is not restated here: a position
+/// The rule lives in `exercise.js` and is not restated here: a position
 /// with no solution cannot judge an answer, so a child would be told "netačno"
 /// whatever they play. Only scanned positions ever carry a solution today, but
 /// the question is asked of every kind so that changes in one place when one of
@@ -58,8 +58,8 @@ async function listScanned(pool, userId, { search }) {
   }
 
   const result = await pool.query(
-    `SELECT puzzle_id, fen, side_to_move, solution_san, instruction, themes,
-            source_title, source_page, source_label, needs_review, created_at
+    `SELECT puzzle_id, side_to_move, ${exerciseColumns()}, instruction, themes,
+            source_title, source_page, source_label, created_at
        FROM custom_puzzles
       WHERE ${where}
       ORDER BY source_title NULLS LAST,
@@ -83,7 +83,7 @@ async function listScanned(pool, userId, { search }) {
     sideToMove: row.side_to_move,
     instruction: row.instruction,
     themes: row.themes || [],
-    hasSolution: Boolean(row.solution_san),
+    hasSolution: exerciseOf(row).solution !== null,
     needsReview: row.needs_review === true,
     sourceTitle: row.source_title,
     sourcePage: row.source_page,
@@ -135,7 +135,7 @@ async function listSavedPositions(pool, userId, { search }) {
     // is theirs to change.
     fromTrainer: row.from_trainer === true,
     createdAt: row.created_at,
-    ...assignability({ solution_san: null, needs_review: false }),
+    ...assignability({}),
   }));
 }
 
@@ -169,7 +169,7 @@ async function listAnalyses(pool, userId, { search }) {
     hasSolution: false,
     needsReview: false,
     createdAt: row.created_at,
-    ...assignability({ solution_san: null, needs_review: false }),
+    ...assignability({}),
   }));
 }
 

@@ -86,8 +86,8 @@ describe('sending a homework', { skip: skip ? skip.skip : false }, () => {
   async function positionOf(trainerId, { needsReview = false } = {}) {
     const id = `cust_${process.pid}_${minted}_${Math.random().toString(36).slice(2, 8)}`;
     await pool.query(
-      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, needs_review)
-       VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', 'Rd8#', $3)`,
+      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, needs_review, origin)
+       VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', 'Rd8#', $3, 'book')`,
       [id, trainerId, needsReview]
     );
     return id;

@@ -16,7 +16,7 @@ const crypto = require('crypto');
 
 const logger = require('./logger');
 const { parseEngineGameTask } = require('./engineGameTask');
-const { assignableProblem } = require('./customPuzzleJudge');
+const { assignableProblem, exerciseColumns } = require('./exercise');
 const { trainableThemes } = require('./puzzleSelectionService');
 
 const KINDS = ['lesson', 'positions', 'puzzles', 'engine_game'];
@@ -171,7 +171,7 @@ async function contentProblem(pool, trainerId, items) {
     .flatMap((i) => i.task.puzzleIds);
   if (puzzleIds.length > 0) {
     const found = await pool.query(
-      `SELECT puzzle_id, solution_san, needs_review FROM custom_puzzles
+      `SELECT puzzle_id, ${exerciseColumns()} FROM custom_puzzles
         WHERE owner_id = $1 AND puzzle_id = ANY($2::varchar[])`,
       [trainerId, puzzleIds]
     );

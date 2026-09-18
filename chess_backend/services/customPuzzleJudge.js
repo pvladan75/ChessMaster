@@ -82,18 +82,7 @@ function judgeAttempt({ fen, solutionSan, moveSan, acceptedSans = [] }) {
   return { correct: false, reason: 'That is not the move the exercise asks for.', playedSan: played.san };
 }
 
-/**
- * Can this position be given to a student at all?
- *
- * Two refusals, both loud. Without a solution nothing can judge the answer, and
- * a child would be told "wrong" whatever they played. A position still marked
- * for review is one we know we are unsure about, and homework is the last place
- * to find that out.
- */
-function assignableProblem(row) {
-  if (!row.solution_san) return 'has no solution, so an answer cannot be judged';
-  if (row.needs_review) return 'is marked for review';
-  return null;
-}
+// „Can this be given to a student at all?" used to be answered here. It moved
+// to `exercise.js` with everything else that reads what a row asks.
 
-module.exports = { judgeAttempt, assignableProblem, bareSan };
+module.exports = { judgeAttempt, bareSan };

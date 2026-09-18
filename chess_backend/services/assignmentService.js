@@ -15,7 +15,7 @@ const { notify } = require('./notifications');
 /// calling them both at once is what made the parent's report meaningless.
 const STRONG_THEME_ACCURACY = 70;
 const WEAK_THEME_ACCURACY = 50;
-const { assignableProblem } = require('./customPuzzleJudge');
+const { assignableProblem, exerciseColumns } = require('./exercise');
 const { trainableThemes } = require('./puzzleSelectionService');
 const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
 const { stepsOfLesson, redactStepForStudent } = require('./lessonSteps');
@@ -596,7 +596,7 @@ async function createCustomAssignment(pool, {
   // Owner-scoped in the query: a trainer can only set their own positions, and
   // an id belonging to someone else simply does not come back.
   const found = await pool.query(
-    `SELECT puzzle_id, solution_san, needs_review FROM custom_puzzles
+    `SELECT puzzle_id, ${exerciseColumns()} FROM custom_puzzles
       WHERE owner_id = $1 AND puzzle_id = ANY($2::varchar[])`,
     [trainerId, ids]
   );

@@ -19,6 +19,7 @@ const { OWN_GAMES_SQL } = require('../services/archiveScope');
 const { notify } = require('../services/notifications');
 const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
+const { exerciseColumns, firstMoveOf } = require('../services/exercise');
 const { stepsOfLesson } = require('../services/lessonSteps');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
@@ -279,7 +280,7 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     // One query establishes both that this assignment is the caller's own
     // homework and that the position is part of it.
     const item = await pool.query(
-      `SELECT cp.fen, cp.solution_san, cp.instruction
+      `SELECT ${exerciseColumns('cp')}, cp.instruction
          FROM assignment_items ai
          JOIN assignments a ON a.id = ai.assignment_id
          JOIN custom_puzzles cp ON cp.puzzle_id = ai.puzzle_id
@@ -290,8 +291,12 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'That position is not part of your assignment.' });
     }
 
-    const { fen, solution_san: solutionSan } = item.rows[0];
-    const verdict = judgeAttempt({ fen, solutionSan, moveSan });
+    // What the row asks is read in one place. A row with nothing to compare
+    // against reaches `judgeAttempt` with no solution and is answered as
+    // before: the solution is missing, never a guess.
+    const { fen } = item.rows[0];
+    const { solutionSan = null, acceptedSans = [] } = firstMoveOf(item.rows[0]) ?? {};
+    const verdict = judgeAttempt({ fen, solutionSan, moveSan, acceptedSans });
 
     // A move the board cannot play means the client and the server disagree
     // about the position — the student's board offered a move this one refuses.

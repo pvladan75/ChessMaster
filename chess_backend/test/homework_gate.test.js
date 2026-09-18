@@ -504,8 +504,8 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     const { children } = await sent(who, [{}, { gate: true }]);
     const puzzleId = `cust_${who.tag}`;
     await pool.query(
-      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san)
-       VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', 'Rd8#')`,
+      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, origin)
+       VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', 'Rd8#', 'book')`,
       [puzzleId, who.trainerId]
     );
     await pool.query(
@@ -536,6 +536,55 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     });
     assert.equal(opened.status, 200);
     assert.equal(opened.body.correct, true);
+  });
+
+  test('an answer is judged by what the exercise stores, not by the printed move beside it', async () => {
+    // `docs/PLAN-EXERCISE.md` phase 1: the route reads the row through
+    // `exerciseOf`. The printed move here is deliberately NOT the stored main
+    // move, so a route that still read `solution_san` answers differently on
+    // every assertion below.
+    const who = await people();
+    const { children } = await sent(who, [{ puzzles: 3 }]);
+    const asked = [];
+    for (const [index, itemId] of children[0].puzzleIds.entries()) {
+      const puzzleId = `cust_${who.tag}_ex${index}`;
+      asked.push(puzzleId);
+      await pool.query(
+        `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, solution, origin)
+         VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', 'Re1', $3, 'manual')`,
+        [puzzleId, who.trainerId, JSON.stringify([{ accept: ['Rd8#', 'Kf1'], reply: null }])]
+      );
+      await pool.query(
+        'UPDATE assignment_items SET puzzle_id = $1 WHERE assignment_id = $2 AND puzzle_id = $3',
+        [puzzleId, children[0].id, itemId]
+      );
+    }
+    const attempt = (puzzleId, moveSan) => route('post', '/:id/custom-attempt', {
+      userId: who.studentId,
+      params: { id: String(children[0].id) },
+      body: { puzzleId, moveSan, msTaken: 500 },
+    });
+
+    const alternative = await attempt(asked[0], 'Kf1');
+    assert.equal(alternative.status, 200);
+    assert.equal(alternative.body.correct, true);
+    assert.equal(alternative.body.reason, 'another correct move');
+    assert.equal(alternative.body.solutionSan, 'Rd8#', 'the stored main move is what is revealed');
+
+    const main = await attempt(asked[1], 'Rd8');
+    assert.equal(main.body.correct, true);
+
+    // The printed move is just a move now.
+    const printed = await attempt(asked[2], 'Re1');
+    assert.equal(printed.body.correct, false);
+
+    const review = await route('get', '/:id/review', {
+      userId: who.trainerId, params: { id: String(children[0].id) },
+    });
+    assert.equal(review.status, 200);
+    const shown = review.body.items.filter((item) => asked.includes(item.puzzleId));
+    assert.equal(shown.length, 3);
+    for (const item of shown) assert.equal(item.solutionSan, 'Rd8#');
   });
 
   test('a locked lesson step is refused on every student route', async () => {

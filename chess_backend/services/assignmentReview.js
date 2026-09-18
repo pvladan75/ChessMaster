@@ -13,6 +13,7 @@
 const { Chess } = require('chess.js');
 const { assignmentParticipant } = require('./assignmentService');
 const { stepsOfLesson } = require('./lessonSteps');
+const { exerciseColumns, firstMoveOf } = require('./exercise');
 
 /// Whether the answer may be shown to whoever is asking.
 ///
@@ -119,8 +120,8 @@ function shapeItem(row, { isTrainer, step }) {
       fen: row.custom_fen,
       instruction: row.instruction,
       themes: row.custom_themes || [],
-      solutionSan: reveal ? row.solution_san : null,
-      solutionHidden: !reveal && Boolean(row.solution_san),
+      solutionSan: reveal ? (firstMoveOf(row)?.solutionSan ?? null) : null,
+      solutionHidden: !reveal && firstMoveOf(row) !== null,
     };
   }
 
@@ -162,7 +163,7 @@ async function buildReview(pool, assignmentId, viewerId) {
   const itemRows = await pool.query(
     `SELECT ai.id, ai.position, ai.puzzle_id, ai.puzzle_rating, ai.solved,
             ai.ms_taken, ai.played_san, ai.attempted_at,
-            cp.fen AS custom_fen, cp.instruction, cp.solution_san,
+            cp.fen AS custom_fen, cp.instruction, ${exerciseColumns('cp')},
             cp.themes AS custom_themes, cp.source_title, cp.source_label,
             lp.fen AS lichess_fen, lp.moves AS lichess_moves,
             lp.themes AS lichess_themes, lp.rating AS lichess_rating

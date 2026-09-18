@@ -723,6 +723,33 @@ async function initDB(target = pool) {
     await client.query(`
       ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS instruction TEXT;
     `);
+    // The row becomes an exercise — a position plus a task
+    // (`docs/PLAN-EXERCISE.md`, phase 1). All four columns are read through
+    // `services/exercise.js` and nowhere else.
+    //
+    // `task` and `solution` stay NULL on every row a scan or the mistake
+    // archive writes: NULL *is* „find the move, and the move is
+    // `solution_san`", so nothing written before today changes its meaning.
+    //
+    // `origin` is what wrote the row. Until now only the id's prefix said so,
+    // and a prefix is not a column: a filter that reads `LIKE 'hw\_%'` breaks
+    // the day a third writer picks a prefix. It is backfilled once from that
+    // prefix — the last time the prefix is read for meaning — and then NOT
+    // NULL **without a default**, so a writer that forgets to say where a row
+    // came from fails at the INSERT instead of filing it under somebody else.
+    await client.query(`
+      ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS name VARCHAR(120);
+      ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS task JSONB;
+      ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS solution JSONB;
+      ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS origin VARCHAR(16);
+      UPDATE custom_puzzles
+         SET origin = CASE WHEN puzzle_id LIKE 'hw\\_%' THEN 'mistakes' ELSE 'book' END
+       WHERE origin IS NULL;
+      ALTER TABLE custom_puzzles ALTER COLUMN origin SET NOT NULL;
+      ALTER TABLE custom_puzzles DROP CONSTRAINT IF EXISTS custom_puzzles_origin_check;
+      ALTER TABLE custom_puzzles ADD CONSTRAINT custom_puzzles_origin_check
+        CHECK (origin IN ('book', 'manual', 'mistakes'));
+    `);
     logger.info('Verified database table & indexes: custom_puzzles');
 
     // Create user_puzzle_attempts table.

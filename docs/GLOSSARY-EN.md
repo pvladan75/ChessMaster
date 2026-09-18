@@ -89,6 +89,7 @@ because it is the verb and the tab is a verb.
 | Učenik | **Student** | The child. „Student" in the relationship sense, not the university one. |
 | Roditelj | **Parent** | |
 | Saglasnost | **Consent** | The parent's, and the word the legal texts use. |
+| Zadatak (pozicija + cilj) | **Exercise** | A position **plus a task**, with a name and labels: what a trainer makes, keeps in the Library and puts in a homework. A bare **Position** cannot be sent. Its **Task** is *Find the move(s)*, *Win* or *Draw or better*. `custom_puzzles` on the wire, read only through `services/exercise.js`. `docs/PLAN-EXERCISE.md`. |
 | Zadatak (domaći) | **Assignment** | Homework. Matches `assignments` on the wire. Distinct from **Task**, which is what one part asks. |
 | Poziv | **Invitation** | |
 | Grupa | **Group** | |

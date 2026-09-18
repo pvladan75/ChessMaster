@@ -57,6 +57,17 @@ test('a scanned position with a solution can be set as homework', async () => {
   assert.equal(item.hasSolution, true);
 });
 
+test('an exercise whose answer is a stored line has a solution, whatever the printed move says', async () => {
+  // `docs/PLAN-EXERCISE.md` phase 1: a hand-made exercise has no printed move.
+  const pool = stubPool([[scannedRow({
+    solution_san: null,
+    solution: [{ accept: ['Ra8#'], reply: null }],
+  })]]);
+  const [item] = await listScanned(pool, 5, {});
+  assert.equal(item.hasSolution, true);
+  assert.equal(item.assignable, true);
+});
+
 test('a scanned position without a solution says why it cannot be assigned', async () => {
   const pool = stubPool([[scannedRow({ solution_san: null })]]);
   const [item] = await listScanned(pool, 5, {});

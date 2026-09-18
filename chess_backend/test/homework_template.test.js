@@ -63,8 +63,8 @@ describe('the homework a trainer writes', { skip: skip ? skip.skip : false }, ()
   async function positionOf(who, { solved = true, needsReview = false } = {}) {
     const id = `cust_${who.tag}_${Math.random().toString(36).slice(2, 8)}`;
     await pool.query(
-      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, needs_review)
-       VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', $3, $4)`,
+      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, needs_review, origin)
+       VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', $3, $4, 'book')`,
       [id, who.id, solved ? 'Rd8#' : null, needsReview]
     );
     return id;

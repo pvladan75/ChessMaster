@@ -3761,3 +3761,53 @@ the supersession recorded in the file, and the cost was put to the owner rather
 than absorbed: the runtime still plays such tasks, so nothing already saved
 broke — only this dialog can no longer author one. **When a test written for a
 decision fails, find the decision before you change the test.**
+
+## 18.9.2026 — The exercise, phase 1: one reader for `solution_san`, and two writers nobody ran
+
+Phase 1 of `docs/PLAN-EXERCISE.md`: `custom_puzzles` gains `name`, `origin`,
+`task`, `solution`; `services/exercise.js` is the one place that says what a
+row asks; six consumers moved onto it. Backend **1503 → 1522** with the test
+database (−3 tests moved out of `customPuzzleJudge.test.js`, +12 `exercise`,
++5 `exercise_schema`, +3 `exercise_one_reader`, +1 route test in
+`homework_gate`, +1 in `position_library`), **1441 → 1454** without (the same
+minus the five database tests and the one route test). App untouched, not run.
+
+**A fake pool accepts an INSERT the table refuses.** `origin` is NOT NULL with
+no default, on purpose, so a writer that forgets it fails loudly. The mutation
+„the scan writer forgets `origin`" **survived**: every test of `POST
+/scans/confirm` and of the mistake archive fakes the pool, so the suite was
+green over a server that would have answered 500 to every scan a trainer
+confirmed. Both writers now run once against the real table. **A loud failure
+is only loud where something runs it — after adding a constraint, run every
+writer of that table on a real database, not only the new code.**
+
+**The gate I wrote in the plan was wrong, and reading the code said so before a
+test did.** „`solution_san` is read in `exercise.js` only" cannot hold: the
+scan pipeline verifies and re-verifies the printed move and the mistake archive
+writes one. The rule that can hold is about *meaning* — who decides what a
+student is judged against — so the guard is an allow-list with a reason beside
+each file, and a consumer selects through `exerciseColumns()` and never names
+the column. **Before writing „only X reads Y", list who writes Y.**
+
+**An unescaped `_` in `LIKE` is a wildcard, and a template literal eats one
+backslash.** The backfill reads the id's prefix once (`hw_` → mistakes). `'hw_%'`
+matches `hwx…`; `'hw\_%'` in a JS template literal reaches PostgreSQL as
+`'hw_%'` again. It needs `\\_` in the source, and the test plants an `hwx…` id
+so the difference is a red. The shell layer used to write these files ate the
+same backslash three times in one session — **check an escape by its bytes
+(`od -c`), not by how a tool prints it.**
+
+**Editing what a running server loads is a migration on the real database.**
+The owner's nodemon was up (port 3000), and it runs `initDB` on every `.js`
+save — so a half-written `ALTER` would have run against the managed database
+mid-edit. The work was done in a git worktree with a junction to
+`node_modules`, proven on the throwaway cluster, and applied to the working
+tree as one patch; the new process listening after `await initDB()` is the
+evidence the migration ran. Rule 20, applied to `db.js`.
+
+**A default can close a door before the feature that opens it exists.**
+`assignableProblem(row, { as = 'find' })`: a game exercise is refused as a
+find-the-move item unless the caller says it can send a game. No writer of
+game exercises exists yet; four paths that build puzzle-kind assignments do.
+Rule 14 from the other side — look at what the *next* phase will newly
+exercise, and make the wrong use fail today.

@@ -45,7 +45,7 @@ function stubPool({ owns = true, candidates = [], assignment = null } = {}) {
       puzzles.push({ puzzleId: params[0], owner: params[1], fen: params[2], solution: params[4], instruction: params[5] });
       return { rows: [], rowCount: 1 };
     }
-    if (/SELECT puzzle_id, solution_san, needs_review FROM custom_puzzles/.test(flat)) {
+    if (/SELECT puzzle_id, fen, task, solution, solution_san, needs_review FROM custom_puzzles/.test(flat)) {
       const ids = params[1] || [];
       return {
         rows: ids.map((id) => ({ puzzle_id: id, solution_san: 'Ke3', needs_review: false })),

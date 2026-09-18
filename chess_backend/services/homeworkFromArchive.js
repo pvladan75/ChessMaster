@@ -174,8 +174,8 @@ async function storePositions(pool, trainerId, rows) {
     await pool.query(
       `INSERT INTO custom_puzzles
          (puzzle_id, owner_id, fen, side_to_move, solution_san, instruction,
-          themes, source_title, needs_review)
-       VALUES ($1, $2, $3, $4, $5, $6, $7::varchar[], $8, FALSE)
+          themes, source_title, needs_review, origin)
+       VALUES ($1, $2, $3, $4, $5, $6, $7::varchar[], $8, FALSE, 'mistakes')
        ON CONFLICT (puzzle_id) DO NOTHING`,
       [
         puzzleId, trainerId, row.fen_before, sideToMove(row.fen_before),
@@ -275,6 +275,7 @@ async function homeworkFromArchive(pool, {
 
 module.exports = {
   homeworkFromArchive,
+  storePositions,
   candidateMistakes,
   spread,
   sanOf,

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { judgeAttempt, assignableProblem, bareSan } = require('../services/customPuzzleJudge');
+const { judgeAttempt, bareSan } = require('../services/customPuzzleJudge');
 
 // Diagram 97 of the trainer's first scanned set: white mates with Qf1#, and it
 // is the only mate there.
@@ -60,15 +60,5 @@ test('when the task was not a mate, only the printed move counts', () => {
   assert.equal(r.correct, false);
 });
 
-test('a position with no solution cannot be set as homework', () => {
-  assert.match(assignableProblem({ solution_san: null, needs_review: false }), /has no solution/);
-});
-
-test('a position still marked for review cannot be set either', () => {
-  // Homework in front of a child is the last place to discover our own doubt.
-  assert.match(assignableProblem({ solution_san: 'Qf1#', needs_review: true }), /marked for review/);
-});
-
-test('a verified position is assignable', () => {
-  assert.equal(assignableProblem({ solution_san: 'Qf1#', needs_review: false }), null);
-});
+// „Can this be set as homework?" moved to `exercise.js`; its three tests went
+// with it, to `exercise.test.js`.
