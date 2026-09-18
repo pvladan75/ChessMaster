@@ -1,11 +1,21 @@
 // Two rules the phase-3b gate and its companion do not reach, both found
 // while grading that phase (`docs/PLAN-DOMACI-ZADATAK.md` §9):
 //
-//   1. **The trainer picks the colour the student plays**, and the engine
-//      takes the other — the owner's answer to §9 item 2. The picker started
-//      by reading it off the FEN's turn field, which cannot express „hold
-//      this draw, engine to move" even though both ends already judge it
-//      (`ai_studio_screen.dart` asks the engine to move when
+//   1. **The switch decides who is on the move**, and the student is the one
+//      on it. Written for §9 item 2, which answered the same question the
+//      other way round: the trainer picked the student's colour *against* the
+//      position's own turn, so „hold this draw, engine to move" could be set.
+//      **Superseded on 18.9.2026** by the owner, in these words: „last action
+//      always wins" — a pasted FEN sets the switch, and moving the switch
+//      rewrites the FEN, so the two cannot disagree and the student always
+//      opens.
+//
+//      What that costs is written down rather than lost: the runtime still
+//      honours a task whose turn is not the student's side, so anything
+//      already saved that way still plays. It is this dialog that can no
+//      longer author one. The picker started
+//      by reading it off the FEN's turn field, and both ends still judge the
+//      other case (`ai_studio_screen.dart` asks the engine to move when
 //      `turn != task.side`; `engineGameTask.js` counts the student's own
 //      moves by whose turn it was).
 //   2. **Deleting a homework template asks first.** It is one tap beside a
@@ -131,8 +141,7 @@ void main() {
   setUpAll(loadRoboto);
 
   group('the side the student plays', () {
-    testWidgets('is the trainer\'s choice, against the position\'s own turn',
-        (tester) async {
+    testWidgets('is the switch, and the position follows it', (tester) async {
       final recorder = await _addPlayItOut(
         tester,
         fen: _whiteToMove,
@@ -140,10 +149,10 @@ void main() {
       );
 
       final task = _taskSaved(recorder);
-      expect(task['fen'], _whiteToMove);
-      expect(task['side'], 'b',
-          reason: 'the trainer chose Black on a white-to-move position; '
-              'the engine opens');
+      expect(task['fen'], _blackToMove,
+          reason: 'the switch was the last thing touched, so the position was '
+              'rewritten to hand Black the move');
+      expect(task['side'], 'b');
       expect(task['goal'], 'win');
     });
 
@@ -175,7 +184,10 @@ void main() {
           find.byKey(const Key('homework-engine-fen')), _whiteToMove);
       await tester.pumpAndSettle();
 
-      expect(find.text('The engine takes the other side.'), findsOneWidget);
+      expect(
+        find.text('The student moves first; the engine takes the other side.'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.descendant(
         of: find.byKey(const Key('homework-engine-side')),
@@ -183,10 +195,12 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
+      // The same sentence after the tap: it is true of every task this dialog
+      // can now make, which is what replaced the old pair.
       expect(
-        find.text('The engine opens — this position hands it the first move.'),
+        find.text('The student moves first; the engine takes the other side.'),
         findsOneWidget,
-        reason: 'the trainer is told what their choice does to the position',
+        reason: 'the trainer is told what the switch does to the position',
       );
     });
   });

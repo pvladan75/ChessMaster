@@ -5916,20 +5916,48 @@ u listi domaćih i iz editora.
 0c. [ ] **Brisanje šablona** pita pre brisanja; ako je domaći već poslat,
    rečenica kaže da poslato ostaje — i posle brisanja učenikov domaći je
    netaknut.
-1. [ ] **Napiši domaci** sa četiri stavke (tutorijal, pozicije, set
+1. [ ] **Prijavljeno uživo 18.9.2026, ispravljeno istog dana** — „ne mogu da
+   ubacim pozicije, fen nije dobar". FEN je bio
+   `rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR`: **tabla i ništa više**,
+   jedno polje od šest — ono što daje alat za dijagrame. Dijalog „Play it out"
+   ga je odbijao i na svaku grešku odgovarao istom rečenicom („Not a valid
+   position for 'play it out'"), pa se nije moglo videti da tabla nije bila
+   problem. Tri promene:
+   - **tabla sama se dopunjava**: rokada se čita sa table (kralj i topovi na
+     svojim poljima), a dopunjeni FEN se **upisuje u polje** da ga trener vidi
+     i ispravi — nagađanje o pravilima partije koja se zadaje ne sme da bude
+     nevidljivo;
+   - **prekidač strane odlučuje ko je na potezu**, a pastovanje FEN-a postavlja
+     prekidač onako kako FEN kaže. Pravilo koje je vlasnik dao: *last action
+     always wins* — posle pastovanja važi FEN, posle klika važi prekidač. Pri
+     promeni strane briše se i en passant polje, jer ono važi samo za stranu
+     koja tu može da uzme;
+   - **razlog se vidi**: `fenIllegalReason` zna da li fali kralj, da li pešak
+     stoji na prvom redu i da li je strana koja nije na potezu u šahu — sada se
+     ta rečenica i prikazuje.
+   Čuvari: `fen_completion_test`, `homework_play_it_out_fen_test`.
+
+   **Napiši domaci** sa četiri stavke (tutorijal, pozicije, set
    zagonetki, „odigraj do kraja"), sa branom na drugoj i „mora rešeno" na
    četvrtoj; preuredi ih — posle čuvanja redosled je novi, a stavke su iste
    (ne pojavljuju se duplikati i ne gube se izbori).
 2. [ ] **Pošalji jednom učeniku**: učenikova lista ima **jedan** red
    („Thursday", 0/4), ne četiri; jedno obaveštenje „New homework".
-3. [ ] **Kvota**: na besplatnom planu slanje troši jednu jedinicu po učeniku
+3. [ ] **Kvota** — **nema gde da se vidi u aplikaciji** (vlasnik, 18.9.2026:
+   „ne znam gde se gledaju kvote, to ćemo tek da implementiramo"). Do tada se
+   proverava iz servera: log „Homework sent" po učeniku, i odbijeno slanje koje
+   ne piše red. Ekran za kvote je poseban posao.
+   Na besplatnom planu slanje troši jednu jedinicu po učeniku
    (pet stavki unutra ne menja ništa); odbijeno slanje ne troši ništa.
 4. [ ] **Pozicija pod revizijom**: obeleži jednu poziciju iz domaćeg kao
    „needs review", pošalji — odbija se sa rečenicom o reviziji i učenik ne
    dobija **ništa** (ni tutorijal koji je bio u redu).
 5. [ ] **Izmeni šablon posle slanja** (dodaj i obriši stavku): već poslati
    domaći se ne menja — isti naslov, iste stavke, isti napredak.
-6. [ ] **Uzak filter zagonetki** (tema + rejting 3200–3400): ruta kaže da
+6. [ ] **Uzak filter zagonetki** (tema + najviši rejting koji klizač daje):
+   **ispravljeno u opisu 18.9.2026** — vlasnik: „mogu samo do 2800". Klizač u
+   dijalogu ide 400–2800, pa se 3200–3400 iz starog opisa ne može ni izabrati;
+   uzmi 2800–2800 sa retkom temom. Ruta kaže da
    nema zagonetki po tim kriterijumima; ranije je vraćala 500.
 7. [ ] **Prozor za slanje**: nudi samo učenike koji su prihvatili poziv;
    izaberi dvoje, pošalji — obojica dobijaju po jedan red, a kvota se

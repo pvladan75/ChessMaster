@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **18.9.2026** — najnovije je „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **18.9.2026** — najnovije je „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,55 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## „Play it out" prima tablu kakvu daje dijagram — 18.9.2026, u kodu
+
+Vlasnik je prošao stavke 181–184 (domaći, faze 0–5) — sve prolazi osim jedne
+— i na 183.1 stao: „ne mogu da ubacim pozicije, fen nije dobar". FEN je bio
+`rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR` — **tabla i ništa više**,
+jedno polje od šest, što je ono što daje svaki alat za dijagrame.
+
+Dva propusta, i drugi je gori od prvog. Dijalog je tražio svih šest polja, a na
+**svaku** grešku odgovarao istom rečenicom („Not a valid position for 'play it
+out'") — iako `fenIllegalReason` tačno zna da li fali kralj, da li pešak stoji
+na prvom redu ili je strana koja nije na potezu u šahu. Trener nije mogao da
+vidi da tabla nije bila problem. **Poruka koja ne razlikuje uzroke je poruka
+koja ne pomaže**, a razlog je sve vreme postojao jedan poziv dalje.
+
+Sada: tabla sama se dopunjava (rokada se čita sa table — kralj i topovi na
+svojim poljima), a dopunjeni FEN se **upisuje u polje**. Nagađanje o pravilima
+partije koja se zadaje učeniku ne sme da bude nevidljivo: dijagram ne može da
+kaže da li je kralj već mrdao, pa je to pretpostavka, i stoji tamo gde trener
+može da je ispravi.
+
+**Pravilo za stranu, vlasnikovim rečima: „last action always wins".** Pastovanje
+FEN-a postavlja prekidač onako kako FEN kaže; klik na prekidač prepisuje FEN.
+Uz promenu strane briše se i en passant polje, jer `e3` znači „crni sme tu da
+uzme *ovog poteza*" i ništa drugo — prenet preko promene strane tvrdi uzimanje
+koje ne može da se desi.
+
+**Cena, rečena naglas.** §9 stavka 2 plana domaćeg je ranije odgovorila
+suprotno: trener bira boju učenika *nasuprot* potezu pozicije, baš da bi se
+moglo zadati „drži ovaj remi, motor je na potezu". Sa novim pravilom se ta dva
+ne mogu razići, pa **učenik uvek počinje**. Dva testa koja su čuvala staro
+pravilo su prepisana, sa zapisanim razlogom — nisu obrisana. Runtime i dalje
+ume oba slučaja (`ai_studio_screen` traži potez motora kad `turn != task.side`,
+server broji učenikove poteze po tome čiji je bio potez), pa sve što je ranije
+sačuvano i dalje radi; samo ovaj dijalog više ne ume da napravi takav zadatak.
+Ako zatreba, traži svoje dugme — jedan prekidač ne može da kaže dve stvari.
+
+Usput, dve stavke koje se **ne mogu proveriti onako kako su napisane**, pa su
+ispravljene u opisu umesto da opet spotaknu: 183.3 (kvote nemaju ekran, do tada
+se gleda iz servera) i 183.6 (traži rejting 3200–3400, a klizač ide do 2800).
+
+Čuvari: `fen_completion_test` (šest), `homework_play_it_out_fen_test` (osam).
+Dve mutacije: bez „paste pomera prekidač" pada jedan test, bez „prekidač
+prepisuje FEN" padaju tri. Prve dve verzije testa za paste **nisu mogle da
+padnu** — dodirivala se strana koju FEN ionako imenuje, a ponovni unos istog
+teksta ne diže nikakav događaj; mutacija je to rekla dvaput pre nego što je
+test postao provera.
 
 ---
 

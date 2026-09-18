@@ -3711,3 +3711,44 @@ the Analyse tab — which was already its state in landscape and accepted as
 known. **Say the loss out loud instead of letting it be discovered**; a cost
 named in the handoff is a decision, the same cost found on a phone is a bug
 report.
+
+**„Play it out“ takes the board a diagram gives you — app 3040 → 3054 tests,
+1 skipped; analyze 26.**
+
+**One sentence for every fault is no sentence at all.** The dialog refused a
+FEN with „Not a valid position for 'play it out'“ while `fenIllegalReason`, one
+call away, knew whether a king was missing, a pawn stood on the first rank, or
+the side not to move was in check. The owner could not tell that the board —
+the part they had actually typed — was never the problem. **A validator that
+produces reasons and a caller that throws them away is worse than no validator
+there at all**, because the caller looks checked.
+
+**Accept the shape the world hands you, and show what you inferred.** A
+diagram tool gives a board and nothing else; demanding all six FEN fields
+refuses the commonest input there is. Castling is now read off the board — the
+most permissive legal reading, and a guess, because a diagram cannot say
+whether a king has moved. So the completed FEN is *written into the field the
+trainer is looking at* rather than used out of sight: a guess about the rules
+of a game being set for a student belongs where it can be corrected.
+
+**„Last action always wins“ is a rule you can test; „the switch is the default
+until touched“ is not.** Two controls said the same thing and the question was
+which. The first attempt kept the trainer's tap when the new FEN happened to
+name the same side — behaviour that depends on a position two pastes ago, and
+invisible from outside. The owner's rule is symmetric and needs no memory.
+
+**A test that cannot fail will pass a mutation twice.** The paste-wins test had
+the owner tap the side the FEN already named, so the assertion held whatever
+the code did; the second version re-entered *identical* text, which fires no
+change event at all. Both times the mutation said so and the test was rewritten
+until every step moved something. **Read a green mutation as a claim about the
+test before it is a claim about the code.**
+
+**A red test can be an earlier decision, not a stale one.** The two that broke
+encoded §9 item 2 of the homework plan — the trainer picks the student's colour
+*against* the position's turn, so „hold this draw, engine to move“ could be
+set. The new rule makes that unsayable in this dialog. They were rewritten with
+the supersession recorded in the file, and the cost was put to the owner rather
+than absorbed: the runtime still plays such tasks, so nothing already saved
+broke — only this dialog can no longer author one. **When a test written for a
+decision fails, find the decision before you change the test.**

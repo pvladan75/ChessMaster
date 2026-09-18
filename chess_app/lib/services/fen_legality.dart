@@ -22,7 +22,19 @@ String? fenIllegalReason(String fen) {
   final text = fen.trim();
   if (text.isEmpty) return 'No FEN given.';
 
-  // The notation first, because everything below assumes it can be read.
+  // A FEN is six fields, and a board on its own is the commonest thing people
+  // paste — from a diagram tool, from a chat, from half of another FEN. Said
+  // separately because „Malformed FEN." sends the reader to look at the board,
+  // which is the one part that was right. Reported live 18.9.2026: „ne mogu da
+  // ubacim pozicije, fen nije dobar", with no way to see what was wrong.
+  final fieldCount = text.split(RegExp(r'\s+')).length;
+  if (fieldCount < 6) {
+    return 'A FEN has six fields and this one has $fieldCount. After the board '
+        'come the side to move, castling, en passant and the two counters — '
+        'for example „w - - 0 1".';
+  }
+
+  // The notation next, because everything below assumes it can be read.
   try {
     final check = chess.Chess.validate_fen(text);
     if (check['valid'] != true) return 'Malformed FEN.';
@@ -111,3 +123,93 @@ String? fenIllegalReason(String fen) {
 
 /// The short check, for places that only want yes or no.
 bool isFenLegal(String fen) => fenIllegalReason(fen) == null;
+
+/// Fills in the fields a board-only FEN is missing, or null when there is
+/// nothing to fill in or nothing to work with.
+///
+/// **Why this is offered and not applied.** A diagram has no memory: it cannot
+/// say whether a king that is standing on e1 has ever moved, so castling is
+/// *inferred* from where the king and rooks are — the most permissive reading a
+/// position can have, and the one every diagram-to-FEN tool takes. That is a
+/// guess, and a guess about the rules of the game being set for a student must
+/// be made where they can see it. The caller writes the result into the field
+/// the trainer is looking at; it is theirs to correct before they save.
+///
+/// Reported live on 18.9.2026: „ne mogu da ubacim pozicije, fen nije dobar",
+/// with `rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR` — a board and
+/// nothing else, which is what a diagram tool hands you.
+String? completedFen(String fen) {
+  final fields = fen.trim().split(RegExp(r'\s+'));
+  if (fields.isEmpty || fields.first.isEmpty) return null;
+  if (fields.length >= 6) return null;
+
+  final ranks = fields.first.split('/');
+  if (ranks.length != 8) return null;
+
+  /// The piece on a square of the board field, or null.
+  String? at(String square) {
+    final file = square.codeUnitAt(0) - 'a'.codeUnitAt(0);
+    final rank = int.parse(square[1]);
+    if (file < 0 || file > 7 || rank < 1 || rank > 8) return null;
+    final row = ranks[8 - rank];
+    var index = 0;
+    for (final ch in row.split('')) {
+      final empty = int.tryParse(ch);
+      if (empty != null) {
+        if (file < index + empty) return null;
+        index += empty;
+      } else {
+        if (file == index) return ch;
+        index += 1;
+      }
+    }
+    return null;
+  }
+
+  final side = fields.length >= 2 && (fields[1] == 'w' || fields[1] == 'b')
+      ? fields[1]
+      : 'w';
+
+  final castling = StringBuffer();
+  if (at('e1') == 'K') {
+    if (at('h1') == 'R') castling.write('K');
+    if (at('a1') == 'R') castling.write('Q');
+  }
+  if (at('e8') == 'k') {
+    if (at('h8') == 'r') castling.write('k');
+    if (at('a8') == 'r') castling.write('q');
+  }
+
+  final rest = [
+    side,
+    castling.isEmpty ? '-' : castling.toString(),
+    '-',
+    '0',
+    '1',
+  ];
+  return '${fields.first} ${rest.join(' ')}';
+}
+
+/// [fen] with its side to move set to [side], or [fen] unchanged when it has
+/// no side field to set.
+///
+/// **The en passant square is cleared with it**, and that is the whole reason
+/// this is a function rather than a string splice: `e3` means „black may
+/// capture there this move" and nothing else. Carried across a change of side
+/// it asserts a capture that cannot happen, which is a position no game can
+/// reach — the kind of thing `fenIllegalReason` would then refuse for a reason
+/// the trainer never caused.
+///
+/// Asked for on 18.9.2026: „ako fen ima ko je na potezu, onda treba i dugme da
+/// se postavi tako da odgovara tome, a ako promenim na drugu stranu, onda tako
+/// treba da se prihvati" — the switch shows what the FEN says, and once it is
+/// moved it is the one that decides.
+String fenWithSideToMove(String fen, String side) {
+  final fields = fen.trim().split(RegExp(r'\s+'));
+  if (fields.length < 6) return fen;
+  if (side != 'w' && side != 'b') return fen;
+  if (fields[1] == side) return fen;
+  fields[1] = side;
+  fields[3] = '-';
+  return fields.join(' ');
+}

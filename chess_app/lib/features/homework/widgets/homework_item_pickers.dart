@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/core/models/engine_game_task.dart';
+import 'package:chess_app/services/fen_legality.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart'
     show themeLabel, themeLabels;
 import 'package:chess_app/features/library/models/library_entry.dart';
@@ -163,9 +164,17 @@ class _EngineGameItemDialogState extends State<_EngineGameItemDialog> {
   String? _level;
   String? _error;
 
-  /// The colour the trainer chose for the student, or null while it still
-  /// follows the position's own turn. Kept separate from that default so
-  /// pasting another FEN does not quietly overturn a deliberate choice.
+  /// The colour the trainer chose, or null while it still follows the
+  /// position's own turn.
+  ///
+  /// **The switch decides, and a pasted FEN sets the switch.** Asked for in
+  /// those words on 18.9.2026: „odlučujuće treba da bude dugme koje odlučuje ko
+  /// je na potezu, a dugme se pri pastovanju fen-a postavlja u položaj koji fen
+  /// diktira". So a new FEN clears this and the switch reads the position
+  /// again; moving the switch sets it and the FEN is rewritten to match on the
+  /// way out. The old comment here said the opposite — that a pasted FEN must
+  /// not overturn a deliberate choice — which left the switch showing White
+  /// over a position the trainer had just pasted with Black to move.
   String? _side;
 
   @override
@@ -177,7 +186,22 @@ class _EngineGameItemDialogState extends State<_EngineGameItemDialog> {
     _fenController.addListener(_onFenChanged);
   }
 
-  void _onFenChanged() => setState(() {});
+  void _onFenChanged() {
+    final side = _sideOfFen(_fenController.text);
+    setState(() {
+      // **A pasted position always takes the switch**, whatever was tapped
+      // before it: „nema veze šta sam dirao pre pastovanja" (18.9.2026). An
+      // earlier attempt kept the trainer's tap when the new FEN happened to
+      // name the same side as the old one, which is a rule nobody can see from
+      // the outside — the switch would sometimes follow a paste and sometimes
+      // not, for a reason two positions ago.
+      //
+      // Writing the completed FEN back on „Add" runs through here too, and sets
+      // the switch to the side it was just given: the same value it already
+      // held, so nothing moves.
+      if (side != null) _side = side;
+    });
+  }
 
   @override
   void dispose() {
@@ -217,7 +241,38 @@ class _EngineGameItemDialogState extends State<_EngineGameItemDialog> {
   String get _studentSide => _side ?? _sideOfFen(_fenController.text) ?? 'w';
 
   void _submit() {
-    final fen = _fenController.text.trim();
+    var fen = _fenController.text.trim();
+
+    // **A board on its own is finished here, not refused.** What a diagram tool
+    // hands you is the board and nothing else, and the trainer said so on
+    // 18.9.2026: „ne moram, ionako obeležavam ko je na potezu" — the side is
+    // already a switch on this dialog, so asking them to type it into the FEN
+    // as well is asking twice.
+    //
+    // The completion is **written back into the field** rather than used out of
+    // sight: castling is inferred from where the kings and rooks stand, which
+    // is a guess a diagram cannot settle, and a guess about the rules of the
+    // game being set for a student belongs where the trainer can see and
+    // correct it.
+    // A board on its own is finished; one that already carries a side has that
+    // side set to whatever the switch says. Either way the switch is the one
+    // that decides, and either way the result is written back into the field.
+    final completed = completedFen(fen);
+    fen = completed == null
+        ? fenWithSideToMove(fen, _studentSide)
+        : fenWithSideToMove(completed, _studentSide);
+    if (fen != _fenController.text.trim()) _fenController.text = fen;
+
+    // And what is still wrong is said in the validator's own words. It knows
+    // whether a king is missing, a pawn stands on the first rank, or the side
+    // not to move is already in check; the dialog used to answer all of them
+    // with „Not a valid position".
+    final reason = fenIllegalReason(fen);
+    if (reason != null) {
+      setState(() => _error = reason);
+      return;
+    }
+
     final task = <String, dynamic>{
       'fen': fen,
       'side': _studentSide,
@@ -282,9 +337,7 @@ class _EngineGameItemDialogState extends State<_EngineGameItemDialog> {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                _sideOfFen(_fenController.text) == _studentSide
-                    ? 'The engine takes the other side.'
-                    : 'The engine opens — this position hands it the first move.',
+                'The student moves first; the engine takes the other side.',
                 style: AppText.caption.copyWith(color: colors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.md),
