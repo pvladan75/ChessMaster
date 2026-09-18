@@ -25,6 +25,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/models/drill_outcome.dart';
+import 'package:chess_app/core/models/engine_game_said.dart';
 import 'package:chess_app/core/models/engine_game_task.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -2485,16 +2486,21 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   /// **Do the thing, then say it** (`CLAUDE.md`, "the recurring bug"): the
   /// post is sent — and awaited — before the dialog opens, and a failed post
   /// is reported through [_showSnackBar] (`AppFeedback`, which cannot throw)
-  /// rather than left to take the dialog down with it. The verdict shown is
-  /// the one this screen read off its own board; the server judges the same
-  /// moves again and answers with its own, which this screen does not need
-  /// back to tell the student what just happened.
+  /// rather than left to take the dialog down with it, and a failed send
+  /// still ends the game on screen. The verdict shown is the one this screen
+  /// read off its own board — except at a move target
+  /// (`verdict.needsTablebase`), where the app cannot know the answer and
+  /// must wait for the server's word: `EngineGameServerVerdict.fromJson`
+  /// reads it, [engineGameSaid] decides what may be said, and nothing coming
+  /// back reads as „not judged yet", never as a fallback to this screen's own
+  /// guess (`docs/PLAN-EXERCISE.md`, phase 3b, decision 1).
   Future<void> _finishEngineGame(EngineGameVerdict verdict) async {
     if (_engineGameFinished) return;
     _engineGameFinished = true;
     if (mounted) setState(() {});
 
     final assignmentId = widget.assignmentId;
+    EngineGameServerVerdict? serverVerdict;
     if (assignmentId != null) {
       try {
         final res = await http.post(
@@ -2517,13 +2523,20 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         if (res.statusCode != 200) {
           _showSnackBar(
               'This result could not be recorded (HTTP ${res.statusCode}).');
+        } else if (verdict.needsTablebase) {
+          try {
+            serverVerdict =
+                EngineGameServerVerdict.fromJson(jsonDecode(res.body));
+          } catch (_) {
+            serverVerdict = null;
+          }
         }
       } catch (e) {
         _showSnackBar('This result could not be recorded.');
       }
     }
 
-    _showEngineGameEndedDialog(verdict);
+    _showEngineGameEndedDialog(verdict, server: serverVerdict);
   }
 
   /// The Resign button: ends the game with `resigned: true`, whatever the
@@ -2546,23 +2559,36 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   /// Names the ending and says whether the goal was met — the two things the
   /// gate asks this dialog to say (`docs/briefs/BRIEF-DOMACI-FAZA2-APP.md`).
-  void _showEngineGameEndedDialog(EngineGameVerdict verdict) {
+  ///
+  /// [server] is read only when [verdict] needed it
+  /// (`verdict.needsTablebase`); [engineGameSaid] ignores it otherwise, so a
+  /// game the rules alone ended is announced from [verdict] at once, exactly
+  /// as before phase 3b. The three states get three different icons of
+  /// different *shapes*, never colour alone — the owner is colour-blind, and
+  /// „not judged yet" must not read as a third kind of failure.
+  void _showEngineGameEndedDialog(EngineGameVerdict verdict,
+      {EngineGameServerVerdict? server}) {
     if (!mounted) return;
     final ending = verdict.ending!;
+    final said = engineGameSaid(verdict, server);
+    final icon = switch (said) {
+      EngineGameSaid.met => Icons.emoji_events,
+      EngineGameSaid.notMet => Icons.flag,
+      EngineGameSaid.notJudged => Icons.hourglass_empty,
+    };
+    final iconColor = switch (said) {
+      EngineGameSaid.met => context.colors.warning,
+      EngineGameSaid.notMet => context.colors.danger,
+      EngineGameSaid.notJudged => context.colors.textMuted,
+    };
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(
-              verdict.goalMet ? Icons.emoji_events : Icons.flag,
-              color: verdict.goalMet
-                  ? context.colors.warning
-                  : context.colors.danger,
-              size: 28,
-            ),
+            Icon(icon, color: iconColor, size: 28),
             const SizedBox(width: AppSpacing.sm),
-            Text(verdict.goalMet ? 'Goal met' : 'Goal not met',
+            Text(engineGameSaidWords(said),
                 style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),

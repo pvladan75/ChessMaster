@@ -28,6 +28,7 @@ class HomeworkChild {
     this.totalItems = 0,
     this.attemptedItems = 0,
     this.solvedItems = 0,
+    this.pendingItems = 0,
     this.passed = false,
     this.locked = false,
     this.blockedBy,
@@ -52,6 +53,12 @@ class HomeworkChild {
   final int totalItems;
   final int attemptedItems;
   final int solvedItems;
+
+  /// A game played and not yet judged (`docs/PLAN-EXERCISE.md`, phase 3b): the
+  /// tablebase could not be reached, the game still counts as done, and it is
+  /// judged the next time anybody opens the homework. `pending_items` on the
+  /// wire; 0 when the server does not send it.
+  final int pendingItems;
   final bool passed;
 
   /// Whether the server currently refuses this item. Never true together
@@ -99,6 +106,7 @@ class HomeworkChild {
       totalItems: (json['total_items'] as num?)?.toInt() ?? 0,
       attemptedItems: (json['attempted_items'] as num?)?.toInt() ?? 0,
       solvedItems: (json['solved_items'] as num?)?.toInt() ?? 0,
+      pendingItems: (json['pending_items'] as num?)?.toInt() ?? 0,
       passed: json['passed'] == true,
       locked: json['locked'] == true,
       blockedBy: (json['blocked_by'] as num?)?.toInt(),

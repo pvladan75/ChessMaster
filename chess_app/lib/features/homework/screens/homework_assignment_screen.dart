@@ -294,6 +294,31 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
                     style: AppText.body.copyWith(color: context.colors.warning),
                   ),
                 ),
+              if (child.pendingItems > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Never by hue alone (the owner is colour-blind): an
+                      // hourglass is a different *shape* from the done
+                      // check-mark and the locked padlock above, and the
+                      // words say the rest. This is not a failure — the
+                      // tablebase could not be reached, the game still counts
+                      // as done, and it is judged the next time anybody opens
+                      // this homework (`docs/PLAN-EXERCISE.md`, phase 3b).
+                      Icon(Icons.hourglass_empty,
+                          size: 14, color: context.colors.textMuted),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Played — not judged yet',
+                        key: Key('homework-child-pending-${child.id}'),
+                        style: AppText.body
+                            .copyWith(color: context.colors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
               if (child.attemptedItems > 0 || (_isTrainer && locked))
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,

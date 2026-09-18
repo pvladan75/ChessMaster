@@ -4,8 +4,10 @@
 // an exercise: `chess_backend/services/exercise.js` is the one reader of what
 // a row means, and this file is its app-side mirror for the „find the move(s)"
 // task built in Preparation (`docs/briefs/BRIEF-EXERCISE-FAZA2B-APP.md`). A
-// game exercise (phase 3b) is read here too — `task['type'] == 'game'` — but
-// not yet made from this screen.
+// game exercise (phase 3b) is read here too — `task['type'] == 'game'` — and
+// `exerciseGameTask` below is what `MakeExerciseSheet` sends to make one.
+
+import 'exercise_task_words.dart' show ExerciseAsk;
 
 /// One move of the student's, as a line asks for it.
 ///
@@ -144,4 +146,31 @@ class ExerciseDraft {
         if (solution != null)
           'solution': [for (final s in solution!) s.toJson()],
       };
+}
+
+/// The `task` map of a game exercise, as `POST /exercises` takes it.
+///
+/// [side] is the side the **student** plays — never the position's own side
+/// to move, which is a different question the position may or may not
+/// answer, and does not answer this one either way. Absence is a third
+/// answer, all the way to the wire: a choice the trainer did not make is not
+/// sent, rather than sent as a guessed default.
+Map<String, dynamic> exerciseGameTask({
+  required String side,
+  required ExerciseAsk ask,
+  int? forMoves,
+  String? level,
+  int? thinkSeconds,
+}) {
+  if (ask == ExerciseAsk.find) {
+    throw ArgumentError('"Find the move" is not a game exercise.');
+  }
+  return {
+    'type': 'game',
+    'side': side,
+    'goal': ask == ExerciseAsk.win ? 'win' : 'hold',
+    if (forMoves != null) 'surviveMoves': forMoves,
+    if (level != null) 'level': level,
+    if (thinkSeconds != null) 'thinkSeconds': thinkSeconds,
+  };
 }

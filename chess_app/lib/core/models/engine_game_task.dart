@@ -11,6 +11,8 @@ library;
 
 import 'package:chess/chess.dart' as chess;
 
+import 'package:chess_app/features/exercises/models/exercise_task_words.dart'
+    show exercisePieceCount, tablebasePieces;
 import 'package:chess_app/services/fen_legality.dart';
 
 import 'drill_outcome.dart';
@@ -104,11 +106,28 @@ class EngineGameTask {
         return null;
     }
 
+    // „For N moves". `survive` has always needed the number; since phase 3a
+    // of `docs/PLAN-EXERCISE.md` a `win` or a `hold` may carry one too — keep
+    // the win, or hold the draw, for the next N of the student's own moves.
+    // `surviveMoves` stays the field's one name on the wire, the same as the
+    // server (`chess_backend/services/engineGameTask.js`).
     int? surviveMoves;
-    if (goal == EngineGameGoal.survive) {
+    final saidMoves =
+        json.containsKey('surviveMoves') && json['surviveMoves'] != null;
+    if (goal == EngineGameGoal.survive || saidMoves) {
       final n = _asInt(json['surviveMoves']);
       if (n == null || n < 1 || n > _maxSurviveMoves) return null;
       surviveMoves = n;
+    }
+
+    // A win kept for N moves is only a fact a tablebase can state, and a
+    // tablebase reaches seven pieces at most. Refused here, at the position
+    // that decides it, rather than judged by a guess in front of a student —
+    // the server refuses the same task.
+    if (goal == EngineGameGoal.win &&
+        surviveMoves != null &&
+        exercisePieceCount(fen) > tablebasePieces) {
+      return null;
     }
 
     String? level;
@@ -157,6 +176,7 @@ class EngineGameVerdict {
     required this.outcome,
     required this.goalMet,
     required this.ownMoves,
+    required this.needsTablebase,
   });
 
   /// Null while the game is running.
@@ -164,6 +184,14 @@ class EngineGameVerdict {
   final DrillOutcome outcome;
   final bool goalMet;
   final int ownMoves;
+
+  /// True exactly when the game ended at its move target
+  /// (`GameEnding.moveTarget`) with seven pieces or fewer on the board. Such
+  /// a position is one only a tablebase can judge exactly — the app cannot
+  /// ask one, so [goalMet] above is only ever this app's own guess for such a
+  /// game, and the caller must wait for the server's word rather than show it
+  /// (`docs/PLAN-EXERCISE.md`, phase 3b, decision 1).
+  final bool needsTablebase;
 }
 
 /// Reads the verdict of an assigned game through [verdictFor] and adds only
@@ -191,12 +219,13 @@ EngineGameVerdict engineGameVerdict({
   var ending = boardVerdict.ending;
   var outcome = boardVerdict.outcome;
 
-  // The board has nothing to say about "survive": it does not know how many
-  // of the student's own moves the trainer asked for. Reaching the number is
-  // not itself a win or a draw, so the outcome stays undecided even though
-  // the game is, from here, over.
+  // The board has nothing to say about a move target: it does not know how
+  // many of the student's own moves the trainer asked for. Reaching the
+  // number is not itself a win or a draw, so the outcome stays undecided even
+  // though the game is, from here, over. Since phase 3a of
+  // `docs/PLAN-EXERCISE.md` this applies to every goal that carries
+  // `surviveMoves` — a win or a hold kept for N moves, not only `survive`.
   if (ending == null &&
-      task.goal == EngineGameGoal.survive &&
       task.surviveMoves != null &&
       ownMoves >= task.surviveMoves!) {
     ending = GameEnding.moveTarget;
@@ -218,10 +247,16 @@ EngineGameVerdict engineGameVerdict({
     }
   }
 
+  // With seven pieces or fewer, the position a move target reached is one a
+  // tablebase can judge exactly. The app cannot ask one.
+  final needsTablebase = ending == GameEnding.moveTarget &&
+      exercisePieceCount(game.fen) <= tablebasePieces;
+
   return EngineGameVerdict(
     ending: ending,
     outcome: outcome,
     goalMet: goalMet,
     ownMoves: ownMoves,
+    needsTablebase: needsTablebase,
   );
 }
