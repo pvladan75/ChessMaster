@@ -49,6 +49,8 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
+import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
 import 'package:chess_app/widgets/pgn_import_dialog.dart';
 import 'package:chess_app/widgets/move_history_view.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
@@ -3032,6 +3034,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     icon: const Icon(Icons.save, size: 16),
                     label: const Text('Save position'),
                   ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                MakeExerciseButton(
+                  api: ExerciseApiService(authToken: widget.userSession.token),
+                  moveTree: moveTree,
+                  availableUserLabels: _availableUserLabels,
+                  onSaved: (_) => _showSuccess('Exercise saved.'),
                 ),
                 const Divider(height: 24),
                 Row(

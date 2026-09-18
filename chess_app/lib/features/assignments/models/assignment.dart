@@ -347,6 +347,11 @@ class CustomAttemptResult {
     required this.reason,
     this.playedSan,
     this.solutionSan,
+    this.done = false,
+    this.retry = false,
+    this.reply,
+    this.continuesOn,
+    this.step = 0,
   });
 
   final bool correct;
@@ -361,13 +366,44 @@ class CustomAttemptResult {
   final String? playedSan;
   final String? solutionSan;
 
-  factory CustomAttemptResult.fromJson(Map<String, dynamic> json) =>
-      CustomAttemptResult(
-        correct: json['correct'] == true,
-        reason: json['reason']?.toString() ?? '',
-        playedSan: json['playedSan']?.toString(),
-        solutionSan: json['solutionSan']?.toString(),
-      );
+  /// Whether the exercise — one move, or a whole line — is finished. Always
+  /// true when [correct] is false for an answer before lines existed, `done`
+  /// was never sent and a wrong answer ended the exercise there; a wrong move
+  /// in a line does not, hence [retry].
+  final bool done;
+
+  /// A wrong move in a line may be tried again: nothing was revealed, so
+  /// nothing is lost by trying. Never true for a one-move exercise — its
+  /// wrong answer is final, and shows the solution.
+  final bool retry;
+
+  /// The opponent's answer to the last right move, one at a time and never
+  /// ahead of the move that earned it. Null once the line is done.
+  final String? reply;
+
+  /// Set when an accepted alternative was played: the author's move to show
+  /// on the board before [reply], since the reply was written to go there.
+  final String? continuesOn;
+
+  /// Which move of the line this verdict is about.
+  final int step;
+
+  factory CustomAttemptResult.fromJson(Map<String, dynamic> json) {
+    final correct = json['correct'] == true;
+    return CustomAttemptResult(
+      correct: correct,
+      reason: json['reason']?.toString() ?? '',
+      playedSan: json['playedSan']?.toString(),
+      solutionSan: json['solutionSan']?.toString(),
+      // Absent on the wire — an answer from before lines existed — reads as
+      // finished exactly when the answer itself was final: `done: correct`.
+      done: json['done'] is bool ? json['done'] as bool : correct,
+      retry: json['retry'] == true,
+      reply: json['reply']?.toString(),
+      continuesOn: json['continuesOn']?.toString(),
+      step: (json['step'] as num?)?.toInt() ?? 0,
+    );
+  }
 }
 
 class AssignmentDetail {

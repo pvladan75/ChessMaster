@@ -3,6 +3,140 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
+/// The label (tag) editor this dialog first drew: active chips, a text field
+/// to add one, and a suggestion list drawn from what the trainer has used
+/// before. `MakeExerciseSheet` (`docs/PLAN-EXERCISE.md`, phase 2b) needs the
+/// same editor, so it lives here as its own widget rather than a second copy.
+class LabelChipInput extends StatefulWidget {
+  const LabelChipInput({
+    super.key,
+    required this.availableUserLabels,
+    required this.initialLabels,
+    required this.onChanged,
+  });
+
+  final List<String> availableUserLabels;
+  final List<String> initialLabels;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  State<LabelChipInput> createState() => _LabelChipInputState();
+}
+
+class _LabelChipInputState extends State<LabelChipInput> {
+  final TextEditingController _inputController = TextEditingController();
+  late List<String> _active;
+
+  @override
+  void initState() {
+    super.initState();
+    _active = List<String>.from(widget.initialLabels);
+  }
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    super.dispose();
+  }
+
+  void _add(String tag) {
+    final cleaned = tag.trim();
+    if (cleaned.isEmpty || _active.contains(cleaned)) return;
+    setState(() {
+      _active.add(cleaned);
+      _inputController.clear();
+    });
+    widget.onChanged(List<String>.unmodifiable(_active));
+  }
+
+  void _remove(String tag) {
+    setState(() => _active.remove(tag));
+    widget.onChanged(List<String>.unmodifiable(_active));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final suggestions = widget.availableUserLabels
+        .where((l) => !_active.contains(l))
+        .where((l) =>
+            _inputController.text.isEmpty ||
+            l.toLowerCase().contains(_inputController.text.toLowerCase()))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Labels (Tags):', style: AppText.bodyLargeBold),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            ..._active.map((t) => Chip(
+                  label: Text(t, style: AppText.caption),
+                  deleteIcon: const Icon(Icons.close, size: 14),
+                  onDeleted: () => _remove(t),
+                  backgroundColor: colors.accent.withValues(alpha: 0.2),
+                )),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _inputController,
+                decoration: const InputDecoration(
+                  hintText: 'Type and add label...',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10, vertical: AppSpacing.sm),
+                ),
+                style: AppText.body,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (val) => _add(val),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            ElevatedButton(
+              onPressed: () => _add(_inputController.text),
+              style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.md)),
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+        if (suggestions.isNotEmpty && _inputController.text.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 120),
+            decoration: BoxDecoration(
+              border:
+                  Border.all(color: colors.textMuted.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: suggestions.length,
+              itemBuilder: (context, index) {
+                final suggestion = suggestions[index];
+                return ListTile(
+                  dense: true,
+                  title: Text(suggestion, style: AppText.body),
+                  onTap: () => _add(suggestion),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class SavePositionDialog extends StatefulWidget {
   final List<String> availableUserLabels;
   final List<String> initialPersistedLabels;
@@ -25,7 +159,6 @@ class SavePositionDialog extends StatefulWidget {
 class _SavePositionDialogState extends State<SavePositionDialog> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descController = TextEditingController();
-  final TextEditingController tagInputController = TextEditingController();
 
   late List<String> dialogActiveTags;
   late bool persistChecked;
@@ -39,32 +172,8 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
     persistChecked = widget.initialShouldPersist;
   }
 
-  void addTag(String tag) {
-    final cleaned = tag.trim();
-    if (cleaned.isNotEmpty && !dialogActiveTags.contains(cleaned)) {
-      setState(() {
-        dialogActiveTags.add(cleaned);
-        tagInputController.clear();
-      });
-    }
-  }
-
-  void removeTag(String tag) {
-    setState(() {
-      dialogActiveTags.remove(tag);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final suggestions = widget.availableUserLabels
-        .where((l) => !dialogActiveTags.contains(l))
-        .where((l) =>
-            tagInputController.text.isEmpty ||
-            l.toLowerCase().contains(tagInputController.text.toLowerCase()))
-        .toList();
-
     return AlertDialog(
       title: const Text('Save position'),
       // The width must be tight: AlertDialog wraps its children in an
@@ -97,76 +206,11 @@ class _SavePositionDialogState extends State<SavePositionDialog> {
                   maxLines: 2,
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                const Text(
-                  'Labels (Tags):',
-                  style: AppText.bodyLargeBold,
+                LabelChipInput(
+                  availableUserLabels: widget.availableUserLabels,
+                  initialLabels: dialogActiveTags,
+                  onChanged: (tags) => dialogActiveTags = tags,
                 ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    ...dialogActiveTags.map((t) => Chip(
-                          label: Text(t, style: AppText.caption),
-                          deleteIcon: const Icon(Icons.close, size: 14),
-                          onDeleted: () => removeTag(t),
-                          backgroundColor: colors.accent.withValues(alpha: 0.2),
-                        )),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: tagInputController,
-                        decoration: const InputDecoration(
-                          hintText: 'Type and add label...',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 10, vertical: AppSpacing.sm),
-                        ),
-                        style: AppText.body,
-                        onChanged: (_) => setState(() {}),
-                        onSubmitted: (val) => addTag(val),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    ElevatedButton(
-                      onPressed: () => addTag(tagInputController.text),
-                      style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.md)),
-                      child: const Text('Add'),
-                    ),
-                  ],
-                ),
-                if (suggestions.isNotEmpty &&
-                    tagInputController.text.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 120),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: colors.textMuted.withValues(alpha: 0.3)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: suggestions.length,
-                      itemBuilder: (context, index) {
-                        final suggestion = suggestions[index];
-                        return ListTile(
-                          dense: true,
-                          title: Text(suggestion, style: AppText.body),
-                          onTap: () => addTag(suggestion),
-                        );
-                      },
-                    ),
-                  ),
-                ],
                 const SizedBox(height: AppSpacing.lg),
                 CheckboxListTile(
                   title: const Text(
