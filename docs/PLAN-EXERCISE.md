@@ -38,7 +38,8 @@ opening a board screen.*
    saved position and a scanned one, „one kind to the reader". Decision 1 makes
    them two kinds, so one chip cannot hold both: **Exercises** is added after
    Tutorials and **Positions** narrows to bare positions — seven chips, not
-   six. One enum line either way, put to the owner as such.*
+   six. One enum line either way, put to the owner as such — **and confirmed
+   by the owner the same day: seven chips.***
 3. **Lists draw the board** with the existing `BoardThumbnail`; tapping it
    opens a larger static board with the name, the task and who is to move in
    words. No stepping through the solution in the first version. No rendered

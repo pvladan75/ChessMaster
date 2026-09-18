@@ -256,7 +256,19 @@ void main() {
           () => MockClient((request) async {
                 sentUrl = request.url.toString();
                 sentBody = jsonDecode(request.body) as Map<String, dynamic>;
-                return http.Response('{"ok":true}', 200);
+                // Re-aimed 19.9.2026, phase 3b of docs/PLAN-EXERCISE.md. This
+                // game stops at its move target with three pieces on the
+                // board, so since phase 3a it is the **server** that says
+                // whether the goal was met — a tablebase judges the position
+                // reached, and the app cannot ask one. The fake used to answer
+                // `{"ok":true}`, which no server sends any more; with that
+                // answer the screen rightly says „not judged yet". It now
+                // answers as `recordEngineGameResult` does, and „Goal met"
+                // above is the server's word shown, not the app's own guess.
+                return http.Response(
+                    '{"ok":true,"goalMet":true,"judgedBy":"tablebase",'
+                    '"pending":false,"ending":"moveTarget"}',
+                    200);
               }));
 
       expect(sentBody, isNotNull);
