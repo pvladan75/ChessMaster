@@ -1060,7 +1060,6 @@ class _HomeScreenState extends State<HomeScreen> {
           // never opens it.
           return AnalyseTab(
             session: widget.session,
-            onOpenMyGames: () => context.push(AppRoutes.archiveHome),
             onOpenScanner: () => context.push(AppRoutes.scan),
           );
         default:

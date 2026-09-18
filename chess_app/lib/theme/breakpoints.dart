@@ -27,6 +27,11 @@ abstract final class Breakpoints {
   /// under it (360–430 dp); a tablet on its side is not.
   static const double compactHeight = 480.0;
 
+  /// Material 3's compact *width* class: a phone held upright. Every row that
+  /// has to fit the screen's whole width is tight here — 360 dp is the common
+  /// case and the one the overflow reports keep coming from.
+  static const double compactWidth = 600.0;
+
   static bool isWide(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= wide;
 

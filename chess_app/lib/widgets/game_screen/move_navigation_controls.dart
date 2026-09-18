@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/branch_choice_sheet.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 
 /// First/prev/next/last toolbar for walking a line of moves, with an optional
@@ -30,7 +31,16 @@ class MoveNavigationControls extends StatelessWidget {
   /// Omitted where the screen has no board orientation to flip.
   final VoidCallback? onFlipBoard;
 
-  /// Label between the back and forward buttons, e.g. "Potez 3 od 12".
+  /// Label between the back and forward buttons, e.g. "Move 3 of 12".
+  ///
+  /// **Null by default since 18.9.2026.** It used to default to the word
+  /// „Navigation", which named the strip rather than saying anything about the
+  /// position — and it was wide enough to push the flip and board-view buttons
+  /// onto a second row on a 360 dp phone. Reported live against TODO-provera
+  /// 180.3: „moglo bi da se u portret modu navigaciona paleta svede na jedan
+  /// red". Every screen that wants a label passes a real one („Move 3 of 12",
+  /// „5/20"); the three that relied on the default — the room, and the exercise
+  /// screen twice — wanted nothing.
   final String? centerLabel;
 
   /// Screen-specific buttons appended after the flip button — the Analysis
@@ -42,10 +52,22 @@ class MoveNavigationControls extends StatelessWidget {
   final double? iconSize;
 
   /// 40 dp buttons instead of 48, and less padding, so the strip stays one row
-  /// in a landscape phone's side column. Null decides by
-  /// [LandscapeBoardLayout.applies]; every button in the strip — the screen's
-  /// [trailing] ones included — takes the smaller size.
+  /// where it has to share a narrow screen. Null decides by [_isTight]; every
+  /// button in the strip — the screen's [trailing] ones included — takes the
+  /// smaller size.
   final bool? dense;
+
+  /// Whether this strip has to earn its width: a phone on its side, where the
+  /// strip shares a column with the panels, **or** a phone held upright, where
+  /// it is the full width of a 360 dp screen and was wrapping to two rows.
+  ///
+  /// The second half was missing until 18.9.2026, even though the comment on
+  /// [_PhoneLayout] had already written down why — „a phone's width is the same
+  /// problem in portrait" — and the tutorial studio passed `dense: true` by
+  /// hand to work around it.
+  static bool _isTight(BuildContext context) =>
+      LandscapeBoardLayout.applies(context) ||
+      MediaQuery.sizeOf(context).width < Breakpoints.compactWidth;
 
   /// What a dense strip needs per button, for anyone sizing a column to hold
   /// one: [LandscapeBoardLayout.minPanelWidth] is derived from it.
@@ -57,7 +79,7 @@ class MoveNavigationControls extends StatelessWidget {
     required this.cursor,
     this.canNavigate = true,
     this.onFlipBoard,
-    this.centerLabel = 'Navigation',
+    this.centerLabel,
     this.trailing = const [],
     this.iconSize,
     this.dense,
@@ -88,7 +110,7 @@ class MoveNavigationControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dense = this.dense ?? LandscapeBoardLayout.applies(context);
+    final dense = this.dense ?? _isTight(context);
     final canGoBack = canNavigate && cursor.canGoBack;
     final canGoForward = canNavigate && cursor.canGoForward;
 

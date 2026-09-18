@@ -86,12 +86,24 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// saved. Wins over the device draft for the same reason the other two do.
   final AnalysisNode? initialTree;
 
+  /// Opens the book scanner, when the caller has somewhere to open it from.
+  ///
+  /// It arrives here because the Analyse tab used to carry „Scan a book" in a
+  /// row of its own above the board, and that row cost three screens' worth of
+  /// height on a phone for two buttons (reported live 18.9.2026). „My games"
+  /// had a second door — the card on Practise — so it simply went; this one had
+  /// **none**: `/scan/saved` is only reachable after a scan, so deleting the
+  /// button would have deleted the way into the scanner. It is in the toolbar
+  /// instead, which is behind „More tools" on a phone and costs no height.
+  final VoidCallback? onOpenScanner;
+
   const AnalysisStudioScreen({
     super.key,
     required this.userSession,
     this.initialFen,
     this.initialGame,
     this.initialTree,
+    this.onOpenScanner,
   });
 
   @override
@@ -297,6 +309,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       // question of which of the six flows is asked inside it, after the tap.
       _ToolAction(Icons.school, context.colors.success, 'Use in a tutorial',
           _openTeachMenu),
+      // Drawn only when it was given, like everything else in this bar
+      // (rule 15): the screen is pushed from a dozen places and only the tab
+      // has a scanner to offer.
+      if (widget.onOpenScanner != null)
+        _ToolAction(Icons.document_scanner_outlined, context.colors.info,
+            'Scan a book', widget.onOpenScanner!),
       _ToolAction(Icons.share, context.colors.info, 'Export PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Saved analyses',
           _showSavedAnalysesDialog),
@@ -2130,8 +2148,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       centerLabel: null,
       iconSize: 20,
       onFlipBoard: _flipBoard,
-      trailing: [
-        const SizedBox(width: AppSpacing.sm),
+    );
+  }
+
+  /// Comment, AI comment, NAG and delete — the four that act on the move the
+  /// cursor is standing on rather than on where the cursor is.
+  ///
+  /// **They used to hang off the navigation strip**, which made nine buttons in
+  /// one `Wrap`: nine 40 dp targets need 360 dp before the container's own
+  /// padding, so on a phone they wrapped onto a row of their own anyway — an
+  /// unlabelled second row of icons under the arrows. Reported live on
+  /// 18.9.2026 (TODO-provera 180.5). Here they sit beside the move they act
+  /// on, and the strip above is five buttons and one row on every phone.
+  List<Widget> _moveActions() => [
         IconButton(
           icon: Icon(Icons.comment, size: 18, color: context.colors.info),
           tooltip: 'Add Comment',
@@ -2162,9 +2191,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           tooltip: 'Delete this move (and branch after it)',
           onPressed: _currentNode.isRoot ? null : _confirmDeleteCurrentNode,
         ),
-      ],
-    );
-  }
+      ];
 
   /// Shows [_currentNode]'s move + NAG + comment right under the board, so
   /// browsing an already-annotated game (or one just run through "Analiziraj
@@ -2172,10 +2199,22 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// in the move-tree text below. Collapses to nothing on a move with no
   /// comment/NAG, so it doesn't add empty chrome while stepping through an
   /// unannotated game.
+  /// The move the cursor is on: what was played, what was written about it,
+  /// and the four things that can be done to it.
+  ///
+  /// **Drawn whenever a move is selected**, not only when it already carries a
+  /// sentence. It used to disappear on a move with no comment and no NAG —
+  /// which was fine while „Add Comment" lived in the navigation strip, and is
+  /// exactly wrong now that it lives here: the button to write the first
+  /// comment cannot be hidden until there is one. At the root there is no move
+  /// to act on and nothing to say, so there it still draws nothing.
   Widget _buildCurrentCommentPanel() {
     final comment = _currentNode.comment;
     final nag = _currentNode.nag;
-    if (comment.isEmpty && nag == null) return const SizedBox.shrink();
+    final isRoot = _currentNode.isRoot;
+    if (isRoot && comment.isEmpty && nag == null) {
+      return const SizedBox.shrink();
+    }
 
     return InkWell(
       borderRadius: AppRadii.roundedSm,
@@ -2199,10 +2238,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         constraints: const BoxConstraints(maxHeight: 90),
         child: SingleChildScrollView(
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(Icons.comment, size: 16, color: context.colors.info),
-              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: RichText(
                   text: TextSpan(
@@ -2226,7 +2263,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   ),
                 ),
               ),
-              Icon(Icons.edit, size: 14, color: context.colors.textMuted),
+              ..._moveActions(),
             ],
           ),
         ),

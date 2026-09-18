@@ -5994,14 +5994,39 @@ Settings. „Board coordinates" važi na svakoj tabli i ostaje.
 2. [ ] **Analiza**: ikonica mreže (Board view) → „Board size" sa klizačem
    60–100%; tabla se smanjuje **dok je meni otvoren**, bez izlaska sa ekrana.
    Isto portret i položeno.
+   **Prijavljeno uživo 18.9.2026, ispravljeno istog dana** („u landscape
+   orjentaciji veliki deo površine iznad table je pokriven nepotrebnim
+   elementima"): iznad table su stajala **tri** zaglavlja — naslov taba,
+   red sa „My games"/„Scan a book", pa traka Analize. Srednji red je ukinut.
+   „My games" ima svoja vrata na Practise (kartica), a „Scan a book" nije
+   imao **nijedna druga** — `/scan/saved` se dohvata tek posle skeniranja —
+   pa je prešao u traku Analize (na telefonu u ⋮ „More tools"), a nije
+   obrisan. Provera: položeno, iznad table ostaju naslov taba i traka
+   Analize; „Scan a book" se i dalje otvara iz ⋮.
 3. [ ] **Soba** (ikonica mreže pored flip-a) i **ekran vežbi** (meni u
    zaglavlju, portret i položeno): isti klizač, tabla prati. Vrednost je zajednička za
    sva tri ekrana i ostaje posle ponovnog pokretanja.
+   **Prijavljeno uživo 18.9.2026, ispravljeno istog dana** („moglo bi da se u
+   portret modu navigaciona paleta svede na jedan red"): paleta je imala
+   podrazumevani natpis „Navigation" u sredini, koji ne kaže ništa o poziciji
+   a bio je dovoljno širok da gurne flip i board-view u drugi red na 360 dp.
+   Natpis je sada podrazumevano prazan (ekrani koji hoće natpis šalju pravi —
+   „Move 3 of 12"), a dugmad su gušća i u portretu, ne samo položeno. Izmereno,
+   ne procenjeno: `nav_strip_one_row_test` meri visinu palete na 360 dp.
 4. [ ] **Drugi ekrani** (npr. taktike, repertoar): u meniju table **nema**
    klizača.
 5. [ ] **Analiza → „Panels"** (na telefonu u ⋮ „More tools", na Windows-u
    ikonica): skini „Move tree" — stablo nestaje ispod otvorenog lista; vrati
    ga. Izbor ostaje posle ponovnog pokretanja.
+   **Prijavljeno uživo 18.9.2026, ispravljeno istog dana** („u portret modu se
+   deo ispod navigacione palete uopšte ne vidi"): tri stvari su uzimale visinu.
+   Red „My games"/„Scan a book" je ukinut (v. 180.2), dugmad palete su gušća, i
+   **četiri radnje nad potezom** (komentar, AI komentar, NAG, brisanje) više ne
+   vise o navigacionoj paleti. Devet dugmadi od 40 dp traži 360 dp pre ivica,
+   pa se paleta lomila u dva reda na svakom telefonu; sada je paleta pet
+   dugmadi i jedan red, a četiri radnje stoje uz sam potez, u redu „tekući
+   potez" ispod. Taj red se od sada crta **i kad potez nema komentar** — dugme
+   kojim se piše prvi komentar ne sme da se krije dok komentara nema.
 6. [ ] **Upoznaj repertoar**: tabla sada ima slova i brojeve po ivici, a
    „Coordinates" u meniju ih pali i gasi (ranije prekidač nije radio ništa).
 7. [ ] **Komentari u Analizi**: „Manual comment selection" više nije u

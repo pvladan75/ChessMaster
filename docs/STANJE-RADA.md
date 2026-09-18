@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **18.9.2026** — najnovije je „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **18.9.2026** — najnovije je „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,50 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Settings, druga provera 18.9.2026: hrom iznad table — u kodu
+
+Vlasnik je prošao stavku 180 (klizač veličine table i paneli Analize) i
+ostavio tri primedbe, sve o prostoru koji hrom uzima telefonu.
+
+**Red „My games" / „Scan a book" je ukinut** (180.2, 180.5). Iznad table su
+stajala tri zaglavlja: naslov taba iz ljuske, taj red, pa traka Analize — u
+položenom telefonu je board počinjao ispod ivice ekrana. Vlasnik je tražio da
+se oba dugmeta uklone „na svim ekranima… postoje ulazi sa tabova".
+
+**Za jedno od njih to nije bilo tačno, i to je bila jedina prava zamka ovog
+kruga.** „My games" ima karticu na Practise, pa je otišlo bez traga. „Scan a
+book" nije imao **nijedna druga vrata**: `/scan/saved` se dohvata samo iz
+`scan_review_screen`, dakle *posle* skeniranja, pa bi brisanje dugmeta
+zatvorilo ceo skener knjiga. Prešao je u traku Analize (na telefonu iza ⋮
+„More tools"), gde ne košta ni jedan piksel visine. Pravilo 10 u novom odelu:
+pre brisanja dugmeta, pitaj ko još vodi tamo.
+
+**Navigaciona paleta je jedan red** (180.3). Uzrok nije bila širina dugmadi
+nego **podrazumevani natpis „Navigation"** u sredini palete — reč koja imenuje
+traku umesto da kaže nešto o poziciji, a dovoljno široka da gurne flip i
+board-view u drugi red na 360 dp. Sada je podrazumevano prazan; svaki ekran
+koji hoće natpis već šalje pravi („Move 3 of 12", „5/20"), a tri koja su
+koristila podrazumevani — soba i ekran vežbi (dvaput) — nisu htela ništa.
+Uz to, `dense` (40 dp umesto 48) sada važi i za uzan portret, ne samo za
+položeno; komentar u studiju je to već bio zapisao („a phone's width is the
+same problem in portrait") i zaobilazio ručnim `dense: true`.
+
+**Četiri radnje nad potezom su izašle iz palete** (180.5). Komentar, AI
+komentar, NAG i brisanje su visili o navigacionoj paleti, što je davalo devet
+dugmadi u jednom `Wrap`-u: devet meta od 40 dp traži 360 dp pre ivica
+kontejnera, pa se paleta lomila na svakom telefonu. Sada su u redu „tekući
+potez" ispod palete, uz sam potez na koji deluju. **Taj red se od sada crta i
+kad potez nema komentar** — dok je „Add Comment" bio u paleti to nije smetalo,
+a čim je prešao ovde, skrivanje reda bi sakrilo dugme kojim se piše prvi
+komentar.
+
+Mereno, ne procenjeno: `nav_strip_one_row_test` čita visinu palete na 360 dp —
+šest dugmadi je jedan red, ista šest sa natpisom „Navigation" su dva, devet i
+dalje ne stane (zapisano testom, da se ne pomisli da je red ostavljen slučajno),
+a široki prozor zadržava mete od 48 dp.
 
 ---
 

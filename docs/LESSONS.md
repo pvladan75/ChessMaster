@@ -3629,3 +3629,50 @@ pass an `initialCategory` (the route falls back to `'mate_puzzle'`), and every
 path back to the hub is guarded by `!ownRoute`, so it was painted for one
 frame as a drill opened. **Before wiring a screen up, ask who can stand on
 it.** Deleting it took 145 lines out and put 83 back.
+
+**Settings' second pass, 18.9.2026: the chrome above the board — app 3030 →
+3034 tests, 1 skipped; analyze 26 known infos, checked as a list and not as a
+count.**
+
+**„There are other doors“ is a claim to check, not a reason to delete.** The
+owner asked for two buttons to go from a row above the board, „postoje ulazi sa
+tabova“. For „My games“ that was true — Practise has its card. For „Scan a
+book“ it was not: `/scan/saved` is pushed only from the scan review screen,
+so the button was the *only* way into the book scanner and removing it would
+have removed the feature. It moved into the Analysis toolbar instead. Rule 10
+wearing the other face: the usual question is whether a user can reach a new
+feature; this one is whether they can still reach an old one afterwards.
+
+**A default that names the widget costs layout.** The navigation strip's
+`centerLabel` defaulted to the word „Navigation“ — it said what the row was,
+never anything about the position, and it was wide enough to push two buttons
+onto a second row on a 360 dp phone. Every screen that wanted a label was
+already passing a real one; the three on the default wanted nothing. The
+cheapest fix for a cramped row is often a word nobody reads.
+
+**A workaround in one file is a defect in the shared one.** `dense` on that
+strip keyed off landscape alone, and the phone studio passed `dense: true` by
+hand with a comment saying why — „a phone's width is the same problem in
+portrait“. The note was right and had been sitting there since 6b; it belonged
+in the widget, not beside one caller. **When a caller writes down why it is
+overriding a default, read it as a bug report against the default.**
+
+**Nine 40 dp targets do not fit 360 dp, and that is arithmetic worth writing
+into a test.** The Analysis strip carried four navigation buttons, a flip, and
+four actions on the current move. No amount of tightening fits them; the
+actions moved to the row that shows the move they act on. The test records
+the nine-button case as *still wrapping* rather than asserting a row it cannot
+have — so the next reader knows the row was measured and left, not missed.
+
+**Moving a button changes when it is drawn.** The current-move row rendered
+nothing when the move had no comment and no NAG, which was harmless while
+„Add Comment“ lived in the strip and wrong the moment it moved in: the button
+for writing the *first* comment cannot be hidden until a comment exists. Ask
+of anything moved into a conditional container: what is its condition, and is
+it still the right one for the new tenant?
+
+**The formatter can add a lint.** Bracing a one-line `if` that `dart format`
+had split across two lines was the difference between 26 infos and 27. The
+count is checked against the *list* — `analysis_studio_screen.dart` is not one
+of the five files that own the known ones, so a single info there is a new one
+however familiar the rule looks.
