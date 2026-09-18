@@ -1095,8 +1095,23 @@ class _HomeScreenState extends State<HomeScreen> {
     // Settings go into the title row, and the rail holds only the destinations.
     final bool shortLandscape = LandscapeBoardLayout.applies(context);
 
+    // Whether the rail is carrying the bell and the gear itself — its head and
+    // its foot. When it is, the tab's header must not draw them again: a
+    // desktop had two „Settings" for a moment on 18.9.2026, caught by
+    // `home_landscape_test`, which pins the one on a 1280 window to the foot of
+    // the rail. A short landscape has a rail with no room for either, which is
+    // why it was the one case the header already covered.
+    final bool railCarriesActions = (isWide || isLandscape) && !shortLandscape;
+
     // One button each, placed by the layout — the rail's foot and head on a
     // desktop, the title row on a phone on its side.
+    // „Sign In" lived in the shell bar with the other two and moves with them.
+    final signInButton = TextButton.icon(
+      onPressed: () => context.push(AppRoutes.login),
+      icon: Icon(Icons.login, color: context.colors.textPrimary),
+      label:
+          Text('Sign In', style: TextStyle(color: context.colors.textPrimary)),
+    );
     final settingsButton = IconButton(
       tooltip: 'Settings',
       icon: Icon(Icons.settings_outlined, color: context.colors.textSecondary),
@@ -1135,49 +1150,34 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           },
           child: Scaffold(
-            appBar: isLandscape
-                ? null
-                : AppBar(
-                    title: const Text('Chess Trainer'),
-                    actions: [
-                      if (widget.session.isGuest)
-                        TextButton.icon(
-                          onPressed: () {
-                            context.push(AppRoutes.login);
-                          },
-                          icon: Icon(Icons.login,
-                              color: context.colors.textPrimary),
-                          label: Text('Sign In',
-                              style:
-                                  TextStyle(color: context.colors.textPrimary)),
-                        ),
-                      IconButton(
-                        tooltip: 'Settings',
-                        icon: Icon(Icons.settings_outlined,
-                            color: context.colors.textSecondary),
-                        // Out of the tabs and into the bar. Settings is not a place
-                        // anybody lives in, and it already had a path of its own -
-                        // one that opens over whatever is underneath rather than
-                        // tearing it down.
-                        onPressed: () => context.push(AppRoutes.preferences),
-                      ),
-                      IconButton(
-                        tooltip: 'Notifications and Invitations',
-                        icon: Badge(
-                          isLabelVisible: _unreadNotifications > 0,
-                          label: Text('$_unreadNotifications'),
-                          child: Icon(Icons.notifications,
-                              color: context.colors.warning),
-                        ),
-                        onPressed: _showNotificationsDialog,
-                      ),
-                    ],
-                  ),
+            // **No shell bar over Analyse.** That tab's body is the Analysis
+            // screen, which has a bar of its own — so „Chess Trainer" stood as
+            // a second title over „Analysis", and on a 360 dp phone the board
+            // started 56 dp lower for it. Asked for on 18.9.2026 while looking
+            // at exactly that screen. Nothing is lost with it: Settings is
+            // already one of the Analysis toolbar's own actions, and the bell
+            // is absent from this tab in landscape too (TODO-provera 177.7,
+            // accepted as known) and sits on the other three.
+            // **No shell bar at all.** It carried the words „Chess Trainer"
+            // and three buttons, and on a phone it stood *above* each tab's own
+            // title — two headers saying the same thing, 56 dp before any tab
+            // had drawn a pixel. Asked for on 18.9.2026 while looking at the
+            // Analysis board, and then for every screen: „taj gornji deo mi
+            // uopšte nije potreban".
+            //
+            // Nothing new was invented to replace it: landscape already put the
+            // bell and the gear at the end of [_TabHeader], which every tab but
+            // Analyse draws. Portrait now does the same. Analyse draws neither
+            // header — its body is the Analysis screen, which has a bar of its
+            // own, with Settings among its actions; the bell is absent there in
+            // landscape too and has been since phase 5 (TODO-provera 177.7).
+            appBar: null,
             // Without an app bar nothing else keeps the top of the body out
             // from under the status bar: on a phone on its side the tab's
             // title was drawn over the clock.
             body: SafeArea(
-              top: isLandscape,
+              // Nothing above the body keeps it out from under the status bar
+              // any more, on any screen.
               bottom: false,
               child: Column(
                 children: [
@@ -1267,12 +1267,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               if (_selectedIndex != 2 || shortLandscape)
                                 _TabHeader(
                                   title: kTabNames[_selectedIndex],
-                                  actions: shortLandscape
-                                      ? [
+                                  actions: railCarriesActions
+                                      ? const []
+                                      : [
+                                          if (widget.session.isGuest)
+                                            signInButton,
                                           if (bellButton != null) bellButton,
                                           settingsButton,
-                                        ]
-                                      : const [],
+                                        ],
                                 ),
                               Expanded(
                                 child: IndexedStack(

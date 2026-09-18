@@ -92,10 +92,34 @@ kad potez nema komentar** — dok je „Add Comment" bio u paleti to nije smetal
 a čim je prešao ovde, skrivanje reda bi sakrilo dugme kojim se piše prvi
 komentar.
 
+**Drugi pokušaj, istog dana.** Prvi je dao „malo je bolje, ali nije najbolje":
+paleta jeste bila jedan red, ali je ekran i dalje trošio **dve kartice** hroma
+između table i bilo čega vrednog čitanja — skidanje piksela nije bilo rešenje,
+struktura je bila. Sada su dva reda jedan: potez na kome stojiš je natpis u
+sredini palete (slot koji za to postoji, a do tog jutra ga je trošila reč
+„Navigation"), a četiri radnje su iza jednog dugmeta i lista sa imenima — po
+pravilu koje traka alata ovog ekrana ionako prati, ikone gde ima mesta i meni
+gde nema. Panel komentara je time vraćen na ono što jeste: sadržaj, crta se kad
+potez nosi rečenicu.
+
+**I gornja traka ljuske je otišla, sa svih ekrana.** „Chess Trainer" sa
+zupčanikom i zvonom je stajala iznad naslova samog taba — dva zaglavlja koja
+kažu isto. Ništa nije izmišljeno umesto nje: položeni telefon je te dve dugmadi
+već držao na kraju `_TabHeader`-a, pa sada isto radi i portret; „Sign In" je
+otišao sa njima. Analyse nema nijedno zaglavlje — telo mu je ekran Analize sa
+svojom trakom, u kojoj je i „Settings". **Cena, rečena naglas**: zvono se sa
+Analyse ne vidi. To je važilo i u položenom telefonu od faze 5 i bilo primljeno
+kao poznato (177.7); sada važi i uspravno. Ako treba svuda, traka Analize može
+da ga primi.
+
 Mereno, ne procenjeno: `nav_strip_one_row_test` čita visinu palete na 360 dp —
 šest dugmadi je jedan red, ista šest sa natpisom „Navigation" su dva, devet i
 dalje ne stane (zapisano testom, da se ne pomisli da je red ostavljen slučajno),
-a široki prozor zadržava mete od 48 dp.
+a široki prozor zadržava mete od 48 dp. `analysis_phone_chrome_test` meri isto
+na celom ekranu Analize (paleta jedan red, četiri radnje jedno dugme i list na
+telefonu a četiri ikone na desktopu), a `home_map_test` drži da ljuska nema
+`AppBar` ni na telefonu ni na desktopu — mutacija koja ga vrati oborila je oba
+testa pre nego što su primljeni.
 
 ---
 

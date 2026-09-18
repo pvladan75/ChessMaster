@@ -57,6 +57,45 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
   }
 
+  /// The shell's own bar, in the two sizes that matter.
+  Future<void> openHomeAt(WidgetTester tester, Size size) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final router = GoRouter(
+      initialLocation: AppRoutes.home,
+      routes: appRouteTable,
+      errorBuilder: appRouteErrorBuilder,
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pump(const Duration(milliseconds: 200));
+  }
+
+  group('the shell draws no bar of its own', () {
+    testWidgets('„Chess Trainer" is nowhere, on a phone or on a desktop',
+        (tester) async {
+      // It used to stand above each tab's own title - two headers saying the
+      // same thing, 56 dp before any tab had drawn a pixel. Asked for on
+      // 18.9.2026: „taj gornji deo mi uopste nije potreban".
+      for (final size in [const Size(360, 800), const Size(1400, 1000)]) {
+        await openHomeAt(tester, size);
+        expect(find.text('Chess Trainer'), findsNothing, reason: '\$size');
+        expect(find.byType(AppBar), findsNothing, reason: '\$size');
+      }
+    });
+
+    testWidgets('what the bar carried is on the tab that replaced it',
+        (tester) async {
+      await openHomeAt(tester, const Size(360, 800));
+      // Home draws its own header, and the two buttons moved into it rather
+      // than out of the app.
+      expect(find.text('Home'), findsWidgets);
+      expect(find.byTooltip('Settings'), findsOneWidget);
+      expect(find.byTooltip('Notifications and Invitations'), findsOneWidget);
+    });
+  });
+
   group('phase 5 — the tabs', () {
     testWidgets('four destinations: Home, Practise, Analyse, Teach',
         (tester) async {

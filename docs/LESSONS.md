@@ -3676,3 +3676,38 @@ had split across two lines was the difference between 26 infos and 27. The
 count is checked against the *list* — `analysis_studio_screen.dart` is not one
 of the five files that own the known ones, so a single info there is a new one
 however familiar the rule looks.
+
+**The second answer to the same screen — app 3034 → 3040 tests, 1 skipped;
+analyze 26.**
+
+**„A bit better, but not best“ is a verdict on the approach, not a request for
+more of it.** The first pass at the crowded Analysis screen shaved: a row
+deleted, buttons made denser, four actions moved down one level. All of it
+true, and the screen still spent two cards of chrome between the board and
+anything worth reading. The second pass asked a different question — not „what
+can come off“ but „why are there two rows at all“ — and the two became one:
+the move you stand on is the strip's centre label, and its four actions are one
+button and a named sheet. **When a fix is received as insufficient rather than
+wrong, stop tuning it and re-read the structure.**
+
+**The screen already had the rule; it just was not applied here.** The Analysis
+toolbar has always drawn its actions „as icons on a wide screen and behind a
+menu on a narrow one“. The four move actions sat in a `Wrap` that could only
+overflow. Reaching for a screen's own established idiom beats inventing a
+second one beside it — and it is the difference between a change that needs
+explaining and one that needs none.
+
+**A slot that is being wasted is cheaper than a row that is missing.** The
+strip's centre label had spent years on the word „Navigation“. It is exactly
+where „where am I“ belongs, and using it for the current move removed a whole
+card without adding a pixel.
+
+**Deleting chrome is only safe once you know what it carried.** The shell's
+„Chess Trainer“ bar held Settings, the notification bell and a guest's „Sign
+In“. It went, but nothing new was built for them: landscape had already put
+the same two at the end of `_TabHeader`, so portrait adopted that and „Sign In“
+went with them. The one thing that genuinely does not survive is the bell on
+the Analyse tab — which was already its state in landscape and accepted as
+known. **Say the loss out loud instead of letting it be discovered**; a cost
+named in the handoff is a decision, the same cost found on a phone is a bug
+report.

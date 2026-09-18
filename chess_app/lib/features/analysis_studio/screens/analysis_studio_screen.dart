@@ -2142,12 +2142,98 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   AnalysisNodeCursor _moveCursor() =>
       AnalysisNodeCursor(currentNode: _currentNode, onSelect: _jumpToNode);
 
+  /// Where you are in the line, and what can be done to the move you are on —
+  /// one row, on a phone as on a desktop.
+  ///
+  /// **The second attempt at TODO-provera 180.5.** The first took the four move
+  /// actions out of this strip and gave them a row of their own under it: the
+  /// strip became one row, and the screen still spent two cards of chrome
+  /// between the board and anything worth reading. „Malo je bolje, ali nije
+  /// najbolje" (18.9.2026).
+  ///
+  /// So the two rows became one, using the rule this screen's own toolbar
+  /// already follows — icons where there is room, one button and a sheet where
+  /// there is not. The move the cursor stands on is the strip's centre label,
+  /// which is what that slot is for and what it was wasting on the word
+  /// „Navigation" until this morning. The comment panel goes back to being
+  /// *content*: drawn when the move actually carries a sentence, which is the
+  /// only thing it was ever meant to say.
   Widget _buildNavigationToolbar() {
+    final node = _currentNode;
+    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.compactWidth;
     return MoveNavigationControls(
       cursor: _moveCursor(),
-      centerLabel: null,
+      centerLabel:
+          node.isRoot ? null : '${node.moveNumberLabel}${node.moveSan ?? ''}',
       iconSize: 20,
       onFlipBoard: _flipBoard,
+      trailing: wide
+          ? _moveActions()
+          : [
+              IconButton(
+                icon: Icon(Icons.more_horiz,
+                    size: 18, color: context.colors.textSecondary),
+                tooltip: 'What to do with this move',
+                onPressed: _showMoveActionsSheet,
+              ),
+            ],
+    );
+  }
+
+  /// The four move actions on a phone: comment, AI comment, NAG, delete.
+  ///
+  /// Named rather than drawn as icons here, because a sheet has the room for
+  /// words and a 360 dp row does not — and because „Delete this move" is worth
+  /// reading before it is tapped.
+  void _showMoveActionsSheet() {
+    final isRoot = _currentNode.isRoot;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.comment, color: context.colors.info),
+              title: const Text('Add comment'),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                _showCommentDialog();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.auto_awesome, color: context.colors.accent),
+              title: const Text('Generate AI comment'),
+              enabled: !_isGeneratingAiComment && !isRoot,
+              onTap: () {
+                Navigator.of(sheet).pop();
+                _generateAiComment();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.style, color: context.colors.warning),
+              title: const Text('NAG symbols (!, ?)'),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                _showNagSelector();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: context.colors.danger),
+              title: const Text('Delete this move'),
+              enabled: !isRoot,
+              onTap: () {
+                Navigator.of(sheet).pop();
+                _confirmDeleteCurrentNode();
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2199,22 +2285,18 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// in the move-tree text below. Collapses to nothing on a move with no
   /// comment/NAG, so it doesn't add empty chrome while stepping through an
   /// unannotated game.
-  /// The move the cursor is on: what was played, what was written about it,
-  /// and the four things that can be done to it.
+  /// What was written about the move the cursor is on.
   ///
-  /// **Drawn whenever a move is selected**, not only when it already carries a
-  /// sentence. It used to disappear on a move with no comment and no NAG —
-  /// which was fine while „Add Comment" lived in the navigation strip, and is
-  /// exactly wrong now that it lives here: the button to write the first
-  /// comment cannot be hidden until there is one. At the root there is no move
-  /// to act on and nothing to say, so there it still draws nothing.
+  /// **Content, not chrome**: drawn only when the move actually carries a
+  /// sentence or a NAG, so a phone spends no height saying that there is
+  /// nothing to say. It briefly drew on every move — while the four move
+  /// actions lived in it, „Add Comment" could not be hidden behind „there is
+  /// no comment yet" — and that is over: the actions are in the navigation
+  /// strip, where they are reachable whatever this panel does.
   Widget _buildCurrentCommentPanel() {
     final comment = _currentNode.comment;
     final nag = _currentNode.nag;
-    final isRoot = _currentNode.isRoot;
-    if (isRoot && comment.isEmpty && nag == null) {
-      return const SizedBox.shrink();
-    }
+    if (comment.isEmpty && nag == null) return const SizedBox.shrink();
 
     return InkWell(
       borderRadius: AppRadii.roundedSm,
@@ -2238,8 +2320,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         constraints: const BoxConstraints(maxHeight: 90),
         child: SingleChildScrollView(
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Icon(Icons.comment, size: 16, color: context.colors.info),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: RichText(
                   text: TextSpan(
@@ -2263,7 +2347,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                   ),
                 ),
               ),
-              ..._moveActions(),
+              Icon(Icons.edit, size: 14, color: context.colors.textMuted),
             ],
           ),
         ),

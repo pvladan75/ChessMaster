@@ -6023,12 +6023,31 @@ Settings. „Board coordinates" važi na svakoj tabli i ostaje.
    Red „My games"/„Scan a book" je ukinut (v. 180.2), dugmad palete su gušća, i
    **četiri radnje nad potezom** (komentar, AI komentar, NAG, brisanje) više ne
    vise o navigacionoj paleti. Devet dugmadi od 40 dp traži 360 dp pre ivica,
-   pa se paleta lomila u dva reda na svakom telefonu; sada je paleta pet
-   dugmadi i jedan red, a četiri radnje stoje uz sam potez, u redu „tekući
-   potez" ispod. Taj red se od sada crta **i kad potez nema komentar** — dugme
-   kojim se piše prvi komentar ne sme da se krije dok komentara nema.
+   pa se paleta lomila u dva reda na svakom telefonu.
+   **Drugi pokušaj istog dana**, pošto je prvi („četiri radnje u svom redu
+   ispod palete") dao „malo je bolje, ali nije najbolje" — ekran je i dalje
+   trošio dve kartice hroma između table i bilo čega vrednog čitanja. Sada su
+   **dva reda postala jedan**: potez na kome stojiš je natpis u sredini palete
+   (mesto koje za to i postoji, a do tog jutra ga je trošila reč „Navigation"),
+   a četiri radnje su iza jednog dugmeta koje otvara list sa imenima. To je
+   pravilo koje traka alata ovog ekrana ionako prati — ikone gde ima mesta,
+   meni gde nema — pa na Windows-u i dalje stoje kao četiri ikone. Panel
+   komentara je vraćen na ono što jeste: **sadržaj**, crta se samo kad potez
+   zaista nosi rečenicu.
 6. [ ] **Upoznaj repertoar**: tabla sada ima slova i brojeve po ivici, a
    „Coordinates" u meniju ih pali i gasi (ranije prekidač nije radio ništa).
+9. [ ] **Nema gornje trake ljuske** (18.9.2026, traženo uživo: „taj gornji deo
+   mi uopšte nije potreban"). Reč „Chess Trainer" sa zupčanikom i zvonom je
+   stajala **iznad** naslova samog taba — dva zaglavlja koja kažu isto, 56 dp
+   pre nego što tab išta nacrta. Ništa novo nije izmišljeno umesto nje:
+   položeni telefon je zvono i zupčanik već držao na kraju `_TabHeader`-a, pa
+   sada isto radi i portret. Provera: Home, Practise i Teach imaju svoj naslov
+   sa zvonom i zupčanikom desno; **Analyse nema nijedno zaglavlje** — telo mu
+   je ekran Analize sa sopstvenom trakom, a „Settings" je među njenim
+   radnjama. **Poznato i namerno**: zvono se sa Analyse ne vidi (tako je bilo i
+   u položenom telefonu od faze 5, v. 177.7). Gost i dalje ima „Sign In", sad
+   u zaglavlju taba.
+
 7. [ ] **Komentari u Analizi**: „Manual comment selection" više nije u
    Settings. Analiza → „Panels and comments" → „Comment new moves
    automatically": uključeno — odigran potez dobija komentar; isključeno —
