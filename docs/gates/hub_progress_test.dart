@@ -5,6 +5,12 @@
 // implementer and left there green. Written 17.9.2026 against the seam
 // (`progress` and `onRetry` on CategorySelectionHubWidget, not yet drawn), so
 // every test but the first is red on master for the right reason.
+//
+// Amended 18.9.2026 after the owner's live pass: the endgames card carries two
+// sources, and its two unlabelled lines read as one number contradicting
+// itself (TODO-provera 176.4). The two expectations that pinned the bare
+// string on that card now pin the labelled one, and a test was added for the
+// card with both lines on it.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,7 +104,9 @@ void main() {
       PuzzleSource.blunderGame: _p(seen: 6, solved: 3, toRetry: 3),
     });
     expect(find.text('Solved 2 · 2 to retry'), findsOneWidget);
-    expect(find.text('Solved 3 · 3 to retry'), findsOneWidget);
+    // Blunder games ride on the endgames card, which is the one card with
+    // two lines on it — so its line says which of the two it is (18.9.2026).
+    expect(find.text('Game blunders: Solved 3 · 3 to retry'), findsOneWidget);
     expect(find.textContaining('Retry failed'), findsNothing);
   });
 
@@ -117,8 +125,22 @@ void main() {
         },
       ),
     });
-    expect(find.text('Solved 11 · 4 to retry'), findsOneWidget);
+    expect(find.text('Endgames: Solved 11 · 4 to retry'), findsOneWidget);
     expect(find.text('Retry failed (4)'), findsOneWidget);
+  });
+
+  testWidgets('the endgames card says which line is which', (tester) async {
+    // Reported live 18.9.2026 (TODO-provera 176.4): „Solved 0 · 2 to retry"
+    // over „Solved 1", both true, neither saying what it counted.
+    await pump(tester, progress: {
+      PuzzleSource.endgame: _p(seen: 2, solved: 0, toRetry: 2),
+      PuzzleSource.blunderGame: _p(seen: 1, solved: 1, toRetry: 0),
+    });
+    expect(find.text('Endgames: Solved 0 · 2 to retry'), findsOneWidget);
+    expect(find.text('Game blunders: Solved 1'), findsOneWidget);
+    // And nothing left unlabelled on that card to be mistaken for the other.
+    expect(find.text('Solved 0 · 2 to retry'), findsNothing);
+    expect(find.text('Solved 1'), findsNothing);
   });
 
   testWidgets('pressing the button names the source', (tester) async {

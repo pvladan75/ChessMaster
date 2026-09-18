@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/jwt_expiry.dart';
 
 /// Single source of truth for who is signed in.
@@ -80,6 +81,7 @@ class SessionService extends ChangeNotifier {
       _current = UserSession.guest();
       _expiryReason = 'expired';
       await _clearStoredCredentials(prefs);
+      await AccountLocalState.syncTo(_current.id);
       notifyListeners();
       return;
     }
@@ -95,6 +97,10 @@ class SessionService extends ChangeNotifier {
     } else {
       _current = UserSession.guest();
     }
+    // The device's scratch state is handed to whoever this start belongs to.
+    // A restore that brings nobody back is the case the leak lived in: the
+    // previous account's draft was still on disk with nothing to say so.
+    await AccountLocalState.syncTo(_current.id);
     notifyListeners();
   }
 
@@ -103,6 +109,10 @@ class SessionService extends ChangeNotifier {
     _current = session;
     _expiryReason = null;
     notifyListeners();
+
+    // Before the credentials, so a sign-in that is interrupted leaves no
+    // account holding the previous one's draft.
+    await AccountLocalState.syncTo(session.id);
 
     final prefs = await SharedPreferences.getInstance();
     if (rememberMe) {
@@ -131,6 +141,7 @@ class SessionService extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await _clearStoredCredentials(prefs);
+    await AccountLocalState.syncTo(_current.id);
   }
 
   /// Ends the session because the server no longer accepts it.
@@ -155,6 +166,7 @@ class SessionService extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await _clearStoredCredentials(prefs);
+    await AccountLocalState.syncTo(_current.id);
   }
 
   /// The login screen has shown the reason; stop redirecting there.

@@ -6032,8 +6032,19 @@ telefon i 6c jedan urednik, implementeri). Windows i telefon.
    komentar, deo, pitanje, undo/redo, „Discard changes", čuvanje, video,
    naracija, .pgn. (543 testa studija prošla neizmenjena; ovo je pogled.)
 2. [ ] **Telefon, portret**: Teach → kartica „Tutorials" postoji (ranije
-   samo Windows) → „New tutorial" otvara studio sa tablom gore, trakom
-   poteza, pa tabovima „Line | Task | Parts"; ništa ne prelazi ivicu ekrana.
+   samo Windows) → „New tutorial" otvara studio sa tablom gore, **listom
+   poteza** (Start · 1. e4 · 1… e5 …), pa trakom za kretanje (strelice i
+   okretanje table), pa tabovima „Line | Task | Parts"; ništa ne prelazi
+   ivicu ekrana.
+   **Prijavljeno uživo 18.9.2026, ispravljeno istog dana** („Ne vidim traku
+   poteza… mislio sam da nema Flow/Tree/PGN panel"): raspored za telefon
+   namerno nema te tri table, pa se linija mogla graditi i nije se mogla
+   pročitati — bile su samo strelice. Sada je pod tablom red poteza koji se
+   skroluje vodoravno: tap vodi na potez, tekući je uokviren, a potez sa
+   komentarom nosi oblačić. Isti red je i u položenom telefonu. Izvor je
+   `beatsOf`, isti kojim Windows crta „Flow", da se dva pogleda ne raziđu.
+   Provera: odigraj 3–4 poteza, napiši komentar na jedan, pa se tapom vrati
+   na prvi — tabla i tab „Line" moraju otići na njega.
 3. [ ] **Line**: komentar na potez na kome stojite; „Insert a line here" i
    „Delete this move" gde imaju smisla; crtanje strelica i polja istom
    trakom kao u sobi; okretanje table.
@@ -6101,12 +6112,25 @@ aplikaciju kakva jeste; sajt sme na droplet.
    „Join a session" i „Recordings" — ni „Set for me" ni „Today". Sa učenikom
    koji je predao domaći: blok „To review" sa dugmetom; sa trenerom: „Set for
    me" i „Due for review". Napuštena sesija: čip „Resume session …" na vrhu.
+   **Prijavljeno uživo 18.9.2026, ispravljeno istog dana**: nov nalog je na
+   Home zatekao čip „Resume analysis" koji otvara **stablo prethodnog
+   naloga**. `signOut()` je brisao samo prijavu; svaka lokalna beleška se
+   piše pod jednim ključem bez vlasnika. `AccountLocalState` sada predaje
+   uređaj onome ko se prijavljuje i briše tuđe: analiza, nacrt tutorijala,
+   aktivna soba i lista rešenih lokalnih zagonetki. Gost koji se prijavi
+   **zadržava** svoj rad (isti čovek), a snimci koji nisu stigli na server i
+   imenovani skupovi zagonetki se namerno ne brišu — vide se i dalje.
+   Provera: nalog A analizira, odjava, nalog B → Home bez čipa; pa gost
+   analizira, prijava → čip ostaje.
 3. [ ] **Practise** je stari hub, bez trake „Resume" (ona je na Home);
    naslov „Practise". Linije napretka iz stavke 176 i dalje na karticama.
 4. [ ] **Analyse**: tabla je odmah tu, sa svojom trakom (Setup, motor, „Use in
    a tutorial"…); iznad nje „My games" i „Scan a book"; **nema** drugog
-   naslova iznad trake. Prvi ulazak pokreće motor; promena taba i povratak
-   zatiče isto stablo. Telefon položeno: tabla levo kao u stavci 172.
+   naslova iznad trake. **Motor je ugašen na ulasku** — ni traka procene ni
+   strelice dok se ne uključi; promena taba i povratak zatiče isto stablo i
+   isti prekidač. Telefon položeno: tabla levo kao u stavci 172.
+   (Traženo 17.9. i 18.9.2026: „U Analizu treba da se ulazi sa ugašenim
+   engin-om". Do tada je prvi ulazak pokretao motor sam.)
 5. [ ] **Teach**: kartica tutorijala (Windows), „Preparation" → „Open",
    „New session" → „Start", „Library" → „Open library", pa „Students" —
    kartica „Students and trainers" sa „Send a request", dugme „Groups" uvek
@@ -6114,6 +6138,13 @@ aplikaciju kakva jeste; sajt sme na droplet.
    Na telefonu se tab skroluje ceo, bez unutrašnjeg skrola.
 6. [ ] **Zvono** sa zahtevima: bedž na ikoni „Teach" (bio na „People"); zvono
    otvara isti dijalog „Notifications and Invitations".
+   **Dopunjeno 18.9.2026** (vlasnik: „Ne razumem ovu notifikaciju na tabu
+   Teach gde piše 1"): broj je bio tačan — jedan predat domaći koji nije
+   otvoren — i nije se nigde predstavljao. Sada ikona nosi rečenicu („Teach —
+   1 homework to review", „… · N requests to answer"), a broj je i dalje
+   zbir dve stvari koje trener može da skine sa spiska. Ono što je i dalje
+   otvoreno pitanje za vlasnika: bedž stoji na **Teach**, a red za pregled se
+   crta na **Home** („Trainer panel / TO REVIEW").
 7. [ ] **Telefon položeno** (stavka 174): naslov taba i zupčanik gore desno na
    Home, Practise i Teach; na Analyse je red sa „My games"/„Scan a book" pa
    traka Analize — zvono tu nije dostupno (poznato).
@@ -6127,12 +6158,27 @@ aplikaciju kakva jeste; sajt sme na droplet.
 2. [ ] **Linija posle prvog pokušaja.** Reši jedan mat u 2, promaši drugi, preskoči
    treći („Next Position"). Vrati se na hub: kartica matova piše
    „Solved 1 · 2 to retry" i dugme „Retry failed (2)".
+   **18.9.2026 viđeno „Solved 1 · 1 to retry"** i stavka označena kao loša.
+   Traženo je kroz kod i nije nađen put kojim se preskakanje gubi: „Next
+   Position" na nerešenoj zagonetki šalje `skipped: true`, a server broji i
+   promašaj i preskok u `toRetry` (`services/puzzleProgress.js`, pokriveno
+   testovima s obe strane). Sledeća stavka (3) je ipak prošla sa „Retry
+   failed (2)", što odgovara stanju sa **dva** preostala — pa je najverovatnije
+   da je slika snimljena posle druge zagonetke, pre preskoka treće.
+   **Ponoviti tačno po redu i pogledati broj tek na kraju**; ako i tada piše
+   1, javi i ide u dubinsku dijagnostiku.
 3. [ ] **Retry servira baš te.** Pritisni „Retry failed (2)": naslov ima „— retry",
    stižu upravo promašena i preskočena zagonetka, po redu. Reši jednu; hub
    posle povratka kaže „Solved 2 · 1 to retry".
 4. [ ] **Taktika, završnice, šetnja kroz partiju** pišu isto: po jedan pokušaj u
    svakoj, pa linija na kartici. Završnice: „Win" i „Hold a draw" se sabiraju na
    jednoj kartici; za šetnju kroz partiju linija bez dugmeta (nema by-id).
+   **Prijavljeno uživo 18.9.2026, ispravljeno istog dana** („Malo zbunjuje,
+   piše solved 0 i solved 1"): kartica završnica nosi dva izvora, a obe
+   linije su bile bez imena, pa su se čitale kao jedan broj koji sam sebi
+   protivreči. Sada piše „Endgames: Solved 0 · 2 to retry" i ispod „Game
+   blunders: Solved 1". Kartica sa jednom linijom je i dalje bez imena —
+   naslov kartice je ime.
 5. [ ] **Osnovni matovi**: preset odigran do mata → linija na kartici; bez dugmeta.
 6. [ ] **Domaći zadatak nije dirnut.** Preskakanje u zadatku i dalje ne beleži
    ništa (jedan pokušaj, kao do sada).
@@ -6148,9 +6194,16 @@ sajt pre nje.
 
 1. [ ] **Analiza ima jedna vrata.** U traci je jedno dugme „Use in a tutorial"
    (ikona škole); ostala četiri (Create step, Edit tutorial steps, Create
-   interactive tutorial, Make a tutorial from this game) ne postoje. Na
-   Windows-u list ima šest redova; na telefonu tri (bez „New tutorial…").
+   interactive tutorial, Make a tutorial from this game) ne postoje.
    Na 360 dp list se skroluje, ništa ne preliva.
+   **Ispravljeno u opisu 18.9.2026** (vlasnik: „Ima 6 u windows-u, a tri u
+   androidu"): od faze 6c svih šest redova postoji i na telefonu, jer studio
+   od tada radi i tamo. Broj redova ne zavisi od platforme nego od pozicije:
+   „New tutorial from this line" i „Add this line…" traže poteze **posle**
+   kursora, „New tutorial from this game" traži glavnu liniju. Na praznoj
+   tabli ostaju tri (position, add position, edit) — što je ono što je
+   viđeno na telefonu. Provera: stani na potez usred linije na telefonu i
+   list mora imati šest.
 2. [ ] **Svaki red radi ono što piše**: „New tutorial from this line" otvara
    Studio sa celom linijom; „Add this position to a tutorial…" pita samo koji
    tutorijal; „Add this line…" pita još i „Where does the step begin?";
@@ -6167,8 +6220,16 @@ sajt pre nje.
    student."), „Recordings" / „No recordings yet.", „Students and trainers",
    „Tutorials" (bila „Interactive tutorials"), „Scan a book"; ikona
    „Student groups" vidljiva i bez učenika.
-7. [ ] **Biblioteka**: tab Library → kartica „Everything you keep" →
-   „Open library". Čipovi All · Tutorials · Positions · Analyses · Recordings ·
+   **Ispravljeno u opisu 18.9.2026** (vlasnik: „nije kao u opisu, nego kao na
+   slikama"): faza 5 je ove kartice razdelila po tabovima, pa se imena traže
+   tamo gde sada stoje — „Tutorials", „Homework", „Preparation", „New
+   session", „Library" i „Students" na tabu **Teach**, „Recordings" na
+   **Home**, „Scan a book" u redu iznad table na **Analyse**. Imena su ista,
+   ekran nije.
+7. [ ] **Biblioteka**: tab **Teach** → kartica „Library" („Everything you keep
+   — tutorials, positions, analyses, recordings.") → „Open library".
+   (Do faze 5 je to bio zaseban tab „Library"; ispravljeno u opisu 18.9.2026
+   na vlasnikovu primedbu „Pomerili smo na Tab Teach".) Čipovi All · Tutorials · Positions · Analyses · Recordings ·
    Puzzle sets; pretraga; pozicija iz sobe i pozicija iz knjige obe pod
    „Positions" (knjiga sa izvorom). Tutorijal: red ima Send / Export video /
    Delete i otvara Studio; sačuvana analiza se otvara **cela** (sa

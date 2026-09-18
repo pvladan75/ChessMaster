@@ -9,6 +9,18 @@
 // keys below exist. The desktop half of the script was run on its own first
 // and is green, so a red here is the phone's.
 //
+// Amended 18.9.2026 after the owner's live pass (TODO-provera 179.2): the
+// layout leaves out the Flow, the Tree and the PGN panel, so a trainer could
+// build a line on a phone and never read it back — „Ne vidim traku poteza".
+// The row of moves under the board answers that, and „the line can be read
+// back, not only walked" holds it.
+//
+// Amended 18.9.2026 after the owner's live pass (TODO-provera 179.2): the
+// layout leaves out the Flow, the Tree and the PGN panel, so a trainer could
+// build a line on a phone and never read it back — „Ne vidim traku poteza".
+// The row of moves under the board answers that, and „the line can be read
+// back, not only walked" holds it.
+//
 // What §7 asks for, in order: (a) the same taps on the phone layout save the
 // same `positionList` as the desktop layout does on the same controller —
 // byte-equal; (b) every action of §7.2 is reached by tapping, none by
@@ -245,6 +257,47 @@ void main() {
       }
       expect(find.byType(ChessBoardWithOverlay), findsOneWidget);
       expect(find.byKey(const Key('phone-save')), findsOneWidget);
+
+      await close(tester);
+    });
+
+    testWidgets('the line can be read back, not only walked', (tester) async {
+      // Reported live on 18.9.2026 against TODO-provera 179.2: „Ne vidim traku
+      // poteza" — the four arrows were drawn and were all there was, so a
+      // trainer could build a line on a phone and never see it. The desktop's
+      // Flow, Tree and PGN panels are not here and are not coming; this row is
+      // what answers „where am I and what did I write".
+      await openPhone(tester, portrait);
+
+      // Nothing played yet: the opening position is a beat, and it is named.
+      expect(find.byKey(const Key('phone-move-list')), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
+
+      await play(tester, 'e2', 'e4');
+      await play(tester, 'e7', 'e5');
+      await play(tester, 'g1', 'f3');
+      expect(find.text('1. e4'), findsOneWidget);
+      expect(find.text('1... e5'), findsOneWidget);
+      expect(find.text('2. Nf3'), findsOneWidget);
+
+      // A tap on a move takes the cursor to it — which is what the Flow
+      // panel's card does on the desktop, and the only way back to a beat
+      // other than pressing „back" the right number of times. The Line tab
+      // names the beat the cursor stands on, so it is the screen's own word
+      // for where the tap landed. The row keeps the current beat in the middle
+      // of itself, so an earlier move may have scrolled off to the left — as
+      // it would for a trainer, who scrolls back to it.
+      await tester.ensureVisible(find.text('1. e4'));
+      await tester.pumpAndSettle();
+      await tapText(tester, '1. e4');
+      await tapKey(tester, 'phone-tab-line');
+      expect(find.text('Comment on 1. e4'), findsOneWidget,
+          reason: 'the tapped move is the one the cursor stands on');
+
+      // A sentence on a beat is the one thing the board cannot show, so the
+      // row marks it.
+      await type(tester, 'phone-comment', 'Centar.');
+      expect(find.byIcon(Icons.chat_bubble), findsOneWidget);
 
       await close(tester);
     });

@@ -84,8 +84,8 @@ void main() {
 
   for (final c in cases) {
     test('${c['name']}', () {
-      final task = EngineGameTask.fromJson(
-          Map<String, dynamic>.from(c['task'] as Map));
+      final task =
+          EngineGameTask.fromJson(Map<String, dynamic>.from(c['task'] as Map));
       expect(task, isNotNull, reason: 'the fixture task must be readable');
 
       final game = chess.Chess.fromFEN(task!.fen);
@@ -123,8 +123,8 @@ void main() {
     test('refused: ${c['name']}', () {
       // A task the app cannot read is a homework item it must not open — not a
       // board with a guessed goal on it.
-      final task = EngineGameTask.fromJson(
-          Map<String, dynamic>.from(c['task'] as Map));
+      final task =
+          EngineGameTask.fromJson(Map<String, dynamic>.from(c['task'] as Map));
       expect(task, isNull);
     });
   }
@@ -138,8 +138,8 @@ void main() {
 
   for (final c in rejected.where((c) => c['reason'] == 'illegal move')) {
     test('refused on the board: ${c['name']}', () {
-      final task = EngineGameTask.fromJson(
-          Map<String, dynamic>.from(c['task'] as Map));
+      final task =
+          EngineGameTask.fromJson(Map<String, dynamic>.from(c['task'] as Map));
       expect(task, isNotNull, reason: 'the task itself is a good one');
       final game = chess.Chess.fromFEN(task!.fen);
       for (final san in (c['moves'] as List).cast<String>()) {
@@ -174,8 +174,7 @@ void main() {
     })!;
     final game = chess.Chess.fromFEN(task.fen);
     expect(game.move('Rh2'), isTrue);
-    final verdict =
-        engineGameVerdict(task: task, game: game, ownMoves: 1);
+    final verdict = engineGameVerdict(task: task, game: game, ownMoves: 1);
     expect(verdict.ending, isNull);
     expect(verdict.goalMet, isFalse);
   });

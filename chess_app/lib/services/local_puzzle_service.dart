@@ -101,6 +101,16 @@ class LocalPuzzleService {
     return null;
   }
 
+  /// Forgets which local puzzles were solved.
+  ///
+  /// This list is one person's progress, not this device's setup, so it goes
+  /// when the device changes hands between accounts — see [AccountLocalState],
+  /// which is the only caller.
+  Future<void> forgetSolved() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('solved_local_puzzles');
+  }
+
   /// Saves solved puzzle ID into SharedPreferences so it won't repeat.
   Future<void> markPuzzleAsSolved(String puzzleId) async {
     try {

@@ -3513,3 +3513,69 @@ the gate asserts what one save sends. The id now comes from what was saved,
 and the rows adopt the keys the server minted, which is what makes the second
 save an edit rather than a delete-and-mint. **Ask of any create-or-update
 screen: what does the second one do?**
+
+**The owner's live pass of 18.9.2026: five fixes — app 3008 → 3023 tests, 1
+skipped; analyze unchanged at the 26 known infos; backend unchanged at 1441.**
+15 new (7 + 1 + 5 + 1 + 1), each proved by mutation on the code it guards.
+
+**A sign-out that is narrow on purpose still has to name what it leaves.**
+`SessionService.signOut()` was deliberately narrowed from `prefs.clear()`
+because that wiped the engine path and the board scale — things about the
+*device*. What nobody then wrote down is the other half of that list: the
+analysis draft, the tutorial draft, the active room and the solved-puzzle list
+are about the *person*, and they sat under unscoped keys. A brand-new account
+signed in and Home offered „Resume analysis“, which opened the previous
+account's tree. The fix is one place that owns the question —
+`AccountLocalState` — called from all three doors a session opens or closes
+through, so there is no fourth that skips it. **When a sweep is narrowed, the
+things it stops covering are a list, and the list belongs in the code.**
+
+**Two categories, and only one of them may be deleted.** Scratch (a draft, a
+room, a „don't show me this again“ list) costs a session. A recording that has
+not reached the server, and a puzzle set somebody named, cost work that cannot
+be re-made — so they stay on the device and stay visible to the next account,
+which is a hole, and a deliberate one: **a thing seen can be taken back, a
+thing deleted cannot.** The third rule is the one that is easy to break while
+building the first two: a guest who signs in *keeps* their draft. Same person,
+same thought. Four of the seven tests go red when the wiring is removed and
+three stay green — that split is the point of the file.
+
+**Two true numbers under no labels read as one number contradicting itself.**
+The endgames card carries two sources — endgames and the blunders from the
+reader's own games, which have no card of their own — and drew „Solved 0 · 2
+to retry“ over „Solved 1“. Both right, and the owner read them as a
+contradiction. A card with one line needs no label, because its title is the
+label; the moment a second line appears, both need one.
+
+**A badge nobody can read is a badge that gets ignored**, which is the opposite
+of what it is for. The „1“ on „Teach“ was exactly right — one piece of homework
+handed in and not opened — and said so nowhere. The sentence now lives beside
+the two numbers it sums (`TrainerPanel.waitingExplanation`), not in the screen,
+and the model reads `counts.requests` off the wire rather than having somebody
+subtract two lists.
+
+**`Scrollable.ensureVisible` climbs through every scrollable above the widget,
+not just the nearest one.** The phone studio's new row of moves keeps the
+current beat centred in itself; written with the static helper it also centred
+that beat in the *page*, so the board jumped up the screen on every move
+played. Asking the row's own `ScrollPosition` moves the row and leaves the page
+where the trainer put it. The widget test caught the symptom sideways — a tap
+that „would not hit test“ — which is what a clipped, scrolled-away widget looks
+like from the outside.
+
+**A layout that leaves panels out on purpose has to be asked what it left with
+them.** The studio on a phone drops Flow, Tree and PGN — correctly, there is no
+room — and the phase gate checked that the three tabs are there and nothing
+overflows. What no test asked is whether the trainer can still *read the line
+they are building*: the answer was four arrow buttons and their memory. Rule 10
+in a new coat — every layer right, and the thing still unusable.
+
+**A Python rewrite of a CRLF file can double-space it, and every test still
+passes.** Writing a text that already carries CRLF through a writer told to
+translate every newline to CRLF turned 452 lines into 3439, and Dart does not
+care about blank lines, so the gate ran green on a file that had been mangled.
+It showed up only in a byte count. Edit a file in this repository by reading
+bytes, replacing a substring and writing bytes — never by splitting and
+re-joining lines with a terminator the writer will translate again. Same shape
+as the doubled CR in `docs/TODO-provera.md` that `.gitattributes` was written
+for: **one conversion applied twice.**

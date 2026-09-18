@@ -209,6 +209,9 @@ extension _PhoneLayout on _TutorialStudioScreenState {
       ),
       panels: _phoneTabContent(),
       footer: [
+        // The same row as in portrait, and for the same reason: this layout
+        // has no Flow, Tree or PGN panel either.
+        _phoneMoveList(),
         MoveNavigationControls(
           cursor: _moveCursor(),
           centerLabel: null,
@@ -219,15 +222,16 @@ extension _PhoneLayout on _TutorialStudioScreenState {
     );
   }
 
-  /// The board and the move strip — no annotation bar, see
-  /// [_phoneLandscapeBody] for why. Dense throughout, not only in landscape:
-  /// a phone's width is the same problem in portrait, and the full-size strip
-  /// measured 72 dp against the 48 the dense one needs.
+  /// The board, the line it is standing in, and the move strip — no annotation
+  /// bar, see [_phoneLandscapeBody] for why. Dense throughout, not only in
+  /// landscape: a phone's width is the same problem in portrait, and the
+  /// full-size strip measured 72 dp against the 48 the dense one needs.
   Widget _phoneBoardHeader(double boardSize) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _boardCard(boardSize),
+        SizedBox(width: boardSize, child: _phoneMoveList()),
         SizedBox(
           width: boardSize,
           child: MoveNavigationControls(
@@ -239,6 +243,31 @@ extension _PhoneLayout on _TutorialStudioScreenState {
           ),
         ),
       ],
+    );
+  }
+
+  /// The moves of the open part, in the order the reader meets them, as one
+  /// scrolling row.
+  ///
+  /// **Reported live on 18.9.2026** against TODO-provera 179.2: „Ne vidim
+  /// traku poteza", and asked about, „mislio sam da nema Flow/Tree/PGN panel".
+  /// The four arrows were drawn, and they were all there was: this layout
+  /// leaves out the Flow, the Tree and the PGN panel, so a trainer could build
+  /// a line on a phone and never read it back — they could only walk it one
+  /// move at a time and remember. A phone has no room for the desktop's card
+  /// per beat, and does not need one: what is missing here is *where am I and
+  /// what did I write*, which a row of moves answers.
+  ///
+  /// It is [beatsOf] behind it, the same projection the Flow panel draws, so
+  /// the two cannot disagree about what the line is. A beat carrying a comment
+  /// gets an underline — the one thing about a move a trainer cannot see on
+  /// the board.
+  Widget _phoneMoveList() {
+    final beats = beatsOf(_c.root, _c.cursor);
+    return _PhoneMoveList(
+      key: const Key('phone-move-list'),
+      beats: beats,
+      onSelect: _jumpTo,
     );
   }
 
@@ -611,6 +640,127 @@ class _PhoneCommentFieldState extends State<_PhoneCommentField> {
       maxLines: null,
       keyboardType: TextInputType.multiline,
       onChanged: widget.onChanged,
+    );
+  }
+}
+
+/// The scrolling row of moves under the board — see
+/// [_PhoneLayout._phoneMoveList] for why it exists.
+///
+/// Stateful only to keep the current beat in view: a trainer twenty moves deep
+/// would otherwise be looking at move 1 while the board shows move 20, which is
+/// the same "I cannot see where I am" the row was added for. The scroll is
+/// asked for after the frame the row is laid out in, because before that there
+/// is nothing to scroll.
+class _PhoneMoveList extends StatefulWidget {
+  const _PhoneMoveList(
+      {super.key, required this.beats, required this.onSelect});
+
+  final List<TutorialBeat> beats;
+  final void Function(AnalysisNode) onSelect;
+
+  @override
+  State<_PhoneMoveList> createState() => _PhoneMoveListState();
+}
+
+class _PhoneMoveListState extends State<_PhoneMoveList> {
+  final ScrollController _scroll = ScrollController();
+  final GlobalKey _currentKey = GlobalKey();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Brings the current beat into the middle of **this** row and nothing else.
+  ///
+  /// `Scrollable.ensureVisible` walks up every scrollable above the widget, and
+  /// this row lives inside the portrait layout's `CustomScrollView`: it
+  /// centred the chip in the *page* as well, dragging the board up the screen
+  /// on every move played. Asking this row's own position moves this row's own
+  /// offset and leaves the page where the trainer put it.
+  void _keepCurrentInView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      final box = _currentKey.currentContext?.findRenderObject();
+      if (box == null) return;
+      _scroll.position.ensureVisible(
+        box,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 180),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _keepCurrentInView();
+    final colors = context.colors;
+
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        itemCount: widget.beats.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xxs),
+        itemBuilder: (context, i) {
+          final beat = widget.beats[i];
+          final node = beat.node;
+          // The opening position is a position, not a move, and the trainer
+          // comments on it like any other beat — so it is in the row, named.
+          final label = node.isRoot
+              ? 'Start'
+              : '${node.moveNumberLabel}${node.moveSan ?? ''}'.trim();
+          final hasComment = node.comment.trim().isNotEmpty;
+
+          return Padding(
+            key: beat.isCurrent ? _currentKey : null,
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+            child: InkWell(
+              key: Key('phone-move-$i'),
+              onTap: () => widget.onSelect(node),
+              borderRadius: AppRadii.roundedSm,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
+                decoration: BoxDecoration(
+                  color: beat.isCurrent
+                      ? colors.accent.withValues(alpha: 0.18)
+                      : Colors.transparent,
+                  borderRadius: AppRadii.roundedSm,
+                  border: Border.all(
+                    color: beat.isCurrent ? colors.accent : colors.border,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: AppText.body.copyWith(
+                        color: beat.isCurrent
+                            ? colors.textPrimary
+                            : colors.textSecondary,
+                        fontWeight:
+                            beat.isCurrent ? FontWeight.w700 : FontWeight.w400,
+                      ),
+                    ),
+                    // A comment is the one thing about a beat the board cannot
+                    // show, so it is the one thing marked here.
+                    if (hasComment) ...[
+                      const SizedBox(width: AppSpacing.xxs),
+                      Icon(Icons.chat_bubble,
+                          size: 10, color: colors.textMuted),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

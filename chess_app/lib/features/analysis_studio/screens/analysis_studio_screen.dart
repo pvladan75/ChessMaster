@@ -135,9 +135,19 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   String? _lastMoveTo;
   Timer? _puzzleRevealTimer;
 
-  // Engine evaluation state
-  bool _showEvaluation = true;
-  bool _showEvalBar = true;
+  // Engine evaluation state.
+  //
+  // **Off on arrival, both of them.** Asked for twice by the owner while
+  // checking the reorganisation live — 17.9.2026 („U Analizu treba da se ulazi
+  // sa ugašenim engin-om") and again on 18.9 against TODO-provera 177.4 —
+  // and the reason is the tab: since the shell put Analyse behind one tap, the
+  // screen is opened to look at a position far more often than to have it
+  // judged, and an engine that starts itself spends the phone's battery, fills
+  // the board with arrows and answers a question nobody asked. The toolbar's
+  // two switches turn it on, and the screen lives as long as the tab does, so
+  // it is asked for once per run rather than once per visit.
+  bool _showEvaluation = false;
+  bool _showEvalBar = false;
   double _currentRawEval = 0.0;
   String _currentEvalString = '0.00';
   int _currentEvalDepth = 18;

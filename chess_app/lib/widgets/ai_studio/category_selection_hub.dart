@@ -46,12 +46,21 @@ class CategorySelectionHubWidget extends StatelessWidget {
   /// „Solved N" or „Solved N · M to retry", drawn only when the source was
   /// seen at all — a card with nothing seen says nothing
   /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
-  String? _progressLine(String source) {
+  ///
+  /// [label] names the source in front of the number, and is passed only by
+  /// the one card that carries two of these lines. Reported live on 18.9.2026
+  /// (TODO-provera 176.4): the endgames card read „Solved 0 · 2 to retry" over
+  /// „Solved 1" with nothing to say that the first line was the endgames and
+  /// the second the blunders from the reader's own games — two true numbers
+  /// under no labels, which reads as one number contradicting itself. A card
+  /// with a single line needs no label: its title is the label.
+  String? _progressLine(String source, {String? label}) {
     final p = progress?[source];
     if (p == null || p.seen == 0) return null;
-    return p.toRetry > 0
+    final line = p.toRetry > 0
         ? 'Solved ${p.solved} · ${p.toRetry} to retry'
         : 'Solved ${p.solved}';
+    return label == null ? line : '$label: $line';
   }
 
   /// „Retry failed (M)", only for a retryable source with something to
@@ -230,8 +239,9 @@ class CategorySelectionHubWidget extends StatelessWidget {
           'with few pieces the outcome is exact, not evaluated — any '
           'move that preserves the result is accepted, not just one. Before '
           'starting, choose the endgame type and difficulty level.',
-      progressLine: _progressLine(PuzzleSource.endgame),
-      secondaryLine: _progressLine(PuzzleSource.blunderGame),
+      progressLine: _progressLine(PuzzleSource.endgame, label: 'Endgames'),
+      secondaryLine:
+          _progressLine(PuzzleSource.blunderGame, label: 'Game blunders'),
       retryButton: _retryButton(PuzzleSource.endgame),
       action: Wrap(
         spacing: AppSpacing.sm,

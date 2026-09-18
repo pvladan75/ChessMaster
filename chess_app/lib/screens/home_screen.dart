@@ -937,11 +937,23 @@ class _HomeScreenState extends State<HomeScreen> {
   /// clear. A badge that cannot reach zero is a badge that stops being read,
   /// which is why deadlines and quiet students are on the panel and not in this
   /// number.
+  ///
+  /// The number says what it is: a badge nobody can read gets ignored, which
+  /// is the opposite of what it is for. Reported live on 18.9.2026 — „Ne
+  /// razumem ovu notifikaciju na tabu Teach gde piše 1" — and the sentence is
+  /// built by [TrainerPanel.waitingExplanation], beside the two numbers it
+  /// counts, rather than here.
   Widget _teachIcon(IconData icon) {
-    return Badge(
+    final badge = Badge(
       isLabelVisible: _panel.waiting > 0,
       label: Text('${_panel.waiting}'),
       child: Icon(icon),
+    );
+    final explanation = _panel.waitingExplanation;
+    if (explanation == null) return badge;
+    return Tooltip(
+      message: '${kTabNames[3]} — $explanation',
+      child: Semantics(label: explanation, child: badge),
     );
   }
 

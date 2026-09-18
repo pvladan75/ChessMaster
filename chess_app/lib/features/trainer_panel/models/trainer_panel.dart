@@ -19,6 +19,11 @@ class TrainerPanel {
   /// What the tab badge shows: work the trainer can clear by acting.
   final int waiting;
 
+  /// Relationship requests nobody has answered — the other half of [waiting],
+  /// carried so the badge can say what its number is made of rather than have
+  /// the reader subtract two lists.
+  final int requests;
+
   const TrainerPanel({
     this.today = const [],
     this.dueSoon = const [],
@@ -26,7 +31,34 @@ class TrainerPanel {
     this.stalled = const [],
     this.idle = const [],
     this.waiting = 0,
+    this.requests = 0,
   });
+
+  /// What the badge on „Teach" is counting, in words, or null when it is not
+  /// drawn at all.
+  ///
+  /// Reported live on 18.9.2026 (TODO-provera 177.6): „Ne razumem ovu
+  /// notifikaciju na tabu Teach gde piše 1". The number was right — one piece
+  /// of homework handed in and not opened — and said so nowhere. A badge
+  /// nobody can read is a badge that gets ignored, which is the opposite of
+  /// what it is for.
+  String? get waitingExplanation {
+    if (waiting <= 0) return null;
+    final toReview = awaitingReview.length;
+    final parts = <String>[
+      if (toReview > 0)
+        toReview == 1
+            ? '1 homework to review'
+            : '$toReview homeworks to review',
+      if (requests > 0)
+        requests == 1 ? '1 request to answer' : '$requests requests to answer',
+    ];
+    // The server's number is the one the badge shows, so a count it explains
+    // with nothing — a section this client does not know about — still says
+    // something rather than nothing.
+    if (parts.isEmpty) return '$waiting waiting for you';
+    return parts.join(' · ');
+  }
 
   /// Nothing to show and nothing waiting — the state of anybody who teaches
   /// nobody, which is most people who open this app.
@@ -60,6 +92,7 @@ class TrainerPanel {
       stalled: list('stalled', PanelAssignment.fromJson),
       idle: list('idle', PanelIdleStudent.fromJson),
       waiting: (counts['waiting'] as num?)?.toInt() ?? 0,
+      requests: (counts['requests'] as num?)?.toInt() ?? 0,
     );
   }
 }

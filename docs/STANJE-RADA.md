@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **17.9.2026** — najnovije je „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **18.9.2026** — najnovije je „Vlasnikova provera 18.9.2026: šest nalaza, pet ispravljenih“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,92 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Vlasnikova provera 18.9.2026: šest nalaza, pet ispravljenih — u kodu
+
+Vlasnik je prošao stavke 175–179 (reorganizacija, faze 1–3a, 3b, 5, 6a–6c, i
+napredak u vežbama) i ostavio komentare u QA alatu. Šest nalaza; pet je
+ispravljeno istog dana, šesti nije potvrđen.
+
+**1. „Resume analysis" je otvarao tuđe stablo** (stavka 177.2). Nov nalog,
+prva prijava, i na Home stoji čip koji vodi u analizu **prethodnog naloga**.
+`SessionService.signOut()` je namerno uzak — briše prijavu, a ne stazu do
+motora i veličinu table — ali svaka lokalna beleška se piše pod jednim
+ključem bez vlasnika, pa je ono što je poslednji radio čekalo sledećeg.
+
+Novi `AccountLocalState` (`lib/services/account_local_state.dart`) je jedino
+mesto koje odlučuje kada nešto prestaje da bude nečije. Zove se sa **tri
+vrata** kroz koja sesija počinje ili se završava — obnova pri pokretanju,
+prijava, odjava/istek — da ne postoji četvrto koje ga preskače. Dve
+kategorije, i briše se samo jedna:
+
+- **Beleške** (brišu se): nacrt analize, nacrt tutorijala, aktivna soba,
+  lista rešenih lokalnih zagonetki. Gubitak jedne košta sesiju, ne rad.
+- **Namerno ostavljeno**: snimak koji nije stigao na server (jedina kopija
+  koja postoji — isto pravilo pod kojim živi `chess_backend/uploads/`) i
+  imenovani skupovi zagonetki (biblioteka, ne sesija). Oba ostaju vidljiva
+  sledećem nalogu na istom uređaju: **viđena stvar se može vratiti, obrisana
+  ne.** Rupa je poznata i namerna.
+
+I treće pravilo, jer je lako pokvariti ga dok se prva dva prave: **gost koji
+se prijavi zadržava svoj rad.** To je isti čovek koji dovršava istu misao, a
+ne jedan nalog koji čita tuđe. Čuvar: `test/account_local_state_test.dart`,
+sedam testova; četiri od njih pocrvene kad se pozivi uklone, a tri koja čuvaju
+rad ostaju zelena — što je tačno podela koja se htela.
+
+**2. U Analizu se ulazi sa ugašenim motorom** (stavka 177.4, traženo i
+17.9.). Otkad je Analyse tab, ekran se otvara da bi se pogledala pozicija
+mnogo češće nego da bi joj se sudilo; motor koji se pali sam troši bateriju i
+odgovara na pitanje koje niko nije postavio. `_showEvaluation` i `_showEvalBar`
+kreću od `false`. Prekidači u traci ga pale, a ekran živi koliko i tab, pa se
+traži jednom po pokretanju a ne po poseti. Čuvar:
+`test/analysis_engine_off_on_entry_test.dart`.
+
+**3. Kartica završnica je imala dva broja bez imena** (stavka 176.4):
+„Solved 0 · 2 to retry" pa ispod „Solved 1". Oba tačna — prvi su završnice,
+drugi su greške iz korisnikovih partija, koje nemaju svoju karticu — ali bez
+imena se čitaju kao jedan broj koji sam sebi protivreči. Sada: „Endgames: …"
+i „Game blunders: …". Kartica sa jednom linijom ostaje bez imena, jer joj je
+naslov ime. `hub_progress_test` i `docs/gates/hub_progress_test.dart`
+dopunjeni.
+
+**4. Bedž na „Teach" nije govorio šta broji** (stavka 177.6): „Ne razumem ovu
+notifikaciju na tabu Teach gde piše 1". Broj je bio tačan — jedan predat
+domaći koji nije otvoren. Rečenicu sada pravi `TrainerPanel.waitingExplanation`,
+pored dva broja koja sabira, a ne u ekranu: „Teach — 1 homework to review",
+uz „· N requests to answer" kad ih ima. Model od sada čita i `counts.requests`
+sa žice umesto da ga neko oduzima. **Ostaje pitanje za vlasnika**: bedž stoji
+na Teach, a red za pregled se crta na Home („Trainer panel / TO REVIEW").
+
+**5. Studio na telefonu nije imao gde da se pročita linija** (stavka 179.2):
+„Ne vidim traku poteza", a na pitanje — „mislio sam da nema Flow/Tree/PGN
+panel". Raspored za telefon te tri table namerno nema (faza 6b), pa su ispod
+table bile samo četiri strelice: linija se mogla graditi i nije se mogla
+pročitati unazad. Sada je pod tablom **red poteza** koji se skroluje
+vodoravno — „Start", pa `1. e4`, `1… e5` … — tekući uokviren, tap vodi na
+potez, a potez sa komentarom nosi oblačić (komentar je jedina stvar o potezu
+koju tabla ne pokazuje). Isti red je i u položenom telefonu. Iza njega je
+`beatsOf`, ista projekcija kojom Windows crta „Flow", da se dva pogleda ne
+raziđu. Jedna zamka usput: `Scrollable.ensureVisible` penje se kroz **sve**
+roditeljske skrolove, pa je centrirao potez i u stranici — tabla je skakala
+nagore na svaki odigran potez. Traži se pozicija samog reda.
+
+**6. Nepotvrđeno: „Solved 1 · 1 to retry" umesto „2 to retry"** (stavka
+176.2). Put kroz kod je pregledan i preskakanje se ne gubi: „Next Position" na
+nerešenoj zagonetki šalje `skipped: true`, server broji i promašaj i preskok u
+`toRetry`, i oba kraja imaju testove. Sledeća stavka (3) je prošla sa „Retry
+failed (2)", što odgovara stanju sa **dva** preostala — pa je najverovatnije da
+je slika snimljena posle druge zagonetke, pre preskoka treće. Stavka je
+ostavljena otvorena sa uputstvom da se ponovi po redu.
+
+**Bez promene u kodu, ispravljen opis** (stavka 175.1): „Ima 6 u windows-u, a
+tri u androidu. Da li sad može i na androidu?" — može i **već jeste**, od faze
+6c. Broj redova u „Use in a tutorial" ne zavisi od platforme nego od pozicije:
+tri reda traže poteze posle kursora ili glavnu liniju, pa na praznoj tabli
+ostaju tri. Isto su ispravljeni opisi stavki 175.6 i 175.7 (imena i
+biblioteka su se fazom 5 razmestili po tabovima).
 
 ---
 
