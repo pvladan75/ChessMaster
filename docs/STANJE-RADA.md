@@ -55,6 +55,50 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Vlasnikova pitanja za kasnije — zapisano 20.9.2026, ništa u kodu, ništa odlučeno
+
+Četiri nepovezane stvari koje je vlasnik imao u glavi i tražio da se zapišu da se
+ne zaborave. **Nijedna nije istražena u kodu**; beleške ispod svake su prva misao,
+ne nalaz — pre rada na bilo kojoj prvo izmeriti šta danas postoji.
+
+Okvir u kom ih je rekao, jer odlučuje kako se čitaju: plan za objavljivanje
+(`TODO-objavljivanje.md`, `PLAN-ZAVRSNICA.md`) su **smernice, ne zakon**. Merilo
+je pitanje „da li je ovo aplikacija koju bih ja koristio" — odgovor je od „ne"
+(kad je plan pisan) stigao do „da, ali bih voleo da su neke stvari malo
+drugačije". Zato se vraća ekranima: dizajn ekrana je deo funkcionalnosti, ne
+ukras preko nje.
+
+1. **Automatski tutorijal: prikazati bolju alternativu, ne samo reći da postoji.**
+   Danas se ponekad kaže da postoji bolji potez, a potez (ili linija) se ne vidi.
+   Postoji ograničenje broja alternativnih linija koje se prikazuju — predlog
+   vlasnika: da to ograničenje bude **opcija**, a ne konstanta. *Pre rada
+   izmeriti*: gde je granica, zašto je uvedena (dužina tutorijala? vreme motora?
+   čitljivost stabla?), i da li rečenica „postoji bolji potez" nastaje na mestu
+   koje alternativu već ima u rukama pa je samo ne ispisuje, ili je tamo više
+   nema. Pravilo 16 važi: ako model ponavlja ulaz, ulaz je proizvod — alternativa
+   mora da stigne kao činjenica, ne da se traži od reči.
+2. **„Make exercise" → „Find the move" traži da je rešenje već odigrano na tabli,
+   a korisnik to ne zna** — ni gde, ni kada; rečenica „Play the solution on the
+   board first" stiže kad je već kasno, u listu koji je otvoren nad tablom na
+   kojoj ništa nije odigrano. Ista porodica kao nalaz 185.1 i nagoveštaj iz faze
+   11. *Pravci, neodlučeno*: (a) list se, kad nema linije, ne otvara kao greška
+   nego vodi — zatvori se i kaže „odigraj rešenje, pa pritisni opet", ili ostane
+   otvoren sa strane dok se igra; (b) rešenje se unosi **na tabli u samom listu /
+   na ekranu zadatka** — `ExerciseEditorScreen` iz faze 11 već ima tablu na kojoj
+   odigran potez postaje prihvaćen, pa bi „napravi zadatak" mogao da bude isti
+   ekran sa praznom linijom umesto dva različita puta; (c) dugme „Make exercise"
+   je onemogućeno sa razlogom dok na tabli nema poteza. (b) je najveća izmena i
+   jedina koja uklanja uzrok, a ne objašnjava ga.
+3. **Interaktivni vodič kroz aplikaciju, u samoj aplikaciji?** Pitanje, ne
+   odluka. Postoji priručnik (`PLAN-ZAVRSNICA.md`, faza 4) i „Upoznaj repertoar"
+   kao jedan vođeni prolaz koji je vlasnik video uživo i koji radi — to je
+   najbliži postojeći uzor i mera koliko jedan takav prolaz košta.
+4. **Odeljak „šta želiš da uradiš?"** — korisnik bira cilj (napravi repertoar,
+   napravi zadatak za učenika…), a aplikacija ga odvede gde treba i kaže kako.
+   Srodno sa 3 i verovatno jeftinije: 3 objašnjava ekrane, 4 polazi od namere.
+   Vredi ih razmatrati zajedno — dobar odgovor na 4 može da smanji potrebu za 3,
+   a 2 je primer zašto: korisnik je znao *šta* hoće, a nije znao *gde se počinje*.
+
 ## Vlasnikova provera 20.9.2026: zadatak koji se otvarao kao „Assignment complete", i ko je na potezu — u kodu
 
 Vlasnik je prošao mnoge stavke („odlično funkcioniše") i javio jedan problem i
