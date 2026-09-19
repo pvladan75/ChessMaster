@@ -4217,3 +4217,41 @@ The runner counts a support file with no tests in it as one passing test, so
 the counts moved by one without a test being written: **1597** with the
 database, **1511** without. That is also why `pgTestDb.js` has always been in
 the total.
+
+## 19.9.2026 - The freeze was the logger after all, and the probe that cleared it was a test of one machine
+
+`whatHoldsMe.js` spoke on its first CI run, from two files that had passed
+every test twenty seconds earlier:
+
+    [whatHoldsMe] ... test/exercise_authoring.test.js
+      resources: ["PipeWrap","PipeWrap","MessagePort"]
+    [whatHoldsMe] ... node_modules/thread-stream/lib/worker.js
+      resources: ["MessagePort","Timeout"]
+
+`thread-stream` is pino's transport worker. `services/logger.js` asks for
+`pino-pretty` unless `NODE_ENV=production`; CI has no `.env`, so every test
+process that *logged* started a worker thread, and on Linux with Node 22 that
+worker kept the finished process alive. Only the files that run `initDB` log,
+which is why it was always the database files, why it arrived with `a171fb5`,
+and why `node --test` - which waits for its child - froze until the six-hour
+job limit.
+
+**This was the first guess of the morning, and it was thrown away on a bad
+measurement.** The probe - a test file writing forty lines through the real
+logger - exited in 143 ms, and the entry above this one records the guess as
+wrong. The probe ran on Windows with Node 25, where the same worker lets go.
+It was rule 8 exactly, committed by the person citing it: *a test that depends
+on what one machine does is a test of that machine.* A hypothesis about CI can
+be confirmed on the workstation; it cannot be **refuted** there. What settled
+it was not a better argument but the process describing itself where it hung.
+
+The socket that outlives `pool.end()` was real too and its fix stays - it took
+the hung files from three to two - but it was the smaller half.
+
+The logger now writes plainly when `NODE_TEST_CONTEXT` is set: pretty printing
+is for a person at a terminal, and a test run has none.
+`test/logger_no_worker.test.js` asserts on the process, not on the options -
+after a log line, no `MessagePort` and no `Worker` among the active resources -
+and was watched red on the mutant with `["PipeWrap","PipeWrap","MessagePort",
+"Immediate"]`, the very handle CI printed. Backend **1598** with the database,
+**1512** without.
