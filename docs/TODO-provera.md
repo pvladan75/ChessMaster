@@ -5878,6 +5878,21 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 194. Ručni zadatak se otvara na tabli, i ko je na potezu — 20.9.2026, nije viđeno uživo
+
+**Server mora da bude restartovan.** Bez ponovnog slanja — isti zadaci koji su se
+otvarali na „Assignment complete".
+
+1. [ ] **Učenik**: zadatak „Daj mat u jednom ili 2 poteza" poslat direktno otvara
+   tablu sa pozicijom; `Qf7#` je tačno, a i `Qa7` se priznaje.
+2. [ ] Isti zadatak **unutar domaćeg** („Daj mat u 1 ili 2 poteza") otvara tablu.
+3. [ ] **Trener**, Teach → učenik → taj zadatak: ne piše „Assignment complete" dok
+   učenik nije ništa odigrao.
+4. [ ] **„Play it out", učenik je crni a beli je na potezu**: iznad table piše „The
+   engine is thinking…" sa peščanim satom dok motor ne odigra, pa „Your move" sa
+   rukom. Uspravno i položeno.
+5. [ ] Posle kraja partije taj red nestaje.
+
 ## 193. Zadatak: u stavci domaćeg nema motora, Analize ni FEN-a — 19.9.2026, nije viđeno uživo
 
 `PLAN-EXERCISE.md`, faza 12. Samo aplikacija — server ne mora da se restartuje.

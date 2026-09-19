@@ -278,6 +278,20 @@ String engineGameGoalSentence(EngineGameTask task, {required int ownMoves}) {
   return 'You are $side — $ask · $left left';
 }
 
+/// Whose move it is, for the banner beside the goal — or null once the game is
+/// over, when it is nobody's.
+///
+/// A student who plays Black in a position with White to move sees his pieces
+/// at the bottom of a still board; nothing tells him the first move is not his
+/// (the owner's live pass, 20.9.2026).
+String? engineGameTurnWords({
+  required bool finished,
+  required bool opponentToMove,
+}) {
+  if (finished) return null;
+  return opponentToMove ? 'The engine is thinking…' : 'Your move';
+}
+
 /// How the game ended, for the dialog that closes it. [endingLabel] names
 /// every ending but one: at a move target the words depend on what the number
 /// was for — reaching it meets a „hold" and misses a „checkmate in N".

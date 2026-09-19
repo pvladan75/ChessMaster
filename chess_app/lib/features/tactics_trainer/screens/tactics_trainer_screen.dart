@@ -95,6 +95,11 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   int _assignmentIndex = 0;
   bool _assignmentFinished = false;
 
+  /// Assigned puzzles that could not be loaded. Skipped so the rest can still
+  /// be solved, but never in silence: a set that ends with any of these is
+  /// not „complete" (found live 20.9.2026, when all of one could not be).
+  final Set<String> _unloadable = {};
+
   /// What is still being served. Starts as everything the assignment has left
   /// and is replaced by the skipped ones when the student goes back for them,
   /// so a second pass does not walk over work they have already answered.
@@ -238,6 +243,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       // One bad row must not strand the student on the rest of the homework.
       AppLogger.log(
           '[Tactics] Skipping assigned puzzle ${ids[_assignmentIndex]}.');
+      _unloadable.add(ids[_assignmentIndex]);
       _assignmentIndex++;
       await _loadAssignmentPuzzle(token);
       return;
@@ -653,6 +659,43 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     // the student had been shown "Zadatak je završen" and reasonably went away.
     final skipped = _skipped.length;
     final unfinished = skipped > 0;
+
+    // What could not even be shown comes first: nothing was answered for it,
+    // nothing was sent, and „complete" would be a lie told to the one person
+    // who cannot check it.
+    if (_unloadable.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline,
+                  size: 56, color: context.colors.warning),
+              const SizedBox(height: 14),
+              Text(
+                '${puzzleCountLabel(_unloadable.length)} could not be loaded.',
+                textAlign: TextAlign.center,
+                style: AppText.headline,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Nothing was sent for them, so this assignment is not '
+                'finished. Tell your trainer.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Center(
       child: Padding(

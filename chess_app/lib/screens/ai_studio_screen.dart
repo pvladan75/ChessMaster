@@ -2903,6 +2903,48 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     return engineGameGoalSentence(task, ownMoves: _userMoveCount);
   }
 
+  /// Whose move it is in „play it out", read off the board itself — the side
+  /// to move against the side the student plays — so it is right from the
+  /// first frame, before the engine has been asked anything. Null anywhere
+  /// else, and once the game is over.
+  String? _engineGameTurnWords() {
+    final task = _engineGameTask;
+    final game = _puzzleGame;
+    if (_selectedCategory != 'engine_game' || task == null || game == null) {
+      return null;
+    }
+    return engineGameTurnWords(
+      finished: _engineGameFinished,
+      opponentToMove: game.turn != task.side,
+    );
+  }
+
+  /// The words with an icon whose *shape* says it too — an hourglass for the
+  /// engine, a hand for the student — never a colour alone.
+  Widget? _engineGameTurnLine({required bool onBanner}) {
+    final words = _engineGameTurnWords();
+    if (words == null) return null;
+    final color =
+        onBanner ? context.colors.onInfoContainer : context.colors.textPrimary;
+    final engines = words != 'Your move';
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(engines ? Icons.hourglass_top : Icons.pan_tool_alt,
+            size: 14, color: color),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            words,
+            key: const Key('engine-game-turn'),
+            style: AppText.captionBold.copyWith(color: color),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
   // --- TAB 1: PUZZLES UI ---
 
   Widget _buildPuzzlesTab() => _buildActiveBoardScreen();
@@ -2981,11 +3023,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           ),
           const SizedBox(width: AppSpacing.sm),
           Flexible(
-            child: Text(
-              headerGoal,
-              style: AppText.bodyLargeBold
-                  .copyWith(color: context.colors.onInfoContainer),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  headerGoal,
+                  style: AppText.bodyLargeBold
+                      .copyWith(color: context.colors.onInfoContainer),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (_engineGameTurnLine(onBanner: true) case final turn?) turn,
+              ],
             ),
           ),
         ],
@@ -3067,6 +3116,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 // Leaving means leaving.
                 onPressed: () => context.pop(),
               ),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            // Before the goal, not after it: the goal is the long one, and
+            // an ellipsis must never be what eats whose move it is.
+            if (_engineGameTurnLine(onBanner: false) case final turn?) ...[
+              turn,
               const SizedBox(width: AppSpacing.sm),
             ],
             Expanded(

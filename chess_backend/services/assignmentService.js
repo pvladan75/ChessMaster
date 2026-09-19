@@ -882,26 +882,38 @@ async function getAssignmentDetail(pool, assignmentId, userId, { tablebase } = {
     }
   }
 
-  // Positions the trainer scanned travel with the assignment, exactly as lesson
-  // steps do, so the student's solver needs one request rather than a lookup
-  // against a table they are not allowed to read.
-  //
-  // The solution is deliberately absent. It is the answer to the question being
-  // asked, and it stays on the server until the student has actually answered.
-  let customPositions = null;
-  const customIds = items.rows
-    .map((item) => item.puzzle_id)
-    .filter((id) => typeof id === 'string' && id.startsWith('cust_'));
-  if (customIds.length > 0) {
-    const positions = await pool.query(
-      `SELECT puzzle_id, fen, side_to_move, instruction, themes, source_title, source_page, source_label
-         FROM custom_puzzles WHERE puzzle_id = ANY($1::varchar[])`,
-      [customIds]
-    );
-    customPositions = positions.rows;
-  }
+  const customPositions = await loadCustomPositions(pool, items.rows);
 
   return { ...assignment, items: items.rows, steps, customPositions, lessonLanguage };
+}
+
+/// The trainer's own positions among an assignment's items, or null when there
+/// are none.
+///
+/// They travel with the assignment, exactly as lesson steps do, so the
+/// student's solver needs one request rather than a lookup against a table they
+/// are not allowed to read. **The solution is deliberately absent**: it is the
+/// answer to the question being asked, and it stays on the server until the
+/// student has actually answered.
+///
+/// **The table is asked; the id is not read.** This used to keep only ids that
+/// start with `cust_`, from when a scanned book was the only writer of
+/// `custom_puzzles`. An exercise made by hand is `ex_…` and one made from
+/// mistakes is `hw_…`: both travelled without their position, the app took them
+/// for Lichess ids, could load none, skipped each in silence and told a student
+/// who had never seen the board „Assignment complete" (found live, 20.9.2026).
+/// A prefix is not a column.
+async function loadCustomPositions(pool, itemRows) {
+  const ids = [...new Set(
+    (itemRows || []).map((item) => item && item.puzzle_id).filter((id) => typeof id === 'string' && id)
+  )];
+  if (ids.length === 0) return null;
+  const positions = await pool.query(
+    `SELECT puzzle_id, fen, side_to_move, instruction, themes, source_title, source_page, source_label
+       FROM custom_puzzles WHERE puzzle_id = ANY($1::varchar[])`,
+    [ids]
+  );
+  return positions.rows.length > 0 ? positions.rows : null;
 }
 
 /// Turns raw attempt rows into the summary a trainer reads.
@@ -1037,6 +1049,7 @@ module.exports = {
   getStudentAssignments,
   getTrainerAssignments,
   getAssignmentDetail,
+  loadCustomPositions,
   summariseAttempts,
   getStudentProgress,
 };

@@ -4635,3 +4635,47 @@ separate claim.
 
 App **3275** tests (3268 + 7), 1 skipped; `flutter analyze` unchanged at 26 known
 infos. Thirteen mutations, both directions, each red on the right test.
+
+## 20.9.2026 — a hand-made exercise that opened on „Assignment complete", and whose move it is
+
+The owner's live pass. A find-the-move exercise made by hand, sent directly and
+inside a homework, opened — for the student *and* for the trainer — on
+„Assignment complete. Your trainer can see the result." Nobody had played a move.
+
+**A prefix is not a column — the plan said so in §3, about this very table, and
+one reader kept reading the prefix anyway.** `getAssignmentDetail` told a
+trainer's position from a Lichess puzzle by `id.startsWith('cust_')`, written
+when a scanned book was the only writer of `custom_puzzles`. Phase 2a gave the
+table a second writer (`ex_…`); the mistakes archive had been a third (`hw_…`)
+for longer. Both travelled without their board. Rule 14 exactly: *a dormant bug
+wakes when the feature it depends on ships — usually not the feature that
+contains it.* **No test anywhere read `customPositions`**, so four phases of
+gates, each proved by mutation, stood on a field nobody looked at; the phase 2b
+and 4 tests pumped the solver directly with positions handed to it, and never
+came in through the door a student uses. Now the table is asked and the id is
+not read.
+
+The other half is the recurring bug of this codebase, a sixth time. The tactics
+screen, handed an id it could not load, **skipped it in silence, reached the end
+of the list and announced success**. Skipping one bad row so the rest can be
+solved is right; the silence is not. The end screen already had this lesson once
+(„skipped puzzles are not a finished homework") and learned it for one cause
+only. *When a screen can end by running out of things, ask of every way a thing
+can leave the list whether the ending still tells the truth.*
+
+On the suggestion — whose move it is in „play it out": a surviving mutation
+showed two sources for one fact (`_isOpponentTurn` and the board). The board is
+the one that is right from the first frame and flips the instant a move is
+made, so the flag went. And in the one-line landscape header the turn stands
+*before* the goal: an ellipsis eats the end of a row, and the end must not be
+the new information.
+
+Tooling: `Color` in `ai_studio_screen.dart` is ambiguous with the chess
+package's — pass a flag and resolve the colour inside. A long Bash command with
+heredocs containing apostrophes fails to parse as a whole and writes nothing;
+files with prose go through the Write tool.
+
+App **3283** tests (3275 + 5 + 3), 1 skipped; `flutter analyze` unchanged at 26
+known infos. Backend **1607** with the throwaway database, **1520** without
+(1603 / 1516 + 4). The fixed function was also run, read-only, against the real
+assignment: the board arrives, the solution does not.
