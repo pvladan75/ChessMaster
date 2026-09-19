@@ -4077,3 +4077,47 @@ exactly the predicted 3157 — so the reds were load and the network, the two
 causes rule 19 names. What slowed that run was never found. The docs were not
 given a number until a quiet run came back 3157, 0 failed, in under four
 minutes.
+
+## 19.9.2026 — Four CI runs frozen for six hours, and the wait that had no ceiling
+
+The owner asked why a run had been going four hours. The backend step is
+normally **26 seconds**. `gh` told the rest: of the seven runs since
+`a171fb5` (17.9, 20:50 — the commit that brought `test/support/pgTestDb.js`
+and the `postgres:17` service container), **four froze inside `npm test`** and
+sat there until GitHub's six-hour job limit killed them; of the sixty runs
+before it, none ever did. 18.9 04:23, 18.9 18:16, 18.9 18:30, 19.9 02:06.
+
+**Where it stops is readable, and it is not a coincidence.** `node --test`
+reports in file order — proved locally, the slow database files appear in
+their alphabetical slots, not their completion order — so the log's last line
+names the last file that finished. In the two runs whose logs could be read it
+was `puzzle_resolution.test.js` and `exercise_authoring.test.js`: two of the
+six files that touch a real database, out of a hundred and thirty. The one
+run that could be read to the end carried GitHub's annotation for a runner
+that stopped answering.
+
+**What could not be proved:** the stall itself. The same suite runs green in
+16 seconds against a throwaway cluster, three times over, on sixteen cores; CI
+has four and a container. Nothing was reproduced locally, and nothing here
+says which call is the one that waits.
+
+**What could be proved is that nothing had a ceiling.** `pg` defaults
+`connectionTimeoutMillis` to **0** — measured against a TCP port that accepts
+and then says nothing, the old pool was *still waiting after 40 seconds*; the
+guarded one gives up at 15 with „Connection terminated due to connection
+timeout". `node --test` has no default timeout, so a hook that never returns
+freezes the run with no name and no line. And the workflow had no
+`timeout-minutes`, so each freeze cost six hours of Actions minutes and left a
+log that ends mid-sentence.
+
+Three ceilings, each watched failing before being believed: `--test-timeout`
+in the `test` script (a planted test that never answers is now *named* and
+failed), the two timeouts in `pgTestDb.js`, and `timeout-minutes` on the job
+and on the backend step. Counts unmoved: 1594 with the database, 1510 without.
+A fourth guard needs no proof: a `concurrency` group, because the run started
+at 18:16 was still frozen when 18:30 pushed and nothing cancelled it.
+
+**The lesson is the old one about loud failures, in the one place nobody had
+looked: a wait.** A guard that turns a six-hour silence into a sixty-second
+red does not fix the bug — it makes the next occurrence say where it is. Until
+one of these ceilings is hit in CI, the cause is still open.

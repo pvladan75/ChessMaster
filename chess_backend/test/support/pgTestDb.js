@@ -29,18 +29,28 @@ function skipUnlessDatabase() {
   return { skip: 'TEST_DATABASE_URL not set — no throwaway PostgreSQL to run on' };
 }
 
+/// Nothing here may wait for ever. `pg` defaults `connectionTimeoutMillis` to
+/// 0, which means a pool that cannot reach the server blocks its `before` hook
+/// with no error and no end — and `node --test` has no timeout of its own, so
+/// one stalled connection freezes the whole suite. That is not theory: between
+/// 18.9.2026 and 19.9.2026 four CI runs out of seven sat in `npm test` until
+/// the six-hour job limit killed them, every one of them after this file's
+/// tests started running, and there was nothing in the log to say where.
+/// A loud failure beats a silent wait (CLAUDE.md, "Rules that bite").
+const TIMEOUTS = { connectionTimeoutMillis: 15000, query_timeout: 60000 };
+
 /// A fresh database with the application's schema on it. Call `drop()` when
 /// done; the name carries the pid and a counter, so parallel test files never
 /// share one.
 let counter = 0;
 async function freshDatabase() {
   const name = `mislisha_test_${process.pid}_${Date.now()}_${counter++}`;
-  const admin = new Pool({ connectionString: url, max: 1 });
+  const admin = new Pool({ connectionString: url, max: 1, ...TIMEOUTS });
   await admin.query(`CREATE DATABASE ${name}`);
 
   const target = new URL(url);
   target.pathname = `/${name}`;
-  const pool = new Pool({ connectionString: target.toString(), max: 4 });
+  const pool = new Pool({ connectionString: target.toString(), max: 4, ...TIMEOUTS });
 
   // Required late: db.js builds its own pool from the environment at import,
   // and that pool is never connected by these tests.

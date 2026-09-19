@@ -6,10 +6,27 @@ on:
   pull_request:
     branches: [ master ]
 
+# One run per branch. A push that supersedes another cancels it rather than
+# racing it: on 18.9.2026 the run started at 18:16 was still frozen in the
+# backend suite when 18:30 pushed, and both sat there until the six-hour job
+# limit. The cost is that a superseded push loses its APK artifact — the
+# commit that replaced it builds one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Flutter Analyze, Test & Build APK
     runs-on: ubuntu-latest
+
+    # A run that hangs must cost minutes, not the six-hour job limit. Four of
+    # the seven runs between 18.9.2026 and 19.9.2026 stopped producing output a
+    # few seconds into `npm test` and sat there until GitHub killed them; a
+    # normal run of this job is under 25 minutes, of which the backend suite is
+    # under a minute. These ceilings are deliberately loose — they are here to
+    # end a freeze, not to police a slow run.
+    timeout-minutes: 45
 
     # A throwaway PostgreSQL for the backend tests that must prove SQL — a
     # CHECK, a partial index, a WHERE clause — which the stub pools cannot see
@@ -81,6 +98,7 @@ jobs:
           npm ci
 
       - name: Run Backend Tests
+        timeout-minutes: 10
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
         run: |
