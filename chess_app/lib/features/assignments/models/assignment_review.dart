@@ -14,6 +14,11 @@ enum ReviewItemKind {
   lichess,
   step,
 
+  /// A „play it out" game against the engine — `docs/PLAN-EXERCISE.md`,
+  /// phase 9. The task, the moves, where they led and who judged it travel
+  /// with the item rather than being fetched again.
+  game,
+
   /// The puzzle row is gone — a deleted position, or an id never imported. The
   /// attempt still happened, and dropping it would quietly change the count.
   unknown,
@@ -23,6 +28,7 @@ ReviewItemKind _kindFrom(String? raw) => switch (raw) {
       'custom' => ReviewItemKind.custom,
       'lichess' => ReviewItemKind.lichess,
       'step' => ReviewItemKind.step,
+      'game' => ReviewItemKind.game,
       _ => ReviewItemKind.unknown,
     };
 
@@ -44,6 +50,12 @@ class ReviewItem {
     this.solutionMoves,
     this.solutionHidden = false,
     this.attemptedAt,
+    this.task,
+    this.moves = const [],
+    this.finalFen,
+    this.ending,
+    this.judgedBy,
+    this.pending = false,
   });
 
   final int itemId;
@@ -84,6 +96,30 @@ class ReviewItem {
 
   final DateTime? attemptedAt;
 
+  /// A game item's task, as the trainer set it — `{type: 'game', side, goal,
+  /// surviveMoves}`. Null for every other kind.
+  final Map<String, dynamic>? task;
+
+  /// The moves played, both sides, in SAN — empty before the game is played,
+  /// never null.
+  final List<String> moves;
+
+  /// Where [moves] led, or null when the game was not played or did not
+  /// replay on the server.
+  final String? finalFen;
+
+  /// A `GameEnding` name (`chess_app/lib/core/models/drill_outcome.dart`), or
+  /// null when the game has not ended.
+  final String? ending;
+
+  /// `'rules'`, `'tablebase'`, `'device'`, or null when nobody has judged the
+  /// game yet.
+  final String? judgedBy;
+
+  /// Played, and nobody could judge it yet — not a failure, and not the same
+  /// as never having played.
+  final bool pending;
+
   factory ReviewItem.fromJson(Map<String, dynamic> json) => ReviewItem(
         itemId: (json['itemId'] as num).toInt(),
         position: (json['position'] as num?)?.toInt() ?? 0,
@@ -104,6 +140,15 @@ class ReviewItem {
         attemptedAt: json['attemptedAt'] == null
             ? null
             : DateTime.tryParse(json['attemptedAt'].toString()),
+        task: json['task'] is Map
+            ? Map<String, dynamic>.from(json['task'] as Map)
+            : null,
+        moves: (json['moves'] as List?)?.map((e) => e.toString()).toList() ??
+            const [],
+        finalFen: _text(json['finalFen']),
+        ending: _text(json['ending']),
+        judgedBy: _text(json['judgedBy']),
+        pending: json['pending'] == true,
       );
 
   /// The name to show, or a fallback built from the order it was set in.
@@ -237,4 +282,33 @@ class AssignmentReview {
 String? _text(dynamic value) {
   final text = value?.toString().trim();
   return (text == null || text.isEmpty) ? null : text;
+}
+
+/// A game item's [moves], numbered from the position they were played in —
+/// „1. Ra8 Kd3 2. Ra3+" for White to move, „1... Kd5 2. Kd3 Ke5" when Black
+/// moves first. Reads only [fen]'s side to move and full-move number; it does
+/// not need [moves] to be legal, because it numbers what it is given rather
+/// than replaying it.
+String gameMovesText(String fen, List<String> moves) {
+  if (moves.isEmpty) return '';
+
+  final parts = fen.trim().split(RegExp(r'\s+'));
+  var whiteToMove = !(parts.length > 1 && parts[1] == 'b');
+  var moveNumber = parts.length > 5 ? (int.tryParse(parts[5]) ?? 1) : 1;
+
+  final buffer = StringBuffer();
+  for (var i = 0; i < moves.length; i++) {
+    if (i > 0) buffer.write(' ');
+    if (whiteToMove) {
+      buffer.write('$moveNumber. ${moves[i]}');
+    } else if (i == 0) {
+      // Black moves first: the opening number carries the dots.
+      buffer.write('$moveNumber... ${moves[i]}');
+    } else {
+      buffer.write(moves[i]);
+    }
+    if (!whiteToMove) moveNumber++;
+    whiteToMove = !whiteToMove;
+  }
+  return buffer.toString();
 }

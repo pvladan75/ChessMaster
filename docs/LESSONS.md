@@ -4463,3 +4463,48 @@ unchanged at 26 known infos. Backend **1597** with the database, **1511** withou
 win removed, a test that the function throws and a test of the row title; 1511
 measured with `.env` aside, 1597 is the measured 1596 plus that one pure test).
 Eight mutations, each red on the right test.
+
+## 19.9.2026 — stored, never read; and a fixture that wrote what the server forgot
+
+Phase 9 of `PLAN-EXERCISE.md` began with a measurement, and the measurement was
+most of the phase: a played game's moves, ending, judge and verdict were **all
+in `assignment_items` already**. The review read none of them, because a game
+item has no `puzzle_id` and `shapeItem`'s first branch takes „no puzzle id" to
+mean „a lesson step" — so the trainer got a step with no step: „board not
+available", „viewed", `solved: null`. A dormant branch, woken by the feature
+that started writing rows it had never seen (rule 14). Before adding a column,
+read what the table holds.
+
+And why no test saw „0 of 0 items": `homework_assignment_own_test.dart` builds
+the homework **detail** by hand, and its fixture has `child_total: 3,
+child_completed: 3` in it — the two fields the real detail never sent. The
+test seeded the state the server was meant to write (rule 6), asserted „3 of 3
+items", and passed for as long as the screen was wrong. A hand-built response
+is a claim about the server; the claim needs a test on the server's side, which
+`homework_gate` now has.
+
+Backend **1603** with the database, **1516** without (1597 / 1511 + 5 pure
+tests of the shaping + 1 on the real database; the 5 watched red first, the 1
+proved by two mutations — the query without the game columns, and the task not
+reaching the shaper).
+
+## 19.9.2026 — the worker's code was right and the gate could not have known
+
+Phase 9's app half, built by the implementer against a gate the lead wrote
+first. Graded by machine: gate byte-identical, three files and nothing else, no
+new `ignore`, green on master. Then five mutations of **the worker's** code —
+and one survived: forcing both review boards to White's side changed no test.
+The worker had turned them to the student's side because the brief said so; the
+gate never asked. **A brief can say what a gate cannot check, and then only the
+brief's reader is holding the rule.** The gate asks it now, from a game played
+as Black, and the mutation is red.
+
+Two of my own mutation runs proved nothing and said so only to somebody
+reading the counts: a `sed` written for LF against a CRLF file changed nothing
+(„All tests passed" under a mutant is a question about the mutant first), and a
+Python patch through a Bash heredoc lost the backslash in `'`, so the gate did
+not parse and *every* mutant was „red" at load. Check that the mutation
+applied — a `grep -c`, an assert on the replace — before reading the colour.
+
+App **3212** tests (3195 + the gate's 17), 1 skipped; `flutter analyze`
+unchanged at 26 known infos.

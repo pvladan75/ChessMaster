@@ -5878,6 +5878,26 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 190. Zadatak: šta trener vidi od odigrane partije — 19.9.2026, nije viđeno uživo
+
+`PLAN-EXERCISE.md`, faza 9. Server mora da bude restartovan. Potreban je domaći sa
+bar dve stavke „Play it out", koji su uradila dva učenika — jedan dobro, drugi loše.
+
+1. [ ] **Trener, otvoren domaći učenika koji je sve uradio dobro**: ispod naslova
+   svake odigrane partije piše „Goal met" sa ikonom pehara; kod učenika koji nije
+   uspeo piše „Goal not met" sa ikonom zastavice. Dva učenika se više ne čitaju isto.
+2. [ ] Stavka sa pozicijama pokazuje „N of M correct"; tutorijal ne pokazuje ništa.
+3. [ ] **Pritisak po sredini reda odigrane partije (kao trener)** otvara pregled
+   partije, a ne Analizu ni tablu za igru.
+4. [ ] U pregledu: zadatak rečima („Checkmate in N moves as White"), presuda,
+   potezi koje je učenik odigrao („1. … 2. …"), dve table — „Start" i „Position
+   reached" — okrenute na stranu koju je učenik igrao, „Ended: …" i „Judged by …".
+   Nigde ne piše „board not available", „viewed" ni „correct 0".
+5. [ ] „Draw or better, for N moves" sa **više od sedam figura**: uz „Goal met" piše
+   da je provereno samo da učenik nije matiran i da je pozicija tvoja da je oceniš.
+6. [ ] **Učenik** na svom domaćem vidi iste presude, i svoj pregled partije.
+7. [ ] Pregled partije na telefonu, uspravno i položeno: ništa nije odsečeno.
+
 ## 189. Zadatak: „Checkmate in N moves", zadatak koji se vidi, i „3 of 3 items" — 19.9.2026, nije viđeno uživo
 
 Iz vlasnikove provere 19.9.2026 (`PLAN-EXERCISE.md` §9, faza 8). Server mora da

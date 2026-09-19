@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/core/models/drill_outcome.dart';
+import 'package:chess_app/core/models/engine_game_said.dart';
+import 'package:chess_app/core/models/engine_game_task.dart';
+import 'package:chess_app/features/exercises/models/exercise_task_words.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -184,20 +188,33 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
               style: TextStyle(color: colors.textSecondary))
         else
           ...review.items.asMap().entries.map(
-                (entry) => _ItemCard(
-                  item: entry.value,
-                  index: entry.key,
-                  isTrainer: review.isTrainer,
-                  isLesson: review.isLesson,
-                  notes: review.notesFor(entry.value.itemId),
-                  onComment: () => _writeNote(
-                    itemId: entry.value.itemId,
-                    prompt: review.isTrainer
-                        ? 'Comment on this position'
-                        : 'Question about this position',
-                  ),
-                  onDeleteNote: _deleteNote,
-                ),
+                (entry) => entry.value.kind == ReviewItemKind.game
+                    ? _GameItemCard(
+                        item: entry.value,
+                        notes: review.notesFor(entry.value.itemId),
+                        isTrainer: review.isTrainer,
+                        onComment: () => _writeNote(
+                          itemId: entry.value.itemId,
+                          prompt: review.isTrainer
+                              ? 'Comment on this position'
+                              : 'Question about this position',
+                        ),
+                        onDeleteNote: _deleteNote,
+                      )
+                    : _ItemCard(
+                        item: entry.value,
+                        index: entry.key,
+                        isTrainer: review.isTrainer,
+                        isLesson: review.isLesson,
+                        notes: review.notesFor(entry.value.itemId),
+                        onComment: () => _writeNote(
+                          itemId: entry.value.itemId,
+                          prompt: review.isTrainer
+                              ? 'Comment on this position'
+                              : 'Question about this position',
+                        ),
+                        onDeleteNote: _deleteNote,
+                      ),
               ),
       ],
     );
@@ -207,6 +224,17 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     final colors = context.colors;
     final total = review.items.length;
 
+    // A game has no "correct" to count — it is played or it is not, and the
+    // card below says how it went.
+    final isGameReview =
+        review.items.isNotEmpty && review.items.every(_isGameItem);
+    final summaryText = isGameReview
+        ? (review.attemptedCount > 0 ? 'Played' : 'Not played yet')
+        : (review.isLesson
+            ? '${review.attemptedCount} of $total parts viewed'
+            : '${review.attemptedCount} of $total completed'
+                '${review.attemptedCount == 0 ? '' : ' · correct ${review.solvedCount}'}');
+
     return Card(
       color: colors.surface,
       child: Padding(
@@ -215,10 +243,8 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              review.isLesson
-                  ? '${review.attemptedCount} of $total parts viewed'
-                  : '${review.attemptedCount} of $total completed'
-                      '${review.attemptedCount == 0 ? '' : ' · correct ${review.solvedCount}'}',
+              summaryText,
+              key: const Key('review-summary-text'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             if (review.instructions != null) ...[
@@ -283,6 +309,8 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     );
   }
 }
+
+bool _isGameItem(ReviewItem item) => item.kind == ReviewItemKind.game;
 
 /// One position: the board, what was played, what the answer was, and whatever
 /// was said about it.
@@ -499,6 +527,218 @@ class _ItemCard extends StatelessWidget {
         ),
         child: Text(text, style: AppText.caption.copyWith(color: color)),
       );
+}
+
+/// A „play it out" game: the task, the verdict, the moves both sides played,
+/// the two boards it started and ended on, how it ended and who judged it —
+/// everything the trainer needs to be the judge of last resort where no
+/// tablebase answers (`docs/PLAN-EXERCISE.md`, phase 9).
+class _GameItemCard extends StatelessWidget {
+  const _GameItemCard({
+    required this.item,
+    required this.notes,
+    required this.isTrainer,
+    required this.onComment,
+    required this.onDeleteNote,
+  });
+
+  final ReviewItem item;
+  final List<AssignmentNote> notes;
+  final bool isTrainer;
+  final VoidCallback onComment;
+  final void Function(AssignmentNote) onDeleteNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final task = item.task;
+    final fen = item.fen;
+    final isWhiteBottom = task?['side'] != 'b';
+    final said = _said();
+    final movesText = gameMovesText(fen ?? '', item.moves);
+
+    return Card(
+      key: Key('review-game-${item.itemId}'),
+      color: colors.surface,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              children: [
+                Text(exerciseTaskWords(task), style: AppText.bodyLargeBold),
+                if (said != null) _verdict(colors, said),
+              ],
+            ),
+            if (movesText.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(movesText, style: AppText.body),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.sm,
+              children: [
+                if (fen != null)
+                  _board(context, 'review-game-start-${item.itemId}', fen,
+                      'Start', isWhiteBottom),
+                if (item.finalFen != null)
+                  _board(context, 'review-game-final-${item.itemId}',
+                      item.finalFen!, 'Position reached', isWhiteBottom),
+              ],
+            ),
+            ..._endingLines(colors),
+            const SizedBox(height: AppSpacing.sm),
+            ...notes.map((note) =>
+                _NoteRow(note: note, onDelete: () => onDeleteNote(note))),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onComment,
+                icon: const Icon(Icons.mode_comment_outlined, size: 15),
+                label: Text(isTrainer ? 'Comment' : 'Ask', style: AppText.body),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Nothing when the game was never played — a verdict of a game that did
+  /// not happen would be an answer to a question nobody asked.
+  EngineGameSaid? _said() {
+    if (!item.attempted) return null;
+    if (item.pending) return EngineGameSaid.notJudged;
+    if (item.solved == true) return EngineGameSaid.met;
+    if (item.solved == false) return EngineGameSaid.notMet;
+    return null;
+  }
+
+  /// Same icon *shapes* the closing dialog uses (`ai_studio_screen.dart`) —
+  /// the owner is colour-blind, never hue alone.
+  Widget _verdict(AppColorTokens colors, EngineGameSaid said) {
+    final icon = switch (said) {
+      EngineGameSaid.met => Icons.emoji_events,
+      EngineGameSaid.notMet => Icons.flag,
+      EngineGameSaid.notJudged => Icons.hourglass_empty,
+    };
+    final color = switch (said) {
+      EngineGameSaid.met => colors.warning,
+      EngineGameSaid.notMet => colors.danger,
+      EngineGameSaid.notJudged => colors.textMuted,
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(engineGameSaidWords(said),
+            style: AppText.body.copyWith(color: color)),
+      ],
+    );
+  }
+
+  Widget _board(BuildContext context, String key, String boardFen, String label,
+      bool isWhiteBottom) {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        BoardThumbnail(
+          key: Key(key),
+          fen: boardFen,
+          size: 110,
+          isWhiteBottom: isWhiteBottom,
+        ),
+        const SizedBox(height: AppSpacing.xxs),
+        Text(label, style: AppText.caption.copyWith(color: colors.textMuted)),
+      ],
+    );
+  }
+
+  List<Widget> _endingLines(AppColorTokens colors) {
+    final lines = <Widget>[];
+
+    final endingText = _endingText();
+    if (endingText != null) {
+      lines.add(Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
+        child: Text('Ended: $endingText', style: AppText.body),
+      ));
+    }
+
+    final judgedText = _judgedByText();
+    if (judgedText != null) {
+      lines.add(Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xxs),
+        child: Text(judgedText,
+            style: AppText.body.copyWith(color: colors.textMuted)),
+      ));
+    }
+
+    // Two honest sentences, said only when they are true: a tablebase
+    // verdict does not need either one, and the pending one is never a
+    // failure.
+    if (item.pending) {
+      lines.add(Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xxs),
+        child: Text(
+          'No tablebase answer yet — the position reached is yours to judge.',
+          style: AppText.body.copyWith(color: colors.textMuted),
+        ),
+      ));
+    }
+    if (_rulesCheckedNoteMoreThanNotMated()) {
+      lines.add(Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xxs),
+        child: Text(
+          'Only "not checkmated" could be checked — the position reached is '
+          'yours to judge.',
+          style: AppText.body.copyWith(color: colors.textMuted),
+        ),
+      ));
+    }
+
+    return lines;
+  }
+
+  /// True when the rules judged a move target on a goal that is not „win"
+  /// with more than seven pieces on the board — the one case where being
+  /// „met by the rules" means only that nobody was checkmated.
+  bool _rulesCheckedNoteMoreThanNotMated() =>
+      item.ending == 'moveTarget' &&
+      item.judgedBy == 'rules' &&
+      item.task?['goal'] != 'win';
+
+  String? _endingText() {
+    final endingName = item.ending;
+    if (endingName == null) return null;
+    final GameEnding ending;
+    try {
+      ending = GameEnding.values.byName(endingName);
+    } catch (_) {
+      return null;
+    }
+    final fen = item.fen;
+    final task = fen == null
+        ? null
+        : EngineGameTask.fromJson({...?item.task, 'fen': fen});
+    return engineGameEndingWords(task, ending);
+  }
+
+  String? _judgedByText() => switch (item.judgedBy) {
+        'rules' => 'Judged by the rules',
+        'tablebase' => 'Judged by the tablebase',
+        'device' => 'Judged by the device',
+        _ => null,
+      };
 }
 
 class _NoteRow extends StatelessWidget {

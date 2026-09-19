@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3195 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3212 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1597 with TEST_DATABASE_URL, 1511 without
+cd chess_backend && npm test          # node --test, 1603 with TEST_DATABASE_URL, 1516 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -38,7 +38,9 @@ wider than the dialog, a board sized from the wrong dimension, and tab labels
 position that is not chess (→ 3190); then the owner's live pass of the exercise
 work on 19.9.2026 and its phase 8 — a number on „Win“ is „Checkmate in N moves“,
 judged by the rules alone, the task said on every screen that shows it, and a
-homework's own item counts (→ 3195; backend 1598/1512 → 1597/1511). Open:
+homework's own item counts (→ 3195; backend 1598/1512 → 1597/1511), then the server half of its phase 9, the
+review of a played game (backend → 1603/1516), and its app half — the verdict
+on the homework row and the review of a game as a game (→ 3212). Open:
 phases 9–12 of `docs/PLAN-EXERCISE.md` and the owner's live pass. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count

@@ -5,6 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/core/models/engine_game_said.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/assignments/screens/assignment_review_screen.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
@@ -229,13 +230,21 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
         ? context.colors.success
         : (locked ? context.colors.textMuted : context.colors.accent);
     final blocker = locked ? _blockerOf(child) : null;
+    final verdict = _verdict(child);
 
     return Card(
       key: Key('homework-child-${child.id}'),
       color: context.colors.surface,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(
-        onTap: locked ? null : () => _openChild(child),
+        // The trainer's tap on a played item opens what the student did, not
+        // a board to play on — the student's tap is unchanged, and so is the
+        // separate Review button below, which either side may use.
+        onTap: locked
+            ? null
+            : (_isTrainer && child.attemptedItems > 0)
+                ? () => _openReview(child)
+                : () => _openChild(child),
         borderRadius: AppRadii.roundedMd,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -319,6 +328,11 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
                     ],
                   ),
                 ),
+              if (verdict != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: verdict,
+                ),
               if (child.attemptedItems > 0 || (_isTrainer && locked))
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -346,5 +360,48 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
         ),
       ),
     );
+  }
+
+  /// How this child went, in words — shown to both sides, and never for a
+  /// child that has not been attempted or is still waiting to be judged: the
+  /// pending block above already says that, and saying both would make one
+  /// of the two look like a mistake.
+  Widget? _verdict(HomeworkChild child) {
+    if (child.attemptedItems == 0 || child.pendingItems > 0) return null;
+
+    switch (child.kind) {
+      case 'engine_game':
+        // Never by hue alone (the owner is colour-blind): met and not met
+        // are different icon *shapes*, the same ones the closing dialog
+        // uses.
+        final said =
+            child.solvedItems > 0 ? EngineGameSaid.met : EngineGameSaid.notMet;
+        final icon =
+            said == EngineGameSaid.met ? Icons.emoji_events : Icons.flag;
+        final color = said == EngineGameSaid.met
+            ? context.colors.success
+            : context.colors.danger;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(
+              engineGameSaidWords(said),
+              key: Key('homework-child-verdict-${child.id}'),
+              style: AppText.body.copyWith(color: context.colors.textPrimary),
+            ),
+          ],
+        );
+      case 'puzzles':
+        return Text(
+          '${child.solvedItems} of ${child.totalItems} correct',
+          key: Key('homework-child-verdict-${child.id}'),
+          style: AppText.body.copyWith(color: context.colors.textMuted),
+        );
+      default:
+        // A lesson is read, not solved — there is nothing to verdict.
+        return null;
+    }
   }
 }
