@@ -5878,6 +5878,33 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 192. Zadatak: otvaranje i izmena sačuvanog zadatka — 19.9.2026, nije viđeno uživo
+
+`PLAN-EXERCISE.md`, faza 11. Samo aplikacija — server ne mora da se restartuje.
+
+1. [ ] **Library → „Exercises" → pritisak na svoj „Find the move" zadatak** otvara
+   ekran zadatka, a ne Analizu: ime, zadatak rečima, tabla okrenuta na učenikovu
+   stranu i rešenje kao linija („1. Qh5 (or Qf3) g6  2. Qxe5+").
+2. [ ] **Potez odigran na tabli** na izabranom koraku pojavljuje se u liniji kao
+   „(or …)". Isti potez drugi put, ili potez koji pozicija ne dozvoljava, ne menja
+   ništa; za prvi piše zašto.
+3. [ ] Izbor **drugog koraka** linije pomera tablu na poziciju koju učenik tamo vidi,
+   i potez odigran tu postaje alternativa na tom koraku, ne na prvom.
+4. [ ] Alternativa ima dugme za uklanjanje; **glavni potez ga nema**.
+5. [ ] **Save** otvara list „Edit exercise" sa već upisanim imenom, uputstvom i
+   oznakama; nema čipova „Win" / „Draw or better". Posle „Save" zadatak u Library
+   nosi novo ime, a ponovo otvoren pokazuje dodate alternative.
+6. [ ] **Učenik** kome je taj zadatak već poslat u domaćem: dodata alternativa mu se
+   sada priznaje kao tačan potez.
+7. [ ] **Skenirani zadatak sa odštampanim rešenjem** otvara se i menja na isti način.
+8. [ ] **Partija („Win" / „Draw or better")**: ekran pokazuje tablu, „Save" otvara list
+   sa već izabranim ciljem, brojem poteza, stranom i jačinom; nema čipa „Find the move".
+9. [ ] **Zadatak mog trenera** i **sken bez rešenja** otvaraju se kao do sada (Analiza).
+10. [ ] Izlazak sa ekrana sa nesačuvanom izmenom prvo pita; bez izmene ne pita.
+11. [ ] **Preparation → Make exercise**, „Find the move" sa odigranom linijom: ispod
+    rešenja piše da je varijanta na učenikovom potezu prihvaćena alternativa.
+12. [ ] Telefon, uspravno i položeno: ništa nije odsečeno, „Save" se može dohvatiti.
+
 ## 191. Zadatak: „Exercises" i birač za domaći prikazuju samo zadatke — 19.9.2026, nije viđeno uživo
 
 `PLAN-EXERCISE.md`, faza 10. Samo aplikacija — server ne mora da se restartuje.

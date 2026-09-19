@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3218 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3257 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1603 with TEST_DATABASE_URL, 1516 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -41,8 +41,9 @@ judged by the rules alone, the task said on every screen that shows it, and a
 homework's own item counts (→ 3195; backend 1598/1512 → 1597/1511), then the server half of its phase 9, the
 review of a played game (backend → 1603/1516), and its app half — the verdict
 on the homework row and the review of a game as a game (→ 3212), and phase 10, a scan with nothing to
-judge is a position and not an exercise (→ 3218). Open:
-phases 9–12 of `docs/PLAN-EXERCISE.md` and the owner's live pass. Every change of these numbers,
+judge is a position and not an exercise (→ 3218), and phase 11, a saved
+exercise opened, read and changed on its own screen (→ 3257). Open:
+phase 12 of `docs/PLAN-EXERCISE.md` and the owner's live pass. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and

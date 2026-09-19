@@ -4542,3 +4542,40 @@ failed patch, open the file.
 App **3218** tests (3212 + 6), 1 skipped; `flutter analyze` unchanged at 26 known
 infos. Four mutations, each asserted to have applied, each red on the right
 test.
+
+## 19.9.2026 — phase 11 of the exercise plan: a saved exercise, opened and changed
+
+`docs/PLAN-EXERCISE.md`, phase 11. App only. Measured before anything was
+written: the server had the whole of it since phase 2a (`GET` and
+`PUT /exercises/:id`, tested on a hand-made row and a scanned one) and the app
+had `load` and `update` since 2b. **Nothing called them** — a client method with
+no caller for three phases, found only because the owner tapped a row. Rule 10
+again: every layer right, the feature unreachable.
+
+The implementer built it against the lead's gate and the gate passed unchanged.
+**Every fault found afterwards was in the gate, and all three are rule 6 — a
+fixture luckier than the real thing:**
+
+- The gate's game exercise had Black to move *and* Black as the student, so a
+  board turned by `sideToMove` passed. A fixture in which two different
+  questions have the same answer cannot tell which one the code asked. Found by
+  reading the code, not by a test.
+- „The main move cannot be removed" stood on the scholar line, where removing
+  `Qh5` leaves `Qf3 g6 Qxe5+`, which does not replay — so **the reader refused
+  it and the guard was never what made the test green**. Deleting the guard
+  survived. On the back rank both moves mate and nothing follows; only the
+  guard can say no. When one rule hides behind another, the test needs a case
+  the other rule allows.
+- The gate played its moves through the board's `onMove`, which the screen reads
+  against `fenBefore(step)` — so nothing looked at the board the trainer sees
+  after choosing a step. A seam that bypasses the screen tests the model twice.
+
+And on tooling: a mutation runner that wrote the mutant, then crashed decoding
+the test output (cp1250 on this workstation), **left the mutant in the file**.
+The restore belongs in a `finally`, the output is read as bytes, and after any
+runner dies the first command is a grep for the mutant.
+
+App **3257** tests (3218 + 24 gate + 11 the worker's + 4 the lead's), 1 skipped;
+`flutter analyze` unchanged at 26 known infos. Seventeen mutations, each
+asserted to have applied, each red on the right test — two only after the
+lead's tests were added. Backend untouched.

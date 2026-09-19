@@ -95,22 +95,66 @@ class MakeExerciseButton extends StatelessWidget {
   }
 }
 
+/// Under a find line that reads, in the making mode: nothing tells the
+/// trainer this works until they are told (owner, 185.1) — a variation played
+/// on the student's own move has been an accepted alternative since phase 2b.
+const String kVariationHint =
+    "A variation played on the student's own move is accepted as an "
+    'alternative.';
+
+/// „1. Qh5 (or Qf3) g6  2. Qxe5+." — the solution as the trainer will
+/// recognise it: the moves, alternatives in brackets after the one the line
+/// goes on from. One function, so this sheet and `ExerciseEditorScreen` read
+/// the same line the same way rather than wording it twice.
+String exerciseSolutionText(List<ExerciseStep> steps) {
+  final parts = <String>[];
+  for (var i = 0; i < steps.length; i++) {
+    final step = steps[i];
+    final alt =
+        step.accept.length > 1 ? ' (or ${step.accept.skip(1).join(', ')})' : '';
+    final reply = step.reply != null ? ' ${step.reply}' : '';
+    parts.add('${i + 1}. ${step.accept.first}$alt$reply');
+  }
+  return parts.join('  ');
+}
+
 class MakeExerciseSheet extends StatefulWidget {
+  /// Makes a new exercise from the room's own tree — never from wherever the
+  /// trainer's cursor happens to be (`ExerciseLine.fromTree`).
   const MakeExerciseSheet({
     super.key,
     required this.api,
-    required this.moveTree,
+    required MoveTree this.moveTree,
     required this.availableUserLabels,
     this.checker = defaultExerciseChecker,
-  });
+  })  : exercise = null,
+        editSteps = null;
+
+  /// Edits an exercise already saved (phase 11): prefilled from [exercise],
+  /// or from [steps] when the caller has a line still in progress
+  /// (`ExerciseLineEdit`); the kind does not change, and Save sends
+  /// `PUT /exercises/:id` without a position.
+  const MakeExerciseSheet.edit({
+    super.key,
+    required this.api,
+    required Exercise this.exercise,
+    List<ExerciseStep>? steps,
+    required this.availableUserLabels,
+    this.checker = defaultExerciseChecker,
+  })  : moveTree = null,
+        editSteps = steps;
 
   final ExerciseApiService api;
-  final MoveTree moveTree;
+  final MoveTree? moveTree;
+  final Exercise? exercise;
+  final List<ExerciseStep>? editSteps;
   final List<String> availableUserLabels;
 
   /// What asks the tablebase and the engine — the real one by default, which
   /// costs nothing to hold until [ExerciseChecker.check] is actually called.
   final ExerciseChecker checker;
+
+  bool get isEditing => exercise != null;
 
   @override
   State<MakeExerciseSheet> createState() => _MakeExerciseSheetState();
@@ -142,8 +186,17 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
   /// Medium is the app's own default strength, selected from the start.
   String _level = 'srednje';
 
-  late final ExerciseLineReading _reading =
-      ExerciseLine.fromTree(widget.moveTree);
+  /// The position everything else is asked about: the tree's root when
+  /// making one, the exercise's own otherwise — an edit never moves it.
+  String get _fen =>
+      widget.isEditing ? widget.exercise!.fen : widget.moveTree!.root.fen;
+
+  late final ExerciseLineReading _reading = widget.isEditing
+      ? ExerciseLine.read(
+          fen: widget.exercise!.fen,
+          steps: widget.editSteps ?? widget.exercise!.solution ?? const [],
+        )
+      : ExerciseLine.fromTree(widget.moveTree!);
 
   /// The find exercise's solution as it will be saved: [_reading]'s own
   /// steps, plus whatever the trainer has accepted from a finding. Never
@@ -168,6 +221,20 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
   @override
   void initState() {
     super.initState();
+    if (widget.isEditing) {
+      final exercise = widget.exercise!;
+      _nameController.text = exercise.name;
+      _instructionController.text = exercise.instruction ?? '';
+      _labels = exercise.themes;
+      _ask = exerciseAskOf(exercise.task);
+      if (_ask != ExerciseAsk.find) {
+        _gameSide = exercise.task['side'] as String?;
+        _level = exercise.task['level'] as String? ?? 'srednje';
+        final forMoves = exerciseForMoves(exercise.task);
+        _toEnd = forMoves == null;
+        if (forMoves != null) _forMovesController.text = '$forMoves';
+      }
+    }
     if (_reading.ok) _steps = _reading.steps;
     unawaited(_runCheck());
   }
@@ -212,7 +279,7 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
       _findings = const [];
     });
     final findings = await widget.checker.check(
-      fen: widget.moveTree.root.fen,
+      fen: _fen,
       task: task,
       steps: _ask == ExerciseAsk.find ? _steps : null,
     );
@@ -240,32 +307,13 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
 
   bool get _forMovesUnreadable => !_toEnd && _forMoves == null;
 
-  ExerciseJudge get _judge => exerciseJudgeFor(
-        fen: widget.moveTree.root.fen,
-        ask: _ask,
-        forMoves: _forMoves,
-      );
+  ExerciseJudge get _judge =>
+      exerciseJudgeFor(fen: _fen, ask: _ask, forMoves: _forMoves);
 
   bool get _canSave {
     if (_saving || _nameController.text.trim().isEmpty) return false;
     if (_ask == ExerciseAsk.find) return _reading.ok;
     return _gameSide != null && !_forMovesUnreadable;
-  }
-
-  /// „1. Qh5 (or Qf3) g6  2. Qxe5+." — the solution as the trainer will
-  /// recognise it: the moves, alternatives in brackets after the one the line
-  /// goes on from.
-  String _solutionText(List<ExerciseStep> steps) {
-    final parts = <String>[];
-    for (var i = 0; i < steps.length; i++) {
-      final step = steps[i];
-      final alt = step.accept.length > 1
-          ? ' (or ${step.accept.skip(1).join(', ')})'
-          : '';
-      final reply = step.reply != null ? ' ${step.reply}' : '';
-      parts.add('${i + 1}. ${step.accept.first}$alt$reply');
-    }
-    return parts.join('  ');
   }
 
   Future<void> _save() async {
@@ -274,36 +322,46 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
       _saving = true;
       _serverError = null;
     });
-    // A game exercise needs no line on the board, only the position: „play
-    // the solution first" is a refusal that applies to Find alone. The
-    // position is the root's FEN, as everywhere in this feature.
+    // An edit says nothing about the position — the server keeps the one it
+    // already has, and refuses a request that disagrees with it (409). A new
+    // exercise's position is the root's FEN, as everywhere in this feature. A
+    // game exercise needs no line on the board, only the position: „play the
+    // solution first" is a refusal that applies to Find alone.
+    final fen = widget.isEditing ? null : widget.moveTree!.root.fen;
+    final instruction = _instructionController.text.trim().isEmpty
+        ? null
+        : _instructionController.text.trim();
+    // `thinkSeconds` is not a question this sheet asks — it must still travel
+    // through an edit exactly as it stood, rather than be lost by one.
+    final thinkSeconds = widget.isEditing
+        ? (widget.exercise!.task['thinkSeconds'] as num?)?.toInt()
+        : null;
     final draft = _ask == ExerciseAsk.find
         ? ExerciseDraft(
             name: _nameController.text.trim(),
-            fen: widget.moveTree.root.fen,
-            instruction: _instructionController.text.trim().isEmpty
-                ? null
-                : _instructionController.text.trim(),
+            fen: fen,
+            instruction: instruction,
             themes: _labels,
             task: const {'type': 'find'},
             solution: _steps,
           )
         : ExerciseDraft(
             name: _nameController.text.trim(),
-            fen: widget.moveTree.root.fen,
-            instruction: _instructionController.text.trim().isEmpty
-                ? null
-                : _instructionController.text.trim(),
+            fen: fen,
+            instruction: instruction,
             themes: _labels,
             task: exerciseGameTask(
               side: _gameSide!,
               ask: _ask,
               forMoves: _forMoves,
               level: _level,
+              thinkSeconds: thinkSeconds,
             ),
             solution: null,
           );
-    final result = await widget.api.create(draft);
+    final result = widget.isEditing
+        ? await widget.api.update(widget.exercise!.id, draft)
+        : await widget.api.create(draft);
     if (!mounted) return;
     if (result.exercise != null) {
       Navigator.of(context).pop(result.exercise);
@@ -320,13 +378,18 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
     final colors = context.colors;
     final reading = _reading;
 
+    // The kind does not change under a homework already sent — an edit shows
+    // only the one chip it already is, and it is not tappable into another.
+    final askChoices = widget.isEditing ? [_ask] : ExerciseAsk.values;
+
     return AlertDialog(
-      title: const Text('Make exercise'),
+      title: Text(widget.isEditing ? 'Edit exercise' : 'Make exercise'),
       content: SizedBox(
         width: 360,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.7),
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -337,15 +400,17 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    for (final ask in ExerciseAsk.values)
+                    for (final ask in askChoices)
                       ChoiceChip(
                         key: Key('exercise-ask-${ask.name}'),
                         label: Text(ask.label),
                         selected: _ask == ask,
-                        onSelected: (_) {
-                          setState(() => _ask = ask);
-                          unawaited(_runCheck());
-                        },
+                        onSelected: widget.isEditing
+                            ? null
+                            : (_) {
+                                setState(() => _ask = ask);
+                                unawaited(_runCheck());
+                              },
                       ),
                   ],
                 ),
@@ -357,17 +422,27 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                       style: AppText.body.copyWith(color: colors.danger),
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text('Play the solution on the board first.',
-                        style: AppText.body.copyWith(color: colors.textMuted)),
+                    Text(
+                      'Play the solution on the board first.',
+                      style: AppText.body.copyWith(color: colors.textMuted),
+                    ),
                   ] else ...[
                     Text(
                       _steps.length == 1 ? 'Find the move' : 'Find the moves',
                       style: AppText.bodyLargeBold,
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(_solutionText(_steps),
-                        style:
-                            AppText.body.copyWith(color: colors.textSecondary)),
+                    Text(
+                      exerciseSolutionText(_steps),
+                      style: AppText.body.copyWith(color: colors.textSecondary),
+                    ),
+                    if (!widget.isEditing) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        kVariationHint,
+                        style: AppText.body.copyWith(color: colors.textMuted),
+                      ),
+                    ],
                     if (reading.droppedReply) ...[
                       const SizedBox(height: AppSpacing.xs),
                       Text(
@@ -401,9 +476,11 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                         key: const Key('exercise-length-forMoves'),
                         // The same number, two meanings: a win asks for
                         // mate by then, a draw asks to last that long.
-                        label: Text(_ask == ExerciseAsk.win
-                            ? 'Checkmate in N moves'
-                            : 'For N moves'),
+                        label: Text(
+                          _ask == ExerciseAsk.win
+                              ? 'Checkmate in N moves'
+                              : 'For N moves',
+                        ),
                         selected: !_toEnd,
                         onSelected: (_) => setState(() => _toEnd = false),
                       ),
@@ -477,9 +554,11 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                 ],
                 if (_checking) ...[
                   const SizedBox(height: AppSpacing.md),
-                  Text('Checking…',
-                      key: const Key('exercise-check-status'),
-                      style: AppText.body.copyWith(color: colors.textMuted)),
+                  Text(
+                    'Checking…',
+                    key: const Key('exercise-check-status'),
+                    style: AppText.body.copyWith(color: colors.textMuted),
+                  ),
                 ],
                 for (final finding in _findings) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -487,16 +566,20 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(finding.words,
-                            key: Key('exercise-finding-${finding.hashCode}'),
-                            style: AppText.body
-                                .copyWith(color: colors.textSecondary)),
+                        child: Text(
+                          finding.words,
+                          key: Key('exercise-finding-${finding.hashCode}'),
+                          style: AppText.body.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
                       ),
                       if (finding.sans.isNotEmpty) ...[
                         const SizedBox(width: AppSpacing.xs),
                         TextButton(
                           key: Key(
-                              'exercise-finding-accept-${finding.hashCode}'),
+                            'exercise-finding-accept-${finding.hashCode}',
+                          ),
                           onPressed: () => _acceptFinding(finding),
                           child: const Text('Accept'),
                         ),
@@ -532,8 +615,10 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                 ),
                 if (_serverError != null) ...[
                   const SizedBox(height: AppSpacing.md),
-                  Text(_serverError!,
-                      style: AppText.body.copyWith(color: colors.danger)),
+                  Text(
+                    _serverError!,
+                    style: AppText.body.copyWith(color: colors.danger),
+                  ),
                 ],
               ],
             ),

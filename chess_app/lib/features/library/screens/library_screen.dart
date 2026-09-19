@@ -5,6 +5,9 @@ import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
+import 'package:chess_app/features/exercises/models/exercise.dart';
+import 'package:chess_app/features/exercises/screens/exercise_editor_screen.dart';
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
@@ -39,6 +42,7 @@ class LibraryScreen extends StatefulWidget {
     this.assignmentApi,
     this.groupApi,
     this.homeworkApi,
+    this.exerciseApi,
   });
 
   final UserSession session;
@@ -59,6 +63,9 @@ class LibraryScreen extends StatefulWidget {
   /// Seam for the "Homework" door's list; same rule as the seams above.
   final HomeworkApiService? homeworkApi;
 
+  /// Seam for the door into `ExerciseEditorScreen` (phase 11); same rule.
+  final ExerciseApiService? exerciseApi;
+
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
@@ -70,6 +77,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       widget.lessonApi ?? LessonApiService(authToken: widget.session.token);
   late final HomeworkApiService _homework =
       widget.homeworkApi ?? HomeworkApiService(authToken: widget.session.token);
+  late final ExerciseApiService _exerciseApi =
+      widget.exerciseApi ?? ExerciseApiService(authToken: widget.session.token);
   late final TutorialRowActions _tutorialActions = TutorialRowActions(
     lessonApi: _lessons,
     assignmentApi: widget.assignmentApi ??
@@ -188,8 +197,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onPressed: () => _tutorialActions.send(context, row),
           ),
           IconButton(
-            icon: Icon(Icons.delete_outline,
-                size: 20, color: context.colors.danger),
+            icon: Icon(
+              Icons.delete_outline,
+              size: 20,
+              color: context.colors.danger,
+            ),
             tooltip: 'Delete tutorial',
             onPressed: () => _deleteTutorial(entry, row),
           ),
@@ -248,7 +260,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _deleteTutorial(
-      LibraryEntry entry, Map<String, dynamic> row) async {
+    LibraryEntry entry,
+    Map<String, dynamic> row,
+  ) async {
     final deleted = await _tutorialActions.delete(context, row);
     if (!mounted || !deleted) return;
     setState(() {
@@ -284,10 +298,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Future<void> _assign(LibraryEntry entry) async {
     final message = await showDialog<String>(
       context: context,
-      builder: (context) => AssignPositionsDialog(
-        session: widget.session,
-        puzzleIds: [entry.id],
-      ),
+      builder: (context) =>
+          AssignPositionsDialog(session: widget.session, puzzleIds: [entry.id]),
     );
     if (message == null || !mounted) return;
     AppFeedback.show(context, () => SnackBar(content: Text(message)));
@@ -311,15 +323,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
       AppFeedback.error(context, 'Tutorial not found.');
       return;
     }
-    await openTutorialEditor(context,
-        session: widget.session, api: _lessons, lesson: row);
+    await openTutorialEditor(
+      context,
+      session: widget.session,
+      api: _lessons,
+      lesson: row,
+    );
   }
 
   Future<void> _openAnalysis(LibraryEntry entry) async {
     final id = int.tryParse(entry.id);
     if (id == null) return;
-    final root = await AnalysisPersistenceService.instance
-        .loadAnalysis(id: id, userToken: widget.session.token);
+    final root = await AnalysisPersistenceService.instance.loadAnalysis(
+      id: id,
+      userToken: widget.session.token,
+    );
     if (!mounted) return;
     if (root == null) {
       AppFeedback.error(context, 'Could not load that analysis.');
@@ -327,12 +345,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
     // The whole tree, as it was saved: a game would be its main line and
     // would drop the sidelines, comments and arrows.
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => AnalysisStudioScreen(
-        userSession: widget.session,
-        initialTree: root,
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AnalysisStudioScreen(
+          userSession: widget.session,
+          initialTree: root,
+        ),
       ),
-    ));
+    );
   }
 
   void _open(LibraryEntry entry) {
@@ -340,8 +360,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
       case LibraryKind.tutorial:
         _openTutorial(entry);
       case LibraryKind.position:
-      case LibraryKind.scan:
         context.push(AppRoutes.analysisPath(fen: entry.fen));
+      case LibraryKind.scan:
+        // A saved exercise of this trainer's own opens for reading and
+        // editing (phase 11); everything else — a bare scan, or somebody
+        // else's exercise, not this account's to change — opens on its bare
+        // position as it always has.
+        if (entry.isExercise && !entry.fromTrainer) {
+          _openExercise(entry);
+        } else {
+          context.push(AppRoutes.analysisPath(fen: entry.fen));
+        }
       case LibraryKind.analysis:
         _openAnalysis(entry);
       case LibraryKind.recording:
@@ -351,6 +380,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
         // extracted in — see the report. Drawn, but tapping it does nothing.
         break;
     }
+  }
+
+  Future<void> _openExercise(LibraryEntry entry) async {
+    final saved = await Navigator.of(context).push<Exercise>(
+      MaterialPageRoute(
+        builder: (_) => ExerciseEditorScreen(
+          api: _exerciseApi,
+          exerciseId: entry.id,
+          availableUserLabels: _labels,
+        ),
+      ),
+    );
+    if (saved == null || !mounted) return;
+    // Do the thing, then say it.
+    _load();
+    AppFeedback.success(context, 'Exercise saved.');
   }
 
   @override
@@ -436,9 +481,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         key: const Key('library-homework-chip'),
         avatar: const Icon(Icons.assignment_outlined, size: 18),
         label: const Text('Homework'),
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => HomeworkListScreen(api: _homework),
-        )),
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => HomeworkListScreen(api: _homework),
+          ),
+        ),
       ),
     );
   }
