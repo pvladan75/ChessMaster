@@ -444,6 +444,8 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           arrows: const [],
           engineArrows: const [],
           onMove: _onMove,
+          // An assigned position is the question; its FEN is not handed out.
+          copyPosition: false,
           onSquareTapForDrawing: (_) {},
         ),
       );

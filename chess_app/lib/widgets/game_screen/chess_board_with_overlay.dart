@@ -63,6 +63,15 @@ class ChessBoardWithOverlay extends StatefulWidget {
   final void Function(String from, String to, String promotion) onMove;
   final ValueChanged<String> onSquareTapForDrawing;
 
+  /// Whether the right click and Ctrl+C put this board's FEN on the clipboard.
+  ///
+  /// False inside an assigned item (`docs/PLAN-EXERCISE.md`, phase 12): the
+  /// position is the question, and a FEN is one paste away from an engine.
+  /// A closed board still takes its place on top of [BoardOnScreen] and says
+  /// no there — left out, Ctrl+C would be answered by whichever board lies
+  /// beneath it.
+  final bool copyPosition;
+
   const ChessBoardWithOverlay({
     super.key,
     required this.controller,
@@ -78,6 +87,7 @@ class ChessBoardWithOverlay extends StatefulWidget {
     required this.onSquareTapForDrawing,
     this.lastMoveFrom,
     this.lastMoveTo,
+    this.copyPosition = true,
   });
 
   @override
@@ -205,6 +215,7 @@ class _ChessBoardWithOverlayState extends State<ChessBoardWithOverlay> {
   /// The FEN rather than a picture: it is what gets pasted into an engine, a
   /// chat with another trainer, or this app's own analysis board.
   Future<void> _copyFen(BuildContext context) async {
+    if (!widget.copyPosition) return;
     final fen = widget.controller.getFen();
     await Clipboard.setData(ClipboardData(text: fen));
     if (!context.mounted) return;

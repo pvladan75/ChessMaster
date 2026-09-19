@@ -557,6 +557,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             engineArrows: const [],
             onMove: _onMove,
             onSquareTapForDrawing: (_) {},
+            // Free practice copies like any board; an assigned set does not.
+            copyPosition: !widget.isAssignment,
           ),
         );
 

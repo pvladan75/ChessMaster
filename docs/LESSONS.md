@@ -4579,3 +4579,32 @@ App **3257** tests (3218 + 24 gate + 11 the worker's + 4 the lead's), 1 skipped;
 `flutter analyze` unchanged at 26 known infos. Seventeen mutations, each
 asserted to have applied, each red on the right test — two only after the
 lead's tests were added. Backend untouched.
+
+## 19.9.2026 — phase 12 of the exercise plan: no engine, no Analysis, no FEN inside an assigned item
+
+`docs/PLAN-EXERCISE.md`, phase 12. App only, built inline by the lead: one
+parameter on the board and conditionals on four screens cost less than a brief.
+
+**A switch that turns something off has to keep its seat.** Ctrl+C asks
+`BoardOnScreen` for whoever is on top. The obvious way to close a board is not
+to register it — and then the shortcut is answered by the board of the screen
+*underneath*, silently, with the wrong position. A closed board registers and
+says no; „play it out", whose own board never copied, registers a no-op for the
+same reason. Absence is a third answer here too: *not present* and *present and
+refusing* are different, and only the second one is a guard.
+
+The test was green the first time it ran, which proves nothing (rule 1). Fifteen
+mutations, one per door — three Analysis buttons, two engine panels, two menus,
+four boards, both directions of the tactics condition — each red on the right
+test, and the controls (the same screens outside an assignment) red when the
+guard was made unconditional. Two doors shared identical text and needed the
+n-th occurrence mutated rather than a unique string.
+
+**A third worker reported itself clean with a process running**: the phase 11
+implementer's monitor loop polled a log file it had already deleted, so it could
+never end, and `tasklist | grep dart` — its own check — cannot see a `bash`
+loop. The owner saw it in the app's task list 28 minutes later. When grading,
+list processes by *command line*, not by image name.
+
+App **3268** tests (3257 + 11), 1 skipped; `flutter analyze` unchanged at 26 known
+infos. Backend untouched.

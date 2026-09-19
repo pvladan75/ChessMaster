@@ -692,6 +692,8 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                         arrows: _currentArrows,
                         squares: _currentSquares,
                         engineArrows: const [],
+                        // An assigned tutorial asks questions of this board.
+                        copyPosition: false,
                         onMove: (from, to, promotion) {
                           if (_step.kind == LessonStepKind.askMove &&
                               _verdict?.correct != true &&

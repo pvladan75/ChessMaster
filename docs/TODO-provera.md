@@ -5878,6 +5878,20 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 193. Zadatak: u stavci domaćeg nema motora, Analize ni FEN-a — 19.9.2026, nije viđeno uživo
+
+`PLAN-EXERCISE.md`, faza 12. Samo aplikacija — server ne mora da se restartuje.
+Kao **učenik**, sa domaćim koji ima „Play it out", pozicije i tutorijal.
+
+1. [ ] **„Play it out" iz domaćeg**, uspravno i položeno: nigde nema dugmeta
+   „Analysis", nema panela motora, a u meniju table nema prekidača za strelice
+   motora.
+2. [ ] Ista partija **van domaćeg** (Practise) i dalje ima sve to.
+3. [ ] Windows, **desni klik na tablu** u stavci sa pozicijama i u tutorijalu iz
+   domaćeg: ništa se ne kopira, ne piše „FEN copied."
+4. [ ] Windows, **Ctrl+C** u bilo kojoj stavci domaćeg: u clipboard-u nije FEN.
+5. [ ] Slobodna taktika i Analiza: desni klik i Ctrl+C kopiraju FEN kao i do sada.
+
 ## 192. Zadatak: otvaranje i izmena sačuvanog zadatka — 19.9.2026, nije viđeno uživo
 
 `PLAN-EXERCISE.md`, faza 11. Samo aplikacija — server ne mora da se restartuje.

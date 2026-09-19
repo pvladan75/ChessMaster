@@ -27,6 +27,7 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/models/drill_outcome.dart';
 import 'package:chess_app/core/models/engine_game_said.dart';
 import 'package:chess_app/core/models/engine_game_task.dart';
+import 'package:chess_app/core/services/board_on_screen.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/engine_opponent_sheet.dart';
@@ -336,6 +337,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   @override
   void initState() {
     super.initState();
+    if (_assigned) BoardOnScreen.register(_noCopy);
     _initStockfish();
     _startServerHealthCheck();
     // Opened at an exercise rather than at the list of them. After the first
@@ -1075,6 +1077,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   @override
   void dispose() {
+    BoardOnScreen.forget(_noCopy);
     _serverHealthTimer?.cancel();
     _verificationTimeoutTimer?.cancel();
     // Both of these outlived the screen. Harmless-looking, since the callbacks
@@ -2751,6 +2754,16 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
+  /// A game set by a trainer (`docs/PLAN-EXERCISE.md`, phase 12): no engine
+  /// panel, no engine arrows, no door to Analysis, and no FEN by Ctrl+C. It
+  /// does not stop a second device — the trainer's review of the moves
+  /// played answers that — it stops the one-tap way.
+  bool get _assigned => widget.assignmentId != null;
+
+  /// This screen's board has no copy of its own; this keeps Ctrl+C from being
+  /// answered by whichever board lies beneath it.
+  static void _noCopy() {}
+
   void _exportToAnalysisStudio() {
     final currentFen = _puzzleBoardController.getFen();
     context.push(AppRoutes.analysisPath(fen: currentFen));
@@ -2834,8 +2847,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                         if (_selectedCategory != 'engine_game')
                           EngineOpponentButton(
                               size: 18, color: context.colors.textMuted),
-                        const BoardViewMenu(
-                            size: 18, arrows: true, boardSize: true),
+                        BoardViewMenu(
+                            size: 18,
+                            arrows: true,
+                            engine: !_assigned,
+                            boardSize: true),
                         const SizedBox(width: AppSpacing.xs),
                       ],
               ),
@@ -2982,14 +2998,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.biotech, size: 16),
-          label: const Text('Analysis 🔬'),
-          style: ElevatedButton.styleFrom(
-              backgroundColor: context.colors.accentAlt,
-              foregroundColor: context.colors.canvas),
-          onPressed: _exportToAnalysisStudio,
-        ),
+        if (!_assigned)
+          ElevatedButton.icon(
+            icon: const Icon(Icons.biotech, size: 16),
+            label: const Text('Analysis 🔬'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.accentAlt,
+                foregroundColor: context.colors.canvas),
+            onPressed: _exportToAnalysisStudio,
+          ),
         // An assigned game is one attempt, judged by the server: „Try Again"
         // and „Next Position" belong to a drill that can be repeated freely,
         // not to a game a second play of would just be refused (409).
@@ -3066,16 +3083,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 size: 18,
                 color: context.colors.textSecondary,
                 arrows: true,
+                engine: !_assigned,
                 boardSize: true),
             const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              icon: Icon(Icons.biotech,
-                  size: 18, color: context.colors.accentAlt),
-              tooltip: 'Analyze in Analysis Board 🔬',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _exportToAnalysisStudio,
-            ),
+            if (!_assigned)
+              IconButton(
+                icon: Icon(Icons.biotech,
+                    size: 18, color: context.colors.accentAlt),
+                tooltip: 'Analyze in Analysis Board 🔬',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: _exportToAnalysisStudio,
+              ),
             const SizedBox(width: AppSpacing.sm),
             IconButton(
               icon:
@@ -3126,20 +3145,21 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     // PROMINENT LANDSCAPE CONTROL BUTTONS ON THE RIGHT SIDE PANEL
                     Row(
                       children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.biotech, size: 16),
-                            label: const Text('Analysis 🔬',
-                                style: AppText.captionBold),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: context.colors.accentAlt,
-                              foregroundColor: context.colors.canvas,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: AppSpacing.xs),
+                        if (!_assigned)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.biotech, size: 16),
+                              label: const Text('Analysis 🔬',
+                                  style: AppText.captionBold),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: context.colors.accentAlt,
+                                foregroundColor: context.colors.canvas,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: AppSpacing.xs),
+                              ),
+                              onPressed: _exportToAnalysisStudio,
                             ),
-                            onPressed: _exportToAnalysisStudio,
                           ),
-                        ),
                         if (_selectedCategory == 'engine_game') ...[
                           if (!_engineGameFinished) ...[
                             const SizedBox(width: AppSpacing.xs),
@@ -3201,7 +3221,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     const SizedBox(height: AppSpacing.sm),
                     _buildSolutionTreeSection(),
                     const SizedBox(height: AppSpacing.sm),
-                    if (_selectedCategory != 'mate_puzzle')
+                    if (_selectedCategory != 'mate_puzzle' && !_assigned)
                       StockfishAnalysisWidget(
                         analysisDepth: _analysisDepth,
                         analysisLines: _analysisLines,
@@ -3316,7 +3336,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     ],
                     actionButtonsRow,
                     const SizedBox(height: AppSpacing.md),
-                    if (_selectedCategory != 'mate_puzzle')
+                    if (_selectedCategory != 'mate_puzzle' && !_assigned)
                       StockfishAnalysisWidget(
                         analysisDepth: _analysisDepth,
                         analysisLines: _analysisLines,
