@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3283 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3295 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1612 with TEST_DATABASE_URL, 1524 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -50,7 +50,11 @@ a trainer's position by its `cust_` prefix, and whose move it is in „play it
 out" (→ 3283; backend → 1607/1520), and a test for the rule that one answer
 marks every open copy of a position for that student (backend → 1608/1520),
 and any mate is a right answer, whatever the author's own move does (backend →
-1612/1524). Open: the rest of the owner's live pass. Phase 6 of
+1612/1524); then phase 13 of `docs/PLAN-EXERCISE.md` — a played homework game
+opens in Analysis with its moves, for the trainer and, once it is handed in,
+the student (→ 3295) — the first of four phases in that plan's §10, which makes
+„Find" one move and adds „Play N moves", judged by the trainer. Open: the rest
+of the owner's live pass, and phases 14–16. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

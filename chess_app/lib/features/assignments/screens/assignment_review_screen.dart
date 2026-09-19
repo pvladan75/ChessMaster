@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/core/models/drill_outcome.dart';
 import 'package:chess_app/core/models/engine_game_said.dart';
 import 'package:chess_app/core/models/engine_game_task.dart';
+import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
 import 'package:chess_app/features/exercises/models/exercise_task_words.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -596,12 +597,36 @@ class _GameItemCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             ...notes.map((note) =>
                 _NoteRow(note: note, onDelete: () => onDeleteNote(note))),
+            // A `Wrap`, not a `Row`: two labelled buttons are wider than a
+            // narrow card, and a release build clips what a row cannot hold.
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onComment,
-                icon: const Icon(Icons.mode_comment_outlined, size: 15),
-                label: Text(isTrainer ? 'Comment' : 'Ask', style: AppText.body),
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                children: [
+                  // The moves on a board, with the engine at hand — for both
+                  // readers: a game with moves is a game handed in, which is
+                  // when phase 12 opens Analysis to the student again.
+                  if (fen != null && item.moves.isNotEmpty)
+                    TextButton.icon(
+                      key: Key('review-game-analysis-${item.itemId}'),
+                      onPressed: () => openSanGameInAnalysis(
+                        context,
+                        startFen: fen,
+                        sans: item.moves,
+                        blackOrientation: !isWhiteBottom,
+                      ),
+                      icon: const Icon(Icons.biotech_outlined, size: 15),
+                      label:
+                          const Text('Open in Analysis', style: AppText.body),
+                    ),
+                  TextButton.icon(
+                    onPressed: onComment,
+                    icon: const Icon(Icons.mode_comment_outlined, size: 15),
+                    label: Text(isTrainer ? 'Comment' : 'Ask',
+                        style: AppText.body),
+                  ),
+                ],
               ),
             ),
           ],

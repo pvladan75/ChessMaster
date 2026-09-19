@@ -89,6 +89,14 @@ ukras preko nje.
    ekran sa praznom linijom umesto dva različita puta; (c) dugme „Make exercise"
    je onemogućeno sa razlogom dok na tabli nema poteza. (b) je najveća izmena i
    jedina koja uklanja uzrok, a ne objašnjava ga.
+   **Odlučeno 20.9.2026 — `PLAN-EXERCISE.md`, §10, faze 13–16. Faza 13 je u kodu
+   (aplikacija 3283 → 3295, provera uživo: stavka 195); 14–16 nisu počete.**
+   Razmatrano je i odbačeno rešenje kao stablo (protivnikove alternative) i
+   pretvaranje Find u „Play N = 1". Ostaje: Find traži **jedan potez**, i taj
+   potez se odigra na ekranu samog zadatka (faza 14) — nema više šta da se
+   odigra unapred; partija učenika se otvara u Analizi sa potezima (faza 13);
+   novi tip „Play N moves" kome je trener sudija, sa rutom za trenerovu presudu
+   koja do sada nije postojala (faza 15).
 3. **Interaktivni vodič kroz aplikaciju, u samoj aplikaciji?** Pitanje, ne
    odluka. Postoji priručnik (`PLAN-ZAVRSNICA.md`, faza 4) i „Upoznaj repertoar"
    kao jedan vođeni prolaz koji je vlasnik video uživo i koji radi — to je

@@ -5878,6 +5878,26 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 195. Odigrana partija iz domaćeg se otvara u Analizi sa potezima — 20.9.2026, nije viđeno uživo
+
+`docs/PLAN-EXERCISE.md`, faza 13. Samo aplikacija — server se ne dira i ne mora
+da se restartuje. Treba jedan domaći sa „Play it out" stavkom koju je učenik
+odigrao (bar dva-tri poteza).
+
+1. [ ] **Trener**, pregled tog domaćeg: na kartici partije, pored „Comment", stoji
+   **„Open in Analysis"**. Otvara Analizu sa **celom partijom** — stoji se na
+   poslednjem potezu, strelicama se ide unazad do početne pozicije, tabla je
+   okrenuta na stranu koju je učenik igrao, i motor može da se uključi.
+2. [ ] Na telefonu (uspravno) oba dugmeta na kartici se vide cela; ako ne stanu u
+   jedan red, prelaze u dva — ništa nije odsečeno.
+3. [ ] **Učenik**, isti pregled: ima isto dugme i dobija istu partiju.
+4. [ ] **Učenik, na samom ekranu partije**: dok igra, vrata u Analizu nema (stavka
+   193); kad se partija završi i dijalog zatvori, dugme za Analizu otvara **partiju
+   sa potezima**, a ne samo poziciju na kojoj je stala.
+5. [ ] Kartica partije koja **nije odigrana** nema dugme „Open in Analysis".
+6. [ ] Kontrola: arhiva grešaka → „otvori partiju u Analizi" radi kao i pre (deli
+   ista vrata).
+
 ## 194. Ručni zadatak se otvara na tabli, i ko je na potezu — 20.9.2026, nije viđeno uživo
 
 **Server mora da bude restartovan.** Bez ponovnog slanja — isti zadaci koji su se

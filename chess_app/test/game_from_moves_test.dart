@@ -70,4 +70,76 @@ void main() {
     expect(tree.playable, 0);
     expect(tree.root.children, isEmpty);
   });
+
+  // `docs/PLAN-EXERCISE.md`, phase 13: a homework game is kept as SAN, and
+  // opens through the same door the archive's games do.
+  group('a game kept as SAN', () {
+    // The owner's own position: a promotion and a mate in one line would be
+    // luck, so each has its own case.
+    const kq = '5k2/8/5K2/8/8/8/Q7/8 w - - 0 1';
+
+    test('becomes the door\'s game, whole, standing on its last move', () {
+      final game = analysisGameFromSans(
+        startFen: kq,
+        sans: ['Qa7', 'Ke8', 'Qe7#'],
+        blackOrientation: false,
+      );
+      expect(game, isNotNull);
+      expect(game!.startFen, kq);
+      expect(game.uciMoves, ['a2a7', 'f8e8', 'a7e7']);
+      expect(game.cursorPly, 3);
+      expect(game.blackOrientation, isFalse);
+      // What the door itself makes of it — the writer's work, read back.
+      final tree = analysisTreeFromMoves(game.startFen, game.uciMoves);
+      expect(tree.playable, 3);
+      expect(_sans(tree), ['Qa7', 'Ke8', 'Qe7#']);
+    });
+
+    test('a promotion keeps its piece', () {
+      final game = analysisGameFromSans(
+        startFen: '8/P6k/8/8/8/8/8/K7 w - - 0 1',
+        sans: ['a8=N'],
+        blackOrientation: true,
+      );
+      expect(game!.uciMoves, ['a7a8n']);
+      expect(game.blackOrientation, isTrue);
+    });
+
+    test('a move that cannot be played refuses the whole game', () {
+      // The second move is the illegal one: a reader that skipped it, or
+      // stopped at it, would still hand back a game.
+      expect(
+        analysisGameFromSans(
+          startFen: kq,
+          sans: ['Qa7', 'Ke7', 'Qe7#'],
+          blackOrientation: false,
+        ),
+        isNull,
+      );
+    });
+
+    test('a position that is not one refuses it too', () {
+      // With no moves: a move would fail on a broken board and refuse the
+      // game for the wrong reason, so the check on the position could go
+      // missing unseen (it did, under mutation).
+      expect(
+        analysisGameFromSans(
+          startFen: 'not a fen',
+          sans: const [],
+          blackOrientation: false,
+        ),
+        isNull,
+      );
+    });
+
+    test('a game with no moves is the position, standing on it', () {
+      final game = analysisGameFromSans(
+        startFen: kq,
+        sans: const [],
+        blackOrientation: false,
+      );
+      expect(game!.uciMoves, isEmpty);
+      expect(game.cursorPly, 0);
+    });
+  });
 }

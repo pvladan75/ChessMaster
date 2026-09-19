@@ -330,3 +330,71 @@ what the pass found is that neither reader is told enough.**
    are entered in one action, and how several solutions are — are answered by
    185.2 (play the line; a variation on the student's move is an alternative)
    and are phase 11's hint.
+
+## 10. After the owner's review of 20.9.2026: Find is one move, the trainer sees the game, „Play N moves"
+
+The owner asked what „Find the move(s)" is for once *Checkmate in N*, *Draw or
+better* and *Play it out* exist. Three things were weighed and two were dropped.
+
+- **A solution as a tree** — the opponent's alternatives asked one after the
+  other (`1. Qa7 Ke8 (1... Kg8 2. Qg7#) 2. Qe7#`). **Dropped.** It touches the
+  judge, the review, the check on save, the solver, the sheet and the stored
+  shape, and what it buys is knowing what a student would play against a second
+  defence. For mates *Checkmate in N* already does better: it needs no authored
+  line and can never call a move the trainer forgot „wrong".
+- **Find becomes „Play N = 1", judged by the trainer.** **Dropped**, because the
+  two differ in who judges. A one-move Find is judged by the server at once and
+  costs the trainer nothing per student, and a scanned diagram with a printed
+  answer is exactly that exercise. Folded into a trainer-judged type, every
+  simple tactic would wait for the trainer and show „not judged yet" where it
+  shows „Correct" today.
+- **Kept**: Find asks for **one move** of the student — the answer and its
+  accepted alternatives, „any mate is right" as before. Anything longer is a
+  game task. And one new game task, **Play N moves**, which has no goal and no
+  automatic verdict: the trainer looks at how the student played and judges.
+
+This also closes the owner's parked question 2 (`STANJE-RADA.md`, „Make
+exercise → Find the move needs the solution played first, and nobody knows").
+With one move there is nothing to play *in advance*: the move is played on the
+exercise's own screen, which phase 11 already built.
+
+**Measured 20.9.2026, before writing the phases:**
+
+1. *Checkmate in N* is judged on the game as it was played
+   (`judgeEngineGame`): mate on the board within N. A first move that does not
+   force mate still passes if the engine then defends badly. Read in the code,
+   not reproduced live. **Not a weakness — owner, 20.9.2026: it stays as it
+   is.** The task is for practising the winning of won positions; what the
+   number adds over „to the end of the game" is that the student cannot drag
+   the position out. It is not a test of the first move, so nothing is to be
+   checked about it.
+2. Analysis takes **a bare FEN and nothing else** from outside
+   (`AppRoutes.analysisPath(fen:)`). Its PGN loader lives inside the board setup
+   dialog (`_loadPgnContent`). A played game has no door in. **Wrong, found when
+   phase 13 was built:** that is the *route*; the screen has `initialGame`, the
+   mistake archive's door for a whole game in UCI. Phase 13 used it.
+3. The trainer's review of a game shows two thumbnails and the moves as text
+   (phase 9, which said so: „not in this phase: stepping through the student's
+   moves on a live board"). The student's finished game gets its Analysis
+   buttons back (phase 12, amended) — and they carry `currentFen` only.
+4. **Nothing lets a trainer record a verdict.** `judged_by` is written as
+   `rules` or `tablebase`, or left NULL; „the position reached is yours to
+   judge" is a sentence with no button under it. `getAssignmentDetail` asks the
+   tablebase again for every item with `judged_by IS NULL` and
+   `game_ending = 'moveTarget'` — which a goal-less game must not fall into.
+5. A scanned row is already a one-step solution (`exerciseOf` reads
+   `solution_san` as one step, §4), so scans are untouched by the cap. Only
+   hand-made lines of two moves or more are affected; the owner has said they
+   may be deleted (testing phase, single user). **Count them before deleting,
+   and ask again at that moment.**
+
+| # | Phase | Who | Gate |
+|---|---|---|---|
+| 13 | **Built 20.9.2026 by the lead, inline** — smaller than written, because the door existed (measurement 2, corrected above): `analysisGameFromSans` turns the SAN a homework keeps into the `AnalysisGame` the archive's door takes, **null when the game does not replay whole**; `open_game_in_analysis.dart` is the one opener (the archive's moved there with its test override) and says the refusal in words; the review card of a played game has „Open in Analysis" beside „Comment", in a `Wrap`, for both readers; the finished game on its own screen sends the game instead of `currentFen`. No PGN is written or parsed. `test/homework_game_in_analysis_test.dart` (7), five more in `game_from_moves_test.dart`; 7 mutations, each red on the right test, one only after its test was moved onto a game with no moves. App 3283 → 3295, analyze the same 26 infos. Live: item 195. *As planned:* **A played game opens in Analysis with its moves.** One door into Analysis for *a position and the moves played from it*, beside the bare-FEN one; the moves go through the loader Analysis already has (one rule, one home — no second PGN path), and **the writer reads its own work back**: the moves are replayed through `MoveTree.parsePgn` before the door opens, and a game that does not replay whole is refused aloud, never opened short. The trainer's review card of a game gets „Open in Analysis"; the student's finished game sends the game instead of `currentFen`. **The student's door follows phase 12's rule unchanged**: closed while the item is being solved, open once it is handed in — this phase adds no new opening, it only makes the open one carry the moves. Benefits every game task, which is why it is first | lead (the door), then `[implementer]` | app: the review card's button pushes Analysis with the position and the moves, asserted on the route's arguments; Analysis shows the line and stands on the last move; a move that cannot be played refuses the whole game (mutation: skip instead of refuse → red); `homework_closed_doors_test.dart` extended — the door is absent while solving and carries the moves after; 360 × 640 |
+| 14 | **Find is one move, and it is made on the exercise's screen.** Server: `POST`/`PUT /exercises` refuse a find solution of more than one step, in words („A find exercise asks for one move. For more, use Checkmate in N or Play N moves."); the judge of rows that exist is not touched here. App: `ExerciseLine`'s limit follows, on the shared fixture `exercise_line_cases.json`; `fromTree` reads **the root's children only** — the first is the answer, its siblings the alternatives — and says when deeper moves were not used. `ExerciseEditorScreen` gains a making mode opened on a position with no answer yet: the first move played on its board is the answer, every further one an alternative, the answer replaceable until saved; Save opens the sheet that exists. In the sheet, *Find* with no move on the tree shows **„Play the move" → that screen** instead of the red refusal; a move already on the tree is carried in. The sheet's chip reads „Find the move" | lead (server, fixture), then `[implementer]` | fixture: a two-step line refused on both ends with the same words, a one-step line with alternatives accepted; widget test **from an empty tree**: the door, the button, two moves played through the board's own `onMove`, and the `POST` body asserted — `solution` is one step with both moves; the old sentence „Play the solution on the board first" grepped out of `lib/` and the tests; 360 × 640. Live: a new item in `TODO-provera.md` |
+| 15 | **Play N moves — the trainer judges.** A game task with no goal: `goal: 'play'`, `surviveMoves` required (1–50), side and engine strength as for the others. The game stops at N of the student's moves. It is **never sent to the tablebase** — not on the result route and not by the retry on read — and rests *played, not judged* until the trainer says. **The trainer's verdict gets a route** (`trainerOwnsStudent`, nothing else): met / not met, written as `judged_by = 'trainer'`, allowed on any game item still pending — which also gives the „yours to judge" sentence of phase 9 the button it never had. A mate or a draw inside the N moves ends the game as the rules say and is shown as it is; the verdict is still the trainer's. Schema: `judged_by` gains `trainer` (lead; check the constraint and what `initDB` does to it before the owner's nodemon restarts on the save — rule 20). App: the fourth chip in the sheet, the words in `exercise_task_words.dart` („Play N moves as White — your trainer will look at the game"), the two verdict buttons on the review card, the row's „not judged yet" until then | lead (schema, route, judge), then `[implementer]` | shared fixture `engine_game_cases.json` extended: `play` parses with N and is refused without; at the move target it is pending with no tablebase request — **asserted on the fake client's request log**, with few pieces on, where a tablebase *would* answer; the retry on read leaves it alone (real database); the verdict route: the trainer of an accepted edge writes it, a pending-edge trainer and a stranger get 404, a second verdict overwrites and says who; mutations on each. App: gate file over the same fixture; the verdict buttons absent for the student |
+| 16 | **Delete what the cap made dead** — after 13–15 are watched running, as one batch the owner asked to be kept separate: the multi-step half of `judgeLine` (`reply`, `continuesOn`), the solver's line playing, the step chips of `ExerciseEditorScreen`, the wire fields of §7a that carry them. Before it: count hand-made rows with more than one step, show the owner the list, delete them on a yes | lead | both suites at their new floors with the arithmetic in `LESSONS.md`; `git grep` for each removed name comes back empty in `lib/`, `services/`, `routes/` and the tests |
+
+Order: 13 → 14 → 15 → 16. 13 stands alone and is useful the day it lands; 14
+closes the owner's question 2; 15 needs 13 to be worth having, because a verdict
+given from move text is the thing the owner said he would not want to do.

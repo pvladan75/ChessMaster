@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/analysis_studio/services/game_from_moves.dart';
+import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/screens/mistake_drill_screen.dart';

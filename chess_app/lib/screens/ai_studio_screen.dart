@@ -37,6 +37,7 @@ import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
+import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
@@ -2768,6 +2769,22 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   static void _noCopy() {}
 
   void _exportToAnalysisStudio() {
+    // A game played here goes as the game it was — the position it started
+    // from and every move — so it can be walked through, not only looked at
+    // where it ended (`docs/PLAN-EXERCISE.md`, phase 13). Anything else on
+    // this screen is a position, and goes as one.
+    final task = _engineGameTask;
+    if (_selectedCategory == 'engine_game' &&
+        task != null &&
+        _engineGameMoves.isNotEmpty) {
+      openSanGameInAnalysis(
+        context,
+        startFen: task.fen,
+        sans: List<String>.from(_engineGameMoves),
+        blackOrientation: task.side == chess.Color.BLACK,
+      );
+      return;
+    }
     final currentFen = _puzzleBoardController.getFen();
     context.push(AppRoutes.analysisPath(fen: currentFen));
   }

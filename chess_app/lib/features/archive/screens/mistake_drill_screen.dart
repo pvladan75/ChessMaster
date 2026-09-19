@@ -5,9 +5,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
-import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
-import 'package:chess_app/features/analysis_studio/services/game_from_moves.dart';
-import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
 import 'package:chess_app/features/reviews/services/review_api_service.dart'
     show ReviewGrade;
 import 'package:chess_app/theme/app_colors.dart';
@@ -16,21 +14,6 @@ import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
-
-/// How the drill opens a game in Analysis. Null — the default — pushes the real
-/// screen; a test sets it, because Analysis starts an engine the test has none of.
-/// A test's override; null in a real build.
-@visibleForTesting
-Future<void> Function(BuildContext context, AnalysisGame game)?
-    debugOpenGameInAnalysis;
-
-Future<void> _pushAnalysis(BuildContext context, AnalysisGame game) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => AnalysisStudioScreen(
-        userSession: SessionService.instance.current,
-        initialGame: game,
-      ),
-    ));
 
 class MistakeDrillScreen extends StatefulWidget {
   const MistakeDrillScreen({super.key});
@@ -163,8 +146,7 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
     try {
       final game = await _api.fetchGameMoves(item.gameId);
       if (!mounted) return;
-      final open = debugOpenGameInAnalysis ?? _pushAnalysis;
-      await open(context, (
+      await openGameInAnalysis(context, (
         startFen: game.startFen,
         uciMoves: game.uciMoves,
         cursorPly: item.ply,

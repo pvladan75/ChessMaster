@@ -14,6 +14,8 @@ import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/board_queries.dart'
+    show findMove;
 
 /// A game handed to Analysis: where it starts, its moves, the ply to stand on,
 /// and which side of the board faces the reader.
@@ -64,6 +66,44 @@ GameTree analysisTreeFromMoves(String startFen, List<String> uciMoves) {
     playable++;
   }
   return (root: root, playable: playable);
+}
+
+/// A game kept as SAN — a homework's „play it out", which the server stores as
+/// the moves both sides played — as the game the Analysis door takes
+/// (`docs/PLAN-EXERCISE.md`, phase 13). It stands on the last move: the
+/// position reached is what is being judged.
+///
+/// **Null when the game does not replay whole**, from a position that is one.
+/// [analysisTreeFromMoves] ends a line at the move it cannot play, which is
+/// right for an archive that says how far it got; here a shorter game would be
+/// shown to the trainer as the game the student played, so it is refused and
+/// the caller says so.
+AnalysisGame? analysisGameFromSans({
+  required String startFen,
+  required List<String> sans,
+  required bool blackOrientation,
+}) {
+  if (chess.Chess.validate_fen(startFen)['valid'] != true) return null;
+  final game = chess.Chess.fromFEN(startFen);
+  final uciMoves = <String>[];
+  for (final san in sans) {
+    final chess.Move move;
+    try {
+      move = findMove(game, san.trim());
+    } catch (_) {
+      return null;
+    }
+    final promotion = move.promotion;
+    uciMoves.add('${move.fromAlgebraic}${move.toAlgebraic}'
+        '${promotion == null ? '' : promotion.toLowerCase()}');
+    game.make_move(move);
+  }
+  return (
+    startFen: startFen,
+    uciMoves: uciMoves,
+    cursorPly: uciMoves.length,
+    blackOrientation: blackOrientation,
+  );
 }
 
 /// The node [ply] moves down the main line from [root], or the last one when

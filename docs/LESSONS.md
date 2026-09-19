@@ -4722,3 +4722,32 @@ needs a case standing on it — here Qa3+, a check that lets the king out.
 
 Backend **1612** with the throwaway database, **1524** without (1608 / 1520 + 4).
 App untouched; the four test files that stand on the shared fixture re-run green.
+
+## 20.9.2026 — a played homework game opens in Analysis with its moves (PLAN-EXERCISE, phase 13)
+
+**The plan's own measurement was wrong, and the fix was to keep looking.** §10
+said „Analysis takes a bare FEN and nothing else from outside", read off
+`AppRoutes.analysisPath(fen:)`. True of the *route*; the *screen* has had
+`initialGame` since D4 of the skeleton plan — the mistake archive's door for a
+whole game. The phase as written („one door into Analysis … through the PGN
+loader") would have built a second one. Grep the widget's constructor, not only
+the route that usually leads to it. What was actually missing was a converter:
+the archive keeps a game in UCI, a homework keeps it in SAN.
+
+`analysisTreeFromMoves` ends a line at the move it cannot play and says how far
+it got — right for an archive. For a game a trainer is about to judge, a shorter
+game shown as the whole one is the 6.9.2026 shape again, so
+`analysisGameFromSans` answers null and the opener says so in words. The opener
+moved to one home (`open_game_in_analysis.dart`) with its test override; the
+archive, the review card and the finished game all go through it.
+
+The surviving mutation: removing the check that the position is a position.
+The test sent a broken FEN *with a move*, and the move failed on the broken
+board — refused, for the wrong reason. The check only decides anything for a
+game with **no** moves, so that is where the test now stands. Seven mutations
+in all, each red on the right test.
+
+App **3283 → 3295** (5 in `game_from_moves_test.dart`, 7 in
+`homework_game_in_analysis_test.dart`), 1 skipped, a full run alone on the
+machine, 12 minutes. Analyze: the same 26 infos. Backend untouched. Live: item
+195.
