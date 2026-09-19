@@ -4121,3 +4121,25 @@ at 18:16 was still frozen when 18:30 pushed and nothing cancelled it.
 looked: a wait.** A guard that turns a six-hour silence into a sixty-second
 red does not fix the bug — it makes the next occurrence say where it is. Until
 one of these ceilings is hit in CI, the cause is still open.
+
+**It took one run.** The very next CI run went red at the backend step in 22
+seconds, and it named a line: „Test … at test/homework_gate.test.js:217
+generated asynchronous activity after the test ended. This activity created
+the error *terminating connection due to administrator command* … but instead
+triggered an uncaughtException." That message is what PostgreSQL sends to
+every backend when `DROP DATABASE … WITH (FORCE)` runs — this file's own
+teardown. And `pg` emits `error` **on the pool** when an idle client loses its
+connection, so a pool with no `error` listener is an `EventEmitter` with no
+`error` listener: it throws, the exception belongs to no test, and the child
+process exits 1 with the file failed as a whole and no assertion to point at.
+`pgTestDb.js` had never installed that listener. Proved by mutation, against a
+real cluster: with it, the process survives the terminate and prints which
+pool lost the client; with it removed, `throw er; // Unhandled 'error' event`
+and exit 1.
+
+The counts never moved — 1594 and 1510, green — because nothing the tests
+*assert* was ever wrong. The whole fault lived in teardown, which is why five
+weeks of green runs hid it and why it only showed on a four-core runner with
+PostgreSQL in a container. **An `EventEmitter` you did not give an `error`
+listener is a process you agreed to lose**, and the place it will be lost is
+the place no assertion is watching.

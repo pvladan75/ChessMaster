@@ -39,18 +39,44 @@ function skipUnlessDatabase() {
 /// A loud failure beats a silent wait (CLAUDE.md, "Rules that bite").
 const TIMEOUTS = { connectionTimeoutMillis: 15000, query_timeout: 60000 };
 
+/// A pool that cannot kill the process it is being tested in.
+///
+/// `pg` emits `error` on the **pool** when a client that is sitting idle loses
+/// its connection, and an `EventEmitter` with no `error` listener throws: the
+/// exception belongs to no test, so `node --test` reports it as an
+/// `uncaughtException`, the child exits 1, and the file fails as a whole with
+/// no assertion to point at. That is exactly what CI reported on 19.9.2026 —
+/// „generated asynchronous activity after the test ended … terminating
+/// connection due to administrator command", the message PostgreSQL sends to
+/// every backend when `DROP DATABASE … WITH (FORCE)` runs. Tearing a throwaway
+/// database down is allowed to disturb an idle connection; it is not allowed
+/// to take the test process with it.
+///
+/// The error is printed rather than swallowed. A quiet `catch` here would hide
+/// a pool that is losing connections mid-test, which is a real fault and looks
+/// nothing like teardown noise.
+function unkillable(pool, what) {
+  pool.on('error', (err) => {
+    process.stderr.write(`[pgTestDb] idle client on the ${what} pool: ${err.message}\n`);
+  });
+  return pool;
+}
+
 /// A fresh database with the application's schema on it. Call `drop()` when
 /// done; the name carries the pid and a counter, so parallel test files never
 /// share one.
 let counter = 0;
 async function freshDatabase() {
   const name = `mislisha_test_${process.pid}_${Date.now()}_${counter++}`;
-  const admin = new Pool({ connectionString: url, max: 1, ...TIMEOUTS });
+  const admin = unkillable(new Pool({ connectionString: url, max: 1, ...TIMEOUTS }), 'admin');
   await admin.query(`CREATE DATABASE ${name}`);
 
   const target = new URL(url);
   target.pathname = `/${name}`;
-  const pool = new Pool({ connectionString: target.toString(), max: 4, ...TIMEOUTS });
+  const pool = unkillable(
+    new Pool({ connectionString: target.toString(), max: 4, ...TIMEOUTS }),
+    'test'
+  );
 
   // Required late: db.js builds its own pool from the environment at import,
   // and that pool is never connected by these tests.
