@@ -62,3 +62,26 @@ test('when the task was not a mate, only the printed move counts', () => {
 
 // „Can this be set as homework?" moved to `exercise.js`; its three tests went
 // with it, to `exercise.test.js`.
+
+// The owner's own exercise, 20.9.2026 — `5k2/8/5K2/8/8/8/Q7/8 w`, where Qa7 is
+// quiet and Qa8# and Qf7# both mate. Until then a different mate counted only
+// where the author's own move mated, so with the quiet move written first a
+// student who mated on the spot was told „wrong".
+test('a mate is right whatever the author wrote — a checkmate is never the mistake', () => {
+  const fen = '5k2/8/5K2/8/8/8/Q7/8 w - - 0 1';
+  const quietFirst = judgeAttempt({ fen, solutionSan: 'Qa7', acceptedSans: ['Qf7#'], moveSan: 'Qa8' });
+  assert.equal(quietFirst.correct, true);
+  assert.equal(quietFirst.reason, 'a different mate, but mate');
+  assert.equal(quietFirst.playedSan, 'Qa8#');
+
+  // What the author listed keeps its own label, mate or not.
+  assert.equal(judgeAttempt({ fen, solutionSan: 'Qa7', acceptedSans: ['Qf7#'], moveSan: 'Qf7' }).reason,
+    'another correct move');
+  // And short of mate, nothing new is right.
+  assert.equal(judgeAttempt({ fen, solutionSan: 'Qa7', acceptedSans: ['Qf7#'], moveSan: 'Qb2' }).correct, false);
+  assert.equal(judgeAttempt({ fen, solutionSan: 'Qa7', moveSan: 'Qa6' }).correct, false);
+  // A check is not a mate: Qa3+ lets the king out, and is as wrong as any other move.
+  const check = judgeAttempt({ fen, solutionSan: 'Qa7', acceptedSans: ['Qf7#'], moveSan: 'Qa3' });
+  assert.equal(check.playedSan, 'Qa3+');
+  assert.equal(check.correct, false);
+});

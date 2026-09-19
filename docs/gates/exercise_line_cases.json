@@ -2,7 +2,8 @@
   "about": "Shared by the server's line judge (chess_backend/test/exercise_line.test.js) and the app's writer and solver (docs/PLAN-EXERCISE.md, phases 2a and 2b). One fixture, so the two ends cannot drift: the app writes a solution, reads it back by these rules, and the server judges by them.",
   "positions": {
     "scholar": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-    "backRank": "6k1/5ppp/8/8/8/8/5PPP/3RR1K1 w - - 0 1"
+    "backRank": "6k1/5ppp/8/8/8/8/5PPP/3RR1K1 w - - 0 1",
+    "queenMate": "5k2/8/5K2/8/8/8/Q7/8 w - - 0 1"
   },
   "solutions": {
     "scholarLine": {
@@ -16,6 +17,12 @@
         { "accept": ["Qh5", "Qf3"], "reply": "g6" },
         { "accept": ["Qxe5+"], "reply": null }
       ]
+    },
+    "quietFirst": {
+      "position": "queenMate",
+      "about": "1.Qa7 Ke8 2.Qe7# is the author's line; 1.Qa8# and 1.Qf7# mate at once. The owner's own exercise of 20.9.2026, with the quiet move written first.",
+      "steps": [{ "accept": ["Qa7"], "reply": "Ke8" }, { "accept": ["Qe7"], "reply": null }],
+      "normalised": [{ "accept": ["Qa7"], "reply": "Ke8" }, { "accept": ["Qe7#"], "reply": null }]
     },
     "backRankMate": {
       "position": "backRank",
@@ -94,6 +101,21 @@
       "name": "a move that does not mate is wrong where the task was to mate",
       "solution": "backRankMate", "moves": ["Kf1"],
       "expect": { "correct": false, "done": false, "step": 0, "playedSan": "Kf1" }
+    },
+    {
+      "name": "a mate is right even where the author's move does not mate, and it ends the line",
+      "solution": "quietFirst", "moves": ["Qa8"],
+      "expect": { "correct": true, "done": true, "step": 0, "playedSan": "Qa8#", "reason": "a different mate, but mate", "reply": null, "continuesOn": null }
+    },
+    {
+      "name": "the author's quiet move in the same position still goes on to its reply",
+      "solution": "quietFirst", "moves": ["Qa7"],
+      "expect": { "correct": true, "done": false, "step": 0, "playedSan": "Qa7", "reply": "Ke8", "reason": "the author's move" }
+    },
+    {
+      "name": "a quiet move that is not the author's is still wrong there",
+      "solution": "quietFirst", "moves": ["Qb2"],
+      "expect": { "correct": false, "done": false, "step": 0, "playedSan": "Qb2" }
     }
   ],
   "refused": [

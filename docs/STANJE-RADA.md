@@ -92,6 +92,29 @@ na sve tri izmene, svaka crvena na pravom testu; jedna preživela je pokazala dv
 izvora za „ko je na potezu" gde je jedan dovoljan — ostala je tabla. Provera
 uživo: **stavka 194**. Usput očišćeno pet worktree-ova agenata i njihove grane.
 
+**Dva pitanja vlasnika istog dana, oba „da li tako treba" — oba: da, namerno.**
+(1) Zadatak rešen direktno označio se kao urađen i u domaćem koji učenik nije ni
+otvorio: `recordPuzzleResult` piše po **učeniku i poziciji**, ne po zadatku kroz
+koji je odgovor stigao. Jači razlog od pogodnosti: zadatak od jednog poteza
+otkriva rešenje čim je odgovoreno, pa je druga kopija iste pozicije pitanje na
+koje se više ne može pogrešiti. Zaključana kopija (iza kapije) se ne dira, tuđa
+nikad, a prva presuda ostaje. Pravilo nije bilo zakucano nigde — sada jeste
+(`homework_gate.test.js`, prava baza; 5 mutacija SQL-a u privremenom worktree-u,
+da mutant nikad ne bude živ na vlasnikovom nodemon-u; backend **1608** / 1520).
+(2) `Qa8#` priznat iako nije u listi: `customPuzzleJudge` — **kad autorov glavni
+potez matira, svaki mat je tačan** („a different mate, but mate"), od 8.9.2026.
+Ostaje tako. **Asimetrija je istog dana zatvorena po odluci vlasnika**: do sada je
+drugi mat važio samo gde autorov glavni potez matira, pa bi učenik koji da mat u
+zadatku čiji je glavni potez tih čuo „wrong". Sada je **svaki mat tačan**, a mat
+usred linije od više poteza **završava liniju** (done, bez odgovora protivnika i
+bez „continuesOn" — odgovori su pisani za partiju koja se više ne igra). Šah koji
+nije mat i dalje je pogrešan. Oznaka „a different mate, but mate" je vrednost na
+žici koju aplikacija čita i nije menjana. Tri nova slučaja u zajedničkom
+fixture-u (`queenMate` / `quietFirst` — vlasnikova pozicija) i jedan direktan
+test; 4 mutacije u privremenom worktree-u, jedna **preživela** dok nije dodat šah
+koji nije mat. Backend **1612** / **1524**; aplikacija bez izmena (testovi nad
+fixture-om zeleni).
+
 ## Zadatak: vlasnikova provera 19.9.2026 — faze 8–12 u kodu, ostaje provera uživo
 
 Vlasnik je prošao 185.1–5 i 186.1–2 i poslao dve prijave (kao učenik na

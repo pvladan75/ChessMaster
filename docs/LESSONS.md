@@ -4679,3 +4679,46 @@ App **3283** tests (3275 + 5 + 3), 1 skipped; `flutter analyze` unchanged at 26
 known infos. Backend **1607** with the throwaway database, **1520** without
 (1603 / 1516 + 4). The fixed function was also run, read-only, against the real
 assignment: the board arrives, the solution does not.
+
+## 20.9.2026 — two „is this how it should be?" from the owner, both answered yes, one pinned
+
+An exercise solved through a direct assignment showed as done inside a homework
+the student never opened. It is the rule — `recordPuzzleResult` writes by student
+and position, not by the assignment the answer came through — and **it was
+pinned by no test**: the function's tests covered the stored move and the first
+verdict, never a second assignment. Behaviour an owner has to ask about is
+behaviour a refactor could remove without a red. Now one test on the real
+database holds all of it: every open copy, the same first verdict, a locked copy
+left alone, another student's never touched, the homework stamped complete.
+
+The mutations ran in a scratch worktree with a junction to `node_modules`, not
+in the main checkout: the owner's nodemon serves that file, and a mutant of the
+SQL that records a student's answer must not be live on port 3000 even for the
+seconds a test takes. **Before mutating, ask who else is running the file.**
+
+Backend **1608** with the throwaway database (1607 + 1), **1520** without — the
+new test lives in the half that needs a database. App untouched.
+
+## 20.9.2026 — any mate is a right answer
+
+The owner's Qa8# was accepted although he had listed only Qf7# and Qa7, and he
+asked whether that was meant. It was: since 8.9.2026 a different mate counts
+where the author's own move mates. The question it raised was the other half —
+**the rule read the author's move to decide what a checkmate is worth.** With
+the quiet move written first and the mate as its alternative, a third move,
+mate on the spot, would have been „wrong". Same exercise, same position, a
+different order of two clicks in the editor. A rule about the board should read
+the board: any mate is right; short of mate, only what the author wrote.
+
+In a line this needed one more thing the single move never did. A mate at step
+one of three is correct *and ends the line*: no reply, nothing to continue on —
+the replies were written for a game that is no longer being played. Without it
+the solver would have shown the author's move and the opponent's answer on a
+board where the king was already mated.
+
+The surviving mutation was `isCheckmate` → `isCheck`: every wrong move in the
+tests was a quiet one, so „any check counts" passed. A rule with a boundary
+needs a case standing on it — here Qa3+, a check that lets the king out.
+
+Backend **1612** with the throwaway database, **1524** without (1608 / 1520 + 4).
+App untouched; the four test files that stand on the shared fixture re-run green.

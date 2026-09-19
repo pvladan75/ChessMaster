@@ -7,10 +7,20 @@
 // mate is the kind of thing that makes a child distrust the app, and they would
 // be right to.
 //
-// So the rule follows the task rather than the text: when the stored solution
-// mates, any move that mates is accepted. Otherwise only the author's move is,
-// because nothing here knows what else the position was meant to teach.
+// So the rule follows the board rather than the text: **any move that mates is
+// accepted.** Short of mate only the author's moves are, because nothing here
+// knows what else the position was meant to teach.
+//
+// Until 20.9.2026 a different mate counted only where the author's own move
+// mated. That left one case the wrong way round, found by the owner on his own
+// exercise: had he written the quiet move first and the mate as its
+// alternative, a student who gave a *third* move, mate on the spot, would have
+// been told „wrong". No position was ever meant to teach that a checkmate is a
+// mistake, and a mate refused is worse than a mate accepted.
 const { Chess } = require('chess.js');
+
+/// The verdict's label for a mate the author did not write.
+const DIFFERENT_MATE = 'a different mate, but mate';
 
 /// Strips the decoration SAN carries so `Qf1#`, `Qf1+` and `Qf1` compare equal
 /// once the board has already told us what the move actually does.
@@ -73,10 +83,11 @@ function judgeAttempt({ fen, solutionSan, moveSan, acceptedSans = [] }) {
     return { correct: true, reason: 'another correct move', playedSan: played.san };
   }
 
-  // A different mate is still a mate, and the task was to mate.
-  const solutionMates = /#$/.test(String(solutionSan).trim());
-  if (solutionMates && board.isCheckmate()) {
-    return { correct: true, reason: 'a different mate, but mate', playedSan: played.san };
+  // A different mate is still a mate — whatever the author's own move does.
+  // The label is read by the app (the solver says it aloud, the review reports
+  // it); it is a wire value, not copy.
+  if (board.isCheckmate()) {
+    return { correct: true, reason: DIFFERENT_MATE, playedSan: played.san };
   }
 
   return { correct: false, reason: 'That is not the move the exercise asks for.', playedSan: played.san };
@@ -102,9 +113,10 @@ function judgeAttempt({ fen, solutionSan, moveSan, acceptedSans = [] }) {
  * **The line goes on from the author's move**, whatever accepted move was
  * played — the rule tutorials already keep. The replies were written after the
  * author's move and may not even be legal after another; `continuesOn` tells
- * the caller which move to show before the reply. A different mate is
- * accepted where the author's move mates — `judgeAttempt`'s rule — which can
- * only be the last step, since a line cannot go on after mate.
+ * the caller which move to show before the reply. **A different mate is
+ * accepted at any step — `judgeAttempt`'s rule — and ends the line there**:
+ * done, with no reply and nothing to continue on, because the replies were
+ * written for a game that is no longer being played.
  *
  * Returns `{ correct, done, reason, playedSan, step, reply, continuesOn }`.
  * `step` is the index of the move the verdict is about.
@@ -136,6 +148,9 @@ function judgeLine({ fen, solution, moves }) {
     });
     if (!verdict.correct) {
       return { ...nothing, ...verdict, step: i };
+    }
+    if (verdict.reason === DIFFERENT_MATE) {
+      return { ...nothing, ...verdict, step: i, done: true };
     }
     const authors = board.move(main);
     const onTheLine = bareSan(authors.san) === bareSan(verdict.playedSan);

@@ -452,6 +452,66 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal((await notices(who.trainerId)).length, 1);
   });
 
+  // The owner, 20.9.2026: he solved an exercise sent to him directly and found
+  // it done inside a homework he had never opened. It is the rule, and it was
+  // pinned nowhere: an answer is recorded by student and puzzle, not by the
+  // assignment it arrived through. The reason is stronger than convenience — a
+  // one-move exercise gives up its solution once it is answered, so a second
+  // copy of the same position is a question that can no longer be failed.
+  test('one answer marks every open copy of that position for that student, once, and no one else\'s', async () => {
+    const who = await people();
+    const other = await people();
+    const puzzleId = `same${who.tag}`;
+
+    async function direct(person, title) {
+      const a = await pool.query(
+        `INSERT INTO assignments (trainer_id, student_id, title, kind)
+         VALUES ($1, $2, $3, 'puzzles') RETURNING id`,
+        [who.trainerId, person.studentId, title]
+      );
+      await pool.query(
+        'INSERT INTO assignment_items (assignment_id, puzzle_id, position) VALUES ($1, $2, 0)',
+        [a.rows[0].id, puzzleId]
+      );
+      return a.rows[0].id;
+    }
+    async function repoint(childId) {
+      await pool.query('UPDATE assignment_items SET puzzle_id = $1 WHERE assignment_id = $2', [puzzleId, childId]);
+    }
+    async function item(assignmentId) {
+      const r = await pool.query(
+        'SELECT solved, attempted_at FROM assignment_items WHERE assignment_id = $1', [assignmentId]
+      );
+      return r.rows[0];
+    }
+
+    const directId = await direct(who, 'sent directly');
+    // The same position inside a homework — open, its only item…
+    const open = await sent(who, [{}]);
+    await repoint(open.children[0].id);
+    // …and inside another, behind a gate nobody has passed.
+    const gated = await sent(who, [{}, { gate: true }]);
+    await repoint(gated.children[1].id);
+    // Somebody else has it too.
+    const theirs = await direct(other, 'another student');
+
+    // Answered once, wrongly, through no assignment in particular.
+    assert.equal(await solve(who.studentId, puzzleId, false), 2, 'the direct one and the open homework item');
+
+    assert.equal((await item(directId)).solved, false);
+    assert.equal((await item(open.children[0].id)).solved, false, 'the copy he never opened has the same verdict');
+    assert.ok(await completedAt(directId));
+    assert.ok(await completedAt(open.parentId), 'and the homework it was the last item of is complete');
+
+    assert.equal((await item(gated.children[1].id)).attempted_at, null, 'a locked copy is left for when it opens');
+    assert.equal((await item(theirs)).attempted_at, null, 'another student\'s copy is theirs to answer');
+
+    // A second answer — the right one this time — changes nothing already said.
+    assert.equal(await solve(who.studentId, puzzleId, true), 0);
+    assert.equal((await item(directId)).solved, false, 'the first verdict is the one the report keeps');
+    assert.equal((await item(open.children[0].id)).solved, false);
+  });
+
   // ---- the readers see one homework, not its pieces -----------------------
 
   test('lists and the trainer panel show the homework once, with its progress', async () => {
