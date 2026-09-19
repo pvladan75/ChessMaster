@@ -4255,3 +4255,160 @@ after a log line, no `MessagePort` and no `Worker` among the active resources -
 and was watched red on the mutant with `["PipeWrap","PipeWrap","MessagePort",
 "Immediate"]`, the very handle CI printed. Backend **1598** with the database,
 **1512** without.
+
+## 19.9.2026 - A palette that was 848 wide in a 728 box, and a board sized from the wrong dimension
+
+Two faults in one dialog, reported live from two machines, and both of them
+invisible to the test written for exactly this widget.
+
+`AnalysisBoardSetupDialog` is the one position editor left - three screens open
+it (Analyse, Teach's Preparation, the room), since the second one was deleted on
+8.9.2026. Its palette was thirteen chips in a `SingleChildScrollView` laid out
+along the horizontal axis. Measured, not guessed: **the row is 848 dp wide on
+every screen size, and the dialog gives it 728**. Black's queen, Black's king and
+the eraser sat past the right edge. On Windows a mouse wheel scrolls the other
+axis and there was no scrollbar, so those three were not merely off-screen -
+they were unreachable. On Android landscape the second fault: the short branch
+sized the board from `constraints.maxWidth` alone, which on a 932x430 phone is
+the **large** dimension. A **724x724 board inside a 398-tall dialog**.
+
+`board_setup_dialog_layout_test.dart` had a case at exactly 932x430 and it was
+green, because **nothing inside a scroll view can overflow** and the case asked
+only `takeException(), isNull`. Rule 1 again, in its quietest form: the check
+could not fail. The same test also proved the confirm button *existed* while it
+sat at y=918 on a 640-tall screen.
+
+Three things the fix turns on:
+
+* **A board is sized from both dimensions or it is sized wrong.** `min(width,
+  height)`. A first attempt used `height * 0.6`, which fixed landscape and cost
+  portrait a quarter of its board - 300 down to 220 - because upright the width
+  is already the smaller number. The fraction was protecting against a case the
+  `min` already covers.
+* **A layout chosen by the screen's shape, not by which phone it is.** Above 620
+  dp of content the dialog is a row - board left, everything that acts on it
+  right. Landscape stops being a special case and becomes the desktop case at a
+  smaller size, and the desktop finally uses its width: the board went 288 ->
+  433 at 1280x800.
+* **The finishing button is pinned, not scrolled to.** `Column[Expanded(body),
+  button]`, so no size can put it below the fold.
+
+Proving the new checks cost three mutations and the first two were wrong reds.
+The first put all twelve pieces back in one scrolling row - and failed with
+"Found 2 widgets with key palette-P", because the mutation called the row
+builder twice. The second sized the board from the width again and the suite
+stayed **green**: a `SizedBox` is clamped by what its parent offers, so a board
+asked for at 437 inside a 260-tall row does not come out too big, it comes out
+**437x260**. A squashed board passes every question about whether it fits. The
+check that catches it asks whether the board is **square**; with that, and a
+600x400 case that reaches the scrolling branch, the mutation prints "the board
+is 514.0 tall inside a 228.0 dialog" - the reported bug, in the test's own
+words.
+
+`manual_labels_test` then failed, and it was right to: dropping the emoji from
+„Clear board 🗑️" left the manual quoting a button that no longer exists. That
+guard is the only thing in the repository that reads the site against `lib/`.
+
+**The tab labels were the same fault one row higher up**, and asked for
+separately. „FEN String", „PGN Import", „Piece Placement", „Openings" and
+„Chess.com/Lichess" measure **846 dp of text and a 974 dp strip against a 728 dp
+bar - 314 past the right edge on every size, a desktop included**. That is why
+the first tab read „N String" on a phone. They are now „FEN", „PGN", „Pieces",
+„Openings", „Online": 443 of tabs, and the bar fills its width rather than
+scrolling wherever they fit, so nothing can scroll out of reach at all.
+
+Two things that only measuring showed. The first mutation for this check
+restored **one** long label and stayed green at 1280x800 and 932x430 - once the
+dialog stopped being 550 wide on a landscape phone, four short labels and one
+long one fit. The claim in the comment („566dp") was invented from the
+screenshot and wrong by half; the number in the code now is one that was
+measured, and the mutation that proves the check uses a label long enough to
+fail everywhere. The second: a filled bar is **not** always better. At 360dp
+five tabs get 61 each and every label is cut off mid-word - unreadable, where a
+scrolled strip at least shows whole words. So the bar fills only where the
+labels fit, and upright with five tabs it still scrolls. That one is a genuine
+limit, not a bug: five words do not go into 304dp.
+
+App **3178** tests (3157 + 21), 1 skipped; `flutter analyze` unchanged at 26
+known infos.
+
+## 19.9.2026 - The editor was the last door a position that is not chess could come through
+
+`fenIllegalReason` has existed since 30.8.2026, when a hand-made position with
+no king reached the engine and took the application down. Five callers ask it:
+the engine guard, its stub, the tutorial importer, the room's paste-FEN field -
+and the FEN tab of the setup dialog. **The piece editor beside that tab did
+not.** So the exact fault the guard was written for could still be built by
+hand, one piece at a time, and the guard would meet it one layer later.
+
+The fix is four lines: ask the rule, show what it says, turn the button off.
+What makes it the right four lines is that it asks **the** rule. A second
+opinion about what chess is would be a second answer the day one of them is
+corrected, and this one already knows things a fresh implementation would not:
+not just two kings and ten pawns, but that promotions must be paid for in
+pawns, that a pawn cannot stand on the first rank, and that the side **not** to
+move cannot already be in check.
+
+That last one caught its own test. "A couple of kings and a queen" was written
+as white king e1, black king a8, white queen e4 - and the queen sees a8 down
+the long diagonal, so Black was in check on White's move. The guard refused it
+and the test went red for the right reason. A test that asserts a legal
+position is legal is worth writing precisely because it can be wrong that way.
+
+The mutation that proves the file replaces the call with `null`: five of the
+six refusals go red and both positive cases stay green, which is the shape to
+look for - a guard that refuses everything would fail the two that say yes.
+
+**And the layout finished moving.** The owner's phone reports **667x300** held
+sideways, so the 700 threshold read it as an upright phone and gave it the 550
+width - 518 for the contents, under the 620 at which the board and its controls
+can sit side by side. Both numbers were guesses. 620 was 180 too high: the
+controls need 260 and a board needs 140, which is 412 with the gap. With 640
+and 440 the phone gets the side-by-side layout, and the board went 142 -> 162
+there, 198 -> 288 at 932x430, and 128 -> 222 at 800x360.
+
+The header gave up its second row on short dialogs: title and tabs stacked are
+48 + 12 + 46 = 106 of the 284 that phone has, and on one row they are 46. Asked
+for in those words - "prostor iznad moze da se smanji sto je moguce vise". The
+title stays: a dialog that does not say what it is would be a worse trade than
+a smaller board.
+
+The buttons moved under the side to move and the castling rights, and the two
+that replace the whole board are now a row of two with the eraser beneath them.
+They are not the same kind of thing - "Erase" arms the pointer and stays lit,
+the other two happen once and are over - and a row of three equals said they
+were. The cost is honest and stated: on a 667x300 phone the control column is
+270 of content in 218, so the eraser is a short scroll down.
+
+**The castling rights, a day later and a third measurement.** They shared one
+`Wrap` with the „To move" label and its dropdown, and a Wrap fills each line
+before starting the next - so „White O-O" ended up beside the dropdown, the
+next two shared a line and the fourth sat alone. Asked for: two rows of two
+where there is room, one row where there is not, shortened.
+
+The first threshold for „one row fits" was 380 and it was **64 short**, which
+the gate caught rather than a screenshot: „W O-O-O" is **70dp** of text at 10pt
+and a chip was adding **38** - 18 of it Material's tick - so four of them and
+three gaps came to **444**, and a phone held sideways has 393. The chips were
+not too wide for the row; the row was cutting the words inside them, which no
+overflow exception and no eye on a box-text screenshot would report. The check
+that sees it compares each label's **drawn** width against what a `TextPainter`
+says it wants: a `Text` in a box narrower than its line is handed the box's
+width and paints an ellipsis, so its own size tells you nothing.
+
+The tick is what the row could not afford, and it is not how the palette four
+inches above says a thing is on: a brighter fill and a thicker border, which is
+lightness and shape rather than a tick, and which the reader of this app needs
+because they do not read hue. Same cue in both places, and the four fit in 372.
+Putting `showCheckmark` back is the mutation that proves the check, and it
+prints „the label „W O-O-O" is cut: it is drawn 55.25 wide and wants 70.0".
+
+One more number was read against the wrong box on the way: the castling row
+measured as fitting inside the `TabBarView`, which includes the pinned button
+below the scroll. Against the scroll viewport it is 30 below the fold at
+667x300. **The box a thing must fit inside is the one that clips it**, not the
+nearest ancestor with a convenient name - and the picture is what disagreed
+with the number.
+
+App **3190** tests (3178 + 12), 1 skipped; `flutter analyze` unchanged at 26
+known infos.

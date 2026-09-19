@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3157 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3190 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1598 with TEST_DATABASE_URL, 1512 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -31,7 +31,11 @@ Measured on `master` on 18.9.2026 (after the owner's live pass of 18.9 and the f
 reorganisation merged (`docs/PLAN-REORGANIZACIJA.md`: the shell Home · Practise ·
 Analyse · Teach, the room's column on the shared library list, the studio's
 `TutorialDraftController`, the studio on a phone, one tutorial editor everywhere)
-and phases 1–2 of the puzzle progress plan; then phases 1, 2a and 3a of `docs/PLAN-EXERCISE.md`, backend only, and the removal of „must be solved" from both ends (the app went 3054 → 3053), then phase 2b, the app half of the line (3053 → 3077), then phases 3b and 4 (→ 3125) and phase 5, the check on save (→ 3157, a full run on 19.9.2026). Only the owner's live pass is open. Every change of these numbers,
+and phases 1–2 of the puzzle progress plan; then phases 1, 2a and 3a of `docs/PLAN-EXERCISE.md`, backend only, and the removal of „must be solved" from both ends (the app went 3054 → 3053), then phase 2b, the app half of the line (3053 → 3077), then phases 3b and 4 (→ 3125) and phase 5, the check on save (→ 3157, a full
+run on 19.9.2026), and the Board Setup dialog's two reported faults — a palette
+wider than the dialog, a board sized from the wrong dimension, and tab labels
+314dp wider than the strip that holds them, and the editor's refusal of a
+position that is not chess (→ 3190). Only the owner's live pass is open. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and

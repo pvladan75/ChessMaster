@@ -5878,6 +5878,64 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 188. Board Setup: paleta u dva reda i tabla koja staje — ✅ provereno uživo 19.9.2026
+
+Isti dijalog otvaraju tri ekrana: Analyse (pet kartica), Teach → Preparation i
+soba (po dve kartica). Prijavljeno uživo 19.9.2026: na Windowsu se do crne dame
+i crnog kralja nije moglo doći, a na Androidu u landscape modu tabla nije stala
+na ekran.
+
+**Vlasnik je prošao dijalog na Windowsu i na telefonu (uspravno i položeno) i
+potvrdio sve stavke ispod istog dana, 19.9.2026.**
+
+Izmereno pre popravke: red palete je uvek bio 848 dp u vodoravnom skrolu, a
+dijalog mu daje 728 — poslednja tri polja su bila van ivice; tabla na 932×430
+bila je 724×724 u dijalogu visokom 398.
+
+1. [x] **Windows, kartica „Piece Placement".** Sve figure se vide odjednom: šest
+   belih u gornjem redu, šest crnih ispod, istim redosledom. Ništa se ne skroluje
+   ustranu i crna dama i crni kralj se klikću.
+2. [x] **Windows, raspored.** Tabla je levo, paleta i ostalo desno; tabla je
+   osetno veća nego ranije (mereno 433 dp umesto 288). Dugme „Generate and Set
+   Position" je na dnu i vidi se bez skrolovanja.
+3. [x] **Gumica.** „Erase" stoji pored „Clear board" i „Starting position", i
+   ostaje upaljena dok je izabrana. Briše figuru na dodir; dugi pritisak i desni
+   klik i dalje brišu polje bez nje.
+4. [x] **Android, landscape.** Cela tabla staje na ekran, kartice su u jednom
+   redu bez ikonica, i dugme na dnu se vidi. Paleta je desno od table.
+5. [x] **Android, portret.** Paleta je u dva reda, ispod nje tri mala dugmeta
+   samo sa ikonicom (gumica, kanta, restart) — dugi pritisak pokaže ime. Tabla je
+   preko cele širine. **Ovo je jedino mesto koje i dalje traži skrolovanje** da
+   bi se videla prva vrsta i prava rokade: reci ako smeta, tabla može da se
+   smanji da sve stane odjednom.
+6. [x] **Imena kartica.** „FEN", „PGN", „Pieces", „Openings", „Online" — svih
+   pet u jednom redu, ništa nije preseceno i traka se ne pomera ustranu ni na
+   Windowsu ni na telefonu položeno. U Teach → Preparation ih je dve i dele
+   širinu. **Uspravno na telefonu, u Analyse, pet kartica se i dalje skroluje** —
+   to je očekivano; reci ako smeta, alternativa je da ostanu samo ikonice.
+7. [x] **Redosled desne kolone.** Paleta, pa „To move" i rokade, pa red
+   „Starting position" + „Clear board" (jednako široki), pa „Erase" ispod njih.
+   Na telefonu položeno (667×300) kolona ima **106 dp ispod pregiba**: „Erase" i
+   dno reda rokada traže mali skrol. Na većem telefonu položeno (932×430) sve
+   staje bez skrola.
+7a. [x] **Rokade.** „W O-O", „W O-O-O", „B O-O", „B O-O-O" — **dva reda po dva**
+   na Windowsu i u portretu, **jedan red od četiri** na telefonu položeno, sve
+   četiri jednake širine i nijedna reč nije presečena. Upaljeno pravo se
+   razlikuje **ispunom i debljim okvirom** (nema više kvačice) — proveri da se
+   upaljeno i ugašeno razlikuju na tvom ekranu. Duži pritisak pokaže puno ime
+   („White kingside").
+8. [x] **Zaglavlje na telefonu položeno.** Naslov „Board Setup" i kartice su u
+   **jednom** redu, a cela tabla staje.
+9. [x] **Nelegalna pozicija se ne može postaviti.** Probaj redom: obriši tablu
+   (nema kraljeva), stavi drugog belog kralja, dodaj deveti i deseti beli pešak,
+   stavi belog pešaka na osmi red, i postavi kulu tako da crni kralj bude u šahu
+   dok je beli na potezu. Svaki put: crveni razlog iznad dugmeta i **dugme je
+   ugašeno**; klik na njega ne radi ništa i dijalog ostaje otvoren. Kad je
+   pozicija ispravna, dugme radi kao pre.
+10. [x] **Postavljena pozicija je tačna.** Nameštena pozicija (uključujući stranu
+   na potezu i rokade) stigne na tablu ista u sva tri ekrana koja otvaraju
+   dijalog.
+
 ## 187. Zadatak (Exercise), faza 5: provera pri čuvanju — 19.9.2026, nije viđeno uživo
 
 Jedino mesto gde se vidi **pravi** tablebase i **pravi** motor iza provere — u

@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:chess_app/services/fen_legality.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_chess_board/flutter_chess_board.dart';
+// `hide Color`: the chess package exports a `Color` of its own (the side to
+// move), and it is not the one a border is painted in. Without this, every
+// `Color` written out in this file is ambiguous.
+import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess_app/features/analysis_studio/widgets/opening_picker.dart';
 import 'package:chess_app/move_tree.dart' show PgnGameInfo, MoveTree;
 import 'package:chess_app/services/app_settings_service.dart';
@@ -17,19 +20,38 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// One way of naming a position, and the tab that offers it.
+///
+/// The labels are one word each, and that is a size decision as much as a
+/// wording one. Measured: „FEN String", „PGN Import", „Piece Placement",
+/// „Openings" and „Chess.com/Lichess" are **846dp of text and a 974dp strip**,
+/// and the bar is 728 — **314 past the right edge, on every size including a
+/// desktop**. So the strip scrolled sideways and „FEN String" read „N String"
+/// on a phone held sideways. A tab a reader has to scroll to find is the same
+/// fault as a palette piece past the edge, one row higher up.
+///
+/// These five are 495 and fit twice over.
+///
+/// Each one still says what it takes: a FEN, a PGN, pieces you place, an
+/// opening by name, a game from an online account.
 enum _SetupTab {
-  fen(Icons.edit_note, 'FEN String'),
-  pgn(Icons.file_upload, 'PGN Import'),
-  manual(Icons.grid_on, 'Piece Placement'),
+  fen(Icons.edit_note, 'FEN'),
+  pgn(Icons.file_upload, 'PGN'),
+  manual(Icons.grid_on, 'Pieces'),
   openings(Icons.travel_explore, 'Openings'),
-  platform(Icons.cloud_download, 'Chess.com/Lichess');
+  platform(Icons.cloud_download, 'Online');
 
   const _SetupTab(this.icon, this.label);
 
   final IconData icon;
   final String label;
 
-  Tab get tab => Tab(icon: Icon(icon, size: 18), text: label);
+  /// The icon is the part that gives way when the dialog is short.
+  ///
+  /// A tab drawn with an icon above its text is 72dp tall; with text alone, 46.
+  /// A phone held sideways gives the whole dialog 398, so those 26 are a real
+  /// share of what is left for the board.
+  Tab tabWidget({required bool compact}) =>
+      compact ? Tab(text: label) : Tab(icon: Icon(icon, size: 18), text: label);
 }
 
 class AnalysisBoardSetupDialog extends StatefulWidget {
@@ -58,7 +80,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   bool _isFenValid = true;
   String _fenErrorMessage = '';
 
-  // Tab 2: PGN Import
+  // Tab 2: the „PGN" tab
   final TextEditingController _pgnTextController = TextEditingController();
   final bool _isPgnValid = true;
 
@@ -71,7 +93,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   bool _blackCastleQ = true;
   String _selectedPalettePiece = 'P'; // Default White Pawn, 'CLEAR' for eraser
 
-  // Tab 5: Import from Chess.com / Lichess
+  // Tab 5: the „Online" tab - a game from a Chess.com or Lichess account
   ChessPlatform _importPlatform = ChessPlatform.lichess;
   final TextEditingController _importUsernameController =
       TextEditingController();
@@ -79,7 +101,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
 
   /// The tabs this dialog can actually deliver.
   ///
-  /// Three of the five — „PGN Uvoz", „Otvaranja" and „Chess.com/Lichess" —
+  /// Three of the five — „PGN", „Openings" and „Online" —
   /// hand their result over through [onPgnLoaded], and a caller that passes
   /// none gets tabs that close the dialog and drop what was asked for. The
   /// tutorial studio is exactly that caller, and deliberately so: importing a
@@ -317,58 +339,101 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     // which is how three of these were found by looking at a phone rather than
     // by any test. Desktop is unchanged - the min() only bites where it must.
     final screen = MediaQuery.sizeOf(context);
-    final wide = screen.width >= 900;
+    // 900 was a desktop test, and it read a phone on its side as a phone: a
+    // 932x430 screen took the 550 width, which left 518 for the contents —
+    // just under the 620 at which the editor can put its controls beside the
+    // board instead of under it. The room is there; the threshold was what
+    // refused it.
+    // Measured on the owner's phone, 19.9.2026: held sideways it reports
+    // **667x300**, so a 700 threshold read it as a phone held upright and gave
+    // it the 550 width — 518 for the contents, under the width at which the
+    // board and its controls can sit side by side. The screen was wide enough
+    // the whole time; the number was what refused it.
+    final wide = screen.width >= 640;
     // 40dp a side is a desktop margin; on a phone it is a quarter of the
     // board. And where there is room the dialog is wider than the old 550, so
     // the manual builder fits without scrolling to reach its own button.
     final inset = wide ? 40.0 : AppSpacing.md;
 
+    // Read from the screen, not from the dialog, because the dialog's own
+    // height depends on it: a short screen also gets a smaller margin, and
+    // deriving „short" from the height that margin decides is a circle.
+    final compact = screen.height < 500;
+    final verticalInset = compact ? AppSpacing.sm : AppSpacing.lg;
+    final dialogHeight = math.min(720.0, screen.height - 2 * verticalInset);
+    final scrollTabs = _tabs.length > 3 && !wide;
+
     return Dialog(
       shape: AppRadii.dialogShape,
       insetPadding:
-          EdgeInsets.symmetric(horizontal: inset, vertical: AppSpacing.lg),
+          EdgeInsets.symmetric(horizontal: inset, vertical: verticalInset),
       child: Container(
         width: math.min(wide ? 760.0 : 550.0, screen.width - 2 * inset),
-        height: math.min(720.0, screen.height - 2 * AppSpacing.lg),
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        height: dialogHeight,
+        padding: EdgeInsets.all(compact ? AppSpacing.sm : AppSpacing.lg),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // The title is the part that gives way: the icon and the
-                // close button have fixed sizes, a sentence does not.
-                Expanded(
-                  child: Row(
-                    children: [
-                      Icon(Icons.tune, color: colors.accent, size: 22),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'Board Setup',
-                          style:
-                              AppText.title.copyWith(color: colors.textPrimary),
-                          overflow: TextOverflow.ellipsis,
+            // On a short dialog the title and the tabs share one row.
+            //
+            // Asked for on 19.9.2026: „prostor iznad može da se smanji što je
+            // moguće više". Stacked they are 48 + 12 + 46 = 106 of the 268 a
+            // phone held sideways has; on one row they are 46, and the 60 goes
+            // to the board. The title keeps its place rather than being
+            // dropped: a dialog that does not say what it is is worse than a
+            // smaller board.
+            if (compact)
+              SizedBox(
+                height: 46,
+                child: Row(
+                  children: [
+                    Icon(Icons.tune, color: colors.accent, size: 18),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Board Setup',
+                      style: AppText.body.copyWith(color: colors.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(child: _tabBar(colors, compact, scrollTabs)),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.close, color: colors.textMuted),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // The title is the part that gives way: the icon and the
+                  // close button have fixed sizes, a sentence does not.
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.tune, color: colors.accent, size: 22),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'Board Setup',
+                            style: AppText.title
+                                .copyWith(color: colors.textPrimary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, color: colors.textMuted),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              indicatorColor: colors.accent,
-              labelColor: colors.accent,
-              unselectedLabelColor: colors.textMuted,
-              tabs: [for (final tab in _tabs) tab.tab],
-            ),
-            const SizedBox(height: AppSpacing.md),
+                  IconButton(
+                    icon: Icon(Icons.close, color: colors.textMuted),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              _tabBar(colors, compact, scrollTabs),
+            ],
+            SizedBox(height: compact ? AppSpacing.xs : AppSpacing.md),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -389,6 +454,28 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       ),
     );
   }
+
+  /// Scrollable only where the labels cannot all be seen at once.
+  ///
+  /// Five of them need 443dp of tabs and a 360dp phone gives the strip 304, so
+  /// upright they scroll — and that is the better of the two: a filled bar at
+  /// 304 gives each tab 61 and every label is cut off mid-word, which cannot be
+  /// read at all. Where they do fit the bar fills instead, and a caller with
+  /// two tabs fits anywhere.
+  ///
+  /// A scrollable bar in Material 3 also pays a 52dp leading offset, and it
+  /// lets a tab sit past the right edge, which is how „FEN String" came to read
+  /// „N String" on a phone.
+  Widget _tabBar(AppColorTokens colors, bool compact, bool scrollTabs) =>
+      TabBar(
+        controller: _tabController,
+        isScrollable: scrollTabs,
+        tabAlignment: scrollTabs ? TabAlignment.start : null,
+        indicatorColor: colors.accent,
+        labelColor: colors.accent,
+        unselectedLabelColor: colors.textMuted,
+        tabs: [for (final t in _tabs) t.tabWidget(compact: compact)],
+      );
 
   /// A tab that fills its height where it fits and scrolls where it does not.
   ///
@@ -555,291 +642,596 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     ]);
   }
 
+  /// White's six, then Black's six, in the same order on both rows.
+  ///
+  /// The eraser is deliberately not among them: it is an action, not a piece,
+  /// and as a thirteenth chip it was the one item that pushed the row past
+  /// every screen this app runs on.
+  static const _whitePalette = ['P', 'N', 'B', 'R', 'Q', 'K'];
+  static const _blackPalette = ['p', 'n', 'b', 'r', 'q', 'k'];
+
+  /// A palette cell, and six of them plus their gaps: 6*38 + 5*4 = 248.
+  ///
+  /// That is the number the rest of this tab is built around. The narrowest
+  /// phone still in use is 320dp, which leaves 264 inside the dialog's
+  /// padding, so the row fits there without wrapping and without scrolling.
+  static const _paletteCell = 38.0;
+
+  /// The width the controls need beside the board before the split is worth
+  /// making: the palette's 248, plus room for a castling chip to sit beside
+  /// its neighbour rather than under it.
+  static const _controlsWidth = 260.0;
+
+  /// The content width at which the controls move from under the board to
+  /// beside it. Below it they stack; above it the dialog is a row.
+  ///
+  /// 620 was a guess and it was 180 too high: the controls need 260 and a board
+  /// needs 140 at the very least, which is 412 with the gap. The owner's phone
+  /// held sideways gives 555, and at 620 it was still getting the stacked
+  /// layout — a board sized from the height, which on that screen is 300.
+  static const _sideBySideWidth = 440.0;
+
   Widget _buildManualBuilderTab() {
     final colors = context.colors;
-    const paletteKeys = [
-      'P',
-      'N',
-      'B',
-      'R',
-      'Q',
-      'K',
-      'p',
-      'n',
-      'b',
-      'r',
-      'q',
-      'k',
-      'CLEAR'
-    ];
 
-    // The board takes what is left over — except where there is nothing left
-    // over. A dialog on a 320 dp phone has room for the palette, the castling
-    // rights and the button, and about eighteen pixels of board, so on a short
-    // tab the column scrolls and the board is sized from the width instead.
+    // The button that finishes the job is pinned, not scrolled to.
     //
-    // Written as one branch rather than as a squeeze because the squeeze is
-    // what broke here before: the castling rights gained real names on
-    // 8.9.2026 („Beli O-O" instead of `K`), the row went to two lines, and the
-    // column overflowed by sixteen pixels — invisible in a release build,
-    // where the chips would simply have been unreachable again.
+    // It used to be the last child of a column that was taller than the tab on
+    // every size measured — 918 on a 360dp phone, 1142 on a phone held
+    // sideways. A scroll view found it, and so did any test asking whether it
+    // existed, which is why this went unnoticed: the question worth asking is
+    // where the button *is*, not whether it is there.
     return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth >= _sideBySideWidth;
+      final short = constraints.maxHeight < 300;
+      return Column(
+        children: [
+          Expanded(
+            child: wide ? _builderSideBySide(colors) : _builderStacked(colors),
+          ),
+          SizedBox(height: short ? AppSpacing.xs : AppSpacing.sm),
+          _builderConfirmButton(colors, compact: short),
+        ],
+      );
+    });
+  }
+
+  /// Board on the left, everything that acts on it on the right.
+  ///
+  /// This is the shape a desktop and a phone held sideways now share, and it
+  /// is what fixes both of the faults reported on 19.9.2026. The board is
+  /// sized from **both** dimensions: sizing it from the width alone is what
+  /// put a 724x724 board inside a 398-tall dialog on a 932x430 phone, and a
+  /// column can never use the width a landscape screen has most of.
+  Widget _builderSideBySide(AppColorTokens colors) {
+    return LayoutBuilder(builder: (context, c) {
+      final side = math.min(
+        c.maxHeight,
+        math.min(
+          c.maxWidth * 0.6,
+          math.max(140.0, c.maxWidth - _controlsWidth - AppSpacing.md),
+        ),
+      );
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: side,
+            height: side,
+            child: _builderBoardGrid(colors),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          // The controls scroll *vertically* where they do not fit. That is
+          // the whole difference from what was here before: a mouse wheel and
+          // a thumb both scroll down, and neither scrolls a horizontal strip.
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _builderPalette(colors),
+                  const SizedBox(height: AppSpacing.sm),
+                  // The three buttons sit **below** the side to move and the
+                  // castling rights, asked for on 19.9.2026. What a trainer
+                  // does constantly is arm a piece and place it; „clear the
+                  // whole board" is a thing they do once, and it had been
+                  // sitting between the palette and everything else.
+                  _builderPositionControls(colors),
+                  const SizedBox(height: AppSpacing.sm),
+                  _builderActions(colors, compact: false),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  /// Palette, board, controls, in that order down the screen.
+  ///
+  /// The board takes what is left over where there is anything left over. On a
+  /// tab too short for that the column scrolls and the board is sized from the
+  /// height as well as the width — never from the width alone.
+  Widget _builderStacked(AppColorTokens colors) {
+    return LayoutBuilder(builder: (context, c) {
       // Both dimensions, because the controls below the board grow *sideways*
       // and pay for it in height: on a narrow tab the four castling rights
       // wrap onto a second and third line and take the board's space with
-      // them. A height test alone let a 320 dp phone through by sixteen
-      // pixels, which is how this was found — by the test written for the last
-      // time it happened.
-      final tall = constraints.maxHeight >= 420 && constraints.maxWidth >= 380;
-      final column = _builderColumn(colors, paletteKeys, tall, constraints);
+      // them. A height test alone let a 320dp phone through by sixteen pixels.
+      final tall = c.maxHeight >= 380 && c.maxWidth >= 300;
+      final column = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _builderPalette(colors),
+          const SizedBox(height: AppSpacing.xs),
+          if (tall)
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1.0,
+                child: _builderBoardGrid(colors),
+              ),
+            )
+          else
+            // The smaller of the two, which is what „fits on the screen"
+            // means. A fraction of the height was tried first and cost
+            // portrait a quarter of its board for nothing: on a phone held
+            // upright the width is already the smaller number, and the column
+            // below scrolls anyway.
+            Center(
+              child: SizedBox(
+                width: math.min(c.maxWidth, c.maxHeight),
+                height: math.min(c.maxWidth, c.maxHeight),
+                child: _builderBoardGrid(colors),
+              ),
+            ),
+          const SizedBox(height: AppSpacing.xs),
+          _builderPositionControls(colors),
+          const SizedBox(height: AppSpacing.xs),
+          _builderActions(colors, compact: c.maxWidth < 380),
+        ],
+      );
       return tall ? column : SingleChildScrollView(child: column);
     });
   }
 
-  Widget _builderColumn(
-    AppColorTokens colors,
-    List<String> paletteKeys,
-    bool tall,
-    BoxConstraints constraints,
-  ) {
+  /// Two rows of six, White above Black, in the same order on both.
+  ///
+  /// The single row this replaces was 848dp wide on every screen, in a
+  /// horizontal scroll view. The dialog gives it 728 on Windows, so the last
+  /// 120 — Black's queen, Black's king and the eraser — sat past the right
+  /// edge with no scrollbar and nothing a mouse wheel could do about it.
+  /// Reported live on 19.9.2026: „ne može da dohvati do crne dame i crnog
+  /// kralja".
+  ///
+  /// Two rows also say which piece is which without asking anyone to read a
+  /// colour: the row is labelled, and a piece keeps its column between rows.
+  Widget _builderPalette(AppColorTokens colors) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Palette Selection
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: paletteKeys.map((key) {
-              final isSelected = _selectedPalettePiece == key;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
-                child: ChoiceChip(
-                  // The piece stands on a light square, not on the dialog's
-                  // own surface. On a dark surface a black piece is a black
-                  // shape on a dark ground — „crne figure se skoro i ne vide
-                  // od iste pozadine", reported live on 8.9.2026 — and the
-                  // fix has to be a difference in *lightness*, because the
-                  // reader of this app does not read hue.
-                  label: key == 'CLEAR'
-                      ? Icon(Icons.close, size: 18, color: colors.danger)
-                      : Container(
-                          width: 26,
-                          height: 26,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: AppSettingsService
-                                .instance.boardSkin.lightSquare,
-                            borderRadius: AppRadii.roundedXs,
-                          ),
-                          child: chessPieceWidget(key, size: 22),
-                        ),
-                  // And the armed piece is marked by an outline as well as a
-                  // fill, so „which one am I placing" survives without colour.
-                  selected: isSelected,
-                  selectedColor: colors.accent.withValues(alpha: 0.22),
-                  side: BorderSide(
-                    color: isSelected ? colors.accent : colors.border,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  onSelected: (_) {
-                    setState(() => _selectedPalettePiece = key);
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          alignment: WrapAlignment.spaceEvenly,
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
-          children: [
-            OutlinedButton.icon(
-              icon: Icon(Icons.delete_outline, size: 16, color: colors.danger),
-              label: Text('Clear board 🗑️',
-                  style: AppText.caption.copyWith(color: colors.danger)),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: colors.danger),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: AppSpacing.xs),
-              ),
-              onPressed: () {
-                setState(() {
-                  _initBuilderBoardFromFen('8/8/8/8/8/8/8/8 w - - 0 1');
-                });
-              },
-            ),
-            OutlinedButton.icon(
-              icon: Icon(Icons.restart_alt, size: 16, color: colors.accent),
-              label: Text('Starting position 🔄',
-                  style: AppText.caption.copyWith(color: colors.accent)),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: colors.accent),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: AppSpacing.xs),
-              ),
-              onPressed: () {
-                setState(() {
-                  _initBuilderBoardFromFen(
-                      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-                });
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-
-        // 8x8 Board Representation
-        _boardBox(
-          tall: tall,
-          side: constraints.maxWidth,
-          child: AspectRatio(
-            aspectRatio: 1.0,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: colors.accent, width: 2),
-              ),
-              child: GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: 64,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 8),
-                itemBuilder: (context, index) {
-                  final row = index ~/ 8;
-                  final col = index % 8;
-                  final isDarkSquare = (row + col) % 2 == 1;
-                  final piece = _builderBoard[row][col];
-
-                  return InkWell(
-                    // Same three ways to clear a square as the lesson room's
-                    // setup board: tap the armed piece again, long-press, or
-                    // right-click. Switching to the eraser and back to place
-                    // one more piece is the part that made this tedious.
-                    onTap: () {
-                      setState(() {
-                        if (_selectedPalettePiece == 'CLEAR' ||
-                            (piece.isNotEmpty &&
-                                piece == _selectedPalettePiece)) {
-                          _builderBoard[row][col] = '';
-                        } else {
-                          _builderBoard[row][col] = _selectedPalettePiece;
-                        }
-                      });
-                    },
-                    onLongPress: () {
-                      setState(() => _builderBoard[row][col] = '');
-                    },
-                    onSecondaryTap: () {
-                      setState(() => _builderBoard[row][col] = '');
-                    },
-                    child: Container(
-                      // A third board, until 29.8.2026: this editor was teal
-                      // while the thumbnails were green and every live board
-                      // was brown. All three now draw the reader's skin.
-                      color: isDarkSquare
-                          ? AppSettingsService.instance.boardSkin.darkSquare
-                          : AppSettingsService.instance.boardSkin.lightSquare,
-                      child: Center(
-                          child: chessPieceWidget(piece.isEmpty ? null : piece,
-                              size: 28)),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-
-        // Controls: Side to move & Castling.
-        //
-        // One flat Wrap, and every part of it can break: a Row here cost the
-        // castling rights on a phone, overflowing by 168 pixels so that `Q`,
-        // `k` and `q` sat past the right edge where nothing can be tapped.
-        // Nesting Rows inside the Wrap only moved the problem - a Row is as
-        // wide as its contents whatever it sits in, so the label and the
-        // dropdown are children of the Wrap themselves.
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
-          children: [
-            Text('To move:',
-                style: AppText.body.copyWith(color: colors.textMuted)),
-            DropdownButton<PlayerColor>(
-              value: _builderSideToMove,
-              dropdownColor: colors.surface,
-              isDense: true,
-              style: AppText.body.copyWith(color: colors.textPrimary),
-              items: const [
-                DropdownMenuItem(
-                    value: PlayerColor.white, child: Text('⚪ White')),
-                DropdownMenuItem(
-                    value: PlayerColor.black, child: Text('⚫ Black')),
-              ],
-              onChanged: (val) {
-                if (val != null) setState(() => _builderSideToMove = val);
-              },
-            ),
-            const SizedBox(width: AppSpacing.md),
-            // Named the way the room's dialog named them. `K`, `Q`, `k`, `q`
-            // is FEN's spelling, not a person's: the case of a letter is the
-            // only thing separating White's rights from Black's, and a chip
-            // reading „q" tells a trainer nothing about whose queenside it is.
-            Text('Castling:',
-                style: AppText.body.copyWith(color: colors.textMuted)),
-            FilterChip(
-              label: const Text('White O-O', style: AppText.micro),
-              selected: _whiteCastleK,
-              onSelected: (v) => setState(() => _whiteCastleK = v),
-            ),
-            FilterChip(
-              label: const Text('White O-O-O', style: AppText.micro),
-              selected: _whiteCastleQ,
-              onSelected: (v) => setState(() => _whiteCastleQ = v),
-            ),
-            FilterChip(
-              label: const Text('Black O-O', style: AppText.micro),
-              selected: _blackCastleK,
-              onSelected: (v) => setState(() => _blackCastleK = v),
-            ),
-            FilterChip(
-              label: const Text('Black O-O-O', style: AppText.micro),
-              selected: _blackCastleQ,
-              onSelected: (v) => setState(() => _blackCastleQ = v),
-            ),
-          ],
-        ),
-
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.check_circle_outline),
-            label: const Text('Generate and Set Position'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-            ),
-            onPressed: () {
-              final fen = _generateFenFromBuilder();
-              widget.onPositionSet(fen);
-              Navigator.pop(context);
-            },
-          ),
-        ),
+        _paletteLabel('White', colors),
+        _paletteRow(_whitePalette, colors),
+        const SizedBox(height: AppSpacing.xs),
+        _paletteLabel('Black', colors),
+        _paletteRow(_blackPalette, colors),
       ],
     );
   }
 
-  /// Where the board sits in the column: filling what is left on a tab with
-  /// room, and a square of its own width on one without.
-  Widget _boardBox({
-    required bool tall,
-    required double side,
-    required Widget child,
-  }) =>
-      tall
-          ? Expanded(child: child)
-          : SizedBox(width: side, height: side, child: child);
+  Widget _paletteLabel(String text, AppColorTokens colors) => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
+        child:
+            Text(text, style: AppText.micro.copyWith(color: colors.textMuted)),
+      );
+
+  /// A [Wrap] rather than a [Row]: 248 fits the 264 a 320dp phone leaves, but
+  /// a row that is wider than its parent is clipped in a release build, and a
+  /// wrap is merely two lines. Both rows hold the same six cells at the same
+  /// size, so if one wraps the other wraps identically and the columns still
+  /// line up.
+  Widget _paletteRow(List<String> keys, AppColorTokens colors) => Wrap(
+        spacing: AppSpacing.xs,
+        runSpacing: AppSpacing.xs,
+        children: [for (final key in keys) _paletteButton(key, colors)],
+      );
+
+  Widget _paletteButton(String key, AppColorTokens colors) {
+    final isSelected = _selectedPalettePiece == key;
+    return InkWell(
+      key: ValueKey('palette-$key'),
+      borderRadius: AppRadii.roundedXs,
+      onTap: () => setState(() => _selectedPalettePiece = key),
+      child: Container(
+        width: _paletteCell,
+        height: _paletteCell,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          // The piece stands on a light square, not on the dialog's own
+          // surface. On a dark surface a black piece is a black shape on a
+          // dark ground — „crne figure se skoro i ne vide od iste pozadine",
+          // reported live on 8.9.2026 — and the fix has to be a difference in
+          // *lightness*, because the reader of this app does not read hue.
+          color: AppSettingsService.instance.boardSkin.lightSquare,
+          borderRadius: AppRadii.roundedXs,
+          // And the armed piece carries a thicker outline as well as a
+          // brighter one, so „which one am I placing" survives without colour.
+          border: Border.all(
+            color: isSelected ? colors.accent : colors.border,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: chessPieceWidget(key, size: 28),
+      ),
+    );
+  }
+
+  /// The eraser and the two whole-board actions.
+  ///
+  /// The eraser is a mode, so it is drawn as one: it stays lit while it is
+  /// armed, the same way a palette cell does.
+  Widget _builderActions(AppColorTokens colors, {required bool compact}) {
+    void clear() => setState(() {
+          _initBuilderBoardFromFen('8/8/8/8/8/8/8/8 w - - 0 1');
+        });
+    void reset() => setState(() {
+          _initBuilderBoardFromFen(
+              'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        });
+
+    final erase = _actionButton(
+      icon: Icons.backspace_outlined,
+      label: 'Erase',
+      color: colors.accent,
+      idle: colors.border,
+      selected: _selectedPalettePiece == 'CLEAR',
+      compact: compact,
+      onPressed: () => setState(() => _selectedPalettePiece = 'CLEAR'),
+      buttonKey: const ValueKey('palette-CLEAR'),
+    );
+    final clearBoard = _actionButton(
+      icon: Icons.delete_outline,
+      label: 'Clear board',
+      color: colors.danger,
+      idle: colors.danger,
+      selected: false,
+      compact: compact,
+      onPressed: clear,
+    );
+    final startingPosition = _actionButton(
+      icon: Icons.restart_alt,
+      label: 'Starting position',
+      color: colors.accent,
+      idle: colors.accent,
+      selected: false,
+      compact: compact,
+      onPressed: reset,
+    );
+
+    // Three icons in a row where there is no room for words, and otherwise the
+    // shape asked for on 19.9.2026: the two that replace the whole board side
+    // by side and as wide as they can be, the eraser under them. They are not
+    // the same kind of thing — „Erase" arms the pointer and stays lit, the
+    // other two happen once and are over — and a row of three equals said they
+    // were.
+    if (compact) {
+      return Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.xs,
+        children: [erase, clearBoard, startingPosition],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(child: startingPosition),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: clearBoard),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        erase,
+      ],
+    );
+  }
+
+  /// The eraser and the two whole-board actions, labelled where there is room
+  /// and drawn as their icon alone where there is not.
+  ///
+  /// Three labelled buttons need two lines on a 360dp phone, and those 52dp
+  /// come straight off the board. The label survives as a tooltip, which is
+  /// also what keeps it a string literal in `lib/` — the manual quotes these
+  /// words, and `manual_labels_test` fails if they stop existing.
+  Widget _actionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color idle,
+    required bool selected,
+    required bool compact,
+    required VoidCallback onPressed,
+    Key? buttonKey,
+  }) {
+    final style = OutlinedButton.styleFrom(
+      side: BorderSide(color: selected ? color : idle, width: selected ? 2 : 1),
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? AppSpacing.sm : 10, vertical: AppSpacing.xs),
+      minimumSize: Size.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    return Tooltip(
+      message: label,
+      child: compact
+          ? OutlinedButton(
+              key: buttonKey,
+              style: style,
+              onPressed: onPressed,
+              child: Icon(icon, size: 18, color: color),
+            )
+          : OutlinedButton.icon(
+              key: buttonKey,
+              icon: Icon(icon, size: 16, color: color),
+              label: Text(label, style: AppText.caption.copyWith(color: color)),
+              style: style,
+              onPressed: onPressed,
+            ),
+    );
+  }
+
+  Widget _builderBoardGrid(AppColorTokens colors) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.accent, width: 2),
+      ),
+      child: GridView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 64,
+        gridDelegate:
+            const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
+        itemBuilder: (context, index) {
+          final row = index ~/ 8;
+          final col = index % 8;
+          final isDarkSquare = (row + col) % 2 == 1;
+          final piece = _builderBoard[row][col];
+
+          return InkWell(
+            // Row 0 is the eighth rank, as it is in the FEN this writes.
+            key: ValueKey('square-$row-$col'),
+            // Same three ways to clear a square as the lesson room's setup
+            // board: tap the armed piece again, long-press, or right-click.
+            // Switching to the eraser and back to place one more piece is the
+            // part that made this tedious.
+            onTap: () {
+              setState(() {
+                if (_selectedPalettePiece == 'CLEAR' ||
+                    (piece.isNotEmpty && piece == _selectedPalettePiece)) {
+                  _builderBoard[row][col] = '';
+                } else {
+                  _builderBoard[row][col] = _selectedPalettePiece;
+                }
+              });
+            },
+            onLongPress: () {
+              setState(() => _builderBoard[row][col] = '');
+            },
+            onSecondaryTap: () {
+              setState(() => _builderBoard[row][col] = '');
+            },
+            child: Container(
+              // A third board, until 29.8.2026: this editor was teal while the
+              // thumbnails were green and every live board was brown. All
+              // three now draw the reader's skin.
+              color: isDarkSquare
+                  ? AppSettingsService.instance.boardSkin.darkSquare
+                  : AppSettingsService.instance.boardSkin.lightSquare,
+              child: Center(
+                child: chessPieceWidget(piece.isEmpty ? null : piece, size: 28),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// The four castling rights, in the order they are written in a FEN.
+  ///
+  /// `K`, `Q`, `k`, `q` is FEN's spelling, not a person's: the case of a letter
+  /// is the only thing separating White's rights from Black's, and a chip
+  /// reading „q" tells a trainer nothing about whose queenside it is. „White
+  /// O-O" said it and cost the width; „W O-O" says it in a letter that is an
+  /// initial rather than a case, beside an O-O that is already the notation,
+  /// and the full name is a press away in the tooltip.
+  static const _castlingRights = [
+    ('W O-O', 'White kingside'),
+    ('W O-O-O', 'White queenside'),
+    ('B O-O', 'Black kingside'),
+    ('B O-O-O', 'Black queenside'),
+  ];
+
+  /// The width at which the four fit on one line.
+  ///
+  /// Measured rather than guessed, because the first guess was 64 short and the
+  /// gate caught it: „W O-O-O" is **70dp** of text at 10pt and a chip adds
+  /// **20** of padding, so four of them and three gaps is **372**.
+  ///
+  /// It was 444 while the chips drew Material's tick, which is 18 of that
+  /// overhead each — and 444 is more than a phone held sideways has, so the row
+  /// the owner asked for could not have been built with it. The tick is not the
+  /// only way to show a chip is on, and it is not the way the palette four
+  /// inches above does it: **a brighter fill and a thicker border**, which is a
+  /// difference in lightness and in shape and so survives a reader who does not
+  /// read hue. One rule for „this is on", in one dialog.
+  static const _castlingOneRowWidth = 380.0;
+
+  /// Side to move, then the four castling rights in a grid of their own.
+  ///
+  /// They were one flat `Wrap` with the „To move" label and its dropdown, and
+  /// a Wrap fills each line before starting the next — so „White O-O" ended up
+  /// beside the dropdown, the next two shared a line, and the fourth sat alone.
+  /// Reported live on 19.9.2026 with the picture: „ima mesta, samo ih
+  /// rasporedi u dva reda". Their own rows, and `Expanded` rather than
+  /// intrinsic widths, so the four are equal and the grid is a grid.
+  Widget _builderPositionControls(AppColorTokens colors) {
+    return LayoutBuilder(builder: (context, c) {
+      final oneRow = c.maxWidth >= _castlingOneRowWidth;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.sm,
+            children: [
+              Text('To move:',
+                  style: AppText.body.copyWith(color: colors.textMuted)),
+              DropdownButton<PlayerColor>(
+                value: _builderSideToMove,
+                dropdownColor: colors.surface,
+                isDense: true,
+                style: AppText.body.copyWith(color: colors.textPrimary),
+                items: const [
+                  DropdownMenuItem(
+                      value: PlayerColor.white, child: Text('⚪ White')),
+                  DropdownMenuItem(
+                      value: PlayerColor.black, child: Text('⚫ Black')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _builderSideToMove = val);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          // The heading goes where the four are stacked and the eye needs
+          // telling what they are. On one row each chip already reads „W O-O",
+          // and the 24dp the heading costs is 24 the column does not have: a
+          // phone held sideways gives it 218 and it wants a little more.
+          if (!oneRow) ...[
+            Text('Castling:',
+                style: AppText.body.copyWith(color: colors.textMuted)),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+          if (oneRow)
+            Row(children: [
+              for (var i = 0; i < 4; i++) ...[
+                if (i > 0) const SizedBox(width: AppSpacing.xs),
+                Expanded(child: _castlingChip(i, colors)),
+              ],
+            ])
+          else
+            Column(children: [
+              Row(children: [
+                Expanded(child: _castlingChip(0, colors)),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(child: _castlingChip(1, colors)),
+              ]),
+              const SizedBox(height: AppSpacing.xs),
+              Row(children: [
+                Expanded(child: _castlingChip(2, colors)),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(child: _castlingChip(3, colors)),
+              ]),
+            ]),
+        ],
+      );
+    });
+  }
+
+  bool _castlingValue(int index) => switch (index) {
+        0 => _whiteCastleK,
+        1 => _whiteCastleQ,
+        2 => _blackCastleK,
+        _ => _blackCastleQ,
+      };
+
+  void _setCastling(int index, bool value) => setState(() => switch (index) {
+        0 => _whiteCastleK = value,
+        1 => _whiteCastleQ = value,
+        2 => _blackCastleK = value,
+        _ => _blackCastleQ = value,
+      });
+
+  Widget _castlingChip(int index, AppColorTokens colors) {
+    final (label, full) = _castlingRights[index];
+    final on = _castlingValue(index);
+    return Tooltip(
+      message: full,
+      child: FilterChip(
+        key: ValueKey('castling-$index'),
+        label: Center(child: Text(label, style: AppText.micro)),
+        labelPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+        showCheckmark: false,
+        side: BorderSide(
+          color: on ? colors.accent : colors.border,
+          width: on ? 2 : 1,
+        ),
+        selected: on,
+        onSelected: (v) => _setCastling(index, v),
+      ),
+    );
+  }
+
+  /// The button, and the reason it is off.
+  ///
+  /// **A position that is not chess must not leave this dialog.** The FEN tab
+  /// has refused one since 30.8.2026, when a hand-made position with no king
+  /// reached the engine and took the app down with it; the room's paste field
+  /// and the tutorial importer refuse one too. The editor was the one door
+  /// that did not, so the very fault the guard was written for could still be
+  /// built by hand, one piece at a time — two white kings, ten pawns, a pawn
+  /// on the first rank, a king already in check on the side not to move.
+  ///
+  /// [fenIllegalReason] is that rule and this asks it rather than repeating
+  /// any part of it: a second opinion about what chess is would be a second
+  /// answer the day one of them is corrected.
+  ///
+  /// The reason is shown, not hidden behind a disabled button: „you cannot do
+  /// this" without „because there are two white kings" is what sends a trainer
+  /// to count pieces.
+  Widget _builderConfirmButton(AppColorTokens colors, {required bool compact}) {
+    final fen = _generateFenFromBuilder();
+    final illegal = fenIllegalReason(fen);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (illegal != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.error_outline, size: 16, color: colors.danger),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    illegal,
+                    key: const ValueKey('builder-illegal'),
+                    style: AppText.caption.copyWith(color: colors.danger),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.check_circle_outline),
+          label: const Text('Generate and Set Position'),
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(vertical: compact ? 4 : 10),
+          ),
+          onPressed: illegal != null
+              ? null
+              : () {
+                  widget.onPositionSet(fen);
+                  Navigator.pop(context);
+                },
+        ),
+      ],
+    );
+  }
 
   Widget _buildOpeningSearchTab() {
     // The search itself now lives in [OpeningPicker], because the repertoire

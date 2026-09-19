@@ -55,6 +55,109 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Board Setup: paleta u dva reda, tabla iz obe dimenzije — 19.9.2026, u kodu
+
+Vlasnik je prijavio dva kvara u istom dijalogu, sa dve mašine. Na Windowsu se
+u kartici „Piece Placement" nije moglo doći do crne dame i crnog kralja; na
+Androidu u landscape modu tabla nije stala na ekran.
+
+Izmereno pre popravke, ne procenjeno: red palete je **848 dp** na svakoj
+veličini ekrana, a dijalog mu daje **728** — poslednja tri polja (crna dama,
+crni kralj, gumica) su bila van desne ivice, bez skrol trake, a točkić miša
+skroluje drugu osu. Tabla se u kratkoj grani računala samo iz `maxWidth`, što
+je na telefonu 932×430 **veća** dimenzija: **724×724 u dijalogu visokom 398**.
+
+Postojeći test za ovaj widget imao je slučaj baš na 932×430 i bio je zelen:
+**ništa unutar skrola ne može da prekorači**, a slučaj je pitao samo da izuzetka
+nema. Isti test je dokazivao da dugme *postoji* dok je stajalo na y=918 na
+ekranu visokom 640.
+
+Šta je promenjeno:
+
+* **Paleta je dva reda po šest** — beli gore, crni dole, istim redosledom.
+  Ništa se ne skroluje, a red je i dalje čitljiv bez boje: piše mu ime i figura
+  drži svoju kolonu između redova.
+* **Gumica je izašla iz palete.** Ona je radnja, ne figura, i kao trinaesto
+  polje je bila ono što je red gurnulo preko svake ivice. Sada stoji uz „Clear
+  board" i „Starting position" i ostaje upaljena dok je izabrana.
+* **Iznad 620 dp širine sadržaja dijalog je red, ne kolona** — tabla levo, sve
+  ostalo desno. Landscape prestaje da bude poseban slučaj i postaje isti
+  raspored kao desktop, a desktop najzad koristi svoju širinu: tabla je na
+  1280×800 otišla sa **288 na 433**.
+* **Tabla se računa iz obe dimenzije** (`min(širina, visina)`). Prvi pokušaj sa
+  `visina * 0.6` popravio je landscape i uzeo portretu četvrtinu table (300 →
+  220), jer uspravno je širina ionako manji broj.
+* **Dugme je prikovano za dno**, van skrola, pa nijedna veličina ne može da ga
+  spusti ispod ivice.
+* Na uskom rasporedu kartice gube ikonice (72 → 46 dp), a tri radnje se crtaju
+  samo ikonicom sa imenom u tooltipu.
+* **Imena kartica su skraćena** (traženo posebno): „FEN", „PGN", „Pieces",
+  „Openings", „Online". Stara imena su izmerena na **846 dp teksta i 974 dp
+  trake naspram 728 dp bara — 314 preko desne ivice na svakoj veličini, i na
+  desktopu**; zato je prva kartica čitala „N String". Traka se sada **puni** po
+  širini umesto da se skroluje svuda gde imena staju, pa ništa ne može da
+  isklizne. Uspravno sa pet kartica (Analyse na telefonu) i dalje se skroluje:
+  pet reči ne staje u 304 dp, a puna traka bi svakoj dala 61 i presekla svaku
+  reč — pročitati se ne bi moglo ništa.
+
+Nove provere su dokazane mutacijom, i prve dve mutacije su bile **pogrešno
+crvene**: jedna je pala na duplirani ključ umesto na prekoračenje, a druga je
+prošla zelena — `SizedBox` se steže na ono što mu roditelj daje, pa tabla
+tražena na 437 u redu visokom 260 ne ispadne prevelika nego **437×260**.
+Spljoštena tabla prolazi svako pitanje o tome da li staje. Provera zato pita i
+da li je tabla **kvadratna**.
+
+**Druga runda, isti dan.** Vlasnik je pogledao rezultat i tražio još tri stvari:
+
+* **Dugmad idu ispod** strane na potezu i prava na rokadu. „Starting position" i
+  „Clear board" su sada red od dva, jednako široka, a „Erase" ispod njih. Nisu
+  ista vrsta stvari — „Erase" naoruža pokazivač i ostaje upaljen, druga dva se
+  dogode jednom i gotovo — a red od tri je govorio da jesu.
+* **Telefon položeno prijavljuje 667×300**, pa ga je prag od 700 čitao kao
+  uspravan telefon i davao mu 550 širine. Oba broja su bila pogođena napamet:
+  620 je bilo 180 previše (kontrole traže 260, tabla bar 140, to je 412 sa
+  razmakom). Sa 640 i 440 telefon dobija raspored „tabla levo, dugmad desno", a
+  tabla je otišla 142 → **162** tamo, 198 → **288** na 932×430, i 128 → **222**
+  na 800×360.
+* **Zaglavlje gubi drugi red** na niskom dijalogu: naslov i kartice jedno ispod
+  drugog su 48 + 12 + 46 = 106 od 284 koliko taj telefon ima, a u jednom redu
+  46. Naslov ostaje — dijalog koji ne kaže šta je gori je od manje table.
+
+**I pozicija koja nije šah više ne izlazi iz dijaloga.** `fenIllegalReason`
+postoji od 30.8.2026 i pita ga pet mesta: motor, njegov stub, uvoz tutorijala,
+lepljenje FEN-a u sobi i FEN kartica ovog dijaloga. **Editor figura pored te
+kartice nije.** Znači da se tačno onaj kvar zbog kog je provera napisana i
+dalje mogao složiti rukom, figuru po figuru. Sada se pita ista provera (ne
+druga — drugo mišljenje o tome šta je šah je drugi odgovor onog dana kad se
+jedno ispravi), razlog se ispiše crveno iznad dugmeta, a dugme se gasi. Pokriva
+dva bela kralja, deset pešaka, promocije koje nema ko da plati, pešaka na prvom
+redu i stranu koja **nije** na potezu a već je u šahu.
+
+**Treća runda: rokade.** Bile su u istom `Wrap`-u sa „To move" i njegovim
+padajućim menijem, a Wrap puni red pa tek onda počinje novi — zato je „White
+O-O" završio pored menija, sledeća dva delila red, a četvrti stajao sam. Sada su
+svoja mreža: **dva reda po dva** gde ima mesta (Windows, portret), **jedan red
+od četiri** gde nema (telefon položeno), sa `Expanded` pa su sve četiri jednake.
+Tekst je skraćen svuda — „W O-O", „W O-O-O", „B O-O", „B O-O-O" — a puno ime je
+u tooltipu. Slovo je inicijal, ne veličina slova, pa i dalje kaže čije je pravo.
+
+Prag „staje u jedan red" prvo je bio 380 i **falilo mu je 64**: „W O-O-O" je 70
+dp teksta, a čip je dodavao 38, od čega 18 Material-ova kvačica. Kvačica je
+izbačena, a upaljen čip se sada vidi isto kao polje u paleti — **svetlija
+ispuna i deblji okvir**, dakle razlika u svetlini i obliku, ne u boji. Četiri
+stanu u 372.
+
+**Na telefonu položeno (667×300) kolona i dalje ima 106 dp ispod pregiba**:
+vidi se paleta, „To move" i gornji deo reda rokada, a „Erase" i dno tog reda
+traže mali skrol. Na 932×430 sve staje bez skrola. Vlasnik je rekao da je
+„Erase" tako u redu.
+
+**Provereno uživo 19.9.2026**: vlasnik je prošao dijalog na Windowsu i na
+telefonu, uspravno i položeno, i potvrdio sve — `TODO-provera.md`, stavka
+**188**, zatvorena istog dana.
+
+---
+
 ## Zadatak (Exercise) — plan — 18–19.9.2026, faze 1–5 u kodu
 
 Vlasnik: **trener ne šalje poziciju nego zadatak sa ciljem** — pozicija + cilj,
