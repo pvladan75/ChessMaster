@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **19.9.2026** — najnovije je „Zadatak: vlasnikova provera 19.9.2026“ odmah ispod ove glave (faze 8 i 9 u kodu — stavke 189 i 190; faze 10–12 otvorene), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; ostaje samo opciona faza 6) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **19.9.2026** — najnovije je „Zadatak: vlasnikova provera 19.9.2026“ odmah ispod ove glave (faze 8, 9 i 10 u kodu — stavke 189, 190 i 191; faze 11 i 12 otvorene), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; ostaje samo opciona faza 6) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -55,7 +55,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Zadatak: vlasnikova provera 19.9.2026 — faze 8 i 9 u kodu, 10–12 otvorene
+## Zadatak: vlasnikova provera 19.9.2026 — faze 8, 9 i 10 u kodu, 11 i 12 otvorene
 
 Vlasnik je prošao 185.1–5 i 186.1–2 i poslao dve prijave (kao učenik na
 telefonu, kao trener na Windows-u). Prošlo: 185.2, 185.3, 186.1, 186.2. Sedam
@@ -126,8 +126,23 @@ stavku otvara pregled, ne tablu. Aplikacija **3212** (3195 + 17 testova kapije),
 nepromenjen na 26 poznatih info. Provera uživo:
 **stavka 190**. Nije u ovoj fazi: prolazak kroz učenikove poteze na živoj tabli.
 
-**Otvoreno, redom:** faza 10 (birač i čip
-„Exercises" prikazuju samo ono čemu se može suditi), faza 11 (otvaranje i
+**Faza 10 — u kodu (vođa, 19.9.2026), samo aplikacija, bez restarta servera.**
+Odgovor na vlasnikovo pitanje „gde su skenirane pozicije dobile status zadatka":
+sken čija je knjiga **odštampala rešenje** jeste pravi „Find the move" zadatak
+još od faze 1 (`solution_san`) i tu mu je mesto; sken **bez** rešenja je bio
+tamo samo zato što je `LibraryEntry.isExercise` glasio `kind == scan`, a
+`exerciseAskOf` red bez zadatka čita kao „find". Server je sve potrebno već slao
+na svakom redu (`hasSolution`, `task`, `assignable`, `blockedReason`). Sada:
+`isExercise` = sken sa rešenjem, ili partija — jedno mesto, koje pitaju čipovi,
+birač, podnaslov reda i pregled table. Čip „Exercises" prikazuje zadatke; goli
+sken stoji pod **„Positions"**, red mu kaže izvor i ne tvrdi nikakav zadatak;
+birač za domaći nudi samo zadatke. Pravilo „blokirano ali vidljivo" ostaje,
+suženo: zadatak **označen za pregled** se i dalje vidi siv, sa razlogom — njega
+trener može da popravi. Šest fixture-a u četiri starija test-fajla dobilo je
+`hasSolution` koji prava žica uvek nosi. Aplikacija **3218**. Provera uživo:
+**stavka 191**.
+
+**Otvoreno, redom:** faza 11 (otvaranje i
 izmena sačuvanog zadatka), faza 12 (motor, „u Analizu" i kopiranje FEN-a desnim klikom
 na tablu ugašeni dok je stavka domaćeg otvorena).
 

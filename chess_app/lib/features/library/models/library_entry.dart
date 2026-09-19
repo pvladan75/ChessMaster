@@ -147,9 +147,19 @@ class LibraryEntry {
   /// „find".
   final Map<String, dynamic>? task;
 
-  /// A scan is the one kind this phase calls an exercise — a position plus a
-  /// task. A bare position is not: decision 1 of `docs/PLAN-EXERCISE.md`.
-  bool get isExercise => kind == LibraryKind.scan;
+  /// An exercise is a position **plus something to judge an answer by**
+  /// (decision 1 of `docs/PLAN-EXERCISE.md`): a scan that carries a solution,
+  /// or one whose task is a game, which its ending judges. A scan whose book
+  /// printed no answer is a position that happens to come from a book — it
+  /// gets its meaning by being put in an exercise.
+  ///
+  /// Until phase 10 this was `kind == scan`, and with `exerciseAskOf` reading
+  /// a task-less row as „find" every scanned diagram stood on the Exercises
+  /// shelf and in the homework picker, where the server then refused it (the
+  /// owner's live pass of 19.9.2026). One home: the chips, the picker, the
+  /// row's subtitle and the preview all ask this.
+  bool get isExercise =>
+      kind == LibraryKind.scan && (hasSolution || task?['type'] == 'game');
 
   factory LibraryEntry.fromJson(Map<String, dynamic> json) => LibraryEntry(
         kind: libraryKindFrom(json['kind']?.toString()) ?? LibraryKind.position,

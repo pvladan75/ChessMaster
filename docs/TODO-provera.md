@@ -5878,6 +5878,20 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 191. Zadatak: „Exercises" i birač za domaći prikazuju samo zadatke — 19.9.2026, nije viđeno uživo
+
+`PLAN-EXERCISE.md`, faza 10. Samo aplikacija — server ne mora da se restartuje.
+
+1. [ ] **Library → „Exercises"**: skenirane pozicije **bez rešenja** više nisu tu;
+   ostaju skenovi koji imaju odštampano rešenje, zadaci napravljeni u Preparation
+   i partije („Win", „Draw or better").
+2. [ ] **Library → „Positions"**: tu su sada i skenovi bez rešenja; red kaže knjigu i
+   stranu, a **ne** „Find the move".
+3. [ ] **Domaći → Add → exercises**: u dijalogu više nema redova „has no solution, so
+   an answer cannot be judged" — nude se samo zadaci.
+4. [ ] Zadatak označen „needs review" se i dalje vidi u tom dijalogu, siv, sa
+   razlogom „is marked for review".
+
 ## 190. Zadatak: šta trener vidi od odigrane partije — 19.9.2026, nije viđeno uživo
 
 `PLAN-EXERCISE.md`, faza 9. Server mora da bude restartovan. Potreban je domaći sa

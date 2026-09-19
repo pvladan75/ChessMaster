@@ -4508,3 +4508,37 @@ applied — a `grep -c`, an assert on the replace — before reading the colour.
 
 App **3212** tests (3195 + the gate's 17), 1 skipped; `flutter analyze`
 unchanged at 26 known infos.
+
+## 19.9.2026 — a fixture that left out a field the server always sends
+
+Phase 10. The owner asked where his scanned diagrams had got the status of an
+exercise. Half of them had earned it — a scan whose book printed an answer has
+been a find-the-move exercise since phase 1. The other half had it by default:
+`isExercise` was `kind == scan`, and `exerciseAskOf` reads a row with no task as
+„find", which is right for an exercise and is exactly how every diagram became
+one. Two defaults, each reasonable, multiplied.
+
+The server was never wrong. Every row of `GET /library/positions` has carried
+`hasSolution` since phase 4, and the app read it into `LibraryEntry` and asked
+it of nothing. No test could notice, because **every fixture that built a
+scanned row left the field out** — eleven tests across four files went red the
+moment the rule read it, none of them about the rule. That is rule 6 in its
+quietest form: not a fixture that is wrong, a fixture that is *shorter than the
+wire*. A `fromJson` that defaults an absent field makes the short fixture
+compile and pass; the new test file spells a row the way `listScanned` does,
+field for field, and says so at the top.
+
+One older test asserted the opposite of the new rule — „an entry that cannot be
+homework says so instead of vanishing" — and it was right to, for its case.
+The rule was narrowed, not deleted: an exercise the trainer can fix (marked for
+review) stays visible and greyed; a diagram with nothing to judge was never an
+exercise. When a new rule breaks an old test, ask which of the old test's cases
+the owner would still want.
+
+And on tooling, twice in one hour: a script that patches a script, to fix an
+anchor that matched four times, failed on the same anchor. After the second
+failed patch, open the file.
+
+App **3218** tests (3212 + 6), 1 skipped; `flutter analyze` unchanged at 26 known
+infos. Four mutations, each asserted to have applied, each red on the right
+test.

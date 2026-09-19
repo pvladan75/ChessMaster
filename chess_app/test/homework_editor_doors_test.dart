@@ -78,6 +78,7 @@ class _MultiRecorder {
                     'title': 'Mate in 2',
                     'fen': '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
                     'assignable': true,
+                    'hasSolution': true,
                   },
                   // A game exercise — made in Preparation since phase 3b, and
                   // picked here through the same „Exercises" door as a

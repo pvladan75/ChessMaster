@@ -81,8 +81,13 @@ Map<String, dynamic> _wire(String id,
       'id': id,
       'title': title,
       'fen': fen,
+      // As `listScanned` spells a row: a find exercise carries its solution, a
+      // game carries none, and one that cannot be sent is marked for review —
+      // a scan with *no* solution is not an exercise at all
+      // (`exercise_shelves_test.dart`).
+      if (kind == 'scan') 'hasSolution': task == null || task['type'] != 'game',
       'assignable': assignable,
-      'blockedReason': assignable ? null : 'has no solution',
+      'blockedReason': assignable ? null : 'is marked for review',
       if (origin != null) 'origin': origin,
       if (task != null) 'task': task,
     };
@@ -127,8 +132,8 @@ void main() {
       final made = _entry('ex_1', origin: 'manual', task: _hold);
       expect(made.origin, 'manual');
       expect(exerciseAskOf(made.task), ExerciseAsk.hold);
-      expect(exerciseTaskWords(made.task),
-          'Draw or better as Black, for 4 moves');
+      expect(
+          exerciseTaskWords(made.task), 'Draw or better as Black, for 4 moves');
 
       expect(_entry('7', kind: 'position').isExercise, isFalse);
     });
@@ -220,7 +225,8 @@ void main() {
       expect(items.every((i) => i.gate == false), isTrue);
     });
 
-    test('a game\'s task is copied whole, with its position, and is a task the '
+    test(
+        'a game\'s task is copied whole, with its position, and is a task the '
         'server reads', () {
       final item = homeworkItemsFromExercises(
           [_entry('g2', origin: 'manual', task: _hold)]).single;
@@ -230,7 +236,8 @@ void main() {
       expect(item.task['surviveMoves'], 4);
       expect(item.task['level'], 'tesko');
       expect(item.task.containsKey('type'), isFalse,
-          reason: '`type` is the exercise\'s word, not the engine-game task\'s');
+          reason:
+              '`type` is the exercise\'s word, not the engine-game task\'s');
       // Copied, not shared: editing the item must not edit the entry.
       item.task['goal'] = 'win';
       expect(_hold['goal'], 'hold');
@@ -251,7 +258,8 @@ void main() {
   group('the board without opening a board', () {
     Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
-    testWidgets('a row of a position or an exercise draws its board, and a '
+    testWidgets(
+        'a row of a position or an exercise draws its board, and a '
         'tutorial\'s does not', (tester) async {
       tester.view.physicalSize = const Size(360, 640);
       tester.view.devicePixelRatio = 1.0;
@@ -282,7 +290,9 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(wrap(LibraryList(
-        entries: [_entry('g2', origin: 'manual', task: _hold, title: 'Hold it')],
+        entries: [
+          _entry('g2', origin: 'manual', task: _hold, title: 'Hold it')
+        ],
         onOpen: (_) {},
       )));
       await tester.pumpAndSettle();
@@ -303,7 +313,9 @@ void main() {
 
       final opened = <String>[];
       await tester.pumpWidget(wrap(LibraryList(
-        entries: [_entry('g2', origin: 'manual', task: _hold, title: 'Hold it')],
+        entries: [
+          _entry('g2', origin: 'manual', task: _hold, title: 'Hold it')
+        ],
         onOpen: (e) => opened.add(e.id),
       )));
       await tester.pumpAndSettle();
@@ -319,7 +331,8 @@ void main() {
       expect(opened, ['g2']);
     });
 
-    testWidgets('the preview says the name, the task and who is to move — in '
+    testWidgets(
+        'the preview says the name, the task and who is to move — in '
         'words', (tester) async {
       tester.view.physicalSize = const Size(360, 640);
       tester.view.devicePixelRatio = 1.0;

@@ -20,6 +20,9 @@ LibraryEntry _entry(LibraryKind kind, String title,
       id: '${kind.name}-$title',
       title: title,
       fen: kind == LibraryKind.recording ? '' : '8/8/8/8/8/8/8/K6k w - - 0 1',
+      // As the server spells a scan whose book printed an answer; a scan
+      // without one is a position (`exercise_shelves_test.dart`).
+      hasSolution: kind == LibraryKind.scan,
       assignable: false,
       partsCount: parts,
       hasVideo: video,

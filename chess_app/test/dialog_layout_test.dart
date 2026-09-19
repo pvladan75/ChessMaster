@@ -53,6 +53,7 @@ void main() {
             title: 'Mat u 333 #$i',
             fen: '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
             assignable: true,
+            hasSolution: true,
           ),
         ),
       ),
@@ -67,7 +68,10 @@ void main() {
     // 18.9.2026: for `PickerPurpose.homework` a position is no longer greyed
     // out, it is not offered at all — only an exercise can be homework. This
     // rule (blocked-but-visible) still applies to an exercise the server
-    // refuses, so the fixture moved to a scan.
+    // refuses, so the fixture moved to a scan. Narrowed again 19.9.2026
+    // (phase 10): a scan with **no solution** is not an exercise and is not
+    // listed — what stays visible is an exercise the trainer can fix, one
+    // marked for review.
     await pumpDialog(
       tester,
       PositionPickerDialog(
@@ -79,8 +83,10 @@ void main() {
             id: 'cust_3',
             title: 'Završnica',
             fen: '8/8/8/8/8/8/8/K6k w - - 0 1',
+            hasSolution: true,
+            needsReview: true,
             assignable: false,
-            blockedReason: 'has no solution, so an answer cannot be judged',
+            blockedReason: 'is marked for review',
           ),
         ],
       ),
@@ -88,7 +94,7 @@ void main() {
 
     // Hiding it would read as a bug — the trainer knows they saved it.
     expect(find.text('Završnica'), findsOneWidget);
-    expect(find.textContaining('has no solution'), findsOneWidget);
+    expect(find.text('is marked for review'), findsOneWidget);
   });
 
   testWidgets('a bare position is not offered for homework, only an exercise',
@@ -112,6 +118,7 @@ void main() {
             title: 'Mate in 1',
             fen: '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
             assignable: true,
+            hasSolution: true,
           ),
         ],
       ),

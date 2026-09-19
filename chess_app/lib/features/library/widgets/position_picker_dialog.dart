@@ -251,8 +251,16 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
     // A bare position (or an analysis) cannot be put in a homework, whatever
     // kind chip is selected — the server can still send every kind when „all"
     // is chosen, so this is read here rather than trusted from the chip row.
+    //
+    // And for a homework a scan must be an exercise: a diagram with no answer
+    // was listed here only to be marked „has no solution" — a screen of rows
+    // the dialog refused, above the two it could send (the owner's live pass
+    // of 19.9.2026). An exercise that cannot be sent *yet* — marked for
+    // review — stays, greyed, with the reason: that one is the trainer's to
+    // fix.
     final entries = (_entries ?? const <LibraryEntry>[])
         .where((e) => _kindChips.contains(e.kind))
+        .where((e) => widget.purpose != PickerPurpose.homework || e.isExercise)
         .toList();
     if (entries.isEmpty) {
       return Padding(

@@ -123,8 +123,15 @@ enum LibraryChip {
   /// The kinds the chip shows; null shows every kind.
   final Set<LibraryKind>? kinds;
 
-  bool shows(LibraryEntry entry) =>
-      kinds == null || kinds!.contains(entry.kind);
+  /// [kinds] is what the chip can hold; this is what it shows. The two part
+  /// company over a scan: one with something to judge is an exercise, one
+  /// without is a position (`LibraryEntry.isExercise`).
+  bool shows(LibraryEntry entry) => switch (this) {
+        LibraryChip.exercises => entry.isExercise,
+        LibraryChip.positions => entry.kind == LibraryKind.position ||
+            (entry.kind == LibraryKind.scan && !entry.isExercise),
+        _ => kinds == null || kinds!.contains(entry.kind),
+      };
 }
 
 class _LibraryListState extends State<LibraryList> {
@@ -190,8 +197,12 @@ class _LibraryListState extends State<LibraryList> {
       case LibraryKind.scan:
         // An exercise's subtitle starts with what it asks; the source (book,
         // page) rides after it when there is one.
-        final words = exerciseTaskWords(entry.task);
+        // A scan with nothing to judge asks nothing: its source alone.
         final source = entry.subtitle;
+        if (!entry.isExercise) {
+          return source.isEmpty ? 'scanned position' : source;
+        }
+        final words = exerciseTaskWords(entry.task);
         return source.isEmpty ? words : '$words · $source';
       case LibraryKind.position:
         return 'saved position';

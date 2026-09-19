@@ -43,6 +43,7 @@ void main() {
         title: 'Find one',
         fen: _fen,
         assignable: true,
+        hasSolution: true,
       ),
       const LibraryEntry(
         kind: LibraryKind.scan,
@@ -144,6 +145,7 @@ void main() {
             title: 'An exercise',
             fen: _fen,
             assignable: true,
+            hasSolution: true,
           ),
           const LibraryEntry(
             kind: LibraryKind.position,
@@ -198,6 +200,7 @@ void main() {
                     'title': 'Mate in 1',
                     'fen': _fen,
                     'assignable': true,
+                    'hasSolution': true,
                   },
                   {
                     'kind': 'scan',
