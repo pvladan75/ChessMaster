@@ -101,6 +101,10 @@ jobs:
         timeout-minutes: 10
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+          # Every child `node --test` starts inherits this. A test process still
+          # alive after twenty seconds prints what is holding it open — the one
+          # hang of 19.9.2026 that would not reproduce off this runner.
+          NODE_OPTIONS: --require ./test/support/whatHoldsMe.js
         run: |
           cd chess_backend
           npm test

@@ -4194,3 +4194,26 @@ is where this class of fault lives — twice in one morning, both in the same
 fifteen lines. And the reason four freezes went five weeks without a diagnosis
 is that a hang reports nothing: the fix was not cleverness, it was **giving
 every wait a ceiling and reading what came out.**
+
+## 19.9.2026 - Three hung files became one, and the one would not reproduce
+
+The socket fix went to CI: `pass 1596, cancelled 1`. The new teardown gate
+passed there, `exercise_schema` and `puzzle_resolution` exit now, and
+`exercise_authoring.test.js` still passes every test and then sits until the
+ceiling. It is the only database file that loads a route, so the route was
+probed: requiring it leaves nothing running, its handlers use `pool.query`
+only, and the file itself - run the way CI runs it, no `.env`, `CI=true`, a
+real PostgreSQL - passes 12 of 12 and exits in a second on the workstation.
+
+**A hang that will not reproduce is diagnosed where it happens or not at
+all.** `test/support/whatHoldsMe.js` is preloaded in CI through `NODE_OPTIONS`:
+in a child of `node --test` still alive after twenty seconds, an unref'd timer
+prints every open handle - sockets with both ends, timers, servers, child
+processes. Watched on a planted hang (it names the file and what it holds) and
+on a healthy file (silent); limited to children, because the runner lives as
+long as the suite and its pipes are not news.
+
+The runner counts a support file with no tests in it as one passing test, so
+the counts moved by one without a test being written: **1597** with the
+database, **1511** without. That is also why `pgTestDb.js` has always been in
+the total.
