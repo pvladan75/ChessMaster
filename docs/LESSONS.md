@@ -4143,3 +4143,54 @@ weeks of green runs hid it and why it only showed on a four-core runner with
 PostgreSQL in a container. **An `EventEmitter` you did not give an `error`
 listener is a process you agreed to lose**, and the place it will be lost is
 the place no assertion is watching.
+
+## 19.9.2026 — The freeze, named: `end()` is a request to close, not a close
+
+The ceiling added that morning paid for itself twice. The first run named a
+missing `error` listener; the second named the freeze itself. Backend step
+red in 80 seconds, `tests 1597, pass 1594, fail 0, **cancelled 3**`:
+
+    ok 305 - exercises on a real database        (duration_ms: 776)
+    not ok 26 - test/exercise_authoring.test.js  (duration_ms: 60002)
+      failureType: 'testTimeoutFailure'
+
+Three database files, `exercise_authoring`, `exercise_schema` and
+`puzzle_resolution`. **Every test in them passed, the suite closed, and then
+the process did not exit.** `node --test` waits for its child, so the run
+waited — sixty seconds now, six hours before the ceiling. And `ok 305` is
+character for character where the frozen 02:06 run had stopped.
+
+**The first guess was wrong, and measuring it took four minutes.** `pino` is
+configured with a `pino-pretty` transport unless `NODE_ENV=production`, a
+transport is a worker thread, CI has no `.env` — and the only files that log
+are the six that run `initDB`. It fits so well that it was worth a probe: a
+test file that writes forty lines through the real logger exits in 143 ms.
+Not it. **A hypothesis that explains everything is still a hypothesis.**
+
+**What it is: `pool.end()` resolves before the socket is closed.** `pg` sends
+`Terminate` and waits for the *server* to hang up. Measured, immediately after
+`await drop()` returned and with the pool reporting `total=0 idle=0
+ended=true`:
+
+    holding: ["TCPSocketWrap","PipeWrap","PipeWrap"]
+    Socket local:57222 remote:::1:54329 destroyed=false readable=true writable=true
+
+An open `TCPSocketWrap` is a handle, and a handle is a process that will not
+exit. On this workstation the server hangs up a moment later and the socket
+goes; five weeks of local runs therefore saw nothing. On a four-core runner
+with PostgreSQL in a container, not always — and nobody is coming to close it.
+
+`drop()` now destroys what `end()` only asked to close, waiting for each
+socket's own `'close'` rather than a guessed number of ticks, bounded at five
+seconds so a socket that will not die is an assertion and not another hang.
+`test/pg_test_db_teardown.test.js` asserts the helper holds nothing when
+`drop()` returns — two cases, the ordinary one and one where the backends were
+killed first, both watched red on the mutant that leaves the stragglers alone.
+Backend 1594 → **1596** with the database, 1510 without.
+
+**The lesson has three parts.** A method called `end` that resolves is not a
+thing that ended. A test suite's *teardown* is code nothing asserts on, so it
+is where this class of fault lives — twice in one morning, both in the same
+fifteen lines. And the reason four freezes went five weeks without a diagnosis
+is that a hang reports nothing: the fix was not cleverness, it was **giving
+every wait a ceiling and reading what came out.**

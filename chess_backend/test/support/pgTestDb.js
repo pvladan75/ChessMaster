@@ -55,11 +55,52 @@ const TIMEOUTS = { connectionTimeoutMillis: 15000, query_timeout: 60000 };
 /// The error is printed rather than swallowed. A quiet `catch` here would hide
 /// a pool that is losing connections mid-test, which is a real fault and looks
 /// nothing like teardown noise.
+/// It also watches the pool's sockets, because `end()` is a *request* to close
+/// and not a close. `pg` sends `Terminate` and waits for the server to hang up;
+/// measured here on 19.9.2026, a socket to the server is still open, undestroyed
+/// and readable after `pool.end()` has resolved and the pool reports
+/// `total=0 ended=true`. On this workstation it goes a moment later and the
+/// process exits. In CI it does not always, and an open `TCPSocketWrap` is a
+/// handle: `node --test` waits for the child to exit, and the child is waiting
+/// for a socket that nobody is going to close. Three database files hung on
+/// exactly this and were cut down by `--test-timeout` after 60 s; before that
+/// ceiling existed, the same wait ran to the six-hour job limit.
 function unkillable(pool, what) {
+  const open = new Set();
+  pool.on('connect', (client) => {
+    const socket = client.connection && client.connection.stream;
+    if (!socket) return;
+    open.add(socket);
+    socket.once('close', () => open.delete(socket));
+  });
   pool.on('error', (err) => {
     process.stderr.write(`[pgTestDb] idle client on the ${what} pool: ${err.message}\n`);
   });
-  return pool;
+  return { pool, open };
+}
+
+/// Closes for real what `end()` only asked to close. The database is already
+/// gone by the time this runs, so there is nothing left to say politely.
+/// Waits for each socket's own 'close' rather than for a fixed number of turns
+/// — that is the event the sets are keyed on, and guessing at a tick count is
+/// how a teardown check starts passing for the wrong reason. Bounded, because
+/// a socket that will not close is the fault being looked for and must show up
+/// as a failed assertion, not as another hang.
+async function destroyStragglers(...sets) {
+  const left = sets.flatMap((s) => [...s]);
+  const closed = left.map((socket) => {
+    if (socket.closed) return Promise.resolve();
+    const done = new Promise((resolve) => socket.once('close', resolve));
+    socket.destroy();
+    return done;
+  });
+  let timer;
+  await Promise.race([
+    Promise.all(closed),
+    new Promise((resolve) => { timer = setTimeout(resolve, 5000); }),
+  ]);
+  clearTimeout(timer);
+  return left.length;
 }
 
 /// A fresh database with the application's schema on it. Call `drop()` when
@@ -68,12 +109,13 @@ function unkillable(pool, what) {
 let counter = 0;
 async function freshDatabase() {
   const name = `mislisha_test_${process.pid}_${Date.now()}_${counter++}`;
-  const admin = unkillable(new Pool({ connectionString: url, max: 1, ...TIMEOUTS }), 'admin');
+  const { pool: admin, open: adminOpen } =
+    unkillable(new Pool({ connectionString: url, max: 1, ...TIMEOUTS }), 'admin');
   await admin.query(`CREATE DATABASE ${name}`);
 
   const target = new URL(url);
   target.pathname = `/${name}`;
-  const pool = unkillable(
+  const { pool, open: poolOpen } = unkillable(
     new Pool({ connectionString: target.toString(), max: 4, ...TIMEOUTS }),
     'test'
   );
@@ -85,10 +127,15 @@ async function freshDatabase() {
 
   return {
     pool,
+    /// How many sockets this helper still holds open. Zero once `drop()` has
+    /// run — that is what `pg_test_db_teardown.test.js` asserts, and what the
+    /// hung CI runs did not have.
+    stillOpen: () => adminOpen.size + poolOpen.size,
     async drop() {
       await pool.end();
       await admin.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
       await admin.end();
+      return destroyStragglers(poolOpen, adminOpen);
     },
   };
 }
