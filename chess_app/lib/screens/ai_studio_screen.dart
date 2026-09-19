@@ -337,7 +337,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   @override
   void initState() {
     super.initState();
-    if (_assigned) BoardOnScreen.register(_noCopy);
+    if (widget.assignmentId != null) BoardOnScreen.register(_noCopy);
     _initStockfish();
     _startServerHealthCheck();
     // Opened at an exercise rather than at the list of them. After the first
@@ -2754,11 +2754,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     }
   }
 
-  /// A game set by a trainer (`docs/PLAN-EXERCISE.md`, phase 12): no engine
-  /// panel, no engine arrows, no door to Analysis, and no FEN by Ctrl+C. It
-  /// does not stop a second device — the trainer's review of the moves
-  /// played answers that — it stops the one-tap way.
-  bool get _assigned => widget.assignmentId != null;
+  /// A game set by a trainer, **while it is being played**
+  /// (`docs/PLAN-EXERCISE.md`, phase 12): no engine panel, no engine arrows,
+  /// no door to Analysis, and no FEN by Ctrl+C. The purpose decides (owner,
+  /// 19.9.2026): they are off so the student gets no help, so they come back
+  /// the moment the game is over and handed in. It does not stop a second
+  /// device — the trainer's review of the moves played answers that — it
+  /// stops the one-tap way.
+  bool get _assigned => widget.assignmentId != null && !_engineGameFinished;
 
   /// This screen's board has no copy of its own; this keeps Ctrl+C from being
   /// answered by whichever board lies beneath it.

@@ -1,6 +1,10 @@
 // homework_closed_doors_test.dart — phase 12 of `docs/PLAN-EXERCISE.md` (§9,
-// finding 4): while an assigned item is open, the engine, „send to Analysis"
-// and the board's own copy-FEN are off.
+// finding 4): while an assigned item is **being solved**, the engine, „send to
+// Analysis" and the board's own copy-FEN are off.
+//
+// The purpose decides (owner, 19.9.2026): they are off so that no help is
+// used, so they come back the moment the item is handed in — a finished game,
+// an answered position, a solved puzzle, a tutorial with no question left.
 //
 // It does not stop a second device — the trainer's review of the moves played
 // (phase 9) answers that. It stops the one-tap way.
@@ -208,6 +212,26 @@ void main() {
         }, () => MockClient((_) async => http.Response('{}', 200)));
       });
 
+      testWidgets('handed in, the doors are back at $at', (tester) async {
+        await http.runWithClient(() async {
+          await pump(tester, size, assignmentId: 42);
+          expect(find.byIcon(Icons.biotech), findsNothing);
+
+          await tester.ensureVisible(find.text('Resign').first);
+          await tester.tap(find.text('Resign').first);
+          await tester.pumpAndSettle();
+
+          expect(find.byIcon(Icons.biotech), findsWidgets,
+              reason: 'the game is over: analysing it is learning, not help');
+          expect(find.byType(StockfishAnalysisWidget, skipOffstage: false),
+              findsWidgets);
+          for (final menu in tester.widgetList<BoardViewMenu>(
+              find.byType(BoardViewMenu, skipOffstage: false))) {
+            expect(menu.engine, isTrue);
+          }
+        }, () => MockClient((_) async => http.Response('{}', 200)));
+      });
+
       testWidgets(
           'control: the same game outside an assignment keeps them '
           'at $at', (tester) async {
@@ -221,7 +245,9 @@ void main() {
   });
 
   group('the other three screens an item opens', () {
-    testWidgets('find the move', (tester) async {
+    testWidgets(
+        'find the move: closed while it is the question, open once answered',
+        (tester) async {
       await tester.pumpWidget(_app(CustomPuzzleSolverScreen(
         session: _session(),
         detail: const AssignmentDetail(
@@ -234,33 +260,173 @@ void main() {
         startIndex: 0,
         api: AssignmentApiService(
             authToken: 't',
-            client: MockClient((_) async => http.Response('{}', 200))),
+            client: MockClient((_) async => http.Response(
+                jsonEncode({
+                  'correct': true,
+                  'done': true,
+                  'playedSan': 'Rh8+',
+                  'solutionSan': 'Rh8+',
+                }),
+                200))),
         onAnswered: (_, __) {},
       )));
       await tester.pumpAndSettle();
       expect(_board(tester).copyPosition, isFalse);
       await rightClickBoard(tester);
       expect(copied, isEmpty);
+
+      _board(tester).onMove('h1', 'h8', '');
+      await tester.pumpAndSettle();
+      expect(_board(tester).isAllowedToMove, isFalse,
+          reason: 'the fake answered, so the item has its verdict');
+      expect(_board(tester).copyPosition, isTrue);
     });
 
-    testWidgets('a tutorial', (tester) async {
-      await tester.pumpWidget(_app(LessonViewerScreen(
-        session: _session(),
-        detail: const AssignmentDetail(
+    AssignmentDetail tutorial(List<LessonStep> steps,
+            {DateTime? completedAt}) =>
+        AssignmentDetail(
           assignment: Assignment(
               id: 5,
               title: 'A tutorial',
               kind: AssignmentKind.lesson,
-              totalItems: 1),
-          items: [AssignmentItem(puzzleId: null, position: 0)],
-          steps: [
-            LessonStep(
-                title: 'One', fen: _kingAndRook, instruction: 'White to play.'),
+              totalItems: steps.length,
+              completedAt: completedAt),
+          items: [
+            for (var i = 0; i < steps.length; i++)
+              AssignmentItem(puzzleId: null, position: i),
           ],
-        ),
+          steps: steps,
+        );
+
+    const show = LessonStep(
+        title: 'Look', fen: _kingAndRook, instruction: 'White to play.');
+    const ask = LessonStep(
+        title: 'Find it',
+        fen: _kingAndRook,
+        instruction: 'White to play.',
+        kind: LessonStepKind.askMove);
+
+    testWidgets(
+        'a tutorial: a step that only shows is still closed while a question '
+        'waits after it', (tester) async {
+      await tester.pumpWidget(_app(LessonViewerScreen(
+          session: _session(), detail: tutorial(const [show, ask]))));
+      await tester.pump();
+      expect(_board(tester).copyPosition, isFalse,
+          reason: 'the next step asks about this very position');
+    });
+
+    testWidgets(
+        'a tutorial with no question, or one already handed in, is open',
+        (tester) async {
+      await tester.pumpWidget(_app(LessonViewerScreen(
+          session: _session(), detail: tutorial(const [show, show]))));
+      await tester.pump();
+      expect(_board(tester).copyPosition, isTrue);
+
+      await tester.pumpWidget(_app(LessonViewerScreen(
+          key: const ValueKey('done'),
+          session: _session(),
+          detail: tutorial(const [show, ask],
+              completedAt: DateTime(2026, 9, 19)))));
+      await tester.pump();
+      expect(_board(tester).copyPosition, isTrue);
+    });
+
+    testWidgets('a tutorial whose last question is answered opens there',
+        (tester) async {
+      final asked = <http.Request>[];
+      await tester.pumpWidget(_app(LessonViewerScreen(
+        session: _session(),
+        detail: tutorial(const [ask]),
+        api: AssignmentApiService(
+            authToken: 't',
+            client: MockClient((request) async {
+              asked.add(request);
+              return http.Response(
+                  jsonEncode({'correct': true, 'solutionSan': 'Rh8+'}), 200);
+            })),
       )));
       await tester.pump();
       expect(_board(tester).copyPosition, isFalse);
+
+      _board(tester).onMove('h1', 'h8', '');
+      await tester.pumpAndSettle();
+      expect(asked.where((r) => r.method == 'POST'), isNotEmpty,
+          reason: 'the answer really went to the server');
+      expect(_board(tester).copyPosition, isTrue);
+    });
+
+    testWidgets('a multiple-choice question answered opens it too',
+        (tester) async {
+      await tester.pumpWidget(_app(LessonViewerScreen(
+        session: _session(),
+        detail: tutorial(const [
+          LessonStep(
+              title: 'Which',
+              fen: _kingAndRook,
+              instruction: 'Which plan?',
+              kind: LessonStepKind.askChoice,
+              choices: ['Push the king', 'Check on h8']),
+        ]),
+        api: AssignmentApiService(
+            authToken: 't',
+            client: MockClient((_) async => http.Response(
+                jsonEncode({'correct': true, 'correctIndex': 1}), 200))),
+      )));
+      await tester.pump();
+      expect(_board(tester).copyPosition, isFalse);
+
+      await tester.ensureVisible(find.text('Check on h8'));
+      await tester.tap(find.text('Check on h8'));
+      await tester.pumpAndSettle();
+      expect(_board(tester).copyPosition, isTrue);
+    });
+
+    testWidgets('a question given up on — „Show me" — is settled as well',
+        (tester) async {
+      await tester.pumpWidget(_app(LessonViewerScreen(
+        session: _session(),
+        detail: tutorial(const [ask]),
+        api: AssignmentApiService(
+            authToken: 't',
+            client: MockClient((request) async => http.Response(
+                jsonEncode(request.url.path.contains('reveal')
+                    ? {'solutionSan': 'Rh8+'}
+                    : {'correct': false, 'reason': 'Not that one.'}),
+                200))),
+      )));
+      await tester.pump();
+
+      for (final to in ['h2', 'h3']) {
+        _board(tester).onMove('h1', to, '');
+        await tester.pumpAndSettle();
+      }
+      expect(_board(tester).copyPosition, isFalse,
+          reason: 'two wrong tries are still solving');
+
+      await tester.ensureVisible(find.text('Show me'));
+      await tester.tap(find.text('Show me'));
+      await tester.pumpAndSettle();
+      expect(_board(tester).copyPosition, isTrue);
+    });
+
+    test('the tutorial rule: every question from this step on, not this step',
+        () {
+      bool open(int index, Set<int> settled, {bool completed = false}) =>
+          lessonBoardGivesFen(
+              completed: completed,
+              steps: const [show, ask, show, ask, show],
+              index: index,
+              settled: settled);
+      expect(open(0, {}), isFalse);
+      expect(open(1, {1}), isFalse, reason: 'step 3 still waits');
+      expect(open(2, {1}), isFalse);
+      expect(open(3, {1}), isFalse, reason: 'this one is not settled');
+      expect(open(3, {1, 3}), isTrue);
+      expect(open(4, {}), isTrue, reason: 'nothing is asked from here on');
+      expect(open(0, {1, 3}), isTrue);
+      expect(open(0, {}, completed: true), isTrue);
     });
 
     Future<void> pumpTactics(WidgetTester tester,
@@ -283,9 +449,14 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('assigned puzzles', (tester) async {
+    testWidgets('assigned puzzles: closed while solving, open once solved',
+        (tester) async {
       await pumpTactics(tester, puzzleIds: const ['p1'], assignmentId: 42);
       expect(_board(tester).copyPosition, isFalse);
+
+      _board(tester).onMove('a1', 'a8', '');
+      await tester.pumpAndSettle();
+      expect(_board(tester).copyPosition, isTrue);
     });
 
     testWidgets('control: free tactics practice still copies', (tester) async {

@@ -174,11 +174,19 @@ klik i Ctrl+C; **zatvorena tabla i dalje zauzima vrh `BoardOnScreen` i tamo kaž
 „ne"** — da se samo ne prijavi, na Ctrl+C bi odgovorila tabla ekrana ispod.
 Rešavač pozicija i tutorijal ga gase uvek, taktika samo za zadati skup. „Play it
 out" sa `assignmentId` gubi tri dugmeta „Analysis", oba panela motora i prekidač
-strelica motora u oba menija; ista partija van domaćeg zadržava sve. Nije
-odlučeno: vrata ostaju zatvorena i pošto je partija presuđena. Ne sprečava drugi
+strelica motora u oba menija; ista partija van domaćeg zadržava sve. **Dopuna
+vlasnika istog dana — svrha odlučuje**: vrata su zatvorena da učenik ne koristi
+pomoć, dakle **dok rešava**, a otvaraju se čim preda. Završena partija dobija
+nazad „Analysis", panele motora i prekidač strelica; odgovorena pozicija i rešen
+zadati zadatak ponovo kopiraju; tutorijal se otvara kad **od tekućeg koraka
+nadalje** nema nerešenog pitanja (tačan odgovor ili „Show me"), ili kad je već
+predat — „od ovog koraka nadalje", a ne „ovaj korak", jer korak koji samo
+pokazuje vrlo često stoji na poziciji o kojoj pita sledeći (`lessonBoardGivesFen`).
+Ne sprečava drugi
 uređaj — na to odgovara pregled odigranih poteza iz faze 9.
-`test/homework_closed_doors_test.dart` (11, sa kontrolama), 15 mutacija — po
-jedna za svaka vrata — svaka crvena na pravom testu. Aplikacija **3268**, 1
+`test/homework_closed_doors_test.dart` (18, sa kontrolama), 15 mutacija vrata i
+13 mutacija pravila o otvaranju, u oba smera — svaka crvena na pravom testu.
+Aplikacija **3275**, 1
 preskočen, `flutter analyze` nepromenjen na 26 poznatih info. Provera uživo:
 **stavka 193**.
 

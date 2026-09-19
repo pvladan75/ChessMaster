@@ -24,6 +24,30 @@ import 'package:chess_app/widgets/action_banner.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 
+/// Whether an assigned tutorial's board may give its FEN away at step [index]
+/// (`docs/PLAN-EXERCISE.md`, phase 12).
+///
+/// The purpose decides: it is closed so that no help is used while a question
+/// is open, and open once there is none. A „show" step asks nothing, but it
+/// very often stands on the position the *next* step asks about — so what
+/// counts is every question **from this step on**, not this step alone. Open
+/// when the tutorial is already handed in, or when no question from here on is
+/// still unsettled (answered correctly, or revealed).
+bool lessonBoardGivesFen({
+  required bool completed,
+  required List<LessonStep> steps,
+  required int index,
+  required Set<int> settled,
+}) {
+  if (completed) return true;
+  for (var i = index; i < steps.length; i++) {
+    if (steps[i].kind != LessonStepKind.show && !settled.contains(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /// Lets a student work through an assigned lesson on their own.
 ///
 /// The lesson builder already produces multi-step lessons, but until now they
@@ -64,6 +88,10 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
   final ChessBoardController _board = ChessBoardController();
 
   late int _stepIndex;
+
+  /// The questions answered or revealed in this sitting, by step index —
+  /// what [lessonBoardGivesFen] reads.
+  final Set<int> _settled = {};
   late final Set<int> _seen;
 
   /// The parsed variation tree, or a single-node tree if this step has no line.
@@ -254,6 +282,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     setState(() {
       _sending = false;
       _verdict = result;
+      if (result.correct) _settled.add(_stepIndex);
       if (!result.correct) {
         _wrongAnswers++;
       }
@@ -297,6 +326,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     setState(() {
       _sending = false;
       _verdict = result;
+      if (result.correct) _settled.add(_stepIndex);
       if (!result.correct) {
         _wrongAnswers++;
       }
@@ -323,6 +353,7 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
     setState(() {
       _sending = false;
       _reveal = result;
+      _settled.add(_stepIndex);
     });
   }
 
@@ -692,8 +723,13 @@ class LessonViewerScreenState extends State<LessonViewerScreen> {
                         arrows: _currentArrows,
                         squares: _currentSquares,
                         engineArrows: const [],
-                        // An assigned tutorial asks questions of this board.
-                        copyPosition: false,
+                        copyPosition: lessonBoardGivesFen(
+                          completed:
+                              widget.detail.assignment.completedAt != null,
+                          steps: _steps,
+                          index: _stepIndex,
+                          settled: _settled,
+                        ),
                         onMove: (from, to, promotion) {
                           if (_step.kind == LessonStepKind.askMove &&
                               _verdict?.correct != true &&

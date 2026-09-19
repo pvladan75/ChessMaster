@@ -4608,3 +4608,30 @@ list processes by *command line*, not by image name.
 
 App **3268** tests (3257 + 11), 1 skipped; `flutter analyze` unchanged at 26 known
 infos. Backend untouched.
+
+## 19.9.2026 — phase 12, amended: the purpose decides when a closed door opens
+
+The first version of phase 12 closed the engine, Analysis and the FEN for as
+long as an assigned item was open, and left „what about after?" as a note. The
+owner answered it with the rule the code should have started from: *they are
+off so the student uses no help; the moment he stops solving, they may open.*
+**A restriction carries its own end condition — ask what it is for, and the
+answer says when it stops.** Written as „off inside a homework item" it would
+have kept a student from analysing his own finished game, which is the most
+useful thing he could do with it.
+
+„Handed in" is a different moment on each of the four screens — a finished
+game, a verdict, a complete puzzle — and on the tutorial it is not the current
+step. A step that only shows a position very often stands on the position the
+next step asks about, so „this step asks nothing" would hand out the question's
+FEN one step early. The rule reads every question **from this step on**
+(`lessonBoardGivesFen`), and two wrong tries are still solving.
+
+The pure function's test could not see whether the screen ever *records* a
+settled question: removing the line survived at two of its three sites until
+the multiple-choice answer and „Show me" were each played through the screen.
+A rule tested as a function is tested once; every place that feeds it is a
+separate claim.
+
+App **3275** tests (3268 + 7), 1 skipped; `flutter analyze` unchanged at 26 known
+infos. Thirteen mutations, both directions, each red on the right test.

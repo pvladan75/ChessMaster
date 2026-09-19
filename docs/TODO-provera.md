@@ -5891,6 +5891,13 @@ Kao **učenik**, sa domaćim koji ima „Play it out", pozicije i tutorijal.
    domaćeg: ništa se ne kopira, ne piše „FEN copied."
 4. [ ] Windows, **Ctrl+C** u bilo kojoj stavci domaćeg: u clipboard-u nije FEN.
 5. [ ] Slobodna taktika i Analiza: desni klik i Ctrl+C kopiraju FEN kao i do sada.
+6. [ ] **Čim je partija iz domaćeg završena** (mat, remi, predaja): dugme „Analysis",
+   panel motora i prekidač strelica motora su se vratili, na istom ekranu.
+7. [ ] **Pozicija na koju je odgovoreno** i **rešen zadati taktički zadatak**: desni
+   klik ponovo kopira FEN. Dva pogrešna pokušaja još uvek ne otvaraju ništa.
+8. [ ] **Tutorijal iz domaćeg**: na koraku koji samo pokazuje, a posle kog dolazi
+   pitanje, FEN se ne kopira; posle poslednjeg tačnog odgovora (ili „Show me")
+   kopira se. Već predat tutorijal kopira od početka.
 
 ## 192. Zadatak: otvaranje i izmena sačuvanog zadatka — 19.9.2026, nije viđeno uživo
 

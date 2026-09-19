@@ -444,8 +444,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           arrows: const [],
           engineArrows: const [],
           onMove: _onMove,
-          // An assigned position is the question; its FEN is not handed out.
-          copyPosition: false,
+          // Closed while the position is still the question, open once it is
+          // answered — the same moment the board stops taking moves. It is
+          // off so that no help is used, not so that nothing is learned after.
+          copyPosition: _verdict != null || _alreadyAnswered != null,
           onSquareTapForDrawing: (_) {},
         ),
       );
