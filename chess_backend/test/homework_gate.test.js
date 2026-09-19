@@ -1164,12 +1164,157 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     }
   });
 
-  test('judged_by is one of three words, or nothing', async () => {
+  test('judged_by is one of four words, or nothing', async () => {
     const who = await people();
     const { gameId } = await sentGame(who, HELD.task);
     await assert.rejects(
       pool.query(`UPDATE assignment_items SET judged_by = 'guess' WHERE assignment_id = $1`, [gameId]),
       (err) => err.code === '23514'
     );
+    // The fourth, since phase 15 of PLAN-EXERCISE: the trainer.
+    await pool.query(`UPDATE assignment_items SET judged_by = 'trainer' WHERE assignment_id = $1`, [gameId]);
+  });
+
+  // ---- „Play N moves": no goal, the trainer judges (PLAN-EXERCISE 15) ------
+
+  const play = require('../../docs/gates/engine_game_cases.json').play;
+  const PLAYED = play.judged.find((c) => c.expect.ending === 'moveTarget' && c.task.side === 'w');
+  const MATED = play.judged.find((c) => c.expect.ending === 'checkmate');
+
+  /// The edge that makes a trainer a trainer: `people()` mints two strangers.
+  const teaches = ({ trainerId, studentId }, status = 'accepted') => pool.query(
+    `INSERT INTO trainer_students (trainer_id, student_id, status) VALUES ($1, $2, $3)`,
+    [trainerId, studentId, status]
+  );
+  const verdict = (userId, gameId, body) => route('post', '/:id/game-verdict', {
+    userId, params: { id: String(gameId) }, body,
+  });
+
+  test('a played game with no goal waits for the trainer — and no tablebase is asked, then or later', async () => {
+    assert.ok(pieceCount(PLAYED.task.fen) <= 7, 'a tablebase would answer here: that is the point');
+    for (const c of [PLAYED, MATED]) {
+      const who = await people();
+      const { parentId, gameId } = await sentGame(who, c.task);
+      const { tablebase, asked } = tablebaseAnswering('win');
+
+      const r = await assignments.recordEngineGameResult(pool, {
+        studentId: who.studentId, assignmentId: gameId, moves: c.moves, tablebase,
+      });
+      assert.equal(r.ok, true, r.error);
+      assert.deepEqual(
+        { goalMet: r.goalMet, judgedBy: r.judgedBy, pending: r.pending, ending: r.ending },
+        { goalMet: null, judgedBy: null, pending: true, ending: c.expect.ending },
+        c.name
+      );
+      const item = await gameItem(gameId);
+      assert.ok(item.attempted_at, 'played');
+      assert.equal(item.solved, null);
+      assert.equal(item.judged_by, null);
+      assert.ok(await completedAt(gameId), 'played is done, for the gate and for completion');
+
+      // A read by either side asks again for what waits on a tablebase. This
+      // does not: it waits on a person.
+      for (const reader of [who.studentId, who.trainerId]) {
+        const detail = await assignments.getAssignmentDetail(pool, parentId, reader, { tablebase });
+        assert.equal(detail.children.find((k) => k.id === gameId).pending_items, 1, c.name);
+      }
+      assert.equal(asked.length, 0, `${c.name}: nobody is asked`);
+      assert.equal((await gameItem(gameId)).judged_by, null);
+    }
+  });
+
+  test('the trainer gives the verdict, and may change it', async () => {
+    const who = await people();
+    await teaches(who);
+    const { parentId, gameId } = await sentGame(who, PLAYED.task);
+    await assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: PLAYED.moves,
+      tablebase: tablebaseAnswering('win').tablebase,
+    });
+
+    const said = await verdict(who.trainerId, gameId, { met: true });
+    assert.equal(said.status, 200, JSON.stringify(said.body));
+    assert.deepEqual(said.body, { goalMet: true, judgedBy: 'trainer', pending: false });
+    let item = await gameItem(gameId);
+    assert.deepEqual({ solved: item.solved, judged_by: item.judged_by }, { solved: true, judged_by: 'trainer' });
+    const child = (await homework.childrenOf(pool, parentId)).find((k) => k.id === gameId);
+    assert.deepEqual({ pending: child.pending_items, solved: child.solved_items }, { pending: 0, solved: 1 });
+
+    // A second look: the trainer's own word is the trainer's to change.
+    assert.equal((await verdict(who.trainerId, gameId, { met: false })).status, 200);
+    item = await gameItem(gameId);
+    assert.deepEqual({ solved: item.solved, judged_by: item.judged_by }, { solved: false, judged_by: 'trainer' });
+  });
+
+  test('only the trainer of this student, only with a verdict, only on a game that was played', async () => {
+    const who = await people();
+    const { gameId } = await sentGame(who, PLAYED.task);
+    const record = () => assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: PLAYED.moves,
+      tablebase: tablebaseAnswering('win').tablebase,
+    });
+
+    // Not played yet: there is nothing to judge.
+    await teaches(who);
+    assert.equal((await verdict(who.trainerId, gameId, { met: true })).status, 404);
+    await record();
+
+    // A request that was never answered grants nothing — the rule every
+    // trainer's right is read through (`trainerOwnsStudent`).
+    await pool.query(
+      `UPDATE trainer_students SET status = 'pending' WHERE trainer_id = $1 AND student_id = $2`,
+      [who.trainerId, who.studentId]
+    );
+    assert.equal((await verdict(who.trainerId, gameId, { met: true })).status, 404);
+    await pool.query(
+      `UPDATE trainer_students SET status = 'accepted' WHERE trainer_id = $1 AND student_id = $2`,
+      [who.trainerId, who.studentId]
+    );
+
+    // The student does not mark their own work, and neither does somebody
+    // else who happens to teach them.
+    assert.equal((await verdict(who.studentId, gameId, { met: true })).status, 404);
+    const other = await people();
+    await teaches({ trainerId: other.trainerId, studentId: who.studentId });
+    assert.equal((await verdict(other.trainerId, gameId, { met: true })).status, 404);
+
+    // „met" is a yes or a no: absence is not a no.
+    for (const body of [{}, { met: 'yes' }, { met: null }, { met: 1 }]) {
+      assert.equal((await verdict(who.trainerId, gameId, body)).status, 400, JSON.stringify(body));
+    }
+    assert.equal((await gameItem(gameId)).judged_by, null, 'nothing above wrote anything');
+
+    assert.equal((await verdict(who.trainerId, gameId, { met: false })).status, 200);
+  });
+
+  test('a verdict the rules or the tablebase gave is not for the trainer to overrule', async () => {
+    for (const [c, category, by] of [[MATE_MISSED, 'loss', 'rules'], [HELD, 'draw', 'tablebase']]) {
+      const who = await people();
+      await teaches(who);
+      const { gameId } = await sentGame(who, c.task);
+      const r = await assignments.recordEngineGameResult(pool, {
+        studentId: who.studentId, assignmentId: gameId, moves: c.moves,
+        tablebase: tablebaseAnswering(category).tablebase,
+      });
+      assert.equal(r.judgedBy, by);
+      const before = await gameItem(gameId);
+      assert.equal((await verdict(who.trainerId, gameId, { met: !before.solved })).status, 409, by);
+      const after = await gameItem(gameId);
+      assert.deepEqual({ solved: after.solved, judged_by: after.judged_by },
+        { solved: before.solved, judged_by: by });
+    }
+  });
+
+  test('a game the tablebase never answered is the trainer to judge too — the judge of last resort', async () => {
+    const who = await people();
+    await teaches(who);
+    const { gameId } = await sentGame(who, HELD.task);
+    await assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: HELD.moves,
+      tablebase: tablebaseAnswering('draw', { down: true }).tablebase,
+    });
+    assert.equal((await verdict(who.trainerId, gameId, { met: true })).status, 200);
+    const item = await gameItem(gameId);
+    assert.deepEqual({ solved: item.solved, judged_by: item.judged_by }, { solved: true, judged_by: 'trainer' });
   });
 });

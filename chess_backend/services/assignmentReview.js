@@ -133,9 +133,12 @@ function shapeItem(row, { isTrainer, step, game = null }) {
       finalFen: finalFenOf(game.fen, moves),
       ending: row.game_ending ?? null,
       judgedBy: row.judged_by ?? null,
-      // Played, and nobody has been able to say yet. Never a failure.
+      // Played, and nobody has said yet — a tablebase that did not answer, or
+      // a game with no goal that waits for the trainer, which it does however
+      // it ended (so this asks for *an* ending, as `childrenOf` does, and not
+      // for 'moveTarget'). Never a failure.
       pending: attempted && row.solved === null && (row.judged_by ?? null) === null
-        && row.game_ending === 'moveTarget',
+        && (row.game_ending ?? null) !== null,
     };
   }
 

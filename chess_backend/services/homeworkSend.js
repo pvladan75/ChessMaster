@@ -54,9 +54,12 @@ function childTitle(item, { lessonTitle = null, itemCount = 0 } = {}) {
       // The words follow the app's `exerciseTaskWords`.
       const n = item.task.surviveMoves;
       const moves = n ? `${n} ${n === 1 ? 'move' : 'moves'}` : null;
-      const goal = item.task.goal === 'win'
-        ? (moves ? `checkmate in ${moves}` : 'win it')
-        : (moves ? `do not lose for ${moves}` : 'hold the draw');
+      // „play" has no goal to name, only its length.
+      const goal = item.task.goal === 'play'
+        ? `play ${moves}`
+        : item.task.goal === 'win'
+          ? (moves ? `checkmate in ${moves}` : 'win it')
+          : (moves ? `do not lose for ${moves}` : 'hold the draw');
       return `Play it out: ${goal}`;
     }
     default:

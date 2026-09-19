@@ -165,10 +165,17 @@ Map<String, dynamic> exerciseGameTask({
   if (ask == ExerciseAsk.find) {
     throw ArgumentError('"Find the move" is not a game exercise.');
   }
+  if (ask == ExerciseAsk.play && forMoves == null) {
+    throw ArgumentError('"Play N moves" needs its number.');
+  }
   return {
     'type': 'game',
     'side': side,
-    'goal': ask == ExerciseAsk.win ? 'win' : 'hold',
+    'goal': switch (ask) {
+      ExerciseAsk.win => 'win',
+      ExerciseAsk.play => 'play',
+      _ => 'hold',
+    },
     if (forMoves != null) 'surviveMoves': forMoves,
     if (level != null) 'level': level,
     if (thinkSeconds != null) 'thinkSeconds': thinkSeconds,

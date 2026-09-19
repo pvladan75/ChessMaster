@@ -4787,3 +4787,45 @@ Backend **1612 → 1614** with the throwaway database, **1524 → 1526** without
 (two pure tests), `.env` moved aside. App **3295 → 3307**: 17 new, 5 moved out
 of the 2b gate. 1 skipped, a full run alone, 4 minutes. Analyze: the same 26
 infos. Live: item 196.
+
+## 20.9.2026 — „Play N moves", and the verdict a trainer could never give (PLAN-EXERCISE, phase 15)
+
+**„The trainer judges" had been a sentence since phase 6 was closed, with no
+route under it.** `judged_by` was written as `rules`, `tablebase` or nothing;
+the review told the trainer the position was his to judge and gave him nowhere
+to say so. Measuring before planning found it — the plan for a new task type
+turned out to owe an old one its button. A decision that names a person as the
+fallback is not built until that person can act.
+
+**One meaning spelled twice is two meanings.** „Played and not judged" was
+`judged_by IS NULL AND game_ending = 'moveTarget'` in `childrenOf`, and the
+same in the review's `pending` — true while the only thing that could leave a
+game unjudged was a tablebase at a move target. A game with no goal waits
+however it ends; one that ended in mate would have been neither judged nor
+waiting, a card with nothing on it. The database tests found the first copy
+because they played a mate; the second was found by reading, because those
+tests never looked at the review. Rule 12, and rule 14: the dormant half woke
+with a feature that does not contain it.
+
+**A gate from another phase was right against my own design.** The verdict
+buttons first read „Goal met" / „Goal not met" — one vocabulary with the
+verdict they give. Phase 9's gate went red: an unjudged card must not carry
+those words anywhere. It was protecting exactly this reader — two labels that
+read as a status on a card that has none. They are „Mark as met" / „Mark as
+not met" now. When an old test fails on new work, ask what it was written to
+protect before re-aiming it.
+
+**The surviving mutation was a dead condition**, not a missing test: the
+buttons asked `item.attempted` as well as `pending || judgedBy == 'trainer'`,
+and the server's `pending` already means played. Removed. And a hard-coded
+„four sentences" in `exercise_task_words_test` became a count of the enum: a
+typed number is one judge behind the day one is added.
+
+`dart format` split `if (n == null) return …;` across two lines and so made a
+27th `curly_braces` info — compare the list per file before and after, not the
+total, to find which file grew one.
+
+Backend **1614 → 1632** with the throwaway database, **1526 → 1539** without
+(12 + 5 + 1, the 5 need the database), `.env` moved aside. App **3307 → 3334**
+(27). 1 skipped, a full run alone, 4 minutes. Analyze: the same 26 infos. Live:
+item 197, after a restart — `initDB` widens the `judged_by` constraint.

@@ -62,6 +62,10 @@ enum EngineGameSaid { met, notMet, notJudged }
 /// as a fallback to this app's own guess.
 EngineGameSaid engineGameSaid(
     EngineGameVerdict local, EngineGameServerVerdict? server) {
+  // A game with no goal is the trainer's to judge (phase 15): nothing this
+  // app read off its board, and nothing the result route answered, is a
+  // verdict — it waits.
+  if (local.needsTrainer) return EngineGameSaid.notJudged;
   if (!local.needsTablebase) {
     return local.goalMet ? EngineGameSaid.met : EngineGameSaid.notMet;
   }

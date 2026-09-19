@@ -79,9 +79,11 @@ async function childrenOf(pool, parentId) {
             COUNT(ai.attempted_at)::int AS attempted_items,
             COUNT(*) FILTER (WHERE ai.solved)::int AS solved_items,
             -- Played, not judged: the tablebase had no answer when the game
-            -- ended. Neither solved nor failed, and drawn as neither.
+            -- ended, or the game has no goal and waits for the trainer — which
+            -- it does however it ended, so this asks for *an* ending and not
+            -- for 'moveTarget'. Neither solved nor failed, and drawn as neither.
             COUNT(*) FILTER (WHERE ai.attempted_at IS NOT NULL AND ai.solved IS NULL
-                               AND ai.judged_by IS NULL AND ai.game_ending = 'moveTarget')::int
+                               AND ai.judged_by IS NULL AND ai.game_ending IS NOT NULL)::int
               AS pending_items,
             ${childPassedSql('c')} AS passed,
             ${childLockedSql('c')} AS locked,

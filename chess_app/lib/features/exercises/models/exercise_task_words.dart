@@ -18,18 +18,25 @@
 enum ExerciseAsk {
   find('Find the move'),
   win('Win'),
-  hold('Draw or better');
+  hold('Draw or better'),
+
+  /// No goal: the student plays N moves and the trainer judges how (phase 15).
+  play('Play N moves');
 
   const ExerciseAsk(this.label);
 
   final String label;
 }
 
-/// Which of the three an exercise's [task] is. A task this app cannot read is
+/// Which of these an exercise's [task] is. A task this app cannot read is
 /// „find": every row written before tasks existed has none, and means that.
 ExerciseAsk exerciseAskOf(Map<String, dynamic>? task) {
   if (task == null || task['type'] != 'game') return ExerciseAsk.find;
-  return task['goal'] == 'win' ? ExerciseAsk.win : ExerciseAsk.hold;
+  return switch (task['goal']) {
+    'win' => ExerciseAsk.win,
+    'play' => ExerciseAsk.play,
+    _ => ExerciseAsk.hold,
+  };
 }
 
 /// The task's number of moves, or null when the game is played to its end.
@@ -57,11 +64,17 @@ String exerciseTaskWords(Map<String, dynamic>? task, {int? solutionMoves}) {
     _ => '',
   };
   final n = exerciseForMoves(task);
-  if (n == null) return '${ask.label}$side';
+  // The chip's own label carries an „N" that is only a word there; a row that
+  // somehow lost its number is named without one rather than with the letter.
+  if (n == null) {
+    return ask == ExerciseAsk.play ? 'Play$side' : '${ask.label}$side';
+  }
   final moves = '$n ${n == 1 ? 'move' : 'moves'}';
-  return ask == ExerciseAsk.win
-      ? 'Checkmate in $moves$side'
-      : '${ask.label}$side, for $moves';
+  return switch (ask) {
+    ExerciseAsk.win => 'Checkmate in $moves$side',
+    ExerciseAsk.play => 'Play $moves$side',
+    _ => '${ask.label}$side, for $moves',
+  };
 }
 
 /// Who is to move in [fen], in words — never as a colour alone: a dot of one
@@ -98,6 +111,10 @@ enum ExerciseJudge {
 
   /// Draw or better for N moves, more pieces: only „not mated" can be checked.
   notMatedOnly,
+
+  /// Play N moves: no automatic verdict at all — the trainer looks at the
+  /// game and says.
+  trainer,
 }
 
 ExerciseJudge exerciseJudgeFor({
@@ -105,6 +122,7 @@ ExerciseJudge exerciseJudgeFor({
   required ExerciseAsk ask,
   required int? forMoves,
 }) {
+  if (ask == ExerciseAsk.play) return ExerciseJudge.trainer;
   if (ask == ExerciseAsk.find || forMoves == null) return ExerciseJudge.rules;
   if (ask == ExerciseAsk.win) return ExerciseJudge.mateInMoves;
   return exercisePieceCount(fen) <= tablebasePieces
@@ -121,4 +139,6 @@ String exerciseJudgeWords(ExerciseJudge judge) => switch (judge) {
         'More than seven pieces: only "not checkmated" can be checked.',
       ExerciseJudge.mateInMoves =>
         "Met only by checkmate within that many of the student's own moves.",
+      ExerciseJudge.trainer =>
+        'No automatic verdict: you look at the game afterwards and judge it.',
     };

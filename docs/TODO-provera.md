@@ -5878,6 +5878,42 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 197. „Play N moves": partija bez cilja, sudija je trener — 20.9.2026, nije viđeno uživo
+
+`docs/PLAN-EXERCISE.md`, faza 15. **Server mora da bude restartovan** — pri
+pokretanju `initDB` proširuje dozvoljene vrednosti kolone `judged_by` rečju
+`trainer` (menja se samo ograničenje, nijedan red).
+
+1. [ ] **Pravljenje**: „Make exercise" → četvrti čip **„Play N moves"**. Pita „How
+   many moves?" sa poljem za broj (nema „To the end of the game"), stranu učenika
+   i jačinu motora; ispod piše „No automatic verdict: you look at the game
+   afterwards and judge it." „Save" je sivo dok nema imena, strane i čitljivog
+   broja. Ne pojavljuje se „Checking…".
+2. [ ] Zadatak je u biblioteci pod „Exercises" kao „Play 12 moves as White", filter
+   „Play N moves" ga nalazi, i može da se doda u domaći.
+3. [ ] **Učenik**: red u domaćem glasi „Play it out: play 12 moves"; nad tablom
+   „You are White — play 12 moves · 12 left" i broj opada; posle dvanaestog svog
+   poteza partija staje, dijalog kaže „Not judged yet" i „The game ended: 12 moves
+   played. Your trainer will look at it." — peščani sat, ne zastavica.
+4. [ ] U domaćem kod učenika ta stavka je urađena (sledeća se otključava ako je
+   bila zaključana), a piše da čeka ocenu — ne „Goal not met".
+5. [ ] **Trener**, pregled te stavke: „Play 12 moves as White", „Not judged yet",
+   rečenica „This game has no goal — how it was played is yours to judge.", dugme
+   „Open in Analysis" (stavka 195) i dva dugmeta **„Mark as met"** (pehar) i
+   **„Mark as not met"** (zastavica). Nigde na kartici ne piše „Goal met" dok se
+   ne oceni.
+6. [ ] „Mark as met" → kartica kaže „Goal met" i „Judged by the trainer"; dugmad
+   ostaju, i „Mark as not met" menja ocenu. U domaćem sada piše „Goal met" /
+   „Goal not met" kod obe strane.
+7. [ ] **Učenik** na istom pregledu: pre ocene „Your trainer will look at this
+   game.", bez dugmadi; posle ocene vidi ocenu i „Judged by the trainer".
+8. [ ] Partija koju su ocenila pravila ili tablebase (npr. „Checkmate in 2 moves")
+   **nema** ta dva dugmeta.
+9. [ ] Ako se nađe „Draw or better, for N moves" partija na koju tablebase nije
+   odgovorio („No tablebase answer yet…"), i ona sada ima oba dugmeta — trener
+   kao sudija poslednje instance.
+10. [ ] Na telefonu, uspravno: oba dugmeta i „Open in Analysis" se vide cela.
+
 ## 196. „Find the move" je jedan potez, i igra se na ekranu zadatka — 20.9.2026, nije viđeno uživo
 
 `docs/PLAN-EXERCISE.md`, faza 14. **Server mora da bude restartovan** (novo

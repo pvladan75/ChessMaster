@@ -88,8 +88,13 @@ void main() {
     // Checkmate in N is the rules' alone: thirty-two pieces are no obstacle.
     expect(j(_start, ExerciseAsk.win, 3), ExerciseJudge.mateInMoves);
     expect(j(_start, ExerciseAsk.find, 3), ExerciseJudge.rules);
-    // Four sentences, four different ones.
-    expect(ExerciseJudge.values.map(exerciseJudgeWords).toSet().length, 4);
+    // „Play N moves" (phase 15) is the trainer's, whatever the board holds.
+    expect(j(_krk, ExerciseAsk.play, 3), ExerciseJudge.trainer);
+    expect(j(_start, ExerciseAsk.play, 12), ExerciseJudge.trainer);
+    // As many sentences as judges, every one different. Counted, not typed:
+    // the number that stood here was one judge behind the day one was added.
+    expect(ExerciseJudge.values.map(exerciseJudgeWords).toSet().length,
+        ExerciseJudge.values.length);
   });
 
   test('who judges here is who judges on the server, on the shared fixture',

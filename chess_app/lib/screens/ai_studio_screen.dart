@@ -2596,8 +2596,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
+        // A game with no goal is not judged here or by the server: say who
+        // will, so „Not judged yet" does not read as something gone wrong.
         content: Text('The game ended: '
-            '${engineGameEndingWords(_engineGameTask, ending)}.'),
+            '${engineGameEndingWords(_engineGameTask, ending)}.'
+            '${verdict.needsTrainer ? ' Your trainer will look at it.' : ''}'),
         actions: [
           ElevatedButton.icon(
             icon: const Icon(Icons.arrow_back),

@@ -430,6 +430,27 @@ test('a game the tablebase has not judged yet is pending, and is not failed', ()
   assert.equal(item.solved, null);
 });
 
+test('a game with no goal waits for the trainer however it ended, and says who judged it once they have', () => {
+  // `docs/PLAN-EXERCISE.md`, phase 15. Ended by mate, not by its number: until
+  // then „pending" asked for 'moveTarget', and this game would have been
+  // neither judged nor waiting — a card with nothing on it.
+  const play = { fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', side: 'w', goal: 'play', surviveMoves: 3 };
+  const waiting = shapeItem(
+    gameRow({ solved: null, judged_by: null, game_moves: 'Rd8#', game_ending: 'checkmate' }),
+    { isTrainer: true, game: play }
+  );
+  assert.deepEqual(waiting.task, { type: 'game', side: 'w', goal: 'play', surviveMoves: 3 });
+  assert.equal(waiting.pending, true);
+  assert.equal(waiting.solved, null);
+
+  const judged = shapeItem(
+    gameRow({ solved: true, judged_by: 'trainer', game_moves: 'Rd8#', game_ending: 'checkmate' }),
+    { isTrainer: false, game: play }
+  );
+  assert.deepEqual({ pending: judged.pending, solved: judged.solved, judgedBy: judged.judgedBy },
+    { pending: false, solved: true, judgedBy: 'trainer' });
+});
+
 test('a game not played yet has a board and no moves', () => {
   const item = shapeItem(
     gameRow({ attempted_at: null, solved: null, game_moves: null, game_ending: null, judged_by: null }),

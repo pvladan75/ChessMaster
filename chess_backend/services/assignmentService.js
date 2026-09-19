@@ -586,8 +586,11 @@ async function recordEngineGameResult(pool, {
   // reached, when a tablebase can say what that is. When it cannot be asked
   // the game is still recorded — played, attempted for the gate — with no
   // verdict, and `judgePendingGames` asks again on a later read.
+  //
+  // A game with no goal is recorded the same way — played, no verdict — and
+  // waits for the trainer (`recordTrainerVerdict`), not for a tablebase.
   let goalMet = verdict.goalMet;
-  let judgedBy = 'rules';
+  let judgedBy = verdict.needsTrainer ? null : 'rules';
   if (verdict.needsTablebase) {
     const asked = await askTablebase(tablebase, { task: verdict.task, fen: verdict.fen });
     goalMet = asked.judged ? asked.goalMet : null;
@@ -619,6 +622,46 @@ async function recordEngineGameResult(pool, {
     outcome: verdict.outcome,
     ownMoves: verdict.ownMoves,
   };
+}
+
+/// The trainer's own verdict on a played game (`docs/PLAN-EXERCISE.md`, phase
+/// 15): „Play N moves", which has no other judge, and any game the tablebase
+/// never answered — the judge of last resort phase 9 named and gave no button.
+///
+/// One `UPDATE`, so there is no moment between the check and the write. It
+/// writes only where the game was **played**, is the trainer's **own**
+/// assignment, and carries **no verdict but the trainer's**: what the rules or
+/// a tablebase said is not an opinion to overrule. Which of those failed is
+/// asked only afterwards, to choose between 404 and 409.
+async function recordTrainerVerdict(pool, { trainerId, assignmentId, met }) {
+  const found = await pool.query(
+    `SELECT a.student_id FROM assignments a
+      WHERE a.id = $1 AND a.trainer_id = $2 AND a.kind = 'engine_game'`,
+    [assignmentId, trainerId]
+  );
+  if (found.rows.length === 0 || !(await trainerOwnsStudent(pool, trainerId, found.rows[0].student_id))) {
+    return { ok: false, status: 404, error: 'There is no game of yours to judge here.' };
+  }
+  const written = await pool.query(
+    `UPDATE assignment_items
+        SET solved = $2, judged_by = 'trainer'
+      WHERE assignment_id = $1
+        AND attempted_at IS NOT NULL AND game_ending IS NOT NULL
+        AND (judged_by IS NULL OR judged_by = 'trainer')
+      RETURNING id`,
+    [assignmentId, met]
+  );
+  if (written.rows.length > 0) {
+    return { ok: true, goalMet: met, judgedBy: 'trainer', pending: false };
+  }
+  const played = await pool.query(
+    `SELECT 1 FROM assignment_items
+      WHERE assignment_id = $1 AND attempted_at IS NOT NULL AND game_ending IS NOT NULL`,
+    [assignmentId]
+  );
+  return played.rows.length === 0
+    ? { ok: false, status: 404, error: 'There is no game of yours to judge here.' }
+    : { ok: false, status: 409, error: 'This game has been judged already, and not by you.' };
 }
 
 /// Games that were played and not judged, under [assignmentId] — itself, or
@@ -1045,6 +1088,7 @@ module.exports = {
   markCompleteIfDone,
   recordPuzzleResult,
   recordEngineGameResult,
+  recordTrainerVerdict,
   judgePendingGames,
   getStudentAssignments,
   getTrainerAssignments,

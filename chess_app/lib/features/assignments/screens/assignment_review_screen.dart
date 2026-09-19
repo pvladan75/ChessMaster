@@ -118,6 +118,19 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     setState(() => _review = _review?.withNote(result.note!));
   }
 
+  /// The trainer's verdict on a played game. **Written first, said after**:
+  /// the review is read again from the server, so what the card then shows is
+  /// what was stored and not what was tapped.
+  Future<void> _judgeGame(bool met) async {
+    final error = await _api.submitGameVerdict(widget.assignmentId, met: met);
+    if (!mounted) return;
+    if (error != null) {
+      AppFeedback.error(context, error);
+      return;
+    }
+    await _load();
+  }
+
   Future<void> _deleteNote(AssignmentNote note) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -201,6 +214,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
                               : 'Question about this position',
                         ),
                         onDeleteNote: _deleteNote,
+                        onJudge: _judgeGame,
                       )
                     : _ItemCard(
                         item: entry.value,
@@ -541,6 +555,7 @@ class _GameItemCard extends StatelessWidget {
     required this.isTrainer,
     required this.onComment,
     required this.onDeleteNote,
+    required this.onJudge,
   });
 
   final ReviewItem item;
@@ -548,6 +563,21 @@ class _GameItemCard extends StatelessWidget {
   final bool isTrainer;
   final VoidCallback onComment;
   final void Function(AssignmentNote) onDeleteNote;
+
+  /// The trainer's verdict: true for met, false for not met.
+  final void Function(bool met) onJudge;
+
+  /// A game with no goal — „Play N moves" (phase 15).
+  bool get _noGoal => item.task?['goal'] == 'play';
+
+  /// Whether this reader may give, or change, the verdict: the trainer, on a
+  /// game that was played and that nobody but the trainer has judged. What
+  /// the rules or a tablebase said is not an opinion to overrule — the server
+  /// refuses it too (409); this only keeps the buttons from promising it.
+  /// „Played" is not asked again here: the server's `pending` and a judge's
+  /// name both mean a game that was played.
+  bool get _trainerMayJudge =>
+      isTrainer && (item.pending || item.judgedBy == 'trainer');
 
   @override
   Widget build(BuildContext context) {
@@ -594,6 +624,31 @@ class _GameItemCard extends StatelessWidget {
               ],
             ),
             ..._endingLines(colors),
+            if (_trainerMayJudge) ...[
+              const SizedBox(height: AppSpacing.sm),
+              // Worded as what the tap does, not as the verdict it gives: a
+              // card nobody has judged must not carry „Goal met" anywhere on
+              // it (phase 9's gate holds that, and it is right). The icon
+              // *shapes* are the verdict's own — never hue alone.
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  OutlinedButton.icon(
+                    key: Key('review-game-judge-met-${item.itemId}'),
+                    onPressed: () => onJudge(true),
+                    icon: const Icon(Icons.emoji_events, size: 16),
+                    label: const Text('Mark as met'),
+                  ),
+                  OutlinedButton.icon(
+                    key: Key('review-game-judge-not-met-${item.itemId}'),
+                    onPressed: () => onJudge(false),
+                    icon: const Icon(Icons.flag, size: 16),
+                    label: const Text('Mark as not met'),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm),
             ...notes.map((note) =>
                 _NoteRow(note: note, onDelete: () => onDeleteNote(note))),
@@ -715,7 +770,16 @@ class _GameItemCard extends StatelessWidget {
       lines.add(Padding(
         padding: const EdgeInsets.only(top: AppSpacing.xxs),
         child: Text(
-          'No tablebase answer yet — the position reached is yours to judge.',
+          // A game with no goal waits for a person, not for a tablebase — and
+          // the student is told who, not told to judge their own game.
+          _noGoal
+              ? (isTrainer
+                  ? 'This game has no goal — how it was played is yours to '
+                      'judge.'
+                  : 'Your trainer will look at this game.')
+              : 'No tablebase answer yet — the position reached is yours to '
+                  'judge.',
+          key: Key('review-game-pending-${item.itemId}'),
           style: AppText.body.copyWith(color: colors.textMuted),
         ),
       ));
@@ -762,6 +826,7 @@ class _GameItemCard extends StatelessWidget {
         'rules' => 'Judged by the rules',
         'tablebase' => 'Judged by the tablebase',
         'device' => 'Judged by the device',
+        'trainer' => 'Judged by the trainer',
         _ => null,
       };
 }

@@ -221,5 +221,52 @@
       { "goal": "survive", "side": "b", "fen": "8/8/8/4k3/8/3K4/4P3/8 b - - 3 3", "category": "blessed-loss", "goalMet": true, "name": "lost only on paper: survived" }
     ],
     "noOutcome": ["unknown", "maybe-win", "maybe-loss", null]
+  },
+  "play": {
+    "_comment": "Phase 15 of docs/PLAN-EXERCISE.md (owner, 20.9.2026): „Play N moves\" — a game with NO goal. The trainer looks at how the student played and gives the verdict, so nothing here is ever met or missed by the rules and nothing is ever asked of a tablebase: goalMet is null and needsTrainer is true however the game ended. The first case stands on three pieces on purpose — a tablebase WOULD answer there, which is what makes „needsTablebase: false\" a claim and not an accident.",
+    "judged": [
+      {
+        "name": "stopped at its number with three pieces on: nobody is asked, the trainer judges",
+        "task": { "fen": "8/8/8/8/8/4k3/8/R3K3 w - - 0 1", "side": "w", "goal": "play", "surviveMoves": 2 },
+        "moves": ["Ra8", "Kd3", "Ra3+"],
+        "expect": { "ending": "moveTarget", "outcome": "undecided", "goalMet": null, "needsTablebase": false, "needsTrainer": true, "ownMoves": 2 }
+      },
+      {
+        "name": "a mate inside the number ends the game as the rules say, and is still the trainer's to judge",
+        "task": { "fen": "6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1", "side": "w", "goal": "play", "surviveMoves": 3 },
+        "moves": ["Rd8#"],
+        "expect": { "ending": "checkmate", "outcome": "won", "goalMet": null, "needsTablebase": false, "needsTrainer": true, "ownMoves": 1 }
+      },
+      {
+        "name": "as Black, counted in Black's own moves",
+        "task": { "fen": "8/8/8/4k3/8/4K3/4P3/8 b - - 0 1", "side": "b", "goal": "play", "surviveMoves": 1 },
+        "moves": ["Kd5"],
+        "expect": { "ending": "moveTarget", "outcome": "undecided", "goalMet": null, "needsTablebase": false, "needsTrainer": true, "ownMoves": 1 }
+      },
+      {
+        "name": "one move short of its number: not over",
+        "task": { "fen": "8/8/8/8/8/4k3/8/R3K3 w - - 0 1", "side": "w", "goal": "play", "surviveMoves": 2 },
+        "moves": ["Ra8", "Kd3"],
+        "expect": { "ending": null, "needsTrainer": true }
+      }
+    ],
+    "control": {
+      "name": "the same game under a goal is judged by the rules and is nobody's to judge",
+      "task": { "fen": "8/8/8/8/8/4k3/8/R3K3 w - - 0 1", "side": "w", "goal": "win", "surviveMoves": 2 },
+      "moves": ["Ra8", "Kd3", "Ra3+"],
+      "expect": { "ending": "moveTarget", "goalMet": false, "needsTrainer": false }
+    },
+    "rejected": [
+      {
+        "name": "play with no number: there would be nothing to stop the game",
+        "task": { "fen": "8/8/8/8/8/4k3/8/R3K3 w - - 0 1", "side": "w", "goal": "play" },
+        "why": "needs a number"
+      },
+      {
+        "name": "play for no moves",
+        "task": { "fen": "8/8/8/8/8/4k3/8/R3K3 w - - 0 1", "side": "w", "goal": "play", "surviveMoves": 0 },
+        "why": "needs a number"
+      }
+    ]
   }
 }

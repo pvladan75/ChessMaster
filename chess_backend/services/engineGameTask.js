@@ -14,7 +14,14 @@
 
 const { Chess } = require('chess.js');
 
-const GOALS = ['win', 'hold', 'survive'];
+/// `play` has no goal at all (`docs/PLAN-EXERCISE.md`, phase 15): the student
+/// plays N moves and the **trainer** says what they were worth. Nothing about
+/// it is ever met or missed by the rules, and no tablebase is ever asked.
+const GOALS = ['win', 'hold', 'survive', 'play'];
+
+/// The goals that cannot go on without a number: there would be nothing to
+/// stop the game by, or nothing to survive.
+const NEEDS_MOVES = ['survive', 'play'];
 
 /// Every way an assigned game can be over. The first five are the board's, and
 /// mirror `GameEnding` in the app (`lib/core/models/drill_outcome.dart`); the
@@ -77,14 +84,16 @@ function parseEngineGameTask(raw) {
   // disagree until the next phase lands.
   let surviveMoves = null;
   const saidMoves = raw.surviveMoves !== undefined && raw.surviveMoves !== null;
-  if (goal === 'survive' || saidMoves) {
+  if (NEEDS_MOVES.includes(goal) || saidMoves) {
     surviveMoves = Number.parseInt(raw.surviveMoves, 10);
     if (!Number.isInteger(surviveMoves) || surviveMoves < 1 || surviveMoves > MAX_SURVIVE_MOVES) {
       return {
         ok: false,
         error: goal === 'survive'
           ? 'Surviving needs a number of moves, from 1.'
-          : `"For N moves" needs a number from 1 to ${MAX_SURVIVE_MOVES}.`,
+          : goal === 'play'
+            ? `Playing N moves needs a number from 1 to ${MAX_SURVIVE_MOVES}.`
+            : `"For N moves" needs a number from 1 to ${MAX_SURVIVE_MOVES}.`,
       };
     }
   }
@@ -187,8 +196,14 @@ function judgeEngineGame({ task: rawTask, moves, resigned = false }) {
   // „win" is a win; „hold" is anything that is not a loss, once the game is
   // over; „survive" is not losing, either to the end of the game or for as
   // many of the student's own moves as the trainer asked.
-  let goalMet = false;
-  if (ending !== null) {
+  //
+  // „play" has no goal, so it has no answer here: null, however the game
+  // ended — mated, mating or stopped at its number — and `needsTrainer` says
+  // whose it is. Null and not false: a game nobody has judged must never
+  // read as a game that failed.
+  const needsTrainer = task.goal === 'play';
+  let goalMet = needsTrainer ? null : false;
+  if (ending !== null && !needsTrainer) {
     if (task.goal === 'win') goalMet = outcome === 'won';
     else if (task.goal === 'hold') goalMet = outcome !== 'lost';
     else if (task.goal === 'survive') goalMet = outcome !== 'lost';
@@ -204,8 +219,12 @@ function judgeEngineGame({ task: rawTask, moves, resigned = false }) {
   // A win is never asked about. „Checkmate in N moves" with no mate on the
   // board after N is missed, however won the position still is — the verdict
   // above is final, and asking would turn a missed mate into a met goal.
+  //
+  // And „play" is never asked about either: there is no goal for a tablebase
+  // to have met.
   const needsTablebase = ending === 'moveTarget'
     && task.goal !== 'win'
+    && !needsTrainer
     && pieceCount(board.fen()) <= TABLEBASE_PIECES;
 
   return {
@@ -215,6 +234,7 @@ function judgeEngineGame({ task: rawTask, moves, resigned = false }) {
     outcome,
     goalMet,
     needsTablebase,
+    needsTrainer,
     ownMoves,
     plies: list.length,
     fen: board.fen(),
@@ -247,6 +267,9 @@ function goalMetByTablebase({ task, fen, category, wdlOf }) {
   // gets here with a win has skipped that check.
   if (task.goal === 'win') {
     throw new Error('A win is judged by checkmate, never by the tablebase.');
+  }
+  if (task.goal === 'play') {
+    throw new Error('A game with no goal is judged by the trainer, never by the tablebase.');
   }
   const forMover = wdlOf(category);
   const turn = String(fen).split(' ')[1];

@@ -330,6 +330,29 @@ class AssignmentApiService {
     }
   }
 
+  /// The trainer's own verdict on a played game (`docs/PLAN-EXERCISE.md`,
+  /// phase 15): „Play N moves", which has no other judge, and a game no
+  /// tablebase answered. Null when it was written; otherwise the server's own
+  /// sentence — 404 for a game that is not this trainer's or was not played,
+  /// 409 for one the rules or a tablebase already judged.
+  Future<String?> submitGameVerdict(int assignmentId,
+      {required bool met}) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/assignments/$assignmentId/game-verdict'),
+            headers: _headers,
+            body: jsonEncode({'met': met}),
+          )
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) return null;
+      return _errorFrom(res.body, 'Could not save the verdict.');
+    } catch (e) {
+      AppLogger.log('[Assignments] Verdict failed: $e');
+      return 'Cannot connect to server.';
+    }
+  }
+
   /// What happened on one assignment, position by position, with the notes.
   ///
   /// One request rather than three: it is one screen, and the server decides

@@ -951,7 +951,7 @@ async function initDB(target = pool) {
         ADD COLUMN IF NOT EXISTS judged_by VARCHAR(12);
       ALTER TABLE assignment_items DROP CONSTRAINT IF EXISTS assignment_items_judged_by_check;
       ALTER TABLE assignment_items ADD CONSTRAINT assignment_items_judged_by_check
-        CHECK (judged_by IS NULL OR judged_by IN ('rules', 'tablebase', 'device'));
+        CHECK (judged_by IS NULL OR judged_by IN ('rules', 'tablebase', 'device', 'trainer'));
     `);
     logger.info('Verified column: assignment_items.judged_by');
 

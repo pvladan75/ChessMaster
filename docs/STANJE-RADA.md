@@ -89,9 +89,11 @@ ukras preko nje.
    ekran sa praznom linijom umesto dva različita puta; (c) dugme „Make exercise"
    je onemogućeno sa razlogom dok na tabli nema poteza. (b) je najveća izmena i
    jedina koja uklanja uzrok, a ne objašnjava ga.
-   **Odlučeno 20.9.2026 — `PLAN-EXERCISE.md`, §10, faze 13–16. Faze 13 i 14 su u
-   kodu (aplikacija 3283 → 3295 → 3307, server 1612/1524 → 1614/1526; provera
-   uživo: stavke 195 i 196); 15 i 16 nisu počete. Ovo pitanje je time zatvoreno
+   **Odlučeno 20.9.2026 — `PLAN-EXERCISE.md`, §10, faze 13–16. Faze 13, 14 i 15 su
+   u kodu (aplikacija 3283 → 3295 → 3307 → 3334, server 1612/1524 → 1614/1526 →
+   1632/1539; provera uživo: stavke 195, 196 i 197); ostaje 16 — brisanje
+   mašinerije za više poteza, posle provere uživo, uz prebrojavanje starih
+   zadataka i vlasnikovo „da". Ovo pitanje je time zatvoreno
    u kodu: rečenice „Play the solution on the board first" više nema.**
    Razmatrano je i odbačeno rešenje kao stablo (protivnikove alternative) i
    pretvaranje Find u „Play N = 1". Ostaje: Find traži **jedan potez**, i taj

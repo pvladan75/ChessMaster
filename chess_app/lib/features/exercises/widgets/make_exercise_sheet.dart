@@ -279,6 +279,9 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
       return _reading.ok ? const {'type': 'find'} : null;
     }
     if (_gameSide == null) return null;
+    // Nothing to check about a game with no goal: „this position cannot be
+    // won" is an answer to a question „Play N moves" does not ask.
+    if (_ask == ExerciseAsk.play) return null;
     return {
       'type': 'game',
       'side': _gameSide,
@@ -342,13 +345,17 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
 
   /// „For N moves", within 1..50, or null when the field cannot be read as
   /// one — which, while [_toEnd] is false, is also not yet a task to save.
+  /// „Play N moves" has no „to the end": its number is what stops the game,
+  /// so the choice is not offered and the field is always there.
+  bool get _toEndNow => _ask != ExerciseAsk.play && _toEnd;
+
   int? get _forMoves {
-    if (_toEnd) return null;
+    if (_toEndNow) return null;
     final n = int.tryParse(_forMovesController.text.trim());
     return (n != null && n >= 1 && n <= 50) ? n : null;
   }
 
-  bool get _forMovesUnreadable => !_toEnd && _forMoves == null;
+  bool get _forMovesUnreadable => !_toEndNow && _forMoves == null;
 
   ExerciseJudge get _judge =>
       exerciseJudgeFor(fen: _fen, ask: _ask, forMoves: _forMoves);
@@ -509,33 +516,37 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                     ],
                   ],
                 ] else ...[
-                  Text('How long?', style: AppText.bodyLargeBold),
-                  const SizedBox(height: AppSpacing.xs),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      ChoiceChip(
-                        key: const Key('exercise-length-toEnd'),
-                        label: const Text('To the end of the game'),
-                        selected: _toEnd,
-                        onSelected: (_) => setState(() => _toEnd = true),
-                      ),
-                      ChoiceChip(
-                        key: const Key('exercise-length-forMoves'),
-                        // The same number, two meanings: a win asks for
-                        // mate by then, a draw asks to last that long.
-                        label: Text(
-                          _ask == ExerciseAsk.win
-                              ? 'Checkmate in N moves'
-                              : 'For N moves',
-                        ),
-                        selected: !_toEnd,
-                        onSelected: (_) => setState(() => _toEnd = false),
-                      ),
-                    ],
+                  Text(
+                    _ask == ExerciseAsk.play ? 'How many moves?' : 'How long?',
+                    style: AppText.bodyLargeBold,
                   ),
-                  if (!_toEnd) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  if (_ask != ExerciseAsk.play)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        ChoiceChip(
+                          key: const Key('exercise-length-toEnd'),
+                          label: const Text('To the end of the game'),
+                          selected: _toEnd,
+                          onSelected: (_) => setState(() => _toEnd = true),
+                        ),
+                        ChoiceChip(
+                          key: const Key('exercise-length-forMoves'),
+                          // The same number, two meanings: a win asks for
+                          // mate by then, a draw asks to last that long.
+                          label: Text(
+                            _ask == ExerciseAsk.win
+                                ? 'Checkmate in N moves'
+                                : 'For N moves',
+                          ),
+                          selected: !_toEnd,
+                          onSelected: (_) => setState(() => _toEnd = false),
+                        ),
+                      ],
+                    ),
+                  if (!_toEndNow) ...[
                     const SizedBox(height: AppSpacing.sm),
                     SizedBox(
                       width: 100,

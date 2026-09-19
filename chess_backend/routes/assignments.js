@@ -795,6 +795,32 @@ router.post('/:id/game-result', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /assignments/:id/game-verdict — the trainer says whether a played game
+// was good enough (docs/PLAN-EXERCISE.md, phase 15). Body `{ met: true|false }`
+// and nothing else: absence is not a „no", so anything but a boolean is a 400.
+router.post('/:id/game-verdict', authenticateToken, async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
+  }
+  const met = (req.body || {}).met;
+  if (typeof met !== 'boolean') {
+    return res.status(400).json({ error: 'The verdict must be true or false.' });
+  }
+  try {
+    const result = await assignments.recordTrainerVerdict(pool, {
+      trainerId: req.user.id, assignmentId: id, met,
+    });
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error });
+    }
+    res.json({ goalMet: result.goalMet, judgedBy: result.judgedBy, pending: result.pending });
+  } catch (err) {
+    logger.error('Error recording a trainer verdict:', err);
+    res.status(500).json({ error: 'Error recording the verdict.' });
+  }
+});
+
 // POST /assignments/:id/open-gate — the trainer unlocks one homework item for
 // the student it was sent to (docs/PLAN-DOMACI-ZADATAK.md, §6). 404 for
 // „not yours", „not an item" and „already open" alike: none of them has

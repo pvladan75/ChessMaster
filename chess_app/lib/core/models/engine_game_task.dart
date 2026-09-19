@@ -18,7 +18,11 @@ import 'package:chess_app/services/fen_legality.dart';
 import 'drill_outcome.dart';
 
 /// The three goals the first version offers.
-enum EngineGameGoal { win, hold, survive }
+///
+/// [play] is no goal at all (`docs/PLAN-EXERCISE.md`, phase 15): the student
+/// plays N moves and the **trainer** judges how. Nothing about such a game is
+/// ever met or missed on this device, and no tablebase is ever asked.
+enum EngineGameGoal { win, hold, survive, play }
 
 /// The default and the ceiling for [EngineGameTask.plyCap] — the same numbers
 /// the server uses, so a task neither end refuses reads the same limit on
@@ -103,6 +107,9 @@ class EngineGameTask {
       case 'survive':
         goal = EngineGameGoal.survive;
         break;
+      case 'play':
+        goal = EngineGameGoal.play;
+        break;
       default:
         return null;
     }
@@ -117,7 +124,11 @@ class EngineGameTask {
     int? surviveMoves;
     final saidMoves =
         json.containsKey('surviveMoves') && json['surviveMoves'] != null;
-    if (goal == EngineGameGoal.survive || saidMoves) {
+    // `play` needs it as `survive` does: with no number there would be
+    // nothing to stop the game by.
+    final needsMoves =
+        goal == EngineGameGoal.survive || goal == EngineGameGoal.play;
+    if (needsMoves || saidMoves) {
       final n = _asInt(json['surviveMoves']);
       if (n == null || n < 1 || n > _maxSurviveMoves) return null;
       surviveMoves = n;
@@ -170,6 +181,7 @@ class EngineGameVerdict {
     required this.goalMet,
     required this.ownMoves,
     required this.needsTablebase,
+    this.needsTrainer = false,
   });
 
   /// Null while the game is running.
@@ -185,6 +197,11 @@ class EngineGameVerdict {
   /// game, and the caller must wait for the server's word rather than show it
   /// (`docs/PLAN-EXERCISE.md`, phase 3b, decision 1).
   final bool needsTablebase;
+
+  /// True for a game with no goal ([EngineGameGoal.play]), however it ended:
+  /// [goalMet] means nothing there, and the verdict is the trainer's to give
+  /// (`docs/PLAN-EXERCISE.md`, phase 15).
+  final bool needsTrainer;
 }
 
 /// Reads the verdict of an assigned game through [verdictFor] and adds only
@@ -238,6 +255,9 @@ EngineGameVerdict engineGameVerdict({
         // own moves the trainer asked for.
         goalMet = outcome != DrillOutcome.readerLost;
         break;
+      case EngineGameGoal.play:
+        // No goal, so nothing to meet: `needsTrainer` below says whose it is.
+        break;
     }
   }
 
@@ -245,8 +265,11 @@ EngineGameVerdict engineGameVerdict({
   // tablebase can judge exactly. The app cannot ask one. A win is never
   // asked about: no mate after N moves is a missed goal however won the
   // position still is, and waiting for the server would let it say otherwise.
+  // Nor is a game with no goal: there is nothing for a tablebase to have met.
+  final needsTrainer = task.goal == EngineGameGoal.play;
   final needsTablebase = ending == GameEnding.moveTarget &&
       task.goal != EngineGameGoal.win &&
+      !needsTrainer &&
       exercisePieceCount(game.fen) <= tablebasePieces;
 
   return EngineGameVerdict(
@@ -255,6 +278,7 @@ EngineGameVerdict engineGameVerdict({
     goalMet: goalMet,
     ownMoves: ownMoves,
     needsTablebase: needsTablebase,
+    needsTrainer: needsTrainer,
   );
 }
 
@@ -272,9 +296,11 @@ String engineGameGoalSentence(EngineGameTask task, {required int ownMoves}) {
   }
   final left = (total - ownMoves).clamp(0, total);
   final moves = '$total ${total == 1 ? 'move' : 'moves'}';
-  final ask = task.goal == EngineGameGoal.win
-      ? 'checkmate in $moves'
-      : 'do not lose for $moves';
+  final ask = switch (task.goal) {
+    EngineGameGoal.win => 'checkmate in $moves',
+    EngineGameGoal.play => 'play $moves',
+    _ => 'do not lose for $moves',
+  };
   return 'You are $side — $ask · $left left';
 }
 
@@ -301,7 +327,9 @@ String engineGameEndingWords(EngineGameTask? task, GameEnding ending) {
   }
   final n = task.surviveMoves ?? 0;
   final moves = '$n ${n == 1 ? 'move' : 'moves'}';
-  return task.goal == EngineGameGoal.win
-      ? 'no checkmate in $moves'
-      : 'you were not beaten in $moves';
+  return switch (task.goal) {
+    EngineGameGoal.win => 'no checkmate in $moves',
+    EngineGameGoal.play => '$moves played',
+    _ => 'you were not beaten in $moves',
+  };
 }
