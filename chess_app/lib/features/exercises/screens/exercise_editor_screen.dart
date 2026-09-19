@@ -10,6 +10,12 @@
 // opens `MakeExerciseSheet.edit` over the line as it now stands. The sheet
 // does the actual saving; this screen only pops with what the sheet popped
 // with, so the caller (the Library) knows a save happened.
+//
+// **Making one** (phase 14, `ExerciseEditorScreen.make`): the same screen opened
+// on a position with no answer yet. A find exercise asks for one move, so there
+// is nothing to play anywhere in advance — the first move played on this board
+// is the answer, every further one an accepted alternative, „Start over" gives
+// the answer back, and Save opens the same sheet over what was played.
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -31,13 +37,30 @@ class ExerciseEditorScreen extends StatefulWidget {
   const ExerciseEditorScreen({
     super.key,
     required this.api,
-    required this.exerciseId,
+    required String this.exerciseId,
     this.availableUserLabels = const [],
     this.checker = defaultExerciseChecker,
-  });
+  }) : makingFen = null;
+
+  /// A new find exercise on [fen], its move still to be played here.
+  const ExerciseEditorScreen.make({
+    super.key,
+    required this.api,
+    required String fen,
+    this.availableUserLabels = const [],
+    this.checker = defaultExerciseChecker,
+  })  : exerciseId = null,
+        makingFen = fen;
 
   final ExerciseApiService api;
-  final String exerciseId;
+
+  /// The saved exercise this screen opens, or null while one is being made.
+  final String? exerciseId;
+
+  /// The position of the exercise being made, or null for a saved one.
+  final String? makingFen;
+
+  bool get isMaking => makingFen != null;
   final List<String> availableUserLabels;
   final ExerciseChecker checker;
 
@@ -82,6 +105,12 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   /// the side to move; for a game it is the task's own `side`, which the
   /// position does not decide — the same rule the Library's thumbnail reads.
   PlayerColor get _orientation {
+    final making = widget.makingFen;
+    if (making != null) {
+      return making.split(' ')[1] == 'b'
+          ? PlayerColor.black
+          : PlayerColor.white;
+    }
     final exercise = _exercise;
     if (exercise == null) return PlayerColor.white;
     final side = exercise.isGame ? exercise.task['side'] : exercise.sideToMove;
@@ -135,11 +164,25 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   }
 
   Future<void> _load() async {
+    final making = widget.makingFen;
+    if (making != null) {
+      // Nothing to fetch: the position is the caller's and the answer is
+      // about to be played. The baseline is the empty answer, so a move
+      // played and not saved is asked about before leaving, as in an edit.
+      final edit = ExerciseLineEdit.empty(fen: making);
+      _board.loadFen(making);
+      setState(() {
+        _loading = false;
+        _edit = edit;
+        _baseline = edit.steps;
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _failed = false;
     });
-    final exercise = await widget.api.load(widget.exerciseId);
+    final exercise = await widget.api.load(widget.exerciseId!);
     if (!mounted) return;
     if (exercise == null) {
       setState(() {
@@ -203,23 +246,34 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     if (edit == null) return;
     final fen = edit.fenBefore(_chosenStep);
     final san = _sanFor(fen, from, to, promotion);
-    if (san != null) edit.add(_chosenStep, san);
+    if (san != null) {
+      widget.isMaking ? edit.play(san) : edit.add(_chosenStep, san);
+    }
     _board.loadFen(fen);
     setState(() {});
   }
 
   Future<void> _openSaveSheet() async {
     final exercise = _exercise;
-    if (exercise == null) return;
+    final making = widget.makingFen;
+    if (exercise == null && making == null) return;
     final saved = await showDialog<Exercise>(
       context: context,
-      builder: (_) => MakeExerciseSheet.edit(
-        api: widget.api,
-        exercise: exercise,
-        steps: _edit?.steps,
-        availableUserLabels: widget.availableUserLabels,
-        checker: widget.checker,
-      ),
+      builder: (_) => exercise != null
+          ? MakeExerciseSheet.edit(
+              api: widget.api,
+              exercise: exercise,
+              steps: _edit?.steps,
+              availableUserLabels: widget.availableUserLabels,
+              checker: widget.checker,
+            )
+          : MakeExerciseSheet.withAnswer(
+              api: widget.api,
+              fen: making!,
+              steps: _edit!.steps,
+              availableUserLabels: widget.availableUserLabels,
+              checker: widget.checker,
+            ),
     );
     if (saved == null || !mounted) return;
     final navigator = Navigator.of(context);
@@ -252,7 +306,8 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
         backgroundColor: context.colors.canvas,
         appBar: AppBar(
           toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
-          title: Text(_exercise?.name ?? 'Exercise'),
+          title: Text(_exercise?.name ??
+              (widget.isMaking ? 'New exercise' : 'Exercise')),
         ),
         body: SafeArea(child: _body()),
       ),
@@ -262,7 +317,7 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   Widget _body() {
     if (_loading) return const Center(child: CircularProgressIndicator());
 
-    if (_failed || _exercise == null) {
+    if (_failed || (_exercise == null && !widget.isMaking)) {
       final colors = context.colors;
       return Center(
         child: Padding(
@@ -336,9 +391,10 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   }
 
   Widget _panels() {
-    final exercise = _exercise!;
+    final exercise = _exercise;
     final edit = _edit;
     final colors = context.colors;
+    if (exercise == null) return _makingPanels(edit!, colors);
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -393,13 +449,70 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     );
   }
 
+  /// While the exercise is being made: what to do, then what was played —
+  /// the answer, and the alternatives, each removable. One move, so no steps
+  /// to choose between.
+  Widget _makingPanels(ExerciseLineEdit edit, AppColorTokens colors) {
+    final accept = edit.steps.isEmpty ? const <String>[] : edit.steps[0].accept;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(exerciseTaskWords(const {'type': 'find'}),
+              style: AppText.bodyLargeBold),
+          const SizedBox(height: AppSpacing.sm),
+          if (accept.isEmpty)
+            Text(
+              'Play the move the student should find.',
+              key: const Key('exercise-editor-making-hint'),
+              style: AppText.body.copyWith(color: colors.textSecondary),
+            )
+          else ...[
+            Text(
+              exerciseSolutionText(edit.steps),
+              key: const Key('exercise-editor-line'),
+              style: AppText.body.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (final san in accept.skip(1))
+                  ActionChip(
+                    key: Key('exercise-editor-remove-0-$san'),
+                    avatar: const Icon(Icons.close, size: 16),
+                    label: Text(san),
+                    onPressed: () => setState(() => edit.remove(0, san)),
+                  ),
+                TextButton.icon(
+                  key: const Key('exercise-editor-start-over'),
+                  onPressed: () => setState(edit.clear),
+                  icon: const Icon(Icons.restart_alt, size: 16),
+                  label: const Text('Start over'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   List<Widget> _footer() {
     final edit = _edit;
     final colors = context.colors;
     return [
       if (edit != null) ...[
         Text(
-          kVariationHint,
+          // While making, „a variation" is the wrong word: there is no tree
+          // here, only moves played one after another from one position.
+          widget.isMaking
+              ? 'Every other move you play here is accepted as well.'
+              : kVariationHint,
           style: AppText.body.copyWith(color: colors.textMuted),
         ),
         if (edit.error != null) ...[
@@ -421,7 +534,10 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
         // pointed at the sheet's own button alone.
         child: FilledButton(
           key: const Key('exercise-editor-save'),
-          onPressed: _openSaveSheet,
+          // Nothing to save until the move has been played.
+          onPressed: widget.isMaking && (edit?.steps.isEmpty ?? true)
+              ? null
+              : _openSaveSheet,
           child: const Text('Save'),
         ),
       ),

@@ -255,11 +255,11 @@ void main() {
       await tester.tap(find.byKey(const Key('exercise-ask-hold')));
       await tester.pumpAndSettle();
 
-      // No line is played on the board — the tree is empty — yet this is
-      // not the „play the solution first" refusal, which applies to Find
-      // alone.
-      expect(find.textContaining('Play the solution on the board first'),
-          findsNothing);
+      // No move is played on the board — the tree is empty — yet a game
+      // task is not led to „Play the move": that belongs to Find alone
+      // (the sentence this used to look for is gone since phase 14, so its
+      // absence proved nothing).
+      expect(find.byKey(const Key('exercise-play-the-move')), findsNothing);
       await tester.ensureVisible(find.byKey(const Key('exercise-side-w')));
       await tester.tap(find.byKey(const Key('exercise-side-w')));
       await tester.pump();

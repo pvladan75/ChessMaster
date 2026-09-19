@@ -57,7 +57,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ## Vlasnikova pitanja za kasnije — zapisano 20.9.2026, ništa u kodu, ništa odlučeno
 
-Četiri nepovezane stvari koje je vlasnik imao u glavi i tražio da se zapišu da se
+Pet nepovezanih stvari (peta dodata istog dana) koje je vlasnik imao u glavi i tražio da se zapišu da se
 ne zaborave. **Nijedna nije istražena u kodu**; beleške ispod svake su prva misao,
 ne nalaz — pre rada na bilo kojoj prvo izmeriti šta danas postoji.
 
@@ -89,8 +89,10 @@ ukras preko nje.
    ekran sa praznom linijom umesto dva različita puta; (c) dugme „Make exercise"
    je onemogućeno sa razlogom dok na tabli nema poteza. (b) je najveća izmena i
    jedina koja uklanja uzrok, a ne objašnjava ga.
-   **Odlučeno 20.9.2026 — `PLAN-EXERCISE.md`, §10, faze 13–16. Faza 13 je u kodu
-   (aplikacija 3283 → 3295, provera uživo: stavka 195); 14–16 nisu počete.**
+   **Odlučeno 20.9.2026 — `PLAN-EXERCISE.md`, §10, faze 13–16. Faze 13 i 14 su u
+   kodu (aplikacija 3283 → 3295 → 3307, server 1612/1524 → 1614/1526; provera
+   uživo: stavke 195 i 196); 15 i 16 nisu počete. Ovo pitanje je time zatvoreno
+   u kodu: rečenice „Play the solution on the board first" više nema.**
    Razmatrano je i odbačeno rešenje kao stablo (protivnikove alternative) i
    pretvaranje Find u „Play N = 1". Ostaje: Find traži **jedan potez**, i taj
    potez se odigra na ekranu samog zadatka (faza 14) — nema više šta da se
@@ -106,6 +108,20 @@ ukras preko nje.
    Srodno sa 3 i verovatno jeftinije: 3 objašnjava ekrane, 4 polazi od namere.
    Vredi ih razmatrati zajedno — dobar odgovor na 4 može da smanji potrebu za 3,
    a 2 je primer zašto: korisnik je znao *šta* hoće, a nije znao *gde se počinje*.
+5. **Zadaci za sopstveni razvoj, ne samo za slanje učeniku** (dodato 20.9.2026,
+   uz fazu 14). Vlasnikova misao: skeniranje PDF-a i obrada pozicija tek sada
+   dobijaju smisao — **pozicije se pretvaraju u zadatke** — i tako nastali zadaci
+   treba da služe i korisniku koji nije ni trener ni učenik, za sopstveno
+   vežbanje. *Mereno u kodu, ništa građeno*: sken sa odštampanim rešenjem jeste
+   „Find the move" zadatak od faze 1 i uklapa se u fazu 14 bez ikakve konverzije;
+   sken bez rešenja je gola pozicija, a ekran „New exercise" (faza 14) ga
+   pretvara u zadatak jednim potezom — ali se do tog ekrana danas stiže samo
+   kroz sobu, dugme na samoj skeniranoj poziciji ne postoji. **Samostalno
+   rešavanje ne postoji**: „Find" zadatak se rešava isključivo unutar domaćeg
+   (`POST /assignments/:id/custom-attempt`); nema vrata da korisnik reši svoj
+   zadatak, da mu se beleži uspeh, niti da se zadatak vraća kroz ponavljanje sa
+   razmakom. Delovi postoje odvojeno (sudija, ekran za rešavanje, ponavljanje
+   koje koriste taktički zadaci) — to je novi plan, ne deo `PLAN-EXERCISE.md` §10.
 
 ## Vlasnikova provera 20.9.2026: zadatak koji se otvarao kao „Assignment complete", i ko je na potezu — u kodu
 

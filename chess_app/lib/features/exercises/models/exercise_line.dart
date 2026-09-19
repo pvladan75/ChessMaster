@@ -27,8 +27,7 @@ class ExerciseLineReading {
   const ExerciseLineReading({
     required this.steps,
     this.error,
-    this.droppedReply = false,
-    this.ignoredReplies = 0,
+    this.laterMovesIgnored = false,
   });
 
   /// As the board spells them. Empty when [error] is set.
@@ -37,13 +36,10 @@ class ExerciseLineReading {
   /// The reason it was refused, in the server's own words. Null when [ok].
   final String? error;
 
-  /// `fromTree` only: the main line's last move was the opponent's, and it was
-  /// dropped — a line ends on the student's move.
-  final bool droppedReply;
-
-  /// `fromTree` only: how many variations at the opponent's moves were seen
-  /// and not used.
-  final int ignoredReplies;
+  /// `fromTree` only: the tree went on after the first move — a reply, a
+  /// second move, a line under an alternative — and none of that was used. A
+  /// find exercise asks for one move (`docs/PLAN-EXERCISE.md`, phase 14).
+  final bool laterMovesIgnored;
 
   bool get ok => error == null;
 }
@@ -170,55 +166,31 @@ class ExerciseLine {
     return ExerciseLineReading(steps: out);
   }
 
-  /// The trainer's tree, flattened **from its root** — never from
-  /// `tree.current`. The 6.9.2026 bug (`CLAUDE.md`, „the recurring bug") sent
-  /// a step's `fen` from the current node and its line from the root; here
-  /// both come from `tree.root`, and the result is read back through [read]
-  /// before it is returned, so a line this app writes is never one the server
-  /// would refuse.
+  /// The trainer's tree, read **at its root** — never at `tree.current`. The
+  /// 6.9.2026 bug (`CLAUDE.md`, „the recurring bug") sent a step's `fen` from
+  /// the current node and its line from the root; here both come from
+  /// `tree.root`, and the result is read back through [read] before it is
+  /// returned, so what this app writes is never what the server would refuse.
   ///
-  /// A variation at the student's move (even ply) is an accepted alternative,
-  /// in tree order after the main move. A variation at the opponent's move
-  /// (odd ply) is not used, and is counted (`ignoredReplies`). A main line
-  /// that ends on the opponent's move loses that move — a line ends on the
-  /// student's move — and says so (`droppedReply`).
+  /// **One move** (phase 14): the root's first child is the answer and its
+  /// siblings — variations at the student's move — the accepted alternatives,
+  /// in tree order. Whatever the tree holds below them is not used, and the
+  /// reading says so (`laterMovesIgnored`). The server refuses a longer find
+  /// solution; this writer cannot make one.
   static ExerciseLineReading fromTree(MoveTree tree) {
-    final steps = <ExerciseStep>[];
-    var ignoredReplies = 0;
-    var droppedReply = false;
-
-    var cursor = tree.root;
-    while (cursor.children.isNotEmpty) {
-      final studentMove = cursor.children.first;
-      final alternatives = cursor.children.skip(1).map((c) => c.san).toList();
-      final accept = [studentMove.san, ...alternatives];
-
-      if (studentMove.children.isEmpty) {
-        steps.add(ExerciseStep(accept: accept, reply: null));
-        break;
-      }
-
-      final reply = studentMove.children.first;
-      ignoredReplies += studentMove.children.length - 1;
-
-      if (reply.children.isEmpty) {
-        // The main line's last node is the opponent's reply — the line ends
-        // on the student's move, so it is dropped here rather than asked for.
-        steps.add(ExerciseStep(accept: accept, reply: null));
-        droppedReply = true;
-        break;
-      }
-
-      steps.add(ExerciseStep(accept: accept, reply: reply.san));
-      cursor = reply;
-    }
-
-    final reading = read(fen: tree.root.fen, steps: steps);
+    final moves = tree.root.children;
+    final reading = read(
+      fen: tree.root.fen,
+      steps: moves.isEmpty
+          ? const []
+          : [
+              ExerciseStep(accept: [for (final m in moves) m.san], reply: null)
+            ],
+    );
     return ExerciseLineReading(
       steps: reading.steps,
       error: reading.error,
-      droppedReply: droppedReply,
-      ignoredReplies: ignoredReplies,
+      laterMovesIgnored: moves.any((m) => m.children.isNotEmpty),
     );
   }
 }

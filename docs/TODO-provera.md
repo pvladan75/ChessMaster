@@ -5878,6 +5878,35 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 196. „Find the move" je jedan potez, i igra se na ekranu zadatka — 20.9.2026, nije viđeno uživo
+
+`docs/PLAN-EXERCISE.md`, faza 14. **Server mora da bude restartovan** (novo
+pravilo pri čuvanju zadatka).
+
+1. [ ] **Prazna tabla u sobi** (postavi poziciju, ne igraj ništa) → „Make
+   exercise": umesto crvene rečenice stoji objašnjenje i dugme **„Play the
+   move"**. Pod „Win" i „Draw or better" tog dugmeta nema.
+2. [ ] „Play the move" otvara ekran „New exercise" sa tom pozicijom, tabla je
+   okrenuta na stranu koja je na potezu, „Save" je sivo dok se ništa ne odigra.
+3. [ ] Prvi odigran potez je rešenje, svaki sledeći je prihvaćena alternativa
+   (piše „1. Qf7# (or Qa8#, Qa7)"); tabla se posle svakog poteza vraća na
+   početnu poziciju. Alternativa se skida krstićem, **„Start over"** briše sve.
+4. [ ] „Save" → isti list kao i do sada (ime, instrukcija, oznake; samo čip „Find
+   the move"), „Save" → sve se zatvara, u sobi piše „Exercise saved.", zadatak
+   je u biblioteci pod „Exercises" i može da se pošalje i reši.
+5. [ ] Izlazak sa ekrana posle odigranog a nesačuvanog poteza pita „Discard the
+   unsaved change?".
+6. [ ] **Potez već odigran u sobi** (sa varijantom na istom potezu) → „Make
+   exercise" ga čita kao i pre: rešenje + alternativa, bez odlaska na drugi
+   ekran. Ako je u sobi odigrano više od jednog poteza, list kaže „Only the
+   first move is asked. The moves after it are not used." i čuva samo prvi.
+7. [ ] Uspravno i položeno na telefonu: ništa nije odsečeno na ekranu „New
+   exercise".
+8. [ ] Stari zadatak sa **više poteza** i dalje se otvara i rešava kao pre (ništa
+   mu nije dirano); pokušaj da se takav sačuva iz editora server odbija
+   rečenicom „A find exercise asks for one move…". To je očekivano — ti zadaci
+   se brišu u fazi 16.
+
 ## 195. Odigrana partija iz domaćeg se otvara u Analizi sa potezima — 20.9.2026, nije viđeno uživo
 
 `docs/PLAN-EXERCISE.md`, faza 13. Samo aplikacija — server se ne dira i ne mora

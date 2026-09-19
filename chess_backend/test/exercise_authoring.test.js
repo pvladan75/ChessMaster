@@ -13,7 +13,9 @@ const { assignableProblem, exerciseColumns } = require('../services/exercise');
 
 const fixture = require(path.join(__dirname, '..', '..', 'docs', 'gates', 'exercise_line_cases.json'));
 const SCHOLAR = fixture.positions.scholar;
-const LINE = fixture.solutions.scholarLine;
+// One move of the student, with its alternative — what a find exercise is
+// since phase 14. The two-move line it used to be is in `oneMove.refused`.
+const LINE = fixture.solutions.scholarFirst;
 
 const find = (over = {}) => ({
   name: 'Queen out early', fen: SCHOLAR, task: { type: 'find' }, solution: LINE.steps, ...over,
@@ -55,6 +57,37 @@ test('every line the fixture refuses is refused at the door, with its reason', (
     assert.equal(parsed.ok, false, c.name);
     assert.ok(parsed.error.includes(c.why), `${c.name}: "${parsed.error}"`);
   }
+});
+
+test('a find exercise asks for one move: a longer line is refused for its length alone', () => {
+  const { refusal, refused, accepted } = fixture.oneMove;
+  for (const name of refused) {
+    const s = fixture.solutions[name];
+    const parsed = parseExercise(find({ fen: fixture.positions[s.position], solution: s.steps }));
+    assert.equal(parsed.ok, false, name);
+    assert.ok(parsed.error.startsWith(refusal), `${name}: "${parsed.error}"`);
+    // And it says where such an exercise does belong.
+    assert.match(parsed.error, /Checkmate in N|Play N moves/, name);
+  }
+  for (const name of accepted) {
+    const s = fixture.solutions[name];
+    const parsed = parseExercise(find({ fen: fixture.positions[s.position], solution: s.steps }));
+    assert.equal(parsed.ok, true, `${name}: ${parsed.error}`);
+    assert.deepEqual(parsed.exercise.solution, s.normalised, name);
+  }
+  // Control: the refused ones are good lines — the reader takes them whole.
+  const { readSolution } = require('../services/exercise');
+  for (const name of refused) {
+    const s = fixture.solutions[name];
+    assert.equal(readSolution(fixture.positions[s.position], s.steps).ok, true, name);
+  }
+});
+
+test('an edit is held to the same length', () => {
+  const s = fixture.solutions.scholarLine;
+  const parsed = parseExercise(find({ fen: undefined, solution: s.steps }), { keptFen: SCHOLAR });
+  assert.equal(parsed.ok, false);
+  assert.ok(parsed.error.startsWith(fixture.oneMove.refusal));
 });
 
 test('an exercise without a name, a position or a task is not one', () => {

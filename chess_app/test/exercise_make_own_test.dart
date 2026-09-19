@@ -134,14 +134,17 @@ void main() {
       });
     }
 
-    testWidgets('an empty tree shows the reason and offers no Save',
+    testWidgets('an empty tree offers the way to the move, and no Save',
         (tester) async {
       await pumpDialog(
         tester,
         sheet(tree: MoveTree(startingFen: _scholar)),
       );
 
-      expect(find.textContaining('at least one move'), findsOneWidget);
+      // Until phase 14 this was a red refusal and a sentence about playing
+      // the solution first. It leads now, and still does not save.
+      expect(find.byKey(const Key('exercise-play-the-move')), findsOneWidget);
+      expect(find.textContaining('at least one move'), findsNothing);
 
       await tester.enterText(find.byType(TextField).first, 'Anything');
       await tester.pump();

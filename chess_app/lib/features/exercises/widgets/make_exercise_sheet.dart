@@ -3,11 +3,13 @@
 //
 // A trainer does not send a position, they send an exercise: a position plus
 // a task. The sheet asks **what** before anything else, in `ExerciseAsk`'s own
-// words. *Find the move(s)* is read straight off the room's own move tree,
-// never from wherever the trainer's cursor happens to be (`ExerciseLine.
-// fromTree`, and the 6.9.2026 bug it exists to not repeat). *Win* and *Draw or
-// better* (phase 3b) need no line — only the position, the root's FEN, as
-// everywhere in this feature — and two more questions:
+// words. *Find the move* asks for ONE move (phase 14): it is read off the
+// root of the room's own move tree when one was played there — never from
+// wherever the trainer's cursor happens to be (`ExerciseLine.fromTree`, and
+// the 6.9.2026 bug it exists to not repeat) — and otherwise played on the
+// exercise's own screen, which the sheet opens („Play the move"). *Win* and
+// *Draw or better* (phase 3b) need no move — only the position, the root's
+// FEN, as everywhere in this feature — and two more questions:
 // `lib/features/exercises/models/exercise_task_words.dart` is the one home
 // for the words a game task is asked and judged in; this sheet reads it
 // rather than wording a task a second time.
@@ -38,6 +40,7 @@ import '../models/exercise_check.dart';
 import '../models/exercise_line.dart';
 import '../models/exercise_task_words.dart';
 import '../services/exercise_api_service.dart';
+import '../screens/exercise_editor_screen.dart';
 import '../services/exercise_checker.dart';
 
 const Map<String, String> _kEngineLevelLabels = {
@@ -128,7 +131,24 @@ class MakeExerciseSheet extends StatefulWidget {
     required this.availableUserLabels,
     this.checker = defaultExerciseChecker,
   })  : exercise = null,
-        editSteps = null;
+        editSteps = null,
+        makingFen = null;
+
+  /// Makes a find exercise whose move was played on the exercise's own screen
+  /// (phase 14): [fen] is the position, [steps] the answer as
+  /// `ExerciseLineEdit` holds it. What is asked is already decided — the move
+  /// was played to be found — so only that chip is shown.
+  const MakeExerciseSheet.withAnswer({
+    super.key,
+    required this.api,
+    required String fen,
+    required List<ExerciseStep> steps,
+    required this.availableUserLabels,
+    this.checker = defaultExerciseChecker,
+  })  : moveTree = null,
+        exercise = null,
+        editSteps = steps,
+        makingFen = fen;
 
   /// Edits an exercise already saved (phase 11): prefilled from [exercise],
   /// or from [steps] when the caller has a line still in progress
@@ -142,12 +162,16 @@ class MakeExerciseSheet extends StatefulWidget {
     required this.availableUserLabels,
     this.checker = defaultExerciseChecker,
   })  : moveTree = null,
-        editSteps = steps;
+        editSteps = steps,
+        makingFen = null;
 
   final ExerciseApiService api;
   final MoveTree? moveTree;
   final Exercise? exercise;
   final List<ExerciseStep>? editSteps;
+
+  /// The position of an exercise made through [MakeExerciseSheet.withAnswer].
+  final String? makingFen;
   final List<String> availableUserLabels;
 
   /// What asks the tablebase and the engine — the real one by default, which
@@ -188,15 +212,16 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
 
   /// The position everything else is asked about: the tree's root when
   /// making one, the exercise's own otherwise — an edit never moves it.
-  String get _fen =>
-      widget.isEditing ? widget.exercise!.fen : widget.moveTree!.root.fen;
+  String get _fen => widget.isEditing
+      ? widget.exercise!.fen
+      : widget.makingFen ?? widget.moveTree!.root.fen;
 
-  late final ExerciseLineReading _reading = widget.isEditing
-      ? ExerciseLine.read(
-          fen: widget.exercise!.fen,
-          steps: widget.editSteps ?? widget.exercise!.solution ?? const [],
-        )
-      : ExerciseLine.fromTree(widget.moveTree!);
+  late final ExerciseLineReading _reading = widget.moveTree != null
+      ? ExerciseLine.fromTree(widget.moveTree!)
+      : ExerciseLine.read(
+          fen: _fen,
+          steps: widget.editSteps ?? widget.exercise?.solution ?? const [],
+        );
 
   /// The find exercise's solution as it will be saved: [_reading]'s own
   /// steps, plus whatever the trainer has accepted from a finding. Never
@@ -290,6 +315,24 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
     });
   }
 
+  /// The move is played on the exercise's own screen, which saves through
+  /// this same sheet over the move it was given; what it saved is what this
+  /// one closes with, so the caller hears of one exercise, once.
+  Future<void> _playTheMove() async {
+    final saved = await Navigator.of(context).push<Exercise>(
+      MaterialPageRoute(
+        builder: (_) => ExerciseEditorScreen.make(
+          api: widget.api,
+          fen: _fen,
+          availableUserLabels: widget.availableUserLabels,
+          checker: widget.checker,
+        ),
+      ),
+    );
+    if (saved == null || !mounted) return;
+    Navigator.of(context).pop(saved);
+  }
+
   void _acceptFinding(ExerciseFinding finding) {
     setState(() {
       _steps = acceptFinding(_steps, finding);
@@ -327,7 +370,7 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
     // exercise's position is the root's FEN, as everywhere in this feature. A
     // game exercise needs no line on the board, only the position: „play the
     // solution first" is a refusal that applies to Find alone.
-    final fen = widget.isEditing ? null : widget.moveTree!.root.fen;
+    final fen = widget.isEditing ? null : _fen;
     final instruction = _instructionController.text.trim().isEmpty
         ? null
         : _instructionController.text.trim();
@@ -380,7 +423,10 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
 
     // The kind does not change under a homework already sent — an edit shows
     // only the one chip it already is, and it is not tappable into another.
-    final askChoices = widget.isEditing ? [_ask] : ExerciseAsk.values;
+    // The same for an answer played on the exercise's screen: it was played
+    // to be found.
+    final askFixed = widget.isEditing || widget.makingFen != null;
+    final askChoices = askFixed ? [_ask] : ExerciseAsk.values;
 
     return AlertDialog(
       title: Text(widget.isEditing ? 'Edit exercise' : 'Make exercise'),
@@ -405,7 +451,7 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                         key: Key('exercise-ask-${ask.name}'),
                         label: Text(ask.label),
                         selected: _ask == ask,
-                        onSelected: widget.isEditing
+                        onSelected: askFixed
                             ? null
                             : (_) {
                                 setState(() => _ask = ask);
@@ -416,15 +462,25 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 if (_ask == ExerciseAsk.find) ...[
-                  if (!reading.ok) ...[
+                  if (!reading.ok && widget.moveTree != null) ...[
+                    // Nothing on the room's board to read: not a refusal, a
+                    // step not taken yet — and the way to take it (phase 14).
+                    Text(
+                      'Play the move the student should find, and any other '
+                      'move you would accept.',
+                      style: AppText.body.copyWith(color: colors.textSecondary),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    FilledButton.tonalIcon(
+                      key: const Key('exercise-play-the-move'),
+                      onPressed: _saving ? null : _playTheMove,
+                      icon: const Icon(Icons.touch_app_outlined, size: 18),
+                      label: const Text('Play the move'),
+                    ),
+                  ] else if (!reading.ok) ...[
                     Text(
                       reading.error ?? 'This line cannot be saved.',
                       style: AppText.body.copyWith(color: colors.danger),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Play the solution on the board first.',
-                      style: AppText.body.copyWith(color: colors.textMuted),
                     ),
                   ] else ...[
                     Text(
@@ -443,18 +499,11 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                         style: AppText.body.copyWith(color: colors.textMuted),
                       ),
                     ],
-                    if (reading.droppedReply) ...[
+                    if (reading.laterMovesIgnored) ...[
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        "The last move is the opponent's and is not part of "
-                        'the solution.',
-                        style: AppText.body.copyWith(color: colors.textMuted),
-                      ),
-                    ],
-                    if (reading.ignoredReplies > 0) ...[
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        "Variations at the opponent's moves are not used.",
+                        'Only the first move is asked. The moves after it '
+                        'are not used.',
                         style: AppText.body.copyWith(color: colors.textMuted),
                       ),
                     ],

@@ -29,7 +29,19 @@
       "about": "Rd8 mates and so does Re8. Written without the '#', the way a hand writes it; read back with it, the way the board spells it.",
       "steps": [{ "accept": ["Rd8"], "reply": null }],
       "normalised": [{ "accept": ["Rd8#"], "reply": null }]
+    },
+    "scholarFirst": {
+      "position": "scholar",
+      "about": "1.Qh5 (or Qf3), and nothing after it: what a find exercise is since phase 14 — one move of the student, with its alternatives.",
+      "steps": [{ "accept": ["Qh5", "Qf3"], "reply": null }],
+      "normalised": [{ "accept": ["Qh5", "Qf3"], "reply": null }]
     }
+  },
+  "oneMove": {
+    "about": "Phase 14 (owner, 20.9.2026): a find exercise asks for ONE move. This is the writer's rule — POST and PUT /exercises — and not the reader's: rows that exist are still read and judged as the lines they are, until phase 16 removes them. Every solution under 'refused' replays perfectly well; it is refused for its length alone, which is why the cap is asked after the line has been read.",
+    "refusal": "A find exercise asks for one move.",
+    "refused": ["scholarLine", "quietFirst"],
+    "accepted": ["scholarFirst", "backRankMate"]
   },
   "judged": [
     {

@@ -43,8 +43,7 @@
 //   class ExerciseLineReading {
 //     final List<ExerciseStep> steps;   // as the board spells them; empty when refused
 //     final String? error;              // the reason, in the server's words
-//     final bool droppedReply;          // fromTree: the main line ended on the opponent's move
-//     final int ignoredReplies;         // fromTree: variations at the opponent's moves
+//     final bool laterMovesIgnored;     // fromTree (phase 14): the tree went on after the first move
 //     bool get ok;
 //   }
 //   class ExerciseLine {
@@ -96,7 +95,6 @@ import 'package:chess_app/features/exercises/models/exercise.dart';
 import 'package:chess_app/features/exercises/models/exercise_line.dart';
 import 'package:chess_app/features/exercises/models/exercise_line_play.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
-import 'package:chess_app/move_tree.dart';
 
 /// The fixture lives beside the plan, one directory above the app.
 Map<String, dynamic> _fixture() {
@@ -159,7 +157,8 @@ void main() {
     });
 
     test('every line the server refuses is refused here, for its reason', () {
-      for (final c in (fixture['refused'] as List).cast<Map<String, dynamic>>()) {
+      for (final c
+          in (fixture['refused'] as List).cast<Map<String, dynamic>>()) {
         final reading = ExerciseLine.read(
           fen: positions[c['position']]!,
           steps: _steps(c['steps'] as List),
@@ -172,70 +171,13 @@ void main() {
     });
   });
 
-  group('the writer flattens the trainer\'s tree', () {
-    MoveTree tree(String pgn) {
-      final parsed = MoveTree.parsePgn(pgn, startingFen: scholar);
-      if (parsed == null) throw StateError('the test\'s own PGN did not parse');
-      return parsed;
-    }
-
-    test('a variation at the student\'s move is an accepted alternative', () {
-      final reading =
-          ExerciseLine.fromTree(tree('2. Qh5 (2. Qf3) 2... g6 3. Qxe5+'));
-      expect(reading.ok, isTrue, reason: reading.error);
-      expect(_wire(reading.steps), scholarLine['normalised']);
-      expect(reading.droppedReply, isFalse);
-      expect(reading.ignoredReplies, 0);
-    });
-
-    test('a variation at the opponent\'s move is not, and is counted', () {
-      final reading = ExerciseLine.fromTree(
-          tree('2. Qh5 g6 (2... Nc6 3. Qxf7#) 3. Qxe5+'));
-      expect(reading.ok, isTrue, reason: reading.error);
-      expect(_wire(reading.steps), [
-        {
-          'accept': ['Qh5'],
-          'reply': 'g6'
-        },
-        {
-          'accept': ['Qxe5+'],
-          'reply': null
-        },
-      ]);
-      expect(reading.ignoredReplies, 1);
-    });
-
-    test('a main line that ends on the opponent\'s move loses that move, '
-        'and says so', () {
-      final reading = ExerciseLine.fromTree(tree('2. Qh5 g6'));
-      expect(reading.ok, isTrue, reason: reading.error);
-      expect(_wire(reading.steps), [
-        {
-          'accept': ['Qh5'],
-          'reply': null
-        },
-      ]);
-      expect(reading.droppedReply, isTrue);
-    });
-
-    test('a tree with no moves is not a solution', () {
-      final reading = ExerciseLine.fromTree(MoveTree(startingFen: scholar));
-      expect(reading.ok, isFalse);
-      expect(reading.error, contains('at least one move'));
-    });
-
-    test('the line starts at the root, wherever the trainer is standing', () {
-      // The 6.9.2026 bug: `fen` from the current node, the line from the root.
-      final t = tree('2. Qh5 (2. Qf3) 2... g6 3. Qxe5+');
-      var node = t.root;
-      while (node.children.isNotEmpty) {
-        node = node.children.first;
-      }
-      t.current = node;
-      final reading = ExerciseLine.fromTree(t);
-      expect(_wire(reading.steps), scholarLine['normalised']);
-    });
-  });
+  // The group about the writer flattening the trainer's tree stood here
+  // until phase 14 (20.9.2026): a find exercise is one move now, so the
+  // writer reads the root's first move and its variations and nothing after.
+  // Its cases — the alternative, what is not used and is said so, the empty
+  // tree, the root wherever the trainer stands — are in
+  // `exercise_one_move_test.dart`, on the same fixture. The reader above is
+  // unchanged: lines that exist are still read whole.
 
   group('the solver plays a line one answer at a time', () {
     CustomAttemptResult answer(Map<String, dynamic> json) =>
@@ -271,7 +213,8 @@ void main() {
       expect(play.attempt('Qxe5+'), ['Qh5', 'Qxe5+']);
     });
 
-    test('after an accepted alternative the board goes on from the author\'s '
+    test(
+        'after an accepted alternative the board goes on from the author\'s '
         'move, and the list keeps what was played', () {
       final play = ExerciseLinePlay(fen: scholar);
       play.apply(
@@ -291,8 +234,8 @@ void main() {
 
     test('a wrong move changes nothing, so it can be played again', () {
       final play = ExerciseLinePlay(fen: scholar);
-      play.apply('Qh5',
-          answer({'correct': true, 'done': false, 'reply': 'g6'}));
+      play.apply(
+          'Qh5', answer({'correct': true, 'done': false, 'reply': 'g6'}));
       final before = play.fen;
       play.apply('Qxh7',
           answer({'correct': false, 'done': false, 'retry': true, 'step': 1}));
@@ -304,8 +247,8 @@ void main() {
 
     test('the last right move finishes the line', () {
       final play = ExerciseLinePlay(fen: scholar);
-      play.apply('Qh5',
-          answer({'correct': true, 'done': false, 'reply': 'g6'}));
+      play.apply(
+          'Qh5', answer({'correct': true, 'done': false, 'reply': 'g6'}));
       play.apply('Qxe5+', answer({'correct': true, 'done': true}));
       expect(play.done, isTrue);
       expect(play.moves, ['Qh5', 'Qxe5+']);

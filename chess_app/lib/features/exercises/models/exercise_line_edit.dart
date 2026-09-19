@@ -21,9 +21,41 @@ class ExerciseLineEdit {
     _apply(steps);
   }
 
+  /// An exercise being made, with no answer yet (phase 14). Not a refusal:
+  /// [error] stays null until a move is actually turned down.
+  ExerciseLineEdit.empty({required String fen}) : _fen = fen;
+
   final String _fen;
   List<ExerciseStep> _steps = const [];
   String? _error;
+
+  /// A move played while the exercise is being made: the first is the answer,
+  /// every further one an accepted alternative to it. False — with [error]
+  /// set and [steps] unchanged — when the reader refuses it.
+  bool play(String san) {
+    if (_steps.isNotEmpty) return add(0, san);
+    final reading = ExerciseLine.read(
+      fen: _fen,
+      steps: [
+        ExerciseStep(accept: [san], reply: null)
+      ],
+    );
+    if (!reading.ok) {
+      _error = reading.error;
+      return false;
+    }
+    _steps = reading.steps;
+    _error = null;
+    return true;
+  }
+
+  /// Gives the answer back, alternatives and all — the main move cannot be
+  /// taken out alone ([remove]), so while an exercise is being made a wrong
+  /// first move is undone by starting over.
+  void clear() {
+    _steps = const [];
+    _error = null;
+  }
 
   /// As `ExerciseLine.read` spells them. Empty when the line given does not
   /// replay — [error] then says why.

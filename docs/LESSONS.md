@@ -4751,3 +4751,39 @@ App **3283 → 3295** (5 in `game_from_moves_test.dart`, 7 in
 `homework_game_in_analysis_test.dart`), 1 skipped, a full run alone on the
 machine, 12 minutes. Analyze: the same 26 infos. Backend untouched. Live: item
 195.
+
+## 20.9.2026 — Find is one move, played on the exercise's own screen (PLAN-EXERCISE, phase 14)
+
+The owner's parked question — „Make exercise wants the solution played first
+and nobody knows" — was first answered with a bigger editor, then with a
+solution tree, and ended as a **smaller feature**: once a find exercise is one
+move, there is nothing to play in advance, and the screen phase 11 built for
+alternatives is already the place to play it. Ask what the feature is for
+before building the door to it; the cheapest fix for „nobody knows where to
+start" was to remove the thing that had to be started.
+
+**A cap belongs to the writer, not the reader.** The plan said „`ExerciseLine`'s
+limit follows". It cannot: the reader also reads the lines that exist, and a
+reader that refuses stored rows turns a rule about new work into a fault in old
+data. Server: `parseExercise` asks the length *after* `readSolution` — mutation
+„length asked first" goes red on the fixture's refusals, because a two-move
+line that does not replay must be told that, not that it is long. App: no cap
+at all; `fromTree` and the making screen cannot produce a second step.
+
+**An assertion of absence dies with the thing it names** (rule 5, again).
+`exercise_game_own_test` asserted that „Play the solution on the board first"
+is *not* shown under a game task. The sentence left `lib/` in this phase, so
+the assertion could no longer fail under any code. Grepping the old words in
+the tests after removing them from the app found it; it now looks for the
+button that replaced the sentence.
+
+Tooling, paid for twice today: `pg_ctl start` inside a piped Bash command
+never returns — the server inherits the pipe — and stopping that shell stops
+the database with it. Start it detached and check with `pg_isready`. And a
+Python heredoc on this console mangles non-ASCII (`„`, `→`): write the script
+to a file and run `python -X utf8`.
+
+Backend **1612 → 1614** with the throwaway database, **1524 → 1526** without
+(two pure tests), `.env` moved aside. App **3295 → 3307**: 17 new, 5 moved out
+of the 2b gate. 1 skipped, a full run alone, 4 minutes. Analyze: the same 26
+infos. Live: item 196.

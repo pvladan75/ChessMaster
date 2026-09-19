@@ -19,6 +19,7 @@ const { cleanThemes, deriveInstruction } = require('./scanIntake');
 
 const MAX_NAME = 120;
 const MAX_INSTRUCTION = 500;
+const MAX_FIND_MOVES = 1;
 
 // What the row asks comes through the one reader's own column list, so this
 // file never names the columns it would be tempted to interpret.
@@ -63,6 +64,16 @@ function parseExercise(raw, { keptFen = null } = {}) {
   if (rawTask.type === 'find') {
     const read = readSolution(fen, raw.solution);
     if (!read.ok) return { ok: false, error: read.error };
+    // A find exercise asks for one move (`docs/PLAN-EXERCISE.md`, phase 14).
+    // The writer's rule, not the reader's: `readSolution` still reads the
+    // lines that exist, and it is asked first, so a line that does not replay
+    // is told so rather than told it is long.
+    if (read.steps.length > MAX_FIND_MOVES) {
+      return {
+        ok: false,
+        error: 'A find exercise asks for one move. For more, use Checkmate in N or Play N moves.',
+      };
+    }
     task = { type: 'find' };
     solution = read.steps;
   } else if (rawTask.type === 'game') {
