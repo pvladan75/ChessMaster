@@ -5878,6 +5878,26 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 187. Zadatak (Exercise), faza 5: provera pri čuvanju — 19.9.2026, nije viđeno uživo
+
+Jedino mesto gde se vidi **pravi** tablebase i **pravi** motor iza provere — u
+testovima su trčali samo lažni.
+
+1. [ ] **Pozicija sa ≤7 figura, „Find the move"**, odigran jedan od više poteza
+   koji drže dobitak: posle par sekundi piše koji još potezi drže dobitak i nudi
+   „Accept". Pre dodira rešenje u listu se **ne menja**; posle dodira se vidi
+   „(or …)".
+2. [ ] Odigran potez koji **ispušta** dobitak: piše upozorenje, bez „Accept".
+3. [ ] **„Win" na remi poziciji** (≤7 figura): piše da se protiv savršene
+   odbrane ne može ispuniti; „Save" i dalje radi.
+4. [ ] **Više od 7 figura**, potez slabiji od motorovog za više od pešaka i
+   po: „The engine prefers …" sa „Accept". Dok motor misli, „Save" radi.
+5. [ ] **Bez interneta**: „Checking…" nestane samo od sebe za desetak sekundi,
+   ništa se ne prikaže, „Save" radi sve vreme.
+6. [ ] Ako je u Preparation **uključena analiza motora**, provera je ne kvari:
+   posle provere analiza table nastavlja kao pre. (Provera koristi isti motor.)
+7. [ ] Promena sa „Win" na „Draw or better" skida nalaz koji je važio za „Win".
+
 ## 186. Zadatak (Exercise), faze 3a–4: partija na N poteza, Biblioteka i sličice — 19.9.2026, nije viđeno uživo
 
 1. [ ] **Preparation → „Make exercise"**: prvo se bira šta se traži — „Find the

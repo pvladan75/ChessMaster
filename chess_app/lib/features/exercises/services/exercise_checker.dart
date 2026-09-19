@@ -9,6 +9,9 @@
 // itself is a compile-time constant: constructing it does no I/O at all, and
 // nothing runs until [ExerciseChecker.check] is actually called.
 import 'dart:async';
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
@@ -22,11 +25,26 @@ import '../models/exercise_task_words.dart'
 typedef TablebaseAsk = Future<SyzygyResult?> Function(String fen);
 typedef EngineAsk = Future<List<AnalysisLine>> Function(String fen);
 
-Future<SyzygyResult?> _realTablebaseAsk(String fen) =>
-    SyzygyTablebaseService.instance.lookup(fen);
+/// Whether this is a `flutter test` run. The default askers say nothing there.
+///
+/// Every sheet test that does not pass its own checker gets the default, and
+/// the default used to reach for the real engine and the real network from a
+/// widget test. On the workstation that built it both happen to fail fast, so
+/// the tests were green — and a test that is green because of what one machine
+/// does is a test of that machine (CLAUDE.md rule 8): on another, an engine
+/// that waits out its own ten-second timer leaves a pending `Timer` and fails
+/// tests that have nothing to do with it. The check is advice; in a test run
+/// that was not given a checker, there is nobody to advise.
+bool get _underTest =>
+    !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
 
-Future<List<AnalysisLine>> _realEngineAsk(String fen) =>
-    StockfishService().analyzePositionSync(fen, depth: 18, multiPV: 3);
+Future<SyzygyResult?> _realTablebaseAsk(String fen) async =>
+    _underTest ? null : SyzygyTablebaseService.instance.lookup(fen);
+
+Future<List<AnalysisLine>> _realEngineAsk(String fen) async {
+  if (_underTest) return const <AnalysisLine>[];
+  return StockfishService().analyzePositionSync(fen, depth: 18, multiPV: 3);
+}
 
 /// The default the sheet reaches for: a compile-time constant, so having one
 /// costs nothing until [ExerciseChecker.check] is called.

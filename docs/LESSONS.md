@@ -4027,3 +4027,53 @@ at `isWhiteBottom`.
 -iname flutter_chess_board*` crawling the whole disk for two hours after it had
 reported. It was found by its command line and stopped. The brief for the next
 worker says: no search from `/`, and stop what you start.
+
+## 19.9.2026 — The exercise, phase 5: the check on save, and a report that said „no process left"
+
+The implementer built the check against `docs/gates/exercise_check_test.dart`:
+a pure core (`exercise_check.dart`), a runner that never throws and never
+outlasts its timeout (`exercise_checker.dart`), and the sheet showing findings
+with *Accept*. App **3125 → 3157** (+24 gate, +7 own, +1 from the lead), 1
+skipped, 0 failed; analyze the same 26 infos. Nine mutations by the lead: eight
+red on the right test, one survived.
+
+**Green because of what one machine does is not green.** The worker reported,
+honestly, that the two older sheet tests now reach the real engine and the real
+network through the default checker, and pass because „this workstation fails
+fast". That is rule 8 in a new coat: on a machine where the engine waits out
+its own ten-second timer, a pending `Timer` fails tests that have nothing to do
+with the check. The default askers now say nothing under `flutter test`
+(`FLUTTER_TEST` in the environment). No test was written for that guard: on
+this machine it could not fail, and **a check that cannot fail is not a check**
+— it is recorded as a guard for another machine, and CI is that machine.
+
+**The survivor was a race.** The sheet re-runs the check when the task changes
+and drops an answer whose token is stale. The worker's „switching the task"
+test uses a checker that answers at once, so an old answer never arrives after
+a new question, and deleting the token guard changed nothing. The lead's test
+holds the first answer back with a `Completer`, changes the task, then releases
+it. **To test a guard against lateness, something has to be late.**
+
+**Prove the library's half of the gate first — again.** A scratch test run
+before the hand-over showed `SyzygyResult.fromJson` *sorts* its moves, best for
+the mover first. A gate that compared the offered moves in wire order would
+have been wrong in a way no reading showed; it compares them unordered, and the
+brief says why.
+
+**A report's „no background process left" is a claim like any other.** The
+brief forbade searching from `/`; the worker did it anyway („accidental"),
+checked for `flutter`, `dart` and `stockfish` before reporting, and declared
+itself clean with a whole-disk `find` still crawling. The lead's own process
+listing found it. Two of three workers in this plan left one. **Grade the
+machine, not the sentence — and list processes by what they are, not by what
+you expect them to be.**
+
+**A red full run is read before it is believed, and the number waits for a
+clean one.** The first full run after phase 5 took **50 minutes** instead of
+four and a half and ended 3150 passed, 7 failed: six in
+`opening_book_service_test`, one the live Lichess tablebase test. Both files
+passed alone in seconds, neither is touched by the phase, and 3150 + 7 was
+exactly the predicted 3157 — so the reds were load and the network, the two
+causes rule 19 names. What slowed that run was never found. The docs were not
+given a number until a quiet run came back 3157, 0 failed, in under four
+minutes.
