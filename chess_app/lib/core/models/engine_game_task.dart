@@ -51,8 +51,9 @@ class EngineGameTask {
 
   final EngineGameGoal goal;
 
-  /// The number of the student's own moves a „survive" goal asks for. Null
-  /// for every other goal.
+  /// A number of the student's own moves, or null for a game played to its
+  /// end. On „hold" and „survive" it is how long to last; on „win" it is
+  /// **checkmate in this many moves** — mate on the board by then, or missed.
   final int? surviveMoves;
 
   /// `'lako'`, `'srednje'` or `'tesko'` — the engine's strength, chosen by the
@@ -106,9 +107,11 @@ class EngineGameTask {
         return null;
     }
 
-    // „For N moves". `survive` has always needed the number; since phase 3a
-    // of `docs/PLAN-EXERCISE.md` a `win` or a `hold` may carry one too — keep
-    // the win, or hold the draw, for the next N of the student's own moves.
+    // The number of the student's own moves. `survive` has always needed it;
+    // since phase 3a of `docs/PLAN-EXERCISE.md` a `hold` may carry one too —
+    // hold the draw for the next N moves. On a `win` the same number means
+    // **checkmate in N moves** (the owner's live pass, 19.9.2026): the rules
+    // judge it alone, so it has no limit on pieces.
     // `surviveMoves` stays the field's one name on the wire, the same as the
     // server (`chess_backend/services/engineGameTask.js`).
     int? surviveMoves;
@@ -118,16 +121,6 @@ class EngineGameTask {
       final n = _asInt(json['surviveMoves']);
       if (n == null || n < 1 || n > _maxSurviveMoves) return null;
       surviveMoves = n;
-    }
-
-    // A win kept for N moves is only a fact a tablebase can state, and a
-    // tablebase reaches seven pieces at most. Refused here, at the position
-    // that decides it, rather than judged by a guess in front of a student —
-    // the server refuses the same task.
-    if (goal == EngineGameGoal.win &&
-        surviveMoves != null &&
-        exercisePieceCount(fen) > tablebasePieces) {
-      return null;
     }
 
     String? level;
@@ -185,7 +178,7 @@ class EngineGameVerdict {
   final bool goalMet;
   final int ownMoves;
 
-  /// True exactly when the game ended at its move target
+  /// True exactly when a „hold" or „survive" game ended at its move target
   /// (`GameEnding.moveTarget`) with seven pieces or fewer on the board. Such
   /// a position is one only a tablebase can judge exactly — the app cannot
   /// ask one, so [goalMet] above is only ever this app's own guess for such a
@@ -224,7 +217,8 @@ EngineGameVerdict engineGameVerdict({
   // number is not itself a win or a draw, so the outcome stays undecided even
   // though the game is, from here, over. Since phase 3a of
   // `docs/PLAN-EXERCISE.md` this applies to every goal that carries
-  // `surviveMoves` — a win or a hold kept for N moves, not only `survive`.
+  // `surviveMoves`. For a win it is where „checkmate in N moves" is missed:
+  // `goalMet` below stays false, and that is final.
   if (ending == null &&
       task.surviveMoves != null &&
       ownMoves >= task.surviveMoves!) {
@@ -248,8 +242,11 @@ EngineGameVerdict engineGameVerdict({
   }
 
   // With seven pieces or fewer, the position a move target reached is one a
-  // tablebase can judge exactly. The app cannot ask one.
+  // tablebase can judge exactly. The app cannot ask one. A win is never
+  // asked about: no mate after N moves is a missed goal however won the
+  // position still is, and waiting for the server would let it say otherwise.
   final needsTablebase = ending == GameEnding.moveTarget &&
+      task.goal != EngineGameGoal.win &&
       exercisePieceCount(game.fen) <= tablebasePieces;
 
   return EngineGameVerdict(
@@ -259,4 +256,38 @@ EngineGameVerdict engineGameVerdict({
     ownMoves: ownMoves,
     needsTablebase: needsTablebase,
   );
+}
+
+/// The banner over the board: the goal in words and, when the trainer set a
+/// number, how many of the student's own moves are left. One home — a goal
+/// that carries a number under a sentence that leaves it out is how a student
+/// plays on past a limit nobody told them of (the live pass of 19.9.2026).
+String engineGameGoalSentence(EngineGameTask task, {required int ownMoves}) {
+  final side = task.side == chess.Color.WHITE ? 'White' : 'Black';
+  final total = task.surviveMoves;
+  if (total == null) {
+    return task.goal == EngineGameGoal.win
+        ? 'You are $side — win the game'
+        : 'You are $side — hold a draw';
+  }
+  final left = (total - ownMoves).clamp(0, total);
+  final moves = '$total ${total == 1 ? 'move' : 'moves'}';
+  final ask = task.goal == EngineGameGoal.win
+      ? 'checkmate in $moves'
+      : 'do not lose for $moves';
+  return 'You are $side — $ask · $left left';
+}
+
+/// How the game ended, for the dialog that closes it. [endingLabel] names
+/// every ending but one: at a move target the words depend on what the number
+/// was for — reaching it meets a „hold" and misses a „checkmate in N".
+String engineGameEndingWords(EngineGameTask? task, GameEnding ending) {
+  if (ending != GameEnding.moveTarget || task == null) {
+    return endingLabel(ending);
+  }
+  final n = task.surviveMoves ?? 0;
+  final moves = '$n ${n == 1 ? 'move' : 'moves'}';
+  return task.goal == EngineGameGoal.win
+      ? 'no checkmate in $moves'
+      : 'you were not beaten in $moves';
 }

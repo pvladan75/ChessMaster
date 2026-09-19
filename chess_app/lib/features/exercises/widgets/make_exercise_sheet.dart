@@ -249,8 +249,7 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
   bool get _canSave {
     if (_saving || _nameController.text.trim().isEmpty) return false;
     if (_ask == ExerciseAsk.find) return _reading.ok;
-    if (_gameSide == null || _forMovesUnreadable) return false;
-    return _judge != ExerciseJudge.refused;
+    return _gameSide != null && !_forMovesUnreadable;
   }
 
   /// „1. Qh5 (or Qf3) g6  2. Qxe5+." — the solution as the trainer will
@@ -400,7 +399,11 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                       ),
                       ChoiceChip(
                         key: const Key('exercise-length-forMoves'),
-                        label: const Text('For N moves'),
+                        // The same number, two meanings: a win asks for
+                        // mate by then, a draw asks to last that long.
+                        label: Text(_ask == ExerciseAsk.win
+                            ? 'Checkmate in N moves'
+                            : 'For N moves'),
                         selected: !_toEnd,
                         onSelected: (_) => setState(() => _toEnd = false),
                       ),

@@ -825,7 +825,18 @@ async function getAssignmentDetail(pool, assignmentId, userId, { tablebase } = {
   }
 
   if (assignment.kind === 'homework') {
-    return { ...assignment, children: await homework.childrenOf(pool, assignmentId) };
+    // The same two numbers the lists carry (`PROGRESS_COLUMNS`), counted off
+    // the rows this read already holds. Without them the app's
+    // `itemsSummary` fell back to zero and a homework of three opened as
+    // „0 of 0 items" (the live pass of 19.9.2026) — an absent number that
+    // read as a number.
+    const children = await homework.childrenOf(pool, assignmentId);
+    return {
+      ...assignment,
+      child_total: children.length,
+      child_completed: children.filter((c) => c.completed_at !== null).length,
+      children,
+    };
   }
 
   const items = await pool.query(

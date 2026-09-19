@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3190 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3195 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1598 with TEST_DATABASE_URL, 1512 without
+cd chess_backend && npm test          # node --test, 1597 with TEST_DATABASE_URL, 1511 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -35,7 +35,11 @@ and phases 1–2 of the puzzle progress plan; then phases 1, 2a and 3a of `docs/
 run on 19.9.2026), and the Board Setup dialog's two reported faults — a palette
 wider than the dialog, a board sized from the wrong dimension, and tab labels
 314dp wider than the strip that holds them, and the editor's refusal of a
-position that is not chess (→ 3190). Only the owner's live pass is open. Every change of these numbers,
+position that is not chess (→ 3190); then the owner's live pass of the exercise
+work on 19.9.2026 and its phase 8 — a number on „Win“ is „Checkmate in N moves“,
+judged by the rules alone, the task said on every screen that shows it, and a
+homework's own item counts (→ 3195; backend 1598/1512 → 1597/1511). Open:
+phases 9–12 of `docs/PLAN-EXERCISE.md` and the owner's live pass. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
 new entry there and update the block above in the same change. Re-derive a count
 before quoting it: this file has been left behind the suite more than once, and

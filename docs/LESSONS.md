@@ -4412,3 +4412,54 @@ with the number.
 
 App **3190** tests (3178 + 12), 1 skipped; `flutter analyze` unchanged at 26
 known infos.
+
+## 19.9.2026 — a task nobody was told, and a rule only the database half knew
+
+The owner's live pass of the exercise work (`PLAN-EXERCISE.md` §9). He set „Win,
+for N moves", passed the number on purpose with a queen and king against a king,
+and was told „Goal met". **The judging was exactly as decided** — a win *kept*
+for N moves, checked by the tablebase — and the decision was what was wrong: he
+read the words as a mate to give, the first time he saw them, and he wrote them.
+A rule is tested by handing its sentence to somebody who did not write the
+code. The amended rule, „checkmate in N moves", is also the simpler one: the
+rules judge it alone, so the seven-piece refusal went with it.
+
+Why he could not see it coming is rule 12, three times over. What an exercise
+asks was worded in **four** places: `exerciseTaskWords` (right), the server's
+`childTitle` („win it", whatever the number), the board's banner („win the
+game") and `endingLabel` („the number of moves to survive was reached", under a
+win). The one home existed and three screens did not read it. And the homework
+opened as „0 of 0 items" because the detail's query never sent the two counters
+the lists' query sends, and `?? 0` turned the absence into a number — rule 11
+at a `fromJson`.
+
+**The half of the backend suite that needs a database caught what the other
+half could not.** Without `TEST_DATABASE_URL` the change was green at 1510. With
+the throwaway cluster up, four tests in `homework_gate` went red: they stood on
+the fixture's „win kept for two moves" by **index** (`fm.judged[0]`), so a case
+that changed meaning kept its place and took them with it. They now find their
+case by what it is. CI would have caught it, since there a missing database
+fails the run — but only after a push; a change to anything the gate file
+reads is worth the two minutes of `initdb` first.
+
+Two wrong reds on the way, both mine, both rule 3. A test title with an
+apostrophe inside single quotes failed the whole file at load — `pass 0,
+fail 1`, which a mutation run printed twice and which would have read as two
+catches had the counts not been looked at. And a `require` placed below the
+`const` that used it made all 39 tests of the gate file red at once,
+including ones untouched: **when everything fails, nothing was tested** — read
+the first error, not the list.
+
+One finder changed meaning silently: `fm.judged.find(moveTarget &&
+!needsTablebase)` used to mean „more than seven pieces" and, after the fixture
+grew a missed mate at index 0, meant that instead. It now says `goal ===
+'hold'` as well. A finder by predicate is only better than an index if the
+predicate names everything that makes the case the one you want.
+
+App **3195** tests (3190 + 5: two for the words on the board, one screen test
+for the missed mate, two new fixture cases), 1 skipped; `flutter analyze`
+unchanged at 26 known infos. Backend **1597** with the database, **1511** without (were 1598 / 1512:
+`engine_game_for_moves` 22 → 21 — two cases added, five tablebase rows for a
+win removed, a test that the function throws and a test of the row title; 1511
+measured with `.env` aside, 1597 is the measured 1596 plus that one pure test).
+Eight mutations, each red on the right test.

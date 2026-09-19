@@ -141,7 +141,7 @@ String endingLabel(GameEnding ending) => switch (ending) {
       GameEnding.fiftyMoves => 'fifty moves without a capture or a pawn move',
       GameEnding.moveLimit => 'the move limit was reached',
       GameEnding.resignation => 'resignation',
-      GameEnding.moveTarget => 'the number of moves to survive was reached',
+      GameEnding.moveTarget => 'the number of moves set was reached',
     };
 
 /// Whether a move by [movingColor] means the reader has taken over the other

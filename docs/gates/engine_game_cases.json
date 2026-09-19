@@ -145,8 +145,11 @@
   ],
   "forMoves": {
     "_comment": [
-      "docs/PLAN-EXERCISE.md, phase 3: a win or a hold may be asked „for N moves\", and a game",
-      "that stops at its move target is judged by the position it reached. Kept under its own",
+      "docs/PLAN-EXERCISE.md, phase 3: a hold may be asked „for N moves\", and such a game,",
+      "stopped at its move target, is judged by the position it reached. A WIN with a number is",
+      "„checkmate in N moves\" (the owner's live pass, 19.9.2026): mate within N of the student's",
+      "own moves or the goal is missed, judged by the rules alone — never a tablebase, and with",
+      "any number of pieces. Kept under its own",
       "key so the ends that do not know the rule yet keep reading `cases` and `rejected`",
       "unchanged. `judged` is the pure half: when the game stops, and whether a tablebase",
       "can say what it reached (seven pieces or fewer). `byTablebase` is the verdict itself:",
@@ -155,10 +158,22 @@
     ],
     "judged": [
       {
-        "name": "a win kept for two moves stops at the second, and a tablebase can judge it",
+        "name": "checkmate in two, missed: still winning after the second move, and no tablebase is asked",
         "task": { "fen": "8/8/8/8/8/4k3/8/R3K3 w - - 0 1", "side": "w", "goal": "win", "surviveMoves": 2 },
         "moves": ["Ra8", "Kd3", "Ra3+"],
-        "expect": { "ending": "moveTarget", "outcome": "undecided", "goalMet": false, "needsTablebase": true, "ownMoves": 2, "fen": "8/8/8/8/8/R2k4/8/4K3 b - - 3 2" }
+        "expect": { "ending": "moveTarget", "outcome": "undecided", "goalMet": false, "needsTablebase": false, "ownMoves": 2, "fen": "8/8/8/8/8/R2k4/8/4K3 b - - 3 2" }
+      },
+      {
+        "name": "checkmate in one, met on the last move allowed: the mate is read before the number",
+        "task": { "fen": "6k1/5ppp/8/8/8/8/8/3R2K1 w - - 0 1", "side": "w", "goal": "win", "surviveMoves": 1 },
+        "moves": ["Rd8#"],
+        "expect": { "ending": "checkmate", "outcome": "won", "goalMet": true, "needsTablebase": false, "ownMoves": 1 }
+      },
+      {
+        "name": "checkmate in N is set with any number of pieces, and missed without a mate",
+        "task": { "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "side": "w", "goal": "win", "surviveMoves": 1 },
+        "moves": ["Bb5"],
+        "expect": { "ending": "moveTarget", "outcome": "undecided", "goalMet": false, "needsTablebase": false, "ownMoves": 1 }
       },
       {
         "name": "one move short, the game is still running",
@@ -187,9 +202,9 @@
     ],
     "rejected": [
       {
-        "name": "a win kept for some moves with more than seven pieces",
-        "task": { "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "side": "w", "goal": "win", "surviveMoves": 2 },
-        "why": "7 pieces or fewer"
+        "name": "for more moves than any game has",
+        "task": { "fen": "8/8/8/8/8/4k3/8/R3K3 w - - 0 1", "side": "w", "goal": "win", "surviveMoves": 201 },
+        "why": "needs a number"
       },
       {
         "name": "for no moves at all",
@@ -198,11 +213,6 @@
       }
     ],
     "byTablebase": [
-      { "goal": "win",  "side": "w", "fen": "8/8/8/8/8/R2k4/8/4K3 b - - 3 2", "category": "loss",         "goalMet": true,  "name": "Black to move and lost: White has kept the win" },
-      { "goal": "win",  "side": "w", "fen": "8/8/8/8/8/R2k4/8/4K3 b - - 3 2", "category": "blessed-loss", "goalMet": false, "name": "a win the fifty-move rule takes away is not a win" },
-      { "goal": "win",  "side": "w", "fen": "8/8/8/8/8/R2k4/8/4K3 b - - 3 2", "category": "draw",         "goalMet": false, "name": "the win was let go" },
-      { "goal": "win",  "side": "w", "fen": "8/8/8/8/8/R2k4/8/4K3 w - - 3 2", "category": "win",          "goalMet": true,  "name": "the student to move, and winning" },
-      { "goal": "win",  "side": "w", "fen": "8/8/8/8/8/R2k4/8/4K3 w - - 3 2", "category": "cursed-win",   "goalMet": false, "name": "the student to move, and only cursed-winning" },
       { "goal": "hold", "side": "b", "fen": "8/8/8/4k3/8/3K4/4P3/8 w - - 3 3", "category": "draw",        "goalMet": true,  "name": "held" },
       { "goal": "hold", "side": "b", "fen": "8/8/8/4k3/8/3K4/4P3/8 w - - 3 3", "category": "cursed-win",  "goalMet": true,  "name": "White wins only on paper: held" },
       { "goal": "hold", "side": "b", "fen": "8/8/8/4k3/8/3K4/4P3/8 w - - 3 3", "category": "win",         "goalMet": false, "name": "White to move and winning: the draw is gone" },

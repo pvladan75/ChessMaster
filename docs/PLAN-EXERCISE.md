@@ -54,6 +54,14 @@ opening a board screen.*
    already replays the moves and owns the final FEN; with seven pieces or
    fewer it asks the tablebase, once, at the end. Pieces only leave the board,
    so whether an exercise can be judged this way is known when it is written.
+   *Amended by the owner on 19.9.2026, after the live pass (§9): this holds for
+   **Draw or better** only. On a **Win** the number means **checkmate in N
+   moves** — mate on the board within N of the student's own moves, or the goal
+   is missed. The owner read „Win, for N moves" as that the first time he saw
+   it, and so will a student; and it is the variant that can be **verified**:
+   the rules judge it alone, with no tablebase and no limit on pieces, so a
+   trainer can set a middlegame to be finished in 25 moves, which the old
+   reading refused. „Keep the win for N moves" is gone, not kept beside it.*
 7. **No compatibility for homework already sent** (owner, 18.9.2026, when
    phase 1 started): the app is in testing, the owner is its only user on
    several accounts, and old homeworks may be deleted. So phase 3a renames
@@ -152,6 +160,16 @@ shown to the trainer in the review.
 With more than seven pieces the verdict is what it is today — not mated — and
 the dialog says so when the exercise is written. Phase 6 replaces that.
 
+**As amended 19.9.2026 (decision 6):** everything above about a *win* at a move
+target no longer applies. `judgeEngineGame` never says `needsTablebase` for a
+win, `goalMetByTablebase` throws if asked about one, `parseEngineGameTask` no
+longer refuses a win with a number on a full board, and the app mirrors all
+three (`engineGameVerdict`, `ExerciseJudge.mateInMoves`). The fixture's
+`forMoves` half holds the rule on both ends: a checkmate in two missed with
+three pieces on (where a tablebase *could* have been asked, and would have said
+„won"), a mate given on move N itself, and a checkmate in N set on thirty-two
+pieces.
+
 ## 5. What the trainer does
 
 **Make.** Preparation gets one action beside „Save position": **Make
@@ -205,7 +223,12 @@ so in the report — do not work around it.*
 | 4 | **Built 19.9.2026** by the implementer, graded and taken by the lead (gate byte-identical, nothing outside its files, 7 mutations: six red, one **survived** — nothing tested that a game exercise's board is turned to the student's side; `test/exercise_board_side_test.dart` now does). The pasted-FEN „play it out" dialog is gone from the homework editor with its tests; `fen_completion` stays, it has other readers. App 3083 → 3125 over both phases, analyze the same 26 infos. **The Library and the lists**: the chip renamed, the two filters, `BoardThumbnail` on position and exercise rows, the preview dialog, side to move in words; the homework editor's single exercise picker and the removal of the pasted-FEN dialog | `[implementer]` | pumped at 360 × 640 and landscape; the old chip label grepped out of the tests; a position offers no „add to homework"; a scroll check of a long list on the phone goes to the live pass, because a widget test cannot measure it |
 | 5 | **Built 19.9.2026** by the implementer, graded and taken by the lead: gate byte-identical, nothing outside `chess_app/`, the two older sheet tests untouched, 9 mutations — eight red, one **survived** (a slow check answering after the trainer changed the task; `test/exercise_check_stale_test.dart` now covers it). The lead made the default checker **silent under `flutter test`**: sheet tests that pass no checker used to reach the real engine and network, and were green only because this workstation fails fast. App 3125 → 3157, analyze the same 26 infos. Not verified: the real tablebase and the real engine behind the check — only fakes ran. **The check on save**: tablebase moves into `accept`, the impossible-task warning, the engine's second opinion | `[implementer]` | fake tablebase and fake engine clients; the check failing or timing out never stops the save — proven by mutation |
 | 6 | **The device's engine for larger positions** — optional, decided after the live pass of 1–5 (§8) | lead + `[implementer]` | — |
-| 7 | **Live pass** | owner | `TODO-provera.md`, items from 185 |
+| 7 | **Live pass** | owner | `TODO-provera.md`, items from 185. **Run 19.9.2026** on 185.1–5 and 186.1–2 plus two reports: §9 |
+| 8 | **Checkmate in N, the task said everywhere, and the homework's own counts** (§9, findings 2 and 3). **Built 19.9.2026** by the lead: decision 6 as amended, on both ends and the shared fixture; the task's number in the homework row's title (`childTitle`), in the board's banner with the moves left (`engineGameGoalSentence`) and in the closing dialog (`engineGameEndingWords`); `child_total` / `child_completed` sent with a homework's detail, which had been read as „0 of 0 items" | lead | `engine_game_for_moves.test.js`, `homework_gate.test.js` (real database), `exercise_game_own_test.dart`, `exercise_task_words_test.dart`, `engine_game_goal_test.dart`; 8 mutations, each red on the right test. Live: item 189 |
+| 9 | **What the trainer sees of a game** (§9, finding 1): the verdict on the row in words and shape, not the tick of „done"; the review of a game item showing **the moves the student played and the position reached** instead of the puzzle review's „correct 0 · board not available · viewed"; tapping the row opens that, not Analysis on the bare position. **This is also the judge of last resort** (owner, 19.9.2026): where no tablebase answers — more than seven pieces, or the service down — the trainer has the position and decides; it replaces most of what phase 6 was for. Starts with a measurement: are the moves stored today, and does the review route send them | lead writes the gate, then `[implementer]` | to be written |
+| 10 | **The picker and the Exercises chip show exercises only** (§9, findings 5 and 6): rows the picker refuses („has no solution, so an answer cannot be judged") are not listed; and the chip's premise is re-measured — a scanned position with **no task and no solution** is read as „Find the move" by `exerciseAskOf`, so every scan passes as an exercise. Only a row with something to judge is one | lead + `[implementer]` | to be written |
+| 11 | **Open a saved exercise**: see its solution, add accepted moves, save over it (`PUT /exercises/:id` exists since 2a; nothing in the app calls it). The sheet also says, for a line, that a variation on the student's own move is an accepted alternative — it works (185.2) and nothing tells the trainer | lead + `[implementer]` | to be written |
+| 12 | **The engine and „send to Analysis" are off while a homework item is open** (§9, finding 4). Cheap and worth doing; it does not stop a second device, which phase 9 answers better. **And the board gives no FEN away there** (owner, 19.9.2026): the right-click „copy FEN" on the board is off inside a homework item, so carrying the position to another screen means setting it up by hand | `[implementer]` | to be written |
 
 ### 7a. The wire phase 2b builds on
 
@@ -236,6 +259,8 @@ of 2b.
 
 ## 8. Open, and deliberately not decided here
 
+*(§9, the live pass of 19.9.2026, is below this section.)*
+
 1. **Phase 6.** The server has no engine, so a verdict for more than seven
    pieces means trusting the student's device: a fixed depth, a wide fixed
    margin (proposal: *hold* is no worse than −1.5, *win* no less than +1.5,
@@ -264,3 +289,42 @@ of 2b.
    try. Either it stays so (the trainer's unlock is the way out), or, for lines
    only, „solved" comes to mean *finished the line*, however many tries — the
    report would still show that the first try failed.
+
+## 9. The live pass of 19.9.2026
+
+The owner ran 185.1–5 and 186.1–2 and filed two reports, as a student on a
+phone and as the trainer on Windows (answers and screenshots in the QA tool,
+outside the repo). 185.2, 185.3, 186.1 and 186.2 passed. **The machinery works;
+what the pass found is that neither reader is told enough.**
+
+1. **The trainer cannot tell a student who met every goal from one who met
+   none.** Both homeworks read „3 of 3 items" with a tick, every row „Done":
+   „done" is *attempted* (§8.3), and the verdict reaches the student's dialog
+   and nowhere else. The review of a game is the puzzle review — „correct 0",
+   „board not available", „viewed" — and tapping the row opens Analysis on the
+   bare position. → phase 9.
+2. **„0 of 0 items"** over a homework of three. The lists' query sends
+   `child_total` and `child_completed`; the detail's did not, and the app read
+   the absence as zero. → phase 8, built.
+3. **The student is never told the number.** „Win to the end" and „Win, for N
+   moves" were both the row „Play it out: win it" and the banner „White to
+   move — win the game"; passing the number showed „Goal met — the number of
+   moves to survive was reached". The judging was as decided (a win *kept*, by
+   tablebase); the owner, like any student, read it as a mate to give. Decision
+   6 amended; the words now come from one place per screen. → phase 8, built.
+4. **The student can turn the engine on, or send the position to Analysis.** →
+   phase 12, and phase 9 for what a switch cannot stop.
+5. **The homework picker lists what it refuses** — a screen of scans marked
+   „has no solution, so an answer cannot be judged" above the two rows that
+   can be sent. The owner: a position gets its meaning by being put in an
+   exercise, so it does not belong in this dialog at all. → phase 10.
+6. **The Exercises chip is full of scanned positions**, and the hand-made
+   exercise among them opens in Analysis like any position; a saved exercise
+   cannot be opened, read or changed. → phases 10 and 11.
+7. 185.1's wording is stale: the board editor has refused a position that is
+   not chess since 19.9.2026, so „an empty board" cannot be reached. The item
+   keeps its text (the QA tool matches answers by it) and is superseded by
+   189. The owner's two questions there — how a position and its solving move
+   are entered in one action, and how several solutions are — are answered by
+   185.2 (play the line; a variation on the student's move is an alternative)
+   and are phase 11's hint.

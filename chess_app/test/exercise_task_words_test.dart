@@ -44,6 +44,17 @@ void main() {
           'surviveMoves': 1
         }),
         'Draw or better as Black, for 1 move');
+    // On a win the number is a mate to give, and it is said first: a row
+    // that reads „Win as White" twice is how two different exercises looked
+    // the same to the student on 19.9.2026.
+    expect(
+        exerciseTaskWords(
+            {'type': 'game', 'goal': 'win', 'side': 'w', 'surviveMoves': 5}),
+        'Checkmate in 5 moves as White');
+    expect(
+        exerciseTaskWords(
+            {'type': 'game', 'goal': 'win', 'side': 'b', 'surviveMoves': 1}),
+        'Checkmate in 1 move as Black');
     // A number that is not one is not „for N moves".
     expect(
         exerciseTaskWords(
@@ -71,48 +82,45 @@ void main() {
         exerciseJudgeFor(fen: fen, ask: ask, forMoves: n);
     expect(j(_krk, ExerciseAsk.win, null), ExerciseJudge.rules);
     expect(j(_start, ExerciseAsk.hold, null), ExerciseJudge.rules);
-    expect(j(_krk, ExerciseAsk.win, 3), ExerciseJudge.tablebase);
+    expect(j(_krk, ExerciseAsk.win, 3), ExerciseJudge.mateInMoves);
     expect(j(_krk, ExerciseAsk.hold, 3), ExerciseJudge.tablebase);
     expect(j(_start, ExerciseAsk.hold, 3), ExerciseJudge.notMatedOnly);
-    expect(j(_start, ExerciseAsk.win, 3), ExerciseJudge.refused);
+    // Checkmate in N is the rules' alone: thirty-two pieces are no obstacle.
+    expect(j(_start, ExerciseAsk.win, 3), ExerciseJudge.mateInMoves);
     expect(j(_start, ExerciseAsk.find, 3), ExerciseJudge.rules);
     // Four sentences, four different ones.
     expect(ExerciseJudge.values.map(exerciseJudgeWords).toSet().length, 4);
   });
 
-  test('„refused" here is what the server refuses, on the shared fixture', () {
-    // docs/gates/engine_game_cases.json → forMoves.rejected: the server's
-    // `parseEngineGameTask` refuses these, so the sheet must not offer them.
+  test('who judges here is who judges on the server, on the shared fixture',
+      () {
+    // docs/gates/engine_game_cases.json → forMoves.judged. Read in **both**
+    // directions at every game that stopped at its move target: the sheet
+    // says „tablebase" exactly where the server asks one. One direction alone
+    // could not see the sheet promise a tablebase for a checkmate in N.
     final fixture = jsonDecode(
             File('../docs/gates/engine_game_cases.json').readAsStringSync())
         as Map<String, dynamic>;
     final forMoves = fixture['forMoves'] as Map<String, dynamic>;
-    final tooBig = (forMoves['rejected'] as List)
-        .cast<Map<String, dynamic>>()
-        .firstWhere((c) => (c['why'] as String).contains('7 pieces'));
-    final task = tooBig['task'] as Map<String, dynamic>;
-    expect(
-      exerciseJudgeFor(
-        fen: task['fen'] as String,
-        ask: exerciseAskOf({'type': 'game', ...task}),
-        forMoves: exerciseForMoves({'type': 'game', ...task}),
-      ),
-      ExerciseJudge.refused,
-    );
-    // And every case the server judges by tablebase is one this says it will.
+    var asked = 0, notAsked = 0;
     for (final c in (forMoves['judged'] as List).cast<Map<String, dynamic>>()) {
       final t = c['task'] as Map<String, dynamic>;
-      final expectTb = (c['expect'] as Map)['needsTablebase'] == true;
-      if (!expectTb) continue;
-      expect(
-        exerciseJudgeFor(
-          fen: t['fen'] as String,
-          ask: exerciseAskOf({'type': 'game', ...t}),
-          forMoves: exerciseForMoves({'type': 'game', ...t}),
-        ),
-        ExerciseJudge.tablebase,
-        reason: c['name'] as String,
+      final expected = c['expect'] as Map;
+      if (expected['ending'] != 'moveTarget') continue;
+      final expectTb = expected['needsTablebase'] == true;
+      expectTb ? asked++ : notAsked++;
+      final judge = exerciseJudgeFor(
+        fen: t['fen'] as String,
+        ask: exerciseAskOf({'type': 'game', ...t}),
+        forMoves: exerciseForMoves({'type': 'game', ...t}),
       );
+      expect(judge == ExerciseJudge.tablebase, expectTb,
+          reason: c['name'] as String);
+      if (t['goal'] == 'win') {
+        expect(judge, ExerciseJudge.mateInMoves, reason: c['name'] as String);
+      }
     }
+    expect(asked, greaterThan(0));
+    expect(notAsked, greaterThan(0));
   });
 }

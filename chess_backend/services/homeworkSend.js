@@ -48,11 +48,15 @@ function childTitle(item, { lessonTitle = null, itemCount = 0 } = {}) {
     case 'puzzles':
       return itemCount === 1 ? 'One puzzle' : `${itemCount} puzzles`;
     case 'engine_game': {
+      // The number is part of the task, so it is part of the name: two
+      // exercises that both read „win it" — one to the end, one with a limit
+      // — were the same row twice to the student (the live pass, 19.9.2026).
+      // The words follow the app's `exerciseTaskWords`.
+      const n = item.task.surviveMoves;
+      const moves = n ? `${n} ${n === 1 ? 'move' : 'moves'}` : null;
       const goal = item.task.goal === 'win'
-        ? 'win it'
-        : item.task.goal === 'hold'
-          ? 'hold the draw'
-          : `survive ${item.task.surviveMoves} moves`;
+        ? (moves ? `checkmate in ${moves}` : 'win it')
+        : (moves ? `do not lose for ${moves}` : 'hold the draw');
       return `Play it out: ${goal}`;
     }
     default:

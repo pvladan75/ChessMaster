@@ -2592,7 +2592,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: Text('The game ended: ${endingLabel(ending)}.'),
+        content: Text('The game ended: '
+            '${engineGameEndingWords(_engineGameTask, ending)}.'),
         actions: [
           ElevatedButton.icon(
             icon: const Icon(Icons.arrow_back),
@@ -2880,17 +2881,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   String _engineGameGoalSentence() {
     final task = _engineGameTask;
     if (task == null) return 'Play it out';
-    final sideWord = task.side == chess.Color.WHITE ? 'White' : 'Black';
-    switch (task.goal) {
-      case EngineGameGoal.win:
-        return '$sideWord to move — win the game';
-      case EngineGameGoal.hold:
-        return '$sideWord to move — hold a draw';
-      case EngineGameGoal.survive:
-        final total = task.surviveMoves ?? 0;
-        final remaining = (total - _userMoveCount).clamp(0, total);
-        return '$sideWord to move — survive $remaining more of your moves';
-    }
+    return engineGameGoalSentence(task, ownMoves: _userMoveCount);
   }
 
   // --- TAB 1: PUZZLES UI ---

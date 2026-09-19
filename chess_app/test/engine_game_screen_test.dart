@@ -251,7 +251,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Goal met'), findsOneWidget);
-        expect(find.textContaining('survive'), findsWidgets);
+        expect(find.text('The game ended: you were not beaten in 2 moves.'),
+            findsOneWidget);
       },
           () => MockClient((request) async {
                 sentUrl = request.url.toString();

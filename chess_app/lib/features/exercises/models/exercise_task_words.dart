@@ -9,9 +9,9 @@
 //
 // The task is the wire's map, as `GET /library/positions` and `GET
 // /exercises/:id` send it: `{type: 'find'}`, or `{type: 'game', side, goal,
-// surviveMoves, …}`. `surviveMoves` is „for N moves" on any goal; the goal
-// `survive` is the older spelling of „draw or better, for N moves" and is
-// read as that.
+// surviveMoves, …}`. `surviveMoves` on a hold is „for N moves"; on a win it is
+// „checkmate in N moves" (19.9.2026). The goal `survive` is the older
+// spelling of „draw or better, for N moves" and is read as that.
 
 /// What the Library filters an exercise by. A closed set on purpose: a filter
 /// the reader cannot name is a filter they cannot use.
@@ -32,7 +32,7 @@ ExerciseAsk exerciseAskOf(Map<String, dynamic>? task) {
   return task['goal'] == 'win' ? ExerciseAsk.win : ExerciseAsk.hold;
 }
 
-/// „For N moves", or null when the game is played to its end.
+/// The task's number of moves, or null when the game is played to its end.
 int? exerciseForMoves(Map<String, dynamic>? task) {
   if (task == null || task['type'] != 'game') return null;
   final raw = task['surviveMoves'];
@@ -41,7 +41,7 @@ int? exerciseForMoves(Map<String, dynamic>? task) {
 }
 
 /// The task in one line: „Find the move", „Find the moves", „Win as White",
-/// „Draw or better as Black, for 4 moves".
+/// „Checkmate in 5 moves as White", „Draw or better as Black, for 4 moves".
 ///
 /// [solutionMoves] is the number of the student's own moves in a find
 /// exercise's line, when the caller knows it; a list that does not carry the
@@ -57,8 +57,11 @@ String exerciseTaskWords(Map<String, dynamic>? task, {int? solutionMoves}) {
     _ => '',
   };
   final n = exerciseForMoves(task);
-  final howLong = n == null ? '' : ', for $n ${n == 1 ? 'move' : 'moves'}';
-  return '${ask.label}$side$howLong';
+  if (n == null) return '${ask.label}$side';
+  final moves = '$n ${n == 1 ? 'move' : 'moves'}';
+  return ask == ExerciseAsk.win
+      ? 'Checkmate in $moves$side'
+      : '${ask.label}$side, for $moves';
 }
 
 /// Who is to move in [fen], in words — never as a colour alone: a dot of one
@@ -85,15 +88,16 @@ enum ExerciseJudge {
   /// Played to the end: the rules of the game are the verdict.
   rules,
 
-  /// For N moves, seven pieces or fewer: the tablebase checks what was reached.
+  /// Checkmate in N moves: mate on the board by then, or missed. The rules
+  /// again — no tablebase, and any number of pieces.
+  mateInMoves,
+
+  /// Draw or better for N moves, seven pieces or fewer: the tablebase checks
+  /// what was reached.
   tablebase,
 
-  /// For N moves, more pieces: only „not mated" can be checked.
+  /// Draw or better for N moves, more pieces: only „not mated" can be checked.
   notMatedOnly,
-
-  /// A win for N moves with more than seven pieces: nothing could judge it,
-  /// and the server refuses it.
-  refused,
 }
 
 ExerciseJudge exerciseJudgeFor({
@@ -102,11 +106,9 @@ ExerciseJudge exerciseJudgeFor({
   required int? forMoves,
 }) {
   if (ask == ExerciseAsk.find || forMoves == null) return ExerciseJudge.rules;
-  if (exercisePieceCount(fen) <= tablebasePieces) {
-    return ExerciseJudge.tablebase;
-  }
-  return ask == ExerciseAsk.win
-      ? ExerciseJudge.refused
+  if (ask == ExerciseAsk.win) return ExerciseJudge.mateInMoves;
+  return exercisePieceCount(fen) <= tablebasePieces
+      ? ExerciseJudge.tablebase
       : ExerciseJudge.notMatedOnly;
 }
 
@@ -117,6 +119,6 @@ String exerciseJudgeWords(ExerciseJudge judge) => switch (judge) {
         'The position reached after the last move is checked against the tablebase.',
       ExerciseJudge.notMatedOnly =>
         'More than seven pieces: only "not checkmated" can be checked.',
-      ExerciseJudge.refused =>
-        'Keeping a win for some moves can be judged only with seven pieces or fewer.',
+      ExerciseJudge.mateInMoves =>
+        "Met only by checkmate within that many of the student's own moves.",
     };

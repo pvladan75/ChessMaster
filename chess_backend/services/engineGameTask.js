@@ -63,10 +63,13 @@ function parseEngineGameTask(raw) {
     return { ok: false, error: `The goal must be one of ${GOALS.join(', ')}.` };
   }
 
-  // „For N moves". `survive` has always needed the number; since phase 3a of
-  // `docs/PLAN-EXERCISE.md` a `win` or a `hold` may carry one too — keep the
-  // win, or hold the draw, for the next N of the student's own moves — and
-  // the game is then judged by the position it reaches (`goalMetByTablebase`).
+  // The number of the student's own moves. `survive` has always needed it;
+  // since phase 3a of `docs/PLAN-EXERCISE.md` a `hold` may carry one too —
+  // hold the draw for the next N moves, judged by the position the game
+  // reaches (`goalMetByTablebase`). On a `win` the same number means
+  // **checkmate in N moves** (the owner's live pass of 19.9.2026): mate on the
+  // board within N, or the goal is missed. The rules judge that alone, so it
+  // needs no tablebase and has no limit on pieces.
   //
   // The field keeps its first name on the wire. The plan proposed renaming it
   // `forMoves`; the app in the tree reads and writes `surviveMoves`, and a
@@ -85,18 +88,6 @@ function parseEngineGameTask(raw) {
       };
     }
   }
-  // A win kept for N moves is only a fact a tablebase can state: „not mated
-  // yet" says nothing about whether the win is still there. Pieces only leave
-  // the board, so a position within reach now is within reach at the end.
-  // Refused here, where the trainer can change it, rather than judged by a
-  // guess in front of a student.
-  if (goal === 'win' && surviveMoves !== null && pieceCount(board.fen()) > TABLEBASE_PIECES) {
-    return {
-      ok: false,
-      error: `Keeping a win for some moves can be judged only with ${TABLEBASE_PIECES} pieces or fewer on the board.`,
-    };
-  }
-
   // The engine's strength: the three levels the app already plays at. Left to
   // the app's own default when the trainer did not say.
   const level = raw.level === undefined || raw.level === null ? null : String(raw.level);
@@ -208,8 +199,14 @@ function judgeEngineGame({ task: rawTask, moves, resigned = false }) {
   // the verdict, and with few enough pieces a tablebase knows it exactly. This
   // function stays pure — it says the question needs asking; the caller asks.
   // Until it is answered `goalMet` above is what the rules alone can say: for
-  // hold and survive „not lost", which is true; for a win, false.
-  const needsTablebase = ending === 'moveTarget' && pieceCount(board.fen()) <= TABLEBASE_PIECES;
+  // hold and survive „not lost", which is true.
+  //
+  // A win is never asked about. „Checkmate in N moves" with no mate on the
+  // board after N is missed, however won the position still is — the verdict
+  // above is final, and asking would turn a missed mate into a met goal.
+  const needsTablebase = ending === 'moveTarget'
+    && task.goal !== 'win'
+    && pieceCount(board.fen()) <= TABLEBASE_PIECES;
 
   return {
     ok: true,
@@ -242,13 +239,18 @@ const TABLEBASE_PIECES = 7;
  * cursed win and a blessed loss are draws: the fifty-move rule makes them so,
  * and a game played on would end as one. `wdlOf` throws for 'unknown' and the
  * 'maybe' categories — no outcome is not an outcome, and must not read as a
- * failed homework.
+ * failed homework. Only „hold" and „survive" are ever asked about here.
  */
 function goalMetByTablebase({ task, fen, category, wdlOf }) {
+  // Loud rather than answered: a win is judged by mate alone
+  // (`judgeEngineGame` never says `needsTablebase` for one), so a caller that
+  // gets here with a win has skipped that check.
+  if (task.goal === 'win') {
+    throw new Error('A win is judged by checkmate, never by the tablebase.');
+  }
   const forMover = wdlOf(category);
   const turn = String(fen).split(' ')[1];
   const forStudent = turn === task.side ? forMover : -forMover;
-  if (task.goal === 'win') return forStudent === 2;
   return forStudent >= -1;
 }
 

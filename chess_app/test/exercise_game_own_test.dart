@@ -135,11 +135,19 @@ Future<void> _fakeEngineReply(
   await tester.pump();
 }
 
-/// The fixture's own „win kept for two moves" case
-/// (`docs/gates/engine_game_cases.json`, `forMoves.judged[0]`): the student
-/// plays White, Ra8, the engine replies Kd3, and Ra3+ reaches the move
-/// target with three pieces left — a tablebase must judge it.
-EngineGameTask _winForTwoMovesTask() => EngineGameTask.fromJson({
+/// The moves of the fixture's first `forMoves.judged` case
+/// (`docs/gates/engine_game_cases.json`): the student plays White, Ra8, the
+/// engine replies Kd3, and Ra3+ reaches the move target with three pieces
+/// left. As a **hold** a tablebase must judge what was reached; as a **win**
+/// it is a checkmate in two that was not given, and nobody is asked.
+EngineGameTask _holdForTwoMovesTask() => EngineGameTask.fromJson({
+      'fen': _krk,
+      'side': 'w',
+      'goal': 'hold',
+      'surviveMoves': 2,
+    })!;
+
+EngineGameTask _mateInTwoTask() => EngineGameTask.fromJson({
       'fen': _krk,
       'side': 'w',
       'goal': 'win',
@@ -282,8 +290,8 @@ void main() {
     });
 
     testWidgets(
-        'more than seven pieces, Win, for N moves: refused, Save off, no '
-        'request sent', (tester) async {
+        'more than seven pieces, Win, checkmate in N moves: said in those '
+        'words, Save on, the number sent', (tester) async {
       final rec = _Recorder();
       await _pumpAtSize(
         tester,
@@ -296,6 +304,11 @@ void main() {
           tree: MoveTree(startingFen: _fullBoard),
         ),
       );
+      // Under „Draw or better" the same chip keeps its old words.
+      await tester.tap(find.byKey(const Key('exercise-ask-hold')));
+      await tester.pumpAndSettle();
+      expect(find.text('For N moves'), findsOneWidget);
+      expect(find.text('Checkmate in N moves'), findsNothing);
 
       await tester.tap(find.byKey(const Key('exercise-ask-win')));
       await tester.pumpAndSettle();
@@ -309,20 +322,55 @@ void main() {
           find.byKey(const Key('exercise-name-field')), 'Too many pieces');
       await tester.pump();
 
+      expect(find.text('Checkmate in N moves'), findsOneWidget);
+      expect(find.text('For N moves'), findsNothing);
       expect(
-        find.text('Keeping a win for some moves can be judged only with seven '
-            'pieces or fewer.'),
+        find.text("Met only by checkmate within that many of the student's "
+            'own moves.'),
         findsOneWidget,
       );
       final save = tester
           .widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save'));
-      expect(save.onPressed, isNull,
-          reason: 'the server would refuse this task');
+      expect(save.onPressed, isNotNull,
+          reason: 'the rules judge a mate: thirty-two pieces are no obstacle');
 
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Save'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'Save'));
       await tester.pumpAndSettle();
-      expect(rec.requests, isEmpty);
+      expect(rec.requests, hasLength(1));
+      final task = (jsonDecode(rec.requests.single.body)
+          as Map<String, dynamic>)['task'] as Map<String, dynamic>;
+      expect(task['goal'], 'win');
+      expect(task['surviveMoves'], 5);
+    });
+  });
+
+  group('checkmate in N moves, not given', () {
+    testWidgets(
+        'still winning with three pieces: „Goal not met" at once, in its own '
+        'words — and a server that says otherwise is not believed',
+        (tester) async {
+      await http.runWithClient(() async {
+        await _pumpScreen(tester, const Size(800, 900), task: _mateInTwoTask());
+        expect(find.text('You are White — checkmate in 2 moves · 2 left'),
+            findsOneWidget);
+        await _playToTheMoveTarget(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Goal not met'), findsOneWidget);
+        expect(find.text('Goal met'), findsNothing);
+        expect(find.text('Not judged yet'), findsNothing);
+        expect(find.text('The game ended: no checkmate in 2 moves.'),
+            findsOneWidget);
+      },
+          () => MockClient((request) async => http.Response(
+              jsonEncode({
+                'ok': true,
+                'goalMet': true,
+                'judgedBy': 'tablebase',
+                'pending': false,
+              }),
+              200)));
     });
   });
 
@@ -333,7 +381,7 @@ void main() {
       final completer = Completer<http.Response>();
       await http.runWithClient(() async {
         await _pumpScreen(tester, const Size(800, 900),
-            task: _winForTwoMovesTask());
+            task: _holdForTwoMovesTask());
         await _playToTheMoveTarget(tester);
 
         expect(find.text('Goal met'), findsNothing);
@@ -359,7 +407,7 @@ void main() {
         (tester) async {
       await http.runWithClient(() async {
         await _pumpScreen(tester, const Size(800, 900),
-            task: _winForTwoMovesTask());
+            task: _holdForTwoMovesTask());
         await _playToTheMoveTarget(tester);
         await tester.pumpAndSettle();
 
@@ -382,7 +430,7 @@ void main() {
         'ends on screen', (tester) async {
       await http.runWithClient(() async {
         await _pumpScreen(tester, const Size(800, 900),
-            task: _winForTwoMovesTask());
+            task: _holdForTwoMovesTask());
         await _playToTheMoveTarget(tester);
         await tester.pumpAndSettle();
 

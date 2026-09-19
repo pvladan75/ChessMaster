@@ -5878,6 +5878,32 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 189. Zadatak: „Checkmate in N moves", zadatak koji se vidi, i „3 of 3 items" — 19.9.2026, nije viđeno uživo
+
+Iz vlasnikove provere 19.9.2026 (`PLAN-EXERCISE.md` §9, faza 8). Server mora da
+bude restartovan. **Domaći poslat pre ove izmene zadržava stari naslov stavke**
+(„Play it out: win it") — naslov se piše pri slanju, pa za tačke 2–4 napravi i
+pošalji nov.
+
+1. [ ] **Preparation → „Make exercise" → „Win"**: drugi čip pod „How long?" glasi
+   „Checkmate in N moves", a ispod piše da se cilj ispunjava samo matom u toliko
+   učenikovih poteza. Pod „Draw or better" isti čip i dalje glasi „For N moves".
+2. [ ] Sa **punom tablom** (više od sedam figura) „Win" + „Checkmate in N moves" se
+   čuva — ranije je „Save" bio ugašen.
+3. [ ] **Učenik, lista stavki domaćeg**: stavka sa brojem glasi „Play it out:
+   checkmate in N moves", a stavka bez broja „Play it out: win it" — dve različite
+   stavke se više ne čitaju isto. Iznad piše „0 of 3 items", ne „0 of 0 items".
+4. [ ] **Učenik, tabla**: traka iznad table kaže „You are White — checkmate in N
+   moves · K left" i K opada posle svakog učenikovog poteza.
+5. [ ] Namerno prekorači broj poteza u dobijenoj poziciji (dama i kralj protiv
+   kralja): dijalog kaže **„Goal not met"** i „The game ended: no checkmate in N
+   moves." — odmah, bez „Not judged yet". Ranije je ovde pisalo „Goal met".
+6. [ ] Daj mat **tačno u N-tom potezu**: „Goal met".
+7. [ ] „Draw or better, for N moves" radi kao i pre: posle N poteza u nerešenoj
+   poziciji „Goal met", a dijalog kaže „you were not beaten in N moves".
+8. [ ] **Trener, otvoren domaći**: iznad stavki piše „K of 3 items" sa pravim
+   brojevima, isto što i lista domaćih.
+
 ## 188. Board Setup: paleta u dva reda i tabla koja staje — ✅ provereno uživo 19.9.2026
 
 Isti dijalog otvaraju tri ekrana: Analyse (pet kartica), Teach → Preparation i

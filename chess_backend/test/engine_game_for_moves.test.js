@@ -11,12 +11,14 @@ const {
 const { wdlOf, TablebaseUnavailable } = require('../services/tablebaseService');
 
 test('the fixture holds what it says it holds', () => {
-  assert.ok(fixture.judged.length >= 5);
+  assert.ok(fixture.judged.length >= 7);
   assert.ok(fixture.rejected.length >= 2);
-  assert.ok(fixture.byTablebase.length >= 11);
-  // Both answers, for every goal, and both sides to move: a table of one
-  // answer cannot tell a rule from a constant.
-  for (const goal of ['win', 'hold', 'survive']) {
+  assert.ok(fixture.byTablebase.length >= 6);
+  // Both answers, for every goal a tablebase is asked about, and both sides
+  // to move: a table of one answer cannot tell a rule from a constant. A win
+  // has no rows — „checkmate in N moves" is the rules' alone (19.9.2026).
+  assert.ok(!fixture.byTablebase.some((r) => r.goal === 'win'));
+  for (const goal of ['hold', 'survive']) {
     const rows = fixture.byTablebase.filter((r) => r.goal === goal);
     assert.ok(rows.some((r) => r.goalMet) && rows.some((r) => !r.goalMet), goal);
   }
@@ -24,6 +26,12 @@ test('the fixture holds what it says it holds', () => {
   assert.deepEqual([...turns].sort(), ['false', 'true']);
   assert.ok(fixture.judged.some((c) => c.expect.needsTablebase));
   assert.ok(fixture.judged.some((c) => c.expect.ending === 'moveTarget' && !c.expect.needsTablebase));
+  // Checkmate in N, on both sides of its boundary: missed with few enough
+  // pieces that a tablebase *could* have been asked, and met on move N itself.
+  const mates = fixture.judged.filter((c) => c.task.goal === 'win' && c.task.surviveMoves);
+  assert.ok(mates.some((c) => c.expect.ending === 'moveTarget' && !c.expect.goalMet
+    && pieceCount(c.expect.fen) <= TABLEBASE_PIECES));
+  assert.ok(mates.some((c) => c.expect.goalMet && c.expect.ownMoves === c.task.surviveMoves));
 });
 
 for (const c of fixture.judged) {
@@ -52,6 +60,15 @@ for (const row of fixture.byTablebase) {
     assert.equal(met, row.goalMet);
   });
 }
+
+test('a win is never for the tablebase to judge: asking is a fault, not an answer', () => {
+  assert.throws(
+    () => goalMetByTablebase({
+      task: { goal: 'win', side: 'w' }, fen: '8/8/8/8/8/R2k4/8/4K3 b - - 3 2', category: 'loss', wdlOf,
+    }),
+    /judged by checkmate/
+  );
+});
 
 test('no outcome is not an outcome: it throws, it does not fail the student', () => {
   for (const category of fixture.noOutcome) {
@@ -82,4 +99,17 @@ test('pieces are counted off the board field, kings included', () => {
   assert.equal(pieceCount('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'), 32);
   // The letters after the board — `w`, `KQkq`, `b` — are not pieces.
   assert.equal(pieceCount('8/8/8/4k3/8/4K3/4P3/8 b KQkq - 0 1'), 3);
+});
+
+test('the homework row names the number: two different tasks are two different rows', () => {
+  // Required here, not at the top: `homeworkSend` reaches the database module,
+  // and the rest of this file is pure.
+  const { childTitle } = require('../services/homeworkSend');
+  const title = (task) => childTitle({ kind: 'engine_game', task });
+  assert.equal(title({ goal: 'win', surviveMoves: null }), 'Play it out: win it');
+  assert.equal(title({ goal: 'win', surviveMoves: 5 }), 'Play it out: checkmate in 5 moves');
+  assert.equal(title({ goal: 'win', surviveMoves: 1 }), 'Play it out: checkmate in 1 move');
+  assert.equal(title({ goal: 'hold', surviveMoves: null }), 'Play it out: hold the draw');
+  assert.equal(title({ goal: 'hold', surviveMoves: 4 }), 'Play it out: do not lose for 4 moves');
+  assert.equal(title({ goal: 'survive', surviveMoves: 4 }), 'Play it out: do not lose for 4 moves');
 });

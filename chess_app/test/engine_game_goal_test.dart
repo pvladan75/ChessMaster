@@ -194,4 +194,43 @@ void main() {
     expect(verdict.ending, GameEnding.checkmate);
     expect(verdict.outcome, verdictFor(game, task.side).outcome);
   });
+
+  group('the words on the board', () {
+    EngineGameTask task(String goal, {int? n, String side = 'w'}) =>
+        EngineGameTask.fromJson({
+          'fen': '8/8/8/8/8/4k3/8/R3K3 w - - 0 1',
+          'side': side,
+          'goal': goal,
+          if (n != null) 'surviveMoves': n,
+        })!;
+
+    test('the banner says the number whenever the trainer set one', () {
+      expect(engineGameGoalSentence(task('win'), ownMoves: 0),
+          'You are White — win the game');
+      expect(engineGameGoalSentence(task('hold', side: 'b'), ownMoves: 3),
+          'You are Black — hold a draw');
+      expect(engineGameGoalSentence(task('win', n: 5), ownMoves: 0),
+          'You are White — checkmate in 5 moves · 5 left');
+      expect(engineGameGoalSentence(task('win', n: 5), ownMoves: 4),
+          'You are White — checkmate in 5 moves · 1 left');
+      expect(engineGameGoalSentence(task('win', n: 1), ownMoves: 0),
+          'You are White — checkmate in 1 move · 1 left');
+      expect(engineGameGoalSentence(task('hold', n: 4), ownMoves: 1),
+          'You are White — do not lose for 4 moves · 3 left');
+      expect(engineGameGoalSentence(task('survive', n: 4), ownMoves: 9),
+          'You are White — do not lose for 4 moves · 0 left');
+    });
+
+    test('a move target is named by what the number was for', () {
+      expect(engineGameEndingWords(task('win', n: 5), GameEnding.moveTarget),
+          'no checkmate in 5 moves');
+      expect(engineGameEndingWords(task('hold', n: 1), GameEnding.moveTarget),
+          'you were not beaten in 1 move');
+      // Every other ending keeps its one name.
+      expect(engineGameEndingWords(task('win', n: 5), GameEnding.checkmate),
+          endingLabel(GameEnding.checkmate));
+      expect(engineGameEndingWords(null, GameEnding.moveTarget),
+          endingLabel(GameEnding.moveTarget));
+    });
+  });
 }
