@@ -1044,6 +1044,44 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal(read.children.find((c) => c.id === gameId).pending_items, 1);
   });
 
+  test('the review of a played game is the game: both sides read the moves, the end and the verdict', async () => {
+    // Phase 9. The shaping is tested pure in `assignment_review.test.js`; this
+    // is the half that can only fail here — the query naming the three
+    // columns, and the task reaching the shaper off the assignment's own row.
+    const { buildReview } = require('../services/assignmentReview');
+    const who = await people();
+    const { gameId } = await sentGame(who, MATE_MISSED.task);
+
+    const unplayed = (await buildReview(pool, gameId, who.trainerId)).items;
+    assert.equal(unplayed.length, 1);
+    assert.deepEqual(
+      { kind: unplayed[0].kind, moves: unplayed[0].moves, fen: unplayed[0].fen },
+      { kind: 'game', moves: [], fen: MATE_MISSED.task.fen }
+    );
+
+    const r = await assignments.recordEngineGameResult(pool, {
+      studentId: who.studentId, assignmentId: gameId, moves: MATE_MISSED.moves,
+      tablebase: tablebaseAnswering('loss').tablebase,
+    });
+    assert.equal(r.ok, true, r.error);
+
+    for (const reader of [who.trainerId, who.studentId]) {
+      const [item] = (await buildReview(pool, gameId, reader)).items;
+      assert.deepEqual(
+        {
+          kind: item.kind, moves: item.moves, finalFen: item.finalFen, ending: item.ending,
+          judgedBy: item.judgedBy, solved: item.solved, pending: item.pending, goal: item.task.goal,
+          n: item.task.surviveMoves,
+        },
+        {
+          kind: 'game', moves: MATE_MISSED.moves, finalFen: MATE_MISSED.expect.fen, ending: 'moveTarget',
+          judgedBy: 'rules', solved: false, pending: false, goal: 'win',
+          n: MATE_MISSED.task.surviveMoves,
+        }
+      );
+    }
+  });
+
   test('the rules judge what no tablebase is needed for, and nobody is asked', async () => {
     const big = fm.judged.find((c) => c.task.goal === 'hold'
       && c.expect.ending === 'moveTarget' && !c.expect.needsTablebase);

@@ -394,3 +394,64 @@ test('a lesson with real steps still reads them, not its own board', async () =>
   assert.equal(review.items[0].fen, STEP_FEN, 'the step at that position');
   assert.equal(review.items[0].title, 'drugi');
 });
+
+// ---- a played game (docs/PLAN-EXERCISE.md, phase 9) ------------------------
+//
+// Until 19.9.2026 a game item fell through to „a lesson step with no step":
+// no board, `solved: null`, and a trainer who could not tell a student who met
+// every goal from one who met none. Everything below was already stored.
+
+const gameRow = (over = {}) => ({
+  id: 7, position: 0, puzzle_id: null, puzzle_rating: null, ms_taken: null, played_san: null,
+  attempted_at: new Date('2026-09-19T14:00:00Z'),
+  solved: false, game_moves: 'Ra8 Kd3 Ra3+', game_ending: 'moveTarget', judged_by: 'rules',
+  ...over,
+});
+const gameTask = { fen: '8/8/8/8/8/4k3/8/R3K3 w - - 0 1', side: 'w', goal: 'win', surviveMoves: 2, level: 'lako' };
+
+test('a played game is reviewed as a game: the task, the moves, where it ended, and the verdict', () => {
+  const item = shapeItem(gameRow(), { isTrainer: true, game: gameTask });
+  assert.equal(item.kind, 'game');
+  assert.equal(item.fen, gameTask.fen, 'the board the student was given');
+  assert.deepEqual(item.task, { type: 'game', side: 'w', goal: 'win', surviveMoves: 2 });
+  assert.deepEqual(item.moves, ['Ra8', 'Kd3', 'Ra3+']);
+  assert.equal(item.finalFen, '8/8/8/8/8/R2k4/8/4K3 b - - 3 2', 'replayed here, not trusted from the client');
+  assert.equal(item.ending, 'moveTarget');
+  assert.equal(item.judgedBy, 'rules');
+  assert.equal(item.solved, false, 'a verdict, not the null a lesson step carries');
+  assert.equal(item.pending, false);
+});
+
+test('a game the tablebase has not judged yet is pending, and is not failed', () => {
+  const item = shapeItem(gameRow({ solved: null, judged_by: null }), {
+    isTrainer: true, game: { ...gameTask, goal: 'hold' },
+  });
+  assert.equal(item.pending, true);
+  assert.equal(item.solved, null);
+});
+
+test('a game not played yet has a board and no moves', () => {
+  const item = shapeItem(
+    gameRow({ attempted_at: null, solved: null, game_moves: null, game_ending: null, judged_by: null }),
+    { isTrainer: false, game: gameTask }
+  );
+  assert.equal(item.kind, 'game');
+  assert.equal(item.attempted, false);
+  assert.deepEqual(item.moves, []);
+  assert.equal(item.finalFen, null);
+  assert.equal(item.pending, false);
+});
+
+test('moves that do not replay are shown as they are, without an invented board', () => {
+  const item = shapeItem(gameRow({ game_moves: 'Ra8 Qd3' }), { isTrainer: true, game: gameTask });
+  assert.deepEqual(item.moves, ['Ra8', 'Qd3']);
+  assert.equal(item.finalFen, null);
+});
+
+test('a lesson step is still a lesson step: no task, no game', () => {
+  const item = shapeItem(gameRow({ game_moves: null, game_ending: null, judged_by: null }), {
+    isTrainer: true, step: { title: 'Step', fen: gameTask.fen },
+  });
+  assert.equal(item.kind, 'step');
+  assert.equal(item.solved, null);
+});

@@ -77,8 +77,24 @@ function safeParse(text) {
   }
 }
 
-/// One item, in the shape the review screen reads.
-function shapeItem(row, { isTrainer, step }) {
+/// Where a game's moves lead from [fen], or null when they do not replay. The
+/// moves were written by `judgeEngineGame`, which refuses one it cannot play,
+/// so null here means the row and its task disagree — shown as no board rather
+/// than as a board somebody guessed.
+function finalFenOf(fen, moves) {
+  if (moves.length === 0) return null;
+  try {
+    const board = new Chess(fen);
+    for (const san of moves) board.move(san);
+    return board.fen();
+  } catch {
+    return null;
+  }
+}
+
+/// One item, in the shape the review screen reads. [game] is the assignment's
+/// task when the assignment is a game to play out, and nothing otherwise.
+function shapeItem(row, { isTrainer, step, game = null }) {
   const attempted = row.attempted_at !== null && row.attempted_at !== undefined;
   const reveal = mayRevealSolution({ attempted, isTrainer });
 
@@ -96,6 +112,32 @@ function shapeItem(row, { isTrainer, step }) {
     // was played" — a student cannot play nothing.
     playedSan: row.played_san ?? null,
   };
+
+  if (game) {
+    // A game played out (`docs/PLAN-EXERCISE.md`, phase 9). Everything here
+    // was already stored when the result was recorded; until 19.9.2026 this
+    // row fell through to „a lesson step with no step" below — no board,
+    // `solved: null` — and a trainer could not tell a student who met every
+    // goal from one who met none. The moves and the position they reach are
+    // also the trainer's own last word where no tablebase answers.
+    const moves = String(row.game_moves || '').trim().split(/\s+/).filter(Boolean);
+    return {
+      ...base,
+      kind: 'game',
+      title: null,
+      instruction: null,
+      fen: game.fen,
+      // In the shape `exerciseTaskWords` reads in the app — one wording.
+      task: { type: 'game', side: game.side, goal: game.goal, surviveMoves: game.surviveMoves ?? null },
+      moves,
+      finalFen: finalFenOf(game.fen, moves),
+      ending: row.game_ending ?? null,
+      judgedBy: row.judged_by ?? null,
+      // Played, and nobody has been able to say yet. Never a failure.
+      pending: attempted && row.solved === null && (row.judged_by ?? null) === null
+        && row.game_ending === 'moveTarget',
+    };
+  }
 
   if (row.puzzle_id === null || row.puzzle_id === undefined) {
     return {
@@ -165,6 +207,7 @@ async function buildReview(pool, assignmentId, viewerId) {
   const itemRows = await pool.query(
     `SELECT ai.id, ai.position, ai.puzzle_id, ai.puzzle_rating, ai.solved,
             ai.ms_taken, ai.played_san, ai.attempted_at,
+            ai.game_moves, ai.game_ending, ai.judged_by,
             cp.fen AS custom_fen, cp.instruction, ${exerciseColumns('cp')},
             cp.themes AS custom_themes, cp.source_title, cp.source_label,
             lp.fen AS lichess_fen, lp.moves AS lichess_moves,
@@ -199,8 +242,9 @@ async function buildReview(pool, assignmentId, viewerId) {
     }
   }
 
+  const game = assignment.kind === 'engine_game' ? assignment.task : null;
   const items = itemRows.rows.map((row) =>
-    shapeItem(row, { isTrainer, step: steps.get(row.position) })
+    shapeItem(row, { isTrainer, step: steps.get(row.position), game })
   );
 
   const notes = await listNotes(pool, assignmentId, viewerId);
