@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **20.9.2026** — najnovije je „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **20.9.2026** — najnovije je „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`, ništa u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,48 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Liste koje koriste širinu — 20.9.2026, plan, ništa u kodu
+
+Vlasnikova stavka 5 iz `zadaci.md`, posle pregleda Geminijevog dokumenta
+`sugestije_objedinjeno_za_agenta.html`. Plan: **`docs/PLAN-LISTE.md`**.
+
+Vlasnikova ispravka je srž svega: *„kad sam rekao da ima dosta prostora na
+širokom ekranu, nisam mislio da se to smanji ograničavanjem širine stavke, već
+da se taj prostor iskoristi."* Time otpada i §2.4 Geminijevog dokumenta
+(`max-width`) i **moj raniji odgovor na stavku 5 u `zadaci.md`**, koji je
+predlagao zajednički `CenteredPane` sa istim ograničenjem. Oba menjaju jednu
+prazninu za drugu: prozor od 1920 px sužen na 700 prikazuje isti broj stavki
+kao i pre, popravlja se samo dužina reda.
+
+Mehanizam, izmeren 20.9.2026: svaka od ovih listi je `ListView` → `Card` →
+`ListTile`, a `ListTile` ima tri pregrade koje **ne rastu sa širinom** — raste
+razmak između njih. Otuda „naslov, okean, ikonica". Sužavanje smanjuje okean;
+drugu stavku u red ne može da doda. Uz to, `theme/breakpoints.dart` već ima
+rečnik (`wide = 840`, `ultraWide = 1200`) koji koristi četrnaest fajlova — **ni
+jedan od njih nije ekran sa listom.**
+
+Tri šablona, svaki definisan jednom (ne šest zasebnih dizajna): **A** — mreža
+sa maksimalnom širinom pločice (`SliverGridDelegateWithMaxCrossAxisExtent`,
+420), pa broj kolona nikad nije upisan; **B** — master–detail za Library i
+Repertoire; **C** — guste vrste + pretraga, za „Choose a game" (4126 vrsta u
+kutiji 400 × 300 bez pretrage) i „What to drill".
+
+Vlasnikove odluke 20.9.2026: tri Home taba **zadržavaju** `maxWidth: 700` (to
+su stekovi kartica, ne liste — van opsega); **šablon B se radi do kraja**, jer
+je to ono što aplikaciju čini desktop aplikacijom a ne razvučenim telefonom;
+pretraga u „Choose a game" ide prva i sama.
+
+Devet faza (0 merenje → 1 pretraga → 2 `AdaptiveCardGrid` → 3 šablon A → 4
+„What to drill" u kolonama → 5 i 6 šablon B → 7 tabela → 8 provera uživo).
+**Nema izmene na serveru ni u šemi** — sve je `chess_app/lib` i testovi, pa
+ništa od ovoga ne može da zaustavi vlasnikov nodemon. Glavni trošak nije
+raspored nego **površina testova**: ovi ekrani se pronalaze preko
+`find.byType(ListTile)`, pa svaki brief od faze 3 imenuje koji se finderi smeju
+menjati — tiho prepisana tvrdnja je upravo ono što zeleni paket čini
+bezvrednim.
 
 ---
 
