@@ -5703,3 +5703,48 @@ tablu od srećne gustine. Mutacija to i pokazuje: vraćanje na 56 obara samo
 Windows slučaj, dok Android ostaje zelen.
 
 Mereno: aplikacija **3485 → 3487**, 1 preskočen. Analyze: istih 26 `info`.
+
+## Fikstura koja ne sužava ne može da uhvati filter koji ne sužava — 21.9.2026, faza 7
+
+Vlasnik je zatražio fazu 7: „Choose a game" da postane prava zbijena tabela.
+Dokument sa sugestijama (§2.3) daje oblik — red 36–40 px, pretraga i filteri
+iznad, kolone **White · Black · Date · Result · First moves** — a §3.3 isti
+spisak na telefonu, dve zbijene linije po partiji. Oba su napravljena.
+
+**Dve stvari iz maketa nisu napravljene, i to je zapisano u kapiji** da se ne
+bi mislilo da su promašene: kolona „Izaberi", jer je vrsta već meta i jedna
+radnja ne traži dvoja vrata; i paginacija (`1 / 206`), jer `ListView.builder`
+gradi samo ono što je na ekranu — 4126 partija se skroluje bez stranica, a
+sužava ih pretraga. Filter je po **rezultatu** umesto po „pobede/porazi" iz
+maketa: ovo drugo bi moralo da pogadja kojom stranom je ovaj nalog igrao, a
+rezultat je činjenica koju fajl već piše.
+
+**Pouka je iz mutacije koja je preživela prvi krug.**
+
+Slučaj „filter i pretraga sužavaju zajedno" je pisan tako da pretraži
+„pvladan", pa onda pritisne čip „1-0". Mutacija — filter primenjen na **celu**
+kolekciju umesto na ono što je pretraga ostavila — **prošla je**. Razlog nije u
+kodu nego u fiksturi: sve tri partije u njoj imaju „pvladan" na jednoj strani,
+pa pretraga nije ništa suzila, i „filtriraj sve" i „filtriraj ostatak" daju
+isti odgovor.
+
+Prepravljeno: pretraga je sada „Kingston", koja ostavlja **jednu** partiju, i
+to remi. Tražiti „1-0" povrh toga mora da ostavi **ništa**. Mutacija sada pada.
+
+Pravilo je uska varijanta pravila 6, ali vredi napisati posebno jer se lako
+promaši: **da bi se videlo da dva filtera sarađuju, prvi mora stvarno nešto da
+odseče, i to nešto drugo nego što bi odsekao drugi.** Fikstura u kojoj prvi
+filter propušta sve nije fikstura za kompoziciju — ona testira samo drugi
+filter, dvaput.
+
+**I jedna manja, o finder-ima nad tabelom.** „1-0" postoji na ekranu dvaput:
+kao čip filtera i kao rezultat te partije. Prva verzija kapije je merila
+`find.text('1-0').first` naspram zaglavlja kolone „Result" — to jest, **čip
+naspram kolone** — i zvala to poravnanjem. Ćelije se sada traže unutar ključa
+svoje vrste (`_cellLeft`), a čip se pritiska po ključu. **U tabeli se isti
+tekst po prirodi ponavlja; finder mora da kaže iz kog reda.**
+
+Mereno: aplikacija **3487 → 3496** (9 u kapiji), 1 preskočen. Analyze: istih
+26 `info`, nijedan iz izmenjenog fajla. Bez izmena na serveru. Uživo:
+**stavka 210**. Ovim je `PLAN-LISTE.md` odgradjen u celosti — ostaje samo
+faza 8, vlasnikov prolaz uživo.

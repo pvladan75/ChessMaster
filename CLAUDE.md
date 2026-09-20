@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3487 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3496 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1630 with TEST_DATABASE_URL, 1536 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -261,7 +261,29 @@ has to ask for a size the slot allows, so `thumbnailSize = 48` and the two
 platforms now agree. **A layout fault that depends on `visualDensity` is
 invisible on the platform you test on** — a case that pins a proportion should
 pump both platforms, because one alone cannot tell a square board from a lucky
-density. Open: the rest of the owner's live
+density. Then phase 7 (→ **3496**), which the owner asked for after all — „the
+raw text and the cards still bother me in Choose a game" — and which
+**finishes `docs/PLAN-LISTE.md` in full**, leaving only its phase 8, his own
+live pass. Above a dialog width of 560 the games are a sticky header over
+virtualised 38 px rows in five columns; below it, the same facts on two dense
+lines. A result filter sits under the search and narrows what the search left.
+Two things in the mockup were **not** built and the gate says why — the
+„Izaberi" action column, because the row is already the target, and the
+`1 / 206` pagination, because `ListView.builder` virtualises and paging would
+put the reader back to hunting a page number; the filter is by result rather
+than the mockup's „wins", which would have to guess which side this account
+played. **Its lesson is a narrow, easily-missed corner of rule 6**: a mutation
+that made the chip filter the whole collection instead of the search's
+remainder **survived**, because the fixture searched a name every game in it
+matched — so „filter everything" and „filter the remainder" gave the same
+answer. **To see that two filters compose, the first must actually cut, and
+cut something different from what the second would.** A fixture whose first
+filter passes everything is not a fixture for composition; it tests the second
+filter twice. Beside it, a finder lesson for tables: „1-0" is on that screen as
+a chip *and* as a result, and the first draft measured the chip against the
+Result column and called it aligned — **in a table the same text repeats by
+nature, so a finder has to say which row it means.** Open: the rest of the
+owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

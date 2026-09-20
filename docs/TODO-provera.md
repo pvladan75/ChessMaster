@@ -5878,6 +5878,39 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 210. „Choose a game" kao prava tabela — 21.9.2026, nije viđeno uživo
+
+Samo aplikacija, faza 7 plana `PLAN-LISTE.md` — tražio je vlasnik pošto su mu
+„sirovi tekst i kartice i dalje boli oči". Time je plan odgradjen u celosti.
+
+Otvara se iz Analize → „Choose a game" (ili gde god se bira partija iz
+kolekcije).
+
+1. [ ] **Windows: tabela, ne kartice.** Zaglavlje sa pet kolona — **White ·
+   Black · Date · Result · First moves** — i ispod njega vrste visoke oko 38
+   px. Nema kartica, nema dve linije po partiji.
+2. [ ] **Kolone se poklapaju.** Ime belog stoji tačno ispod „White", datum
+   ispod „Date" i tako redom, na svakoj vrsti.
+3. [ ] **Vidi se mnogo više partija nego ranije.** Prebroj grubo: treba da ih
+   stane bar dvostruko više nego pre (bilo je oko osam).
+4. [ ] **Potezi bez satova.** U koloni „First moves" piše `1. e4 c5 2. Nf3…`,
+   **nigde** `{ [%clk 0:03:00] }`. *Ovo je popravljeno u fazi 1b, koju još
+   nisi video — build koji si testirao 20.9. je stariji od nje.*
+5. [ ] **Filter po rezultatu.** Ispod pretrage stoje čipovi **All · 1-0 · ½-½
+   · 0-1**. Pritisni „1-0" — ostaju samo partije koje je beli dobio.
+6. [ ] **Filter i pretraga rade zajedno.** Upiši ime u pretragu pa pritisni
+   čip: lista se suzi po **oba**, ne samo po čipu. Isključi čip („All") —
+   vraća se ono što pretraga daje.
+7. [ ] **Brojač u naslovu prati.** „… — N of 4126" se menja i sa pretragom i
+   sa čipom.
+8. [ ] **Klik na vrstu bira partiju** i dijalog se zatvara. Nema posebnog
+   dugmeta „Izaberi" u vrsti — cela vrsta je meta, namerno.
+9. [ ] **Telefon.** Umesto tabele dve zbijene linije po partiji: „Beli vs
+   Crni" sa rezultatom desno, pa „datum · prvi potezi". Pretraga i čipovi su
+   tu isto. Ništa nije odsečeno.
+10. [ ] **Dijalog je veći nego pre** na širokom prozoru (do 900 px širine),
+    ali ne preko celog ekrana.
+
 ## 209. Repertoar sa oknom pored liste — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija, faza 6 plana `PLAN-LISTE.md` — poslednja gradjena faza tog
