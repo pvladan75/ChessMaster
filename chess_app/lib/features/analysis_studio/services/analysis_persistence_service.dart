@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -30,10 +31,43 @@ class SavedAnalysisSummary {
 /// Saves and loads Analysis Studio variation trees to/from the backend, so a
 /// user's analysis is available across every device they log into.
 class AnalysisPersistenceService {
-  static final AnalysisPersistenceService instance =
+  AnalysisPersistenceService._internal({http.Client? client})
+      : _client = client;
+
+  static AnalysisPersistenceService instance =
       AnalysisPersistenceService._internal();
 
-  AnalysisPersistenceService._internal();
+  /// The real service over a fake transport, for a test that needs to see the
+  /// request rather than replace the class. Faking the class whole cannot see
+  /// a body the server would refuse — CLAUDE.md rule 7, fake the client and
+  /// assert on the request.
+  @visibleForTesting
+  static AnalysisPersistenceService withClient(http.Client client) =>
+      AnalysisPersistenceService._internal(client: client);
+
+  @visibleForTesting
+  static void setInstance(AnalysisPersistenceService replacement) {
+    instance = replacement;
+  }
+
+  @visibleForTesting
+  static void resetInstance() {
+    instance = AnalysisPersistenceService._internal();
+  }
+
+  final http.Client? _client;
+
+  Future<http.Response> _post(
+          Uri uri, Map<String, String> headers, String body) =>
+      _client?.post(uri, headers: headers, body: body) ??
+      http.post(uri, headers: headers, body: body);
+
+  Future<http.Response> _get(Uri uri, Map<String, String> headers) =>
+      _client?.get(uri, headers: headers) ?? http.get(uri, headers: headers);
+
+  Future<http.Response> _delete(Uri uri, Map<String, String> headers) =>
+      _client?.delete(uri, headers: headers) ??
+      http.delete(uri, headers: headers);
 
   Map<String, String> _headers(String userToken) => {
         'Content-Type': 'application/json',
@@ -47,17 +81,15 @@ class AnalysisPersistenceService {
     required String userToken,
   }) async {
     try {
-      final res = await http
-          .post(
-            Uri.parse('$backendUrl/analysis'),
-            headers: _headers(userToken),
-            body: jsonEncode({
-              'title': title,
-              'startingFen': rootNode.fen,
-              'tree': rootNode.toJson(),
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+      final res = await _post(
+        Uri.parse('$backendUrl/analysis'),
+        _headers(userToken),
+        jsonEncode({
+          'title': title,
+          'startingFen': rootNode.fen,
+          'tree': rootNode.toJson(),
+        }),
+      ).timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 201) {
         return SavedAnalysisSummary.fromJson(
@@ -73,9 +105,9 @@ class AnalysisPersistenceService {
   Future<List<SavedAnalysisSummary>> listSavedAnalyses(
       {required String userToken}) async {
     try {
-      final res = await http
-          .get(Uri.parse('$backendUrl/analysis'), headers: _headers(userToken))
-          .timeout(const Duration(seconds: 10));
+      final res =
+          await _get(Uri.parse('$backendUrl/analysis'), _headers(userToken))
+              .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as List;
@@ -95,10 +127,9 @@ class AnalysisPersistenceService {
   Future<AnalysisNode?> loadAnalysis(
       {required int id, required String userToken}) async {
     try {
-      final res = await http
-          .get(Uri.parse('$backendUrl/analysis/$id'),
-              headers: _headers(userToken))
-          .timeout(const Duration(seconds: 10));
+      final res =
+          await _get(Uri.parse('$backendUrl/analysis/$id'), _headers(userToken))
+              .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -114,9 +145,8 @@ class AnalysisPersistenceService {
   Future<bool> deleteAnalysis(
       {required int id, required String userToken}) async {
     try {
-      final res = await http
-          .delete(Uri.parse('$backendUrl/analysis/$id'),
-              headers: _headers(userToken))
+      final res = await _delete(
+              Uri.parse('$backendUrl/analysis/$id'), _headers(userToken))
           .timeout(const Duration(seconds: 10));
       return res.statusCode == 200;
     } catch (e) {

@@ -4976,3 +4976,66 @@ App **3329 → 3338** (nine tests in `engine_silence_test.dart`; nine mutations,
 each red on its own test once two were re-aimed). 1 skipped, a full run alone,
 12 minutes. Analyze: the same 26 infos, no `ignore` added. Live: item 200.
 
+
+## Preparation čuva liniju — i panel koji je prerastao svoj prozor (20.9.2026)
+
+Vlasnik je tražio izvoz u PGN iz Preparation-a, pa dodao: „napravi i mogućnost
+čuvanja — izvinjavam se, mislio sam na čuvanje a napisao export". Dva dugmeta,
+i ispalo je da je treća stvar bila skuplja od obe.
+
+**Čuvanje nije postojalo, a izgledalo je kao da postoji.** Soba je umela da
+sačuva *poziciju* („Save position"), da napravi korak tutorijala i da napravi
+zadatak — sve troje je nešto što se **daje učeniku**. Trener koji sprema sam
+nije imao ništa što prosto zadrži rad: izlazak iz sobe je bacao stablo, a
+„Export to Analysis 🔬" nosi samo FEN pozicije na kojoj stojiš. Otkriveno
+čitanjem, ne testom.
+
+**Prelaz je već postojao, i ne sme da bude drugi.** Soba piše `MoveTree`, sve
+što čuva stablo drži `AnalysisNode`. `readPreparedLine` ide kroz jedan put koji
+svi ostali uvozi već koriste — `MoveTree.exportToPgn` piše, `readStepTree` →
+`LessonStepLine` → `MoveTree.parsePgn` čita, `_convert` prelazi. Nijedan potez
+se ne parsira ovde. Okretanje kroz PGN umesto direktnog kopiranja čvorova je
+namerno: to je pravilo od 6.9.2026 — **pisac pročita svoj rad kroz čitaočev
+parser pre nego što ga sačuva** — i `rejectedMoves` je broj koji iz toga ispada.
+Čuvanje odbija kad je iznad nule; izvoz ne odbija, nego preda sirov tekst sobe
+uz rečenicu koliko poteza nije pročitano, jer ponovo ispisano skraćeno stablo je
+tiha verzija istog gubitka, a trener koji ne može da sačuva mora bar da prepiše.
+
+**Grana koju nijedan pošten fixture ne može da dosegne.** Odbijanje se pali samo
+kad se piščev i čitaočev sud razilaze, a stablo građeno legalnim potezima se
+uvek slaže sa sobom. Zato je odluka izvučena u `preparedLineRefusal(PreparedLine)`
+nad zapisom (record), koji test može da napravi ručno — i zato postoji
+`_unreadableTree()`, stablo sa ručno zakucanim `e5` kao prvim belim potezom,
+pošto `appendLine` odbija nelegalan potez. Pravilo 6: stani na granicu.
+
+**A onda ono što je stvarno koštalo.** Dva nova dugmeta preko cele širine su
+prošla svih 14 novih testova, a oborila `part_titles_shown_test` — test o
+imenima delova tutorijala, koji sa mojom izmenom nema nikakve veze. Panel „Board"
+skroluje, a red liste tutorijala ispod njega je već stajao **13 px iznad donje
+ivice** prozora 1200 x 800; dva reda su ga odnela na y = 875 i `tap()` je
+promašio. Flutter to ne prijavljuje kao grešku nego kao *warning* ispod koga
+test pada tri reda dalje, na tvrdnji koja s tim nema veze.
+
+Popravka nije „pomeri test": dugmad su uparena u dva reda — **Import PGN | Export
+PGN** i **Save position | Save analysis** — pa panel dobija čitanje (uvoz ↔ izvoz,
+ova tabla ↔ cela linija) i **ne dobija nijedan piksel visine**. Šest redova je
+opet četiri.
+
+**Prva verzija čuvara tog pravila nije bila čuvar.** Tvrdio je da naslov
+„Library" ostaje iznad ivice — a naslov je *iznad* liste, pa je mutacija koja
+vraća slaganje dugmadi prošla zeleno. Čuvar sada gleda **red same liste**
+(fixture kome je polica prazna ne može da vidi da je panel prerastao prozor —
+pravilo 6 opet) i još ga i tapne, jer promašen tap ispisuje upozorenje a ne
+grešku. Tek tada mutacija pada, i to sa rečenicom koja imenuje šta je ispalo.
+
+Mereno: aplikacija **3338 → 3353** (petnaest testova u
+`room_prepared_line_test.dart`), 1 preskočen, pun prolaz sam. Analyze: istih 26
+`info`, nijedan nov, nijedan `ignore` dodat. Sedam mutacija, svaka crvena na
+svom testu: odbijanje izgubljenog poteza, prepoznavanje prazne table, gutanje
+`rejectedMoves`, izvoz bez standardnog pisca, sačuvano stablo bez poteza,
+čuvanje koje šalje golu poziciju, i slaganje dugmadi umesto uparivanja.
+`AnalysisPersistenceService` je dobio ubrizgljiv `http.Client` (pravilo 7:
+lažiraj klijenta, ne metod) — dotad ga nijedan test nije mogao videti.
+
+Van mašine: da li sačuvana analiza zaista otvara celu liniju u Analyse i u
+Library, i kako ta dva reda izgledaju na telefonu. Uživo: **stavka 201**.

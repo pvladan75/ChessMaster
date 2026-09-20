@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **20.9.2026** — najnovije je „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **20.9.2026** — najnovije je „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,55 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Preparation čuva liniju i izvozi je u PGN — 20.9.2026, u kodu, ostaje provera uživo
+
+Vlasnik je pročitao odgovore na svojih 15 pitanja (njegov fajl `zadaci.md`,
+van git-a) i tražio da se krene od prvog, uz dopunu: **„napravi i mogućnost
+čuvanja — mislio sam na čuvanje a napisao export"**. Oboje je u kodu.
+
+**Šta je nedostajalo.** Soba je umela da sačuva *poziciju*, da napravi korak
+tutorijala i da napravi zadatak — sve troje je nešto što se **daje učeniku**.
+Trener koji sprema sam nije imao ništa što prosto zadrži rad: izlazak iz sobe je
+bacao stablo, a „Export to Analysis 🔬" nosi samo FEN pozicije na kojoj stoji.
+
+**Kako je rešeno, bez drugog parsera.** `readPreparedLine`
+(`features/analysis_studio/services/prepared_line.dart`) vodi sobin `MoveTree`
+kroz put koji svi ostali uvozi već koriste — `exportToPgn` piše, `readStepTree` →
+`LessonStepLine` → `MoveTree.parsePgn` čita — i vraća `AnalysisNode` kakav drži
+sve ostalo u aplikaciji. Okretanje kroz PGN je namerno: to je pravilo od
+6.9.2026, pisac pročita svoj rad kroz čitaočev parser pre čuvanja.
+`rejectedMoves` iz toga ispada, čuvanje ga **odbija**, a izvoz ne — izvoz preda
+sirov tekst sobe uz rečenicu koliko poteza nije pročitano, jer trener koji ne
+može da sačuva mora bar da prepiše.
+
+* **Save analysis** → naslov → `POST /analysis`, dakle u `saved_analyses`,
+  pored onih koje pravi Analysis tabla i u Library pod vrstom „analyses".
+* **Export PGN** → isti dijalog koji koriste Analysis i repertoar (klipbord +
+  „Save as .pgn"), tekst piše `PgnExporterService` sa zaglavljem
+  `[Event "Preparation"]`, ime fajla `preparation-GGGG-MM-DD.pgn`.
+
+**Skuplji deo je bio panel.** Dva dugmeta preko cele širine su prošla sve nove
+testove i oborila `part_titles_shown_test` — test o imenima delova tutorijala.
+Panel „Board" skroluje, a red liste tutorijala ispod njega je već stajao 13 px
+iznad donje ivice prozora 1200 x 800. Zato su četiri radnje sada **dva para** —
+„Import PGN | Export PGN" i „Save position | Save analysis" — pa panel dobija
+čitanje i ne dobija nijedan piksel visine. Prvi čuvar tog pravila nije bio
+čuvar: gledao je naslov „Library", koji je *iznad* liste, pa je mutacija prošla
+zeleno; sada gleda red same liste i tapne ga.
+
+Mereno: aplikacija **3338 → 3353**, 1 preskočen, pun prolaz sam; `flutter
+analyze` istih 26 `info`. Sedam mutacija, svaka crvena na svom testu.
+`AnalysisPersistenceService` je dobio ubrizgljiv `http.Client` — dotad ga
+nijedan test nije mogao videti. Detalji u `docs/LESSONS.md`. Provera uživo:
+**stavka 201**.
+
+**Ostaje iz iste liste**, po redu koji je predložen u odgovorima: brisanje
+naloga (jedino što blokira objavljivanje — nema rute ni ekrana, a
+`politika-privatnosti.md:133` to već obećava), preimenovanje domaćeg na Teach /
+Home da se dve strane razlikuju, zajedničko ograničenje širine za liste na
+desktopu, rečenica o poreklu stavki na „Drill mistakes", verzija motora i
+„proveri noviji", i izbor broja partija pri brzom uvozu sa Lichess-a.
 
 ## Vlasnikova pitanja za kasnije — zapisano 20.9.2026, ništa u kodu, ništa odlučeno
 

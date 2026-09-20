@@ -5878,6 +5878,43 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 201. Preparation čuva liniju i izvozi je u PGN — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija. Panel „Board" u sobi (Preparation) ima sada četiri reda umesto
+šest: „Set up position", pa par „Import PGN | Export PGN", pa par „Save position |
+Save analysis", pa „Make exercise". Uparivanje nije ukras — dva dodatna reda su
+listu tutorijala ispod gurnula ispod donje ivice prozora 1200 x 800.
+
+1. [ ] **Windows, prozor oko 1200 x 800.** Otvoriti Preparation: vide se sva
+   četiri reda **i** lista tutorijala ispod njih, bez skrolovanja panela.
+   Natpisi na uparenim dugmadima nisu odsečeni (ovo release gradnja ne prijavljuje).
+2. [ ] **Telefon.** Isti panel je u fioci (ikona gore levo): oba nova dugmeta se
+   vide i natpisi se ne prelamaju.
+3. [ ] **Export PGN, prazna tabla.** Bez ijednog poteza: crvena poruka „There are
+   no moves on this board to export yet.", dijalog se ne otvara.
+4. [ ] **Export PGN, odigrana linija sa varijantom.** Odigrati liniju, napraviti
+   bar jednu varijantu i napisati komentar uz neki potez. „Export PGN" otvara
+   poznati dijalog: tekst je već na klipbordu, u njemu su i glavna linija i
+   varijanta i komentar, a gore stoji zaglavlje `[Event "Preparation"]`.
+5. [ ] **Sačuvati kao fajl.** „Save as .pgn" nudi ime oblika
+   `preparation-2026-09-20.pgn`. Otvoriti sačuvani fajl u Lichess uvozu (ili
+   ponovo u aplikaciji, „Import PGN") — linija je cela, sa varijantom.
+6. [ ] **Save analysis, prazna tabla.** Crvena poruka „There are no moves on this
+   board yet…", i **ne** pita za ime. (Ime koje se traži pa se posle odbije je
+   gore nego odmah rečeno „nema šta da se čuva".)
+7. [ ] **Save analysis, odigrana linija.** Traži naslov (ponuđen je „Analysis
+   20.9.2026"), pa „Analysis … saved."
+8. [ ] **Otvoriti sačuvano.** Analyse tab → ikona oblaka („Saved analyses") →
+   red sa tim naslovom → otvara se **cela** linija sa varijantama i komentarima,
+   ne samo početna pozicija. Isto i u Library, red vrste „analyses".
+9. [ ] **Postavljena pozicija, ne od početka.** „Set up position" (ili zalepljen
+   FEN), pa nekoliko poteza, pa „Save analysis" i otvaranje: tabla je ta
+   postavljena pozicija, a potezi su na njoj. Isto i u izvezenom PGN-u
+   (`[SetUp "1"]` i `[FEN …]`).
+10. [ ] **Soba sa učenikom, ne samo Preparation.** Ista dva dugmeta stoje i u
+    živoj sobi kod trenera (isti panel) — proveriti da rade i da učenik taj
+    panel nema.
+
 ## 200. Motor koji ne odgovara kaže to na ekranu — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija. Posle popravke iz stavke 199 kvar se više ne dobija izlaskom na

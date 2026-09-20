@@ -48,6 +48,10 @@ import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
+import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
+    show exportPgnDialog, promptSaveAnalysisDialog;
+import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
+import 'package:chess_app/features/analysis_studio/services/prepared_line.dart';
 import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
@@ -2670,6 +2674,86 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
+  /// The whole board — main line, sidelines, comments and arrows — as PGN.
+  ///
+  /// The same dialog the Analysis board and the repertoire use, so the text is
+  /// on the clipboard before it is on the screen and „Save as .pgn" writes the
+  /// file. What differs is who writes the text, and that is decided here rather
+  /// than inside the dialog, which takes text for exactly this reason: the
+  /// headers of a prepared line and of an analysis session are not the same
+  /// answer.
+  ///
+  /// Where the read-back is clean the file is written by `PgnExporterService`,
+  /// the writer everything else in the app exports through — it carries the
+  /// seven-tag roster a reader outside this app expects, which
+  /// `MoveTree.exportToPgn` does not.
+  ///
+  /// Where it is **not** clean the room's own text is handed over instead, with
+  /// a sentence saying how many moves could not be read back. Re-exporting the
+  /// shortened tree would be the silent version of the same loss, and a trainer
+  /// who cannot save must still be able to copy their moves out.
+  void _exportPreparationPgn() {
+    final line = readPreparedLine(moveTree);
+    if (preparedLineIsEmpty(line)) {
+      _showError('There are no moves on this board to export yet.');
+      return;
+    }
+
+    final clean = line.rejectedMoves == 0;
+    final rejected = line.rejectedMoves;
+    exportPgnDialog(
+      context,
+      clean
+          ? PgnExporterService.exportToPgn(
+              line.root,
+              customHeaders: {
+                'Event': 'Preparation',
+                'White': 'White',
+                'Black': 'Black',
+              },
+            )
+          : line.pgn,
+      fileName: _preparationPgnFileName(DateTime.now()),
+      note: clean
+          ? null
+          : '$rejected ${rejected == 1 ? 'move' : 'moves'} could not be read '
+              'back from this text, so it may not reopen as the board you see. '
+              'The moves are here as the board wrote them.',
+    );
+  }
+
+  /// Keeps the prepared line where it can be opened again — as a saved
+  /// analysis, beside the ones the Analysis board saves, and listed in the
+  /// Library.
+  ///
+  /// „Save position" beside this one keeps a single board. This keeps the
+  /// tree, which until now had nowhere to go: leaving the room threw it away,
+  /// and „Export to Analysis" carries only the FEN of wherever the trainer was
+  /// standing.
+  ///
+  /// Refuses rather than storing a line it could not read back — see
+  /// [preparedLineRefusal].
+  Future<void> _savePreparationAnalysis() async {
+    final line = readPreparedLine(moveTree);
+    final refusal = preparedLineRefusal(line);
+    if (refusal != null) {
+      _showError(refusal);
+      return;
+    }
+    await promptSaveAnalysisDialog(
+      context,
+      rootNode: line.root,
+      userSession: widget.userSession,
+    );
+  }
+
+  /// `preparation-2026-09-20.pgn` — sortable, and no character a file system
+  /// argues about.
+  static String _preparationPgnFileName(DateTime now) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return 'preparation-${now.year}-${two(now.month)}-${two(now.day)}.pgn';
+  }
+
   void _showInSessionInviteFriendsDialog() async {
     List<dynamic> friendsList = [];
     String? loadError;
@@ -3014,26 +3098,79 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _showPgnImportDialog,
-                    icon: const Icon(Icons.file_open, size: 16),
-                    label: const Text('Import PGN'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.colors.brand,
-                      foregroundColor: context.colors.canvas,
+                // **Paired rather than stacked, and that is not decoration.**
+                // This panel scrolls, and the tutorial list underneath it was
+                // already sitting 13 px above the fold of a 1200 × 800 window —
+                // two more full-width buttons put it off the screen entirely,
+                // which `part_titles_shown_test` caught by tapping a row it
+                // could no longer reach. Import ↔ export and „this board" ↔
+                // „the whole line" are the two pairs, so the panel gains a
+                // reading and loses no height.
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _showPgnImportDialog,
+                        icon: const Icon(Icons.file_open, size: 16),
+                        label: const Text('Import PGN'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: context.colors.brand,
+                          foregroundColor: context.colors.canvas,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        key: const Key('prep-export-pgn'),
+                        onPressed: _exportPreparationPgn,
+                        icon: const Icon(Icons.share, size: 16),
+                        label: const Text('Export PGN'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: context.colors.info,
+                          foregroundColor: context.colors.canvas,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _showSaveDialog,
-                    icon: const Icon(Icons.save, size: 16),
-                    label: const Text('Save position'),
-                  ),
+                // „Save position" keeps this board; „Save analysis" keeps the
+                // whole line. Until now the tree left the room only as
+                // something a student is given — a lesson step, an exercise —
+                // so a trainer preparing alone had nothing that simply kept
+                // the work.
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _showSaveDialog,
+                        icon: const Icon(Icons.save, size: 16),
+                        label: const Text('Save position'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        key: const Key('prep-save-analysis'),
+                        onPressed: _savePreparationAnalysis,
+                        icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+                        label: const Text('Save analysis'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 MakeExerciseButton(
