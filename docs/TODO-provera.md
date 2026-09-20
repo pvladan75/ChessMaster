@@ -5878,6 +5878,30 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 199. Motor na telefonu posle izlaska iz aplikacije — 20.9.2026, nije viđeno uživo
+
+**Tačke 3 i 6 viđene uživo 20.9.2026 — vlasnik, telefon, log u 10:10: posle Back i
+ponovnog otvaranja `uciok` i `readyok` stižu za sekundu, pretraga ide do dubine 43.**
+
+Prijava od 20.9.2026 (Preparation bez evaluacije; u logu posle „Stockfish 18 by…"
+motor ne ispisuje više ništa). Samo aplikacija. Uzrok je pročitan iz koda, nije
+reprodukovan — prve dve tačke ga potvrđuju ili obaraju.
+
+1. [ ] **Na starom buildu** (pre ove izmene): uključi motor na bilo kom ekranu, izađi
+   iz aplikacije dugmetom **Back** sa početnog ekrana, otvori je ponovo → motor
+   ćuti (nema evaluacije).
+2. [ ] Na istom buildu: Settings → Apps → **Force stop**, pa otvori → motor radi.
+3. [x] **Na novom buildu**: ponovi tačku 1 → motor radi i posle povratka.
+4. [ ] Posle domaćeg sa partijom protiv motora („Play it out"), pa Back i ponovo
+   otvaranje: evaluacija na Preparation i u Analizi se pojavljuje.
+6. [x] **Drugi nalaz, isti dan** (log u 09:50: „Stockfish is not ready (StockfishState.disposed)"):
+   posle Back i ponovnog otvaranja motor **ne** izlazi odmah — u logu posle `uci` stiže
+   `uciok`. Prvo otvaranje posle instalacije može još jednom da zatekne zaostali `quit`
+   starog builda; tada izlazak sa ekrana i povratak pokreće novi motor
+   („The engine has exited … Starting a new one").
+5. [ ] Prelazak u drugu aplikaciju i nazad (bez izlaska) ne gasi motor — evaluacija
+   se nastavlja bez ponovnog pokretanja.
+
 ## 198. Mašinerija za više poteza je obrisana: „Find" je svuda jedan potez — 20.9.2026, nije viđeno uživo
 
 `docs/PLAN-EXERCISE.md`, faza 16. **I server i aplikacija moraju da budu novi** —

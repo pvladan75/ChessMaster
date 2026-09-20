@@ -4880,3 +4880,56 @@ without, `.env` moved aside. App **3334 → 3327** (−5 the solver's line play,
 −1 the step's board, −1 the editor's step, −1 the checker's walk, +1 the
 solver on the real screen). 1 skipped, a full run alone, 6 minutes. Analyze:
 the same 26 infos. Live: item 198 — both ends must be new, the wire changed.
+
+## 20.9.2026 — an engine that printed its banner and never another line
+
+The owner's report from the phone: no evaluation on Preparation, with the log.
+**The log's shape was the finding**: after `Stockfish 18 by…` the engine wrote
+nothing at all — no `uciok`, no `readyok`, no `info`, no `bestmove` — from the
+first command, on every screen, while every wait timed out politely and
+„proceeded anyway". Windows was fine; the owner added that he had just played a
+homework game against the engine.
+
+Ruled out first, because it has this codebase's favourite shape: the package's
+Android build fetches the two network files with a bare CMake `file(DOWNLOAD)`
+— no hash, no status — so a failed download is an empty file and a green
+build. The files on this workstation are whole (109 MB and 3.5 MB). Still a
+trap for a build on a bad network; nothing here guards it.
+
+**What the code says, not reproduced on a device:** `StockfishService.shutdown`
+had one caller, the engine settings dialog. On Android, Back destroys the
+activity and the Flutter engine but usually not the process; the native engine
+is a thread of that process blocked reading stdin, and nobody told it to quit.
+The package's bridge makes new pipes per instance and `dup2`s them onto the
+process's one stdin/stdout, so the next run's engine prints its banner and then
+waits behind a reader that never finishes. `EngineWatch` sends the quit on
+`AppLifecycleState.detached` — a synchronous write into the pipe, so it lands
+even if the isolate sees nothing after it. **Do the thing, then say it.**
+
+The way to know the cause rather than believe it, on the old build: use the
+engine, leave with Back from Home, open again → silent; Force stop → it
+answers. Item 199.
+
+Still open, and a decision: an engine that answers nothing is *silence*, not
+an error — every timeout „proceeds anyway". A loud version would notice that
+`uci` never earned its `uciok` and say so on the screen.
+
+App **3327 → 3329** (the watch's two tests; two mutations, each red on its own
+test). Analyze: the same 26 infos.
+
+**The fix woke a dormant bug within the hour (rule 14).** The owner installed
+it and sent a second log: banner, then every write refused — `Stockfish is not
+ready (StockfishState.disposed)`. Not hung this time: *exited*, code 0, before
+reading `uci`. `shutdown()` sent `quit` and then called the package's
+`dispose()`, which is `quit` again. The engine takes both in one read; the
+first ends it, the second stays in the process's one `std::cin` buffer — and
+the next engine in that process reads it as its first command. Harmless while
+`shutdown()` had no caller at exit; `EngineWatch` gave it one. `quit` now goes
+exactly once, last. And `initEngine` asks the package's state: an engine that
+is `disposed` or `error` is dropped and started again, instead of being written
+to forever. **Neither is covered by a test** — the native service has no seam
+under the FFI package; the phone is the only gate (item 199). **The owner ran it the same
+morning**: engine on, Back from Home, reopen — `uciok` within a second, a search
+to depth 43, no timeout. The general
+shape: a process-global outlives everything that thinks it owns it.
+

@@ -84,6 +84,19 @@ class StockfishService {
   Future<void> initEngine() async {
     _isActive = true;
 
+    // An engine that has exited is not an engine. The package says so in its
+    // state; until 20.9.2026 nobody asked, so every write failed into the log
+    // and every screen waited on an engine that was gone.
+    final state = _stockfish?.state.value;
+    if (state == StockfishState.disposed || state == StockfishState.error) {
+      AppLogger.log(
+          '[StockfishService ERROR] ❌ The engine has exited ($state). Starting a new one.');
+      _subscription?.cancel();
+      _subscription = null;
+      _stockfish = null;
+      _nativeReady = false;
+    }
+
     // If engine is already initialized and ready, nothing to do
     if (_nativeReady &&
         (_stockfish != null || _customProcess != null || _useOnline)) {
@@ -794,16 +807,24 @@ class StockfishService {
     _isActive = false;
     _isCustomActive = false;
 
+    // **`quit` goes to the engine exactly once, and nothing after it.** The
+    // native engine reads the process's one `std::cin`, which outlives it: on
+    // Android the process survives the app being closed, and the next engine
+    // started in it reads whatever the last one left in that buffer. This used
+    // to send `quit` itself and then call the package's `dispose()`, which is
+    // `quit` again — the first ended the engine, the second waited in the
+    // buffer and ended the *next* one before it had read `uci` (20.9.2026, the
+    // day `EngineWatch` first called this on exit).
     if (_nativeReady) {
       _sendCommandForce('stop');
-      _sendCommandForce('quit');
+      if (_customProcess != null) _sendCommandForce('quit');
     }
     _nativeReady = false;
 
     _subscription?.cancel();
     _subscription = null;
     try {
-      _stockfish?.dispose();
+      _stockfish?.dispose(); // the package's `quit`
     } catch (_) {}
     _stockfish = null;
 
