@@ -5878,6 +5878,34 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 211. Puzzle sets pripadaju nalogu, ne uredjaju — 21.9.2026, nije viđeno uživo
+
+**Server i aplikacija.** Prijava vlasnika: „Library - Puzzle sets na telefonu
+ne prikazuje puzzle uopšte, iako na istom nalogu u windows-u prikazuje."
+Setovi su do sada živeli u `SharedPreferences` **onog uredjaja** koji je
+pokrenuo „Review entire game" — Windows ih je pokazivao zato što ih je i
+napravio.
+
+**Pre provere:** backend mora da se pokrene ponovo (`initDB` pravi tabelu
+`puzzle_sets`), i treba nov build za telefon.
+
+1. [ ] **Windows prvo.** Otvori Library → čip „Puzzle sets". Setovi su tu kao
+   i pre. *Prvo otvaranje ih tiho prebacuje na server; ništa se ne briše.*
+2. [ ] **Pa telefon.** Isti nalog, Library → „Puzzle sets": **sada se vide
+   isti setovi**. Kucni jedan — otvara se u Analizi (to je stavka 207 A).
+3. [ ] **Novi set sa telefona.** U Analizi na telefonu uradi „Review entire
+   game" nad nekom partijom. Set se pojavi i **na Windows-u** posle osvežavanja.
+4. [ ] **Brisanje važi svuda.** Obriši set u „Saved puzzles" na jednom
+   uredjaju; posle osvežavanja ga nema ni na drugom.
+5. [ ] **Bez servera se ne gubi ništa.** Ugasi backend pa otvori „Puzzle sets"
+   na Windows-u: setovi tog uredjaja se i dalje vide. *Nedostupan server ne
+   sme da se pročita kao „nalog je prazan".*
+6. [ ] **Ne duplira se.** Otvori i zatvori Library nekoliko puta, na oba
+   uredjaja: broj setova ostaje isti. *Dizanje na server ide upsert-om baš
+   zbog ovoga.*
+7. [ ] **Stari setovi su preživeli.** Nijedan set koji si imao na Windows-u
+   pre ove izmene nije nestao.
+
 ## 210. „Choose a game" kao prava tabela — 21.9.2026, nije viđeno uživo
 
 Samo aplikacija, faza 7 plana `PLAN-LISTE.md` — tražio je vlasnik pošto su mu

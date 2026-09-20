@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
+import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
@@ -13,7 +14,16 @@ class SavedPuzzleSetsDialog extends StatefulWidget {
   final void Function(List<LocalPuzzle> puzzles, int startIndex)
       onPuzzleSetOpened;
 
-  const SavedPuzzleSetsDialog({super.key, required this.onPuzzleSetOpened});
+  /// Where the account's sets come from and go. Required rather than
+  /// optional: a null here would silently take this dialog back to the one
+  /// device, which is the fault of 21.9.2026 in a form nobody would notice.
+  final PuzzleSetRepository puzzleSets;
+
+  const SavedPuzzleSetsDialog({
+    super.key,
+    required this.onPuzzleSetOpened,
+    required this.puzzleSets,
+  });
 
   @override
   State<SavedPuzzleSetsDialog> createState() => _SavedPuzzleSetsDialogState();
@@ -30,7 +40,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
   }
 
   Future<void> _load() async {
-    final sets = await LocalPuzzleSetStorageService.instance.loadSets();
+    final sets = await widget.puzzleSets.load();
     if (!mounted) return;
     setState(() {
       _sets = sets;
@@ -39,7 +49,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
   }
 
   Future<void> _delete(SavedPuzzleSet set) async {
-    await LocalPuzzleSetStorageService.instance.deleteSet(set.id);
+    await widget.puzzleSets.delete(set.id);
     if (!mounted) return;
     setState(() => _sets = _sets.where((s) => s.id != set.id).toList());
   }

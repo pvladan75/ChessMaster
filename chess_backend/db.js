@@ -265,6 +265,35 @@ async function initDB(target = pool) {
     `);
     logger.info('Verified database table: saved_analyses');
 
+    // The puzzle sets „Review entire game" extracts, kept with the account.
+    //
+    // Added 21.9.2026, on the owner's report that the Library showed his sets
+    // on Windows and nothing on the phone under the same account. They had
+    // only ever lived in `SharedPreferences` on the device that ran the
+    // extraction, so „the same account" had nothing to do with it.
+    //
+    // `puzzles` is JSONB rather than a child table for the reason
+    // `blunder_games.blunders` already states: nothing queries inside a set.
+    // A set holds at most five puzzles, a device keeps thirty, and it is
+    // always read whole.
+    //
+    // The key is (user_id, set_id) because the id is minted on the device —
+    // a timestamp, not a secret — so it is only unique within an account,
+    // and every query has to name the account anyway.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS puzzle_sets (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        set_id VARCHAR(64) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        puzzles JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, set_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_puzzle_sets_user
+        ON puzzle_sets(user_id, created_at DESC);
+    `);
+    logger.info('Verified database table: puzzle_sets');
+
     // Create trainer_students table
     await client.query(`
       CREATE TABLE IF NOT EXISTS trainer_students (

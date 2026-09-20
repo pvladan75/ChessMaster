@@ -2,7 +2,7 @@ import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
-import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
+import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -28,8 +28,14 @@ class GameReviewDialog extends StatefulWidget {
   final StockfishService stockfishService;
   final void Function({List<LocalPuzzle>? extractedPuzzles}) onCompleted;
 
+  /// Where an extracted set is kept. Required rather than optional: a null
+  /// would put the set back on this device alone, which is the fault of
+  /// 21.9.2026 in a form nobody would notice.
+  final PuzzleSetRepository puzzleSets;
+
   const GameReviewDialog({
     super.key,
+    required this.puzzleSets,
     required this.rootNode,
     required this.currentNode,
     required this.stockfishService,
@@ -139,8 +145,9 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         final now = DateTime.now();
         final title =
             'Puzzles from ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-        await LocalPuzzleSetStorageService.instance
-            .saveSet(title: title, puzzles: puzzles);
+        // Through the repository, so the set reaches the account rather than
+        // only the machine that ran the engine over the game.
+        await widget.puzzleSets.save(title: title, puzzles: puzzles);
       }
       if (!mounted) return;
       _extractedPuzzles = puzzles;

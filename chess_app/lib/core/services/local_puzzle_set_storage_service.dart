@@ -98,6 +98,24 @@ class LocalPuzzleSetStorageService {
     return set;
   }
 
+  /// Replaces everything this device holds with [sets].
+  ///
+  /// The cache half of `PuzzleSetRepository`: after a reachable load, what
+  /// the account has is what this device should hold, so a set deleted on
+  /// another machine stops haunting this one. Capped the same way a save is,
+  /// because the cap is about this device's storage and not about the
+  /// account.
+  Future<void> replaceAll(List<SavedPuzzleSet> sets) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final kept = sets.take(_maxSets).toList();
+      await prefs.setString(
+          _key, jsonEncode(kept.map((s) => s.toJson()).toList()));
+    } catch (e) {
+      AppLogger.log('[LocalPuzzleSetStorage] ❌ Replace failed: $e');
+    }
+  }
+
   Future<void> deleteSet(String id) async {
     try {
       final prefs = await SharedPreferences.getInstance();

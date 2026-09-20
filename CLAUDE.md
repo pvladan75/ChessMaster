@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3499 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3507 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1630 with TEST_DATABASE_URL, 1536 without
+cd chess_backend && npm test          # node --test, 1639 with TEST_DATABASE_URL, 1545 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -299,7 +299,29 @@ recorded as such rather than chased with a case that would assert a formula
 instead of what a reader sees. Beside it: the first draft of that gate asked
 for three rows at 568 x 320, where the whole dialog is 294 px tall and two is
 all there is — **a check that cannot pass is worth no more than one that
-cannot fail.** Open: the rest of the owner's live
+cannot fail.** Then the owner's next report, and the **first server change in
+this stretch** (app → **3507**; backend 1545 without a database, 1639 with):
+„Library - Puzzle sets on the phone shows nothing, on the same account Windows
+shows them." Not a display fault — „Review entire game" writes the set to
+`SharedPreferences` on **that device**, and `libraryKindWire` throws for the
+kind because it has no wire name at all. So a new `puzzle_sets` table (JSONB,
+following `blunder_games.blunders` and for its stated reason), `/puzzle-sets`,
+and `PuzzleSetRepository` as the one home for „what does this account have".
+**The lesson is about the shape of the report rather than the code**: „on the
+same account" is what turns device-local storage into a bug, because a reader
+takes the account to be where their things live. **Data kept per device must
+either say so on the screen or stop being per device** — a quiet disagreement
+is a report waiting to happen. Three rules are written in one place: the
+server is the account's list; a server that **cannot be reached is not an
+empty account** (`list()` answers null, not `[]`); and sets made before the
+server knew are lifted by id with an upsert, so it runs on every device and
+every start without a second copy. Two of the eight mutations were the
+security ones — a list without `user_id` in its `WHERE`, and a delete by
+`set_id` alone: **the id is minted on a device from a timestamp and is not a
+secret**, the same shape `accountGuard` and `trainerOwnsStudent` exist for.
+And both dialogs take the repository as a **required** parameter, because an
+optional one would eventually be left out and sync would die quietly — which
+is this very bug wearing a new coat. Open: the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

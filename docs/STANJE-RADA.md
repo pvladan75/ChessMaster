@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **20.9.2026** — najnovije je „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **20.9.2026** — najnovije je „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,45 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Puzzle sets pripadaju nalogu — 21.9.2026, u kodu, ostaje provera uživo
+
+**Prva izmena na serveru posle dužeg vremena.** Prijava vlasnika: „Library -
+Puzzle sets na telefonu ne prikazuje puzzle uopšte, iako na istom nalogu u
+windows-u prikazuje." Nije bila greška u prikazu nego tačno ono što je kod
+radio: „Review entire game" upisuje set u `SharedPreferences` **tog uredjaja**,
+a `libraryKindWire` za tu vrstu baca izuzetak jer ona nema ime na žici.
+
+Novo: tabela **`puzzle_sets`** (`user_id`, `set_id`, `title`, `puzzles` JSONB,
+`created_at`; ključ `(user_id, set_id)`), rute **`/puzzle-sets`** (GET, PUT
+upsert, DELETE) i **`PuzzleSetRepository`** u aplikaciji kao jedini dom za
+pitanje „šta ovaj nalog ima". JSONB po uzoru na `blunder_games.blunders` i iz
+istog razloga — niko ne pretražuje unutar seta, a set ima najviše pet
+zagonetki.
+
+Tri pravila, zapisana na jednom mestu: server je spisak naloga; **server koji
+se ne može dobiti nije prazan nalog** (`list()` vraća `null`, ne `[]`, pa
+uredjaj pokaže svoje); a setovi napravljeni pre nego što je server znao za njih
+**dižu se** pri prvom uspešnom čitanju, upsert-om, pa isto radi na svakom
+uredjaju i pri svakom pokretanju bez druge kopije.
+
+Kapije: server 9 slučajeva, aplikacija 8. Osam mutacija, četiri po strani,
+svaka crvena na tačnom slučaju. Dve su bezbednosne — lista bez `user_id` u
+`WHERE`, i brisanje po samom `set_id`: id se kuje na uredjaju od vremenske
+oznake i **nije tajna**, isti oblik zbog kog postoje `accountGuard` i
+`trainerOwnsStudent`.
+
+Oba dijaloga (`GameReviewDialog`, `SavedPuzzleSetsDialog`) sada traže
+repozitorijum kao **obavezan** parametar: opcioni bi neko izostavio i
+sinhronizacija bi tiho umrla, što je ova ista greška u novom obliku. Cena je
+bila pet mesta u dva testa i deljeni pomoćnik `deviceOnlyPuzzleSets()`.
+
+Aplikacija **3499 → 3507**, backend **1536 → 1545** bez baze i **1630 → 1639**
+sa njom, analyze istih 26 `info`. **Pre provere uživo backend mora da se
+pokrene ponovo** (`initDB` pravi tabelu) i treba nov build za telefon. Uživo:
+**stavka 211**.
 
 ---
 

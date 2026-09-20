@@ -53,6 +53,8 @@ import 'package:chess_app/features/analysis_studio/widgets/quick_extend_dialog.d
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dialog.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
+import 'package:chess_app/core/services/puzzle_set_api_service.dart';
+import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_import.dart';
 import 'package:chess_app/services/puzzle_api_service.dart';
@@ -154,6 +156,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   // first, then plays that move after a short delay so the solver actually
   // sees what happened, highlighting the from/to squares via [_lastMoveFrom]
   // / [_lastMoveTo].
+  /// The account's puzzle sets — the server's list, with this device's own as
+  /// the cache and as the answer when the server cannot be reached. Built
+  /// from the session, because a set belongs to the account and not to the
+  /// machine that extracted it (reported 21.9.2026).
+  late final PuzzleSetRepository _puzzleSets = PuzzleSetRepository(
+    api: PuzzleSetApiService(authToken: widget.userSession.token),
+  );
+
   List<LocalPuzzle>? _activePuzzleSet;
   int _activePuzzleIndex = 0;
   String? _lastMoveFrom;
@@ -1404,6 +1414,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       // Long-running engine walk — barrier tap must not silently discard it.
       barrierDismissible: false,
       builder: (ctx) => GameReviewDialog(
+        puzzleSets: _puzzleSets,
         rootNode: _rootNode,
         currentNode: _currentNode,
         stockfishService: _stockfishService,
@@ -1438,6 +1449,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     showDialog(
       context: context,
       builder: (ctx) => SavedPuzzleSetsDialog(
+        puzzleSets: _puzzleSets,
         onPuzzleSetOpened: (puzzles, startIndex) {
           setState(() => _activePuzzleSet = puzzles);
           _loadPuzzleAtIndex(startIndex);

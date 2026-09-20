@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
-import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
+import 'package:chess_app/core/services/puzzle_set_api_service.dart';
+import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
@@ -48,6 +49,7 @@ class LibraryScreen extends StatefulWidget {
     this.groupApi,
     this.homeworkApi,
     this.exerciseApi,
+    this.puzzleSets,
   });
 
   final UserSession session;
@@ -71,6 +73,9 @@ class LibraryScreen extends StatefulWidget {
   /// Seam for the door into `ExerciseEditorScreen` (phase 11); same rule.
   final ExerciseApiService? exerciseApi;
 
+  /// Seam for the account's puzzle sets; same rule as the seams above.
+  final PuzzleSetRepository? puzzleSets;
+
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
@@ -84,6 +89,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
       widget.homeworkApi ?? HomeworkApiService(authToken: widget.session.token);
   late final ExerciseApiService _exerciseApi =
       widget.exerciseApi ?? ExerciseApiService(authToken: widget.session.token);
+
+  /// The account's puzzle sets. Until 21.9.2026 this shelf read the device's
+  /// own store directly, so the owner's sets showed on Windows and the phone
+  /// had none under the same account.
+  late final PuzzleSetRepository _puzzleSets = widget.puzzleSets ??
+      PuzzleSetRepository(
+        api: PuzzleSetApiService(authToken: widget.session.token),
+      );
   late final TutorialRowActions _tutorialActions = TutorialRowActions(
     lessonApi: _lessons,
     assignmentApi: widget.assignmentApi ??
@@ -130,7 +143,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
 
     final items = await _library.list();
-    final sets = await LocalPuzzleSetStorageService.instance.loadSets();
+    final sets = await _puzzleSets.load();
     final rawRows = await _lessons.fetchAll();
     final labels = await _lessons.fetchLabels();
     if (!mounted) return;
@@ -402,7 +415,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// device anyway. A set that has since been deleted or emptied is said, not
   /// opened.
   Future<void> _openPuzzleSet(LibraryEntry entry) async {
-    final sets = await LocalPuzzleSetStorageService.instance.loadSets();
+    final sets = await _puzzleSets.load();
     if (!mounted) return;
     final match = sets.where((set) => set.id == entry.id);
     final puzzles = match.isEmpty ? const <LocalPuzzle>[] : match.first.puzzles;

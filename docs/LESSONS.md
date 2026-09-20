@@ -5794,3 +5794,51 @@ ostaju dve. **Provera koja ne može da prodje vredi koliko i ona koja ne može
 da padne**, pa slučaj sada traži tri iznad 360 px visine i dve ispod.
 
 Mereno: aplikacija **3496 → 3499**, 1 preskočen. Analyze: istih 26 `info`.
+
+## Set koji pripada uredjaju, a čita se kao da pripada nalogu — 21.9.2026
+
+Vlasnik: „Library - Puzzle sets na telefonu ne prikazuje puzzle uopšte, iako
+na istom nalogu u windows-u prikazuje."
+
+Prijava zvuči kao greška u prikazu. Nije bila nikakva greška — bila je tačno
+ono što je kod radio. „Review entire game" pokreće motor u Analizi i rezultat
+upisuje u `SharedPreferences` **tog uredjaja**
+(`LocalPuzzleSetStorageService`); server o setovima nije znao ništa, a
+`libraryKindWire` za tu vrstu **baca izuzetak**, jer ona nema ime na žici.
+Windows je pokazivao njegove setove zato što ih je Windows i napravio.
+
+**Pouka je o obliku prijave, ne o kodu.** Rečenica „na istom nalogu" je ono
+što greškom čini nešto što inače nije ni bilo obećano: korisnik vidi nalog
+kao mesto gde mu stvari žive, i svaki podatak koji se ponaša drugačije je
+iznenadjenje. Kad se nešto čuva po uredjaju, ili to mora da piše na ekranu,
+ili mora da prestane da bude po uredjaju. Trećeg nema — tiho neslaganje je
+prijava koja čeka.
+
+Popravka je `puzzle_sets` tabela (JSONB, po uzoru na `blunder_games.blunders`
+i iz istog razloga: niko ne pretražuje unutar seta), tri rute i
+`PuzzleSetRepository` kao jedini dom za pitanje „šta ovaj nalog ima". Tri
+pravila su zapisana na jednom mestu:
+
+- server je spisak naloga;
+- **server koji se ne može dobiti nije prazan nalog** — `list()` vraća `null`,
+  ne `[]`, pa uredjaj pokaže svoje umesto da kaže da rada nema;
+- setovi koje je uredjaj napravio pre nego što je server znao za njih **dižu
+  se** pri prvom uspešnom čitanju, po id-u, upsert-om — pa isto radi na svakom
+  uredjaju i pri svakom pokretanju, a ne pravi drugu kopiju.
+
+Osam mutacija, četiri po strani, svaka crvena na tačnom slučaju. Dve su
+vredne pomena jer su bezbednosne: lista bez `user_id` u `WHERE` i brisanje po
+samom `set_id` — id se kuje na uredjaju od vremenske oznake i **nije tajna**,
+pa bi poznavanje tudjeg id-a bilo dovoljno. Isti oblik zbog kog postoje
+`accountGuard` i `trainerOwnsStudent`.
+
+**Sitnica koja se ponavlja:** oba dijaloga sada traže repozitorijum kao
+**obavezan** parametar, ne opcioni. Opcioni bi neko jednom izostavio i
+sinhronizacija bi tiho umrla — a to je upravo greška koju ovaj unos opisuje,
+samo u novom obliku. Cena je bila pet mesta u dva testa, i deljeni pomoćnik
+`deviceOnlyPuzzleSets()` da stari slučajevi zadrže svoje značenje (server koji
+se ne može dobiti → setovi ovog uredjaja, što je baš ono što ti testovi seju).
+
+Mereno: aplikacija **3499 → 3507**, 1 preskočen. Backend **1545** bez baze i
+**1639** sa jednokratnim klasterom, sve zeleno. Analyze: istih 26 `info`.
+Uživo: **stavka 211**.

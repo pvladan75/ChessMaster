@@ -32,6 +32,7 @@ import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
+import 'support/device_only_puzzle_sets.dart';
 
 Widget _app(Widget home) => MaterialApp(
       theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
@@ -140,8 +141,9 @@ Future<void> _openDialog(WidgetTester tester, Size size) async {
           child: ElevatedButton(
             onPressed: () => showDialog<void>(
               context: context,
-              builder: (_) =>
-                  SavedPuzzleSetsDialog(onPuzzleSetOpened: (_, __) {}),
+              builder: (_) => SavedPuzzleSetsDialog(
+                  onPuzzleSetOpened: (_, __) {},
+                  puzzleSets: deviceOnlyPuzzleSets()),
             ),
             child: const Text('open'),
           ),
@@ -222,8 +224,9 @@ void main() {
               child: ElevatedButton(
                 onPressed: () => showDialog<void>(
                   context: context,
-                  builder: (_) =>
-                      SavedPuzzleSetsDialog(onPuzzleSetOpened: (_, __) {}),
+                  builder: (_) => SavedPuzzleSetsDialog(
+                      onPuzzleSetOpened: (_, __) {},
+                      puzzleSets: deviceOnlyPuzzleSets()),
                 ),
                 child: const Text('open'),
               ),
@@ -263,8 +266,9 @@ void main() {
               child: ElevatedButton(
                 onPressed: () => showDialog<void>(
                   context: context,
-                  builder: (_) =>
-                      SavedPuzzleSetsDialog(onPuzzleSetOpened: (_, __) {}),
+                  builder: (_) => SavedPuzzleSetsDialog(
+                      onPuzzleSetOpened: (_, __) {},
+                      puzzleSets: deviceOnlyPuzzleSets()),
                 ),
                 child: const Text('open'),
               ),
@@ -355,6 +359,7 @@ void main() {
                       handed = puzzles;
                       startIndex = index;
                     },
+                    puzzleSets: deviceOnlyPuzzleSets(),
                   ),
                 ),
                 child: const Text('open'),

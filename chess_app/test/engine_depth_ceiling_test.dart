@@ -16,6 +16,7 @@ import 'package:chess_app/features/position_scanner/screens/saved_positions_scre
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 
+import 'support/device_only_puzzle_sets.dart';
 import 'support/landscape.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -51,6 +52,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: GameReviewDialog(
+          puzzleSets: deviceOnlyPuzzleSets(),
           rootNode: root,
           currentNode: root,
           stockfishService: StockfishService(),
