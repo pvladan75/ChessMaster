@@ -4933,3 +4933,46 @@ morning**: engine on, Back from Home, reopen — `uciok` within a second, a sear
 to depth 43, no timeout. The general
 shape: a process-global outlives everything that thinks it owns it.
 
+## 20.9.2026 — an engine that answers nothing says so on the screen
+
+The decision left open that morning, taken the same day by the owner. Every
+wait on the engine timed out, logged a line and „proceeded anyway"; the user
+saw a board with no evaluation and no reason.
+
+`EngineSilence` is the reason, as one sentence or null — no engine in it and no
+widgets, so `fake_async` drives it. The service feeds it in four places: `uci`
+starts a five-second wait for an answer; any line from the engine clears it; an
+`isready` that earns no `readyok` sets it (an engine that is reading answers
+`isready` at once, even mid-search — three seconds of nothing is not a slow
+engine); a refused write says the *other* sentence, because „has stopped" has a
+different remedy from „is not answering". `EngineNotice` sits above the router
+beside `EngineWatch` and says it through `AppFeedback`, once per fault: the
+notifier changes only when the answer changes.
+
+**The banner is not an answer.** The first failing log was exactly: banner,
+then nothing. A detector that took „any line" as life would have been reassured
+by the one line a stuck engine does print. The test plays that log.
+
+**A test named for a behaviour it could not see.** „An engine coming back says
+nothing" called `heard()` on a notifier that was already null — no change, no
+notification, nothing for the notice to get wrong. The mutant that made the
+notice speak on recovery was caught by its neighbour instead. Rule 6: stand on
+the boundary — from a fault, then back. And the first form of that mutant was a
+compile error (`String?` into `String`), rule 3's wrong red; it was rewritten
+to keep the promotion.
+
+**A detector must not accuse the engine of the service's own bookkeeping.**
+`_stopAndDrain` can run twice at once — fast stepping through moves — and the
+second call takes over the first one's `readyok` waiter, so the first times out
+on an engine that answered. A timeout therefore counts only if the engine said
+*nothing at all* since the `isready` went out (`mark` / `unansweredSince`).
+Found by reading the owner's first log for what else prints „isready timeout",
+before the phone could find it as a red bar over a working engine. The
+overwritten waiter itself is still there; it costs three seconds of delay, not
+a wrong answer, and is a separate fix.
+
+Not covered by machine: the four call sites in the native service, as before.
+App **3329 → 3338** (nine tests in `engine_silence_test.dart`; nine mutations,
+each red on its own test once two were re-aimed). 1 skipped, a full run alone,
+12 minutes. Analyze: the same 26 infos, no `ignore` added. Live: item 200.
+

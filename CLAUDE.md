@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3329 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3338 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -65,7 +65,9 @@ multi-move machinery — the one old row with a line deleted on the owner's yes,
 move (→ 3327; backend → 1624/1530 — the first time these numbers fall, because
 tests of deleted code went with it); then the engine that went silent on the
 phone — nothing told it to quit when the app was torn down, so the next run
-started a second one behind it (`EngineWatch`, → 3329). Open: the rest of the
+started a second one behind it (`EngineWatch`, → 3329), and an engine that
+answers nothing now says so on the screen (`EngineSilence`, `EngineNotice`, →
+3338). Open: the rest of the
 owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

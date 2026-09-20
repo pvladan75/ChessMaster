@@ -8,6 +8,7 @@ import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/screens/age_gate_screen.dart';
 import 'package:chess_app/widgets/desktop_shortcuts.dart';
+import 'package:chess_app/widgets/engine_notice.dart';
 import 'package:chess_app/widgets/engine_watch.dart';
 import 'package:chess_app/widgets/session_watch.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -72,11 +73,13 @@ class ChessApp extends StatelessWidget {
           // never ask, and this one has to reach accounts that were made long
           // before it existed.
           builder: (context, child) => EngineWatch(
-            child: SessionWatch(
-              child: AgeGate(
-                child: DesktopShortcuts(
-                  router: appRouter,
-                  child: child ?? const SizedBox.shrink(),
+            child: EngineNotice(
+              child: SessionWatch(
+                child: AgeGate(
+                  child: DesktopShortcuts(
+                    router: appRouter,
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),

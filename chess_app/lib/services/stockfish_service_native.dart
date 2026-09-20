@@ -1,5 +1,6 @@
 import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/engine_silence.dart';
 import 'package:chess_app/services/cloud_eval_format.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -147,6 +148,7 @@ class StockfishService {
         });
 
         _sendCommandForce('uci');
+        EngineSilence.instance.expectAnswer(const Duration(seconds: 5));
         _sendCommandForce('setoption name MultiPV value 3');
         _sendCommandForce('isready');
         _drainPendingQueue();
@@ -209,6 +211,7 @@ class StockfishService {
           '[StockfishService] ✅ Native Stockfish is READY! Sending UCI init commands...');
       _nativeReady = true;
       _sendCommandForce('uci');
+      EngineSilence.instance.expectAnswer(const Duration(seconds: 5));
       _sendCommandForce('setoption name MultiPV value 3');
       _sendCommandForce('isready');
       _drainPendingQueue();
@@ -233,6 +236,7 @@ class StockfishService {
         AppLogger.log('[StockfishService] ✅ Stockfish READY on retry!');
         _nativeReady = true;
         _sendCommandForce('uci');
+        EngineSilence.instance.expectAnswer(const Duration(seconds: 5));
         _sendCommandForce('setoption name MultiPV value 3');
         _sendCommandForce('isready');
         _drainPendingQueue();
@@ -643,10 +647,14 @@ class StockfishService {
 
     final readyCompleter = Completer<void>();
     _readyOkCompleter = readyCompleter;
+    final asked = EngineSilence.instance.mark;
     _sendCommandForce('isready');
     await readyCompleter.future.timeout(timeout, onTimeout: () {
       AppLogger.log(
           '[StockfishService] ⚠️ isready timeout while draining previous search — proceeding anyway.');
+      // `isready` is answered at once by an engine that is reading, even in
+      // the middle of a search. Three seconds of nothing is not a slow engine.
+      EngineSilence.instance.unansweredSince(asked);
     });
     _readyOkCompleter = null;
 
@@ -804,6 +812,7 @@ class StockfishService {
   /// Fully shuts down the engine process. Call only when app exits.
   void shutdown() {
     AppLogger.log('[StockfishService] 🔌 shutdown() — killing engine process.');
+    EngineSilence.instance.clear();
     _isActive = false;
     _isCustomActive = false;
 
@@ -884,6 +893,7 @@ class StockfishService {
         _stockfish!.stdin = command;
       } catch (e) {
         AppLogger.log('[Stockfish STDIN ERROR] ❌ Stockfish write failed: $e');
+        EngineSilence.instance.exited();
       }
     } else {
       AppLogger.log('[Stockfish STDIN WARNING] ⚠️ No engine for "$command"');
@@ -900,6 +910,7 @@ class StockfishService {
     if (!isCurrmoveNoise) {
       AppLogger.log('[Stockfish STDOUT] ⬅️ $line');
     }
+    EngineSilence.instance.heard(line);
 
     if (line.trim() == 'readyok') {
       _readyOkCompleter?.complete();

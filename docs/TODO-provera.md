@@ -5878,6 +5878,22 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 200. Motor koji ne odgovara kaže to na ekranu — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija. Posle popravke iz stavke 199 kvar se više ne dobija izlaskom na
+Back, pa je ovo teško izazvati namerno — tačke 1 i 2 su kontrola da poruka **ne**
+iskače kad je sve u redu.
+
+1. [ ] Normalan rad (Analysis, Preparation, partija protiv motora, „Play it out"):
+   crvena poruka o motoru se **ne** pojavljuje, ni pri brzom prelistavanju poteza.
+2. [ ] Prelazak u drugu aplikaciju i nazad, i Back pa ponovno otvaranje: bez poruke.
+3. [ ] Ako motor ikad zaćuti (nema evaluacije): na ekranu piše „The engine is not
+   answering. Close the app completely and open it again." — jednom, ne na svakih
+   par sekundi; posle potpunog zatvaranja aplikacije motor radi.
+4. [ ] Ako motor stane (u logu „Stockfish is not ready"): piše „The engine has
+   stopped. Leave this screen and open it again.", i izlazak sa ekrana pa povratak
+   pokreće novi motor.
+
 ## 199. Motor na telefonu posle izlaska iz aplikacije — 20.9.2026, nije viđeno uživo
 
 **Tačke 3 i 6 viđene uživo 20.9.2026 — vlasnik, telefon, log u 10:10: posle Back i
