@@ -15,6 +15,7 @@ import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/board_preview_panel.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 import 'package:chess_app/features/library/widgets/library_list.dart';
 import 'package:chess_app/features/position_scanner/widgets/assign_positions_dialog.dart';
@@ -23,6 +24,9 @@ import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Everything the trainer keeps, in one place — phase 3a of
@@ -101,6 +105,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// action a tutorial row offers (send, export, delete…) needs the row
   /// `GET /lessons` returns, not the shelf's slimmer [LibraryEntry].
   List<Map<String, dynamic>> _rawTutorials = const [];
+
+  /// The entry drawn in the pane, on a wide window. Null is „nothing chosen
+  /// yet", which is what the pane says out loud.
+  LibraryEntry? _chosen;
 
   @override
   void initState() {
@@ -479,23 +487,115 @@ class _LibraryScreenState extends State<LibraryScreen> {
         children: [
           _homeworkDoor(),
           const SizedBox(height: AppSpacing.sm),
-          Expanded(
-            child: LibraryList(
-              entries: _entries ?? const [],
-              onOpen: _open,
-              actionsFor: _actionsFor,
-              labels: _labels,
-              initialChip: widget.initialChip,
-              originChips: widget.initialFromTrainer != null,
-              initialFromTrainer: widget.initialFromTrainer,
-              // The sheet that makes one lives in Preparation, not here —
-              // this is a door, not a second editor (`docs/PLAN-EXERCISE.md`,
-              // phase 4). Same call as the Teach tab's own „Preparation" card.
-              onNewExercise: () =>
-                  context.push(AppRoutes.roomPath('STUDIO', role: 'host')),
-            ),
-          ),
+          Expanded(child: _shelfAndPane()),
         ],
+      ),
+    );
+  }
+
+  /// The shelf, and on a wide window a pane beside it — phase 5 of
+  /// `docs/PLAN-LISTE.md`, pattern B.
+  ///
+  /// Below [Breakpoints.wide] nothing changes at all: the list is the screen
+  /// and a tap on a board opens the dialog it has always opened. That is not
+  /// only the plan's rule, it is the behaviour the owner checked live on
+  /// 20.9.2026 (item 205, point 5).
+  Widget _shelfAndPane() {
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth >= Breakpoints.wide;
+      final shelf = LibraryList(
+        entries: _entries ?? const [],
+        onOpen: _open,
+        actionsFor: _actionsFor,
+        labels: _labels,
+        initialChip: widget.initialChip,
+        originChips: widget.initialFromTrainer != null,
+        initialFromTrainer: widget.initialFromTrainer,
+        // Only where there is a pane to put it in. Null keeps the dialog,
+        // which is what the narrow window and the room's column both want.
+        onSelect: wide ? (entry) => setState(() => _chosen = entry) : null,
+        selectedId: wide && _chosen != null ? LibraryList.idOf(_chosen!) : null,
+        // The sheet that makes one lives in Preparation, not here —
+        // this is a door, not a second editor (`docs/PLAN-EXERCISE.md`,
+        // phase 4). Same call as the Teach tab's own „Preparation" card.
+        onNewExercise: () =>
+            context.push(AppRoutes.roomPath('STUDIO', role: 'host')),
+      );
+      if (!wide) return shelf;
+
+      // The pane takes what is left over one full column of cards, never
+      // more than [_paneMax]. A card is at most `AdaptiveCardGrid.maxTileWidth`
+      // wide, so this is the rule that keeps the shelf able to draw a whole
+      // one: at 840 the pane is wide and the shelf holds a single column, at
+      // 1920 the pane stops growing and every further pixel goes to cards.
+      // Splitting the difference evenly would instead give 840 two half-cards
+      // and a pane too narrow for a board.
+      final paneWidth =
+          (constraints.maxWidth - AdaptiveCardGrid.maxTileWidth - AppSpacing.md)
+              .clamp(_paneMin, _paneMax);
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: shelf),
+          const SizedBox(width: AppSpacing.md),
+          SizedBox(width: paneWidth, child: _pane(paneWidth)),
+        ],
+      );
+    });
+  }
+
+  static const double _paneMin = 280;
+  static const double _paneMax = 420;
+
+  /// What stands in the pane: the chosen entry's board, or a line saying what
+  /// the pane is for.
+  ///
+  /// The empty line matters more than it looks. Phase 3a was amended because
+  /// a dialog took width it could not fill; a pane that is blank until the
+  /// first tap is the same fault in a different shape, and the owner would be
+  /// right to report it.
+  Widget _pane(double width) {
+    final colors = context.colors;
+    final entry = _chosen;
+    if (entry == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Text(
+            'Tap a board to see it here.',
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: colors.textMuted),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              entry.title,
+              textAlign: TextAlign.center,
+              style: AppText.subtitle,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            BoardPreviewPanel(
+              entry: entry,
+              // The board takes the pane's width less its padding, capped so
+              // a very wide pane does not draw a board bigger than the cards
+              // it is meant to sit beside.
+              boardSize: (width - AppSpacing.md * 2).clamp(240.0, 360.0),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton(
+              onPressed: () => _open(entry),
+              child: const Text('Open'),
+            ),
+          ],
+        ),
       ),
     );
   }

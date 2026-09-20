@@ -13,9 +13,10 @@ import 'package:chess_app/theme/app_spacing.dart';
 /// icon" comes from. So the answer is a grid, and the grid's job is to convert
 /// width into visible items.
 ///
-/// **The column count is never written down here.** It is worked out by
-/// [SliverGridDelegateWithMaxCrossAxisExtent] from the constraint this widget
-/// actually receives, which buys two things that a hard-coded count does not:
+/// **The column count is never written down here.** [columnsFor] derives it
+/// from the constraint this widget actually receives — as many cards as fit at
+/// [maxTileWidth], never so many that one falls below [minTileWidth] — which
+/// buys two things that a hard-coded count does not:
 ///
 ///  * `LibraryList` is drawn both on the Library screen and in the room's
 ///    narrow left column. The column gets one card across without being told,
@@ -52,21 +53,44 @@ class AdaptiveCardGrid extends StatelessWidget {
   /// are actually painted rather than by quoting these numbers back.
   static const double maxTileWidth = 420.0;
 
+  /// The narrowest a card may be drawn before the grid prefers **fewer**
+  /// columns.
+  ///
+  /// [maxTileWidth] alone is half a rule, and the missing half was a real
+  /// fault: `ceil` means a strip just past a band boundary is split evenly,
+  /// so 460 px became two columns of 224 — and a `LibraryList` card at 224
+  /// overflowed its own height by 48 px, measured 20.9.2026 with no pane and
+  /// no screen involved, on master. A release build clips that instead of
+  /// warning, so a Library window between roughly 440 and 530 px silently cut
+  /// the buttons off its cards.
+  ///
+  /// 280 is taken from the widest thing a card of this family has to fit on
+  /// one line — a 56 px indent and four 48 px action buttons is 248 — with
+  /// room left for the card's own insets. Measured either side of it: 274 is
+  /// clean, 244 overflows.
+  static const double minTileWidth = 280.0;
+
   /// How many columns this pattern gives a strip exactly [width] wide.
   ///
-  /// This is [SliverGridDelegateWithMaxCrossAxisExtent]'s own arithmetic,
-  /// written out once so that [AdaptiveCardColumns] — which cannot use a
-  /// sliver delegate, because its cards are not all the same height — answers
-  /// the question the same way this grid does. Rule 12: one number, one home,
-  /// and a test pumps both widgets at the same width to prove they have not
-  /// drifted apart.
+  /// Two constraints, not one: as many columns as fit at [maxTileWidth], and
+  /// never so many that a card falls below [minTileWidth]. **The count is
+  /// still not written down** — it is derived here and nowhere else, which is
+  /// what lets [AdaptiveCardColumns], whose cards are of different heights and
+  /// so cannot use a sliver delegate, answer the question exactly as the grid
+  /// does (rule 12).
   ///
   /// [width] is the extent the cards are actually laid out in, with any
-  /// padding already taken off.
+  /// padding and spacing already accounted for.
   static int columnsFor(double width) {
     if (!width.isFinite || width <= 0) return 1;
-    final count = (width / (maxTileWidth + spacing)).ceil();
-    return count < 1 ? 1 : count;
+    var count = (width / (maxTileWidth + spacing)).ceil();
+    if (count < 1) count = 1;
+    // Drop a column while the ones left would be too narrow to draw.
+    while (
+        count > 1 && (width - spacing * (count - 1)) / count < minTileWidth) {
+      count--;
+    }
+    return count;
   }
 
   /// Between cards, both ways.
@@ -92,19 +116,28 @@ class AdaptiveCardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: padding ?? const EdgeInsets.all(AppSpacing.md),
-      shrinkWrap: shrinkWrap,
-      physics: physics,
-      itemCount: itemCount,
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: maxTileWidth,
-        crossAxisSpacing: spacing,
-        mainAxisSpacing: spacing,
-        mainAxisExtent: tileHeight,
-      ),
-      itemBuilder: itemBuilder,
-    );
+    final pad = padding ?? const EdgeInsets.all(AppSpacing.md);
+    // The count comes from [columnsFor] rather than from a sliver delegate's
+    // own arithmetic, because the delegate knows only a maximum and the rule
+    // has two halves. It is still read off the constraint this widget was
+    // handed and never off the window, which is what lets the room's narrow
+    // column and a desktop screen share one widget.
+    return LayoutBuilder(builder: (context, constraints) {
+      final inset = pad.resolve(Directionality.of(context)).horizontal;
+      return GridView.builder(
+        padding: pad,
+        shrinkWrap: shrinkWrap,
+        physics: physics,
+        itemCount: itemCount,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columnsFor(constraints.maxWidth - inset),
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          mainAxisExtent: tileHeight,
+        ),
+        itemBuilder: itemBuilder,
+      );
+    });
   }
 }
 

@@ -38,6 +38,8 @@ class LibraryList extends StatefulWidget {
     this.shrinkWrap = false,
     this.initialFromTrainer,
     this.onNewExercise,
+    this.onSelect,
+    this.selectedId,
   });
 
   final List<LibraryEntry> entries;
@@ -81,6 +83,27 @@ class LibraryList extends StatefulWidget {
   /// draws nothing: the room's column has no use for it, only the Library
   /// screen does.
   final VoidCallback? onNewExercise;
+
+  /// Tapping a card's board, when the caller has somewhere to put it.
+  ///
+  /// Null — the room's column, and the Library on a narrow window — keeps the
+  /// dialog this list has always opened (rule 15: a widget draws only what it
+  /// was given). Given, the board goes to the caller instead, which is how
+  /// phase 5 of `docs/PLAN-LISTE.md` puts it in a pane beside the shelf
+  /// rather than over it.
+  final void Function(LibraryEntry entry)? onSelect;
+
+  /// Which card is drawn as chosen, as [idOf] spells it. Null draws none.
+  final String? selectedId;
+
+  /// Which card is which, in one place.
+  ///
+  /// The kind belongs in it: ids come from different tables, so a position 12
+  /// and a tutorial 12 both exist, and an id alone would draw the chosen mark
+  /// on whichever of them the list happened to reach first. This is the same
+  /// string the row's key is built from, so „which card is this" has one
+  /// answer (rule 12).
+  static String idOf(LibraryEntry entry) => '${entry.kind.name}-${entry.id}';
 
   /// Below this height the filters scroll with the list rather than above it.
   static const double headerScrollsBelow = 480;
@@ -255,7 +278,13 @@ class _LibraryListState extends State<LibraryList> {
     }
     return RepaintBoundary(
       child: GestureDetector(
-        onTap: () => _previewBoard(context, entry),
+        // Over the list, or beside it. The caller decides by whether it gave
+        // this list anywhere to put a board; nothing here asks how wide the
+        // screen is, which is why the room's column keeps its dialog inside a
+        // window that is plenty wide enough for a pane.
+        onTap: () => widget.onSelect == null
+            ? _previewBoard(context, entry)
+            : widget.onSelect!(entry),
         child: BoardThumbnail(
           fen: entry.fen,
           size: 56,
@@ -311,10 +340,21 @@ class _LibraryListState extends State<LibraryList> {
               itemBuilder: (context, index) {
                 final entry = shown[index];
                 final actions = widget.actionsFor?.call(entry) ?? const [];
+                final chosen = widget.selectedId != null &&
+                    widget.selectedId == LibraryList.idOf(entry);
                 return KeyedSubtree(
-                  key: ValueKey('library-row-${entry.kind.name}-${entry.id}'),
+                  key: ValueKey('library-row-${LibraryList.idOf(entry)}'),
                   child: Card(
-                    shape: AppRadii.cardShape,
+                    // An outline, not a tint. The owner's live sign-off reads
+                    // luminance and shape and never hue, so „this is the one
+                    // you are looking at" is said with a border that is there
+                    // or is not, rather than with a wash of accent colour
+                    // that a colour-blind reader cannot tell from the card
+                    // beside it.
+                    shape: chosen
+                        ? AppRadii.cardShape.copyWith(
+                            side: BorderSide(color: colors.accent, width: 2))
+                        : AppRadii.cardShape,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,

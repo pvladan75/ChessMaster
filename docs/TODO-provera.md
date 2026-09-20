@@ -5878,6 +5878,41 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 208. Biblioteka sa oknom pored police — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija, faza 5 plana `PLAN-LISTE.md`. Na širokom prozoru Biblioteka
+se deli: police levo, okno desno. Kucanje na **sličicu table** više ne otvara
+dijalog preko liste nego crta tu poziciju u oknu. Na uskom prozoru i u sobi
+se ništa ne menja — dijalog kao i do sada.
+
+1. [ ] **Windows, širok prozor.** Teach → Library. Desno stoji okno sa
+   rečenicom „Tap a board to see it here." Police su levo i i dalje pune
+   kartica.
+2. [ ] **Kucni sličicu.** Tabla se pojavi **u oknu**, veća, sa imenom iznad,
+   rečenicom ko je na potezu (i zadatkom ako je zadatak) i dugmetom „Open".
+   **Dijalog se ne otvara.**
+3. [ ] **Kucni drugu sličicu.** Okno pokaže tu drugu. Uvek je obeležena samo
+   jedna kartica, **okvirom** (ne bojom).
+4. [ ] **Kucni karticu, ne sličicu.** Otvara se sama stvar, kao i pre — okno
+   nije promenilo to.
+5. [ ] **„Open" u oknu** otvara ono što je u oknu.
+6. [ ] **Suzi prozor ispod pola ekrana.** Okno nestaje i kucanje na sličicu
+   opet otvara **dijalog**, sa „Close" kao i ranije.
+7. [ ] **Soba je netaknuta.** Otvori sobu (STUDIO) na širokom prozoru i u
+   koloni „Library" kucni sličicu — otvara se **dijalog**, ne okno.
+8. [ ] **Telefon.** Biblioteka kao i pre: jedna kolona, sličica otvara
+   dijalog.
+
+**Ovo ispod je popravka greške koja je postojala i ranije** (od faze 3b), a
+faza 5 je na nju naletela:
+
+9. [ ] **Uzak prozor Biblioteke.** Razvuci prozor tako da Biblioteka bude
+   otprilike pola ekrana široka, pa je sužavaj u koracima. Kartice u nekom
+   trenutku predju sa dve u redu na **jednu preko cele širine** — i nigde se
+   dugmad ne seku. *Ranije su na toj širini stajale dve uske kartice kojima je
+   red dugmadi bio odsečen; u release build-u se to ne vidi kao upozorenje,
+   samo nedostaje.*
+
 ## 207. Tri nalaza vlasnikove provere 20.9.2026 uveče — nije viđeno uživo
 
 Tri stvari nadjene uživo iste večeri, u kodu istu noć. Prva i treća su

@@ -110,6 +110,39 @@ void main() {
     expect(AdaptiveCardGrid.maxTileWidth, 420.0);
   });
 
+  testWidgets('a strip just past a band boundary keeps one column',
+      (tester) async {
+    // The fault this rule was added for, found on 20.9.2026 while building
+    // phase 5 and **present on master**: `ceil` alone splits 460 into two
+    // columns of 224, and a `LibraryList` card at 224 overflows its own
+    // height by 48 px. A release build clips that instead of warning, so a
+    // Library window between roughly 440 and 530 px quietly cut the buttons
+    // off its cards. Nothing to do with the pane — the pane only walked into
+    // it.
+    expect(await _columnsIn(tester, 460), 1);
+    expect(await _columnsIn(tester, 500), 1);
+    // And the band is still entered as soon as two cards genuinely fit.
+    expect(await _columnsIn(tester, 620), 2);
+  });
+
+  testWidgets('no column is ever narrower than a card can be drawn',
+      (tester) async {
+    // The rule itself rather than three of its answers, swept across two
+    // whole bands one pixel at a time would be slow — every 7 px is enough to
+    // land inside each one, including on the boundaries themselves.
+    for (var width = 200.0; width <= 1400; width += 7) {
+      final columns = AdaptiveCardGrid.columnsFor(width);
+      final each = (width - AdaptiveCardGrid.spacing * (columns - 1)) / columns;
+      expect(
+        columns == 1 || each >= AdaptiveCardGrid.minTileWidth,
+        isTrue,
+        reason: 'at $width the grid asks for $columns columns of '
+            '${each.toStringAsFixed(1)}, under the ${AdaptiveCardGrid.minTileWidth} '
+            'a card needs',
+      );
+    }
+  });
+
   testWidgets('columnsFor answers what the grid actually draws',
       (tester) async {
     // Phase 4 needed the same arithmetic without a sliver delegate — „What to

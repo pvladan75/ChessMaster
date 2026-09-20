@@ -5491,3 +5491,68 @@ istih 26 `info`, nijedan iz izmenjenih fajlova. Uživo: **stavka 207**.
 `exports/` pre i posle. Nije regresija i nije se ponovila u sledeća dva
 prolaza; jeste test koji čita promenljivo stanje na disku koje drugi fajl u
 istom trenutku menja.
+
+## Maksimum bez minimuma je pola pravila — 20.9.2026, faza 5
+
+Faza 5 plana `PLAN-LISTE.md` stavlja tablu u okno pored police umesto u dijalog
+preko nje. Sama izmena je mala. Ono što je faza **našla** nije.
+
+Okno uzima širinu, pa polica postaje uža. Na 914 × 411 pao je
+`saved_tutorials_phone_test` — `RenderFlex overflowed by 48 pixels`, a
+prekoračila je **sama kartica**: `BoxConstraints(w=223.0, h=132.0)`. Prva
+pomisao je bila da je krivo okno i da treba podesiti njegovu širinu.
+
+Merenje je reklo drugačije. `LibraryList` sam, bez okna, bez ekrana, u kutiji
+zadate širine:
+
+| širina police | kartica | ishod |
+|---|---|---|
+| 460 | 224 | **preliva 48** |
+| 500 | 244 | **preliva 48** |
+| 560 | 274 | čisto |
+
+Dakle greška je **na master-u**, od faze 3b, i okno je samo prvo što je u nju
+ušetalo. Prozor Biblioteke izmedju otprilike 440 i 530 px već seče dugmad sa
+kartica — tiho, jer release build ne crta žuto-crne trake nego kliješti.
+
+**Uzrok je oblik pravila.** `AdaptiveCardGrid` je imao **najveću** širinu
+kartice i nijednu najmanju. Broj kolona je `ceil(w / (420 + 12))`, pa traka
+tek preko granice pojasa biva podeljena na dve polovine: 460 → 2 × 224. Pravilo
+„kartica nije šira od 420" zvuči potpuno, a ćuti o tome šta se radi kad je
+prostora malo više nego za jednu a mnogo manje nego za dve.
+
+Popravka je u jednom domu: `minTileWidth = 280`, i `columnsFor` sada izvodi
+broj iz **dva** ograničenja umesto iz jednog — koliko ih stane po 420, i nikad
+toliko da kartica padne ispod 280. Broj se i dalje nigde ne piše. 280 nije
+okruglo iz lepote: najšira stvar koju kartica mora da primi u jedan red je
+uvlačenje od 56 plus četiri dugmeta po 48, to jest 248, a merenje sa obe strane
+kaže 274 čisto / 244 preliva.
+
+Dve pouke, obe šire od ovog widgeta:
+
+1. **Maksimum bez minimuma je pola pravila.** Svuda gde se prostor deli po
+   „najviše X", pitaj šta se dešava tik iznad granice — tamo deljenje daje
+   dve polovine, a polovina retko radi ono za šta je poluga pravljena.
+2. **Kad kapija padne posle izmene, izmeri staro stanje pre nego što podesiš
+   novo.** Pola sata štimovanja širine okna bi „popravilo" test i ostavilo
+   grešku u aplikaciji za prozore koje okno nikad ne dodirne.
+
+**Dve manje stvari koje su mutacije iznele.**
+
+`selectedId` je morao da nosi i vrstu. Ideovi dolaze iz različitih tabela, pa
+pozicija 12 i tutorijal 12 oboje postoje; mutacija koja poredi samo broj je
+prošla kroz sve slučajeve dok fikstura nije dobila baš taj par. Otuda
+`LibraryList.idOf` — isti string od kog se pravi i ključ vrste, pa „koja je
+ovo kartica" ima jedan odgovor.
+
+I **jedna mutacija je preživela, s razlogom koji je zapisan u kapiji**: zamena
+`constraints.maxWidth` sa `MediaQuery` ne menja ništa, jer je `LibraryScreen`
+uvek cela ruta i to su isti broj. Za `LibraryList` i `AdaptiveCardGrid`
+razlika je stvarna — oboje se crtaju u uskoj koloni sobe unutar širokog
+prozora — i oboje imaju svoj slučaj. Ovde bi slučaj tražio fiksturu koja ekran
+stavlja tamo gde ga aplikacija nikad ne stavlja, pa je granica rečena naglas
+umesto izmišljena.
+
+Mereno: aplikacija **3463 → 3474** (9 u kapiji faze, 2 u testu mreže), 1
+preskočen. Analyze: istih 26 `info`, nijedan iz izmenjenih fajlova. Bez
+izmena na serveru. Uživo: **stavka 208**.

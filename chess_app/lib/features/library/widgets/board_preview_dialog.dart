@@ -6,12 +6,8 @@
 
 import 'package:flutter/material.dart';
 
-import 'package:chess_app/features/exercises/models/exercise_task_words.dart';
-import 'package:chess_app/theme/app_colors.dart';
-import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/board_thumbnail.dart';
-
 import '../models/library_entry.dart';
+import 'board_preview_panel.dart';
 
 class BoardPreviewDialog extends StatelessWidget {
   const BoardPreviewDialog({super.key, required this.entry, this.onOpen});
@@ -25,7 +21,6 @@ class BoardPreviewDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final onOpenCallback = onOpen;
     // AlertDialog wraps its content in an IntrinsicWidth (the same reason
     // `PositionPickerDialog` gives its content a fixed `SizedBox` rather than
@@ -43,33 +38,12 @@ class BoardPreviewDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       title: Text(entry.title),
+      // The body is shared with the pane phase 5 put beside the shelf — one
+      // home for what „a larger look at this entry" consists of, so the two
+      // cannot drift into saying different things about the same position.
       content: SizedBox(
         width: boardSize,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // The task, for an exercise only — a bare position was never
-            // asked to do anything.
-            if (entry.isExercise) ...[
-              Text(
-                exerciseTaskWords(entry.task),
-                textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: colors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-            ],
-            Text(
-              sideToMoveWords(entry.fen),
-              style: AppText.body.copyWith(color: colors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            BoardThumbnail(
-              fen: entry.fen,
-              size: boardSize,
-              isWhiteBottom: entry.task?['side'] != 'b',
-            ),
-          ],
-        ),
+        child: BoardPreviewPanel(entry: entry, boardSize: boardSize),
       ),
       actions: [
         TextButton(

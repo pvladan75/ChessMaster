@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3463 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3474 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1630 with TEST_DATABASE_URL, 1536 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -187,7 +187,28 @@ And, the ninth file again: a grep for `fetchCatalog` found the two fakes whose
 signature needed widening and missed `endgame_wire_format_test`, which does
 not override the method at all — it asserts the **query map** over the real
 `client` seam, which is exactly the job it exists to do. **Grep for what a
-method sends, not only for who calls it.** Open: the rest of the owner's live
+method sends, not only for who calls it.** Then phase 5 of `docs/PLAN-LISTE.md`
+(→ **3474**), pattern B for the Library: the preview dialog's body extracted to
+`BoardPreviewPanel` and drawn by both, `LibraryList` given **optional**
+`onSelect` and `selectedId` so the room's column is untouched, and the shelf
+split at 840 with a pane beside it. Two small things a mutation each proved:
+the selection is an **outline** rather than a tint, and `selectedId` carries
+the kind as well as the id, because ids come from different tables and a
+position 12 and a tutorial 12 both exist. **But the phase's real find was a bug
+already on master.** A pane makes the shelf narrow, and a narrow shelf
+overflowed — `AdaptiveCardGrid` had a *maximum* tile width and **no minimum**,
+so `ceil` split 460 px into two columns of 224 and a card at 224 overran its
+own height by 48. Measured with no pane and no screen in the way: a Library
+window between roughly 440 and 530 px has been clipping the buttons off its
+cards since 3b, silently, because a release build clips instead of warning.
+`minTileWidth = 280` now, and `columnsFor` derives the count from **two**
+constraints rather than one. **A maximum without a minimum is half a rule** —
+wherever space is divided by „at most X", ask what happens just past the
+boundary, because that is where the split hands out two halves. And the
+sequencing lesson beside it: **when a gate goes red after a change, measure the
+old state before tuning the new one** — half an hour spent narrowing the pane
+would have made the test green and left the fault in every window the pane
+never touches. Open: the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
