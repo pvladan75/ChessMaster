@@ -5878,6 +5878,40 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 209. Repertoar sa oknom pored liste — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija, faza 6 plana `PLAN-LISTE.md` — poslednja gradjena faza tog
+plana. Na širokom prozoru se ekran „Repertoire" deli: lista levo, okno desno.
+
+**Jedna promena ponašanja koju treba pogledati pre svega ostalog.** Na širokom
+prozoru kucanje na vrstu **bira** repertoar (crta ga u oknu) umesto da ga
+otvori; otvara se dugmetom „Open" u oknu. Na uskom prozoru i na telefonu je
+sve kao i do sada — kucanje otvara. Razlog za razliku u odnosu na Biblioteku:
+kartica u Biblioteci ima dve mete (tabla i ostatak), pa je tabla postala
+„pokaži mi" a kartica je ostala „otvori". Vrsta repertoara ima samo jednu.
+
+**Ako ti se ovo ne svidja, reci — vraća se u jedan potez.**
+
+1. [ ] **Windows, širok prozor.** Practise → Repertoire. Desno stoji okno sa
+   rečenicom „Choose a repertoire to see where it starts."
+2. [ ] **Kucni vrstu.** U oknu: ime, red sa bojom / „via" potezom / brojem
+   poteza, **linija do korena** („1. d4 Nf6 2. c4 c5 3. d5 e6"), tabla te
+   pozicije, pa „Open" i „Drill".
+3. [ ] **Obeležena je samo jedna vrsta**, i to **okvirom** (ne bojom).
+4. [ ] **Tabla je okrenuta ka tvojoj strani.** Za repertoar za crnog crni je
+   dole.
+5. [ ] **Repertoar bez zapamćene linije** (stariji, ili napravljen iz
+   nalepljene pozicije) piše „From the start" umesto izmišljenog otvaranja.
+6. [ ] **„Open" otvara** taj repertoar; **„Drill"** pokreće vežbu nad njim.
+7. [ ] **Dugi pritisak i dalje bira više njih** za „Drill selected (N)", i
+   dok je taj režim uključen kucanje **čekira** umesto da bira za okno.
+8. [ ] **Uzak prozor.** Suzi do najmanjeg — kucanje na vrstu opet **otvara**
+   repertoar, okna nema.
+9. [ ] **Telefon.** Sve kao i pre: jedna kolona, kucanje otvara.
+10. [ ] **Ništa se ne učitava iznova.** Biranje raznih repertoara u oknu ne
+    sme da pravi pauzu — okno crta iz onoga što je lista već donela, bez
+    ijednog novog zahteva ka serveru.
+
 ## 208. Biblioteka sa oknom pored police — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija, faza 5 plana `PLAN-LISTE.md`. Na širokom prozoru Biblioteka
@@ -5906,12 +5940,18 @@ se ništa ne menja — dijalog kao i do sada.
 **Ovo ispod je popravka greške koja je postojala i ranije** (od faze 3b), a
 faza 5 je na nju naletela:
 
-9. [ ] **Uzak prozor Biblioteke.** Razvuci prozor tako da Biblioteka bude
-   otprilike pola ekrana široka, pa je sužavaj u koracima. Kartice u nekom
-   trenutku predju sa dve u redu na **jednu preko cele širine** — i nigde se
-   dugmad ne seku. *Ranije su na toj širini stajale dve uske kartice kojima je
-   red dugmadi bio odsečen; u release build-u se to ne vidi kao upozorenje,
-   samo nedostaje.*
+9. [ ] **Najmanji mogući prozor.** Suzi prozor do kraja — Windows ga ne pušta
+   ispod 900 px (`win32_window.cpp`, `ptMinTrackSize`). Na toj širini polica
+   drži **jednu karticu preko cele širine** pored okna, i nijedno dugme na
+   kartici nije odsečeno.
+
+   *Zašto baš tu:* okno uzima 420, polici ostaje 444. Bez pravila o najmanjoj
+   širini kartice mreža bi tu tražila **dve kolone po 216**, a kartica na 216
+   preliva svoju visinu za 48 px — i release build to ne crta kao upozorenje
+   nego tiho odseče. Greška je postojala od faze 3b, ali je do faze 5 bila
+   **nedostižna**: bez okna je polica na 900 px prozoru široka 876 i uvek je
+   imala dve pune kolone. Okno ju je probudilo, što je tačno ono što `CLAUDE.md`
+   zove „a dormant bug wakes when the feature it depends on ships".
 
 ## 207. Tri nalaza vlasnikove provere 20.9.2026 uveče — nije viđeno uživo
 

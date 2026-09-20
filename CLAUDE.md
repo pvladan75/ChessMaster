@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3474 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3483 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1630 with TEST_DATABASE_URL, 1536 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -198,9 +198,14 @@ position 12 and a tutorial 12 both exist. **But the phase's real find was a bug
 already on master.** A pane makes the shelf narrow, and a narrow shelf
 overflowed — `AdaptiveCardGrid` had a *maximum* tile width and **no minimum**,
 so `ceil` split 460 px into two columns of 224 and a card at 224 overran its
-own height by 48. Measured with no pane and no screen in the way: a Library
-window between roughly 440 and 530 px has been clipping the buttons off its
-cards since 3b, silently, because a release build clips instead of warning.
+own height by 48. The owner corrected the *reach* of that
+the same day, and the correction is the better half of the lesson: Windows
+sets a 900 px minimum window (`windows/runner/win32_window.cpp`), so that band
+was never reachable — the bug was **dormant**, and the pane woke it (rule 14).
+At the smallest window the owner can make, the shelf is 444, which without the
+rule is two columns of 216 and a clipped card. **"Exists on master" and "can be
+reached on master" are two claims**, and the second one is not in `lib/` — it
+is in `windows/runner/`.
 `minTileWidth = 280` now, and `columnsFor` derives the count from **two**
 constraints rather than one. **A maximum without a minimum is half a rule** —
 wherever space is divided by „at most X", ask what happens just past the
@@ -208,7 +213,28 @@ boundary, because that is where the split hands out two halves. And the
 sequencing lesson beside it: **when a gate goes red after a change, measure the
 old state before tuning the new one** — half an hour spent narrowing the pane
 would have made the test green and left the fault in every window the pane
-never touches. Open: the rest of the owner's live
+never touches. Then phase 6 (→ **3483**), pattern B for the Repertoire, which
+**finishes everything this plan set out to build** — its phase 7 is briefed
+only if the live pass asks for it and phase 8 is that pass. The pane draws the
+root, the numbered line that reached it and the two doors **without a single
+new request**, because `RepertoireSummary` already carried all of it; the gate
+counts calls rather than looking at the screen. Its lesson is about the two
+screens disagreeing on purpose: in the Library a card kept opening and its
+**board** became „show me", because a card has two targets and the owner had
+just signed the card off; a repertoire row has one, so there the row selects
+and the pane carries „Open". **One target and a pane means the target selects;
+two means the second one does.** That is a behaviour change the owner did not
+ask for, so it is the first point of its live item and reverts in one line —
+**a rule that follows from a principle is still a change, and it is not
+smuggled in under the principle.** Two smaller things worth keeping: when the
+implementation brings a rule the gate never asked for (here the selection
+outline and which way the board faces), **the rule gets its case before the
+mutation round**, or a survivor later looks like a surprise instead of a hole
+that was visible all along; and a case can be red on master for the *wrong*
+reason and still be worth keeping, as long as the file says so — „three
+selections issue no request" cannot fail honestly where selection does not
+exist, and its job is to guard the pane the day somebody gives it a graph
+walk. Open: the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

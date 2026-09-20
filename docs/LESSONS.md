@@ -5556,3 +5556,82 @@ umesto izmišljena.
 Mereno: aplikacija **3463 → 3474** (9 u kapiji faze, 2 u testu mreže), 1
 preskočen. Analyze: istih 26 `info`, nijedan iz izmenjenih fajlova. Bez
 izmena na serveru. Uživo: **stavka 208**.
+
+### Dopuna istog dana: greška je bila uspavana, ne otvorena
+
+Vlasnik je pročitao gornji unos i javio da Windows ima postavljenu najmanju
+širinu prozora, pa uzak prozor nije ni moguće napraviti. Provereno u kodu:
+`windows/runner/win32_window.cpp` postavlja `ptMinTrackSize.x = 900 * scale`.
+
+Znači **tvrdnja „prozor izmedju 440 i 530 px seče dugmad" nije bila dostižna**.
+Bez okna je polica na najmanjem dopuštenom prozoru široka 876 px i uvek je
+imala dve pune kolone; na telefonu je 360 px i uvek jedna. Pojas u kom se
+mreža lomi nije mogao da se pogodi ni na jednom uredjaju.
+
+Ali greška nije bila bezopasna, nego **uspavana**, i faza 5 ju je probudila —
+što je doslovno pravilo 14 iz `CLAUDE.md`. Na najmanjem prozoru koji vlasnik
+ume da napravi:
+
+    sadržaj = 900 - 24 = 876
+    okno    = clamp(876 - 420 - 12, 280, 420) = 420
+    polica  = 876 - 12 - 420 = 444
+    bez minimuma: ceil(444/432) = 2 -> kartice po 216 -> prelivanje 48 px
+    sa minimumom: 216 < 280 -> 1 kolona -> kartica 444 -> čisto
+
+Dakle `minTileWidth` ne popravlja prošlost, nego **nosi fazu 5 baš na njenoj
+najtešnjoj tački**. Bez njega bi okno isporučilo odsečene kartice na prvom
+prozoru koji vlasnik otvori.
+
+Dve pouke, obe o tome kako se piše nalaz:
+
+1. **„Postoji na master-u" i „može se dosegnuti na master-u" nisu ista
+   tvrdnja.** Prva se dokazuje widget testom u kutiji zadate širine; druga
+   traži da se pogleda šta uopšte ograničava veličinu prozora — a to nije u
+   `lib/`, nego u `windows/runner/`. Merenje je bilo tačno, zaključak
+   preopširan.
+2. **Stavka za proveru uživo mora da traži nešto što se može uraditi.** Prva
+   verzija tačke 9 tražila je da se prozor suzi ispod granice koju sistem ne
+   dopušta — provera koja ne može da padne je isto što i provera koja ne može
+   da prodje. Sada traži najmanji mogući prozor, gde se ista stvar vidi.
+
+## Isti obrazac, dva različita dodira — 20.9.2026, faza 6
+
+Faza 6 stavlja okno pored liste repertoara, kao što je faza 5 stavila okno
+pored police Biblioteke. Isti obrazac, a **pravilo za dodir ispalo je
+različito**, i to je ono što ova faza uči.
+
+U Biblioteci kartica ima **dve** mete: tablu i sve ostalo. Tabla je postala
+„pokaži mi u oknu", a kartica je ostala „otvori" — jer vlasnik je baš to
+potvrdio uživo 20.9.2026 (stavka 205, tačka 5) i faza nije imala pravo da mu
+to menja. Vrsta repertoara ima **jednu** metu. Nema druge mete koja bi postala
+izbor, pa na širokom prozoru vrsta bira, a „Open" stoji u oknu.
+
+Pravilo je, dakle: **gde postoji jedna meta i okno, meta bira; gde ih ima dve,
+druga bira.** To nije nedoslednost nego posledica — ali je **promena
+ponašanja** koju vlasnik nije tražio, pa je zapisana i u kapiji i kao prva
+tačka stavke 209, sa rečenicom „ako ti se ne svidja, vraća se u jedan potez".
+Nije na vodji da presudi o ukusu; jeste na vodji da promenu ne prokrijumčari.
+
+**Kapija je jednim slučajem lagala, i to je zapisano umesto popravljeno.**
+Slučaj koji nosi celu fazu je „biranje tri repertoara ne šalje nijedan zahtev"
+— jer `RepertoireSummary` već nosi `rootFen`, `rootPath`, `viaSan`, `color` i
+`moves`, pa okno ne mora ništa da pita. Na master-u je taj slučaj **crven iz
+pogrešnog razloga**: bez okna prvi dodir otvara ekran, pa drugi nema šta da
+pritisne. Nije ga moguće napisati tako da na master-u padne iz pravog razloga,
+jer na master-u izbor ne postoji. Zato u fajlu piše šta je, i čemu zaista
+služi: da pukne onog dana kad neko oknu doda hod kroz graf ili brojač —
+doslovno ono zbog čega je brojač napretka obrisan 16.9.2026.
+
+**Dva pravila koja bi bez mutacije ostala nepokrivena.** Posle prvog zelenog
+prolaza kapija je imala sedam slučajeva i nijedan nije gledao ni okvir izbora
+ni okrenutost table. Oba su dodata pre mutiranja, i oba su onda uhvatila svoju
+mutaciju. Pouka je uska: **kad implementacija donese pravilo koje kapija nije
+tražila, pravilo dobija slučaj pre nego što se krene na mutacije** — inače se
+mutacija piše za ono što je već pokriveno i preživela mutacija izgleda kao
+iznenadjenje umesto kao rupa koja se videla unapred.
+
+Mereno: aplikacija **3474 → 3483** (9 u kapiji), 1 preskočen. Analyze: istih
+26 `info`, nijedan iz izmenjenog fajla. Bez izmena na serveru. Uživo:
+**stavka 209**. Ovim je `PLAN-LISTE.md` odgradjen do kraja — faza 7 (gusta
+tabela u „Choose a game") se briefuje samo ako je vlasnikov prolaz uživo
+zatraži, a faza 8 je taj prolaz.

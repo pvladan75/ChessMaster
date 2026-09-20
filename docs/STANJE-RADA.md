@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **20.9.2026** — najnovije je „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **20.9.2026** — najnovije je „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -55,6 +55,37 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Liste: faza 6 — 20.9.2026, u kodu, ostaje provera uživo
+
+Obrazac B za Repertoar, i **time je `PLAN-LISTE.md` odgradjen**: faza 7 (gusta
+tabela u „Choose a game") se briefuje samo ako je vlasnikov prolaz zatraži, a
+faza 8 je taj prolaz.
+
+Na širokom prozoru okno pored liste: ime, boja/gate/broj poteza, **linija do
+korena** (numerisana; prazna kaže „From the start" umesto da izmisli
+otvaranje), tabla korena okrenuta ka strani za koju je repertoar, pa „Open" i
+„Drill". **Nijedan novi zahtev** — `RepertoireSummary` već nosi `rootFen`,
+`rootPath`, `viaSan`, `color` i `moves`, i to je ono što kapija zapravo meri
+(broji pozive ka serveru, ne gleda sliku).
+
+**Jedna promena ponašanja, i nju treba pogledati uživo pre svega ostalog:** na
+širokom prozoru kucanje na vrstu **bira** repertoar umesto da ga otvori;
+otvara „Open" u oknu. U Biblioteci je kartica ostala „otvori" jer ona ima
+drugu metu — tablu — koja je postala „pokaži mi". Vrsta repertoara ima samo
+jednu. Pravilo je dosledno, ali je promena koju vlasnik nije tražio, pa je
+prva tačka stavke 209 i **vraća se u jedan potez** ako je pročita drugačije.
+
+Kapija: 9 slučajeva, **7 crvenih / 2 zelena** na master-u; jedan od crvenih je
+u fajlu označen kao crven **iz pogrešnog razloga** (bez okna prvi dodir
+navigira) i zadržan kao čuvar za dan kada neko oknu doda hod kroz graf. Šest
+mutacija, sve uhvaćene. Dva pravila — okvir izbora i okrenutost table — nisu
+bila pokrivena posle prvog zelenog prolaza i dobila su slučaj **pre** mutiranja.
+
+Aplikacija **3474 → 3483**, analyze istih 26 `info`, nijedan iz izmenjenog
+fajla. Bez izmena na serveru. Uživo: **stavka 209**.
+
+---
+
 ## Liste: faza 5 — 20.9.2026, u kodu, ostaje provera uživo
 
 Obrazac B za Biblioteku: na širokom prozoru okno pored police. Telo dijaloga
@@ -69,9 +100,15 @@ mutacija je to dokazala pošto je fikstura dobila baš taj par.
 **Pravi nalaz faze je greška na master-u.** Okno sužava policu, a uska polica
 se prelivala: `AdaptiveCardGrid` je imao najveću širinu kartice i nijednu
 najmanju, pa je `ceil` delio 460 px na dve kolone po 224, a kartica na 224
-prelazi svoju visinu za 48 px. Izmereno bez okna i bez ekrana — prozor
-Biblioteke izmedju otprilike 440 i 530 px seče dugmad sa kartica od faze 3b,
-tiho, jer release build kliješti umesto da upozori. Popravljeno u korenu:
+prelazi svoju visinu za 48 px. Izmereno bez okna i bez ekrana. **Vlasnik je isti dan ispravio domet tog
+nalaza**: Windows ima najmanju širinu prozora od 900 px
+(`windows/runner/win32_window.cpp`, `ptMinTrackSize`), pa taj pojas nikada nije
+bio dostižan — bez okna je polica na najmanjem prozoru široka 876 i uvek je
+imala dve pune kolone. Greška je, dakle, bila **uspavana**, a okno ju je
+probudilo (pravilo 14): na tom istom najmanjem prozoru polica je 444, što bi
+bez pravila bilo dve kolone po 216 i odsečena kartica. `minTileWidth` zato ne
+popravlja prošlost nego **nosi fazu 5 na njenoj najtešnjoj tački**.
+Popravljeno u korenu:
 `minTileWidth = 280`, a `columnsFor` izvodi broj iz **dva** ograničenja umesto
 iz jednog. Broj kolona se i dalje nigde ne piše.
 

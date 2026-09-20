@@ -14,6 +14,9 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/features/repertoire/services/repertoire_pgn.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_gate_picker.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
@@ -39,6 +42,10 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
   late final RepertoireApiService _api = widget.api ?? RepertoireApiService();
   bool _loading = true;
   List<RepertoireSummary> _items = const [];
+
+  /// The repertoire drawn in the pane, on a wide window. Null is „nothing
+  /// chosen yet", which is what the pane says out loud.
+  RepertoireSummary? _chosen;
 
   final Set<int> _selectedIds = {};
   bool get _isSelectionMode => _selectedIds.isNotEmpty;
@@ -742,14 +749,132 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
       );
     }
 
+    // Pattern B — phase 6 of `docs/PLAN-LISTE.md`. Below `Breakpoints.wide`
+    // this is exactly the list it has always been.
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth >= Breakpoints.wide;
+      final list = _list(context, wide: wide);
+      if (!wide) return list;
+
+      // The same rule the Library's pane uses, so there is one answer in this
+      // codebase to „how much of a split screen is the detail worth".
+      final paneWidth =
+          (constraints.maxWidth - AdaptiveCardGrid.maxTileWidth - AppSpacing.md)
+              .clamp(_paneMin, _paneMax);
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: list),
+          const SizedBox(width: AppSpacing.md),
+          SizedBox(width: paneWidth, child: _pane(context, paneWidth)),
+        ],
+      );
+    });
+  }
+
+  static const double _paneMin = 280;
+  static const double _paneMax = 420;
+
+  /// The line that reached a repertoire's root, numbered the way a reader
+  /// counts moves.
+  ///
+  /// Empty for every repertoire made before `rootPath` was stored, and for one
+  /// started from a pasted position. The card already refuses to invent an
+  /// opening in that case and so does this.
+  static String lineToRoot(List<String> path) {
+    if (path.isEmpty) return 'From the start';
+    final out = StringBuffer();
+    for (var i = 0; i < path.length; i++) {
+      if (i.isEven) out.write('${i ~/ 2 + 1}. ');
+      out.write(path[i]);
+      if (i < path.length - 1) out.write(' ');
+    }
+    return out.toString();
+  }
+
+  /// What stands in the pane: the chosen repertoire's root, or a line saying
+  /// what the pane is for. An empty rectangle would be width spent on nothing,
+  /// which is the complaint phase 3a was amended for.
+  Widget _pane(BuildContext context, double width) {
+    final colors = context.colors;
+    final item = _chosen;
+    if (item == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Text(
+            'Choose a repertoire to see where it starts.',
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: colors.textMuted),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(item.name,
+                style: AppText.subtitle, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '${item.forWhite ? "White" : "Black"} · '
+              '${item.viaSan != null ? "via ${item.viaSan} · " : ""}'
+              '${item.moves} ${item.moves == 1 ? "move" : "moves"} in graph',
+              textAlign: TextAlign.center,
+              style: AppText.caption.copyWith(color: colors.textMuted),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              lineToRoot(item.rootPath),
+              textAlign: TextAlign.center,
+              style: AppText.caption.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            BoardThumbnail(
+              fen: item.rootFen,
+              size: (width - AppSpacing.md * 2).clamp(240.0, 360.0),
+              // Seen from the side the repertoire is built for: the whole
+              // point of it is what *you* would play here.
+              isWhiteBottom: item.forWhite,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton(
+              onPressed: () => _open(item),
+              child: const Text('Open'),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            OutlinedButton.icon(
+              onPressed: () => _drill(item),
+              icon: const Icon(Icons.fitness_center, size: 18),
+              label: const Text('Drill'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _list(BuildContext context, {required bool wide}) {
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: _items.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, i) {
         final item = _items[i];
+        final chosen = wide && _chosen?.id == item.id;
         return Card(
-          shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
+          // An outline, not a tint — the owner's live sign-off reads
+          // luminance and shape, never hue.
+          shape: RoundedRectangleBorder(
+            borderRadius: AppRadii.roundedMd,
+            side: chosen
+                ? BorderSide(color: context.colors.accent, width: 2)
+                : BorderSide.none,
+          ),
           child: ListTile(
             leading: _isSelectionMode
                 ? Checkbox(
@@ -865,6 +990,12 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
             onTap: () {
               if (_isSelectionMode) {
                 _toggleSelection(item);
+              } else if (wide) {
+                // With a pane beside it the row's one target is „show me";
+                // the pane carries „Open". A Library card kept opening
+                // because it has a second target — its board — that could
+                // become the preview instead. This row has only the one.
+                setState(() => _chosen = item);
               } else {
                 _open(item);
               }
