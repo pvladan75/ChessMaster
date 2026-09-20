@@ -5098,3 +5098,52 @@ pravo crveno ne važi.
 
 Van mašine: da li je 20 × 20 dovoljno za rad mišem, i da li „Open" iz poruke
 zaista vraća netaknut nacrt ispod sebe. Uživo: **stavka 202**.
+
+---
+
+## Pretraga u „Choose a game", i rupa u kapiji koju je našla mutacija — 20.9.2026
+
+Faza 1 iz `docs/PLAN-LISTE.md`. `game_selector_dialog.dart` je imao 4126
+partija u kutiji `SizedBox(width: 400, height: 300)`, bez pretrage: oko pet
+vidljivih vrsta. Dodata je pretraga po dva imena igrača i po potezima, brojač
+u naslovu („12 of 4126"), rečenica kad ništa ne odgovara, veličina iz
+`MediaQuery`, i podnaslov koji više ne seče usred poteza.
+
+**Prvo, šta je kapija našla pre nego što je iko išta gradio.** Napisana je
+tvrdnja o *širini*: na prozoru od 1400 px lista mora biti šira od 640. Pala je
+— u smislu da je **prošla na master-u**, gde je greška još stajala. `SizedBox`
+traži 400 i **dobija 912**: `AlertDialog` ređa naslov, sadržaj i akcije pod
+`IntrinsicWidth`, koji uzme najširi intrinsic — ovde naslovni tekst — i
+nametne ga svakoj deci. Znači širina danas nije zakovana nego *slučajna*, prati
+tekst naslova i font. Zakovana je **visina**, 300, i to je broj koji znači „pet
+vrsta od 4126". Tvrdnja je preusmerena na visinu. Pravilo 1: **provera koja ne
+može da padne nije provera** — a ova je izgledala kao da radi.
+
+**Drugo, mutacija je našla rupu u kapiji posle implementacije.** Slučaj
+„zatvori dijalog pa javi pozivaocu" tvrdio je da se **oboje** dogodilo i nije
+mogao da vidi **redosled**: zamena `Navigator.pop` i `onGameSelected` ostavila
+je svih devet slučajeva zelenim, i testove oba pozivaoca takođe. Redosled je
+izbor originalnog koda i brief ga je tražio — ali ga ništa nije držalo. Pop se
+vidi **samo u trenutku kad se desi**, pa novi slučaj gleda navigator
+(`NavigatorObserver`), ne stablo: `expect(events, ['pop', 'told'])`. Crven pod
+zamenom, zelen inače. Rupa je bila u **vodećoj kapiji**, ne u radu radnika.
+
+Šest mutacija, svaka crvena na svom testu: cela mapa zaglavlja umesto dva
+imena (zamka „Zagreb Open"), izbačeni potezi, zamenjen redosled pop/callback,
+brojač koji uvek kaže ukupno, izmenjena rečenica praznog rezultata, visina
+vraćena na konstantu.
+
+Mereno: aplikacija **3383 → 3393** (10 slučajeva u
+`game_selector_search_test`), 1 preskočen, pun prolaz sam, 8 min 23 s.
+Analyze: istih 26 `info`, ista raspodela po fajlovima, nijedan iz izmenjenog
+fajla.
+
+Još jedno, o delegiranju: brief faze 0 je rekao „zaustavi sve što pokreneš u
+pozadini pre nego što javiš". Radnik je pokrenuo `flutter test` u pozadini i
+vratio se bez brojeva — dva puta — pa javio tek iz trećeg pokušaja. **Pravilo
+koje radnik može da ispuni tako što ćuti nije pravilo**; sad je pitanje na koje
+izveštaj mora da odgovori. I: kad se radnik vrati prazan, prvo pogledaj mašinu.
+Jedan `dart` i osam `flutter_tester` procesa su rekli da prvo merenje još
+traje — drugo bi dalo crveno koje je zapravo zagušenje.
+
+Uživo: **stavka 203**.

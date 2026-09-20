@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3383 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3393 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -78,8 +78,16 @@ both copying so the source is never rewritten, with no server change at all
 (→ 3383), whose cost was again the room: three surfaces were measured full (the
 contents panel's Wrap by 2 px, its title row by 19, the studio bar by 33) and
 the door ended up as a 20 x 20 button in the title row rather than by moving
-anything the trainer already reaches in one tap. Open: the rest of the
-owner's live pass. Phase 6 of
+anything the trainer already reaches in one tap; then phase 1 of
+`docs/PLAN-LISTE.md`, a search box in „Choose a game", where 4126 games sat in
+a fixed 400 x 300 box with about five rows visible (-> 3393). Its two lessons
+are both about the gate rather than the code: a width assertion **passed on
+master** while the fault stood, because `AlertDialog` lays its children out
+under an `IntrinsicWidth` and that `SizedBox(width: 400)` is actually given 912
+— the height is the fixed dimension worth asserting; and „closes the dialog and
+then reports it" could not see the **order**, so swapping `Navigator.pop` and
+the callback left all nine cases green until a `NavigatorObserver` case was
+added. Open: the rest of the owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

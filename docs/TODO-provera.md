@@ -5878,6 +5878,35 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 203. Pretraga u „Choose a game" — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija, jedan dijalog. Otvara se kad učitaš ili nalepiš PGN sa **više
+partija** — na tabli (Analysis → učitaj `.pgn` ili nalepi tekst) i u Board
+Setup. Vlasnikova kolekcija ima 4126 partija, a do sada se videlo oko pet
+vrsta odjednom, bez pretrage.
+
+1. [ ] **Dijalog se otvori sa kolekcijom.** Naslov kaže ukupan broj u
+   zagradi, a polje za pretragu stoji iznad liste.
+2. [ ] **Na Windows-u lista je viša nego pre.** Vidi se osetno više od pet
+   vrsta; ako je i dalje niska, to je prijava.
+3. [ ] **Pretraga po imenu igrača.** Upiši deo svog protivničkog imena — lista
+   se suzi, a naslov kaže „X of 4126".
+4. [ ] **Pretraga po potezima.** Upiši npr. `Nf3` ili `1. d4` — nalazi partije
+   po otvaranju.
+5. [ ] **Pretraga po datumu ili rezultatu ne radi, i to je namerno.** Upiši
+   godinu ili „1-0": lista se **ne** suzi po tome. Traže se samo dva imena i
+   potezi — inače bi kucanje datuma tiho premeštalo listu.
+6. [ ] **Ništa ne odgovara.** Upiši besmislicu — piše rečenica da nema
+   partije, a ne prazna kutija.
+7. [ ] **Izbor partije radi kao i pre.** Klik na vrstu zatvori dijalog i
+   učita partiju — i na tabli i u Board Setup (gde tekst upadne u polje).
+8. [ ] **Telefon.** Isti dijalog na 360 dp: ništa ne izlazi iz ekrana, polje
+   za pretragu se vidi, tastatura ne pojede listu.
+9. [ ] **Podnaslov vrste.** Potezi ispod imena više ne staju usred poteza
+   (npr. `2. N...`), nego se prekidaju na razmaku.
+
+---
+
 ## 202. Spajanje tutorijala i izdvajanje delova — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija. Dva nova ulaza, oba **kopiraju** — izvorni tutorijal uvek

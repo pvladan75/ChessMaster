@@ -55,7 +55,24 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Liste koje koriste širinu — 20.9.2026, plan, ništa u kodu
+## Pretraga u „Choose a game" — 20.9.2026, u kodu, ostaje provera uživo
+
+Faza 1 plana `PLAN-LISTE.md`, prva i najjeftinija. 4126 partija je stajalo u
+kutiji `SizedBox(width: 400, height: 300)` bez pretrage — oko pet vidljivih
+vrsta. Sada: pretraga po dva imena igrača i po potezima (i **ni po čemu
+drugom** — zamka „Zagreb Open" u kapiji drži to pravilo), brojač u naslovu,
+rečenica kad ništa ne odgovara, veličina iz `MediaQuery`, podnaslov koji ne
+seče usred poteza. Konstruktor nepromenjen, oba pozivaoca netaknuta.
+
+Aplikacija **3383 → 3393**, analyze istih 26 `info`. Šest mutacija vodećeg,
+svaka crvena na svom testu — i jedna je našla rupu **u vodećoj kapiji**:
+„zatvori dijalog pa javi" nije mogao da vidi redosled, pa je zamena
+`Navigator.pop` i poziva ostavljala sve zeleno. Deseti slučaj sada gleda
+navigator. Cela priča je u `docs/LESSONS.md`. Uživo: **stavka 203**.
+
+---
+
+## Liste koje koriste širinu — 20.9.2026, plan, faza 1 u kodu
 
 Vlasnikova stavka 5 iz `zadaci.md`, posle pregleda Geminijevog dokumenta
 `sugestije_objedinjeno_za_agenta.html`. Plan: **`docs/PLAN-LISTE.md`**.
