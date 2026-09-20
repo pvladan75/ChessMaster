@@ -55,6 +55,25 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## `AdaptiveCardGrid` — 20.9.2026, u kodu, nema šta da se gleda uživo
+
+Faza 2 plana `PLAN-LISTE.md`: jedan widget, nijedan ekran ga još ne koristi.
+Omotač oko `SliverGridDelegateWithMaxCrossAxisExtent(420)` — **broj kolona se
+nigde ne upisuje**, izvodi se iz ograničenja koje widget dobije. Zato uska
+kolona u sobi ne traži poseban slučaj, a telefon ostaje isti po konstrukciji.
+Visina kroz `mainAxisExtent`, ne kroz odnos stranica.
+
+Rađen **u vodećoj sesiji, ne delegiran**: brief i kapija koštali bi više od
+samog widgeta, a kapija koja imenuje nepostojeći widget može da padne samo na
+prevođenju. Umesto toga je prvo napisana namerno pogrešna verzija (fiksne dve
+kolone) da se vidi kako test pada — i pao je na tri od četiri širine, a **na
+840 nije**, jer su tu dve kolone slučajno tačne.
+
+Aplikacija **3393 → 3400**, analyze istih 26 `info`. Provera uživo dolazi sa
+fazom 3, kad widget uđe na ekrane.
+
+---
+
 ## Pretraga u „Choose a game" — 20.9.2026, u kodu, ostaje provera uživo
 
 Faza 1 plana `PLAN-LISTE.md`, prva i najjeftinija. 4126 partija je stajalo u

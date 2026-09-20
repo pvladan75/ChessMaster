@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3393 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3400 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -87,7 +87,15 @@ under an `IntrinsicWidth` and that `SizedBox(width: 400)` is actually given 912
 — the height is the fixed dimension worth asserting; and „closes the dialog and
 then reports it" could not see the **order**, so swapping `Navigator.pop` and
 the callback left all nine cases green until a `NavigatorObserver` case was
-added. Open: the rest of the owner's live pass. Phase 6 of
+added; then its phase 2, `AdaptiveCardGrid` (-> 3400), the one home for
+pattern A, which is a wrapper over `SliverGridDelegateWithMaxCrossAxisExtent`
+so that **the column count is never written down** — it falls out of the
+constraint the widget is handed, which is why the room's narrow column needs no
+special case and the phone is unchanged by construction. Written deliberately
+wrong first (a fixed count of two) to watch the test catch it: three of the
+four widths went red and **840 did not**, because two happens to be right
+there — a single-width test would have proved nothing. Open: the rest of the
+owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

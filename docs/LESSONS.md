@@ -5147,3 +5147,36 @@ Jedan `dart` i osam `flutter_tester` procesa su rekli da prvo merenje još
 traje — drugo bi dalo crveno koje je zapravo zagušenje.
 
 Uživo: **stavka 203**.
+
+---
+
+## `AdaptiveCardGrid`: broj kolona koji se nigde ne piše — 20.9.2026
+
+Faza 2 iz `docs/PLAN-LISTE.md`. Jedan omotač oko
+`SliverGridDelegateWithMaxCrossAxisExtent(420)`, i cela poenta je broj koji se
+**ne sme upisati**: koliko kolona. Izvodi se iz ograničenja koje widget dobije,
+pa `LibraryList` u uskoj koloni sobe dobije jednu kolonu a da ga niko nije
+pitao sa kog je ekrana, a telefon ostaje isti po konstrukciji.
+
+**Prvo je napisana namerno pogrešna implementacija** — fiksne dve kolone — da
+bi se videlo da test to hvata. Pao je na 360, 1200 i 1920... ali **na 840 nije**,
+jer su tu dve kolone slučajno tačan odgovor. Da je test merio samo jednu
+širinu, i to baš 840, prošao bi nad implementacijom koja ne radi ništa od
+onoga zbog čega postoji. Pravilo 1 u praksi: provera se gleda kako pada, ne
+samo kako prolazi.
+
+Visina pločice ide kroz `mainAxisExtent`, ne kroz `childAspectRatio`: sa
+odnosom stranica ista kartica bila bi niska i široka u jednoj koloni, a visoka
+i uska u pet, pa bi dvoredni podnaslov stao na desktopu a prelio se na
+telefonu.
+
+Tri mutacije: 420 → 600 (crveno na tri slučaja), `mainAxisExtent` → odnos
+stranica (crveno na visini), i razmak 12 → 0 — **koji je preživeo**. To je
+ovde tačan odgovor, ne rupa: nijedna od četiri merene širine ne stoji na
+granici opsega, pa promena razmaka ne može tiho da prevrne broj. (Opsezi se
+inače pomeraju sa razmakom: pri unutrašnjih 850, 420 daje tri kolone a 432
+dve.) Zapisano u samom testu, da se sledeći put ne postavlja isto pitanje.
+
+Mereno: aplikacija **3393 → 3400** (7 slučajeva), 1 preskočen, pun prolaz sam,
+8 min 36 s. Analyze: istih 26 `info`. Nijedan ekran ga još ne koristi — to je
+faza 3, i tek tada ima šta da se gleda uživo.
