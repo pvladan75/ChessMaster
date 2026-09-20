@@ -5300,3 +5300,48 @@ pomeren vredi manje nego drugi parser koji bi ga pogodio.
 Mereno: aplikacija **3410 → 3423** (3 u kapiji dijaloga, 10 u čistom testu),
 1 preskočen, pun prolaz sam. Analyze: istih 26 `info`, nijedan iz dva izmenjena
 fajla. Uživo: **stavka 203**, dopunjena.
+
+---
+
+## Deveti fajl koji grep nije našao — 20.9.2026, faza 3b
+
+Faza 3b plana `PLAN-LISTE.md`: `LibraryList` prestaje da bude `ListView` sa
+vrstama i postaje mreža kartica. Sam kod je pedesetak linija. Plan je unapred
+rekao gde je rizik — „površina testova je veća polovina" — i propisao čuvara:
+**posle svake faze pretraži izmenjene test fajlove za `ListTile`.**
+
+Pre gradnje sam pretražio `LibraryList` i `library-row-` i dobio osam fajlova.
+Svih osam je posle izmene bilo zeleno. Deveti je pao tek u punom prolazu:
+`saved_tutorials_phone_test.dart`, slučaj **„on Windows the rows keep their
+buttons beside the title"** — tvrdnja da dugme „Send" stoji u istoj liniji sa
+naslovom, unutar 24 px. Posle izmene je izmereno **68**.
+
+Taj fajl **ne pominje `LibraryList` nigde**. Do vrste dolazi preko deljenog
+pomoćnika `libraryRow` iz `test/support/shelf_over_lessons.dart`. Pouka je
+uska i ponovljiva: **pretraži i deljene pomoćnike i konstantu koju brišeš, ne
+samo ime widgeta.** Deljeni pomoćnik je upravo mesto gde se finder sakrije,
+jer je napravljen da pozivaoca oslobodi znanja o tome šta crta ekran.
+
+Druga polovina je šta se radi kad takav test padne. Tvrdnja je bila **tačna i
+namerna** kad je pisana (vlasnikova prijava od 17.9.2026: na telefonu četiri
+dugmeta nisu ostavila naslovu širine), a faza 3b je **namerno ukida**: kartica
+nikad nije šira od 420, prag `actionsBesideFrom = 480` se više ne može
+dosegnuti i obrisan je. Zato slučaj nije ni obrisan ni „popravljen" tiho —
+prepisan je otvoreno, sa objašnjenjem iznad njega, a ono zbog čega fajl
+postoji (naslov ima prostora, sva četiri dugmeta su na ekranu i dohvatljiva)
+nije ni pipnuto. Četiri telefonska slučaja u istom fajlu su ostala zelena, što
+je dokaz da fajl i dalje radi svoj posao.
+
+**Tri mutacije su preživele, sve tri iz istog razloga.** `Spacer` između
+pločice i dugmadi, i `MainAxisAlignment.spaceBetween`, ne menjaju ništa — jer
+je `cardHeight = 132` tesno oko najviše kartice, pa na tutorijalu ima 4 px da
+se razvuče. Tvrdnja o rupi ugrize tek kad višak postoji: `cardHeight = 180` sa
+`spaceBetween` pada, i to je doslovno greška iz faze 3a (29 px mrtvog
+prostora). Treća preživela kaže granicu kapije naglas: **previše velika
+visina kartice sama po sebi ne pada nigde.** Sadržaj stoji uz vrh, ništa se ne
+preliva, nijedno pravilo koje je kapija zapisala nije prekršeno — a prostor se
+troši. To je pitanje o testu, ne presuda.
+
+Mereno: aplikacija **3423 → 3437** (14 u kapiji), 1 preskočen, pun prolaz sam.
+Analyze: istih 26 `info`, nijedan iz četiri izmenjena fajla. Uživo: **stavka
+205**.

@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3423 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3437 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -121,7 +121,30 @@ search go through it, so typing `1. e4 c5` and `e4 c5` answer the same. Two of
 the lead's own mutations were invalid there (deleting a line stopped the file
 compiling, which is not the right red) and one **survived**: nothing covered
 variations, because the dialog's fixtures have none, so the shared helper got
-its own pure test. Open: the rest of the owner's live pass. Phase 6 of
+its own pure test. Then phase 3b (-> 3437), `LibraryList` onto that grid — the
+risky half, because the widget is drawn by **two** callers of opposite widths
+(the Library screen and the room's 300 px column) and eight other test files
+reach its rows. `actionsBesideFrom = 480` was deleted: a card is never wider
+than 420, so that branch could no longer be reached, and the actions sit under
+the title at every width. The predicted churn was one line — `titlesShown`
+rescoped from `ListView` to `AdaptiveCardGrid`, no assertion touched. **The
+lesson was the ninth file the grep did not find.** The plan's own guard says to
+grep the touched tests for `ListTile`; a grep for `LibraryList` and
+`library-row-` found eight files, all green afterwards, and
+`saved_tutorials_phone_test.dart` fell only in the full run. It names the widget
+nowhere — it reaches a row through the shared helper `libraryRow` in
+`test/support/shelf_over_lessons.dart` — and it asserted the very rule this
+phase deleted (the send button within 24 px of the title's line; 68 after the
+change). Its four phone cases stayed green, so the file still does its job; the
+one Windows case was rewritten **openly**, with the supersession written above
+it. **Grep the shared helpers and the constant being deleted, not only the
+widget's name.** Nine mutations, each red on the right case; three survived,
+all because the tile height is tight to the tallest card, so a `Spacer` or a
+`spaceBetween` has 4 px to spread and spreading them shows nothing — only
+`cardHeight = 180` *with* `spaceBetween` falls, which is 3a's fault word for
+word. The third survivor is the gate's stated limit: a merely over-generous
+card height breaks no rule it wrote down. Open: the rest of the owner's live
+pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

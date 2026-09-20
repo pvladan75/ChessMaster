@@ -5,6 +5,7 @@ import 'package:chess_app/features/library/models/exercise_filter.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/matrix_filter_panel.dart';
 
@@ -81,14 +82,23 @@ class LibraryList extends StatefulWidget {
   /// screen does.
   final VoidCallback? onNewExercise;
 
-  /// Below this width a row's actions go on a line of their own under its
-  /// title. Beside it, four 48 dp buttons left a title on a phone no width
-  /// at all — the owner's screenshot of 17.9.2026 showed rows of icons and
-  /// no names.
-  static const double actionsBesideFrom = 480;
-
   /// Below this height the filters scroll with the list rather than above it.
   static const double headerScrollsBelow = 480;
+
+  /// One card, top to bottom — phase 3b of `docs/PLAN-LISTE.md`.
+  ///
+  /// Taken from the tallest card this list can draw: a `ListTile` led by a
+  /// 56 px board thumbnail, with a line of four action buttons under it. A
+  /// card with fewer actions, or none, is the same height — that is what a
+  /// grid is, and it is why the content sits at the top of the card rather
+  /// than being spread over it.
+  ///
+  /// Until 20.9.2026 this widget had an `actionsBesideFrom = 480` instead:
+  /// beside that width the actions were the tile's `trailing`, under it they
+  /// went on a line of their own. A card is never wider than
+  /// [AdaptiveCardGrid.maxTileWidth], which is 420, so the wide branch could
+  /// no longer be reached and the constant went with it.
+  static const double cardHeight = 132;
 
   static const String searchHint = 'Search';
   static const String empty = 'Nothing here yet.';
@@ -285,51 +295,51 @@ class _LibraryListState extends State<LibraryList> {
                 ),
               ),
             )
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                final beside =
-                    constraints.maxWidth >= LibraryList.actionsBesideFrom;
-                return ListView.builder(
-                  shrinkWrap: compact,
-                  physics:
-                      compact ? const NeverScrollableScrollPhysics() : null,
-                  itemCount: shown.length,
-                  itemBuilder: (context, index) {
-                    final entry = shown[index];
-                    final actions = widget.actionsFor?.call(entry) ?? const [];
-                    final tile = ListTile(
-                      leading: _leadingFor(context, entry),
-                      title: Text(entry.title, overflow: TextOverflow.ellipsis),
-                      subtitle: Text(_subtitleFor(entry)),
-                      trailing: (beside && actions.isNotEmpty)
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min, children: actions)
-                          : null,
-                      onTap: () => widget.onOpen(entry),
-                    );
-                    return KeyedSubtree(
-                      key: ValueKey(
-                          'library-row-${entry.kind.name}-${entry.id}'),
-                      child: (beside || actions.isEmpty)
-                          ? tile
-                          // Under the tile, not in its subtitle: a tap lands on
-                          // a widget's centre, and a tile tall enough to hold a
-                          // row of buttons puts its centre on one of them —
-                          // the phone layout of phase 6b learned that on
-                          // „Clone part".
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                tile,
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 56, bottom: 4),
-                                  child: Wrap(children: actions),
-                                ),
-                              ],
-                            ),
-                    );
-                  },
+          // Cards in a grid, not rows in a list — phase 3b of
+          // `docs/PLAN-LISTE.md`. The column count is never written down
+          // here: `AdaptiveCardGrid` works it out from the constraint this
+          // widget is handed, which is why the room's 300 px column gets one
+          // card across without being asked which screen it is on, and why
+          // the phone is unchanged.
+          : AdaptiveCardGrid(
+              itemCount: shown.length,
+              tileHeight: LibraryList.cardHeight,
+              shrinkWrap: compact,
+              physics: compact ? const NeverScrollableScrollPhysics() : null,
+              // The two callers already pad their own side of the screen.
+              padding: EdgeInsets.zero,
+              itemBuilder: (context, index) {
+                final entry = shown[index];
+                final actions = widget.actionsFor?.call(entry) ?? const [];
+                return KeyedSubtree(
+                  key: ValueKey('library-row-${entry.kind.name}-${entry.id}'),
+                  child: Card(
+                    shape: AppRadii.cardShape,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ListTile(
+                          leading: _leadingFor(context, entry),
+                          title: Text(entry.title,
+                              overflow: TextOverflow.ellipsis),
+                          subtitle: Text(_subtitleFor(entry),
+                              overflow: TextOverflow.ellipsis),
+                          onTap: () => widget.onOpen(entry),
+                        ),
+                        // Under the tile, not in its subtitle: a tap lands on
+                        // a widget's centre, and a tile tall enough to hold a
+                        // row of buttons puts its centre on one of them — the
+                        // phone layout of phase 6b learned that on „Clone
+                        // part".
+                        if (actions.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 56, bottom: 4),
+                            child: Wrap(children: actions),
+                          ),
+                      ],
+                    ),
+                  ),
                 );
               },
             );

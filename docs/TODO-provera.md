@@ -5878,6 +5878,39 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 205. Biblioteka u karticama — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija, faza 3b plana `PLAN-LISTE.md`. `LibraryList` više nije
+`ListView` sa vrstama nego mreža kartica, a crta se na **dva mesta**: ekran
+Biblioteke (Teach → Library) i **uska leva kolona u sobi**. Kolona je 300 px i
+po konstrukciji ostaje jedna kartica u redu — ali baš zato je treba pogledati.
+
+1. [ ] **Windows, Biblioteka na širokom prozoru.** Stoje **tri ili četiri
+   kartice u redu**, ne jedna preko celog ekrana. Na kartici: sličica table
+   ili ikonica, naslov, red ispod njega („6 parts · video", „Mat u 333",
+   „saved position"…) i dugmad te vrste.
+2. [ ] **Suzi prozor.** Broj kolona pada sam — 4, 3, 2, pa 1. Nigde
+   žuto-crnih traka i nijedno dugme nije odsečeno.
+3. [ ] **Dugmad su na svojoj kartici.** Kod tutorijala: video, pošalji, kanta
+   (i „Download video" gde ga ima); kod zadatka: „Add to tutorial" i „Assign";
+   kod pozicije samo „Add to tutorial"; kod analize nijedno. Proveri da nijedno
+   dugme ne radi nad **susednom** karticom.
+4. [ ] **Kartica nije prazna iznutra.** Sadržaj stoji uz vrh kartice; prazan
+   prostor je ispod, ne između naslova i dugmadi. *Kartice su iste visine — to
+   je mreža; ali kartica sa manje dugmadi ne sme da razvuče svoj sadržaj.*
+5. [ ] **Sličica table i pregled.** Kod zadatka i pozicije kartica vodi
+   sličicom. Kucni **sličicu** — otvara se pregled table. Kucni bilo gde drugde
+   na kartici — otvara se sama stvar. Dve različite radnje na istoj kartici,
+   a kartica je veća meta nego stara vrsta.
+6. [ ] **Čipovi, pretraga i etikete i dalje stoje iznad mreže**, i sužavaju
+   je: „Exercises", pa „Win", pa upisana reč.
+7. [ ] **Telefon, Biblioteka.** Jedna kolona, kao i pre. Kartica nije odsečena
+   ni previsoka; dugmad stoje ispod naslova i mogu se pritisnuti.
+8. [ ] **Soba, leva kolona.** Otvori sobu (STUDIO) i pogledaj kolonu
+   „Library": **jedna kartica u redu**, kolona se i dalje skroluje kao celina
+   sa ostatkom sidebara, i kucanje na tutorijal ga i dalje stavlja na tablu.
+9. [ ] **Prazna polica.** Bez ijedne stvari piše rečenica, a ne prazna kutija.
+
 ## 204. Mreža na domaćim zadacima i sačuvanim zagonetkama — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija. Prve dve liste koje koriste širinu umesto da je troše:

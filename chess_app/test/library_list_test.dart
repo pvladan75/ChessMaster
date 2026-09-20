@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/widgets/library_list.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 LibraryEntry _entry(LibraryKind kind, String title,
         {int? parts, bool video = false, String? book, int? page}) =>
@@ -69,9 +70,14 @@ void main() {
       );
 
   // The list's own rows: the label panel's expansion tile is a ListTile too.
+  //
+  // Scoped to the grid since phase 3b of `docs/PLAN-LISTE.md` — the rows were
+  // a `ListView` of `ListTile`s until then and are `Card`s in an
+  // [AdaptiveCardGrid] now. The scope is the only thing that moved: it is no
+  // wider than it was, and the assertions below are untouched.
   List<String> titlesShown(WidgetTester tester) => tester
       .widgetList<ListTile>(find.descendant(
-          of: find.byType(ListView), matching: find.byType(ListTile)))
+          of: find.byType(AdaptiveCardGrid), matching: find.byType(ListTile)))
       .map((t) => (t.title as Text).data!)
       .toList();
 

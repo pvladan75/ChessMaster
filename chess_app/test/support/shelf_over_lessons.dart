@@ -7,7 +7,6 @@ import 'package:http/testing.dart';
 
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
-import 'package:chess_app/features/library/widgets/library_list.dart';
 
 /// The Library's shelf, answered from the same rows a test's fake
 /// `GET /lessons` already serves.
@@ -63,10 +62,11 @@ Map<String, dynamic> _item(Map<String, dynamic> row) {
   };
 }
 
-/// One row of the Library's list, whatever it holds: its tile and, on a
-/// narrow screen, the line of actions under it. The dialog these tests were
-/// written against kept its actions inside the `ListTile`; the Library puts
-/// them under it below [LibraryList.actionsBesideFrom].
+/// One card of the Library's list, whatever it holds: its tile and the line
+/// of actions under it. The dialog these tests were written against kept its
+/// actions inside the `ListTile`; since phase 3b of `docs/PLAN-LISTE.md` a row
+/// is a `Card` in an `AdaptiveCardGrid` and the actions are under the tile at
+/// every width, so the key is what finds one and nothing else is.
 final Finder libraryRow = find.byWidgetPredicate((w) =>
     w is KeyedSubtree &&
     w.key is ValueKey<String> &&

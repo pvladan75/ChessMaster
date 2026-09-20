@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **20.9.2026** — najnovije je „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`, ništa u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **20.9.2026** — najnovije je „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,46 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Liste: faza 3b — 20.9.2026, u kodu, ostaje provera uživo
+
+`LibraryList` na `AdaptiveCardGrid`: vrsta je postala kartica. Rizična polovina
+faze 3, jer widget crtaju **dva** pozivaoca suprotnih širina — ekran Biblioteke
+i uska (300 px) leva kolona u sobi — a do njegovih vrsta dolazi osam drugih
+test fajlova. Kolona dobija jednu karticu u redu zato što je uska, ne zato što
+je neko pitao koji je ekran; telefon je nepromenjen po konstrukciji.
+
+`actionsBesideFrom = 480` je **obrisan**: kartica nikad nije šira od 420, pa se
+ta grana više nije mogla dosegnuti. Dugmad su ispod naslova na svakoj širini.
+`cardHeight = 132` je uzeto od najviše kartice koju ova lista ume da nacrta
+(pločica sa sličicom od 56 px plus red od četiri dugmeta) — zato sadržaj stoji
+uz vrh kartice umesto da se razvuče po njoj.
+
+**Churn je bio jedna linija**, kako je plan i predvideo: pomoćnik `titlesShown`
+je bio vezan za `ListView`, sada je za `AdaptiveCardGrid`; nijedna tvrdnja u
+tom fajlu nije dirana.
+
+**Ono što čuvar iz §8 plana nije uhvatio, i to je pouka ove faze.** Čuvar kaže:
+pretraži izmenjene test fajlove za `ListTile`. Pretraga za `LibraryList` i
+`library-row-` dala je osam fajlova i svih osam je ostalo zeleno — a deveti je
+pao tek u punom prolazu. `saved_tutorials_phone_test.dart` ne pominje
+`LibraryList` nigde; do vrste stiže preko deljenog pomoćnika `libraryRow`. Taj
+fajl je tvrdio baš pravilo koje je faza ukinula („on Windows the rows keep
+their buttons beside the title" — dugme u liniji naslova, unutar 24 px;
+izmereno 68). Njegova četiri telefonska slučaja su ostala zelena, pa fajl i
+dalje radi svoj posao; jedan Windows slučaj je **otvoreno prepisan** na novi
+raspored, sa objašnjenjem iznad njega. Čuvar u planu je dopunjen: pretraži i
+deljene pomoćnike i konstantu koju brišeš, ne samo ime widgeta.
+
+Devet mutacija, svaka crvena na tačnom slučaju; **tri preživele**, sve iz istog
+razloga — visina kartice je tesna, pa `Spacer` ili `spaceBetween` imaju 4 px da
+razvuku i ne menjaju ništa što bi se videlo. Tek `cardHeight = 180` uz
+`spaceBetween` pada, a to je doslovno greška iz faze 3a. Treća preživela je
+zapisana granica: previše velika visina kartice sama po sebi ne pada nigde.
+
+Aplikacija **3423 → 3437**, analyze istih 26 `info`. Uživo: **stavka 205**.
 
 ---
 

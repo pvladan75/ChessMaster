@@ -228,20 +228,34 @@ void main() {
     await close(tester);
   });
 
-  testWidgets('on Windows the rows keep their buttons beside the title',
+  // Until 20.9.2026 this case was „on Windows the rows keep their buttons
+  // beside the title", and asserted that the send button sat within 24 px of
+  // the title's own line. Phase 3b of `docs/PLAN-LISTE.md` **superseded that
+  // rule**, deliberately: a row is now a card in an `AdaptiveCardGrid`, a card
+  // is never wider than 420, and `LibraryList.actionsBesideFrom` — the 480 px
+  // threshold that put the actions beside the title — could no longer be
+  // reached and was deleted. A wide window is answered with more cards, not
+  // with one stretched row.
+  //
+  // What this file exists for is untouched and still asserted by
+  // [expectFirstRowUsable]: the title has room to be read, and all four
+  // buttons are on the screen and reachable. What replaces the old line is the
+  // new arrangement — the buttons are **under** the title and inside that
+  // entry's own card, so a grid cannot put a row's actions over its neighbour.
+  testWidgets('on Windows the buttons are under the title, on its own card',
       (tester) async {
     await openSaved(tester, const Size(1400, 900), TargetPlatform.windows);
     expectFirstRowUsable(tester);
 
+    final card = find.ancestor(of: find.text(_title(0)), matching: libraryRow);
     final title = tester.getRect(find.text(_title(0)));
-    final send = tester.getRect(find
-        .descendant(
-          of: find.ancestor(of: find.text(_title(0)), matching: libraryRow),
-          matching: find.byTooltip('Send to student'),
-        )
-        .first);
-    expect((send.center.dy - title.center.dy).abs(), lessThan(24),
-        reason: 'on a wide screen the actions sit on the title\'s line');
+    final send = tester.getRect(
+        find.descendant(of: card, matching: find.byTooltip('Send to student')));
+
+    expect(send.top, greaterThan(title.bottom),
+        reason: 'the actions are no longer under the title');
+    expect(tester.getRect(card).contains(send.center), isTrue,
+        reason: 'a button is drawn outside the card it belongs to');
 
     await close(tester);
   });
