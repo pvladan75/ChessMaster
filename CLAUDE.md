@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3410 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3423 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -109,7 +109,19 @@ filled 49% of the row. The dialog had been made *able* to use width without
 being made to take only the width it can fill, which is the very complaint the
 plan exists to answer. It now asks for as many columns as it has cards; one set
 gives a 460 dialog filled to 100%, two still share a row. The same pass took 29
-px of dead air out of a card. Open: the rest of the owner's live pass. Phase 6 of
+px of dead air out of a card. Then phase 1b (-> 3423), which the same live
+look opened: „Choose a game" drew `1. e4 { [%clk 0:03:00] } 1... c5 …`, two
+moves where eight fit, **and the move search was half dead** — `e4 c5` matched
+nothing, because the annotation sits between them in the string the filter
+read. The cause was phase 1's fixture: clean movetext, while the owner's 4126
+games come from online play and carry `%clk` on every move (rule 6, word for
+word). `MoveTree.sanTokens` now reads the moves out of a body — comments, NAGs,
+variations, numbers and the result out — and **both** the preview and the
+search go through it, so typing `1. e4 c5` and `e4 c5` answer the same. Two of
+the lead's own mutations were invalid there (deleting a line stopped the file
+compiling, which is not the right red) and one **survived**: nothing covered
+variations, because the dialog's fixtures have none, so the shared helper got
+its own pure test. Open: the rest of the owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

@@ -84,6 +84,28 @@ final _few = <PgnGameInfo>[
       body: '1. e4 e5 2. f4 exf4 3. Bc4 Qh4+ 1-0'),
 ];
 
+/// Two games shaped like the owner's real collection rather than like a
+/// textbook.
+///
+/// Phase 1's fixture was clean move text — `1. d4 d5 2. c4 e6` — and that is
+/// why phase 1 shipped a half-working search. The owner's 4126 games come from
+/// online play and carry `{ [%clk H:MM:SS] }` after **every** move, so the
+/// preview showed two moves where eight would fit and `e4 c5` matched nothing,
+/// because the annotation sits between them. Rule 6, word for word: a fixture
+/// simpler than the real thing cannot fail.
+final _annotated = <PgnGameInfo>[
+  _game(
+      white: 'nightrook42',
+      black: 'pvladan',
+      body: '1. e4 { [%clk 0:03:00] } 1... c5 { [%clk 0:03:00] } '
+          '2. Nf3 { [%clk 0:02:58] } 2... d6 { [%clk 0:02:55] } 1-0'),
+  _game(
+      white: 'PawnStorm2025',
+      black: 'pvladan',
+      result: '0-1',
+      body: r'1. d4 $1 Nf6 $6 2. c4 g6 3. Nc3 Bg7 0-1'),
+];
+
 /// 4126 games — the owner's real collection size, and the number in the
 /// screenshot the plan was written from. Exactly two of them are played by
 /// `nightrook42`, so the count in the title is a fact and not a coincidence.
@@ -236,6 +258,39 @@ void main() {
       expect(find.textContaining(name), findsNothing,
           reason: '$name is still drawn under an empty result');
     }
+  });
+
+  testWidgets('the preview shows moves, not clock annotations', (tester) async {
+    await _open(tester, _annotated);
+
+    expect(find.textContaining('%clk'), findsNothing,
+        reason: 'the clock annotations are drawn in the row');
+    expect(find.textContaining('{'), findsNothing,
+        reason: 'a PGN comment is drawn in the row');
+    expect(find.textContaining('Nf3'), findsOneWidget,
+        reason: 'with the clocks gone there is room for the third move, and '
+            'showing the moves is the whole point of the line');
+  });
+
+  testWidgets('two moves in a row match across the annotations',
+      (tester) async {
+    // The functional half, and the one that matters more than the look: a
+    // reader searching for an opening types the moves, not the clocks.
+    await _open(tester, _annotated);
+    await _type(tester, 'e4 c5');
+
+    expect(find.textContaining('nightrook42'), findsOneWidget);
+    expect(find.textContaining('PawnStorm2025'), findsNothing);
+  });
+
+  testWidgets('a NAG between two moves does not hide them', (tester) async {
+    // `$1` and `$6` are what an engine's own export writes. Same rule as the
+    // clocks: what sits between two moves is not part of either.
+    await _open(tester, _annotated);
+    await _type(tester, 'd4 Nf6');
+
+    expect(find.textContaining('PawnStorm2025'), findsOneWidget);
+    expect(find.textContaining('nightrook42'), findsNothing);
   });
 
   testWidgets('on a tall window the list is taller than a phone\'s',

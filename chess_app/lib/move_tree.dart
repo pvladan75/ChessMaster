@@ -437,6 +437,51 @@ class MoveTree {
   }
 
   // Parse a cleaned single-game PGN string into this tree
+  /// The moves of a PGN body, with everything that is not a move taken out:
+  /// `{ … }` comments — which an online export fills with `[%clk H:MM:SS]`
+  /// after every single move — `;` line comments, `$N` NAGs, variations,
+  /// move numbers and the result.
+  ///
+  /// One home for the rule (rule 12). [parsePgn] below answers a different
+  /// question: it plays the moves onto a board and builds a tree, which is far
+  /// too heavy for one row of a list, and it needs a legal starting position.
+  /// Nothing here knew how to read *just the moves* out of a body, so the game
+  /// picker grew its own half-answer and shipped a search that could not find
+  /// `e4 c5` in `1. e4 { [%clk 0:03:00] } 1... c5` — the annotation sits
+  /// between them.
+  ///
+  /// Nothing is played and nothing is checked for legality: this is a reader
+  /// for showing and for matching, not a parser. A token that is not a move
+  /// comes back as it was.
+  static List<String> sanTokens(String pgnBody) {
+    var text = pgnBody;
+    // Comments first: a variation may sit inside one, and a brace may sit
+    // inside a comment's text.
+    text = text.replaceAll(RegExp(r'\{[^}]*\}'), ' ');
+    text = text.replaceAll(RegExp(r';[^\n]*'), ' ');
+    // Variations, innermost first, so nested ones go too. Bounded by the
+    // string's own length rather than `while (true)`.
+    final parens = RegExp(r'\([^()]*\)');
+    for (var i = 0; i < pgnBody.length && parens.hasMatch(text); i++) {
+      text = text.replaceAll(parens, ' ');
+    }
+    text = text.replaceAll(RegExp(r'\$\d+'), ' ');
+
+    final moves = <String>[];
+    for (final raw in text.split(RegExp(r'\s+'))) {
+      final token = raw.trim();
+      if (token.isEmpty) continue;
+      if (token == '1-0' || token == '0-1' || token == '1/2-1/2') continue;
+      if (token == '*') continue;
+      // "1." and "1..." stand alone; "1.e4" comes glued to its move.
+      final move = token.replaceAll(RegExp(r'^\d+\.{1,3}'), '').trim();
+      if (move.isEmpty) continue;
+      if (RegExp(r'^\d+$').hasMatch(move)) continue;
+      moves.add(move);
+    }
+    return moves;
+  }
+
   static MoveTree? parsePgn(String pgn, {String? startingFen}) {
     String? extractedFen = startingFen ?? fenHeaderOf(pgn);
     final actualStartingFen = extractedFen ??

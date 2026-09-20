@@ -5257,3 +5257,46 @@ vide dva poteza umesto osam, i **pretraga po potezima je oslabljena** (kucanje
 fixture iz faze 1: čist PGN `1. d4 d5 2. c4 e6`, dok vlasnikovih 4126 partija
 dolazi sa onlajn servisa i nosi `%clk` na svakom potezu. Pravilo 6, od reči do
 reči. Nije faza 7 (to je tabela) nego ispravka faze 1.
+
+---
+
+## Sat u PGN-u je pojeo i prikaz i pretragu — 20.9.2026, faza 1b
+
+Vlasnik je otvorio „Choose a game" na Windows-u i poslao sliku: podnaslov svake
+vrste glasi `1. e4 { [%clk 0:03:00] } 1... c5 { [%clk 0:03:00] } 2. Nf3…`. Vide
+se **dva poteza tamo gde bi stalo osam**. Gore od izgleda: **pretraga po
+potezima je bila polumrtva** — kucanje `e4 c5` ne nalazi ništa, jer je između
+njih anotacija, a `pgnBody` je upravo string koji je filter čitao.
+
+Uzrok je moj fixture iz faze 1: čist tekst poteza, `1. d4 d5 2. c4 e6`. Vlasnikove
+4126 partije dolaze sa onlajn servisa i nose `%clk` posle **svakog** poteza.
+Pravilo 6 od reči do reči: fixture jednostavniji od stvarnog ne može da padne.
+Kapija je bila zelena nad pretragom koja na pravim podacima radi pola posla.
+
+Popravka ima jedan dom: `MoveTree.sanTokens` — čita samo poteze iz tela partije
+(napolje idu `{ … }` komentari, `;` komentari, `$N` NAG-ovi, varijante —
+najdublje prvo, pa i ugnježdene — brojevi poteza i rezultat). Kroz njega idu
+**i prikaz i pretraga**, pa `1. e4 c5` i `e4 c5` daju isti odgovor. Prikaz se
+sada **ispisuje iz poteza**, ne seče iz fajla: `1. e4 c5 2. Nf3 d6 3. d4 cxd4
+4. Nxd4`.
+
+**Dve pouke o samim mutacijama.**
+
+Prve dve mutacije nisu bile ispravne: brisanje linije je oborilo **prevođenje**,
+a greška prevođenja nije pravo crveno (pravilo 3). Ponovljene tako što regex
+postane nešto što se ne poklapa ni sa čim — kod se i dalje prevodi, a ponašanje
+umire. Tek tada su obe pale na tačnom testu.
+
+Treća je **preživela**: isključivanje uklanjanja varijanti nije promenilo
+ništa, jer u fixture-ima dijaloga nema nijedne varijante. `sanTokens` je od sada
+deljeni API, a namerno ponašanje koje ništa ne proverava je upravo ono što
+istrune — pa je dobio **svoj čist test** (`san_tokens_test.dart`, 10 slučajeva).
+Ista mutacija sada pada na oba slučaja sa varijantama.
+
+Svesno ograničenje, zapisano u kodu a ne ostavljeno kao iznenađenje: telo koje
+počinje sa crnim na potezu se i dalje numeriše od 1. Broj koji je za jedan
+pomeren vredi manje nego drugi parser koji bi ga pogodio.
+
+Mereno: aplikacija **3410 → 3423** (3 u kapiji dijaloga, 10 u čistom testu),
+1 preskočen, pun prolaz sam. Analyze: istih 26 `info`, nijedan iz dva izmenjena
+fajla. Uživo: **stavka 203**, dopunjena.

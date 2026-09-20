@@ -31,23 +31,55 @@ class _GameSelectorDialogState extends State<GameSelectorDialog> {
   /// and nothing else. The rest of the header map (`Event`, `Date`,
   /// `Result`, ...) is deliberately not read: a search that walked the whole
   /// map would find a date or a result and silently reorder the list.
-  bool _matches(PgnGameInfo game, String needle) {
-    return (game.headers['White'] ?? '').toLowerCase().contains(needle) ||
-        (game.headers['Black'] ?? '').toLowerCase().contains(needle) ||
-        game.pgnBody.toLowerCase().contains(needle);
+  bool _matches(PgnGameInfo game, String needle, String movesNeedle) {
+    if ((game.headers['White'] ?? '').toLowerCase().contains(needle)) {
+      return true;
+    }
+    if ((game.headers['Black'] ?? '').toLowerCase().contains(needle)) {
+      return true;
+    }
+    // The moves, read through `MoveTree.sanTokens`, not the raw body. The
+    // owner's games carry `{ [%clk 0:03:00] }` after every move, so
+    // `1. e4 { … } 1... c5` does not contain `e4 c5` and the move half of this
+    // search found nothing on real data. Both sides are read the same way, so
+    // a reader who types `1. e4 c5` and one who types `e4 c5` get the same
+    // answer.
+    if (movesNeedle.isEmpty) return false;
+    return _movesOf(game).contains(movesNeedle);
   }
+
+  /// `e4 c5 Nf3 d6`, cached: the list is rebuilt on every keystroke and a
+  /// collection of four thousand games would otherwise be re-read each time.
+  final Map<PgnGameInfo, String> _moveCache = {};
+
+  String _movesOf(PgnGameInfo game) => _moveCache.putIfAbsent(
+      game, () => MoveTree.sanTokens(game.pgnBody).join(' ').toLowerCase());
 
   /// A preview of the PGN body that stops at a whitespace boundary instead
   /// of cutting inside a move, with runs of whitespace collapsed to one
   /// space. The ellipsis is appended only when something was actually
   /// dropped.
   String _pgnPreview(String pgnBody) {
-    final normalized = pgnBody.trim().replaceAll(RegExp(r'\s+'), ' ');
-    if (normalized.length <= 60) return normalized;
-    final cut = normalized.substring(0, 60);
-    final lastSpace = cut.lastIndexOf(' ');
-    final trimmed = lastSpace > 0 ? cut.substring(0, lastSpace) : cut;
-    return '$trimmed...';
+    // Written out from the moves rather than sliced out of the file, so the
+    // line reads the same whatever the exporter put between the moves. Before
+    // this it showed `1. e4 { [%clk 0:03:00] } 1... c5 { [%clk 0:03:00] } 2.`
+    // — two moves where eight fit.
+    final moves = MoveTree.sanTokens(pgnBody);
+    if (moves.isEmpty) return '';
+
+    final line = StringBuffer();
+    var shown = 0;
+    for (var i = 0; i < moves.length; i++) {
+      // A body that starts with Black to move numbers from 1 here too; these
+      // previews are of whole games, and a number that is one out is worth
+      // less than a second parser to get it right.
+      final piece = i.isEven ? '${i ~/ 2 + 1}. ${moves[i]}' : moves[i];
+      if (line.isNotEmpty && line.length + piece.length + 1 > 60) break;
+      if (line.isNotEmpty) line.write(' ');
+      line.write(piece);
+      shown++;
+    }
+    return shown < moves.length ? '$line...' : line.toString();
   }
 
   @override
@@ -55,9 +87,10 @@ class _GameSelectorDialogState extends State<GameSelectorDialog> {
     final query = _query.trim();
     final needle = query.toLowerCase();
     final games = widget.games;
+    final movesNeedle = MoveTree.sanTokens(query).join(' ').toLowerCase();
     final filtered = query.isEmpty
         ? games
-        : games.where((g) => _matches(g, needle)).toList();
+        : games.where((g) => _matches(g, needle, movesNeedle)).toList();
     final total = games.length;
 
     // AlertDialog lays title, content and actions out under an

@@ -87,11 +87,20 @@ dalje dele red. Kapija je dobila i taj drugi slučaj, da se popravka ne svede na
 
 Uživo: **stavka 204** (sa novim tačkama 5.1 i 5.2).
 
-**Otvoreno iz iste provere — faza 1b u `PLAN-LISTE.md`:** u „Choose a game"
-podnaslov vrste pokazuje `1. e4 { [%clk 0:03:00] } 1... c5 …`, pa se vide dva
-poteza umesto osam, a **pretraga po potezima je oslabljena** (`e4 c5` ne nalazi
-ništa). Uzrok je fixture faze 1 — čist PGN, dok vlasnikove partije nose `%clk`
-na svakom potezu. **Nije faza 7**, to je tabela.
+**Faza 1b, iz iste provere — urađena isti dan (→ 3423).** U „Choose a game"
+podnaslov je pokazivao `1. e4 { [%clk 0:03:00] } 1... c5 …` (dva poteza umesto
+osam), a **pretraga po potezima je bila polumrtva**: `e4 c5` ne nalazi ništa,
+jer je anotacija između njih, a `pgnBody` je string koji filter čita. Uzrok je
+fixture faze 1 — čist PGN, dok vlasnikove partije nose `%clk` na svakom potezu
+(pravilo 6). **Nije bila faza 7**, to je tabela i menja raspored, ne sadržaj
+vrste.
+
+Sada: `MoveTree.sanTokens` čita samo poteze iz tela partije, i **prikaz i
+pretraga idu kroz njega**. Podnaslov se ispisuje iz poteza
+(`1. e4 c5 2. Nf3 d6 …`), a `1. e4 c5` i `e4 c5` daju isti odgovor. Pomoćnik je
+na `MoveTree` jer je tamo PGN rečnik ovog projekta — drugi polu-odgovor na
+drugom mestu je upravo ono kako je i nastala prva greška. Uživo: **stavka 203**,
+dopunjena tačkama 4.1–4.3 i 10.
 
 ---
 

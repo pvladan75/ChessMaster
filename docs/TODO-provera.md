@@ -5927,6 +5927,13 @@ vrsta odjednom, bez pretrage.
    se suzi, a naslov kaže „X of 4126".
 4. [ ] **Pretraga po potezima.** Upiši npr. `Nf3` ili `1. d4` — nalazi partije
    po otvaranju.
+4.1. [ ] **Dva poteza zaredom.** Upiši `e4 c5` — **nalazi** sicilijanke.
+   *Ovo je popravka nalaza od 20.9.2026: ranije nije nalazilo ništa, jer je
+   između dva poteza stajao `{ [%clk 0:03:00] }`.*
+4.2. [ ] **Sa brojem ili bez.** `1. e4 c5` i `e4 c5` daju **isti** rezultat.
+4.3. [ ] **Podnaslov vrste pokazuje poteze, ne satove.** Treba da piše
+   `1. e4 c5 2. Nf3 d6 3. d4 …`, bez `{ [%clk …] }` — oko osam poteza umesto
+   dva.
 5. [ ] **Pretraga po datumu ili rezultatu ne radi, i to je namerno.** Upiši
    godinu ili „1-0": lista se **ne** suzi po tome. Traže se samo dva imena i
    potezi — inače bi kucanje datuma tiho premeštalo listu.
@@ -5938,6 +5945,8 @@ vrsta odjednom, bez pretrage.
    za pretragu se vidi, tastatura ne pojede listu.
 9. [ ] **Podnaslov vrste.** Potezi ispod imena više ne staju usred poteza
    (npr. `2. N...`), nego se prekidaju na razmaku.
+10. [ ] **Nalepi PGN sa varijantama** (iz Analysis, „Setup Position / PGN") —
+   u podnaslovu stoji samo glavna linija, bez poteza iz zagrada.
 
 ---
 
