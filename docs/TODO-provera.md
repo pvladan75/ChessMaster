@@ -5893,8 +5893,14 @@ Telefon ostaje isti — jedna kolona, po konstrukciji.
    pa 1. Nigde žuto-crne trake.
 4. [ ] **Telefon, spisak domaćih.** Jedna kolona, kao i pre. Kartica nije
    odsečena ni previsoka.
-5. [ ] **„Saved puzzles" na Windows-u.** Dijalog je **širi nego pre** i skupovi
-   stoje jedan pored drugog. Naslov, broj zagonetki, kanta i „Open".
+5. [ ] **„Saved puzzles" na Windows-u, sa VIŠE skupova.** Dijalog je **širi
+   nego pre** i skupovi stoje jedan pored drugog. Naslov, broj zagonetki, kanta
+   i „Open".
+5.1. [ ] **Sa JEDNIM skupom** dijalog je **uzak** (oko 460), a kartica popunjava
+   ceo red — nema prazne kolone pored nje. *Ovo je popravka nalaza od
+   20.9.2026: ranije je dijalog uzimao punih 640 i pola je bilo prazno.*
+5.2. [ ] **Kartica nije prazna iznutra** — kanta i „Open" stoje odmah ispod
+   broja zagonetki, ne odvojeni rupom.
 6. [ ] **„Open" otvara baš taj skup** — zagonetke iz tog reda, ne iz nekog
    drugog.
 7. [ ] **„Saved puzzles" na telefonu.** *Ovo je popravka greške koja je

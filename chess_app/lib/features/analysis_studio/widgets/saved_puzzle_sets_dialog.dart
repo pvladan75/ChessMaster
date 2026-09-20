@@ -54,7 +54,20 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
     // `BoardPreviewDialog` and `GameSelectorDialog` already carry, and a
     // fixed width can never fit two columns of cards either.
     final mediaSize = MediaQuery.of(context).size;
-    final dialogWidth = (mediaSize.width - 64).clamp(280.0, 640.0);
+
+    // As many columns as there are sets — never as many as the screen would
+    // allow. Reported by the owner on 20.9.2026 against the first build of
+    // this dialog: with a single set it still took the full 640 it was
+    // permitted, the grid correctly reserved a second column, and half the
+    // dialog was empty. Claiming width and not filling it is the very thing
+    // `docs/PLAN-LISTE.md` exists to stop; a grid is right for many cards and
+    // wrong for one.
+    final allowed = (mediaSize.width - 64).clamp(280.0, 640.0);
+    final columns = _sets.isEmpty ? 1 : _sets.length;
+    final wanted = columns * AdaptiveCardGrid.maxTileWidth +
+        (columns - 1) * AdaptiveCardGrid.spacing +
+        AppSpacing.xl * 2;
+    final dialogWidth = wanted.clamp(280.0, allowed);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -77,7 +90,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Puzzles are automatically saved on this device when found during "Review full game".',
+              'Puzzles are automatically saved on this device when found during "Review entire game".',
               style: AppText.body.copyWith(color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -101,7 +114,10 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                     maxHeight: MediaQuery.of(context).size.height * 0.5),
                 child: AdaptiveCardGrid(
                   shrinkWrap: true,
-                  tileHeight: 140,
+                  // 8 over the default: measured, the content of one of
+                  // these cards is 3 px taller than 112 and overflowed
+                  // on the bottom. The rest is margin, not guesswork.
+                  tileHeight: 120,
                   padding: EdgeInsets.zero,
                   itemCount: _sets.length,
                   itemBuilder: (context, index) {
@@ -137,7 +153,7 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
                               style: AppText.caption.copyWith(
                                   color: context.colors.textSecondary),
                             ),
-                            const Spacer(),
+                            const SizedBox(height: AppSpacing.xs),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [

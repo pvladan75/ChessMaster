@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3407 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3410 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -102,7 +102,14 @@ build clips instead of warning. Mutation named the cause exactly — it was the
 `Dialog`'s default `insetPadding` (40 a side, leaving about 280 for a
 `Container` asking 460), **not** the fixed width; the width is what kept a wide
 window to one column. Two independent faults in one widget that look like one.
-Open: the rest of the owner's live pass. Phase 6 of
+Then the owner looked at it on Windows and found a third (-> 3410): with a
+**single** set the dialog still took the full 640 it was allowed, the grid
+correctly reserved a second column, and **half of it was empty** — the card
+filled 49% of the row. The dialog had been made *able* to use width without
+being made to take only the width it can fill, which is the very complaint the
+plan exists to answer. It now asks for as many columns as it has cards; one set
+gives a 460 dialog filled to 100%, two still share a row. The same pass took 29
+px of dead air out of a card. Open: the rest of the owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

@@ -5214,3 +5214,46 @@ pločica spuštena na 40, preimenovan ključ vrste, uklonjen `insetPadding`.
 Mereno: aplikacija **3400 → 3407** (7 slučajeva iz kapije, nijedan radnikov),
 1 preskočen, pun prolaz sam, 9 min 4 s. Analyze: istih 26 `info`, nijedan iz
 dva izmenjena fajla. Uživo: **stavka 204**.
+
+---
+
+## Širina koja se traži a ne popunjava — 20.9.2026, nalaz vlasnika uživo
+
+Nastavak faze 3a. Vlasnik je otvorio „Saved puzzles" na Windows-u, sa **jednim**
+sačuvanim skupom, i poslao sliku. Dijalog je uzeo punih 640 px koliko mu je
+dozvoljeno, mreža je ispravno rezervisala **dve** kolone, i **polovina dijaloga
+je bila prazna**. Mereno: kartica popunjava 49% reda; 29 px mrtvog prostora
+između „5 puzzles" i dugmadi, jer je `Spacer` gurao dugmad na dno pločice više
+od svog sadržaja.
+
+To je **ista vlasnikova zamerka u novom odelu**, i ja sam je napravio. Dijalog
+je bio osposobljen da *može* da koristi širinu, ali ne i da uzme **samo onoliko
+koliko može da popuni**. Mreža je tačan odgovor za mnogo kartica i pogrešan za
+jednu.
+
+Kapija faze 3a je pitala „stoje li **dva** skupa jedan pored drugog na 1400?" i
+nikad nije pitala kako izgleda **jedan**. Prošla je. Novi slučajevi: jedan skup
+popunjava red (>90%), **dva i dalje dele red** — taj drugi postoji da se
+popravka ne bi svela na „suzi dijalog zauvek" — i razmak između teksta i
+dugmadi ispod 12 px.
+
+Popravka: dijalog traži onoliko kolona koliko ima kartica
+(`columns * maxTileWidth + razmaci + padding`, ograničeno ekranom). Jedan skup
+→ dijalog 460, popunjenost 100%, razmak 4 px. Dva → 640, i dalje jedan pored
+drugog.
+
+Usput, i vredi zapisati: prvo sam skinuo `tileHeight` na podrazumevanih 112,
+„izračunato" iz sadržaja. Prelilo se **za 3 px**, šest puta. Procena visine iz
+glave je procena; kapija je to uhvatila odmah, pa je visina 120 sa marginom, a
+ne 112 iz računa.
+
+Mereno: aplikacija **3407 → 3410**, 1 preskočen, pun prolaz sam. Analyze: istih
+26 `info`.
+
+**Otvoreno, iz iste provere:** u „Choose a game" podnaslov vrste pokazuje
+`1. e4 { [%clk 0:03:00] } 1... c5 ...` — komentari sa satom pojedu red, pa se
+vide dva poteza umesto osam, i **pretraga po potezima je oslabljena** (kucanje
+`e4 c5` ne nalazi ništa, jer je između njih `{ [%clk ... ] }`). Uzrok je moj
+fixture iz faze 1: čist PGN `1. d4 d5 2. c4 e6`, dok vlasnikovih 4126 partija
+dolazi sa onlajn servisa i nosi `%clk` na svakom potezu. Pravilo 6, od reči do
+reči. Nije faza 7 (to je tabela) nego ispravka faze 1.

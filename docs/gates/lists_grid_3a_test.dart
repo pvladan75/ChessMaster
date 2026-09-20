@@ -31,6 +31,7 @@ import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dia
 import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 Widget _app(Widget home) => MaterialApp(
       theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
@@ -126,6 +127,30 @@ Future<void> _seedSets(int count) async {
     'analysis_studio_puzzle_sets':
         jsonEncode(sets.map((s) => s.toJson()).toList()),
   });
+}
+
+/// Opens the saved-puzzles dialog over a blank page of [size].
+Future<void> _openDialog(WidgetTester tester, Size size) async {
+  await _at(
+    tester,
+    size,
+    Builder(
+      builder: (context) => Scaffold(
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) =>
+                  SavedPuzzleSetsDialog(onPuzzleSetOpened: (_, __) {}),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('open'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -260,6 +285,53 @@ void main() {
       final first = tops.reduce((a, b) => a < b ? a : b);
       expect(tops.where((t) => (t - first).abs() < 0.5).length, 1);
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a single set leaves no empty column', (tester) async {
+      // Found on the owner's screen, 20.9.2026, against the first build of
+      // this phase: with one set the dialog still claimed the full 640 it is
+      // allowed, the grid correctly reserved two columns, and **half the
+      // dialog was void** — the card filled 49% of the row.
+      //
+      // That is the owner's original complaint in a new coat. The dialog was
+      // made *able* to use width without being made to take only the width it
+      // can fill. A grid is right for many cards and wrong for one, so the
+      // dialog asks for as many columns as it has cards, not as many as it is
+      // allowed.
+      await _seedSets(1);
+      await _openDialog(tester, const Size(1920, 1080));
+
+      final grid = tester.getSize(find.byType(AdaptiveCardGrid)).width;
+      final card = tester.getSize(find.byType(Card).first).width;
+      expect(card / grid, greaterThan(0.9),
+          reason: 'one set fills ${(card / grid * 100).round()}% of the row — '
+              'the rest is a reserved column with nothing in it');
+    });
+
+    testWidgets('but two sets still share a row', (tester) async {
+      // The other half of the rule, and the reason the case above cannot be
+      // satisfied by shrinking the dialog to one column for good.
+      await _seedSets(2);
+      await _openDialog(tester, const Size(1920, 1080));
+
+      expect(tester.getTopLeft(find.text('Set 1')).dy,
+          tester.getTopLeft(find.text('Set 2')).dy,
+          reason: 'two sets no longer sit side by side');
+    });
+
+    testWidgets('a card is not mostly empty space', (tester) async {
+      // 29 px of dead air between what a set says and the buttons that act on
+      // it, because a `Spacer` pushed them to the bottom of a tile taller than
+      // its content. Things that belong together are placed together.
+      await _seedSets(1);
+      await _openDialog(tester, const Size(1920, 1080));
+
+      final subtitle = tester.getRect(find.text('2 puzzles').first);
+      final open =
+          tester.getRect(find.widgetWithText(ElevatedButton, 'Open').first);
+      expect(open.top - subtitle.bottom, lessThan(12.0),
+          reason: 'the gap between a set and its buttons is '
+              '${(open.top - subtitle.bottom).round()} px');
     });
 
     testWidgets('opening a set still hands over that set\'s puzzles',

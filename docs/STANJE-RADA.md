@@ -73,7 +73,25 @@ Mutacija je posle rekla šta je tačno krivo — podrazumevani `insetPadding`
 dijaloga, a **ne** zakovana širina; širina je ono što je široki prozor držalo
 na jednoj koloni. Dve nezavisne greške u istom widgetu.
 
-Aplikacija **3400 → 3407**, analyze istih 26 `info`. Uživo: **stavka 204**.
+Aplikacija **3400 → 3407**, analyze istih 26 `info`.
+
+**Vlasnik je isti dan pogledao uživo i našao treću grešku u istom dijalogu**
+(→ 3410): sa **jednim** skupom dijalog je i dalje uzimao punih 640 koliko sme,
+mreža je ispravno rezervisala drugu kolonu, i **pola dijaloga je bilo prazno**
+(kartica popunjava 49% reda), uz 29 px mrtvog prostora do dugmadi. To je ista
+vlasnikova zamerka u novom odelu: dijalog je osposobljen da *može* da koristi
+širinu, ali ne i da uzme samo onoliko koliko može da popuni. Sada traži onoliko
+kolona koliko ima kartica — jedan skup daje dijalog od 460 popunjen 100%, dva i
+dalje dele red. Kapija je dobila i taj drugi slučaj, da se popravka ne svede na
+„suzi dijalog zauvek".
+
+Uživo: **stavka 204** (sa novim tačkama 5.1 i 5.2).
+
+**Otvoreno iz iste provere — faza 1b u `PLAN-LISTE.md`:** u „Choose a game"
+podnaslov vrste pokazuje `1. e4 { [%clk 0:03:00] } 1... c5 …`, pa se vide dva
+poteza umesto osam, a **pretraga po potezima je oslabljena** (`e4 c5` ne nalazi
+ništa). Uzrok je fixture faze 1 — čist PGN, dok vlasnikove partije nose `%clk`
+na svakom potezu. **Nije faza 7**, to je tabela.
 
 ---
 
