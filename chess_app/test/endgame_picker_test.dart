@@ -13,7 +13,11 @@ class _FakeApi extends EndgameApiService {
   final EndgameCatalog? catalog;
 
   @override
-  Future<EndgameCatalog?> fetchCatalog({EndgameMode? mode}) async => catalog;
+  Future<EndgameCatalog?> fetchCatalog({
+    EndgameMode? mode,
+    bool includeOnline = false,
+  }) async =>
+      catalog;
 }
 
 EndgameCatalog catalog() => EndgameCatalog.fromJson({

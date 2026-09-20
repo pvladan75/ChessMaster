@@ -97,12 +97,25 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// instead, which is behind „More tools" on a phone and costs no height.
   final VoidCallback? onOpenScanner;
 
+  /// A saved puzzle set to open straight into, rather than into free analysis.
+  ///
+  /// The fourth of the „open exactly this" parameters, and it exists for the
+  /// same reason the others do: until 20.9.2026 the only way into puzzle mode
+  /// was the dialog on this screen, so a puzzle set on the Library shelf was
+  /// drawn and answered nothing when tapped — reported live that day, together
+  /// with „I don't know where that is", which is the same fault said twice.
+  ///
+  /// Like [initialFen], [initialGame] and [initialTree] it wins over the draft
+  /// kept on the device: the caller asked for this set.
+  final List<LocalPuzzle>? initialPuzzles;
+
   const AnalysisStudioScreen({
     super.key,
     required this.userSession,
     this.initialFen,
     this.initialGame,
     this.initialTree,
+    this.initialPuzzles,
     this.onOpenScanner,
   });
 
@@ -241,9 +254,24 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
     });
-    // An explicit initialFen or game means the caller wants exactly that
-    // (e.g. exported from a game), so it must not be overwritten by a draft.
-    if (widget.initialFen == null && game == null && tree == null) {
+    final puzzles = widget.initialPuzzles;
+    if (puzzles != null && puzzles.isNotEmpty) {
+      _activePuzzleSet = puzzles;
+      // `_loadPuzzleAtIndex` calls `setState` and shows a snackbar, and
+      // neither is allowed while this frame is being built — so it runs after
+      // it, not before. A caller's set is the one thing on this screen that
+      // has to survive the first frame to be seen at all.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadPuzzleAtIndex(0);
+      });
+    }
+    // An explicit initialFen, game, tree or puzzle set means the caller wants
+    // exactly that (e.g. exported from a game), so it must not be overwritten
+    // by a draft.
+    if (widget.initialFen == null &&
+        game == null &&
+        tree == null &&
+        widget.initialPuzzles == null) {
       _restoreDraft();
     }
   }

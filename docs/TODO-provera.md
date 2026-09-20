@@ -5878,6 +5878,57 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 207. Tri nalaza vlasnikove provere 20.9.2026 uveče — nije viđeno uživo
+
+Tri stvari nadjene uživo iste večeri, u kodu istu noć. Prva i treća su
+aplikacija; druga je i server, pa **backend mora da bude restartovan** pre
+provere.
+
+**A. Zagonetke iz Biblioteke se otvaraju.** Prijava: „Library - Puzzle sets.
+Klikom na set puzzle se ništa ne dešava." Kartica je stajala na polici i nije
+odgovarala ni na šta, jer se u režim zagonetki ulazilo samo kroz dijalog na
+ekranu Analize na kom su izvučene.
+
+1. [ ] **Kucni set u Biblioteci.** Teach → Library → čip „Puzzle sets", pa
+   kucni karticu. Otvara se Analiza sa **tom** zagonetkom: tabla, a dole
+   poruka sa temom („🧩 fork" i slično).
+2. [ ] **Baš taj set.** Sa dva ili više setova kucni **drugi po redu** —
+   otvara se on, ne najnoviji.
+3. [ ] **Skica se ne meša.** Ako si ostavio nezavršenu analizu, otvaranje seta
+   je ne vraća preko zagonetke.
+4. [ ] **Telefon.** Isto radi u jednoj koloni.
+5. [ ] **Prazan set.** Ako ga imaš, kucanje kaže da nema zagonetki umesto da
+   otvori prazan ekran.
+
+**B. Brojevi u „What to drill" prate prekidač.** Prijava uz stavku 206 tačka 5:
+„očekivao sam da uključivanje/isključivanje online partija menja brojeve, ali
+ne menja brojeve." Nije bio samo mrtav prekidač — katalog je brojao **i online
+partije**, a sam trening ih po podrazumevanom podešavanju **ne servira**, pa je
+ukupan broj bio veći od onoga što se može dobiti.
+
+6. [ ] **Prekidač pomera broj.** Practise → Endgames → bilo koja kartica.
+   Uključi „Include online games": „Selected: N positions" u dnu se **poveća**.
+   Isključi: **vrati se** na staro.
+7. [ ] **Kvačice preživljavaju.** Skini kvačicu sa jedne porodice, pa okreni
+   prekidač: ta porodica je i dalje bez kvačice. Ne vraća se sve na početak.
+8. [ ] **Broj je iskren.** Suzi izbor na nešto malo, upamti broj, pritisni
+   „Start" i prodji kroz zadatke — ne sme da se desi da trening kaže da nema
+   pozicija dok je pisalo da ih ima.
+9. [ ] **Nivo i dalje radi** uz uključen prekidač: čip nivoa menja broj.
+
+**C. ☰ u sobi se lakše pogadja.** Prijava: „radi, ali je u takvom delu ekrana,
+da jedva odgovara na pritisak". Izmereno: dugme je stajalo 4 px od leve ivice,
+a leva ivica telefona položeno je i traka za Androidov gest „nazad".
+
+10. [ ] **Telefon položeno, soba.** Otvori sobu (STUDIO) na telefonu **na
+    boku**. ☰ gore levo se pogadja iz prve, više puta zaredom.
+11. [ ] **Otvara ono što je otvarao.** Iza njega je i dalje leva kolona sa
+    „Library", i kucanje na tutorijal ga stavlja na tablu.
+12. [ ] **Uspravno je nepromenjeno.** Isti ekran uspravno: ☰ radi kao i pre.
+    *Ovo je jedino od trojeg što nije potvrdjeno merenjem nego pretpostavkom —
+    ako i dalje slabo odgovara, uzrok nije mesto nego nešto drugo i traži novu
+    dijagnozu.*
+
 ## 206. „What to drill" u kolonama — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija, faza 4 plana `PLAN-LISTE.md`. Porodice završnica (topovske,

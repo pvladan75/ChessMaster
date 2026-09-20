@@ -5410,3 +5410,84 @@ telefonsko prelivanje odjednom, što je najjasniji dokaz da je jedna kolona na
 Mereno: aplikacija **3437 → 3445** (7 u kapiji faze, 1 dodat u testu mreže),
 1 preskočen, pun prolaz sam, 8 min 32 s. Analyze: istih 26 `info`, nijedan iz
 dva izmenjena fajla. Uživo: **stavka 206**.
+
+## Broj brojan nad drugim skupom nego što se servira — 20.9.2026, nalaz vlasnika
+
+Vlasnik je uz stavku 206 tačka 5 napisao: „Ovo je tačno, ali sam očekivao da
+uključivanje/isključivanje online partija menja brojeve, ali ne menja
+brojeve." Prijava zvuči kao mrtav prekidač. Nije bila.
+
+Tri činjenice, svaka pročitana iz izvora:
+
+- `GET /puzzles/endgame/next` izostavlja online bazu ako se ne traži
+  (`routes/puzzles.js`), i `…/game/next` isto;
+- `GET /puzzles/endgame/catalog` je brojao **sve**;
+- `fetchCatalog({EndgameMode? mode})` — cela potpisa. Zastavica nikad nije ni
+  krenula.
+
+Dakle „Selected: N positions" je bio **veći od onoga što se može servirati**,
+za tačno onoliko koliko je izbor imao online pozicija, i to po podrazumevanom
+podešavanju. Izbor čije su jedine pozicije online čitao se kao zdrav broj sa
+živim „Start"-om i iza njega nije bilo ničega. Komentar na vrhu tog ekrana
+kaže da brojevi stižu razloženi po rejting-pojasu baš zato da bi se
+kombinacija sabrala u aplikaciji „rather than sent to the server to be
+answered with 'nothing matches' after the fact" — za ovaj jedan filter to
+obećanje nije držalo.
+
+**Pouka je opštija od zastavice.** Dve rute nad istom tabelom odgovaraju na
+dva pitanja — „koliko ih ima" i „daj mi jednu" — i **moraju da broje isti
+skup**. Kad se ne slažu, greška se ne vidi ni na jednoj strani posebno: obe
+rute su interno tačne. Vidi se tek kao broj koji ne odgovara stvarnosti, a to
+je najskuplji oblik greške, jer izgleda kao podatak.
+
+Ironija je zapisana u samom modulu. `services/endgameSources.js` u zaglavlju
+kaže: jedno mesto zna ime baze „because two would drift", i da **obe rute**
+filtriraju po njemu. Katalog je bio **treća** ruta nad `endgame_puzzles` i nije
+filtrirao. Pravilo 12 je bilo napisano, poštovano na dva mesta, i promašeno na
+trećem — jer se „jedno mesto zna" odnosilo na *konstantu*, a ne na *spisak
+onih koji je moraju koristiti*.
+
+**Kapija je sa obe strane čitala zahtev, ne ekran** (pravilo 7). Na serveru:
+rukovalac se poziva direktno, `pool.query` se zameni, i tvrdi se nad **SQL-om
+koji je ruta postavila** — idiom `puzzle_progress_routes.test.js`. U
+aplikaciji: `EndgameApiService` već nosi `client` šav, i njegov sopstveni
+komentar kaže zašto — raniji endgame testovi su preklapali metode, „which
+proves the screen and nothing about the path, the query or the body". Lažnjak
+koji odgovara na pitanje koje niko nije postavio ovu grešku ne bi video uopšte;
+zato fikstura vraća **različite brojeve** za uključeno i isključeno, pa slučaj
+pada i kad zastavica ne stigne.
+
+Server: 3 crvena / 3 zelena na master-u; tri mutacije (uslov obrnut, ručno
+prepisana klauzula umesto deljene, trening prestao da filtrira) — svaka crvena
+na tačnom slučaju, i baš ona sa **ručno prepisanim imenom fajla** je ta koja
+čuva pravilo 12. Aplikacija: 4 crvena / 1 zelen, tri mutacije, sve uhvaćene.
+
+**Dve stvari koje je ova izmena povukla za sobom, i obe su poznate pouke.**
+
+Prva: jedan refetch lako pojede rad čitaoca. `_load()` je vraćao sve kvačice
+na početak, pa bi okretanje prekidača poništilo izbor. Pravilo je zapisano
+umesto pogadjano — *sve čekirano ostaje sve čekirano* (da udju i završnice
+koje stižu sa online bazom), *uže od toga zadržava ono što još postoji* — i
+ima svoj slučaj.
+
+Druga: **deveti fajl, opet.** Grep za `fetchCatalog` u testovima našao je dva
+lažnjaka čiji potpis treba proširiti. Pao je treći, `endgame_wire_format_test`,
+koji **ne preklapa metodu** nego tvrdi mapu upita nad pravim `client` šavom:
+`{'mode': 'win'}` je postalo `{'mode': 'win', 'includeOnline': 'false'}`. Taj
+test je uradio tačno ono zbog čega postoji — primetio je da se žica promenila —
+pa je tvrdnja **otvoreno dopunjena**, sa objašnjenjem iznad nje, i dobio je
+susedni slučaj za uključeno. Grep po imenu metode nadje one koji je zovu; ne
+nadje one koji gledaju **šta ona pošalje**.
+
+Mereno: aplikacija **3445 → 3463** (6 u kapiji zagonetki, 5 u kapiji ☰, 6 u
+kapiji online brojeva, 1 dopuna žice), 1 preskočen. Backend **1530 → 1536** bez
+baze i **1624 → 1630** sa njom, sve zeleno, na jednokratnom klasteru. Analyze:
+istih 26 `info`, nijedan iz izmenjenih fajlova. Uživo: **stavka 207**.
+
+**Uzgred nadjeno, nije popravljeno:** pun backend prolaz je na master-u pao na
+`tutorial_preview_frames.test.js` — „a preview leaves nothing in exports/",
+53 !== 54. Sam taj fajl je zelen. To je trka nad **deljenim direktorijumom
+`exports/`**: `node --test` vrti fajlove uporedo, a taj slučaj broji fajlove u
+`exports/` pre i posle. Nije regresija i nije se ponovila u sledeća dva
+prolaza; jeste test koji čita promenljivo stanje na disku koje drugi fajl u
+istom trenutku menja.

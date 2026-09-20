@@ -53,7 +53,22 @@ void main() {
     final (api, sent) = service();
     await api.fetchCatalog(mode: EndgameMode.win);
     expect(sent.single.url.path, '/api/puzzles/endgame/catalog');
-    expect(sent.single.url.queryParameters, {'mode': 'win'});
+    // `includeOnline` joined this request on 20.9.2026 and is sent even when
+    // false. The route answers „how many are there" and `/next` answers „give
+    // me one of them"; until that day only the second one knew about the
+    // online base, so the picker's total was bigger than anything the drill
+    // could serve. Leaving the flag out would mean the same to the server —
+    // but a request that states what it counts is the one that can be read,
+    // and `the next game` below has always stated it.
+    expect(sent.single.url.queryParameters,
+        {'mode': 'win', 'includeOnline': 'false'});
+  });
+
+  test('the catalogue, with the online base asked for', () async {
+    final (api, sent) = service();
+    await api.fetchCatalog(mode: EndgameMode.win, includeOnline: true);
+    expect(sent.single.url.queryParameters,
+        {'mode': 'win', 'includeOnline': 'true'});
   });
 
   test('the next game', () async {

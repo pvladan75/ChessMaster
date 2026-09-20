@@ -65,16 +65,34 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  /// Fetches the catalogue for the current filters.
+  ///
+  /// [keepChoice] is what the online switch needs: the pool changes under the
+  /// reader, but the reader did not ask to start over. The rule is stated
+  /// rather than guessed at — everything ticked stays everything ticked, so
+  /// endings that arrive with the online base are in; anything narrower keeps
+  /// exactly what is still there to keep.
+  Future<void> _load({bool keepChoice = false}) async {
+    final hadEverything =
+        _catalog != null && _chosen.length >= _catalog!.allMaterials.length;
+    final previous = Set.of(_chosen);
+
     setState(() => _loading = true);
-    final catalog = await _api.fetchCatalog(mode: widget.mode);
+    final catalog = await _api.fetchCatalog(
+      mode: widget.mode,
+      includeOnline: AppSettingsService.instance.endgameIncludeOnline,
+    );
     if (!mounted) return;
+    final everything = catalog?.allMaterials ?? const <String>{};
     setState(() {
       _catalog = catalog;
       _loading = false;
       _chosen
         ..clear()
-        ..addAll(catalog?.allMaterials ?? const <String>{});
+        ..addAll(keepChoice && !hadEverything
+            ? previous.where(everything.contains)
+            : everything);
+      if (keepChoice) return;
       // The biggest family opens by itself, since it is what most sessions are
       // about and an all-collapsed list looks like it holds nothing.
       _open.clear();
@@ -218,7 +236,15 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
       builder: (context, _) => SwitchListTile(
         contentPadding: EdgeInsets.zero,
         value: settings.endgameIncludeOnline,
-        onChanged: settings.setEndgameIncludeOnline,
+        // The counts come from the server, so changing which games they are
+        // counted over means asking again. Before 20.9.2026 this only wrote
+        // the setting, and the numbers under it never moved — which is how the
+        // owner found that they had been counted over the wrong pool all
+        // along.
+        onChanged: (value) async {
+          await settings.setEndgameIncludeOnline(value);
+          if (mounted) await _load(keepChoice: true);
+        },
         title: const Text('Include online games'),
         subtitle: Text(
           'By default drills use over-the-board games. Online '

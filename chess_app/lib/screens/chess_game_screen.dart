@@ -4127,6 +4127,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
       );
     }
 
+    // Narrow enough that the left column cannot stand beside the board, and a
+    // seat that has a column to show. Read once: the bar's ☰ and the drawer it
+    // opens are one decision, and two copies of it are two decisions.
+    final hasDrawer = !isWide && isTrener;
+
+    // How far in the ☰ has to start.
+    //
+    // Whatever the system has taken down the left edge — a display cutout
+    // (`padding`) or the back-gesture strip (`systemGestureInsets`, up to
+    // 48 dp on Android) — plus a floor of 8 so the button is never flush
+    // against the edge on a device that reserves nothing.
+    double leadingInset(BuildContext context) {
+      final mq = MediaQuery.of(context);
+      final reserved = mq.systemGestureInsets.left > mq.padding.left
+          ? mq.systemGestureInsets.left
+          : mq.padding.left;
+      return reserved < 8 ? 8 : reserved;
+    }
+
     return PopScope(
       // Leaving disposes the socket, the Agora channel and every buffered
       // recording event. Never let that happen silently mid-recording.
@@ -4143,6 +4162,29 @@ class _ChessGamePageState extends State<ChessGamePage> {
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
+          // Flutter draws the drawer's ☰ itself when a Scaffold has a drawer,
+          // and it lands four logical pixels from the left edge. Held sideways
+          // that corner is also where Android listens for the back gesture, and
+          // the owner reported the button „barely responds" there (20.9.2026,
+          // TODO-provera 205). Placed by hand instead, past whatever the system
+          // has reserved — the button itself already fills the bar, so the
+          // position was the whole of it.
+          leading: hasDrawer
+              ? Builder(
+                  builder: (context) => Padding(
+                    padding: EdgeInsets.only(left: leadingInset(context)),
+                    // The same tooltip Flutter's own `DrawerButton` carries,
+                    // so nothing that looks for this control by name has to
+                    // know it is now placed by hand.
+                    child: IconButton(
+                      icon: const Icon(Icons.menu),
+                      tooltip: 'Open navigation menu',
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  ),
+                )
+              : null,
+          leadingWidth: hasDrawer ? 56 + leadingInset(context) : null,
           title: Text(isConnected ? gameStatus : 'Connecting...'),
           centerTitle: true,
           actions: [
@@ -4191,8 +4233,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ],
         ),
         // Mobile layout has a Drawer for lessons listing (if Trainer)
-        drawer:
-            (!isWide && isTrener) ? Drawer(child: buildLeftSidebar()) : null,
+        drawer: hasDrawer ? Drawer(child: buildLeftSidebar()) : null,
         body: MoveKeyboardShortcuts(
           cursor: _moveCursor(),
           // _selectNode does its own setState.

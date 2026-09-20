@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
@@ -376,10 +377,41 @@ class _LibraryScreenState extends State<LibraryScreen> {
       case LibraryKind.recording:
         _openRecording(entry);
       case LibraryKind.puzzleSet:
-        // No door into puzzle mode outside the Analysis screen it was
-        // extracted in — see the report. Drawn, but tapping it does nothing.
-        break;
+        _openPuzzleSet(entry);
     }
+  }
+
+  /// Opens a saved puzzle set on the Analysis screen.
+  ///
+  /// Until 20.9.2026 this shelf drew puzzle sets and a tap on one did nothing,
+  /// because the only door into puzzle mode was the dialog on the screen the
+  /// set had been extracted in. The owner reported both halves of that the
+  /// same evening — the dead tap, and not knowing where saved puzzles were at
+  /// all — and the Library is where he looked.
+  ///
+  /// The set is re-read here rather than carried on the [LibraryEntry]: the
+  /// entry is a shelf row, deliberately slim, and the puzzles are on the
+  /// device anyway. A set that has since been deleted or emptied is said, not
+  /// opened.
+  Future<void> _openPuzzleSet(LibraryEntry entry) async {
+    final sets = await LocalPuzzleSetStorageService.instance.loadSets();
+    if (!mounted) return;
+    final match = sets.where((set) => set.id == entry.id);
+    final puzzles = match.isEmpty ? const <LocalPuzzle>[] : match.first.puzzles;
+    if (puzzles.isEmpty) {
+      AppFeedback.error(context, 'That set has no puzzles left in it.');
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AnalysisStudioScreen(
+          userSession: widget.session,
+          initialPuzzles: puzzles,
+        ),
+      ),
+    );
+    // A set can be finished or discarded in there, so the shelf is re-read.
+    if (mounted) _load();
   }
 
   Future<void> _openExercise(LibraryEntry entry) async {

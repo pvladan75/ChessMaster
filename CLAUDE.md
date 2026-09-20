@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3445 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3463 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
+cd chess_backend && npm test          # node --test, 1630 with TEST_DATABASE_URL, 1536 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -164,7 +164,30 @@ itself, so the case shut what it believed it opened; and
 `find.ancestor(…).first` throwing `Bad state` rather than failing, because a
 `ListView` builds nothing below the fold. **A helper that sets state must
 assert the state it set, and an existence check must be able to fail rather
-than throw.** Open: the rest of the owner's live
+than throw.** Then the owner's live pass of that evening, three findings, all
+three in code the same night (→ **3463**; backend 1530 → 1536 without a
+database, 1624 → 1630 with a throwaway cluster): a puzzle set on the Library
+shelf now **opens** (`initialPuzzles`, the fourth „open exactly this"
+parameter — it was drawn and answered nothing, and the code said so in a
+comment); the room's ☰ is **placed by hand**, past whatever the system has
+reserved down the left edge, because measurement showed it already filled the
+bar (48 × 44) and the fault was that it sat at x = 4, in the corner; and the
+one that matters most — **„Selected: N positions" was counted over a different
+pool than the drill serves from.** `/next` leaves the online base out unless
+asked, the catalogue counted everything, and `fetchCatalog` never sent the
+flag, so the total was larger than anything that could be served and the
+switch that was meant to move it moved nothing. Three rules came out of it.
+**Two routes over one table that answer „how many are there" and „give me one"
+must count the same set** — each is internally right, so the fault shows only
+as a number that is not true, which is the most expensive shape there is.
+**„One place knows the name" is a rule about the constant, not about the list
+of callers who must use it**: `endgameSources.js` says in its own header that
+*both* routes filter on the base's name, and the catalogue was the third.
+And, the ninth file again: a grep for `fetchCatalog` found the two fakes whose
+signature needed widening and missed `endgame_wire_format_test`, which does
+not override the method at all — it asserts the **query map** over the real
+`client` seam, which is exactly the job it exists to do. **Grep for what a
+method sends, not only for who calls it.** Open: the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

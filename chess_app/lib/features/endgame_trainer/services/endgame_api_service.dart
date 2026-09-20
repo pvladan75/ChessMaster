@@ -202,9 +202,22 @@ class EndgameApiService {
   /// One request per visit to the picker: the counts come split by rating band,
   /// so every combination of endings and levels is added up on the device
   /// rather than asked for.
-  Future<EndgameCatalog?> fetchCatalog({EndgameMode? mode}) async {
+  /// What there is to practise.
+  ///
+  /// [includeOnline] has to be here, and sent even when false, because this
+  /// route answers „how many are there" while `/next` answers „give me one",
+  /// and the two must count the same pool. Until 20.9.2026 only `/next` knew
+  /// about the online base, so the picker's total was larger than anything the
+  /// drill could serve — reported live that day.
+  Future<EndgameCatalog?> fetchCatalog({
+    EndgameMode? mode,
+    bool includeOnline = false,
+  }) async {
     final uri = Uri.parse('$backendUrl/api/puzzles/endgame/catalog').replace(
-      queryParameters: {if (mode != null) 'mode': mode.name},
+      queryParameters: {
+        if (mode != null) 'mode': mode.name,
+        'includeOnline': includeOnline.toString(),
+      },
     );
 
     try {

@@ -175,9 +175,18 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
 // Counted per mode, because converting and holding are separate exercises and
 // their distributions are not the same.
 router.get('/puzzles/endgame/catalog', authenticateToken, async (req, res) => {
-  const { mode } = req.query;
+  const { mode, includeOnline } = req.query;
   const where = ["material IS NOT NULL", "cardinality(winning_moves) > 0"];
   const params = [];
+
+  // The same line /next and /nextGame carry, and it has to be here for the
+  // counts to mean anything: this route answers „how many positions are there",
+  // and the drill answers „give me one of them". Until 20.9.2026 they answered
+  // over different pools — the catalogue counted the online base, the drill
+  // left it out unless asked — so the picker's „Selected: N positions" was
+  // larger than what could actually be served, and the switch that was meant
+  // to change it changed nothing. Reported live that day.
+  if (includeOnline !== 'true') where.push(excludeOnlineClause());
   if (mode && mode !== 'all') {
     params.push(mode);
     where.push(`mode = $${params.length}`);
