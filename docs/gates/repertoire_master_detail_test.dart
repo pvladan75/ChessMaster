@@ -82,7 +82,12 @@ Future<void> _pump(WidgetTester tester, Size size) async {
   _Api.calls.clear();
   await tester.pumpWidget(MaterialApp(
     theme: ThemeData.light().copyWith(extensions: const [AppColorTokens.light]),
-    home: RepertoireListScreen(api: _Api()),
+    // A fresh key per pump, so a case that pumps twice starts the second time
+    // with nothing chosen. Without it Flutter keeps the same element and the
+    // same `State`, the pane still holds the previous pick, and „tap Benoni"
+    // finds two of them — the row and the pane — which reads as a finder
+    // problem rather than as leftover state.
+    home: RepertoireListScreen(key: UniqueKey(), api: _Api()),
   ));
   await tester.pumpAndSettle();
 }
@@ -171,6 +176,26 @@ void main() {
 
     expect(sideOf('Benoni').width, greaterThan(0));
     expect(sideOf('Italijanka').width, 0);
+  });
+
+  testWidgets('the board is square, whatever the pane is wide', (tester) async {
+    // Reported live by the owner, 20.9.2026, from a screenshot: the bottom
+    // rank was cut in half. Not an overflow — a board asked to be wider than
+    // it is tall just **clips**, and neither a test build nor a release one
+    // says a word about it. So the case measures the rectangle.
+    //
+    // Two windows, because the fault only shows where the pane is wider than
+    // the board asked to be: the board is told a size and the column around
+    // it was stretching that width past it.
+    for (final size in [const Size(1400, 900), const Size(1920, 1000)]) {
+      await _pump(tester, size);
+      await _tapRow(tester, 'Benoni');
+
+      final board = tester.getSize(find.byType(BoardThumbnail));
+      expect(board.width, board.height,
+          reason: 'at $size the board is ${board.width} x ${board.height}, so '
+              'a rank of it is drawn outside itself and clipped');
+    }
   });
 
   testWidgets('the board is seen from the side the repertoire is for',

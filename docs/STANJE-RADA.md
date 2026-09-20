@@ -81,7 +81,27 @@ navigira) i zadržan kao čuvar za dan kada neko oknu doda hod kroz graf. Šest
 mutacija, sve uhvaćene. Dva pravila — okvir izbora i okrenutost table — nisu
 bila pokrivena posle prvog zelenog prolaza i dobila su slučaj **pre** mutiranja.
 
-Aplikacija **3474 → 3483**, analyze istih 26 `info`, nijedan iz izmenjenog
+**Nalaz vlasnika sa slike, istog dana, već popravljen:** donji red table u
+oknu je bio presečen — izmereno `396.0 x 360.0`. Kolona u oknu ima
+`CrossAxisAlignment.stretch` (da dugmad budu preko cele širine), a to detetu
+nameće tesnu **širinu** dok tabla visinu uzima iz svog `size`. `Center` oko
+table rešava. Slučaj „ništa se ne preliva" je pri tome bio **zelen**:
+kliještenje nije prelivanje i ne prijavljuje ga ništa. Novi slučaj meri
+`width == height` na dve širine okna. Isto važi i za okno Biblioteke, koje je
+provereno i **jeste** kvadratno, pa je i tamo dodat slučaj da tako ostane.
+
+**Pretraga svih tabli u `lib/` posle toga našla je još jednu, već
+isporučenu**: sličica na kartici u Biblioteci. `ListTile` daje svom `leading`
+slotu `maxHeight = 56 + visualDensity.dy`, a `adaptivePlatformDensity` je
+**compact na svakom desktopu** — izmereno `56.0 × 48.0` na Windows-u i macOS-u,
+`56.0 × 56.0` na Androidu. Donji red te sličice je, dakle, odsečen na
+Windows-u otkad postoji, a na telefonu izgleda ispravno, zato se nikad nije
+prijavio. `Center` tu ne pomaže (roditelj nameće **najveću visinu**, ne
+širinu), pa je `LibraryList.thumbnailSize = 48` — mera koju obe gustine
+dopuštaju. Slučaj pumpa **obe** platforme, jer jedna sama ne razlikuje
+kvadratnu tablu od srećne gustine; mutacija na 56 obara samo Windows.
+
+Aplikacija **3474 → 3487**, analyze istih 26 `info`, nijedan iz izmenjenog
 fajla. Bez izmena na serveru. Uživo: **stavka 209**.
 
 ---

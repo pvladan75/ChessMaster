@@ -105,6 +105,26 @@ class LibraryList extends StatefulWidget {
   /// answer (rule 12).
   static String idOf(LibraryEntry entry) => '${entry.kind.name}-${entry.id}';
 
+  /// The board on a card, and it is 48 rather than 56 because of what a
+  /// `ListTile` does to its leading slot.
+  ///
+  /// The slot is laid out with `maxHeight = 56 + visualDensity.dy`, and
+  /// `ThemeData` uses `adaptivePlatformDensity`, which is **compact on every
+  /// desktop** — so on Windows and macOS the slot allows 48 of height while
+  /// the board took its width from 56. Measured 20.9.2026: `56.0 x 48.0` on
+  /// Windows and macOS, `56.0 x 56.0` on Android. Eight ranks sized from the
+  /// width drew into 48 px and the bottom one was clipped, in silence — a
+  /// widget drawing outside its own box raises nothing, in test or release,
+  /// because clipping is not overflow.
+  ///
+  /// `Center` does not help here, unlike the panes: the slot imposes a *max
+  /// height*, so the board has to ask for a size that fits it. 48 is the
+  /// number both densities allow, and it makes the two platforms agree.
+  ///
+  /// Found by the owner's eye on the Repertoire pane, which had the same
+  /// fault in a different shape, and then by sweeping every board in `lib/`.
+  static const double thumbnailSize = 48;
+
   /// Below this height the filters scroll with the list rather than above it.
   static const double headerScrollsBelow = 480;
 
@@ -287,7 +307,7 @@ class _LibraryListState extends State<LibraryList> {
             : widget.onSelect!(entry),
         child: BoardThumbnail(
           fen: entry.fen,
-          size: 56,
+          size: LibraryList.thumbnailSize,
           isWhiteBottom: entry.task?['side'] != 'b',
         ),
       ),

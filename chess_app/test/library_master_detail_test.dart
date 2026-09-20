@@ -253,6 +253,22 @@ void main() {
     expect(shapeOf('position-13').side.width, 0);
   });
 
+  testWidgets('the pane\'s board is square', (tester) async {
+    // The same shape of fault the Repertoire's pane had, asked of this one
+    // because the two panes sit in the same kind of stretched column: a board
+    // wider than it is tall draws a rank outside itself and is clipped, and
+    // nothing anywhere reports it. Green here — `BoardPreviewPanel` centres
+    // its own children, so the stretch stops at the panel — and the case is
+    // what keeps it that way.
+    await _library(tester, const Size(1920, 1000));
+
+    await _tapBoard(tester, 'position-12');
+
+    final board = tester.getSize(find.byType(BoardThumbnail).last);
+    expect(board.width, board.height,
+        reason: 'the pane stretched the board out of square');
+  });
+
   testWidgets('a narrow shelf draws one card per row and clips nothing',
       (tester) async {
     // The fault phase 5 walked into, kept here in the shape it was found: a

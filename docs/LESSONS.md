@@ -5635,3 +5635,71 @@ Mereno: aplikacija **3474 → 3483** (9 u kapiji), 1 preskočen. Analyze: istih
 **stavka 209**. Ovim je `PLAN-LISTE.md` odgradjen do kraja — faza 7 (gusta
 tabela u „Choose a game") se briefuje samo ako je vlasnikov prolaz uživo
 zatraži, a faza 8 je taj prolaz.
+
+### Dopuna faze 6: tabla koja nije kvadrat — nalaz vlasnika sa slike
+
+Vlasnik je pogledao okno uživo i video da je **donji red table presečen**.
+Izmereno u testu: `396.0 x 360.0`.
+
+Uzrok je jedan red koji sam napisao bez razmišljanja. Kolona u oknu ima
+`crossAxisAlignment: CrossAxisAlignment.stretch` — da bi „Open" i „Drill" bili
+preko cele širine. `stretch` detetu nameće **tesnu širinu** (396, koliko ima
+okno), a `BoardThumbnail` visinu i dalje uzima iz svog parametra `size` (360).
+Tabla onda crta osam redova po 49.5 px u 360 px visine: poslednji red pada
+izvan nje i biva odsečen. Popravka je `Center` oko table — Center daje labave
+constraints, pa dete uzme svoju veličinu.
+
+**Pouka je o tome zašto kapija to nije videla.** Imao sam slučaj „ništa se ne
+preliva" sa `takeException()` i on je bio **zelen** — jer kliještenje **nije**
+prelivanje. `RenderFlex` viče kad dete ne stane u red; widget koji sam sebe
+nacrta veći od svog okvira ne viče nigde, ni u test ni u release build-u.
+Pravilo iz `CLAUDE.md` („a release build paints no overflow warning") pokriva
+samo prvu polovinu; ovo je druga:
+
+**Za sve što ima zadatu proporciju — tabla, dijagram, slika — ne pitaj da li
+se preliva, nego izmeri pravougaonik.** Slučaj koji je dodat meri
+`board.width == board.height` na dve širine okna, jer se greška vidi samo tamo
+gde je okno šire nego što je tabla tražila.
+
+I uzgred, druga stvar koju je isti slučaj izneo: `pumpWidget` sa istim tipom
+widgeta **ne pravi novi `State`**. Prvi prolaz petlje je izabrao repertoar,
+drugi je zatekao isto stanje i `find.text('Benoni')` je našao dva — vrstu i
+okno. Izgleda kao problem sa finder-om, a jeste zaostalo stanje. `UniqueKey()`
+po pumpanju rešava i čini slučaj čitljivim.
+
+### I druga tabla, ista greška, druga ruka — i već je bila isporučena
+
+Pošto je ista greška mogla da postoji još negde, pretražene su **sve** table u
+`lib/` (svaka upotreba `BoardThumbnail`, `BoardWithCoordinates` i
+`SkinnedChessBoard`) sa jednim pitanjem: da li roditelj nameće tesnu meru po
+jednoj osi koja se razlikuje od onoga što je widget dobio kao `size`.
+
+Nadjena je **još jedna**, i to takva koja **već radi u isporučenoj verziji**:
+sličica table na kartici u Biblioteci.
+
+`ListTile` raspoređuje svoj `leading` slot sa
+`maxHeight = 56 + visualDensity.dy`, a `ThemeData` koristi
+`adaptivePlatformDensity`, koja je **compact na svakom desktopu**. Izmereno:
+
+| platforma | visualDensity | sličica |
+|---|---|---|
+| Windows | compact (−2) | **56.0 × 48.0** |
+| macOS | compact (−2) | **56.0 × 48.0** |
+| Android | standard (0) | 56.0 × 56.0 |
+
+Dakle donji red te sličice je odsečen na Windows-u otkad postoji, a **na
+telefonu izgleda ispravno** — zato se nikad nije prijavio. Vlasnik gleda obe
+platforme, ali sličica je 56 px i pola reda na njoj je 3.5 px.
+
+**`Center` ovde ne pomaže**, za razliku od okna: roditelj ne nameće tesnu
+širinu nego **najveću visinu**, pa tabla mora da traži meru koja u slot staje.
+Otuda `LibraryList.thumbnailSize = 48` — broj koji obe gustine dopuštaju, i
+koji usput čini da se dve platforme slažu.
+
+**Pouka, i ona je nova:** raspored koji zavisi od `visualDensity` je
+**nevidljiv na platformi na kojoj testiraš**. Slučaj koji fiksira proporciju
+mora da pumpa **obe** platforme — jedna sama ne ume da razlikuje kvadratnu
+tablu od srećne gustine. Mutacija to i pokazuje: vraćanje na 56 obara samo
+Windows slučaj, dok Android ostaje zelen.
+
+Mereno: aplikacija **3485 → 3487**, 1 preskočen. Analyze: istih 26 `info`.

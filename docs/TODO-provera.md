@@ -5898,6 +5898,11 @@ kartica u Biblioteci ima dve mete (tabla i ostatak), pa je tabla postala
    poteza, **linija do korena** („1. d4 Nf6 2. c4 c5 3. d5 e6"), tabla te
    pozicije, pa „Open" i „Drill".
 3. [ ] **Obeležena je samo jedna vrsta**, i to **okvirom** (ne bojom).
+3.1 [ ] **Tabla je cela.** Donji red table (beli top, skakač, lovac…) se vidi
+   u celini, nije presečen. *Vlasnikov nalaz sa slike 20.9.2026: tabla je bila
+   396 široka a 360 visoka, pa je poslednji red bio nacrtan van nje i tiho
+   odsečen — ni test ni release build o tome ne kažu ništa, jer to nije
+   prelivanje nego kliještenje. Pogledaj i na širem i na užem prozoru.*
 4. [ ] **Tabla je okrenuta ka tvojoj strani.** Za repertoar za crnog crni je
    dole.
 5. [ ] **Repertoar bez zapamćene linije** (stariji, ili napravljen iz
@@ -5939,6 +5944,12 @@ se ništa ne menja — dijalog kao i do sada.
 
 **Ovo ispod je popravka greške koja je postojala i ranije** (od faze 3b), a
 faza 5 je na nju naletela:
+
+10. [ ] **Sličica na kartici je cela.** Na **Windows-u** pogledaj kartice
+    zadataka i pozicija u Biblioteci: mala tabla levo ima sav donji red, nije
+    presečena. *Bila je 56 × 48 na desktopu i 56 × 56 na telefonu — odsečena
+    otkad postoji, a na telefonu ispravna, pa se nikad nije prijavila. Sada je
+    48 × 48 svuda, dakle **malo manja nego pre** na telefonu.*
 
 9. [ ] **Najmanji mogući prozor.** Suzi prozor do kraja — Windows ga ne pušta
    ispod 900 px (`win32_window.cpp`, `ptMinTrackSize`). Na toj širini polica

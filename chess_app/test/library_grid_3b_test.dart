@@ -17,6 +17,7 @@
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -449,6 +450,42 @@ void main() {
         expect(boardIn('library-row-position-7'), findsOneWidget);
         expect(boardIn('library-row-tutorial-3'), findsNothing);
         expect(tester.takeException(), isNull);
+      });
+    }
+
+    for (final platform in [TargetPlatform.windows, TargetPlatform.android]) {
+      testWidgets('the card\'s board is square on $platform', (tester) async {
+        // Added 20.9.2026, after the owner saw a clipped rank in the
+        // Repertoire's pane and a sweep of every board in `lib/` found the
+        // same fault here — shipping, and invisible on the device he checks
+        // on.
+        //
+        // `ListTile` lays its leading slot out with
+        // `maxHeight = 56 + visualDensity.dy`, and `adaptivePlatformDensity`
+        // is **compact on every desktop**. A board told 56 was handed 48 of
+        // height and drew its eighth rank outside itself. Measured before the
+        // fix: `56.0 x 48.0` on Windows and macOS, `56.0 x 56.0` on Android —
+        // which is exactly why only a Windows build could show it.
+        //
+        // The case asks both platforms, because one alone cannot tell a
+        // square board from a lucky density.
+        // Restored inside the body rather than in a tear-down: the framework
+        // checks its debug variables between the two and reports „the value
+        // of a foundation debug variable was changed by the test", which
+        // reads as a fault in the case rather than in the screen.
+        debugDefaultTargetPlatformOverride = platform;
+        try {
+          await pump(tester, const Size(1400, 900));
+
+          final board = tester.getSize(_inRow(
+              const ValueKey('library-row-position-7'),
+              find.byType(BoardThumbnail)));
+          expect(board.width, board.height,
+              reason: 'on $platform the board is ${board.width} x '
+                  '${board.height}, so a rank is drawn outside it and clipped');
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
       });
     }
 

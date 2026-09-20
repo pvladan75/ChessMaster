@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3483 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3487 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1630 with TEST_DATABASE_URL, 1536 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -234,7 +234,34 @@ that was visible all along; and a case can be red on master for the *wrong*
 reason and still be worth keeping, as long as the file says so — „three
 selections issue no request" cannot fail honestly where selection does not
 exist, and its job is to guard the pane the day somebody gives it a graph
-walk. Open: the rest of the owner's live
+walk. **And the owner then looked at that pane and found the board's bottom
+rank cut off** — measured `396.0 x 360.0`, because the column stretches its
+children so the buttons fill the pane, and a `BoardThumbnail` told to be 360
+and handed a tight width of 396 draws eight ranks sized from the width into
+360 px of height. `Center` around it fixes it. The gate's own „nothing
+overflows" case was **green throughout**, and that is the lesson: **clipping is
+not overflow.** A `RenderFlex` complains when a child will not fit a row; a
+widget that draws itself larger than its own box complains nowhere, in test or
+release. So for anything with a fixed proportion — a board, a diagram, an
+image — **do not ask whether it overflows, measure the rectangle**
+(`width == height`, at two pane widths, because the fault only shows where the
+pane is wider than the board asked to be). A second thing the same case
+turned up: `pumpWidget` with the same widget type **reuses the `State`**, so
+the second pump in a loop still held the first pick and `find.text` matched
+two — which reads as a finder problem and is leftover state; `UniqueKey()` per
+pump settles it. **Sweeping every board in `lib/` for the same hazard then
+found a second one, already shipping** (→ **3487**): the Library card's leading
+thumbnail. `ListTile` lays its leading slot out with
+`maxHeight = 56 + visualDensity.dy`, and `ThemeData`'s `adaptivePlatformDensity`
+is **compact on every desktop**, so a board told 56 was handed 48 of height.
+Measured: `56.0 x 48.0` on Windows and macOS, `56.0 x 56.0` on Android — which
+is why only a Windows build could ever show it and the owner's phone never
+did. `Center` does not help where the parent imposes a *max height*; the board
+has to ask for a size the slot allows, so `thumbnailSize = 48` and the two
+platforms now agree. **A layout fault that depends on `visualDensity` is
+invisible on the platform you test on** — a case that pins a proportion should
+pump both platforms, because one alone cannot tell a square board from a lucky
+density. Open: the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

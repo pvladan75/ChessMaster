@@ -834,12 +834,21 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
               style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.md),
-            BoardThumbnail(
-              fen: item.rootFen,
-              size: (width - AppSpacing.md * 2).clamp(240.0, 360.0),
-              // Seen from the side the repertoire is built for: the whole
-              // point of it is what *you* would play here.
-              isWhiteBottom: item.forWhite,
+            // Centred rather than stretched. The column around it stretches
+            // its children so the buttons fill the pane, and a board told to
+            // be 360 and handed a width of 396 draws eight ranks of 49.5 into
+            // 360 px of height — the last one outside itself, clipped in
+            // silence. Reported live by the owner, 20.9.2026; neither a test
+            // build nor a release one says anything, because clipping is not
+            // an overflow.
+            Center(
+              child: BoardThumbnail(
+                fen: item.rootFen,
+                size: (width - AppSpacing.md * 2).clamp(240.0, 360.0),
+                // Seen from the side the repertoire is built for: the whole
+                // point of it is what *you* would play here.
+                isWhiteBottom: item.forWhite,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             FilledButton(
