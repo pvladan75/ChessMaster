@@ -1,9 +1,9 @@
 // exercise_line.dart — the app's own `readSolution`, move for move.
 //
-// `chess_backend/services/exercise.js`'s `readSolution` is the rule: a line
-// the server refuses is a line the app should never have sent, so this reader
-// repeats it, reason for reason, and normalises a solution the same way — as
-// the board spells it, decoration included.
+// `chess_backend/services/exercise.js`'s `readSolution` is the rule: a
+// solution the server refuses is one the app should never have sent, so this
+// reader repeats it, reason for reason, and normalises a solution the same
+// way — as the board spells it, decoration included.
 //
 // **The Dart `chess` package is stricter than the server's chess.js**: its own
 // `Chess.move('Rd8')` answers false where chess.js plays it, when the real
@@ -18,7 +18,6 @@ import 'package:chess_app/move_tree.dart';
 
 import 'exercise.dart';
 
-const int _maxSolutionSteps = 20;
 const int _maxAccepted = 8;
 
 /// What reading a solution — typed by hand or flattened from a tree — came
@@ -47,123 +46,57 @@ class ExerciseLineReading {
 class ExerciseLine {
   const ExerciseLine._();
 
-  /// The server's `readSolution`, played out on the app's own board.
-  ///
-  /// Every accepted move is tried from a fresh copy of the position — so one
-  /// alternative failing does not chain into the next — and only the first
-  /// stays played. A reply is legal only after that first move: it was
-  /// written to go there, and may not even be legal after another.
+  /// What a longer list is told — the server's own sentence.
+  static const String oneMove =
+      'A find exercise asks for one move. For more, use Checkmate in N or '
+      'Play N moves.';
+
+  /// The server's `readSolution`, on the app's own board: a list of exactly
+  /// one step, every accepted move legal in the position and tried from a
+  /// fresh copy of it, so one alternative failing does not chain into the
+  /// next.
   static ExerciseLineReading read({
     required String fen,
     required List<ExerciseStep> steps,
   }) {
+    ExerciseLineReading refuse(String why) =>
+        ExerciseLineReading(steps: const [], error: why);
+
     if (steps.isEmpty) {
-      return const ExerciseLineReading(
-        steps: [],
-        error: 'The solution must be a list of at least one move.',
-      );
+      return refuse('The solution must be a list of at least one move.');
     }
-    if (steps.length > _maxSolutionSteps) {
-      return const ExerciseLineReading(
-        steps: [],
-        error: 'The solution is longer than $_maxSolutionSteps moves.',
-      );
-    }
+    if (steps.length > 1) return refuse(oneMove);
 
     final valid = chess.Chess.validate_fen(fen);
-    if (valid['valid'] != true) {
-      return const ExerciseLineReading(
-        steps: [],
-        error: 'The position is not valid.',
-      );
+    if (valid['valid'] != true) return refuse('The position is not valid.');
+
+    final accept = steps.single.accept
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (accept.isEmpty) {
+      return refuse('The solution accepts nothing, so nothing can be right.');
     }
-    final board = chess.Chess.fromFEN(fen);
-
-    final out = <ExerciseStep>[];
-    for (var i = 0; i < steps.length; i++) {
-      final where = 'move ${i + 1}';
-      final raw = steps[i];
-      final accept =
-          raw.accept.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-      if (accept.isEmpty) {
-        return ExerciseLineReading(
-          steps: const [],
-          error: '$where: nothing is accepted, so nothing can be right.',
-        );
-      }
-      if (accept.length > _maxAccepted) {
-        return ExerciseLineReading(
-          steps: const [],
-          error: '$where: more than $_maxAccepted accepted moves.',
-        );
-      }
-
-      // Every accepted move is tried on a copy of the position before this
-      // step; only the first stays played on [board].
-      final played = <String>[];
-      for (final san in accept) {
-        final probe = chess.Chess.fromFEN(board.fen);
-        chess.Move? move;
-        try {
-          move = findMove(probe, san);
-        } catch (_) {
-          move = null;
-        }
-        if (move == null) {
-          return ExerciseLineReading(
-            steps: const [],
-            error: '$where: "$san" cannot be played here.',
-          );
-        }
-        played.add(probe.move_to_san(move));
-      }
-      if (Set<String>.from(played).length != played.length) {
-        return ExerciseLineReading(
-          steps: const [],
-          error: '$where: the same move is accepted twice.',
-        );
-      }
-
-      board.make_move(findMove(board, accept.first));
-
-      final isLast = i == steps.length - 1;
-      final rawReply = raw.reply?.trim();
-      String? reply;
-      if (rawReply != null && rawReply.isNotEmpty) {
-        chess.Move? replyMove;
-        try {
-          replyMove = findMove(board, rawReply);
-        } catch (_) {
-          replyMove = null;
-        }
-        if (replyMove == null) {
-          return ExerciseLineReading(
-            steps: const [],
-            error: '$where: the reply "${raw.reply}" cannot be played.',
-          );
-        }
-        reply = board.move_to_san(replyMove);
-        board.make_move(replyMove);
-      } else if (!isLast && !board.game_over) {
-        // A line that goes on needs the move it goes on after. Without one
-        // the student's next move would be asked of the wrong side.
-        return ExerciseLineReading(
-          steps: const [],
-          error: '$where: the line goes on, but there is no reply to go on '
-              'from.',
-        );
-      }
-      if (isLast && reply != null) {
-        return ExerciseLineReading(
-          steps: const [],
-          error: '$where: the line ends on a reply, which nobody is asked '
-              'to find.',
-        );
-      }
-
-      out.add(ExerciseStep(accept: played, reply: reply));
+    if (accept.length > _maxAccepted) {
+      return refuse('More than $_maxAccepted accepted moves.');
     }
-    return ExerciseLineReading(steps: out);
+
+    final played = <String>[];
+    for (final san in accept) {
+      final probe = chess.Chess.fromFEN(fen);
+      chess.Move? move;
+      try {
+        move = findMove(probe, san);
+      } catch (_) {
+        move = null;
+      }
+      if (move == null) return refuse('"$san" cannot be played here.');
+      played.add(probe.move_to_san(move));
+    }
+    if (Set<String>.from(played).length != played.length) {
+      return refuse('The same move is accepted twice.');
+    }
+    return ExerciseLineReading(steps: [ExerciseStep(accept: played)]);
   }
 
   /// The trainer's tree, read **at its root** — never at `tree.current`. The
@@ -184,7 +117,7 @@ class ExerciseLine {
       steps: moves.isEmpty
           ? const []
           : [
-              ExerciseStep(accept: [for (final m in moves) m.san], reply: null)
+              ExerciseStep(accept: [for (final m in moves) m.san])
             ],
     );
     return ExerciseLineReading(

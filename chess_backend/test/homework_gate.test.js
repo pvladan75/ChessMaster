@@ -634,7 +634,7 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
       await pool.query(
         `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, solution, origin)
          VALUES ($1, $2, '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'w', 'Re1', $3, 'manual')`,
-        [puzzleId, who.trainerId, JSON.stringify([{ accept: ['Rd8#', 'Kf1'], reply: null }])]
+        [puzzleId, who.trainerId, JSON.stringify([{ accept: ['Rd8#', 'Kf1'] }])]
       );
       await pool.query(
         'UPDATE assignment_items SET puzzle_id = $1 WHERE assignment_id = $2 AND puzzle_id = $3',
@@ -659,7 +659,7 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     // The printed move is just a move now.
     const printed = await attempt(asked[2], 'Re1');
     assert.equal(printed.body.correct, false);
-    assert.equal(printed.body.retry, false, 'a one-move exercise is answered once');
+    assert.equal('retry' in printed.body, false, 'nothing is tried again: the word left the wire');
     assert.equal(printed.body.solutionSan, 'Rd8#');
 
     const review = await route('get', '/:id/review', {
@@ -671,96 +671,88 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     for (const item of shown) assert.equal(item.solutionSan, 'Rd8#');
   });
 
-  // ---- a line: docs/PLAN-EXERCISE.md, phase 2a ----------------------------
+  // ---- a hand-made find exercise: one move (PLAN-EXERCISE.md, 14 and 16) ---
 
-  /// A homework whose first item is one exercise asking for the fixture's
-  /// two-move line, and whose second item waits behind it.
-  async function sentLine(who) {
+  /// A homework whose first item is one hand-made exercise holding [steps],
+  /// and whose second item waits behind it.
+  async function sentExercise(who, steps) {
     const fixture = require('../../docs/gates/exercise_line_cases.json');
     const { parentId, children } = await sent(who, [{ puzzles: 1 }, { gate: true }]);
     const puzzleId = `ex_${who.tag}_${Math.random().toString(36).slice(2, 8)}`;
     await pool.query(
       `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, task, solution, origin)
        VALUES ($1, $2, $3, 'w', '{"type":"find"}', $4, 'manual')`,
-      [puzzleId, who.trainerId, fixture.positions.scholar, JSON.stringify(fixture.solutions.scholarLine.steps)]
+      [puzzleId, who.trainerId, fixture.positions.scholar,
+        JSON.stringify(steps || fixture.solutions.scholarFirst.steps)]
     );
     await pool.query(
       'UPDATE assignment_items SET puzzle_id = $1 WHERE assignment_id = $2',
       [puzzleId, children[0].id]
     );
-    const play = (moves) => route('post', '/:id/custom-attempt', {
+    const answer = (body) => route('post', '/:id/custom-attempt', {
       userId: who.studentId,
       params: { id: String(children[0].id) },
-      body: { puzzleId, moves, msTaken: 700 },
+      body: { puzzleId, msTaken: 700, ...body },
     });
     const item = async () => (await pool.query(
       'SELECT attempted_at, solved, played_san FROM assignment_items WHERE assignment_id = $1',
       [children[0].id]
     )).rows[0];
-    return { parentId, play, item };
+    return { parentId, answer, item };
   }
 
-  test('a line gives up one reply at a time, and a line half played is not an attempt', async () => {
+  test('an accepted alternative is right, is written at once, and the answer says four things', async () => {
     const who = await people();
-    const { parentId, play, item } = await sentLine(who);
+    const { parentId, answer, item } = await sentExercise(who);
 
-    const first = await play(['Qf3']);
-    assert.equal(first.status, 200);
-    assert.equal(first.body.correct, true);
-    assert.equal(first.body.done, false);
-    assert.equal(first.body.reply, 'g6');
-    assert.equal(first.body.continuesOn, 'Qh5', 'an accepted alternative goes on from the author\'s move');
-    assert.equal(first.body.solutionSan, null);
-    assert.equal(first.body.retry, false, 'a right move is not retried');
-    assert.equal(JSON.stringify(first.body).includes('Qxe5'), false, 'move two must not travel with move one');
-
-    assert.equal((await item()).attempted_at, null, 'nothing is written in the middle of a line');
-    assert.deepEqual(await states(parentId), ['open', 'locked'], 'and the gate behind it stays shut');
-
-    const second = await play(['Qf3', 'Qxe5']);
-    assert.equal(second.body.correct, true);
-    assert.equal(second.body.done, true);
-    assert.equal(second.body.reply, null);
+    const r = await answer({ moveSan: 'Qf3' });
+    assert.equal(r.status, 200);
+    // The whole wire: nothing of the line machinery travels any more.
+    assert.deepEqual(r.body, {
+      correct: true, reason: 'another correct move', playedSan: 'Qf3', solutionSan: 'Qh5',
+    });
     const written = await item();
     assert.notEqual(written.attempted_at, null);
     assert.equal(written.solved, true);
-    assert.equal(written.played_san, 'Qxe5+');
+    assert.equal(written.played_san, 'Qf3');
     assert.deepEqual(await states(parentId), ['passed', 'open']);
   });
 
-  test('a wrong move in a line may be tried again, and the report keeps the first verdict', async () => {
+  test('a wrong answer is final: it is shown the solution, and a second answer changes nothing', async () => {
     const who = await people();
-    const { parentId, play, item } = await sentLine(who);
+    const { parentId, answer, item } = await sentExercise(who);
 
-    await play(['Qh5']);
-    const wrong = await play(['Qh5', 'Qxh7']);
+    const wrong = await answer({ moveSan: 'd4' });
     assert.equal(wrong.body.correct, false);
-    assert.equal(wrong.body.done, false);
-    assert.equal(wrong.body.step, 1);
-    assert.equal(wrong.body.reply, null);
-    assert.equal(wrong.body.solutionSan, null, 'an answer shown is an answer no longer asked');
-    assert.equal(wrong.body.retry, true);
-    assert.equal(JSON.stringify(wrong.body).includes('Qxe5'), false);
+    assert.equal(wrong.body.solutionSan, 'Qh5');
     const first = await item();
     assert.equal(first.solved, false);
-    assert.equal(first.played_san, 'Qxh7');
+    assert.equal(first.played_san, 'd4');
     // Attempted is done, for a gate that did not ask for solved.
     assert.deepEqual(await states(parentId), ['passed', 'open']);
 
-    const again = await play(['Qh5', 'Qxe5+']);
+    const again = await answer({ moveSan: 'Qh5' });
     assert.equal(again.body.correct, true);
-    assert.equal(again.body.done, true);
     const after = await item();
     assert.equal(after.solved, false, 'the first verdict stands');
-    assert.equal(after.played_san, 'Qxh7');
+    assert.equal(after.played_san, 'd4');
     assert.deepEqual(after.attempted_at, first.attempted_at);
   });
 
-  test('moves that are not moves are refused before anything is read', async () => {
+  test('a row that still holds a line is not judged on its first move', async () => {
     const who = await people();
-    const { play, item } = await sentLine(who);
-    for (const bad of [[1, 2], 'Qh5', [null]]) {
-      const r = await play(bad);
+    const { answer } = await sentExercise(who, [{ accept: ['Qh5'] }, { accept: ['Qxe5+'] }]);
+    const r = await answer({ moveSan: 'Qh5' });
+    assert.equal(r.body.correct, false, 'the first move of a line is not the answer to anything');
+    assert.match(r.body.reason, /solution is missing/);
+    assert.equal(r.body.solutionSan, null);
+  });
+
+  test('an answer that is not one move is refused before anything is read', async () => {
+    const who = await people();
+    const { answer, item } = await sentExercise(who);
+    for (const bad of [{ moves: ['Qh5'] }, { moveSan: ['Qh5'] }, { moveSan: null }, {}]) {
+      const r = await answer(bad);
       assert.equal(r.status, 400, JSON.stringify(bad));
     }
     assert.equal((await item()).attempted_at, null);

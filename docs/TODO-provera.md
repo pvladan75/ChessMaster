@@ -5878,88 +5878,113 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 198. Mašinerija za više poteza je obrisana: „Find" je svuda jedan potez — 20.9.2026, nije viđeno uživo
+
+`docs/PLAN-EXERCISE.md`, faza 16. **I server i aplikacija moraju da budu novi** —
+žica pokušaja se promenila (`moveSan`, a ne spisak poteza), pa stara aplikacija
+na novom serveru dobija 400. Jedini stari zadatak sa linijom
+(`ex_69822c23d741397c`, K+D protiv K, šest poteza) obrisan je iz baze uz
+vlasnikovo „da".
+
+1. [ ] **Učenik**, „Find the move" zadatak u domaćem: tačan potez ostaje na tabli i
+   piše „Correct"; prihvaćena alternativa je takođe tačna.
+2. [ ] Pogrešan potez se vraća, prikazuje se rešenje, i tabla više ne prima potez —
+   nema „Try again", nema „Keep going".
+3. [ ] **Trener**, Library → Exercises → sačuvan „Find" zadatak: ispod naslova piše
+   odgovor kao „Qh5 (or Qf3)" — bez rednog broja i bez čipova za korake.
+4. [ ] Potez odigran na toj tabli postaje alternativa, „x" na čipu je uklanja,
+   glavni potez nema „x"; „Save" šalje izmenu i lista je pokazuje.
+5. [ ] „Make exercise" → „Find the move" → „Play the move" radi kao u stavci 196.
+6. [ ] Pregled domaćeg (trener i učenik posle odgovora) prikazuje rešenje kao i pre.
+
 ## 197. „Play N moves": partija bez cilja, sudija je trener — 20.9.2026, nije viđeno uživo
+
+**Viđeno uživo 20.9.2026 — vlasnik, sve tačke „ok“ u QA dnevniku.**
 
 `docs/PLAN-EXERCISE.md`, faza 15. **Server mora da bude restartovan** — pri
 pokretanju `initDB` proširuje dozvoljene vrednosti kolone `judged_by` rečju
 `trainer` (menja se samo ograničenje, nijedan red).
 
-1. [ ] **Pravljenje**: „Make exercise" → četvrti čip **„Play N moves"**. Pita „How
+1. [x] **Pravljenje**: „Make exercise" → četvrti čip **„Play N moves"**. Pita „How
    many moves?" sa poljem za broj (nema „To the end of the game"), stranu učenika
    i jačinu motora; ispod piše „No automatic verdict: you look at the game
    afterwards and judge it." „Save" je sivo dok nema imena, strane i čitljivog
    broja. Ne pojavljuje se „Checking…".
-2. [ ] Zadatak je u biblioteci pod „Exercises" kao „Play 12 moves as White", filter
+2. [x] Zadatak je u biblioteci pod „Exercises" kao „Play 12 moves as White", filter
    „Play N moves" ga nalazi, i može da se doda u domaći.
-3. [ ] **Učenik**: red u domaćem glasi „Play it out: play 12 moves"; nad tablom
+3. [x] **Učenik**: red u domaćem glasi „Play it out: play 12 moves"; nad tablom
    „You are White — play 12 moves · 12 left" i broj opada; posle dvanaestog svog
    poteza partija staje, dijalog kaže „Not judged yet" i „The game ended: 12 moves
    played. Your trainer will look at it." — peščani sat, ne zastavica.
-4. [ ] U domaćem kod učenika ta stavka je urađena (sledeća se otključava ako je
+4. [x] U domaćem kod učenika ta stavka je urađena (sledeća se otključava ako je
    bila zaključana), a piše da čeka ocenu — ne „Goal not met".
-5. [ ] **Trener**, pregled te stavke: „Play 12 moves as White", „Not judged yet",
+5. [x] **Trener**, pregled te stavke: „Play 12 moves as White", „Not judged yet",
    rečenica „This game has no goal — how it was played is yours to judge.", dugme
    „Open in Analysis" (stavka 195) i dva dugmeta **„Mark as met"** (pehar) i
    **„Mark as not met"** (zastavica). Nigde na kartici ne piše „Goal met" dok se
    ne oceni.
-6. [ ] „Mark as met" → kartica kaže „Goal met" i „Judged by the trainer"; dugmad
+6. [x] „Mark as met" → kartica kaže „Goal met" i „Judged by the trainer"; dugmad
    ostaju, i „Mark as not met" menja ocenu. U domaćem sada piše „Goal met" /
    „Goal not met" kod obe strane.
-7. [ ] **Učenik** na istom pregledu: pre ocene „Your trainer will look at this
+7. [x] **Učenik** na istom pregledu: pre ocene „Your trainer will look at this
    game.", bez dugmadi; posle ocene vidi ocenu i „Judged by the trainer".
-8. [ ] Partija koju su ocenila pravila ili tablebase (npr. „Checkmate in 2 moves")
+8. [x] Partija koju su ocenila pravila ili tablebase (npr. „Checkmate in 2 moves")
    **nema** ta dva dugmeta.
-9. [ ] Ako se nađe „Draw or better, for N moves" partija na koju tablebase nije
+9. [x] Ako se nađe „Draw or better, for N moves" partija na koju tablebase nije
    odgovorio („No tablebase answer yet…"), i ona sada ima oba dugmeta — trener
    kao sudija poslednje instance.
-10. [ ] Na telefonu, uspravno: oba dugmeta i „Open in Analysis" se vide cela.
+10. [x] Na telefonu, uspravno: oba dugmeta i „Open in Analysis" se vide cela.
 
 ## 196. „Find the move" je jedan potez, i igra se na ekranu zadatka — 20.9.2026, nije viđeno uživo
+
+**Viđeno uživo 20.9.2026 — vlasnik, sve tačke „ok“ u QA dnevniku.**
 
 `docs/PLAN-EXERCISE.md`, faza 14. **Server mora da bude restartovan** (novo
 pravilo pri čuvanju zadatka).
 
-1. [ ] **Prazna tabla u sobi** (postavi poziciju, ne igraj ništa) → „Make
+1. [x] **Prazna tabla u sobi** (postavi poziciju, ne igraj ništa) → „Make
    exercise": umesto crvene rečenice stoji objašnjenje i dugme **„Play the
    move"**. Pod „Win" i „Draw or better" tog dugmeta nema.
-2. [ ] „Play the move" otvara ekran „New exercise" sa tom pozicijom, tabla je
+2. [x] „Play the move" otvara ekran „New exercise" sa tom pozicijom, tabla je
    okrenuta na stranu koja je na potezu, „Save" je sivo dok se ništa ne odigra.
-3. [ ] Prvi odigran potez je rešenje, svaki sledeći je prihvaćena alternativa
+3. [x] Prvi odigran potez je rešenje, svaki sledeći je prihvaćena alternativa
    (piše „1. Qf7# (or Qa8#, Qa7)"); tabla se posle svakog poteza vraća na
    početnu poziciju. Alternativa se skida krstićem, **„Start over"** briše sve.
-4. [ ] „Save" → isti list kao i do sada (ime, instrukcija, oznake; samo čip „Find
+4. [x] „Save" → isti list kao i do sada (ime, instrukcija, oznake; samo čip „Find
    the move"), „Save" → sve se zatvara, u sobi piše „Exercise saved.", zadatak
    je u biblioteci pod „Exercises" i može da se pošalje i reši.
-5. [ ] Izlazak sa ekrana posle odigranog a nesačuvanog poteza pita „Discard the
+5. [x] Izlazak sa ekrana posle odigranog a nesačuvanog poteza pita „Discard the
    unsaved change?".
-6. [ ] **Potez već odigran u sobi** (sa varijantom na istom potezu) → „Make
+6. [x] **Potez već odigran u sobi** (sa varijantom na istom potezu) → „Make
    exercise" ga čita kao i pre: rešenje + alternativa, bez odlaska na drugi
    ekran. Ako je u sobi odigrano više od jednog poteza, list kaže „Only the
    first move is asked. The moves after it are not used." i čuva samo prvi.
-7. [ ] Uspravno i položeno na telefonu: ništa nije odsečeno na ekranu „New
+7. [x] Uspravno i položeno na telefonu: ništa nije odsečeno na ekranu „New
    exercise".
-8. [ ] Stari zadatak sa **više poteza** i dalje se otvara i rešava kao pre (ništa
+8. [x] Stari zadatak sa **više poteza** i dalje se otvara i rešava kao pre (ništa
    mu nije dirano); pokušaj da se takav sačuva iz editora server odbija
    rečenicom „A find exercise asks for one move…". To je očekivano — ti zadaci
    se brišu u fazi 16.
 
 ## 195. Odigrana partija iz domaćeg se otvara u Analizi sa potezima — 20.9.2026, nije viđeno uživo
 
+**Tačke 1–5 viđene uživo 20.9.2026 — vlasnik, QA dnevnik; tačka 6 je još bez odgovora.**
+
 `docs/PLAN-EXERCISE.md`, faza 13. Samo aplikacija — server se ne dira i ne mora
 da se restartuje. Treba jedan domaći sa „Play it out" stavkom koju je učenik
 odigrao (bar dva-tri poteza).
 
-1. [ ] **Trener**, pregled tog domaćeg: na kartici partije, pored „Comment", stoji
+1. [x] **Trener**, pregled tog domaćeg: na kartici partije, pored „Comment", stoji
    **„Open in Analysis"**. Otvara Analizu sa **celom partijom** — stoji se na
    poslednjem potezu, strelicama se ide unazad do početne pozicije, tabla je
    okrenuta na stranu koju je učenik igrao, i motor može da se uključi.
-2. [ ] Na telefonu (uspravno) oba dugmeta na kartici se vide cela; ako ne stanu u
+2. [x] Na telefonu (uspravno) oba dugmeta na kartici se vide cela; ako ne stanu u
    jedan red, prelaze u dva — ništa nije odsečeno.
-3. [ ] **Učenik**, isti pregled: ima isto dugme i dobija istu partiju.
-4. [ ] **Učenik, na samom ekranu partije**: dok igra, vrata u Analizu nema (stavka
+3. [x] **Učenik**, isti pregled: ima isto dugme i dobija istu partiju.
+4. [x] **Učenik, na samom ekranu partije**: dok igra, vrata u Analizu nema (stavka
    193); kad se partija završi i dijalog zatvori, dugme za Analizu otvara **partiju
    sa potezima**, a ne samo poziciju na kojoj je stala.
-5. [ ] Kartica partije koja **nije odigrana** nema dugme „Open in Analysis".
+5. [x] Kartica partije koja **nije odigrana** nema dugme „Open in Analysis".
 6. [ ] Kontrola: arhiva grešaka → „otvori partiju u Analizi" radi kao i pre (deli
    ista vrata).
 

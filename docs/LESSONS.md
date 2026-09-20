@@ -4829,3 +4829,54 @@ Backend **1614 → 1632** with the throwaway database, **1526 → 1539** without
 (12 + 5 + 1, the 5 need the database), `.env` moved aside. App **3307 → 3334**
 (27). 1 skipped, a full run alone, 4 minutes. Analyze: the same 26 infos. Live:
 item 197, after a restart — `initDB` widens the `judged_by` constraint.
+
+## 20.9.2026 — the multi-move machinery deleted (PLAN-EXERCISE, phase 16)
+
+**The precondition looked unmet because I read the wrong book.** Phase 16 waits
+for 195–197 „watched running", and `TODO-provera.md` said „nije viđeno uživo"
+on all three. The owner had answered them that morning — in the QA log outside
+the repository, which is where live answers have gone since 3.9. The document
+is what the QA page is *built from*; it is not where the answers land. Ask the
+log before asking the owner.
+
+**A heading is an id.** Marking those three as seen, I rewrote their `##`
+lines. The QA tool files answers under *(section heading, item number, lead
+phrase)* — a reworded heading would have orphaned 23 answers at the next
+regeneration. The headings went back byte for byte; the ticks and a sentence
+under each heading say who saw it. Before editing a line in a document a tool
+reads, find out what the tool keys on.
+
+**A rule that protected a reader dies with the reader.** Phase 14 put the
+one-move cap in the writer, *after* the read, so a line that did not replay was
+told so rather than told it was long. With the replies gone nothing can replay
+a line at all, so the cap moved into `readSolution` and length is refused
+first. One home instead of two — and the reader's refusal is what stands
+between a leftover row and being judged on its first move, which is why that
+case has its own test on both ends and in the real-database gate.
+
+**The half of the suite that skips locally hid one red.** `homework_gate`
+asserted `retry: false`, a field this phase removed; without the throwaway
+cluster the file is one `﹣` line and the run is green. Run the database half
+before believing a server change — CI would have been the first to say.
+
+**Two surviving mutants, both questions about my own tests.** „The editor's
+board goes back to the position" was asserted after calling `onMove` on the
+widget — the controller never had the move, so it had nothing to go back from
+(rule 6: never seed the state the code was meant to write; here, never skip
+it). The test plays the move on the controller first now, as the real board
+does. And the solver refuses a second answer twice — `isAllowedToMove` and a
+guard in `_onMove` — so removing either alone changes nothing; both off, the
+test goes red. Defence in depth reads as a dead condition to a single mutation.
+
+**My own slip, caught by the analyzer:** a scripted edit cut from one anchor to
+the *next occurrence* of a second one, which belonged to an earlier class, and
+took three classes with it. `replace` was guarded by a count; `index` slices
+were not. Every anchor of a scripted edit is asserted unique, not only the
+replaced ones.
+
+Backend **1632 → 1624** with the throwaway database (the line judge's file
+29 → 19, `exercise.test.js` +1, the database half 3 → 4), **1539 → 1530**
+without, `.env` moved aside. App **3334 → 3327** (−5 the solver's line play,
+−1 the step's board, −1 the editor's step, −1 the checker's walk, +1 the
+solver on the real screen). 1 skipped, a full run alone, 6 minutes. Analyze:
+the same 26 infos. Live: item 198 — both ends must be new, the wire changed.

@@ -24,16 +24,15 @@
 //     List<ExerciseStep> get steps;
 //     /// The last refusal, in the reader's own words; null after a success.
 //     String? get error;
-//     /// The board the student sees at [step]: the position after the main
-//     /// moves and replies before it. `fenBefore(0)` is the exercise's own.
-//     String fenBefore(int step);
-//     /// Accepts [san] at [step] as well, after the ones already there, as the
-//     /// board spells it. False — with [error] set and [steps] unchanged — when
-//     /// the reader refuses the result, or [step] is out of range.
-//     bool add(int step, String san);
-//     /// Takes an alternative back. Never `accept[0]`: the replies were written
-//     /// after it. False when [san] is the main move or is not there.
-//     bool remove(int step, String san);
+//     /// A move played on the editor's board: the first is the answer, every
+//     /// further one an accepted alternative, as the board spells it. False —
+//     /// with [error] set and [steps] unchanged — when the reader refuses it.
+//     /// (Phase 16: this was `add(step, san)` beside `fenBefore(step)`, while
+//     /// a solution could be a line.)
+//     bool play(String san);
+//     /// Takes an alternative back. Never `accept[0]`. False when [san] is
+//     /// the main move or is not there.
+//     bool remove(String san);
 //   }
 //
 //   // lib/features/exercises/widgets/make_exercise_sheet.dart — added beside
@@ -65,14 +64,14 @@
 //         this.checker = defaultExerciseChecker});
 //   }
 //   // Loads through `api.load`. A find exercise: the board
-//   // (`ChessBoardWithOverlay`, as the solver draws it) at the chosen step,
-//   // the line under `Key('exercise-editor-line')` in the sheet's own format
-//   // („1. Qh5 (or Qf3) g6  2. Qxe5+"), one `Key('exercise-editor-step-$i')`
-//   // per step to choose it, one `Key('exercise-editor-remove-$i-$san')` per
-//   // alternative, a refusal under `Key('exercise-editor-error')`, and
+//   // (`ChessBoardWithOverlay`, as the solver draws it) on the exercise's
+//   // position, the answer under `Key('exercise-editor-line')` in the sheet's
+//   // own format („Qh5 (or Qf3)"), one `Key('exercise-editor-remove-$san')`
+//   // per alternative, a refusal under `Key('exercise-editor-error')`, and
 //   // `Key('exercise-editor-save')`, which opens `MakeExerciseSheet.edit` over
-//   // the steps as they now stand. A move played on the board at the chosen
-//   // step is `ExerciseLineEdit.add`. A game exercise has no line: the screen
+//   // the answer as it now stands. A move played on the board is
+//   // `ExerciseLineEdit.play`. (Until phase 16 the line had steps, each with a
+//   // chip to choose it.) A game exercise has no answer: the screen
 //   // shows its board and the same Save. When the sheet pops with a saved
 //   // exercise the screen pops with it too. What cannot be loaded says
 //   // „The exercise could not be loaded." and offers „Try again".
@@ -86,7 +85,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -94,6 +92,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/exercises/models/exercise.dart';
+import 'package:chess_app/features/exercises/models/exercise_line.dart';
 import 'package:chess_app/features/exercises/models/exercise_line_edit.dart';
 import 'package:chess_app/features/exercises/screens/exercise_editor_screen.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
@@ -118,21 +117,11 @@ Map<String, dynamic> _fixture() {
 
 List<ExerciseStep> _steps(List<dynamic> raw) => [
       for (final entry in raw)
-        ExerciseStep(
-            accept: ((entry as Map)['accept'] as List).cast<String>(),
-            reply: entry['reply'] as String?)
+        ExerciseStep(accept: ((entry as Map)['accept'] as List).cast<String>())
     ];
 
 List<Map<String, dynamic>> _wire(List<ExerciseStep> steps) =>
     [for (final s in steps) s.toJson()];
-
-String _fenAfter(String fen, List<String> sans) {
-  final game = chess.Chess.fromFEN(fen);
-  for (final san in sans) {
-    if (!game.move(san)) throw StateError('$san does not play');
-  }
-  return game.fen;
-}
 
 /// Answers `/exercises/:id` from [rows], by method, and keeps every request.
 /// A `PUT` answers the row with the body's name, themes, task and solution —
@@ -212,8 +201,8 @@ void main() {
   final solutions = (fixture['solutions'] as Map).cast<String, dynamic>();
   final scholar = positions['scholar']!;
   final backRank = positions['backRank']!;
-  final scholarLine =
-      _steps((solutions['scholarLine'] as Map)['normalised'] as List);
+  final scholarFirst =
+      _steps((solutions['scholarFirst'] as Map)['normalised'] as List);
   final backRankMate =
       _steps((solutions['backRankMate'] as Map)['normalised'] as List);
 
@@ -226,7 +215,7 @@ void main() {
         'themes': ['opening'],
         'origin': origin,
         'task': {'type': 'find'},
-        'solution': _wire(scholarLine),
+        'solution': _wire(scholarFirst),
         'needsReview': false,
         'assignable': true,
         'blockedReason': null
@@ -268,7 +257,7 @@ void main() {
           reason: 'spelled by the board: Rd8 is Rd8#');
     });
 
-    test('a line that does not replay is no line, and says why', () {
+    test('an answer the board cannot play is no answer, and says why', () {
       final edit = ExerciseLineEdit(fen: scholar, steps: const [
         ExerciseStep(accept: ['Qh6'])
       ]);
@@ -276,80 +265,60 @@ void main() {
       expect(edit.error, contains('"Qh6" cannot be played here'));
     });
 
-    test('the board at a step is the one the student will see there', () {
-      final edit = ExerciseLineEdit(fen: scholar, steps: scholarLine);
-      expect(edit.fenBefore(0), scholar, reason: "the exercise's own position");
-      expect(
-          MoveTree.samePosition(
-              edit.fenBefore(1), _fenAfter(scholar, ['Qh5', 'g6'])),
-          isTrue,
-          reason:
-              'after the MAIN move and its reply, never after an alternative');
-    });
-
     test('a move is accepted as well, after the others, as the board spells it',
         () {
       final edit = ExerciseLineEdit(fen: backRank, steps: backRankMate);
-      expect(edit.add(0, 'Re8'), isTrue);
+      expect(edit.play('Re8'), isTrue);
       expect(edit.error, isNull);
       expect(edit.steps.single.accept, ['Rd8#', 'Re8#']);
     });
 
-    test('an accepted move lands at the step it was played at', () {
-      final line = ExerciseLineEdit(fen: scholar, steps: scholarLine);
-      expect(line.add(1, 'Qxe5'), isFalse,
-          reason: 'the same move, spelled without its check');
-      expect(line.error, contains('the same move is accepted twice'));
-
-      expect(line.add(1, 'Qf3'), isTrue, reason: 'legal after 1.Qh5 g6');
-      expect(line.steps[1].accept, ['Qxe5+', 'Qf3']);
-      expect(line.steps[0].accept, ['Qh5', 'Qf3'],
-          reason: 'step one is untouched');
-      expect(line.steps[0].reply, 'g6');
+    test('a row that still holds a line is no answer, and says what is asked',
+        () {
+      final edit = ExerciseLineEdit(fen: scholar, steps: const [
+        ExerciseStep(accept: ['Qh5']),
+        ExerciseStep(accept: ['Qxe5+']),
+      ]);
+      expect(edit.steps, isEmpty);
+      expect(edit.error, ExerciseLine.oneMove);
     });
 
     test('what the reader refuses is refused in its words and changes nothing',
         () {
-      final edit = ExerciseLineEdit(fen: scholar, steps: scholarLine);
+      final edit = ExerciseLineEdit(fen: scholar, steps: scholarFirst);
       final before = _wire(edit.steps);
 
-      expect(edit.add(0, 'Qh6'), isFalse);
+      expect(edit.play('Qh6'), isFalse);
       expect(edit.error, contains('"Qh6" cannot be played here'));
       expect(_wire(edit.steps), before);
 
-      expect(edit.add(0, 'Qf3'), isFalse);
-      expect(edit.error, contains('the same move is accepted twice'));
-      expect(_wire(edit.steps), before);
-
-      expect(edit.add(2, 'Qh5'), isFalse, reason: 'there is no third step');
-      expect(edit.add(-1, 'Qh5'), isFalse);
+      expect(edit.play('Qf3'), isFalse);
+      expect(edit.error, contains('The same move is accepted twice'));
       expect(_wire(edit.steps), before);
 
       // A success clears the refusal that stood before it.
-      expect(edit.add(0, 'Nf3'), isTrue);
+      expect(edit.play('Nf3'), isTrue);
       expect(edit.error, isNull);
     });
 
-    test('no step accepts more than the server does', () {
-      final edit = ExerciseLineEdit(fen: scholar, steps: scholarLine);
+    test('the answer accepts no more than the server does', () {
+      final edit = ExerciseLineEdit(fen: scholar, steps: scholarFirst);
       for (final san in ['Nf3', 'Nc3', 'Bc4', 'd4', 'd3', 'a3']) {
-        expect(edit.add(0, san), isTrue, reason: san);
+        expect(edit.play(san), isTrue, reason: san);
       }
-      expect(edit.steps[0].accept, hasLength(8));
-      expect(edit.add(0, 'h3'), isFalse);
-      expect(edit.error, contains('more than 8 accepted moves'));
-      expect(edit.steps[0].accept, hasLength(8));
+      expect(edit.steps.single.accept, hasLength(8));
+      expect(edit.play('h3'), isFalse);
+      expect(edit.error, contains('More than 8 accepted moves'));
+      expect(edit.steps.single.accept, hasLength(8));
     });
 
     test('an alternative can be taken back; the main move cannot', () {
-      final edit = ExerciseLineEdit(fen: scholar, steps: scholarLine);
-      expect(edit.remove(0, 'Qh5'), isFalse,
-          reason: 'g6 was written after Qh5');
-      expect(edit.steps[0].accept, ['Qh5', 'Qf3']);
-      expect(edit.remove(0, 'Qg4'), isFalse, reason: 'not there');
-      expect(edit.remove(0, 'Qf3'), isTrue);
-      expect(edit.steps[0].accept, ['Qh5']);
-      expect(edit.steps[0].reply, 'g6');
+      final edit = ExerciseLineEdit(fen: scholar, steps: scholarFirst);
+      expect(edit.remove('Qh5'), isFalse);
+      expect(edit.steps.single.accept, ['Qh5', 'Qf3']);
+      expect(edit.remove('Qg4'), isFalse, reason: 'not there');
+      expect(edit.remove('Qf3'), isTrue);
+      expect(edit.steps.single.accept, ['Qh5']);
     });
   });
 
@@ -432,8 +401,8 @@ void main() {
         (tester) async {
       final server = _Server({'ex_find': findRow()});
       final exercise = Exercise.fromJson(findRow())!;
-      final edit = ExerciseLineEdit(fen: scholar, steps: scholarLine)
-        ..add(0, 'Nf3');
+      final edit = ExerciseLineEdit(fen: scholar, steps: scholarFirst)
+        ..play('Nf3');
 
       final popped =
           await openSheet(tester, server, exercise, steps: edit.steps);
@@ -595,7 +564,7 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(server.to('/exercises/ex_find', 'GET'), hasLength(1));
         expect(find.text('Queen out early'), findsWidgets);
-        expect(lineText(tester), '1. Qh5 (or Qf3) g6  2. Qxe5+');
+        expect(lineText(tester), 'Qh5 (or Qf3)');
         expect(find.byType(ChessBoardWithOverlay), findsOneWidget);
         expect(find.byKey(const Key('exercise-editor-save')), findsOneWidget);
       });
@@ -606,45 +575,50 @@ void main() {
       final server =
           await pumpEditor(tester, {'ex_find': findRow()}, 'ex_find');
 
-      // Step one is the one chosen when the screen opens. 1.Nf3, on the board.
+      // 1.Nf3, on the board — played on the controller first, as the real
+      // board does before it reports a move, so „goes back" has something to
+      // go back from.
+      final board = tester
+          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
+      board.controller.makeMove(from: 'g1', to: 'f3');
+      expect(
+          MoveTree.samePosition(board.controller.getFen(), scholar), isFalse);
+      board.onMove('g1', 'f3', '');
+      await tester.pumpAndSettle();
+      expect(lineText(tester), 'Qh5 (or Qf3, Nf3)');
+      expect(
+          MoveTree.samePosition(
+              tester
+                  .widget<ChessBoardWithOverlay>(
+                      find.byType(ChessBoardWithOverlay))
+                  .controller
+                  .getFen(),
+              scholar),
+          isTrue,
+          reason: 'the board never plays on: it goes back to the position');
+
+      // Twice is refused, in the reader's words, and the answer stays.
       tester
           .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
           .onMove('g1', 'f3', '');
-      await tester.pumpAndSettle();
-      expect(lineText(tester), '1. Qh5 (or Qf3, Nf3) g6  2. Qxe5+');
-
-      // The second step: the board moves there, and the move lands there.
-      await tester.tap(find.byKey(const Key('exercise-editor-step-1')));
-      await tester.pumpAndSettle();
-      tester
-          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
-          .onMove('h5', 'f3', '');
-      await tester.pumpAndSettle();
-      expect(lineText(tester), '1. Qh5 (or Qf3, Nf3) g6  2. Qxe5+ (or Qf3)');
-
-      // Twice is refused, in the reader's words, and the line stays.
-      tester
-          .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
-          .onMove('h5', 'f3', '');
       await tester.pumpAndSettle();
       expect(
           tester
               .widget<Text>(find.byKey(const Key('exercise-editor-error')))
               .data,
-          contains('the same move is accepted twice'));
-      expect(lineText(tester), '1. Qh5 (or Qf3, Nf3) g6  2. Qxe5+ (or Qf3)');
+          contains('The same move is accepted twice'));
+      expect(lineText(tester), 'Qh5 (or Qf3, Nf3)');
 
       // One taken back.
-      await tester.tap(find.byKey(const Key('exercise-editor-step-0')));
-      await tester.pumpAndSettle();
       await tester
-          .ensureVisible(find.byKey(const Key('exercise-editor-remove-0-Qf3')));
-      await tester.tap(find.byKey(const Key('exercise-editor-remove-0-Qf3')));
+          .ensureVisible(find.byKey(const Key('exercise-editor-remove-Qf3')));
+      await tester.tap(find.byKey(const Key('exercise-editor-remove-Qf3')));
       await tester.pumpAndSettle();
-      expect(lineText(tester), '1. Qh5 (or Nf3) g6  2. Qxe5+ (or Qf3)');
-      expect(
-          find.byKey(const Key('exercise-editor-remove-0-Qh5')), findsNothing,
+      expect(lineText(tester), 'Qh5 (or Nf3)');
+      expect(find.byKey(const Key('exercise-editor-remove-Qh5')), findsNothing,
           reason: 'the main move is not an alternative');
+      expect(find.byType(ChoiceChip), findsNothing,
+          reason: 'one move: there are no steps to choose between');
 
       await tester.ensureVisible(find.byKey(const Key('exercise-editor-save')));
       await tester.tap(find.byKey(const Key('exercise-editor-save')));
@@ -657,12 +631,7 @@ void main() {
       final body = server.bodyOf(server.to('/exercises/ex_find', 'PUT').single);
       expect(body['solution'], [
         {
-          'accept': ['Qh5', 'Nf3'],
-          'reply': 'g6'
-        },
-        {
-          'accept': ['Qxe5+', 'Qf3'],
-          'reply': null
+          'accept': ['Qh5', 'Nf3']
         }
       ]);
       expect(body.containsKey('fen'), isFalse);
@@ -676,7 +645,7 @@ void main() {
           .onMove('d1', 'h6', '');
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(lineText(tester), '1. Qh5 (or Qf3) g6  2. Qxe5+');
+      expect(lineText(tester), 'Qh5 (or Qf3)');
     });
 
     testWidgets('a game has no line: its board, and the same sheet',
@@ -706,7 +675,7 @@ void main() {
       await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
       expect(server.to('/exercises/ex_find', 'GET'), hasLength(2));
-      expect(lineText(tester), '1. Qh5 (or Qf3) g6  2. Qxe5+');
+      expect(lineText(tester), 'Qh5 (or Qf3)');
     });
   });
 

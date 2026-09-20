@@ -167,7 +167,7 @@ function shapeItem(row, { isTrainer, step, game = null }) {
       themes: row.custom_themes || [],
       solutionSan: reveal ? (firstMoveOf(row)?.solutionSan ?? null) : null,
       solutionHidden: !reveal && firstMoveOf(row) !== null,
-      // The whole line, for an exercise that asks for more than one move.
+      // The answer whole: the author's move and the ones accepted beside it.
       solution: reveal ? exerciseOf(row).solution : null,
     };
   }

@@ -47,17 +47,11 @@ int? exerciseForMoves(Map<String, dynamic>? task) {
   return (n != null && n > 0) ? n : null;
 }
 
-/// The task in one line: „Find the move", „Find the moves", „Win as White",
+/// The task in one line: „Find the move", „Win as White",
 /// „Checkmate in 5 moves as White", „Draw or better as Black, for 4 moves".
-///
-/// [solutionMoves] is the number of the student's own moves in a find
-/// exercise's line, when the caller knows it; a list that does not carry the
-/// solution passes null and reads „Find the move", which is never wrong.
-String exerciseTaskWords(Map<String, dynamic>? task, {int? solutionMoves}) {
+String exerciseTaskWords(Map<String, dynamic>? task) {
   final ask = exerciseAskOf(task);
-  if (ask == ExerciseAsk.find) {
-    return (solutionMoves ?? 1) > 1 ? 'Find the moves' : ExerciseAsk.find.label;
-  }
+  if (ask == ExerciseAsk.find) return ExerciseAsk.find.label;
   final side = switch (task!['side']) {
     'w' => ' as White',
     'b' => ' as Black',

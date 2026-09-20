@@ -27,24 +27,22 @@
 //   }
 //   class ExerciseFinding {
 //     final ExerciseFindingKind kind;
-//     final int step;             // the student's move it is about, 0-based; 0 for a game
 //     final List<String> sans;    // the moves offered for accepting; empty when none are
 //     final String words;         // one sentence for the trainer
 //   }
 //   const int maxAcceptedMoves = 8;        // the server's MAX_ACCEPTED
 //   const double enginePrefersByPawns = 1.5;
 //
-//   /// The position before each of the student's moves, walking the main line.
-//   List<String> studentFens(String fen, List<ExerciseStep> steps);
-//
-//   /// One [results] entry per step, null where the tablebase had no answer.
+//   /// [result] is the tablebase's word on the exercise's position, null where
+//   /// it had no answer. (Until phase 16 this walked a line, one position per
+//   /// step.)
 //   /// „Keeps the result": the side to move wins → a move keeps it when the
 //   /// opponent is then `loss`; it draws (draw, cursedWin, blessedLoss) → when
 //   /// the opponent is then draw, cursedWin or blessedLoss. A side that is
 //   /// lost, or a category that is no outcome (unknown, maybe*), yields nothing.
 //   List<ExerciseFinding> tablebaseFindings({
-//     required List<ExerciseStep> steps,
-//     required List<SyzygyResult?> results,
+//     required ExerciseStep answer,
+//     required SyzygyResult? result,
 //   });
 //
 //   /// [result] is the tablebase's word for the side TO MOVE at the exercise's
@@ -117,38 +115,39 @@ final _winning = _tb(_kpk, 'win', {
   'Ke4': 'draw',
 });
 
-ExerciseStep _step(List<String> accept, [String? reply]) =>
-    ExerciseStep(accept: accept, reply: reply);
+ExerciseStep _step(List<String> accept) => ExerciseStep(accept: accept);
 
 AnalysisLine _line(int n, String eval, String lan, String fen) =>
-    AnalysisLine.fromPv(multipv: n, eval: eval, pvString: lan, startingFen: fen);
+    AnalysisLine.fromPv(
+        multipv: n, eval: eval, pvString: lan, startingFen: fen);
 
 void main() {
   group('what a tablebase says of a find exercise', () {
     test('other moves that keep the win are offered, not applied', () {
-      final steps = [_step(['Kc6'])];
-      final findings = tablebaseFindings(steps: steps, results: [_winning]);
+      final steps = [
+        _step(['Kc6'])
+      ];
+      final findings =
+          tablebaseFindings(answer: steps.single, result: _winning);
       final also = findings.single;
       expect(also.kind, ExerciseFindingKind.alsoKeeps);
-      expect(also.step, 0);
       expect(also.sans, unorderedEquals(['Kd6', 'Ke6']));
       expect(also.words, contains('Kd6'));
       expect(steps.single.accept, ['Kc6'], reason: 'nothing changed by itself');
     });
 
-    test('moves already accepted are not offered again, however they are '
+    test(
+        'moves already accepted are not offered again, however they are '
         'spelled', () {
       final findings = tablebaseFindings(
-        steps: [_step(['Kc6', 'Kd6+', 'Ke6'])],
-        results: [_winning],
-      );
+          answer: _step(['Kc6', 'Kd6+', 'Ke6']), result: _winning);
       expect(findings, isEmpty);
     });
 
     test('a main move that lets the win go is said, with a move that keeps it',
         () {
       final findings =
-          tablebaseFindings(steps: [_step(['Kc4'])], results: [_winning]);
+          tablebaseFindings(answer: _step(['Kc4']), result: _winning);
       final letsGo = findings
           .firstWhere((f) => f.kind == ExerciseFindingKind.mainMoveLetsGo);
       expect(letsGo.words, contains('Kc4'));
@@ -166,8 +165,7 @@ void main() {
         'Ke6': 'blessed-loss',
         'Kc4': 'win',
       });
-      final findings =
-          tablebaseFindings(steps: [_step(['Kc6'])], results: [drawn]);
+      final findings = tablebaseFindings(answer: _step(['Kc6']), result: drawn);
       expect(findings.single.sans, unorderedEquals(['Kd6', 'Ke6']));
     });
 
@@ -177,47 +175,36 @@ void main() {
       const krk = '8/8/8/8/8/4k3/8/R3K3 w - - 0 1';
       final many = _tb(krk, 'win', {
         for (final san in [
-          'Ra2', 'Ra3+', 'Ra4', 'Ra5', 'Ra6', 'Ra7', 'Ra8', 'Rb1', 'Rc1', 'Rd1'
+          'Ra2',
+          'Ra3+',
+          'Ra4',
+          'Ra5',
+          'Ra6',
+          'Ra7',
+          'Ra8',
+          'Rb1',
+          'Rc1',
+          'Rd1'
         ])
           san: 'loss',
       });
-      final findings =
-          tablebaseFindings(steps: [_step(['Ra8'])], results: [many]);
+      final findings = tablebaseFindings(answer: _step(['Ra8']), result: many);
       expect(findings.single.kind, ExerciseFindingKind.tooManyKeep);
       expect(findings.single.sans, isEmpty);
       expect(findings.single.words, contains('10'));
     });
 
     test('no answer, a lost side, or no outcome: nothing is found', () {
-      final steps = [_step(['Kc6'])];
-      expect(tablebaseFindings(steps: steps, results: [null]), isEmpty);
+      final answer = _step(['Kc6']);
+      expect(tablebaseFindings(answer: answer, result: null), isEmpty);
       expect(
           tablebaseFindings(
-              steps: steps, results: [_tb(_kpk, 'loss', {'Kc6': 'win'})]),
+              answer: answer, result: _tb(_kpk, 'loss', {'Kc6': 'win'})),
           isEmpty);
       expect(
           tablebaseFindings(
-              steps: steps, results: [_tb(_kpk, 'unknown', {'Kc6': 'loss'})]),
+              answer: answer, result: _tb(_kpk, 'unknown', {'Kc6': 'loss'})),
           isEmpty);
-    });
-
-    test('each of the student\'s moves is looked at on its own position', () {
-      const line = '8/8/8/8/8/4k3/8/R3K3 w - - 0 1';
-      final steps = [
-        _step(['Ra8'], 'Kd3'),
-        _step(['Ra3+'])
-      ];
-      final fens = studentFens(line, steps);
-      expect(fens, hasLength(2));
-      expect(fens.first, line);
-      expect(fens.last.split(' ').first, 'R7/8/8/8/8/3k4/8/4K3');
-
-      final findings = tablebaseFindings(steps: steps, results: [
-        null,
-        _tb(fens.last, 'win', {'Ra3+': 'loss', 'Rd8+': 'loss'}),
-      ]);
-      expect(findings.single.step, 1);
-      expect(findings.single.sans, ['Rd8+']);
     });
   });
 
@@ -330,16 +317,17 @@ void main() {
   });
 
   group('accepting is the trainer\'s act', () {
-    final steps = [_step(['Kc6'], 'Kd2'), _step(['Kd6'])];
+    final steps = [
+      _step(['Kc6'])
+    ];
 
-    test('the offered moves join their own step, after what was there', () {
-      final also = tablebaseFindings(steps: [steps.first], results: [_winning])
-          .single;
+    test('the offered moves join the answer, after what was there', () {
+      final also =
+          tablebaseFindings(answer: steps.single, result: _winning).single;
       final after = acceptFinding(steps, also);
+      expect(after, hasLength(1));
       expect(after.first.accept.first, 'Kc6', reason: 'the main move stays');
       expect(after.first.accept, unorderedEquals(['Kc6', 'Kd6', 'Ke6']));
-      expect(after.first.reply, 'Kd2');
-      expect(after.last.accept, ['Kd6'], reason: 'the other step is untouched');
       expect(steps.first.accept, ['Kc6'], reason: 'the input is not mutated');
     });
 
@@ -348,7 +336,7 @@ void main() {
         _step(['Kc6', 'a', 'b', 'c', 'd', 'e', 'f'])
       ];
       final also =
-          tablebaseFindings(steps: [_step(['Kc6'])], results: [_winning]).single;
+          tablebaseFindings(answer: _step(['Kc6']), result: _winning).single;
       final after = acceptFinding(full, also);
       expect(after.single.accept.length, maxAcceptedMoves);
       final twice = acceptFinding(acceptFinding(steps, also), also);
@@ -356,9 +344,8 @@ void main() {
     });
 
     test('a warning changes nothing', () {
-      final letsGo =
-          tablebaseFindings(steps: [_step(['Kc4'])], results: [_winning])
-              .firstWhere((f) => f.kind == ExerciseFindingKind.mainMoveLetsGo);
+      final letsGo = tablebaseFindings(answer: _step(['Kc4']), result: _winning)
+          .firstWhere((f) => f.kind == ExerciseFindingKind.mainMoveLetsGo);
       final after = acceptFinding(steps, letsGo);
       expect(after.first.accept, ['Kc6']);
     });
@@ -370,7 +357,8 @@ void main() {
     Future<SyzygyResult?> noTablebase(String fen) async =>
         fail('the tablebase must not be asked about a position it cannot hold');
 
-    test('seven pieces or fewer: the tablebase is asked, about each student '
+    test(
+        'seven pieces or fewer: the tablebase is asked, about each student '
         'position', () async {
       final asked = <String>[];
       final checker = ExerciseChecker(
@@ -383,7 +371,9 @@ void main() {
       final findings = await checker.check(
         fen: _kpk,
         task: const {'type': 'find'},
-        steps: [_step(['Kc6'])],
+        steps: [
+          _step(['Kc6'])
+        ],
       );
       expect(asked, [_kpk]);
       expect(findings.single.kind, ExerciseFindingKind.alsoKeeps);
@@ -404,8 +394,7 @@ void main() {
       expect(findings.single.kind, ExerciseFindingKind.taskImpossible);
     });
 
-    test('more pieces: the engine is asked about the first position only',
-        () async {
+    test('more pieces: the engine is asked about the position, once', () async {
       final asked = <String>[];
       final checker = ExerciseChecker(
         tablebase: noTablebase,
@@ -420,7 +409,9 @@ void main() {
       final findings = await checker.check(
         fen: _big,
         task: const {'type': 'find'},
-        steps: [_step(['Bc4'], 'a6'), _step(['Ba4'])],
+        steps: [
+          _step(['Bc4'])
+        ],
       );
       expect(asked, [_big]);
       expect(findings.single.kind, ExerciseFindingKind.enginePrefers);
@@ -440,12 +431,18 @@ void main() {
         engine: (fen) async => throw StateError('engine not started'),
       );
       expect(
-          await checker.check(
-              fen: _kpk, task: const {'type': 'find'}, steps: [_step(['Kc6'])]),
+          await checker.check(fen: _kpk, task: const {
+            'type': 'find'
+          }, steps: [
+            _step(['Kc6'])
+          ]),
           isEmpty);
       expect(
-          await checker.check(
-              fen: _big, task: const {'type': 'find'}, steps: [_step(['Bc4'])]),
+          await checker.check(fen: _big, task: const {
+            'type': 'find'
+          }, steps: [
+            _step(['Bc4'])
+          ]),
           isEmpty);
     });
 
@@ -457,8 +454,11 @@ void main() {
         timeout: const Duration(milliseconds: 60),
       );
       final started = DateTime.now();
-      final findings = await checker.check(
-          fen: _kpk, task: const {'type': 'find'}, steps: [_step(['Kc6'])]);
+      final findings = await checker.check(fen: _kpk, task: const {
+        'type': 'find'
+      }, steps: [
+        _step(['Kc6'])
+      ]);
       expect(findings, isEmpty);
       expect(DateTime.now().difference(started),
           lessThan(const Duration(seconds: 2)));

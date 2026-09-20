@@ -14,7 +14,7 @@ const { assignableProblem, exerciseColumns } = require('../services/exercise');
 const fixture = require(path.join(__dirname, '..', '..', 'docs', 'gates', 'exercise_line_cases.json'));
 const SCHOLAR = fixture.positions.scholar;
 // One move of the student, with its alternative — what a find exercise is
-// since phase 14. The two-move line it used to be is in `oneMove.refused`.
+// since phase 14. The two-move line it used to be is the fixture's last refusal.
 const LINE = fixture.solutions.scholarFirst;
 
 const find = (over = {}) => ({
@@ -59,35 +59,26 @@ test('every line the fixture refuses is refused at the door, with its reason', (
   }
 });
 
-test('a find exercise asks for one move: a longer line is refused for its length alone', () => {
-  const { refusal, refused, accepted } = fixture.oneMove;
-  for (const name of refused) {
-    const s = fixture.solutions[name];
-    const parsed = parseExercise(find({ fen: fixture.positions[s.position], solution: s.steps }));
-    assert.equal(parsed.ok, false, name);
-    assert.ok(parsed.error.startsWith(refusal), `${name}: "${parsed.error}"`);
-    // And it says where such an exercise does belong.
-    assert.match(parsed.error, /Checkmate in N|Play N moves/, name);
-  }
-  for (const name of accepted) {
-    const s = fixture.solutions[name];
-    const parsed = parseExercise(find({ fen: fixture.positions[s.position], solution: s.steps }));
-    assert.equal(parsed.ok, true, `${name}: ${parsed.error}`);
-    assert.deepEqual(parsed.exercise.solution, s.normalised, name);
-  }
-  // Control: the refused ones are good lines — the reader takes them whole.
-  const { readSolution } = require('../services/exercise');
-  for (const name of refused) {
-    const s = fixture.solutions[name];
-    assert.equal(readSolution(fixture.positions[s.position], s.steps).ok, true, name);
+const TWO_MOVES = fixture.refused.find((c) => c.steps.length > 1);
+
+test('a find exercise asks for one move, and is told where a longer one belongs', () => {
+  assert.ok(TWO_MOVES, 'the fixture has a solution refused for its length');
+  const parsed = parseExercise(find({ fen: fixture.positions[TWO_MOVES.position], solution: TWO_MOVES.steps }));
+  assert.equal(parsed.ok, false);
+  assert.ok(parsed.error.startsWith(TWO_MOVES.why), parsed.error);
+  assert.match(parsed.error, /Checkmate in N|Play N moves/);
+
+  for (const [name, s] of Object.entries(fixture.solutions)) {
+    const taken = parseExercise(find({ fen: fixture.positions[s.position], solution: s.steps }));
+    assert.equal(taken.ok, true, `${name}: ${taken.error}`);
+    assert.deepEqual(taken.exercise.solution, s.normalised, name);
   }
 });
 
 test('an edit is held to the same length', () => {
-  const s = fixture.solutions.scholarLine;
-  const parsed = parseExercise(find({ fen: undefined, solution: s.steps }), { keptFen: SCHOLAR });
+  const parsed = parseExercise(find({ fen: undefined, solution: TWO_MOVES.steps }), { keptFen: SCHOLAR });
   assert.equal(parsed.ok, false);
-  assert.ok(parsed.error.startsWith(fixture.oneMove.refusal));
+  assert.ok(parsed.error.startsWith(TWO_MOVES.why));
 });
 
 test('an exercise without a name, a position or a task is not one', () => {
@@ -216,12 +207,12 @@ describe('exercises on a real database', skipUnlessDatabase() ?? {}, () => {
     const edited = await route('put', '/:id', {
       userId: trainerId,
       params: { id },
-      body: find({ name: 'Renamed', fen: undefined, solution: [{ accept: ['Qh5'], reply: null }] }),
+      body: find({ name: 'Renamed', fen: undefined, solution: [{ accept: ['Qh5'] }] }),
     });
     assert.equal(edited.status, 200, JSON.stringify(edited.body));
     assert.equal(edited.body.exercise.name, 'Renamed');
     assert.equal(edited.body.exercise.fen, SCHOLAR);
-    assert.deepEqual(edited.body.exercise.solution, [{ accept: ['Qh5'], reply: null }]);
+    assert.deepEqual(edited.body.exercise.solution, [{ accept: ['Qh5'] }]);
 
     const moved = await route('put', '/:id', {
       userId: trainerId, params: { id }, body: find({ fen: fixture.positions.backRank }),
@@ -261,7 +252,7 @@ describe('exercises on a real database', skipUnlessDatabase() ?? {}, () => {
       [trainerId, fixture.positions.backRank]
     );
     const before = await route('get', '/:id', { userId: trainerId, params: { id: 'cust_scanned_one' } });
-    assert.deepEqual(before.body.exercise.solution, [{ accept: ['Rd8#'], reply: null }]);
+    assert.deepEqual(before.body.exercise.solution, [{ accept: ['Rd8#'] }]);
 
     const edited = await route('put', '/:id', {
       userId: trainerId,
@@ -270,6 +261,6 @@ describe('exercises on a real database', skipUnlessDatabase() ?? {}, () => {
     });
     assert.equal(edited.status, 200, JSON.stringify(edited.body));
     assert.equal(edited.body.exercise.origin, 'book', 'where it came from does not change');
-    assert.deepEqual(edited.body.exercise.solution, [{ accept: ['Rd8#', 'Re8#'], reply: null }]);
+    assert.deepEqual(edited.body.exercise.solution, [{ accept: ['Rd8#', 'Re8#'] }]);
   });
 });

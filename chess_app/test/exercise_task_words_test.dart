@@ -26,10 +26,7 @@ void main() {
   test('the words name the side and how long, and nothing that is not asked',
       () {
     expect(exerciseTaskWords(null), 'Find the move');
-    expect(
-        exerciseTaskWords({'type': 'find'}, solutionMoves: 1), 'Find the move');
-    expect(exerciseTaskWords({'type': 'find'}, solutionMoves: 3),
-        'Find the moves');
+    expect(exerciseTaskWords({'type': 'find'}), 'Find the move');
     expect(exerciseTaskWords({'type': 'game', 'goal': 'win', 'side': 'w'}),
         'Win as White');
     expect(

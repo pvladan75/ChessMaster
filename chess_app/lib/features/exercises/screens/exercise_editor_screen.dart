@@ -79,10 +79,6 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   bool _loading = true;
   bool _failed = false;
 
-  /// The step whose alternatives the board plays into. Step one — index 0 —
-  /// is the one chosen when the screen opens.
-  int _chosenStep = 0;
-
   /// The line as it stood the last time this screen agreed with the server —
   /// right after loading, and again after a save. [_dirty] compares [_edit]'s
   /// own steps against this rather than against nothing, so a save is not
@@ -128,7 +124,6 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   static bool _sameSteps(List<ExerciseStep> a, List<ExerciseStep> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i].reply != b[i].reply) return false;
       if (a[i].accept.length != b[i].accept.length) return false;
       for (var j = 0; j < a[i].accept.length; j++) {
         if (a[i].accept[j] != b[i].accept[j]) return false;
@@ -200,21 +195,13 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     // Set before the board is (re)built, the way the solver's own `_load`
     // does it — the controller keeps its state whether or not anything is
     // listening yet.
-    _board.loadFen(edit?.fenBefore(0) ?? exercise.fen);
+    _board.loadFen(exercise.fen);
     setState(() {
       _loading = false;
       _exercise = exercise;
       _edit = edit;
       _baseline = edit?.steps;
-      _chosenStep = 0;
     });
-  }
-
-  void _chooseStep(int step) {
-    final edit = _edit;
-    if (edit == null) return;
-    _board.loadFen(edit.fenBefore(step));
-    setState(() => _chosenStep = step);
   }
 
   /// Turns the move just played into SAN on a fresh copy of the position, the
@@ -238,17 +225,15 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     }
   }
 
-  /// The board is for entering an alternative at [_chosenStep]; it never
-  /// plays the line forward, so it always goes back to the position it
-  /// started from — whether the move just played was accepted or refused.
+  /// The board is for entering the answer and its alternatives; it never
+  /// plays on, so it always goes back to the exercise's position — whether
+  /// the move just played was accepted or refused.
   void _onMove(String from, String to, String promotion) {
     final edit = _edit;
-    if (edit == null) return;
-    final fen = edit.fenBefore(_chosenStep);
+    final fen = widget.makingFen ?? _exercise?.fen;
+    if (edit == null || fen == null) return;
     final san = _sanFor(fen, from, to, promotion);
-    if (san != null) {
-      widget.isMaking ? edit.play(san) : edit.add(_chosenStep, san);
-    }
+    if (san != null) edit.play(san);
     _board.loadFen(fen);
     setState(() {});
   }
@@ -286,12 +271,11 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     final edit = saved.isGame
         ? null
         : ExerciseLineEdit(fen: saved.fen, steps: saved.solution ?? const []);
-    _board.loadFen(edit?.fenBefore(0) ?? saved.fen);
+    _board.loadFen(saved.fen);
     setState(() {
       _exercise = saved;
       _edit = edit;
       _baseline = edit?.steps;
-      _chosenStep = 0;
     });
   }
 
@@ -402,7 +386,7 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            exerciseTaskWords(exercise.task, solutionMoves: edit?.steps.length),
+            exerciseTaskWords(exercise.task),
             style: AppText.bodyLargeBold,
           ),
           if (edit != null) ...[
@@ -412,36 +396,10 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
               key: const Key('exercise-editor-line'),
               style: AppText.body.copyWith(color: colors.textSecondary),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (var i = 0; i < edit.steps.length; i++)
-                  ChoiceChip(
-                    key: Key('exercise-editor-step-$i'),
-                    label: Text('${i + 1}. ${edit.steps[i].accept.first}'),
-                    selected: _chosenStep == i,
-                    onSelected: (_) => _chooseStep(i),
-                  ),
-              ],
-            ),
-            if (edit.steps[_chosenStep].accept.length > 1) ...[
+            if (edit.steps.isNotEmpty &&
+                edit.steps.first.accept.length > 1) ...[
               const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final san in edit.steps[_chosenStep].accept.skip(1))
-                    ActionChip(
-                      key: Key('exercise-editor-remove-$_chosenStep-$san'),
-                      avatar: const Icon(Icons.close, size: 16),
-                      label: Text(san),
-                      onPressed: () =>
-                          setState(() => edit.remove(_chosenStep, san)),
-                    ),
-                ],
-              ),
+              _alternatives(edit),
             ],
           ],
         ],
@@ -450,8 +408,7 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   }
 
   /// While the exercise is being made: what to do, then what was played —
-  /// the answer, and the alternatives, each removable. One move, so no steps
-  /// to choose between.
+  /// the answer, and the alternatives, each removable.
   Widget _makingPanels(ExerciseLineEdit edit, AppColorTokens colors) {
     final accept = edit.steps.isEmpty ? const <String>[] : edit.steps[0].accept;
     return Padding(
@@ -476,29 +433,37 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
               style: AppText.body.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                for (final san in accept.skip(1))
-                  ActionChip(
-                    key: Key('exercise-editor-remove-0-$san'),
-                    avatar: const Icon(Icons.close, size: 16),
-                    label: Text(san),
-                    onPressed: () => setState(() => edit.remove(0, san)),
-                  ),
-                TextButton.icon(
-                  key: const Key('exercise-editor-start-over'),
-                  onPressed: () => setState(edit.clear),
-                  icon: const Icon(Icons.restart_alt, size: 16),
-                  label: const Text('Start over'),
-                ),
-              ],
+            _alternatives(
+              edit,
+              trailing: TextButton.icon(
+                key: const Key('exercise-editor-start-over'),
+                onPressed: () => setState(edit.clear),
+                icon: const Icon(Icons.restart_alt, size: 16),
+                label: const Text('Start over'),
+              ),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  /// The accepted alternatives, each removable.
+  Widget _alternatives(ExerciseLineEdit edit, {Widget? trailing}) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final san in edit.steps.first.accept.skip(1))
+          ActionChip(
+            key: Key('exercise-editor-remove-$san'),
+            avatar: const Icon(Icons.close, size: 16),
+            label: Text(san),
+            onPressed: () => setState(() => edit.remove(san)),
+          ),
+        if (trailing != null) trailing,
+      ],
     );
   }
 

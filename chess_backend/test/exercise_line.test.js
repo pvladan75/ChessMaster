@@ -1,30 +1,32 @@
-// The line judge, over the fixture the app's writer and solver also stand on
-// (`docs/gates/exercise_line_cases.json`, `docs/PLAN-EXERCISE.md` phase 2a).
+// The reader and the judge of a find exercise, over the fixture the app's
+// writer and solver also stand on (`docs/gates/exercise_line_cases.json`).
+// A find exercise asks for one move (`docs/PLAN-EXERCISE.md`, phases 14, 16).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 
 const fixture = require(path.join(__dirname, '..', '..', 'docs', 'gates', 'exercise_line_cases.json'));
-const { judgeLine } = require('../services/customPuzzleJudge');
-const { readSolution } = require('../services/exercise');
+const { judgeAttempt } = require('../services/customPuzzleJudge');
+const { readSolution, firstMoveOf } = require('../services/exercise');
 
 function solutionOf(name) {
   const entry = fixture.solutions[name];
   assert.ok(entry, `no solution named ${name}`);
   const fen = fixture.positions[entry.position];
   const read = readSolution(fen, entry.steps);
-  assert.equal(read.ok, true, `${name} must replay: ${read.error}`);
+  assert.equal(read.ok, true, `${name} must be readable: ${read.error}`);
   return { fen, steps: read.steps, entry };
 }
 
 test('the fixture holds what it says it holds', () => {
   // Neither loop below can pass by being empty.
-  assert.ok(fixture.judged.length >= 14, 'judged cases');
-  assert.ok(fixture.refused.length >= 9, 'refused lines');
-  assert.ok(fixture.judged.some((c) => c.expect.correct === true && c.expect.done === false));
-  assert.ok(fixture.judged.some((c) => c.expect.correct === true && c.expect.done === true));
+  assert.ok(fixture.judged.length >= 11, 'judged cases');
+  assert.ok(fixture.refused.length >= 6, 'refused solutions');
+  assert.ok(fixture.judged.some((c) => c.expect.correct === true));
   assert.ok(fixture.judged.some((c) => c.expect.correct === false));
-  assert.ok(fixture.judged.some((c) => c.expect.continuesOn));
+  assert.ok(fixture.judged.some((c) => c.expect.reason === 'another correct move'));
+  assert.ok(fixture.judged.some((c) => c.expect.reason === 'a different mate, but mate'));
+  assert.ok(fixture.refused.some((c) => c.steps.length > 1), 'a solution refused for its length');
 });
 
 test('a solution is read back as the board spells it', () => {
@@ -35,20 +37,16 @@ test('a solution is read back as the board spells it', () => {
 });
 
 for (const c of fixture.judged) {
-  test(`line: ${c.name}`, () => {
+  test(`judged: ${c.name}`, () => {
     const { fen, steps } = solutionOf(c.solution);
-    const verdict = judgeLine({ fen, solution: steps, moves: c.moves });
+    // Through the row's one reader, as the attempt route does.
+    const answer = firstMoveOf({ fen, solution: steps });
+    const verdict = judgeAttempt({ fen, moveSan: c.move, ...answer });
     // Every key the case names must match; a case names what it is about.
     for (const [key, want] of Object.entries(c.expect)) {
       assert.deepEqual(verdict[key], want, `${key} of ${JSON.stringify(verdict)}`);
     }
-    // And whatever the case is about, these hold of every verdict:
     assert.equal(typeof verdict.reason, 'string');
-    if (!verdict.correct) {
-      assert.equal(verdict.reply, null, 'a wrong move earns no reply');
-      assert.equal(verdict.done, false);
-    }
-    if (verdict.done) assert.equal(verdict.reply, null, 'a finished line has no reply left');
   });
 }
 
@@ -59,9 +57,3 @@ for (const c of fixture.refused) {
     assert.ok(read.error.includes(c.why), `"${read.error}" should say "${c.why}"`);
   });
 }
-
-test('the reply to a move is never in the answer to the move before it', () => {
-  const { fen, steps } = solutionOf('scholarLine');
-  const first = judgeLine({ fen, solution: steps, moves: ['Qh5'] });
-  assert.equal(JSON.stringify(first).includes('Qxe5'), false, 'move two must not travel with move one');
-});

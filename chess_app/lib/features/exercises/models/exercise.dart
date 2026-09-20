@@ -9,19 +9,18 @@
 
 import 'exercise_task_words.dart' show ExerciseAsk;
 
-/// One move of the student's, as a line asks for it.
+/// The one move a find exercise asks of the student.
 ///
-/// `accept[0]` is the move the line goes on from — the one a trainer's
-/// alternatives and continuations are written against; the rest of [accept]
-/// are also right. [reply] is the opponent's answer, `null` on the step that
-/// ends the line.
+/// `accept[0]` is the author's move — the one shown as the solution; the rest
+/// of [accept] are also right. The wire keeps it in a list of exactly one,
+/// the shape the rows were stored in while a solution could be a line
+/// (`docs/PLAN-EXERCISE.md`, phases 14 and 16).
 class ExerciseStep {
-  const ExerciseStep({required this.accept, this.reply});
+  const ExerciseStep({required this.accept});
 
   final List<String> accept;
-  final String? reply;
 
-  Map<String, dynamic> toJson() => {'accept': accept, 'reply': reply};
+  Map<String, dynamic> toJson() => {'accept': accept};
 
   static ExerciseStep? fromJson(Object? json) {
     if (json is! Map) return null;
@@ -29,11 +28,7 @@ class ExerciseStep {
     if (rawAccept is! List) return null;
     final accept = rawAccept.whereType<String>().toList();
     if (accept.isEmpty) return null;
-    final rawReply = json['reply'];
-    return ExerciseStep(
-      accept: accept,
-      reply: rawReply is String ? rawReply : null,
-    );
+    return ExerciseStep(accept: accept);
   }
 }
 

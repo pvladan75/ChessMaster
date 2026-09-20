@@ -229,12 +229,11 @@ void main() {
         final row = _findRow(id: 'ex_1', fen: _backRank, solution: const [
           {
             'accept': ['Rd8'],
-            'reply': null
           }
         ]);
         await _pumpEditor(tester, {'ex_1': row}, 'ex_1', size: size);
         expect(tester.takeException(), isNull);
-        expect(lineText(tester), '1. Rd8#');
+        expect(lineText(tester), 'Rd8#');
         await tester
             .ensureVisible(find.byKey(const Key('exercise-editor-save')));
         expect(find.byKey(const Key('exercise-editor-save')), findsOneWidget);
@@ -252,12 +251,11 @@ void main() {
         solution: const [
           {
             'accept': ['a8=Q'],
-            'reply': null
           }
         ],
       );
       await _pumpEditor(tester, {'ex_1': row}, 'ex_1');
-      expect(lineText(tester), '1. a8=Q');
+      expect(lineText(tester), 'a8=Q');
 
       tester
           .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
@@ -265,7 +263,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(lineText(tester), '1. a8=Q (or a8=N)');
+      expect(lineText(tester), 'a8=Q (or a8=N)');
     });
   });
 
@@ -279,12 +277,11 @@ void main() {
         solution: const [
           {
             'accept': ['Rd1'],
-            'reply': null
           }
         ],
       );
       await _pumpEditor(tester, {'ex_1': row}, 'ex_1');
-      expect(lineText(tester), '1. Rd1#');
+      expect(lineText(tester), 'Rd1#');
       expect(
           tester
               .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
@@ -299,7 +296,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(lineText(tester), '1. Rd1# (or Re1#)');
+      expect(lineText(tester), 'Rd1# (or Re1#)');
     });
   });
 
@@ -313,7 +310,6 @@ void main() {
         solution: const [
           {
             'accept': ['Rd8'],
-            'reply': null
           }
         ],
       );
@@ -323,7 +319,7 @@ void main() {
           .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
           .onMove('e1', 'e8', '');
       await tester.pumpAndSettle();
-      expect(lineText(tester), '1. Rd8# (or Re8#)');
+      expect(lineText(tester), 'Rd8# (or Re8#)');
 
       await tester.ensureVisible(find.byKey(const Key('exercise-editor-save')));
       await tester.tap(find.byKey(const Key('exercise-editor-save')));
@@ -335,7 +331,7 @@ void main() {
 
       expect(find.byType(MakeExerciseSheet), findsNothing);
       expect(find.byType(ExerciseEditorScreen), findsOneWidget);
-      expect(lineText(tester), '1. Rd8# (or Re8#)',
+      expect(lineText(tester), 'Rd8# (or Re8#)',
           reason: 'the alternative played before Save was opened is still '
               'there');
       expect(server.to('/exercises/ex_1', 'PUT'), isEmpty);
@@ -350,7 +346,6 @@ void main() {
             'ex_1': _findRow(id: 'ex_1', fen: _backRank, solution: const [
               {
                 'accept': ['Rd8'],
-                'reply': null
               }
             ])
           },
@@ -370,7 +365,6 @@ void main() {
             'ex_1': _findRow(id: 'ex_1', fen: _backRank, solution: const [
               {
                 'accept': ['Rd8'],
-                'reply': null
               }
             ])
           },
@@ -391,7 +385,7 @@ void main() {
       await tester.tap(find.text('Keep editing'));
       await tester.pumpAndSettle();
       expect(find.byType(ExerciseEditorScreen), findsOneWidget);
-      expect(lineText(tester), '1. Rd8# (or Re8#)');
+      expect(lineText(tester), 'Rd8# (or Re8#)');
 
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
@@ -477,7 +471,6 @@ void main() {
       final row = _findRow(id: 'ex_1', fen: _kpk, solution: const [
         {
           'accept': ['Kc6'],
-          'reply': null
         }
       ]);
       final server =

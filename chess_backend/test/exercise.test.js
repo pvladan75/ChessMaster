@@ -14,7 +14,7 @@ const LINE = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
 test('a row written before the columns existed is a one-move find-the-move exercise', () => {
   const read = exerciseOf({ fen: BACK_RANK, solution_san: 'Rd8#', needs_review: false });
   assert.deepEqual(read.task, { type: 'find' });
-  assert.deepEqual(read.solution, [{ accept: ['Rd8#'], reply: null }]);
+  assert.deepEqual(read.solution, [{ accept: ['Rd8#'] }]);
   assert.equal(read.problem, null);
 });
 
@@ -22,9 +22,9 @@ test('a stored solution wins over the printed move, and comes back as the board 
   const read = exerciseOf({
     fen: BACK_RANK,
     solution_san: 'Re1',
-    solution: [{ accept: ['Rd8', 'Re1'], reply: null }],
+    solution: [{ accept: ['Rd8', 'Re1'] }],
   });
-  assert.deepEqual(read.solution, [{ accept: ['Rd8#', 'Re1'], reply: null }]);
+  assert.deepEqual(read.solution, [{ accept: ['Rd8#', 'Re1'] }]);
   assert.deepEqual(firstMoveOf({ fen: BACK_RANK, solution: [{ accept: ['Rd8', 'Re1'] }] }),
     { solutionSan: 'Rd8#', acceptedSans: ['Re1'] });
 });
@@ -36,43 +36,41 @@ test('a row with neither has nothing to judge with, and says so', () => {
   assert.equal(firstMoveOf({ fen: BACK_RANK, solution_san: null }), null);
 });
 
-test('a line replays: every accepted move legal where asked, every reply after the main move', () => {
-  const read = readSolution(LINE, [
-    { accept: ['Qh5', 'Qf3'], reply: 'g6' },
-    { accept: ['Qxe5+'] },
-  ]);
+test('a solution is read: every accepted move legal in the position, spelled as the board spells it', () => {
+  const read = readSolution(LINE, [{ accept: ['Qh5', 'Qf3'] }]);
   assert.equal(read.ok, true);
-  assert.deepEqual(read.steps, [
-    { accept: ['Qh5', 'Qf3'], reply: 'g6' },
-    { accept: ['Qxe5+'], reply: null },
-  ]);
+  assert.deepEqual(read.steps, [{ accept: ['Qh5', 'Qf3'] }]);
 });
 
-test('a line that does not replay is refused, with the move that broke it', () => {
+test('a solution that cannot be read is refused, with the move that broke it', () => {
   const cases = [
     [[], /at least one move/],
-    [[{ accept: [] }], /move 1: nothing is accepted/],
-    [[{ accept: ['Qh6'] }], /move 1: "Qh6" cannot be played/],
+    [[{ accept: [] }], /accepts nothing/],
+    [[{ accept: ['Qh6'] }], /"Qh6" cannot be played/],
     [[{ accept: ['Qh5', 'Qh5'] }], /accepted twice/],
-    [[{ accept: ['Qh5'], reply: 'g6' }, { accept: ['Qxe5+'], reply: 'Qe7' }], /move 2: the line ends on a reply/],
-    // After ...g6 the pawn stands between the queen and f7.
-    [[{ accept: ['Qh5'], reply: 'g6' }, { accept: ['Qxf7#'] }], /move 2: "Qxf7#" cannot be played/],
-    [[{ accept: ['Qh5'], reply: 'Ke8' }, { accept: ['Qxe5+'] }], /the reply "Ke8" cannot be played/],
-    [[{ accept: ['Qh5'] }, { accept: ['Qxe5+'] }], /no reply to go on from/],
+    // A find exercise asks for one move; the row may not hold a second.
+    [[{ accept: ['Qh5'] }, { accept: ['Qxe5+'] }], /asks for one move/],
   ];
   for (const [raw, why] of cases) {
     const read = readSolution(LINE, raw);
     assert.equal(read.ok, false, JSON.stringify(raw));
     assert.match(read.error, why);
   }
-  // The alternative is checked where it is asked, not only the main move.
+  // The alternative is checked too, not only the main move.
   assert.match(readSolution(LINE, [{ accept: ['Qh5', 'Qh6'] }]).error, /"Qh6"/);
 });
 
-test('a stored solution that does not replay makes the row unusable, not silently one-move', () => {
+test('a row that still holds a line is unusable, never judged on its first move', () => {
+  const row = { fen: LINE, solution: [{ accept: ['Qh5'] }, { accept: ['Qxe5+'] }] };
+  assert.match(exerciseOf(row).problem, /asks for one move/);
+  assert.equal(firstMoveOf(row), null);
+  assert.match(assignableProblem(row), /asks for one move/);
+});
+
+test('a stored solution that cannot be read makes the row unusable, not silently one-move', () => {
   const row = { fen: BACK_RANK, solution_san: 'Rd8#', solution: [{ accept: ['Qd8'] }] };
-  assert.match(exerciseOf(row).problem, /does not replay/);
-  assert.match(assignableProblem(row), /does not replay/);
+  assert.match(exerciseOf(row).problem, /cannot be read/);
+  assert.match(assignableProblem(row), /cannot be read/);
 });
 
 test('a game task is read with the row\'s own position, by the engine-game parser', () => {

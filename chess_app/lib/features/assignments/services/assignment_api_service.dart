@@ -155,17 +155,14 @@ class AssignmentApiService {
     }
   }
 
-  /// Sends the student's moves so far for one of the trainer's own positions
-  /// — every move of a line, first to last, not only the last one played.
+  /// Sends the student's move for one of the trainer's own positions.
   ///
-  /// The verdict comes from the server because the solution never left it. A
-  /// line releases its `reply` one move at a time, never ahead of the move
-  /// that earned it, and a wrong move may be sent again (`retry`) — the
-  /// server's own report keeps only the first verdict.
+  /// The verdict comes from the server because the solution never left it;
+  /// the first answer is the answer, and the server's report keeps it.
   Future<CustomAttemptResult?> submitCustomAttempt({
     required int assignmentId,
     required String puzzleId,
-    required List<String> moves,
+    required String moveSan,
     int? msTaken,
   }) async {
     try {
@@ -175,7 +172,7 @@ class AssignmentApiService {
             headers: _headers,
             body: jsonEncode({
               'puzzleId': puzzleId,
-              'moves': moves,
+              'moveSan': moveSan,
               if (msTaken != null) 'msTaken': msTaken,
             }),
           )

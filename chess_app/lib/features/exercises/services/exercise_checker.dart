@@ -101,9 +101,10 @@ class ExerciseChecker {
     if (steps == null || steps.isEmpty) return const [];
 
     if (fewPieces) {
-      final fens = studentFens(fen, steps);
-      final results = await Future.wait(fens.map(tablebase));
-      return tablebaseFindings(steps: steps, results: results);
+      return tablebaseFindings(
+        answer: steps.first,
+        result: await tablebase(fen),
+      );
     }
 
     final lines = await engine(fen);

@@ -187,7 +187,7 @@ void main() {
     });
   });
 
-  group('the solver plays a line through the real screen', () {
+  group('the solver, through the real screen', () {
     UserSession session() => UserSession(
           token: 't',
           id: 1,
@@ -201,9 +201,6 @@ void main() {
           items: [],
         );
 
-    /// The queen's own square through the line: d1 → h5 (move 1), then h5 for
-    /// both the wrong try and the move that finishes it — the wrong move is
-    /// never actually applied to the board.
     Offset squareOn(WidgetTester tester, String square) {
       final rect = tester.getRect(find.byType(ChessBoardWithOverlay));
       return rect.topLeft +
@@ -216,57 +213,18 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets(
-        'a right move, a wrong move, then the right move — one request per '
-        'move, the wrong one changes nothing, and onAnswered fires once',
-        (tester) async {
-      final rec = _Recorder();
+    Future<List<(String, bool)>> solve(
+      WidgetTester tester,
+      _Recorder rec,
+      Map<String, Object?> Function(String moveSan) verdict,
+    ) async {
       final answered = <(String, bool)>[];
-
       final client = MockClient((r) async {
         rec.requests.add(r);
         final body = jsonDecode(r.body) as Map<String, dynamic>;
-        final moves = (body['moves'] as List).cast<String>();
-        if (moves.length == 1) {
-          // 1. Qh5 — the author's move, the line goes on.
-          return http.Response(
-              jsonEncode({
-                'correct': true,
-                'reason': "the author's move",
-                'playedSan': 'Qh5',
-                'done': false,
-                'step': 0,
-                'reply': 'g6',
-                'continuesOn': null,
-                'retry': false,
-              }),
-              200);
-        }
-        if (moves.last == 'Qxh7') {
-          // The wrong second move — a line, so it may be tried again.
-          return http.Response(
-              jsonEncode({
-                'correct': false,
-                'reason': 'That is not the move the exercise asks for.',
-                'playedSan': 'Qxh7',
-                'done': false,
-                'step': 1,
-                'retry': true,
-              }),
-              200);
-        }
-        // 2. Qxe5+ finishes the line.
         return http.Response(
-            jsonEncode({
-              'correct': true,
-              'reason': "the author's move",
-              'playedSan': 'Qxe5+',
-              'done': true,
-              'step': 1,
-            }),
-            200);
+            jsonEncode(verdict(body['moveSan'] as String)), 200);
       });
-
       await tester.pumpWidget(MaterialApp(
         theme:
             ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
@@ -282,35 +240,60 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
+      return answered;
+    }
+
+    String fenNow(WidgetTester tester) => tester
+        .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay))
+        .controller
+        .getFen();
+
+    testWidgets(
+        'a wrong move is sent as one move, taken back, and is the answer: '
+        'the board takes no second try', (tester) async {
+      final rec = _Recorder();
+      final answered = await solve(
+          tester,
+          rec,
+          (san) => {
+                'correct': false,
+                'reason': 'That is not the move the exercise asks for.',
+                'playedSan': san,
+                'solutionSan': 'Qh5',
+              });
+
+      await drag(tester, 'd1', 'g4');
+      expect(rec.requests, hasLength(1));
+      final body = jsonDecode(rec.requests.single.body) as Map<String, dynamic>;
+      expect(body['moveSan'], 'Qg4');
+      expect(body.containsKey('moves'), isFalse);
+      expect(MoveTree.samePosition(fenNow(tester), _scholar), isTrue,
+          reason: 'the position shown is the one that was asked');
+      expect(answered, [('ex_1', false)]);
 
       await drag(tester, 'd1', 'h5');
-      await tester.pumpAndSettle();
+      expect(rec.requests, hasLength(1),
+          reason: 'a find exercise asks for one move; the first answer is it');
+      expect(answered, [('ex_1', false)]);
+    });
 
-      final controllerFinder = find.byType(ChessBoardWithOverlay);
-      String fenNow() =>
-          (tester.widget<ChessBoardWithOverlay>(controllerFinder))
-              .controller
-              .getFen();
+    testWidgets('a right move stays on the board and is reported once',
+        (tester) async {
+      final rec = _Recorder();
+      final answered = await solve(
+          tester,
+          rec,
+          (san) => {
+                'correct': true,
+                'reason': "the author's move",
+                'playedSan': san,
+                'solutionSan': 'Qh5',
+              });
 
-      final fenBeforeWrong = fenNow();
-      await drag(tester, 'h5', 'h7');
-      await tester.pumpAndSettle();
-      expect(fenNow(), fenBeforeWrong,
-          reason: 'a wrong move must leave the board exactly as it was');
-
-      await drag(tester, 'h5', 'e5');
-      await tester.pumpAndSettle();
-
-      expect(rec.requests, hasLength(3));
-      expect((jsonDecode(rec.requests[0].body) as Map)['moves'], ['Qh5']);
-      expect(
-          (jsonDecode(rec.requests[1].body) as Map)['moves'], ['Qh5', 'Qxh7']);
-      expect(
-          (jsonDecode(rec.requests[2].body) as Map)['moves'], ['Qh5', 'Qxe5+']);
-
-      expect(answered, [('ex_1', false)],
-          reason: 'the report keeps the first verdict: the wrong move, '
-              'once — not overwritten by the finish that followed it');
+      await drag(tester, 'd1', 'h5');
+      expect((jsonDecode(rec.requests.single.body) as Map)['moveSan'], 'Qh5');
+      expect(MoveTree.samePosition(fenNow(tester), _scholar), isFalse);
+      expect(answered, [('ex_1', true)]);
     });
   });
 }

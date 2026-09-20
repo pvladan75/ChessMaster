@@ -2,7 +2,7 @@
 //
 // A trainer does not send a position, they send an exercise: a position plus a
 // task (`docs/PLAN-EXERCISE.md`). The row grew into that — first a board and
-// the move a book printed, then an instruction, now a task and a line — and
+// the move a book printed, then an instruction, now a task and an answer — and
 // every consumer used to read `solution_san` for itself. This file is the one
 // place that knows what the columns mean; everything that decides whether an
 // exercise can be sent, judges an answer or reveals one reads it through
@@ -17,7 +17,6 @@ const { Chess } = require('chess.js');
 const { parseEngineGameTask } = require('./engineGameTask');
 
 const ORIGINS = ['book', 'manual', 'mistakes'];
-const MAX_SOLUTION_STEPS = 20;
 const MAX_ACCEPTED = 8;
 
 /// The columns `exerciseOf` needs, for a SELECT list. With an alias:
@@ -31,20 +30,28 @@ function exerciseColumns(alias) {
   return `${p}fen, ${p}task, ${p}solution, ${p}solution_san, ${p}needs_review`;
 }
 
-/// Replays a stored solution from [fen], or says why it does not replay.
+/// What a longer list is told. The app's reader says the same sentence
+/// (`exercise_line.dart`), and the shared fixture holds both to it.
+const ONE_MOVE = 'A find exercise asks for one move. For more, use Checkmate in N or Play N moves.';
+
+/// Reads a stored solution from [fen], or says why it cannot be read.
 ///
-/// The shape is `[{ accept: [san, …], reply: san | null }, …]`, one entry per
-/// move of the student. `accept[0]` is the move the line continues on; the
-/// others are right as well. Every accepted move must be legal where it is
-/// asked, and every reply legal after the main move — the app's writer reads
-/// its work back the same way before it saves, so a line the server refuses
-/// is a line the app should never have sent.
+/// The shape is `[{ accept: [san, …] }]` — **a list of exactly one entry**, the
+/// one move a find exercise asks of the student (`docs/PLAN-EXERCISE.md`,
+/// phases 14 and 16). `accept[0]` is the author's move; the others are right as
+/// well. Every accepted move must be legal in the position — the app's writer
+/// reads its work back the same way before it saves, so a solution the server
+/// refuses is one the app should never have sent.
+///
+/// It is a list because that is how the rows were stored while a solution
+/// could be a line; this is the reader *and* the writer's rule, so a row that
+/// still holds a line is refused aloud, never judged on its first move.
 function readSolution(fen, raw) {
   if (!Array.isArray(raw) || raw.length === 0) {
     return { ok: false, error: 'The solution must be a list of at least one move.' };
   }
-  if (raw.length > MAX_SOLUTION_STEPS) {
-    return { ok: false, error: `The solution is longer than ${MAX_SOLUTION_STEPS} moves.` };
+  if (raw.length > 1) {
+    return { ok: false, error: ONE_MOVE };
   }
   let board;
   try {
@@ -53,60 +60,34 @@ function readSolution(fen, raw) {
     return { ok: false, error: 'The position is not valid.' };
   }
 
-  const steps = [];
-  for (let i = 0; i < raw.length; i += 1) {
-    const where = `move ${i + 1}`;
-    const entry = raw[i];
-    const accept = entry && Array.isArray(entry.accept)
-      ? entry.accept.filter((san) => typeof san === 'string' && san.trim()).map((san) => san.trim())
-      : [];
-    if (accept.length === 0) {
-      return { ok: false, error: `${where}: nothing is accepted, so nothing can be right.` };
-    }
-    if (accept.length > MAX_ACCEPTED) {
-      return { ok: false, error: `${where}: more than ${MAX_ACCEPTED} accepted moves.` };
-    }
-
-    // Every accepted move is tried on a copy; only the first stays played.
-    const played = [];
-    for (const san of accept) {
-      const probe = new Chess(board.fen());
-      let move = null;
-      try {
-        move = probe.move(san);
-      } catch {
-        move = null;
-      }
-      if (!move) return { ok: false, error: `${where}: "${san}" cannot be played here.` };
-      played.push(move.san);
-    }
-    if (new Set(played).size !== played.length) {
-      return { ok: false, error: `${where}: the same move is accepted twice.` };
-    }
-    board.move(played[0]);
-
-    const last = i === raw.length - 1;
-    let reply = null;
-    if (entry.reply !== undefined && entry.reply !== null && entry.reply !== '') {
-      let move = null;
-      try {
-        move = board.move(String(entry.reply).trim());
-      } catch {
-        move = null;
-      }
-      if (!move) return { ok: false, error: `${where}: the reply "${entry.reply}" cannot be played.` };
-      reply = move.san;
-    } else if (!last && !board.isGameOver()) {
-      // A line that goes on needs the move it goes on after. Without one the
-      // student's next move would be asked of the wrong side.
-      return { ok: false, error: `${where}: the line goes on, but there is no reply to go on from.` };
-    }
-    if (last && reply !== null) {
-      return { ok: false, error: `${where}: the line ends on a reply, which nobody is asked to find.` };
-    }
-    steps.push({ accept: played, reply });
+  const entry = raw[0];
+  const accept = entry && Array.isArray(entry.accept)
+    ? entry.accept.filter((san) => typeof san === 'string' && san.trim()).map((san) => san.trim())
+    : [];
+  if (accept.length === 0) {
+    return { ok: false, error: 'The solution accepts nothing, so nothing can be right.' };
   }
-  return { ok: true, steps };
+  if (accept.length > MAX_ACCEPTED) {
+    return { ok: false, error: `More than ${MAX_ACCEPTED} accepted moves.` };
+  }
+
+  // Every accepted move is tried on its own copy of the position.
+  const played = [];
+  for (const san of accept) {
+    const probe = new Chess(board.fen());
+    let move = null;
+    try {
+      move = probe.move(san);
+    } catch {
+      move = null;
+    }
+    if (!move) return { ok: false, error: `"${san}" cannot be played here.` };
+    played.push(move.san);
+  }
+  if (new Set(played).size !== played.length) {
+    return { ok: false, error: 'The same move is accepted twice.' };
+  }
+  return { ok: true, steps: [{ accept: played }] };
 }
 
 /**
@@ -116,7 +97,7 @@ function readSolution(fen, raw) {
  * - `task` — `{ type: 'find' }`, or `{ type: 'game', …the engine-game task }`
  *   with the row's own position in it. The stored task carries no FEN: the row
  *   has one, and a position kept twice is two positions.
- * - `solution` — the replayed steps for a `find` task, `null` otherwise.
+ * - `solution` — the one step of a `find` task as it was read, `null` otherwise.
  * - `problem` — why this row cannot be read as an exercise, or `null`.
  *
  * **A row with no `task` and no `solution` is a find-the-move exercise whose
@@ -147,14 +128,14 @@ function exerciseOf(row) {
   if (row.solution !== null && row.solution !== undefined) {
     const read = readSolution(row.fen, row.solution);
     if (!read.ok) {
-      return { task, solution: null, problem: `has a solution that does not replay: ${read.error}` };
+      return { task, solution: null, problem: `has a solution that cannot be read: ${read.error}` };
     }
     return { task, solution: read.steps, problem: null };
   }
   if (row.solution_san) {
     // Not replayed: the scan pipeline verified this move when it stored it,
     // and several readers select the row without its position.
-    return { task, solution: [{ accept: [String(row.solution_san).trim()], reply: null }], problem: null };
+    return { task, solution: [{ accept: [String(row.solution_san).trim()] }], problem: null };
   }
   return { task, solution: null, problem: 'has no solution, so an answer cannot be judged' };
 }

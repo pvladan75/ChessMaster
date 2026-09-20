@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3334 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3327 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1632 with TEST_DATABASE_URL, 1539 without
+cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -59,8 +59,11 @@ move is played on the exercise's own screen, opened from the sheet („Play the
 move") instead of the red refusal (→ 3307; backend → 1614/1526); then its phase
 15 — „Play N moves", a game with no goal that no tablebase is ever asked about,
 and the route by which a trainer records a verdict, which nothing had until
-then (→ 3334; backend → 1632/1539). Open: the rest of the owner's live pass, and
-phase 16, the deletion of the multi-move machinery. Phase 6 of
+then (→ 3334; backend → 1632/1539); then its phase 16, the deletion of the
+multi-move machinery — the one old row with a line deleted on the owner's yes,
+`judgeLine`, the replies and the step chips gone, the attempt's wire down to one
+move (→ 3327; backend → 1624/1530 — the first time these numbers fall, because
+tests of deleted code went with it). Open: the rest of the owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

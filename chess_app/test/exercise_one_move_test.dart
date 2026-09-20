@@ -9,7 +9,7 @@
 // the first move played there is the answer and every further one an accepted
 // alternative.
 //
-// Stands on `docs/gates/exercise_line_cases.json` (`oneMove`), the fixture the
+// Stands on `docs/gates/exercise_line_cases.json`, the fixture the
 // server's writer is held to by `chess_backend/test/exercise_authoring.test.js`.
 
 import 'dart:convert';
@@ -70,8 +70,7 @@ void main() {
       // Control: everything below compares against this.
       expect(scholarFirst, [
         {
-          'accept': ['Qh5', 'Qf3'],
-          'reply': null
+          'accept': ['Qh5', 'Qf3']
         }
       ]);
     });
@@ -85,7 +84,7 @@ void main() {
 
     test('a line that goes on is cut after the first move, and says so', () {
       // The line phase 2b wrote whole: it is two moves, which the server now
-      // refuses (`oneMove.refused`). What this app sends is its first.
+      // refuses (the fixture's last refusal). What this app sends is its first.
       final reading =
           ExerciseLine.fromTree(tree('2. Qh5 (2. Qf3) 2... g6 3. Qxe5+'));
       expect(reading.ok, isTrue, reason: reading.error);
@@ -131,7 +130,6 @@ void main() {
       final edit = ExerciseLineEdit.empty(fen: scholar);
       expect(edit.steps, isEmpty);
       expect(edit.error, isNull);
-      expect(edit.fenBefore(0), scholar);
     });
 
     test('the first move is the answer, the next ones its alternatives', () {

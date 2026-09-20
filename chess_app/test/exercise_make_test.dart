@@ -1,99 +1,24 @@
-// exercise_make_test.dart — the gate of phase 2b, docs/PLAN-EXERCISE.md.
-//
-// Copy into chess_app/test/ and leave it there green, unchanged. Written
-// 18.9.2026 by the lead, **red on master**: nothing under
-// `lib/features/exercises/` exists, and `submitCustomAttempt` still takes one
-// move.
+// exercise_make_test.dart — the gate of phase 2b, docs/PLAN-EXERCISE.md, as
+// phase 16 left it: a find exercise asks for one move, and the machinery that
+// played a line — `ExerciseLinePlay`, the replies, the list of moves on the
+// attempt's wire — is gone, with the tests that stood on it.
 //
 // It reads `docs/gates/exercise_line_cases.json` — the same file the server's
 // `exercise_line.test.js` and `exercise_authoring.test.js` read. The app
 // writes a solution and the server judges by it, so both ends stand on one
 // fixture (CLAUDE.md rules 12 and 13): what the app's reader accepts is what
 // the server accepts, with the same reason when it refuses.
-//
-// What the implementer must provide, exactly:
-//
-//   // lib/features/exercises/models/exercise.dart
-//   class ExerciseStep {
-//     const ExerciseStep({required this.accept, this.reply});
-//     final List<String> accept;     // accept[0] is the move the line goes on from
-//     final String? reply;           // the opponent's answer; null on the last step
-//     Map<String, dynamic> toJson(); // {'accept': [...], 'reply': reply}
-//     static ExerciseStep? fromJson(Object? json);
-//   }
-//
-//   class Exercise {                 // GET/POST/PUT /exercises answers this
-//     final String id, fen, sideToMove, name, origin;
-//     final String? instruction, blockedReason;
-//     final List<String> themes;
-//     final Map<String, dynamic> task;       // {'type': 'find'} or the game task
-//     final List<ExerciseStep>? solution;    // null for a game
-//     final bool assignable;
-//     bool get isGame;                       // task['type'] == 'game'
-//     static Exercise? fromJson(Map<String, dynamic> json);
-//   }
-//
-//   class ExerciseDraft {            // what the sheet sends
-//     const ExerciseDraft({required this.name, this.fen, this.instruction,
-//         this.themes = const [], required this.task, this.solution});
-//     Map<String, dynamic> toJson(); // omits 'fen' when null, 'solution' when null
-//   }
-//
-//   // lib/features/exercises/models/exercise_line.dart
-//   class ExerciseLineReading {
-//     final List<ExerciseStep> steps;   // as the board spells them; empty when refused
-//     final String? error;              // the reason, in the server's words
-//     final bool laterMovesIgnored;     // fromTree (phase 14): the tree went on after the first move
-//     bool get ok;
-//   }
-//   class ExerciseLine {
-//     /// The server's `readSolution`, move for move and reason for reason.
-//     static ExerciseLineReading read({required String fen, required List<ExerciseStep> steps});
-//     /// The trainer's tree, flattened **from its root** — never from
-//     /// `tree.current` — and read back through `read` before it is returned.
-//     static ExerciseLineReading fromTree(MoveTree tree);
-//   }
-//
-//   // lib/features/exercises/models/exercise_line_play.dart
-//   class ExerciseLinePlay {            // the solver's state, no widgets
-//     ExerciseLinePlay({required String fen});
-//     String get fen;                   // the board to show now
-//     List<String> get moves;           // the student's moves the server has accepted
-//     bool get done;
-//     List<String> attempt(String san); // what to send: [...moves, san]
-//     void apply(String san, CustomAttemptResult result);
-//   }
-//
-//   // lib/features/exercises/services/exercise_api_service.dart
-//   class ExerciseSaveResult { final Exercise? exercise; final String? error; final int status; }
-//   class ExerciseApiService {
-//     ExerciseApiService({required String authToken, http.Client? client});
-//     Future<ExerciseSaveResult> create(ExerciseDraft draft);              // POST /exercises
-//     Future<ExerciseSaveResult> update(String id, ExerciseDraft draft);   // PUT  /exercises/:id
-//     Future<Exercise?> load(String id);                                   // GET  /exercises/:id
-//   }
-//
-// and, changed in place:
-//
-//   AssignmentApiService.submitCustomAttempt({required int assignmentId,
-//       required String puzzleId, required List<String> moves, int? msTaken})
-//   CustomAttemptResult gains: bool done, bool retry, String? reply,
-//       String? continuesOn, int step  (absent on the wire reads as
-//       done: correct, retry: false, reply/continuesOn: null, step: 0)
 
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:chess/chess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/exercises/models/exercise.dart';
 import 'package:chess_app/features/exercises/models/exercise_line.dart';
-import 'package:chess_app/features/exercises/models/exercise_line_play.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 
 /// The fixture lives beside the plan, one directory above the app.
@@ -107,23 +32,11 @@ Map<String, dynamic> _fixture() {
 
 List<ExerciseStep> _steps(List<dynamic> raw) => [
       for (final entry in raw)
-        ExerciseStep(
-          accept: ((entry as Map)['accept'] as List).cast<String>(),
-          reply: entry['reply'] as String?,
-        ),
+        ExerciseStep(accept: ((entry as Map)['accept'] as List).cast<String>()),
     ];
 
 List<Map<String, dynamic>> _wire(List<ExerciseStep> steps) =>
     [for (final s in steps) s.toJson()];
-
-/// The board after [sans] from [fen], as `chess.dart` spells it.
-String _fenAfter(String fen, List<String> sans) {
-  final game = chess.Chess.fromFEN(fen);
-  for (final san in sans) {
-    if (!game.move(san)) throw StateError('$san does not play');
-  }
-  return game.fen;
-}
 
 class _Recorder {
   final requests = <http.Request>[];
@@ -136,12 +49,15 @@ void main() {
   final positions = (fixture['positions'] as Map).cast<String, String>();
   final solutions = (fixture['solutions'] as Map).cast<String, dynamic>();
   final scholar = positions['scholar']!;
-  final scholarLine = solutions['scholarLine'] as Map<String, dynamic>;
+  final scholarFirst = solutions['scholarFirst'] as Map<String, dynamic>;
 
   group('the reader agrees with the server', () {
     test('neither loop below can pass by being empty', () {
-      expect((fixture['refused'] as List).length, greaterThanOrEqualTo(9));
-      expect(solutions.length, greaterThanOrEqualTo(2));
+      final refused = (fixture['refused'] as List).cast<Map>();
+      expect(refused.length, greaterThanOrEqualTo(6));
+      expect(refused.any((c) => (c['steps'] as List).length > 1), isTrue,
+          reason: 'a solution refused for its length alone');
+      expect(solutions.length, greaterThanOrEqualTo(3));
     });
 
     test('every solution is read back as the board spells it', () {
@@ -156,7 +72,8 @@ void main() {
       }
     });
 
-    test('every line the server refuses is refused here, for its reason', () {
+    test('every solution the server refuses is refused here, for its reason',
+        () {
       for (final c
           in (fixture['refused'] as List).cast<Map<String, dynamic>>()) {
         final reading = ExerciseLine.read(
@@ -176,85 +93,7 @@ void main() {
   // writer reads the root's first move and its variations and nothing after.
   // Its cases — the alternative, what is not used and is said so, the empty
   // tree, the root wherever the trainer stands — are in
-  // `exercise_one_move_test.dart`, on the same fixture. The reader above is
-  // unchanged: lines that exist are still read whole.
-
-  group('the solver plays a line one answer at a time', () {
-    CustomAttemptResult answer(Map<String, dynamic> json) =>
-        CustomAttemptResult.fromJson(json);
-
-    test('an answer from before lines existed is a finished one-move verdict',
-        () {
-      final old = answer({'correct': true, 'reason': "the author's move"});
-      expect(old.done, isTrue);
-      expect(old.retry, isFalse);
-      expect(old.reply, isNull);
-      expect(old.continuesOn, isNull);
-      final wrong = answer({'correct': false, 'reason': 'no'});
-      expect(wrong.done, isFalse);
-      expect(wrong.retry, isFalse);
-    });
-
-    test('a right move puts the reply on the board and is remembered', () {
-      final play = ExerciseLinePlay(fen: scholar);
-      expect(play.attempt('Qh5'), ['Qh5']);
-      play.apply(
-          'Qh5',
-          answer({
-            'correct': true,
-            'done': false,
-            'reply': 'g6',
-            'continuesOn': null,
-            'playedSan': 'Qh5',
-          }));
-      expect(play.fen, _fenAfter(scholar, ['Qh5', 'g6']));
-      expect(play.moves, ['Qh5']);
-      expect(play.done, isFalse);
-      expect(play.attempt('Qxe5+'), ['Qh5', 'Qxe5+']);
-    });
-
-    test(
-        'after an accepted alternative the board goes on from the author\'s '
-        'move, and the list keeps what was played', () {
-      final play = ExerciseLinePlay(fen: scholar);
-      play.apply(
-          'Qf3',
-          answer({
-            'correct': true,
-            'done': false,
-            'reply': 'g6',
-            'continuesOn': 'Qh5',
-            'playedSan': 'Qf3',
-          }));
-      expect(play.fen, _fenAfter(scholar, ['Qh5', 'g6']),
-          reason: 'g6 was written after Qh5; the board shows that line');
-      expect(play.moves, ['Qf3'],
-          reason: 'the server judges every move sent, and Qf3 is accepted');
-    });
-
-    test('a wrong move changes nothing, so it can be played again', () {
-      final play = ExerciseLinePlay(fen: scholar);
-      play.apply(
-          'Qh5', answer({'correct': true, 'done': false, 'reply': 'g6'}));
-      final before = play.fen;
-      play.apply('Qxh7',
-          answer({'correct': false, 'done': false, 'retry': true, 'step': 1}));
-      expect(play.fen, before);
-      expect(play.moves, ['Qh5']);
-      expect(play.done, isFalse);
-      expect(play.attempt('Qxe5+'), ['Qh5', 'Qxe5+']);
-    });
-
-    test('the last right move finishes the line', () {
-      final play = ExerciseLinePlay(fen: scholar);
-      play.apply(
-          'Qh5', answer({'correct': true, 'done': false, 'reply': 'g6'}));
-      play.apply('Qxe5+', answer({'correct': true, 'done': true}));
-      expect(play.done, isTrue);
-      expect(play.moves, ['Qh5', 'Qxe5+']);
-      expect(play.fen, _fenAfter(scholar, ['Qh5', 'g6', 'Qxe5+']));
-    });
-  });
+  // `exercise_one_move_test.dart`, on the same fixture.
 
   group('the requests', () {
     final exerciseJson = {
@@ -267,7 +106,7 @@ void main() {
         'themes': ['opening'],
         'origin': 'manual',
         'task': {'type': 'find'},
-        'solution': scholarLine['normalised'],
+        'solution': scholarFirst['normalised'],
         'needsReview': false,
         'assignable': true,
         'blockedReason': null,
@@ -279,10 +118,10 @@ void main() {
           fen: fen,
           themes: const ['opening'],
           task: const {'type': 'find'},
-          solution: _steps(scholarLine['steps'] as List),
+          solution: _steps(scholarFirst['steps'] as List),
         );
 
-    test('making an exercise posts the position, the task and the line',
+    test('making an exercise posts the position, the task and the answer',
         () async {
       final rec = _Recorder();
       final api = ExerciseApiService(
@@ -301,13 +140,13 @@ void main() {
       expect(body['name'], 'Queen out early');
       expect(body['fen'], scholar);
       expect(body['task'], {'type': 'find'});
-      expect(body['solution'], scholarLine['steps']);
+      expect(body['solution'], scholarFirst['steps']);
       expect(body['themes'], ['opening']);
 
       expect(result.error, isNull);
       expect(result.exercise!.id, 'ex_0123456789abcdef');
       expect(result.exercise!.isGame, isFalse);
-      expect(_wire(result.exercise!.solution!), scholarLine['normalised']);
+      expect(_wire(result.exercise!.solution!), scholarFirst['normalised']);
     });
 
     test('an edit says nothing about the position', () async {
@@ -331,13 +170,12 @@ void main() {
       final api = ExerciseApiService(
         authToken: 'tok',
         client: MockClient((r) async => http.Response(
-            jsonEncode({'error': 'move 1: "Qh6" cannot be played here.'}),
-            422)),
+            jsonEncode({'error': '"Qh6" cannot be played here.'}), 422)),
       );
       final result = await api.create(draft(fen: scholar));
       expect(result.exercise, isNull);
       expect(result.status, 422);
-      expect(result.error, 'move 1: "Qh6" cannot be played here.');
+      expect(result.error, '"Qh6" cannot be played here.');
     });
 
     test('a game exercise is read without a solution', () {
@@ -350,8 +188,7 @@ void main() {
       expect(game.solution, isNull);
     });
 
-    test('an answer is sent as every move so far, and read with its reply',
-        () async {
+    test('an answer is sent as one move, and read with the solution', () async {
       final rec = _Recorder();
       final api = AssignmentApiService(
         authToken: 'tok',
@@ -360,14 +197,9 @@ void main() {
           return http.Response(
               jsonEncode({
                 'correct': true,
-                'reason': "the author's move",
-                'playedSan': 'Qxe5+',
-                'done': false,
-                'step': 1,
-                'reply': 'Qe7',
-                'continuesOn': null,
-                'retry': false,
-                'solutionSan': null,
+                'reason': 'another correct move',
+                'playedSan': 'Qf3',
+                'solutionSan': 'Qh5',
               }),
               200);
         }),
@@ -375,20 +207,21 @@ void main() {
       final result = await api.submitCustomAttempt(
         assignmentId: 42,
         puzzleId: 'ex_0123456789abcdef',
-        moves: const ['Qh5', 'Qxe5+'],
+        moveSan: 'Qf3',
         msTaken: 900,
       );
       expect(rec.requests.single.url.path, '/assignments/42/custom-attempt');
-      final body = rec.bodyOf(0);
-      expect(body['moves'], ['Qh5', 'Qxe5+']);
-      expect(body.containsKey('moveSan'), isFalse);
-      expect(body['puzzleId'], 'ex_0123456789abcdef');
+      // The whole body: a list of moves no longer travels.
+      expect(rec.bodyOf(0), {
+        'puzzleId': 'ex_0123456789abcdef',
+        'moveSan': 'Qf3',
+        'msTaken': 900,
+      });
 
       expect(result!.correct, isTrue);
-      expect(result.done, isFalse);
-      expect(result.step, 1);
-      expect(result.reply, 'Qe7');
-      expect(result.retry, isFalse);
+      expect(result.reason, 'another correct move');
+      expect(result.playedSan, 'Qf3');
+      expect(result.solutionSan, 'Qh5');
     });
   });
 }

@@ -105,20 +105,14 @@ const String kVariationHint =
     "A variation played on the student's own move is accepted as an "
     'alternative.';
 
-/// „1. Qh5 (or Qf3) g6  2. Qxe5+." — the solution as the trainer will
-/// recognise it: the moves, alternatives in brackets after the one the line
-/// goes on from. One function, so this sheet and `ExerciseEditorScreen` read
-/// the same line the same way rather than wording it twice.
+/// „Qh5 (or Qf3)" — the answer as the trainer will recognise it: the author's
+/// move, the accepted alternatives in brackets after it. One function, so this
+/// sheet and `ExerciseEditorScreen` word it once.
 String exerciseSolutionText(List<ExerciseStep> steps) {
-  final parts = <String>[];
-  for (var i = 0; i < steps.length; i++) {
-    final step = steps[i];
-    final alt =
-        step.accept.length > 1 ? ' (or ${step.accept.skip(1).join(', ')})' : '';
-    final reply = step.reply != null ? ' ${step.reply}' : '';
-    parts.add('${i + 1}. ${step.accept.first}$alt$reply');
-  }
-  return parts.join('  ');
+  if (steps.isEmpty) return '';
+  final accept = steps.first.accept;
+  final alt = accept.length > 1 ? ' (or ${accept.skip(1).join(', ')})' : '';
+  return '${accept.first}$alt';
 }
 
 class MakeExerciseSheet extends StatefulWidget {
@@ -491,7 +485,7 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
                     ),
                   ] else ...[
                     Text(
-                      _steps.length == 1 ? 'Find the move' : 'Find the moves',
+                      ExerciseAsk.find.label,
                       style: AppText.bodyLargeBold,
                     ),
                     const SizedBox(height: AppSpacing.xs),

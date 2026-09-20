@@ -2,7 +2,6 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
-import 'package:chess_app/features/exercises/models/exercise_line_play.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -74,35 +73,18 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   /// Every position, in the trainer's order.
   List<CustomPosition> get _queue => widget.positions;
 
-  /// What has been answered so far, this session and before it — and, once a
-  /// line is finished, the board locks and `_verdictPanel` shows this rather
-  /// than the board (`_alreadyAnswered`). Written only when the exercise is
-  /// actually settled, never on a wrong move a line still lets be retried.
+  /// What has been answered so far, this session and before it. An answered
+  /// position locks its board and `_verdictPanel` shows this instead
+  /// (`_alreadyAnswered`). A find exercise asks for one move, so the first
+  /// answer is the answer (`docs/PLAN-EXERCISE.md`, phases 14 and 16).
   late final Map<String, bool> _answered;
-
-  /// The first verdict for a position answered in *this* sitting — wrong or
-  /// finished — kept apart from [_answered] because a line's first wrong move
-  /// does not settle it: the board stays open for a retry, but the report and
-  /// `onAnswered` must not fire again, and must not be overwritten by the
-  /// success that eventually follows (`docs/PLAN-EXERCISE.md`, phase 2b,
-  /// „the report keeps the first verdict").
-  final Map<String, bool> _firstVerdict = {};
 
   int _index = 0;
 
-  /// The verdict that ends the exercise on screen — done, or a wrong answer
-  /// with no retry. Null while a line is still open: a right move that does
-  /// not finish, or a wrong move with `retry`, is said in words
-  /// (`AppFeedback`) and never reaches this field, so the board keeps
-  /// accepting moves through it.
+  /// The server's verdict on the position on screen; null until it answers.
   CustomAttemptResult? _verdict;
   bool _sending = false;
   DateTime _shownAt = DateTime.now();
-
-  /// The line in progress on the position on screen. Rebuilt by [_load]; the
-  /// board itself has no memory of a line, so this is what
-  /// `submitCustomAttempt` is asked with on every move.
-  late ExerciseLinePlay _play;
 
   CustomPosition get _current => _queue[_index];
 
@@ -130,7 +112,6 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
 
   void _load() {
     _board.loadFen(_current.fen);
-    _play = ExerciseLinePlay(fen: _current.fen);
     setState(() {
       _verdict = null;
       _shownAt = DateTime.now();
@@ -173,38 +154,32 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   Future<void> _onMove(String from, String to, String promotion) async {
     if (_sending || _verdict != null) return;
 
-    final san = _sanFor(_play.fen, from, to, promotion);
+    final san = _sanFor(_current.fen, from, to, promotion);
     if (san == null) {
       // Not a legal move here, or we could not read it. Either way the board
       // goes back so the student is never left looking at a position that no
       // longer matches the question.
-      _board.loadFen(_play.fen);
+      _board.loadFen(_current.fen);
       return;
     }
     await _send(san);
   }
 
-  /// Sends every move of the line so far, plus [san], and folds the verdict
-  /// into [_play] and the board.
-  ///
-  /// **The report keeps the first verdict** (`docs/PLAN-EXERCISE.md`, phase
-  /// 2b): once this position has one — the first wrong move, or the line
-  /// finishing — `_answered`/`onAnswered` are written once and never again,
-  /// however many times a wrong move is retried afterwards.
+  /// Sends the move and shows what the server said of it.
   Future<void> _send(String san) async {
     final puzzleId = _current.puzzleId;
     setState(() => _sending = true);
     final result = await _api.submitCustomAttempt(
       assignmentId: widget.detail.assignment.id,
       puzzleId: puzzleId,
-      moves: _play.attempt(san),
+      moveSan: san,
       msTaken: DateTime.now().difference(_shownAt).inMilliseconds,
     );
     if (!mounted) return;
 
     if (result == null) {
       setState(() => _sending = false);
-      _board.loadFen(_play.fen);
+      _board.loadFen(_current.fen);
       AppFeedback.show(
         context,
         () => const SnackBar(content: Text('Answer not sent — try again.')),
@@ -212,37 +187,15 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       return;
     }
 
-    // Do the thing, then say it: the line and the board are put right before
-    // any message — a wrong move changes neither, so `_play.apply` is a
-    // no-op and the board simply stays where it was.
-    _play.apply(san, result);
-    _board.loadFen(_play.fen);
-
-    final recordable = !result.correct || result.done;
-    if (recordable && !_firstVerdict.containsKey(puzzleId)) {
-      _firstVerdict[puzzleId] = result.correct;
-      widget.onAnswered?.call(puzzleId, result.correct);
-    }
-
-    // A wrong move in a line may be retried — the board stays open — but
-    // once the exercise is truly finished, what gets remembered as *the*
-    // answer is the first verdict, not necessarily this one.
-    final finished = result.done || (!result.correct && !result.retry);
+    // Do the thing, then say it. A right move stays on the board; a wrong
+    // one is taken back, so the position shown is the one that was asked.
+    if (!result.correct) _board.loadFen(_current.fen);
+    widget.onAnswered?.call(puzzleId, result.correct);
     setState(() {
       _sending = false;
-      if (finished) {
-        _verdict = result;
-        _answered[puzzleId] = _firstVerdict[puzzleId] ?? result.correct;
-      }
+      _verdict = result;
+      _answered[puzzleId] = result.correct;
     });
-
-    if (!finished) {
-      if (result.correct) {
-        AppFeedback.info(context, 'Correct. Keep going.');
-      } else {
-        AppFeedback.warning(context, 'Not that move. Try again.');
-      }
-    }
   }
 
   /// Moves to the next position still waiting, in the trainer's order.

@@ -18,8 +18,8 @@ const assignments = require('../services/assignmentService');
 const { OWN_GAMES_SQL } = require('../services/archiveScope');
 const { notify } = require('../services/notifications');
 const reports = require('../services/reportService');
-const { judgeAttempt, judgeLine } = require('../services/customPuzzleJudge');
-const { exerciseColumns, exerciseOf } = require('../services/exercise');
+const { judgeAttempt } = require('../services/customPuzzleJudge');
+const { exerciseColumns, firstMoveOf } = require('../services/exercise');
 const { stepsOfLesson } = require('../services/lessonSteps');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
@@ -267,26 +267,15 @@ router.post('/custom', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
 // solution to the client so it could mark its own work would hand the student
 // the very thing being asked of them.
 //
-// An exercise may ask for a line (`docs/PLAN-EXERCISE.md`, phase 2a). The body
-// then carries `moves` — the student's own moves so far, first to last — and
-// the answer carries the one reply the last of them earned. `moveSan` is a line
-// of one move, and is judged by the same judge.
-//
-// **The verdict is written once: at the first wrong move, or at the end of the
-// line.** A right move in the middle writes nothing — a line half played is not
-// an attempt, and a gate that read it as one would open on the first move. A
-// wrong move in a line may be tried again, but the report keeps the first
-// verdict; `recordPuzzleResult` only ever writes to an unanswered item.
+// **The verdict is written once.** A find exercise asks for one move
+// (`docs/PLAN-EXERCISE.md`, phases 14 and 16), so the first answer is the
+// answer; `recordPuzzleResult` only ever writes to an unanswered item.
 router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
   const assignmentId = Number.parseInt(req.params.id, 10);
-  const { puzzleId, moveSan, moves, msTaken } = req.body || {};
-  const played = Array.isArray(moves) ? moves : typeof moveSan === 'string' ? [moveSan] : null;
+  const { puzzleId, moveSan, msTaken } = req.body || {};
 
-  if (
-    !Number.isInteger(assignmentId) || typeof puzzleId !== 'string' ||
-    played === null || !played.every((move) => typeof move === 'string')
-  ) {
-    return res.status(400).json({ error: 'puzzleId and moveSan (or moves) are required.' });
+  if (!Number.isInteger(assignmentId) || typeof puzzleId !== 'string' || typeof moveSan !== 'string') {
+    return res.status(400).json({ error: 'puzzleId and moveSan are required.' });
   }
 
   try {
@@ -310,8 +299,8 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     // against reaches `judgeAttempt` with no solution and is answered as
     // before: the solution is missing, never a guess.
     const { fen } = item.rows[0];
-    const { solution } = exerciseOf(item.rows[0]);
-    const verdict = judgeLine({ fen, solution, moves: played });
+    const answer = firstMoveOf(item.rows[0]);
+    const verdict = judgeAttempt({ fen, moveSan, ...(answer || {}) });
 
     // A move the board cannot play means the client and the server disagree
     // about the position — the student's board offered a move this one refuses.
@@ -319,7 +308,7 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     // silence: nothing else would ever show it.
     if (verdict.playedSan === null) {
       logger.warn(
-        { assignmentId, puzzleId, moves: played, reason: verdict.reason },
+        { assignmentId, puzzleId, moveSan, reason: verdict.reason },
         'Custom attempt could not be resolved to a move'
       );
     }
@@ -327,34 +316,21 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     // The move goes in beside the verdict. `judgeAttempt` has already resolved
     // it against the position, so this is the move as the board understood it,
     // not as the client spelled it.
-    if (!verdict.correct || verdict.done) {
-      await assignments.recordPuzzleResult(pool, {
-        studentId: req.user.id,
-        puzzleId,
-        solved: verdict.correct,
-        msTaken: Number.parseInt(msTaken, 10) || null,
-        playedSan: verdict.playedSan,
-      });
-    }
+    await assignments.recordPuzzleResult(pool, {
+      studentId: req.user.id,
+      puzzleId,
+      solved: verdict.correct,
+      msTaken: Number.parseInt(msTaken, 10) || null,
+      playedSan: verdict.playedSan,
+    });
 
-    // A one-move exercise releases its solution once the question has been
-    // answered, right or wrong, as it always has. A line releases nothing but
-    // the reply: its wrong move may be tried again, and an answer shown is an
-    // answer no longer asked.
-    const oneMove = Array.isArray(solution) && solution.length === 1;
+    // The solution is released once the question has been answered, right or
+    // wrong, as it always has been.
     res.json({
       correct: verdict.correct,
       reason: verdict.reason,
       playedSan: verdict.playedSan,
-      done: verdict.done,
-      step: verdict.step,
-      reply: verdict.reply,
-      continuesOn: verdict.continuesOn,
-      // Said, not left to be inferred from which other fields are null: a
-      // wrong move in a line may be played again, a wrong answer to a
-      // one-move exercise is final and is shown its solution.
-      retry: !verdict.correct && !oneMove && Array.isArray(solution),
-      solutionSan: oneMove ? solution[0].accept[0] : null,
+      solutionSan: answer ? answer.solutionSan : null,
     });
   } catch (err) {
     logger.error('Error judging custom attempt:', err);

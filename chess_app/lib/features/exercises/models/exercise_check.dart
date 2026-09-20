@@ -10,12 +10,9 @@
 //      than guessing.
 //   2. A finding is never applied by itself. `acceptFinding` is the only
 //      thing that changes a solution, and only a trainer's own tap calls it.
-import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart'
     show SyzygyCategory, SyzygyResult;
-import 'package:chess_app/features/tutorial_studio/services/game_tutorial/board_queries.dart'
-    show findMove;
 import 'package:chess_app/features/position_scanner/services/side_proposal.dart'
     show parseEval;
 import 'package:chess_app/models/analysis_models.dart';
@@ -53,13 +50,9 @@ enum ExerciseFindingKind {
 class ExerciseFinding {
   const ExerciseFinding({
     required this.kind,
-    required this.step,
     required this.sans,
     required this.words,
   });
-
-  /// The student's move this finding is about, 0-based; 0 for a game.
-  final int step;
 
   final ExerciseFindingKind kind;
 
@@ -110,79 +103,55 @@ bool _hasOutcome(SyzygyCategory c) =>
 String _resultWord(SyzygyCategory position) =>
     position == SyzygyCategory.win ? 'win' : 'draw';
 
-/// The position before each of the student's moves, walking the main line.
-List<String> studentFens(String fen, List<ExerciseStep> steps) {
-  final fens = <String>[fen];
-  if (steps.length <= 1) return fens;
-  final board = chess.Chess.fromFEN(fen);
-  for (var i = 0; i < steps.length - 1; i++) {
-    final step = steps[i];
-    board.move(findMove(board, step.accept.first));
-    final reply = step.reply;
-    if (reply != null) {
-      board.move(findMove(board, reply));
-    }
-    fens.add(board.fen);
-  }
-  return fens;
-}
-
-/// One [results] entry per step, null where the tablebase had no answer.
+/// [result] is the tablebase's word on the exercise's position, null where it
+/// had no answer.
 List<ExerciseFinding> tablebaseFindings({
-  required List<ExerciseStep> steps,
-  required List<SyzygyResult?> results,
+  required ExerciseStep answer,
+  required SyzygyResult? result,
 }) {
   final findings = <ExerciseFinding>[];
-  for (var i = 0; i < steps.length && i < results.length; i++) {
-    final result = results[i];
-    if (result == null || !_hasOutcome(result.category)) continue;
+  if (result == null || !_hasOutcome(result.category)) return findings;
 
-    final step = steps[i];
-    final acceptedNorm = step.accept.map(_stripDecoration).toSet();
-    final mainNorm = _stripDecoration(step.accept.first);
+  final acceptedNorm = answer.accept.map(_stripDecoration).toSet();
+  final mainNorm = _stripDecoration(answer.accept.first);
 
-    final keeping = [
-      for (final m in result.moves)
-        if (_keepsResult(result.category, m.category)) m,
+  final keeping = [
+    for (final m in result.moves)
+      if (_keepsResult(result.category, m.category)) m,
+  ];
+  final mainIsKeeper = keeping.any((m) => _stripDecoration(m.san) == mainNorm);
+
+  if (!mainIsKeeper) {
+    findings.add(ExerciseFinding(
+      kind: ExerciseFindingKind.mainMoveLetsGo,
+      sans: const [],
+      words: 'Your move ${answer.accept.first} lets the '
+          '${_resultWord(result.category)} go.',
+    ));
+  }
+
+  if (keeping.length > maxAcceptedMoves) {
+    findings.add(ExerciseFinding(
+      kind: ExerciseFindingKind.tooManyKeep,
+      sans: const [],
+      words: '${keeping.length} moves keep the '
+          '${_resultWord(result.category)} here — too many to accept; '
+          'this may not be an exercise.',
+    ));
+  } else {
+    final offerable = [
+      for (final m in keeping)
+        if (!acceptedNorm.contains(_stripDecoration(m.san))) m.san,
     ];
-    final mainIsKeeper =
-        keeping.any((m) => _stripDecoration(m.san) == mainNorm);
-
-    if (!mainIsKeeper) {
+    if (offerable.isNotEmpty) {
       findings.add(ExerciseFinding(
-        kind: ExerciseFindingKind.mainMoveLetsGo,
-        step: i,
-        sans: const [],
-        words: 'Your move ${step.accept.first} lets the '
-            '${_resultWord(result.category)} go.',
+        kind: ExerciseFindingKind.alsoKeeps,
+        sans: offerable,
+        words: '${offerable.join(' and ')} also '
+            '${offerable.length == 1 ? 'keeps' : 'keep'} the '
+            '${_resultWord(result.category)}. Accept '
+            '${offerable.length == 1 ? 'it' : 'them'}?',
       ));
-    }
-
-    if (keeping.length > maxAcceptedMoves) {
-      findings.add(ExerciseFinding(
-        kind: ExerciseFindingKind.tooManyKeep,
-        step: i,
-        sans: const [],
-        words: '${keeping.length} moves keep the '
-            '${_resultWord(result.category)} here — too many to accept; '
-            'this may not be an exercise.',
-      ));
-    } else {
-      final offerable = [
-        for (final m in keeping)
-          if (!acceptedNorm.contains(_stripDecoration(m.san))) m.san,
-      ];
-      if (offerable.isNotEmpty) {
-        findings.add(ExerciseFinding(
-          kind: ExerciseFindingKind.alsoKeeps,
-          step: i,
-          sans: offerable,
-          words: '${offerable.join(' and ')} also '
-              '${offerable.length == 1 ? 'keeps' : 'keep'} the '
-              '${_resultWord(result.category)}. Accept '
-              '${offerable.length == 1 ? 'it' : 'them'}?',
-        ));
-      }
     }
   }
   return findings;
@@ -228,7 +197,6 @@ ExerciseFinding? gameFinding({
   final outcomeWord = studentOutcome == 'draw' ? 'a draw' : 'lost';
   return ExerciseFinding(
     kind: ExerciseFindingKind.taskImpossible,
-    step: 0,
     sans: const [],
     words: 'With best play this position is $outcomeWord, so "$goalWord" '
         'cannot be met against a perfect defence.',
@@ -271,26 +239,18 @@ ExerciseFinding? engineFinding({
 
   return ExerciseFinding(
     kind: ExerciseFindingKind.enginePrefers,
-    step: 0,
     sans: [bestSan],
     words: 'The engine prefers $bestSan to your ${first.accept.first}. '
         'Accept it too?',
   );
 }
 
-/// [steps] with the finding's moves added to its step's `accept`, after the
-/// moves already there, never past [maxAcceptedMoves], never twice. A
-/// finding that offers no moves returns [steps] unchanged.
+/// [steps] with the finding's moves accepted as well, after the ones already
+/// there. A finding that offers no moves returns [steps] unchanged.
 List<ExerciseStep> acceptFinding(
     List<ExerciseStep> steps, ExerciseFinding finding) {
-  if (finding.sans.isEmpty) return steps;
-  return [
-    for (var i = 0; i < steps.length; i++)
-      if (i == finding.step)
-        _appendAccepted(steps[i], finding.sans)
-      else
-        steps[i],
-  ];
+  if (finding.sans.isEmpty || steps.isEmpty) return steps;
+  return [_appendAccepted(steps.first, finding.sans)];
 }
 
 ExerciseStep _appendAccepted(ExerciseStep step, List<String> sans) {
@@ -303,5 +263,5 @@ ExerciseStep _appendAccepted(ExerciseStep step, List<String> sans) {
     merged.add(san);
     seen.add(norm);
   }
-  return ExerciseStep(accept: merged, reply: step.reply);
+  return ExerciseStep(accept: merged);
 }
