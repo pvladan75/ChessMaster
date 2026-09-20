@@ -5180,3 +5180,37 @@ dve.) Zapisano u samom testu, da se sledeći put ne postavlja isto pitanje.
 Mereno: aplikacija **3393 → 3400** (7 slučajeva), 1 preskočen, pun prolaz sam,
 8 min 36 s. Analyze: istih 26 `info`. Nijedan ekran ga još ne koristi — to je
 faza 3, i tek tada ima šta da se gleda uživo.
+
+---
+
+## Dve greške u jednom dijalogu koje liče na jednu — 20.9.2026
+
+Faza 3a iz `docs/PLAN-LISTE.md`: `HomeworkListScreen` i `SavedPuzzleSetsDialog`
+na `AdaptiveCardGrid`.
+
+**Kapija je našla grešku pre nego što je iko išta gradio.** Slučaj „na telefonu
+i dalje jedan po redu, bez prelivanja" pisan je da **čuva** telefon od moje
+izmene — a pao je na master-u: `A RenderFlex overflowed by 1.3 pixels on the
+right`. Dijalog se već prelivao na 360 dp, i niko to nije video jer release
+build ne crta upozorenje nego **tiho seče**.
+
+**Mutacija je zatim rekla šta je tačno krivo, a brief je bio nepecizan.** U
+brief-u je pisalo da se to leči time što dijalog uzme veličinu iz `MediaQuery`.
+Nije tačno. Vraćanje širine na staro `460` ostavlja telefon **zelenim**;
+uklanjanje `insetPadding: 16` sâmo **vraća prelivanje**. Dakle: podrazumevani
+`insetPadding` dijaloga (40 sa svake strane, ostavlja oko 280 za `Container`
+koji traži 460) je ono što je lomilo telefon, a zakovana širina je ono što je
+široki prozor držalo na jednoj koloni. Dve nezavisne greške u istom widgetu
+koje spolja liče na jednu — i kapija drži svaku posebno.
+
+Sporedno, ali košta ako se previdi: **kapija sama nije bila `dart format`
+čista**, pa bi `dart format test/` tiho razbio uslov „bajt u bajt". Radnik je to
+prijavio; fajl u `docs/gates/` je sada formatiran. Kapija mora da preživi alat
+koji se svakako pušta preko nje.
+
+Četiri mutacije vodećeg, svaka crvena na svom testu: širina nazad na 460,
+pločica spuštena na 40, preimenovan ključ vrste, uklonjen `insetPadding`.
+
+Mereno: aplikacija **3400 → 3407** (7 slučajeva iz kapije, nijedan radnikov),
+1 preskočen, pun prolaz sam, 9 min 4 s. Analyze: istih 26 `info`, nijedan iz
+dva izmenjena fajla. Uživo: **stavka 204**.

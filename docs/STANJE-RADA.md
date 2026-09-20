@@ -55,6 +55,28 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Liste: faza 3a — 20.9.2026, u kodu, ostaje provera uživo
+
+`HomeworkListScreen` i `SavedPuzzleSetsDialog` na `AdaptiveCardGrid`. Prve
+dve liste koje širok prozor pune karticama umesto da ga troše. Telefon
+nepromenjen po konstrukciji.
+
+**Faza 3 je podeljena** pošto je izmerena površina testova: spisak domaćih se
+hvata preko **ključeva** (`homework-list-row-N`), ne preko `ListTile`, a
+„Saved puzzles" nema nijedan test — to je 3a. `LibraryList` ima dva pozivaoca
+(ekran Biblioteke i uska kolona u sobi), sličice table, i pomoćnik
+`titlesShown` koji čita `ListTile.title` — to je **3b i ostaje da se briefuje**.
+
+Pisanje kapije je našlo grešku na master-u: „Saved puzzles" se **već prelivao
+na telefonu od 360 dp** (1.3 px), što release build ne prijavljuje nego seče.
+Mutacija je posle rekla šta je tačno krivo — podrazumevani `insetPadding`
+dijaloga, a **ne** zakovana širina; širina je ono što je široki prozor držalo
+na jednoj koloni. Dve nezavisne greške u istom widgetu.
+
+Aplikacija **3400 → 3407**, analyze istih 26 `info`. Uživo: **stavka 204**.
+
+---
+
 ## `AdaptiveCardGrid` — 20.9.2026, u kodu, nema šta da se gleda uživo
 
 Faza 2 plana `PLAN-LISTE.md`: jedan widget, nijedan ekran ga još ne koristi.

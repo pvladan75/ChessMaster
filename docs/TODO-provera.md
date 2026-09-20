@@ -5878,6 +5878,34 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 204. Mreža na domaćim zadacima i sačuvanim zagonetkama — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija. Prve dve liste koje koriste širinu umesto da je troše:
+spisak domaćih zadataka (Teach → Homework) i „Saved puzzles" (Analysis).
+Telefon ostaje isti — jedna kolona, po konstrukciji.
+
+1. [ ] **Windows, spisak domaćih.** Na širokom prozoru stoje **dve ili tri
+   kartice u redu**, ne jedna preko celog ekrana. Naslov, „N items", i „sent
+   to M" gde je slato.
+2. [ ] **Dugmad na kartici rade.** „Pošalji" otvara izbor učenika; kanta pita
+   pre brisanja i piše šta brisanje **ne** dira.
+3. [ ] **Suzi prozor.** Kako se prozor sužava, broj kolona pada sam — 3, pa 2,
+   pa 1. Nigde žuto-crne trake.
+4. [ ] **Telefon, spisak domaćih.** Jedna kolona, kao i pre. Kartica nije
+   odsečena ni previsoka.
+5. [ ] **„Saved puzzles" na Windows-u.** Dijalog je **širi nego pre** i skupovi
+   stoje jedan pored drugog. Naslov, broj zagonetki, kanta i „Open".
+6. [ ] **„Open" otvara baš taj skup** — zagonetke iz tog reda, ne iz nekog
+   drugog.
+7. [ ] **„Saved puzzles" na telefonu.** *Ovo je popravka greške koja je
+   postojala i ranije:* dijalog se prelivao za 1.3 px i to se u release build-u
+   ne vidi, samo se odseče. Gledaj da kanta i „Open" **oba** stanu i da se
+   mogu pritisnuti.
+8. [ ] **Prazan slučaj.** Bez sačuvanih zagonetki dijalog i dalje kaže da ih
+   nema, umesto prazne kutije.
+
+---
+
 ## 203. Pretraga u „Choose a game" — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija, jedan dijalog. Otvara se kad učitaš ili nalepiš PGN sa **više

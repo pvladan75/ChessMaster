@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 import '../models/homework.dart';
@@ -156,10 +157,8 @@ class _HomeworkListScreenState extends State<HomeworkListScreen> {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    return AdaptiveCardGrid(
       itemCount: homeworks.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
       itemBuilder: (context, index) {
         final homework = homeworks[index];
         final items = homework.itemCount ?? homework.items.length;

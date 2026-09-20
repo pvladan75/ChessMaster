@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3400 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3407 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -94,8 +94,15 @@ constraint the widget is handed, which is why the room's narrow column needs no
 special case and the phone is unchanged by construction. Written deliberately
 wrong first (a fixed count of two) to watch the test catch it: three of the
 four widths went red and **840 did not**, because two happens to be right
-there — a single-width test would have proved nothing. Open: the rest of the
-owner's live pass. Phase 6 of
+there — a single-width test would have proved nothing; then phase 3a, the
+homework templates and the saved-puzzle sets onto that grid (-> 3407), whose
+gate found a bug nobody had seen: the saved-puzzles dialog **already
+overflowed on a 360 dp phone** (a `RenderFlex` by 1.3 px), because a release
+build clips instead of warning. Mutation named the cause exactly — it was the
+`Dialog`'s default `insetPadding` (40 a side, leaving about 280 for a
+`Container` asking 460), **not** the fixed width; the width is what kept a wide
+window to one column. Two independent faults in one widget that look like one.
+Open: the rest of the owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
