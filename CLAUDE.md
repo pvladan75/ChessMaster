@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3353 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3383 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -72,7 +72,13 @@ which reads the room's tree back through the app's one reader and refuses a
 line it could not replay, and „Export PGN" beside it (→ 3353), whose real cost
 was the panel: two full-width buttons pushed the tutorial list below the fold of
 a 1200 x 800 window and broke an unrelated test, so the four actions are now two
-pairs and the panel is the same height it was. Open: the rest of the
+pairs and the panel is the same height it was; then parts moving between
+tutorials — „Add parts from a tutorial…" and „Take parts into a new tutorial…",
+both copying so the source is never rewritten, with no server change at all
+(→ 3383), whose cost was again the room: three surfaces were measured full (the
+contents panel's Wrap by 2 px, its title row by 19, the studio bar by 33) and
+the door ended up as a 20 x 20 button in the title row rather than by moving
+anything the trainer already reaches in one tap. Open: the rest of the
 owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

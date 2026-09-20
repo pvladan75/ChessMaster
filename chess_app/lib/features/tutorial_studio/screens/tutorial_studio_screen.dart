@@ -31,7 +31,14 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart
 import 'package:chess_app/features/tutorial_studio/services/narration_storage.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
+import 'package:chess_app/features/library/models/library_entry.dart'
+    show CourseSummary;
+import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_controller.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_parts_transfer.dart';
+import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/part_picker_dialog.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
@@ -115,6 +122,7 @@ class TutorialStudioScreen extends StatefulWidget {
     required this.entry,
     this.lessonApi,
     this.narrationStore,
+    this.positionLibrary,
   });
 
   final UserSession session;
@@ -139,6 +147,11 @@ class TutorialStudioScreen extends StatefulWidget {
   /// others is a test that watches a take nothing else can see.
   final NarrationTakeStore? narrationStore;
 
+  /// The shelf „Add parts from a tutorial…" picks from. The same seam the
+  /// room's column already takes, so a test answers for the shelf in one
+  /// place rather than faking a picker.
+  final PositionLibraryService? positionLibrary;
+
   @override
   State<TutorialStudioScreen> createState() => _TutorialStudioScreenState();
 }
@@ -153,6 +166,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   late final NarrationTakeStore _narrationStore =
       widget.narrationStore ?? deviceNarrationStore();
+
+  late final PositionLibraryService _library = widget.positionLibrary ??
+      PositionLibraryService(authToken: widget.session.token);
 
   /// The take this device holds for this tutorial, when it holds one. Read once
   /// on the way in and again whenever the recording screen closes — phase 5.
@@ -1216,6 +1232,141 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _c.renameSection(index, name);
   }
 
+  /// „Add parts from a tutorial…" — another tutorial's parts, copied in here.
+  ///
+  /// Three questions in a row, each answerable from what is on screen: which
+  /// tutorial, which of its parts, and then it is done. The source is only
+  /// read; copying is what makes that true, and it is why this needs no second
+  /// write and cannot half-succeed.
+  Future<void> _addPartsFromTutorial() async {
+    final chosen = await showDialog<CourseSummary>(
+      context: context,
+      builder: (_) => CoursePickerDialog(
+        service: _library,
+        title: 'Take parts from which tutorial?',
+      ),
+    );
+    if (chosen == null || !mounted) return;
+
+    if (chosen.id == _draft.lessonId) {
+      AppFeedback.info(
+          context, 'That is this tutorial. Use „Clone part" to repeat a part.');
+      return;
+    }
+
+    final source = await loadPartsOf(_lessonApi, chosen.id);
+    if (!mounted) return;
+    if (source == null) {
+      AppFeedback.error(
+          context, '„${chosen.title}" could not be read. Nothing was added.');
+      return;
+    }
+
+    final picked = await showPartPickerDialog(
+      context,
+      title: 'Parts of „${source.title}"',
+      subtitle: 'They are copied. „${source.title}" keeps all of them.',
+      labels: [
+        for (var i = 0; i < source.parts.length; i++) source.parts[i].label(i),
+      ],
+      confirmLabel: 'Add',
+    );
+    if (picked == null || !mounted) return;
+
+    final added = _c.addSectionsFrom([
+      for (final i in picked.indices) source.parts[i],
+    ]);
+    if (!mounted) return;
+    AppFeedback.success(
+      context,
+      added == 1
+          ? '1 part added. Save the tutorial to keep it.'
+          : '$added parts added. Save the tutorial to keep it.',
+    );
+  }
+
+  /// „Take parts into a new tutorial…" — parts of this one, written out as a
+  /// tutorial of their own.
+  ///
+  /// **Saved on the spot, and this screen does not move.** The studio holds one
+  /// draft; opening the new tutorial here would have to ask what to do with
+  /// unsaved changes in the one being written, and the answer to that question
+  /// is worth less than never asking it. The owner chose this on 20.9.2026.
+  /// The new tutorial is offered afterwards, as a door rather than a jump.
+  Future<void> _extractPartsToNewTutorial() async {
+    final picked = await showPartPickerDialog(
+      context,
+      title: 'Take parts into a new tutorial',
+      subtitle: 'They are copied. This tutorial keeps all of them.',
+      labels: [
+        for (var i = 0; i < _draft.sections.length; i++)
+          _draft.sections[i].label(i),
+      ],
+      confirmLabel: 'Create',
+      nameLabel: 'Name of the new tutorial',
+      initialName:
+          _draft.title.trim().isEmpty ? '' : '${_draft.title.trim()} (parts)',
+    );
+    if (picked == null || !mounted) return;
+
+    final outcome = await extractToNewTutorial(
+      api: _lessonApi,
+      title: picked.name,
+      parts: _c.copiesOf(picked.indices),
+      from: (
+        lessonId: _draft.lessonId ?? 0,
+        title: _draft.title,
+        parts: const <TutorialSection>[],
+        language: _draft.language,
+        languageKnown: _draft.languageKnown,
+        tags: _draft.tags,
+      ),
+    );
+    if (!mounted) return;
+
+    if (outcome.error != null) {
+      AppFeedback.error(context, outcome.error!);
+      return;
+    }
+
+    final count = picked.indices.length;
+    AppFeedback.show(
+      context,
+      () => SnackBar(
+        content: Text(count == 1
+            ? '„${picked.name}" saved, with 1 part.'
+            : '„${picked.name}" saved, with $count parts.'),
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: 'Open',
+          onPressed: () => _openSavedTutorial(outcome.lessonId!),
+        ),
+      ),
+    );
+  }
+
+  /// Opens a tutorial this screen has just written, in a studio of its own.
+  ///
+  /// Pushed rather than adopted: the draft open here is untouched underneath,
+  /// and closing the new one comes back to it.
+  Future<void> _openSavedTutorial(int id) async {
+    final row = await _lessonApi.fetchTutorial(id);
+    if (!mounted) return;
+    if (row == null) {
+      AppFeedback.error(
+          context,
+          'The tutorial was saved, but cannot be opened '
+          'right now. It is in the library.');
+      return;
+    }
+    await openTutorialEditor(
+      context,
+      session: widget.session,
+      api: _lessonApi,
+      lesson: row,
+    );
+  }
+
   void _moveSection(int from, int to) => _c.moveSection(from, to);
 
   void _cloneSection(int index) => _c.cloneSection(index);
@@ -1676,6 +1827,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       onClone: _cloneSection,
       onRename: _renameSection,
       onRemove: _removeSection,
+      onAddPartsFrom: _addPartsFromTutorial,
+      onExtractParts: _extractPartsToNewTutorial,
     );
   }
 

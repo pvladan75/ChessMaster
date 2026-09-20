@@ -242,6 +242,63 @@ class TutorialDraftController extends ChangeNotifier {
     _partChanged();
   }
 
+  /// Parts taken out of another tutorial, added to the one being written.
+  ///
+  /// Answers how many arrived, and leaves the trainer standing on the first of
+  /// them — a trainer who has just fetched four parts wants to look at them,
+  /// not at the part they were on before.
+  ///
+  /// **Copies, and the copy is what makes this safe.** `TutorialSection.copy()`
+  /// drops the `stepId`, so a part that already belongs to a saved tutorial
+  /// cannot arrive here still claiming to be that step. The parts handed in are
+  /// never stored, only read.
+  ///
+  /// **A draft holding nothing but a blank part is replaced rather than
+  /// appended to.** A tutorial just started holds one; appending after it
+  /// would leave an empty first part in front of everything fetched, and the
+  /// trainer would have to notice it and delete it.
+  ///
+  /// [holdsOnlyABlankPart] and not [isEmptyDraft], though they look like the
+  /// same question. [isEmptyDraft] also asks whether the tutorial has a title,
+  /// because it answers „is this stored draft worth offering to resume" — and
+  /// a trainer who types a name before doing anything else is exactly the one
+  /// who would be left with the stray part. What matters here is only whether
+  /// there is any teaching in the draft to append to.
+  int addSectionsFrom(List<TutorialSection> parts) {
+    if (parts.isEmpty) return 0;
+
+    final copies = [for (final part in parts) part.copy()];
+    final startsEmpty = holdsOnlyABlankPart(_draft);
+    final at = startsEmpty ? 0 : _draft.sections.length;
+
+    if (startsEmpty) {
+      _draft.sections
+        ..clear()
+        ..addAll(copies);
+    } else {
+      _draft.sections.addAll(copies);
+    }
+
+    _draft.selected = at;
+    _renumberGeneratedTitles();
+    _partChanged();
+    return copies.length;
+  }
+
+  /// Copies of the parts at [indices], in the order this tutorial has them.
+  ///
+  /// Nothing is changed here — it is what „take these into a new tutorial"
+  /// reads, and the answer must not depend on the order the trainer ticked
+  /// the boxes in: a tutorial's parts are a sequence, and four of them pulled
+  /// out still run in the order they were written.
+  List<TutorialSection> copiesOf(Iterable<int> indices) {
+    final wanted = indices.toSet();
+    return [
+      for (var i = 0; i < _draft.sections.length; i++)
+        if (wanted.contains(i)) _draft.sections[i].copy(),
+    ];
+  }
+
   /// False when it is the last part, which cannot be deleted.
   bool removeSection(int index) {
     if (!_draft.removeSection(index)) return false;
@@ -560,6 +617,22 @@ class TutorialDraftController extends ChangeNotifier {
   /// can find them there.
   String namesOf(List<TutorialSection> parts) =>
       parts.map((s) => '"${s.label(_draft.sections.indexOf(s))}"').join(', ');
+
+  /// One part, and nothing in it: no moves, no words, and no name of the
+  /// trainer's own.
+  ///
+  /// What „is there anything here to append to" means — see
+  /// [addSectionsFrom] for why this is not [isEmptyDraft]. The name is asked
+  /// about because a part the trainer has named is a part they meant, even
+  /// with nothing on the board yet; the generated „Part 1" is not a name.
+  static bool holdsOnlyABlankPart(TutorialDraft draft) {
+    if (draft.sections.length != 1) return false;
+    final only = draft.sections.single;
+    final named = only.title.trim();
+    return only.root.children.isEmpty &&
+        only.root.comment.trim().isEmpty &&
+        (named.isEmpty || isGeneratedSectionTitle(named));
+  }
 
   /// Nothing worth offering: one part, no moves, no words, no name.
   static bool isEmptyDraft(TutorialDraft draft) =>

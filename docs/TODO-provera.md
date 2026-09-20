@@ -5878,6 +5878,43 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 202. Spajanje tutorijala i izdvajanje delova — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija. Dva nova ulaza, oba **kopiraju** — izvorni tutorijal uvek
+ostaje ceo. Na Windows-u su pod malom ikonom (dve strelice) desno od naslova
+„Tutorial contents"; na telefonu su u meniju „More" gore desno.
+
+1. [ ] **Windows, ikona se vidi i otvara se.** Desno od „Tutorial contents"
+   stoji ikona; klik nudi „Add parts from a tutorial…" i „Take parts into a new
+   tutorial…". Meta je namerno mala (20 x 20) — ako je premala za rad, to je
+   prijava, ne greška: znači da panel treba preurediti.
+2. [ ] **Prozor oko 840 x 800.** Panel se i dalje vidi ceo, bez žuto-crnih
+   traka, a u gornjoj traci „Preview tutorial" je **i dalje ispisano rečima**.
+3. [ ] **Dodavanje delova.** Novi tutorijal (bez imena) → „Add parts from a
+   tutorial…" → izaberi neki svoj tutorijal → svi delovi su čekirani → „Add".
+   Prazan prvi deo **nestaje**, delovi su na njegovom mestu, i poruka kaže
+   koliko ih je došlo.
+4. [ ] **Isto, ali u tutorijal koji već ima delove**: novi se dodaju **na kraj**,
+   a ekran stoji na prvom pridošlom.
+5. [ ] **Imenovan pa prazan.** Upiši ime tutorijala, ne diraj tablu, pa dodaj
+   delove: prazan „Part 1" i tada nestaje, ime ostaje tvoje.
+6. [ ] **Izvor ostaje ceo.** Otvori tutorijal iz koga su delovi uzeti — svi su
+   tamo, nijedan nije nestao.
+7. [ ] **Spajanje dva u treći.** Nov tutorijal → „Add parts…" iz A → „Add
+   parts…" iz B → „Save tutorial". Redosled je A pa B, kako su dodavani.
+8. [ ] **Izdvajanje.** „Take parts into a new tutorial…" → odčekiraj neke →
+   upiši ime → „Create". Poruka kaže da je sačuvan i koliko delova ima, sa
+   dugmetom „Open". Ekran **ne skače** — ostaješ u tutorijalu koji pišeš.
+9. [ ] **„Open" iz te poruke** otvara nov tutorijal u studiju; izlazak iz njega
+   vraća na onaj koji si pisao, nedirnut.
+10. [ ] **Dugme je nedostupno dok nema imena** i dok nije čekiran nijedan deo.
+11. [ ] **Novi tutorijal nasleđuje jezik i oznake** izvornog (Library ga nalazi
+    po istim oznakama), ali **ne i opis**.
+12. [ ] **Telefon.** „More" → oba ulaza su tu i rade isto. Lista delova u
+    dijalogu se skroluje ako ih je mnogo.
+13. [ ] **Isti tutorijal.** „Add parts…" pa izaberi tutorijal koji upravo
+    uređuješ: kaže da je to taj i upućuje na „Clone part".
+
 ## 201. Preparation čuva liniju i izvozi je u PGN — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija. Panel „Board" u sobi (Preparation) ima sada četiri reda umesto

@@ -5039,3 +5039,62 @@ lažiraj klijenta, ne metod) — dotad ga nijedan test nije mogao videti.
 
 Van mašine: da li sačuvana analiza zaista otvara celu liniju u Analyse i u
 Library, i kako ta dva reda izgledaju na telefonu. Uživo: **stavka 201**.
+
+## Spajanje tutorijala, i tri pune površine (20.9.2026)
+
+Vlasnikova stavka 2: spojiti tutorijale u novi, i izdvojiti delove u novi.
+Ispalo je da je sama radnja mala, a da je **mesto za dugme** koštalo ceo dan.
+
+**Radnja je već postojala, rasuta.** `TutorialSection.copy()` pravi deo bez
+`stepId` — dva dela sa istim korakom su napredak deteta u pogrešnoj polovini
+tutorijala, pa model odbija da ga nosi. `TutorialDraftController` već ima
+dodaj/pomeri/kloniraj/obriši sa undo-om. `CoursePickerDialog` već bira tutorijal,
+`GET /lessons/:id` već vraća njegove delove, a `commitDraft` prima **bilo koji**
+nacrt. Nije trebala nijedna izmena na serveru. Dve operacije — „dodaj delove iz
+tutorijala" i „izdvoji delove u novi" — i spajanje A + B u treći je nov tutorijal
+pa prva operacija dvaput, a ne treća funkcija.
+
+**Kopira, ne premešta** (vlasnikova odluka istog dana). Premeštanje je dva upisa
+i drugi može da padne posle prvog; kopiranje je jedan upis koji ne može da
+poluuspe, a ko hoće da ih nema u izvoru briše ih dugmetom koje već postoji.
+Izdvojen tutorijal se **odmah čuva** i nudi „Open" umesto da se otvori
+nesačuvan — studio drži jedan nacrt, pa bi otvaranje moralo da pita šta sa
+nesačuvanim izmenama u onom koji se piše, a odgovor na to pitanje vredi manje
+nego da se pitanje nikad ne postavi.
+
+**Test je našao pogrešan predikat.** Prva verzija je pitala `isEmptyDraft` da bi
+zamenila prazan prvi deo umesto da doda iza njega — a `isEmptyDraft` traži i
+**prazan naslov**, jer odgovara na drugo pitanje („vredi li ponuditi ovaj
+sačuvan nacrt"). Trener koji prvo upiše ime tutorijala je tačno onaj kome bi
+ostao prazan „Part 1" ispred svega. Sada `holdsOnlyABlankPart`, koje pita samo
+za sadržaj — i za ime *dela*, jer deo koji je trener imenovao je deo koji je
+mislio, i sa praznom tablom.
+
+**A onda mesto.** Dugme je prvo otišlo u Wrap panela „Tutorial contents", gde su
+sve ostale radnje nad delom. Panel ima **dva piksela** mesta na 840 dp
+(`tutorial_raspored_test`) i jedna stavka više u tom Wrap-u košta ceo red — 2 px
+preko. Red sa naslovom iznad njega: 19 px preko. Gornja traka studija: imala je
+15 px, a ikona košta 48 — 33 px preko. Traku sam pokušao da platim time što
+„Preview tutorial" postaje ikona već ispod 960 umesto ispod 840 — i to je oborilo
+`tutorial_editor_door_test`, koji drži vlasnikovo pravilo od 11.9.2026 da se na
+840 piše rečima. **Tuđe merilo se ne prepravlja da bi stala moja izmena.** Traka
+je vraćena u bajt isti oblik, a vrata su otišla u red sa naslovom kao dugme
+20 × 20, koje taj red ne može da poraste. Mala meta je cena toga da se ništa što
+trener već hvata u jedan klik ne pomeri dublje; na telefonu su ista dva ulaza u
+meniju „More", pune veličine.
+
+**I vrata koja na telefonu ne bi postojala.** Test na 360 dp je prvo merio
+*desktop* traku stisnutu u 360 (215 px preko i pre moje izmene) — ekran koji
+aplikacija nikad ne crta, jer se telefonski raspored bira po širini **i** po
+platformi. Sa `debugDefaultTargetPlatformOverride` se vidi pravi raspored — i u
+njemu novih vrata nije bilo uopšte. Funkcija koja postoji na jednom rasporedu a
+ne na drugom je funkcija koju trener nađe jednom pa je više ne nađe.
+
+Mereno: aplikacija **3353 → 3383** (30 testova u `tutorial_parts_transfer_test`
+i `tutorial_parts_doors_test`), 1 preskočen, pun prolaz sam. Analyze: istih 26
+`info`. Jedanaest mutacija, svaka crvena na svom testu; jedna je prvo bila
+greška prevođenja (`final` polje) i prepisana je, pravilo 3 — crveno koje nije
+pravo crveno ne važi.
+
+Van mašine: da li je 20 × 20 dovoljno za rad mišem, i da li „Open" iz poruke
+zaista vraća netaknut nacrt ispod sebe. Uživo: **stavka 202**.

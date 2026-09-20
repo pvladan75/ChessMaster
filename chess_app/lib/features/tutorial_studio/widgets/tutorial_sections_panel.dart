@@ -33,6 +33,8 @@ class TutorialSectionsPanel extends StatelessWidget {
     required this.onClone,
     required this.onRename,
     required this.onRemove,
+    this.onAddPartsFrom,
+    this.onExtractParts,
   });
 
   final TutorialDraft draft;
@@ -48,6 +50,14 @@ class TutorialSectionsPanel extends StatelessWidget {
   final void Function(int index) onClone;
   final void Function(int index) onRename;
   final void Function(int index) onRemove;
+
+  /// „Add parts from a tutorial…" — another tutorial's parts, copied in here.
+  /// Null draws nothing, the rule this panel already follows.
+  final VoidCallback? onAddPartsFrom;
+
+  /// „Take parts into a new tutorial…" — parts of this one, written out as a
+  /// tutorial of their own. This one keeps them.
+  final VoidCallback? onExtractParts;
 
   static bool _isJoined(TutorialSection prev, TutorialSection curr) {
     final endFen = endOfMainLine(prev.root).fen;
@@ -120,6 +130,51 @@ class TutorialSectionsPanel extends StatelessWidget {
                   style:
                       AppText.title.copyWith(color: context.colors.textPrimary),
                 ),
+                // In this row, and sized so the row cannot grow by a pixel.
+                //
+                // Every other action here lives in the Wrap below, and that is
+                // where this went first: the Wrap has **two pixels** of room at
+                // 840 dp (`tutorial_raspored_test`) and one more item in it
+                // costs a whole run. The studio's bar was tried next — it has
+                // 15 px and an icon costs 48, and paying for it by shortening
+                // „Preview tutorial" would overwrite the owner's own rule from
+                // 11.9.2026, which `tutorial_editor_door_test` holds at 840.
+                //
+                // So: this row, which is as tall as a 16 px title and had
+                // nothing on its right. 20 × 20 is a small target, and it is
+                // the price of not moving something else a trainer already
+                // reaches in one tap. On a phone the same two doors are in the
+                // „More" menu, at full size.
+                if (onAddPartsFrom != null || onExtractParts != null)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: PopupMenuButton<_PartsMenu>(
+                      key: const Key('parts-menu'),
+                      tooltip: 'Parts and other tutorials',
+                      icon: const Icon(Icons.swap_horiz),
+                      iconSize: 18,
+                      padding: EdgeInsets.zero,
+                      onSelected: (choice) => switch (choice) {
+                        _PartsMenu.addFrom => onAddPartsFrom?.call(),
+                        _PartsMenu.extract => onExtractParts?.call(),
+                      },
+                      itemBuilder: (_) => [
+                        if (onAddPartsFrom != null)
+                          const PopupMenuItem(
+                            key: Key('parts-menu-add'),
+                            value: _PartsMenu.addFrom,
+                            child: Text('Add parts from a tutorial…'),
+                          ),
+                        if (onExtractParts != null)
+                          const PopupMenuItem(
+                            key: Key('parts-menu-extract'),
+                            value: _PartsMenu.extract,
+                            child: Text('Take parts into a new tutorial…'),
+                          ),
+                      ],
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -263,3 +318,6 @@ class TutorialSectionsPanel extends StatelessWidget {
     );
   }
 }
+
+/// The two doors the contents panel offers onto other tutorials.
+enum _PartsMenu { addFrom, extract }

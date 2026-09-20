@@ -81,6 +81,10 @@ extension _PhoneLayout on _TutorialStudioScreenState {
                 _exportVideo();
               case 'export-pgn':
                 _exportPgn();
+              case 'parts-add':
+                _addPartsFromTutorial();
+              case 'parts-extract':
+                _extractPartsToNewTutorial();
               case 'setup':
                 _showSetupDialog();
             }
@@ -116,6 +120,22 @@ extension _PhoneLayout on _TutorialStudioScreenState {
             const PopupMenuItem(
               value: 'export-pgn',
               child: Text('Save as .pgn'),
+            ),
+            // The two doors onto other tutorials. On the desktop they are a
+            // menu of their own in the bar; here they join the one menu this
+            // layout already has, because a phone bar holds a title, one save
+            // and „more" and nothing else has ever fitted beside them.
+            //
+            // They are drawn here rather than left out because a feature that
+            // exists on one layout and not the other is a feature a trainer
+            // finds once and then cannot find again.
+            const PopupMenuItem(
+              value: 'parts-add',
+              child: Text('Add parts from a tutorial…'),
+            ),
+            const PopupMenuItem(
+              value: 'parts-extract',
+              child: Text('Take parts into a new tutorial…'),
             ),
             const PopupMenuItem(value: 'setup', child: Text('Position setup')),
           ],
