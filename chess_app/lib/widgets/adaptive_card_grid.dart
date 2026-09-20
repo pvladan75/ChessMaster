@@ -52,6 +52,23 @@ class AdaptiveCardGrid extends StatelessWidget {
   /// are actually painted rather than by quoting these numbers back.
   static const double maxTileWidth = 420.0;
 
+  /// How many columns this pattern gives a strip exactly [width] wide.
+  ///
+  /// This is [SliverGridDelegateWithMaxCrossAxisExtent]'s own arithmetic,
+  /// written out once so that [AdaptiveCardColumns] — which cannot use a
+  /// sliver delegate, because its cards are not all the same height — answers
+  /// the question the same way this grid does. Rule 12: one number, one home,
+  /// and a test pumps both widgets at the same width to prove they have not
+  /// drifted apart.
+  ///
+  /// [width] is the extent the cards are actually laid out in, with any
+  /// padding already taken off.
+  static int columnsFor(double width) {
+    if (!width.isFinite || width <= 0) return 1;
+    final count = (width / (maxTileWidth + spacing)).ceil();
+    return count < 1 ? 1 : count;
+  }
+
   /// Between cards, both ways.
   static const double spacing = AppSpacing.md;
 
@@ -87,6 +104,71 @@ class AdaptiveCardGrid extends StatelessWidget {
         mainAxisExtent: tileHeight,
       ),
       itemBuilder: itemBuilder,
+    );
+  }
+}
+
+/// The same pattern for cards that are **not** all the same height — phase 4
+/// of `docs/PLAN-LISTE.md`.
+///
+/// [AdaptiveCardGrid] sizes every cell to one [AdaptiveCardGrid.tileHeight],
+/// which is what a sliver grid is: a sheet of equal cells. „What to drill"
+/// cannot live in one. A family of endings is a line tall while it is shut and
+/// some 800 px tall once it is opened — rook endings alone come in thirteen
+/// shapes — so a single cell height has only two outcomes, and both are
+/// faults this plan already paid for: the open family overflows its cell, or
+/// every shut family is given the open one's height and the window fills with
+/// air, which is phase 3a's complaint word for word.
+///
+/// So the cards are dealt into columns and each column is an ordinary
+/// [Column] that takes the height its contents need. Opening one card grows
+/// its own column and moves nothing in the others, which is the real gain
+/// here over the `ListView` this replaced.
+///
+/// The column **count** is still not written down: it comes from
+/// [AdaptiveCardGrid.columnsFor], the one home for that arithmetic, applied to
+/// the constraint this widget is handed. One column on a phone, by
+/// construction.
+///
+/// Cards are dealt round-robin, so they read left to right across the row
+/// exactly as they would in the grid.
+class AdaptiveCardColumns extends StatelessWidget {
+  const AdaptiveCardColumns({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = AdaptiveCardGrid.columnsFor(constraints.maxWidth);
+        if (columns <= 1 || children.length <= 1) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          );
+        }
+
+        final buckets = List.generate(columns, (_) => <Widget>[]);
+        for (var i = 0; i < children.length; i++) {
+          buckets[i % columns].add(children[i]);
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var c = 0; c < columns; c++) ...[
+              if (c > 0) const SizedBox(width: AdaptiveCardGrid.spacing),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: buckets[c],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

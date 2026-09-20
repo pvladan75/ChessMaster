@@ -110,6 +110,57 @@ void main() {
     expect(AdaptiveCardGrid.maxTileWidth, 420.0);
   });
 
+  testWidgets('columnsFor answers what the grid actually draws',
+      (tester) async {
+    // Phase 4 needed the same arithmetic without a sliver delegate — „What to
+    // drill" has cards of different heights, so `AdaptiveCardColumns` deals
+    // them into plain `Column`s and asks `columnsFor` how many. That is a
+    // second place the count is worked out, and two places that must agree
+    // are one fixture's job (rule 12): this case reads the delegate's answer
+    // off the rendering and holds the helper to it.
+    //
+    // The widths straddle the bands rather than sitting in their middles —
+    // 432 and 864 are boundaries — so a helper that rounded instead of
+    // ceiling, or that forgot the spacing, is red here and not merely lucky.
+    for (final width in [200.0, 431.0, 432.0, 433.0, 863.0, 864.0, 1376.0]) {
+      tester.view.physicalSize = const Size(2400, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: width,
+              height: 2400,
+              child: AdaptiveCardGrid(
+                padding: EdgeInsets.zero,
+                itemCount: 24,
+                itemBuilder: (context, i) =>
+                    Card(key: ValueKey('tile-$i'), child: Text('$i')),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final tops = <double>[];
+      for (var i = 0; i < 24; i++) {
+        final f = find.byKey(ValueKey('tile-$i'));
+        if (f.evaluate().isEmpty) continue;
+        tops.add(tester.getTopLeft(f).dy);
+      }
+      final firstRow = tops.reduce((a, b) => a < b ? a : b);
+      final drawn = tops.where((t) => (t - firstRow).abs() < 0.5).length;
+
+      expect(AdaptiveCardGrid.columnsFor(width), drawn,
+          reason: 'at $width the grid draws $drawn columns and the helper '
+              'says ${AdaptiveCardGrid.columnsFor(width)}');
+    }
+  });
+
   testWidgets('a card keeps its height whatever the column count is',
       (tester) async {
     // Height by `mainAxisExtent`, not by an aspect ratio. With an aspect

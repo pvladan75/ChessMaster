@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 import '../models/endgame_puzzle.dart' show EndgameMode;
 import '../services/endgame_api_service.dart';
@@ -156,7 +157,15 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
         if (catalog.oppositeBishops > 0) _buildOppositeSwitch(catalog),
         _buildOnlineSwitch(),
         const SizedBox(height: AppSpacing.sm),
-        for (final family in catalog.families) _buildFamily(family),
+        // The level chips and the two switches stay one full-width header —
+        // they are the question asked of the whole catalogue, not one of its
+        // columns. Only the families are dealt across the width
+        // (`docs/PLAN-LISTE.md`, phase 4).
+        AdaptiveCardColumns(
+          children: [
+            for (final family in catalog.families) _buildFamily(family),
+          ],
+        ),
       ],
     );
   }

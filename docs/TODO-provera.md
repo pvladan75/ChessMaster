@@ -5878,6 +5878,41 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 206. „What to drill" u kolonama — 20.9.2026, nije viđeno uživo
+
+Samo aplikacija, faza 4 plana `PLAN-LISTE.md`. Porodice završnica (topovske,
+pešačke, još pet) više ne stoje jedna ispod druge u jednoj koloni nego se
+dele po širini prozora. Nivoi i dva prekidača ostaju **jedno zaglavlje preko
+cele širine** — to je pitanje postavljeno celom katalogu, ne jednoj koloni.
+
+Ovo **nije** ista mreža kao stavke 204 i 205. Kartica porodice raste kad se
+otvori (topovske završnice imaju trinaest oblika), pa ćelije nisu jednake
+visine: kolone su obične kolone, a ne tabela. Zbog toga je tačka 3 ovde
+najvažnija.
+
+Otvara se iz **Practise → Endgames**, obe kartice („win" i „hold the draw").
+
+1. [ ] **Windows, širok prozor.** Porodice stoje **dve, tri ili četiri u
+   redu**, ne jedna preko celog ekrana. Na svakoj: kvačica, ime, red ispod
+   („1769 positions, 13 types") i strelica za otvaranje.
+2. [ ] **Zaglavlje je i dalje jedno.** „Level" sa čipovima i prekidač
+   „Include online games" idu preko cele širine, **iznad** kolona — nisu
+   postali jedna od kartica.
+3. [ ] **Otvaranje ne pomera susede.** Otvori topovske završnice (trinaest
+   oblika). Porodica koja stoji **desno od nje** ostaje tamo gde je bila,
+   ne skače naniže. Otvori još jednu u drugoj koloni — isto.
+4. [ ] **Ništa nije odsečeno.** Sa otvorenom najvećom porodicom suzi prozor
+   u koracima do telefonske širine: broj kolona pada sam, nigde žuto-crnih
+   traka i nijedna kvačica nije nedostupna. *U release gradnji nema
+   upozorenja o prelivanju — seče se tiho, zato je ovo pogled a ne test.*
+5. [ ] **Brojevi se i dalje slažu.** Skidanje kvačice sa jedne porodice
+   menja „Selected: N positions" u dnu; čip nivoa isto. „Start" je siv kad
+   je sve skinuto.
+6. [ ] **Telefon.** Jedna porodica u redu, kao i pre. Otvaranje topovskih
+   završnica se skroluje normalno i ništa se ne preliva.
+7. [ ] **Kratak prozor.** Na Windowsu smanji **visinu** prozora na otprilike
+   pola pa otvori najveću porodicu: lista se skroluje, ništa se ne seče.
+
 ## 205. Biblioteka u karticama — 20.9.2026, nije viđeno uživo
 
 Samo aplikacija, faza 3b plana `PLAN-LISTE.md`. `LibraryList` više nije

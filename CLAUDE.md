@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3437 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3445 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1624 with TEST_DATABASE_URL, 1530 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -143,7 +143,28 @@ all because the tile height is tight to the tallest card, so a `Spacer` or a
 `spaceBetween` has 4 px to spread and spreading them shows nothing — only
 `cardHeight = 180` *with* `spaceBetween` falls, which is 3a's fault word for
 word. The third survivor is the gate's stated limit: a merely over-generous
-card height breaks no rule it wrote down. Open: the rest of the owner's live
+card height breaks no rule it wrote down. Then phase 4 (-> 3445), „What to
+drill" in columns, whose finding is that **pattern A has two halves**. A sliver
+grid is a sheet of cells of *one* height, and a family card is a row tall shut
+and some 800 px tall open — thirteen rook shapes — so one cell height gives
+either an overflow or a window full of air, which is 3a's complaint word for
+word. `AdaptiveCardColumns` joins `AdaptiveCardGrid` in the same file: ordinary
+`Column`s, each the height it needs, so **opening one family moves nothing
+outside its own column** — what the `ListView` could never do. The count is
+still never written down, but it is now computed in *two* places, so the
+delegate's formula was lifted into `AdaptiveCardGrid.columnsFor` and a case in
+the grid's own test reads the delegate's answer off the rendering and holds the
+helper to it — at 431/432/433/863/864, the band boundaries, which were the only
+widths that caught „forget the spacing". Seven mutations, each red on the right
+case, **none survived**. The lesson is in the three *wrong* reds the gate gave
+first, none of them about layout: a fixture typed `Map<String, Object>` that
+`whereType<Map<String, dynamic>>` silently threw away (rule 6); a chevron
+tapped blind, which is a **toggle** — the screen opens its biggest family by
+itself, so the case shut what it believed it opened; and
+`find.ancestor(…).first` throwing `Bad state` rather than failing, because a
+`ListView` builds nothing below the fold. **A helper that sets state must
+assert the state it set, and an existence check must be able to fail rather
+than throw.** Open: the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

@@ -5345,3 +5345,68 @@ troši. To je pitanje o testu, ne presuda.
 Mereno: aplikacija **3423 → 3437** (14 u kapiji), 1 preskočen, pun prolaz sam.
 Analyze: istih 26 `info`, nijedan iz četiri izmenjena fajla. Uživo: **stavka
 205**.
+
+## Mreža koja ne može da primi karticu koja raste — 20.9.2026, faza 4
+
+Faza 4 plana `PLAN-LISTE.md` kaže: „What to drill", porodice po **obrascu A**
+iznad 840 umesto jedne `ListView`. Obrazac A je `AdaptiveCardGrid`, a
+`AdaptiveCardGrid` je `SliverGridDelegateWithMaxCrossAxisExtent` sa jednim
+`mainAxisExtent` — **list ćelija jednake visine**. Prvo što je trebalo
+proveriti nije bilo kako ga primeniti nego da li uopšte može.
+
+Ne može, i razlog je u samom ekranu. Kartica porodice je jedan red dok je
+zatvorena i oko 800 px kad se otvori — topovske završnice imaju trinaest
+oblika. Jedna visina ćelije ima tačno dva ishoda, i oba su greške za koje je
+ovaj plan već platio:
+
+- visina po zatvorenoj kartici → otvorena se **preliva** iz svoje ćelije;
+- visina po otvorenoj → svaka zatvorena dobija istu, i prozor se puni
+  vazduhom. To je **doslovno** pritužba zbog koje je faza 3a dopunjena
+  („kartica popunjava 49% reda").
+
+Zato je uz mrežu stao `AdaptiveCardColumns`: kartice se dele u obične
+`Column`-e, svaka kolona uzima visinu koja joj treba. Dobit nije samo da se
+ništa ne preliva — **otvaranje jedne porodice ne pomera ostale**, jer rastu
+samo unutar svoje kolone. U `ListView`-u je dodir na topovske završnice gurao
+pešačke 700 px naniže, pa je čitalac gubio mesto na koje gleda time što je
+pogledao nešto.
+
+**Broj kolona se i dalje nigde ne piše**, ali je sada izračunat na **dva**
+mesta — u delegatu mreže i u novom widgetu, koji delegat ne može da koristi.
+Dva mesta koja moraju da se slažu su posao jedne fikstura (pravilo 12): formula
+je izvučena u `AdaptiveCardGrid.columnsFor`, a slučaj u
+`adaptive_card_grid_test.dart` **čita odgovor delegata sa ekrana** i drži
+pomoćnik uz njega. Širine u tom slučaju su namerno na granicama pojaseva —
+431, 432, 433, 863, 864 — i to je jedino što je uhvatilo mutaciju „zaboravi
+razmak": u sredini pojasa `width / 420` i `width / 432` daju isti broj.
+
+**Kapija je prvo bila crvena iz pogrešnih razloga, tri puta.** Sva tri su
+vredna zapisa, jer nijedno nije bilo o rasporedu:
+
+1. Fikstura je pravila `Map<String, Object>`, a `EndgameCatalog.fromJson`
+   filtrira `whereType<Map<String, dynamic>>()`. Katalog je stigao prazan i
+   ekran je nacrtao „Endgame list is currently unavailable." — sedam crvenih
+   koje ne govore ništa o kolonama.
+2. Ekran **sam otvara najveću porodicu** pri učitavanju, pa je pomoćnik koji
+   slepo kucne strelicu zapravo bio prekidač: zatvarao je ono što je mislio da
+   otvara. Pomoćnik sada prima željeno stanje i **tvrdi da ga je dobio**.
+3. Sa otvorenih trinaest oblika `ListView` ne gradi ono što je ispod ivice, pa
+   je `find.ancestor(...).first` bacio `Bad state: No element` — pad finder-a,
+   ne tvrdnja. Ista provera bez `.first` daje `findsOneWidget` koje padne kao
+   tvrdnja, sa rečenicom koja kaže šta se desilo. **Razlika između hvatanja i
+   pucanja** (pravilo 3), i ovde je i razlika između „sused je odgurnut sa
+   strane" i „test ne ume da ga nađe".
+
+Posle toga: **7 slučajeva, 4 crvena i 3 zelena na master-u**, sva četiri
+crvena su tvrdnje. Sedam mutacija, svaka crvena na tačnom slučaju, nijedna nije
+preživela: `ceil` → `floor`, razmak izostavljen iz formule, broj kolona
+zakucan na dva, deljenje u blokove umesto naizmenično (tada prve dve porodice
+padnu u istu kolonu), `CrossAxisAlignment.center` umesto `.start` (kolone se
+centriraju, pa sused **skoči** kad komšija poraste), zaglavlje gurnuto u
+kolone, i „nikad manje od dve kolone" — koje je oborilo i telefonski slučaj i
+telefonsko prelivanje odjednom, što je najjasniji dokaz da je jedna kolona na
+360 px pravilo a ne slučajnost.
+
+Mereno: aplikacija **3437 → 3445** (7 u kapiji faze, 1 dodat u testu mreže),
+1 preskočen, pun prolaz sam, 8 min 32 s. Analyze: istih 26 `info`, nijedan iz
+dva izmenjena fajla. Uživo: **stavka 206**.
