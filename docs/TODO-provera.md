@@ -5910,6 +5910,12 @@ kolekcije).
    tu isto. Ništa nije odsečeno.
 10. [ ] **Dijalog je veći nego pre** na širokom prozoru (do 900 px širine),
     ali ne preko celog ekrana.
+11. [ ] **Telefon na boku.** *Ovo si prijavio 21.9.2026: „ne vidi se lista
+    partija, nije skrolabilno" — izmereno, lista je bila **0 px visoka**.*
+    Okreni telefon i otvori „Choose a game": vidi se **bar tri-četiri**
+    partije, lista se skroluje, i „Cancel" je na ekranu. Pretraga i čipovi
+    filtera stoje **u istom redu**, ne jedan ispod drugog — tako ostane mesta
+    za same partije.
 
 ## 209. Repertoar sa oknom pored liste — 20.9.2026, nije viđeno uživo
 

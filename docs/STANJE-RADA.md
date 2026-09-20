@@ -87,8 +87,25 @@ zadovoljavale, pa filter koji potpuno ignoriše pretragu daje isti odgovor.
 Sada pretražuje „Kingston" (ostaje jedna partija, i to remi), pa „1-0" povrh
 toga mora da ostavi ništa.
 
-Aplikacija **3487 → 3496**, analyze istih 26 `info`, nijedan iz izmenjenog
-fajla. Bez izmena na serveru. Uživo: **stavka 210**.
+**Prijava vlasnika istog dana, već popravljena:** „ne vidi se lista partija,
+nije skrolabilno" na telefonu na boku. Izmereno pre popravke — na 760 × 360
+lista je bila **0.0 px visoka, nijedna vrsta, i `RenderFlex` je prelivao 36**;
+na 932 × 430 svega 34 px i jedna vrsta. Visina se **tražila umesto da se
+uzme**: `(visina - 240).clamp(240, 720)` zahteva 240 px sadržaja na ekranu
+koji ih ima oko 200, pa `SizedBox` pobedi a `Expanded` lista ostane bez
+ičega. Posle: 116/4 vrste na 760 × 360, 186/5 na 932 × 430.
+
+**Nosiva izmena nije ta računica nego zbijeno zaglavlje** — na boku čipovi
+stoje **pored** pretrage umesto ispod nje, što je 52 px, a to je ovde razlika
+izmedju nula i četiri vrste. Dve mutacije (vraćena donja granica; namerno
+premalo procenjen hrom) **su preživele**, jer `AlertDialog` ionako ograničava
+sadržaj na visinu koja postoji — te dve konstante su inertne i tako su i
+zapisane, u kapiji i u kodu. Ono što nosi jeste čuvano: `short = false` obara
+oba landscape slučaja.
+
+Aplikacija **3487 → 3499**, analyze istih 26 `info`, nijedan iz izmenjenog
+fajla. Bez izmena na serveru. Uživo: **stavka 210**, s tim da je tačka 11
+landscape.
 
 ---
 

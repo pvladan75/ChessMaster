@@ -5748,3 +5748,49 @@ Mereno: aplikacija **3487 → 3496** (9 u kapiji), 1 preskočen. Analyze: istih
 26 `info`, nijedan iz izmenjenog fajla. Bez izmena na serveru. Uživo:
 **stavka 210**. Ovim je `PLAN-LISTE.md` odgradjen u celosti — ostaje samo
 faza 8, vlasnikov prolaz uživo.
+
+### Dopuna faze 7: u landscape-u liste nije ni bilo — 21.9.2026
+
+Vlasnik je prijavio: „ne vidi se lista partija, nije skrolabilno". Izmereno pre
+popravke:
+
+| prozor | visina liste | izgradjenih vrsta | |
+|---|---|---|---|
+| 760 × 360 (telefon na boku) | **0.0** | **0** | `RenderFlex` preliva 36 |
+| 932 × 430 | 34.0 | 1 | |
+| 360 × 720 (uspravno) | 212 | 4 | |
+| 1400 × 900 | 512 | 14 | |
+
+Dakle nije „teško se vidi" nego **liste nije bilo**: nula piksela.
+
+Uzrok je visina koja se **traži umesto da se uzme**. Dijalog je računao
+`(visinaEkrana - 240).clamp(240, 720)`, a ta **donja granica** zahteva 240 px
+sadržaja na ekranu koji ih, kad se odbiju naslov, dugmad i insets, ima oko 200.
+`SizedBox` pobedi, a `Expanded` lista ispod njega ostane bez ičega.
+
+Posle popravke: 116 / 4 vrste na 760 × 360, 186 / 5 na 932 × 430, i više nego
+pre na uspravnom i na desktopu.
+
+**Ali pouka nije u toj računici, nego u tome šta je zaista popravilo stvar.**
+Dve mutacije — vraćanje donje granice na 240, i namerno pogrešno (premalo)
+procenjena visina hroma — **obe su preživele** kapiju, uključujući i slučaj
+koji proverava da „Cancel" nije ispao sa ekrana. Razlog: `AlertDialog`
+**ograničava svoj sadržaj na visinu koja postoji**, pa je broj koji dijalog
+izračuna samo gornja granica i ne može da ga izgura van ekrana.
+
+Ono što je stvarno popravilo prijavu je **zbijeno zaglavlje**: na boku čipovi
+filtera stoje **pored** pretrage umesto ispod nje. To je 52 px, a 52 px je
+ovde razlika izmedju nula i četiri vrste. Ta izmena **jeste** čuvana —
+prisiljavanje `short` na false obara oba landscape slučaja.
+
+Pouka: **kad mutacija preživi, pitaj da li je taj broj uopšte nosiv.** Ovde
+nije — dve konstante su ispale inertne, a nosiva je bila jedna promena
+rasporeda. Zapisane su kao takve i u kapiji i u kodu, umesto da se za njih
+izmišlja slučaj koji bi morao da tvrdi formulu umesto onoga što čitalac vidi.
+
+I druga, manja: prvo sam za 568 × 320 tražio tri vrste. Tu ih nema — na tom
+ekranu ceo dijalog je 294 px visok i posle naslova, pretrage i „Cancel"-a
+ostaju dve. **Provera koja ne može da prodje vredi koliko i ona koja ne može
+da padne**, pa slučaj sada traži tri iznad 360 px visine i dve ispod.
+
+Mereno: aplikacija **3496 → 3499**, 1 preskočen. Analyze: istih 26 `info`.

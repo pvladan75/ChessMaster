@@ -269,6 +269,88 @@ void main() {
     expect(chosen?.headers['White'], 'kotjok77');
   });
 
+  // 568 x 320 is a small phone on its side — the shortest screen this app is
+  // built for. It is here because a mutation survived without it: putting the
+  // old `clamp(240, …)` floor back changes nothing at 360 tall, where the
+  // chrome now leaves 248, so the rule only bites on a screen shorter than
+  // that. A floor that is harmless at every size the gate pumps is a floor
+  // nobody can see come back.
+  for (final size in [
+    const Size(760, 360),
+    const Size(932, 430),
+    const Size(568, 320),
+  ]) {
+    testWidgets(
+        'a phone on its side still shows a list — ${size.width.toInt()}'
+        ' x ${size.height.toInt()}', (tester) async {
+      // Reported live by the owner, 21.9.2026: „ne vidi se lista partija, nije
+      // skrolabilno". Measured before the fix: at 760 x 360 the list was
+      // **0.0 px tall with no rows at all** and a `RenderFlex` overflowed by
+      // 36; at 932 x 430 it was 34 px and one row.
+      //
+      // The cause is a height asked for rather than taken. The dialog sized
+      // its content `(screenHeight - 240).clamp(240, 720)`, and that **lower
+      // clamp** demands 240 px on a screen that has about 200 to give once
+      // the title, the actions and the insets are out. Everything above the
+      // list — search, filter chips, column header — then ate what was left.
+      //
+      // So the case asserts what a reader needs, not a formula: some rows,
+      // and no clipping.
+      await _open(tester, _many(), size: size);
+
+      final list = find.descendant(
+        of: find.byType(GameSelectorDialog),
+        matching: find.byType(ListView),
+      );
+      expect(list, findsOneWidget);
+      final height = tester.getSize(list.first).height;
+
+      expect(height, greaterThanOrEqualTo(100),
+          reason: 'the list is $height tall at $size — there is nothing to '
+              'read and nothing to scroll');
+      // Measured, not wished for. A 320 px screen holds a title, a search
+      // row, the filter chips and a Cancel button, and what is left is two
+      // stacked rows — the dialog there is 294 px tall in all. Asking for
+      // three would be asking the screen for height it does not have, and a
+      // check that cannot pass is worth no more than one that cannot fail.
+      final wantRows = size.height >= 360 ? 3 : 2;
+      expect(_rowsBuilt(), greaterThanOrEqualTo(wantRows),
+          reason: 'only ${_rowsBuilt()} rows are built at $size');
+      expect(tester.takeException(), isNull);
+
+      // And the dialog fits the screen it is on. Added because a mutation
+      // that under-counted the chrome — making the content box taller than
+      // the screen — left every assertion above green: a dialog too tall for
+      // its window is **clipped by the overlay**, and clipping raises no
+      // exception, in a test build or a release one. The same lesson the two
+      // boards taught on 20.9.2026, in a third shape.
+      //
+      // „Cancel" is the bottom of the dialog and the thing a reader reaches
+      // for when they give up, so it is the honest thing to measure.
+      final cancelBottom = tester.getBottomLeft(find.text('Cancel')).dy;
+      expect(cancelBottom, lessThanOrEqualTo(size.height),
+          reason: 'the dialog runs $cancelBottom px down a ${size.height} px '
+              'screen, so its bottom — Cancel included — is off it');
+    });
+  }
+
+  // **Two mutations survive these cases, and the reason is worth keeping.**
+  // Putting the old `clamp(240, …)` floor back, and under-counting the
+  // dialog's chrome so the content box asks for far more than the screen has,
+  // both leave every case above green. `AlertDialog` **caps its content to
+  // the height that is actually available**, so the number this dialog
+  // computes is only an upper bound — it cannot push the dialog off the
+  // screen, and once the chrome above the list is small the floor never
+  // binds either.
+  //
+  // What actually fixed the owner's report is the compact header: sideways,
+  // the filter chips sit **beside** the search instead of under it, which is
+  // 52 px, and 52 px is the difference between a list of zero rows and a list
+  // of four. That change is guarded — forcing `short` to false turns both
+  // landscape cases red. The two survivors are inert numbers rather than
+  // holes, and they are recorded here instead of being chased with a case
+  // that would have to assert a formula rather than what a reader sees.
+
   testWidgets('nothing overflows at either size', (tester) async {
     await _open(tester, _many(), size: const Size(360, 640));
     expect(tester.takeException(), isNull);

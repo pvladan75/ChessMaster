@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3496 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3499 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1630 with TEST_DATABASE_URL, 1536 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -282,8 +282,24 @@ filter passes everything is not a fixture for composition; it tests the second
 filter twice. Beside it, a finder lesson for tables: „1-0" is on that screen as
 a chip *and* as a result, and the first draft measured the chip against the
 Result column and called it aligned — **in a table the same text repeats by
-nature, so a finder has to say which row it means.** Open: the rest of the
-owner's live
+nature, so a finder has to say which row it means.** **The owner then found
+that dialog had no list at all on a phone held sideways** (→ **3499**):
+measured at 760 x 360, the list was **0.0 px tall with no rows** and a
+`RenderFlex` overflowed by 36. The height was *asked for* rather than taken —
+`(height - 240).clamp(240, 720)` demands 240 px of content on a screen with
+about 200 to give, so the `SizedBox` won and the `Expanded` list under it got
+nothing. But the lesson is which change actually fixed it: **two mutations on
+those numbers survived**, because `AlertDialog` caps its content to the height
+that exists, so the figure it computes is only an upper bound. What fixed the
+report is the **compact header** — sideways the filter chips sit beside the
+search instead of under it, 52 px, which is the difference between zero rows
+and four — and that *is* guarded. **When a mutation survives, ask whether the
+number is load-bearing at all**; two of these turned out inert and are
+recorded as such rather than chased with a case that would assert a formula
+instead of what a reader sees. Beside it: the first draft of that gate asked
+for three rows at 568 x 320, where the whole dialog is 294 px tall and two is
+all there is — **a check that cannot pass is worth no more than one that
+cannot fail.** Open: the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

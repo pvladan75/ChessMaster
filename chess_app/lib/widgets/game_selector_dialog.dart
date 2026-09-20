@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 
 class GameSelectorDialog extends StatefulWidget {
   final List<PgnGameInfo> games;
@@ -41,6 +42,18 @@ class _GameSelectorDialogState extends State<GameSelectorDialog> {
   /// The two columns that hold a fixed thing rather than a name.
   static const double _dateWidth = 92;
   static const double _resultWidth = 64;
+
+  /// What the dialog's own chrome costs above and below the content — the
+  /// title, the buttons and their padding.
+  ///
+  /// An **upper bound**, not a promise: `AlertDialog` caps its content to the
+  /// height that is actually there, so getting these wrong cannot push the
+  /// dialog off the screen. Two mutations proved it by surviving the gate.
+  /// What does the work sideways is the compact header — the chips beside the
+  /// search rather than under it, which is 52 px and, on a 360 px screen, the
+  /// difference between no rows at all and four.
+  static const double _tallChrome = 150;
+  static const double _shortChrome = 96;
 
   /// One row of the table — the header and every game go through here, which
   /// is what makes a cell sit under its heading. Two copies of these widths
@@ -166,6 +179,19 @@ class _GameSelectorDialogState extends State<GameSelectorDialog> {
     );
   }
 
+  Widget _searchField({required bool dense}) => TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search by player or move',
+          prefixIcon: const Icon(Icons.search),
+          isDense: dense,
+          contentPadding: dense
+              ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+              : null,
+        ),
+        onChanged: (value) => setState(() => _query = value),
+      );
+
   Widget _headerRow() {
     final style = AppText.caption.copyWith(
       color: context.colors.textMuted,
@@ -264,11 +290,31 @@ class _GameSelectorDialogState extends State<GameSelectorDialog> {
     // five columns need it across, and how many games are on screen at once is
     // the whole complaint this dialog exists to answer.
     final dialogWidth = (mediaSize.width - 64).clamp(280.0, 900.0);
-    final dialogHeight = (mediaSize.height - 240).clamp(240.0, 720.0);
+
+    // A phone on its side — `Breakpoints.compactHeight` is this project's
+    // existing name for it, and every phone in landscape is under it.
+    final short = mediaSize.height < Breakpoints.compactHeight;
+
+    // Height is **taken, not asked for**. Until 21.9.2026 this read
+    // `(height - 240).clamp(240, 720)`, and that lower clamp demanded 240 px
+    // of content on a 360 px screen that has about 200 to give once the
+    // title, the actions and the insets are out. The `SizedBox` won, the
+    // `Expanded` list underneath it was left **0 px tall**, and the owner
+    // reported a dialog with no list in it and nothing to scroll.
+    final insetV = short ? 8.0 : 24.0;
+    final chrome = short ? _shortChrome : _tallChrome;
+    final dialogHeight =
+        (mediaSize.height - insetV * 2 - chrome).clamp(72.0, 720.0);
     final wide = dialogWidth >= tableFrom;
 
     return AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: insetV),
+      // On a phone held sideways every line of chrome is a row of games, so
+      // the title and the buttons give their padding back.
+      titlePadding:
+          EdgeInsets.fromLTRB(24, short ? 12 : 24, 24, short ? 4 : 16),
+      contentPadding: EdgeInsets.fromLTRB(24, 0, 24, short ? 8 : 24),
+      actionsPadding: EdgeInsets.fromLTRB(24, 0, 24, short ? 4 : 8),
       title: Text(
         query.isEmpty
             ? 'Choose a game from the collection ($total)'
@@ -281,17 +327,25 @@ class _GameSelectorDialogState extends State<GameSelectorDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search by player or move',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (value) => setState(() => _query = value),
-            ),
-            const SizedBox(height: 8),
-            _filterChips(),
-            const SizedBox(height: 8),
+            if (short)
+              Row(
+                children: [
+                  Expanded(child: _searchField(dense: true)),
+                  const SizedBox(width: 8),
+                  _filterChips(),
+                ],
+              )
+            else
+              _searchField(dense: false),
+            // Sideways the chips sit beside the search rather than under it:
+            // that row is 48 px, which is another game on screen.
+            if (short) ...[
+              const SizedBox(height: 4),
+            ] else ...[
+              const SizedBox(height: 8),
+              _filterChips(),
+              const SizedBox(height: 8),
+            ],
             if (wide) _headerRow(),
             Expanded(
               child: filtered.isEmpty
