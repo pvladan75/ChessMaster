@@ -24,22 +24,27 @@ Future<void> _pump(WidgetTester tester, double width,
   await tester.pumpWidget(MaterialApp(
     key: UniqueKey(),
     theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+    // Inside a vertical scroll view, as `TrainingHubScreen` holds it: the hub
+    // is given unbounded height there, so its `Center` never centres it
+    // vertically — a bare box of the window's height would.
     home: Scaffold(
-      body: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: width,
-          child: CategorySelectionHubWidget(
-            onSelectMatePuzzle: (_) {},
-            onSelectBasicMate: (_) {},
-            onSelectWinningPosition: () {},
-            onSelectTactics: () {},
-            onSelectEndgameWin: () {},
-            onSelectEndgameDraw: () {},
-            onSelectBlunderGames: () {},
-            onSelectRepertoire: () {},
-            onSelectMyGames: () {},
-            onSelectMistakesDrill: () {},
+      body: SingleChildScrollView(
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: width,
+            child: CategorySelectionHubWidget(
+              onSelectMatePuzzle: (_) {},
+              onSelectBasicMate: (_) {},
+              onSelectWinningPosition: () {},
+              onSelectTactics: () {},
+              onSelectEndgameWin: () {},
+              onSelectEndgameDraw: () {},
+              onSelectBlunderGames: () {},
+              onSelectRepertoire: () {},
+              onSelectMyGames: () {},
+              onSelectMistakesDrill: () {},
+            ),
           ),
         ),
       ),
@@ -155,6 +160,17 @@ void main() {
     await _pump(tester, 400);
     expect(_columns(tester), 1,
         reason: 'the hub read the window and put two columns in 400 px');
+  });
+
+  testWidgets('the phases are the first thing on the tab', (tester) async {
+    // The „Chess trainer and drills" card sat above them until 21.9.2026 and
+    // was removed on the owner's word. Measured by position rather than by
+    // looking for its words, so a header of any wording fails here.
+    for (final w in [360.0, 1400.0]) {
+      await _pump(tester, w, window: Size(w, 3000));
+      expect(_at(tester, _opening).top, lessThan(40),
+          reason: 'something sits above the phases at $w');
+    }
   });
 
   testWidgets('nothing overflows at 360, 700, 1000 and 1920', (tester) async {

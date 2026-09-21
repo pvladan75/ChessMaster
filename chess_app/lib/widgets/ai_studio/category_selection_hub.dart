@@ -385,103 +385,49 @@ class CategorySelectionHubWidget extends StatelessWidget {
         child: SingleChildScrollView(
           primary: false,
           padding: AppSpacing.screenPadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Hero header card (spans full width above the columns)
-              Container(
-                padding: AppSpacing.cardPaddingComfortable,
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: AppRadii.roundedLg,
-                  border: Border.all(color: colors.border),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: colors.brand.withValues(alpha: 0.16),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: colors.brand.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.psychology_outlined,
-                        color: colors.brand,
-                        size: 30,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Chess trainer and drills',
-                            style: AppText.headline.copyWith(
-                              color: colors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            'Drills are arranged by game phase: opening, tactics, then endgame and technique.',
-                            style: AppText.body.copyWith(
-                              color: colors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          // No header card: the tab's name is already at the top, and the
+          // card that said „Chess trainer and drills" took height and said
+          // little — removed on the owner's word, 21.9.2026.
+          //
+          // One column per phase of the game where three fit, today's split
+          // where two do, today's order on a phone. The count is taken from
+          // the width these cards are handed, never from the window
+          // (`docs/PLAN-POCETNI-TABOVI.md` §3), and can never pass
+          // [maxColumns] because the box above stops at their width.
+          child: LayoutBuilder(builder: (context, constraints) {
+            final opening = _phase(context, 'Opening', [
+              _buildRepertoireCard(colors),
+              _buildMyGamesCard(colors),
+              _buildMistakesCard(colors),
+            ]);
+            final tactics = _phase(context, 'Tactics', [
+              _buildTacticsCard(colors),
+              _buildMatePuzzlesCard(colors),
+            ]);
+            final endgame = _phase(context, 'Endgame and technique', [
+              _buildMasterEndgamesCard(colors),
+              _buildBasicMateCard(colors),
+              _buildWinningPositionsCard(colors),
+            ]);
 
-              const SizedBox(height: AppSpacing.xxl),
-
-              // One column per phase of the game where three fit, today's
-              // split where two do, today's order on a phone. The count is
-              // taken from the width these cards are handed, never from the
-              // window (`docs/PLAN-POCETNI-TABOVI.md` §3), and can never pass
-              // [maxColumns] because the box above stops at their width.
-              LayoutBuilder(builder: (context, constraints) {
-                final opening = _phase(context, 'Opening', [
-                  _buildRepertoireCard(colors),
-                  _buildMyGamesCard(colors),
-                  _buildMistakesCard(colors),
+            switch (AdaptiveCardGrid.columnsFor(constraints.maxWidth)) {
+              case 1:
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [opening, phaseGap, tactics, phaseGap, endgame],
+                );
+              case 2:
+                return _side([
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [opening, phaseGap, tactics],
+                  ),
+                  endgame,
                 ]);
-                final tactics = _phase(context, 'Tactics', [
-                  _buildTacticsCard(colors),
-                  _buildMatePuzzlesCard(colors),
-                ]);
-                final endgame = _phase(context, 'Endgame and technique', [
-                  _buildMasterEndgamesCard(colors),
-                  _buildBasicMateCard(colors),
-                  _buildWinningPositionsCard(colors),
-                ]);
-
-                switch (AdaptiveCardGrid.columnsFor(constraints.maxWidth)) {
-                  case 1:
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [opening, phaseGap, tactics, phaseGap, endgame],
-                    );
-                  case 2:
-                    return _side([
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [opening, phaseGap, tactics],
-                      ),
-                      endgame,
-                    ]);
-                  default:
-                    return _side([opening, tactics, endgame]);
-                }
-              }),
-            ],
-          ),
+              default:
+                return _side([opening, tactics, endgame]);
+            }
+          }),
         ),
       ),
     );

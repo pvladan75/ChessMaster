@@ -5878,35 +5878,39 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
-## 213. Home i Practise koriste širinu — 21.9.2026, nije viđeno uživo
+## 213. Home i Practise koriste širinu — ✅ provereno uživo 21.9.2026
 
 **Samo aplikacija.** Faze 3 i 4 plana `PLAN-POCETNI-TABOVI.md`. Home više nema
 granicu od 700 px; Practise više ne pita širinu prozora. Sekcije stoje jedna
 ispod druge, a ono što je u njima teče u kolone koliko ih stane.
 
-1. [ ] **Home, Windows, prozor oko 1400 px.** **Set for me · Due for review ·
+**Vlasnik je prošao sve tačke ispod i potvrdio ih istog dana, 21.9.2026.** U
+istom prolazu je tražio da se kartica „Chess trainer and drills" na vrhu
+Practise-a ukloni — uklonjena odmah posle.
+
+1. [x] **Home, Windows, prozor oko 1400 px.** **Set for me · Due for review ·
    Join a session u jednom redu**, sve tri kartice iste visine (donje ivice u
    istoj liniji iako „Join a session" ima polje i dugme). Ne vide se kartice
    učenika ako nemaš trenera i nemaš ništa za ponavljanje — to je kao i pre.
-2. [ ] **Trainer panel.** Redovi ispod svakog naslova („To review", „Homework
+2. [x] **Trainer panel.** Redovi ispod svakog naslova („To review", „Homework
    due soon"…) stoje **jedan pored drugog**, dugme desno u svakom redu.
    „Review", „Open" i „Enter" rade kao i pre. Razmak izmedju redova je
    malo veći nego ranije (12 umesto 8 px) — i na telefonu.
-3. [ ] **Recordings.** Svaki snimak je sada **mala kartica sa okvirom**, a
+3. [x] **Recordings.** Svaki snimak je sada **mala kartica sa okvirom**, a
    kartice stoje jedna pored druge; „Play" otvara snimak kao i pre. *Na
    telefonu su kartice jedna ispod druge, sa okvirom umesto linije izmedju.*
-4. [ ] **Practise, prozor oko 1400 px.** **Tri kolone: Opening │ Tactics │
+4. [x] **Practise, prozor oko 1400 px.** **Tri kolone: Opening │ Tactics │
    Endgame and technique**, svaka faza u svojoj. Kartice se ne šire preko
    jedne širine kartice ni u najširem prozoru — sa strane ostaje prazno. To je
    jedina izrečena granica na ovim tabovima.
-5. [ ] **Najmanji prozor (900 px).** Tabu ostaje oko 800 px (traka sa
+5. [x] **Najmanji prozor (900 px).** Tabu ostaje oko 800 px (traka sa
    leve strane uzima 77), pa Practise ima **dve** kolone — Opening i Tactics
    levo, Endgame and technique desno, kao do sada — a Home dve kartice u
    redu, „Join a session" ispod njih. Tri kolone na Practise počinju negde oko
    prozora od 1000 px. Ništa odsečeno, nijedno dugme van kartice.
-6. [ ] **Telefon.** Oba taba kao do sada: jedna kartica po redu, isti redosled.
+6. [x] **Telefon.** Oba taba kao do sada: jedna kartica po redu, isti redosled.
 
-## 212. Teach koristi širinu — 21.9.2026, delimično provereno uživo 21.9.2026
+## 212. Teach koristi širinu — ✅ provereno uživo 21.9.2026
 
 **Samo aplikacija.** Faza 2 plana `PLAN-POCETNI-TABOVI.md`: Teach više nema
 granicu od 700 px i ne pita širinu prozora. Sekcije stoje jedna ispod druge,
@@ -5914,18 +5918,18 @@ a ono što je u njima teče u kolone koliko ih stane.
 
 **Vlasnik je 21.9.2026 pogledao Teach u širokom prozoru i na telefonu i
 potvrdio raspored, uključujući Library odmah ispod Homework (tačke 1 i 4).**
-Tačke 2 (slanje zahteva i „Progress") i 3 (prozor od 900 px) nisu bile
-imenovane u izveštaju, pa ostaju otvorene.
+Tačke 2 (slanje zahteva i „Progress") i 3 (prozor od 900 px) potvrdio je
+kasnije istog dana, uz stavku 213 — sve četiri su zatvorene.
 
 1. [x] **Windows, prozor oko 1400 px.** Teach: **Tutorials · Homework ·
    Library u jednom redu**, sve tri kartice istog okvira (donje ivice u
    istoj liniji iako Tutorials ima tri dugmeta). Ispod njih **Preparation ·
    New session** u drugom redu, sa svojim obojenim ivicama.
-2. [ ] **Studenti.** U kartici „Students and trainers" obrazac za zahtev
+2. [x] **Studenti.** U kartici „Students and trainers" obrazac za zahtev
    (čipovi, rečenica, email, „Send a request") zauzima **jednu kolonu levo**,
    a spisak ljudi ostatak; učenici idu **jedan pored drugog** kad ih ima više.
    Slanje zahteva i „Progress" rade kao i pre.
-3. [ ] **Najmanji prozor (900 px).** Isto, samo manje kolona; ništa nije
+3. [x] **Najmanji prozor (900 px).** Isto, samo manje kolona; ništa nije
    odsečeno, nijedno dugme nije van kartice.
 4. [x] **Telefon.** Jedna kartica po redu, obrazac iznad spiska kao do sada.
    **Jedina promena redosleda:** Library je sada odmah ispod Homework, a ne
