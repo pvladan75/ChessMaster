@@ -17,6 +17,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
+import '../models/homework.dart';
 import '../services/homework_api_service.dart';
 
 /// What one sending did, as one sentence and one flag.
@@ -106,6 +107,29 @@ class _HomeworkSendDialogState extends State<HomeworkSendDialog> {
 
   List<Map<String, dynamic>> _students = const [];
   final Set<int> _picked = {};
+
+  /// **Groups: a chip ticks the members as they are now** — decided with the
+  /// owner on 21.9.2026 (his report of 20.9: „Omogućiti treneru da šalje celoj
+  /// grupi"). A student who joins afterwards does not get the homework on
+  /// their own: every copy is a unit of quota, the due date and the note
+  /// belong to this sending, and a rule that fires later by itself is the
+  /// shape this codebase keeps paying for. Members are fetched when a chip is
+  /// first tapped, not for every group on opening.
+  List<StudentGroup> _groupList = const [];
+  final Map<int, List<int>> _membersOf = {};
+  final Map<int, String> _memberNames = {};
+  int? _loadingGroup;
+
+  /// What the last chip could not do, said rather than done quietly.
+  String? _groupNote;
+
+  /// Students this homework was already sent to. **The server does not refuse
+  /// a second copy** — there is no unique key on homework and student — so
+  /// without this, sending to a group again after somebody joined would give
+  /// everyone else a second copy and a second unit. Null when the homework
+  /// could not be read, which the dialog says: a guard that silently is not
+  /// there is worse than one that says so.
+  Set<int>? _alreadyHas;
   DateTime? _dueAt;
   bool _loading = true;
   bool _sending = false;
@@ -123,16 +147,101 @@ class _HomeworkSendDialogState extends State<HomeworkSendDialog> {
   }
 
   Future<void> _loadStudents() async {
-    final all = await _groups.myStudents();
+    final results = await Future.wait<Object?>([
+      _groups.myStudents(),
+      _groups.list(),
+      widget.api.load(widget.homeworkId),
+    ]);
+    final all = results[0] as List<Map<String, dynamic>>;
+    final groups = results[1] as List<StudentGroup>;
+    final homework = results[2] as Homework?;
     if (!mounted) return;
     setState(() {
       _loading = false;
+      _groupList = groups;
+      _alreadyHas = homework?.sent.map((copy) => copy.studentId).toSet();
       // Only students who have accepted: an invitation nobody has answered
       // grants nothing, the server refuses it, and offering the name here
       // would promise something this trainer cannot do yet.
       _students =
           all.where((student) => student['status'] == 'accepted').toList();
     });
+  }
+
+  Set<int> get _acceptedIds => {
+        for (final student in _students)
+          if (_idOf(student) case final id?) id,
+      };
+
+  /// Who a group's chip would tick: its members who have accepted and do not
+  /// already have this homework.
+  List<int> _eligibleIn(int groupId) {
+    final members = _membersOf[groupId] ?? const [];
+    final accepted = _acceptedIds;
+    final have = _alreadyHas ?? const <int>{};
+    return [
+      for (final id in members)
+        if (accepted.contains(id) && !have.contains(id)) id,
+    ];
+  }
+
+  bool _groupTicked(int groupId) {
+    final eligible = _eligibleIn(groupId);
+    return eligible.isNotEmpty && eligible.every(_picked.contains);
+  }
+
+  Future<void> _toggleGroup(StudentGroup group) async {
+    if (!_membersOf.containsKey(group.id)) {
+      setState(() => _loadingGroup = group.id);
+      final members = await _groups.members(group.id);
+      if (!mounted) return;
+      _membersOf[group.id] = [for (final m in members) m.id];
+      for (final m in members) {
+        _memberNames[m.id] = m.name;
+      }
+      _loadingGroup = null;
+    }
+    final eligible = _eligibleIn(group.id);
+    final untick = eligible.isNotEmpty && eligible.every(_picked.contains);
+    setState(() {
+      if (untick) {
+        _picked.removeAll(eligible);
+      } else {
+        _picked.addAll(eligible);
+      }
+      _groupNote = untick ? null : _noteFor(group);
+    });
+  }
+
+  /// Names every member the chip left out, and why.
+  String? _noteFor(StudentGroup group) {
+    final members = _membersOf[group.id] ?? const [];
+    final accepted = _acceptedIds;
+    final have = _alreadyHas ?? const <int>{};
+    String nameOf(int id) => _memberNames[id] ?? 'A member';
+
+    final parts = <String>[];
+    if (_eligibleIn(group.id).isEmpty) {
+      parts.add('Nobody in „${group.name}" is left to send to.');
+    }
+    final notAccepted = [
+      for (final id in members)
+        if (!accepted.contains(id)) nameOf(id),
+    ];
+    if (notAccepted.isNotEmpty) {
+      parts.add('${notAccepted.join(', ')} '
+          '${notAccepted.length == 1 ? 'has' : 'have'} not accepted the '
+          'invitation yet.');
+    }
+    final had = [
+      for (final id in members)
+        if (accepted.contains(id) && have.contains(id)) nameOf(id),
+    ];
+    if (had.isNotEmpty) {
+      parts.add('${had.join(', ')} already '
+          '${had.length == 1 ? 'has' : 'have'} this homework.');
+    }
+    return parts.isEmpty ? null : parts.join(' ');
   }
 
   int? _idOf(Map<String, dynamic> student) {
@@ -220,6 +329,54 @@ class _HomeworkSendDialogState extends State<HomeworkSendDialog> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (_groupList.isNotEmpty) ...[
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.xs,
+                            children: [
+                              for (final group in _groupList)
+                                FilterChip(
+                                  key: Key('homework-send-group-${group.id}'),
+                                  avatar: _loadingGroup == group.id
+                                      ? const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        )
+                                      : const Icon(Icons.groups_outlined,
+                                          size: 18),
+                                  label: Text(group.name),
+                                  selected: _groupTicked(group.id),
+                                  showCheckmark: false,
+                                  onSelected: _sending || _loadingGroup != null
+                                      ? null
+                                      : (_) => _toggleGroup(group),
+                                ),
+                            ],
+                          ),
+                          if (_groupNote != null) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              _groupNote!,
+                              key: const Key('homework-send-group-note'),
+                              style: AppText.caption
+                                  .copyWith(color: colors.textSecondary),
+                            ),
+                          ],
+                          const SizedBox(height: AppSpacing.sm),
+                        ],
+                        if (_alreadyHas == null)
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: Text(
+                              'Could not check who already has this homework.',
+                              key: const Key('homework-send-unchecked'),
+                              style: AppText.caption
+                                  .copyWith(color: colors.danger),
+                            ),
+                          ),
                         for (final student in _students) _studentRow(student),
                         const SizedBox(height: AppSpacing.sm),
                         Row(
@@ -291,6 +448,11 @@ class _HomeworkSendDialogState extends State<HomeworkSendDialog> {
       controlAffinity: ListTileControlAffinity.leading,
       value: _picked.contains(id),
       title: Text(student['name']?.toString() ?? 'Student'),
+      // Said, not hidden: sending a second copy on purpose is the trainer's
+      // call, and the chip is what must not do it by accident.
+      subtitle: (_alreadyHas?.contains(id) ?? false)
+          ? const Text('already has it')
+          : null,
       onChanged: _sending
           ? null
           : (on) => setState(() {

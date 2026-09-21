@@ -525,11 +525,60 @@ Future<void> promptSaveAnalysisDialog(
 
   if (title == null || title.isEmpty) return;
 
-  final result = await AnalysisPersistenceService.instance.saveAnalysis(
-    title: title,
-    rootNode: rootNode,
+  // **A name already taken is asked about** — the owner's report on
+  // TODO-provera 201.9 („treba da se pita da li hoću da je pregazim"). The
+  // server only ever inserted, so the same name made a second row that looked
+  // exactly like the first. Compared trimmed and case-blind: „najdorf " and
+  // „Najdorf" would sit side by side in the Library reading as one. The newest
+  // of several with that name is the one replaced. A list that cannot be read
+  // leaves the old behaviour — a new row — rather than blocking the save.
+  final service = AnalysisPersistenceService.instance;
+  final wanted = title.trim().toLowerCase();
+  final existing = (await service.listSavedAnalyses(
     userToken: userSession.token,
-  );
+  ))
+      .where((a) => a.title.trim().toLowerCase() == wanted)
+      .firstOrNull;
+  if (!context.mounted) return;
+
+  var replacing = false;
+  if (existing != null) {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Replace the saved analysis?'),
+        content: Text(
+          'An analysis called "${existing.title}" already exists. Replace '
+          'it with this one, or keep both?',
+        ),
+        actions: [
+          TextButton(
+              child: const Text('Cancel'), onPressed: () => Navigator.pop(ctx)),
+          TextButton(
+              child: const Text('Keep both'),
+              onPressed: () => Navigator.pop(ctx, 'both')),
+          ElevatedButton(
+              child: const Text('Replace'),
+              onPressed: () => Navigator.pop(ctx, 'replace')),
+        ],
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+    replacing = choice == 'replace';
+  }
+
+  final result = replacing
+      ? await service.replaceAnalysis(
+          id: existing!.id,
+          title: title,
+          rootNode: rootNode,
+          userToken: userSession.token,
+        )
+      : await service.saveAnalysis(
+          title: title,
+          rootNode: rootNode,
+          userToken: userSession.token,
+        );
 
   if (!context.mounted) return;
   AppFeedback.show(
@@ -537,7 +586,9 @@ Future<void> promptSaveAnalysisDialog(
     () => SnackBar(
       content: Text(
         result != null
-            ? '✅ Analysis "${result.title}" saved.'
+            ? (replacing
+                ? '✅ Analysis "${result.title}" replaced.'
+                : '✅ Analysis "${result.title}" saved.')
             : '⚠️ Save failed. Check your connection.',
         style: TextStyle(color: context.colors.canvas),
       ),

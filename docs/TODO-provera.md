@@ -5878,6 +5878,42 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 217. Domaći celoj grupi, ista imena analiza, i ko ima alate za podučavanje u sobi — 21.9.2026, nije viđeno uživo
+
+**Aplikacija i server** (nov build za telefon i Windows; server je već
+restartovan 21.9.2026 sa novom rutom `PUT /analysis/:id`). Tačke 9, 4 i 5 iz
+pregleda komentara, sve tri po odlukama vlasnika od 21.9.2026.
+
+**Napomena uz 201.10:** tamo je pisalo da učenik panel „Board" u sobi nema; to
+nije bilo tačno, i po odluci vlasnika i ne treba — dugmad za čuvanje sopstvene
+kopije (Save position, Save analysis, Export PGN) ostaju svakome ko sme da
+pomera tablu, a alati za podučavanje idu po odnosu (tačke 7–10 ispod). Tekst
+stavke 201.10 nije menjan, jer je već odgovorena.
+
+1. [ ] **Čip grupe.** Teach → Homework → neki domaći → „Send": iznad liste
+   učenika stoje čipovi grupa. Pritisak na grupu štiklira njene članove koji
+   su prihvatili poziv, i samo njih. Ponovni pritisak ih odštiklira.
+2. [ ] **Ko nije prihvatio** se ne štiklira, i ispod čipova to piše imenom.
+3. [ ] **Ko već ima taj domaći** ima u listi „already has it", a čip ga
+   **ne** štiklira (piše i to, imenom). Pošalji grupi, dodaj nekog u grupu,
+   pa pošalji opet: dobija ga samo novi član, a ostali ne dobijaju drugu kopiju.
+4. [ ] **Ručno se i dalje može** štiklirati i onaj ko ga već ima, ako se to
+   hoće namerno.
+5. [ ] **Isto ime analize.** Analyse → sačuvaj analizu pod imenom koje već
+   postoji (i sa drugačijim velikim slovima ili razmakom na kraju): pita
+   „Replace the saved analysis?" sa „Cancel / Keep both / Replace". „Replace"
+   piše preko postojeće — u Library je i dalje **jedna** sa tim imenom, a
+   otvorena ima nove poteze. „Keep both" pravi drugu, kao ranije.
+6. [ ] **Isto iz Preparation** („Save analysis" u sobi): isto pitanje.
+7. [ ] **Soba koju je otvorio učenik** (Windows, širok prozor, i telefon):
+   učenik **nema** „Make exercise" ni ⋮/kantu na tutorijalima u listi, a ima
+   „Save position", „Save analysis", „Export PGN". Trener koji je ušao **ima**
+   „Make exercise" i akcije tutorijala.
+8. [ ] **Trener otvori sobu pre nego što učenik udje**: „Make exercise" je tu od
+   početka.
+9. [ ] **Učenik u trenerovoj sobi**: nema „Make exercise" ni akcija tutorijala.
+10. [ ] **Preparation** je nepromenjena: sve je tu.
+
 ## 216. „Find the move": potez ostaje na tabli, i rešenje se može skinuti — 21.9.2026, nije viđeno uživo
 
 **Samo aplikacija, nov build** (Windows i telefon); server se ne dira. Tačka 8

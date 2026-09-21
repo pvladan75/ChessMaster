@@ -55,6 +55,37 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT /analysis/:id — write a new tree over one saved analysis.
+//
+// Added 21.9.2026 for the owner's report on TODO-provera 201.9: saving under a
+// name that is already taken made a second, identical-looking row, because
+// POST only ever inserts. The app now asks „Replace / Keep both", and this is
+// „Replace". Scoped by `user_id` as well as `id`: an analysis id is a small
+// integer, and on its own it must never reach another account's row.
+router.put('/:id', authenticateToken, async (req, res) => {
+  const { title, startingFen, tree } = req.body;
+
+  if (!title || !startingFen || !tree) {
+    return res.status(400).json({ error: 'title, startingFen and tree are required.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE saved_analyses SET title = $1, starting_fen = $2, tree_json = $3
+        WHERE id = $4 AND user_id = $5
+        RETURNING id, title, starting_fen, created_at`,
+      [title, startingFen, JSON.stringify(tree), req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Analysis not found.' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    logger.error('Replace analysis error:', err);
+    res.status(500).json({ error: 'Server error replacing analysis.' });
+  }
+});
+
 // DELETE /analysis/:id
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {

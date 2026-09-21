@@ -32,3 +32,38 @@ bool canDriveSharedBoard({
   // Anything other than the two restricted modes is open to every seat.
   return boardControl != 'host_only' && boardControl != 'trainer_only';
 }
+
+/// True when this account **teaches** in the room — the rule behind the
+/// room's teaching actions („Make exercise", and what a tutorial row offers),
+/// as against the board tools and keeping one's own copy, which follow
+/// [canDriveSharedBoard] and belong to anyone who may move on the board.
+///
+/// **Not the seat.** The server seats whoever opened the room as 'trener' and
+/// everyone who joins as 'ucenik', so in a room a student opened the student
+/// sits as the trainer — which is how both people ended up with the whole
+/// panel (TODO-provera 201.10, reported 20.9.2026). Decided with the owner on
+/// 21.9.2026, by relationship:
+///
+///  * you are the accepted trainer of at least one other person in the room
+///    ([memberIds] against [myStudentIds]) — a trainer is a position in a
+///    relationship, not a property of a person, so in a circle A → B → C → A
+///    all three teach, and someone's student is still their own student's
+///    trainer; or
+///  * you opened the room and are somebody's trainer at all, so a trainer
+///    preparing before the student arrives keeps them.
+///
+/// Rights stay pairwise everywhere else in this codebase; nothing here grants
+/// anything, it only decides what the panel offers, and every such action
+/// writes to the actor's own library.
+bool mayTeachInRoom({
+  required bool isStudio,
+  required int myId,
+  required Set<int> myStudentIds,
+  required Iterable<int> memberIds,
+  required bool openedRoom,
+}) {
+  if (isStudio) return true;
+  final students = myStudentIds.where((id) => id != myId).toSet();
+  if (openedRoom && students.isNotEmpty) return true;
+  return memberIds.any((id) => id != myId && students.contains(id));
+}

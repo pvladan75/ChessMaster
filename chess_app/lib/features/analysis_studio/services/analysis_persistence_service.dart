@@ -62,6 +62,11 @@ class AnalysisPersistenceService {
       _client?.post(uri, headers: headers, body: body) ??
       http.post(uri, headers: headers, body: body);
 
+  Future<http.Response> _put(
+          Uri uri, Map<String, String> headers, String body) =>
+      _client?.put(uri, headers: headers, body: body) ??
+      http.put(uri, headers: headers, body: body);
+
   Future<http.Response> _get(Uri uri, Map<String, String> headers) =>
       _client?.get(uri, headers: headers) ?? http.get(uri, headers: headers);
 
@@ -97,6 +102,39 @@ class AnalysisPersistenceService {
       }
     } catch (e) {
       print('[AnalysisPersistenceService] Error saving analysis: $e');
+    }
+    return null;
+  }
+
+  /// Writes the tree rooted at [rootNode] over the saved analysis [id], under
+  /// [title]. Returns null on failure — a refused or unreachable server, or an
+  /// [id] this account does not have (the server scopes it by account).
+  ///
+  /// „Replace" in the question [promptSaveAnalysisDialog] asks when a name is
+  /// already taken (TODO-provera 201.9).
+  Future<SavedAnalysisSummary?> replaceAnalysis({
+    required int id,
+    required String title,
+    required AnalysisNode rootNode,
+    required String userToken,
+  }) async {
+    try {
+      final res = await _put(
+        Uri.parse('$backendUrl/analysis/$id'),
+        _headers(userToken),
+        jsonEncode({
+          'title': title,
+          'startingFen': rootNode.fen,
+          'tree': rootNode.toJson(),
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200) {
+        return SavedAnalysisSummary.fromJson(
+            jsonDecode(res.body) as Map<String, dynamic>);
+      }
+    } catch (e) {
+      print('[AnalysisPersistenceService] Error replacing analysis: $e');
     }
     return null;
   }

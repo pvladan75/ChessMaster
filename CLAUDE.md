@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3566 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3592 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1639 with TEST_DATABASE_URL, 1545 without
+cd chess_backend && npm test          # node --test, 1644 with TEST_DATABASE_URL, 1550 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -361,7 +361,16 @@ answer has a × like every alternative — superseding, on the owner's word, the
 „main move has no ×" he had checked live, with the three cases that held it
 rewritten openly. A hold of zero seconds first survived the gate, because
 `pump()` fires no timer, not even a zero-length one: when a duration is the
-request, assert a point just short of it. Phase 6 of
+request, assert a point just short of it. Then items 9, 4 and 5 (→ **3592**;
+backend 1545 → 1550 without a database, 1639 → 1644 with): a homework goes to
+a group by a chip that ticks today's members and skips anyone who already has
+it — the server does not refuse a second copy, so the owner's „no automatic
+send" needed that to hold; an analysis saved under a taken name asks
+„Replace / Keep both", through a new `PUT /analysis/:id` scoped by account;
+and a room's teaching tools go by relationship (`mayTeachInRoom`), because the
+seat says only who opened the room. The server half was written in a
+worktree, since nodemon watches every `.js` including tests, and copied in
+once on the owner's word. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

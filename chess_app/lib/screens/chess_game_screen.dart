@@ -15,6 +15,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/core/services/room_tree_sync.dart';
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
+import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
@@ -82,6 +83,10 @@ class ChessGamePage extends StatefulWidget {
   /// The shelf the left column reads (phase 3b). Same seam, same reason.
   final PositionLibraryService? positionLibrary;
 
+  /// Seam for a test: who this account's accepted students are, which decides
+  /// whether it teaches in this room ([mayTeachInRoom]).
+  final GroupApiService? groupApi;
+
   const ChessGamePage({
     super.key,
     required this.roomCode,
@@ -89,6 +94,7 @@ class ChessGamePage extends StatefulWidget {
     this.initialRole,
     this.lessonApi,
     this.positionLibrary,
+    this.groupApi,
   });
 
   @override
@@ -168,6 +174,47 @@ class _ChessGamePageState extends State<ChessGamePage> {
   String? audioError;
   bool isHandRaised = false;
   List<dynamic> roomMembers = [];
+
+  /// This account's accepted students, read once when the room opens — one
+  /// half of [_mayTeach]. Empty until it arrives, and on a failed read: an
+  /// account that cannot be shown to teach is not offered the tools.
+  Set<int> _myStudentIds = const {};
+
+  /// Whether the server's **first** seat for this account was 'trener', which
+  /// it gives only to whoever opened the room (`roomAccess.mayJoinRoom`); a
+  /// promotion arrives later, with `changed`. Null until the server answers,
+  /// and the role the room was entered with stands in. The limit, said: a
+  /// promoted member who reconnects is seated 'trener' without `changed` too,
+  /// and reads as having opened the room — which costs nothing, because what
+  /// it unlocks writes only to that account's own library.
+  bool? _openedRoomBySeat;
+
+  bool get _openedRoom => _openedRoomBySeat ?? (widget.initialRole == 'trener');
+
+  /// Whether this account teaches in this room — [mayTeachInRoom]. Decides
+  /// „Make exercise" and a tutorial row's actions, not the board tools.
+  bool get _mayTeach => rules.mayTeachInRoom(
+        isStudio: widget.roomCode == 'STUDIO',
+        myId: widget.userSession.id,
+        myStudentIds: _myStudentIds,
+        memberIds: [
+          for (final m in roomMembers)
+            if (m is Map && m['userId'] is num) (m['userId'] as num).toInt(),
+        ],
+        openedRoom: _openedRoom,
+      );
+
+  Future<void> _loadMyStudents() async {
+    final all = await (widget.groupApi ?? GroupApiService()).myStudents();
+    if (!mounted) return;
+    setState(() {
+      _myStudentIds = {
+        for (final student in all)
+          if (student['status'] == 'accepted' && student['id'] is num)
+            (student['id'] as num).toInt(),
+      };
+    });
+  }
 
   /// The drawing interaction, shared with the tutorial studio.
   ///
@@ -252,6 +299,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         LessonApiService(authToken: widget.userSession.token);
     _library = widget.positionLibrary ??
         PositionLibraryService(authToken: widget.userSession.token);
+    if (widget.roomCode != 'STUDIO') _loadMyStudents();
     if (widget.roomCode == 'STUDIO') {
       activeRole = 'host';
       boardOrientation = PlayerColor.white;
@@ -1173,6 +1221,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
         if (newRole is String) {
           setState(() {
             activeRole = newRole;
+            // The join seat, once: see [_openedRoomBySeat].
+            if (data['changed'] != true) {
+              _openedRoomBySeat ??= newRole == 'trener';
+            }
           });
         }
         if (data['changed'] == true) {
@@ -1847,6 +1899,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (entry.fromTrainer) return const [];
     switch (entry.kind) {
       case LibraryKind.tutorial:
+        // Teaching material: offered to whoever teaches here ([_mayTeach]).
+        if (!_mayTeach) return const [];
         return [
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert,
@@ -3173,12 +3227,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                MakeExerciseButton(
-                  api: ExerciseApiService(authToken: widget.userSession.token),
-                  moveTree: moveTree,
-                  availableUserLabels: _availableUserLabels,
-                  onSaved: (_) => _showSuccess('Exercise saved.'),
-                ),
+                if (_mayTeach)
+                  MakeExerciseButton(
+                    api:
+                        ExerciseApiService(authToken: widget.userSession.token),
+                    moveTree: moveTree,
+                    availableUserLabels: _availableUserLabels,
+                    onSaved: (_) => _showSuccess('Exercise saved.'),
+                  ),
                 const Divider(height: 24),
                 Row(
                   children: [

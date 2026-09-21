@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **21.9.2026** — najnovije je „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **21.9.2026** — najnovije je „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,86 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Domaći grupi, ista imena analiza, i ko podučava u sobi — 21.9.2026, u kodu, ostaje provera uživo
+
+Tačke 9, 4 i 5 iz pregleda komentara, svaka po odluci vlasnika istog dana.
+**Prva izmena servera danas**: nova ruta `PUT /analysis/:id`. Napisana i
+merena u odvojenom worktree-u, izvan fascikle koju nodemon gleda (on gleda
+svaki `.js`, i testove), pa je u radni direktorijum kopirana jednom, uz
+vlasnikovo „da" — jedan restart, dok je on proveravao 215.
+
+**9. Domaći celoj grupi** (prijava od 20.9). U dijalogu za slanje stoji čip za
+svaku grupu; pritisak štiklira njene članove **kakvi su sada**. Vlasnik je
+odlučio da učenik koji se kasnije učlani **ne** dobija domaći sam: svaka kopija
+je jedinica kvote, rok i napomena pripadaju tom slanju, a pravilo koje se
+kasnije samo okida je oblik greške koji ova baza plaća najčešće. **Rupa koju to
+„ne" ostavlja, i kako je zatvorena:** server ne odbija drugu kopiju istog
+domaćeg istom učeniku (nema jedinstvenog ključa), pa bi ponovno slanje grupi
+posle novog člana svima ostalima dalo drugu kopiju i drugu jedinicu. Dijalog
+zato čita `sent` samog domaćeg: ko ga već ima piše „already has it" i čip ga
+preskače (ručno se može, namerno); ko nije prihvatio poziv se ne štiklira i to
+piše imenom. Ako se domaći ne može pročitati, dijalog to kaže umesto da ćutke
+ostane bez te zaštite. Server nije diran.
+
+**4. Isto ime analize** (201.9). Server nikad ništa nije pisao preko — `POST`
+samo dodaje — pa je isto ime pravilo drugi red koji izgleda isto kao prvi.
+Jedina vrata za čuvanje (`promptSaveAnalysisDialog`, i Analysis i Preparation)
+sada pitaju „Cancel / Keep both / Replace" kad ime postoji (poredjenje bez
+razmaka na krajevima i bez obzira na velika slova); „Replace" ide na novu rutu
+`PUT /analysis/:id`, zaključanu po `user_id` **i** `id` — id analize je mali
+broj i sam nikad ne sme da dohvati tudji red. Lista koja ne može da se pročita
+ostavlja staro ponašanje (nov red) umesto da blokira čuvanje.
+
+**5. Ko ima alate za podučavanje u sobi** (201.10, „obojica imaju panel").
+**Nadjeno pre gradnje:** sedište ne kaže ko je trener — server onome ko otvori
+sobu daje `trener`, a svakom ko udje `ucenik`, pa u sobi koju je otvorio učenik
+učenik sedi kao trener; a na Windows-u levu kolonu crta svakome. Vlasnik je
+odlučio: **po odnosu**. `mayTeachInRoom` (`board_control_rules.dart`, pored
+`canDriveSharedBoard`): alati za podučavanje („Make exercise", akcije
+tutorijala u listi) pripadaju onome ko je prihvaćeni trener bar jednog drugog u
+sobi, **ili** je otvorio sobu i jeste nečiji trener (da trener koji sprema pre
+dolaska učenika ne ostane bez njih). Alati table i čuvanje sopstvene kopije
+(Set up, Import/Export PGN, Save position, Save analysis, FEN) ostaju svakome ko
+sme da pomera tablu. Proveren je i vlasnikov krug A → B → C → A i A,C → B:
+server ne dozvoljava da dvoje budu jedno drugom treneri (proverava obrnutu
+ivicu), trougao dozvoljava, i to ne smeta — **nijedno pravo u kodu ne ide
+tranzitivno** (nema rekurzivnog upita ni spajanja odnosa na odnos), pa u krugu
+svako podučava onoga koga zaista uči i ništa preko sredine. „Otvorio sobu" se
+čita iz **prvog** sedišta koje server pošalje; granica, zapisana u kodu:
+unapredjen član koji se ponovo poveže takodje dobija `trener` bez `changed`, i
+čita se kao da je otvorio sobu — to ne košta ništa, jer ti alati pišu samo u
+sopstvenu biblioteku. Tačan odgovor ima samo server (`seat.role === 'trener'`
+samo za tvorca); da se prenese, trebalo bi dirati `server.js`.
+
+**Tekst stavke 201.10 nije ispravljen** iako je pogrešno tvrdio da učenik
+panel nema: odgovorena stavka se ne sme menjati (`spoji.py` je prepoznaje po
+tekstu), pa je ispravka u stavci 217.
+
+**Kapije i mutacije.** Grupa: `homework_send_group_test` (6; na master-u 4
+crvena / 2 zelena), 6 mutacija; jedna je crvena samo na jednom slučaju jer
+`_send` i sam šalje samo prihvaćenima — druga zaštita iza ove, zapisano.
+Ime: `analysis_save_same_name_test` (7; 6/1) i server
+`analysis_replace_routes.test.js` (5, svi crveni dok ruta nije postojala), 5
+mutacija u aplikaciji i 3 na serveru; jedna je prvo pokvarila prevodjenje i
+ponovljena je ispravno.
+Soba: 8 slučajeva pravila u `board_control_rules_test` i
+`room_teaching_tools_test` (5) na **pravoj** sobi — proba je pokazala da se
+soba sa pravim kodom može podići i srušiti u testu, i ponovila prijavu
+(učeničko sedište na širokom prozoru je imalo „Make exercise"); na master-u 8
+crvenih. 7 mutacija; **jedna je preživela** (samoisključenje iz sopstvenih
+učenika), jer slučaj nije dirao granu „otvorio sobu" gde ono jedino nešto znači
+— sada dira. Test sobe ne može da dohvati spisak prisutnih (stiže preko
+Socket.IO), pa „trener nekog prisutnog" drže samo slučajevi pravila; zapisano u
+zaglavlju testa. **Dve prelivanja u desnoj koloni sobe** u probi su bila od
+test-fonta, ne od sobe (pravilo 8): sa pravim Roboto nema nijednog.
+
+Mereno: aplikacija **3566 → 3592**, 1 preskočen; `flutter analyze` istih 26
+`info`. Backend **1545 → 1550** bez baze i **1639 → 1644** sa jednokratnim
+klasterom, mereno u worktree-u sa istim fajlovima koji su posle kopirani.
+Uživo: **stavka 217**.
 
 ---
 
@@ -228,13 +308,11 @@ nije u kodu):
   („Brisanje iz Biblioteke…"), stavka 215.
 - ~~*„Find the move" editor* (196.3)~~ — **u kodu 21.9.2026**, odeljak iznad
   („„Find the move": potez ostaje na tabli…"), stavka 216.
-- *Čeka vlasnika:* ista imena analiza — server samo `INSERT`-uje, pa nastaje
-  duplikat, ne prepis (201.9; „Replace / Keep both", Replace traži rutu);
-  panel „Board" u sobi koju je otvorio učenik (201.10) — ide po tome ko sme da
-  vuče tablu, ne ko koga uči; slanje domaćeg celoj grupi (čip grupe u dijalogu
-  koji štiklira današnje članove, bez izmene servera); pretraga po datumu u
-  „Choose a game" (predlog: sortiranje klikom na kolonu Date); bedž na Teach a
-  red za pregled na Home (otvoreno od 18.9).
+- ~~ista imena analiza (201.9), panel u sobi koju je otvorio učenik (201.10),
+  slanje domaćeg grupi~~ — **u kodu 21.9.2026**, odeljak iznad, stavka 217.
+- *Čeka vlasnika:* pretraga po datumu u „Choose a game" (predlog: sortiranje
+  klikom na kolonu Date); bedž na Teach a red za pregled na Home (otvoreno od
+  18.9).
 - *Neviđeno uživo:* 193.3–4, 198.2–6, 209.4/5/7/8/10.
 
 ---

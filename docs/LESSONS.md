@@ -5996,3 +5996,39 @@ Tri postojeća slučaja su držala „glavni potez nema ×", koji je vlasnik vid
 potvrdio (192.4, 198.4). Nisu obrisani ni oslabljeni: prepisani su na novo
 pravilo, sa datumom i razlogom iznad, a jedan je zadržao svoju poziciju jer je
 ona bila izabrana da samo pravilo, a ne čitalac, odlučuje — i to i dalje važi.
+
+## Sedište nije odnos, i „ne" koje ostavlja rupu — 21.9.2026
+
+Tačke 9, 4 i 5 iz pregleda komentara. Aplikacija **3566 → 3592**, backend
+**1545 → 1550** / **1639 → 1644**.
+
+**Pre nego što se napiše „samo za trenera", proveri šta kod zove trenerom.** U
+sobi je `trener` sedište, a server ga daje onome ko je sobu **otvorio** — u
+sobi koju otvori učenik, učenik sedi kao trener. Pravilo napisano po sedištu bi
+prijavu (201.10) samo okrenulo naopačke. Odnos (`trainer_students`) je jedino
+mesto koje zna ko koga uči; sedište zna ko je otvorio vrata.
+
+**Odluka „ne" može da ostavi rupu koju tek kod pokaže.** Vlasnik je rekao da
+učenik koji se kasnije učlani u grupu ne dobija domaći sam. Tačno — ali server
+ne odbija drugu kopiju istom učeniku, pa bi „pošalji grupi ponovo" posle novog
+člana svima ostalima dalo drugu kopiju i drugu jedinicu kvote. Rupa je
+zatvorena u dijalogu (čita `sent` domaćeg), i rečena vlasniku pre gradnje, jer
+je bila deo odluke, ne detalj izvedbe.
+
+**Nodemon gleda i testove.** Bez `nodemon.json` on gleda svaki `.js` u
+`chess_backend/`, pa bi i snimanje novog testa restartovalo vlasnikov server
+usred njegove provere. Serverski deo je zato pisan i meren u odvojenom
+worktree-u (sa `node_modules` povezanim junction-om i bez `.env`, dakle kao
+CI), a u radni direktorijum kopiran jednom, uz njegovo „da". **Kad vlasnik
+proverava uživo, izmena servera je dogadjaj koji se najavljuje, ne sporedni
+efekat.**
+
+**Preživela mutacija je pokazala granu koju slučaj nije dirao.** „Nisam sam
+svoj učenik" je bio zelen i bez samoisključenja, jer ga provera prisutnih već
+radi; jedina grana gde ono nešto znači je „otvorio sobu i jeste nečiji trener",
+a slučaj je nije zvao. **Za odbrambeni red, test mora da udje baš u granu u
+kojoj je red jedina odbrana.**
+
+**Odgovorena stavka se ne ispravlja u mestu.** Obećana „ispravka teksta
+201.10" bi odgovor pretvorila u siroče (`spoji.py` prepoznaje stavku po
+tekstu); ispravka je otišla u novu stavku.
