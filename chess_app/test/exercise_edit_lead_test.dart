@@ -8,6 +8,11 @@
 //    removing Qh5 leaves a line that no longer replays — the *reader* refused
 //    it, and the guard could be deleted unnoticed. On the back rank both
 //    moves mate and nothing follows, so only the guard can say no.
+//    **Superseded openly on 21.9.2026**: the owner asked for the answer to be
+//    removable (TODO-provera 196.3), and the first alternative takes its
+//    place. The back rank is kept for the same reason it was chosen — here
+//    both moves stand on their own, so what happens is the rule's doing and
+//    not the reader's.
 // (A third, about the board shown after choosing a step, went with the steps
 // themselves in phase 16.)
 import 'dart:convert';
@@ -44,14 +49,13 @@ Map<String, dynamic> _game(String side) => {
 const _backRank = '6k1/5ppp/8/8/8/8/5PPP/3RR1K1 w - - 0 1';
 
 void main() {
-  test('the main move stays even where the line would replay without it', () {
+  test('taking the main move back makes the alternative the answer', () {
     final edit = ExerciseLineEdit(fen: _backRank, steps: const [
       ExerciseStep(accept: ['Rd8#', 'Re8#'])
     ]);
-    expect(edit.remove('Rd8#'), isFalse);
-    expect(edit.steps.single.accept, ['Rd8#', 'Re8#']);
-    expect(edit.remove('Re8#'), isTrue);
-    expect(edit.steps.single.accept, ['Rd8#']);
+    expect(edit.remove('Rd8#'), isTrue);
+    expect(edit.steps.single.accept, ['Re8#']);
+    expect(edit.error, isNull);
   });
 
   for (final entry in {

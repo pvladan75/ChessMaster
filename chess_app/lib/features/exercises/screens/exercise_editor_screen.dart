@@ -16,6 +16,14 @@
 // is nothing to play anywhere in advance — the first move played on this board
 // is the answer, every further one an accepted alternative, „Start over" gives
 // the answer back, and Save opens the same sheet over what was played.
+//
+// **Since 21.9.2026** (the owner's suggestion on TODO-provera 196.3) a move
+// that counts stays on the board, marked, for [kExerciseAnswerHold] before the
+// board goes back — the trainer used to see nothing of what they had played —
+// and the answer has a × like every alternative, so it can be changed without
+// starting over.
+import 'dart:async';
+
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -32,6 +40,12 @@ import '../models/exercise_task_words.dart';
 import '../services/exercise_api_service.dart';
 import '../services/exercise_checker.dart';
 import '../widgets/make_exercise_sheet.dart';
+
+/// How long a move played on this board stays there, marked, before the
+/// board goes back to the exercise's position — the owner's „posle 2 sekunde"
+/// (TODO-provera 196.3). Long enough to see what was played, short enough not
+/// to wait on.
+const Duration kExerciseAnswerHold = Duration(seconds: 2);
 
 class ExerciseEditorScreen extends StatefulWidget {
   const ExerciseEditorScreen({
@@ -85,6 +99,14 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   /// mistaken for a change still waiting to be made.
   List<ExerciseStep>? _baseline;
 
+  /// A move that counted, shown on the board for [kExerciseAnswerHold]. Null
+  /// when nothing is being shown; the board takes no move while it is set.
+  Timer? _hold;
+  String? _heldFrom;
+  String? _heldTo;
+  String? _heldSan;
+  bool _heldIsAnswer = false;
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +115,7 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
 
   @override
   void dispose() {
+    _hold?.cancel();
     _board.dispose();
     super.dispose();
   }
@@ -226,16 +249,48 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
   }
 
   /// The board is for entering the answer and its alternatives; it never
-  /// plays on, so it always goes back to the exercise's position — whether
-  /// the move just played was accepted or refused.
+  /// plays on, so it always goes back to the exercise's position.
+  ///
+  /// **A move that counts is shown first.** It stays on the board, marked,
+  /// for [kExerciseAnswerHold], and the board takes no move meanwhile — then
+  /// it goes back and asks for another. A move the reader refuses goes back at
+  /// once, with the refusal said: holding it would read as accepted.
   void _onMove(String from, String to, String promotion) {
     final edit = _edit;
-    final fen = widget.makingFen ?? _exercise?.fen;
+    final fen = _fen;
     if (edit == null || fen == null) return;
+    // The real board is locked during a hold; a move that arrives anyway ends
+    // the hold first, so it is read against the position and not on top of
+    // the move being shown.
+    if (_hold != null) _endHold();
     final san = _sanFor(fen, from, to, promotion);
-    if (san != null) edit.play(san);
+    final isAnswer = edit.steps.isEmpty;
+    if (san != null && edit.play(san)) {
+      setState(() {
+        _heldFrom = from;
+        _heldTo = to;
+        _heldSan = san;
+        _heldIsAnswer = isAnswer;
+        _hold = Timer(kExerciseAnswerHold, _endHold);
+      });
+      return;
+    }
     _board.loadFen(fen);
     setState(() {});
+  }
+
+  String? get _fen => widget.makingFen ?? _exercise?.fen;
+
+  /// The board back on the exercise's position, and ready for the next move.
+  void _endHold() {
+    _hold?.cancel();
+    _hold = null;
+    _heldFrom = null;
+    _heldTo = null;
+    _heldSan = null;
+    final fen = _fen;
+    if (fen != null) _board.loadFen(fen);
+    if (mounted) setState(() {});
   }
 
   Future<void> _openSaveSheet() async {
@@ -363,7 +418,9 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
         controller: _board,
         boardOrientation: _orientation,
         boardSize: size,
-        isAllowedToMove: edit != null,
+        isAllowedToMove: edit != null && _hold == null,
+        lastMoveFrom: _heldFrom,
+        lastMoveTo: _heldTo,
         isDrawingMode: false,
         drawingStartSquare: null,
         arrows: const [],
@@ -391,13 +448,18 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
           ),
           if (edit != null) ...[
             const SizedBox(height: AppSpacing.md),
-            Text(
-              exerciseSolutionText(edit.steps),
-              key: const Key('exercise-editor-line'),
-              style: AppText.body.copyWith(color: colors.textSecondary),
-            ),
-            if (edit.steps.isNotEmpty &&
-                edit.steps.first.accept.length > 1) ...[
+            if (edit.steps.isEmpty)
+              _askForAnswer(colors)
+            else ...[
+              Text(
+                exerciseSolutionText(edit.steps),
+                key: const Key('exercise-editor-line'),
+                style: AppText.body.copyWith(color: colors.textSecondary),
+              ),
+              if (_heldSan != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                _heldLine(colors),
+              ],
               const SizedBox(height: AppSpacing.sm),
               _alternatives(edit),
             ],
@@ -421,17 +483,22 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
               style: AppText.bodyLargeBold),
           const SizedBox(height: AppSpacing.sm),
           if (accept.isEmpty)
-            Text(
-              'Play the move the student should find.',
-              key: const Key('exercise-editor-making-hint'),
-              style: AppText.body.copyWith(color: colors.textSecondary),
-            )
+            _askForAnswer(colors)
           else ...[
             Text(
               exerciseSolutionText(edit.steps),
               key: const Key('exercise-editor-line'),
               style: AppText.body.copyWith(color: colors.textSecondary),
             ),
+            const SizedBox(height: AppSpacing.xs),
+            if (_heldSan != null)
+              _heldLine(colors)
+            else
+              Text(
+                'Play another move that should also count, or Save.',
+                key: const Key('exercise-editor-next-hint'),
+                style: AppText.body.copyWith(color: colors.textSecondary),
+              ),
             const SizedBox(height: AppSpacing.sm),
             _alternatives(
               edit,
@@ -448,19 +515,41 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     );
   }
 
-  /// The accepted alternatives, each removable.
+  /// No answer yet: what to do.
+  Widget _askForAnswer(AppColorTokens colors) => Text(
+        'Play the move the student should find.',
+        key: const Key('exercise-editor-making-hint'),
+        style: AppText.body.copyWith(color: colors.textSecondary),
+      );
+
+  /// What the move on the board is, while it is being shown.
+  Widget _heldLine(AppColorTokens colors) => Text(
+        _heldIsAnswer
+            ? '$_heldSan is the answer.'
+            : '$_heldSan is accepted as well.',
+        key: const Key('exercise-editor-held'),
+        style: AppText.bodyLargeBold.copyWith(color: colors.textPrimary),
+      );
+
+  /// Every accepted move, each removable — the answer first, and named so in
+  /// words rather than by colour. Taking the answer back makes the next one
+  /// the answer ([ExerciseLineEdit.remove]).
   Widget _alternatives(ExerciseLineEdit edit, {Widget? trailing}) {
+    final accept = edit.steps.first.accept;
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        for (final san in edit.steps.first.accept.skip(1))
+        for (var i = 0; i < accept.length; i++)
           ActionChip(
-            key: Key('exercise-editor-remove-$san'),
+            key: Key('exercise-editor-remove-${accept[i]}'),
             avatar: const Icon(Icons.close, size: 16),
-            label: Text(san),
-            onPressed: () => setState(() => edit.remove(san)),
+            label: Text(i == 0 ? '${accept[i]} · answer' : accept[i]),
+            tooltip: i == 0
+                ? 'Take the answer back; the next move becomes the answer'
+                : 'Take this move back',
+            onPressed: () => setState(() => edit.remove(accept[i])),
           ),
         if (trailing != null) trailing,
       ],
@@ -472,14 +561,13 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     final colors = context.colors;
     return [
       if (edit != null) ...[
-        Text(
-          // While making, „a variation" is the wrong word: there is no tree
-          // here, only moves played one after another from one position.
-          widget.isMaking
-              ? 'Every other move you play here is accepted as well.'
-              : kVariationHint,
-          style: AppText.body.copyWith(color: colors.textMuted),
-        ),
+        // While making, the panel above asks for the next move itself; only a
+        // saved exercise needs saying how an alternative is added.
+        if (!widget.isMaking)
+          Text(
+            kVariationHint,
+            style: AppText.body.copyWith(color: colors.textMuted),
+          ),
         if (edit.error != null) ...[
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -499,10 +587,10 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
         // pointed at the sheet's own button alone.
         child: FilledButton(
           key: const Key('exercise-editor-save'),
-          // Nothing to save until the move has been played.
-          onPressed: widget.isMaking && (edit?.steps.isEmpty ?? true)
-              ? null
-              : _openSaveSheet,
+          // Nothing to save without an answer — while making, and since the
+          // answer can be taken back (21.9.2026) on a saved exercise too. A
+          // game exercise has no line, so it has nothing to be missing.
+          onPressed: edit != null && edit.steps.isEmpty ? null : _openSaveSheet,
           child: const Text('Save'),
         ),
       ),

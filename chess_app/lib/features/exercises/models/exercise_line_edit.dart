@@ -47,9 +47,7 @@ class ExerciseLineEdit {
     return true;
   }
 
-  /// Gives the answer back, alternatives and all — the answer cannot be taken
-  /// out alone ([remove]), so while an exercise is being made a wrong first
-  /// move is undone by starting over.
+  /// Gives the answer back, alternatives and all — „Start over".
   void clear() {
     _steps = const [];
     _error = null;
@@ -68,14 +66,25 @@ class ExerciseLineEdit {
     _error = reading.error;
   }
 
-  /// Takes an alternative back. Never the answer itself — that is undone by
-  /// starting over ([clear]). False when [san] is the answer or is not there.
+  /// Takes an accepted move back — an alternative, or the answer itself.
+  ///
+  /// **The answer can be taken back since 21.9.2026**, on the owner's word
+  /// (TODO-provera 196.3: „neka postoji mogućnost da trener izbriše potez kao
+  /// rešenje"). Until then only „Start over" could, and it took every
+  /// alternative with it. Taking the answer back makes the first alternative
+  /// the answer; taking back the only move leaves no answer at all, which is
+  /// not an error — there is simply nothing to save yet. False when [san] is
+  /// not there.
   bool remove(String san) {
     final accept = _steps.isEmpty ? const <String>[] : _steps.first.accept;
     final index = accept.indexOf(san);
-    if (index <= 0) {
-      _error = 'There is no accepted alternative "$san".';
+    if (index < 0) {
+      _error = 'There is no accepted move "$san".';
       return false;
+    }
+    if (accept.length == 1) {
+      clear();
+      return true;
     }
     return _try(List<String>.from(accept)..removeAt(index));
   }

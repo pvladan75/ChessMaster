@@ -312,13 +312,18 @@ void main() {
       expect(edit.steps.single.accept, hasLength(8));
     });
 
-    test('an alternative can be taken back; the main move cannot', () {
+    // Until 21.9.2026 this case said „the main move cannot" be taken back.
+    // Superseded openly on the owner's word (TODO-provera 196.3): it can, and
+    // the first alternative becomes the answer.
+    test('an alternative can be taken back, and so can the main move', () {
       final edit = ExerciseLineEdit(fen: scholar, steps: scholarFirst);
-      expect(edit.remove('Qh5'), isFalse);
-      expect(edit.steps.single.accept, ['Qh5', 'Qf3']);
       expect(edit.remove('Qg4'), isFalse, reason: 'not there');
+      expect(edit.steps.single.accept, ['Qh5', 'Qf3']);
       expect(edit.remove('Qf3'), isTrue);
       expect(edit.steps.single.accept, ['Qh5']);
+      expect(edit.play('Qf3'), isTrue);
+      expect(edit.remove('Qh5'), isTrue);
+      expect(edit.steps.single.accept, ['Qf3']);
     });
   });
 
@@ -586,6 +591,11 @@ void main() {
       board.onMove('g1', 'f3', '');
       await tester.pumpAndSettle();
       expect(lineText(tester), 'Qh5 (or Qf3, Nf3)');
+      // Since 21.9.2026 the move is shown for [kExerciseAnswerHold] before the
+      // board goes back (TODO-provera 196.3); the rule below is unchanged, it
+      // just holds once the move has been seen.
+      await tester.pump(kExerciseAnswerHold);
+      await tester.pump();
       expect(
           MoveTree.samePosition(
               tester
@@ -615,8 +625,12 @@ void main() {
       await tester.tap(find.byKey(const Key('exercise-editor-remove-Qf3')));
       await tester.pumpAndSettle();
       expect(lineText(tester), 'Qh5 (or Nf3)');
-      expect(find.byKey(const Key('exercise-editor-remove-Qh5')), findsNothing,
-          reason: 'the main move is not an alternative');
+      // Until 21.9.2026: „the main move is not an alternative", with no ×.
+      // Superseded openly (TODO-provera 196.3) — the answer has its ×, named
+      // as the answer in words.
+      expect(
+          find.byKey(const Key('exercise-editor-remove-Qh5')), findsOneWidget);
+      expect(find.text('Qh5 · answer'), findsOneWidget);
       expect(find.byType(ChoiceChip), findsNothing,
           reason: 'one move: there are no steps to choose between');
 

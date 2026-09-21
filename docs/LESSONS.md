@@ -5975,3 +5975,24 @@ tabelu (`kind == scan`), a od faze 10 ista tabela drži i zadatke i pozicije.
 Mutacija koja vraća staro pravilo je crvena na skenu bez rešenja — kada se
 značenje jednog izvora podeli, svako pravilo koje je čitalo izvor treba
 ponovo pročitati.
+
+## Tajmer koji `pump()` ne pokreće, i dužina kao tvrdnja — 21.9.2026
+
+Tačka 8 iz pregleda komentara: potez u „Find the move" ostaje na tabli dve
+sekunde pa se tabla vraća. Aplikacija **3557 → 3566**.
+
+**„Vidi se odmah posle" ne razlikuje dve sekunde od nule.** Prvi slučaj je
+proveravao da je potez na tabli odmah posle poteza, i da ga posle
+`kExerciseAnswerHold` više nema. Mutacija koja je zadržavanje skratila na nulu
+je **preživela**: `tester.pump()` bez trajanja ne pokreće ni tajmer od nula
+sekundi, pa je potez „ostao" na tabli i bez ikakvog zadržavanja. A vlasnikova
+reč je bila baš dužina („posle 2 sekunde"). **Kad je vreme ono što je
+traženo, proveri tačku pre isteka, ne samo posle** — sada 1,9 s, i to bez
+konstante, jer bi test koji čita konstantu prošao sa bilo kojom njenom
+vrednošću.
+
+**Pravilo koje je vlasnik potvrdio se menja samo na njegovu reč, i otvoreno.**
+Tri postojeća slučaja su držala „glavni potez nema ×", koji je vlasnik video i
+potvrdio (192.4, 198.4). Nisu obrisani ni oslabljeni: prepisani su na novo
+pravilo, sa datumom i razlogom iznad, a jedan je zadržao svoju poziciju jer je
+ona bila izabrana da samo pravilo, a ne čitalac, odlučuje — i to i dalje važi.

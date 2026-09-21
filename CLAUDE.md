@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3557 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3566 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1639 with TEST_DATABASE_URL, 1545 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -355,7 +355,13 @@ lie behind it, `PuzzleSetRepository.delete` dropping the device copy whatever
 the server said, so a refused delete came back on the next load; a position
 card offers „Make exercise" instead of „Assign" (the card asks what the entry
 *is*, not which table it came from); and the phone studio has labels and
-language behind „More" → „Details…". Phase 6 of
+language behind „More" → „Details…". Then item 8 (→ **3566**): in „Find the move" a move that counts stays
+on the board, marked, for two seconds before the board goes back, and the
+answer has a × like every alternative — superseding, on the owner's word, the
+„main move has no ×" he had checked live, with the three cases that held it
+rewritten openly. A hold of zero seconds first survived the gate, because
+`pump()` fires no timer, not even a zero-length one: when a duration is the
+request, assert a point just short of it. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

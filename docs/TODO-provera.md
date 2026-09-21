@@ -5878,6 +5878,33 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 216. „Find the move": potez ostaje na tabli, i rešenje se može skinuti — 21.9.2026, nije viđeno uživo
+
+**Samo aplikacija, nov build** (Windows i telefon); server se ne dira. Tačka 8
+iz pregleda komentara — vlasnikova sugestija na stavci 196.3. Menja dva
+pravila koja je vlasnik već potvrdio (192.4 i 198.4: „glavni potez nema ×"),
+na njegovu reč.
+
+1. [ ] **Potez ostaje na tabli.** Preparation, postavi poziciju, „Make
+   exercise" → „Play the move". Odigraj rešenje: potez **ostaje** na tabli,
+   obeležen, oko **dve sekunde**, a iznad piše „… is the answer.". Za to vreme
+   tabla ne prima potez.
+2. [ ] **Pa se vraća i traži alternativu.** Posle dve sekunde tabla je opet na
+   početnoj poziciji i piše „Play another move that should also count, or
+   Save.". Odigraj alternativu: isto, sa „… is accepted as well.".
+3. [ ] **Odbijen potez se ne zadržava.** Odigraj isti potez drugi put: tabla se
+   odmah vraća i crveno piše zašto.
+4. [ ] **Rešenje ima ×.** Ispod linije je i rešenje kao čip „Qh5 · answer" sa ×.
+   Skini ga: prva alternativa postaje rešenje (linija piše samo nju). Skini i
+   nju: ekran opet traži potez, a „Save" je sivo.
+5. [ ] **„Start over" i dalje briše sve odjednom.**
+6. [ ] **Sačuvan zadatak.** Library → „Exercises" → svoj „Find the move"
+   zadatak: rešenje ima ×, skidanje ga menja alternativom, a kad ne ostane
+   nijedan potez „Save" je sivo. Sačuvaj sa novim rešenjem i otvori opet —
+   rešenje je ono novo.
+7. [ ] **Telefon, uspravno i položeno**: čipovi i rečenice staju, ništa se ne
+   seče.
+
 ## 215. Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu — 21.9.2026, nije viđeno uživo
 
 **Samo aplikacija, nov build** (Windows i telefon); server se ne dira. Tačke
@@ -5915,7 +5942,7 @@ jezik tutorijala") i nalaz 205.3 (pozicija nudi slanje učeniku).
 9. [ ] **Isto položeno**, i sa otvorenom tastaturom: list se skroluje, ništa se
    ne seče.
 
-## 214. Tudja analiza posle promene naloga, i motor koji staje kad se ode — 21.9.2026, nije viđeno uživo
+## 214. Tudja analiza posle promene naloga, i motor koji staje kad se ode — ✅ provereno uživo 21.9.2026
 
 **Samo aplikacija, nov build** (Windows i telefon); server se ne dira. Dva
 nalaza iz pregleda 21.9.2026: prvi je prijava od 20.9.2026 („kada se promeni
@@ -5924,28 +5951,31 @@ pokrenuo"), koja se vratila posle popravke od 18.9 (stavka 177.2); drugi je
 vlasnikov zahtev istog dana — motor staje kad se napusti ekran i **ostaje
 ugašen**. Čip „Resume analysis" je uklonjen na vlasnikovu reč.
 
-1. [ ] **Tudja analiza, glavni slučaj.** Nalog A: Analyse, odigraj nekoliko
+**Vlasnik je prošao sve tačke ispod i potvrdio ih istog dana, 21.9.2026**
+(„sve ok"), na novom buildu za telefon i Windows.
+
+1. [x] **Tudja analiza, glavni slučaj.** Nalog A: Analyse, odigraj nekoliko
    poteza. Odjavi se (Settings → Sign out). Prijavi se kao nalog B. Na Home
    **nema** „Resume analysis", a Analyse tab je **prazna početna tabla**, ne
    A-ova linija.
-2. [ ] **Isti nalog zadržava svoje.** Nalog A odigra nekoliko poteza u Analyse,
+2. [x] **Isti nalog zadržava svoje.** Nalog A odigra nekoliko poteza u Analyse,
    ode na Home pa se vrati: linija je tu. Zatvori aplikaciju i otvori je opet
    (i dalje prijavljen kao A): linija je i dalje tu.
-3. [ ] **Gost koji se prijavi zadržava svoje.** Bez prijave odigraj nekoliko
+3. [x] **Gost koji se prijavi zadržava svoje.** Bez prijave odigraj nekoliko
    poteza u Analyse, pa se prijavi: linija je i dalje tu.
-4. [ ] **Tutorijal isto.** Nalog A: Teach → New tutorial, odigraj par poteza i
+4. [x] **Tutorijal isto.** Nalog A: Teach → New tutorial, odigraj par poteza i
    upiši ime, **ne čuvaj**. Odjavi se, prijavi kao B, otvori New tutorial:
    nema pitanja o nezavršenom tutorijalu naloga A.
-5. [ ] **Motor staje kad se promeni tab.** Analyse, uključi motor (i traku
+5. [x] **Motor staje kad se promeni tab.** Analyse, uključi motor (i traku
    ocene). Predji na Home, sačekaj par sekundi, vrati se na Analyse: motor je
    **ugašen**, nema linija ni trake, i ne pali se sam. Uključi ga — radi
    odmah.
-6. [ ] **Motor staje kad se preko Analize otvori drugi ekran.** Sa uključenim
+6. [x] **Motor staje kad se preko Analize otvori drugi ekran.** Sa uključenim
    motorom otvori Settings (zupčanik u traci Analize) pa se vrati: motor je
    ugašen. Isto uspravno i položeno na telefonu.
-7. [ ] **Dijalog nije odlazak.** Sa uključenim motorom otvori „Setup Position"
+7. [x] **Dijalog nije odlazak.** Sa uključenim motorom otvori „Setup Position"
    ili neki drugi dijalog i zatvori ga: motor je i dalje uključen.
-8. [ ] **Drugi ekran dobija motor.** Sa uključenim motorom u Analizi predji na
+8. [x] **Drugi ekran dobija motor.** Sa uključenim motorom u Analizi predji na
    Practise → „Basic mates" i igraj protiv motora: motor odgovara odmah, bez
    zastoja. Vrati se na Analyse: tamo je motor ugašen.
 
