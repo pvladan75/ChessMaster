@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/app_logger.dart';
 
 /// A restored draft: the tree plus enough state to put the user back exactly
@@ -52,10 +53,14 @@ class AnalysisDraftService {
 
   /// Writes the draft after a short idle delay, so a burst of moves results in
   /// a single write instead of one per move.
+  ///
+  /// [epoch] is [AccountLocalState.epoch] as it was when the writer was made;
+  /// a write from before the last account wipe is dropped, not stored.
   void scheduleSave({
     required AnalysisNode rootNode,
     required AnalysisNode currentNode,
     required bool blackOrientation,
+    required int epoch,
   }) {
     _debounce?.cancel();
     // Snapshot synchronously: the tree may keep mutating before the timer runs.
@@ -66,6 +71,7 @@ class AnalysisDraftService {
       'savedAt': DateTime.now().toIso8601String(),
     });
     _debounce = Timer(const Duration(milliseconds: 600), () async {
+      if (!_mayWrite(epoch)) return;
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_key, payload);
@@ -115,12 +121,17 @@ class AnalysisDraftService {
 
   /// Flushes any pending debounced write immediately — call before the screen
   /// goes away, since a pending Timer dies with it.
+  ///
+  /// [epoch] as for [scheduleSave]. This is the write the fence exists for:
+  /// `dispose` calls it after the sign-out has already wiped the draft.
   Future<void> flush({
     required AnalysisNode rootNode,
     required AnalysisNode currentNode,
     required bool blackOrientation,
+    required int epoch,
   }) async {
     _debounce?.cancel();
+    if (!_mayWrite(epoch)) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
@@ -135,6 +146,13 @@ class AnalysisDraftService {
     } catch (e) {
       AppLogger.log('[AnalysisDraft] ❌ Flush failed: $e');
     }
+  }
+
+  bool _mayWrite(int epoch) {
+    if (AccountLocalState.isCurrent(epoch)) return true;
+    AppLogger.log(
+        '[AnalysisDraft] ⛔ Write dropped: the writer predates an account change.');
+    return false;
   }
 
   List<int> _pathTo(AnalysisNode root, AnalysisNode target) {

@@ -5878,6 +5878,40 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 214. Tudja analiza posle promene naloga, i motor koji staje kad se ode — 21.9.2026, nije viđeno uživo
+
+**Samo aplikacija, nov build** (Windows i telefon); server se ne dira. Dva
+nalaza iz pregleda 21.9.2026: prvi je prijava od 20.9.2026 („kada se promeni
+nalog, i dalje imam opciju da nastavim analizu koji je prethodni nalog
+pokrenuo"), koja se vratila posle popravke od 18.9 (stavka 177.2); drugi je
+vlasnikov zahtev istog dana — motor staje kad se napusti ekran i **ostaje
+ugašen**. Čip „Resume analysis" je uklonjen na vlasnikovu reč.
+
+1. [ ] **Tudja analiza, glavni slučaj.** Nalog A: Analyse, odigraj nekoliko
+   poteza. Odjavi se (Settings → Sign out). Prijavi se kao nalog B. Na Home
+   **nema** „Resume analysis", a Analyse tab je **prazna početna tabla**, ne
+   A-ova linija.
+2. [ ] **Isti nalog zadržava svoje.** Nalog A odigra nekoliko poteza u Analyse,
+   ode na Home pa se vrati: linija je tu. Zatvori aplikaciju i otvori je opet
+   (i dalje prijavljen kao A): linija je i dalje tu.
+3. [ ] **Gost koji se prijavi zadržava svoje.** Bez prijave odigraj nekoliko
+   poteza u Analyse, pa se prijavi: linija je i dalje tu.
+4. [ ] **Tutorijal isto.** Nalog A: Teach → New tutorial, odigraj par poteza i
+   upiši ime, **ne čuvaj**. Odjavi se, prijavi kao B, otvori New tutorial:
+   nema pitanja o nezavršenom tutorijalu naloga A.
+5. [ ] **Motor staje kad se promeni tab.** Analyse, uključi motor (i traku
+   ocene). Predji na Home, sačekaj par sekundi, vrati se na Analyse: motor je
+   **ugašen**, nema linija ni trake, i ne pali se sam. Uključi ga — radi
+   odmah.
+6. [ ] **Motor staje kad se preko Analize otvori drugi ekran.** Sa uključenim
+   motorom otvori Settings (zupčanik u traci Analize) pa se vrati: motor je
+   ugašen. Isto uspravno i položeno na telefonu.
+7. [ ] **Dijalog nije odlazak.** Sa uključenim motorom otvori „Setup Position"
+   ili neki drugi dijalog i zatvori ga: motor je i dalje uključen.
+8. [ ] **Drugi ekran dobija motor.** Sa uključenim motorom u Analizi predji na
+   Practise → „Basic mates" i igraj protiv motora: motor odgovara odmah, bez
+   zastoja. Vrati se na Analyse: tamo je motor ugašen.
+
 ## 213. Home i Practise koriste širinu — ✅ provereno uživo 21.9.2026
 
 **Samo aplikacija.** Faze 3 i 4 plana `PLAN-POCETNI-TABOVI.md`. Home više nema

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -11,8 +10,13 @@ import 'package:chess_app/theme/app_typography.dart';
 ///
 /// The tab under it is the same for everybody - here is what there is to
 /// practise - and that is why it leads. This is the half that is theirs: a
-/// lesson still running, a position they were pulling apart. Nothing invented
-/// and nothing suggested; only things that were actually left open.
+/// lesson still running. Nothing invented and nothing suggested; only things
+/// that were actually left open.
+///
+/// **„Resume analysis" is gone**, on the owner's word of 21.9.2026. The
+/// Analyse tab is one tap away and opens on the tree it was left on, so the
+/// chip was a second door to the same place — and the one through which, twice,
+/// a new account was shown the previous one's tree.
 ///
 /// It shows nothing at all when there is nothing, rather than a card explaining
 /// that there is nothing. An empty state that has to be read is worse than a
@@ -25,12 +29,9 @@ class ResumeStrip extends StatefulWidget {
 }
 
 class _ResumeStripState extends State<ResumeStrip> {
-  bool _hasDraft = false;
-
   @override
   void initState() {
     super.initState();
-    _checkDraft();
     // The room outlives this screen, so its comings and goings are watched
     // rather than read once.
     GameSessionService.instance.addListener(_onSession);
@@ -46,12 +47,6 @@ class _ResumeStripState extends State<ResumeStrip> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _checkDraft() async {
-    final draft = await AnalysisDraftService.instance.load();
-    if (!mounted) return;
-    setState(() => _hasDraft = draft != null);
-  }
-
   @override
   Widget build(BuildContext context) {
     final session = GameSessionService.instance;
@@ -65,13 +60,6 @@ class _ResumeStripState extends State<ResumeStrip> {
           onTap: () => context.push(
             AppRoutes.roomPath(session.roomCode!, role: session.role),
           ),
-        ),
-      if (_hasDraft)
-        _ResumeChip(
-          icon: Icons.biotech_outlined,
-          label: 'Resume analysis',
-          colour: colors.brand,
-          onTap: () => context.push(AppRoutes.analysis),
         ),
     ];
 

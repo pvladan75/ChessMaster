@@ -14,6 +14,7 @@ import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
+import 'package:chess_app/services/account_local_state.dart';
 
 /// What a move the board reported turned into.
 enum MoveOutcome {
@@ -68,6 +69,11 @@ class TutorialDraftController extends ChangeNotifier {
 
   TutorialDraft _draft;
   final TutorialDraftService _slot;
+
+  /// The account wipe this controller was made under — see
+  /// [AccountLocalState.epoch]. Taken here, once: a controller that outlives
+  /// a sign-out holds the previous account's tutorial.
+  final int _epoch = AccountLocalState.epoch;
   final DraftHistory _history;
 
   TutorialDraft get draft => _draft;
@@ -189,7 +195,7 @@ class TutorialDraftController extends ChangeNotifier {
   /// three things that depend on this — undo, redo, discard — changed, since
   /// the change itself has already been announced by whoever made it.
   void persist({String? typingIn}) {
-    _slot.scheduleSave(_draft);
+    _slot.scheduleSave(_draft, epoch: _epoch);
     final couldUndo = _history.canUndo;
     final couldRedo = _history.canRedo;
     final hadUnsaved = _hasUnsavedChanges;
@@ -205,7 +211,7 @@ class TutorialDraftController extends ChangeNotifier {
 
   /// Writes the draft to this device now, not after the debounce — for a
   /// screen closing, whose pending timer would die with it.
-  Future<void> flush() => _slot.flush(_draft);
+  Future<void> flush() => _slot.flush(_draft, epoch: _epoch);
 
   // ── the parts ────────────────────────────────────────────────────────────
 
@@ -709,7 +715,7 @@ class TutorialDraftController extends ChangeNotifier {
     _lastMove = null;
     _generation++;
     _hasUnsavedChanges = _differsFromSaved();
-    _slot.scheduleSave(_draft);
+    _slot.scheduleSave(_draft, epoch: _epoch);
     notifyListeners();
   }
 

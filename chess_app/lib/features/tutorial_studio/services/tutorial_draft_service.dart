@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/app_logger.dart';
 
 /// Keeps a local, always-current copy of the tutorial being written, so closing
@@ -31,12 +32,15 @@ class TutorialDraftService {
   Timer? _debounce;
 
   /// Writes after a short idle delay, so a burst of moves is one write.
-  void scheduleSave(TutorialDraft draft) {
+  ///
+  /// [epoch] is [AccountLocalState.epoch] as it was when the writer was made;
+  /// a write from before the last account wipe is dropped, not stored.
+  void scheduleSave(TutorialDraft draft, {required int epoch}) {
     _debounce?.cancel();
     // Snapshot synchronously: the tree keeps mutating while the timer waits.
     final payload = _encode(draft);
     _debounce = Timer(const Duration(milliseconds: 600), () async {
-      await _write(payload);
+      await _write(payload, epoch);
     });
   }
 
@@ -48,9 +52,12 @@ class TutorialDraftService {
   /// can see that on its own: there the timer outlives the screen and writes the
   /// same payload a moment later, which is how the gate for this passed with
   /// the flush deleted until it was measured.
-  Future<void> flush(TutorialDraft draft) async {
+  ///
+  /// [epoch] as for [scheduleSave] — the studio flushes from `dispose`, which
+  /// can run after a sign-out has already wiped this slot.
+  Future<void> flush(TutorialDraft draft, {required int epoch}) async {
     _debounce?.cancel();
-    await _write(_encode(draft));
+    await _write(_encode(draft), epoch);
   }
 
   Future<TutorialDraft?> load() async {
@@ -89,7 +96,12 @@ class TutorialDraftService {
     }
   }
 
-  Future<void> _write(String payload) async {
+  Future<void> _write(String payload, int epoch) async {
+    if (!AccountLocalState.isCurrent(epoch)) {
+      AppLogger.log(
+          '[TutorialDraft] ⛔ Write dropped: the writer predates an account change.');
+      return;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_key, payload);

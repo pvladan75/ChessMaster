@@ -5911,3 +5911,41 @@ je izvedena iz njega (`3 × maxTileWidth + 2 × spacing`), pa `columnsFor`
 unutar nje ne može dati više od tri. Mutacija „bez granice" je zato crvena na
 tvrdnji o **širini kartice**, ne o broju kolona: bez kutije je broj i dalje 3
 (grana `default`), ali kartice od 620 px.
+
+## Tudja analiza posle promene naloga: brisanje koje je poništeno kadar posle — 21.9.2026
+
+Prijava od 20.9.2026, dva dana posle popravke iste prijave (stavka 177.2):
+novi nalog i dalje dobija „Resume analysis" sa stablom prethodnog. Aplikacija
+**3539 → 3546**.
+
+**Popravka je radila, i zato nije bila dovoljna.** Test od 18.9 je proverio da
+odjava briše skicu — i ona je briše. Ono što nije mogao da vidi je da neko
+piše **posle** brisanja: odjava briše, pa `context.go(login)` ruši ljusku, pa
+`dispose` ekrana Analize upisuje stablo koje drži. Uredjaj je tada gostov, a
+gostov rad se predaje sledećem nalogu. Svaki korak je ispravan za sebe; greška
+je u redosledu, i test koji zove servis direktno (bez ekrana koji se ruši) ne
+može da je vidi. **Kad se nešto briše da ga niko ne bi pročitao, pitaj ko još
+drži kopiju u memoriji i kada je upisuje.** Brisanje sa diska ne briše stanje
+ekrana koji je još živ.
+
+**Ograda se uzima pri rodjenju pisca, ne pri upisu.** Broj brisanja
+(`AccountLocalState.epoch`) je tačan samo ako ga pisac zapamti kad nastane;
+pročitan u trenutku upisa, uvek je tekući i propušta upravo ovaj upis. To je
+mutacija M1 i crvena je na tačnom slučaju.
+
+**Uklanjanje vrata ne zatvara sobu.** Vlasnik je tražio da se čip „Resume
+analysis" izbaci, i to je u redu — ali tab sam učitava skicu pri otvaranju, pa
+bi tudje stablo i bez čipa stajalo na tabli. Čip je bio simptom, ne uzrok.
+
+**Fixture koji je već na disku ne može da dokaže upis.** Slučaj „gost zadržava
+svoju analizu" je bio zelen i kad su *svi* upisi bili odbijeni: skica je
+posadjena pre ekrana, pa je test čitao nazad sopstveni fixture (pravilo 6).
+Sada se skica skine sa diska čim je ekran učita, i ista mutacija je crvena.
+
+**`IndexedStack` čuva tikere skrivenog taba.** Zahtev istog dana — motor da
+stane kad se ode sa Analize — otkrio je da tab nikad ne zna da je napušten:
+stek samo prestaje da ga crta. `TickerMode` je jedan signal za oba izlaza
+(skriven tab, ruta prekrivena neprozirnom), ali ga za tab mora da da ljuska;
+`Overlay` ga daje sam. Motor se pri odlasku **pušta** (`detach`), ne
+zaustavlja (`stopAnalysis`): ekran na vrhu možda koristi isti motor, i gola
+zaustavka bi ugasila *njegovu* pretragu.

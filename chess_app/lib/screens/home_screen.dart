@@ -1279,7 +1279,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               Expanded(
                                 child: IndexedStack(
                                   index: _selectedIndex,
-                                  children: pages,
+                                  // A hidden tab keeps its state but not
+                                  // its tickers. The stack itself only stops
+                                  // painting it, so without this a tab never
+                                  // learns it was left — and Analysis kept
+                                  // its engine searching for a board nobody
+                                  // saw (owner, 21.9.2026).
+                                  children: [
+                                    for (var i = 0; i < pages.length; i++)
+                                      TickerMode(
+                                        enabled: i == _selectedIndex,
+                                        child: pages[i],
+                                      ),
+                                  ],
                                 ),
                               ),
                             ],

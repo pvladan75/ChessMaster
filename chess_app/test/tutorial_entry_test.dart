@@ -44,6 +44,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/account_local_state.dart';
 
 const String openingFen =
     'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -77,7 +78,8 @@ void main() {
         }),
       ],
     );
-    await TutorialDraftService.instance.flush(draft);
+    await TutorialDraftService.instance
+        .flush(draft, epoch: AccountLocalState.epoch);
   }
 
   Future<void> open(WidgetTester tester, TutorialEntry entry) async {

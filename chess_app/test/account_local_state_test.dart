@@ -38,6 +38,7 @@ void main() {
       rootNode: root,
       currentNode: root.children.first,
       blackOrientation: false,
+      epoch: AccountLocalState.epoch,
     );
   }
 

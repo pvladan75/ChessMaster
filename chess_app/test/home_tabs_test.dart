@@ -188,6 +188,31 @@ void main() {
         reason: 'ali se ne vidi kad nema šta da se nastavi');
   });
 
+  testWidgets('an analysis left open is not offered on Home', (tester) async {
+    // Removed on the owner's word of 21.9.2026: the Analyse tab opens on the
+    // tree it was left on, so the chip was a second door to it — and the one
+    // a new account was twice shown the previous account's tree through.
+    // The draft here is real and loadable, so the chip has every reason to
+    // appear if it still exists.
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'analysis_studio_draft',
+      '{"tree":{"fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",'
+          '"children":[{"fen":"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",'
+          '"moveSan":"e4","moveUci":"e2e4"}]},"path":[0],'
+          '"blackOrientation":false,"savedAt":"2026-09-21T10:00:00.000"}',
+    );
+
+    await openHome(tester);
+    await tester
+        .runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+    expect(find.text('Resume analysis'), findsNothing);
+  });
+
   testWidgets('a room left running is offered back', (tester) async {
     // The one thing a reader most wants from the first screen when there is
     // one: the lesson they stepped out of.

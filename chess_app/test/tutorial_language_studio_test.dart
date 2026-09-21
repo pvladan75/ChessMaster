@@ -24,6 +24,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/account_local_state.dart';
 
 const String startFen =
     'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -210,12 +211,14 @@ void main() {
     // the value it was built with, and the studio swaps in a draft of the same
     // tutorial kept on this device one frame later.
     final id = nextLessonId++;
-    await TutorialDraftService.instance.flush(TutorialDraft(
-      lessonId: id,
-      title: 'Opozicija',
-      language: 'fr',
-      sections: [TutorialSection.blank(fen: startFen, title: 'Deo 1')],
-    ));
+    await TutorialDraftService.instance.flush(
+        TutorialDraft(
+          lessonId: id,
+          title: 'Opozicija',
+          language: 'fr',
+          sections: [TutorialSection.blank(fen: startFen, title: 'Deo 1')],
+        ),
+        epoch: AccountLocalState.epoch);
 
     final api = await open(tester, row(language: 'de', id: id));
 

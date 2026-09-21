@@ -41,6 +41,23 @@ abstract final class AccountLocalState {
   /// guest, absent means a device that has not been through this yet.
   static const String ownerKey = 'local_state_owner';
 
+  static int _epoch = 0;
+
+  /// Which wipe this process is on; it moves every time [clear] runs.
+  ///
+  /// **The wipe alone was not enough**, and that was reported live on
+  /// 20.9.2026, two days after the wipe shipped. Signing out wipes the draft
+  /// and *then* the shell is torn down, and the Analysis screen's `dispose`
+  /// flushes the tree it still holds — as the guest, whose work the next
+  /// sign-in adopts. So a writer takes this number when it is made and hands
+  /// it back with every write, and a write from before the last wipe is
+  /// dropped ([isCurrent]). Taken at birth, not at write time: at write time
+  /// the number is always current, which is the bug.
+  static int get epoch => _epoch;
+
+  /// Whether a writer made at [epoch] may still write.
+  static bool isCurrent(int epoch) => epoch == _epoch;
+
   /// Hands the device's scratch state to [userId] (`0` for the guest), wiping
   /// it first when it belonged to a *different* signed-in account.
   ///
@@ -62,6 +79,8 @@ abstract final class AccountLocalState {
   /// Each step is guarded on its own: one service failing must not leave the
   /// rest of the previous account's work on the device.
   static Future<void> clear() async {
+    // First, so a write racing the wipe is already on the wrong side of it.
+    _epoch++;
     for (final step in <(String, Future<void> Function())>[
       ('analysis draft', AnalysisDraftService.instance.clear),
       ('tutorial draft', TutorialDraftService.instance.clear),

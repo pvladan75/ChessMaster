@@ -1,6 +1,8 @@
+import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:chess/chess.dart' as chess;
@@ -128,6 +130,16 @@ class AnalysisStudioScreen extends StatefulWidget {
 class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   final ChessBoardController _boardController = ChessBoardController();
   final StockfishService _stockfishService = StockfishService();
+
+  /// The account wipe this screen was made under ([AccountLocalState.epoch]).
+  /// Taken once, here: the Analyse tab outlives a sign-out by a frame, and its
+  /// `dispose` flush must not hand this tree to the next account.
+  final int _draftEpoch = AccountLocalState.epoch;
+
+  /// Whether this screen is in front of the reader — see [_onShownChanged].
+  ValueListenable<TickerModeData>? _shown;
+  bool _engineReady = false;
+  bool _engineAttached = false;
 
   late AnalysisNode _rootNode;
   late AnalysisNode _currentNode;
@@ -295,7 +307,52 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final shown = TickerMode.getValuesNotifier(context);
+    if (!identical(shown, _shown)) {
+      _shown?.removeListener(_onShownChanged);
+      _shown = shown..addListener(_onShownChanged);
+    }
+  }
+
+  /// **Leaving this screen switches the engine off, and it stays off.** Asked
+  /// for by the owner on 21.9.2026. The Analyse tab lives in the shell's
+  /// `IndexedStack`, which keeps a hidden tab alive, so nothing used to tell
+  /// the engine that nobody was looking any more.
+  ///
+  /// One signal covers both ways out: `TickerMode` is false for a tab the shell
+  /// is not showing and for a route covered by an opaque one. A dialog or a
+  /// sheet is not leaving — the board is still in front of the reader.
+  ///
+  /// Released rather than merely stopped: a screen pushed on top may be using
+  /// the same engine, and `detach` stops this screen's search and hands the
+  /// engine back to whoever is on top, where a bare `stopAnalysis` would stop
+  /// theirs. Coming back takes the engine again, with both switches off.
+  void _onShownChanged() {
+    final shown = _shown?.value.enabled ?? true;
+    if (shown) {
+      if (_engineReady && !_engineAttached) _attachEngine();
+      return;
+    }
+    if (_showEvaluation || _showEvalBar) {
+      setState(() {
+        _showEvaluation = false;
+        _showEvalBar = false;
+        _engineLinesMap.clear();
+        _engineArrows.clear();
+      });
+      _refreshArrows();
+    }
+    if (_engineAttached) {
+      _engineAttached = false;
+      _stockfishService.detach(this);
+    }
+  }
+
+  @override
   void dispose() {
+    _shown?.removeListener(_onShownChanged);
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _puzzleRevealTimer?.cancel();
     // A debounced write would be lost with this screen, so force it out first.
@@ -303,6 +360,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       rootNode: _rootNode,
       currentNode: _currentNode,
       blackOrientation: _orientation == PlayerColor.black,
+      epoch: _draftEpoch,
     ));
     // Hands the shared engine back to the screen that pushed this one.
     _stockfishService.detach(this);
@@ -316,6 +374,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       rootNode: _rootNode,
       currentNode: _currentNode,
       blackOrientation: _orientation == PlayerColor.black,
+      epoch: _draftEpoch,
     );
   }
 
@@ -486,6 +545,25 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
 
   Future<void> _initEngine() async {
     await _stockfishService.initEngine();
+    if (!mounted) return;
+    _engineReady = true;
+    // A screen that is already out of sight takes the engine when it comes
+    // back ([_onShownChanged]), not now.
+    if (_shown?.value.enabled ?? true) _attachEngine();
+
+    // attach() already auto-triggers engine analysis for the current FEN
+    // (StockfishService._activateTopSubscriber). Calling _triggerEngineAnalysis()
+    // here too used to fire a second, near-simultaneous stop/position/go
+    // sequence, and the two writes to the native engine's stdin raced and
+    // corrupted each other (Stockfish would log "Unknown command: 'sstop'" or a
+    // mangled FEN and silently drop the request). Only kick off the lookups
+    // that attach() doesn't cover.
+    _fetchSyzygyIfEligible();
+    _fetchOpeningExplorerIfEligible();
+  }
+
+  void _attachEngine() {
+    _engineAttached = true;
     // Set before attach() so the auto-triggered first analysis (fired
     // synchronously inside attach(), see below) already uses the configured
     // MultiPV count instead of whatever the previous screen left behind.
@@ -532,16 +610,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         _refreshArrows();
       },
     );
-
-    // attach() above already auto-triggers engine analysis for the current FEN
-    // (StockfishService._activateTopSubscriber). Calling _triggerEngineAnalysis()
-    // here too used to fire a second, near-simultaneous stop/position/go
-    // sequence, and the two writes to the native engine's stdin raced and
-    // corrupted each other (Stockfish would log "Unknown command: 'sstop'" or a
-    // mangled FEN and silently drop the request). Only kick off the lookups
-    // that attach() doesn't cover.
-    _fetchSyzygyIfEligible();
-    _fetchOpeningExplorerIfEligible();
   }
 
   Future<void> _fetchSyzygyIfEligible() async {

@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3539 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3546 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1639 with TEST_DATABASE_URL, 1545 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -341,7 +341,15 @@ widths were wrong: `columnsFor` gives three columns from a box of 865, so
 1000 is a three-column width — **derive a gate's widths from the rule's
 bands, not from round numbers.** The owner then passed items 212 and 213 live
 on 21.9.2026, closing the plan, and had the Practise header card deleted
-(→ **3539**, a case that fails if anything sits above the phases). Phase 6 of
+(→ **3539**, a case that fails if anything sits above the phases). Then the owner's review of every
+comment from 18–21.9.2026, and its first two items (→ **3546**): a new
+account was still offered the previous one's analysis, because `signOut`
+wiped the draft and the Analysis screen's `dispose` wrote it back a frame
+later, as the guest the next sign-in adopts — so `AccountLocalState.epoch`
+fences every draft write from a writer born before the last wipe (the
+tutorial studio too), and „Resume analysis" is gone on the owner's word; and
+leaving Analysis — another tab or a full-screen route — switches the engine
+off and releases it, through `TickerMode`, which the shell now sets per tab. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

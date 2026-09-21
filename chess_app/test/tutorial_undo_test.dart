@@ -22,6 +22,7 @@ import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_scree
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/services/account_local_state.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -333,7 +334,8 @@ void main() {
     final lesson = twoParts();
     final kept = TutorialDraft.fromLesson(lesson)
       ..title = 'Kept on this device';
-    await TutorialDraftService.instance.flush(kept);
+    await TutorialDraftService.instance
+        .flush(kept, epoch: AccountLocalState.epoch);
 
     final server = await open(tester, TutorialEntry.saved(lesson));
     expect(enabled(tester, undoButton), isFalse);
