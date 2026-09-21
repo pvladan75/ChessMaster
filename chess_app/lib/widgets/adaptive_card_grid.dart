@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'package:chess_app/theme/app_spacing.dart';
 
@@ -204,4 +207,162 @@ class AdaptiveCardColumns extends StatelessWidget {
       },
     );
   }
+}
+
+/// The third half of pattern A — phase 1 of `docs/PLAN-POCETNI-TABOVI.md`.
+///
+/// For a handful of peer cards whose heights differ a little and do not
+/// change while the reader looks at them: the cards of the Home, Practise and
+/// Teach tabs, and the rows of the Trainer panel. [AdaptiveCardGrid] would
+/// need one declared cell height, which is fragile for text that wraps;
+/// [AdaptiveCardColumns] would leave the cards of one visual row ending at
+/// different heights.
+///
+/// So the cards are laid out **row by row**, left to right, each row holding
+/// [AdaptiveCardGrid.columnsFor] of them, and **every card in a row is
+/// stretched to the height of the tallest one in it**. A last row that is not
+/// full keeps the card width of the rows above it rather than widening its
+/// cards to fill the line.
+///
+/// Laid out by its own render object rather than an `IntrinsicHeight` around
+/// a `Row`: intrinsics throw on any child that holds a `LayoutBuilder`, and
+/// these layouts nest — the Teach tab's people card holds rows of its own.
+/// Each child is laid out once loosely to find the row's height and once more
+/// tight to it. Every child is built, so this is for tens of cards; a list
+/// that can grow without bound belongs in [AdaptiveCardGrid].
+///
+/// The render object answers no intrinsic size. That is safe only because the
+/// [LayoutBuilder] in front of it refuses such a query loudly in a debug or
+/// test build; without it, an `IntrinsicHeight` above these rows would size
+/// them to 0 and clip every card in silence. A test holds that refusal.
+class AdaptiveCardRows extends StatelessWidget {
+  const AdaptiveCardRows({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _EqualHeightRows(
+        columns: AdaptiveCardGrid.columnsFor(constraints.maxWidth),
+        spacing: AdaptiveCardGrid.spacing,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _EqualHeightRows extends MultiChildRenderObjectWidget {
+  const _EqualHeightRows({
+    required this.columns,
+    required this.spacing,
+    required super.children,
+  });
+
+  final int columns;
+  final double spacing;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderEqualHeightRows(columns: columns, spacing: spacing);
+
+  @override
+  void updateRenderObject(
+      BuildContext context, _RenderEqualHeightRows renderObject) {
+    renderObject
+      ..columns = columns
+      ..spacing = spacing;
+  }
+}
+
+class _RowsParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderEqualHeightRows extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _RowsParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _RowsParentData> {
+  _RenderEqualHeightRows({required int columns, required double spacing})
+      : _columns = columns,
+        _spacing = spacing;
+
+  int _columns;
+  set columns(int value) {
+    if (value == _columns) return;
+    _columns = value;
+    markNeedsLayout();
+  }
+
+  double _spacing;
+  set spacing(double value) {
+    if (value == _spacing) return;
+    _spacing = value;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _RowsParentData) {
+      child.parentData = _RowsParentData();
+    }
+  }
+
+  /// Lays the rows out — or, when [dry], only measures them — and answers the
+  /// total height. One routine for both, so the two cannot disagree.
+  double _layoutRows(double width, {required bool dry}) {
+    final columns = math.max(1, _columns);
+    final cellWidth =
+        math.max(0.0, (width - _spacing * (columns - 1)) / columns);
+    final loose = BoxConstraints(minWidth: cellWidth, maxWidth: cellWidth);
+
+    var y = 0.0;
+    var child = firstChild;
+    var firstRow = true;
+    while (child != null) {
+      final row = <RenderBox>[];
+      while (child != null && row.length < columns) {
+        row.add(child);
+        child = childAfter(child);
+      }
+      var rowHeight = 0.0;
+      for (final c in row) {
+        final h = dry
+            ? c.getDryLayout(loose).height
+            : (c..layout(loose, parentUsesSize: true)).size.height;
+        rowHeight = math.max(rowHeight, h);
+      }
+      if (!firstRow) y += _spacing;
+      firstRow = false;
+      if (!dry) {
+        final tight =
+            BoxConstraints.tightFor(width: cellWidth, height: rowHeight);
+        for (var i = 0; i < row.length; i++) {
+          row[i].layout(tight);
+          (row[i].parentData! as _RowsParentData).offset =
+              Offset(i * (cellWidth + _spacing), y);
+        }
+      }
+      y += rowHeight;
+    }
+    return y;
+  }
+
+  @override
+  Size computeDryLayout(covariant BoxConstraints constraints) {
+    final width = constraints.maxWidth;
+    return constraints.constrain(Size(width, _layoutRows(width, dry: true)));
+  }
+
+  @override
+  void performLayout() {
+    final width = constraints.maxWidth;
+    size = constraints.constrain(Size(width, _layoutRows(width, dry: false)));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }

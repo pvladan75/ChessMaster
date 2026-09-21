@@ -5842,3 +5842,34 @@ se ne može dobiti → setovi ovog uredjaja, što je baš ono što ti testovi se
 Mereno: aplikacija **3499 → 3507**, 1 preskočen. Backend **1545** bez baze i
 **1639** sa jednokratnim klasterom, sve zeleno. Analyze: istih 26 `info`.
 Uživo: **stavka 211**.
+
+## Početni tabovi, faze 0–2: osnova koja se menja ispod merenja, i treća polovina obrasca A — 21.9.2026
+
+`PLAN-POCETNI-TABOVI.md`. Aplikacija **3507 → 3525**.
+
+**Osnova izmerena tamo gde se ništa ne menja.** Prvo merenje je pokrenuto u
+radnom direktorijumu, a odmah zatim su počele izmene u `lib/`. `flutter test`
+prevodi svaki test fajl tek kad dodje na red, pa bi fajlovi koji dolaze kasnije
+bili prevedeni **sa** izmenama — „osnova" bi bila mešavina dva stanja, i
+nijedan broj iz nje ne bi značio ništa. Prekinuto i ponovljeno u
+`git worktree`-u na `HEAD`-u: **3507 / 1 / 26**, isto kao što CLAUDE.md kaže.
+**Dugo merenje ide u worktree ili se ništa ne menja dok traje.**
+
+**Treća polovina obrasca A.** Mreža (ćelije jedne visine) je krhka za tekst
+koji se prelama; kolone ne poravnavaju kartice jednog reda. Za šačicu
+ravnopravnih kartica različite, ali stalne visine: `AdaptiveCardRows`, red po
+red, svaka kartica u redu visoka kao najviša. **Sopstveni render objekat, ne
+`IntrinsicHeight` oko `Row`-a**: intrinsics bacaju izuzetak na `LayoutBuilder`,
+a ovi rasporedi se gnezde (kartica ljudi na Teach-u je kartica u toku koja nosi
+sopstveni tok). Slučaj „redovi se gnezde bez izuzetka" postoji baš zbog toga.
+
+**Razmak koji pripada kartici lomi red.** `TutorialLibraryCard` i
+`HomeworkLibraryCard` nosile su sopstveni donji `Padding` izvan `Card`-a. U
+redu koji rasteže kartice na istu visinu, taj razmak završava vidljivu karticu
+16 px kraće od suseda koji ga nema. Razmak sada daje tok, ne kartica.
+
+**Mutacija koja se ne prevodi nije crvena.** Prva verzija mutacije „vrati
+granicu od 700" dodala je `Center(ConstrainedBox(` bez zatvarajućih zagrada —
+ceo fajl testa je pao na učitavanju, što liči na hvatanje a nije (pravilo 3).
+Ponovljena kao sužavanje paddingom, koje se prevodi: crvena na četiri tačna
+slučaja.

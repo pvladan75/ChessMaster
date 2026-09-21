@@ -35,6 +35,9 @@ not move at all.
    Teach are card stacks and feeds, not lists of choices; stretching their
    prose across a wide screen is worse, not better. They are **out of scope**
    and must not be touched by any phase here.
+   **Reversed by the owner on 21.9.2026** — `PLAN-POCETNI-TABOVI.md` takes the
+   cap off Home and Teach, answering the prose worry by keeping every line
+   inside one card rather than by a cap.
 3. **Pattern B goes all the way.** Master–detail for Repertoire and Library is
    the expensive half and it is wanted: it is what makes the desktop feel like
    a desktop application rather than a stretched phone.

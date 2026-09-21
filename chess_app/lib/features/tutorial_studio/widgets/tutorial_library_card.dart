@@ -92,75 +92,70 @@ class TutorialLibraryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The gap below belongs to the card rather than to the tab, so the tab
-    // never carries dead air at the top of the Library tab for a card that
-    // is always there to draw it.
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      child: Card(
-        shape: AppRadii.cardShape,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.auto_stories_outlined,
-                    color: context.colors.accent,
-                    size: 28,
+    // No gap of its own: the Teach tab's flow spaces its cards, and a gap
+    // inside one card of a row would end it short of its neighbours.
+    return Card(
+      shape: AppRadii.cardShape,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.auto_stories_outlined,
+                  color: context.colors.accent,
+                  size: 28,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    'Tutorials',
+                    style: AppText.headline
+                        .copyWith(color: context.colors.textPrimary),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Text(
-                      'Tutorials',
-                      style: AppText.headline
-                          .copyWith(color: context.colors.textPrimary),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Create a tutorial that the student goes through on their own — '
-                'position by position, with comments, arrows, and questions.',
-                style:
-                    AppText.body.copyWith(color: context.colors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('New tutorial'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  padding: AppSpacing.buttonPadding,
                 ),
-                onPressed: () => _onNewTutorial(context),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Create a tutorial that the student goes through on their own — '
+              'position by position, with comments, arrows, and questions.',
+              style: AppText.body.copyWith(color: context.colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('New tutorial'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                padding: AppSpacing.buttonPadding,
               ),
-              const SizedBox(height: AppSpacing.sm),
-              OutlinedButton.icon(
-                key: const Key('import-tutorial'),
-                icon: const Icon(Icons.file_upload_outlined),
-                label: const Text('Import from a file'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  padding: AppSpacing.buttonPadding,
-                ),
-                onPressed: () => _onImport(context),
+              onPressed: () => _onNewTutorial(context),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              key: const Key('import-tutorial'),
+              icon: const Icon(Icons.file_upload_outlined),
+              label: const Text('Import from a file'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                padding: AppSpacing.buttonPadding,
               ),
-              const SizedBox(height: AppSpacing.sm),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.folder_open),
-                label: const Text('Saved tutorials'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  padding: AppSpacing.buttonPadding,
-                ),
-                onPressed: () => _onOpenSavedTutorial(context),
+              onPressed: () => _onImport(context),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Saved tutorials'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                padding: AppSpacing.buttonPadding,
               ),
-            ],
-          ),
+              onPressed: () => _onOpenSavedTutorial(context),
+            ),
+          ],
         ),
       ),
     );

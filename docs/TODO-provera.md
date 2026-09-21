@@ -5878,6 +5878,27 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 212. Teach koristi širinu — 21.9.2026, nije viđeno uživo
+
+**Samo aplikacija.** Faza 2 plana `PLAN-POCETNI-TABOVI.md`: Teach više nema
+granicu od 700 px i ne pita širinu prozora. Sekcije stoje jedna ispod druge,
+a ono što je u njima teče u kolone koliko ih stane.
+
+1. [ ] **Windows, prozor oko 1400 px.** Teach: **Tutorials · Homework ·
+   Library u jednom redu**, sve tri kartice istog okvira (donje ivice u
+   istoj liniji iako Tutorials ima tri dugmeta). Ispod njih **Preparation ·
+   New session** u drugom redu, sa svojim obojenim ivicama.
+2. [ ] **Studenti.** U kartici „Students and trainers" obrazac za zahtev
+   (čipovi, rečenica, email, „Send a request") zauzima **jednu kolonu levo**,
+   a spisak ljudi ostatak; učenici idu **jedan pored drugog** kad ih ima više.
+   Slanje zahteva i „Progress" rade kao i pre.
+3. [ ] **Najmanji prozor (900 px).** Isto, samo manje kolona; ništa nije
+   odsečeno, nijedno dugme nije van kartice.
+4. [ ] **Telefon.** Jedna kartica po redu, obrazac iznad spiska kao do sada.
+   **Jedina promena redosleda:** Library je sada odmah ispod Homework, a ne
+   posle Preparation / New session — uz stvari koje čuva. *Ako ti se ne
+   dopada, vraća se u jednom redu koda.*
+
 ## 211. Puzzle sets pripadaju nalogu, ne uredjaju — 21.9.2026, nije viđeno uživo
 
 **Server i aplikacija.** Prijava vlasnika: „Library - Puzzle sets na telefonu

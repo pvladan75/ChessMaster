@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3507 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3525 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1639 with TEST_DATABASE_URL, 1545 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -321,7 +321,17 @@ security ones — a list without `user_id` in its `WHERE`, and a delete by
 secret**, the same shape `accountGuard` and `trainerOwnsStudent` exist for.
 And both dialogs take the repository as a **required** parameter, because an
 optional one would eventually be left out and sync would die quietly — which
-is this very bug wearing a new coat. Open: the rest of the owner's live
+is this very bug wearing a new coat. Then `docs/PLAN-POCETNI-TABOVI.md`,
+which reverses decision 2 of `PLAN-LISTE.md` on the owner's word: Home and
+Teach lose their 700 cap, and *sections stack, their contents flow*. Phases
+0–2 (→ **3525**): `AdaptiveCardRows`, the third half of pattern A — peer cards
+row by row, each as tall as the tallest in its row, laid out by its own render
+object because intrinsics throw on a `LayoutBuilder` and these layouts nest —
+and the Teach tab on it. Its lesson is about the baseline: the first one ran
+in the working directory while `lib/` was being edited, and `flutter test`
+compiles each file as it reaches it, so the edits leaked into it. **Measure a
+baseline in a worktree, or change nothing while it runs.** Open: Home (phase
+3) and Practise (phase 4) of that plan, and the rest of the owner's live
 pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

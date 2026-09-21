@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/features/groups/screens/groups_screen.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 /// The "Prijatelji" tab: add-by-email form plus the current friends list.
 class HomeFriendsTab extends StatelessWidget {
@@ -162,148 +163,175 @@ class HomeFriendsTab extends StatelessWidget {
   Widget _body(BuildContext context) {
     final colors = context.colors;
 
+    final form = Column(
+      key: const Key('people-request-form'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
+          children: [
+            ChoiceChip(
+              label: const Text('I am a trainer'),
+              selected: iAmTrainerInRequest,
+              onSelected: (_) => onRoleChanged(true),
+            ),
+            ChoiceChip(
+              label: const Text('I am a student'),
+              selected: !iAmTrainerInRequest,
+              onSelected: (_) => onRoleChanged(false),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          iAmTrainerInRequest
+              ? 'You teach, the other person is a student.'
+              : 'The other person teaches, you are a student.',
+          style: AppText.body.copyWith(color: colors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: studentEmailController,
+                decoration: InputDecoration(
+                  labelText: iAmTrainerInRequest
+                      ? "Student's email"
+                      : "Trainer's email",
+                  hintText: 'osoba@example.com',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            ElevatedButton(
+              onPressed: onAddStudent,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: 14,
+                ),
+              ),
+              child: const Text('Send a request'),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final lists = Column(
+      key: const Key('people-lists'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (isLoadingStudents)
+          const Center(child: CircularProgressIndicator())
+        else if (myStudents.isEmpty && myTrainers.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Center(
+              child: Text(
+                'You have neither students nor trainers yet.',
+                style: AppText.body.copyWith(color: colors.textMuted),
+              ),
+            ),
+          )
+        else ...[
+          if (myStudents.isNotEmpty) ...[
+            Text(
+              'My students',
+              style: AppText.bodyLargeBold.copyWith(color: colors.textPrimary),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            AdaptiveCardRows(
+                children: _rows(context, myStudents, iTeachThem: true)),
+          ],
+          if (myStudents.isNotEmpty && myTrainers.isNotEmpty)
+            const SizedBox(height: AppSpacing.lg),
+          if (myTrainers.isNotEmpty) ...[
+            Text(
+              'My trainers',
+              style: AppText.bodyLargeBold.copyWith(color: colors.textPrimary),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            AdaptiveCardRows(
+                children: _rows(context, myTrainers, iTeachThem: false)),
+          ],
+        ],
+      ],
+    );
+
     return SingleChildScrollView(
-      // Always scrollable so the pull gesture exists even when the list is
-      // short enough to fit — which is exactly when there is nothing on screen
-      // to explain why it looks stale.
       physics: embedded
           ? const NeverScrollableScrollPhysics()
           : const AlwaysScrollableScrollPhysics(),
       padding: embedded ? EdgeInsets.zero : AppSpacing.screenPadding,
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 700),
+      child: Card(
+        shape: AppRadii.cardShape,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Card(
-                shape: AppRadii.cardShape,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                children: [
+                  Icon(Icons.people, color: colors.brand, size: 28),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      'Students and trainers',
+                      style:
+                          AppText.headline.copyWith(color: colors.textPrimary),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    icon: Icon(Icons.groups, color: colors.brand),
+                    label: const Text('Groups'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => GroupsScreen(students: students),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              // `docs/PLAN-POCETNI-TABOVI.md`, decision 3: where two card
+              // columns fit, the request form takes one of them and the
+              // people take the rest, their rows flowing in turn. The email
+              // field is then one card wide rather than the whole window, and
+              // the width goes to showing more people. Below that, the form
+              // sits above the list exactly as before.
+              LayoutBuilder(builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final columns = AdaptiveCardGrid.columnsFor(width);
+                if (columns < 2) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.people, color: colors.brand, size: 28),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Text(
-                              'Students and trainers',
-                              style: AppText.headline
-                                  .copyWith(color: colors.textPrimary),
-                            ),
-                          ),
-                          OutlinedButton.icon(
-                            icon: Icon(Icons.groups, color: colors.brand),
-                            label: const Text('Groups'),
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    GroupsScreen(students: students),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.xs,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('I am a trainer'),
-                            selected: iAmTrainerInRequest,
-                            onSelected: (_) => onRoleChanged(true),
-                          ),
-                          ChoiceChip(
-                            label: const Text('I am a student'),
-                            selected: !iAmTrainerInRequest,
-                            onSelected: (_) => onRoleChanged(false),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        iAmTrainerInRequest
-                            ? 'You teach, the other person is a student.'
-                            : 'The other person teaches, you are a student.',
-                        style:
-                            AppText.body.copyWith(color: colors.textSecondary),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: studentEmailController,
-                              decoration: InputDecoration(
-                                labelText: iAmTrainerInRequest
-                                    ? "Student's email"
-                                    : "Trainer's email",
-                                hintText: 'osoba@example.com',
-                                border: const OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          ElevatedButton(
-                            onPressed: onAddStudent,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(48, 48),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                                vertical: 14,
-                              ),
-                            ),
-                            child: const Text('Send a request'),
-                          ),
-                        ],
-                      ),
+                      form,
                       const SizedBox(height: AppSpacing.lg),
                       const Divider(),
                       const SizedBox(height: AppSpacing.sm),
-                      if (isLoadingStudents)
-                        const Center(child: CircularProgressIndicator())
-                      else if (myStudents.isEmpty && myTrainers.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: AppSpacing.xl),
-                          child: Center(
-                            child: Text(
-                              'You have neither students nor trainers yet.',
-                              style: AppText.body
-                                  .copyWith(color: colors.textMuted),
-                            ),
-                          ),
-                        )
-                      else ...[
-                        if (myStudents.isNotEmpty) ...[
-                          Text(
-                            'My students',
-                            style: AppText.bodyLargeBold
-                                .copyWith(color: colors.textPrimary),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          ..._rows(context, myStudents, iTeachThem: true),
-                        ],
-                        if (myStudents.isNotEmpty && myTrainers.isNotEmpty)
-                          const SizedBox(height: AppSpacing.lg),
-                        if (myTrainers.isNotEmpty) ...[
-                          Text(
-                            'My trainers',
-                            style: AppText.bodyLargeBold
-                                .copyWith(color: colors.textPrimary),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          ..._rows(context, myTrainers, iTeachThem: false),
-                        ],
-                      ],
+                      lists,
                     ],
-                  ),
-                ),
-              ),
+                  );
+                }
+                final cell =
+                    (width - AdaptiveCardGrid.spacing * (columns - 1)) /
+                        columns;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(width: cell, child: form),
+                    const SizedBox(width: AdaptiveCardGrid.spacing),
+                    Expanded(child: lists),
+                  ],
+                );
+              }),
             ],
           ),
         ),
