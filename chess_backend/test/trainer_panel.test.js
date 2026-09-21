@@ -52,21 +52,6 @@ function stmt(pool, pattern) {
   return found;
 }
 
-test("today means today, and a lesson that has started is still today's", async () => {
-  const pool = stubPool();
-  await todaysLessons(pool, 7);
-
-  const sql = stmt(pool, /FROM scheduled_sessions/).text;
-  assert.match(sql, /s\.host_id = \$1/, 'only lessons this trainer hosts');
-  // The window opens before now: a card that disappears the moment the lesson
-  // begins vanishes exactly when the trainer reaches for it.
-  assert.match(sql, /now\(\) - interval '2 hours'/);
-  // And closes at midnight rather than in 24 hours, or "Danas" would be a lie
-  // every evening.
-  assert.match(sql, /date_trunc\('day', now\(\)\) \+ interval '1 day'/);
-  assert.doesNotMatch(sql, /status = 'declined'/, 'declined guests are excluded, not selected');
-});
-
 test('a deadline still counts after it has passed', async () => {
   const pool = stubPool();
   await dueSoon(pool, 7);
@@ -190,7 +175,8 @@ test('the badge counts only what the trainer can clear', async () => {
 test('an empty panel is a panel, not an error', async () => {
   const panel = await trainerPanel(stubPool(), 7);
 
-  assert.deepEqual(panel.today, []);
+  // Scheduled sessions left on 21.9.2026 (`docs/PLAN-SESIJA.md`, §5.4).
+  assert.ok(!('today' in panel));
   assert.deepEqual(panel.idle, []);
   assert.deepEqual(panel.stalled, []);
   assert.equal(panel.counts.waiting, 0);

@@ -15,6 +15,32 @@
 
 const logger = require('./logger');
 
+/// The two states a room's board has, and the two spellings the column keeps
+/// for them (`docs/PLAN-SESIJA.md`, phase 3). It has held six: `host_only` — the
+/// default, which no screen could show — `trainer_only`, `student_white` and
+/// `student_black`, which were labels only (nothing on either end ever filtered
+/// a move by colour), `student_both` and `unrestricted`. `boardIsOpen` reads all
+/// six the way the code always treated them; `boardControlFor` writes two.
+/// The app's copy of this rule is `board_control_rules.dart`, and both name the
+/// same two locked spellings.
+const BOARD_LOCKED = 'trainer_only';
+const BOARD_OPEN = 'student_both';
+
+function boardIsOpen(boardControl) {
+  const control = boardControl || 'host_only';
+  return control !== 'host_only' && control !== 'trainer_only';
+}
+
+/// What to store for a value a client asked for; null for one that is not a
+/// board state at all. Old spellings are accepted and written as the new two,
+/// so an app that has not been updated keeps working and the column converges.
+function boardControlFor(requested) {
+  const known = ['host_only', 'trainer_only', 'student_white', 'student_black',
+    'student_both', 'unrestricted'];
+  if (!known.includes(requested)) return null;
+  return boardIsOpen(requested) ? BOARD_OPEN : BOARD_LOCKED;
+}
+
 /// True when `joinGame` seated this socket in `roomId`.
 function isSeatedIn(socket, roomId) {
   return typeof roomId === 'string' && roomId !== '' && socket.roomId === roomId;
@@ -38,8 +64,7 @@ function registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileg
       return false;
     }
     if (!room) return true;
-    const control = room.board_control || 'host_only';
-    if (control !== 'host_only' && control !== 'trainer_only') return true;
+    if (boardIsOpen(room.board_control)) return true;
     return canAdministerRoom(socket, roomId);
   }
 
@@ -91,4 +116,4 @@ function registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileg
   });
 }
 
-module.exports = { registerRoomBoardEvents, isSeatedIn };
+module.exports = { BOARD_LOCKED, BOARD_OPEN, boardIsOpen, boardControlFor, registerRoomBoardEvents, isSeatedIn };

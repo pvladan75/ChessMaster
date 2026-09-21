@@ -64,6 +64,38 @@ test('an accepted student of the creator is let in', async () => {
   assert.match(pool.calls[1].text, /status = 'accepted'/);
 });
 
+test('the door opens for the creator’s students, not for the creator’s trainer', async () => {
+  // The owner's decision of 21.9.2026: whoever starts a session is teaching in
+  // it. The relationship used to be read in either direction, so a trainer could
+  // enter a student's room and be seated as a student. A sequential stub cannot
+  // see a direction, so this one answers the question it is actually asked:
+  // 7 teaches 9, and nothing else is true.
+  const teaches = (trainerId, studentId) => trainerId === 7 && studentId === 9;
+  const poolFor = (creatorId) => ({
+    async query(text, params) {
+      const sql = text.replace(/\s+/g, ' ');
+      if (/FROM rooms WHERE room_code/.test(sql)) {
+        return { rows: [{ creator_id: creatorId, allow_guests: false }], rowCount: 1 };
+      }
+      if (/FROM trainer_students/.test(sql)) {
+        const [a, b] = params.map(Number);
+        const eitherWay = /trainer_id = \$2/.test(sql);
+        const hit = teaches(a, b) || (eitherWay && teaches(b, a));
+        return hit ? { rows: [{ ok: 1 }], rowCount: 1 } : { rows: [], rowCount: 0 };
+      }
+      return { rows: [], rowCount: 0 };
+    },
+  });
+
+  const student = await mayJoinRoom(poolFor(7), { roomCode: '123456', userId: 9 });
+  assert.equal(student.allowed, true);
+  assert.equal(student.role, 'ucenik');
+
+  const trainer = await mayJoinRoom(poolFor(9), { roomCode: '123456', userId: 7 });
+  assert.equal(trainer.allowed, false, 'a trainer walked into a student’s room');
+  assert.equal(trainer.reason, REFUSED.notInvited);
+});
+
 test('a stranger with the right code is refused', async () => {
   // The whole point. Before this existed, this call was the one that let
   // somebody into a voice room with a child.
@@ -78,22 +110,53 @@ test('a stranger with the right code is refused', async () => {
   });
 });
 
-test('somebody invited to a session on this room code is let in', async () => {
-  // The invitation is the consent, and it is already recorded.
+test('an invitation to a scheduled session is no longer a door', async () => {
+  // Supersedes „somebody invited to a session on this room code is let in".
+  // Scheduled sessions were removed on 21.9.2026 on the owner's word
+  // (`docs/PLAN-SESIJA.md`, §5.4): nothing in the app could write one, and the
+  // door they opened was one more way into a room. The stub would still answer
+  // „yes" to a fourth question — the point is that nobody asks it.
   const pool = stubPool([room(7), no, no, yes]);
 
   const seat = await mayJoinRoom(pool, { roomCode: '123456', userId: 12 });
 
-  assert.equal(seat.allowed, true);
-  assert.match(pool.calls[3].text, /scheduled_session_invites/);
-  assert.match(pool.calls[3].text, /status <> 'declined'/);
-  // Whose invitation it is decides whether it is consent at all. Scheduling a
-  // session takes a room code and a list of people, and nothing stopped anybody
-  // from scheduling one on **somebody else's** code and inviting themselves —
-  // an invitation issued to yourself, walking past the guest list.
-  assert.match(pool.calls[3].text, /s\.host_id = \$3/);
-  assert.deepEqual(pool.calls[3].params, ['123456', 12, 7],
-    'soba, pozvani, i tvorac sobe kao domaćin');
+  assert.equal(seat.allowed, false);
+  assert.equal(seat.reason, REFUSED.notInvited);
+  assert.ok(!pool.calls.some((call) => /scheduled_session/.test(call.text)),
+    'mayJoinRoom still reads scheduled sessions');
+});
+
+const archived = (creatorId) => [
+  { creator_id: creatorId, allow_guests: false, status: 'archived' },
+];
+
+test('an ended session admits nobody, its creator included', async () => {
+  const owner = await mayJoinRoom(stubPool([archived(7)]), { roomCode: '123456', userId: 7 });
+  assert.deepEqual(owner, { allowed: false, reason: REFUSED.ended, role: null });
+
+  const student = await mayJoinRoom(stubPool([archived(7), yes, no]),
+    { roomCode: '123456', userId: 9 });
+  assert.deepEqual(student, { allowed: false, reason: REFUSED.ended, role: null });
+});
+
+test('a stranger is not told that a room has ended', async () => {
+  // „Ended" confirms that the code once named a room. Somebody with no seat in
+  // it hears what a stranger always heard.
+  const seat = await mayJoinRoom(stubPool([archived(7), no, no]),
+    { roomCode: '123456', userId: 99 });
+
+  assert.equal(seat.allowed, false);
+  assert.equal(seat.reason, REFUSED.notInvited);
+});
+
+test('an ended session has no voice either', async () => {
+  // `/agora/token` and `audio_join` ask `maySpeakInRoom`, which asks
+  // `mayJoinRoom` — so the channel closes with the room, by construction.
+  const seat = await maySpeakInRoom(stubPool([archived(7)]), { roomCode: '123456', userId: 7 });
+
+  assert.equal(seat.allowed, false);
+  assert.equal(seat.maySpeak, false);
+  assert.equal(seat.reason, REFUSED.ended);
 });
 
 test('a guest list narrows the room to the people on it', async () => {
@@ -270,10 +333,10 @@ test('a guest watches, and is not heard', async () => {
   assert.equal(seat.role, 'gost');
 });
 
-test('somebody with no relationship behind them listens', async () => {
-  // In on an invitation to a scheduled session: there is no row to hold a
-  // decision about their microphone, and a missing answer must not read as yes.
-  const pool = stubPool([room(7), no, no, yes, []]);
+test('a seat with no voice decision behind it listens', async () => {
+  // Seated as a student, and the relationship row that would hold the decision
+  // about their microphone is not found. A missing answer must not read as yes.
+  const pool = stubPool([room(7), yes, no, []]);
 
   const seat = await maySpeakInRoom(pool, { roomCode: '123456', userId: 12 });
 
@@ -379,7 +442,7 @@ test('the guest switch is exposed, and refuses a room that is not yours', () => 
   }
 });
 
-test('the two ways to be invited both ask who is inviting', () => {
+test('an invitation asks who is inviting, and into which room', () => {
   // Asserted on the source for the same reason as the socket handlers: the
   // failure is invisible in behaviour. Both routes keep working perfectly for
   // the trainer who uses them, and the only difference is that they also work
@@ -394,14 +457,18 @@ test('the two ways to be invited both ask who is inviting', () => {
   };
 
   const invitations = handler('/invitations/send');
-  assert.match(invitations, /acceptedEdgeBetween/,
+  // `trainerOwnsStudent` since 21.9.2026: whoever starts a session invites
+  // their own students, so the check names the direction as well as the status.
+  assert.match(invitations, /trainerOwnsStudent/,
     'poziv se šalje bilo kom id-u, bez veze sa pošiljaocem');
 
-  const schedule = handler('/sessions/schedule');
-  assert.match(schedule, /ownsRoom/,
-    'čas se zakazuje u tuđoj sobi, što je ključ za tu sobu');
-  assert.match(schedule, /acceptedEdgeBetween/,
-    'na čas se poziva neko ko nije prihvatio vezu');
+  // And only into the sender's own live session: the route used to take any
+  // room code at all.
+  assert.match(invitations, /mayJoinRoom/,
+    'poziv može da imenuje tuđu ili završenu sobu');
+
+  assert.ok(!social.includes("'/sessions/schedule'"),
+    'zakazane sesije su uklonjene 21.9.2026 i ne vraćaju se kao druga vrata u sobu');
 });
 
 test('the room code comes from a real random source', () => {

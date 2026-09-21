@@ -8,30 +8,46 @@
 /// bar ended up with a fifth that consulted the wrong role entirely.
 library;
 
+/// The two states a room's board has (docs/PLAN-SESIJA.md, phase 3).
+///
+/// The column held six spellings of them: `host_only` (the database default,
+/// which no screen could show or choose), `trainer_only`, `student_white` and
+/// `student_black` — labels only, nothing on either end ever filtered a move by
+/// colour, so „Student plays as White" let them move Black too — `student_both`
+/// and `unrestricted`. What the code did with all six was one question, and it
+/// is asked here and in `roomBoardEvents.js`, which answers it the same way.
+const String boardLocked = 'trainer_only';
+const String boardOpen = 'student_both';
+
+/// Whether [boardControl], in any spelling the column has ever held, lets
+/// students move. Only the two locked spellings lock.
+bool boardIsOpen(String? boardControl) =>
+    boardControl != 'host_only' && boardControl != 'trainer_only';
+
+/// True when this seat **leads** the room: the person who started the session,
+/// seated 'trener' by the server and by nobody else — or the local Preparation
+/// board, which has nobody to share with.
+///
+/// One answer, in one place. The room screen used to hold four: a getter, two
+/// locals that added the *account's* role, and one that left out the co-host
+/// seat. There is no co-host any more, and `users.role` plays no part in
+/// teaching: a trainer is a position in a relationship.
+bool leadsRoom({required String? seatRole, bool isStudio = false}) =>
+    isStudio || seatRole == 'trener';
+
 /// True when a client holding [seatRole] in a room whose board is set to
 /// [boardControl] may move pieces and navigate the move tree.
 ///
-/// [seatRole] is the seat the **server** granted for this room, which is what
-/// decides this — not the account's global role. A trainer who creates a room
-/// is seated 'trener' there while their account is still registered
-/// 'korisnik', so testing the account role alone locks the room's own host out
-/// of their board. [accountRole] is still honoured, since an account-level
-/// trainer is trusted in any room they are in.
-///
-/// [isStudio] marks the local analysis board, which has no room to share with
-/// and so is never restricted.
+/// [seatRole] is the seat the **server** granted for this room. The account's
+/// own role is not asked: it used to be, and an account registered 'trener'
+/// could then drive the board of any room it sat in as a student.
 bool canDriveSharedBoard({
   required String? seatRole,
-  required String? accountRole,
   required String boardControl,
   bool isStudio = false,
-}) {
-  if (isStudio) return true;
-  if (seatRole == 'host' || seatRole == 'trener') return true;
-  if (accountRole == 'trener') return true;
-  // Anything other than the two restricted modes is open to every seat.
-  return boardControl != 'host_only' && boardControl != 'trainer_only';
-}
+}) =>
+    leadsRoom(seatRole: seatRole, isStudio: isStudio) ||
+    boardIsOpen(boardControl);
 
 /// True when this account **teaches** in the room — the rule behind the
 /// room's teaching actions („Make exercise", and what a tutorial row offers),

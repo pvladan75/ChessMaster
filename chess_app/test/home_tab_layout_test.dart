@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/services/room_session_api.dart';
 import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
@@ -62,18 +63,22 @@ Future<void> _pump(WidgetTester tester, double width,
           width: width,
           child: HomeDashboardTab(
             userName: 'Trainer',
-            codeController: TextEditingController(),
+            // The third shortcut card. It was „In a session now" with a code field
+            // until typing a code was removed (21.9.2026); the block that names
+            // the room instead stands where it stood.
+            liveSessions: const [
+              LiveSession(roomCode: '923337', trainerName: 'Vladan'),
+            ],
             recordings: _recordings,
             isLoadingRecordings: false,
             panel: _panel,
-            onEnterLesson: (_) {},
             onOpenPanelAssignment: (_) {},
             onOpenStudent: (_, __) {},
             hasTrainer: true,
             onOpenAssignments: () {},
             onOpenReviews: () {},
             dueReviewCount: 3,
-            onJoinRoom: (_) {},
+            onJoinSession: (_) {},
             onRefreshRecordings: () {},
             onOpenReplay: (_) {},
           ),
@@ -103,7 +108,7 @@ List<Rect> _playButtons(WidgetTester tester) => [
 
 int _distinct(Iterable<double> xs) => xs.map((x) => x.round()).toSet().length;
 
-const _shortcuts = ['Set for me', 'Due for review', 'Join a session'];
+const _shortcuts = ['Set for me', 'Due for review', 'In a session now'];
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -113,12 +118,12 @@ void main() {
     await _pump(tester, 1400);
     final s = _card(tester, 'Set for me');
     final d = _card(tester, 'Due for review');
-    final j = _card(tester, 'Join a session');
+    final j = _card(tester, 'In a session now');
     expect(d.top, s.top, reason: '„Due for review" is not beside „Set for me"');
-    expect(j.top, s.top, reason: '„Join a session" is not in the same row');
+    expect(j.top, s.top, reason: '„In a session now" is not in the same row');
     expect(d.left, greaterThan(s.right));
     expect(j.left, greaterThan(d.right));
-    // „Join a session" holds a field and a button, its neighbours one line of
+    // „In a session now" holds a name and a button, its neighbours one line of
     // text; the row still ends on one line.
     expect(d.height, s.height, reason: 'the row ends at two heights');
     expect(j.height, s.height, reason: 'the row ends at two heights');

@@ -23,27 +23,16 @@ void main() {
 
   TrainerPanelView view(
     TrainerPanel panel, {
-    void Function(String)? onEnterLesson,
     void Function(PanelAssignment)? onOpenAssignment,
     void Function(int, String)? onOpenStudent,
   }) =>
       TrainerPanelView(
         panel: panel,
-        onEnterLesson: onEnterLesson ?? (_) {},
         onOpenAssignment: onOpenAssignment ?? (_) {},
         onOpenStudent: onOpenStudent ?? (_, __) {},
       );
 
   final full = TrainerPanel(
-    today: [
-      PanelLesson(
-        id: 1,
-        roomCode: 'ABC123',
-        title: 'Skakačeve viljuške',
-        guests: const ['Ana Marić'],
-        scheduledAt: DateTime.now().add(const Duration(hours: 2)),
-      ),
-    ],
     dueSoon: [
       PanelAssignment(
         id: 2,
@@ -101,7 +90,9 @@ void main() {
     await tester.pumpWidget(wrap(view(full)));
     await tester.pumpAndSettle();
 
-    expect(find.text('TODAY'), findsOneWidget);
+    // „Today" listed scheduled sessions, which left on 21.9.2026
+    // (docs/PLAN-SESIJA.md, §5.4): nothing in the app could schedule one.
+    expect(find.text('TODAY'), findsNothing);
     expect(find.text('TO REVIEW'), findsOneWidget);
     expect(find.text('HOMEWORK DUE SOON'), findsOneWidget);
     expect(find.text('HOMEWORK STALLED'), findsOneWidget);
@@ -140,7 +131,6 @@ void main() {
     // A long name next to a button is the row that overflows, so the test uses
     // one rather than the tidy names above.
     await tester.pumpWidget(wrap(view(TrainerPanel(
-      today: full.today,
       dueSoon: [
         PanelAssignment(
           id: 4,
@@ -164,13 +154,11 @@ void main() {
   });
 
   testWidgets('each row acts on the thing it names', (tester) async {
-    String? entered;
     int? opened;
     int? student;
 
     await tester.pumpWidget(wrap(view(
       full,
-      onEnterLesson: (code) => entered = code,
       onOpenAssignment: (a) => opened = a.id,
       onOpenStudent: (id, _) => student = id,
     )));
@@ -185,9 +173,6 @@ void main() {
       await tester.tap(finder);
       await tester.pumpAndSettle();
     }
-
-    await press(find.text('Enter'));
-    expect(entered, 'ABC123');
 
     await press(find.text('Review'));
     expect(opened, 3, reason: 'the finished assignment, not the one still due');

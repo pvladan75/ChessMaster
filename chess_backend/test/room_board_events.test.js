@@ -170,3 +170,58 @@ test('a share without a position sends nothing', async () => {
   socket.handlers.student_shares_position({ roomId: '123456', targetUserId: 1, fen: '' });
   assert.deepEqual(socket.broadcasts, []);
 });
+
+// Two board states, and one leader — phase 3 of docs/PLAN-SESIJA.md.
+
+const fs = require('node:fs');
+const path = require('node:path');
+const {
+  BOARD_LOCKED, BOARD_OPEN, boardIsOpen, boardControlFor,
+} = require('../services/roomBoardEvents');
+
+test('every spelling the column has held reads as one of two states', () => {
+  for (const locked of ['host_only', 'trainer_only', null, undefined, '']) {
+    assert.equal(boardIsOpen(locked), false, String(locked));
+  }
+  // `student_white` and `student_black` never filtered a move by colour on
+  // either end: they were open boards with a misleading label.
+  for (const open of ['student_both', 'student_white', 'student_black', 'unrestricted']) {
+    assert.equal(boardIsOpen(open), true, open);
+  }
+});
+
+test('what is stored is one of two values, and nonsense is not stored', () => {
+  assert.equal(boardControlFor('host_only'), BOARD_LOCKED);
+  assert.equal(boardControlFor('trainer_only'), BOARD_LOCKED);
+  for (const open of ['student_both', 'student_white', 'student_black', 'unrestricted']) {
+    assert.equal(boardControlFor(open), BOARD_OPEN, open);
+  }
+  // The value is broadcast to every client in the room and read back on join.
+  for (const junk of ['', 'everyone', null, undefined, 7, { a: 1 }, "x'; DROP TABLE rooms; --"]) {
+    assert.equal(boardControlFor(junk), null, String(junk));
+  }
+  // What is written must read back as what was meant.
+  assert.equal(boardIsOpen(BOARD_OPEN), true);
+  assert.equal(boardIsOpen(BOARD_LOCKED), false);
+});
+
+test('a client that asks for a board state that does not exist is refused, not stored', () => {
+  // Read from the source because the handler lives in server.js, which cannot
+  // be required without starting a server. Comments are stripped first: the
+  // story of the old behaviour is told in them.
+  const source = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8')
+    .split(/\r?\n/).map((line) => line.replace(/\/\/.*$/, '')).join('\n');
+
+  const start = source.indexOf("socket.on('change_permissions'");
+  assert.ok(start > 0, 'change_permissions was not found');
+  const handler = source.slice(start, source.indexOf("socket.on('", start + 10));
+  assert.match(handler, /boardControlFor\(boardControl\)/);
+  assert.match(handler, /stored === null/);
+  assert.doesNotMatch(handler, /\[boardControl, roomId\]/,
+    'the raw value from the client is what gets stored');
+
+  // One leader: nobody is promoted, and a seat does not administer a room.
+  assert.ok(!source.includes("'change_user_role'"), 'promotion is back');
+  assert.ok(!/role === 'host'/.test(source), 'the co-host seat still counts for something');
+  assert.ok(!source.includes('previousSeat'), 'a seat survives a rejoin again');
+});

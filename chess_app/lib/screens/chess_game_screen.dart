@@ -30,6 +30,10 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/local_recording_service.dart';
 import 'package:chess_app/services/lesson_recorder.dart';
 import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/services/room_session_api.dart';
+import 'package:chess_app/widgets/game_screen/invite_students_dialog.dart';
+import 'package:chess_app/widgets/game_screen/room_presence_title.dart';
+import 'package:chess_app/widgets/game_screen/room_voice_invite.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -87,6 +91,10 @@ class ChessGamePage extends StatefulWidget {
   /// whether it teaches in this room ([mayTeachInRoom]).
   final GroupApiService? groupApi;
 
+  /// Ends the session and asks whether a room is still one. Injected by tests;
+  /// the room builds its own otherwise.
+  final RoomSessionApi? roomSessionApi;
+
   const ChessGamePage({
     super.key,
     required this.roomCode,
@@ -95,6 +103,7 @@ class ChessGamePage extends StatefulWidget {
     this.lessonApi,
     this.positionLibrary,
     this.groupApi,
+    this.roomSessionApi,
   });
 
   @override
@@ -172,6 +181,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
   bool isVoiceOn = false;
   bool isAudioConnecting = false;
   String? audioError;
+
+  /// Set while the voice is up and the device's own audio is not — see
+  /// `AgoraService.microphoneProblemFor`. Not [audioError]: the panel's
+  /// controls stay, because the person is in the call and hears it.
+  String? micProblem;
   bool isHandRaised = false;
   List<dynamic> roomMembers = [];
 
@@ -265,17 +279,19 @@ class _ChessGamePageState extends State<ChessGamePage> {
   int _activeCourseIndex = 0;
   String? _activeCourseTitle;
 
-  bool get isHost =>
-      activeRole == 'host' ||
-      activeRole == 'trener' ||
-      widget.roomCode == 'STUDIO';
-  bool get isTrener => isHost;
+  /// Whether this seat leads the room — [rules.leadsRoom], and the only
+  /// place this screen asks. It held four definitions of this until phase 3 of
+  /// docs/PLAN-SESIJA.md; `test/room_one_leader_test.dart` keeps it at one.
+  bool get isLeader => rules.leadsRoom(
+        seatRole: activeRole,
+        isStudio: widget.roomCode == 'STUDIO',
+      );
 
   /// Seated in a real room without the right to run it. Asked of the seat the
   /// server granted, never of the role in the URL: joining by code arrives as
   /// 'korisnik', so a check for 'ucenik' there never fired for anybody who
   /// typed a code, and the voice and sharing controls were dead for them.
-  bool get _isStudentSeat => widget.roomCode != 'STUDIO' && !isHost;
+  bool get _isStudentSeat => widget.roomCode != 'STUDIO' && !isLeader;
 
   /// Whether this client may drive the shared board — either by moving a piece
   /// or by stepping through the move tree. Both broadcast the new position to
@@ -287,7 +303,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// navigation bar came up disabled. See [rules.canDriveSharedBoard].
   bool get canDriveSharedBoard => rules.canDriveSharedBoard(
         seatRole: activeRole,
-        accountRole: widget.userSession.role,
         boardControl: boardControl,
         isStudio: widget.roomCode == 'STUDIO',
       );
@@ -301,14 +316,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
         PositionLibraryService(authToken: widget.userSession.token);
     if (widget.roomCode != 'STUDIO') _loadMyStudents();
     if (widget.roomCode == 'STUDIO') {
-      activeRole = 'host';
+      activeRole = 'trener';
       boardOrientation = PlayerColor.white;
       allowStudentEngine = true;
       boardControl = 'unrestricted';
     } else {
       activeRole = widget.initialRole ?? 'korisnik';
-      boardOrientation =
-          activeRole == 'host' ? PlayerColor.white : PlayerColor.black;
+      // Whoever leads sits behind White. This asked for the co-host seat by
+      // name, so a trainer arriving as 'trener' opened on Black's side.
+      boardOrientation = isLeader ? PlayerColor.white : PlayerColor.black;
 
       if (widget.userSession.isGuest) {
         // A guest reached a real room directly (shared link, restored deep
@@ -455,10 +471,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// channel, which is what lets somebody who has not turned their voice on see
   /// that the lesson is being spoken. Without that, "glas je na dugme" would
   /// mean a student sitting in silence not knowing there is anything to hear.
-  List<String> get _voiceUsersOther => audioUsers
-      .where((u) => u is Map && u['userId'] != widget.userSession.id)
-      .map<String>((u) => (u['userName'] ?? 'Participant').toString())
-      .toList();
+  List<String> get _voiceUsersOther => [
+        for (final u in voiceUsersOther(audioUsers, widget.userSession.id))
+          (u['userName'] ?? 'Participant').toString(),
+      ];
+
+  /// „*Name* is in voice" for somebody who is not hearing it, else null — see
+  /// [voiceInviteLine]. Nothing is said while disconnected, for the reason the
+  /// presence line gives: the roster on screen would be the last one heard.
+  String? get _voiceInvite => !isConnected || widget.roomCode == 'STUDIO'
+      ? null
+      : voiceInviteLine(audioUsers,
+          myId: widget.userSession.id, voiceOn: isVoiceOn);
 
   /// Enters the voice channel because somebody asked for it.
   ///
@@ -488,9 +512,27 @@ class _ChessGamePageState extends State<ChessGamePage> {
       isVoiceOn = false;
       isAudioConnecting = false;
       audioError = null;
+      micProblem = null;
       isAudioMuted = false;
       mayUseMic = false;
       isHandRaised = false;
+    });
+  }
+
+  /// Tells the server this person is in the voice, which is what puts them on
+  /// the roster everybody sees and starts the meter. It opens nothing: the
+  /// channel is Agora's, and by the time this is said it is already joined.
+  ///
+  /// Said twice in a session's life: when the channel comes up, and again when
+  /// the room's socket is seated anew while the call is still running — the
+  /// server's voice roster lives in memory, and Agora does not notice a restart.
+  void _announceVoice() {
+    socket.emit('audio_join', {
+      'roomId': widget.roomCode,
+      'userId': widget.userSession.id,
+      'userName': widget.userSession.name,
+      'role': widget.userSession.role,
+      'isMuted': _agoraService.isMuted,
     });
   }
 
@@ -516,6 +558,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     };
 
+    _agoraService.onMicrophoneProblem = (problem) {
+      if (mounted) setState(() => micProblem = problem);
+    };
+
     _agoraService.onJoinStateChanged = (joined, err) {
       if (mounted) {
         setState(() {
@@ -523,15 +569,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
           audioError = err;
         });
 
-        if (joined) {
-          socket.emit('audio_join', {
-            'roomId': widget.roomCode,
-            'userId': widget.userSession.id,
-            'userName': widget.userSession.name,
-            'role': widget.userSession.role,
-            'isMuted': _agoraService.isMuted,
-          });
-        }
+        if (joined) _announceVoice();
       }
     };
 
@@ -696,8 +734,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final List<AnalysisLine> linesList =
         sortedKeys.map((k) => engineLines[k]!).toList();
     final isStudio = widget.roomCode == 'STUDIO';
-    final isTrener = activeRole == 'trener' || isStudio;
-    final isAllowedToUseEngine = isTrener || isStudio || allowStudentEngine;
+    final isAllowedToUseEngine = isLeader || allowStudentEngine;
 
     return StockfishAnalysisWidget(
       isEngineEnabled: isEngineEnabled,
@@ -749,12 +786,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   Widget _buildChessBoardWithOverlay(double boardSize) {
-    final isHost = activeRole == 'host' ||
-        activeRole == 'trener' ||
-        widget.userSession.role == 'trener' ||
-        widget.roomCode == 'STUDIO';
     final isAllowedToMove = canDriveSharedBoard;
-    final isAllowedToUseEngine = isHost || allowStudentEngine;
+    final isAllowedToUseEngine = isLeader || allowStudentEngine;
 
     // The engine switch reaches the room too. It used to draw these
     // unconditionally, with a board menu that offered only coordinates.
@@ -969,7 +1002,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       // Join room passing role and roomCode
       socket.emit('joinGame', {
         'roomId': widget.roomCode,
-        'playerColor': widget.userSession.role == 'trener' ? 'white' : 'black',
         'userId': widget.userSession.id,
         'userName': widget.userSession.name,
         'role': widget.userSession.role,
@@ -1022,6 +1054,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
             'This room does not allow guests — sign in or request an invite.',
         'not-invited':
             'You are not on the list for this room. Ask the trainer for an invite.',
+        'ended': 'This session has ended.',
       };
       final text = messages[reason] ?? 'Access to room is not allowed.';
       AppFeedback.show(
@@ -1029,11 +1062,28 @@ class _ChessGamePageState extends State<ChessGamePage> {
         () => SnackBar(
             content: Text(text), backgroundColor: context.colors.danger),
       );
+      // A room that refuses is not a session to come back to. The save is made
+      // in initState, before the server has said anything, and it used to
+      // survive the refusal — so Home went on offering this room and blocking
+      // every other one (docs/PLAN-SESIJA.md, F3).
+      GameSessionService.instance.clearIf(widget.roomCode);
       // And out, rather than sitting in a room that never fills: the board
       // would stay empty and the reason would scroll away with the snackbar.
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (mounted) Navigator.of(context).maybePop();
       });
+    });
+
+    // The trainer ended the session, or started another one. Everything that
+    // holds this room open is let go first and the sentence comes last: a
+    // message must not be able to stop the thing it reports.
+    socket.on('session_ended', (_) async {
+      await GameSessionService.instance.clearIf(widget.roomCode);
+      if (isVoiceOn) await _leaveVoice();
+      if (!mounted) return;
+      AppFeedback.show(context,
+          () => const SnackBar(content: Text('The session has ended.')));
+      _closeRoomScreen();
     });
 
     // The room's position for somebody arriving late. Applied only to a tree
@@ -1071,8 +1121,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
         AppFeedback.show(
           context,
           () => SnackBar(
-            content: Text(
-                'Board permissions changed: ${_getPermissionLabel(boardControl)}'),
+            content: Text(rules.boardIsOpen(boardControl)
+                ? 'Students may move on the board.'
+                : 'Only the trainer moves on the board.'),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1212,38 +1263,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
       }
     });
 
-    // Sent only to the member whose seat changed. `changed` is set when a host
-    // moved them; on joining the server sends the seat without it, and that is
-    // not news worth a notice.
+    // The seat the server gave on joining. Nobody's seat changes afterwards:
+    // promotion went with the co-host (docs/PLAN-SESIJA.md, phase 3).
     socket.on('role_changed', (data) {
-      if (data != null && mounted) {
-        final newRole = data['newRole'];
-        if (newRole is String) {
-          setState(() {
-            activeRole = newRole;
-            // The join seat, once: see [_openedRoomBySeat].
-            if (data['changed'] != true) {
-              _openedRoomBySeat ??= newRole == 'trener';
-            }
-          });
-        }
-        if (data['changed'] == true) {
-          AppFeedback.show(
-            context,
-            () => SnackBar(
-              content: Text(
-                newRole == 'trener'
-                    ? 'You have been promoted to Trainer! You now have full control over the board and session.'
-                    : 'Your role was returned to Student.',
-              ),
-              backgroundColor: newRole == 'trener'
-                  ? context.colors.accent
-                  : context.colors.warning,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-      }
+      if (data == null || !mounted) return;
+      final newRole = data['newRole'];
+      if (newRole is! String) return;
+      setState(() {
+        activeRole = newRole;
+        // The join seat, once: see [_openedRoomBySeat].
+        _openedRoomBySeat ??= newRole == 'trener';
+      });
+      // The server sends this once per seating, so a second one means the
+      // socket came back — and only now, with the seat in place, does the
+      // voice roster read the right role for whoever announces themselves.
+      if (isVoiceOn && _agoraService.isJoined) _announceVoice();
     });
 
     // Whether this room may be recorded, sent whenever the roster changes —
@@ -1341,7 +1375,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
         final String fen = data['fen'];
         final String? pgn = data['pgn'];
 
-        if (isHost) {
+        if (isLeader) {
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -1492,7 +1526,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     socket.on('audio_hand_raised_alert', (data) {
       final userName = data['userName'];
-      if (isHost) {
+      if (isLeader) {
         AppFeedback.show(
           context,
           () => SnackBar(
@@ -1793,21 +1827,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
-  String _getPermissionLabel(String control) {
-    switch (control) {
-      case 'trainer_only':
-        return 'Trainer only';
-      case 'student_white':
-        return 'Student moves White only';
-      case 'student_black':
-        return 'Student moves Black only';
-      case 'student_both':
-        return 'Free analysis';
-      default:
-        return control;
-    }
-  }
-
   void _toggleLocalOrientation() {
     setState(() {
       boardOrientation = boardOrientation == PlayerColor.white
@@ -1816,11 +1835,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
     });
   }
 
-  void _changeStudentPermissions(String? newPermission) {
-    if (newPermission == null) return;
+  /// Two states, and the wire keeps the two spellings it always had for them.
+  void _setStudentsMayMove(bool open) {
     socket.emit('change_permissions', {
       'roomId': widget.roomCode,
-      'boardControl': newPermission,
+      'boardControl': open ? rules.boardOpen : rules.boardLocked,
     });
   }
 
@@ -2238,7 +2257,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Widget _buildCourseStepBar() {
     final items = _activeCourseItems;
-    if (items == null || !isTrener) return const SizedBox.shrink();
+    if (items == null || !isLeader) return const SizedBox.shrink();
     return CourseStepBar(
       items: items,
       activeIndex: _activeCourseIndex,
@@ -2808,143 +2827,30 @@ class _ChessGamePageState extends State<ChessGamePage> {
     return 'preparation-${now.year}-${two(now.month)}-${two(now.day)}.pgn';
   }
 
+  /// Who to call in is [InviteStudentsDialog]'s business; sending is this
+  /// screen's, because the room code and the token are.
   void _showInSessionInviteFriendsDialog() async {
-    List<dynamic> friendsList = [];
-    String? loadError;
-    try {
-      final res = await http.get(
-        Uri.parse('$backendUrl/friends'),
-        headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
-      );
-      if (res.statusCode == 200) {
-        // The route answers `{ "friends": [...] }`. Decoding it straight into a
-        // list threw a TypeError on every call there has ever been, and the
-        // `catch` below swallowed it under a comment that said "quiet fail" —
-        // so this dialog told **everybody** they had no friends, a trainer with
-        // a full class included. Found live 25.8.2026, in a room with two
-        // accepted students in it.
-        final data = jsonDecode(res.body);
-        friendsList = (data is Map ? data['friends'] : data) as List? ?? [];
-      } else {
-        loadError = 'Could not load list (${res.statusCode}).';
-      }
-    } catch (e) {
-      // Not quiet any more. "I could not ask" must never come out as "you have
-      // nobody" — the same three-answer rule the account guard and the
-      // recording consent both needed.
-      loadError = 'Could not load list.';
-      print('[INVITE] Failed to fetch friends list: $e');
-    }
-
-    if (!mounted) return;
-    final List<int> selectedFriendIds = [];
-
-    showDialog(
+    final ids = await showDialog<List<int>>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.person_add, color: context.colors.accent),
-              const SizedBox(width: AppSpacing.sm),
-              const Text('Invite friends to session', style: AppText.title),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Room: ${widget.roomCode}',
-                  style:
-                      AppText.bodyBold.copyWith(color: context.colors.accent)),
-              const SizedBox(height: AppSpacing.sm),
-              const Text('Select friends you want to invite:',
-                  style: AppText.body),
-              const SizedBox(height: AppSpacing.md),
-              if (loadError != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  child: Text(loadError,
-                      style: AppText.caption
-                          .copyWith(color: context.colors.warning)),
-                )
-              else if (friendsList.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  child: Text(
-                      'You have no one on the list. Accepted students and trainers '
-                      'appear here.',
-                      style: AppText.caption
-                          .copyWith(color: context.colors.textMuted)),
-                )
-              else
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 180),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: friendsList.map((f) {
-                        final fId = f['id'] as int;
-                        final isSel = selectedFriendIds.contains(fId);
-                        return CheckboxListTile(
-                          dense: true,
-                          title: Text(f['name'] ?? 'Friend',
-                              style: AppText.bodyBold),
-                          subtitle: Text(f['email'] ?? '',
-                              style: AppText.micro
-                                  .copyWith(color: context.colors.textMuted)),
-                          value: isSel,
-                          onChanged: (val) {
-                            setModalState(() {
-                              if (val == true) {
-                                selectedFriendIds.add(fId);
-                              } else {
-                                selectedFriendIds.remove(fId);
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.send, size: 14),
-              label: Text('Send invitations (${selectedFriendIds.length})'),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: context.colors.accent,
-                  foregroundColor: context.colors.canvas),
-              onPressed: () async {
-                Navigator.pop(ctx);
-                if (selectedFriendIds.isEmpty) return;
-                try {
-                  await http.post(
-                    Uri.parse('$backendUrl/invitations/send'),
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': 'Bearer ${widget.userSession.token}'
-                    },
-                    body: jsonEncode({
-                      'friendIds': selectedFriendIds,
-                      'roomCode': widget.roomCode
-                    }),
-                  );
-                  _showSuccess('Invitations successfully sent to friends!');
-                } catch (e) {
-                  _showError('Error sending invitations.');
-                }
-              },
-            ),
-          ],
-        ),
+      builder: (_) => InviteStudentsDialog(
+        roomCode: widget.roomCode,
+        groupApi: widget.groupApi ?? GroupApiService(),
       ),
     );
+    if (ids == null || ids.isEmpty || !mounted) return;
+    try {
+      await http.post(
+        Uri.parse('$backendUrl/invitations/send'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.userSession.token}'
+        },
+        body: jsonEncode({'friendIds': ids, 'roomCode': widget.roomCode}),
+      );
+      _showSuccess('Invitations sent.');
+    } catch (e) {
+      _showError('Error sending invitations.');
+    }
   }
 
   void _showError(String message) {
@@ -3084,10 +2990,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   @override
   Widget build(BuildContext context) {
     final isStudio = widget.roomCode == 'STUDIO';
-    final isHost = activeRole == 'host' || activeRole == 'trener' || isStudio;
-    final isAllowedToMove = isHost ||
-        isStudio ||
-        (boardControl != 'host_only' && boardControl != 'trainer_only');
+    final isAllowedToMove = canDriveSharedBoard;
     final media = MediaQuery.of(context);
     // Not on a phone held sideways, however wide it is: a 932 dp phone is past
     // the breakpoint, and the wide room's two 300 dp sidebars and board
@@ -3339,10 +3242,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
 
     Widget buildRightSidebar() {
-      final isHost = activeRole == 'host' ||
-          activeRole == 'trener' ||
-          widget.userSession.role == 'trener' ||
-          widget.roomCode == 'STUDIO';
       final isStudio = widget.roomCode == 'STUDIO';
 
       // Material, not a coloured Container: the sidebar hosts a SwitchListTile,
@@ -3363,7 +3262,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 Text(
                   isStudio
                       ? 'Preparation controls'
-                      : (isHost
+                      : (isLeader
                           ? 'Host Controls & History'
                           : 'Controls & History'),
                   style: AppText.headline,
@@ -3429,31 +3328,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ),
                     ),
                   ),
-                ] else if (isTrener) ...[
-                  DropdownButtonFormField<String>(
-                    initialValue: boardControl,
-                    decoration: const InputDecoration(
-                      labelText: 'Student permissions',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                ] else if (isLeader) ...[
+                  // A switch, not a list of four: „Student plays as White /
+                  // Black" never filtered a move by colour on either end, and a
+                  // fresh room arrived as `host_only`, which the list had no
+                  // item for.
+                  SwitchListTile(
+                    key: const Key('room-students-may-move'),
+                    title: const Text('Students may move', style: AppText.body),
+                    subtitle: Text(
+                      rules.boardIsOpen(boardControl)
+                          ? 'Everybody in the room moves on the board.'
+                          : 'Only you move on the board.',
+                      style: AppText.micro,
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'trainer_only',
-                          child: Text('Me only (Trainer)')),
-                      DropdownMenuItem(
-                          value: 'student_white',
-                          child: Text('Student plays as White')),
-                      DropdownMenuItem(
-                          value: 'student_black',
-                          child: Text('Student plays as Black')),
-                      DropdownMenuItem(
-                          value: 'student_both', child: Text('Free analysis')),
-                    ],
-                    onChanged: _changeStudentPermissions,
+                    value: rules.boardIsOpen(boardControl),
+                    onChanged: _setStudentsMayMove,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
                   ),
-                  const SizedBox(height: AppSpacing.sm),
                   SwitchListTile(
                     title: const Text('Allow Stockfish for student',
                         style: TextStyle(
@@ -3533,12 +3426,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   const SizedBox(height: AppSpacing.sm),
                   _buildArrowEditButtons(),
                 ] else ...[
-                  Text(
-                    'Permission status: ${_getPermissionLabel(boardControl)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
                   if (!isAllowedToMove)
                     Row(
                       children: [
@@ -3562,11 +3449,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            boardControl == 'student_white'
-                                ? 'You can only move white pieces.'
-                                : boardControl == 'student_black'
-                                    ? 'You can only move black pieces.'
-                                    : 'Free analysis enabled.',
+                            'You may move on the board.',
                             style: AppText.bodyLarge
                                 .copyWith(color: context.colors.success),
                           ),
@@ -3623,47 +3506,18 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                         style: AppText.body,
                                       ),
                                     ),
-                                    if (isHost && !isMe) ...[
-                                      PopupMenuButton<String>(
-                                        icon: const Icon(Icons.more_vert,
-                                            size: 16),
-                                        tooltip: 'Change role',
-                                        onSelected: (newRole) {
-                                          socket.emit('change_user_role', {
-                                            'roomId': widget.roomCode,
-                                            'targetUserId': member['userId'],
-                                            'newRole': newRole,
-                                          });
-                                        },
-                                        itemBuilder: (ctx) => [
-                                          if (!isMemberTrainer)
-                                            const PopupMenuItem(
-                                              value: 'host',
-                                              child: Text(
-                                                  'Promote to Host (Co-host)',
-                                                  style: AppText.body),
-                                            )
-                                          else
-                                            const PopupMenuItem(
-                                              value: 'korisnik',
-                                              child: Text('Demote to User',
-                                                  style: AppText.body),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
                                   ],
                                 ),
                               );
                             }),
-                          if (isTrener && !isStudio) ...[
+                          if (isLeader && !isStudio) ...[
                             const SizedBox(height: AppSpacing.sm),
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
                                 onPressed: _showInSessionInviteFriendsDialog,
                                 icon: const Icon(Icons.person_add, size: 14),
-                                label: const Text('Invite friends to session',
+                                label: const Text('Invite students to session',
                                     style: AppText.caption),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: context.colors.accent,
@@ -3789,6 +3643,25 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               ),
                             ),
                           ],
+                          if (isVoiceOn && micProblem != null) ...[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.mic_off,
+                                    size: 16, color: context.colors.warning),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    micProblem!,
+                                    key: const Key('voice-mic-problem'),
+                                    style: AppText.caption.copyWith(
+                                        color: context.colors.warning),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                          ],
                           if (isVoiceOn &&
                               !isAudioConnecting &&
                               audioError == null) ...[
@@ -3858,7 +3731,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             // 360 dp phone, and in a release build the third one
                             // would simply be cut off past the edge with no
                             // warning drawn.
-                            if (!isTrener)
+                            if (!isLeader)
                               Wrap(
                                 spacing: 6,
                                 runSpacing: 6,
@@ -3935,7 +3808,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     // every time a voice token is minted, and
                                     // the one beside it is a courtesy for the
                                     // next few minutes.
-                                    if (isTrener && !isMe && !isUserTrainer)
+                                    if (isLeader && !isMe && !isUserTrainer)
                                       IconButton(
                                         icon: Icon(
                                             userMaySpeak
@@ -3952,7 +3825,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                             ? 'Revoke microphone (remains listening)'
                                             : 'Grant microphone',
                                       ),
-                                    if (isTrener && !isMe && userMaySpeak)
+                                    if (isLeader && !isMe && userMaySpeak)
                                       IconButton(
                                         icon: Icon(
                                             isUserMuted
@@ -3988,7 +3861,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                 style: AppText.caption
                                     .copyWith(color: context.colors.textMuted),
                               ),
-                            if (isHost && audioUsers.length > 1) ...[
+                            if (isLeader && audioUsers.length > 1) ...[
                               const SizedBox(height: AppSpacing.md),
                               ElevatedButton(
                                 onPressed: () {
@@ -4046,7 +3919,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                   ),
                 ],
-                if (isTrener && !isStudio) ...[
+                if (isLeader && !isStudio) ...[
                   const SizedBox(height: AppSpacing.md),
                   Card(
                     color: isRecording
@@ -4186,7 +4059,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // Narrow enough that the left column cannot stand beside the board, and a
     // seat that has a column to show. Read once: the bar's ☰ and the drawer it
     // opens are one decision, and two copies of it are two decisions.
-    final hasDrawer = !isWide && isTrener;
+    final hasDrawer = !isWide && isLeader;
 
     // How far in the ☰ has to start.
     //
@@ -4241,8 +4114,21 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 )
               : null,
           leadingWidth: hasDrawer ? 56 + leadingInset(context) : null,
-          title: Text(isConnected ? gameStatus : 'Connecting...'),
+          // Who is here, where it cannot be missed (docs/PLAN-SESIJA.md, phase
+          // 2). Nothing is said while disconnected: the roster on screen would
+          // be the last one heard, and that is not who is here.
+          title: RoomPresenceTitle(
+            status: isConnected ? gameStatus : 'Connecting...',
+            members: isConnected ? roomMembers : const [],
+            myId: widget.userSession.id,
+            compact: LandscapeBoardLayout.applies(context),
+          ),
           centerTitle: true,
+          // Drawn only while somebody is talking and this person is not
+          // hearing it; the board keeps its height the rest of the time.
+          bottom: _voiceInvite == null
+              ? null
+              : RoomVoiceInvite(line: _voiceInvite!, onJoin: _joinVoice),
           actions: [
             // Only the person whose room it is: the guest list decides who gets
             // in, and that is not a decision a seat in the room grants.
@@ -4274,12 +4160,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 if (mounted) setState(() {});
               },
             ),
+            // Whoever started the session ends it, for everybody; anybody else
+            // only leaves. Read from the seat the server gave, not the account.
             if (widget.roomCode != 'STUDIO')
-              IconButton(
-                icon: Icon(Icons.logout, color: context.colors.danger),
-                tooltip: 'Leave session',
-                onPressed: _leaveSessionExplicitly,
-              ),
+              activeRole == 'trener'
+                  ? IconButton(
+                      key: const Key('room-end-session'),
+                      icon: Icon(Icons.stop_circle_outlined,
+                          color: context.colors.danger),
+                      tooltip: 'End session',
+                      onPressed: _endSession,
+                    )
+                  : IconButton(
+                      key: const Key('room-leave-session'),
+                      icon: Icon(Icons.logout, color: context.colors.danger),
+                      tooltip: 'Leave session',
+                      onPressed: _leaveSessionExplicitly,
+                    ),
             Icon(
               isConnected ? Icons.cloud_done : Icons.cloud_off,
               color:
@@ -4489,10 +4386,66 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (isRecording && !await _resolveRecordingBeforeLeaving()) return;
     await GameSessionService.instance.clear();
     if (!mounted) return;
+    _closeRoomScreen();
+  }
+
+  /// Once. A route being popped stays `mounted` until its transition ends, and
+  /// the session's end reaches this screen twice — the HTTP answer and the
+  /// socket's `session_ended` — so a second pop would take Home with it.
+  bool _closing = false;
+
+  void _closeRoomScreen() {
+    if (_closing) return;
+    _closing = true;
     if (context.canPop()) {
       context.pop();
     } else {
       context.go(AppRoutes.home);
     }
+  }
+
+  /// The trainer's way out: the session ends for everybody in it.
+  ///
+  /// The server is asked first and the room is left only on its answer. A
+  /// trainer who walks away from a session that is still live on the server is
+  /// exactly how two people ended up in two rooms on 21.9.2026.
+  Future<void> _endSession() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('End the session?'),
+        content: const Text(
+            'Everybody in the room is sent back to Home, and invitations to '
+            'this session stop working.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Stay'),
+          ),
+          ElevatedButton(
+            key: const Key('room-end-session-confirm'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('End session'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (isRecording && !await _resolveRecordingBeforeLeaving()) return;
+
+    final api = widget.roomSessionApi ??
+        RoomSessionApi(authToken: widget.userSession.token);
+    final ended = await api.end(widget.roomCode);
+    if (!mounted) return;
+    if (!ended) {
+      AppFeedback.error(context,
+          'The session could not be ended — check the connection and try again.');
+      return;
+    }
+    // The server's `session_ended` usually gets here first and has already
+    // closed the screen; this is for the socket that was down when it was sent.
+    await GameSessionService.instance.clearIf(widget.roomCode);
+    if (!mounted) return;
+    _closeRoomScreen();
   }
 }

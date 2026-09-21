@@ -39,8 +39,9 @@ const { authenticateToken, requireRole, authenticateSocket, tokenFromHandshake }
 const entitlementService = require('./services/entitlementService');
 const realtime = require('./services/realtime');
 const { mayJoinRoom, maySpeakInRoom } = require('./services/roomAccess');
-const { registerRoomBoardEvents } = require('./services/roomBoardEvents');
+const { registerRoomBoardEvents, boardControlFor } = require('./services/roomBoardEvents');
 const { mayRecordRoom } = require('./services/recordingConsent');
+const { registerRoomVoiceEvents, dropEntry } = require('./services/roomVoiceEvents');
 const { cleanupOldExports } = require('./services/retentionService');
 const renderJobs = require('./services/renderJobs');
 const { refreshStoredReplies } = require('./services/repertoireDrillService');
@@ -178,8 +179,15 @@ const roomAudioUsers = {}; // roomId -> { userId -> { socketId, userId, userName
 // Presence lives in services/realtime.js so the HTTP routes can reach a
 // connected user too — a notification raised by a route used to sit in the
 // database until the recipient restarted the app.
-const onlineUsers = realtime.onlineUsers;
 const activeRoomMembers = {}; // roomId -> { userId -> { name, role } }
+
+// A session that ends leaves nobody seated and nobody in its voice
+// (`realtime.closeRoom`). A roster that outlived its room would keep answering
+// „who is here" for a room nobody can enter.
+realtime.onRoomClosed((roomId) => {
+  delete activeRoomMembers[roomId];
+  delete roomAudioUsers[roomId];
+});
 
 
 /// Books the voice time a socket has been connected for.
@@ -232,14 +240,15 @@ async function isRoomCreator(roomId, userId) {
   }
 }
 
-/// Guards host-only realtime actions. A socket qualifies if it created the room or
-/// currently holds a host/trener seat granted by the creator.
+/// Guards the actions that belong to whoever leads the room — and that is its
+/// creator, nobody else. A seat used to count as well: the creator could
+/// promote somebody to co-host, which is how „who leads" came to have more than
+/// one answer (`docs/PLAN-SESIJA.md`, phase 3). Promotion is gone, so the seat
+/// has nothing to add to the row in `rooms`.
 async function canAdministerRoom(socket, roomId) {
   const user = socket.data.user;
   if (!user) return false;
-  if (await isRoomCreator(roomId, user.id)) return true;
-  const member = activeRoomMembers[roomId] && activeRoomMembers[roomId][user.id];
-  return !!member && (member.role === 'host' || member.role === 'trener');
+  return isRoomCreator(roomId, user.id);
 }
 
 /// Tells the room whether it may be recorded right now, and why not.
@@ -306,7 +315,7 @@ io.on('connection', (socket) => {
   // relationship and writes the notification before nudging the socket. The
   // socket-only path it replaces checked neither.
 
-  socket.on('joinGame', async ({ roomId, playerColor }) => {
+  socket.on('joinGame', async ({ roomId } = {}) => {
     // The guest list, before the door. This handler used to join first and ask
     // nothing — not a relationship, not an invitation, not even a login — so a
     // guessed six-digit code put a stranger in a live lesson, and in the
@@ -332,16 +341,18 @@ io.on('connection', (socket) => {
     socket.userId = authUser ? authUser.id : socket.id;
     socket.userName = authUser ? authUser.name : 'Guest';
 
+    // Reachable here too, not only at Home: what is sent to a person
+    // (`voice_level_changed` above all) has to find them in the room they are
+    // sitting in, and their Home socket is often disconnected meanwhile.
+    if (authUser) realtime.setOnline(authUser, socket.id);
+
     if (!activeRoomMembers[roomId]) {
       activeRoomMembers[roomId] = {};
     }
 
-    // The room's creator is the host. Everyone else keeps whatever seat they
-    // had, or the one the guest list gave them.
-    const previousSeat = activeRoomMembers[roomId][socket.userId];
-    socket.userRole = seat.role === 'trener'
-      ? 'trener'
-      : (previousSeat ? previousSeat.role : seat.role);
+    // The seat is what the guest list says, every time. It used to survive a
+    // rejoin, for the sake of a promotion that no longer exists.
+    socket.userRole = seat.role;
 
     activeRoomMembers[roomId][socket.userId] = {
       userId: socket.userId,
@@ -410,31 +421,20 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('change_user_role', async ({ roomId, targetUserId, newRole }) => {
-    if (!(await canAdministerRoom(socket, roomId))) {
-      return denyPrivileged(socket, 'change_user_role', roomId);
-    }
-    if (!['trener', 'host', 'ucenik'].includes(newRole)) {
-      return denyPrivileged(socket, 'change_user_role', roomId);
-    }
-    if (activeRoomMembers[roomId] && activeRoomMembers[roomId][targetUserId]) {
-      activeRoomMembers[roomId][targetUserId].role = newRole;
-      io.to(roomId).emit('room_members_list', Object.values(activeRoomMembers[roomId]));
-      const targetMember = activeRoomMembers[roomId][targetUserId];
-      if (targetMember && targetMember.socketId) {
-        io.to(targetMember.socketId).emit('role_changed', { newRole, changed: true });
-      }
-    }
-  });
-
   socket.on('change_permissions', async ({ roomId, boardControl }) => {
     if (!(await canAdministerRoom(socket, roomId))) {
       return denyPrivileged(socket, 'change_permissions', roomId);
     }
+    // Two states, whatever spelling was asked for; anything else is refused
+    // rather than stored — the column is read back by every client in the room.
+    const stored = boardControlFor(boardControl);
+    if (stored === null) {
+      return denyPrivileged(socket, 'change_permissions', roomId);
+    }
     try {
-      await pool.query('UPDATE rooms SET board_control = $1 WHERE room_code = $2', [boardControl, roomId]);
-      io.to(roomId).emit('permissions_updated', { boardControl });
-      logger.info(`[PERMISSIONS] Room ${roomId} boardControl updated to ${boardControl}`);
+      await pool.query('UPDATE rooms SET board_control = $1 WHERE room_code = $2', [stored, roomId]);
+      io.to(roomId).emit('permissions_updated', { boardControl: stored });
+      logger.info(`[PERMISSIONS] Room ${roomId} boardControl updated to ${stored}`);
     } catch (e) {
       logger.error('Error updating permissions:', e);
     }
@@ -579,19 +579,10 @@ io.on('connection', (socket) => {
     logger.info(`[AUDIO] User ${roomAudioUsers[roomId][audioUserId].userName} (${audioUserId}) joined audio in room ${roomId}`);
   });
 
-  socket.on('audio_leave', ({ roomId }) => {
-    const userId = socket.audioUserId;
-    flushAudioUsage(socket);
-    if (roomAudioUsers[roomId] && roomAudioUsers[roomId][userId]) {
-      delete roomAudioUsers[roomId][userId];
-      if (Object.keys(roomAudioUsers[roomId]).length === 0) {
-        delete roomAudioUsers[roomId];
-      } else {
-        io.to(roomId).emit('audio_users_list', Object.values(roomAudioUsers[roomId]));
-      }
-    }
-    socket.leave(roomId);
-    logger.info(`[AUDIO] User ${userId} left audio in room ${roomId}`);
+  // `audio_leave` lives in services/roomVoiceEvents.js: leaving the voice must
+  // not take a seated socket out of the room its board is broadcast in.
+  registerRoomVoiceEvents(socket, {
+    io, audioUsers: () => roomAudioUsers, flushAudioUsage,
   });
 
   // Users may always mute themselves; muting someone else is a host action.
@@ -625,7 +616,7 @@ io.on('connection', (socket) => {
     }
     if (roomAudioUsers[roomId]) {
       Object.keys(roomAudioUsers[roomId]).forEach(uId => {
-        if (roomAudioUsers[roomId][uId].role !== 'host' && roomAudioUsers[roomId][uId].role !== 'trener') {
+        if (roomAudioUsers[roomId][uId].role !== 'trener') {
           roomAudioUsers[roomId][uId].isMuted = true;
         }
       });
@@ -680,15 +671,15 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     logger.info(`User disconnected: ${socket.id}`);
 
-    if (socket.userId && realtime.goOffline(socket.userId)) {
+    if (socket.userId && realtime.goOffline(socket.userId, socket.id)) {
       logger.info(`[ONLINE PRESENCE] User disconnected: ID ${socket.userId}`);
     }
 
-    if (socket.roomId && socket.userId && activeRoomMembers[socket.roomId]) {
-      delete activeRoomMembers[socket.roomId][socket.userId];
-      if (Object.keys(activeRoomMembers[socket.roomId]).length === 0) {
-        delete activeRoomMembers[socket.roomId];
-      } else {
+    // Only the seat this socket took: a late `disconnect` of an old socket must
+    // not unseat the person who has already come back on a new one.
+    if (socket.roomId && socket.userId
+        && dropEntry(activeRoomMembers, socket.roomId, socket.userId, socket.id)) {
+      if (activeRoomMembers[socket.roomId]) {
         io.to(socket.roomId).emit('room_members_list', Object.values(activeRoomMembers[socket.roomId]));
         // A child leaving can make a refused room recordable again, and the
         // button has to notice: a control that stays disabled after the reason
@@ -697,20 +688,8 @@ io.on('connection', (socket) => {
       }
     }
 
-    if (socket.audioRoomId && socket.audioUserId) {
-      // A dropped connection is the common ending for a lesson, not the rare one.
-      flushAudioUsage(socket);
-      const rId = socket.audioRoomId;
-      const uId = socket.audioUserId;
-      if (roomAudioUsers[rId]) {
-        delete roomAudioUsers[rId][uId];
-        if (Object.keys(roomAudioUsers[rId]).length === 0) {
-          delete roomAudioUsers[rId];
-        } else {
-          io.to(rId).emit('audio_users_list', Object.values(roomAudioUsers[rId]));
-        }
-      }
-    }
+    // The voice half of a closing socket is in services/roomVoiceEvents.js,
+    // beside `audio_leave`: one way out of the voice, whichever event brought it.
   });
 });
 

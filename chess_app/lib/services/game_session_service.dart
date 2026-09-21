@@ -2,6 +2,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'room_session_api.dart';
+
 /// Tracks the one live room (if any) the user is currently part of.
 ///
 /// This is distinct from [SessionService], which is about *account* login —
@@ -61,6 +63,69 @@ class GameSessionService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_roomCodeKey);
     await prefs.remove(_roleKey);
+  }
+
+  /// Forgets a saved room that is no longer somewhere to go back to, and says
+  /// whether it did.
+  ///
+  /// The save used to be cleared by the Leave button and by nothing else, so a
+  /// room that had ended — or had refused this account — went on blocking every
+  /// other room and offering only the way back into itself. Asked of the server
+  /// rather than guessed: **an answer that could not be fetched keeps the
+  /// session**, because „I could not ask" is not „it is over".
+  Future<bool> reconcile(RoomSessionApi api) async {
+    final code = _roomCode;
+    if (code == null) return false;
+    final state = await api.state(code);
+    if (state == null || state == RoomState.live) return false;
+    // Somebody may have walked into another room while the question was out.
+    if (_roomCode != code) return false;
+    await clear();
+    return true;
+  }
+
+  /// Whether the way into a session is clear — [targetRoomCode], or a new one
+  /// of the caller's own when it is null. The whole rule, here rather than in
+  /// Home so that it can be tested: Home does no network in a widget test.
+  ///
+  /// A remembered room used to **block** every other one and offer only the way
+  /// back into itself, whether or not it was still a session; on 21.9.2026 that
+  /// kept the owner in a room from an old invitation while his student waited
+  /// in the new one. In order:
+  ///
+  ///  * nothing saved, or the saved room is the one being entered — clear;
+  ///  * the saved room has ended or refuses this account — forgotten, no word;
+  ///  * the saved room is **this trainer's own** and they are starting another —
+  ///    forgotten without asking, because the server ends it for everybody the
+  ///    moment the new one is made, and a question whose answer changes nothing
+  ///    is noise;
+  ///  * otherwise it is somebody's live session, and [askToLeave] decides.
+  Future<bool> makeWayFor({
+    required String? targetRoomCode,
+    required RoomSessionApi api,
+    required Future<bool?> Function(String roomCode) askToLeave,
+  }) async {
+    if (!hasActiveSession ||
+        (targetRoomCode != null && isSameSession(targetRoomCode))) {
+      return true;
+    }
+    if (await reconcile(api)) return true;
+    final saved = _roomCode;
+    if (saved == null) return true;
+
+    if (targetRoomCode == null && _role == 'trener') {
+      await clear();
+      return true;
+    }
+    if (await askToLeave(saved) != true) return false;
+    await clear();
+    return true;
+  }
+
+  /// [clear], but only if [roomCode] is the saved one — for a room reporting
+  /// its own end, which must not wipe a different session saved since.
+  Future<void> clearIf(String roomCode) async {
+    if (_roomCode == roomCode) await clear();
   }
 
   /// [setActive]/[clear] can run from a StatefulWidget's initState (e.g.

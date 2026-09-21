@@ -144,6 +144,22 @@ class GroupApiService {
         .toList();
   }
 
+  /// The students who have accepted this account — the people it may invite
+  /// into a session it starts (`POST /invitations/send` takes nobody else since
+  /// 21.9.2026). **Null when the server could not be asked**: [myStudents] folds
+  /// that into an empty list, and an invite dialog built on it told a trainer
+  /// with a full class that they had nobody.
+  Future<List<Map<String, dynamic>>?> acceptedStudents() async {
+    final res =
+        await _send(() => _get(Uri.parse('$backendUrl/trainer/students')));
+    if (res.body == null) return null;
+    return ((res.body!['students'] as List?) ?? const [])
+        .whereType<Map>()
+        .where((e) => e['status'] == 'accepted' && e['id'] is num)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   /// Whether the room takes guests — anybody who knows the code, signed in or
   /// not, as a watcher.
   ///

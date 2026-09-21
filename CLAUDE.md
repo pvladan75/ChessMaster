@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3594 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3679 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1644 with TEST_DATABASE_URL, 1550 without
+cd chess_backend && npm test          # node --test, 1677 with TEST_DATABASE_URL, 1575 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -377,7 +377,68 @@ APK 13.88 MB smaller. 19 calls `std::exit(1)` on a FEN it refuses, which on
 Android is the app's own process, so `fenIllegalReason` must refuse at least
 what the engine refuses — measured on the binary, it missed three and now
 does not. The Windows engine download, which read `releases/latest`, had
-been 404 since 19 renamed its builds; it is pinned to `sf_19` now. Phase 6 of
+been 404 since 19 renamed its builds; it is pinned to `sf_19` now. Then phase 1
+of `docs/PLAN-SESIJA.md` (→ **3617**; backend 1550 → 1560 without a database,
+1644 → 1660 with), after the owner's two-device attempt at a live session: no
+voice, a recording „with several present", nobody sure who led — and one cause
+in the server log, **two accounts in two different rooms**, one let in by an
+old invitation. A room never ended, an invitation never died, and the app's
+remembered room blocked every other one. Now a session ends (`roomLifecycle.js`),
+a trainer has one live session, an ended room admits nobody, the bell draws
+Join only on `room_live == true`, and scheduled sessions are gone. **Three
+reports, one cause, and every layer was right** (rule 10) — read the log for
+*which room* before debugging voice. Two lessons about the lead's own greps:
+the user manual under `site/` quotes the app's labels and a guard holds it to
+them, so **a deleted label is grepped in `site/` too**; and a full suite that
+runs while `lib/` is edited proves nothing, again.
+The owner's live pass of it found „the trainer's roster does not refresh", and
+the cause was older than the phase (backend → 1567 / 1667): **`audio_leave`
+ended with `socket.leave(roomId)`**, and voice and board share one Socket.IO
+room — so „Leave voice" silently took a seated socket out of every broadcast,
+roster and moves alike, while it stayed on the roster. **When two features share
+one channel, the mirror image of a join is not a leave.** Beside it, a room
+socket closing marked its person offline although Home's socket was the one
+registered (`goOffline` now takes the socket that closed). Both were in the
+log, not in the code review: the server was proved innocent by driving it with
+two raw clients before anything was changed.
+Then three decisions from the same live pass (→ **3641**; backend → 1564 /
+1666): whoever starts a session invites **only their own students**, and the
+door follows the invitation (`mayJoinRoom` read the relationship either way, so
+a trainer could sit in a student's room as a student); **nobody types a room
+code** — `POST /rooms/join` and the card are gone, and Home's „In a session
+now" (`GET /rooms/live`) names the room instead; and a **group is a chip that
+ticks its members** in the invite dialog, people being what is sent. With it
+phase 2, the room's bar saying who is here. **A stub that answers in sequence
+can check that a question was asked, not which one**: swapping the door's
+direction left all 28 of its cases green until one answered the SQL it was
+actually sent. And before deleting a private function, grep its **name** in
+`test/` — a source-reading test names neither the widget nor a label.
+Then its phase 3 (→ **3650**; backend → 1567 / 1669): one answer to „who
+leads" — `leadsRoom`, asked once by the room's `isLeader`, where the screen had
+held four, two of them trusting the **account's** role — no co-host, and two
+board states behind a switch (`student_white` / `student_black` were labels
+only). Its gate found a bug the lead had shipped that afternoon: the board's
+orientation asked for the co-host seat **by name**, so once „New session"
+entered as `'trener'` every trainer opened on Black's side. **When a role's
+spelling changes, grep the old spelling as a string literal** — the compiler
+cannot see a comparison that has quietly become always false.
+Phase 4 has its server part (backend → 1569 / 1671): presence holds **every**
+socket a person has, because somebody in a room holds two and the table kept
+one — which is why „Grant microphone" never reached a student inside the room.
+Then its app part (→ **3679**), four items: a voice that does not start says
+why (the seat is asked for **before** the engine, and `failure` sits beside
+`refused` because an empty token is also what a server without a certificate
+answers); „*Name* is in voice — Join voice" under the room's bar; the voice
+announced again once the socket is re-seated — on `role_changed`, not `connect`,
+or the roster lists a trainer as a student; and a dead microphone read from
+Agora's local-audio state. **A new sentence over an old list wakes what the
+list never said**: the server sent nothing when the *last* person left the
+voice, and a closing socket deleted roster entries **by person** — the third
+find of that shape in one day, so grep the shape (`delete …[userId]`), not the
+site. That server fix was proved in a copy outside the repository and copied in on
+the owner's word with the server off (backend → **1575 / 1677**, both
+measured — the first measured run of the database half since phase 1).
+Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

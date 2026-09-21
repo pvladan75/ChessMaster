@@ -2,88 +2,69 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/core/services/board_control_rules.dart';
 
 void main() {
-  test('the room host may navigate even though their account is not a trainer',
+  // Phase 3 of docs/PLAN-SESIJA.md rewrote these on 21.9.2026, openly. The
+  // account's role is no longer a parameter — it used to be, and two of the
+  // cases that stood here held the opposite of today's rule: „an account-level
+  // trainer is trusted in any room" and „an admin account seated as host". There
+  // is no co-host seat any more, and `users.role` plays no part in teaching.
+
+  test('whoever started the session drives a locked board', () {
+    // The original report, which still holds: the server seats the creator
+    // 'trener' while their account is the 'korisnik' everyone registers as, and
+    // a new room is locked.
+    for (final locked in ['trainer_only', 'host_only']) {
+      expect(canDriveSharedBoard(seatRole: 'trener', boardControl: locked),
+          isTrue);
+    }
+  });
+
+  test('a student is held back while the board is locked, in both spellings',
       () {
-    // The reported bug, exactly: a trainer creates a room, so the server seats
-    // them 'trener' while their account is still the 'korisnik' everyone
-    // registers as. boardControl defaults to 'trainer_only'. Reading the
-    // account role alone answered false here and disabled the whole navigation
-    // bar for the very person running the lesson.
-    expect(
-      canDriveSharedBoard(
-        seatRole: 'trener',
-        accountRole: 'korisnik',
-        boardControl: 'trainer_only',
-      ),
-      isTrue,
-    );
+    // `host_only` is what a fresh room arrives as: the database default.
+    for (final locked in ['trainer_only', 'host_only']) {
+      expect(canDriveSharedBoard(seatRole: 'ucenik', boardControl: locked),
+          isFalse);
+    }
   });
 
-  test('an admin account seated as host is not locked out either', () {
-    // The owner's account was promoted to 'admin', which is likewise not
-    // 'trener' — the account role is simply the wrong thing to ask.
-    expect(
-      canDriveSharedBoard(
-        seatRole: 'host',
-        accountRole: 'admin',
-        boardControl: 'host_only',
-      ),
-      isTrue,
-    );
+  test('every other spelling the column has held is an open board', () {
+    // `student_white` and `student_black` never filtered a move by colour on
+    // either end, so they were open boards with a misleading label.
+    for (final open in [
+      'student_both',
+      'student_white',
+      'student_black',
+      'unrestricted',
+    ]) {
+      expect(boardIsOpen(open), isTrue, reason: open);
+      expect(
+          canDriveSharedBoard(seatRole: 'ucenik', boardControl: open), isTrue,
+          reason: open);
+    }
+    expect(boardIsOpen(boardLocked), isFalse);
+    expect(boardIsOpen(boardOpen), isTrue);
   });
 
-  test('a student is held back while the board is restricted', () {
-    expect(
-      canDriveSharedBoard(
-        seatRole: 'ucenik',
-        accountRole: 'korisnik',
-        boardControl: 'trainer_only',
-      ),
-      isFalse,
-    );
-    expect(
-      canDriveSharedBoard(
-        seatRole: 'ucenik',
-        accountRole: 'korisnik',
-        boardControl: 'host_only',
-      ),
-      isFalse,
-    );
+  test('the co-host seat leads nothing', () {
+    // Removed with promotion. A client that still claims it is a student.
+    expect(leadsRoom(seatRole: 'host'), isFalse);
+    expect(canDriveSharedBoard(seatRole: 'host', boardControl: 'trainer_only'),
+        isFalse);
   });
 
-  test('an unrestricted board opens up to every seat', () {
-    expect(
-      canDriveSharedBoard(
-        seatRole: 'ucenik',
-        accountRole: 'korisnik',
-        boardControl: 'unrestricted',
-      ),
-      isTrue,
-    );
+  test('a guest, and a seat not yet granted, lead nothing', () {
+    expect(leadsRoom(seatRole: 'gost'), isFalse);
+    expect(leadsRoom(seatRole: null), isFalse);
+    expect(leadsRoom(seatRole: 'korisnik'), isFalse);
   });
 
-  test('an account-level trainer is trusted in any room', () {
+  test('the local Preparation board is led by whoever is at it', () {
+    // It has no room to broadcast to, so there is nothing to protect.
+    expect(leadsRoom(seatRole: null, isStudio: true), isTrue);
     expect(
-      canDriveSharedBoard(
-        seatRole: 'ucenik',
-        accountRole: 'trener',
-        boardControl: 'trainer_only',
-      ),
-      isTrue,
-    );
-  });
-
-  test('the local STUDIO board is never restricted', () {
-    // It has no room to broadcast to, so board_control has nothing to protect.
-    expect(
-      canDriveSharedBoard(
-        seatRole: null,
-        accountRole: 'korisnik',
-        boardControl: 'trainer_only',
-        isStudio: true,
-      ),
-      isTrue,
-    );
+        canDriveSharedBoard(
+            seatRole: null, boardControl: 'trainer_only', isStudio: true),
+        isTrue);
   });
 
   // ── who teaches in a room — item 5 of the owner's review of 21.9.2026 ──────

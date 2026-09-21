@@ -133,9 +133,18 @@ function init(ioInstance) {
   io = ioInstance;
 }
 
+/// A person is reachable at **every** socket they hold, and they hold two while
+/// they are in a room: Home's and the room's. The table kept one, so whichever
+/// registered last was the only one that heard anything — and the room's never
+/// registered at all, which is why „Grant microphone" did not reach a student
+/// sitting in the room it was granted in: their Home socket is disconnected for
+/// as long as the room is open (`docs/PLAN-SESIJA.md`, F9).
 function setOnline(user, socketId) {
+  const entry = onlineUsers[user.id];
+  const socketIds = entry ? entry.socketIds : new Set();
+  socketIds.add(socketId);
   onlineUsers[user.id] = {
-    socketId,
+    socketIds,
     userId: user.id,
     name: user.name,
     email: user.email,
@@ -143,16 +152,33 @@ function setOnline(user, socketId) {
   };
 }
 
-function goOffline(userId) {
-  if (onlineUsers[userId]) {
-    delete onlineUsers[userId];
-    return true;
+/// [socketId] is the socket that closed, and it takes only itself: seen in the
+/// log of 21.9.2026, „User registered" and one line later „User disconnected"
+/// for the same id — the room's socket closing had wiped what Home's had
+/// registered, and every nudge missed that person afterwards. Without a
+/// [socketId] the call means „this person, everywhere".
+///
+/// True when this call is the one that took the person offline altogether.
+function goOffline(userId, socketId = null) {
+  const entry = onlineUsers[userId];
+  if (!entry) return false;
+  if (socketId !== null) {
+    if (!entry.socketIds.delete(socketId)) return false;
+    if (entry.socketIds.size > 0) return false;
   }
-  return false;
+  delete onlineUsers[userId];
+  return true;
 }
 
+/// Every socket `userId` is reachable at, oldest first.
+function socketIdsOf(userId) {
+  return onlineUsers[userId] ? [...onlineUsers[userId].socketIds] : [];
+}
+
+/// The socket a person registered last — kept for callers that want one.
 function socketIdOf(userId) {
-  return onlineUsers[userId] ? onlineUsers[userId].socketId : null;
+  const ids = socketIdsOf(userId);
+  return ids.length > 0 ? ids[ids.length - 1] : null;
 }
 
 /// Nudges one user, if they are connected. Returns whether anything was sent.
@@ -165,11 +191,11 @@ function emitToUser(userId, event, payload) {
   if (!io) {
     throw new Error('realtime.init(io) was never called');
   }
-  const socketId = socketIdOf(userId);
-  if (!socketId) return false;
+  const socketIds = socketIdsOf(userId);
+  if (socketIds.length === 0) return false;
 
   try {
-    io.to(socketId).emit(event, payload);
+    for (const socketId of socketIds) io.to(socketId).emit(event, payload);
   } catch (err) {
     // The transport failing is a runtime condition, not a wiring mistake: the
     // notification row is already written and the action already happened.
@@ -178,6 +204,44 @@ function emitToUser(userId, event, payload) {
   }
   logger.info(`[REALTIME] ${event} -> user ${userId}`);
   return true;
+}
+
+/// What else has to forget a room when it ends. `server.js` keeps the seated
+/// roster and the voice roster in its own memory, so it registers here rather
+/// than this module reaching back into it.
+const roomClosers = [];
+
+function onRoomClosed(fn) {
+  roomClosers.push(fn);
+}
+
+/// Tells everybody in `roomCode` that the session is over, then empties it.
+///
+/// **The order is the rule** (CLAUDE.md, „do the thing, then say it" — here the
+/// saying *is* the thing for the people in the room, so it goes first, and
+/// nothing after it may stop the rest): the announcement, then the sockets out
+/// of the room, then the rosters. A closer that throws is logged and the others
+/// still run — a room half-forgotten is a roster that blocks a recording or a
+/// seat nobody holds.
+function closeRoom(roomCode, { reason = 'ended' } = {}) {
+  if (!io) {
+    throw new Error('realtime.init(io) was never called');
+  }
+  try {
+    io.to(roomCode).emit('session_ended', { roomId: roomCode, reason });
+    io.in(roomCode).socketsLeave(roomCode);
+  } catch (err) {
+    logger.error(`[REALTIME] could not announce the end of room ${roomCode}:`, err);
+  }
+  clearRecordedRoster(roomCode);
+  for (const closer of roomClosers) {
+    try {
+      closer(roomCode);
+    } catch (err) {
+      logger.error(`[REALTIME] a closer failed for room ${roomCode}:`, err);
+    }
+  }
+  logger.info(`[SOBA] ${roomCode}: sesija završena (${reason})`);
 }
 
 module.exports = {
@@ -194,5 +258,8 @@ module.exports = {
   setOnline,
   goOffline,
   socketIdOf,
+  socketIdsOf,
   emitToUser,
+  onRoomClosed,
+  closeRoom,
 };

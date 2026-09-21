@@ -90,6 +90,16 @@ async function initDB(target = pool) {
       ALTER TABLE rooms 
       ADD COLUMN IF NOT EXISTS allow_student_engine BOOLEAN DEFAULT FALSE;
     `);
+    // When a session began and when it ended (`services/roomLifecycle.js`).
+    // `status` has allowed 'archived' since the table was made and nothing
+    // wrote it until 21.9.2026, so a room never ended. Rows older than these
+    // columns get the moment of the migration as their beginning, which is
+    // wrong and harmless: nothing reads `created_at` to decide anything.
+    await client.query(`
+      ALTER TABLE rooms
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+      ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ;
+    `);
     // Whether somebody who is not signed in may watch. FALSE by default, and
     // that default is the point: until now a room admitted anybody who had the
     // code, including a guest, and the room nobody thought about is exactly the

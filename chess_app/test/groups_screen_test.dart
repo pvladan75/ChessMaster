@@ -278,26 +278,36 @@ void main() {
     expect(api.invitedUsers, [9]);
   });
 
-  testWidgets('the guest switch shows what the room says, and flips it',
+  testWidgets('a room closed to guests offers no way to open it',
       (tester) async {
-    // The column existed for a day with nothing in the app that could see it.
-    // Off is the default, and the default is what decides who is in the room
-    // nobody thought about — so it has to be visible to be relied on.
+    // Supersedes „the guest switch shows what the room says, and flips it".
+    // The owner took guests out on 21.9.2026 (docs/PLAN-SESIJA.md, §5.2) until
+    // parent observation is built. Off is the default and every new room has it.
     final api = _FakeApi();
     await pumpGuests(tester, api);
 
+    expect(find.text('Room allows guests'), findsNothing);
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(api.guestSwitches, isEmpty);
+  });
+
+  testWidgets('a room that is open to guests can still be closed',
+      (tester) async {
+    // Hiding the switch must never hide an open door: a room left open keeps
+    // the switch, said in the words that matter, until somebody closes it.
+    final api = _FakeApi(allowGuests: true);
+    await pumpGuests(tester, api);
+
     expect(find.text('Room allows guests'), findsOneWidget);
-    expect(find.textContaining('only registered users'), findsOneWidget);
+    expect(
+        find.textContaining('anyone who knows the room code'), findsOneWidget);
 
     await tester.tap(find.byType(SwitchListTile));
     await tester.pumpAndSettle();
 
-    expect(api.guestSwitches, [true]);
-    // Said in the words that matter: the code is all it takes, and a recorded
-    // lesson records whoever came in on it.
-    expect(
-        find.textContaining('anyone who knows the room code'), findsOneWidget);
-    expect(find.textContaining('recording'), findsOneWidget);
+    expect(api.guestSwitches, [false]);
+    expect(find.text('Room allows guests'), findsNothing,
+        reason: 'once closed it is a room like any other');
   });
 
   testWidgets('a room that takes guests says the list does not stop them',

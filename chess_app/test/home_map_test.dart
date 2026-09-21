@@ -177,23 +177,9 @@ void main() {
       }
     });
 
-    testWidgets('the visible Join goes through the six-digit check',
-        (tester) async {
-      await openHome(tester);
-      // Sessions is the second tab today (phase 5 moves the field to Home).
-      final sessions = find.text('Sessions');
-      if (sessions.evaluate().isNotEmpty) {
-        await tester.tap(sessions.first);
-        await tester.pump(const Duration(milliseconds: 200));
-      }
-      await tester.enterText(
-          find.widgetWithText(TextField, 'Enter room code (e.g. 123456)'),
-          '12');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Join'));
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('Enter a valid 6-digit code'), findsOneWidget,
-          reason: 'a two-digit code went straight to the room');
-    });
+    // „the visible Join goes through the six-digit check" stood here. Typing a
+    // room code was removed on 21.9.2026 (docs/PLAN-SESIJA.md, §5.7), and the
+    // case went with the field it typed into.
 
     test('the new names are there', () {
       final literals = _literalsOfLib();

@@ -1,8 +1,8 @@
 // trainerPanelService.js — what a trainer's day looks like, in one answer.
 //
-// The panel replaces "open the app and go looking": today's lessons, homework
+// The panel replaces "open the app and go looking": homework
 // about to run out of time, work that has been handed in, and the students who
-// have gone quiet. Four questions that were each answerable already, but only
+// have gone quiet. Questions that were each answerable already, but only
 // by opening four screens and knowing which to open.
 //
 // Everything here is read-only and scoped to `trainerId`. The student list is
@@ -32,42 +32,6 @@ const STALLED_DAYS = 3;
 /// meant to be read at a glance, and the useful ones are the oldest — which is
 /// what each ORDER BY puts first.
 const SECTION_LIMIT = 20;
-
-/// Lessons this trainer is hosting today.
-///
-/// The window starts two hours back rather than at `now()`: a lesson at 17:00
-/// is the one thing the trainer wants at 17:20, and a card that disappears the
-/// moment the lesson begins is a card that vanishes exactly when it is needed.
-///
-/// `scheduled_sessions.scheduled_at` is a bare TIMESTAMP while `now()` carries
-/// a zone, so the comparison happens in the database session's timezone. That
-/// is the same timezone the row was written in, which is why "today" here means
-/// what the trainer meant when they scheduled it.
-async function todaysLessons(pool, trainerId, { limit = SECTION_LIMIT } = {}) {
-  const result = await pool.query(
-    `SELECT s.id,
-            s.room_code,
-            s.title,
-            s.description,
-            s.scheduled_at,
-            COALESCE(
-              ARRAY_AGG(u.name ORDER BY u.name) FILTER (WHERE u.id IS NOT NULL),
-              '{}'
-            ) AS guests
-       FROM scheduled_sessions s
-       LEFT JOIN scheduled_session_invites i
-         ON i.session_id = s.id AND i.status <> 'declined'
-       LEFT JOIN users u ON u.id = i.user_id
-      WHERE s.host_id = $1
-        AND s.scheduled_at >= now() - interval '2 hours'
-        AND s.scheduled_at < date_trunc('day', now()) + interval '1 day'
-      GROUP BY s.id
-      ORDER BY s.scheduled_at ASC
-      LIMIT $2`,
-    [trainerId, limit]
-  );
-  return result.rows;
-}
 
 /// Homework that is about to run out of time, or already has.
 ///
@@ -244,8 +208,7 @@ async function pendingRequestCount(pool, userId) {
 /// screen but not in the number: neither is cleared by the trainer doing
 /// anything, so counting them would leave a badge that never reaches zero.
 async function trainerPanel(pool, userId) {
-  const [today, due, review, standing, idle, requests] = await Promise.all([
-    todaysLessons(pool, userId),
+  const [due, review, standing, idle, requests] = await Promise.all([
     dueSoon(pool, userId),
     awaitingReview(pool, userId),
     stalled(pool, userId),
@@ -254,7 +217,6 @@ async function trainerPanel(pool, userId) {
   ]);
 
   return {
-    today,
     dueSoon: due,
     awaitingReview: review,
     stalled: standing,
@@ -295,7 +257,6 @@ module.exports = {
   DUE_SOON_HOURS,
   STALLED_DAYS,
   SECTION_LIMIT,
-  todaysLessons,
   dueSoon,
   awaitingReview,
   stalled,

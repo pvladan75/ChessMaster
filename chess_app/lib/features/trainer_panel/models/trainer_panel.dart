@@ -4,7 +4,6 @@
 /// together, so they are parsed together rather than as five lists that could
 /// disagree about which minute they describe.
 class TrainerPanel {
-  final List<PanelLesson> today;
   final List<PanelAssignment> dueSoon;
   final List<PanelAssignment> awaitingReview;
 
@@ -25,7 +24,6 @@ class TrainerPanel {
   final int requests;
 
   const TrainerPanel({
-    this.today = const [],
     this.dueSoon = const [],
     this.awaitingReview = const [],
     this.stalled = const [],
@@ -70,7 +68,6 @@ class TrainerPanel {
   /// of empty headings: a heading over nothing reads as a screen that failed to
   /// load.
   bool get isEmpty =>
-      today.isEmpty &&
       dueSoon.isEmpty &&
       awaitingReview.isEmpty &&
       stalled.isEmpty &&
@@ -86,7 +83,6 @@ class TrainerPanel {
         (json['counts'] as Map?) ?? const <String, dynamic>{});
 
     return TrainerPanel(
-      today: list('today', PanelLesson.fromJson),
       dueSoon: list('dueSoon', PanelAssignment.fromJson),
       awaitingReview: list('awaitingReview', PanelAssignment.fromJson),
       stalled: list('stalled', PanelAssignment.fromJson),
@@ -95,37 +91,6 @@ class TrainerPanel {
       requests: (counts['requests'] as num?)?.toInt() ?? 0,
     );
   }
-}
-
-/// A lesson this trainer is hosting today.
-class PanelLesson {
-  final int id;
-  final String roomCode;
-  final String title;
-
-  /// Whoever was invited and has not declined. Names rather than ids: the row
-  /// exists to be read, and the trainer knows their students by name.
-  final List<String> guests;
-
-  final DateTime? scheduledAt;
-
-  const PanelLesson({
-    required this.id,
-    required this.roomCode,
-    required this.title,
-    this.guests = const [],
-    this.scheduledAt,
-  });
-
-  factory PanelLesson.fromJson(Map<String, dynamic> json) => PanelLesson(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        roomCode: json['room_code']?.toString() ?? '',
-        title: json['title']?.toString() ?? 'Session',
-        guests: ((json['guests'] as List?) ?? const [])
-            .map((e) => e.toString())
-            .toList(),
-        scheduledAt: _parseDate(json['scheduled_at']),
-      );
 }
 
 /// One piece of homework, seen from the trainer's side.

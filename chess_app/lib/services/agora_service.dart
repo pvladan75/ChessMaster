@@ -14,6 +14,18 @@ import 'package:chess_app/constants.dart';
 /// fail to answer at all — and none of those is a token swap.
 enum TokenRefresh { renew, rejoin, leave, retry }
 
+/// The server's answer to "who is this person in this channel".
+///
+/// [refused] is the room saying no; [failure] is no usable answer at all — and
+/// the two are kept apart because an empty [token] alone cannot tell them from
+/// a server that runs without an App Certificate, which is a working setup.
+typedef VoiceSeat = ({
+  String token,
+  bool maySpeak,
+  String? refused,
+  String? failure,
+});
+
 class AgoraService {
   static final AgoraService _instance = AgoraService._internal();
   factory AgoraService() => _instance;
@@ -31,6 +43,11 @@ class AgoraService {
   bool _isInitialized = false;
   bool _isJoined = false;
   bool _isMuted = false;
+
+  /// Why the engine did not start, the last time it was asked to. Kept because
+  /// [initAgora] is also called by people who only want it warm, and the one
+  /// who needs the reason is [joinChannel], a call later.
+  String? _initError;
 
   /// What the server said in this channel: may this person be heard at all.
   ///
@@ -68,14 +85,20 @@ class AgoraService {
   Function(bool isMuted)? onMuteStateChanged;
   Function(bool isJoined, String? error)? onJoinStateChanged;
 
+  /// A sentence while the device's own audio does not work, null once it does
+  /// — see [microphoneProblemFor]. Apart from [onJoinStateChanged] because the
+  /// person is in the channel and hears it; what fails is being heard.
+  Function(String? problem)? onMicrophoneProblem;
+
   bool get isJoined => _isJoined;
   bool get isMuted => _isMuted;
   bool get maySpeak => _maySpeak;
 
   Future<void> initAgora() async {
     if (_isInitialized) return;
+    _initError = null;
     try {
-      _engine = createAgoraRtcEngine();
+      _engine = (engineFactoryOverride ?? createAgoraRtcEngine)();
       await _engine!.initialize(const RtcEngineContext(
         appId: appId,
         channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
@@ -105,6 +128,20 @@ class AgoraService {
           onRequestToken: (RtcConnection connection) {
             _renewAttempts = 0;
             unawaited(_refreshVoiceToken());
+          },
+          // Agora gave up on the channel. Without this a join that Agora
+          // turns down never calls back at all, and the panel shows a spinner
+          // for as long as anybody cares to look at it.
+          onConnectionStateChanged: (RtcConnection connection,
+              ConnectionStateType state, ConnectionChangedReasonType reason) {
+            if (state != ConnectionStateType.connectionStateFailed) return;
+            _isJoined = false;
+            onJoinStateChanged?.call(
+                false, 'Voice stopped: ${connectionFailureText(reason)}.');
+          },
+          onLocalAudioStateChanged: (RtcConnection connection,
+              LocalAudioStreamState state, LocalAudioStreamReason reason) {
+            onMicrophoneProblem?.call(microphoneProblemFor(state, reason));
           },
           onUserOffline: (RtcConnection connection, int remoteUid,
               UserOfflineReasonType reason) {
@@ -147,6 +184,71 @@ class AgoraService {
       _isInitialized = true;
     } catch (e) {
       print("Failed to initialize Agora RTC engine: $e");
+      // An engine that was created and then refused to initialise is not an
+      // engine: left in place it would pass the null check in [joinChannel]
+      // and fail one call later, under a different name.
+      _engine = null;
+      _initError = _plain(e);
+    }
+  }
+
+  /// An error as a sentence fragment: `Bad state: x` and `Exception: x` both
+  /// read as `x`.
+  static String _plain(Object e) {
+    final text = e is AgoraRtcException
+        ? 'Agora error ${e.code}${e.message == null ? '' : ' (${e.message})'}'
+        : e.toString();
+    return text.replaceFirst(RegExp(r'^(Bad state|Exception): '), '');
+  }
+
+  /// Why Agora dropped the channel, in words a person can act on. The enum's
+  /// own name closes the unknown ones, so a new reason is never blank.
+  @visibleForTesting
+  static String connectionFailureText(ConnectionChangedReasonType reason) {
+    switch (reason) {
+      case ConnectionChangedReasonType.connectionChangedInvalidToken:
+      case ConnectionChangedReasonType.connectionChangedTokenExpired:
+        return 'the voice service did not accept this seat';
+      case ConnectionChangedReasonType.connectionChangedJoinFailed:
+        return 'the voice service could not be reached';
+      case ConnectionChangedReasonType.connectionChangedBannedByServer:
+        return 'this device was removed from the voice channel';
+      case ConnectionChangedReasonType.connectionChangedInvalidAppId:
+      case ConnectionChangedReasonType.connectionChangedInvalidChannelName:
+        return 'voice is not set up correctly (${reason.name})';
+      default:
+        return 'the connection was lost (${reason.name})';
+    }
+  }
+
+  /// What a failed local audio stream means for the person, or null while it
+  /// works. The **state** decides: Agora repeats the last reason beside a
+  /// stream that has since started.
+  ///
+  /// This is the only witness there is on Windows, where `permission_handler`
+  /// answers "granted" whatever is plugged in — so a join with no microphone
+  /// looked exactly like a working one.
+  @visibleForTesting
+  static String? microphoneProblemFor(
+      LocalAudioStreamState state, LocalAudioStreamReason reason) {
+    if (state != LocalAudioStreamState.localAudioStreamStateFailed) return null;
+    switch (reason) {
+      case LocalAudioStreamReason.localAudioStreamReasonNoRecordingDevice:
+      case LocalAudioStreamReason.localAudioStreamReasonRecordInvalidId:
+        return 'Others cannot hear you: no microphone was found.';
+      case LocalAudioStreamReason.localAudioStreamReasonDeviceNoPermission:
+        return 'Others cannot hear you: this device does not allow the app '
+            'to use the microphone.';
+      case LocalAudioStreamReason.localAudioStreamReasonDeviceBusy:
+        return 'Others cannot hear you: the microphone is in use by '
+            'another app.';
+      case LocalAudioStreamReason.localAudioStreamReasonNoPlayoutDevice:
+      case LocalAudioStreamReason.localAudioStreamReasonPlayoutInvalidId:
+        return 'You cannot hear the session: no speakers or headphones '
+            'were found.';
+      default:
+        return 'Others cannot hear you: the microphone could not be opened '
+            '(${reason.name}).';
     }
   }
 
@@ -180,15 +282,32 @@ class AgoraService {
   static http.Client? httpClientOverride;
 
   @visibleForTesting
-  Future<({String token, bool maySpeak, String? refused})> voiceSeatFor(
-          String channelId, int uid, String userToken) =>
+  Future<VoiceSeat> voiceSeatFor(String channelId, int uid, String userToken) =>
       _fetchVoiceSeat(channelId, uid, userToken);
 
-  Future<({String token, bool maySpeak, String? refused})> _fetchVoiceSeat(
+  /// Stands in for `createAgoraRtcEngine` in tests, where no engine can be
+  /// made — which is also the one place "the engine would not start" can be
+  /// reproduced on demand.
+  @visibleForTesting
+  static RtcEngine Function()? engineFactoryOverride;
+
+  /// Forgets the engine, so a test that gave this singleton a fake one does
+  /// not hand it to the next test.
+  @visibleForTesting
+  void forgetEngineForTest() {
+    _engine = null;
+    _isInitialized = false;
+    _isJoined = false;
+    _initError = null;
+  }
+
+  Future<VoiceSeat> _fetchVoiceSeat(
       String channelId, int uid, String userToken) async {
     // Nobody signed in: a guest listens. There is no version of "unknown" that
     // means "may be heard".
-    if (userToken.isEmpty) return (token: '', maySpeak: false, refused: null);
+    if (userToken.isEmpty) {
+      return (token: '', maySpeak: false, refused: null, failure: null);
+    }
 
     try {
       final uri = Uri.parse('$backendUrl/agora/token');
@@ -213,6 +332,7 @@ class AgoraService {
           token: token is String ? token : '',
           maySpeak: data['maySpeak'] == true,
           refused: null,
+          failure: null,
         );
       }
 
@@ -223,18 +343,30 @@ class AgoraService {
           maySpeak: false,
           refused: data['error'] as String? ??
               'You are not on the list for this room.',
+          failure: null,
         );
       }
 
       print('[AGORA] Token request failed with status ${res.statusCode}');
+      return (
+        token: '',
+        maySpeak: false,
+        refused: null,
+        failure: 'the server answered ${res.statusCode}',
+      );
     } catch (e) {
       print('[AGORA] Token request error: $e');
     }
 
-    // No answer. Joining silently is the safe direction — a voice published on
-    // a guess is a voice in somebody's recording — and the screen says the right
-    // was not confirmed rather than pretending it was refused.
-    return (token: '', maySpeak: false, refused: null);
+    // No answer. Never a yes — a voice published on a guess is a voice nobody
+    // agreed to — and not a refusal either: the caller is told it is a failure,
+    // so a join stops and says so, and a refresh asks again.
+    return (
+      token: '',
+      maySpeak: false,
+      refused: null,
+      failure: 'the server did not answer',
+    );
   }
 
   /// Joins the lesson's voice channel in the seat the **server** gives.
@@ -254,12 +386,26 @@ class AgoraService {
       if (_isJoined) {
         await leaveChannel();
       }
-      await initAgora();
-      if (_engine == null) return false;
-
+      // The seat before the engine: a room that says no, or a server that says
+      // nothing, is known without starting anything on the device.
       final seat = await _fetchVoiceSeat(channelId, uid, userToken);
       if (seat.refused != null) {
         onJoinStateChanged?.call(false, seat.refused);
+        return false;
+      }
+      // Until 21.9.2026 this joined anyway, as a listener holding an empty
+      // token — which a server with a certificate turns away, with nothing on
+      // the screen but a spinner.
+      if (seat.failure != null) {
+        onJoinStateChanged?.call(
+            false, 'Voice could not start: ${seat.failure}.');
+        return false;
+      }
+
+      await initAgora();
+      if (_engine == null) {
+        onJoinStateChanged?.call(false,
+            'Voice could not start: ${_initError ?? 'the audio engine did not start'}.');
         return false;
       }
       _maySpeak = seat.maySpeak;
@@ -310,9 +456,7 @@ class AgoraService {
       return true;
     } catch (e) {
       print("Error joining Agora channel: $e");
-      if (onJoinStateChanged != null) {
-        onJoinStateChanged!(false, e.toString());
-      }
+      onJoinStateChanged?.call(false, 'Voice could not start: ${_plain(e)}.');
       return false;
     }
   }

@@ -5878,6 +5878,110 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 219. Sesija se završava, i stari poziv više nije vrata — 21.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (restart servera — dodaje kolone `rooms.created_at` i
+`ended_at`; nov build za oba uređaja). Faza 1 iz `docs/PLAN-SESIJA.md`. Treba
+dva naloga na dva uređaja, u prihvaćenoj vezi.
+
+1. [ ] **Jedno „New session".** Teach → New session otvara sobu odmah, bez
+   dijaloga za biranje prijatelja. U sobi si trener; poziv se šalje iznutra
+   („Invite friends to session").
+2. [ ] **Oba u istoj sobi.** Učenik prihvati poziv → u spisku „Present in
+   classroom" na oba uređaja stoje oba imena, i kôd sobe u naslovu je isti.
+3. [ ] **GLAS — ovo je glavno, i prvi put se gleda.** Oboje „Turn on voice" /
+   „Join conversation": čujete li se u oba smera? Ako ne — šta piše u kartici
+   „Audio Classroom" na svakom uređaju, i šta u logu servera (`[AGORA]`,
+   `[AUDIO]`). Od ovog odgovora zavisi obim faze 4.
+4. [ ] **„End session" završava za sve.** Trener ima „End session" (crveni
+   stop), učenik „Leave session". Trener potvrdi → oba uređaja se vrate na
+   Home sa „The session has ended.", a „Resume session" se ne nudi nijednom.
+5. [ ] **Stari poziv nije vrata.** Posle 4, učenik otvori zvonce: na tom pozivu
+   piše „This session has ended." i **nema dugmeta Join**.
+6. [ ] **Nova sesija gasi staru.** Trener otvori sesiju A, učenik uđe; trener
+   izađe na Home (strelica nazad, ne End) i pokrene New session → učenik u A
+   dobija „The session has ended." i vraća se na Home; poziv za A više nema Join.
+7. [ ] **Zapamćena mrtva soba ne blokira.** (Stanje od danas popodne.) Uređaj
+   koji je pamtio staru sobu: posle otvaranja Home „Resume session" nestane sam,
+   i Join na novom pozivu ulazi bez dijaloga o aktivnoj sesiji.
+8. [ ] **Živa tuđa sesija se napušta pitanjem.** Učenik je u živoj sesiji,
+   izađe strelicom na Home, i pritisne Join na pozivu za **drugu** živu sobu
+   (treba drugi trener) → „Leave the other session?" → „Leave and continue"
+   ulazi. *Ako nema drugog trenera, preskoči.*
+9. [ ] **Gosti.** Room access (ikona grupe u sobi): nema prekidača „Room allows
+   guests".
+10. [ ] **Trainer panel** nema odeljak „Today".
+11. [ ] **„Leave voice" ne izlazi iz sobe** (popravka posle prve probe; restart
+    servera). Oboje u sobi, trener uključi glas pa „Leave voice". Zatim: učenik
+    povuče potez → vidi se kod trenera; učenik izađe i ponovo uđe → spisak kod
+    trenera se menja. Isto sa zamenjenim ulogama (učenik napusti glas).
+12. [ ] **Poziv stiže i posle sobe.** Učenik uđe u sesiju, izađe strelicom na
+    Home; trener mu odmah pošalje novi poziv iz sobe → dijalog poziva iskoči bez
+    otvaranja zvonca. U logu nema „User disconnected: ID n" red posle „User
+    registered" za isti nalog.
+13. [ ] **Soba kaže ko je tu** (faza 2, nov build). U traci sobe, ispod „Room:
+    …": trener sam → peščani sat i „Nobody has joined yet"; učenik sam →
+    „Waiting for the trainer"; oboje → ikona ljudi i „With <ime>". Telefon
+    položen: isto, u jednom redu pored koda sobe.
+14. [ ] **Učenik pravi sesiju i zove trenera** (prijava 21.9: „trener ne dobija
+    poziv, a učeniku piše da je poslat"). Posle restarta servera sa popravkom
+    prisustva: poziv iskoči kod trenera. Ako server odbije poziv, učeniku se
+    kaže zašto — a ne „successfully sent".
+15. [ ] **Nema kucanja koda** (nov build, restart servera). Na Home više nema
+    kartice „Join a session" ni polja za kôd. Kad je trener u sesiji, učeniku se
+    na Home pojavi „In a session now" sa imenom trenera i dugmetom Join — i bez
+    poziva. Kad trener završi sesiju i učenik se vrati na Home, kartice nema.
+16. [ ] **Poziv grupi.** U sobi „Invite students to session": iznad spiska su
+    čipovi grupa („Tuesday (4)"). Dodir na grupu štiklira njene članove u
+    spisku; jedno ime može da se skine; „Send invitations (n)" šalje tim
+    ljudima. U spisku su samo učenici koji su prihvatili — trenera nema.
+    Telefon položen: spisak se skroluje i ime može da se štiklira.
+17. [ ] **Vrata su jednosmerna.** Učenik pokrene svoju sesiju: treneru se na Home
+    **ne** pojavljuje „In a session now" za nju, a u učenikovom dijalogu za
+    poziv trenera nema.
+18. [ ] **Jedan voditelj, dva stanja table** (faza 3; nov build, restart
+    servera). Trener u sobi: umesto liste „Student permissions" stoji prekidač
+    „Students may move", na početku isključen („Only you move on the board.").
+    Učenik tada vidi katanac i „Board is locked by the trainer." i ne može da
+    povuče potez; trener uključi → kod učenika „You may move on the board." i
+    potezi rade. Nigde ne piše `host_only` ni „Permission status".
+19. [ ] **Trener otvara sobu sa belima dole**, učenik sa crnima — bez ručnog
+    okretanja. (Od „New session" je trener otvarao sa crnima dole.)
+20. [ ] **Nema unapređivanja.** U spisku „Present in classroom" pored učenika
+    nema menija ⋮ („Promote to Host" / „Demote to User").
+21. [ ] **„Grant / Revoke microphone" stiže učeniku u sobi** (faza 4, samo
+    server — restart). Oboje u sobi, oboje u glasu. Trener na učeniku pritisne
+    „Revoke microphone" → učeniku odmah iskoči poruka da mu je mikrofon
+    isključen i on ostaje da sluša; „Grant microphone" → poruka i mikrofon
+    radi. (Do sada poruka nije stizala dok je učenik u sobi.)
+22. [ ] **Glas koji ne krene kaže zašto** (faza 4, aplikacija; nov build).
+    Ugasi server (ili isključi mrežu na telefonu), u sobi koja je već otvorena
+    pritisni „Turn on voice": iznad dugmeta crveno piše „Voice could not
+    start: the server did not answer." i dugme je i dalje tu. Do sada se panel
+    samo vratio na „off" bez reči — ili se vrteo beskonačno.
+23. [ ] **„*Ime* is in voice — Join voice".** Trener uključi glas, učenik ne.
+    Kod učenika se ispod trake sobe pojavi zelena traka „*Ime trenera* is in
+    voice" sa dugmetom „Join voice"; dugme uključuje glas i traka nestaje.
+    Proveri na telefonu uspravno **i** položeno (traka uzima 40 px table dok
+    stoji). Kod trenera trake nema dok je sam u glasu.
+24. [ ] **Traka nestaje kad poslednji izađe** (traži server — tačka 27).
+    Trener pritisne „Leave voice" dok je učenikov glas isključen: kod učenika
+    traka nestaje odmah, i u panelu više ne piše „In call: …". Do sada je
+    poslednje ime ostajalo na ekranu dok se soba ne zatvori.
+25. [ ] **Glas preživi restart servera.** Oboje u glasu; restartuj server
+    (sačuvaj bilo koji `.js`). Razgovor se ne prekida, a posle par sekundi
+    spisak „Participants in audio call" kod oboje opet ima oba imena, trener sa
+    „[Trainer]" — bez ponovnog pritiskanja dugmeta.
+26. [ ] **Windows bez mikrofona.** Na Windowsu isključi mikrofon (Device
+    Manager ili izvuci slušalice sa mikrofonom) i uđi u glas kao trener: u
+    panelu žuto piše „Others cannot hear you: no microphone was found.", a
+    dugmad ostaju. Priključi mikrofon i uđi ponovo: poruke nema.
+27. [ ] **Kratak prekid veze ne skida nikoga sa spiska** (server). Učenik u
+    sobi i u glasu; na telefonu isključi pa uključi Wi-Fi u roku od par
+    sekundi. Sačekaj minut: učenik je i dalje u „Present in classroom" i u
+    spisku glasa kod trenera. (Stari soket se gasio pola minuta kasnije i
+    brisao mesto koje je novi već zauzeo.)
+
 ## 218. Stockfish 19 u aplikaciji — 21.9.2026, nije viđeno uživo
 
 **Aplikacija** (nov build za telefon i Windows; server nije diran). Motor na

@@ -280,7 +280,12 @@ Widget _messageCard(
   final roomCode = n['room_code'] as String?;
   final kind = (n['kind'] ?? 'room').toString();
   final isRead = n['is_read'] == true;
-  final canJoin = kind == 'room' && roomCode != null;
+  final isInvitation = kind == 'room' && roomCode != null;
+  // `room_live` is the server's word that the room is still a session. An
+  // invitation used to keep a working „Join" for ever, and an old one is how
+  // two people ended up in two rooms on 21.9.2026. **Only `true` is a door**:
+  // a server that does not say reads as „not now", never as „yes".
+  final canJoin = isInvitation && n['room_live'] == true;
 
   return Card(
     margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
@@ -313,7 +318,9 @@ Widget _messageCard(
       subtitle: Text(
         canJoin
             ? 'Room: $roomCode'
-            : (kind == 'student_request' ? 'Answered.' : ''),
+            : isInvitation
+                ? 'This session has ended.'
+                : (kind == 'student_request' ? 'Answered.' : ''),
         style: AppText.micro.copyWith(color: colors.textSecondary),
       ),
       trailing: canJoin
@@ -329,123 +336,32 @@ Widget _messageCard(
   );
 }
 
-void showCreateRoomWithFriendsDialog(
-  BuildContext context, {
-  required List<dynamic> availableFriends,
-  required void Function(List<int> friendIds) onCreate,
-}) {
-  final colors = context.colors;
-  final List<int> selectedFriendIds = [];
-
-  showDialog(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (context, setModalState) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.add_circle_outline, color: colors.accent),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'Create Session and Invite',
-              style: AppText.title.copyWith(color: colors.textPrimary),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Select friends you want to invite to a new session:',
-              style: AppText.body.copyWith(color: colors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (availableFriends.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                child: Text(
-                  'You have no added friends. You can add them in the "People" tab.',
-                  style: AppText.caption.copyWith(color: colors.textMuted),
-                ),
-              )
-            else
-              Container(
-                constraints: const BoxConstraints(maxHeight: 180),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: availableFriends.map((f) {
-                      final fId = f['id'] as int;
-                      final isSel = selectedFriendIds.contains(fId);
-                      return CheckboxListTile(
-                        dense: true,
-                        title: Text(
-                          f['name'] ?? 'Friend',
-                          style: AppText.bodyLargeBold
-                              .copyWith(color: colors.textPrimary),
-                        ),
-                        value: isSel,
-                        onChanged: (val) {
-                          setModalState(() {
-                            if (val == true) {
-                              selectedFriendIds.add(fId);
-                            } else {
-                              selectedFriendIds.remove(fId);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.rocket_launch, size: 16),
-            label: Text(
-              selectedFriendIds.isNotEmpty
-                  ? 'Create and Invite (${selectedFriendIds.length})'
-                  : 'Create session',
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              onCreate(selectedFriendIds);
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-void showActiveSessionBlockedDialog(
+/// Asks before a remembered session is dropped for another one.
+///
+/// Reached only for a room the server still calls live — one that has ended is
+/// forgotten without asking (`GameSessionService.reconcile`). It replaced a
+/// dialog that refused outright and offered only the way back into the old
+/// room, which on 21.9.2026 kept two people in two different rooms.
+Future<bool?> showLeaveOtherSessionDialog(
   BuildContext context, {
   required String roomCode,
-  required VoidCallback onGoToSession,
 }) {
-  showDialog(
+  return showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('You already have an active session'),
+      title: const Text('Leave the other session?'),
       content: Text(
-        'You are already in a session (code: $roomCode). Leave it ("Leave session" button in the room) before creating or joining another.',
+        'You are still in session $roomCode. Leave it and continue?',
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(ctx),
+          onPressed: () => Navigator.pop(ctx, false),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            onGoToSession();
-          },
-          child: const Text('Go to session'),
+          key: const Key('leave-other-session'),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Leave and continue'),
         ),
       ],
     ),

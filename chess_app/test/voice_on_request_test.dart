@@ -91,6 +91,51 @@ void main() {
         reason: 'ono što se uključuje mora moći i da se isključi');
   });
 
+  test('the bar\'s "Join voice" is the same door as the panel\'s', () {
+    // Phase 4 of docs/PLAN-SESIJA.md: the strip says somebody is talking. It
+    // may offer the join; it may not be a second way of making one.
+    expect(withoutComments(source),
+        contains('RoomVoiceInvite(line: _voiceInvite!, onJoin: _joinVoice)'));
+  });
+
+  group('a voice that outlives the room\'s socket is announced again', () {
+    // Agora keeps the call up through a server restart or a dropped socket,
+    // and the server's voice roster is in memory: until 21.9.2026 everybody
+    // was still talking and the roster said nobody was, until each pressed the
+    // button again.
+    // Read inside each case: `bodyOf` throws when the function is not there,
+    // and thrown while the file loads that is a crash, not a red test.
+    String seatedBody() =>
+        withoutComments(bodyOf("socket.on('role_changed', (data) {"));
+    String announceBody() => withoutComments(bodyOf('void _announceVoice() {'));
+
+    test('the bodies were found', () {
+      expect(seatedBody(), contains('_openedRoomBySeat'));
+      expect(announceBody(), contains("socket.emit('audio_join'"));
+    });
+
+    test('once the server has seated this socket, and only if the voice is on',
+        () {
+      // After the seat rather than on `connect`: the roster reads the role
+      // from the seat, and an announcement that beats it lists a trainer as a
+      // student.
+      expect(
+          seatedBody(),
+          contains(
+              'if (isVoiceOn && _agoraService.isJoined) _announceVoice();'));
+    });
+
+    test('announcing is not joining: no channel and no microphone is opened',
+        () {
+      expect(announceBody().contains('_initAudioChat'), isFalse);
+      expect(announceBody().contains('joinChannel'), isFalse);
+    });
+
+    test('one place says audio_join', () {
+      expect("emit('audio_join'".allMatches(withoutComments(source)).length, 1);
+    });
+  });
+
   test('the studio has no voice at all', () {
     final join = withoutComments(bodyOf('Future<void> _joinVoice() async'));
     expect(join, contains("widget.roomCode == 'STUDIO'"),

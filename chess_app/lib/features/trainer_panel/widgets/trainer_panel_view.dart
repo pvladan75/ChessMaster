@@ -22,7 +22,6 @@ class TrainerPanelView extends StatelessWidget {
 
   /// Enters a room this trainer is hosting. Takes the code rather than a route:
   /// the screen that owns the session decides how a room is opened.
-  final void Function(String roomCode) onEnterLesson;
 
   /// Opens one assignment's review, and marks it looked at.
   final void Function(PanelAssignment assignment) onOpenAssignment;
@@ -34,7 +33,6 @@ class TrainerPanelView extends StatelessWidget {
   const TrainerPanelView({
     super.key,
     required this.panel,
-    required this.onEnterLesson,
     required this.onOpenAssignment,
     required this.onOpenStudent,
   });
@@ -68,15 +66,6 @@ class TrainerPanelView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
-            if (panel.today.isNotEmpty)
-              _section(
-                context,
-                title: 'Today',
-                color: colors.accent,
-                children: [
-                  for (final lesson in panel.today) _lessonRow(context, lesson),
-                ],
-              ),
             if (panel.awaitingReview.isNotEmpty)
               _section(
                 context,
@@ -246,32 +235,6 @@ class TrainerPanelView extends StatelessWidget {
               : OutlinedButton(onPressed: onAction, child: Text(action)),
         ],
       ),
-    );
-  }
-
-  Widget _lessonRow(BuildContext context, PanelLesson lesson) {
-    final colors = context.colors;
-    final guests =
-        lesson.guests.isEmpty ? 'no invitees' : lesson.guests.join(', ');
-
-    final room = lesson.roomCode;
-    return _card(
-      context,
-      filled: true,
-      leading: SizedBox(
-        width: 46,
-        child: Text(
-          _hhmm(lesson.scheduledAt),
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
-        ),
-      ),
-      title: lesson.title,
-      subtitle: guests,
-      note: 'room $room',
-      noteColor: colors.textSecondary,
-      action: 'Enter',
-      onAction: () => onEnterLesson(room),
     );
   }
 

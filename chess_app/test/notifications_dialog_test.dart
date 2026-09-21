@@ -24,6 +24,30 @@ const _roomInvite = {
   'title': 'Pozivnica u sesiju',
   'message': 'Pavle vas poziva u sesiju.',
   'is_read': false,
+  // The server's word that the room is still a session (since 21.9.2026).
+  'room_live': true,
+};
+
+/// The same invitation once its session is over — the one the owner pressed on
+/// 21.9.2026 and sat alone in an old room for.
+const _endedInvite = {
+  'id': 9,
+  'kind': 'room',
+  'room_code': '856933',
+  'title': 'Pozivnica u sesiju',
+  'message': 'Pavle vas je pozvao juče.',
+  'is_read': false,
+  'room_live': false,
+};
+
+/// An invitation from a server that does not say. Not a door either.
+const _silentInvite = {
+  'id': 10,
+  'kind': 'room',
+  'room_code': '777777',
+  'title': 'Pozivnica u sesiju',
+  'message': 'Pavle vas je pozvao nekad.',
+  'is_read': false,
 };
 
 /// A request to become someone's student. No room, and `ref_id` instead.
@@ -106,6 +130,24 @@ void main() {
     expect(find.textContaining('vas poziva u sesiju'), findsOneWidget);
     expect(find.textContaining('želi da vas upiše'), findsOneWidget);
     expect(find.textContaining('nije prihvatio'), findsOneWidget);
+  });
+
+  testWidgets('an invitation to a session that has ended is not a door',
+      (tester) async {
+    await _open(tester, [_endedInvite, _silentInvite]);
+
+    expect(find.text('Join'), findsNothing);
+    expect(find.textContaining('Room: 856933'), findsNothing);
+    expect(find.text('This session has ended.'), findsNWidgets(2));
+  });
+
+  testWidgets('a live invitation beside an ended one is the only one to join',
+      (tester) async {
+    await _open(tester, [_endedInvite, _roomInvite]);
+
+    expect(find.text('Join'), findsOneWidget);
+    expect(find.textContaining('Room: 123456'), findsOneWidget);
+    expect(find.text('This session has ended.'), findsOneWidget);
   });
 
   testWidgets('only a room invitation offers to join', (tester) async {

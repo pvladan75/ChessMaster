@@ -47,7 +47,7 @@ async function withApp(fn) {
   }
 }
 
-for (const path of ['/recordings/save', '/lessons', '/rooms/join']) {
+for (const path of ['/recordings/save', '/lessons', '/invitations/send']) {
   test(`a 3 MB JSON body to ${path} is refused before any route sees it`, async () => {
     await withApp(async (port, reached) => {
       const status = await post(port, path, 3 * 1024 * 1024);

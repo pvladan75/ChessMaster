@@ -53,14 +53,45 @@ test('a user who is not connected is not an error', () => {
   assert.deepEqual(io.sent, []);
 });
 
-test('a reconnect replaces the old socket rather than adding one', () => {
+test('a person is reached at every socket they hold', () => {
+  // Supersedes „a reconnect replaces the old socket rather than adding one"
+  // (21.9.2026). One socket per person was the fault: somebody in a room holds
+  // two — Home's and the room's — and what is sent to them has to arrive where
+  // they are looking. A socket that has really gone takes itself out when it
+  // closes (the next case); until then a send to it is a send to nobody.
   const io = stubIo();
   realtime.init(io);
-  realtime.setOnline(user, 'socket-1');
-  realtime.setOnline(user, 'socket-2');
+  realtime.setOnline(user, 'home-socket');
+  realtime.setOnline(user, 'room-socket');
+
+  realtime.emitToUser(user.id, 'voice_level_changed', { level: 'talk' });
+  assert.deepEqual(io.sent.map((s) => s.socketId), ['home-socket', 'room-socket']);
+});
+
+test('a socket that closes takes only itself', () => {
+  // The student's case: Home's socket is disconnected while the room is open,
+  // so the room's is the only one left — and „Grant microphone" has to find it.
+  const io = stubIo();
+  realtime.init(io);
+  realtime.setOnline(user, 'home-socket');
+  realtime.setOnline(user, 'room-socket');
+
+  assert.equal(realtime.goOffline(user.id, 'home-socket'), false, 'still reachable in the room');
+  realtime.emitToUser(user.id, 'voice_level_changed', { level: 'talk' });
+  assert.deepEqual(io.sent.map((s) => s.socketId), ['room-socket']);
+
+  assert.equal(realtime.goOffline(user.id, 'room-socket'), true, 'the last one takes them offline');
+  assert.equal(realtime.emitToUser(user.id, 'voice_level_changed', {}), false);
+});
+
+test('registering the same socket twice does not send twice', () => {
+  const io = stubIo();
+  realtime.init(io);
+  realtime.setOnline(user, 'home-socket');
+  realtime.setOnline(user, 'home-socket');
 
   realtime.emitToUser(user.id, 'relationship_changed', {});
-  assert.deepEqual(io.sent.map((s) => s.socketId), ['socket-2']);
+  assert.equal(io.sent.length, 1);
 });
 
 test('going offline stops the nudge, and says whether it had to', () => {
@@ -81,4 +112,20 @@ test('a server that never handed over its io says so, loudly', () => {
     () => realtime.emitToUser(user.id, 'relationship_changed', {}),
     /realtime\.init/
   );
+});
+
+test('a room socket closing does not take the registration Home made', () => {
+  // Log of 21.9.2026: „User registered: … (ID: 2)" and, on the next line,
+  // „[ONLINE PRESENCE] User disconnected: ID 2" — the room's socket closing
+  // after Home's had registered. Invitations then missed that person.
+  const io = stubIo();
+  realtime.init(io);
+  realtime.setOnline(user, 'home-socket');
+
+  assert.equal(realtime.goOffline(user.id, 'room-socket'), false);
+  assert.equal(realtime.emitToUser(user.id, 'lesson_invite_received', {}), true);
+  assert.deepEqual(io.sent.map((s) => s.socketId), ['home-socket']);
+
+  assert.equal(realtime.goOffline(user.id, 'home-socket'), true);
+  assert.equal(realtime.emitToUser(user.id, 'lesson_invite_received', {}), false);
 });

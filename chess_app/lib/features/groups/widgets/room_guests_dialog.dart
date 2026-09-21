@@ -216,8 +216,16 @@ class _RoomGuestsDialogState extends State<RoomGuestsDialog> {
                       ),
                     const Divider(height: 20),
                     _buildAdders(context),
-                    const Divider(height: 20),
-                    _buildGuestSwitch(context),
+                    // Guests are not offered any more (docs/PLAN-SESIJA.md,
+                    // §5.2): nobody but a future observing parent would use
+                    // the door, and that is not built. A room that is closed
+                    // to them — every new one — draws nothing. One that is
+                    // **open**, or that would not say, still draws this, so
+                    // that hiding the switch can never hide an open door.
+                    if (_allowGuests != false) ...[
+                      const Divider(height: 20),
+                      _buildGuestSwitch(context),
+                    ],
                   ],
                 ),
               ),

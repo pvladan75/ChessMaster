@@ -6058,3 +6058,237 @@ Broj se izvodi iz samog fajla.
 tiho palo za svakog, 16 dana, a da niko u ovom repozitorijumu nije ništa
 menjao — pravilo 14, samo što je uspavanu grešku probudilo tudje izdanje.
 Vezano za oznaku izdanja, ime se menja samo ovde.
+
+## Dve sobe, tri prijave: sesija koja se nije završavala — 21.9.2026
+
+Aplikacija **3594 → 3617** (+15 `room_session_lifecycle_test`, +5
+`room_end_session_test`, +2 zvonce, +1 gosti). Server **1550 → 1560** bez baze
+(−1 „Today", +3 `room_access`, +5 `room_lifecycle` bez baze, +3
+`invitation_route`), **1644 → 1660** sa bazom (još +6 u `room_lifecycle`).
+
+**Tri prijave, jedan uzrok, i svaki sloj ispravan** (pravilo 10). „Nema glasa",
+„snima iako nas je više", „ko vodi" — log servera je pokazao da su dva naloga
+bila u **dve različite sobe**: Agora kanal je kôd sobe, `mayRecordRoom` je
+ispravno video vlasnika samog, i svako je gledao sobu u kojoj je sam. Pre nego
+što se otklanja glas, pročitaj u logu **u kojoj je ko sobi**.
+
+**Stanje koje ima početak a nema kraj je vrata koja ostaju otvorena.**
+`rooms.status` je od prvog dana dozvoljavao `'archived'`, a ništa ga nije
+pisalo. Poziv u zvoncu je zato zauvek imao „Join", a zapamćena „aktivna sesija"
+u aplikaciji se brisala samo dugmetom Leave i dotle je blokirala svaku drugu
+sobu. Kad se pravi nešto što se *otvara*, pitaj ko ga i kada *zatvara*.
+
+**„Ne mogu da pitam" nije „završeno".** `RoomSessionApi.state` vraća `null` kad
+server ne odgovori, i `reconcile` tada čuva sesiju — isti oblik kao
+`PuzzleSetRepository.list()`. Dve mutacije (nepoznat odgovor = ended, null =
+ended) obe crvene na pravom slučaju.
+
+**„Ended" se kaže samo onome ko je imao mesto.** Provera statusa stoji *posle*
+određivanja mesta, inače odgovor strancu potvrđuje da je kôd nekad bio soba.
+Mutacija koja proveru stavlja ispred pala je tačno na tom slučaju.
+
+**Priručnik citira natpise aplikacije, i čuvar ga drži za reč.** Obrisana su
+četiri natpisa („Go to session", „Today" dvaput, „You already have an active
+session"); grep po `lib/`, `test/` i serveru nije našao ništa, a
+`manual_labels_test` jeste — stranice su u `site/mislisha/manual/`. **Obrisan
+natpis se traži i u `site/`.**
+
+**Opet: pun prolaz dok se `lib/` menja ne dokazuje ništa.** Prvi pun prolaz je
+tekao dok je pravilo seljeno u `makeWayFor`; pokazao je tri „loading" greške
+koje su bile moja poluzavršena izmena i jednu pravu (tip povratne vrednosti u
+Home, koju `analyze` pre izmene nije mogao da vidi). Čist prolaz je pušten tek
+kad je sve stajalo. Dva pada `render_abort` u serverskom prolazu odmah posle
+bila su opterećenje: 8/8 sami, 8/8 na netaknutom stablu, i zelen ponovljen pun
+prolaz.
+
+## „Leave voice" je izlazio iz sobe — 21.9.2026
+
+Server **1560 → 1567** bez baze (+6 `room_voice_events`, +1 `realtime`),
+**1660 → 1667** sa bazom. Aplikacija nije dirana (3617).
+
+Vlasnikova prijava sa probe faze 1: „kod trenera se ne osvežava spisak
+prisutnih, kod učenika je u redu". Čitanje koda nije našlo ništa — rukovalac i
+kartica su isti za oba sedišta. **Zato je prvo izmereno**: server na portu 3999
+nad privremenom bazom, tri sirova WebSocket klijenta (trenerov Home, trenerova
+soba, učenikova soba) — trener **dobija** `room_members_list`. Server je bio
+nevin za taj tok, i tek tada je imalo smisla tražiti tok koji se razlikuje.
+
+**Uzrok je bio u logu, u redu koji je izgledao kao šum**: „[AUDIO] User
+undefined left audio". `audio_leave` se završavao sa `socket.leave(roomId)`, a
+glas i tabla dele jednu Socket.IO sobu (kôd sobe) — `audio_join` radi
+`socket.join` po drugi put, pa je njegova slika u ogledalu izbacivala utičnicu
+iz **svega**: spiska, poteza, `session_ended`. Na spisku je ostajala, pa je
+ličilo na grešku prikaza na jednom uređaju. **Kad dve funkcije dele jedan kanal,
+suprotno od „join" nije „leave".** Pravilo je sada u `roomVoiceEvents.js`:
+utičnica koju je `joinGame` posadio ostaje u sobi dok se ne prekine veza ili se
+sesija ne završi.
+
+**Drugi nalaz iz istog loga:** „User registered (ID 2)" pa red kasnije „User
+disconnected: ID 2". Osoba u sobi ima dve utičnice; zatvaranje sobne je brisalo
+registraciju koju je napravila Home, pa `emitToUser` (pozivi, zvonce) promašuje
+dok se Home slučajno opet ne javi. `goOffline(userId, socketId)` — registraciju
+odnosi samo utičnica koja je registrovana. Ovo je i polovina nalaza F9 iz plana.
+
+**„undefined" u logu je nalaz, ne ukras.** Red koji se ponavlja pri svakom
+zatvaranju sobe govorio je da se rukovalac izvršava za nekoga ko u glas nije ni
+ušao — i baš taj prolaz je radio `socket.leave`.
+
+## Niko ne kuca kôd, poziv grupi, i ko je u sobi — 21.9.2026
+
+Aplikacija **3617 → 3641**: +11 `room_presence_title`, +4
+`room_invite_students`, +8 `invite_students_dialog`, +5 `home_live_sessions`,
+−1 slučaj u `home_map_test` (kucao je dvocifren kôd u polje kog više nema), −3
+`invite_friends_dialog_test` (čitao izvor obrisanog dijaloga kao tekst; njegova
+dva pravila sada drže dva testa ponašanja). Server **1567 → 1564** bez baze
+(+2 poziv samo svojim učenicima, +1 smer vrata, −6 `rooms_join.test.js` sa
+obrisanom rutom), **1667 → 1666** sa bazom (još +2 `liveSessionsFor`).
+
+**Tri odluke vlasnika sa probe, jedna za drugom:** ko pokrene sesiju taj u njoj
+podučava, pa poziva samo svoje učenike; kôd sobe ne kuca niko; poziva se i
+cela grupa. Prva je povukla četvrtu koju niko nije izgovorio — **vrata prate
+poziv**: `mayJoinRoom` je čitao vezu u oba smera, pa je trener mogao da uđe u
+učenikovu sobu i sedi kao učenik, odakle je „ko vodi" i imalo dva odgovora.
+Rečeno je vlasniku otvoreno, kao promena koja se vraća jednim redom.
+
+**Sekvencijalni stub ne vidi smer.** `room_access.test.js` hrani `mayJoinRoom`
+nizom odgovora po redu, pa je zamena `acceptedEdgeBetween` → `trainerOwnsStudent`
+prošla sa svih 28 zelenih — a da nijedan nije mogao da padne. Novi slučaj
+odgovara na pitanje koje je zaista postavljeno (čita li upit `trainer_id = $2`),
+i mutacija na stara vrata pada tačno na njemu. Isto je urađeno u
+`invitation_route.test.js`. **Stub koji odgovara po redosledu može da proveri da
+li je pitano, ne i šta.**
+
+**Dve preživele mutacije koje nisu rupa.** U `liveSessionsFor` upit je samo
+predfilter; svakog kandidata posle pita `mayJoinRoom`. Izbacivanje
+`status <> 'archived'` i zamena `acceptedTrainersOf` za „bilo čija soba" obe
+prežive, jer drugo pola nosi pravilo. Zapisano kao takvo — slučaj koji bi ih
+oborio tvrdio bi oblik upita, a ne ono što učenik vidi. Treća (kandidat se nudi
+bez pitanja vrata) pada gde treba.
+
+**Grupa je način da se štikliraju ljudi, ne druga vrsta primaoca** — isto
+pravilo kao u dijalogu za domaći. Šalju se ljudi, pa server o grupama ovde ne
+zna ništa, i član koji je izašao prošle nedelje nije pozvan kroz stari red.
+
+**Test je uhvatio raspored pre nego što ga je iko video:** na položenom telefonu
+(640 x 360) spisak u novom dijalogu bio je visok **9 px** — spisak je imao svoj
+deo visine, a zaglavlje i čipovi su uzeli ostalo. Isti kvar kao „Choose a game"
+od jutros. Ceo sadržaj sada skroluje kao jedno.
+
+**Deveti fajl, treći put danas.** `manual_labels_test` je dva puta uhvatio
+obrisane natpise u `site/`, a `invite_friends_dialog_test` je pao tek u punom
+prolazu: ne pominje ni vidžet ni natpis, nego **ime privatne funkcije** čije telo
+čita. Pre brisanja funkcije — grep njenog imena po `test/`.
+
+## Jedan voditelj, i tabla okrenuta naopako — 21.9.2026
+
+Aplikacija **3641 → 3650** (+9 `room_one_leader_test`; `board_control_rules_test`
+je prepisan otvoreno, šest slučajeva za šest). Server **1564 → 1567** bez baze,
+**1666 → 1669** sa bazom (+3 u `room_board_events`), oba merena.
+
+**Četiri definicije istog pitanja.** Ekran sobe je „ko vodi" pitao kroz getter,
+dve lokalne promenljive koje su dodavale **ulogu naloga**, i jednu koja je
+izostavljala ko-domaćina. Nalog registrovan kao trener, a u sobi na mestu
+učenika, dobijao je pola trenerskog ekrana i tablu. Sada `leadsRoom` u
+`board_control_rules.dart` i jedan `isLeader`; strukturni test (komentari
+skinuti, imena kao identifikatori) pada kad se druga definicija vrati.
+
+**Greška koju je vođa napravio istog popodneva, i koju je uhvatio test za nešto
+drugo.** Orijentacija table je pitala `activeRole == 'host'` — sedište po imenu.
+Kad je „New session" počeo da ulazi kao `'trener'`, poređenje je tiho postalo
+uvek netačno i svaki trener je otvarao sobu sa crnima dole; u vlasnikovom logu
+stoji ručno okretanje u 20:00:45. Našao ga je slučaj „nijedno sedište se ne
+poredi ručno". **Kad se promeni pravopis uloge, stari pravopis se traži kao
+string** — kompajler ne vidi poređenje koje je postalo uvek netačno.
+
+**`student_white` i `student_black` su bili samo natpisi.** Nigde, ni na jednom
+kraju, potez nije filtriran po boji; „Student plays as White" je puštao i crne.
+A nova soba je stizala kao `host_only`, vrednost koju lista nije imala i koju je
+učenik čitao doslovno. Šest pravopisa, dva stanja: `boardIsOpen` čita svih šest
+onako kako ih je kôd oduvek tretirao, `boardControlFor` upisuje dva i odbija
+ono što nije stanje table.
+
+**Python u heredoc-u jede obrnute kose crte** — regex u JS testu je dvaput
+upisan sa pravim novim redom umesto `
+`. Za tekst sa `\` koristi `chr(92)`
+ili alat Write, ne string u heredoc-u.
+
+## Jedna osoba, dve utičnice — 21.9.2026
+
+Server **1567 → 1569** bez baze (−1 „a reconnect replaces the old socket", +3);
+sa bazom 1671 po aritmetici, nije mereno.
+
+Tabela prisustva je držala **jednu** utičnicu po osobi, a osoba u sobi ima dve:
+Home i sobnu. Sobna se nikad nije ni registrovala, a učenikova Home je
+isključena dok je soba otvorena — pa `emitToUser` za `voice_level_changed` nije
+imao kome da pošalje. To je F9 iz plana, i druga polovina istog nalaza kao
+„zatvaranje sobne utičnice briše registraciju". Test koji je držao staro
+pravilo („reconnect zamenjuje, ne dodaje") prepisan je otvoreno: **pravilo koje
+je test čuvao bilo je sama greška.**
+
+## Glas koji kaže šta radi — 21.9.2026
+
+Aplikacija **3650 → 3679** (+29: 12 u `voice_seat_test`, 12 u novom
+`room_voice_invite_test` — dva slučaja mere na dve platforme — i 5 u
+`voice_on_request_test`). Server **1569 → 1575** bez baze i **1677** sa
+bazom, oba merena: ispravka je dokazana u kopiji van repozitorijuma i preneta na
+vlasnikovu reč, sa ugašenim serverom (pravilo 20). Faza 4 plana `PLAN-SESIJA.md`, sve četiri
+tačke aplikacije. 23 mutacije u aplikaciji i 6 na serveru; jedna je preživela i
+pokazala se kao inertna.
+
+**Odbijanje se u testu nikad nije čulo, i niko to nije znao.** `joinChannel` je
+prvo palio motor, pa tek onda pitao server za mesto. U testu motor ne može da
+se napravi, pa je `if (_engine == null) return false` stajao ispred *svega* —
+i ispred rečenice sobe koja kaže ne. Slučaj „a refusal is still the room's own
+sentence" bio je crven na masteru iako je 403 oduvek bio „pokriven": pokriven
+je bio `voiceSeatFor`, ne put kojim korisnik ide (pravilo 10). Redosled „pitaj,
+pa pali" je i jeftiniji i jedini koji se da testirati.
+
+**Prazan token nije odgovor „ne znam".** Server bez App Certificate-a uredno
+odgovara 200 bez tokena, i to je ispravna postavka. Zato tihi server nije mogao
+da se prepozna po tokenu, pa se ulazilo kao slušalac sa praznim tokenom — što
+server *sa* sertifikatom odbije, bez ijednog povratnog poziva: točkić zauvek.
+Četvrto polje (`failure` pored `refused`) je isto pravilo kao `list()` koji
+vraća null a ne `[]`: **odsustvo odgovora je treći odgovor** (pravilo 11), i
+slučaj na granici — 200 sa praznim tokenom *nije* greška — napisan je pre
+ispravke, da ispravka ne ode predaleko.
+
+**`minimumSize` nije minimum na desktopu.** Dugme trake je traženo 32 px i
+izmereno **24** — `VisualDensity.compact` skida 8, a tema je kompaktna na svakom
+desktopu. Lekcija sa sličicom u Biblioteci je ovaj put primenjena unapred:
+slučaj pumpa `TargetPlatformVariant({android, windows})`, i crven je bio **samo**
+Windows. Ko postavlja visinu, postavlja i `visualDensity`.
+
+**Nova rečenica nad starim spiskom budi ono što spisak nikad nije rekao**
+(pravilo 14). Kad poslednji izađe iz glasa, server nije slao ništa — grana
+`else` je emitovala samo neprazan spisak. Dok je to čitao panel duboko u desnoj
+koloni („In call: Vladan."), niko nije primetio; traka „Vladan is in voice —
+Join voice" na vrhu sobe bi to vikala. Nađeno čitanjem servera *pre* nego što je
+traka puštena, ne testom: **pre nego što nešto postane glasno, pitaj ko mu piše
+i da li ikad kaže „prazno".**
+
+**Treći put istog dana: spisak po osobi, brisanje po utičnici.** `goOffline`
+(jutros), prisustvo sa dve utičnice (popodne), i sada oba sobna spiska: kasni
+`disconnect` stare utičnice briše mesto koje je nova već zauzela. Tačka 3
+(ponovna najava posle prekida) pravi od toga redovan slučaj umesto retkog.
+`dropEntry` briše samo ono što je ta utičnica upisala. **Kad se isti oblik nađe
+dvaput, traži se oblik (`delete …[userId]`), ne mesto.**
+
+**Najava ide posle mesta, ne na `connect`.** Glasovni spisak čita ulogu iz
+`activeRoomMembers`, a `joinGame` i `audio_join` su oba asinhrona: najava koja
+pretekne sedenje upisuje trenera kao učenika. `role_changed` stiže jednom po
+sedenju, pa je to okidač.
+
+**Preživela mutacija koja nije rupa:** bez `TextOverflow.ellipsis` sve ostaje
+zeleno, jer raspored drži `Expanded`, a elipsa je samo izgled reza. Mutacija
+koja rečenicu čini krutom (`Expanded` → `SizedBox`) pada na svih pet slučajeva.
+
+**Okruženje pre koda, opet.** Puno pokretanje servera u kopiji dalo je 15
+crvenih — nijedan zbog izmene: ESM `import` ne čita `NODE_PATH`, a šest testova
+traži `../chess_app`, `../docs` i `../site` pored sebe. Sa spojnicama
+(`New-Item -ItemType Junction`; `mklink` iz Git Bash-a je javljao „already
+exists" za putanju koje nema) — 1575 zelenih.
+
+**I vođa je dodao 27. info u `analyze`.** `dart format` je prelomio
+`if (…) continue;` u dva reda, pa je `curly_braces` proradio — u testu, ne u
+`lib/`. Izlazni kôd je bio isti kao juče; video se samo zato što se čita **broj
+i spisak**, ne kôd (pravilo 18).

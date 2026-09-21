@@ -5,9 +5,10 @@ const { pool } = require('../db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { getUserStats } = require('../limitsService');
 const relationships = require('../services/relationshipService');
+const { trainerOwnsStudent } = require('../services/assignmentService');
 const realtime = require('../services/realtime');
 const { notify } = require('../services/notifications');
-const { ownsRoom } = require('../services/roomAccess');
+const { mayJoinRoom } = require('../services/roomAccess');
 const mailService = require('../services/mailService');
 
 /// Tells a user, if they are looking right now, that something about their
@@ -417,9 +418,15 @@ router.get('/friends', authenticateToken, async (req, res) => {
 router.get('/notifications', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT n.*, u.name as sender_name 
+      // `room_live`: whether the room an invitation names is still a session.
+      // An invitation used to stay a working door for ever, and joining an old
+      // one put two people in two rooms (`docs/PLAN-SESIJA.md`, §1). FALSE for a
+      // row that names no room, and the app draws „Join" only on TRUE.
+      `SELECT n.*, u.name as sender_name,
+              (r.room_code IS NOT NULL AND r.status <> 'archived') AS room_live
        FROM user_notifications n
        LEFT JOIN users u ON n.sender_id = u.id
+       LEFT JOIN rooms r ON r.room_code = n.room_code
        WHERE n.user_id = $1 
        ORDER BY n.created_at DESC LIMIT 20`,
       [req.user.id]
@@ -477,20 +484,36 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Only people this sender is actually in a relationship with. The list of
-    // ids arrives from the client, so without this anybody could push a
-    // notification naming themselves at any user id they cared to type — and
-    // most of the ids in this app belong to children. Being unable to reach
-    // somebody who never agreed to be taught by you is the whole model.
+    // Into the sender's own live session and nowhere else. This route took any
+    // room code at all, so an invitation could name somebody else's room or one
+    // that had ended; `mayJoinRoom` seats only the creator of a live room as
+    // 'trener', which is both halves of the question in the one place that
+    // answers it.
+    const seat = await mayJoinRoom(pool, { roomCode: String(roomCode), userId: senderId });
+    if (!seat.allowed || seat.role !== 'trener') {
+      return res.status(403).json({
+        error: 'You can only invite people to your own session while it is running.',
+      });
+    }
+
+    // Only the sender's **own students**. Whoever starts a session is teaching
+    // in it, so the people they may call into it are the people they teach —
+    // not their trainer, and not anybody else (the owner's decision of
+    // 21.9.2026; until then either direction of the relationship would do).
+    // Read through `trainerOwnsStudent`, the one home of that right.
+    //
+    // The list of ids arrives from the client, so without a check anybody could
+    // push a notification naming themselves at any user id they cared to type —
+    // and most of the ids in this app belong to minors.
     const allowed = [];
     for (const targetId of targetIds) {
-      if (await relationships.acceptedEdgeBetween(pool, senderId, targetId)) {
+      if (await trainerOwnsStudent(pool, senderId, targetId)) {
         allowed.push(targetId);
       }
     }
     if (allowed.length === 0) {
       return res.status(403).json({
-        error: 'An invitation can only be sent to a student or trainer who has accepted the relationship.',
+        error: 'You can invite only your own students into a session.',
       });
     }
 
@@ -520,97 +543,12 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
       message: allowed.length === targetIds.length
         ? 'Invitation sent successfully.'
         : `Invitation sent: ${allowed.length} of ${targetIds.length}. `
-          + 'The others are not in an accepted relationship with you.',
+          + 'The others are not your students.',
       sent: allowed.length,
     });
   } catch (err) {
     logger.error('Error sending invitation:', err);
     res.status(500).json({ error: 'Error sending invitation.' });
-  }
-});
-
-// POST /sessions/schedule
-router.post('/sessions/schedule', authenticateToken, async (req, res) => {
-  const { title, description, scheduledAt, invites, roomCode } = req.body;
-  const hostId = req.user.id;
-
-  if (!title || !scheduledAt || !roomCode) {
-    return res.status(400).json({ error: 'Title, time and room code are required.' });
-  }
-
-  try {
-    // The room has to be the caller's own. An invitation to a scheduled session
-    // is one of the ways into a room (`roomAccess.mayJoinRoom`), so scheduling
-    // one on a room code that belongs to somebody else is writing yourself a
-    // key. `mayJoinRoom` now also checks who the host was, so this is the second
-    // lock on the same door — deliberately, because the first one was missing
-    // for a day.
-    if (!(await ownsRoom(pool, { roomCode, userId: hostId }))) {
-      return res.status(403).json({
-        error: 'A session is scheduled in your own room. Create a room first, then schedule it.',
-      });
-    }
-
-    const sessionRes = await pool.query(
-      `INSERT INTO scheduled_sessions (host_id, room_code, title, description, scheduled_at)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [hostId, roomCode, title, description || '', scheduledAt]
-    );
-
-    const sessionId = sessionRes.rows[0].id;
-
-    if (invites && Array.isArray(invites) && invites.length > 0) {
-      for (const userId of invites) {
-        // Same rule as everywhere else: an invitation is not a way around
-        // consent. Somebody who never accepted you is not invited, quietly
-        // skipped rather than refusing the whole schedule.
-        if (!(await relationships.acceptedEdgeBetween(pool, hostId, userId))) {
-          continue;
-        }
-        await pool.query(
-          `INSERT INTO scheduled_session_invites (session_id, user_id)
-           VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-          [sessionId, userId]
-        );
-
-        const hostRes = await pool.query('SELECT name FROM users WHERE id = $1', [hostId]);
-        const hostName = hostRes.rows[0]?.name || 'Trainer';
-
-        await notify(pool, {
-          recipientId: userId,
-          senderId: hostId,
-          roomCode,
-          title: `Scheduled session: ${title}`,
-          message: `${hostName} scheduled a session for ${new Date(scheduledAt).toLocaleString()}. Room code: ${roomCode}`,
-        });
-      }
-    }
-
-    res.json({ success: true, message: 'Session scheduled successfully.', sessionId });
-  } catch (err) {
-    logger.error('Error scheduling session:', err);
-    res.status(500).json({ error: 'Error scheduling session.' });
-  }
-});
-
-// GET /sessions/scheduled
-router.get('/sessions/scheduled', authenticateToken, async (req, res) => {
-  const userId = req.user.id;
-
-  try {
-    const result = await pool.query(
-      `SELECT DISTINCT s.*, u.name as host_name
-       FROM scheduled_sessions s
-       LEFT JOIN users u ON s.host_id = u.id
-       LEFT JOIN scheduled_session_invites i ON s.id = i.session_id
-       WHERE s.host_id = $1 OR i.user_id = $1
-       ORDER BY s.scheduled_at ASC`,
-      [userId]
-    );
-    res.json({ sessions: result.rows });
-  } catch (err) {
-    logger.error('Error fetching scheduled sessions:', err);
-    res.status(500).json({ error: 'Error fetching scheduled sessions.' });
   }
 });
 

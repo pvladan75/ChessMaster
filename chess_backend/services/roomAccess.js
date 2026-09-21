@@ -19,17 +19,12 @@
 //      invited — then whoever is on it, and nobody else. An empty list means
 //      what the room always meant: every accepted student of the creator. One
 //      row narrows it, which is exactly what "invite this group" has to mean.
-//   3. Otherwise, anyone in an accepted relationship with the creator, in
-//      either direction. Read through `acceptedEdgeBetween` rather than a fresh
-//      subquery, for the reason CLAUDE.md gives: three hand-written copies of
+//   3. Otherwise, any accepted **student of the creator** — that direction
+//      only, since 21.9.2026. Read through `trainerOwnsStudent` rather than a
+//      fresh subquery, for the reason CLAUDE.md gives: three hand-written copies of
 //      that condition all forgot `status`, and an unanswered request already
 //      unlocked what it had asked for.
-//   4. Anyone **the creator** invited to a session scheduled on this very room
-//      code — the invitation is the consent, and it is already recorded. Whose
-//      invitation it is has to be checked: the row is written by whoever asks
-//      to schedule something, so without that check an invitation to oneself
-//      would be a key to anybody's room.
-//   5. A guest, only where the room says guests are allowed. Off by default,
+//   4. A guest, only where the room says guests are allowed. Off by default,
 //      because the default decides what happens in the room nobody thought
 //      about.
 //
@@ -52,7 +47,7 @@
 // refusal that reads as "connecting…" forever is the same silent failure this
 // codebase keeps paying for.
 
-const { acceptedEdgeBetween } = require('./relationshipService');
+const { trainerOwnsStudent } = require('./assignmentService');
 
 /// Why somebody is not in the room. The app turns these into sentences, so they
 /// are values rather than prose.
@@ -60,6 +55,10 @@ const REFUSED = {
   noRoom: 'no-room',
   guestNotAllowed: 'guest-not-allowed',
   notInvited: 'not-invited',
+  /// The session is over. Said only to somebody who would otherwise have been
+  /// let in: a stranger is told what a stranger was always told, so the answer
+  /// does not confirm that a code ever named a room.
+  ended: 'ended',
 };
 
 /**
@@ -74,12 +73,27 @@ async function mayJoinRoom(pool, { roomCode, userId = null }) {
   }
 
   const room = await pool.query(
-    'SELECT creator_id, allow_guests FROM rooms WHERE room_code = $1',
+    'SELECT creator_id, allow_guests, status FROM rooms WHERE room_code = $1',
     [roomCode],
   );
   if (room.rowCount === 0) {
     return { allowed: false, reason: REFUSED.noRoom, role: null };
   }
+
+  const seat = await seatIn(pool, { room: room.rows[0], roomCode, userId });
+
+  // An ended session admits nobody, its creator included (`roomLifecycle.js`).
+  // Asked **after** the seat, so that „ended" is only ever said to somebody who
+  // had a seat to lose.
+  if (seat.allowed && room.rows[0].status === 'archived') {
+    return { allowed: false, reason: REFUSED.ended, role: null };
+  }
+  return seat;
+}
+
+/// The guest list itself: which seat `userId` has in this room, if any.
+async function seatIn(pool, { room: roomRow, roomCode, userId }) {
+  const room = { rows: [roomRow] };
 
   const creatorId = room.rows[0].creator_id;
   const allowGuests = room.rows[0].allow_guests === true;
@@ -104,7 +118,14 @@ async function mayJoinRoom(pool, { roomCode, userId = null }) {
     return { allowed: true, reason: null, role: 'trener' };
   }
 
-  const related = await acceptedEdgeBetween(pool, creatorId, userId);
+  // **The creator's students, and only in that direction.** Whoever starts a
+  // session is teaching in it (the owner's decision of 21.9.2026): they invite
+  // their own students, and a room admits nobody else. Until then either
+  // direction of the relationship would do, so a trainer could walk into a
+  // student's room and sit there as a student — which is how „who leads" came
+  // to have two answers. Read through `trainerOwnsStudent`, the one home of
+  // that right.
+  const related = await trainerOwnsStudent(pool, creatorId, userId);
 
   // Does this room have a guest list at all?
   const list = await pool.query(
@@ -134,25 +155,6 @@ async function mayJoinRoom(pool, { roomCode, userId = null }) {
     return { allowed: true, reason: null, role: 'ucenik' };
   }
 
-  // `s.host_id = $3` is not decoration. Without it the door opens on a row
-  // anybody can write: `POST /sessions/schedule` takes a room code and a list of
-  // user ids, so a stranger could schedule a session **on somebody else's room
-  // code**, invite themselves, and walk past the guest list holding an
-  // invitation they had issued to themselves. The invitation is consent only
-  // when it came from the person whose room it is.
-  const invited = await pool.query(
-    `SELECT 1
-       FROM scheduled_session_invites i
-       JOIN scheduled_sessions s ON s.id = i.session_id
-      WHERE s.room_code = $1 AND i.user_id = $2 AND s.host_id = $3
-        AND i.status <> 'declined'
-      LIMIT 1`,
-    [roomCode, userId, creatorId],
-  );
-  if (invited.rowCount > 0) {
-    return { allowed: true, reason: null, role: 'ucenik' };
-  }
-
   return asGuest();
 }
 
@@ -172,10 +174,6 @@ async function mayJoinRoom(pool, { roomCode, userId = null }) {
 ///     a guest came to watch; a student according to `voice_level` on the
 ///     relationship, which is where "this child listens, that one talks" is
 ///     recorded.
-///
-/// Anyone let in on a scheduled-session invitation without an accepted
-/// relationship listens: there is no relationship row to hold a decision about
-/// their microphone, and the missing answer must not read as "yes".
 ///
 /// The point of deciding it here rather than in the app: a microphone that is
 /// off because the client chose to mute itself is off until somebody replaces
@@ -209,8 +207,9 @@ async function maySpeakInRoom(pool, { roomCode, userId = null }) {
     [roomCode, userId],
   );
 
-  // No row: in the room on an invitation to a scheduled session, with no
-  // relationship behind it. Listening is the honest answer to a question nobody
+  // No row is not a yes. Every student seat stands on an accepted relationship
+  // today, so this should not happen — and if a door is ever added that seats
+  // somebody without one, listening is the honest answer to a question nobody
   // has been asked.
   const maySpeak = level.rowCount > 0 && level.rows[0].voice_level === 'talk';
   return {

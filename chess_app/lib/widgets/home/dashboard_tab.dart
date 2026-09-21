@@ -1,3 +1,4 @@
+import 'package:chess_app/services/room_session_api.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/trainer_panel/models/trainer_panel.dart';
@@ -13,7 +14,9 @@ import 'package:chess_app/widgets/adaptive_card_grid.dart';
 /// and mutating everything shown here.
 class HomeDashboardTab extends StatelessWidget {
   final String userName;
-  final TextEditingController codeController;
+
+  /// Sessions of this account's trainers that are running now.
+  final List<LiveSession> liveSessions;
   final List<dynamic> recordings;
   final bool isLoadingRecordings;
 
@@ -21,7 +24,6 @@ class HomeDashboardTab extends StatelessWidget {
   /// when it has rows. Phase 5 of docs/PLAN-REORGANIZACIJA.md moved it here
   /// from the People tab: it is about now, not about who.
   final TrainerPanel panel;
-  final void Function(String roomCode) onEnterLesson;
   final void Function(PanelAssignment assignment) onOpenPanelAssignment;
   final void Function(int id, String name) onOpenStudent;
 
@@ -34,25 +36,24 @@ class HomeDashboardTab extends StatelessWidget {
 
   /// Positions waiting to be reviewed; drives the badge.
   final int dueReviewCount;
-  final ValueChanged<String> onJoinRoom;
+  final ValueChanged<String> onJoinSession;
   final VoidCallback onRefreshRecordings;
   final ValueChanged<int> onOpenReplay;
 
   const HomeDashboardTab({
     super.key,
     required this.userName,
-    required this.codeController,
+    required this.liveSessions,
     required this.recordings,
     required this.isLoadingRecordings,
     required this.panel,
-    required this.onEnterLesson,
     required this.onOpenPanelAssignment,
     required this.onOpenStudent,
     required this.hasTrainer,
     required this.onOpenAssignments,
     required this.onOpenReviews,
     this.dueReviewCount = 0,
-    required this.onJoinRoom,
+    required this.onJoinSession,
     required this.onRefreshRecordings,
     required this.onOpenReplay,
   });
@@ -135,7 +136,6 @@ class HomeDashboardTab extends StatelessWidget {
           const ResumeStrip(),
           TrainerPanelView(
             panel: panel,
-            onEnterLesson: onEnterLesson,
             onOpenAssignment: onOpenPanelAssignment,
             onOpenStudent: onOpenStudent,
           ),
@@ -254,53 +254,56 @@ class HomeDashboardTab extends StatelessWidget {
                 ),
               ],
 
-              // Join Room Card
-              Card(
-                shape: AppRadii.cardShape,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Join a session',
-                          style: AppText.title
-                              .copyWith(color: colors.textPrimary)),
-                      const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: codeController,
-                              decoration: const InputDecoration(
-                                labelText: 'Enter room code (e.g. 123456)',
-                                prefixIcon: Icon(Icons.vpn_key),
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
+              // Who is in a session now. Typing a room code was removed on
+              // 21.9.2026 for everybody: the app names the room, so there is
+              // nothing to mistype and no old code to go back into. Drawn only
+              // when it has rows, like every block on Home.
+              if (liveSessions.isNotEmpty)
+                Card(
+                  key: const Key('home-live-sessions'),
+                  shape: AppRadii.cardShape,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('In a session now',
+                            style: AppText.title
+                                .copyWith(color: colors.textPrimary)),
+                        const SizedBox(height: AppSpacing.sm),
+                        for (final session in liveSessions)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.xs),
+                            child: Row(
+                              children: [
+                                Icon(Icons.podcasts,
+                                    size: 18, color: colors.accent),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    session.trainerName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppText.bodyBold,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                ElevatedButton.icon(
+                                  key:
+                                      ValueKey('home-join-${session.roomCode}'),
+                                  icon: const Icon(Icons.login, size: 18),
+                                  label: const Text('Join'),
+                                  onPressed: () =>
+                                      onJoinSession(session.roomCode),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.md),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.login),
-                            label: const Text('Join'),
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(48, 48),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                                vertical: 14,
-                              ),
-                            ),
-                            onPressed: () {
-                              final code = codeController.text.trim();
-                              if (code.isNotEmpty) onJoinRoom(code);
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
 

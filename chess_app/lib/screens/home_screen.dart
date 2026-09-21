@@ -21,6 +21,7 @@ import 'package:chess_app/widgets/desktop_shortcuts.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/services/room_session_api.dart';
 import 'package:chess_app/services/billing_service.dart';
 import 'package:chess_app/features/reviews/services/review_api_service.dart';
 
@@ -122,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  final _codeController = TextEditingController();
   bool _isLoading = false;
 
   late io.Socket _socket;
@@ -158,9 +158,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<dynamic> _recordings = [];
   bool _isLoadingRecordings = false;
-
-  List<dynamic> _friends = [];
-  bool _isLoadingFriends = false;
 
   List<dynamic> _notifications = [];
   bool _isLoadingNotifications = false;
@@ -205,10 +202,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _initSocket();
       _fetchStudents();
       _fetchRecordings();
-      _fetchFriends();
       _fetchNotifications();
       _fetchDueReviews();
       _fetchPanel();
+      // A remembered room that has ended is forgotten before „Resume session"
+      // can offer it. Home listens to the service, so the banner goes by itself.
+      unawaited(GameSessionService.instance.reconcile(_roomSessions));
+      _fetchLiveSessions();
     }
     OpeningBookService.instance.ensureLoaded();
     GameSessionService.instance.addListener(_onGameSessionChanged);
@@ -230,7 +230,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     GameSessionService.instance.removeListener(_onGameSessionChanged);
     _billing.dispose();
-    _codeController.dispose();
     _studentEmailController.dispose();
     super.dispose();
   }
@@ -246,18 +245,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case PendingSessionAction.createRoom:
         _createRoom();
         break;
-      case PendingSessionAction.showCreateRoomDialog:
-        _showCreateRoomWithFriendsDialog();
-        break;
-      case PendingSessionAction.joinRoomByCode:
-        _codeController.text = intent.roomCode ?? '';
-        _joinRoom();
-        break;
       case PendingSessionAction.joinInviteRoom:
         if (intent.roomCode != null) _joinInviteRoom(intent.roomCode!);
-        break;
-      case PendingSessionAction.inviteStudent:
-        if (intent.studentId != null) _inviteStudent(intent.studentId!);
         break;
     }
   }
@@ -325,6 +314,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _socket.on('lesson_invite_received', (data) {
       if (!mounted) return;
       _fetchNotifications();
+      // An invitation means a session has just started.
+      _fetchLiveSessions();
       final senderName = data['trainerName'] ?? data['senderName'] ?? 'Friend';
       final roomCode = data['roomCode'] ?? '';
       _showInviteDialog(roomCode, senderName);
@@ -344,11 +335,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_checkAuthRequired(PendingSessionIntent.joinInviteRoom(roomCode))) {
       return;
     }
-    if (!_checkNoActiveSession(targetRoomCode: roomCode)) return;
+    if (!await _clearForSession(targetRoomCode: roomCode)) return;
+    if (!mounted) return;
     _socket.disconnect();
     await context.push(AppRoutes.roomPath(roomCode, role: 'ucenik'));
     if (mounted) {
       _socket.connect();
+      // Back from the room: it may have ended while we were in it.
+      _fetchLiveSessions();
     }
   }
 
@@ -608,26 +602,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _fetchFriends() async {
-    setState(() => _isLoadingFriends = true);
-    try {
-      final res = await http.get(
-        Uri.parse('$backendUrl/friends'),
-        headers: {'Authorization': 'Bearer ${widget.session.token}'},
-      );
-      if (res.statusCode == 200) {
-        setState(() => _friends = jsonDecode(res.body)['friends'] ?? []);
-      }
-    } catch (e) {
-      print("Error fetching friends: $e");
-      if (mounted) {
-        AppFeedback.error(context, 'Error loading friends.');
-      }
-    } finally {
-      if (mounted) setState(() => _isLoadingFriends = false);
-    }
-  }
-
   // There was an _addFriend() and a _removeFriend() here, calling
   // POST /friends/add and DELETE /friends/:id. Nothing on any screen called
   // either of them — the "Ljudi" tab sends a trainer–student request instead —
@@ -712,59 +686,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showCreateRoomWithFriendsDialog() {
-    if (!_checkAuthRequired(
-        const PendingSessionIntent.showCreateRoomDialog())) {
-      return;
-    }
-    if (!_checkNoActiveSession()) return;
-    final availableFriends = _students.isNotEmpty ? _students : _friends;
-    dialogs.showCreateRoomWithFriendsDialog(
-      context,
-      availableFriends: availableFriends,
-      onCreate: _createRoomWithInvites,
-    );
-  }
-
-  Future<void> _createRoomWithInvites(List<int> friendIds) async {
-    if (!_checkNoActiveSession()) return;
-    setState(() => _isLoading = true);
-    try {
-      final response = await http.post(
-        Uri.parse('$backendUrl/rooms/create'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.session.token}'
-        },
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 201) {
-        final roomCode = data['room_code'] ?? data['room']?['room_code'];
-
-        if (friendIds.isNotEmpty) {
-          await http.post(
-            Uri.parse('$backendUrl/invitations/send'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${widget.session.token}'
-            },
-            body: jsonEncode({'friendIds': friendIds, 'roomCode': roomCode}),
-          );
-        }
-
-        _navigateToGame(roomCode, 'host');
-      } else {
-        _showError(data['error'] ?? 'Failed to create room.');
-      }
-    } catch (e) {
-      _showError('Error creating room.');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
   void _openStudentProgress(Map<String, dynamic> student) {
     final id = (student['id'] as num?)?.toInt();
     if (id == null) return;
@@ -793,82 +714,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() => _dueReviews = stats.due);
   }
 
-  Future<void> _inviteStudent(int studentId) async {
-    if (!_checkAuthRequired(PendingSessionIntent.inviteStudent(studentId))) {
-      return;
-    }
-    if (!_checkNoActiveSession()) return;
-    setState(() => _isLoading = true);
-    try {
-      final response = await http.post(
-        Uri.parse('$backendUrl/rooms/create'),
-        headers: {'Authorization': 'Bearer ${widget.session.token}'},
-      );
-
-      if (!mounted) return;
-
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final String createdRoomCode =
-            data['room_code'] ?? data['room']?['room_code'] ?? '';
-
-        // Through the route rather than the socket: the route checks the
-        // relationship and writes the notification, so the invitation reaches
-        // a student who is offline too. The socket event it used to send had
-        // been renamed on the server, reached nobody, and was reported as sent.
-        final invite = await http.post(
-          Uri.parse('$backendUrl/invitations/send'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${widget.session.token}'
-          },
-          body:
-              jsonEncode({'studentId': studentId, 'roomCode': createdRoomCode}),
-        );
-        if (!mounted) return;
-
-        if (invite.statusCode == 200) {
-          AppFeedback.show(
-            context,
-            () => SnackBar(
-                content: Text(
-                    'Invitation sent for room $createdRoomCode! Connecting...')),
-          );
-        } else {
-          String reason = 'The invitation could not be sent.';
-          try {
-            reason = (jsonDecode(invite.body)['error'] as String?) ?? reason;
-          } catch (_) {}
-          _showError(reason);
-        }
-
-        _socket.disconnect();
-        await context.push(AppRoutes.roomPath(createdRoomCode, role: 'trener'));
-        if (mounted) {
-          _socket.connect();
-        }
-      } else {
-        final errorData = jsonDecode(response.body);
-        AppFeedback.show(
-          context,
-          () => SnackBar(
-              content: Text(errorData['error'] ?? 'Error creating room')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      AppFeedback.show(
-        context,
-        () => SnackBar(content: Text('Error creating room: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _createRoom() async {
     if (!_checkAuthRequired(const PendingSessionIntent.createRoom())) return;
-    if (!_checkNoActiveSession()) return;
+    // No question is asked about a session of one's own that is still open:
+    // starting this one ends it, on the server, for everybody in it
+    // (`services/roomLifecycle.js`). Somebody else's is left by asking.
+    if (!await _clearForSession()) return;
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -884,7 +736,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 201) {
         final roomCode = data['room_code'] ?? data['room']?['room_code'];
-        _navigateToGame(roomCode);
+        // Nobody is invited from here any more: the session is started, and
+        // people are invited from inside it (docs/PLAN-SESIJA.md, §5.5).
+        _navigateToGame(roomCode, 'trener');
       } else {
         _showError(data['error'] ?? 'Failed to create room');
       }
@@ -895,39 +749,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _joinRoom() async {
-    final code = _codeController.text.trim();
-    if (!_checkAuthRequired(PendingSessionIntent.joinRoomByCode(code))) return;
-    if (code.length != 6) {
-      _showError('Enter a valid 6-digit code');
-      return;
-    }
-    if (!_checkNoActiveSession(targetRoomCode: code)) return;
+  List<LiveSession> _liveSessions = const [];
 
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('$backendUrl/rooms/join'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.session.token}'
-        },
-        body: jsonEncode({'roomCode': code}),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        _navigateToGame(code);
-      } else {
-        _showError(data['error'] ?? 'Failed to join room');
-      }
-    } catch (e) {
-      _showError('Network error. Check if server is running.');
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  /// Which of my trainers are in a session now — Home's way into a room since
+  /// typing a code was removed.
+  Future<void> _fetchLiveSessions() async {
+    final sessions = await _roomSessions.live();
+    if (mounted) setState(() => _liveSessions = sessions);
   }
 
   /// The "Ljudi" icon, carrying what is waiting there.
@@ -995,22 +823,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return true;
   }
 
-  /// Blocks starting/joining a *different* room while one is already active
-  /// — rejoining the same room (e.g. resuming) is always allowed.
-  bool _checkNoActiveSession({String? targetRoomCode}) {
-    final gs = GameSessionService.instance;
-    if (!gs.hasActiveSession ||
-        (targetRoomCode != null && gs.isSameSession(targetRoomCode))) {
-      return true;
-    }
-    dialogs.showActiveSessionBlockedDialog(
-      context,
-      roomCode: gs.roomCode!,
-      onGoToSession: () =>
-          context.push(AppRoutes.roomPath(gs.roomCode!, role: gs.role)),
-    );
-    return false;
-  }
+  late final RoomSessionApi _roomSessions =
+      RoomSessionApi(authToken: widget.session.token);
+
+  /// The rule is [GameSessionService.makeWayFor]; this only supplies the
+  /// question.
+  Future<bool> _clearForSession({String? targetRoomCode}) =>
+      GameSessionService.instance.makeWayFor(
+        targetRoomCode: targetRoomCode,
+        api: _roomSessions,
+        askToLeave: (code) async {
+          if (!mounted) return false;
+          return dialogs.showLeaveOtherSessionDialog(context, roomCode: code);
+        },
+      );
 
   Future<void> _logout() async {
     await GameSessionService.instance.clear();
@@ -1034,11 +860,10 @@ class _HomeScreenState extends State<HomeScreen> {
           // was set for me, a room to join, the recordings.
           return HomeDashboardTab(
             userName: widget.session.name,
-            codeController: _codeController,
+            liveSessions: _liveSessions,
             recordings: _recordings,
             isLoadingRecordings: _isLoadingRecordings,
             panel: _panel,
-            onEnterLesson: (code) => _navigateToGame(code, 'host'),
             onOpenPanelAssignment: _openPanelAssignment,
             onOpenStudent: (id, name) =>
                 _openStudentProgress({'id': id, 'name': name}),
@@ -1046,7 +871,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenAssignments: _openMyAssignments,
             onOpenReviews: _openReviews,
             dueReviewCount: _dueReviews,
-            onJoinRoom: (_) => _joinRoom(),
+            onJoinSession: _joinInviteRoom,
             onRefreshRecordings: _fetchRecordings,
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),
           );
@@ -1067,7 +892,7 @@ class _HomeScreenState extends State<HomeScreen> {
             tutorialCard: TutorialLibraryCard(session: widget.session),
             homeworkCard: HomeworkLibraryCard(session: widget.session),
             onOpenPreparation: _openStudioRoom,
-            onStartSession: _showCreateRoomWithFriendsDialog,
+            onStartSession: _createRoom,
             onOpenLibrary: () => context.push(AppRoutes.library),
             studentsSection: HomeFriendsTab(
               embedded: true,
