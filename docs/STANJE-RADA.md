@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **21.9.2026** — najnovije je „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **21.9.2026** — najnovije je „Stockfish 19 u aplikaciji" (motor na Androidu iz lokalnog paketa, tri nove provere pozicije, preuzimanje motora na Windowsu popravljeno — u kodu, provera uživo — stavka 218), pa „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,63 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Stockfish 19 u aplikaciji — 21.9.2026, u kodu, ostaje provera uživo
+
+Na vlasnikov predlog, zbog snage (+44 Elo prema 18) i veličine builda.
+Aplikacija **3592 → 3594**; `flutter analyze` isti spisak od 26.
+
+**Paket sa pub.dev nije pratio.** `stockfish` 1.8.1 (ArjanAswal) i dalje nosi
+18, pa nema verzije na koju bi se prešlo. Paket je zato kopiran u
+`chess_app/packages/stockfish/` (path zavisnost, GPL kao i original), a u
+`ios/Stockfish/src` su izvori `sf_19` **bez ijedne izmene** — paket ni 18 nije
+menjao, samo ga pokreće u procesu preko `ffi.cpp`. Promenjen je samo CMake:
+jedna mreža umesto dve (`nn-1a298aa575a0`, sa SHA-256, pa pokvareno preuzimanje
+obara build umesto da se ugradi), i `universal/` se ne prevodi — to su ulazne
+tačke višearhitekturnih binarnih fajlova sa njihovog sajta, koje ni njihov
+Makefile ne prevodi za običan armv8. Zastavice za armv8 se u 19 nisu menjale.
+`analysis_options.yaml` izuzima `packages/**`, jer je to tudji kod (dodao je
+dve info poruke).
+
+**Veličina, mereno na arm64 release APK-u:** `libstockfish.so` 114.021.416 →
+100.142.656 bajtova, APK 223.803.098 → 209.925.850 (**−13,88 MB, −6,2 %**).
+Ugradjena mreža je tačno 98.511.183 bajta i jedina je u binarnom fajlu. Prva
+procena u razgovoru je rekla suprotno („veće za 3 MB") jer je čitala
+`Content-Length` sa servera mreža, a to je veličina **gzip prenosa**, ne fajla.
+
+**Pravi rizik: 19 ne prašta loš FEN.** Za zapis koji odbije ispiše „CRITICAL
+ERROR" i pozove `std::exit(1)`. Na Windowsu je motor poseban proces, pa umre
+on; **na Androidu je u procesu aplikacije, pa zatvara aplikaciju.** C++ nije
+diran: `fenIllegalReason` već stoji na jedinom ulazu u motor
+(`analyzePosition`), pa je pitanje bilo samo da li je strožiji od 19. Mereno na
+pravom sf_19 binarnom fajlu, nije bio u tri slučaja, i sad jeste: en passant
+polje na pogrešnom redu za stranu na potezu (`w - e3`, koje `validate_fen`
+pušta), brojač polupoteza iznad 32767 i broj poteza iznad 100000. Granice su u
+testu tačno na ivici (32767 prolazi, 32768 ne), i šest mutacija je palo svaka
+na pravoj tvrdnji. Ostalo što 19 odbija (kraljevi, pešaci, previše figura,
+kralj koji se može uzeti) vodič je već odbijao.
+
+**Nadjeno usput, već pokvareno od 5.9.2026:** „Download engine" na Windowsu.
+Čitao je `releases/latest`, a 19 više ne objavljuje `…-avx2`, `…-sse41-popcnt`
+ni običan build, nego jedan `…-universal` koji sam bira kod za procesor — pa je
+svaki pokušaj bio 404. Sad je vezan za `sf_19` (i time ista verzija na oba
+sistema), sa jednim buildom. Već preuzet motor na Windowsu ostaje 18 dok se
+ponovo ne preuzme.
+
+Šta **nije** provereno: rad motora na telefonu (build nije instaliran), i
+dugme „Download engine" kliknuto u aplikaciji — proveren je URL (200, a stari
+404), sadržaj zipa (jedan `.exe`) i UCI rukovanje (~0,35 s, rok je 5 s).
+Format `info … multipv … score … pv` i `bestmove` je u izvoru isti kao u 18.
+Deljena memorija koju je 19 uveo na Androidu nije aktivna
+(`!defined(__ANDROID__)`), mreža ide u običnu memoriju procesa. iOS podspec je
+usklađen, ali nije gradjen.
+
+**Za poredjenje posle** (vlasnikova ideja): isti položaji na telefonu, 18 pa
+19, dubina i `nps` iz `info` reda; stari APK je sačuvan van repozitorijuma.
+Kad pub.dev paket predje na 19, može se vratiti na njega — tada se samo proveri
+da `fenIllegalReason` i dalje odbija sve što motor odbija.
 
 ---
 

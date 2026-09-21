@@ -16,24 +16,29 @@ typedef EngineDownloadProgress = void Function(String status, double? progress);
 /// Downloads and installs an official Stockfish build for the local machine.
 ///
 /// Only Windows is supported today because that's the only platform the app's
-/// "custom local engine" feature (see StockfishService) understands — the
-/// download logic tries progressively more compatible CPU builds so it works
-/// without asking the user anything about their hardware.
+/// "custom local engine" feature (see StockfishService) understands. The
+/// build is Stockfish's universal one, which chooses its own CPU code, so it
+/// works without asking the user anything about their hardware.
 class EngineDownloadService {
   EngineDownloadService._();
   static final EngineDownloadService instance = EngineDownloadService._();
 
-  // Ordered from fastest/most demanding to most compatible. GitHub's
-  // "latest/download" alias always resolves to the newest release, so this
-  // never needs to hardcode a Stockfish version.
+  // Since Stockfish 19 there is one Windows build, which picks the best code
+  // for the CPU it runs on; the avx2 / sse41-popcnt / plain tiers this list
+  // used to try in turn are no longer published.
+  //
+  // The release is pinned, not `latest`. `latest/download` followed the newest
+  // release, so when 19 came out (5.9.2026) and stopped publishing those asset
+  // names, every tier answered 404 and the download failed until noticed on
+  // 21.9.2026. Pinned, the name can only change here — and the version then
+  // matches the engine built into the Android app
+  // (`packages/stockfish/ios/Stockfish/src`), so both platforms analyse alike.
   static const List<String> _windowsBuildTiers = [
-    'stockfish-windows-x86-64-avx2',
-    'stockfish-windows-x86-64-sse41-popcnt',
-    'stockfish-windows-x86-64',
+    'stockfish-windows-x86-64-universal',
   ];
 
   static const String _releaseBaseUrl =
-      'https://github.com/official-stockfish/Stockfish/releases/latest/download';
+      'https://github.com/official-stockfish/Stockfish/releases/download/sf_19';
 
   bool _busy = false;
 
@@ -148,7 +153,7 @@ class EngineDownloadService {
   }
 
   /// Launches the engine and waits for a UCI handshake to confirm it can
-  /// actually run on this CPU (older machines choke on AVX2/BMI2 builds).
+  /// actually run on this CPU before the path is saved.
   Future<bool> _verifyEngine(String exePath) async {
     Process? process;
     try {

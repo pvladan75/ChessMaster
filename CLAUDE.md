@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3592 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3594 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1644 with TEST_DATABASE_URL, 1550 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -370,7 +370,14 @@ send" needed that to hold; an analysis saved under a taken name asks
 and a room's teaching tools go by relationship (`mayTeachInRoom`), because the
 seat says only who opened the room. The server half was written in a
 worktree, since nodemon watches every `.js` including tests, and copied in
-once on the owner's word. Phase 6 of
+once on the owner's word. Then Stockfish 19 on Android (→ **3594**): the pub.dev
+package still ships 18, so it lives in `chess_app/packages/stockfish/` with
+upstream `sf_19` sources unmodified, one network instead of two, and an arm64
+APK 13.88 MB smaller. 19 calls `std::exit(1)` on a FEN it refuses, which on
+Android is the app's own process, so `fenIllegalReason` must refuse at least
+what the engine refuses — measured on the binary, it missed three and now
+does not. The Windows engine download, which read `releases/latest`, had
+been 404 since 19 renamed its builds; it is pinned to `sf_19` now. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

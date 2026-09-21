@@ -6032,3 +6032,29 @@ kojoj je red jedina odbrana.**
 **Odgovorena stavka se ne ispravlja u mestu.** Obećana „ispravka teksta
 201.10" bi odgovor pretvorila u siroče (`spoji.py` prepoznaje stavku po
 tekstu); ispravka je otišla u novu stavku.
+
+## Stockfish 19: motor koji se gasi u tudjem procesu, i dugme koje je pokvarilo tudje izdanje — 21.9.2026
+
+Aplikacija **3592 → 3594** (dva testa u `fen_legality_test.dart`).
+
+**Isti motor, drugo mesto u memoriji, druga posledica.** 19 na loš FEN zove
+`std::exit(1)`. Na Windowsu je to kraj jednog podprocesa, a na Androidu, gde
+paket pokreće `main()` motora preko FFI u procesu aplikacije, kraj aplikacije.
+Pre nego što se neka promena ponašanja zavisnosti proglasi bezopasnom, pitaj
+**u čijem procesu radi**.
+
+**Postojeći čuvar je pitanje, ne odgovor.** Vlasnik je s pravom rekao da
+provera nelegalnih pozicija već postoji. Merenje devet graničnih zapisa na
+pravom sf_19 binarnom fajlu i kroz `fenIllegalReason` našlo je tri koja čuvar
+pušta, a 19 odbija. **Dva odbijača jednog ulaza moraju da se porede na istim
+zapisima**, i granice se mere na binarnom fajlu, ne čitaju iz izvora.
+
+**`Content-Length` nije veličina fajla** kad server šalje gzip. Prva procena je
+tvrdila da je mreža 19 veća za 3 MB; stvarni fajlovi kažu da je manja za 14.
+Broj se izvodi iz samog fajla.
+
+**`latest` je zavisnost od tudjeg rasporeda izdanja.** „Download engine" je
+čitao `releases/latest/download/<ime>.zip`; kad je 19 promenio imena, dugme je
+tiho palo za svakog, 16 dana, a da niko u ovom repozitorijumu nije ništa
+menjao — pravilo 14, samo što je uspavanu grešku probudilo tudje izdanje.
+Vezano za oznaku izdanja, ime se menja samo ovde.

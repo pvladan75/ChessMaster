@@ -87,6 +87,30 @@ void main() {
     expect(fenIllegalReason('k7/8/8/8/6QQ/8/PPPPP3/6QK w - - 0 1'), isNull);
   });
 
+  // Stockfish 19 ne prima ove zapise: ispise „CRITICAL ERROR" i pozove
+  // `std::exit(1)`. Na Windowsu je motor poseban proces, pa umre samo on; na
+  // Androidu radi u procesu aplikacije, pa zatvori celu aplikaciju. Granice su
+  // izmerene na pravom sf_19 binarnom fajlu (21.9.2026), a primeri stoje tacno
+  // na njima: jedan broj ispod prolazi, jedan iznad se odbija.
+  test('en passant polje mora da odgovara strani na potezu', () {
+    const kraljevi = '4k3/8/8/8/8/8/8/4K3';
+    expect(fenIllegalReason('$kraljevi w - e6 0 1'), isNull);
+    expect(fenIllegalReason('$kraljevi b - e3 0 1'), isNull);
+    expect(fenIllegalReason('$kraljevi w - e3 0 1'), contains('en passant'));
+    expect(fenIllegalReason('$kraljevi b - e6 0 1'), contains('en passant'));
+  });
+
+  test('brojaci poteza imaju gornju granicu koju motor prihvata', () {
+    const kraljevi = '4k3/8/8/8/8/8/8/4K3 w - -';
+    expect(fenIllegalReason('$kraljevi 32767 1'), isNull);
+    expect(fenIllegalReason('$kraljevi 32768 1'), contains('32767'));
+    expect(fenIllegalReason('$kraljevi 0 100000'), isNull);
+    expect(fenIllegalReason('$kraljevi 0 100001'), contains('100000'));
+    // Broj predug za int se odbija umesto da baci izuzetak (zasad ga vec
+    // `validate_fen` proglasi pokvarenim, pa do granice ni ne stigne).
+    expect(fenIllegalReason('$kraljevi 99999999999999999999999 1'), isNotNull);
+  });
+
   test('prazan i pokvaren zapis se odbijaju bez pucanja', () {
     expect(fenIllegalReason(''), isNotNull);
     expect(fenIllegalReason('   '), isNotNull);

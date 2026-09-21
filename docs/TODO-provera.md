@@ -5878,6 +5878,24 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 218. Stockfish 19 u aplikaciji — 21.9.2026, nije viđeno uživo
+
+**Aplikacija** (nov build za telefon i Windows; server nije diran). Motor na
+Androidu je sada Stockfish 19 iz `chess_app/packages/stockfish/`; APK je manji
+za 13,88 MB. Pozadina: „Stockfish 19 u aplikaciji" u `STANJE-RADA.md`.
+
+1. [ ] **Telefon: motor radi.** Analyse → uključi motor na početnoj poziciji:
+   pojavljuju se tri linije i ocena, dubina raste kao ranije.
+2. [ ] **Telefon: pozicija koju 19 ne prima ne gasi aplikaciju.** Analyse →
+   postavi poziciju / nalepi FEN `4k3/8/8/8/8/8/8/4K3 w - e3 0 1` i uključi
+   motor: ekran kaže da se pozicija odbija (en passant), aplikacija ostaje
+   otvorena. Isto sa `4k3/8/8/8/8/8/8/4K3 w - - 40000 1`.
+3. [ ] **Windows: „Download engine" radi.** Settings → motor → preuzimanje:
+   završi se bez greške, a u logu piše `stockfish-windows-x86-64-universal`.
+   (Do sada je od 5.9.2026 svaki pokušaj bio 404.)
+4. [ ] **Poredjenje 18 i 19** (po želji vlasnika): isti položaji na telefonu,
+   dubina i brzina (`nps`) u oba builda.
+
 ## 217. Domaći celoj grupi, ista imena analiza, i ko ima alate za podučavanje u sobi — 21.9.2026, nije viđeno uživo
 
 **Aplikacija i server** (nov build za telefon i Windows; server je već

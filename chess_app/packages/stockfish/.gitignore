@@ -1,0 +1,5 @@
+# CMake/ninja output of the Android build: object files and a downloaded copy
+# of the ~100 MB network per ABI. Reproducible, never committed.
+android/.cxx/
+.dart_tool/
+build/

@@ -45,6 +45,28 @@ String? fenIllegalReason(String fen) {
   final fields = text.split(RegExp(r'\s+'));
   final board = fields.first;
 
+  // Three things `validate_fen` lets through and Stockfish 19 does not. SF19
+  // answers them with „CRITICAL ERROR" and `std::exit(1)` — on Windows that
+  // ends the engine's own process, on Android the engine runs inside the app's
+  // process and it closes the app. Limits measured on the sf_19 binary.
+  //
+  // An en passant square sits behind a pawn that has just moved two squares,
+  // so it is on the sixth rank when White is to move and on the third when
+  // Black is.
+  final ep = fields[3];
+  if (ep != '-' && ep[1] != (fields[1] == 'w' ? '6' : '3')) {
+    return 'The en passant square $ep cannot be right with '
+        '${fields[1] == 'w' ? 'White' : 'Black'} to move.';
+  }
+  if ((int.tryParse(fields[4]) ?? 32768) > 32767) {
+    return 'The halfmove counter is ${fields[4]}; the engine accepts at most '
+        '32767.';
+  }
+  if ((int.tryParse(fields[5]) ?? 100001) > 100000) {
+    return 'The move number is ${fields[5]}; the engine accepts at most '
+        '100000.';
+  }
+
   // Exactly one king of each colour. Neither none nor two — for the engine two
   // white kings are as impossible as none, they just break it somewhere else.
   final white = 'K'.allMatches(board).length;
