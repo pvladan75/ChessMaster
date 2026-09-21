@@ -7,6 +7,9 @@ import 'dart:convert';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:go_router/go_router.dart';
+import 'package:chess_app/features/groups/services/group_api_service.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/game_screen/invite_students_dialog.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/routing/app_routes.dart';
@@ -19,7 +22,6 @@ import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
@@ -28,10 +30,14 @@ class ReplayPlayerScreen extends StatefulWidget {
   final int recordingId;
   final UserSession userSession;
 
+  /// Injected by tests; the screen talks to the backend otherwise.
+  final http.Client? client;
+
   const ReplayPlayerScreen({
     super.key,
     required this.recordingId,
     required this.userSession,
+    this.client,
   });
 
   @override
@@ -56,6 +62,86 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   PlayerColor boardOrientation = PlayerColor.white;
   List<ChessArrow> currentArrows = [];
   String? currentFen;
+
+  late final http.Client _client = widget.client ?? http.Client();
+
+  bool get _isHost => recording?.hostId == widget.userSession.id;
+
+  /// Who may watch this lesson — the host's own accepted students, ticked here
+  /// and sent as the whole list (phase 5b.4 of docs/PLAN-SESIJA.md).
+  Future<void> _share() async {
+    final rec = recording;
+    if (rec == null) return;
+    final headers = {
+      'Authorization': 'Bearer ${widget.userSession.token}',
+      'Content-Type': 'application/json',
+    };
+    final current = <int>{};
+    try {
+      final res = await _client.get(
+          Uri.parse('$backendUrl/recordings/${rec.id}/shares'),
+          headers: headers);
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200 && body is Map && body['studentIds'] is List) {
+        current.addAll([
+          for (final id in body['studentIds'] as List)
+            if (id is num) id.toInt()
+        ]);
+      } else {
+        _showError('Could not read who this recording is shared with.');
+        return;
+      }
+    } catch (_) {
+      _showError('Could not read who this recording is shared with.');
+      return;
+    }
+    if (!mounted) return;
+    final chosen = await showDialog<List<int>>(
+      context: context,
+      builder: (_) => InviteStudentsDialog.share(
+        recordingTitle: rec.title,
+        groupApi: GroupApiService(client: _client),
+        initial: current,
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    try {
+      final res = await _client.put(
+        Uri.parse('$backendUrl/recordings/${rec.id}/shares'),
+        headers: headers,
+        body: jsonEncode({'studentIds': chosen}),
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        AppFeedback.success(
+            context,
+            chosen.isEmpty
+                ? 'This recording is no longer shared.'
+                : 'Shared with ${chosen.length} '
+                    '${chosen.length == 1 ? 'student' : 'students'}.');
+      } else {
+        final body = jsonDecode(res.body);
+        _showError(body is Map && body['error'] is String
+            ? body['error'] as String
+            : 'The recording could not be shared.');
+      }
+    } catch (_) {
+      _showError('The recording could not be shared.');
+    }
+  }
+
+  /// The trainer's latest render, while the server still has it — or a
+  /// sentence, because the student cannot render one (the owner's answer of
+  /// 22.9.2026).
+  void _downloadVideo() {
+    final url = recording?.videoUrl;
+    if (url == null) {
+      AppFeedback.info(context, 'No video yet — ask your trainer.');
+      return;
+    }
+    _showVideoReadyDialog(
+        'The latest video of this recording:', resolveMediaUrl(url));
+  }
 
   @override
   void initState() {
@@ -83,7 +169,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
   Future<void> _fetchRecordingDetails() async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$backendUrl/recordings/${widget.recordingId}'),
         headers: {'Authorization': 'Bearer ${widget.userSession.token}'},
       );
@@ -110,7 +196,10 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             }
           }
           if (rec.timelineEvents.isNotEmpty) {
-            maxDurationMs = rec.timelineEvents.last.timestampMs;
+            // The audio's own length when the recording knows it: a trainer
+            // who talks on after the last move is heard to the end.
+            maxDurationMs =
+                rec.durationMs ?? rec.timelineEvents.last.timestampMs;
             _applyEventAt(0);
           }
         });
@@ -215,75 +304,28 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     _applyEventAt(targetMs);
   }
 
+  /// The board at [targetMs], by the one rule the player replays by
+  /// ([replayFrameAt]).
   void _applyEventAt(int targetMs) {
     if (recording == null || recording!.timelineEvents.isEmpty) return;
+    final frame = replayFrameAt(recording!.timelineEvents, targetMs);
 
-    // Find the latest events at or before targetMs
-    TimelineEvent? activeInit;
-    TimelineEvent? activeFen;
-    TimelineEvent? activeOrientation;
-    TimelineEvent? activeArrow;
-
-    for (final event in recording!.timelineEvents) {
-      if (event.timestampMs > targetMs) break;
-
-      if (event.eventType == 'init') {
-        activeInit = event;
-      } else if (event.eventType == 'move' ||
-          event.eventType == 'fen_change' ||
-          event.eventType == 'lesson_loaded') {
-        activeFen = event;
-      } else if (event.eventType == 'orientation_changed') {
-        activeOrientation = event;
-      } else if (event.eventType == 'arrow_drawn') {
-        activeArrow = event;
-      }
+    if (frame.orientation == 'black') {
+      boardOrientation = PlayerColor.black;
+    } else if (frame.orientation == 'white') {
+      boardOrientation = PlayerColor.white;
     }
 
-    // Apply orientation
-    if (activeOrientation != null) {
-      final orient = activeOrientation.data['orientation'];
-      if (orient == 'black') {
-        boardOrientation = PlayerColor.black;
-      } else if (orient == 'white') {
-        boardOrientation = PlayerColor.white;
-      }
-    }
-
-    // Apply FEN
-    String? fenToLoad;
-    if (activeFen != null) {
-      fenToLoad = activeFen.data['fen'];
-    } else if (activeInit != null) {
-      fenToLoad = activeInit.data['fen'];
-    }
-
+    final fenToLoad = frame.fen;
     if (fenToLoad != null && fenToLoad != currentFen) {
       currentFen = fenToLoad;
       _boardController.loadFen(fenToLoad);
     }
 
-    // Apply Drawn Arrows
-    if (activeArrow != null && activeArrow.data['arrows'] is List) {
-      final rawList = activeArrow.data['arrows'] as List;
-      final arrowMs = activeArrow.timestampMs;
-      final moveMs = activeFen?.timestampMs ?? 0;
-
-      // Clear arrows if a move/fen change occurred after the arrow was drawn
-      if (moveMs > arrowMs) {
-        currentArrows = [];
-      } else {
-        currentArrows = rawList
-            .map<ChessArrow>((a) => ChessArrow(
-                  from: a['from'] ?? '',
-                  to: a['to'] ?? '',
-                  colorCode: a['colorCode'] ?? 'G',
-                ))
-            .toList();
-      }
-    } else {
-      currentArrows = [];
-    }
+    currentArrows = [
+      for (final a in frame.arrows)
+        ChessArrow(from: a['from']!, to: a['to']!, colorCode: a['colorCode']!),
+    ];
   }
 
   void _showExportMp4Dialog() {
@@ -460,7 +502,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               onPressed: () async {
                 Navigator.pop(ctx);
                 try {
-                  final res = await http.post(
+                  final res = await _client.post(
                     Uri.parse(
                         '$backendUrl/recordings/${widget.recordingId}/export-mp4'),
                     headers: {
@@ -599,20 +641,33 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
               context.push(AppRoutes.analysisPath(fen: fen));
             },
           ),
-          if (rec.videoUrl != null)
+          // Only a lesson recorded alone in Preparation, and only by its host:
+          // a room recording had other people in it (phase 5b.4).
+          if (_isHost && rec.source == 'preparation')
             IconButton(
-              tooltip: 'Download saved MP4 Video',
+              key: const Key('replay-share'),
+              tooltip: 'Share with students…',
+              icon: Icon(Icons.person_add, color: context.colors.accent),
+              onPressed: _share,
+            ),
+          // The host has a video to download once they rendered one; a
+          // reader always has the button, and is told when there is none.
+          if (!_isHost || rec.videoUrl != null)
+            IconButton(
+              key: const Key('replay-download-video'),
+              tooltip: 'Download video',
               icon: Icon(Icons.download_for_offline,
                   color: context.colors.accent),
-              onPressed: () => _showVideoReadyDialog(
-                  'Saved MP4 video is ready for download:',
-                  resolveMediaUrl(rec.videoUrl!)),
+              onPressed: _downloadVideo,
             ),
-          IconButton(
-            tooltip: 'Export to MP4 Video',
-            icon: Icon(Icons.video_call, color: context.colors.brand),
-            onPressed: _showExportMp4Dialog,
-          ),
+          // Rendering is the host's: it costs their quota, and the server
+          // refuses anybody else.
+          if (_isHost)
+            IconButton(
+              tooltip: 'Export to MP4 Video',
+              icon: Icon(Icons.video_call, color: context.colors.brand),
+              onPressed: _showExportMp4Dialog,
+            ),
           const BoardViewMenu(),
           BoardFlipButton(
             onPressed: () {

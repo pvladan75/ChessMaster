@@ -34,6 +34,17 @@ class RoomPresenceTitle extends StatelessWidget {
   /// The 44 px bar of a phone on its side: one line, not two.
   final bool compact;
 
+  /// The bar's `titleSpacing` on an upright phone, read by the room and by
+  /// the test that measures it. The default 16 on each side took a third of
+  /// the 100 px a trainer's bar leaves for the title (phase 6).
+  static const double uprightTitleSpacing = 4;
+
+  /// Narrower than this and upright, the title is the sentence alone.
+  static const double uprightBelow = 600;
+
+  static bool isUpright(BuildContext context, {required bool compact}) =>
+      !compact && MediaQuery.sizeOf(context).width < uprightBelow;
+
   @override
   Widget build(BuildContext context) {
     final presence = presenceLine(members, myId);
@@ -46,6 +57,29 @@ class RoomPresenceTitle extends StatelessWidget {
     // A shape as well as a colour: the owner is colourblind, and „you are
     // alone here" is the one thing this line must not leave to a hue.
     final icon = presence.alone ? Icons.hourglass_empty : Icons.people;
+
+    // An upright phone: the code gives way to the sentence, which gets two
+    // lines. „Room: 92…" over „Nobody h…" is what the bar held otherwise; the
+    // trainer reads the code in the Session panel, and nobody types it.
+    if (isUpright(context, compact: compact)) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              presence.text,
+              key: const Key('room-presence-line'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: AppText.caption.copyWith(color: color),
+            ),
+          ),
+        ],
+      );
+    }
 
     final line = Row(
       mainAxisSize: MainAxisSize.min,

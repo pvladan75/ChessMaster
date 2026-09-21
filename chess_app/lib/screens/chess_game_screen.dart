@@ -27,12 +27,16 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
-import 'package:chess_app/services/local_recording_service.dart';
-import 'package:chess_app/services/lesson_recorder.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/room_session_api.dart';
+import 'package:chess_app/services/lesson_recording_api.dart';
+import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
+import 'package:chess_app/features/tutorial_studio/services/lesson_take.dart';
+import 'package:chess_app/features/tutorial_studio/services/record_pcm_source.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:chess_app/widgets/game_screen/invite_students_dialog.dart';
 import 'package:chess_app/widgets/game_screen/room_presence_title.dart';
+import 'package:chess_app/widgets/game_screen/room_voice_panel.dart';
 import 'package:chess_app/widgets/game_screen/room_voice_invite.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
@@ -95,6 +99,13 @@ class ChessGamePage extends StatefulWidget {
   /// the room builds its own otherwise.
   final RoomSessionApi? roomSessionApi;
 
+  /// Recording a lesson in Preparation (phase 5b.3 of docs/PLAN-SESIJA.md):
+  /// the server, the microphone and where a take is kept until the server has
+  /// it. Injected by tests; built by the screen otherwise.
+  final LessonRecordingApi? lessonRecordingApi;
+  final PcmSource Function()? pcmSourceFactory;
+  final Future<Directory> Function()? lessonTakeDir;
+
   const ChessGamePage({
     super.key,
     required this.roomCode,
@@ -104,6 +115,9 @@ class ChessGamePage extends StatefulWidget {
     this.positionLibrary,
     this.groupApi,
     this.roomSessionApi,
+    this.lessonRecordingApi,
+    this.pcmSourceFactory,
+    this.lessonTakeDir,
   });
 
   @override
@@ -112,23 +126,6 @@ class ChessGamePage extends StatefulWidget {
 
 class _ChessGamePageState extends State<ChessGamePage> {
   late String activeRole;
-  bool isRecording = false;
-
-  /// Whether the room may be recorded, as the server last said.
-  ///
-  /// True until told otherwise: the app has never asked before, and the server
-  /// is the lock — this only decides whether the button is drawn as available.
-  /// A control that looks available and then fails is the same surprise as one
-  /// that works while its button is hidden, which is why the reason is kept
-  /// beside it and shown on the card.
-  bool _recordingAllowed = true;
-  String? _recordingBlockedReason;
-  int? recordingStartTimeMs;
-
-  /// Owns the recording clock and timeline. See [LessonRecorder] for why the
-  /// pause arithmetic lives outside this screen.
-  final LessonRecorder _recorder = LessonRecorder();
-
   late ChessBoardController controller;
   late io.Socket socket;
   bool isConnected = false;
@@ -137,7 +134,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   PlayerColor boardOrientation = PlayerColor.white;
   String boardControl = 'trainer_only';
-  bool allowStudentEngine = false;
 
   final StockfishService _stockfishService = StockfishService();
   bool isEngineEnabled = false;
@@ -318,7 +314,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     if (widget.roomCode == 'STUDIO') {
       activeRole = 'trener';
       boardOrientation = PlayerColor.white;
-      allowStudentEngine = true;
       boardControl = 'unrestricted';
     } else {
       activeRole = widget.initialRole ?? 'korisnik';
@@ -456,6 +451,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'roomId': widget.roomCode,
       'userId': widget.userSession.id,
     });
+    // A take still open at this point was neither stopped nor discarded — the
+    // pop guard makes that rare — and it is closed rather than left holding
+    // its file.
+    _take?.removeListener(_onTakeChanged);
+    unawaited(_take?.cancel());
     socket.disconnect();
     socket.dispose();
     _agoraService.leaveChannel();
@@ -686,13 +686,14 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
-  void _raiseHand() {
+  /// Up or down — the hand used to stay up for good (F12).
+  void _setHand(bool raised) {
     socket.emit('audio_hand_raise_toggle', {
       'roomId': widget.roomCode,
-      'handRaised': true,
+      'handRaised': raised,
     });
     setState(() {
-      isHandRaised = true;
+      isHandRaised = raised;
     });
   }
 
@@ -729,12 +730,20 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
   }
 
+  /// Whoever leads the room, and nobody else — the owner's word of 22.9.2026
+  /// (docs/PLAN-SESIJA.md, phase 6). It used to be a switch the trainer held
+  /// for the student; a student's seat now has no engine to switch on, so it
+  /// draws neither the panel nor the evaluation bar. The studio's one seat
+  /// leads.
+  bool get _mayUseEngine => isLeader;
+
   Widget _buildStockfishAnalysisWidget() {
+    if (!_mayUseEngine) return const SizedBox.shrink();
     final sortedKeys = engineLines.keys.toList()..sort();
     final List<AnalysisLine> linesList =
         sortedKeys.map((k) => engineLines[k]!).toList();
     final isStudio = widget.roomCode == 'STUDIO';
-    final isAllowedToUseEngine = isLeader || allowStudentEngine;
+    final isAllowedToUseEngine = _mayUseEngine;
 
     return StockfishAnalysisWidget(
       isEngineEnabled: isEngineEnabled,
@@ -787,7 +796,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   Widget _buildChessBoardWithOverlay(double boardSize) {
     final isAllowedToMove = canDriveSharedBoard;
-    final isAllowedToUseEngine = isLeader || allowStudentEngine;
+    final isAllowedToUseEngine = _mayUseEngine;
 
     // The engine switch reaches the room too. It used to draw these
     // unconditionally, with a board menu that offered only coordinates.
@@ -834,16 +843,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  /// Records the current move's arrows and sends them to the room.
-  ///
-  /// One place, because the recording and the broadcast have to agree: a
-  /// replay built from the events and a board built from the PGN are the same
-  /// annotation seen twice.
+  /// Sends the current move's arrows to the room, inside the PGN.
   void _publishArrows() {
-    _recordEvent('arrow_drawn', {
-      'arrows': moveTree.current.arrows
-          .map((a) => {'from': a.from, 'to': a.to, 'colorCode': a.colorCode})
-          .toList()
+    _markLesson('arrow_drawn', {
+      'arrows': [
+        for (final a in moveTree.current.arrows)
+          {'from': a.from, 'to': a.to, 'color': a.colorCode},
+      ],
     });
     socket.emit('pgn_loaded', {
       'roomId': widget.roomCode,
@@ -1101,9 +1107,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
           if (data['boardControl'] != null) {
             boardControl = data['boardControl'];
           }
-          if (data['allowStudentEngine'] != null) {
-            allowStudentEngine = data['allowStudentEngine'];
-          }
         });
       }
     });
@@ -1112,11 +1115,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       if (data != null && data['boardControl'] != null) {
         setState(() {
           boardControl = data['boardControl'];
-          // Sent on joining as well as on a change, so a student who arrives
-          // after the trainer allowed the engine gets it without a toggle.
-          if (data['allowStudentEngine'] is bool) {
-            allowStudentEngine = data['allowStudentEngine'];
-          }
         });
         AppFeedback.show(
           context,
@@ -1127,23 +1125,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
             duration: const Duration(seconds: 2),
           ),
         );
-      }
-    });
-
-    socket.on('engine_permission_updated', (data) {
-      if (data != null && data['allowStudentEngine'] != null) {
-        setState(() {
-          allowStudentEngine = data['allowStudentEngine'];
-          // If permission is revoked, force disable and turn off engine for ucenik
-          if (!allowStudentEngine && _isStudentSeat) {
-            isEngineEnabled = false;
-            _stockfishService.stopAnalysis();
-            currentEngineEval = "0.00";
-            bestEngineMove = "-";
-            engineLines.clear();
-            _showError('Trainer disabled computer analysis for students.');
-          }
-        });
       }
     });
 
@@ -1171,7 +1152,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
           if (data['currentFen'] != null) {
             final newFen = data['currentFen'];
             controller.loadFen(newFen);
-            _recordEvent('move', {'fen': newFen, 'move': data['move']});
 
             if (data['move'] == null) {
               // This is a navigation jump
@@ -1278,94 +1258,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       // socket came back — and only now, with the seat in place, does the
       // voice roster read the right role for whoever announces themselves.
       if (isVoiceOn && _agoraService.isJoined) _announceVoice();
-    });
-
-    // Whether this room may be recorded, sent whenever the roster changes —
-    // the only moment the answer can change.
-    socket.on('recording_consent', (data) {
-      if (data == null || !mounted) return;
-      setState(() {
-        _recordingAllowed = data['allowed'] != false;
-        _recordingBlockedReason = data['reason'] as String?;
-      });
-    });
-
-    // The lock answering: the recording was started without permission. The
-    // local recorder is stopped and thrown away rather than offered for saving
-    // — a refused recording that is still on the device waiting for a "Sačuvaj"
-    // is a refused recording that gets saved.
-    socket.on('recording_denied', (data) {
-      if (data == null || !mounted) return;
-      final reason = data['reason'] as String? ??
-          'Audio is only recorded while you are alone in the room.';
-      setState(() {
-        _recordingAllowed = false;
-        _recordingBlockedReason = reason;
-      });
-      _discardRecording(reason);
-    });
-
-    // Somebody walked into a lesson that was being recorded, and their parent
-    // has not agreed to that. What was recorded before they arrived is kept —
-    // they were not in it — so this stops the way the trainer would.
-    socket.on('recording_must_stop', (data) {
-      if (data == null || !mounted) return;
-      final reason = data['reason'] as String? ??
-          'Recording stopped — someone else entered the room.';
-      setState(() {
-        _recordingAllowed = false;
-        _recordingBlockedReason = reason;
-      });
-      if (isRecording) {
-        // Stop first, tell afterwards. The other way round cost exactly this
-        // rule once already: `showSnackBar` threw "deactivated widget's
-        // ancestor", and the line below it — the one that actually stops
-        // recording a child whose parent refused — never ran.
-        unawaited(_stopRecording());
-        AppFeedback.warning(context, '$reason Recording stopped.');
-      }
-    });
-
-    socket.on('recording_status_changed', (data) {
-      if (data != null && mounted) {
-        final status = data['status'];
-        final startTimeMs = data['recordingStartTimeMs'];
-        final isPaused = data['paused'] ?? false;
-        final updatedBy = data['updatedBy'] ?? 'Host';
-
-        setState(() {
-          if (status == 'started') {
-            isRecording = true;
-            isRecordingPaused = false;
-            recordingStartTimeMs =
-                startTimeMs ?? DateTime.now().millisecondsSinceEpoch;
-          } else if (status == 'paused') {
-            isRecordingPaused = true;
-          } else if (status == 'resumed') {
-            isRecordingPaused = false;
-          } else if (status == 'stopped') {
-            isRecording = false;
-            isRecordingPaused = false;
-          }
-        });
-
-        AppFeedback.show(
-          context,
-          () => SnackBar(
-            content: Text(status == 'started'
-                ? '$updatedBy started session recording.'
-                : (status == 'paused'
-                    ? '$updatedBy paused recording.'
-                    : (status == 'resumed'
-                        ? '$updatedBy resumed recording.'
-                        : '$updatedBy stopped recording.'))),
-            duration: const Duration(seconds: 2),
-            backgroundColor: status == 'started'
-                ? context.colors.danger
-                : context.colors.warning,
-          ),
-        );
-      }
     });
 
     socket.on('student_position_shared', (data) {
@@ -1481,7 +1373,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     socket.on('audio_force_mute_student', (data) {
       final targetUserId = data['targetUserId'];
-      if (targetUserId == 'all' || targetUserId == widget.userSession.id) {
+      if (targetUserId == widget.userSession.id) {
         if (_isStudentSeat) {
           _agoraService.toggleMute(true);
           socket.emit('audio_mute_toggle', {
@@ -1537,294 +1429,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
         );
       }
     });
-  }
-
-  /// Mirrors whether *someone in the room* is recording, which the server tells
-  /// every client. Separate from [_recorder], which is only ever active on the
-  /// device that actually started the recording — a student sees the indicator
-  /// but buffers nothing.
-  bool isRecordingPaused = false;
-
-  void _recordEvent(String eventType, Map<String, dynamic> data) {
-    // The recorder decides whether to keep this; callers are scattered all over
-    // this screen and each one checking first is how one of them forgets.
-    _recorder.record(eventType, data);
-  }
-
-  String? _currentAudioPath;
-
-  /// Throws away a recording that should never have started.
-  ///
-  /// Separate from `_stopRecording`, which offers to save: there is nothing
-  /// here to offer. The audio file is stopped and the buffered events dropped.
-  Future<void> _discardRecording(String reason) async {
-    try {
-      await _agoraService
-          .stopAudioRecording()
-          .timeout(const Duration(seconds: 3));
-    } catch (e) {
-      print('[RECORDING_LOG] Discard: audio stop failed: $e');
-    }
-    _recorder.reset();
-    if (!mounted) return;
-    setState(() {
-      isRecording = false;
-      isRecordingPaused = false;
-      recordingStartTimeMs = null;
-    });
-    AppFeedback.warning(context, '$reason Recording was not saved.');
-  }
-
-  Future<void> _startRecording() async {
-    // Asked before anything is recorded, so a refused room never produces a
-    // file at all. The server refuses again on its own; this is what keeps
-    // somebody else's voice from being captured for the second it takes to be
-    // told so. Since 26.8.2026 the rule is not consent but solitude: audio is
-    // recorded by an adult alone in the room, and a lesson is never recorded.
-    if (!_recordingAllowed) {
-      AppFeedback.warning(
-        context,
-        _recordingBlockedReason ??
-            'Audio is only recorded while you are alone in the room.',
-      );
-      return;
-    }
-
-    try {
-      _currentAudioPath =
-          '${Directory.systemTemp.path}/session_audio_${DateTime.now().millisecondsSinceEpoch}.aac';
-      await _agoraService.startAudioRecording(_currentAudioPath!);
-    } catch (e) {
-      print('Error starting Agora audio recording: $e');
-    }
-
-    if (!mounted) return;
-
-    _recorder.start(
-      initialEventType: 'init',
-      initialData: {
-        'fen': moveTree.current.fen,
-        'orientation':
-            boardOrientation == PlayerColor.white ? 'white' : 'black',
-        'boardControl': boardControl,
-      },
-    );
-
-    setState(() {
-      isRecording = true;
-      isRecordingPaused = false;
-      recordingStartTimeMs = _recorder.startedAtMs;
-    });
-
-    socket.emit('recording_status_update', {
-      'roomId': widget.roomCode,
-      'status': 'started',
-      'recordingStartTimeMs': recordingStartTimeMs,
-      'fen': moveTree.current.fen
-    });
-
-    AppFeedback.warning(context,
-        'Session and voice recording started! All moves and speech are being recorded.');
-  }
-
-  void _pauseRecording() {
-    if (!isRecording || isRecordingPaused) return;
-    _recorder.pause();
-    setState(() => isRecordingPaused = true);
-
-    socket.emit('recording_status_update', {
-      'roomId': widget.roomCode,
-      'status': 'paused',
-      'paused': true,
-    });
-
-    AppFeedback.show(
-      context,
-      () => SnackBar(
-        content: Text(
-            'Recording paused. Actions are temporarily not being recorded.'),
-        backgroundColor: context.colors.warning,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _resumeRecording() {
-    if (!isRecording || !isRecordingPaused) return;
-    _recorder.resume();
-    setState(() => isRecordingPaused = false);
-
-    socket.emit('recording_status_update', {
-      'roomId': widget.roomCode,
-      'status': 'resumed',
-      'paused': false,
-    });
-
-    AppFeedback.show(
-      context,
-      () => SnackBar(
-        content: Text(
-            'Recording resumed! All subsequent moves are recorded into the combined recording.'),
-        backgroundColor: context.colors.success,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Future<void> _stopRecording() async {
-    socket.emit('recording_status_update', {
-      'roomId': widget.roomCode,
-      'status': 'stopped',
-    });
-    print('[RECORDING_LOG] 1. Stopping Agora audio recording...');
-    try {
-      await _agoraService
-          .stopAudioRecording()
-          .timeout(const Duration(seconds: 3));
-      print('[RECORDING_LOG] 2. Agora audio recording stopped successfully.');
-    } catch (e) {
-      print('[RECORDING_LOG] 2. Agora audio recording stop error/timeout: $e');
-    }
-
-    if (!mounted) return;
-
-    final titleController = TextEditingController(
-        text:
-            'Material ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}');
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Finish and save recording'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Enter material name:'),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Material name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Total recorded events: ${_recorder.eventCount}',
-              style: AppText.body.copyWith(color: context.colors.textMuted),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel without saving'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: context.colors.accent,
-                foregroundColor: context.colors.canvas),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save recording'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) {
-      print('[RECORDING_LOG] User cancelled recording save.');
-      _recorder.reset();
-      setState(() {
-        isRecording = false;
-        isRecordingPaused = false;
-        recordingStartTimeMs = null;
-      });
-      return;
-    }
-
-    final title = titleController.text.trim();
-    if (title.isEmpty) return;
-
-    try {
-      print('[RECORDING_LOG] 1. Saving recording instantly on device...');
-      // stop() hands over its own copies, so the reset below cannot empty them
-      // out from under the upload.
-      final recorded = _recorder.stop();
-      final List<int> participantIds = [];
-      for (var m in roomMembers) {
-        if (m is Map && m['userId'] is int) {
-          participantIds.add(m['userId'] as int);
-        }
-      }
-
-      await LocalRecordingService.saveLocally(
-        roomId: widget.roomCode,
-        title: title,
-        events: recorded.events,
-        pauses: recorded.pauses,
-        audioPath: _currentAudioPath,
-        participants: participantIds,
-      );
-
-      if (!mounted) return;
-
-      AppFeedback.show(
-        context,
-        () => SnackBar(
-          content: Text(
-              'Session recording saved to your device! Server synchronization in background.'),
-          backgroundColor: context.colors.accent,
-          duration: Duration(seconds: 4),
-        ),
-      );
-
-      // Sync first, and only then say what came back — the same order the rest
-      // of this screen owes to `_stopRecording`. The server's answer is not
-      // decoration: it is where the trainer learns that the recording was cut
-      // short by a parent's refusal, or that the refusal could not be checked
-      // at all before they share it.
-      //
-      // In its own `try`, and after the local save has already been reported:
-      // the recording is on the device either way, and a sync that throws must
-      // not come out as "greška pri čuvanju lokalnog snimka" — that is the same
-      // lie in a smaller size.
-      List<String> notices = const [];
-      try {
-        notices = await LocalRecordingService.syncPendingRecordings(
-            widget.userSession.token);
-      } catch (e) {
-        print('[SYNC_RECORDING_ERROR] $e');
-      }
-      if (!mounted) return;
-      if (notices.isNotEmpty) {
-        // One sentence, not a queue of them: a device that was offline for a
-        // week comes back with several, and the rest are in the log.
-        AppFeedback.warning(
-          context,
-          notices.length == 1
-              ? notices.first
-              : '${notices.first} (${notices.length - 1} more server notes '
-                  'in the log.)',
-        );
-      }
-    } catch (e) {
-      print('[RECORDING_LOG_ERROR] Exception in instant local save: $e');
-      if (!mounted) return;
-      AppFeedback.show(
-        context,
-        () => SnackBar(
-            content: Text('Error saving local recording: $e'),
-            backgroundColor: context.colors.danger),
-      );
-    } finally {
-      setState(() {
-        isRecording = false;
-        isRecordingPaused = false;
-        recordingStartTimeMs = null;
-        _recorder.reset();
-      });
-    }
   }
 
   void _toggleLocalOrientation() {
@@ -2188,8 +1792,15 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   // Socket: Load lesson position to board and broadcast
+  /// Puts a position on the board, and — while a lesson is being recorded —
+  /// stamps it as a new board (`init`), the board as it is shown after the
+  /// load.
   void loadLessonPosition(String fen, String? pgn) {
-    _recordEvent('lesson_loaded', {'fen': fen, 'pgn': pgn});
+    _loadLessonPositionOnBoard(fen, pgn);
+    _markLesson('init', {'fen': moveTree.current.fen, 'pgn': pgn ?? ''});
+  }
+
+  void _loadLessonPositionOnBoard(String fen, String? pgn) {
     if (pgn != null && pgn.isNotEmpty) {
       final parsed = MoveTree.parsePgn(pgn, startingFen: fen);
       if (parsed != null) {
@@ -2413,7 +2024,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   // Jump to specific MoveNode in active history and broadcast state
   void _selectNode(MoveNode node) {
-    _recordEvent('fen_change', {'fen': node.fen});
+    _markLesson('move', {'fen': node.fen});
     setState(() {
       moveTree.current = node;
       commentController.text = node.comment;
@@ -2490,11 +2101,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   void _broadcastMoveAndState([String? from, String? to, String? newFen]) {
     final effectiveFen = newFen ?? controller.getFen();
-    _recordEvent('move', {
+    _markLesson('move', {
       'fen': effectiveFen,
-      'move': (from != null && to != null) ? {'from': from, 'to': to} : null,
+      if (from != null && to != null) 'from': from,
+      if (from != null && to != null) 'to': to,
     });
-
     socket.emit('move', {
       'roomId': widget.roomCode,
       'move': (from != null && to != null) ? {'from': from, 'to': to} : null,
@@ -3185,23 +2796,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   style: AppText.headline,
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                if (_isStudentSeat) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _showShareStudentPositionModal,
-                      icon: const Icon(Icons.share, size: 16),
-                      label: const Text('Show my position to trainer'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            context.colors.warning.withValues(alpha: 0.2),
-                        foregroundColor: context.colors.textPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                ],
                 // The shared list (phase 3b), narrowed to what can go on a
                 // board. Chips, search and the label filter are its own; this
                 // screen only fetches, puts a row on the board and acts on it.
@@ -3260,11 +2854,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isStudio
-                      ? 'Preparation controls'
-                      : (isLeader
-                          ? 'Host Controls & History'
-                          : 'Controls & History'),
+                  isStudio ? 'Preparation controls' : 'Moves',
                   style: AppText.headline,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -3329,65 +2919,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                     ),
                   ),
                 ] else if (isLeader) ...[
-                  // A switch, not a list of four: „Student plays as White /
-                  // Black" never filtered a move by colour on either end, and a
-                  // fresh room arrived as `host_only`, which the list had no
-                  // item for.
-                  SwitchListTile(
-                    key: const Key('room-students-may-move'),
-                    title: const Text('Students may move', style: AppText.body),
-                    subtitle: Text(
-                      rules.boardIsOpen(boardControl)
-                          ? 'Everybody in the room moves on the board.'
-                          : 'Only you move on the board.',
-                      style: AppText.micro,
-                    ),
-                    value: rules.boardIsOpen(boardControl),
-                    onChanged: _setStudentsMayMove,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  SwitchListTile(
-                    title: const Text('Allow Stockfish for student',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500)),
-                    value: allowStudentEngine,
-                    activeThumbColor: context.colors.accent,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (val) {
-                      setState(() {
-                        allowStudentEngine = val;
-                      });
-                      socket.emit('change_engine_permission', {
-                        'roomId': widget.roomCode,
-                        'allowStudentEngine': val,
-                      });
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  const Text(
-                    'Force student board to:',
-                    style: AppText.bodyLargeBold,
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => _forceStudentOrientation('white'),
-                          child: const Text('White'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => _forceStudentOrientation('black'),
-                          child: const Text('Black'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
                   const Divider(height: 12),
                   const Text(
                     'Arrow drawing (Trainer)',
@@ -3457,598 +2988,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       ],
                     ),
                 ],
-                if (!isStudio) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Card(
-                    color: context.colors.warning.withValues(alpha: 0.08),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: AppRadii.roundedSm),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.people,
-                                  color: context.colors.warning, size: 18),
-                              const SizedBox(width: AppSpacing.sm),
-                              const Text(
-                                'Present in classroom',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          if (roomMembers.isEmpty)
-                            Text(
-                              'Loading attendees...',
-                              style: AppText.body
-                                  .copyWith(color: context.colors.textMuted),
-                            )
-                          else
-                            ...roomMembers.map<Widget>((member) {
-                              final isMe =
-                                  member['userId'] == widget.userSession.id;
-                              final isMemberTrainer =
-                                  member['role'] == 'trener';
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: AppSpacing.xs),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.fiber_manual_record,
-                                        color: context.colors.success, size: 8),
-                                    const SizedBox(width: AppSpacing.sm),
-                                    Expanded(
-                                      child: Text(
-                                        '${member['name']} ${isMe ? "(Me)" : ""} ${isMemberTrainer ? "[Trainer]" : "[Student]"}',
-                                        style: AppText.body,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          if (isLeader && !isStudio) ...[
-                            const SizedBox(height: AppSpacing.sm),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _showInSessionInviteFriendsDialog,
-                                icon: const Icon(Icons.person_add, size: 14),
-                                label: const Text('Invite students to session',
-                                    style: AppText.caption),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: context.colors.accent,
-                                  side:
-                                      BorderSide(color: context.colors.accent),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Card(
-                    color: context.colors.textMuted.withValues(alpha: 0.15),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: AppRadii.roundedSm),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.mic, color: context.colors.info),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  const Text(
-                                    'Audio Classroom',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              if (!isVoiceOn)
-                                Icon(Icons.mic_off,
-                                    color: context.colors.textMuted, size: 16)
-                              else if (isAudioConnecting)
-                                SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: context.colors.info),
-                                )
-                              else if (audioError != null)
-                                Icon(Icons.warning,
-                                    color: context.colors.danger, size: 16)
-                              else
-                                Icon(Icons.check_circle,
-                                    color: context.colors.success, size: 16),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          // Above the switch, and shown whether the voice is on
-                          // or off: a join that was refused turns the panel back
-                          // off, and the reason has to survive that.
-                          if (audioError != null) ...[
-                            Text(
-                              audioError!,
-                              style: AppText.caption
-                                  .copyWith(color: context.colors.danger),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                          ],
-                          // The voice is off until somebody asks for it. What
-                          // this offers depends on whether a conversation is
-                          // already going on, because those are two different
-                          // questions: "do I want to start talking" and "the
-                          // lesson is being spoken and I am not hearing it".
-                          if (!isVoiceOn) ...[
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: _voiceUsersOther.isEmpty
-                                    ? context.colors.textMuted
-                                        .withValues(alpha: 0.15)
-                                    : context.colors.success
-                                        .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _voiceUsersOther.isEmpty
-                                        ? Icons.mic_off
-                                        : Icons.record_voice_over,
-                                    size: 16,
-                                    color: _voiceUsersOther.isEmpty
-                                        ? context.colors.textMuted
-                                        : context.colors.success,
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Expanded(
-                                    child: Text(
-                                      _voiceUsersOther.isEmpty
-                                          ? 'Voice is off. The microphone will not '
-                                              'open until you turn it on yourself.'
-                                          : 'In call: '
-                                              '${_voiceUsersOther.join(', ')}.',
-                                      style: AppText.caption,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            ElevatedButton.icon(
-                              onPressed: _joinVoice,
-                              icon: const Icon(Icons.headset_mic, size: 16),
-                              label: Text(_voiceUsersOther.isEmpty
-                                  ? 'Turn on voice'
-                                  : 'Join conversation'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.colors.success
-                                    .withValues(alpha: 0.2),
-                                foregroundColor: context.colors.success,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                            ),
-                          ],
-                          if (isVoiceOn && micProblem != null) ...[
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(Icons.mic_off,
-                                    size: 16, color: context.colors.warning),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: Text(
-                                    micProblem!,
-                                    key: const Key('voice-mic-problem'),
-                                    style: AppText.caption.copyWith(
-                                        color: context.colors.warning),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                          ],
-                          if (isVoiceOn &&
-                              !isAudioConnecting &&
-                              audioError == null) ...[
-                            // A button that cannot work must not be drawn. While
-                            // the server says this person only listens, the app
-                            // holds a subscriber token: "Uključi mikrofon" would
-                            // light up, the roster would say they are speaking,
-                            // and nobody would hear them.
-                            if (!mayUseMic)
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: context.colors.textMuted
-                                      .withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.headset,
-                                        size: 16,
-                                        color: context.colors.textMuted),
-                                    SizedBox(width: AppSpacing.sm),
-                                    Expanded(
-                                      child: Text(
-                                        'You are listening to the session. Respond using the buttons below '
-                                        'and moves on the board.',
-                                        style: AppText.caption,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            else
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _toggleLocalMute,
-                                      icon: Icon(isAudioMuted
-                                          ? Icons.mic_off
-                                          : Icons.mic),
-                                      label: Text(isAudioMuted
-                                          ? 'Turn on microphone'
-                                          : 'Mute me'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isAudioMuted
-                                            ? context.colors.danger
-                                                .withValues(alpha: 0.2)
-                                            : context.colors.success
-                                                .withValues(alpha: 0.2),
-                                        foregroundColor: isAudioMuted
-                                            ? context.colors.danger
-                                            : context.colors.success,
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: AppSpacing.sm),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            const SizedBox(height: 10),
-                            // The ready answers. This is what makes a listening
-                            // seat a lesson rather than a broadcast: the trainer
-                            // asks whether it is clear and gets an answer,
-                            // without a child's voice being published — or
-                            // recorded. Wrap, not Row: three labels do not fit a
-                            // 360 dp phone, and in a release build the third one
-                            // would simply be cut off past the edge with no
-                            // warning drawn.
-                            if (!isLeader)
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: [
-                                  for (final entry in _quickAnswers.entries)
-                                    OutlinedButton(
-                                      onPressed: () =>
-                                          _sendQuickAnswer(entry.key),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: AppSpacing.xs),
-                                        foregroundColor: context.colors.info,
-                                      ),
-                                      child: Text(entry.value,
-                                          style: AppText.caption),
-                                    ),
-                                ],
-                              ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              'Participants in audio call:',
-                              style: AppText.captionBold
-                                  .copyWith(color: context.colors.textMuted),
-                            ),
-                            const SizedBox(height: 6),
-                            ...audioUsers.map<Widget>((user) {
-                              final isUserMuted = user['isMuted'] ?? false;
-                              // Told by the server, unlike the mute flag beside
-                              // it, which is whatever the client reported about
-                              // itself.
-                              final userMaySpeak = user['maySpeak'] == true;
-                              final isUserTalking =
-                                  activeSpeakers.contains(user['userId']);
-                              final isUserTrainer = user['role'] == 'trener';
-                              final isMe =
-                                  user['userId'] == widget.userSession.id;
-
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: AppSpacing.xs),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      !userMaySpeak
-                                          ? Icons.headset
-                                          : (isUserMuted
-                                              ? Icons.mic_off
-                                              : Icons.mic),
-                                      size: 16,
-                                      color: isUserTalking
-                                          ? context.colors.success
-                                          : (!userMaySpeak
-                                              ? context.colors.textMuted
-                                              : (isUserMuted
-                                                  ? context.colors.danger
-                                                  : context.colors.textMuted)),
-                                    ),
-                                    const SizedBox(width: AppSpacing.sm),
-                                    Expanded(
-                                      child: Text(
-                                        '${user['userName']} ${isMe ? "(Me)" : ""} ${isUserTrainer ? "[Trainer]" : ""}',
-                                        style: AppText.body.copyWith(
-                                            fontWeight: isUserTalking
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                            color: isUserTalking
-                                                ? context.colors.success
-                                                : context.colors.textPrimary),
-                                      ),
-                                    ),
-                                    // Two different controls, deliberately kept
-                                    // apart: this one is the right, read again
-                                    // every time a voice token is minted, and
-                                    // the one beside it is a courtesy for the
-                                    // next few minutes.
-                                    if (isLeader && !isMe && !isUserTrainer)
-                                      IconButton(
-                                        icon: Icon(
-                                            userMaySpeak
-                                                ? Icons.mic
-                                                : Icons.mic_off,
-                                            size: 16,
-                                            color: userMaySpeak
-                                                ? context.colors.success
-                                                : context.colors.textMuted),
-                                        onPressed: () => _setStudentVoice(
-                                            user['userId'] as int,
-                                            !userMaySpeak),
-                                        tooltip: userMaySpeak
-                                            ? 'Revoke microphone (remains listening)'
-                                            : 'Grant microphone',
-                                      ),
-                                    if (isLeader && !isMe && userMaySpeak)
-                                      IconButton(
-                                        icon: Icon(
-                                            isUserMuted
-                                                ? Icons.volume_off
-                                                : Icons.volume_up,
-                                            size: 16),
-                                        onPressed: () {
-                                          if (isUserMuted) {
-                                            socket.emit('audio_mute_toggle', {
-                                              'roomId': widget.roomCode,
-                                              'userId': user['userId'],
-                                              'isMuted': false,
-                                            });
-                                          } else {
-                                            socket.emit('audio_mute_toggle', {
-                                              'roomId': widget.roomCode,
-                                              'userId': user['userId'],
-                                              'isMuted': true,
-                                            });
-                                          }
-                                        },
-                                        tooltip: isUserMuted
-                                            ? 'Unmute'
-                                            : 'Mute student',
-                                      ),
-                                  ],
-                                ),
-                              );
-                            }),
-                            if (audioUsers.isEmpty)
-                              Text(
-                                'No connected users.',
-                                style: AppText.caption
-                                    .copyWith(color: context.colors.textMuted),
-                              ),
-                            if (isLeader && audioUsers.length > 1) ...[
-                              const SizedBox(height: AppSpacing.md),
-                              ElevatedButton(
-                                onPressed: () {
-                                  socket.emit('audio_mute_all_students',
-                                      {'roomId': widget.roomCode});
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: context.colors.danger
-                                      .withValues(alpha: 0.15),
-                                  foregroundColor: context.colors.textPrimary,
-                                ),
-                                child: const Text('Mute all students'),
-                              ),
-                            ],
-                            if (_isStudentSeat &&
-                                isAudioMuted &&
-                                isHandRaised) ...[
-                              const SizedBox(height: AppSpacing.sm),
-                              Center(
-                                child: Text(
-                                  'You are muted. Hand is raised...',
-                                  style: AppText.caption
-                                      .copyWith(color: context.colors.warning),
-                                ),
-                              ),
-                            ] else if (_isStudentSeat && isAudioMuted) ...[
-                              const SizedBox(height: AppSpacing.sm),
-                              ElevatedButton.icon(
-                                onPressed: _raiseHand,
-                                icon: const Icon(Icons.pan_tool, size: 14),
-                                label: const Text('Raise hand to speak'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: context.colors.warning
-                                      .withValues(alpha: 0.2),
-                                  foregroundColor: context.colors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ],
-                          // Outside the block above on purpose: a voice that
-                          // came up with an error is exactly the one somebody
-                          // needs to be able to switch off.
-                          if (isVoiceOn) ...[
-                            const SizedBox(height: 10),
-                            TextButton.icon(
-                              onPressed: _leaveVoice,
-                              icon: const Icon(Icons.call_end, size: 16),
-                              label: const Text('Leave voice'),
-                              style: TextButton.styleFrom(
-                                  foregroundColor: context.colors.danger),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                if (isLeader && !isStudio) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Card(
-                    color: isRecording
-                        ? context.colors.danger.withValues(alpha: 0.15)
-                        : context.colors.brand.withValues(alpha: 0.15),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: AppRadii.roundedSm),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                isRecording
-                                    ? (isRecordingPaused
-                                        ? Icons.pause_circle_filled
-                                        : Icons.fiber_manual_record)
-                                    : Icons.videocam,
-                                color: isRecording
-                                    ? (isRecordingPaused
-                                        ? context.colors.warning
-                                        : context.colors.danger)
-                                    : context.colors.textPrimary,
-                                size: 18,
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text(
-                                isRecording
-                                    ? (isRecordingPaused
-                                        ? 'Recording PAUSED'
-                                        : 'Recording IN PROGRESS...')
-                                    : 'Session recording (Timeline)',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: isRecording
-                                      ? (isRecordingPaused
-                                          ? context.colors.warning
-                                          : context.colors.danger)
-                                      : context.colors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          if (isRecording) ...[
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: isRecordingPaused
-                                        ? _resumeRecording
-                                        : _pauseRecording,
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: isRecordingPaused
-                                          ? context.colors.success
-                                          : context.colors.warning,
-                                      side: BorderSide(
-                                          color: isRecordingPaused
-                                              ? context.colors.success
-                                              : context.colors.warning),
-                                    ),
-                                    icon: Icon(
-                                        isRecordingPaused
-                                            ? Icons.play_arrow
-                                            : Icons.pause,
-                                        size: 14),
-                                    label: Text(
-                                        isRecordingPaused ? 'Resume' : 'Pause',
-                                        style: AppText.body),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _stopRecording,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: context.colors.danger,
-                                      foregroundColor: context.colors.canvas,
-                                    ),
-                                    icon: Icon(Icons.stop,
-                                        color: context.colors.canvas, size: 14),
-                                    label:
-                                        const Text('Save', style: AppText.body),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ] else ...[
-                            ElevatedButton.icon(
-                              onPressed:
-                                  _recordingAllowed ? _startRecording : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.colors.brand,
-                                foregroundColor: context.colors.canvas,
-                              ),
-                              icon: Icon(Icons.fiber_manual_record,
-                                  color: context.colors.canvas, size: 16),
-                              label: const Text('Start recording'),
-                            ),
-                            // The reason stands under the button rather than
-                            // waiting for it to be pressed: a disabled control
-                            // with no explanation is a bug report.
-                            if (!_recordingAllowed &&
-                                _recordingBlockedReason != null) ...[
-                              const SizedBox(height: AppSpacing.sm),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(Icons.family_restroom,
-                                      color: context.colors.warning, size: 16),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Expanded(
-                                    child: Text(
-                                      _recordingBlockedReason!,
-                                      style: AppText.body.copyWith(
-                                          color: context.colors.warning),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -4075,20 +3014,16 @@ class _ChessGamePageState extends State<ChessGamePage> {
       return reserved < 8 ? 8 : reserved;
     }
 
+    // A lesson being recorded is the only copy of a voice: leaving would drop
+    // it without a word. The way out is Stop (which saves) or Discard.
     return PopScope(
-      // Leaving disposes the socket, the Agora channel and every buffered
-      // recording event. Never let that happen silently mid-recording.
-      canPop: !isRecording,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop || !isRecording) return;
-        // Just stepping out — the active session stays intact so the user
-        // can resume it later (see the "Napusti sesiju" action for the only
-        // thing that actually ends it).
-        final proceed = await _resolveRecordingBeforeLeaving();
-        if (!context.mounted || !proceed) return;
-        context.pop();
+      canPop: !_isRecordingLesson,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        AppFeedback.warning(context, 'Stop or discard the recording first.');
       },
       child: Scaffold(
+        key: _scaffoldKey,
         appBar: AppBar(
           toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
           // Flutter draws the drawer's ☰ itself when a Scaffold has a drawer,
@@ -4124,45 +3059,47 @@ class _ChessGamePageState extends State<ChessGamePage> {
             compact: LandscapeBoardLayout.applies(context),
           ),
           centerTitle: true,
+          titleSpacing: RoomPresenceTitle.isUpright(context,
+                  compact: LandscapeBoardLayout.applies(context))
+              ? RoomPresenceTitle.uprightTitleSpacing
+              : null,
           // Drawn only while somebody is talking and this person is not
           // hearing it; the board keeps its height the rest of the time.
-          bottom: _voiceInvite == null
-              ? null
-              : RoomVoiceInvite(line: _voiceInvite!, onJoin: _joinVoice),
+          bottom: isStudio && _isRecordingLesson
+              ? _buildLessonRecordingStrip()
+              : _voiceInvite == null
+                  ? null
+                  : RoomVoiceInvite(line: _voiceInvite!, onJoin: _joinVoice),
+          // Code and presence in the title; then the voice, the leader's
+          // session switches, the rest behind ⋮, and the way out — phase 6 of
+          // docs/PLAN-SESIJA.md. No cloud icon: the title already says
+          // „Connecting..." while the socket is down.
           actions: [
-            // Only the person whose room it is: the guest list decides who gets
-            // in, and that is not a decision a seat in the room grants.
-            if (activeRole == 'trener' && widget.roomCode != 'STUDIO')
+            if (!isStudio) _buildVoiceChip(),
+            // A lesson recorded alone, with the voice and the board together
+            // (phase 5b of docs/PLAN-SESIJA.md). Only here: a room is never
+            // recorded.
+            if (isStudio)
               IconButton(
-                icon: Icon(Icons.groups, color: context.colors.accent),
-                tooltip: 'Room access',
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => RoomGuestsDialog(
-                    roomCode: widget.roomCode,
-                  ),
-                ),
+                key: const Key('prep-record-lesson'),
+                icon: Icon(Icons.fiber_manual_record,
+                    color: _take == null
+                        ? context.colors.danger
+                        : context.colors.textMuted),
+                tooltip: 'Start recording',
+                onPressed: _take == null ? _startLessonRecording : null,
               ),
-            IconButton(
-              icon: Icon(Icons.biotech, color: context.colors.accent),
-              tooltip: 'Export to Analysis 🔬',
-              onPressed: () {
-                context.push(AppRoutes.analysisPath(fen: controller.getFen()));
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.settings, color: context.colors.textMuted),
-              tooltip: 'Settings',
-              onPressed: () async {
-                // Settings sits on top of the room; the socket and the audio
-                // channel keep running underneath instead of being torn down.
-                await context.push(AppRoutes.preferences);
-                if (mounted) setState(() {});
-              },
-            ),
+            if (!isStudio && activeRole == 'trener')
+              IconButton(
+                key: const Key('room-session-button'),
+                icon: Icon(Icons.tune, color: context.colors.accent),
+                tooltip: 'Session',
+                onPressed: () => _openPanel(_RoomPanel.session),
+              ),
+            _buildMoreMenu(),
             // Whoever started the session ends it, for everybody; anybody else
             // only leaves. Read from the seat the server gave, not the account.
-            if (widget.roomCode != 'STUDIO')
+            if (!isStudio)
               activeRole == 'trener'
                   ? IconButton(
                       key: const Key('room-end-session'),
@@ -4177,16 +3114,23 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       tooltip: 'Leave session',
                       onPressed: _leaveSessionExplicitly,
                     ),
-            Icon(
-              isConnected ? Icons.cloud_done : Icons.cloud_off,
-              color:
-                  isConnected ? context.colors.success : context.colors.danger,
-            ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.xs),
           ],
         ),
         // Mobile layout has a Drawer for lessons listing (if Trainer)
         drawer: hasDrawer ? Drawer(child: buildLeftSidebar()) : null,
+        endDrawer: isStudio
+            ? null
+            : Drawer(
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: _panel == _RoomPanel.session && isLeader
+                        ? _buildSessionPanel()
+                        : _buildVoicePanel(),
+                  ),
+                ),
+              ),
         body: MoveKeyboardShortcuts(
           cursor: _moveCursor(),
           // _selectNode does its own setState.
@@ -4210,7 +3154,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  if (_showEvalBar) ...[
+                                  if (_showEvalBar && _mayUseEngine) ...[
                                     SizedBox(
                                       width: boardSize,
                                       child: HorizontalEvalBarWidget(
@@ -4223,6 +3167,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                     const SizedBox(height: AppSpacing.sm),
                                   ],
                                   _buildChessBoardWithOverlay(boardSize),
+                                  if (_isStudentSeat)
+                                    SizedBox(
+                                        width: boardSize,
+                                        child: _buildStudentStrip()),
                                   const SizedBox(height: AppSpacing.md),
                                   // PGN navigators
                                   SizedBox(
@@ -4254,7 +3202,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             boardScale:
                                 AppSettingsService.instance.boardSizeScale,
                             board: _buildChessBoardWithOverlay,
-                            boardAside: _showEvalBar
+                            boardAside: _showEvalBar && _mayUseEngine
                                 ? (height) => VerticalEvalBarWidget(
                                       eval: _currentRawEval,
                                       evalString: currentEngineEval,
@@ -4266,6 +3214,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                             panels: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                if (_isStudentSeat) _buildStudentStrip(),
                                 _buildStockfishAnalysisWidget(),
                                 const SizedBox(height: AppSpacing.sm),
                                 buildRightSidebar(),
@@ -4277,7 +3226,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       : Column(
                           children: [
                             const SizedBox(height: AppSpacing.sm),
-                            if (_showEvalBar) ...[
+                            if (_showEvalBar && _mayUseEngine) ...[
                               SizedBox(
                                 width: boardSize,
                                 child: HorizontalEvalBarWidget(
@@ -4307,6 +3256,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                    if (_isStudentSeat) _buildStudentStrip(),
                                     buildNavigationControls(),
                                     _buildStockfishAnalysisWidget(),
                                     const SizedBox(height: AppSpacing.sm),
@@ -4324,66 +3274,512 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
   }
 
-  /// Offers to save the in-progress recording before leaving the room.
-  /// Returns true once the recording is resolved (stopped/saved or
-  /// discarded) and it's safe to proceed with leaving; false if the user
-  /// backed out and is still recording.
-  Future<bool> _resolveRecordingBeforeLeaving() async {
-    final choice = await showDialog<String>(
+  /// Which panel the end drawer shows. One drawer, two contents: the Scaffold
+  /// rebuilds its drawer with the room, so a roster or a voice state that
+  /// changes while a panel is open is shown as it is, not as it was when the
+  /// panel opened — which a modal sheet would have frozen.
+  _RoomPanel _panel = _RoomPanel.voice;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _openPanel(_RoomPanel panel) {
+    setState(() => _panel = panel);
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  /// The voice's state, as a shape first and a colour second (the owner is
+  /// colourblind): off, connecting, failed, a microphone nobody hears,
+  /// listening, muted, talking. A tap opens the voice panel.
+  Widget _buildVoiceChip() {
+    final colors = context.colors;
+    final Widget icon;
+    final String says;
+    if (!isVoiceOn) {
+      icon = Icon(Icons.headset_off, color: colors.textMuted);
+      says = 'Voice is off';
+    } else if (isAudioConnecting) {
+      icon = SizedBox(
+        width: 18,
+        height: 18,
+        child: CircularProgressIndicator(strokeWidth: 2, color: colors.info),
+      );
+      says = 'Voice is connecting';
+    } else if (audioError != null) {
+      icon = Icon(Icons.error_outline, color: colors.danger);
+      says = 'Voice could not start';
+    } else if (micProblem != null) {
+      icon = Icon(Icons.warning_amber, color: colors.warning);
+      says = 'Others cannot hear you';
+    } else if (!mayUseMic) {
+      icon = Icon(Icons.headset, color: colors.info);
+      says = 'Listening';
+    } else if (isAudioMuted) {
+      icon = Icon(Icons.mic_off, color: colors.danger);
+      says = 'Your microphone is off';
+    } else {
+      icon = Icon(Icons.mic, color: colors.success);
+      says = 'Your microphone is on';
+    }
+    return IconButton(
+      key: const Key('room-voice-chip'),
+      icon: icon,
+      tooltip: says,
+      onPressed: () => _openPanel(_RoomPanel.voice),
+    );
+  }
+
+  Widget _buildVoicePanel() => RoomVoicePanel(
+        isVoiceOn: isVoiceOn,
+        isConnecting: isAudioConnecting,
+        error: audioError,
+        micProblem: micProblem,
+        mayUseMic: mayUseMic,
+        isMuted: isAudioMuted,
+        othersInCall: _voiceUsersOther,
+        users: audioUsers,
+        activeSpeakers: activeSpeakers,
+        myId: widget.userSession.id,
+        isLeader: isLeader,
+        isStudentSeat: _isStudentSeat,
+        isHandRaised: isHandRaised,
+        onJoin: _joinVoice,
+        onLeave: _leaveVoice,
+        onToggleMute: _toggleLocalMute,
+        onSetHand: _setHand,
+        onSetStudentVoice: _setStudentVoice,
+        onMuteUser: (userId, mute) => socket.emit('audio_mute_toggle', {
+          'roomId': widget.roomCode,
+          'userId': userId,
+          'isMuted': mute,
+        }),
+      );
+
+  /// The leader's switches, in one place instead of down the right column.
+  Widget _buildSessionPanel() {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('Session', style: AppText.headline),
+        // The code, for logs and for saying which room: an upright phone's bar
+        // gives it up to the sentence about who is here.
+        Text('Room ${widget.roomCode}',
+            style: AppText.caption.copyWith(color: colors.textMuted)),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            Icon(Icons.people, color: colors.warning, size: 18),
+            const SizedBox(width: AppSpacing.sm),
+            const Text('Present in classroom', style: AppText.bodyBold),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        if (roomMembers.isEmpty)
+          Text('Loading attendees...',
+              style: AppText.body.copyWith(color: colors.textMuted))
+        else
+          for (final member in roomMembers)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+              child: Row(
+                children: [
+                  Icon(Icons.fiber_manual_record,
+                      color: colors.success, size: 8),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      '${member['name']}'
+                      '${member['userId'] == widget.userSession.id ? ' (Me)' : ''}'
+                      ' ${member['role'] == 'trener' ? '[Trainer]' : '[Student]'}',
+                      style: AppText.body,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        const SizedBox(height: AppSpacing.sm),
+        OutlinedButton.icon(
+          onPressed: _showInSessionInviteFriendsDialog,
+          icon: const Icon(Icons.person_add, size: 16),
+          label: const Text('Invite students to session'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colors.accent,
+            side: BorderSide(color: colors.accent),
+          ),
+        ),
+        const Divider(height: 32),
+        // A switch, not a list of four: „Student plays as White / Black" never
+        // filtered a move by colour on either end, and a fresh room arrived as
+        // `host_only`, which the list had no item for.
+        SwitchListTile(
+          key: const Key('room-students-may-move'),
+          title: const Text('Students may move', style: AppText.body),
+          subtitle: Text(
+            rules.boardIsOpen(boardControl)
+                ? 'Everybody in the room moves on the board.'
+                : 'Only you move on the board.',
+            style: AppText.micro,
+          ),
+          value: rules.boardIsOpen(boardControl),
+          onChanged: _setStudentsMayMove,
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const Text('Force student board to:', style: AppText.bodyLargeBold),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _forceStudentOrientation('white'),
+                child: const Text('White'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _forceStudentOrientation('black'),
+                child: const Text('Black'),
+              ),
+            ),
+          ],
+        ),
+        const Divider(height: 32),
+        // Who may come in is a decision about the session, not about the
+        // board, so it sits here rather than in the room's bar.
+        OutlinedButton.icon(
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (_) => RoomGuestsDialog(roomCode: widget.roomCode),
+          ),
+          icon: const Icon(Icons.groups, size: 16),
+          label: const Text('Room access'),
+        ),
+      ],
+    );
+  }
+
+  /// What a student says back without a voice: their own board, and the three
+  /// ready answers. Under the board on every width (F10 — on a phone a student
+  /// had no drawer, so „Show my position" could not be reached at all). The
+  /// answers no longer wait for the voice: the server takes them from any
+  /// seated socket.
+  Widget _buildStudentStrip() {
+    final colors = context.colors;
+    return Padding(
+      key: const Key('room-student-strip'),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      // Wrap, not Row: four labels do not fit a 360 dp phone, and in a release
+      // build the last would simply be cut off past the edge.
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        alignment: WrapAlignment.center,
+        children: [
+          OutlinedButton.icon(
+            onPressed: _showShareStudentPositionModal,
+            icon: const Icon(Icons.share, size: 16),
+            label: const Text('Show my position to trainer'),
+            style:
+                OutlinedButton.styleFrom(foregroundColor: colors.textPrimary),
+          ),
+          for (final entry in _quickAnswers.entries)
+            OutlinedButton(
+              onPressed: () => _sendQuickAnswer(entry.key),
+              style: OutlinedButton.styleFrom(foregroundColor: colors.info),
+              child: Text(entry.value),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// The ⋮ in the bar: ways out of the room that are not leaving it.
+  Widget _buildMoreMenu() => PopupMenuButton<String>(
+        key: const Key('room-more-menu'),
+        tooltip: 'More',
+        onSelected: (value) async {
+          if (value == 'analysis') {
+            context.push(AppRoutes.analysisPath(fen: controller.getFen()));
+          } else if (value == 'settings') {
+            // Settings sits on top of the room; the socket and the audio
+            // channel keep running underneath instead of being torn down.
+            await context.push(AppRoutes.preferences);
+            if (mounted) setState(() {});
+          }
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(
+            value: 'analysis',
+            child: ListTile(
+              leading: Icon(Icons.biotech),
+              title: Text('Export to Analysis'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem(
+            value: 'settings',
+            child: ListTile(
+              leading: Icon(Icons.settings),
+              title: Text('Settings'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      );
+
+  // --- Recording a lesson in Preparation (phase 5b.3 of docs/PLAN-SESIJA.md).
+
+  /// The take while one is running, and where its file is. Null otherwise.
+  LessonTake? _take;
+  String? _takePath;
+
+  LessonRecordingApi get _lessonRecordingApi =>
+      widget.lessonRecordingApi ??
+      LessonRecordingApi(authToken: widget.userSession.token);
+
+  bool get _isRecordingLesson =>
+      _take != null && _take!.state != NarrationState.stopped;
+
+  /// Stamps a board event on the take, at this point in the audio. A no-op
+  /// while nothing is being recorded, which is what lets every door onto the
+  /// board call it without asking first.
+  void _markLesson(String type, Map<String, dynamic> data) {
+    _take?.mark(type, data);
+  }
+
+  void _onTakeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<Directory> _defaultLessonTakeDir() async {
+    final support = await getApplicationSupportDirectory();
+    return Directory('${support.path}${Platform.pathSeparator}lessons');
+  }
+
+  /// Asks the server first — whether this account may record, and for how
+  /// long — and only then opens the microphone. A refusal said after half an
+  /// hour of talking is the one this order exists to prevent.
+  Future<void> _startLessonRecording() async {
+    if (_take != null) return;
+    final permit = await _lessonRecordingApi.permit();
+    if (!mounted) return;
+    if (!permit.allowed) {
+      AppFeedback.warning(context, permit.reason ?? 'You may not record.');
+      return;
+    }
+    final dir = await (widget.lessonTakeDir ?? _defaultLessonTakeDir)();
+    dir.createSync(recursive: true);
+    final path = '${dir.path}${Platform.pathSeparator}'
+        'lesson-${DateTime.now().millisecondsSinceEpoch}.wav';
+    final take = LessonTake(
+      source: (widget.pcmSourceFactory ?? RecordPcmSource.new)(),
+      sink: WavFileSink(path),
+      maxMs: permit.maxMs ?? narrationFallbackMaxMs,
+    )..addListener(_onTakeChanged);
+    setState(() {
+      _take = take;
+      _takePath = path;
+    });
+    unawaited(take.done.then(_onTakeDone));
+    final NarrationStart started;
+    try {
+      started = await take.start(opening: {
+        'fen': moveTree.current.fen,
+        'pgn': moveTree.exportToPgn(),
+      });
+    } catch (e) {
+      _forgetTake();
+      if (mounted) {
+        AppFeedback.error(context, 'The microphone could not start: $e');
+      }
+      return;
+    }
+    if (!mounted) return;
+    if (started == NarrationStart.noPermission) {
+      _forgetTake();
+      AppFeedback.warning(context,
+          'The app may not use the microphone. Allow it in the system settings.');
+    }
+  }
+
+  void _forgetTake() {
+    _take?.removeListener(_onTakeChanged);
+    final path = _takePath;
+    if (mounted) {
+      setState(() {
+        _take = null;
+        _takePath = null;
+      });
+    } else {
+      _take = null;
+      _takePath = null;
+    }
+    if (path != null) {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    }
+  }
+
+  /// Whatever ended the take — Stop, the cap, or Discard (null).
+  Future<void> _onTakeDone(LessonRecording? recording) async {
+    if (!mounted) return;
+    final path = _takePath;
+    if (recording == null || path == null) {
+      _forgetTake();
+      return;
+    }
+    if (recording.stoppedAtCap) {
+      AppFeedback.info(context,
+          'Recording stopped at the limit of one recording. It is kept.');
+    }
+    final title = await _askLessonTitle();
+    if (!mounted) return;
+    if (title == null) {
+      _forgetTake();
+      return;
+    }
+    await _uploadLesson(recording, path, title);
+  }
+
+  Future<String?> _askLessonTitle() {
+    final controller = TextEditingController();
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Recording in progress'),
-        content: Text(
-          'Leaving the room disconnects you and you will lose ${_recorder.eventCount} recorded events.\n\n'
-          'Do you want to stop and save the recording first?',
+        title: const Text('Save the recording'),
+        content: TextField(
+          key: const Key('lesson-title-field'),
+          controller: controller,
+          autofocus: true,
+          maxLength: 255,
+          decoration: const InputDecoration(labelText: 'Title'),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, 'cancel'),
-            child: const Text('Stay in room'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: Text('Leave without saving',
-                style: TextStyle(color: context.colors.danger)),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Discard'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: context.colors.accent,
-                foregroundColor: context.colors.canvas),
-            onPressed: () => Navigator.pop(ctx, 'save'),
-            child: const Text('Stop and save'),
+            key: const Key('lesson-save'),
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) Navigator.pop(ctx, text);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
     );
+  }
 
-    if (!mounted || choice == null || choice == 'cancel') return false;
-
-    if (choice == 'save') {
-      // _stopRecording runs its own title/save dialog and clears the buffer.
-      await _stopRecording();
-      if (!mounted) return false;
-      // Bail out if the user backed out of that dialog and is still recording.
-      if (isRecording) return false;
-    } else {
-      setState(() {
-        isRecording = false;
-        isRecordingPaused = false;
-        recordingStartTimeMs = null;
-        _recorder.reset();
-      });
+  /// Sends the take, and keeps it on this device until the server says 201 —
+  /// it is the only copy of a voice.
+  Future<void> _uploadLesson(
+      LessonRecording recording, String path, String title) async {
+    while (mounted) {
+      final result = await _lessonRecordingApi.upload(
+        audioPath: path,
+        title: title,
+        events: recording.events,
+        durationMs: recording.durationMs,
+      );
+      if (!mounted) return;
+      if (result.ok) {
+        _forgetTake();
+        AppFeedback.success(
+            context, 'Recording saved. It is under Recordings.');
+        return;
+      }
+      final again = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('The recording was not saved'),
+          content: Text(result.error ?? 'The recording could not be uploaded.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Discard'),
+            ),
+            ElevatedButton(
+              key: const Key('lesson-upload-retry'),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      );
+      if (again != true) {
+        _forgetTake();
+        return;
+      }
     }
+  }
 
-    return true;
+  /// Under Preparation's bar while a lesson is being recorded: the clock, and
+  /// the three things a trainer may do to it.
+  PreferredSizeWidget _buildLessonRecordingStrip() {
+    final take = _take!;
+    final colors = context.colors;
+    final paused = take.state == NarrationState.paused;
+    final remaining = take.remainingMs;
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(48),
+      child: Container(
+        key: const Key('lesson-recording-strip'),
+        height: 48,
+        color: colors.danger.withValues(alpha: 0.12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        child: Row(
+          children: [
+            // A shape, not only a colour: a dot recording, bars paused.
+            Icon(paused ? Icons.pause : Icons.fiber_manual_record,
+                color: colors.danger, size: 16),
+            const SizedBox(width: AppSpacing.sm),
+            Text(narrationClockOf(take.positionMs),
+                style: AppText.bodyBold.copyWith(color: colors.danger)),
+            if (remaining < 60000) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  '${(remaining / 1000).ceil().clamp(0, 60)} s left',
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.caption.copyWith(color: colors.warning),
+                ),
+              ),
+            ],
+            const Spacer(),
+            IconButton(
+              key: const Key('lesson-recording-pause'),
+              icon: Icon(paused ? Icons.play_arrow : Icons.pause),
+              tooltip: paused ? 'Resume' : 'Pause',
+              onPressed: paused ? take.resume : take.pause,
+            ),
+            IconButton(
+              key: const Key('lesson-recording-stop'),
+              icon: Icon(Icons.stop, color: colors.danger),
+              tooltip: 'Stop and save',
+              onPressed: take.stop,
+            ),
+            IconButton(
+              key: const Key('lesson-recording-discard'),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Discard',
+              onPressed: take.cancel,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// The only path that actually ends the session (as opposed to just
   /// stepping out of the screen): clears [GameSessionService] so Home stops
   /// offering to resume it and no longer blocks starting/joining another.
   Future<void> _leaveSessionExplicitly() async {
-    if (isRecording && !await _resolveRecordingBeforeLeaving()) return;
     await GameSessionService.instance.clear();
     if (!mounted) return;
     _closeRoomScreen();
@@ -4431,7 +3827,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       ),
     );
     if (confirmed != true) return;
-    if (isRecording && !await _resolveRecordingBeforeLeaving()) return;
 
     final api = widget.roomSessionApi ??
         RoomSessionApi(authToken: widget.userSession.token);
@@ -4449,3 +3844,5 @@ class _ChessGamePageState extends State<ChessGamePage> {
     _closeRoomScreen();
   }
 }
+
+enum _RoomPanel { voice, session }

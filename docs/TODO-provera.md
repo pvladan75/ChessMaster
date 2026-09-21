@@ -5981,6 +5981,66 @@ dva naloga na dva uređaja, u prihvaćenoj vezi.
     sekundi. Sačekaj minut: učenik je i dalje u „Present in classroom" i u
     spisku glasa kod trenera. (Stari soket se gasio pola minuta kasnije i
     brisao mesto koje je novi već zauzeo.)
+28. [ ] **Soba se ne snima** (faza 5a; nov build, restart servera). Trener sam
+    u sobi: u desnoj koloni nema kartice „Session recording (Timeline)" ni
+    dugmeta „Start recording" — ni kad učenik uđe. Izlazak strelicom nazad i
+    „End session" ne pitaju ništa o snimku („Recording in progress" ne postoji).
+29. [ ] **Stari snimci su tu.** Home → Recordings (i Library na Teach): snimci
+    od ranije se otvaraju i puštaju, razmaknica pušta i pauzira, a dugme videa
+    („Export to MP4 Video")
+    pravi video kao pre. U `chess_backend/uploads/` ništa nije nestalo.
+30. [ ] **Traka sobe** (faza 6; nov build, restart servera). Telefon uspravno,
+    trener: ☰ · rečenica o prisutnima · slušalice · „Session" (klizači) · ⋮ ·
+    crveni stop. Nema oblaka. Rečenica („Nobody has joined yet") se čita cela,
+    u dva reda; kôd sobe je u panelu Session. Učenik: isto bez ☰ i bez
+    „Session", i vrata umesto stopa. Proveri i položeno i na Windowsu.
+31. [ ] **Ikona glasa kaže stanje.** Isključen glas → precrtane slušalice;
+    dok se povezuje → kružić; uključen mikrofon → mikrofon; utišan → precrtan
+    mikrofon; samo sluša → slušalice; greška → uzvičnik. Dodir otvara panel
+    „Voice" sa desne strane, i u njemu je sve što je bila kartica „Audio
+    Classroom".
+32. [ ] **Panel Session.** Trener dodirne klizače: „Present in classroom" sa
+    imenima, „Invite students to session", „Students may move", „Force student
+    board to:", „Room access". Kad učenik uđe dok je panel otvoren, ime se
+    pojavi bez zatvaranja panela.
+33. [ ] **Učenik odgovara ispod table.** Telefon uspravno: odmah ispod table
+    „Show my position to trainer", „Yes", „No", „I didn't understand" — bez
+    skrolovanja, i **bez uključenog glasa**. Trener dobije odgovor. Položeno:
+    isto, na vrhu kolone pored table.
+34. [ ] **Učenik nema motor.** U sobi učenik nema panel „Engine" ni traku
+    ocene; trener ima oba. U panelu Session nema „Allow Stockfish for
+    student".
+35. [ ] **Spuštena ruka.** Učenik u glasu, utišan: „Raise hand to speak" →
+    kod trenera obaveštenje; zatim „Lower hand" → dugme se vrati na „Raise
+    hand to speak", i sledeće podizanje opet javlja treneru.
+36. [ ] **Nema „Mute all students".** Trener utišava učenike jednog po jednog,
+    ikonom zvučnika u njihovom redu u panelu „Voice".
+37. [ ] **Snimanje u Preparation** (faza 5b; nov build, restart servera —
+    dodaje kolone i tabelu). U Preparation crvena tačka u traci („Start
+    recording"). Nalog bez godine rođenja ili mlađi od 18: poruka odmah, snimanje
+    ne počinje. Punoletan: ispod trake traka sa satom, Pause, Stop, Discard.
+38. [ ] **Glas i tabla zajedno.** Snimi par minuta: pričaj, učitaj poziciju iz
+    Library, prođi kroz liniju strelicom, nacrtaj strelicu, pauziraj pa
+    nastavi. Stop → naslov → Save → „Recording saved. It is under Recordings."
+    Na Home → Recordings otvori ga: glas i tabla idu zajedno do kraja (i posle
+    poslednjeg poteza, ako si još pričao), strelice se vide, trajanje u kartici
+    je tačno.
+39. [ ] **Video lekcije.** U plejeru „Export to MP4 Video": video prati tablu
+    kroz učitane pozicije i korake, glas je ceo.
+40. [ ] **Ne izlazi se usred snimanja.** Dok snima, strelica nazad ne izlazi i
+    piše „Stop or discard the recording first."; posle Discard izlazi.
+    Isključi mrežu pa Save: „Try again" posle uključivanja pošalje lekciju.
+41. [ ] **Deljenje.** U plejeru svoje lekcije „Share with students…": čipovi
+    grupa, štikliranje, Share. Učenik dobije obaveštenje (ikona filma) i
+    lekciju vidi na Home → Recordings; pušta je sa glasom. Na starom snimku iz
+    sobe dugmeta za deljenje nema.
+42. [ ] **Video za učenika.** Učenik u plejeru „Download video": pre nego što
+    trener napravi video piše „No video yet — ask your trainer."; posle
+    trenerovog Export-a dobija link i video se preuzima. Dugmeta za Export
+    učenik nema.
+43. [ ] **Deljenje prestaje sa vezom.** Kad trener ukloni učenika, lekcija
+    nestaje sa učenikovog Home → Recordings; skidanje svih kvačica u
+    „Share with students…" isto.
 
 ## 218. Stockfish 19 u aplikaciji — 21.9.2026, nije viđeno uživo
 

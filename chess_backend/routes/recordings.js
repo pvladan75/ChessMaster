@@ -1,7 +1,6 @@
 const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -12,297 +11,215 @@ const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
 const renderQueue = require('../services/renderQueue');
 const renderBudget = require('../services/renderBudget');
-const { trimPauses } = require('../services/audioTrimmer');
-const realtime = require('../services/realtime');
-const { mayRecordRoom } = require('../services/recordingConsent');
+const multer = require('multer');
+const narrationUpload = require('../services/narrationUpload');
+const lessonRecording = require('../services/lessonRecording');
+const recordingShares = require('../services/recordingShares');
+const { latestVideoFor } = require('../services/recordingVideo');
+const { EXPORTS_DIR } = require('../services/retentionService');
+const { mayRecordNarration } = require('../services/recordingConsent');
 
-const uploadStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname) || '.aac';
-    cb(null, 'recording_' + uniqueSuffix + ext);
+// There is no `POST /recordings/save` any more (phase 5a of
+// docs/PLAN-SESIJA.md): a session with other people in it is not recorded at
+// all, and the room's writer went first. The one writer here is
+// `POST /recordings/lesson` below — an adult alone in Preparation (phase 5b).
+// test/recording_writer_gone.test.js.
+
+// POST /recordings/lesson — a lesson recorded alone in Preparation. Phase 5b.2
+// of docs/PLAN-SESIJA.md; services/lessonRecording.js says what is checked.
+//
+// Three stages, in this order on purpose, as the narration's: who may record
+// is asked **before** multer accepts a byte, so a refused voice never touches
+// the disk; the file is received with the cap as multer's own limit; and only
+// then is it judged and kept.
+
+/// Eighteen and a known age — the narration's rule, because it is the same act:
+/// putting one's own voice into `uploads/`, where nothing can be taken back.
+async function lessonGate(req, res, next) {
+  try {
+    const consent = await mayRecordNarration(pool, req.user.id);
+    if (!consent.allowed) return res.status(403).json({ error: consent.reason });
+    return next();
+  } catch (err) {
+    logger.error('[LESSON] Gate failed:', err);
+    return res.status(500).json({ error: 'Server error while checking the recording.' });
   }
+}
+
+const lessonMulter = multer({
+  storage: multer.diskStorage({
+    destination(req, file, cb) {
+      const dir = lessonRecording.lessonDir();
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      } catch (err) {
+        cb(err);
+      }
+    },
+    filename(req, file, cb) {
+      cb(null, lessonRecording.lessonFilename(req.user.id));
+    },
+  }),
+  // The events travel as one multipart field: 20 000 of them is about 3 MB.
+  limits: { fileSize: narrationUpload.narrationMaxBytes(), files: 1, fields: 8, fieldSize: 4 * 1024 * 1024 },
 });
-const upload = multer({ storage: uploadStorage, limits: { fileSize: 100 * 1024 * 1024 } });
 
-// POST /recordings/save
-router.post('/save', authenticateToken, upload.single('audio'), async (req, res) => {
-  logger.info('[SERVER_RECORDING_LOG] Received /recordings/save request from user:', req.user ? req.user.id : 'unknown');
-  logger.info('[SERVER_RECORDING_LOG] Body keys:', Object.keys(req.body));
-  if (req.file) {
-    logger.info('[SERVER_RECORDING_LOG] Audio file received:', req.file.path, 'Size:', req.file.size, 'bytes');
-  } else {
-    logger.info('[SERVER_RECORDING_LOG] No file in req.file');
-  }
-
-  const roomId = req.body.roomId;
-  const title = req.body.title;
-  let timelineJson = req.body.timelineJson;
-
-  if (typeof timelineJson === 'string') {
-    try {
-      timelineJson = JSON.parse(timelineJson);
-    } catch (e) {}
-  }
-
-  if (!roomId || !title || !timelineJson) {
-    return res.status(400).json({ error: 'Fields roomId, title and timelineJson are required.' });
-  }
-
-  // The second lock on the same door. The socket refuses to *start* a recording
-  // that a parent has not agreed to, but a client that never announced one can
-  // still arrive here with a finished file — and this is the moment a child's
-  // voice would land in `uploads/`, which is the one thing in this project that
-  // cannot be reproduced or taken back.
-  //
-  // `null` is a third answer and not a pass: the roster lives in memory, so a
-  // backend restarted mid-lesson has forgotten who was there. The save then
-  // goes through — refusing would destroy a real lesson over the server's own
-  // restart — and says so, rather than reporting a check that never ran as one
-  // that passed.
-  // Multer has already written the file by the time any of this runs. Leaving
-  // it behind on a refusal would put exactly the voice these checks exist for
-  // into `uploads/`, refused or not.
-  const discardUpload = () => {
-    if (!req.file) return;
-    try {
-      fs.unlinkSync(req.file.path);
-    } catch (unlinkErr) {
-      logger.error('[SNIMANJE] Odbijen snimak nije mogao da se obriše:', unlinkErr);
+/// The file, received — or a sentence rather than Express's HTML error page.
+function receiveLesson(req, res, next) {
+  lessonMulter.single('audio')(req, res, (err) => {
+    if (!err) return next();
+    if (req.file) narrationUpload.removeQuietly(req.file.path);
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        error: `This recording is longer than ${Math.floor(narrationUpload.narrationMaxSeconds() / 60)} minutes, `
+          + 'which is the most one recording may be. Record a shorter one.',
+      });
     }
+    logger.error('[LESSON] Upload failed:', err);
+    return res.status(400).json({ error: 'The recording could not be received. Upload it again.' });
+  });
+}
+
+/// Judged, and kept — or deleted, with the reason.
+async function saveLesson(req, res) {
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'No recording was sent.' });
+  const drop = (status, error) => {
+    narrationUpload.removeQuietly(file.path);
+    return res.status(status).json({ error });
   };
 
-  // **Three answers, not two.** "The recording was stopped because a parent
-  // refused", "the server does not remember" and "everybody here may be
-  // recorded" are three different things, and on 25.8.2026 the first was being
-  // reported as the second: the join handler threw the roster away, so a save
-  // thirteen seconds after a stop the server itself ordered came back as
-  // *"restart usred časa?"*. Same shape as `accountGuard`, and for the same
-  // reason — a state nobody can name is a state nobody enforces.
-  // **The audio is refused, never the lesson.** Since 26.8.2026 a recording is
-  // a `timeline_json` first and a sound file only sometimes: moves, arrows and
-  // marks are what the replay is made of, and `audio_url` has always been
-  // nullable. So a save that may not carry a voice is not an error to send back
-  // — it is a silent replay, which is what a lesson replay now is.
-  //
-  // This used to answer 403 and throw the whole upload away, which lost the
-  // board timeline of a real lesson over a rule about sound. That was the wrong
-  // half to give up, the same way refusing a child the lesson was.
-  let audioRefusal = null;
-
-  // A recording is saved by the owner of the room it was made in, and by nobody
-  // else. `roomId` used to be any string, so a recording could be filed under
-  // somebody else's room — and the checks below, which ask about *that* room's
-  // owner and roster, would answer for a person who was not saving anything.
-  // test/recording_participants.test.js.
-  try {
-    const room = await pool.query('SELECT creator_id FROM rooms WHERE room_code = $1', [roomId]);
-    if (room.rowCount === 0 || Number(room.rows[0].creator_id) !== Number(req.user.id)) {
-      discardUpload();
-      return res.status(403).json({ error: 'Only the owner of the room can save its recording.' });
-    }
-  } catch (err) {
-    discardUpload();
-    logger.error('Error checking the room of a recording:', err);
-    return res.status(500).json({ error: 'Error saving session recording.' });
+  const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+  if (title === '' || title.length > 255) {
+    return drop(400, 'A recording needs a title of at most 255 characters.');
   }
 
-  const stopped = realtime.consentStop(roomId);
-  if (stopped && !stopped.obeyed) {
-    // The client was told to stop and never said it did. That is the client
-    // this rule exists to survive, and its file is the one that may contain
-    // somebody who never agreed to be in it.
-    audioRefusal = stopped.reason
-      || 'Recording was stopped because there is someone else in the room.';
-    logger.warn(
-      `[SNIMANJE] Zvuk odbijen za sobu ${roomId}: snimanje je zaustavljeno, `
-      + 'a soba nikada nije javila da je stala.',
-    );
-  }
+  const header = narrationUpload.judgeWavHeader({
+    file: file.path,
+    durationMs: Number(req.body.durationMs),
+    tooLong: 'Record a shorter one.',
+  });
+  if (!header.ok) return drop(header.status, header.error);
 
-  const roster = realtime.recordedRoster(roomId);
-  let consentUnverified = false;
-  if (roster === null) {
-    // A backend restarted mid-lesson has forgotten who was in the room. Under
-    // the old rule that let the save through with its audio, because the check
-    // "could not run". It cannot run here either — but the thing it guards is
-    // the one artefact that cannot be taken back, and "I do not know who was
-    // there" is not "you were alone". The lesson is still saved; the sound is
-    // not.
-    consentUnverified = true;
-    audioRefusal = audioRefusal
-      || 'The server does not remember who was in the room (restart mid-session?), so audio was not saved.';
-    logger.warn(
-      `[SNIMANJE] Zvuk odbijen za sobu ${roomId} — server ne pamti ko je bio `
-      + 'u sobi (restart usred časa?).',
-    );
-  } else {
-    const verdict = await mayRecordRoom(pool, { roomCode: roomId, userIds: roster });
-    if (!verdict.allowed) {
-      audioRefusal = audioRefusal || verdict.reason;
-      logger.warn(`[SNIMANJE] Zvuk odbijen za sobu ${roomId}: ${verdict.reason}`);
-    }
-    realtime.clearRecordedRoster(roomId);
-  }
+  const judged = lessonRecording.judgeLessonEvents({
+    events: req.body.events,
+    durationMs: header.measuredMs,
+  });
+  if (!judged.ok) return drop(judged.status, judged.error);
 
-  // Multer has already written the file by the time any of this runs. Leaving
-  // it behind would put exactly the voice these checks exist for into
-  // `uploads/`, refused or not.
-  if (audioRefusal) discardUpload();
-
-  let pauseIntervals = req.body.pauseIntervals;
-  if (typeof pauseIntervals === 'string') {
-    try {
-      pauseIntervals = JSON.parse(pauseIntervals);
-    } catch (e) {
-      pauseIntervals = [];
-    }
-  }
+  const level = narrationUpload.judgeWavLevel(file.path, header.info);
+  if (!level.ok) return drop(level.status, level.error);
 
   try {
-    // Never `req.body.audioUrl`: a path the client names was stored as this
-    // recording's sound and later opened by the renderer, so a body could point
-    // a recording at somebody else's file in `uploads/`. The app never sent it.
-    let finalAudioUrl = null;
-    let savedAudioPath = null;
-
-    // Stored as a path, never as a full URL.
-    //
-    // This used to be `${req.protocol}://${req.get('host')}/uploads/...`, which
-    // writes whichever host answered into the database for good. Every one of
-    // the recordings saved that way points at a LAN address, and behind nginx
-    // the protocol would come out as http on an HTTPS-only domain. A path
-    // survives moving the server, changing the domain, and TLS; the client
-    // joins it with whatever backend it is talking to.
-    if (audioRefusal) {
-      // Not "no file was sent" but "this file may not exist here", and the two
-      // must not collapse into one: `audioUrl` in the body is a path the client
-      // asks us to keep, and keeping it would restore by name what was just
-      // deleted from disk.
-      finalAudioUrl = null;
-    } else if (req.file) {
-      savedAudioPath = req.file.path;
-      finalAudioUrl = `/uploads/${req.file.filename}`;
-      logger.info(`[RECORDING] Multipart audio saved: ${req.file.path}, path: ${finalAudioUrl}`);
-    } else if (req.body.audioBase64 && req.body.audioBase64.length > 0) {
-      const audioFileName = `audio_${Date.now()}_${Math.floor(Math.random()*10000)}.aac`;
-      const audioPath = path.join(__dirname, '..', 'uploads', audioFileName);
-      const buffer = Buffer.from(req.body.audioBase64, 'base64');
-      fs.writeFileSync(audioPath, buffer);
-      savedAudioPath = audioPath;
-      finalAudioUrl = `/uploads/${audioFileName}`;
-      logger.info(`[RECORDING] Base64 audio saved to ${audioPath}, path: ${finalAudioUrl}`);
-    }
-
-    // The microphone ran through every pause while the board timeline did not,
-    // so the two only line up once those stretches are cut out of the audio.
-    // Best effort: audio that still contains its pauses beats a failed save.
-    if (savedAudioPath) {
-      await trimPauses(savedAudioPath, pauseIntervals);
-    }
-
-    // `participants` is who may list and open this recording, so it is decided
-    // here and not by the body: only accounts the server's own roster saw in the
-    // room. Taken from the body it let any account file a „lesson" — its own
-    // title, timeline and voice — into any other user's list. With no roster
-    // (a restart mid-lesson) nobody but the host is named: a silent replay the
-    // students do not see beats one that names people nobody checked.
-    let participantIds = [];
-    if (req.body.participants) {
-      try {
-        participantIds = typeof req.body.participants === 'string' ? JSON.parse(req.body.participants) : req.body.participants;
-      } catch (e) {}
-    }
-    const seen = new Set(roster ?? []);
-    participantIds = (Array.isArray(participantIds) ? participantIds : [])
-      .map(Number)
-      .filter((id) => Number.isInteger(id) && id !== Number(req.user.id) && seen.has(String(id)));
-
-    // The client sends whoever was in the room when the trainer pressed save —
-    // which, after a stop for consent, includes the child who had just walked
-    // in and is not in the recording at all. Leaving them there would write a
-    // refused child into the roll of a recording they were never part of, and
-    // `participants` is also who may play it back (`$1 = ANY(sr.participants)`),
-    // so it would show up as *theirs*.
-    if (stopped && stopped.blocked.length > 0) {
-      const before = participantIds.length;
-      // Compared as strings: the roster and the stop record both hold strings
-      // since guests started counting, and `includes(Number(id))` against them
-      // matches nothing and says nothing about it.
-      participantIds = participantIds
-        .filter((id) => !stopped.blocked.includes(String(id)));
-      if (participantIds.length !== before) {
-        logger.info(
-          `[SNIMANJE] Iz spiska učesnika snimka uklonjen je onaj zbog koga je `
-          + `snimanje stalo (soba ${roomId}).`,
-        );
-      }
-    }
-
+    // No `audio_url`: that column holds a public path, and this sound is not
+    // public. `audio_file` names it in the private folder; readers are handed
+    // a signed link (`lessonRecording.lessonAudioUrl`).
     const result = await pool.query(
-      `INSERT INTO session_recordings (room_id, host_id, title, audio_url, timeline_json, participants)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, room_id, title, created_at`,
-      [roomId, req.user.id, title, finalAudioUrl, JSON.stringify(timelineJson), participantIds]
+      `INSERT INTO session_recordings
+         (room_id, source, host_id, title, audio_file, duration_ms, timeline_json, participants)
+       VALUES (NULL, 'preparation', $1, $2, $3, $4, $5, '{}')
+       RETURNING id, title, created_at`,
+      [req.user.id, title, file.filename, header.measuredMs, JSON.stringify(judged.events)]
     );
-    let message = 'Session recording saved successfully.';
-    if (audioRefusal) {
-      message = `Session saved without audio and can be reviewed silently. ${audioRefusal}`;
-    }
-    res.status(201).json({
-      message,
-      audioSaved: finalAudioUrl !== null,
-      audioRefusal,
-      consentUnverified,
-      consentStopped: !!stopped,
-      recording: result.rows[0],
+    return res.status(201).json({ recording: result.rows[0] });
+  } catch (err) {
+    logger.error('[LESSON] Could not keep the recording:', err);
+    return drop(500, 'Server error while keeping the recording.');
+  }
+}
+
+router.post('/lesson', authenticateToken, lessonGate, receiveLesson, saveLesson);
+
+// GET /recordings/lesson-limits — asked by the app before the microphone opens:
+// whether this account may record at all, and for how long. A trainer who may
+// not record is told before they have spoken for half an hour, not at upload;
+// the cap is the server's, derived from the render budget, never a copy in the
+// app. The gate above still decides — this only says in advance what it will.
+router.get('/lesson-limits', authenticateToken, async (req, res) => {
+  try {
+    const consent = await mayRecordNarration(pool, req.user.id);
+    return res.json({
+      allowed: consent.allowed,
+      reason: consent.reason,
+      maxMs: narrationUpload.narrationMaxSeconds() * 1000,
     });
   } catch (err) {
-    logger.error('Error saving recording:', err);
-    res.status(500).json({ error: 'Error saving session recording: ' + err.message });
+    logger.error('[LESSON] Limits failed:', err);
+    return res.status(500).json({ error: 'Server error while checking the recording.' });
   }
 });
 
-// GET /recordings
+// GET /recordings/lesson-audio/:filename?token=… — a lesson's sound, for the
+// reader the token was signed for and for this one file. Range requests are
+// served (`sendFile`), so a player can seek.
+router.get('/lesson-audio/:filename', authenticateDownloadToken, (req, res) => {
+  const file = lessonRecording.lessonAudioPath(req.params.filename);
+  if (!fs.existsSync(file)) return res.status(404).json({ error: 'The recording\'s sound is missing.' });
+  res.type('audio/wav');
+  return res.sendFile(file);
+});
+
+// GET /recordings — the host's own, the room's participants', and those shared
+// with the reader by a trainer who still teaches them (services/recordingShares.js).
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT sr.id, sr.room_id, sr.host_id, sr.title, sr.audio_url, sr.video_url, sr.created_at, u.name as host_name
-       FROM session_recordings sr
-       LEFT JOIN users u ON sr.host_id = u.id
-       WHERE sr.host_id = $1 OR $1 = ANY(sr.participants)
-       ORDER BY sr.created_at DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
+    res.json(await recordingShares.readableRecordings(pool, req.user.id));
   } catch (err) {
     logger.error('Error fetching recordings:', err);
     res.status(500).json({ error: 'Error fetching recordings.' });
   }
 });
 
+// GET /recordings/:id/shares — who the host has shared this with, for the
+// dialog's ticks. The host's question only; anybody else reads an empty list.
+router.get('/:id/shares', authenticateToken, async (req, res) => {
+  try {
+    res.json({ studentIds: await recordingShares.sharedWith(pool, req.params.id, req.user.id) });
+  } catch (err) {
+    logger.error('Error fetching shares:', err);
+    res.status(500).json({ error: 'Error fetching who this is shared with.' });
+  }
+});
+
+// PUT /recordings/:id/shares { studentIds } — the whole list; a name left out
+// is a share taken back. The host's own accepted students only.
+router.put('/:id/shares', authenticateToken, async (req, res) => {
+  try {
+    const result = await recordingShares.setShares(pool, {
+      recordingId: req.params.id,
+      hostId: req.user.id,
+      studentIds: req.body && req.body.studentIds,
+      hostName: req.user.name,
+    });
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    return res.json({ added: result.added });
+  } catch (err) {
+    logger.error('Error sharing a recording:', err);
+    return res.status(500).json({ error: 'Error sharing the recording.' });
+  }
+});
+
 // GET /recordings/:id
-// Scoped to the host and the lesson's participants — a recording contains a full
-// lesson timeline and the trainer's audio, so it must not be readable by id alone.
+// Scoped as the list is — a recording contains a whole lesson and a voice, so
+// it must not be readable by id alone. Not yours reads as not found.
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT sr.*, u.name as host_name
-       FROM session_recordings sr
-       LEFT JOIN users u ON sr.host_id = u.id
-       WHERE sr.id = $1 AND (sr.host_id = $2 OR $2 = ANY(sr.participants))`,
-      [req.params.id, req.user.id]
-    );
-    if (result.rows.length === 0) {
+    const found = await recordingShares.readableRecording(pool, req.params.id, req.user.id);
+    if (!found) {
       return res.status(404).json({ error: 'Recording not found.' });
     }
-    res.json(result.rows[0]);
+    // A lesson's sound is private: the reader gets a link signed for them and
+    // for that file, and never the file's name alone.
+    const row = { ...found };
+    const signed = lessonRecording.lessonAudioUrl(row, req.user.id);
+    if (signed) row.audio_url = signed;
+    delete row.audio_file;
+    // The trainer's latest render, signed for this reader while it is still
+    // on disk (phase 5b.5); the stored link carries the host's token.
+    row.video_download_url = latestVideoFor(row, req.user.id, EXPORTS_DIR);
+    delete row.video_url;
+    res.json(row);
   } catch (err) {
     logger.error('Error fetching recording details:', err);
     res.status(500).json({ error: 'Error fetching recording details.' });
@@ -352,13 +269,18 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       timelineEvents = typeof recording.timeline_json === 'string' ? JSON.parse(recording.timeline_json) : (recording.timeline_json || []);
     } catch (e) {}
 
-    let duration = recording && recording.duration_seconds ? recording.duration_seconds : 10;
+    // A lesson knows how long its audio is; the film must run to its end, not
+    // stop at the last move. A room recording never said, and keeps the old
+    // guess.
+    let duration = recording && recording.duration_ms ? Math.ceil(recording.duration_ms / 1000) : 10;
     if (timelineEvents.length > 0) {
       const maxMs = timelineEvents[timelineEvents.length - 1].timestampMs || 0;
       duration = Math.max(duration, Math.ceil(maxMs / 1000));
     }
 
-    let audioFilePath = recording ? recording.audio_file_path : null;
+    let audioFilePath = recording && recording.audio_file
+      ? lessonRecording.lessonAudioPath(recording.audio_file)
+      : null;
     if (!audioFilePath && recording && recording.audio_url) {
       const parts = recording.audio_url.split('/uploads/');
       if (parts.length > 1) {

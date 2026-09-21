@@ -395,8 +395,13 @@ class _RecordingCard extends StatelessWidget {
         .toLocal()
         .toString()
         .substring(0, 16);
-    final durationSec = recording['duration'] ?? 0;
-    final durationMin = (durationSec / 60).toStringAsFixed(1);
+    // `duration_ms`, which a lesson recorded in Preparation has (phase 5b).
+    // This read `duration`, which the server never sent, so every recording
+    // said „0.0 min"; an old room recording has no length, and says none.
+    final durationMs = recording['duration_ms'];
+    final length = durationMs is num
+        ? ' • ${(durationMs / 60000).toStringAsFixed(1)} min'
+        : '';
 
     return Container(
       decoration: BoxDecoration(
@@ -415,7 +420,7 @@ class _RecordingCard extends StatelessWidget {
           style: AppText.bodyLargeBold.copyWith(color: colors.textPrimary),
         ),
         subtitle: Text(
-          '$dateStr • $durationMin min',
+          '$dateStr$length',
           style: AppText.caption.copyWith(color: colors.textSecondary),
         ),
         trailing: ElevatedButton.icon(

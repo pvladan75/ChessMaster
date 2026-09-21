@@ -305,8 +305,7 @@ test('whoever the room belongs to is always the one who may be heard', async () 
 
 test('a student is heard only where the relationship says so', async () => {
   // The rule the whole level model rests on: a child listens, answers on the
-  // board and with the ready answers, and their voice is never published — so
-  // it is never in the recording either.
+  // board and with the ready answers, and their voice is never published.
   const listens = stubPool([room(7), yes, no, [{ voice_level: 'listen' }]]);
   const quiet = await maySpeakInRoom(listens, { roomCode: '123456', userId: 9 });
   assert.equal(quiet.allowed, true, 'i dalje sme u sobu');
@@ -322,8 +321,7 @@ test('a student is heard only where the relationship says so', async () => {
 });
 
 test('a guest watches, and is not heard', async () => {
-  // Nothing about a guest says anybody agreed to hear them — and if the trainer
-  // is recording, a guest's voice would land in uploads/ beside the children's.
+  // Nothing about a guest says anybody agreed to hear them.
   const pool = stubPool([room(7, true)]);
 
   const seat = await maySpeakInRoom(pool, { roomCode: '123456', userId: null });

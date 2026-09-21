@@ -6292,3 +6292,139 @@ exists" za putanju koje nema) — 1575 zelenih.
 `if (…) continue;` u dva reda, pa je `curly_braces` proradio — u testu, ne u
 `lib/`. Izlazni kôd je bio isti kao juče; video se samo zato što se čita **broj
 i spisak**, ne kôd (pravilo 18).
+
+## Snimanje izlazi iz sobe — 22.9.2026
+
+Faza 5a iz `docs/PLAN-SESIJA.md`, vođa, obe polovine. Aplikacija 3679 → **3681**
+(+2, `room_not_recorded_test.dart`, po jedan slučaj za svako sedište); server
+1575 → **1550** bez baze i 1677 → **1652** sa bazom (oba merena): −29 testova
+obrisanog koda (`recording_participants` 5, `recording_stop` 13,
+`recording_consent` 11), +4 nova (dva za rute snimaka, jedan u ugovoru soketa,
+jedan prenet u test naracije). Analyze 26, isti spisak.
+
+**Redosled je bio pravilo, ne ukus:** prvo pisac (`POST /recordings/save`), pa
+provere koje su ga čuvale. Obrnuto, postoji trenutak u kome zvuk sobe može da
+stigne u `uploads/` a da ga niko ne pita ko je bio u sobi.
+
+**Kad se brišu testovi obrisanog koda, pitaj koje pravilo drže a da ga preživeli
+još treba.** `recording_consent.test.js` je bio ceo o sobi — osim jednog slučaja,
+„seventeen is not eighteen", jedine granice od 18 u celom paketu. Test naracije
+je proveravao šesnaest, pa mutacija `< ADULT_AGE - 1` u `mayRecordNarration`
+nije obarala ništa. Slučaj je prenet i tek tada ta mutacija pada. Brisanje
+fajla zbog imena bi tiho odnelo pravilo koje i dalje važi.
+
+**Obrisan dijalog otkriva šta mu je priručnik pripisivao.** Čuvar priručnika je
+posle brisanja pao na pet oznaka snimanja — očekivano — i na šestu,
+„Stay in room", koju je priručnik opisivao kao izlaz iz pitanja pri
+„Leave session". Tog pitanja nema: „Stay in room" je bilo samo u dijalogu
+„Recording in progress". Priručnik je, dakle, bio netačan i pre ove faze, a
+čuvar to nije mogao da vidi jer oznaka *postoji* u aplikaciji — samo ne tamo
+gde tekst kaže. **Čuvar oznaka dokazuje da vrata postoje, ne da su tamo gde ih
+tekst stavlja.**
+
+**Crven na master-u nije isto što i crven zbog onoga što čuva.** Slučaj „čitaoci
+ostaju" (`GET /`, `GET /:id`, izvoz, preuzimanje) upoređuje ceo spisak ruta, pa
+je na master-u pao — ali zbog `POST /save`, dakle zbog pisca. Za polovinu o
+čitaocima to nije dokaz ničega; dokazan je posebnom mutacijom (preimenovan
+`GET /:id` → crven). Brisanje koje sme da odnese pisca a ne sme čitaoca treba
+kapiju za obe strane, i svaku stranu treba videti crvenu zasebno (pravilo 3).
+
+## Ekran sobe — 22.9.2026
+
+Faza 6 iz `docs/PLAN-SESIJA.md`, vođa, uz vlasnikovu reč istog dana: **učenik
+nema motor u sobi**. Aplikacija 3681 → **3711** (+30: `room_screen_test` 20,
+`room_voice_panel_test` 6, `room_presence_title_test` +4); server 1550 → **1552**
+bez baze, 1652 → **1654** sa bazom (+2 u ugovoru soketa). Analyze 26.
+
+**„Staje" nije „čita se".** Test iz faze 2 je za traku na telefonu od 360 dp
+tvrdio da „pun spisak staje" — a proveravao je samo da ništa ne baca i da
+widget postoji. Slike iz testa su pokazale „Room: 92…" iznad „Nobody h…": oko
+90 px za naslov posle ☰ i četiri dugmeta, od čega je podrazumevani
+`titleSpacing` (16 sa svake strane) uzimao trećinu. Merenje sada čita
+`RenderParagraph.didExceedMaxLines` sa pravim fontom, a razmak je konstanta
+koju čitaju i ekran i test. **Za tekst koji mora da se pročita, meri se da li je
+isečen, ne da li postoji** — isto kao tabla: odsecanje nije prelivanje.
+
+**Zatvoren panel je lažna odsutnost.** Kad su prekidači prešli u panel
+„Session", slučajevi „učenik nema prekidač" ostali bi zeleni i da učenik ima
+dugme koje ga otvara — zatvoren panel ne crta ništa. Prepisani su otvoreno da
+traže odsutnost **dugmeta**. Kad kontrola ode iza vrata, test odsutnosti mora
+da gleda vrata (pravilo 5).
+
+**Obe platforme, opet.** Mutacija koja voice-dugme steže na 32 px pala je samo
+na Windowsu: Android dopunjuje metu dodira do 48 bez obzira na crtež. Jedna
+platforma bi ovu mutaciju pustila ili bi je uhvatila, zavisno od toga koja je
+izabrana.
+
+**Preživela mutacija koja nije rupa:** `&& _mayUseEngine` uz traku ocene.
+`_showEvalBar` postavlja samo panel motora, a njega učenik više nema, pa je
+uslov danas inertan; zadržan je kao druga linija ako se zastavica ikad bude
+čitala iz podešavanja.
+
+**Slike iz testa kao provera ekrana.** `OffsetLayer.toImage` na korenu
+`renderViews.first` daje PNG svakog rasporeda za minut, bez pokretanja
+aplikacije — uz Roboto i MaterialIcons učitane iz `test/fonts` i keša SDK-a.
+Privremeni test, obrisan posle gledanja.
+
+**Deveti fajl, još jednom.** Posle izdvajanja panela pun paket je pao na
+`voice_on_request_test`, koji čita izvor sobe i traži `onPressed: _joinVoice` —
+a soba sada predaje `onJoin: _joinVoice` panelu. Grep za oznake i ključeve ga
+nije našao, jer ne pominje nijednu. Prepisan otvoreno na dve polovine: izvor
+sobe predaje ta vrata, a panel ih zove na dodir (dva nova slučaja, mutacija
+uhvaćena). **Kad se widget izdvaja, grepuj i imena metoda koje su mu bile
+povezane, ne samo tekst koji crta.**
+
+## Lekcija snimljena u Preparation — 22.9.2026
+
+Faza 5b iz `docs/PLAN-SESIJA.md`, vođa, pet podfaza u jednom danu, dva
+vlasnikova odgovora (učenik preuzima trenerov poslednji video dok postoji;
+trideset minuta). Aplikacija 3711 → **3719** (−23 `lesson_recorder_test`,
+obrisan; +11 `lesson_take`, +8 `lesson_recording_ui`, +5 `replay_frame`,
++6 `replay_share`, +1 na kartici snimka); server 1552 → **1558** bez baze i
+1654 → **1667** sa bazom (−11 `audio_trimmer`, obrisan; +13 `lesson_recording`,
++3 `recording_video`, +7 `recording_shares`, +1 izvoz). Analyze 26.
+
+**Postojeće rešenje je bilo bolje od onog koje je plan čuvao.** 5a je ostavio
+`LessonRecorder` „za 5b" — a to je zidni sat, baš ono što je faza 0 snimanja
+narracije izmerila kao 2,6–3,1 s ispred zvuka posle jedne pauze, i zbog čega
+je server imao `audioTrimmer.js`. Narracija je već brojala bajtove. Lekcija sad
+koristi taj sat, a oba modula su obrisana. **Pre nego što se sačuva nešto „za
+sledeću fazu", proveri da li sledeća faza treba baš to.**
+
+**Dva čitača jedne vremenske linije se nisu slagala, i niko to nije video.**
+Film iz sobe crta samo `init` i `move`; sobni snimač je pisao i `lesson_loaded`
+i `fen_change`, koje plejer u aplikaciji primenjuje, a film preskače. Video
+snimljenog časa je, dakle, stajao na staroj tabli kroz svaki skok. Nađeno
+čitanjem `applyEvent` pre pisanja događaja, ne testom. Lekcija piše samo ono
+što oba čitaju, a server odbija ostalo (pravilo 13).
+
+**Uspavana greška, probuđena istog dana** (pravilo 14): plejer je uvek
+pretpostavljao bilo koji raniji `move` kasnijem `init`-u. Soba nikad nije pisala
+drugi `init`; lekcija koja učita novu poziciju ga piše. Pravilo je sad čista
+funkcija sa sopstvenim testom.
+
+**Tri fixture-a srećnija od stvarnosti** (pravilo 6): `duration_seconds` u
+testu izvoza i `duration` na kartici snimka — polja koja server nikad nije
+slao, zbog čega je svaki pravi snimak pisao „0.0 min" — i `'removed'` kao
+status veze, koji je prava baza odbila check-ograničenjem. Veza se završava
+brisanjem reda. **Test na pravoj bazi je vredeo već time što je odbio moj
+izmišljeni podatak.**
+
+**Link sa tuđim tokenom.** `video_url` u redu nosi token potpisan za trenera
+kad je video renderovan; dok je red čitao samo trener, to je bilo bezopasno.
+Deljenje je dodalo čitaoce, i isti red bi im predao trenerov link. **Kad nova
+funkcija dodaje čitaoce postojećem redu, pročitaj svako polje koje im odgovor
+predaje.**
+
+**Skripte u shell-u.** Tri puta je umetnuti Python pukao na kombinaciji
+backtick-a i apostrofa u heredoc-u, a jednom je `sed` izgubio beg u stringu
+testa, pa ceo fajl nije parsirao — `sources_compile` ga je uhvatio.
+Duže izmene se pišu u fajl, pa pokreću.
+
+**Rečnik je čuvar, ne ukus.** Pun paket je pao na `vocabulary_en_test`: na
+ekranu sam napisao „lesson" trinaest puta, a `docs/GLOSSARY-EN.md` tu reč daje
+kodu (`saved_lessons`), živom času „Session", a snimku „Recording". Grep za
+oznake i ključeve nije mogao da ga nađe; pun paket jeste. Preimenovano svuda
+gde čitalac čita — aplikacija, rečenice servera, obaveštenje, priručnik — a
+imena u kodu ostala. **Pre nego što se napiše nova rečenica na ekranu, pročitaj
+rečnik; reč koju plan koristi („Record a lesson") nije nužno reč ekrana.**

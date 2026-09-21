@@ -22,12 +22,38 @@ import 'package:chess_app/theme/app_typography.dart';
 class InviteStudentsDialog extends StatefulWidget {
   const InviteStudentsDialog({
     super.key,
-    required this.roomCode,
+    required String this.roomCode,
     required this.groupApi,
-  });
+  })  : title = 'Invite students to session',
+        heading = null,
+        prompt = 'Select the students you want to invite:',
+        action = 'Send invitations',
+        initial = const {},
+        mayBeEmpty = false;
 
-  final String roomCode;
+  /// The same list for sharing a recorded lesson (phase 5b.4 of
+  /// docs/PLAN-SESIJA.md): those it is shared with are ticked, and an empty
+  /// list is an answer — unticking everybody takes the share back.
+  const InviteStudentsDialog.share({
+    super.key,
+    required String recordingTitle,
+    required this.groupApi,
+    required this.initial,
+  })  : roomCode = null,
+        title = 'Share with students',
+        heading = recordingTitle,
+        prompt = 'Who may watch this recording:',
+        action = 'Share',
+        mayBeEmpty = true;
+
+  final String? roomCode;
   final GroupApiService groupApi;
+  final String title;
+  final String? heading;
+  final String prompt;
+  final String action;
+  final Set<int> initial;
+  final bool mayBeEmpty;
 
   @override
   State<InviteStudentsDialog> createState() => _InviteStudentsDialogState();
@@ -46,6 +72,7 @@ class _InviteStudentsDialogState extends State<InviteStudentsDialog> {
   @override
   void initState() {
     super.initState();
+    _selected.addAll(widget.initial);
     _load();
   }
 
@@ -112,8 +139,8 @@ class _InviteStudentsDialogState extends State<InviteStudentsDialog> {
         children: [
           Icon(Icons.person_add, color: colors.accent),
           const SizedBox(width: AppSpacing.sm),
-          const Expanded(
-            child: Text('Invite students to session', style: AppText.title),
+          Expanded(
+            child: Text(widget.title, style: AppText.title),
           ),
         ],
       ),
@@ -128,7 +155,10 @@ class _InviteStudentsDialogState extends State<InviteStudentsDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Room: ${widget.roomCode}',
+              Text(
+                  widget.roomCode != null
+                      ? 'Room: ${widget.roomCode}'
+                      : widget.heading ?? '',
                   style: AppText.bodyBold.copyWith(color: colors.accent)),
               const SizedBox(height: AppSpacing.sm),
               if (students == null)
@@ -179,8 +209,7 @@ class _InviteStudentsDialogState extends State<InviteStudentsDialog> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                 ],
-                const Text('Select the students you want to invite:',
-                    style: AppText.body),
+                Text(widget.prompt, style: AppText.body),
                 const SizedBox(height: AppSpacing.sm),
                 for (final s in students)
                   CheckboxListTile(
@@ -211,12 +240,12 @@ class _InviteStudentsDialogState extends State<InviteStudentsDialog> {
         ),
         ElevatedButton(
           key: const Key('invite-send'),
-          onPressed: _selected.isEmpty
+          onPressed: _selected.isEmpty && !widget.mayBeEmpty
               ? null
               : () => Navigator.pop(context, _selected.toList()..sort()),
           child: Text(_selected.isEmpty
-              ? 'Send invitations'
-              : 'Send invitations (${_selected.length})'),
+              ? widget.action
+              : '${widget.action} (${_selected.length})'),
         ),
       ],
     );

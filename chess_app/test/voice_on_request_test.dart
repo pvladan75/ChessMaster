@@ -85,9 +85,12 @@ void main() {
     expect(rejoin, contains('if (!isVoiceOn) return;'));
   });
 
-  test('the button is the door: _joinVoice is wired to onPressed', () {
-    expect(source, contains('onPressed: _joinVoice'));
-    expect(source, contains('onPressed: _leaveVoice'),
+  test('the button is the door: _joinVoice is handed to the voice panel', () {
+    // Since phase 6 the button lives in `RoomVoicePanel`, which calls what it
+    // is given; that it calls it on a tap is `room_voice_panel_test.dart`.
+    // This half holds the room to handing it the one door and nothing else.
+    expect(withoutComments(source), contains('onJoin: _joinVoice'));
+    expect(withoutComments(source), contains('onLeave: _leaveVoice'),
         reason: 'ono što se uključuje mora moći i da se isključi');
   });
 

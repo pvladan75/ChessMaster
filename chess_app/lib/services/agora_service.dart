@@ -586,28 +586,4 @@ class AgoraService {
       print("Error leaving Agora channel: $e");
     }
   }
-
-  Future<bool> startAudioRecording(String filePath) async {
-    if (_engine == null) return false;
-    try {
-      await _engine!.startAudioRecording(AudioRecordingConfiguration(
-        filePath: filePath,
-        sampleRate: 16000,
-        quality: AudioRecordingQualityType.audioRecordingQualityMedium,
-      ));
-      return true;
-    } catch (e) {
-      print("Error starting Agora audio recording: $e");
-      return false;
-    }
-  }
-
-  Future<void> stopAudioRecording() async {
-    if (_engine == null) return;
-    try {
-      await _engine!.stopAudioRecording();
-    } catch (e) {
-      print("Error stopping Agora audio recording: $e");
-    }
-  }
 }

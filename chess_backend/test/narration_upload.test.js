@@ -212,6 +212,22 @@ test('only an adult with a stated age may record — unknown refuses', async () 
   assert.equal(adult.allowed, true);
 });
 
+test('seventeen is not eighteen', async () => {
+  // Carried over from recording_consent.test.js when the room's check went
+  // (phase 5a of docs/PLAN-SESIJA.md): the threshold is majority rather than
+  // `AGE_OF_CONSENT`, which runs 13–18 by country and answers a different
+  // question. A year is read at its younger end, so this account is seventeen
+  // for the whole year.
+  const { ADULT_AGE } = require('../services/recordingConsent');
+  const almost = new Date().getFullYear() - ADULT_AGE;
+  const verdict = await mayRecordNarration(
+    poolAnswering([[/birth_year/, [{ birth_year: almost }]]]), 4);
+  assert.equal(verdict.allowed, false);
+  const adult = await mayRecordNarration(
+    poolAnswering([[/birth_year/, [{ birth_year: almost - 1 }]]]), 4);
+  assert.equal(adult.allowed, true);
+});
+
 // ---------------------------------------------------------------- the route
 
 /// The route's three stages, **in the router's own order**. That the gate runs

@@ -306,6 +306,9 @@ Widget _messageCard(
           // in the app, so a stale Windows icon font cannot leave these blank.
           'video_ready' => Icons.movie,
           'video_failed' => Icons.error_outline,
+          // A trainer shared a lesson recorded in Preparation (phase 5b); it is
+          // under Recordings on Home.
+          'recording_shared' => Icons.movie,
           _ => Icons.star,
         },
         color: isRead ? colors.textMuted : colors.warning,

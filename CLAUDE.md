@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3679 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3719 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1677 with TEST_DATABASE_URL, 1575 without
+cd chess_backend && npm test          # node --test, 1667 with TEST_DATABASE_URL, 1558 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -438,6 +438,30 @@ find of that shape in one day, so grep the shape (`delete …[userId]`), not the
 site. That server fix was proved in a copy outside the repository and copied in on
 the owner's word with the server off (backend → **1575 / 1677**, both
 measured — the first measured run of the database half since phase 1).
+Then its phase 5a (→ **3681**; backend → **1550 / 1652**, both measured, the
+fall being 29 tests of deleted code): recording left the room — writer
+(`POST /recordings/save`) first, then the checks that guarded it — while
+`uploads/`, the rows, the player and the MP4 export stayed. **When deleting
+the tests of deleted code, keep any rule they held that surviving code still
+needs**: the only 18-year boundary in the suite lived in the room's consent
+test, and moved to the narration's.
+Then its phase 6 (→ **3711**; backend → **1552 / 1654**): the room's screen —
+voice and the trainer's Session switches in the bar, panels from the right,
+moves in the column, a student's answers under the board — and, on the owner's
+word, no engine for a student in the room. **„Fits" is not „can be read"**:
+phase 2's bar test passed while the title showed „Room: 92…" over „Nobody h…";
+text that must be read is measured with `didExceedMaxLines`. And when a
+control moves behind a door, an absence test must look for the **door** — a
+closed panel draws nothing either.
+Then its phase 5b (→ **3719**; backend → **1558 / 1667**): a recording made
+alone in Preparation, on the audio's own clock (the narration's — the
+wall-clock `LessonRecorder` and `audioTrimmer.js` it would have needed are
+deleted), private sound through a signed link, shared with one's own students
+through `acceptedTrainersOf`, and the trainer's latest render for them to
+download. **Before keeping something „for the next phase", check the next
+phase needs that and not something already better**; and **when a feature adds
+readers to an existing row, read every field the response hands them** — the
+stored `video_url` carried the host's token.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

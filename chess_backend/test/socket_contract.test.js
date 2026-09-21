@@ -140,6 +140,43 @@ test('every event the server handles is sent by the app', () => {
   assert.deepEqual(missing(server.listens, app.emits), []);
 });
 
+test('a room is not recorded: no socket event about recording on either end', () => {
+  // Phase 5a of docs/PLAN-SESIJA.md. The card, `recording_status_update`, the
+  // consent broadcasts and the stop order left the room together, so neither
+  // end may know a recording event by name — a pair of them coming back
+  // together would pass every pairing test above.
+  const left = [];
+  for (const [end, names] of [
+    ['server listens', server.listens], ['server emits', server.emits],
+    ['app listens', app.listens], ['app emits', app.emits],
+  ]) {
+    for (const name of names.keys()) {
+      if (/^recording/.test(name)) left.push(`${end}: ${name} (${names.get(name)})`);
+    }
+  }
+  assert.deepEqual(left.sort(), []);
+});
+
+test('a student has no engine in the room, so nobody grants it', () => {
+  // Phase 6 of docs/PLAN-SESIJA.md, on the owner's word of 22.9.2026: the
+  // trainer no longer decides whether a student may ask the engine — a student
+  // may not. The switch's two events go from both ends together.
+  const left = [];
+  for (const names of [server.listens, server.emits, app.listens, app.emits]) {
+    for (const name of names.keys()) {
+      if (/engine_permission/.test(name)) left.push(`${name} (${names.get(name)})`);
+    }
+  }
+  assert.deepEqual(left.sort(), []);
+});
+
+test('the trainer mutes students one at a time', () => {
+  // §3 of the same plan: per-student mute on the roster does what „Mute all
+  // students" did, with one control fewer on a full panel.
+  assert.equal(server.listens.has('audio_mute_all_students'), false);
+  assert.equal(app.emits.has('audio_mute_all_students'), false);
+});
+
 test('no event name is computed, so the scan above sees every one', () => {
   // A name chosen by a ternary or held in a variable is invisible to the pairing
   // above — the first version of the mute fix did exactly that and passed.

@@ -80,6 +80,17 @@ Future<void> _close(WidgetTester tester) async {
 
 final _switch = find.byKey(const Key('room-students-may-move'));
 
+/// Since phase 6 the leader's switches are in the Session panel, and a seat
+/// without that button has none of them — which is the assertion, rather than
+/// „no switch in sight", which a closed panel would also satisfy.
+final _sessionButton = find.byKey(const Key('room-session-button'));
+
+Future<void> _openSession(WidgetTester tester) async {
+  await tester.tap(_sessionButton);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 bool _whiteAtBottom(WidgetTester tester) =>
     tester
         .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay).first)
@@ -124,7 +135,8 @@ void main() {
     test('no seat is compared by hand, and the account role is not asked', () {
       // `activeRole == 'trener'` survives once: which exit the app bar draws
       // and who sees „Room access" read the seat itself on purpose — the
-      // Preparation board „leads" and has neither. Anything beyond those is a
+      // Preparation board „leads" and has neither. (Since phase 6 the second
+      // is the Session button, which carries „Room access".) Anything beyond those is a
       // definition growing back.
       expect("activeRole == 'trener'".allMatches(code).length,
           lessThanOrEqualTo(2));
@@ -140,6 +152,7 @@ void main() {
     testWidgets('whoever started the session gets the board switch, locked',
         (tester) async {
       await _room(tester, seat: 'trener', accountRole: 'korisnik');
+      await _openSession(tester);
       expect(_switch, findsOneWidget);
       expect(tester.widget<SwitchListTile>(_switch).value, isFalse);
       expect(find.text('Only you move on the board.'), findsOneWidget);
@@ -166,6 +179,7 @@ void main() {
       // The account role used to be trusted „in any room", which gave this
       // person the host's column title, the members' role menus and the board.
       await _room(tester, seat: 'ucenik', accountRole: 'trener');
+      expect(_sessionButton, findsNothing);
       expect(_switch, findsNothing);
       expect(find.text('Board is locked by the trainer.'), findsOneWidget);
       expect(find.text('Host Controls & History'), findsNothing);
@@ -176,6 +190,7 @@ void main() {
     testWidgets('the co-host seat, claimed in a URL, is a student',
         (tester) async {
       await _room(tester, seat: 'host', accountRole: 'korisnik');
+      expect(_sessionButton, findsNothing);
       expect(_switch, findsNothing);
       expect(find.text('Board is locked by the trainer.'), findsOneWidget);
       await _close(tester);

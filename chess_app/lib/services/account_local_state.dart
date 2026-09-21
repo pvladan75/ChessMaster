@@ -25,7 +25,9 @@ import 'package:chess_app/services/local_puzzle_service.dart';
 ///
 /// * `local_session_recordings_list` — a recording that has not reached the
 ///   server yet is the only copy there is. The same rule `chess_backend/
-///   uploads/` lives under.
+///   uploads/` lives under. Nothing writes or reads it since the room stopped
+///   recording (phase 5a of docs/PLAN-SESIJA.md); what a device still holds
+///   there is left exactly where it is.
 /// * `analysis_studio_puzzle_sets` — sets the user named and kept. A library,
 ///   not a session.
 ///

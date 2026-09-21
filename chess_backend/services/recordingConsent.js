@@ -1,32 +1,23 @@
 // recordingConsent.js — who may put a voice into `uploads/`, and why almost
 // nobody may.
 //
-// **The rule, since 26.8.2026: audio is recorded only by an adult who is alone
-// in the room.** Not "a lesson may be recorded once the parent agrees" — the
-// interaction between a trainer and a student is not recorded at all any more,
-// by anyone, under any consent.
+// **The rule, since 26.8.2026: audio is recorded only by an adult, alone.** The
+// interaction between a trainer and a student is not recorded at all, by
+// anyone, under any consent — and since phase 5a of docs/PLAN-SESIJA.md
+// (22.9.2026) a room is not recorded at all, so there is no roster left to ask.
+// A voice is recorded where nobody else can be connected: the trainer's own
+// device, over a tutorial (and, with phase 5b, over a lesson in Preparation).
 //
 // The decision behind it. A recorded lesson was the one feature in this app
 // that put a child's voice into `uploads/`, which is the only thing here that
 // cannot be reproduced, anonymised or taken back. It bought a replay of the
 // lesson; it cost a per-market legal text about children's voices and the worst
-// breach this project could have. The replay survives without it: a recording
-// is a `timeline_json` — moves, arrows, marks — and `audio_url` was always
-// nullable. So the lesson is still replayed, silently, and what is gone is only
-// the sound of a child.
+// breach this project could have. „Recorded with several present" — the owner's
+// report of 21.9.2026 — was that check getting a room wrong; the room no longer
+// asks it, so it cannot.
 //
-// What is left is a feature rather than a leftover: a trainer alone in a room
-// records teaching material, downloads it and publishes it wherever they like.
-// Nobody else is in the recording, so nobody else has to agree to it.
-//
-// Three consequences worth stating, because each is a place this could quietly
+// Two consequences worth stating, because each is a place this could quietly
 // stop meaning anything.
-//
-// **Anybody who is not the owner blocks it — guests included.** A guest has no
-// account and therefore no age and no relationship, which under the old rule
-// made them invisible to it. Under this rule they need no account to matter:
-// they are somebody else in the room, and that is the whole question. The
-// roster keeps their socket id for exactly this reason.
 //
 // **An unknown age is a refusal, not a pass.** Recording is for adults, and an
 // account nobody has ever asked cannot be asserted to be one. Everywhere else
@@ -47,96 +38,13 @@ const { statedAge, ageStatus } = require('./ageService');
 /// Old enough to record and publish their own voice.
 const ADULT_AGE = 18;
 
-/// Everybody in this room who is not its owner.
-///
-/// Ids arrive as numbers for accounts and as socket ids for guests, and both
-/// count. Compared as strings so that `7` and `'7'` are one person, and so a
-/// guest id that is not a number at all survives the comparison instead of
-/// being dropped by it.
-function othersInRoom(userIds, ownerId) {
-  const owner = String(ownerId);
-  return [...new Set((userIds ?? []).map(String))]
-    .filter((id) => id !== '' && id !== 'undefined' && id !== 'null')
-    .filter((id) => id !== owner);
-}
-
-/// Who is in the way of a recording, named where they can be named.
-///
-/// A name is looked up for accounts so the trainer is told *who* — a refusal
-/// that cannot name anybody is one nobody can act on. Guests have no account
-/// and no name, and are called what they are.
-async function blockedForRecording(pool, { ownerId, userIds }) {
-  const others = othersInRoom(userIds, ownerId);
-  if (others.length === 0) return [];
-
-  const accountIds = others.map(Number).filter(Number.isInteger);
-  const names = new Map();
-  if (accountIds.length > 0) {
-    const result = await pool.query(
-      'SELECT id, name FROM users WHERE id = ANY($1::int[])',
-      [accountIds],
-    );
-    for (const row of result.rows) names.set(String(row.id), row.name);
-  }
-
-  return others.map((id) => ({
-    id: Number.isInteger(Number(id)) ? Number(id) : id,
-    name: names.get(id) || (Number.isInteger(Number(id)) ? 'Participant' : 'Guest'),
-    reason: 'present',
-  }));
-}
-
-/// Whether this room may be recording audio right now.
-///
-/// `allowed: false` always carries a reason a human can act on, and `blocked`
-/// names the people when the answer is about people. When the answer is about
-/// the owner's own age, `blocked` is empty and the reason says so — there is
-/// nobody to name.
-async function mayRecordRoom(pool, { roomCode, userIds }) {
-  const room = await pool.query(
-    'SELECT creator_id FROM rooms WHERE room_code = $1',
-    [roomCode],
-  );
-  if (room.rowCount === 0) {
-    return { allowed: false, blocked: [], reason: 'Room does not exist.' };
-  }
-
-  const ownerId = room.rows[0].creator_id;
-
-  // Asked first, and about people rather than about the owner: somebody else in
-  // the room is the answer the trainer can do something about immediately.
-  const blocked = await blockedForRecording(pool, { ownerId, userIds });
-  if (blocked.length > 0) {
-    return { allowed: false, blocked, reason: refusalSentence(blocked) };
-  }
-
-  const owner = await ageStatus(pool, ownerId);
-  if (!owner.known) {
-    return {
-      allowed: false,
-      blocked: [],
-      reason: 'Recording requires entering your birth year — only adults '
-        + 'alone in the room may record.',
-    };
-  }
-  if (owner.age < ADULT_AGE) {
-    return {
-      allowed: false,
-      blocked: [],
-      reason: 'Recording is only available to adult users.',
-    };
-  }
-
-  return { allowed: true, blocked: [], reason: null };
-}
-
 /// Whether this account may record its own voice over a tutorial — phase 3 of
-/// `docs/PLAN-SNIMANJE.md`, and the same rule as a room's, re-expressed.
+/// `docs/PLAN-SNIMANJE.md`, and the rule a room once had, re-expressed.
 ///
-/// **The studio has no room**, so the roster half of `mayRecordRoom` has
-/// nothing to ask: the recording is made on the trainer's own device, and
-/// nobody else is connected to it. What must not be assumed is that the rest
-/// goes with it. The owner half stays, with both of its edges: **eighteen, not
+/// **The studio has no room**, so there is nobody else to ask about: the
+/// recording is made on the trainer's own device, and nobody else is connected
+/// to it. What must not be assumed is that the rest goes with it. The owner's
+/// half stays, with both of its edges: **eighteen, not
 /// `AGE_OF_CONSENT`**, and **an unknown age refuses** — this is permission to
 /// put into `uploads/` the one artefact that cannot be taken back, and „we
 /// never asked" must not read as „yes".
@@ -155,23 +63,9 @@ async function mayRecordNarration(pool, userId) {
   return { allowed: true, reason: null };
 }
 
-/// What the trainer is told when somebody else is in the room.
-///
-/// One sentence that says the rule as well as the fact, because "Mila is in the
-/// room" without "a lesson is not recorded" reads like a fault to be worked
-/// around rather than the way this works.
-function refusalSentence(blocked) {
-  const names = blocked.map((b) => b.name).join(', ');
-  return `The session is not being recorded. Audio is recorded only while you are alone in the room, and the following are also here: ${names}.`;
-}
-
 module.exports = {
   ADULT_AGE,
-  blockedForRecording,
   mayRecordNarration,
-  mayRecordRoom,
-  othersInRoom,
-  refusalSentence,
   // Re-exported so a caller that only needs the age reading does not have to
   // reach past this module for it.
   statedAge,

@@ -17,8 +17,7 @@
 /// Deliberately knows nothing about the plugin, the file system's layout or a
 /// widget — `RecordPcmSource` is the plugin, [NarrationTakeStore] the layout,
 /// and the recording screen the widget. That is what makes the arithmetic
-/// testable, which is the whole reason `LessonRecorder` was extracted from the
-/// room before it.
+/// testable, and it is what `lesson_take.dart` records a lesson with too.
 library;
 
 import 'dart:async';

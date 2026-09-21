@@ -47,7 +47,7 @@ async function withApp(fn) {
   }
 }
 
-for (const path of ['/recordings/save', '/lessons', '/invitations/send']) {
+for (const path of ['/recordings/1/export-mp4', '/lessons', '/invitations/send']) {
   test(`a 3 MB JSON body to ${path} is refused before any route sees it`, async () => {
     await withApp(async (port, reached) => {
       const status = await post(port, path, 3 * 1024 * 1024);
@@ -59,7 +59,7 @@ for (const path of ['/recordings/save', '/lessons', '/invitations/send']) {
 
 test('an ordinary JSON body still reaches the routes', async () => {
   await withApp(async (port, reached) => {
-    const status = await post(port, '/recordings/save', 1024);
+    const status = await post(port, '/recordings/1/export-mp4', 1024);
     assert.equal(status, 401);
     assert.equal(reached(), 1);
   });

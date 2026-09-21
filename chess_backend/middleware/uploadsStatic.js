@@ -15,7 +15,10 @@ const path = require('path');
 const express = require('express');
 
 /// Folders under `uploads/` that are never served.
-const PRIVATE_UPLOADS = ['narration'];
+// `lessons/` since phase 5b of docs/PLAN-SESIJA.md: a lesson recorded in
+// Preparation is shared with students, and reaches them through a signed link
+// (`services/lessonRecording.js`), never by its name.
+const PRIVATE_UPLOADS = ['narration', 'lessons'];
 
 function isPrivateUpload(requestPath) {
   let decoded;

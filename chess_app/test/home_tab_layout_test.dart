@@ -41,7 +41,10 @@ final _recordings = [
       'id': 500 + i,
       'title': 'Recording $i',
       'created_at': '2026-09-2${i}T10:00:00Z',
-      'duration': 600,
+      // `duration_ms`, as `GET /recordings` sends it. This fixture said
+      // `duration: 600` until 22.9.2026 — a field no server ever sent, so the
+      // card's „0.0 min" on every real recording was invisible here.
+      'duration_ms': 600000,
     },
 ];
 
@@ -193,5 +196,43 @@ void main() {
         expect(find.text(heading), findsOneWidget, reason: 'at $w');
       }
     }
+  });
+
+  testWidgets(
+      'a recording says how long it is when it knows, and nothing when '
+      'it does not', (tester) async {
+    await _pump(tester, 1200);
+    expect(find.textContaining('10.0 min'), findsNWidgets(4));
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+      home: Scaffold(
+        body: HomeDashboardTab(
+          userName: 'Trainer',
+          liveSessions: const [],
+          recordings: const [
+            {
+              'id': 9,
+              'title': 'Old room',
+              'created_at': '2026-08-01T10:00:00Z'
+            },
+          ],
+          isLoadingRecordings: false,
+          panel: _panel,
+          onOpenPanelAssignment: (_) {},
+          onOpenStudent: (_, __) {},
+          hasTrainer: true,
+          onOpenAssignments: () {},
+          onOpenReviews: () {},
+          dueReviewCount: 0,
+          onJoinSession: (_) {},
+          onRefreshRecordings: () {},
+          onOpenReplay: (_) {},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Old room'), findsOneWidget);
+    expect(find.textContaining(' min'), findsNothing,
+        reason: 'an unknown length is not „0.0 min"');
   });
 }

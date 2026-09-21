@@ -219,7 +219,37 @@ worktree and copied in on the owner's word (nodemon, rule 20).
   dead microphone is detected from Agora's local-audio state, not from the
   permission.
 
-**Phase 5a — recording leaves the room.** `[lead]` deletion, `[implementer]` app
+**Phase 5a — recording leaves the room.** ✅ built 22.9.2026 by the lead, both halves; live check is items 219.28–29
+- *As built:* `POST /recordings/save` deleted first, with multer and its
+  imports out of `routes/recordings.js`; then `recording_status_update`,
+  `recording_consent` / `_denied` / `_must_stop` / `_status_changed`,
+  `emitRecordingConsent`, the recorded roster and the consent stop in
+  `realtime.js`, and `mayRecordRoom` with its helpers — `recordingConsent.js`
+  keeps `ADULT_AGE` and `mayRecordNarration`. In the app: the card, the four
+  listeners, the save/sync path (`local_recording_service.dart` deleted), the
+  „Recording in progress" dialog and the `PopScope` that asked it, and
+  `startAudioRecording` / `stopAudioRecording` in `agora_service.dart`. The
+  reading half stays: `GET /recordings`, `GET /recordings/:id`, the MP4 export
+  and its download, the player, `LibraryKind.recording`.
+- *Kept idle for 5b, on purpose:* `LessonRecorder` (the plan says it survives)
+  and its server partner `services/audioTrimmer.js`, which cuts the pauses the
+  recorder reports out of the audio. Nothing drives either until 5b; both say
+  so in their headers. `local_session_recordings_list` on a device is neither
+  written nor read, and not cleared — it may hold the only copy of something.
+- *Gate:* `socket_contract.test.js` — no `recording*` event on either end;
+  `recording_writer_gone.test.js` — nothing under `/recordings` writes, and the
+  four readers are still mounted; `room_not_recorded_test.dart` — no „record"
+  text anywhere in the room, both seats. The writer's cases were red on
+  master for the right reason; the readers' case was red there only because
+  of `POST /save`, so its own half was proved by renaming `GET /:id`.
+- *Tests of deleted code went with it* (backend −29: participants 5, stop 13,
+  consent 11), except one: „seventeen is not eighteen" moved to the narration
+  test, because the narration's own case used sixteen and could not see the
+  boundary — mutating `<` to `< ADULT_AGE - 1` left it green.
+- *Not touched:* the privacy policy, §3.3, still says a user alone in a room
+  may record. It now describes more than the app does — the safe
+  direction — and it is a legal text; changing it is the owner's call.
+- *The plan as written:*
 - The „Session recording" card, `recording_status_update`, `recording_consent`
   / `_denied` / `_must_stop` / `_status_changed`, the roster half of
   `mayRecordRoom` and the Agora capture (`startAudioRecording`) all go.
@@ -229,7 +259,112 @@ worktree and copied in on the owner's word (nodemon, rule 20).
   (`POST /recordings/save` stops accepting a room's audio), then the checks
   that guarded it. Never the other way round.
 
-**Phase 5b — „Record a lesson" in Preparation.** the owner's idea of 21.9.2026; to be designed
+**Phase 5b — „Record a lesson" in Preparation.** the owner's idea of 21.9.2026; designed and built 22.9.2026 by the lead (5b.1–5b.5), two answers from the owner; live check is items 219.37–43
+- *Found while designing, and it changes the design:* the tutorial narration
+  already records the way a lesson needs — **the audio's own byte count is the
+  clock** (`narration_take.dart`), because phase 0 of `docs/PLAN-SNIMANJE.md`
+  measured a wall clock 2.6–3.1 s ahead of the audio after one pause.
+  `LessonRecorder`, kept by 5a for this phase, is that wall clock, and
+  `services/audioTrimmer.js` exists only to cut the drift it causes out of the
+  audio. With the byte clock a pause stops both at once and there is nothing
+  to cut. **Both are deleted here**, with their tests.
+- *Found beside it:* a room recording's sound is served from `/uploads/` by
+  anybody who has the name — no account asked (`middleware/uploadsStatic.js`
+  keeps only `narration/` private). A shared lesson must not be, so its audio
+  goes to a private folder and plays through a short-lived signed link. The old
+  room recordings are **not** moved here; flagged for the owner.
+- *The owner's answers, 22.9.2026:* (1) a student's download is **the
+  trainer's latest render**, while it exists — exports age out on the
+  retention timer, and then the student reads „No video yet — ask your
+  trainer"; rendering stays the trainer's. (2) **Thirty minutes**, the cap the
+  narration already derives from the render budget, so every recording can be
+  drawn as a film.
+- *Rules carried over, not new:* eighteen and a known age
+  (`mayRecordNarration`), asked **before** multer so a refused voice never
+  touches the disk; a share reaches a student only while the relationship is
+  accepted (`acceptedTrainersOf`), so an ended relationship closes it without
+  anybody deleting a row; a group is a chip that ticks today's members —
+  people are what is shared.
+
+- **5b.1 — the take** (app, pure). `LessonTake` over the narration's
+  `PcmSource` and `NarrationSink`: start, pause, resume, stop, cancel, and
+  `mark(type, data)`, which stamps an event with the audio position. The board
+  as it stands is the event at 0 (`lesson_loaded`, FEN and PGN). A mark while
+  paused lands on the seam; a mark before the first sample or after stop is
+  refused; the take stops itself a second before the cap. `LessonRecorder`,
+  `audioTrimmer.js` and their tests go. *Gate:* `lesson_take_test.dart` with a
+  fake microphone — positions from bytes, no time in a pause, events and
+  duration handed over at stop, the cap.
+- **5b.2 — the writer and the reader** (server). `POST /recordings/lesson`:
+  token, then `mayRecordNarration`, then multer into `uploads/lessons/`
+  (private), capped at the narration's bytes; the wav checked as narration
+  checks it (format, length from the header, events inside the audio and in
+  order); a row in `session_recordings` with `room_id` NULL and
+  `source = 'preparation'` (a migration: `DROP NOT NULL`, one column). A
+  refusal deletes the file and says why. `GET /recordings/:id` hands the reader
+  a signed `audio_url` (`/recordings/:id/audio?token=`, 30 minutes, bound to
+  the file) when the sound is private. *Gate:* the router's order (gate before
+  multer), a minor and an unknown age refused with nothing left on disk, a
+  wrong format and events past the audio refused, the row as written (real
+  database), `/uploads/lessons/…` answering 404, the audio route refusing a
+  token for another file.
+- **5b.3 — recording in Preparation** (app). „Start recording" in Preparation's
+  bar; while recording a strip under it — the clock, Pause/Resume, Stop,
+  Discard, and the cap's remaining time near the end; moves, navigation,
+  arrows and loaded positions are marked (the hooks 5a took out of the room,
+  now on the take). Stop asks a title and uploads; the file stays on the
+  device until the server says 201, and a failed upload offers „Try again".
+  *Gate:* widget tests with a fake microphone and client — the request's
+  fields and file, the strip at 360 x 640 and 760 x 360, the events a move and
+  an arrow produce.
+- **5b.4 — sharing** (server and app). `recording_shares (recording_id,
+  student_id, shared_at)`; `PUT /recordings/:id/shares` by the host only, each
+  student through `trainerOwnsStudent`, with a notification; `GET /recordings`
+  and `GET /recordings/:id` read host, participants, or a share whose host is
+  among `acceptedTrainersOf(me)`. „Share with students…" on the player, the
+  students and group chips of the invite dialog. *Gate:* real-database cases —
+  shared and accepted reads, shared after the relationship ended does not,
+  unshared does not, a stranger's id refused.
+- **5b.5 — the student's download.** `GET /recordings/:id` carries a
+  `video_download_url` signed for the reader when the latest export is still on
+  disk; the player shows „Download video" or „No video yet — ask your
+  trainer". Export stays the host's. *Gate:* the link for a shared student,
+  none once the file aged out, none for a stranger.
+- **5b.6 — live pass**, items in `docs/TODO-provera.md`.
+- *As built, and what building it found:*
+  - **The film never followed a room lesson's navigation.** The renderer
+    replays `init` and `move` only; the room's recorder wrote `lesson_loaded`
+    and `fen_change`, which the in-app player applied and the film skipped. A
+    lesson take writes `init`/`move`/`arrow_drawn` alone and the server refuses
+    anything else. The old room recordings' films are as they were — teaching
+    the renderer the two old kinds is a separate, small yes.
+  - **The player preferred any earlier `move` to a later `init`** — dormant
+    while nothing wrote a second `init`, woken by a lesson that loads a new
+    position (rule 14). The rule is now `replayFrameAt` in
+    `recording_models.dart`, pure and tested; arrows read `color` (the film's
+    key) as well as the room's `colorCode`, and are cleared by the order of
+    events, not by the clock.
+  - **Two fixtures carried columns no server sends** — `duration_seconds` in
+    the export test and `duration` on Home's recording card, which is why
+    every real recording said „0.0 min". Both now read `duration_ms`.
+  - **The stored `video_url` carries the host's download token**, and since
+    5b.4 a row is read by students: the list and the single read no longer
+    return it; a reader gets `video_download_url`, signed for them, only while
+    the render is on disk (`services/recordingVideo.js`).
+  - **Leaving Preparation mid-recording** would have dropped the take: the
+    screen now refuses to close while recording („Stop or discard the
+    recording first."), and disposing it closes the file.
+  - Sharing is for `source = 'preparation'` only, on both ends: a room
+    recording had other people in it.
+  - `judgeWavHeader` and `judgeWavLevel` are the narration's checks lifted out
+    of `judgeNarration`, so a lesson and a tutorial's narration are judged by
+    one function (rule 12).
+- *Still open, for the owner:* the room recordings' sound is still a plain
+  `/uploads/` path; the Library shelf lists recordings for their host only
+  (a student finds a shared lesson under Home → Recordings and by the
+  notification, which does not open it); the privacy policy's §3.3.
+
+- *The sketch as written:*
 - An adult alone at the board: plays moves or steps through a loaded PGN,
   talks, and the app keeps the move timeline and the voice together.
 - Almost all of it exists. The timeline recorder, the player and the MP4
@@ -250,7 +385,67 @@ worktree and copied in on the owner's word (nodemon, rule 20).
 - It does not replace tutorial narration: that one is scripted (bound to a
   beat list), this one is free. They share the film pipeline and the lock.
 
-**Phase 6 — the screen.** `[implementer]`
+**Phase 6 — the screen.** ✅ built 22.9.2026 by the lead; live check is items 219.30–36
+- *As decided before building* (each point reverts on its own):
+  1. **Bar:** ☰ (trainer, narrow) · title — code and presence, as phase 2 left
+     it · **voice chip** (`room-voice-chip`, its icon is the voice's state:
+     off, connecting, failed, talking, muted, listening) · **Session**
+     (`room-session-button`, trainer only) · **⋮** (`room-more-menu`: Export to
+     Analysis, Settings) · End / Leave. The cloud icon goes — the title already
+     says „Connecting..." when the socket is down. The code stays in the title
+     as the room's name for logs.
+  2. **Two panels from the right** (the Scaffold's end drawer, so they rebuild
+     with the room and a roster that changes while one is open is not stale):
+     the **voice panel** (the whole „Audio Classroom" card, now
+     `RoomVoicePanel`) and the trainer's **Session panel** — who is present,
+     „Invite students to session", „Students may move", „Force student board
+     to", „Room access".
+  3. **Right column: moves and comment**, plus the trainer's arrow tools and the
+     student's one line about the board lock. The studio's column is unchanged.
+  4. **Under the board, student seat, every width** (`room-student-strip`):
+     „Show my position to trainer" and the three quick answers. The quick
+     answers no longer wait for voice: the server takes them from any seated
+     socket. „Show my position" leaves the left column — one door.
+  5. From §3 and F12: „Mute all students" goes (app and server); a raised
+     hand can be lowered („Lower hand").
+  6. **The owner's word of 22.9.2026: a student has no engine in the room.**
+     „Allow Stockfish for student", `change_engine_permission`,
+     `engine_permission_updated` and `allowStudentEngine` on the wire go; a
+     student's seat draws no engine panel and no evaluation bar.
+     `rooms.allow_student_engine` stays in the schema — dropping it is a
+     separate yes.
+- *As built, beyond the list above:* **on an upright phone the title is the
+  sentence alone, on two lines**, and the code moves to the Session panel's
+  heading. With ☰ and four buttons the title has about 90 px; phase 2's test
+  said the bar „fits" because nothing threw, and the pictures showed
+  „Room: 92…" over „Nobody h…". Measured now with `didExceedMaxLines` and the
+  real font; `RoomPresenceTitle.uprightTitleSpacing` (4, not 16) is read by the
+  screen and the test alike.
+- *Gate:* `room_screen_test.dart` (20 cases: the bar at 360 x 640 and
+  760 x 360, both seats, Android and Windows, each button measured ≥ 40 and on
+  screen, the board square and whole; the panels; the strip on screen without
+  scrolling at three sizes; no engine for a student), `room_voice_panel_test`
+  (6), `room_presence_title_test` (+4), and two cases in the server's
+  `socket_contract.test.js`. Mutations, each red on its own case: engine for
+  everybody, the Session panel never shown, no strip on the wide layout, the
+  strip at the bottom of the phone's column, a 32 px voice chip (red on
+  Windows only — Android pads the tap target to 48, which is why both are
+  pumped), title spacing 16, one line instead of two. **Survivor:** the
+  evaluation bar's `&& _mayUseEngine` — `_showEvalBar` is set only by the
+  engine panel a student no longer has, so the guard is inert today; kept as
+  the second line should that flag ever be read from settings.
+- *Tests rewritten openly:* `room_invite_students_test` and
+  `room_one_leader_test` open the Session panel first; the student-seat cases
+  now assert the Session **button** is absent, because „no switch in sight" is
+  also what a closed panel shows. `room_not_recorded_test`'s existence check
+  moved from „Students may move" to „Arrow drawing (Trainer)".
+  `voice_on_request_test` read `onPressed: _joinVoice` in the room's source;
+  it now reads the handoff `onJoin: _joinVoice`, and the panel's own test taps
+  the button (found only by the full run — it names no label or key).
+- *Not here:* the two board-view switches of F12 (the inventory that named
+  them is not in the repository, so they are not identified), and a shared
+  position's title.
+- *The sketch as written:*
 - Header: code · roster · voice · End/Leave. Right column: moves and comment.
   The trainer's switches in one „Session" sheet. Student on a phone gets
   „Show my position" and the quick answers under the board (F10).

@@ -476,6 +476,27 @@ async function initDB(target = pool) {
       ADD COLUMN IF NOT EXISTS video_url VARCHAR(500);
       ALTER TABLE session_recordings 
       ADD COLUMN IF NOT EXISTS participants INTEGER[] DEFAULT '{}';
+      -- Phase 5b of docs/PLAN-SESIJA.md: a lesson recorded alone in Preparation
+      -- has no room. source says where a recording came from, audio_file
+      -- names a private sound in uploads/lessons/ (never a public path), and
+      -- duration_ms is the audio's length, so a film runs to its end.
+      ALTER TABLE session_recordings ALTER COLUMN room_id DROP NOT NULL;
+      ALTER TABLE session_recordings
+      ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'room';
+      ALTER TABLE session_recordings
+      ADD COLUMN IF NOT EXISTS audio_file VARCHAR(120);
+      ALTER TABLE session_recordings
+      ADD COLUMN IF NOT EXISTS duration_ms INTEGER;
+
+      -- Who a recorded lesson is shared with (phase 5b.4). Read only together
+      -- with an accepted relationship (services/recordingShares.js), so a
+      -- relationship that ends closes a share without this row being deleted.
+      CREATE TABLE IF NOT EXISTS recording_shares (
+        recording_id INTEGER NOT NULL REFERENCES session_recordings(id) ON DELETE CASCADE,
+        student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        shared_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (recording_id, student_id)
+      );
     `);
     logger.info('Verified database table: session_recordings');
 

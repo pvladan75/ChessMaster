@@ -80,6 +80,11 @@ Future<List<String>> _room(
   ));
   await tester.pump(const Duration(seconds: 1));
 
+  // Since phase 6 the invitation is in the Session panel, not the right
+  // column.
+  await tester.tap(find.byKey(const Key('room-session-button')));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
   await tester.ensureVisible(_invite);
   await tester.pump();
   await tester.tap(_invite);

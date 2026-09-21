@@ -156,16 +156,13 @@ function refuse(status, error) {
   return { ok: false, status, error };
 }
 
-/// Whether [file] is a take a video can be made of, and why not.
-///
-/// [durationMs] and [beats] are what the app says: how long it recorded, and
-/// how many beats the film has. The file answers the first; the second can only
-/// be compared with the markers, and the export compares it again with the film
-/// it is asked to draw.
-///
-/// Cheapest first: the header, then the list, and the samples last — a take
-/// refused for its length is not read end to end to find out it is also quiet.
-function judgeNarration({ file, markersMs, durationMs, beats }) {
+/// Whether [file] is a take this app's recorder made, whole — the half of the
+/// judgement that is about the audio alone, shared by the tutorial's narration
+/// and a lesson recorded in Preparation (`lessonRecording.js`), so the two
+/// cannot disagree about what a millisecond of audio is. [tooLong] finishes the
+/// sentence a take over the cap is refused with, because what to do about it
+/// differs between the two.
+function judgeWavHeader({ file, durationMs, tooLong }) {
   const info = wavInfo(file);
   if (!info) {
     return refuse(400, 'The recording is not a wav file this app made. Record it again.');
@@ -176,12 +173,11 @@ function judgeNarration({ file, markersMs, durationMs, beats }) {
     || info.bitsPerSample !== NARRATION_BITS) {
     return refuse(400, 'The recording is not in the format this app records in. Record it again in the app.');
   }
-
   const measuredMs = Math.floor(info.dataBytes * 1000 / info.byteRate);
   const maxSeconds = narrationMaxSeconds();
   if (measuredMs > maxSeconds * 1000) {
     return refuse(413, `This recording is ${clockOf(measuredMs)} long, and one recording may be at `
-      + `most ${Math.floor(maxSeconds / 60)} minutes. Split the tutorial into two, or record a shorter narration.`);
+      + `most ${Math.floor(maxSeconds / 60)} minutes. ${tooLong}`);
   }
   if (!Number.isInteger(durationMs)) {
     return refuse(400, 'The app did not say how long the recording is. Upload it again.');
@@ -190,7 +186,38 @@ function judgeNarration({ file, markersMs, durationMs, beats }) {
     return refuse(400, `The recording arrived incomplete: ${clockOf(measuredMs)} of the `
       + `${clockOf(durationMs)} that were recorded. Upload it again.`);
   }
+  return { ok: true, info, measuredMs };
+}
 
+/// The samples, read last because they are the dearest: a refusal for a take
+/// nobody could hear, or the peak.
+function judgeWavLevel(file, info) {
+  const peak = peakDbfsOf(file, info.dataOffset, info.dataBytes);
+  if (peak <= LIVE_MICROPHONE_DBFS) {
+    // The app's own sentence for the same take, so the trainer reads one answer.
+    return refuse(422, 'Nothing reached the microphone during this recording, so it is silent. '
+      + 'Check the mute key and the input device, then record again.');
+  }
+  return { ok: true, peakDbfs: peak };
+}
+
+/// Whether [file] is a take a video can be made of, and why not.
+///
+/// [durationMs] and [beats] are what the app says: how long it recorded, and
+/// how many beats the film has. The file answers the first; the second can only
+/// be compared with the markers, and the export compares it again with the film
+/// it is asked to draw.
+///
+/// Cheapest first: the header, then the list, and the samples last — a take
+/// refused for its length is not read end to end to find out it is also quiet.
+function judgeNarration({ file, markersMs, durationMs, beats }) {
+  const header = judgeWavHeader({
+    file,
+    durationMs,
+    tooLong: 'Split the tutorial into two, or record a shorter narration.',
+  });
+  if (!header.ok) return header;
+  const { info, measuredMs } = header;
   const markers = parseMarkers(markersMs);
   if (!markers || markers.length === 0) {
     return refuse(400, 'The recording arrived without its beats. Upload it again.');
@@ -219,14 +246,9 @@ function judgeNarration({ file, markersMs, durationMs, beats }) {
       + 'recording that reaches the last beat — record it again to the end.');
   }
 
-  const peak = peakDbfsOf(file, info.dataOffset, info.dataBytes);
-  if (peak <= LIVE_MICROPHONE_DBFS) {
-    // The app's own sentence for the same take, so the trainer reads one answer.
-    return refuse(422, 'Nothing reached the microphone during this recording, so it is silent. '
-      + 'Check the mute key and the input device, then record again.');
-  }
-
-  return { ok: true, durationMs: measuredMs, markers, peakDbfs: peak };
+  const level = judgeWavLevel(file, info);
+  if (!level.ok) return level;
+  return { ok: true, durationMs: measuredMs, markers, peakDbfs: level.peakDbfs };
 }
 
 /// The name the app gives a take (`take-<id>.wav` on the device), kept beside
@@ -321,6 +343,8 @@ module.exports = {
   narrationMaxBytes,
   narrationMaxSeconds,
   judgeNarration,
+  judgeWavHeader,
+  judgeWavLevel,
   narrationDir,
   narrationFilename,
   peakDbfsOf,
