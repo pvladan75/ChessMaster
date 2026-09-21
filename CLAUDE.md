@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3525 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3538 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1639 with TEST_DATABASE_URL, 1545 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -330,9 +330,16 @@ object because intrinsics throw on a `LayoutBuilder` and these layouts nest —
 and the Teach tab on it. Its lesson is about the baseline: the first one ran
 in the working directory while `lib/` was being edited, and `flutter test`
 compiles each file as it reaches it, so the edits leaked into it. **Measure a
-baseline in a worktree, or change nothing while it runs.** Open: Home (phase
-3) and Practise (phase 4) of that plan, and the rest of the owner's live
-pass. Phase 6 of
+baseline in a worktree, or change nothing while it runs.** Then phases 3–4,
+Home and Practise (→ **3538**), which finish the plan, leaving only the
+owner's live pass. Their lesson is about the mutation tool: run as
+`mutate; test`, an anchor that `dart format` had moved made one mutation
+**not apply at all** — the gate said „All tests passed", which reads as a
+survivor — and another apply half, which failed to compile and reads as a
+catch. **Chain a mutation and its run with `&&`.** Beside it, the plan's own
+widths were wrong: `columnsFor` gives three columns from a box of 865, so
+1000 is a three-column width — **derive a gate's widths from the rule's
+bands, not from round numbers.** Open: the rest of the owner's live pass. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

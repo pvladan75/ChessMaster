@@ -5873,3 +5873,41 @@ granicu od 700" dodala je `Center(ConstrainedBox(` bez zatvarajućih zagrada —
 ceo fajl testa je pao na učitavanju, što liči na hvatanje a nije (pravilo 3).
 Ponovljena kao sužavanje paddingom, koje se prevodi: crvena na četiri tačna
 slučaja.
+
+## Početni tabovi, faze 3 i 4: mutacija koja se nije primenila, i širina koja nije u svom pojasu — 21.9.2026
+
+`PLAN-POCETNI-TABOVI.md`, Home i Practise. Aplikacija **3525 → 3538**.
+
+**Mutacija koja se nije primenila izgleda tačno kao preživela — ili kao
+uhvaćena.** Mutacije su pisane skriptom koji menja tačan tekst i odbija da
+radi ako ga ne nadje. Ali poziv je bio `mutiraj; pokreni`, sa `;`: kad sidro
+nije pronadjeno (`dart format` je u medjuvremenu promenio uvlačenje), skript
+je pao, a test je svejedno pokrenut. Ishodi su bili dva, oba lažna:
+„recordings u `Column`" nije se primenila ni u jednom delu i kapija je rekla
+**„All tests passed"** — što se čita kao preživela mutacija; „vrati granicu od
+700" primenila se u prvom delu (otvaranje `Center(ConstrainedBox(`) a ne u
+drugom (zatvaranje), pa se fajl nije preveo — što se čita kao uhvaćena. Isti
+oblik kao nevažeća mutacija iz faze 2, istog dana. Obe su ponovljene sa
+pravim sidrom i obe su crvene na tačnom slučaju. **Mutacija i njeno
+pokretanje idu sa `&&`, nikad sa `;`** — sidro koje se ne nadje mora da
+zaustavi merenje, ne da ga pusti nad nemutiranim kodom.
+
+**Širina u kapiji je tvrdnja o pojasu.** Plan je za Practise tražio kolone
+„na 360 / 1000 / 1400" kao jedna / dve / tri. Ali `columnsFor` daje tri već
+od kutije od 865 (`ceil(865 / 432) = 3`, a `(865 − 24) / 3 = 280,3` prolazi
+minimum), pa je 1000 širina **tri** kolone. Da je kapija napisana po planu,
+slučaj „dve kolone na 1000" bi bio crven na ispravnom kodu, i najlakši put do
+zelenog bi bio da se kod iskrivi prema broju. Širine su izvedene iz pravila:
+360, 700, 1000 i 1400 — po jedna u svakom pojasu — i 1920 za granicu.
+**Okrugao broj izabran pre pravila nije granični slučaj.** Isto važi za
+proveru uživo: na najmanjem Windows prozoru (900) tab je širok oko 807, jer
+traka uzima 77, pa tamo Practise ima dve kolone, ne tri — prva verzija stavke
+213 je tvrdila tri i ispravljena je pre nego što ju je iko pročitao.
+
+**Granica i broj iz jednog izvora.** „Najviše tri kolone" se moglo napisati
+dvaput — `min(3, columnsFor(w))` i kutija od 1284 — i to bi bila dva broja
+koja se slučajno slažu. Sada je `maxColumns = 3` jedini broj, a širina kutije
+je izvedena iz njega (`3 × maxTileWidth + 2 × spacing`), pa `columnsFor`
+unutar nje ne može dati više od tri. Mutacija „bez granice" je zato crvena na
+tvrdnji o **širini kartice**, ne o broju kolona: bez kutije je broj i dalje 3
+(grana `default`), ali kartice od 620 px.

@@ -3,9 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 class CategorySelectionHubWidget extends StatelessWidget {
+  /// The one stated limit on this tab — `docs/PLAN-POCETNI-TABOVI.md`,
+  /// decision 2. The hub has three phases and eight cards; in three columns
+  /// all of them are on one screen, so more width could show nothing more.
+  static const int maxColumns = 3;
+
+  /// The widest the cards may spread: [maxColumns] cards at
+  /// [AdaptiveCardGrid.maxTileWidth] and the gaps between them. Derived, not
+  /// written down, so the cap and the column count cannot disagree.
+  static const double maxCardsWidth =
+      maxColumns * AdaptiveCardGrid.maxTileWidth +
+          (maxColumns - 1) * AdaptiveCardGrid.spacing;
+
   final Function(String depth) onSelectMatePuzzle;
   final Function(String presetDifficulty) onSelectBasicMate;
   final VoidCallback onSelectWinningPosition;
@@ -332,21 +344,51 @@ class CategorySelectionHubWidget extends StatelessWidget {
     );
   }
 
+  /// One phase: its label, then its cards one under another.
+  Widget _phase(BuildContext context, String title, List<Widget> cards) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _section(context, title),
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.lg),
+          cards[i],
+        ],
+      ],
+    );
+  }
+
+  /// Columns laid side by side, each as tall as its own cards.
+  Widget _side(List<Widget> columns) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < columns.length; i++) ...[
+          if (i > 0) const SizedBox(width: AdaptiveCardGrid.spacing),
+          Expanded(child: columns[i]),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isWide = Breakpoints.isWide(context);
+    const phaseGap = SizedBox(height: AppSpacing.xxl);
 
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: isWide ? 1080 : 640),
+        // The cap is on the cards, so the tab's own padding is added to it.
+        constraints: BoxConstraints(
+          maxWidth: maxCardsWidth + AppSpacing.screenPadding.horizontal,
+        ),
         child: SingleChildScrollView(
           primary: false,
           padding: AppSpacing.screenPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Hero header card (spans full width above columns)
+              // Hero header card (spans full width above the columns)
               Container(
                 padding: AppSpacing.cardPaddingComfortable,
                 decoration: BoxDecoration(
@@ -399,68 +441,45 @@ class CategorySelectionHubWidget extends StatelessWidget {
 
               const SizedBox(height: AppSpacing.xxl),
 
-              if (isWide) ...[
-                // Two-column layout above Breakpoints.wide (840px)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Column 1: Otvaranje & Taktika
-                    Expanded(
-                      child: Column(
+              // One column per phase of the game where three fit, today's
+              // split where two do, today's order on a phone. The count is
+              // taken from the width these cards are handed, never from the
+              // window (`docs/PLAN-POCETNI-TABOVI.md` §3), and can never pass
+              // [maxColumns] because the box above stops at their width.
+              LayoutBuilder(builder: (context, constraints) {
+                final opening = _phase(context, 'Opening', [
+                  _buildRepertoireCard(colors),
+                  _buildMyGamesCard(colors),
+                  _buildMistakesCard(colors),
+                ]);
+                final tactics = _phase(context, 'Tactics', [
+                  _buildTacticsCard(colors),
+                  _buildMatePuzzlesCard(colors),
+                ]);
+                final endgame = _phase(context, 'Endgame and technique', [
+                  _buildMasterEndgamesCard(colors),
+                  _buildBasicMateCard(colors),
+                  _buildWinningPositionsCard(colors),
+                ]);
+
+                switch (AdaptiveCardGrid.columnsFor(constraints.maxWidth)) {
+                  case 1:
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [opening, phaseGap, tactics, phaseGap, endgame],
+                    );
+                  case 2:
+                    return _side([
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _section(context, 'Opening'),
-                          _buildRepertoireCard(colors),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildMyGamesCard(colors),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildMistakesCard(colors),
-                          const SizedBox(height: AppSpacing.xxl),
-                          _section(context, 'Tactics'),
-                          _buildTacticsCard(colors),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildMatePuzzlesCard(colors),
-                        ],
+                        children: [opening, phaseGap, tactics],
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.xl),
-                    // Column 2: Endgame and technique
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _section(context, 'Endgame and technique'),
-                          _buildMasterEndgamesCard(colors),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildBasicMateCard(colors),
-                          const SizedBox(height: AppSpacing.lg),
-                          _buildWinningPositionsCard(colors),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ] else ...[
-                // Single-column layout on mobile / narrow screens (< 840px)
-                _section(context, 'Opening'),
-                _buildRepertoireCard(colors),
-                const SizedBox(height: AppSpacing.lg),
-                _buildMyGamesCard(colors),
-                const SizedBox(height: AppSpacing.lg),
-                _buildMistakesCard(colors),
-                const SizedBox(height: AppSpacing.xxl),
-                _section(context, 'Tactics'),
-                _buildTacticsCard(colors),
-                const SizedBox(height: AppSpacing.lg),
-                _buildMatePuzzlesCard(colors),
-                const SizedBox(height: AppSpacing.xxl),
-                _section(context, 'Endgame and technique'),
-                _buildMasterEndgamesCard(colors),
-                const SizedBox(height: AppSpacing.lg),
-                _buildBasicMateCard(colors),
-                const SizedBox(height: AppSpacing.lg),
-                _buildWinningPositionsCard(colors),
-              ],
+                      endgame,
+                    ]);
+                  default:
+                    return _side([opening, tactics, endgame]);
+                }
+              }),
             ],
           ),
         ),

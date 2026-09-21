@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import '../models/trainer_panel.dart';
 
 /// The trainer's panel: what the job is right now, above the list of people.
@@ -168,7 +169,14 @@ class TrainerPanelView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          ...children,
+          // The rows flow: as many across as the card has room for, each
+          // line as tall as its tallest row (`docs/PLAN-POCETNI-TABOVI.md`,
+          // phase 3). Dense rows with the action on the right, not tall
+          // cards — a card per entry would give back what the columns save.
+          AdaptiveCardRows(
+            key: Key('panel-flow-$title'),
+            children: children,
+          ),
         ],
       ),
     );
@@ -191,8 +199,8 @@ class TrainerPanelView extends StatelessWidget {
   }) {
     final colors = context.colors;
 
+    // No margin of its own: the gap between rows is the flow's, both ways.
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: filled ? colors.surfaceRaised : colors.surface,
