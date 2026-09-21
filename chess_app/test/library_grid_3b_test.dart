@@ -251,8 +251,14 @@ void main() {
 
     testWidgets('a card still carries its own kind\'s actions', (tester) async {
       // GREEN on master. Four on a tutorial, two on an exercise, one on a
-      // position, none on an analysis — asserted inside the card that owns
+      // position, one on an analysis — asserted inside the card that owns
       // them, so a grid that draws the actions of the wrong entry is red.
+      //
+      // **Superseded openly on 21.9.2026.** This case said „an analysis has
+      // no actions and must draw none", and item 3 of the owner's review gave
+      // it exactly one: „Delete analysis" (TODO-provera 211.4, „Nema dugme za
+      // brisanje"). The assertion is not loosened — an analysis draws one
+      // button, and it is that one.
       await _library(tester, const Size(1400, 900));
 
       expect(
@@ -263,8 +269,10 @@ void main() {
           findsOneWidget);
       expect(
           _inRow(_keys[1], find.byTooltip('Add to tutorial')), findsOneWidget);
-      expect(_inRow(_keys[3], find.byType(IconButton)), findsNothing,
-          reason: 'an analysis has no actions and must draw none');
+      expect(_inRow(_keys[3], find.byType(IconButton)), findsOneWidget,
+          reason: 'an analysis draws its delete and nothing else');
+      expect(
+          _inRow(_keys[3], find.byTooltip('Delete analysis')), findsOneWidget);
     });
 
     testWidgets('what a card says and what acts on it stay together',
@@ -278,8 +286,9 @@ void main() {
       //
       // Two claims, because a grid can break this in two ways. A tutorial's
       // card is nearly full, so the measure there is the gap itself; an
-      // analysis has no actions at all and 56 px of slack, so the measure
-      // there is that the slack is all *below* the content.
+      // analysis has the fewest actions (none until 21.9.2026, its delete
+      // since) and so the most slack, so the measure there is that the slack
+      // is all *below* the content.
       //
       // What mutation says about the pair, recorded because it is the honest
       // limit: `MainAxisAlignment.center` and `.end` are red here, and so is
@@ -301,7 +310,7 @@ void main() {
       final card = tester.getRect(find.byKey(_keys[3]));
       final tile = tester.getRect(_inRow(_keys[3], find.byType(ListTile)));
       expect(tile.top - card.top, lessThan(8.0),
-          reason: 'a card with no actions floats its content '
+          reason: 'a card with few actions floats its content '
               '${(tile.top - card.top).round()} px down its own tile');
     });
 

@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3546 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3557 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1639 with TEST_DATABASE_URL, 1545 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -349,7 +349,13 @@ later, as the guest the next sign-in adopts — so `AccountLocalState.epoch`
 fences every draft write from a writer born before the last wipe (the
 tutorial studio too), and „Resume analysis" is gone on the owner's word; and
 leaving Analysis — another tab or a full-screen route — switches the engine
-off and releases it, through `TickerMode`, which the shell now sets per tab. Phase 6 of
+off and releases it, through `TickerMode`, which the shell now sets per tab. Then items 3, 6 and 7 of the same review (→ **3557**): a puzzle set
+and an analysis are deleted from the Library shelf — and the button found a
+lie behind it, `PuzzleSetRepository.delete` dropping the device copy whatever
+the server said, so a refused delete came back on the next load; a position
+card offers „Make exercise" instead of „Assign" (the card asks what the entry
+*is*, not which table it came from); and the phone studio has labels and
+language behind „More" → „Details…". Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

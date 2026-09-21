@@ -79,9 +79,17 @@ class PuzzleSetRepository {
     return set;
   }
 
-  /// Removes a set from the account and from this device.
-  Future<void> delete(String id) async {
-    await _api.delete(id);
+  /// Removes a set from the account and from this device, and says whether
+  /// it did.
+  ///
+  /// **The device copy goes only once the account has let go of it.** Until
+  /// 21.9.2026 it went whatever the server answered, so a refused delete read
+  /// as done and the set was back on the next reachable load — a step that
+  /// reports success and fails one load later. A refusal now leaves both
+  /// copies as they were and answers false, and the caller says so.
+  Future<bool> delete(String id) async {
+    if (!await _api.delete(id)) return false;
     await _local.deleteSet(id);
+    return true;
   }
 }

@@ -10,6 +10,7 @@ import 'package:chess_app/features/assignments/services/assignment_api_service.d
 import 'package:chess_app/features/exercises/models/exercise.dart';
 import 'package:chess_app/features/exercises/screens/exercise_editor_screen.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
+import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
@@ -23,6 +24,7 @@ import 'package:chess_app/features/position_scanner/widgets/assign_positions_dia
 import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -228,19 +230,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onPressed: () => _deleteTutorial(entry, row),
           ),
         ];
+      // **A position is not sent; it is made into an exercise first** — the
+      // owner's rule of 19.9.2026 (185.5). Since phase 10 a scan with no
+      // printed solution is a position, and its card still offered „Assign",
+      // a door the server can only refuse (205.3). So the card asks what the
+      // entry *is*, not which table it came from: an exercise is assigned, a
+      // position is offered the sheet that makes one of it.
       case LibraryKind.scan:
-        return [
-          IconButton(
-            icon: const Icon(Icons.playlist_add, size: 20),
-            tooltip: 'Add to tutorial',
-            onPressed: () => _addToTutorial(entry),
-          ),
-          IconButton(
-            icon: const Icon(Icons.assignment_outlined, size: 20),
-            tooltip: 'Assign to student',
-            onPressed: () => _assign(entry),
-          ),
-        ];
       case LibraryKind.position:
         return [
           IconButton(
@@ -248,6 +244,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
             tooltip: 'Add to tutorial',
             onPressed: () => _addToTutorial(entry),
           ),
+          if (entry.isExercise)
+            IconButton(
+              icon: const Icon(Icons.assignment_outlined, size: 20),
+              tooltip: 'Assign to student',
+              onPressed: () => _assign(entry),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.task_alt, size: 20),
+              tooltip: 'Make exercise',
+              onPressed: () => _makeExercise(entry),
+            ),
         ];
       case LibraryKind.recording:
         return [
@@ -257,10 +265,104 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onPressed: () => _openRecording(entry),
           ),
         ];
+      // Deleted from the shelf since 21.9.2026 (TODO-provera 211.4: „Nema
+      // dugme za brisanje"). Until then a set could only be deleted from the
+      // dialog on the Analysis screen, and an analysis from nowhere here.
       case LibraryKind.analysis:
+        return [
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                size: 20, color: context.colors.danger),
+            tooltip: 'Delete analysis',
+            onPressed: () => _deleteAnalysis(entry),
+          ),
+        ];
       case LibraryKind.puzzleSet:
-        return const [];
+        return [
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                size: 20, color: context.colors.danger),
+            tooltip: 'Delete puzzle set',
+            onPressed: () => _deletePuzzleSet(entry),
+          ),
+        ];
     }
+  }
+
+  /// Asks before a delete that cannot be taken back; true only on a clear yes.
+  Future<bool> _confirmDelete(String what, String title) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete $what?'),
+        content: Text('"$title" will be permanently deleted.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Delete', style: TextStyle(color: ctx.colors.danger)),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true && mounted;
+  }
+
+  /// The card goes only once the server has let go of the thing — a card that
+  /// vanishes while the account still has it is back on the next load.
+  void _dropEntry(LibraryEntry entry) {
+    setState(() => _entries = _entries?.where((e) => e != entry).toList());
+  }
+
+  Future<void> _deletePuzzleSet(LibraryEntry entry) async {
+    if (!await _confirmDelete('puzzle set', entry.title)) return;
+    final deleted = await _puzzleSets.delete(entry.id);
+    if (!mounted) return;
+    if (!deleted) {
+      AppFeedback.error(context, notDeletedMessage(entry.title));
+      return;
+    }
+    _dropEntry(entry);
+    AppFeedback.success(context, 'Puzzle set deleted.');
+  }
+
+  Future<void> _deleteAnalysis(LibraryEntry entry) async {
+    final id = int.tryParse(entry.id);
+    if (id == null) return;
+    if (!await _confirmDelete('analysis', entry.title)) return;
+    final deleted = await AnalysisPersistenceService.instance.deleteAnalysis(
+      id: id,
+      userToken: widget.session.token,
+    );
+    if (!mounted) return;
+    if (!deleted) {
+      AppFeedback.error(context, notDeletedMessage(entry.title));
+      return;
+    }
+    _dropEntry(entry);
+    AppFeedback.success(context, 'Analysis deleted.');
+  }
+
+  /// The sheet the room opens, over this card's position with nothing played
+  /// on it — so „Find the move" goes to the exercise's own screen („Play the
+  /// move", phase 14), and „Win", „Draw or better" and „Play N moves" are
+  /// saved from the sheet as they are in the room.
+  Future<void> _makeExercise(LibraryEntry entry) async {
+    final saved = await showDialog<Exercise>(
+      context: context,
+      builder: (_) => MakeExerciseSheet(
+        api: _exerciseApi,
+        moveTree: MoveTree(startingFen: entry.fen),
+        availableUserLabels: _labels,
+      ),
+    );
+    if (saved == null || !mounted) return;
+    // Do the thing, then say it.
+    _load();
+    AppFeedback.success(context, 'Exercise saved.');
   }
 
   Future<void> _watchRender(Map<String, dynamic> row) async {

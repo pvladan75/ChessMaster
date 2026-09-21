@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **21.9.2026** — najnovije je „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **21.9.2026** — najnovije je „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -52,6 +52,66 @@ Prethodno: 6.9.2026 (redizajn studija: **P0–P4 gotove** — deo
 tutorijala čuva svoje stablo, drugi „Sačuvaj“ menja tutorijal umesto da pravi novi,
 ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nadalje. Tutorijal: cela
 faza 4 zatvorena, ostaje faza 5, provera uživo).
+
+---
+
+## Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu — 21.9.2026, u kodu, ostaje provera uživo
+
+Tačke 3, 6 i 7 iz pregleda komentara (odeljak ispod). Samo aplikacija.
+
+**3. Set zagonetki i analiza se brišu sa police** (211.4, „Nema dugme za
+brisanje"). Kartice tih vrsta nisu imale nijedno dugme; set se brisao samo iz
+Analize → „Saved puzzle sets", mesta za koje je vlasnik već rekao da ne zna
+gde je. Obe rute na serveru su postojale. Sada kanta, pitanje, pa zahtev.
+
+**Usput nadjeno, i važnije od dugmeta:** `PuzzleSetRepository.delete` je
+brisao kopiju sa uredjaja **bez obzira na odgovor servera**, pa je odbijeno
+brisanje izgledalo obavljeno, a set se vraćao pri sledećem učitavanju — oblik
+greške koji ova baza plaća najčešće. Sada se kopija sa uredjaja briše tek kad
+je nalog pustio set, `delete` vraća `bool`, a oba mesta koja brišu (polica i
+dijalog u Analizi) na odbijanje kažu to i ostave karticu. Rečenica
+(`notDeletedMessage`) je u `app_feedback.dart`, jedna za sva vrata.
+
+**7. Pozicija se ne šalje, već se prvo pravi zadatak** (205.3; pravilo vlasnika
+od 19.9, 185.5). Od faze 10 sken bez rešenja je pozicija, a kartica mu je i
+dalje nudila „Assign to student" — vrata koja server može samo da odbije.
+Kartica sada pita šta stavka **jeste** (`isExercise`), ne iz koje je tabele:
+zadatak ima „Assign", pozicija (sken bez rešenja i pozicija iz sobe) ima
+**„Make exercise"** — isti `MakeExerciseSheet` koji otvara soba, na toj
+poziciji bez odigranog poteza, pa „Find the move" vodi na ekran zadatka
+(„Play the move", faza 14). To su i vrata koja je tražilo vlasnikovo pitanje 5
+(„sken → zadatak"), bez samostalnog rešavanja, koje ostaje novi plan.
+Traka za višestruki izbor u skeneru (`saved_positions_screen`) i dalje ima
+„Assign" — tamo server odbija sken bez rešenja i dijalog imenuje svako
+odbijanje, pa je iskreno; ostavljeno.
+
+**6. Oznake i jezik tutorijala na telefonu** (prijava od 20.9.2026). Raspored za
+telefon ih je namerno izostavio u fazi 6b, pa tutorijal napravljen na telefonu
+nije imao po čemu da se nadje ni jezik za glas. Sada ⋮ „More" → **„Details…"**
+otvara list sa **istim** `_labelsField` i `_languageField` koje crta desktop —
+isti kontroler, nijedna kopija pravila. List sluša `_c` sam, jer ga
+`setState` ekrana ne gradi ponovo; bez toga bi padajući meni pokazivao jezik sa
+kojim je otvoren (mutacija M8 to pokazuje).
+
+**Kapije.** `test/library_card_doors_test.dart` (7), `test/
+tutorial_phone_details_test.dart` (3, uspravno i položeno, tvrdnja na zahtevu
+za čuvanje) i novi slučaj u `puzzle_sets_sync_test.dart`. Na master-u **10
+crvenih / 1 zelen** — zeleni je „zadatak zadržava Assign", koji mora da važi i
+pre; slučaj u `puzzle_sets_sync_test` je prvo pokazan crven po ponašanju
+(„the device copy went"), bez provere povratne vrednosti, jer se `void` ne
+prevodi — to bi bila crvena iz pogrešnog razloga. **Deset mutacija, svaka
+crvena na tačnom slučaju.**
+
+Pun prolaz je oborio jedan postojeći slučaj, `library_grid_3b_test` („a card
+still carries its own kind's actions"), koji je tvrdio „an analysis has no
+actions and must draw none" — tačno pravilo koje je tačka 3 promenila na
+vlasnikov zahtev. Prepisan **otvoreno**, sa razlogom iznad njega, i ne
+olabavljen: analiza crta tačno jedno dugme, i to brisanje (mutacija koja ga
+skine je crvena). Susedni slučaj koji meri da sadržaj kartice analize stoji na
+vrhu ostao je isti; ispravljen mu je samo tekst koji je tvrdio „no actions".
+
+Mereno: aplikacija **3546 → 3557**, 1 preskočen; `flutter analyze` istih 26
+`info`. Uživo: **stavka 215**.
 
 ---
 
@@ -117,13 +177,9 @@ Mereno: aplikacija **3539 → 3546**, 1 preskočen; `flutter analyze` istih 26
 **Šta je iz istog pregleda još otvoreno** (redom koji je predložen; nijedno
 nije u kodu):
 
-- *Samo aplikacija, malo:* brisanje seta zagonetki i analize iz Biblioteke —
-  kartice tih vrsta nemaju nijedno dugme (`library_screen.dart`, stavka 211.4),
-  a brisanje postoji samo u Analizi → „Saved puzzle sets"; oznake i jezik
-  tutorijala u studiju na telefonu uspravno (raspored za telefon ima samo
-  naslov); „Assign to student" na skenu bez rešenja, koji je od faze 10
-  pozicija (205.3) — Assign samo za zadatke, a na skenu ponuditi „Make
-  exercise" (vrata koja fale i vlasnikovom pitanju 5).
+- ~~*Samo aplikacija, malo:* brisanje iz Biblioteke, oznake i jezik na
+  telefonu, „Assign" na poziciji~~ — **u kodu 21.9.2026**, odeljak iznad
+  („Brisanje iz Biblioteke…"), stavka 215.
 - *„Find the move" editor* (196.3): potez ostane na tabli ~2 s pa se tabla
   vrati i traži alternativu; glavni potez dobije × kao alternative.
 - *Čeka vlasnika:* ista imena analiza — server samo `INSERT`-uje, pa nastaje

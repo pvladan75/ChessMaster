@@ -113,3 +113,9 @@ abstract final class AppFeedback {
     );
   }
 }
+
+/// What a reader is told when a delete the server refused left the thing
+/// where it was — one sentence for every door that deletes, so the Library
+/// and the dialogs cannot drift apart.
+String notDeletedMessage(String title) =>
+    '"$title" could not be deleted. Check the connection and try again.';

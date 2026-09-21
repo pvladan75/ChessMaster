@@ -188,10 +188,30 @@ void main() {
     await _seedDevice([_set('doomed', 'Goes away')]);
     final server = _Server(onServer: [_set('doomed', 'Goes away')]);
 
-    await _repo(server).delete('doomed');
+    expect(await _repo(server).delete('doomed'), isTrue);
 
     expect(server.ids, isEmpty);
     expect(await LocalPuzzleSetStorageService.instance.loadSets(), isEmpty);
+  });
+
+  test('a refused delete keeps the set here and says so', () async {
+    // Added 21.9.2026 with the Library's own delete button. Until then the
+    // device copy went whatever the server answered, so a refused delete read
+    // as done and the set came back on the next reachable load — the shape
+    // this codebase keeps paying for: a step that reports success and fails
+    // one load later.
+    await _seedDevice([_set('kept', 'Still wanted')]);
+    final server =
+        _Server(onServer: [_set('kept', 'Still wanted')], reachable: false);
+
+    final deleted = await _repo(server).delete('kept');
+
+    expect(deleted, isFalse, reason: 'a refusal was reported as success');
+    expect(
+        (await LocalPuzzleSetStorageService.instance.loadSets())
+            .map((s) => s.id),
+        ['kept'],
+        reason: 'the device copy went while the account still has it');
   });
 
   test('a set deleted elsewhere stops haunting this device', () async {

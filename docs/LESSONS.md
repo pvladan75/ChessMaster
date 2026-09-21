@@ -5949,3 +5949,29 @@ stek samo prestaje da ga crta. `TickerMode` je jedan signal za oba izlaza
 `Overlay` ga daje sam. Motor se pri odlasku **pušta** (`detach`), ne
 zaustavlja (`stopAnalysis`): ekran na vrhu možda koristi isti motor, i gola
 zaustavka bi ugasila *njegovu* pretragu.
+
+## Brisanje koje je lagalo, nadjeno dok se pravilo dugme — 21.9.2026
+
+Tačke 3, 6 i 7 iz pregleda komentara. Aplikacija **3546 → 3557**.
+
+**Vrata koja se dodaju čine vidljivim ono što je iza njih.** Tražena je kanta
+na kartici seta zagonetki. Pre nego što je nacrtana, pročitan je put do
+servera: `PuzzleSetRepository.delete` je brisao kopiju sa uredjaja pa pitao
+server, i odgovor servera nije gledao. Dok je jedina vrata bio dijalog koji
+vlasnik nije nalazio, niko nije mogao da vidi da odbijeno brisanje izgleda
+obavljeno i da se set vraća pri sledećem učitavanju. Kanta na polici bi to
+učinila svakodnevnim. **Pre nego što se dugme priključi na postojeću funkciju,
+pročitaj šta funkcija radi kad server kaže ne.**
+
+**Crvena koja se ne prevodi nije crvena.** Novi slučaj je hteo da proveri i
+povratnu vrednost (`delete` → `false`), a na master-u je `delete` bio `void` —
+fajl se nije prevodio i pao je ceo, što se čita kao uhvaćeno (pravilo 3).
+Zato je slučaj prvo pokrenut bez te provere i pokazan crven **po ponašanju**
+(kopija sa uredjaja je nestala), pa je provera povratne vrednosti vraćena tek
+posle izmene.
+
+**Pravilo po tome šta stavka jeste, ne odakle je.** „Assign" je bio vezan za
+tabelu (`kind == scan`), a od faze 10 ista tabela drži i zadatke i pozicije.
+Mutacija koja vraća staro pravilo je crvena na skenu bez rešenja — kada se
+značenje jednog izvora podeli, svako pravilo koje je čitalo izvor treba
+ponovo pročitati.

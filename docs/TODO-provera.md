@@ -5878,6 +5878,43 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 215. Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu — 21.9.2026, nije viđeno uživo
+
+**Samo aplikacija, nov build** (Windows i telefon); server se ne dira. Tačke
+3, 6 i 7 iz pregleda komentara 21.9.2026: prijava 211.4 („Nema dugme za
+brisanje"), prijava od 20.9.2026 („U portret orjentaciji ne vide se label i
+jezik tutorijala") i nalaz 205.3 (pozicija nudi slanje učeniku).
+
+1. [ ] **Brisanje seta zagonetki iz Biblioteke.** Teach → Library → čip
+   „Puzzle sets": na kartici je crvena kanta. Pritisak pita „Delete puzzle
+   set?"; „Cancel" ne briše ništa, „Delete" ga skida sa police i piše „Puzzle
+   set deleted.".
+2. [ ] **Važi svuda** (ovo je bila stavka 211.4). Posle brisanja na jednom
+   uredjaju, osveži Library na drugom (isti nalog): seta nema.
+3. [ ] **Brisanje analize iz Biblioteke.** Čip „Analyses": na kartici je kanta,
+   isto pitanje, i analiza nestaje; Analyse → ikona oblaka je više ne nudi.
+4. [ ] **Server nedostupan.** Ugasi backend pa pokušaj da obrišeš set: kartica
+   **ostaje**, a crvena poruka kaže da nije obrisan. Upali backend, osveži:
+   set je i dalje tu (ranije bi nestao sa uredjaja pa se vratio pri sledećem
+   učitavanju). Isto u Analizi → „Saved puzzle sets".
+5. [ ] **Pozicija nema „Assign".** Čip „Positions": sken iz knjige **bez**
+   rešenja i pozicija sačuvana iz sobe imaju „Add to tutorial" i **„Make
+   exercise"** (ikona kvačice), a nemaju „Assign to student".
+6. [ ] **Zadatak i dalje ima „Assign".** Čip „Exercises": sken sa rešenjem i
+   zadatak napravljen u Preparation imaju „Assign to student", a nemaju „Make
+   exercise".
+7. [ ] **„Make exercise" sa kartice.** Otvara isti list kao „Make exercise" u
+   sobi, na **toj** poziciji. Pod „Find the move" stoji „Play the move" (ekran
+   zadatka); „Win", „Draw or better" i „Play N moves" se čuvaju iz lista.
+   Posle „Save": „Exercise saved.", i zadatak je pod „Exercises"; originalna
+   pozicija je i dalje pod „Positions".
+8. [ ] **Oznake i jezik na telefonu.** Teach → Tutorials → New tutorial,
+   telefon uspravno: ⋮ „More" → **„Details…"** otvara list sa „Labels" i
+   „Language". Upiši oznake, izaberi jezik, „Done", sačuvaj tutorijal. U
+   Library ga nalaziš po toj oznaci; na Windows-u otvoren pokazuje isti jezik.
+9. [ ] **Isto položeno**, i sa otvorenom tastaturom: list se skroluje, ništa se
+   ne seče.
+
 ## 214. Tudja analiza posle promene naloga, i motor koji staje kad se ode — 21.9.2026, nije viđeno uživo
 
 **Samo aplikacija, nov build** (Windows i telefon); server se ne dira. Dva

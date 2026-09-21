@@ -4,6 +4,7 @@ import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
 import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 /// Browses puzzle sets extracted from games during whole-game review (see
@@ -49,8 +50,12 @@ class _SavedPuzzleSetsDialogState extends State<SavedPuzzleSetsDialog> {
   }
 
   Future<void> _delete(SavedPuzzleSet set) async {
-    await widget.puzzleSets.delete(set.id);
+    final deleted = await widget.puzzleSets.delete(set.id);
     if (!mounted) return;
+    if (!deleted) {
+      AppFeedback.error(context, notDeletedMessage(set.title));
+      return;
+    }
     setState(() => _sets = _sets.where((s) => s.id != set.id).toList());
   }
 

@@ -10,11 +10,17 @@ part of 'tutorial_studio_screen.dart';
 /// own: which of Line/Task/Parts is open ([_TutorialStudioScreenState._phoneTab])
 /// and the two small stateful fields below it.
 ///
-/// **What is not drawn here, on purpose:** the Flow panel, the Tree panel,
-/// the PGN panel, the labels field and the language field. `docs/
-/// PLAN-REORGANIZACIJA.md` §7 mentions the Tree as reachable through a
-/// fullscreen dialog for reading; that door is not part of this phase's gate
-/// (`test/tutorial_phone_layout_test.dart`) and is left for a later one.
+/// **What is not drawn here, on purpose:** the Flow panel, the Tree panel and
+/// the PGN panel. `docs/PLAN-REORGANIZACIJA.md` §7 mentions the Tree as
+/// reachable through a fullscreen dialog for reading; that door is not part of
+/// this phase's gate (`test/tutorial_phone_layout_test.dart`) and is left for a
+/// later one.
+///
+/// The labels and the language were left out too, until the owner's report of
+/// 20.9.2026 („U portret orjentaciji ne vide se label i jezik tutorijala"): a
+/// tutorial made on a phone had nothing the Library could find it by and no
+/// language to choose its voice. They are behind „More" → „Details…"
+/// ([_showDetails]) — the desktop's own two fields, not copies.
 extension _PhoneLayout on _TutorialStudioScreenState {
   Widget _buildPhone(BoxConstraints constraints) {
     final landscape = LandscapeBoardLayout.applies(context);
@@ -35,6 +41,58 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   }
 
   // ── the app bar ───────────────────────────────────────────────────────
+
+  /// Labels and language, in a sheet over the board: the phone's room belongs
+  /// to the board, and these two are set once per tutorial rather than read
+  /// while writing it.
+  ///
+  /// The fields are [_labelsField] and [_languageField] themselves — the
+  /// same controller and the same `_c` the desktop's row writes through, so
+  /// what is typed here is what a save sends, and a second opening shows it.
+  /// The sheet is not rebuilt by this screen's `setState`, so it listens to
+  /// `_c` on its own; without that the dropdown would keep showing the
+  /// language it opened with.
+  Future<void> _showDetails() {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.lg + MediaQuery.viewInsetsOf(sheetContext).bottom,
+        ),
+        // Scrolls rather than overflows: a phone on its side with the
+        // keyboard up has less height than these four rows.
+        child: SingleChildScrollView(
+          child: ListenableBuilder(
+            listenable: _c,
+            builder: (_, __) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Details', style: AppText.title),
+                const SizedBox(height: AppSpacing.sm),
+                _labelsField(),
+                const SizedBox(height: AppSpacing.md),
+                _languageField(),
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: const Text('Done'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// The title, „Save" and everything the bar has no room for, behind
   /// [Key('phone-more')] — Undo, Redo, Discard changes, Preview tutorial,
@@ -67,6 +125,8 @@ extension _PhoneLayout on _TutorialStudioScreenState {
           tooltip: 'More',
           onSelected: (value) {
             switch (value) {
+              case 'details':
+                _showDetails();
               case 'undo':
                 _undo();
               case 'redo':
@@ -90,6 +150,10 @@ extension _PhoneLayout on _TutorialStudioScreenState {
             }
           },
           itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'details',
+              child: Text('Details…'),
+            ),
             PopupMenuItem(
               value: 'undo',
               enabled: _c.canUndo,
