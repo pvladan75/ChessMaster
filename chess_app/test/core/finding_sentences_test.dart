@@ -3,10 +3,10 @@ import 'package:chess_app/core/services/finding_sentences.dart';
 
 /// The words a finding is said in, and the one way they are put together.
 ///
-/// A move's comment reaches three readers that cannot share a machine
-/// separator: a trainer in the checklist dialog, a language model reading the
-/// review, and a voice reading an imported tutorial aloud. So findings are
-/// sentences, and a comment is sentences joined by a space.
+/// A finding reaches readers that cannot share a machine separator: a
+/// language model reading the review, and a voice reading an imported
+/// tutorial aloud. So findings are sentences, and a comment is sentences
+/// joined by a space.
 void main() {
   group('sentence', () {
     test('capitalises the first letter and ends with a full stop', () {
@@ -55,47 +55,6 @@ void main() {
       expect(timesWord(1), 'once');
       expect(timesWord(2), 'twice');
       expect(timesWord(3), 'three times');
-    });
-  });
-
-  group('splitCommentForChecklist', () {
-    const pinA =
-        'The white rook on e1 pins the black knight on e5 to the king.';
-    const pinB =
-        'The white bishop on b5 pins the black knight on c6 to the king.';
-    const open = 'The white rook on e1 stands on the open e-file.';
-
-    test('a comment it wrote comes back checked, and the note stays a note',
-        () {
-      final comment = joinSentences(['my own note', pinA, open]);
-      final split =
-          splitCommentForChecklist(comment, const [pinA, pinB], const [open]);
-
-      expect(split.tactical, {pinA});
-      expect(split.positional, {open});
-      expect(split.leftover, 'my own note.');
-    });
-
-    test('two findings of one kind are two lines, and both come back checked',
-        () {
-      // Under the old separator two pins were one clause, „Pin: a | b", which
-      // the dialog split in two and could then never match again.
-      final comment = joinSentences([pinA, pinB]);
-      final split =
-          splitCommentForChecklist(comment, const [pinA, pinB], const []);
-
-      expect(split.tactical, {pinA, pinB});
-      expect(split.leftover, '');
-    });
-
-    test('a comment in an older wording is kept whole as a note', () {
-      const legacy = 'Pin: the black knight on e5 is pinned | Resolved — x';
-      final split =
-          splitCommentForChecklist(legacy, const [pinA, pinB], const [open]);
-
-      expect(split.tactical, isEmpty);
-      expect(split.positional, isEmpty);
-      expect(split.leftover, legacy);
     });
   });
 }

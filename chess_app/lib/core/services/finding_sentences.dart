@@ -12,8 +12,6 @@
 /// write through here.
 library;
 
-import 'package:chess/chess.dart' as chess;
-
 const _countWords = {
   2: 'two',
   3: 'three',
@@ -52,31 +50,6 @@ String sentence(String clause) {
   return _ended('${text[0].toUpperCase()}${text.substring(1)}');
 }
 
-/// Whether [fen] is a position where the side to move is mated.
-bool isCheckmate(String fen) {
-  try {
-    return chess.Chess.fromFEN(fen).in_checkmate;
-  } catch (_) {
-    return false;
-  }
-}
-
-/// The comment the app writes on a move by itself, from its findings: [parts]
-/// joined as [joinSentences] does — and nothing at all when the move mates.
-///
-/// A mating move is explained by its `#`. Whatever else is true on that board
-/// is over with the game: under Rh5# the Analysis Studio wrote that the rook
-/// „skewers the black king on f5 and the bishop on d5 behind it" (reported
-/// 16.9.2026, and the owner asked for no comment rather than a better one).
-///
-/// Here and not in the detectors' `explainMove`, whose findings after a mate
-/// still feed a tutorial's facts, where the harness reads them as they are.
-String autoMoveComment({
-  required String afterFen,
-  required Iterable<String> parts,
-}) =>
-    isCheckmate(afterFen) ? '' : joinSentences(parts);
-
 /// One comment out of several parts. Each part is ended if it has no ending —
 /// a trainer's own note included, so the sentence after it does not run into
 /// it when read aloud — and nothing else about a part is rewritten.
@@ -85,38 +58,3 @@ String joinSentences(Iterable<String> parts) => parts
     .where((part) => part.isNotEmpty)
     .map(_ended)
     .join(' ');
-
-/// Which of a move's candidate findings a stored [comment] already holds, and
-/// what is left of it once they are taken out — the trainer's own note, or a
-/// comment in a wording that is no longer written.
-///
-/// Found by the sentence and not by splitting: a separator character is a
-/// character a trainer can type, and two findings of one kind used to be one
-/// clause that the old split cut in two and could never match again.
-({Set<String> tactical, Set<String> positional, String leftover})
-    splitCommentForChecklist(
-  String comment,
-  List<String> tacticalCandidates,
-  List<String> positionalCandidates,
-) {
-  var rest = comment;
-  Set<String> take(List<String> candidates) {
-    final found = <String>{};
-    for (final candidate in candidates) {
-      if (candidate.isEmpty) continue;
-      final at = rest.indexOf(candidate);
-      if (at < 0) continue;
-      found.add(candidate);
-      rest = rest.replaceRange(at, at + candidate.length, ' ');
-    }
-    return found;
-  }
-
-  final tactical = take(tacticalCandidates);
-  final positional = take(positionalCandidates);
-  return (
-    tactical: tactical,
-    positional: positional,
-    leftover: rest.replaceAll(RegExp(r'\s+'), ' ').trim(),
-  );
-}

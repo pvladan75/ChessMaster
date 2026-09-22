@@ -6483,3 +6483,25 @@ vraćenom `Slider(`. Dve prve mutacije klizača bile su neispravne — jedna je
 slomila null-promociju (greška kompajliranja, pogrešna crvena), druga je bila
 ekvivalentna (`onChanged?.call` i onako ne radi ništa kad je isključen) — i
 zamenjene su onim što stvarno menja ponašanje (pravilo 3).
+
+## Motivi samo za AI — 22.9.2026
+
+Vlasnik je odlučio da su taktički i pozicioni motivi skrivena funkcionalnost —
+za AI komentar i tutorijal — i da se ne računaju na promenu table. Uklonjeni su
+paneli, automatski komentar poteza sa podešavanjem `manualCommentMode`, lista
+za štikliranje u uredniku i rečenice koje su Review i Auto Analysis pisali
+ispod poteza. Za urednik je iskorišćen postojeći `showCommentDialog`, koji
+niko nije zvao — **pre pisanja „jednostavnije verzije" grep-uj isti fajl.**
+
+**Provera „nema ga" mora da stoji gde bi ga bilo.** Prva pozicija u testu nije
+imala nijedan nalaz, a stari paneli za takvu poziciju nisu crtali ništa — pa
+bi `find.text('Tactical motifs'), findsNothing` prošao i na starom kodu.
+Crvena je u tom slučaju došla od liste u sheet-u, ne od table; tek pozicija
+sa visećim topom i izolovanim pešakom je dala crvenu za samu tablu. **Kad
+jedan slučaj ima dve tvrdnje, proveri koja je od njih pala.** Ista runda je
+dala i dve pogrešne crvene u mom testu (`Qd5` umesto `Qd5+`, i pozicija sa
+crnim na potezu), obe pre prave provere — prvo se ispravi test, pa se ponovo
+gleda crvena na starom kodu.
+
+Brojevi: 3748 → 3741 (−10 testova obrisanog koda, +3 nova), sve predviđeno pre
+merenja.

@@ -95,17 +95,6 @@ class PositionalEvaluatorService {
     ]);
   }
 
-  /// Every candidate comment line, unfiltered/uncapped — for a manual
-  /// checklist UI, mirrors [TacticalMotifDetector.candidateCommentLines].
-  List<String> candidateCommentLines(PositionalMoveDiff diff) {
-    return [
-      ...diff.created.map((f) => f.description),
-      ...diff.resolved
-          .where((f) => !f.favorsMover)
-          .map((f) => f.goneDescription),
-    ];
-  }
-
   List<PositionalFinding> _mostNarratable(
       List<PositionalFinding> findings, int max) {
     if (findings.isEmpty) return const [];

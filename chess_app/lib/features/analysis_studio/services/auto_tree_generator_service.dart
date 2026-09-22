@@ -8,9 +8,6 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/models/analysis_models.dart';
-import 'package:chess_app/core/services/finding_sentences.dart';
-import 'package:chess_app/core/services/tactical_motif_detector.dart';
-import 'package:chess_app/core/services/positional_evaluator_service.dart';
 
 class AutoAnalysisParams {
   final int pliesDepth; // N: 2 to 6 plies
@@ -40,8 +37,6 @@ typedef PositionAnalyzer = Future<List<AnalysisLine>> Function(
 
 class AutoTreeGeneratorService {
   bool _isCancelled = false;
-  final _tacticalDetector = const TacticalMotifDetector();
-  final _positionalEvaluator = const PositionalEvaluatorService();
 
   void cancel() {
     _isCancelled = true;
@@ -226,24 +221,6 @@ class AutoTreeGeneratorService {
         san: san,
         uci: uci,
       );
-
-      if (!AppSettingsService.instance.manualCommentMode &&
-          childNode.comment.isEmpty) {
-        final tacticalDiff = _tacticalDetector.explainMove(
-          beforeFen: currentNode.fen,
-          afterFen: childFen,
-          lastMoveUci: uci,
-        );
-        final positionalDiff = _positionalEvaluator.explainMove(
-            beforeFen: currentNode.fen, afterFen: childFen, lastMoveUci: uci);
-        final autoComment = autoMoveComment(afterFen: childFen, parts: [
-          _tacticalDetector.describeMoveDiff(tacticalDiff),
-          _positionalEvaluator.describeMoveDiff(positionalDiff),
-        ]);
-        if (autoComment.isNotEmpty) {
-          childNode.comment = autoComment;
-        }
-      }
 
       // Recurse to next ply
       await _expandNodeRecursive(

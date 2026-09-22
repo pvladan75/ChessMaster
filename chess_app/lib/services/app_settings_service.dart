@@ -38,7 +38,6 @@ class AppSettingsService extends ChangeNotifier {
   String _customEnginePath = '';
   double _boardSizeScale = 1.0;
   Set<String> _hiddenPanels = {};
-  bool _manualCommentMode = false;
 
   /// How long a piece takes to slide from its origin to destination square
   /// after a move. 0 disables the animation (piece snaps instantly, as
@@ -203,7 +202,6 @@ class AppSettingsService extends ChangeNotifier {
   /// When true, moves no longer get an auto-generated tactical comment —
   /// the user picks which findings to keep (plus their own text) through
   /// the comment dialog's checklist instead.
-  bool get manualCommentMode => _manualCommentMode;
 
   int get moveAnimationDurationMs => _moveAnimationDurationMs;
 
@@ -244,7 +242,6 @@ class AppSettingsService extends ChangeNotifier {
     // book was Lichess's. Nothing reads it any more, and a secret nothing uses
     // is not kept.
     await prefs.remove('lichess_api_token');
-    _manualCommentMode = prefs.getBool('app_manual_comment_mode') ?? false;
     _moveAnimationDurationMs =
         (prefs.getInt('app_move_animation_ms') ?? 200).clamp(0, 500);
     _endgameIncludeOnline =
@@ -348,13 +345,6 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('app_hidden_panels', _hiddenPanels.toList());
-  }
-
-  Future<void> setManualCommentMode(bool enabled) async {
-    _manualCommentMode = enabled;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('app_manual_comment_mode', _manualCommentMode);
   }
 
   Future<void> setMoveAnimationDurationMs(int ms) async {

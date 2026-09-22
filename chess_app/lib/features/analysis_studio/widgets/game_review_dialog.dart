@@ -53,7 +53,6 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       LocalPuzzleExtractorService();
 
   late int _engineDepth;
-  bool _overwriteExisting = false;
   bool _analyzeFromCurrent = false;
 
   double _blunderThreshold = 2.0;
@@ -114,7 +113,6 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       analyzer:
           EvalCache.instance.wrap(widget.stockfishService.analyzePositionSync),
       depth: _engineDepth,
-      overwriteExisting: _overwriteExisting,
       onProgress: (processed, total) {
         if (!mounted) return;
         setState(() {
@@ -257,15 +255,6 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         divisions: AppSettingsService.kMaxEngineDepth - 5,
         activeColor: context.colors.warning,
         onChanged: (val) => setState(() => _engineDepth = val.round()),
-      ),
-      CheckboxListTile(
-        dense: true,
-        contentPadding: EdgeInsets.zero,
-        controlAffinity: ListTileControlAffinity.leading,
-        value: _overwriteExisting,
-        title: Text('Overwrite existing comments',
-            style: AppText.body.copyWith(color: context.colors.textPrimary)),
-        onChanged: (val) => setState(() => _overwriteExisting = val ?? false),
       ),
       CheckboxListTile(
         dense: true,

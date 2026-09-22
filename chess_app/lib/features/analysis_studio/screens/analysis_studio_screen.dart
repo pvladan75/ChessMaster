@@ -42,12 +42,9 @@ import 'package:chess_app/features/analysis_studio/services/opening_book_service
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/teach_menu.dart';
 import 'package:chess_app/core/models/tactical_motif.dart';
-import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
-import 'package:chess_app/features/analysis_studio/widgets/tactical_findings_panel_widget.dart';
 import 'package:chess_app/core/models/positional_factor.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
-import 'package:chess_app/features/analysis_studio/widgets/positional_findings_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
@@ -220,42 +217,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   bool _openingExplorerLoading = false;
   int _openingExplorerRequestId = 0;
 
-  // Tactical motifs for _currentNode, memoized by fen+move so the frequent
-  // setState calls while the engine streams eval updates don't re-run the
-  // detector for a position that hasn't actually changed.
+  // The tactical and positional findings are not shown on this screen
+  // (22.9.2026): they are computed only for what [_generateAiComment]
+  // sends to the AI, never because the board changed.
   final _tacticalDetector = const TacticalMotifDetector();
-  String? _tacticalCacheKey;
-  MotifResult _tacticalResult = MotifResult.empty();
-
-  MotifResult _computeTacticalFindings() {
-    final key = '${_currentNode.fen}|${_currentNode.moveUci}';
-    if (key != _tacticalCacheKey) {
-      _tacticalCacheKey = key;
-      _tacticalResult = _tacticalDetector.detect(
-        fen: _currentNode.fen,
-        lastMoveUci: _currentNode.moveUci,
-        evalText: _currentEvalString,
-      );
-    }
-    return _tacticalResult;
-  }
-
-  // Positional factors for _currentNode — same memoization approach; eval
-  // text doesn't factor into positional findings, so the key is just the fen.
   final _positionalEvaluator = const PositionalEvaluatorService();
-  String? _positionalCacheKey;
-  PositionalResult _positionalResult = PositionalResult.empty();
 
   bool _isGeneratingAiComment = false;
-
-  PositionalResult _computePositionalFindings() {
-    final key = _currentNode.fen;
-    if (key != _positionalCacheKey) {
-      _positionalCacheKey = key;
-      _positionalResult = _positionalEvaluator.evaluate(fen: _currentNode.fen);
-    }
-    return _positionalResult;
-  }
 
   @override
   void initState() {
@@ -415,8 +383,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _ToolAction(Icons.share, context.colors.info, 'Export PGN', _exportPgn),
       _ToolAction(Icons.cloud_outlined, context.colors.info, 'Saved analyses',
           _showSavedAnalysesDialog),
-      _ToolAction(Icons.view_quilt_outlined, context.colors.textMuted,
-          'Panels and comments', () => showAnalysisPanelsSheet(context)),
+      _ToolAction(Icons.view_quilt_outlined, context.colors.textMuted, 'Panels',
+          () => showAnalysisPanelsSheet(context)),
       _ToolAction(Icons.settings, context.colors.textMuted, 'Settings',
           _openAppSettings),
       _ToolAction(Icons.terminal, context.colors.warning, 'Engine Logs 📜',
@@ -870,24 +838,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         uci: uci,
       );
 
-      if (!AppSettingsService.instance.manualCommentMode &&
-          childNode.comment.isEmpty) {
-        final tacticalDiff = _tacticalDetector.explainMove(
-          beforeFen: _currentNode.fen,
-          afterFen: newFen,
-          lastMoveUci: uci,
-        );
-        final positionalDiff = _positionalEvaluator.explainMove(
-            beforeFen: _currentNode.fen, afterFen: newFen, lastMoveUci: uci);
-        final autoComment = autoMoveComment(afterFen: newFen, parts: [
-          _tacticalDetector.describeMoveDiff(tacticalDiff),
-          _positionalEvaluator.describeMoveDiff(positionalDiff),
-        ]);
-        if (autoComment.isNotEmpty) {
-          childNode.comment = autoComment;
-        }
-      }
-
       setState(() {
         _currentNode = childNode;
         _boardController.loadFen(newFen);
@@ -930,42 +880,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _saveDraft();
   }
 
-  /// Always opens the checklist editor (see [dialogs.showManualCommentDialog])
-  /// rather than a plain free-text box, regardless of the "manualCommentMode"
-  /// app setting — that setting only controls whether a *freshly played*
-  /// move gets auto-commented, not how an existing comment is edited. Every
-  /// clause the current comment is already built from — auto-generated or
-  /// not — comes back pre-checked, so editing means picking which findings
-  /// to keep, not retyping the whole thing.
+  /// The move's comment, as the reader wrote it — a plain text box. It used
+  /// to offer the tactical and positional findings as a checklist; since
+  /// 22.9.2026 those findings are for the AI only.
   void _showCommentDialog() {
-    final parentFen = _currentNode.parent?.fen;
-    final moveUci = _currentNode.moveUci;
-
-    final tacticalCandidates = <String>[];
-    final positionalCandidates = <String>[];
-    // No findings offered for a mating move, for the reason
-    // [autoMoveComment] gives: the dialog pre-checks them.
-    if (parentFen != null &&
-        moveUci != null &&
-        !isCheckmate(_currentNode.fen)) {
-      final tacticalDiff = _tacticalDetector.explainMove(
-        beforeFen: parentFen,
-        afterFen: _currentNode.fen,
-        lastMoveUci: moveUci,
-      );
-      final positionalDiff = _positionalEvaluator.explainMove(
-          beforeFen: parentFen,
-          afterFen: _currentNode.fen,
-          lastMoveUci: moveUci);
-      tacticalCandidates
-          .addAll(_tacticalDetector.candidateCommentLines(tacticalDiff));
-      positionalCandidates
-          .addAll(_positionalEvaluator.candidateCommentLines(positionalDiff));
-    }
-
-    dialogs.showManualCommentDialog(
-        context, _currentNode.comment, tacticalCandidates, positionalCandidates,
-        (comment) {
+    dialogs.showCommentDialog(context, _currentNode.comment, (comment) {
       setState(() => _currentNode.comment = comment);
     });
   }
@@ -1007,13 +926,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     );
   }
 
-  /// Sends the move's tactical/positional finding diff (the same data
-  /// [_showCommentDialog] already computes) plus its eval swing to the
-  /// backend's Gemini-backed endpoint, then opens the same checklist editor
-  /// pre-filled with the generated prose. Free-flowing AI text never matches
-  /// a candidate finding line, so [dialogs.showManualCommentDialog] naturally
-  /// drops it into its free-text box — reviewable/editable there, nothing is
-  /// saved until the user hits "Save".
+  /// Sends the move's tactical/positional finding diff plus its eval swing
+  /// to the backend's Gemini-backed endpoint, then opens the comment editor
+  /// pre-filled with the generated prose — reviewable and editable there,
+  /// nothing is saved until the user hits "Save". This is the one place on
+  /// the screen the findings are computed.
   ///
   /// Also gathers comparative context so the model can contrast what was
   /// played against what else was possible: the previous move, an unplayed
@@ -1025,18 +942,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (parent == null || moveUci == null) return;
 
     final played = _findingsPairFor(parent.fen, _currentNode.fen, moveUci);
-    final tacticalCandidates = _tacticalDetector.candidateCommentLines(
-      _tacticalDetector.explainMove(
-          beforeFen: parent.fen,
-          afterFen: _currentNode.fen,
-          lastMoveUci: moveUci),
-    );
-    final positionalCandidates = _positionalEvaluator.candidateCommentLines(
-      _positionalEvaluator.explainMove(
-          beforeFen: parent.fen,
-          afterFen: _currentNode.fen,
-          lastMoveUci: moveUci),
-    );
 
     // Previous move — what led into the position this move was played from.
     Map<String, dynamic>? previousMoveData;
@@ -1165,9 +1070,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       return;
     }
 
-    dialogs.showManualCommentDialog(
-        context, aiComment, tacticalCandidates, positionalCandidates,
-        (comment) {
+    dialogs.showCommentDialog(context, aiComment, (comment) {
       setState(() => _currentNode.comment = comment);
     });
   }
@@ -1994,12 +1897,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 ],
               ),
             ),
-            if (AppSettingsService.instance.isPanelVisible('tactical_motifs'))
-              TacticalFindingsPanelWidget(result: _computeTacticalFindings()),
-            if (AppSettingsService.instance
-                .isPanelVisible('positional_factors'))
-              PositionalFindingsPanelWidget(
-                  result: _computePositionalFindings()),
             if (AppSettingsService.instance.isPanelVisible('syzygy'))
               SyzygyPanelWidget(
                 isEligible: phaseInfo.isSyzygyReady,

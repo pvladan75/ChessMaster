@@ -5878,6 +5878,27 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 221. Motivi samo za AI — 22.9.2026, nije viđeno uživo
+
+**Samo aplikacija** (nov build). Taktički i pozicioni motivi se više ne vide i ne
+računaju na promenu table; računaju se samo za „Generate AI comment" i za
+tutorijal iz partije.
+
+1. [ ] **Nema panela.** U Analizi nema „Tactical motifs" ni „Positional factors";
+   dugme u traci se zove „Panels" i nudi Move tree, Opening Explorer, Tablebase i
+   Engine analysis panel — bez prekidača za automatski komentar.
+2. [ ] **Potez bez komentara.** Odigraj nekoliko poteza (i jednu viljušku): nijedan
+   ne dobija komentar sam od sebe.
+3. [ ] **Urednik je tekst.** „Add Comment" / „Add / Edit Comment" otvara samo polje
+   za tekst, bez dve liste za štikliranje; sačuvan tekst stoji ispod poteza.
+4. [ ] **AI komentar radi.** „Generate AI comment" na potezu vraća rečenicu u isto
+   polje za tekst, i ona se čuva na „Save".
+5. [ ] **Review i Auto Analysis.** „Review entire game" stavlja oznake (?, ?!), ali
+   ne piše rečenice ispod poteza, i nema „Overwrite existing comments"; Auto
+   Analysis gradi linije bez komentara.
+6. [ ] **Tutorijal iz partije** i dalje priča o motivima (viljuška, vezivanje…) kao
+   do sada — oni mu stižu iz Review-a, ne sa table.
+
 ## 220. Pad na Windowsu sa čitačem ekrana, i klizači koje crta aplikacija — 22.9.2026, pad ✅ proveren uživo 22.9.2026, izgled klizača nije viđen
 
 **Samo aplikacija** (nov Windows build). Pad je bio u motoru, u

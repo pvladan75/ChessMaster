@@ -203,8 +203,6 @@ void main() {
           'The white knight on e5 is no longer hanging.');
       expect(detector.describeMoveDiff(diff),
           'The white knight on e5 is no longer hanging.');
-      expect(detector.candidateCommentLines(diff),
-          ['The white knight on e5 is no longer hanging.']);
     });
 
     test(
@@ -347,10 +345,6 @@ void main() {
           detector.describeMoveDiff(diff),
           'The white bishop on b5 pins the black knight on c6 to the king on e8. '
           'The white knight on f3 is no longer hanging.');
-      expect(detector.candidateCommentLines(diff), [
-        'The white bishop on b5 pins the black knight on c6 to the king on e8.',
-        'The white knight on f3 is no longer hanging.',
-      ]);
     });
 
     test('16. Two pins are two findings, each one sentence', () {

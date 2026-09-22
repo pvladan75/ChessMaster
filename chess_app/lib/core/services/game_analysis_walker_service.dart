@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:chess/chess.dart' as chess;
-import 'package:chess_app/core/services/finding_sentences.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/core/models/game_moment.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
@@ -148,10 +147,10 @@ class GameAnalysisWalkerService {
 
   /// Walks [startNode]'s main line (first child at every step — [startNode]
   /// need not be the tree's true root, so this also covers "analyze just
-  /// from here onward" over a sub-sequence of the game) and writes each
-  /// move's combined tactical+positional comment and White-relative eval
-  /// into the corresponding node. Existing non-empty comments are left alone
-  /// unless [overwriteExisting] is true.
+  /// from here onward" over a sub-sequence of the game). It writes nothing
+  /// onto the nodes: since 22.9.2026 the tactical and positional findings
+  /// are not shown to the reader, and they travel only in the returned
+  /// [GameMoment]s, which a tutorial reads.
   ///
   /// Returns the walked node chain alongside the raw [GameMoment]s so a
   /// caller can run further passes (e.g. [tagBlunders], puzzle extraction)
@@ -161,7 +160,6 @@ class GameAnalysisWalkerService {
     required AnalysisNode startNode,
     required PositionAnalyzer analyzer,
     int depth = _defaultDepth,
-    bool overwriteExisting = false,
     void Function(int processed, int total)? onProgress,
   }) async {
     final chain = <AnalysisNode>[];
@@ -180,26 +178,6 @@ class GameAnalysisWalkerService {
       depth: depth,
       onProgress: onProgress,
     );
-
-    for (var i = 0; i < moments.length && i < chain.length; i++) {
-      final node = chain[i];
-      final moment = moments[i];
-
-      if (overwriteExisting || node.comment.isEmpty) {
-        // The moment keeps its findings (a tutorial reads them); the node
-        // gets no comment for a mating move.
-        final comment = autoMoveComment(
-            afterFen: moment.fenAfter, parts: [moment.combinedComment]);
-        if (comment.isNotEmpty) {
-          node.comment = comment;
-        }
-      }
-
-      // The review writes what it *says* about a move — the comment and the
-      // NAG above — and no longer a number onto the node. A stored evaluation
-      // is the engine's opinion wearing the reader's handwriting; if they want
-      // it kept, they type it into the comment.
-    }
 
     return (chain: chain, moments: moments);
   }

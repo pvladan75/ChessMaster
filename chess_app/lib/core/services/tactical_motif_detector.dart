@@ -221,19 +221,6 @@ class TacticalMotifDetector {
     ]);
   }
 
-  /// Every candidate comment line for a move — the same sentences
-  /// [describeMoveDiff] uses, but unfiltered and uncapped, for UIs that let a
-  /// human pick which findings to keep (e.g. a checklist) instead of applying
-  /// the automatic significance filter.
-  List<String> candidateCommentLines(MoveMotifDiff diff) {
-    return [
-      ...diff.created.map((f) => f.description),
-      ...diff.resolved
-          .where((f) => !f.favorsMover)
-          .map((f) => f.goneDescription),
-    ];
-  }
-
   /// Highest-significance findings first, capped at [max]. Findings below
   /// [_minSignificanceForComment] are dropped as long as at least one
   /// findings clears the bar; if none do, the single best one is kept

@@ -214,23 +214,15 @@ void main() {
       expect(created.affectedSquares, contains('d5'));
     });
 
-    test(
-        '11. describeMoveDiff and candidateCommentLines format findings consistently',
-        () {
+    test('11. describeMoveDiff writes findings as sentences', () {
       const beforeFen = '4k3/8/8/8/2P1P3/8/8/1N2K3 w - - 0 1';
       const afterFen = '4k3/8/8/3N4/2P1P3/8/8/4K3 b - - 0 1';
       final diff = service.explainMove(
           beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: null);
 
       final comment = service.describeMoveDiff(diff);
-      final candidates = service.candidateCommentLines(diff);
-
       expect(comment, contains('outpost'));
-      expect(candidates.any((c) => c.contains('outpost')), isTrue);
       expect(comment, isNot(contains('|')));
-      for (final line in candidates) {
-        expect(comment, contains(line));
-      }
     });
 
     test(
@@ -251,10 +243,6 @@ void main() {
 
       expect(comment, contains('pawn shield'));
       expect(comment, isNot(contains('is open')));
-
-      // Still available for manual selection, just not auto-narrated.
-      final candidates = service.candidateCommentLines(diff);
-      expect(candidates.any((c) => c.contains('is open')), isTrue);
     });
 
     test('13. Pawn islands are counted in words', () {

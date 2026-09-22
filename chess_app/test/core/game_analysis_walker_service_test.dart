@@ -92,8 +92,11 @@ void main() {
     });
 
     test(
-        '3. annotateNodeChain writes eval into each node and respects overwriteExisting',
-        () async {
+        '3. annotateNodeChain writes nothing onto the nodes, and the moment keeps '
+        'the finding', () async {
+      // Since 22.9.2026 the findings are not shown to the reader: a review
+      // no longer writes them under a move. They travel in the moments,
+      // which a tutorial reads.
       final root = AnalysisNode(fen: '3r2k1/8/8/8/8/8/8/6KQ w - - 0 1');
       final child = root.addChild(
         childFen: '3r2k1/8/8/3Q4/8/8/8/6K1 b - - 0 1',
@@ -104,27 +107,24 @@ void main() {
         uci: 'h1d5',
       );
 
-      await service.annotateNodeChain(
+      final result = await service.annotateNodeChain(
         startNode: root,
         analyzer: _SequencedFakeEngine(['+0.00', '-9.00']).analyze,
       );
 
-      // The review writes what it says about the move, and no longer a number
-      // onto the node. The queen-hanging blunder should produce a real comment.
+      expect(child.comment, isEmpty);
       expect(
-          child.comment,
+          result.moments.single.combinedComment,
           contains('The white queen on d5 is attacked by the black rook on d8 '
               'and has no defender.'));
       // Sentences, not clauses behind a separator a voice would read out.
-      expect(child.comment, isNot(contains('|')));
+      expect(result.moments.single.combinedComment, isNot(contains('|')));
 
       child.comment = 'moj ručni komentar';
       await service.annotateNodeChain(
         startNode: root,
         analyzer: _SequencedFakeEngine(['+0.00', '-9.00']).analyze,
-        overwriteExisting: false,
       );
-
       expect(child.comment, 'moj ručni komentar');
     });
 

@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3748 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3741 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1667 with TEST_DATABASE_URL, 1558 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -478,6 +478,15 @@ the fault lives** — the gate went red only after a live spy in front of the
 engine had named the node; and **after the first refusal only the first
 refusal means anything**, because Windows keeps its tree broken, `R`
 included.
+Then, on the owner's word, the tactical and positional motifs became
+AI-only (→ **3741**, a full run; the count falls by the tests of deleted
+code): no panels, no automatic comment on a move and no `manualCommentMode`,
+a plain-text comment editor, and no motif sentences written under moves by
+Review or Auto Analysis. The detectors run only for „Generate AI comment"
+and a tutorial, and `analysis_motifs_hidden_test` reads the screen by its
+braces to hold that. **A check that something is gone must stand where it
+would have been drawn** — the old panels drew nothing for a position with no
+finding, so the first fixture passed on the old code.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
