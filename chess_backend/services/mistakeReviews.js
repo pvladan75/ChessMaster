@@ -263,8 +263,20 @@ async function recurrence(pool, userId, { limit = 12, sample = 5000 } = {}) {
   return { sampled: rows.length, motifs: top(motifs), endings: top(endings) };
 }
 
+/// Takes one mistake out of the drill — the owner's, and only theirs (the id
+/// is a serial, not a secret). The game it came from stays; only the card
+/// goes. True when a row was deleted.
+async function removeItem(pool, { userId, itemId }) {
+  const result = await pool.query(
+    'DELETE FROM mistake_reviews WHERE id = $1 AND user_id = $2',
+    [itemId, userId]
+  );
+  return result.rowCount > 0;
+}
+
 module.exports = {
   GRADES,
+  removeItem,
   recordMistakes,
   dueItems,
   gradeItem,

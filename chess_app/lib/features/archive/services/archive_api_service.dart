@@ -64,6 +64,44 @@ class ArchiveApiService {
   Future<http.StreamedResponse> _send(http.BaseRequest request) =>
       _client?.send(request) ?? request.send();
 
+  Future<http.Response> _delete(Uri uri, Map<String, String> headers) =>
+      _client?.delete(uri, headers: headers) ??
+      http.delete(uri, headers: headers);
+
+  /// Null when the delete went through; otherwise the sentence to show, the
+  /// server's own when it sent one.
+  Future<String?> _deleteSaying(Uri uri, String fallback) async {
+    try {
+      final response = await _delete(uri, {'Authorization': 'Bearer $_token'});
+      if (response.statusCode == 200) return null;
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['error'] is String) {
+          return body['error'] as String;
+        }
+      } catch (_) {
+        // Not JSON; the fallback says enough.
+      }
+      return fallback;
+    } catch (_) {
+      return '$fallback The server did not respond.';
+    }
+  }
+
+  /// Deletes one player's own games from the archive, with the mistakes and
+  /// opening statistics computed from them (`DELETE /games/subjects/:subject`).
+  /// The server refuses while an import of that player is running, and says so.
+  Future<String?> deleteSubjectGames(String subject) => _deleteSaying(
+        Uri.parse('$backendUrl/games/subjects/${Uri.encodeComponent(subject)}'),
+        'The games could not be deleted.',
+      );
+
+  /// Takes one mistake out of the drill; the game it came from stays.
+  Future<String?> removeMistake(String id) => _deleteSaying(
+        Uri.parse('$backendUrl/games/mistakes/${Uri.encodeComponent(id)}'),
+        'The mistake could not be removed.',
+      );
+
   Future<int> importFile(String filePath, String username) async {
     final uri = Uri.parse('$backendUrl/games/import/file');
     final request = http.MultipartRequest('POST', uri)

@@ -48,10 +48,16 @@ void showNotificationsDialog(
   required List<dynamic> pendingRequests,
   required void Function(int notifId, String roomCode) onJoinFromNotification,
   required Future<bool> Function(int requestId, bool accept) onRespondToRequest,
+  required Future<bool> Function(int notifId) onDeleteNotification,
+  required Future<bool> Function() onClearAll,
 }) {
   final colors = context.colors;
   final Map<int, bool> answered = {};
   final Set<int> answering = {};
+  // Deleted here since 22.9.2026 — until then a notification stayed for ever.
+  // A row leaves the list only once the server says it is gone.
+  final Set<int> deleted = {};
+  bool clearing = false;
 
   showDialog(
     context: context,
@@ -62,6 +68,7 @@ void showNotificationsDialog(
             .toList();
         final pendingIds = pendingRequests.map((r) => r['id'] as int).toSet();
         final messages = notifications.where((n) {
+          if (deleted.contains(n['id'])) return false;
           if ((n['kind'] ?? 'room').toString() != 'student_request') {
             return true;
           }
@@ -79,6 +86,28 @@ void showNotificationsDialog(
         }
 
         final unreadCount = messages.where((n) => n['is_read'] != true).length;
+
+        Future<void> remove(int id) async {
+          if (await onDeleteNotification(id)) {
+            setModalState(() => deleted.add(id));
+          }
+        }
+
+        // Everything shown was marked read when the bell opened, so clearing
+        // the read ones is clearing the list; pending requests are not
+        // notifications and stay until answered.
+        Future<void> clearAll() async {
+          setModalState(() => clearing = true);
+          final ok = await onClearAll();
+          setModalState(() {
+            clearing = false;
+            if (ok) {
+              for (final n in messages) {
+                if (n['id'] is int) deleted.add(n['id'] as int);
+              }
+            }
+          });
+        }
 
         return AlertDialog(
           title: Column(
@@ -145,7 +174,8 @@ void showNotificationsDialog(
                           for (final entry in answered.entries)
                             _answeredCard(context, entry.value),
                           for (final n in messages)
-                            _messageCard(ctx, n, onJoinFromNotification),
+                            _messageCard(ctx, n, onJoinFromNotification,
+                                onDelete: () => remove(n['id'] as int)),
                         ],
                       ),
                     ),
@@ -154,6 +184,12 @@ void showNotificationsDialog(
             ),
           ),
           actions: [
+            if (messages.isNotEmpty)
+              TextButton(
+                key: const ValueKey('notifications-clear-all'),
+                onPressed: clearing ? null : clearAll,
+                child: const Text('Clear all'),
+              ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Close'),
@@ -272,8 +308,9 @@ Widget _answeredCard(BuildContext context, bool accepted) {
 Widget _messageCard(
   BuildContext ctx,
   dynamic n,
-  void Function(int notifId, String roomCode) onJoinFromNotification,
-) {
+  void Function(int notifId, String roomCode) onJoinFromNotification, {
+  required VoidCallback onDelete,
+}) {
   final colors = ctx.colors;
   final notifId = n['id'] as int;
 
@@ -326,15 +363,26 @@ Widget _messageCard(
                 : (kind == 'student_request' ? 'Answered.' : ''),
         style: AppText.micro.copyWith(color: colors.textSecondary),
       ),
-      trailing: canJoin
-          ? ElevatedButton(
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (canJoin)
+            ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 onJoinFromNotification(notifId, roomCode);
               },
               child: Text('Join', style: AppText.caption),
-            )
-          : null,
+            ),
+          IconButton(
+            key: ValueKey('notification-delete-$notifId'),
+            icon: Icon(Icons.close, size: 18, color: colors.textMuted),
+            tooltip: 'Delete',
+            visualDensity: VisualDensity.compact,
+            onPressed: onDelete,
+          ),
+        ],
+      ),
     ),
   );
 }

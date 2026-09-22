@@ -14,7 +14,7 @@ const logger = require('../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const {
-  GRADES, recordMistakes, dueItems, gradeItem, stats, recurrence,
+  GRADES, recordMistakes, dueItems, gradeItem, stats, recurrence, removeItem,
 } = require('../services/mistakeReviews');
 
 // A batch of findings is written after an engine pass over many games, so this
@@ -89,6 +89,21 @@ router.post('/:id/grade', authenticateToken, async (req, res) => {
     return res.json(outcome);
   } catch (err) {
     return fail(res, err, 'Failed to record grade.');
+  }
+});
+
+// DELETE /games/mistakes/:id — take one mistake out of the drill (22.9.2026:
+// until then nothing could be removed). Only the card; the game stays.
+router.delete('/:id', authenticateToken, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id.' });
+  try {
+    if (!(await removeItem(pool, { userId: req.user.id, itemId: id }))) {
+      return res.status(404).json({ error: 'That mistake is not in your drill.' });
+    }
+    return res.json({ deleted: id });
+  } catch (err) {
+    return fail(res, err, 'The mistake could not be removed.');
   }
 });
 

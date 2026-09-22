@@ -39,6 +39,7 @@ const { openingJudge } = require('../services/openingJudgeService');
 const { repertoireDiff } = require('../services/repertoireArchive');
 const { playerProfile } = require('../services/playerProfile');
 
+const archiveDeletion = require('../services/archiveDeletion');
 const importer = createArchiveImporter({ pool });
 const prep = createOpponentPrep({ pool, importer });
 
@@ -479,6 +480,29 @@ router.get('/subjects', authenticateToken, async (req, res) => {
     return res.json({ subjects: await importer.archiveSubjects(req.user.id) });
   } catch (err) {
     return fail(res, err, 'Archive subject list is not available.');
+  }
+});
+
+// DELETE /games/subjects/:subject — one player's own games, and what was
+// computed from them (services/archiveDeletion.js). Refused while an import of
+// that player is running.
+router.delete('/subjects/:subject', authenticateToken, async (req, res) => {
+  try {
+    const result = await archiveDeletion.deleteSubjectGames(pool, {
+      userId: req.user.id,
+      subject: req.params.subject,
+      reapStale: importer.reapStale,
+    });
+    if (result.ok) return res.json({ deleted: result.deleted });
+    if (result.status === 409) {
+      return res.status(409).json({
+        error: 'An import of these games is still running. Delete them once it has finished.',
+        code: 'import_running',
+      });
+    }
+    return res.status(404).json({ error: 'There are no games of that player.' });
+  } catch (err) {
+    return fail(res, err, 'The games could not be deleted.');
   }
 });
 

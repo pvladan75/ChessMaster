@@ -7,7 +7,7 @@ const { getUserStats } = require('../limitsService');
 const relationships = require('../services/relationshipService');
 const { trainerOwnsStudent } = require('../services/assignmentService');
 const realtime = require('../services/realtime');
-const { notify } = require('../services/notifications');
+const { notify, removeOne, clearRead } = require('../services/notifications');
 const { mayJoinRoom } = require('../services/roomAccess');
 const mailService = require('../services/mailService');
 
@@ -469,6 +469,32 @@ router.post('/notifications/:id/read', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error marking notification read:', err);
     res.status(500).json({ error: 'Error updating notification.' });
+  }
+});
+
+// DELETE /notifications/read — every notification already read (22.9.2026:
+// until then nothing could be deleted). Before `/:id`, which it would match.
+router.delete('/notifications/read', authenticateToken, async (req, res) => {
+  try {
+    res.json({ deleted: await clearRead(pool, { userId: req.user.id }) });
+  } catch (err) {
+    logger.error('Error clearing notifications:', err);
+    res.status(500).json({ error: 'Error deleting notifications.' });
+  }
+});
+
+// DELETE /notifications/:id — one of the caller's own.
+router.delete('/notifications/:id', authenticateToken, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id.' });
+  try {
+    if (!(await removeOne(pool, { userId: req.user.id, id }))) {
+      return res.status(404).json({ error: 'Notification not found.' });
+    }
+    res.json({ deleted: id });
+  } catch (err) {
+    logger.error('Error deleting notification:', err);
+    res.status(500).json({ error: 'Error deleting notification.' });
   }
 });
 

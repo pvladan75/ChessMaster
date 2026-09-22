@@ -88,6 +88,40 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
         : PlayerColor.black;
   }
 
+  /// Takes the mistake on the board out of the drill for good (22.9.2026:
+  /// until then none could be). Its game stays in the archive.
+  Future<void> _remove() async {
+    final item = _current;
+    if (item == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove this mistake?'),
+        content: const Text('It will not come back in the drill. The game it '
+            'came from stays in your archive.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Remove', style: TextStyle(color: ctx.colors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _grading = true);
+    final error = await _api.removeMistake(item.id);
+    if (!mounted) return;
+    setState(() {
+      _grading = false;
+      if (error == null && identical(_current, item)) _next();
+    });
+    if (error != null) AppFeedback.error(context, error);
+  }
+
   Future<void> _grade(ReviewGrade grade) async {
     if (_current == null) return;
     setState(() => _grading = true);
@@ -336,14 +370,23 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
                   TextStyle(fontSize: 12.5, color: context.colors.textPrimary),
             ),
             const SizedBox(height: AppSpacing.xs),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                key: const Key('mistake-open-game'),
-                onPressed: _openingGame ? null : _openGameInAnalysis,
-                icon: const Icon(Icons.open_in_new, size: 18),
-                label: const Text('Open this game in Analysis'),
-              ),
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                TextButton.icon(
+                  key: const Key('mistake-open-game'),
+                  onPressed: _openingGame ? null : _openGameInAnalysis,
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: const Text('Open this game in Analysis'),
+                ),
+                TextButton.icon(
+                  key: const Key('mistake-remove'),
+                  onPressed: _grading ? null : _remove,
+                  icon: Icon(Icons.delete_outline,
+                      size: 18, color: context.colors.danger),
+                  label: const Text('Remove from drill'),
+                ),
+              ],
             ),
           ],
         ),

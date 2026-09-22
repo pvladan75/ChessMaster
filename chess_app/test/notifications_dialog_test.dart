@@ -85,6 +85,8 @@ Future<void> _open(
   List<dynamic> pending = const [],
   void Function(int, String)? onJoin,
   Future<bool> Function(int, bool)? onRespond,
+  Future<bool> Function(int)? onDelete,
+  Future<bool> Function()? onClearAll,
   Size size = _phone,
 }) async {
   tester.view.physicalSize = size;
@@ -101,6 +103,8 @@ Future<void> _open(
           pendingRequests: pending,
           onJoinFromNotification: onJoin ?? (_, __) {},
           onRespondToRequest: onRespond ?? (_, __) async => true,
+          onDeleteNotification: onDelete ?? (_) async => true,
+          onClearAll: onClearAll ?? () async => true,
         ),
         child: const Text('otvori'),
       ),
@@ -312,5 +316,61 @@ void main() {
 
     expect(find.textContaining('1 request awaiting your response'),
         findsOneWidget);
+  });
+
+  // Deleted from the bell since 22.9.2026; until then a notification stayed
+  // for ever.
+  group('deleting notifications', () {
+    testWidgets('one goes when the server says so, and only then',
+        (tester) async {
+      final asked = <int>[];
+      var answer = false;
+      await _open(tester, [_declined, _endedInvite], onDelete: (id) async {
+        asked.add(id);
+        return answer;
+      });
+      await tester.tap(find.byKey(const ValueKey('notification-delete-3')));
+      await tester.pumpAndSettle();
+      expect(asked, [3]);
+      expect(find.textContaining('nije prihvatio'), findsOneWidget,
+          reason: 'the row left although the server kept it');
+
+      answer = true;
+      await tester.tap(find.byKey(const ValueKey('notification-delete-3')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('nije prihvatio'), findsNothing);
+      expect(find.textContaining('pozvao juče'), findsOneWidget,
+          reason: 'another notification went with it');
+    });
+
+    testWidgets('Clear all empties the list and leaves the requests',
+        (tester) async {
+      var cleared = 0;
+      await _open(tester, [_declined, _roomInvite, _studentRequest],
+          pending: [_pending], onClearAll: () async {
+        cleared++;
+        return true;
+      });
+      await tester.tap(find.byKey(const ValueKey('notifications-clear-all')));
+      await tester.pumpAndSettle();
+      expect(cleared, 1);
+      expect(find.textContaining('nije prihvatio'), findsNothing);
+      expect(find.textContaining('vas poziva u sesiju'), findsNothing);
+      expect(find.text('pavle'), findsOneWidget,
+          reason: 'a request still waiting is not a notification to clear');
+      expect(
+          find.byKey(const ValueKey('notifications-clear-all')), findsNothing);
+    });
+
+    testWidgets('an invitation with Join and its delete fit a 360 dp phone',
+        (tester) async {
+      await _open(tester, [_roomInvite]);
+      expect(tester.takeException(), isNull);
+      final join = tester.getRect(find.text('Join'));
+      final delete =
+          tester.getRect(find.byKey(const ValueKey('notification-delete-1')));
+      expect(join.right, lessThanOrEqualTo(delete.left));
+      expect(delete.right, lessThanOrEqualTo(_phone.width));
+    });
   });
 }

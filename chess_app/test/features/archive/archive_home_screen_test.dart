@@ -26,6 +26,19 @@ class FakeArchiveApiService implements ArchiveApiService {
     return returnedRuns ?? [];
   }
 
+  // „Delete these games", 22.9.2026: what was asked, and the answer.
+  final List<String> deletedSubjects = [];
+  String? deleteRefusal;
+  @override
+  Future<String?> deleteSubjectGames(String subject) async {
+    deletedSubjects.add(subject);
+    if (deleteRefusal == null) {
+      returnedSubjects =
+          returnedSubjects?.where((s) => s.subject != subject).toList();
+    }
+    return deleteRefusal;
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -195,5 +208,68 @@ void main() {
     await tester.tap(find.text('Profile and habits'));
     await tester.pumpAndSettle();
     expect(pushedRoute, AppRoutes.archiveProfilePath('pvladan'));
+  });
+
+  // „Delete these games", 22.9.2026: until then nothing imported could be
+  // deleted.
+  group("deleting a player's games", () {
+    Future<void> openWithTwo(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      apiService.returnedSubjects = [
+        const ArchiveSubject(
+            subject: 'pvladan',
+            games: 4126,
+            reachedTablebase: 0,
+            withClocks: 0),
+        const ArchiveSubject(
+            subject: 'hikaru', games: 50, reachedTablebase: 0, withClocks: 0),
+      ];
+      apiService.returnedRuns = [];
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> deleteVia(WidgetTester tester, String subject) async {
+      await tester.tap(find.byKey(ValueKey('archive-delete-$subject')));
+      await tester.pumpAndSettle();
+      expect(apiService.deletedSubjects, isEmpty,
+          reason: 'deleted before the reader was asked');
+      expect(find.textContaining('All 4126 games of "pvladan"'), findsOneWidget,
+          reason: 'the dialog does not say how many, or whose');
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asked, sent, and that player leaves the list', (tester) async {
+      await openWithTwo(tester);
+      await deleteVia(tester, 'pvladan');
+      expect(apiService.deletedSubjects, ['pvladan']);
+      expect(find.text('pvladan'), findsNothing);
+      expect(find.text('hikaru'), findsOneWidget,
+          reason: 'another player went with it');
+    });
+
+    // The survivor of the first mutation round: asking and then deleting
+    // whatever the answer passed every case above, none of which said no.
+    testWidgets('„Cancel" sends nothing and keeps the card', (tester) async {
+      await openWithTwo(tester);
+      await tester.tap(find.byKey(const ValueKey('archive-delete-pvladan')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      expect(apiService.deletedSubjects, isEmpty);
+      expect(find.text('pvladan'), findsOneWidget);
+    });
+
+    testWidgets('a refusal keeps the card and says why', (tester) async {
+      await openWithTwo(tester);
+      apiService.deleteRefusal = 'An import of these games is still running.';
+      await deleteVia(tester, 'pvladan');
+      expect(find.text('pvladan'), findsOneWidget);
+      expect(find.text('An import of these games is still running.'),
+          findsOneWidget);
+    });
   });
 }

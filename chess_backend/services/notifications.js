@@ -42,4 +42,27 @@ async function notify(pool, {
   return true;
 }
 
-module.exports = { notify };
+/// Deletes one of [userId]'s notifications. True when a row went.
+///
+/// A notification is a note about something, never the thing: a pending
+/// request is counted from `/relationships/pending` and a live session from
+/// `/rooms/live`, so deleting the note closes no door.
+async function removeOne(pool, { userId, id }) {
+  const result = await pool.query(
+    'DELETE FROM user_notifications WHERE id = $1 AND user_id = $2',
+    [id, userId]
+  );
+  return result.rowCount > 0;
+}
+
+/// Deletes every notification [userId] has already read; the unread stay, so
+/// clearing cannot swallow something that arrived while the list was open.
+async function clearRead(pool, { userId }) {
+  const result = await pool.query(
+    'DELETE FROM user_notifications WHERE user_id = $1 AND is_read = TRUE',
+    [userId]
+  );
+  return result.rowCount;
+}
+
+module.exports = { notify, removeOne, clearRead };

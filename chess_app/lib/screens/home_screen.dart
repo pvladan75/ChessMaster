@@ -701,7 +701,51 @@ class _HomeScreenState extends State<HomeScreen> {
         if (ok) await _fetchNotifications();
         return ok;
       },
+      onDeleteNotification: _deleteNotification,
+      onClearAll: _clearNotifications,
     );
+  }
+
+  /// Deletes one notification; true once the server says it is gone.
+  Future<bool> _deleteNotification(int notifId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$backendUrl/notifications/$notifId'),
+        headers: {'Authorization': 'Bearer ${widget.session.token}'},
+      );
+      if (res.statusCode != 200) throw Exception('status ${res.statusCode}');
+      if (mounted) await _fetchNotifications();
+      return true;
+    } catch (e) {
+      if (mounted) {
+        AppFeedback.error(context, 'The notification could not be deleted.');
+      }
+      return false;
+    }
+  }
+
+  /// Everything on the bell: marked read, then every read one deleted. The
+  /// marking is repeated here rather than trusted from when the bell opened,
+  /// so a list shown before that request finished is still all cleared.
+  Future<bool> _clearNotifications() async {
+    final headers = {'Authorization': 'Bearer ${widget.session.token}'};
+    try {
+      final marked = await http
+          .post(Uri.parse('$backendUrl/notifications/read'), headers: headers);
+      if (marked.statusCode != 200) {
+        throw Exception('status ${marked.statusCode}');
+      }
+      final res = await http.delete(Uri.parse('$backendUrl/notifications/read'),
+          headers: headers);
+      if (res.statusCode != 200) throw Exception('status ${res.statusCode}');
+      if (mounted) await _fetchNotifications();
+      return true;
+    } catch (e) {
+      if (mounted) {
+        AppFeedback.error(context, 'The notifications could not be deleted.');
+      }
+      return false;
+    }
   }
 
   void _openStudentProgress(Map<String, dynamic> student) {

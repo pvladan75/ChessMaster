@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/models/archive_subject.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
@@ -51,6 +52,40 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
         });
       }
     }
+  }
+
+  /// Deletes one player's games — until 22.9.2026 nothing imported could be
+  /// deleted at all. What was computed from them goes too, and the dialog says
+  /// so; the server refuses while an import of that player is running.
+  Future<void> _deleteSubject(ArchiveSubject subject) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete these games?'),
+        content: Text('All ${subject.games} games of "${subject.subject}" '
+            'will be deleted, with the mistakes drilled from them and their '
+            'opening statistics. They can be imported again.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Delete', style: TextStyle(color: ctx.colors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final error =
+        await ArchiveApiService.instance.deleteSubjectGames(subject.subject);
+    if (!mounted) return;
+    if (error != null) {
+      AppFeedback.error(context, error);
+      return;
+    }
+    await _loadData();
   }
 
   @override
@@ -138,7 +173,11 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          for (final subject in subjects) _SubjectCard(subject: subject),
+          for (final subject in subjects)
+            _SubjectCard(
+              subject: subject,
+              onDelete: () => _deleteSubject(subject),
+            ),
           const SizedBox(height: AppSpacing.lg),
           if (runs.isNotEmpty) ...[
             Text(
@@ -164,8 +203,9 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
 
 class _SubjectCard extends StatelessWidget {
   final ArchiveSubject subject;
+  final VoidCallback onDelete;
 
-  const _SubjectCard({required this.subject});
+  const _SubjectCard({required this.subject, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -181,10 +221,23 @@ class _SubjectCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              subject.subject,
-              style:
-                  AppText.headline.copyWith(color: context.colors.textPrimary),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    subject.subject,
+                    style: AppText.headline
+                        .copyWith(color: context.colors.textPrimary),
+                  ),
+                ),
+                IconButton(
+                  key: ValueKey('archive-delete-${subject.subject}'),
+                  icon:
+                      Icon(Icons.delete_outline, color: context.colors.danger),
+                  tooltip: 'Delete these games',
+                  onPressed: onDelete,
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(

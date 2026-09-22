@@ -6806,3 +6806,32 @@ server šalje, i u kodiranju u kom ga šalje**; i id pozicije u fiksturi je bio
 
 Brojevi: aplikacija 3785 → 3793; server 1608 → 1609 bez baze, 1709 → 1729 sa
 bazom (12 Fritz + 1 video + 7 brisanje pozicije).
+
+## 22.9.2026 — brisanje partija, grešaka iz drila i obaveštenja
+
+Tri stvari koje niko nije mogao da obriše: partije jednog igrača iz arhive
+(`DELETE /games/subjects/:subject`, sa greškama i statistikom otvaranja kroz
+kaskadu šeme, i odbija se dok uvoz tog igrača traje), jedna greška iz drila
+(`DELETE /games/mistakes/:id`) i obaveštenja (`DELETE /notifications/:id`,
+`DELETE /notifications/read`).
+
+**Ispravka sopstvenog izveštaja**: u listi „šta ne može da se obriše" stajalo
+je i `blunder_games` kao „partije iz Review entire game". Tabela nema
+`user_id` — to je zajednički katalog pozicija, isti za sve. Izveštaj je bio
+napisan iz imena tabele, ne iz šeme. **Tabela bez vlasnika nije podatak
+korisnika**, i to se vidi u `CREATE TABLE`, ne u imenu.
+
+Mutacije su našle dve iste rupe: ni u „My games" ni u drilu nijedan test nije
+pritisnuo „Cancel", pa „pita, pa briše šta god da je odgovor" nije moglo da
+padne. **Test potvrde koji nikad ne kaže „ne" ne testira potvrdu.** Beside
+it: četiri od pet lažnih `ArchiveApiService` pišu svaku metodu ručno, pa
+nova metoda ruši kompilaciju — a pretpostavka „svi koriste noSuchMethod" bila
+je iz jednog pročitanog fajla. I redosled ruta ima svoj test:
+`/notifications/read` mora pre `/notifications/:id`, inače „read" postaje id.
+
+Nije pokriveno žicom: Home šalje dva brisanja obaveštenja kroz globalni `http`
+(isti obrazac kao postojeći `read` pozivi), pa ga test dijaloga vidi samo kroz
+povratne pozive.
+
+Brojevi: aplikacija 3793 → 3806; server 1609 → 1611 bez baze, 1729 → 1741 sa
+bazom.

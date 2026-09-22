@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'package:chess_app/features/archive/models/repertoire_diff.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
@@ -264,6 +265,49 @@ void main() {
       expect(runs.length, 1);
       expect(runs.first.id, 1);
       expect(runs.first.subject, 'pvladan');
+    });
+  });
+
+  // The deletes of 22.9.2026, as they leave the app: the screens' fakes replace
+  // this class whole and could not see a wrong path.
+  group('deleting from the archive', () {
+    test("one player's games: DELETE, the handle escaped, nothing else",
+        () async {
+      final sent = <http.Request>[];
+      final api = ArchiveApiService.withClient(MockClient((req) async {
+        sent.add(req);
+        return http.Response('{"deleted":3}', 200);
+      }));
+      expect(await api.deleteSubjectGames('a b/c'), isNull);
+      expect(sent.map((r) => '${r.method} ${r.url.path}'),
+          ['DELETE /games/subjects/a%20b%2Fc']);
+    });
+
+    test('one mistake: DELETE by its id', () async {
+      final sent = <http.Request>[];
+      final api = ArchiveApiService.withClient(MockClient((req) async {
+        sent.add(req);
+        return http.Response('{"deleted":7}', 200);
+      }));
+      expect(await api.removeMistake('7'), isNull);
+      expect(sent.map((r) => '${r.method} ${r.url.path}'),
+          ['DELETE /games/mistakes/7']);
+    });
+
+    test("a refusal is the server's own sentence", () async {
+      final api =
+          ArchiveApiService.withClient(MockClient((req) async => http.Response(
+              '{"error":"An import of these games is still running.",'
+              '"code":"import_running"}',
+              409)));
+      expect(await api.deleteSubjectGames('me'),
+          'An import of these games is still running.');
+    });
+
+    test('a server that does not answer is not a success', () async {
+      final api = ArchiveApiService.withClient(
+          MockClient((req) async => throw http.ClientException('down')));
+      expect(await api.removeMistake('7'), isNotNull);
     });
   });
 }

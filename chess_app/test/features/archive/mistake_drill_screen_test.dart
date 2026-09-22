@@ -28,6 +28,19 @@ class FakeArchiveApiService implements ArchiveApiService {
   final List<MistakeItem> dueMistakes = [];
   final List<String> gradedIds = [];
 
+  // Added with „Remove from drill" (22.9.2026): what was asked, and the answer.
+  final List<String> removed = [];
+  String? removeRefusal;
+  @override
+  Future<String?> removeMistake(String id) async {
+    removed.add(id);
+    return removeRefusal;
+  }
+
+  @override
+  Future<String?> deleteSubjectGames(String subject) async =>
+      throw UnimplementedError();
+
   @override
   Future<PlayerProfile> getPlayerProfile(String username) async =>
       throw UnimplementedError();
@@ -178,5 +191,58 @@ void main() {
     // We can instead test that the guards are in place if we can find them, or we can just verify the UI structure.
 
     addTearDown(() => tester.view.resetPhysicalSize());
+  });
+
+  // „Remove from drill", 22.9.2026: until then no mistake could be removed.
+  Future<void> removeCurrent(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: const MistakeDrillScreen(),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('carlsen'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('mistake-remove')));
+    await tester.tap(find.byKey(const Key('mistake-remove')));
+    await tester.pumpAndSettle();
+    expect(api.removed, isEmpty, reason: 'removed before the reader was asked');
+    await tester.tap(find.widgetWithText(TextButton, 'Remove'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('„Cancel" removes nothing', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: const MistakeDrillScreen(),
+    ));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('mistake-remove')));
+    await tester.tap(find.byKey(const Key('mistake-remove')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+    expect(api.removed, isEmpty);
+    expect(find.textContaining('carlsen'), findsOneWidget);
+  });
+
+  testWidgets('a removed mistake leaves the drill', (tester) async {
+    await removeCurrent(tester);
+    expect(api.removed, ['mistake_1']);
+    expect(find.textContaining('carlsen'), findsNothing,
+        reason: 'the removed mistake is still on the board');
+  });
+
+  testWidgets('a removal the server refuses keeps the mistake and says why',
+      (tester) async {
+    api.removeRefusal = 'That mistake is not in your drill.';
+    await removeCurrent(tester);
+    expect(api.removed, ['mistake_1']);
+    expect(find.textContaining('carlsen'), findsOneWidget);
+    expect(find.text('That mistake is not in your drill.'), findsOneWidget);
   });
 }

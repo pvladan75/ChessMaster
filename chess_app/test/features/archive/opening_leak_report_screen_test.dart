@@ -16,6 +16,13 @@ import 'package:chess_app/features/archive/services/archive_api_service.dart';
 import 'package:chess_app/theme/app_theme.dart';
 
 class FakeArchiveApiService implements ArchiveApiService {
+  // Added with the deletes of 22.9.2026; this fake implements every method by
+  // hand, so a new one must be here to compile.
+  @override
+  Future<String?> deleteSubjectGames(String subject) async =>
+      throw UnimplementedError();
+  @override
+  Future<String?> removeMistake(String id) async => throw UnimplementedError();
   // Added with `GET /games/:id/moves` (D4 of docs/PLAN-SKELET.md). This fake
   // implements every method by hand, so a new one must be here to compile.
   @override
