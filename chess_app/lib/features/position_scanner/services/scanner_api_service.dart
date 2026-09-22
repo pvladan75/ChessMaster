@@ -48,11 +48,11 @@ class ScanOutcome {
 String scanFailureMessage(ScanOutcome outcome) {
   switch (outcome.code) {
     case 'no_text':
-      return 'This book was scanned as an image — there is no text in it. '
-          'The scanner only reads books where diagrams are set in a chess font.';
+      return 'This book was scanned as an image, and no chess diagram was '
+          'found in the pictures on those pages. Try other pages.';
     case 'no_diagram_text':
-      return 'There is text on those pages, but the diagrams are images or drawings. '
-          'The scanner only reads diagrams set in a chess font.';
+      return 'No diagram was found on those pages — neither in a chess font '
+          'nor as a picture. Diagrams drawn with lines cannot be read yet.';
     case 'unknown_font':
       return 'The diagrams in this book use a font we cannot read yet.';
     default:

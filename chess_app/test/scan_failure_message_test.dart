@@ -13,9 +13,13 @@
 // cannot read yet" sends the reader off to derive a glyph map for a font that
 // is not in the file. These tests hold each code to its own sentence.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
+import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/theme/app_colors.dart';
 
 void main() {
   group('scanFailureMessage', () {
@@ -28,13 +32,17 @@ void main() {
       expect(message, isNot(contains('font we cannot')));
     });
 
-    test('picture diagrams inside a text book are named as pictures', () {
+    // Reworded on 22.9.2026: this is now shown only when no picture diagram
+    // was found either, so it names both kinds and the drawings it cannot read,
+    // where it used to say "text" and "images".
+    test('a text book with no readable diagram names pictures and drawings',
+        () {
       final message = scanFailureMessage(
         const ScanOutcome(error: 'server message', code: 'no_diagram_text'),
       );
 
-      expect(message, contains('text'));
-      expect(message, contains('images'));
+      expect(message, contains('picture'));
+      expect(message, contains('drawn'));
       expect(message, isNot(contains('font we cannot')));
     });
 
@@ -73,5 +81,32 @@ void main() {
     test('a refusal with no words at all still says something', () {
       expect(scanFailureMessage(const ScanOutcome()), isNotEmpty);
     });
+
+    // Since 22.9.2026 the scanner reads picture diagrams too, so a sentence
+    // that says it reads only a chess font is untrue — and these messages are
+    // shown only when no picture diagram was found either, which is what they
+    // must say instead.
+    test('no refusal says the scanner reads only a chess font', () {
+      for (final code in ['no_text', 'no_diagram_text']) {
+        final message = scanFailureMessage(ScanOutcome(code: code));
+        expect(message, isNot(contains('only reads')), reason: code);
+        expect(message, contains('picture'), reason: code);
+      }
+    });
+  });
+
+  testWidgets('the empty scanner names both kinds of diagram it reads',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+      home: ScanReviewScreen(
+          session:
+              UserSession(id: 1, token: 't', email: 'e', name: 'N', role: 'x')),
+    ));
+    await tester.pump();
+    expect(find.textContaining('not images'), findsNothing,
+        reason: 'the old sentence, untrue since picture diagrams are read');
+    expect(find.textContaining('chess font'), findsOneWidget);
+    expect(find.textContaining('pictures'), findsOneWidget);
   });
 }

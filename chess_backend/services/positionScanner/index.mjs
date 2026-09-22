@@ -28,10 +28,10 @@ export const MAX_PAGES_PER_SCAN = 40;
 const UNREADABLE_MESSAGE = {
   no_text:
     'There is no text on those pages — the book was scanned as an image. ' +
-    'The scanner only reads diagrams typeset with a chess font.',
+    'Its diagrams can only be read as pictures.',
   no_diagram_text:
-    'There is text on those pages, but no line has the shape of a diagram — diagrams ' +
-    'are images or drawings. The scanner only reads diagrams typeset with a chess font.',
+    'There is text on those pages, but no line has the shape of a diagram in a chess ' +
+    'font — the diagrams are pictures or drawings.',
   unknown_font: 'Diagrams in this book use a font we do not know how to read yet.',
 };
 

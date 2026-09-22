@@ -586,8 +586,9 @@ class _EmptyHint extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Diagrams are read from text, not images, so books set in a '
-              'chess font work. The document is not stored on the server.',
+              'Diagrams set in a chess font are read at once; diagrams that '
+              'are pictures, after you set up three of them by hand. The '
+              'document is not stored on the server.',
               style: AppText.body.copyWith(color: colors.textMuted),
               textAlign: TextAlign.center,
             ),
