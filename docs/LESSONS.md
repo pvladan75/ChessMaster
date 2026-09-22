@@ -6428,3 +6428,58 @@ oznake i ključeve nije mogao da ga nađe; pun paket jeste. Preimenovano svuda
 gde čitalac čita — aplikacija, rečenice servera, obaveštenje, priručnik — a
 imena u kodu ostala. **Pre nego što se napiše nova rečenica na ekranu, pročitaj
 rečnik; reč koju plan koristi („Record a lesson") nije nužno reč ekrana.**
+
+## Pad na Windowsu sa čitačem ekrana — 22.9.2026
+
+Devet padova instalirane aplikacije od 30.8. (Event Log, `flutter_windows.dll`,
+uvek offset `0x3ce3a`), a `crash.log` prazan: nativni pad ubija proces pre
+Darta, pa je dnevnik koji smo napravili baš za „pad bez traga" ćutao. **Za
+nativni pad se čita Event Log, ne sopstveni dnevnik.**
+
+**Simboli su već bili na disku.** `flutter_windows.dll.pdb` stoji u kešu SDK-a
+(`bin/cache/artifacts/engine/windows-x64-release/`); ništa nije trebalo
+skidati. `dumpbin /DISASM` sa PDB-om pored DLL-a imenuje funkciju
+(`AccessibilityBridge::SetRoleFromFlutterUpdate`), a izvor motora na tačnoj
+reviziji objašnjava ostatak: goli pokazivač na zastavice iz oslobođene poruke,
+i rani izlaz iz `CommitUpdates` (linija 65) koji ne čisti listu čekanja.
+
+**Kapija je morala da oponaša Windows, a ne Flutter.** Prva dva testa (potezi u
+stablu, potezi na celom ekranu Analize) bila su zelena na pokvarenom kodu, jer
+nisu radila ono što je okidalo grešku. Tek špijun uživo — `SemanticsUpdateBuilder`
+ispred motora u debug buildu, sa pravilom Windows stabla (dostižnost preko
+`childrenInTraversalOrder`) — imenovao je čvor: iskačući tekst „Playback speed:
+Normal". Sa tim imenom test je postao crven u prvom pokušaju. **Kad test ne
+može da reprodukuje kvar, merni instrument ide tamo gde kvar živi, pa se test
+piše prema onome što je instrument video.**
+
+**Dva izvora, isti oblik, različit mehanizam.** Tooltip u tooltipu (jedan
+iskačući prozor ostane bez roditelja zauvek) i Materialov klizač u novoj ruti
+(overlay stigne jedno ažuriranje pre čvora pod koji je nakalemljen — za Flutter
+prolazno, za Windows kobno). Drugi izvor je bio skriven prvim: posle prvog
+odbijanja Windows stablo ostaje pokvareno i odbija sve, pa su crvene linije
+„svuda" (vlasnik: „nema veze samo sa Analizom") bile posledica, ne novi izvori.
+**Posle prvog odbijanja samo prvo odbijanje nešto govori; vruće ponovno
+pokretanje (`R`) ne resetuje stablo u motoru — treba start od nule.**
+
+**Hipoteza vlasnika je testirana pre brisanja koda.** Predlog da se izbace
+paneli motiva proveren je isključivanjem panela u istom radu, bez ijedne
+izmene; greške su se vratile na prelazak mišem preko dugmadi, pa paneli nisu
+bili uzrok.
+
+**Moj `AppSlider` je prvo i sam pao na kapiji:** `LayoutBuilder` ne podržava
+intrinzične dimenzije, a iskačući meni ih meri — test „Board view" je bio crven
+i sa novim klizačem, i to s razlogom. Sad dimenzije daje mali render objekat.
+**Kapija koja otvori pravi meni vidi ono što izolovan test widgeta ne vidi.**
+
+**Tri puta je shell pojeo obrnutu kosu crtu** (`\s`, `\$`, `\n` u heredoc-u), i
+jednom je to prošlo bez greške: putanja `%TEMP%semdump` umesto `%TEMP%\semdump`,
+pa je dumper ćutke pisao u pogrešan folder. Analyzer je prijavio „unnecessary
+escape" i ja sam to odbacio kao bezopasno. **`info` na liniji koju si upravo
+napisao nije šum — to je jedini svedok.** Skripte i Dart sa obrnutom kosom crtom
+pišu se alatom za fajlove, ne kroz shell.
+
+Mutacije: `AppSlider` 6/6, `RatingRangeStepper` 4/4, čuvar klizača crven na
+vraćenom `Slider(`. Dve prve mutacije klizača bile su neispravne — jedna je
+slomila null-promociju (greška kompajliranja, pogrešna crvena), druga je bila
+ekvivalentna (`onChanged?.call` i onako ne radi ništa kad je isključen) — i
+zamenjene su onim što stvarno menja ponašanje (pravilo 3).

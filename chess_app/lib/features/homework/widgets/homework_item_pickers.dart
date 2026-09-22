@@ -20,6 +20,7 @@ import 'package:chess_app/features/assignments/models/assignment.dart'
     show themeLabel, themeLabels;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/puzzle_count_and_difficulty.dart';
 
 /// Asks for a puzzle set's criteria and hands back the `puzzles` task —
 /// `{themes, count, minRating, maxRating}` — or null on cancel. The same
@@ -77,30 +78,11 @@ class _PuzzleCriteriaDialogState extends State<_PuzzleCriteriaDialog> {
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
-              Text('Number of puzzles: $_count',
-                  style: Theme.of(context).textTheme.labelLarge),
-              Slider(
-                value: _count.toDouble(),
-                min: 5,
-                max: 50,
-                divisions: 9,
-                label: '$_count',
-                onChanged: (value) => setState(() => _count = value.round()),
-              ),
-              Text(
-                'Difficulty: ${_ratingRange.start.round()}–${_ratingRange.end.round()}',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              RangeSlider(
-                values: _ratingRange,
-                min: 400,
-                max: 2800,
-                divisions: 24,
-                labels: RangeLabels(
-                  '${_ratingRange.start.round()}',
-                  '${_ratingRange.end.round()}',
-                ),
-                onChanged: (values) => setState(() => _ratingRange = values),
+              PuzzleCountAndDifficulty(
+                count: _count,
+                onCount: (v) => setState(() => _count = v),
+                rating: _ratingRange,
+                onRating: (v) => setState(() => _ratingRange = v),
               ),
             ],
           ),

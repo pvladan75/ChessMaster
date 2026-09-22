@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 void main() {
   setUp(() async {
@@ -63,7 +64,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Board size'), findsNothing);
-    expect(find.byType(Slider), findsNothing);
+    expect(find.byType(AppSlider), findsNothing);
   });
 
   testWidgets('the size slider sets the board scale', (tester) async {
@@ -79,7 +80,7 @@ void main() {
     expect(find.text('100%'), findsOneWidget);
 
     // The left end of the track is the smallest board.
-    final slider = tester.getRect(find.byType(Slider));
+    final slider = tester.getRect(find.byType(AppSlider));
     await tester.tapAt(Offset(slider.left + 4, slider.center.dy));
     await tester.pumpAndSettle();
     expect(AppSettingsService.instance.boardSizeScale, 0.6);

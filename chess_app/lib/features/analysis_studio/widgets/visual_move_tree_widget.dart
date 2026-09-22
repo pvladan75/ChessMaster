@@ -595,13 +595,14 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
           ),
         );
       }).toList(),
-      child: Tooltip(
-        message: 'Playback speed: ${_playSpeed.label}',
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child:
-              Icon(Icons.speed, size: 16, color: context.colors.textSecondary),
-        ),
+      // No `Tooltip` here: the button's own `tooltip` already shows this
+      // sentence, and a second one nested inside it leaves its popup out of
+      // the semantics tree on Flutter 3.47 — Windows then refuses the update
+      // and, a few updates later, the app dies in the engine
+      // (test/move_tree_semantics_orphan_test.dart).
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Icon(Icons.speed, size: 16, color: context.colors.textSecondary),
       ),
     );
   }

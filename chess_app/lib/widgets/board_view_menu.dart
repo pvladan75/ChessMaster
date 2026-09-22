@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 class BoardViewMenu extends StatelessWidget {
   const BoardViewMenu({
@@ -204,7 +205,7 @@ class _BoardSizeSlider extends StatelessWidget {
                   ),
                 ],
               ),
-              Slider(
+              AppSlider(
                 value: scale.clamp(0.6, 1.0),
                 min: 0.6,
                 max: 1.0,

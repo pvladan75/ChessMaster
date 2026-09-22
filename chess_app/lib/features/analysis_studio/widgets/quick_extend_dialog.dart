@@ -5,6 +5,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 /// One-click branch extension: "add the engine's best line from here" —
 /// unlike [AutoAnalysisDialog] (which branches into several candidate moves
@@ -157,7 +158,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
               style: AppText.body.copyWith(color: context.colors.textPrimary)),
         ],
       ),
-      Slider(
+      AppSlider(
         value: _plies.toDouble(),
         min: 1,
         max: 16,

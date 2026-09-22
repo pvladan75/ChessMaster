@@ -9,6 +9,7 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 /// Walks the game through the engine and, in one pass:
 /// - writes a combined tactical+positional comment (and White-relative eval)
@@ -249,7 +250,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
               style: AppText.bodyBold.copyWith(color: context.colors.warning)),
         ],
       ),
-      Slider(
+      AppSlider(
         value: _engineDepth.toDouble(),
         min: 5,
         max: AppSettingsService.kMaxEngineDepth.toDouble(),
@@ -298,7 +299,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
               style: AppText.body.copyWith(color: context.colors.textPrimary)),
         ],
       ),
-      Slider(
+      AppSlider(
         value: _blunderThreshold,
         min: 0.2,
         max: 5.0,
@@ -368,7 +369,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                   style: AppText.caption
                       .copyWith(color: context.colors.textPrimary)),
               Expanded(
-                child: Slider(
+                child: AppSlider(
                   value: _maxPuzzles.toDouble(),
                   min: 1,
                   max: 10,

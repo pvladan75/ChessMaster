@@ -26,6 +26,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 /// The shallowest depth offered (D1): 18 is where the thresholds were
 /// validated, and nothing lower is offered until it is measured the same way.
@@ -118,7 +119,7 @@ Future<GameTutorialSettings?> chooseGameTutorialDepth(
                 gameTutorialDepthTime(depth),
                 style: AppText.body.copyWith(color: ctx.colors.textSecondary),
               ),
-              Slider(
+              AppSlider(
                 key: const Key('game-tutorial-depth'),
                 value: depth.toDouble(),
                 min: kGameTutorialMinDepth.toDouble(),
@@ -132,7 +133,7 @@ Future<GameTutorialSettings?> chooseGameTutorialDepth(
                   'Teach a move that cost ${minCost.toStringAsFixed(1)} pawns '
                   'or more',
                   style: AppText.body),
-              Slider(
+              AppSlider(
                 key: const Key('game-tutorial-threshold'),
                 value: minCost,
                 min: kGameTutorialMinThreshold,
@@ -227,7 +228,7 @@ Future<SkeletonParameters?> chooseGameTutorialSlice(
                 const SizedBox(height: AppSpacing.sm),
                 Text('Teach a move that cost ${minCost.toStringAsFixed(1)} '
                     'pawns or more'),
-                Slider(
+                AppSlider(
                   key: const Key('game-tutorial-slice-threshold'),
                   value: minCost,
                   min: kGameTutorialMinThreshold,

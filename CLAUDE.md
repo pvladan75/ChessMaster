@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3719 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3748 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1667 with TEST_DATABASE_URL, 1558 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -462,6 +462,22 @@ download. **Before keeping something „for the next phase", check the next
 phase needs that and not something already better**; and **when a feature adds
 readers to an existing row, read every field the response hands them** — the
 stored `video_url` carried the host's token.
+Then the Windows crash with a screen reader (→ **3746**, then **3748** with
+„Number of puzzles" and „Difficulty" merged into `PuzzleCountAndDifficulty`; a full run on
+22.9.2026 with nothing else running; analyze still the 26 known infos): nine
+crashes in `flutter_windows.dll` since 30.8, found through the engine's own PDB
+in the SDK cache to be `AccessibilityBridge::SetRoleFromFlutterUpdate`, reading
+freed memory after Windows had refused a semantics update. Two shapes of ours
+made Flutter 3.47 send a node no parent lists: a tooltip nested in another
+(„Playback speed"), and **every Material `Slider` or `RangeSlider` that
+arrives with a new route** (flutter/flutter#190357). All 18 sliders are now
+`AppSlider`, which draws itself without an overlay, both ranges are
+`RatingRangeStepper`, and `app_slider_guard_test` keeps Flutter's slider out
+of `lib/`. **When a test cannot reproduce a fault, put the instrument where
+the fault lives** — the gate went red only after a live spy in front of the
+engine had named the node; and **after the first refusal only the first
+refusal means anything**, because Windows keeps its tree broken, `R`
+included.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

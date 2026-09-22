@@ -18,11 +18,12 @@ import 'package:chess_app/services/stockfish_service.dart';
 
 import 'support/device_only_puzzle_sets.dart';
 import 'support/landscape.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-Slider _depthSlider(WidgetTester tester) => tester
-    .widgetList<Slider>(find.byType(Slider))
+AppSlider _depthSlider(WidgetTester tester) => tester
+    .widgetList<AppSlider>(find.byType(AppSlider))
     .singleWhere((s) => s.max == AppSettingsService.kMaxEngineDepth);
 
 void main() {

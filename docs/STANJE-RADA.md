@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **21.9.2026** — najnovije je „Sesija uživo: plan reorganizacije" (faza 1 u kodu, provera uživo — stavka 219), pa „Stockfish 19 u aplikaciji" (motor na Androidu iz lokalnog paketa, tri nove provere pozicije, preuzimanje motora na Windowsu popravljeno — u kodu, provera uživo — stavka 218), pa „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **22.9.2026** — najnovije je „Pad na Windowsu sa čitačem ekrana" (u kodu, pad proveren uživo — stavka 220), pa „Sesija uživo: plan reorganizacije" (faza 1 u kodu, provera uživo — stavka 219), pa „Stockfish 19 u aplikaciji" (motor na Androidu iz lokalnog paketa, tri nove provere pozicije, preuzimanje motora na Windowsu popravljeno — u kodu, provera uživo — stavka 218), pa „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,50 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Pad na Windowsu sa čitačem ekrana — 22.9.2026, u kodu, pad ✅ proveren uživo istog dana (stavka 220)
+
+**Simptom.** Instalirana aplikacija je od 30.8. do 22.9.2026. pala devet puta
+(Event Log: `Mislisha.exe`, `flutter_windows.dll`, `0xc0000005`, uvek offset
+`0x3ce3a`), naizgled nasumično — posle 5 sekundi ili posle 17 minuta. Sopstveni
+`crash.log` aplikacije nije imao ništa, jer nativni pad ubija proces pre Darta.
+
+**Uzrok, u dva sloja.** Simboli motora (`flutter_windows.dll.pdb`, već u
+kešu SDK-a) daju funkciju: `flutter::AccessibilityBridge::SetRoleFromFlutterUpdate`,
+prvo čitanje. Most u motoru čuva goli pokazivač na zastavice čvora iz poruke koja
+se oslobađa, a kad Windows odbije deo stabla, `CommitUpdates` izađe ranije
+(`accessibility_bridge.cc:65`) i ne očisti listu čekanja — sledeće ažuriranje čita
+oslobođenu memoriju. Motor to radi samo dok je uključen UI Automation klijent
+(Narrator, tastatura na dodir), zato je pad izgledao nasumično. Odbijanje su
+izazivala **dva oblika u našem kodu** koja Flutter 3.47 šalje kao čvor bez
+roditelja („N will not be in the tree and is not the new root"):
+
+1. **Tooltip u tooltipu** — dugme „Playback speed" u stablu varijanti
+   (`PopupMenuButton(tooltip:)` sa `Tooltip`-om unutra). Unutrašnji je uklonjen.
+2. **Svaki Materialov `Slider` i `RangeSlider` koji se pojavi sa novom rutom**
+   (dijalog, sheet, meni, gurnut ekran) — overlay za mehurić vrednosti stiže
+   ažuriranje pre čvora pod koji je nakalemljen (flutter/flutter#190357, otvoreno).
+   `ShowValueIndicator.never` ne pomaže. Na vlasnikovu odluku: **`AppSlider`**
+   (`lib/widgets/app_slider.dart`, crta sebe, bez overlaya) umesto svih 18
+   klizača, i **`RatingRangeStepper`** (brojevi sa [−]/[+]) umesto oba
+   `RangeSlider`-a za težinu.
+
+Uzvodno nije popravljeno (#182444, #187198, #190357 i PR #190431 otvoreni), pa
+nova verzija Fluttera ne bi pomogla; motor i dalje ima isti rani izlaz.
+
+**Kapije.** `test/move_tree_semantics_orphan_test.dart` beleži šta okvir šalje
+i primenjuje pravilo Windows stabla (dostižnost preko `childrenInTraversalOrder`);
+crven na starom kodu za oba izvora, sa dva „stražara" koja padnu onog dana kad
+Flutter popravi svoje. `test/app_slider_guard_test.dart` ne pušta Materialov
+klizač nazad u `lib/`. `AppSlider` i `RatingRangeStepper` imaju svoje testove,
+dokazane mutacijama (6 i 4, sve uhvaćene pravim slučajem).
+
+**Otvoreno.** Izgled i rad novih klizača uživo, i isto u release buildu
+(stavka 220). Dva bloka „Number of puzzles" + „Difficulty" — domaći i Create
+assignment — bila su red po red ista; na vlasnikovu reč istog dana su jedan
+widget, `PuzzleCountAndDifficulty`, a `test/puzzle_count_and_difficulty_test.dart`
+proverava da svaki dijalog i dalje šalje ono što je podešeno.
+
 
 ## Sesija uživo: plan reorganizacije — 21.9.2026, faza 1 u kodu, provera uživo — stavka 219
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 /// How strongly the engine plays *against* the reader, and how long it may
 /// think — chosen on the one screen where it plays, the exercise screen.
@@ -107,7 +108,7 @@ class EngineOpponentSheet extends StatelessWidget {
                   ),
                 ],
               ),
-              Slider(
+              AppSlider(
                 key: const Key('engine-opponent-time'),
                 value: settings.defaultEngineMoveTimeSeconds
                     .toDouble()

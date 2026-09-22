@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import '../models/assignment.dart';
 import '../services/assignment_api_service.dart';
+import 'package:chess_app/widgets/puzzle_count_and_difficulty.dart';
 
 /// What a trainer fills in to set homework.
 ///
@@ -199,31 +200,11 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                 ),
 
               const SizedBox(height: 18),
-              Text('Number of puzzles: $_count',
-                  style: Theme.of(context).textTheme.labelLarge),
-              Slider(
-                value: _count.toDouble(),
-                min: 5,
-                max: 50,
-                divisions: 9,
-                label: '$_count',
-                onChanged: (value) => setState(() => _count = value.round()),
-              ),
-
-              Text(
-                'Difficulty: ${_ratingRange.start.round()}–${_ratingRange.end.round()}',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              RangeSlider(
-                values: _ratingRange,
-                min: 400,
-                max: 2800,
-                divisions: 24,
-                labels: RangeLabels(
-                  '${_ratingRange.start.round()}',
-                  '${_ratingRange.end.round()}',
-                ),
-                onChanged: (values) => setState(() => _ratingRange = values),
+              PuzzleCountAndDifficulty(
+                count: _count,
+                onCount: (v) => setState(() => _count = v),
+                rating: _ratingRange,
+                onRating: (v) => setState(() => _ratingRange = v),
               ),
 
               const SizedBox(height: 6),

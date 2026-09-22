@@ -35,6 +35,7 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 
 import 'support/landscape.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 import 'features/archive/mistake_drill_screen_test.dart'
     show FakeArchiveApiService;
 
@@ -292,7 +293,7 @@ void main() {
           await pumpAt(tester, size,
               ReplayPlayerScreen(recordingId: 7, userSession: _session));
           expectBoardBeside(tester, size);
-          expectOnScreen(tester, size, find.byType(Slider));
+          expectOnScreen(tester, size, find.byType(AppSlider));
           expectOnScreen(tester, size, find.byType(FloatingActionButton));
         }, () => serve(server));
       });

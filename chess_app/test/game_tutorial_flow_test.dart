@@ -17,6 +17,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart
 import 'package:chess_app/features/tutorial_studio/widgets/game_tutorial_flow.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_theme.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -164,7 +165,7 @@ Future<void> _startAt(WidgetTester tester, {int? depth}) async {
   await tester.pumpAndSettle();
   if (depth != null) {
     tester
-        .widget<Slider>(find.byKey(const Key('game-tutorial-depth')))
+        .widget<AppSlider>(find.byKey(const Key('game-tutorial-depth')))
         .onChanged!(depth.toDouble());
     await tester.pumpAndSettle();
   }

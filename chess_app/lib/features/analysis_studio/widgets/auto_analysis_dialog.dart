@@ -7,6 +7,7 @@ import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 class AutoAnalysisDialog extends StatefulWidget {
   final AnalysisNode startNode;
@@ -153,7 +154,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                           .copyWith(color: context.colors.accent)),
                 ],
               ),
-              Slider(
+              AppSlider(
                 value: _pliesDepth.toDouble(),
                 min: 2,
                 max: 6,
@@ -174,7 +175,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                           .copyWith(color: context.colors.info)),
                 ],
               ),
-              Slider(
+              AppSlider(
                 value: _candidateCount.toDouble(),
                 min: 1,
                 max: 3,
@@ -197,7 +198,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                           .copyWith(color: context.colors.warning)),
                 ],
               ),
-              Slider(
+              AppSlider(
                 value: _deltaCutoff,
                 min: 0.5,
                 max: 3.0,
@@ -218,7 +219,7 @@ class _AutoAnalysisDialogState extends State<AutoAnalysisDialog> {
                           .copyWith(color: context.colors.warning)),
                 ],
               ),
-              Slider(
+              AppSlider(
                 value: _engineDepth.toDouble(),
                 min: 5,
                 max: AppSettingsService.kMaxEngineDepth.toDouble(),

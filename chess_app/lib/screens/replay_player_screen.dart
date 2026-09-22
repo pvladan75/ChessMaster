@@ -25,6 +25,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 class ReplayPlayerScreen extends StatefulWidget {
   final int recordingId;
@@ -803,7 +804,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             children: [
               Text(_formatDuration(currentMs), style: AppText.bodyBold),
               Expanded(
-                child: Slider(
+                child: AppSlider(
                   value: currentMs.toDouble().clamp(
                       0.0, maxDurationMs > 0 ? maxDurationMs.toDouble() : 1.0),
                   min: 0.0,

@@ -20,6 +20,7 @@ import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skelet
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/game_tutorial_flow.dart';
 import 'package:chess_app/theme/app_theme.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 /// Facts whose moves cost exactly [costs] pawns.
 ///
@@ -72,7 +73,7 @@ const _write = Key('game-tutorial-slice-write');
 /// somewhere arbitrary in a wide one. One test below drags for real, to say the
 /// control is reachable at all; the rest ask about a number, so they set one.
 Future<void> _setSlider(WidgetTester tester, Key key, double value) async {
-  tester.widget<Slider>(find.byKey(key)).onChanged!(value);
+  tester.widget<AppSlider>(find.byKey(key)).onChanged!(value);
   await tester.pumpAndSettle();
 }
 
@@ -203,7 +204,7 @@ void main() {
     testWidgets('both are remembered for next time', (tester) async {
       await open(tester);
       tester
-          .widget<Slider>(find.byKey(const Key('game-tutorial-depth')))
+          .widget<AppSlider>(find.byKey(const Key('game-tutorial-depth')))
           .onChanged!(20);
       await tester.pumpAndSettle();
       await _setSlider(tester, const Key('game-tutorial-threshold'), 2.5);

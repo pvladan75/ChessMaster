@@ -5878,6 +5878,29 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 220. Pad na Windowsu sa čitačem ekrana, i klizači koje crta aplikacija — 22.9.2026, pad ✅ proveren uživo 22.9.2026, izgled klizača nije viđen
+
+**Samo aplikacija** (nov Windows build). Pad je bio u motoru, u
+`AccessibilityBridge::SetRoleFromFlutterUpdate`, i dešavao se samo dok je neki
+UI Automation klijent bio uključen (Narrator, tastatura na dodir). Vlasnik je
+22.9.2026. prošao Preparation, sesiju, Analizu i Settings sa Narratorom i
+debug buildom: nijedno odbijeno ažuriranje, nijedan pad. Ostaje da se pogleda
+kako klizači izgledaju i rade — sada ih crta aplikacija (`AppSlider`), ne Flutter.
+
+1. [ ] **Klizači rade mišem.** Board view → Board size (Preparation i Analiza),
+   Settings (dva klizača), Auto-analysis, Game review, Quick extend, protivnik
+   motor, tutorijal iz partije, replay: klik na traku pomera palac tamo, prevlačenje
+   ga vuče, a iznad palca se vidi broj dok se vuče.
+2. [ ] **Izgledaju prihvatljivo.** Traka, palac i podeoci na klizačima sa
+   koracima; isključen klizač je siv.
+3. [ ] **Tastatura.** Tab do klizača, strelice levo/desno pomeraju ga za jedan korak.
+4. [ ] **Težina u domaćem i u Create assignment.** Umesto dvostrukog klizača:
+   „From [−] 1200 [+]  To [−] 1800 [+]", korak 100, 400–2800. „From" ne može preko
+   „To" (dugme se isključi), a poslati domaći nosi baš te brojeve.
+5. [ ] **Build za izdanje.** Isto kao gore u release buildu (`Mislisha.exe`) sa
+   Narratorom: posle desetak minuta rada nema pada u Event Logu (Application,
+   „Application Error", `flutter_windows.dll`).
+
 ## 219. Sesija se završava, i stari poziv više nije vrata — 21.9.2026, nije viđeno uživo
 
 **Server i aplikacija** (restart servera — dodaje kolone `rooms.created_at` i

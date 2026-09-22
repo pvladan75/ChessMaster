@@ -19,6 +19,7 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/board_skins.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/app_slider.dart';
 
 class SettingsScreen extends StatefulWidget {
   final UserSession session;
@@ -461,7 +462,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
-                Slider(
+                AppSlider(
                   value: _settings.speechRate.clamp(0.2, 1.0),
                   min: 0.2,
                   max: 1.0,
@@ -728,7 +729,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ],
                       ),
-                      Slider(
+                      AppSlider(
                         value: _settings.moveAnimationDurationMs.toDouble(),
                         min: 0,
                         max: 500,
