@@ -226,6 +226,26 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE /recordings/:id — the host deletes their own recording, and its
+// sound with it (the owner's decision of 22.9.2026: a deleted recording is
+// gone, voice included). Anybody else, a student it is shared with included,
+// reads not found.
+//
+// The row goes first and the file after it: a file that cannot be removed
+// leaves a sound nothing names, which `removeQuietly` logs, rather than a row
+// in the list whose sound is gone.
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const deleted = await recordingShares.deleteOwnRecording(pool, req.params.id, req.user.id);
+    if (!deleted) return res.status(404).json({ error: 'Recording not found.' });
+    narrationUpload.removeQuietly(lessonRecording.soundOf(deleted));
+    return res.json({ deleted: true });
+  } catch (err) {
+    logger.error('Error deleting a recording:', err);
+    return res.status(500).json({ error: 'Error deleting the recording.' });
+  }
+});
+
 // POST /recordings/:id/export-mp4
 // Rendering a lesson costs real server CPU, so the entitlement is checked before
 // any of that work starts — not inside the handler after the fact.

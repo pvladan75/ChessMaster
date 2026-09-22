@@ -178,6 +178,31 @@ describe('who reads a shared lesson, on a real database', { skip: skip ? skip.sk
     assert.equal(notes.rows[0].ref_id, id);
     assert.match(notes.rows[0].message, /Vladan.*Lucena/);
   });
+
+  test('only the host deletes a recording, and its shares go with it', async () => {
+    const trainer = await person('T');
+    const other = await person('Other trainer');
+    const mila = await person('M');
+    await edge(trainer, mila);
+    const id = await lessonOf(trainer);
+    const kept = await lessonOf(trainer);
+    await shares.setShares(pool, { recordingId: id, hostId: trainer, studentIds: [mila] });
+
+    // A student it is shared with reads it; reading is not owning.
+    assert.equal(await shares.deleteOwnRecording(pool, id, mila), null);
+    assert.equal(await shares.deleteOwnRecording(pool, id, other), null);
+    assert.equal(await shares.deleteOwnRecording(pool, 'x', trainer), null);
+    assert.ok((await listed(mila)).includes(id), 'a refused delete deletes nothing');
+
+    assert.deepEqual(await shares.deleteOwnRecording(pool, id, trainer),
+      { audio_file: 'lesson_x.wav', audio_url: null }, 'the sound it named, for the route to remove');
+    assert.ok(!(await listed(trainer)).includes(id));
+    assert.ok(!(await listed(mila)).includes(id));
+    const left = await pool.query('SELECT 1 FROM recording_shares WHERE recording_id = $1', [id]);
+    assert.equal(left.rowCount, 0, 'the shares went with the row');
+    assert.ok((await listed(trainer)).includes(kept), 'one recording, not every one of the host\'s');
+    assert.equal(await shares.deleteOwnRecording(pool, id, trainer), null, 'twice is not found');
+  });
 });
 
 test('the share\'s reader goes through acceptedTrainersOf, not a copy of it', () => {

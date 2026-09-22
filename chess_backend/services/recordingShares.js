@@ -136,4 +136,20 @@ async function setShares(pool, { recordingId, hostId, studentIds, hostName = nul
   return { ok: true, added };
 }
 
-module.exports = { readableRecording, readableRecordings, setShares, sharedWith };
+/// Deletes [recordingId] for its host, and for nobody else — a student it was
+/// shared with reads it but does not own it. Its shares go with it
+/// (`ON DELETE CASCADE`). Answers the deleted row's sound fields, so the
+/// caller can remove the file too (`lessonRecording.soundOf`), or null — „not
+/// found" to the caller, whether it never existed or belongs to somebody else.
+async function deleteOwnRecording(pool, recordingId, hostId) {
+  const id = Number(recordingId);
+  if (!Number.isInteger(id)) return null;
+  const result = await pool.query(
+    `DELETE FROM session_recordings WHERE id = $1 AND host_id = $2
+     RETURNING audio_file, audio_url`,
+    [id, hostId]
+  );
+  return result.rows[0] || null;
+}
+
+module.exports = { deleteOwnRecording, readableRecording, readableRecordings, setShares, sharedWith };

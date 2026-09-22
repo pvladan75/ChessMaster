@@ -127,6 +127,39 @@ describe('a session ends, on a real database', { skip: skip ? skip.skip : false 
     assert.deepEqual(await lifecycle.endLiveRoomsOf(pool, trainer), []);
   });
 
+  test('a double tap starts one session, not two', async () => {
+    // Reported live on 22.9.2026: „Start session" pressed twice a few
+    // milliseconds apart left two live rooms. Five at once, so the race has
+    // every chance to show; each start is its own connection, as two HTTP
+    // requests are.
+    const trainer = await person('Trainer');
+    const codes = [code(), code(), code(), code(), code()];
+
+    const started = await Promise.all(
+      codes.map((roomCode) => lifecycle.startSession(pool, { creatorId: trainer, roomCode })),
+    );
+
+    const live = (await pool.query(
+      `SELECT room_code FROM rooms WHERE creator_id = $1 AND status <> 'archived'`, [trainer],
+    )).rows.map((row) => row.room_code);
+    assert.equal(live.length, 1, `live rooms after five starts: ${live.join(', ')}`);
+
+    // Every room but the survivor was ended by exactly one later start, so the
+    // people in it are told once.
+    const endedCodes = started.flatMap((result) => result.ended).sort();
+    assert.deepEqual(endedCodes, codes.filter((c) => c !== live[0]).sort());
+  });
+
+  test('a start that fails leaves the open session open', async () => {
+    const trainer = await person('Trainer');
+    const open = await roomOf(trainer);
+
+    // A taken code makes the insert fail after the old room was ended; the
+    // ending must roll back with it, or a failed start leaves no session at all.
+    await assert.rejects(lifecycle.startSession(pool, { creatorId: trainer, roomCode: open }));
+    assert.equal((await statusOf(open)).status, 'active');
+  });
+
   test('an ended room is refused at the door, and says why only to its own people', async () => {
     const trainer = await person('Trainer');
     const student = await person('Ana');
@@ -298,11 +331,15 @@ async function call(method, path, { userId, params = {}, body = {} }, answer) {
 
   const queries = [];
   const original = db.pool.query;
+  const originalConnect = db.pool.connect;
   db.pool.query = async (text, values) => {
     const sql = text.replace(/\s+/g, ' ').trim();
     queries.push(sql);
     return answer(sql, values) ?? { rows: [], rowCount: 0 };
   };
+  // A transaction's client records into the same list, so the order across
+  // `pool` and `client` is the order the route asked in.
+  db.pool.connect = async () => ({ query: db.pool.query, release() {} });
   const answered = { status: 200, body: null };
   const res = {
     status(codeValue) { answered.status = codeValue; return this; },
@@ -313,6 +350,7 @@ async function call(method, path, { userId, params = {}, body = {} }, answer) {
     await handlers[handlers.length - 1]({ user: { id: userId }, params, body }, res);
   } finally {
     db.pool.query = original;
+    db.pool.connect = originalConnect;
   }
   return { ...answered, queries };
 }
@@ -337,6 +375,13 @@ test('creating a room ends the previous ones first, and tells the people in them
   assert.ok(update >= 0, 'the previous session was never ended');
   // The other way round, the room just made is ended with the rest.
   assert.ok(update < insert, 'the new room is inserted before the old ones are ended');
+  // One transaction, the trainer locked before anything is read: a second
+  // start waits for this one, which is what keeps a double tap to one room.
+  const at = (re) => result.queries.findIndex((sql) => re.test(sql));
+  const lock = at(/^SELECT id FROM users WHERE id = \$1 FOR NO KEY UPDATE$/);
+  assert.ok(at(/^BEGIN$/) >= 0 && at(/^BEGIN$/) < lock, 'the trainer is not locked inside a transaction');
+  assert.ok(lock < update, 'the old sessions are ended before the trainer is locked');
+  assert.ok(insert < at(/^COMMIT$/), 'the new room is inserted outside the transaction');
   assert.deepEqual(
     io.log.filter((entry) => entry[0] === 'emit').map((entry) => [entry[1], entry[2], entry[3].reason]),
     [['856933', 'session_ended', 'replaced']],

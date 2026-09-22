@@ -40,6 +40,12 @@ class HomeDashboardTab extends StatelessWidget {
   final VoidCallback onRefreshRecordings;
   final ValueChanged<int> onOpenReplay;
 
+  /// Deletes a recording. Offered only on [currentUserId]'s own — the list
+  /// also holds those a trainer shared, which are theirs to delete, not this
+  /// reader's. Null draws no delete at all.
+  final void Function(dynamic recording)? onDeleteRecording;
+  final int? currentUserId;
+
   const HomeDashboardTab({
     super.key,
     required this.userName,
@@ -56,6 +62,8 @@ class HomeDashboardTab extends StatelessWidget {
     required this.onJoinSession,
     required this.onRefreshRecordings,
     required this.onOpenReplay,
+    this.onDeleteRecording,
+    this.currentUserId,
   });
 
   @override
@@ -364,8 +372,14 @@ class HomeDashboardTab extends StatelessWidget {
                       children: [
                         for (final rec in recordings)
                           _RecordingCard(
+                            key: ValueKey('home-recording-${rec['id']}'),
                             recording: rec,
                             onPlay: () => onOpenReplay(rec['id'] as int),
+                            onDelete: onDeleteRecording != null &&
+                                    currentUserId != null &&
+                                    rec['host_id'] == currentUserId
+                                ? () => onDeleteRecording!(rec)
+                                : null,
                           ),
                       ],
                     ),
@@ -382,10 +396,18 @@ class HomeDashboardTab extends StatelessWidget {
 /// One recording: what it is on the left, „Play" on the right — the same
 /// dense row as the Trainer panel's, laid out in columns by the flow above.
 class _RecordingCard extends StatelessWidget {
-  const _RecordingCard({required this.recording, required this.onPlay});
+  const _RecordingCard({
+    super.key,
+    required this.recording,
+    required this.onPlay,
+    this.onDelete,
+  });
 
   final dynamic recording;
   final VoidCallback onPlay;
+
+  /// Null on a recording somebody else made; no button is drawn.
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -423,14 +445,26 @@ class _RecordingCard extends StatelessWidget {
           '$dateStr$length',
           style: AppText.caption.copyWith(color: colors.textSecondary),
         ),
-        trailing: ElevatedButton.icon(
-          icon: const Icon(Icons.movie, size: 14),
-          label: Text('Play', style: AppText.caption),
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(48, 36),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          ),
-          onPressed: onPlay,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.movie, size: 14),
+              label: Text('Play', style: AppText.caption),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(48, 36),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              ),
+              onPressed: onPlay,
+            ),
+            if (onDelete != null)
+              IconButton(
+                icon:
+                    Icon(Icons.delete_outline, size: 20, color: colors.danger),
+                tooltip: 'Delete recording',
+                onPressed: onDelete,
+              ),
+          ],
         ),
       ),
     );

@@ -64,6 +64,41 @@ async function endLiveRoomsOf(pool, userId) {
   return result.rows.map((row) => row.room_code);
 }
 
+/// Starts a session: ends whatever `creatorId` had open and makes `roomCode`
+/// their one live room. Returns the new row and the codes it ended.
+///
+/// One transaction, with the trainer's row locked first. Without the lock two
+/// presses of „Start session" a few milliseconds apart (reported live on
+/// 22.9.2026) both ran „end what is open" before either had inserted, found
+/// nothing new to end, and both inserted — two live rooms, which is the first
+/// rule above broken by a double tap. The second request now waits for the
+/// first to commit, and its `UPDATE`, a new statement with a new snapshot,
+/// sees the first one's room and ends it.
+///
+/// `FOR NO KEY UPDATE` rather than `FOR UPDATE`: it still queues a second
+/// start behind the first, but does not block other tables' foreign keys that
+/// point at this user, which only need `KEY SHARE`.
+async function startSession(pool, { creatorId, roomCode }) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [creatorId]);
+    // Before the insert, or the new room would be ended with the rest.
+    const ended = await endLiveRoomsOf(client, creatorId);
+    const inserted = await client.query(
+      'INSERT INTO rooms (room_code, creator_id) VALUES ($1, $2) RETURNING *',
+      [roomCode, creatorId],
+    );
+    await client.query('COMMIT');
+    return { room: inserted.rows[0], ended };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /// Whether a room the app remembers is still somewhere to go back to.
 ///
 /// Asked through `mayJoinRoom` rather than with a query of its own: „live" has
@@ -107,4 +142,4 @@ async function liveSessionsFor(pool, userId) {
   return sessions;
 }
 
-module.exports = { ROOM_STATE, endRoom, endLiveRoomsOf, roomState, liveSessionsFor };
+module.exports = { ROOM_STATE, endRoom, endLiveRoomsOf, startSession, roomState, liveSessionsFor };

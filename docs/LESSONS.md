@@ -6505,3 +6505,64 @@ gleda crvena na starom kodu.
 
 Brojevi: 3748 → 3741 (−10 testova obrisanog koda, +3 nova), sve predviđeno pre
 merenja.
+
+## Brisanje snimka — 22.9.2026
+
+Vlasnik je pitao da li snimci stoje u bazi ili na uređaju — u bazi — i tražio
+brisanje, pa i zvučnog fajla. Tri stvari vredne pamćenja.
+
+**Uvoz koji ubija proces u CI-u.** Prva verzija je brisala fajl u servisu
+`recordingShares.js`, uvozeći `lessonRecording` — a on uvozi `middleware/auth`,
+koji bez `JWT_SECRET` zove `process.exit(1)`. Lokalno bi to prošlo zbog `.env`;
+u CI-u bi pao ceo test proces. Brisanje fajla je zato u ruti, a servis vraća
+obrisani red. **Pre nego što servis dobije novi uvoz, pogledaj šta taj uvoz
+vuče za sobom.**
+
+**Zaštitni test je o jednoj stvari, a ruta o drugoj.**
+`recording_writer_gone.test.js` nabraja sve rute u `recordings.js` i pao je na
+`DELETE /:id`. Njegova tema je šta može da *upiše* zvuk u `uploads/`; brisanje ne
+upisuje ništa, pa je test otvoreno proširen, sa rečenicom zašto — nije zaobiđen.
+
+**Nalaz koji postoji nije isto što i nalaz do kog se stiže.** Obrisana kartica je
+izgledala kao da ostaje u panelu širokog prozora, pa su ispravka i test bili
+napisani. Test nije mogao da izabere karticu analize: u panel ulaze samo pozicije
+i skenovi, a oni nemaju brisanje. Ispravka je vraćena — kod za put kojim niko ne
+ide je samo još jedan red za čitanje.
+
+Brojevi: aplikacija 3741 → 3748 (+3 Biblioteka, +4 Home); server 1558 → 1561 bez
+baze (+3 testa rute), 1667 → 1671 sa bazom (isto +1 na pravoj bazi). Mutacije:
+bez dugmeta, bez potvrde, kartica skinuta i kad server odbije, Home bez provere
+vlasnika, `DELETE` bez `host_id` i bez `id`, ruta bez brisanja fajla, brisanje
+fajla pre provere vlasnika, `soundOf` bez granice `uploads/` — svaka crvena na
+pravom slučaju.
+
+
+## Jedna sesija na dupli klik, jedna kopija na Windowsu — 22.9.2026
+
+Vlasnik je dvaput brzo kliknuo „Start" i dobio dve sesije. Pravilo „trener ima
+najviše jednu živu sesiju" je postojalo od 21.9 i imalo je test — ali test je
+gledao **redosled** upita (prvo završi, pa ubaci), i taj redosled je bio tačan.
+**Pravilo koje se sastoji od dva upita važi za jedan zahtev, ne za dva
+istovremena**: oba zahteva završe „ništa", pa oba ubace. Sada je to jedna
+transakcija sa zaključanim redom trenera. Brava je u `users`, ne u
+savetodavnom ključu, i `FOR NO KEY UPDATE`, ne `FOR UPDATE`, da ne blokira
+strane ključeve drugih tabela koji pokazuju na tog korisnika.
+
+Test trke je mogao da padne samo na pravoj bazi: pet `startSession` kroz
+`Promise.all`, svaki na svojoj konekciji. Mutacija „bez brave" je dala dve žive
+sobe iz pet — trka se ne dešava svaki put iz svih pet, ali se desila, i to je
+ono što test treba da vidi. **Stub koji odgovara na upite ne može da vidi
+trku**: on nema drugu transakciju.
+
+U aplikaciji je zastava „učitava se" postavljana tek posle prvog `await`, pa je
+drugi dodir prošao ceo put. **Zastava protiv drugog dodira postavlja se u
+samom dodiru, sinhrono** — dva dodira u istom frejmu oba stignu pre nego što se
+nacrta isključeno dugme, zato prvi test tapka dvaput bez `pump` između.
+Mutacije: bez provere na ulazu, bez postavljanja, bez isključenog dugmeta, bez
+vraćanja — svaka crvena na pravom slučaju; „`finally` → posle `try`" je
+preživela, i ekvivalentna je, jer `catch` hvata sve.
+
+Windows: imenovani mutex u `main.cpp`, debug build izuzet. Provereno na
+release buildu, ne testom — nema Dart testa koji vidi drugi proces.
+
+Brojevi: aplikacija 3748 → 3751 (+3), server 1561 bez baze, 1671 → 1673 sa bazom (+2 na pravoj bazi).

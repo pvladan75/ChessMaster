@@ -30,7 +30,9 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
+import 'package:chess_app/services/lesson_recording_api.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/confirm_delete.dart';
 
 /// Everything the trainer keeps, in one place — phase 3a of
 /// `docs/PLAN-REORGANIZACIJA.md` (S3). [LibraryList] draws the chips, the
@@ -52,6 +54,7 @@ class LibraryScreen extends StatefulWidget {
     this.homeworkApi,
     this.exerciseApi,
     this.puzzleSets,
+    this.recordingApi,
   });
 
   final UserSession session;
@@ -78,6 +81,9 @@ class LibraryScreen extends StatefulWidget {
   /// Seam for the account's puzzle sets; same rule as the seams above.
   final PuzzleSetRepository? puzzleSets;
 
+  /// Seam for deleting a recording; same rule as the seams above.
+  final LessonRecordingApi? recordingApi;
+
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
@@ -99,6 +105,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       PuzzleSetRepository(
         api: PuzzleSetApiService(authToken: widget.session.token),
       );
+  late final LessonRecordingApi _recordingApi = widget.recordingApi ??
+      LessonRecordingApi(authToken: widget.session.token);
   late final TutorialRowActions _tutorialActions = TutorialRowActions(
     lessonApi: _lessons,
     assignmentApi: widget.assignmentApi ??
@@ -264,6 +272,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
             tooltip: 'Play',
             onPressed: () => _openRecording(entry),
           ),
+          // The shelf lists only the host's own (`listRecordings`), and a
+          // trainer's shared one returned early above.
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                size: 20, color: context.colors.danger),
+            tooltip: 'Delete recording',
+            onPressed: () => _deleteRecording(entry),
+          ),
         ];
       // Deleted from the shelf since 21.9.2026 (TODO-provera 211.4: „Nema
       // dugme za brisanje"). Until then a set could only be deleted from the
@@ -289,27 +305,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  /// Asks before a delete that cannot be taken back; true only on a clear yes.
-  Future<bool> _confirmDelete(String what, String title) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete $what?'),
-        content: Text('"$title" will be permanently deleted.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Delete', style: TextStyle(color: ctx.colors.danger)),
-          ),
-        ],
-      ),
-    );
-    return confirmed == true && mounted;
-  }
+  Future<bool> _confirmDelete(String what, String title) async =>
+      await confirmDelete(context, what: what, title: title) && mounted;
 
   /// The card goes only once the server has let go of the thing — a card that
   /// vanishes while the account still has it is back on the next load.
@@ -327,6 +324,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
     _dropEntry(entry);
     AppFeedback.success(context, 'Puzzle set deleted.');
+  }
+
+  Future<void> _deleteRecording(LibraryEntry entry) async {
+    final id = int.tryParse(entry.id);
+    if (id == null) return;
+    if (!await _confirmDelete('recording', entry.title)) return;
+    final deleted = await _recordingApi.delete(id);
+    if (!mounted) return;
+    if (!deleted) {
+      AppFeedback.error(context, notDeletedMessage(entry.title));
+      return;
+    }
+    _dropEntry(entry);
+    AppFeedback.success(context, 'Recording deleted.');
   }
 
   Future<void> _deleteAnalysis(LibraryEntry entry) async {

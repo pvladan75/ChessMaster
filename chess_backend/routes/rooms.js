@@ -6,7 +6,7 @@ const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 const { guestAccess, setGuestAccess } = require('../services/roomAccess');
-const { endRoom, endLiveRoomsOf, roomState, liveSessionsFor } = require('../services/roomLifecycle');
+const { endRoom, startSession, roomState, liveSessionsFor } = require('../services/roomLifecycle');
 const realtime = require('../services/realtime');
 
 /// Six digits, from the cryptographic source rather than from `Math.random()`.
@@ -31,21 +31,16 @@ router.post('/create', authenticateToken, async (req, res) => {
     }
 
     // A trainer has at most one live session (`services/roomLifecycle.js`), so
-    // starting this one ends whatever they had open. Before the insert, or the
-    // new room would be ended with the rest.
-    const ended = await endLiveRoomsOf(pool, creatorId);
-
-    const result = await pool.query(
-      'INSERT INTO rooms (room_code, creator_id) VALUES ($1, $2) RETURNING *',
-      [roomCode, creatorId]
-    );
+    // starting this one ends whatever they had open — atomically, or a double
+    // tap makes two.
+    const { room, ended } = await startSession(pool, { creatorId, roomCode });
 
     // After the row exists: telling people must not be able to stop the room
     // they were promised from being made.
     announceEnded(ended, 'replaced');
 
     res.status(201).json({
-      room: result.rows[0],
+      room,
       room_code: roomCode,
     });
   } catch (err) {

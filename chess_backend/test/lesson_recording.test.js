@@ -350,3 +350,72 @@ test('the app is told in advance whether this account may record, and for how lo
   }
   db.pool.query = original;
 });
+
+// ---------------------------------------------------------------- deleting
+// The owner's decision of 22.9.2026: a deleted recording is gone, voice
+// included. Who may delete is proved on a real database in
+// recording_shares.test.js; what is here is the route's own half — the file
+// goes with a delete the database made, and stays with one it refused.
+
+/// A stub that answers the DELETE by what it was asked, not in sequence: the
+/// row only for its host, so a route that forgot to send the account would
+/// read as not found here too.
+async function deleteAs(userId, recordingId, row) {
+  const original = db.pool.query;
+  const asked = [];
+  db.pool.query = async (sql, params) => {
+    if (/DELETE FROM session_recordings/.test(sql)) {
+      asked.push(params);
+      const mine = Number(params[0]) === recordingId && params[1] === 9;
+      return mine ? { rows: [row], rowCount: 1 } : { rows: [], rowCount: 0 };
+    }
+    return { rows: [{ id: userId }], rowCount: 1 };
+  };
+  const app = express();
+  app.use((req, _res, next) => { req.headers.authorization = `Bearer ${require('jsonwebtoken').sign({ id: userId }, process.env.JWT_SECRET)}`; next(); });
+  app.use('/recordings', recordingsRouter);
+  const server = app.listen(0);
+  try {
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/recordings/${recordingId}`, { method: 'DELETE' });
+    return { status: res.status, asked };
+  } finally {
+    server.close();
+    db.pool.query = original;
+  }
+}
+
+test('a deleted lesson takes its sound with it', async () => {
+  const name = 'lesson_9_delete_me.wav';
+  const file = path.join(LESSON_DIR, name);
+  const kept = path.join(LESSON_DIR, 'lesson_9_another.wav');
+  fs.writeFileSync(file, wavOf({ ms: 50 }));
+  fs.writeFileSync(kept, wavOf({ ms: 50 }));
+
+  const refused = await deleteAs(10, 55, { audio_file: name, audio_url: null });
+  assert.equal(refused.status, 404);
+  assert.deepEqual(refused.asked, [[55, 10]], 'the account that asked is the one scoped by');
+  assert.ok(fs.existsSync(file), 'a refused delete removed the sound');
+
+  const done = await deleteAs(9, 55, { audio_file: name, audio_url: null });
+  assert.equal(done.status, 200);
+  assert.equal(fs.existsSync(file), false, 'the row went and its sound stayed');
+  assert.ok(fs.existsSync(kept), 'one sound, not the folder');
+});
+
+test('a sound already missing does not turn a delete into an error', async () => {
+  const done = await deleteAs(9, 56, { audio_file: 'lesson_9_never_there.wav', audio_url: null });
+  assert.equal(done.status, 200);
+});
+
+test('the sound a row names stays inside uploads/, whatever the row says', () => {
+  const uploads = path.resolve(__dirname, '..', 'uploads');
+  assert.equal(lessonRecording.soundOf(null), null);
+  assert.equal(lessonRecording.soundOf({ audio_file: null, audio_url: null }), null);
+  assert.equal(lessonRecording.soundOf({ audio_file: '../../server.js' }),
+    path.join(LESSON_DIR, 'server.js'), 'a name is a basename in the lessons folder');
+  assert.equal(lessonRecording.soundOf({ audio_url: '/uploads/recording_1.aac' }),
+    path.join(uploads, 'recording_1.aac'), 'an old room recording\'s sound');
+  assert.equal(lessonRecording.soundOf({ audio_url: '/uploads/../server.js' }), null);
+  assert.equal(lessonRecording.soundOf({ audio_url: '/uploads/../../x' }), null);
+  assert.equal(lessonRecording.soundOf({ audio_url: 'https://elsewhere/x.aac' }), null);
+});

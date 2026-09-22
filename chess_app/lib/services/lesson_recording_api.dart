@@ -126,4 +126,19 @@ class LessonRecordingApi {
           ok: false, error: 'Cannot connect to server.');
     }
   }
+
+  /// Deletes the host's own recording (`DELETE /recordings/:id`). True only
+  /// when the server says it went: a card dropped on anything else would be
+  /// back on the next load.
+  Future<bool> delete(int id) async {
+    try {
+      final res = await _client
+          .delete(Uri.parse('$backendUrl/recordings/$id'), headers: _auth)
+          .timeout(const Duration(seconds: 15));
+      return res.statusCode == 200;
+    } catch (e) {
+      AppLogger.log('[LessonRecording] Delete failed: $e');
+      return false;
+    }
+  }
 }

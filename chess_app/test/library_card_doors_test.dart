@@ -15,6 +15,10 @@
 // Such a card now offers „Make exercise", the same sheet the room opens, on
 // that card's own position.
 //
+// **A recording is deleted from the shelf too** (22.9.2026, the owner asked
+// whether recordings live on the server — they do, in `session_recordings` —
+// and for a way to delete them there).
+//
 // Every card is found by its own key, so a tooltip that another card also
 // carries cannot answer for this one (rule 5).
 
@@ -35,6 +39,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/screens/library_screen.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/lesson_recording_api.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
 const _unsolvedFen = '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1';
@@ -82,6 +87,12 @@ class _Server {
                   'id': 'p1',
                   'title': 'Kept from the room',
                   'fen': _positionFen,
+                },
+                {
+                  'kind': 'recording',
+                  'id': '44',
+                  'title': 'Lucena, recorded',
+                  'fen': '',
                 },
                 {
                   'kind': 'analysis',
@@ -151,6 +162,7 @@ Future<_Server> _open(WidgetTester tester, {bool refuseDeletes = false}) async {
       puzzleSets: PuzzleSetRepository(
         api: PuzzleSetApiService(authToken: 'tok', client: client),
       ),
+      recordingApi: LessonRecordingApi(authToken: 'tok', client: client),
     ),
   ));
   await tester.pumpAndSettle();
@@ -262,6 +274,48 @@ void main() {
       await tester.pumpAndSettle();
       expect(_card('analysis-31'), findsOneWidget,
           reason: 'the card went although the server refused');
+    });
+  });
+
+  group('a recording is deleted from the shelf', () {
+    testWidgets('asked, sent, and gone from the shelf', (tester) async {
+      final server = await _open(tester);
+      expect(_card('recording-44'), findsOneWidget);
+      expect(_button('recording-44', 'Play'), findsOneWidget,
+          reason: 'the delete took the place of „Play"');
+
+      await tester.tap(_button('recording-44', 'Delete recording'));
+      await tester.pumpAndSettle();
+      expect(server.deletes(), isEmpty,
+          reason: 'deleted before the reader was asked');
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(server.deletes(), ['DELETE /recordings/44']);
+      expect(_card('recording-44'), findsNothing);
+      expect(find.text('Recording deleted.'), findsOneWidget);
+    });
+
+    testWidgets('„Cancel" sends nothing and keeps the card', (tester) async {
+      final server = await _open(tester);
+      await tester.tap(_button('recording-44', 'Delete recording'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      expect(server.deletes(), isEmpty);
+      expect(_card('recording-44'), findsOneWidget);
+    });
+
+    testWidgets('a refused delete keeps the card and says so', (tester) async {
+      final server = await _open(tester, refuseDeletes: true);
+      await tester.tap(_button('recording-44', 'Delete recording'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(server.deletes(), ['DELETE /recordings/44']);
+      expect(_card('recording-44'), findsOneWidget,
+          reason: 'the card went although the server refused');
+      expect(find.textContaining('could not be deleted'), findsOneWidget);
     });
   });
 }

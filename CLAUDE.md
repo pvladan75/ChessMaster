@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3741 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3751 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1667 with TEST_DATABASE_URL, 1558 without
+cd chess_backend && npm test          # node --test, 1673 with TEST_DATABASE_URL, 1561 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -487,6 +487,20 @@ and a tutorial, and `analysis_motifs_hidden_test` reads the screen by its
 braces to hold that. **A check that something is gone must stand where it
 would have been drawn** — the old panels drew nothing for a position with no
 finding, so the first fixture passed on the old code.
+Then a recording is deleted by its host (→ **3748**, a full run; backend →
+**1561 / 1671**, both measured): `DELETE /recordings/:id`, from the Library
+card and from Home's own recordings, and **its sound goes with it** on the
+owner's word — the first code that removes anything from `uploads/`. The
+service answers the deleted row and the route removes the file, because the
+service must not import `middleware/auth` (CI has no `JWT_SECRET`).
+Then a double tap on „Start" that made two sessions (→ **3751**; backend →
+**1561 / 1673**): „end what is open, then insert" was two queries, so two
+requests both ended nothing and both inserted. `roomLifecycle.startSession`
+is one transaction with the trainer's row locked, and the button ignores a
+tap while a start is on its way. **A rule made of two queries holds for one
+request, not for two at once** — and a stub cannot see the race; only five
+starts on a real database could. A release build on Windows now runs one
+copy per user (a named mutex in `windows/runner/main.cpp`; debug is exempt).
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
@@ -649,6 +663,9 @@ deploy script picks them up automatically.
 
 **`chess_backend/uploads/` is the only copy of every recording made.** It is
 gitignored, it is never deleted by cleanup code, and it must never be committed.
+The one thing that removes a file from it is its owner deleting that recording
+(`DELETE /recordings/:id`, the owner's decision of 22.9.2026) — one file, the
+one the deleted row named, never a sweep.
 Rendered MP4 exports are different: they are reproducible, so they age out on a
 retention timer.
 

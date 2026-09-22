@@ -5878,6 +5878,42 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 223. Jedna sesija na dupli klik, jedna kopija na Windowsu — 22.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (server restartovan sa novim `routes/rooms.js` i
+`services/roomLifecycle.js`, nov **release** build — debug build je namerno
+izuzet iz provere kopija).
+
+1. [ ] **Dupli klik.** Teach → New session → „Start" dvaput što brže. Otvara se
+   jedan ekran sobe; „Back" vodi na Teach, ne u drugu sobu. Na Home učenika je
+   jedna sesija tog trenera.
+2. [ ] **Dugme čeka.** Dok soba ne odgovori, „Start" je sivo sa kružićem (vidi
+   se najlakše sa ugašenim serverom: posle poruke o grešci dugme je ponovo
+   „Start").
+3. [ ] **Druga kopija na Windowsu.** Pokreni Mislisha dok je već otvorena
+   (prečica, ili dvaput `Mislisha.exe`). Nova kopija se ne otvara; postojeći
+   prozor dođe napred, i ako je bio minimizovan — vrati se.
+4. [ ] **Posle zatvaranja.** Zatvori aplikaciju, pokreni je ponovo — otvara se
+   normalno.
+
+## 222. Brisanje snimka — 22.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (server restartovan sa novim `routes/recordings.js`,
+nov build). Snimci stoje u bazi (`session_recordings`), ne na uređaju;
+`DELETE /recordings/:id` briše red samo domaćinu, a deljenja i zvučni fajl
+(`uploads/lessons/…`) idu sa njim — odluka vlasnika od 22.9.2026.
+
+1. [ ] **Library → Recordings.** Na kartici snimka pored „Play" je crvena kanta;
+   pita „Delete recording?", „Cancel" ne briše ništa, „Delete" skida karticu i
+   kaže „Recording deleted.". Posle „Refresh" snimak se ne vraća.
+2. [ ] **Home → Recordings.** Isto na svom snimku; na snimku koji je trener
+   podelio sa tobom (nalog učenika) kante nema.
+3. [ ] **Kod učenika nestaje.** Snimak koji je bio podeljen sa učenikom posle
+   brisanja više nije u njegovoj listi.
+4. [ ] **Zvuk je obrisan.** Pre brisanja zapiši ime fajla (najnoviji
+   `lesson_<id>_….wav` u `chess_backend/uploads/lessons/`); posle brisanja tog
+   fajla više nema, a ostali snimci se i dalje puštaju sa zvukom.
+
 ## 221. Motivi samo za AI — 22.9.2026, nije viđeno uživo
 
 **Samo aplikacija** (nov build). Taktički i pozicioni motivi se više ne vide i ne

@@ -17,6 +17,8 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/confirm_delete.dart';
+import 'package:chess_app/services/lesson_recording_api.dart';
 import 'package:chess_app/widgets/desktop_shortcuts.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/server_status_service.dart';
@@ -602,6 +604,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _deleteRecording(dynamic rec) async {
+    final id = rec['id'];
+    if (id is! int) return;
+    final title = (rec['title'] as String?) ?? 'Recording';
+    if (!await confirmDelete(context, what: 'recording', title: title)) return;
+    final deleted =
+        await LessonRecordingApi(authToken: widget.session.token).delete(id);
+    if (!mounted) return;
+    if (!deleted) {
+      AppFeedback.error(context, notDeletedMessage(title));
+      return;
+    }
+    setState(
+        () => _recordings = _recordings.where((r) => r['id'] != id).toList());
+    AppFeedback.success(context, 'Recording deleted.');
+  }
+
   // There was an _addFriend() and a _removeFriend() here, calling
   // POST /friends/add and DELETE /friends/:id. Nothing on any screen called
   // either of them — the "Ljudi" tab sends a trainer–student request instead —
@@ -745,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       _showError('Network error. Check if server is running.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -874,6 +893,8 @@ class _HomeScreenState extends State<HomeScreen> {
             onJoinSession: _joinInviteRoom,
             onRefreshRecordings: _fetchRecordings,
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),
+            onDeleteRecording: _deleteRecording,
+            currentUserId: widget.session.id,
           );
         case 1:
           // The crossroads of practice. Everything it offers is a route, so

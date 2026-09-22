@@ -52,6 +52,21 @@ function lessonAudioPath(filename) {
   return path.join(lessonDir(), path.basename(String(filename)));
 }
 
+/// The sound a `session_recordings` row names, on disk — or null. A lesson's
+/// is `audio_file` in the private folder; an old room recording's is a public
+/// `/uploads/…` path, read as the MP4 export reads it, and held inside
+/// `uploads/` whatever it says, because a row is not a path.
+function soundOf(row) {
+  if (!row) return null;
+  if (row.audio_file) return lessonAudioPath(row.audio_file);
+  if (typeof row.audio_url !== 'string') return null;
+  const parts = row.audio_url.split('/uploads/');
+  if (parts.length < 2) return null;
+  const uploads = path.resolve(__dirname, '..', 'uploads');
+  const file = path.resolve(uploads, parts[1]);
+  return file.startsWith(uploads + path.sep) ? file : null;
+}
+
 /// The link a reader plays the sound through, or null when the recording has
 /// no private sound (a room recording, whose `audio_url` is what it always was).
 function lessonAudioUrl(row, userId) {
@@ -113,6 +128,7 @@ function judgeLessonEvents({ events, durationMs }) {
 }
 
 module.exports = {
+  soundOf,
   LESSON_EVENT_TYPES,
   MAX_EVENTS,
   judgeLessonEvents,

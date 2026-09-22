@@ -52,7 +52,7 @@ Future<void> _pump(WidgetTester tester, double width,
             tutorialCard: TutorialLibraryCard(session: _session()),
             homeworkCard: HomeworkLibraryCard(session: _session()),
             onOpenPreparation: () {},
-            onStartSession: () {},
+            onStartSession: () async {},
             onOpenLibrary: () {},
             studentsSection: HomeFriendsTab(
               embedded: true,

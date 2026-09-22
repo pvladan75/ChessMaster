@@ -173,7 +173,7 @@ void main() {
             body: TeachTab(
               homeworkCard: HomeworkLibraryCard(session: _session(), api: api),
               onOpenPreparation: () {},
-              onStartSession: () {},
+              onStartSession: () async {},
               onOpenLibrary: () {},
               studentsSection: const SizedBox(),
             ),

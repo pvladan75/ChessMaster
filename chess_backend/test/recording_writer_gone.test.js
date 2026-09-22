@@ -27,16 +27,22 @@ function routes() {
 // records alone in Preparation. The room's stays gone. What this file holds
 // now is that the lesson's is the only one — its own rules, gate before multer
 // included, are test/lesson_recording.test.js.
+//
+// `DELETE /:id` (22.9.2026, the host deleting their own) is not counted as a
+// writer: it takes a row away and puts nothing into `uploads/`, which is what
+// this file is about.
 
 test("the room's writer stays gone, and the lesson's is the only one", () => {
   const writers = routes().filter((r) => !r.startsWith('GET ')
-    && r !== 'POST /:id/export-mp4' && r !== 'PUT /:id/shares');
+    && r !== 'POST /:id/export-mp4' && r !== 'PUT /:id/shares'
+    && r !== 'DELETE /:id');
   assert.deepEqual(writers, ['POST /lesson']);
   assert.equal(routes().includes('POST /save'), false);
 });
 
 test('what exists is still read, played and exported', () => {
   assert.deepEqual(routes(), [
+    'DELETE /:id',
     'GET /',
     'GET /:id',
     'GET /:id/shares',

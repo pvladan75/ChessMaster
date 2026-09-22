@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
@@ -32,7 +34,13 @@ class TeachTab extends StatelessWidget {
   final Widget? homeworkCard;
 
   final VoidCallback onOpenPreparation;
-  final VoidCallback onStartSession;
+
+  /// Starts a session. While the future it returns is pending the button is
+  /// disabled and a second tap does nothing — two taps a few milliseconds
+  /// apart made two sessions (reported live on 22.9.2026). The server makes
+  /// that impossible too (`roomLifecycle.startSession`); this keeps the second
+  /// room screen from being pushed over the first.
+  final Future<void> Function() onStartSession;
   final VoidCallback onOpenLibrary;
 
   /// Requests, the student and trainer lists, groups — the people card.
@@ -139,7 +147,7 @@ class TeachTab extends StatelessWidget {
   }
 }
 
-class _ActionCard extends StatelessWidget {
+class _ActionCard extends StatefulWidget {
   const _ActionCard({
     required this.icon,
     required this.color,
@@ -154,11 +162,40 @@ class _ActionCard extends StatelessWidget {
   final String title;
   final String line;
   final String button;
-  final VoidCallback onPressed;
+
+  /// When it returns a future, the button stays disabled until it completes.
+  final FutureOr<void> Function() onPressed;
+
+  @override
+  State<_ActionCard> createState() => _ActionCardState();
+}
+
+class _ActionCardState extends State<_ActionCard> {
+  /// Set in the tap itself, not by a rebuild: two taps inside one frame both
+  /// reach the handler before the disabled button is drawn.
+  bool _busy = false;
+
+  Future<void> _press() async {
+    if (_busy) return;
+    final result = widget.onPressed();
+    if (result is! Future) return;
+    setState(() => _busy = true);
+    try {
+      await result;
+    } catch (error, stack) {
+      // Reported, not swallowed; and the button comes back either way, or one
+      // failure would leave it disabled for good.
+      FlutterError.reportError(FlutterErrorDetails(
+          exception: error, stack: stack, library: 'teach tab'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final color = widget.color;
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: AppRadii.roundedLg,
@@ -171,23 +208,28 @@ class _ActionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: color, size: 28),
+                Icon(widget.icon, color: color, size: 28),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child:
-                      Text(title, style: AppText.title.copyWith(color: color)),
+                  child: Text(widget.title,
+                      style: AppText.title.copyWith(color: color)),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text(line,
+            Text(widget.line,
                 style: AppText.caption.copyWith(color: colors.textSecondary)),
             const SizedBox(height: AppSpacing.md),
             Align(
               alignment: Alignment.centerLeft,
               child: ElevatedButton(
-                onPressed: onPressed,
-                child: Text(button),
+                onPressed: _busy ? null : _press,
+                child: _busy
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(widget.button),
               ),
             ),
           ],

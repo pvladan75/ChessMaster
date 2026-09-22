@@ -55,6 +55,61 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Jedna sesija na dupli klik, jedna kopija aplikacije na Windowsu — 22.9.2026, u kodu, ostaje provera uživo (stavka 223)
+
+**Prijava vlasnika:** dva brza klika na „Start" (Teach → New session) napravila
+su dve sesije; i pitanje da li može da se spreči da se aplikacija pokrene dva
+puta na istom uređaju.
+
+**Dve sesije — trka na serveru.** `POST /rooms/create` je radio „završi
+otvorene" pa „ubaci novu" kao dva odvojena upita, pa su dva zahteva u istih
+nekoliko milisekundi oba prošla prvi korak pre nego što je ijedan ubacio sobu —
+dve žive sobe, suprotno pravilu „trener ima najviše jednu". Sada je to
+`roomLifecycle.startSession`: jedna transakcija koja prvo zaključa red trenera
+(`FOR NO KEY UPDATE`), pa drugi zahtev čeka prvi i njegov `UPDATE` vidi i
+završava prvu sobu. Test na pravoj bazi pušta pet starta odjednom; bez brave
+ostaju dve žive sobe (izmereno mutacijom).
+
+**Dugme.** U aplikaciji je `_isLoading` postavljan tek posle `await`, pa je i
+drugi dodir prolazio. Kartica „New session" (`teach_tab.dart`, `_ActionCard`)
+sada sama drži „u toku": drugi dodir ne radi ništa, dugme je isključeno i
+pokazuje kružić dok start ne odgovori, i vraća se i kad start pukne. Bez toga bi
+server ostavio jednu sobu, ali bi aplikacija otvorila ekran sobe dvaput.
+
+**Jedna kopija na Windowsu.** `windows/runner/main.cpp` pravi imenovani mutex
+(`Locals.pejovic.chesscoach.single-instance`); druga kopija dovede prvu
+napred i izađe. Windows ga oslobađa kad proces umre, pa pad ne zaključava
+sledeće pokretanje. **Debug build (`flutter run`) je izuzet**, da razvoj može
+da radi pored instalirane kopije. Proveren je release build pokretanjem dva
+puta: druga kopija izlazi sa 0, ostaje jedna; posle ubijene kopije nova se
+pokreće; dve pokrenute u istom trenutku ostavljaju jednu.
+Android nije menjan: aplikacija je jedan proces, a pokretač vraća postojeći
+zadatak (`launchMode="singleTop"`, jedini ulaz je `LAUNCHER`).
+
+Brojevi: aplikacija 3748 → 3751; server 1561 bez baze (novi slučajevi su na
+pravoj bazi), 1671 → 1673 sa bazom.
+
+## Brisanje snimka — 22.9.2026, u kodu, ostaje provera uživo (stavka 222)
+
+**Pitanje vlasnika:** da li stavke u „Recordings" stoje u bazi ili na uređaju.
+U bazi — red u `session_recordings`, a zvuk u `chess_backend/uploads/lessons/`
+(stari snimci iz sobe: `audio_url` pod `/uploads/`). Uređaj ne drži ništa.
+
+**Šta je dodato.** `DELETE /recordings/:id` (`routes/recordings.js`): samo
+domaćin briše svoj snimak, svima ostalima, i učeniku sa kojim je podeljen, to je
+„not found". Deljenja idu sa redom (`ON DELETE CASCADE`), a **zvučni fajl
+takođe** — odluka vlasnika istog dana; prvi kod koji iz `uploads/` briše bilo
+šta, i to samo fajl koji je obrisani red imenovao (`lessonRecording.soundOf`,
+koji ne izlazi iz `uploads/` šta god red pisao). Red ide prvi, fajl posle: fajl
+koji ne može da se obriše se loguje, umesto da u listi ostane snimak bez zvuka.
+U aplikaciji kanta pored „Play" u Biblioteci → Recordings i na Home → Recordings
+(samo na sopstvenim, ne na onima koje je trener podelio); pita pre brisanja, a
+kartica nestaje tek kad server potvrdi. Dijalog potvrde je izdvojen u
+`widgets/confirm_delete.dart`, da Home i Biblioteka ne bi imali dve kopije.
+
+Brojevi: aplikacija 3741 → 3748; server 1558 → 1561 bez baze, 1667 → 1671 sa
+bazom.
+
 ## Taktički i pozicioni motivi — samo za AI — 22.9.2026, u kodu, ostaje provera uživo (stavka 221)
 
 **Vlasnikova odluka.** Motivi (`TacticalMotifDetector`, `PositionalEvaluatorService`)
