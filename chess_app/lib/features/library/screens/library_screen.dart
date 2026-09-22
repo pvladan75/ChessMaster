@@ -15,6 +15,7 @@ import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/board_preview_panel.dart';
@@ -55,6 +56,7 @@ class LibraryScreen extends StatefulWidget {
     this.exerciseApi,
     this.puzzleSets,
     this.recordingApi,
+    this.scannerApi,
   });
 
   final UserSession session;
@@ -84,6 +86,9 @@ class LibraryScreen extends StatefulWidget {
   /// Seam for deleting a recording; same rule as the seams above.
   final LessonRecordingApi? recordingApi;
 
+  /// Seam for deleting a scanned position or an exercise; same rule.
+  final ScannerApiService? scannerApi;
+
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
@@ -107,6 +112,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       );
   late final LessonRecordingApi _recordingApi = widget.recordingApi ??
       LessonRecordingApi(authToken: widget.session.token);
+  late final ScannerApiService _scanner =
+      widget.scannerApi ?? ScannerApiService(authToken: widget.session.token);
   late final TutorialRowActions _tutorialActions = TutorialRowActions(
     lessonApi: _lessons,
     assignmentApi: widget.assignmentApi ??
@@ -264,6 +271,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
               tooltip: 'Make exercise',
               onPressed: () => _makeExercise(entry),
             ),
+          // Deleted from the shelf since 22.9.2026 („pozicije ne mogu da se
+          // brišu"). The server refuses one an unfinished homework holds, and
+          // says which (services/positionDeletion.js).
+          IconButton(
+            icon: Icon(Icons.delete_outline,
+                size: 20, color: context.colors.danger),
+            tooltip: entry.isExercise ? 'Delete exercise' : 'Delete position',
+            onPressed: () => _deletePosition(entry),
+          ),
         ];
       case LibraryKind.recording:
         return [
@@ -320,6 +336,29 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (!mounted) return;
     if (!deleted) {
       AppFeedback.error(context, notDeletedMessage(entry.title));
+      return;
+    }
+    _dropEntry(entry);
+  }
+
+  /// A position or an exercise, each through the table it lives in: a scan
+  /// or an exercise is `custom_puzzles`, a position kept from the board is a
+  /// tutorial row with no parts.
+  Future<void> _deletePosition(LibraryEntry entry) async {
+    final what = entry.isExercise ? 'exercise' : 'position';
+    if (!await _confirmDelete(what, entry.title)) return;
+    final String? error;
+    if (entry.kind == LibraryKind.scan) {
+      error = await _scanner.deletePosition(entry.id);
+    } else {
+      final id = int.tryParse(entry.id);
+      error = id == null
+          ? notDeletedMessage(entry.title)
+          : await _lessons.delete(id);
+    }
+    if (!mounted) return;
+    if (error != null) {
+      AppFeedback.error(context, error);
       return;
     }
     _dropEntry(entry);

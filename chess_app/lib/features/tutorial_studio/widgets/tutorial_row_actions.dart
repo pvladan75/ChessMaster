@@ -64,26 +64,14 @@ class TutorialRowActions {
     final id = idOf(row);
     if (id == null) return false;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete tutorial?'),
-        content:
-            Text('"${titleOf(row)}" will be permanently deleted, along with '
-                'all parts.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Delete', style: TextStyle(color: ctx.colors.danger)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return false;
+    final choice = await confirmTutorialDelete(context,
+        title: titleOf(row), hasVideo: hasVideo(row));
+    if (!context.mounted) return false;
+    if (choice == TutorialDeleteChoice.downloadFirst) {
+      await downloadTutorialVideo(context, lessonApi, row);
+      return false;
+    }
+    if (choice != TutorialDeleteChoice.delete) return false;
 
     final error = await lessonApi.delete(id);
     if (!context.mounted) return false;
@@ -199,23 +187,79 @@ class TutorialRowActions {
   Future<void> downloadVideo(
     BuildContext context,
     Map<String, dynamic> row,
-  ) async {
-    final id = idOf(row);
-    if (id == null) return;
+  ) =>
+      downloadTutorialVideo(context, lessonApi, row);
+}
 
-    final link = await lessonApi.fetchTutorialVideo(id);
-    if (!context.mounted) return;
+const _videoGoesToo = '\n\nIts video will be deleted too. Download it first '
+    'if you want to keep it.';
 
-    if (link.ok) {
-      await launchUrl(
-        Uri.parse(resolveMediaUrl(link.downloadUrl!)),
-        mode: LaunchMode.externalApplication,
-      );
-      return;
-    }
-    AppFeedback.info(context, link.error ?? 'This tutorial has no video yet.');
-    if (link.status == LessonVideoStatus.expired) {
-      row['has_video'] = false;
-    }
+/// What the trainer chose when asked to delete a tutorial.
+enum TutorialDeleteChoice { cancel, delete, downloadFirst }
+
+/// Asks before a tutorial is deleted — one dialog for every place that
+/// deletes one (the Library and Preparation's column).
+///
+/// **A rendered video goes with the tutorial** (the owner's decision of
+/// 22.9.2026): the film is reached only through the tutorial, so the server
+/// deletes it too. When there is one, the dialog says so and offers to
+/// download it first; that choice deletes nothing.
+Future<TutorialDeleteChoice> confirmTutorialDelete(
+  BuildContext context, {
+  required String title,
+  required bool hasVideo,
+}) async {
+  final choice = await showDialog<TutorialDeleteChoice>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Delete tutorial?'),
+      content: Text('"$title" will be permanently deleted, along with all '
+          'parts.${hasVideo ? _videoGoesToo : ''}'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(TutorialDeleteChoice.cancel),
+          child: const Text('Cancel'),
+        ),
+        if (hasVideo)
+          TextButton(
+            key: const ValueKey('tutorial-delete-download-first'),
+            onPressed: () =>
+                Navigator.of(ctx).pop(TutorialDeleteChoice.downloadFirst),
+            child: const Text('Download video'),
+          ),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(TutorialDeleteChoice.delete),
+          child: Text('Delete', style: TextStyle(color: ctx.colors.danger)),
+        ),
+      ],
+    ),
+  );
+  return choice ?? TutorialDeleteChoice.cancel;
+}
+
+/// Fetches a tutorial's rendered film and hands it to the platform to open.
+/// The link the server hands out dies in thirty minutes, so it is fetched
+/// fresh every time rather than kept from when the render finished.
+Future<void> downloadTutorialVideo(
+  BuildContext context,
+  LessonApiService lessonApi,
+  Map<String, dynamic> row,
+) async {
+  final id = TutorialRowActions.idOf(row);
+  if (id == null) return;
+
+  final link = await lessonApi.fetchTutorialVideo(id);
+  if (!context.mounted) return;
+
+  if (link.ok) {
+    await launchUrl(
+      Uri.parse(resolveMediaUrl(link.downloadUrl!)),
+      mode: LaunchMode.externalApplication,
+    );
+    return;
+  }
+  AppFeedback.info(context, link.error ?? 'This tutorial has no video yet.');
+  if (link.status == LessonVideoStatus.expired) {
+    row['has_video'] = false;
   }
 }

@@ -453,16 +453,29 @@ class ScannerApiService {
     }
   }
 
-  Future<bool> deleteSaved(String puzzleId) async {
+  /// Deletes one of the account's own positions or exercises. Null when it
+  /// is gone; otherwise the sentence to show — the server's own when it has
+  /// one, which is how a trainer learns *which* unfinished homework still
+  /// holds the position (409, services/positionDeletion.js).
+  Future<String?> deletePosition(String puzzleId) async {
     try {
       final response = await (_client ?? _shared)
           .delete(Uri.parse('$backendUrl/scans/puzzles/$puzzleId'),
               headers: _jsonHeaders)
           .timeout(const Duration(seconds: 30));
-      return response.statusCode == 200;
+      if (response.statusCode == 200) return null;
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['error'] is String) {
+          return body['error'] as String;
+        }
+      } catch (_) {
+        // Not JSON; the sentence below says enough.
+      }
+      return 'The position could not be deleted.';
     } catch (e) {
-      AppLogger.log('Delete saved failed: $e', name: 'PositionScanner');
-      return false;
+      AppLogger.log('Delete position failed: $e', name: 'PositionScanner');
+      return 'The position could not be deleted — the server did not respond.';
     }
   }
 }

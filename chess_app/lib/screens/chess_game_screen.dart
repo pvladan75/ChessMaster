@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:chess_app/widgets/confirm_delete.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
 import 'package:chess_app/services/agora_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -1657,27 +1659,28 @@ class _ChessGamePageState extends State<ChessGamePage> {
     _openTutorialEditor(cloned);
   }
 
+  /// Deletes a tutorial or a position kept from the board — both are tutorial
+  /// rows. A tutorial is asked through the one dialog every screen shares
+  /// (`confirmTutorialDelete`), which says that its video goes too and offers
+  /// the download first; a position is asked as a position.
   Future<void> _confirmDeleteLesson(LibraryEntry entry) async {
     final id = int.tryParse(entry.id);
     if (id == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete tutorial?'),
-        content: Text('"${entry.title}" will be permanently deleted.'),
-        actions: [
-          TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.pop(ctx, false)),
-          TextButton(
-            child:
-                Text('Delete', style: TextStyle(color: context.colors.danger)),
-            onPressed: () => Navigator.pop(ctx, true),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
+    if (entry.kind == LibraryKind.tutorial) {
+      final row = await _rowOf(entry);
+      if (row == null || !mounted) return;
+      final choice = await confirmTutorialDelete(context,
+          title: entry.title, hasVideo: TutorialRowActions.hasVideo(row));
+      if (!mounted) return;
+      if (choice == TutorialDeleteChoice.downloadFirst) {
+        await downloadTutorialVideo(context, _lessonApi, row);
+        return;
+      }
+      if (choice != TutorialDeleteChoice.delete) return;
+    } else if (!await confirmDelete(context,
+        what: 'position', title: entry.title)) {
+      return;
+    }
 
     final error = await _lessonApi.delete(id);
     if (!mounted) return;

@@ -412,16 +412,27 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
 // `uploads/`, which no timer sweeps, so if this route did not delete it nothing
 // ever would: the file would outlive the only row that could reach it. The row
 // first, because the other order leaves a tutorial naming a file that is gone.
+//
+// **And so does its video** (the owner's decision of 22.9.2026). The film is
+// reached only through this row (`GET /:id/video`), so once the row is gone
+// nothing in the app can download it; left alone it would sit in `exports/`
+// until the retention timer, reachable by nobody. The app says so in the
+// confirmation and offers the download first.
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'DELETE FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2) RETURNING id, narration_filename',
+      'DELETE FROM saved_lessons WHERE id = $1 AND (user_id = $2 OR trainer_id = $2) RETURNING id, narration_filename, video_filename',
       [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Tutorial not found or you do not have permission to delete it.' });
     }
     narrationUpload.removeNarrationFile(result.rows[0].narration_filename);
+    if (result.rows[0].video_filename) {
+      narrationUpload.removeQuietly(
+        path.join(EXPORTS_DIR, path.basename(String(result.rows[0].video_filename)))
+      );
+    }
     res.json({ success: true });
   } catch (err) {
     logger.error('Delete lesson error:', err);

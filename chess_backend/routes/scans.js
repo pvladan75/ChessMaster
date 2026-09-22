@@ -19,6 +19,7 @@ const express = require('express');
 const multer = require('multer');
 
 const logger = require('../services/logger');
+const positionDeletion = require('../services/positionDeletion');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { accountLimiter } = require('../middleware/accountLimiter');
@@ -486,19 +487,23 @@ router.patch('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
 
 // DELETE /scans/puzzles/:puzzleId — throw one away.
 //
-// Scoped by owner in the WHERE clause rather than checked first and deleted
-// after: one statement cannot be raced, and a request for someone else's
-// position simply matches nothing.
+// Scoped by owner in the statement itself, and refused while a homework that
+// is not finished holds the position (services/positionDeletion.js): a sent
+// homework reads its positions by id, so deleting one would leave an item that
+// cannot be opened. The refusal names the homework.
 router.delete('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'DELETE FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2 RETURNING puzzle_id',
-      [req.params.puzzleId, req.user.id]
-    );
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Position not found.' });
-    }
-    res.json({ deleted: result.rows[0].puzzle_id });
+    const result = await positionDeletion.deleteOwnPosition(pool, {
+      puzzleId: req.params.puzzleId,
+      ownerId: req.user.id,
+    });
+    if (result.ok) return res.json({ deleted: req.params.puzzleId });
+    if (result.status === 404) return res.status(404).json({ error: 'Position not found.' });
+    return res.status(409).json({
+      error: positionDeletion.inUseMessage(result.uses),
+      code: 'position_in_use',
+      uses: result.uses,
+    });
   } catch (err) {
     logger.error(`[SCAN] Brisanje pozicije nije uspelo: ${err.message}`);
     res.status(500).json({ error: 'Failed to delete position.' });

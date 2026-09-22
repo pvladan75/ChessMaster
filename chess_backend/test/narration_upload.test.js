@@ -502,6 +502,52 @@ test('deleting a tutorial deletes its recording, after the row', async () => {
   assert.equal(fs.existsSync(path.join(NARRATION_DIR, name)), false);
 });
 
+test('deleting a tutorial deletes its video too, after the row', async () => {
+  // The owner's decision of 22.9.2026: the film is reached only through the
+  // tutorial's row, so it goes with it rather than waiting, unreachable, for
+  // the retention timer.
+  const exportsDir = path.join(__dirname, '..', 'exports');
+  fs.mkdirSync(exportsDir, { recursive: true });
+  const film = `tutorial_13_test_${process.pid}_${Date.now()}.mp4`;
+  const other = `tutorial_14_test_${process.pid}_${Date.now()}.mp4`;
+  fs.writeFileSync(path.join(exportsDir, film), 'a film');
+  fs.writeFileSync(path.join(exportsDir, other), 'a film of another tutorial');
+  let existedAtDelete = null;
+
+  const original = db.pool.query;
+  db.pool.query = async (sql) => {
+    if (/DELETE FROM saved_lessons/.test(sql)) {
+      existedAtDelete = fs.existsSync(path.join(exportsDir, film));
+      assert.match(sql, /RETURNING id, narration_filename, video_filename/);
+      return { rows: [{ id: 13, narration_filename: null, video_filename: film }], rowCount: 1 };
+    }
+    return { rows: [], rowCount: 0 };
+  };
+  const res = {
+    statusCode: 200,
+    body: null,
+    status(code) { this.statusCode = code; return this; },
+    json(payload) { this.body = payload; return this; },
+  };
+  try {
+    const layer = lessonsRouter.stack.find(
+      (l) => l.route && l.route.path === '/:id' && l.route.methods.delete,
+    );
+    const stack = layer.route.stack.map((s) => s.handle);
+    await stack[stack.length - 1]({ params: { id: '13' }, user: { id: 4 } }, res);
+  } finally {
+    db.pool.query = original;
+    const left = fs.existsSync(path.join(exportsDir, other));
+    if (left) fs.unlinkSync(path.join(exportsDir, other));
+    if (fs.existsSync(path.join(exportsDir, film))) fs.unlinkSync(path.join(exportsDir, film));
+    assert.equal(left, true, 'the film of another tutorial was deleted');
+  }
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(existedAtDelete, true, 'the film was deleted before the row');
+  assert.equal(fs.existsSync(path.join(exportsDir, film)), false);
+});
+
 // ---------------------------------------------------------------- not by URL
 
 test('nothing under uploads/narration is served, however it is spelt', async () => {

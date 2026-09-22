@@ -6776,3 +6776,33 @@ Test plejera stoji umesto audioplayers kanala, a mora i da odgovara kao
 platforma („prepared" posle izvora, „seek complete" posle premotavanja) — bez
 toga `setSource` i `seek` čekaju zauvek, i test ne vidi ništa. Tri mutacije,
 svaka crvena na pravoj tvrdnji.
+
+## 22.9.2026 — šta ne može da se obriše, i šta ostaje posle brisanja
+
+Vlasnik: „pozicije ne mogu da se brišu". Server je znao da obriše obe vrste
+(`/scans/puzzles/:id`, `/lessons/:id`), a skenirane pozicije su se već brisale
+— ali samo sa ekrana „Saved positions", do kog se stiže iz skenera. **Vrata
+koja postoje samo tamo gde korisnik ne ide su vrata koja ne postoje** (pravilo
+10). Kartica u Library sada ima kantu.
+
+Pre dugmeta je trebalo pitanje: domaći ne kopira poziciju, već je čita po id-u
+svaki put kad učenik otvori stavku. Obrisana pozicija bi ostavila stavku koja
+se ne otvara. Vlasnikova odluka: brisanje se odbija dok je drži domaći koji nije
+završen (poslat i nezavršen, ili sačuvan i neposlat), i poruka kaže koji.
+Pravilo je deo samog `DELETE` naredbe, ne provera ispred nje — dve naredbe ne
+drže jedno pravilo za dva zahteva odjednom. Test ide na pravu bazu, šest
+mutacija, svaka crvena na svom slučaju.
+
+Tutorijal: MP4 u `exports/` je ostajao posle brisanja, bez ijednog reda koji
+do njega vodi, do tajmera od 14 dana. Sada ide sa tutorijalom, a dijalog to
+kaže i nudi preuzimanje. Jedan dijalog za Library i Preparation — Preparation je
+imao svoj, i pitao „Delete tutorial?" i za poziciju.
+
+Dva nalaza o fiksturama, oba iz ovog dana: `http.Response(String)` kodira
+Latin-1, pa odgovor sa „…" nije ni stigao — **fikstura mora da pošalje ono što
+server šalje, i u kodiranju u kom ga šalje**; i id pozicije u fiksturi je bio
+`p1`, a pravi je broj. Jedna mutacija je inertna (bez `return false` posle
+„Download video" sledeća linija svejedno vraća false) i zabeležena je kao takva.
+
+Brojevi: aplikacija 3785 → 3793; server 1608 → 1609 bez baze, 1709 → 1729 sa
+bazom (12 Fritz + 1 video + 7 brisanje pozicije).

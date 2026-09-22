@@ -410,11 +410,10 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     );
     if (confirmed != true) return;
 
-    final ok = await _api.deleteSaved(position.puzzleId);
+    final error = await _api.deletePosition(position.puzzleId);
     if (!mounted) return;
-    if (!ok) {
-      AppFeedback.show(
-          context, () => const SnackBar(content: Text('Delete failed.')));
+    if (error != null) {
+      AppFeedback.error(context, error);
       return;
     }
     setState(() => _positions =

@@ -5899,6 +5899,18 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
    otvori podeljenu lekciju u plejeru i pritisni Play: glas se čuje, i drži
    korak sa tablom. Pauza, pomeranje klizača i ponovo Play: glas nastavlja od
    mesta na tabli. Na Windowsu i dalje radi kao pre.
+6. [ ] **Tekst skenera.** Prazan ekran skenera kaže da se čitaju i dijagrami u
+   fontu i dijagrami-slike; knjiga u kojoj nema ni jednog ni drugog dobija
+   poruku koja to kaže, bez „only reads … chess font".
+7. [ ] **Brisanje pozicije i vežbe.** Library: kartica pozicije ima kantu
+   („Delete position"), vežba „Delete exercise"; obe se brišu i nestanu. Vežba
+   koja je u domaćem koji učenik još nije završio (ili u sačuvanom, neposlatom
+   domaćem) se **ne** briše: kartica ostaje, a poruka kaže koji domaći i koji
+   učenik. Kad se domaći završi ili povuče, brisanje prolazi.
+8. [ ] **Tutorijal sa videom.** Brisanje tutorijala koji ima video: dijalog kaže
+   da se briše i video i nudi „Download video" (to ništa ne briše). Posle
+   „Delete" u `chess_backend/exports/` više nema tog MP4. Isto iz Preparation
+   kolone; tamo pozicija pita „Delete position?", ne „Delete tutorial?".
 
 ## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
 

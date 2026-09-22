@@ -38,6 +38,7 @@ import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/screens/library_screen.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/lesson_recording_api.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -48,16 +49,32 @@ const _positionFen = '8/8/8/4k3/8/8/4P3/4K3 w - - 0 1';
 
 /// One server behind every seam the screen has, recording what it is asked.
 class _Server {
-  _Server({this.refuseDeletes = false});
+  _Server({this.refuseDeletes = false, this.inUse = const {}});
 
   /// A server that answers every DELETE with 500 — the case where the shelf
   /// must keep the card and say so, rather than pretend.
   final bool refuseDeletes;
+
+  /// Paths a DELETE is refused on with 409, as the server refuses a position
+  /// that an unfinished homework holds — with the sentence it sends.
+  final Set<String> inUse;
   final List<String> requests = [];
 
   http.Client get client => MockClient((req) async {
         final path = req.url.path;
         requests.add('${req.method} $path');
+        if (req.method == 'DELETE' && inUse.contains(path)) {
+          // UTF-8 and said so, as express sends it: the sentence quotes the
+          // homework's name with „…", which Latin-1 cannot carry.
+          return http.Response.bytes(
+              utf8.encode(jsonEncode({
+                'error': 'This position is in homework that is not finished: '
+                    '„Thursday" (Ana).',
+                'code': 'position_in_use',
+              })),
+              409,
+              headers: {'content-type': 'application/json; charset=utf-8'});
+        }
         if (req.method == 'DELETE') {
           return http.Response('{}', refuseDeletes ? 500 : 200);
         }
@@ -84,7 +101,7 @@ class _Server {
                 },
                 {
                   'kind': 'position',
-                  'id': 'p1',
+                  'id': '71',
                   'title': 'Kept from the room',
                   'fen': _positionFen,
                 },
@@ -139,13 +156,14 @@ class _Server {
       requests.where((r) => r.startsWith('DELETE')).toList();
 }
 
-Future<_Server> _open(WidgetTester tester, {bool refuseDeletes = false}) async {
+Future<_Server> _open(WidgetTester tester,
+    {bool refuseDeletes = false, Set<String> inUse = const {}}) async {
   SharedPreferences.setMockInitialValues({});
   tester.view.physicalSize = const Size(1400, 1600);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final server = _Server(refuseDeletes: refuseDeletes);
+  final server = _Server(refuseDeletes: refuseDeletes, inUse: inUse);
   final client = server.client;
   AnalysisPersistenceService.setInstance(
       AnalysisPersistenceService.withClient(client));
@@ -163,6 +181,7 @@ Future<_Server> _open(WidgetTester tester, {bool refuseDeletes = false}) async {
         api: PuzzleSetApiService(authToken: 'tok', client: client),
       ),
       recordingApi: LessonRecordingApi(authToken: 'tok', client: client),
+      scannerApi: ScannerApiService(authToken: 'tok', client: client),
     ),
   ));
   await tester.pumpAndSettle();
@@ -192,9 +211,9 @@ void main() {
 
     testWidgets('a saved position offers „Make exercise" too', (tester) async {
       await _open(tester);
-      expect(_card('position-p1'), findsOneWidget);
-      expect(_button('position-p1', 'Make exercise'), findsOneWidget);
-      expect(_button('position-p1', 'Assign to student'), findsNothing);
+      expect(_card('position-71'), findsOneWidget);
+      expect(_button('position-71', 'Make exercise'), findsOneWidget);
+      expect(_button('position-71', 'Assign to student'), findsNothing);
     });
 
     testWidgets('an exercise keeps „Assign" and is not offered to be made',
@@ -318,6 +337,55 @@ void main() {
       expect(_card('recording-44'), findsOneWidget,
           reason: 'the card went although the server refused');
       expect(find.textContaining('could not be deleted'), findsOneWidget);
+    });
+  });
+
+  // The owner, 22.9.2026: „pozicije ne mogu da se brišu". Positions and
+  // exercises had no delete on the shelf; the server could delete both. A
+  // position an unfinished homework holds is refused by the server, and the
+  // card stays with the server's sentence (services/positionDeletion.js).
+  group('positions and exercises are deleted from the shelf', () {
+    Future<void> deleteVia(
+        WidgetTester tester, String card, String tooltip) async {
+      await tester.tap(_button(card, tooltip));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a position saved from the board goes through its tutorial row',
+        (tester) async {
+      final server = await _open(tester);
+      await deleteVia(tester, 'position-71', 'Delete position');
+      expect(server.deletes(), ['DELETE /lessons/71']);
+      expect(_card('position-71'), findsNothing);
+    });
+
+    testWidgets("a scanned position goes through the scanner's route",
+        (tester) async {
+      final server = await _open(tester);
+      await deleteVia(tester, 'scan-s1', 'Delete position');
+      expect(server.deletes(), ['DELETE /scans/puzzles/s1']);
+      expect(_card('scan-s1'), findsNothing);
+    });
+
+    testWidgets('an exercise is called one', (tester) async {
+      final server = await _open(tester);
+      expect(_button('scan-s2', 'Delete position'), findsNothing);
+      await deleteVia(tester, 'scan-s2', 'Delete exercise');
+      expect(server.deletes(), ['DELETE /scans/puzzles/s2']);
+      expect(_card('scan-s2'), findsNothing);
+    });
+
+    testWidgets('one a homework still holds stays, and the homework is named',
+        (tester) async {
+      final server = await _open(tester, inUse: {'/scans/puzzles/s2'});
+      await deleteVia(tester, 'scan-s2', 'Delete exercise');
+      expect(server.deletes(), ['DELETE /scans/puzzles/s2']);
+      expect(_card('scan-s2'), findsOneWidget,
+          reason: 'the card left although the server kept the position');
+      expect(find.textContaining('„Thursday" (Ana)'), findsOneWidget,
+          reason: 'the refusal did not say which homework holds it');
     });
   });
 }
