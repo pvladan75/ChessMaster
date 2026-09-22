@@ -3,8 +3,9 @@
 Written 22.9.2026 at the owner's request, after the owner brought back an idea first
 discussed with Gemini: find the board on the page, cut it into 64 squares,
 classify each square with a small neural network, and write the FEN. Nothing in
-this plan is in code. **Phase 0 is a measurement, and nothing after it gets built
-unless its numbers say so** (§5).
+this plan is in the app or the server. **Phase 0 is a measurement, and nothing
+after it gets built unless its numbers say so** (§5). Phase 0 ran on 22.9.2026;
+its numbers and the decision they leave the owner are in §7.
 
 `PLAN-ZAVRSNICA.md` froze new capabilities on 8.9.2026, and this plan adds one.
 The owner asked for it, so it is written down; the freeze is the owner's to
@@ -90,7 +91,7 @@ paper, a slight skew). Only the test set needs labelling by hand.
 Each phase is briefed only after the one before it closes. Who carries a phase
 is written beside it when it is briefed.
 
-### Phase 0 — measure, no app or server code [lead]
+### Phase 0 — measure, no app or server code [lead] — done 22.9.2026, §7
 
 Everything lives in `tools/diagram_vision/`, the same kind of hand-run tooling
 as `tools/tutorial_translate/`. Nothing goes into `chess_app/` or
@@ -192,4 +193,127 @@ this project has refused since 4.9.2026.
 
 ## 7. Measurements
 
-*Empty until phase 0 runs.*
+Phase 0 ran on 22.9.2026, lead, with the tooling in `tools/diagram_vision/`
+(its README says how to repeat each number). The three books are the owner's.
+Nothing from them is in the repository.
+
+### The owner's decisions on it, 22.9.2026
+
+1. **Phase 1 goes ahead now.** No 300-board truth set first: the owner takes
+   Reinfeld's 98.3% and *Back to Basics*' 98.1% as confidence enough, knowing
+   that the 1% ceiling is not proven at this size. Marks and confirmation (D1)
+   stay mandatory, and they are what stands behind that choice.
+2. **The freeze is lifted for this plan**: it is recorded in
+   `PLAN-ZAVRSNICA.md` among the additions after the freeze.
+3. **The third font map** (`DiagramTTFritz`, §7.4) goes to the backlog.
+
+### Result, against the gate in §4
+
+| Book | What it is | Truth | Boards with no error | Silently wrong |
+|---|---|---|---|---|
+| *Back to Basics: Openings* | one image per diagram; hatched squares, a scan | the line printed before the diagram, replayed (§7.1) | **51 / 52** (3326 / 3328 squares) | **0**; both wrong squares marked |
+| Reinfeld, 1001 sacrifices, 21st-century edition | 350 px digital renders, one per page | the book's solutions, as the D3 check | whole solution replays on **978 / 995**; 16 random passing boards read square by square by eye, none wrong | none found |
+| Silman, *Complete Endgame Course* | whole pages scanned at 300 dpi, no text layer | 24 random boards read by eye, kept out of training | **23 / 24** | **0**; the one wrong square marked |
+
+**The first threshold passes.** The gate asks for 90% of boards with no error on
+*Back to Basics*; the measurement is 98.1%.
+
+**The second threshold cannot be shown at this size, either way.** The gate
+asks for at most 1% silently wrong. No silently wrong board was seen in the 76
+boards with a known truth (52 + 24). But zero in 76 only bounds the true rate
+below about 4% (the rule of three, 95%). Showing 1% needs about 300 truth boards
+with none silently wrong. Before phase 1, **the owner decides** whether to
+build on this, or to build a larger truth set first. The cheapest source of one
+is the Reinfeld book, whose 16 checked boards took minutes to read.
+
+### What reads them — no neural network
+
+Every book is read with **templates taken from 3 to 8 of its own boards,
+labelled by eye** — here by the lead; every label and truth set in this
+section was read by the lead, not the owner, and that is its main weakness (*Back to Basics* 5, Reinfeld 3, Silman 8). This is the image
+path's counterpart to the font scanner's glyph map, chosen per book:
+
+- A class the labelled boards never showed is composed from the same piece on
+  the other square colour.
+- Each square is binarised, then compared with every training square, sliding
+  up to 10 px. The nearest one wins.
+
+**The same setting held on all three books.** It was chosen on Silman's truth
+set, then run unchanged on the other two, which moved not at all (51/52, 978/995).
+
+**For phase 3 this is a design, not only a result.** The first boards a trainer
+confirms from a new book can *be* that book's templates. The confirmation
+screen is the training.
+
+How each change moved the numbers, since two of the three were not obvious
+beforehand:
+
+| Change | *Back to Basics* | Reinfeld (whole line replays) | Silman truth set |
+|---|---|---|---|
+| mean template per class, square shrunk to 24 px | 67–92% by split | 46.6% | 5 / 24 |
+| solution parser read only the moves that follow one another | — | 68.1% | — |
+| unseen classes composed | — | 75.9% | — |
+| full size, template slides 4 px | 98.1% | 98.3% | 5 / 24 |
+| slides 10 px, binarised, nearest example | 98.1% | 98.3% | **23 / 24** |
+
+**Shrinking the square was the costly mistake.** The only thing that tells a
+white piece on a light square from the empty square is a thin outline, and
+shrinking erased it. A white rook on a light square read as empty, and was not
+marked.
+
+**A scan needs the wide slide.** Silman's squares sit several pixels off a
+regular grid, so the slide alone moved it from 5 to 15.
+
+### 7.1 Labels from the text are not truth
+
+*Back to Basics* labels come from replaying the line printed just before a
+diagram. Even with every move required to replay, **9 of 66 labels described
+another position than the picture.** In most cases the diagram shows the
+position a few moves later, where the next heading continues. One more label
+was corrected by eye and kept.
+
+The first version of the labeller was worse. It stopped at the first move the
+OCR had mangled ("dS", "NO") and labelled the position from before it. That is
+the "line cut short" hazard §3 warns about, found in the phase's own tool.
+
+**This supports D3:** text is a check on a reading, never the reading.
+
+### 7.2 Detection
+
+| Book | Diagrams cut out |
+|---|---|
+| *Back to Basics* | 391 boards from 433 images: 40 refused as not diagram-shaped (rules, logos), 2 refused for having no frame (not inspected). Of 24 random crops, all were whole boards. |
+| Reinfeld | 1002 from 1006; the 4 refused are the cover and the logos. |
+| Silman | Pages rendered and searched for a square outline whose inside alternates light and dark: **648 boards in 543 pages in 24 s**. Of 32 random finds, all 32 are boards cut correctly. Recall cannot be counted without text, but pages 40–55, read by eye, lost none. |
+
+### 7.3 What still goes wrong
+
+- **The edge ranks of a scan.** Silman gives 24 of 640 boards that are not
+  legal positions. Of 8 looked at:
+  - 3 are teaching diagrams that are not positions (no kings, or crosses and
+    two white kings). Flagging them is right.
+  - 5 are misreads, all on rank 1 or 8: a black king read as a pawn, as a
+    queen, or as a white king; a rook on g8 read as a pawn.
+  - **Every wrong square on them was marked.**
+- **Teaching marks** (crosses, dashed lines) read as pieces, always marked. A
+  trainer confirming the board removes them, which is what D1 requires.
+- **Marks are not calibrated.** Between 1.1 (Reinfeld) and 11 (*Back to
+  Basics*, depending on the split) uncertain squares per board. The truth sets
+  hold only 3 wrong squares in all, too few to calibrate a threshold on. This
+  belongs to phase 3's screen. A threshold tuned on three errors would be a
+  number without a measurement behind it.
+- **The Reinfeld failures that were inspected are the book's text, not the
+  reading.** 8 of the 17 boards whose solution does not replay were looked at
+  square by square, and none was misread. Examples:
+  - 41's "1.Bg1" cannot be played on the board the diagram draws;
+  - 42 moves its king onto its own rook;
+  - promotions written `e1/Q`.
+
+### 7.4 The font path, in passing
+
+- The six small endgame PDFs in the owner's second folder are set in
+  `DiagramTTFritz`. The font scanner has no map for it: "Nijedna mapa fonta ne
+  objašnjava dijagrame". That is a third map, made with `derive.mjs` and
+  `identify.mjs`, and not part of this plan.
+- `completechesscoursexcerpt.pdf` (`LinaresDiagram`) already reads with the
+  Tactics Course map: 7 diagrams.

@@ -6590,3 +6590,27 @@ izgleda tačno. Zato faza 0 meri upravo nju („tiho pogrešne table"), a ne sam
 tačnost po polju.
 
 Brojevi: aplikacija 3751 → 3752 (+1), server bez izmena.
+
+## Dijagrami kao slike, faza 0 — 22.9.2026
+
+Tri lekcije iz merenja, sve o alatu za merenje, ne o proizvodu.
+
+**Etiketa iz teksta nije istina.** I kad se svaki potez linije odigra, 9 od
+66 etiketa je opisivalo drugu poziciju od slike — dijagram je bio nekoliko
+poteza dalje. A prva verzija etiketara je bila gora: stajala je na prvom potezu
+koji je OCR pokvario („dS", „NO") i etiketirala poziciju pre njega. To je baš
+„linija skraćena" iz §3 plana — nađena u sopstvenom alatu faze. **Kad se
+greška iz tuđeg koda opisuje kao opasnost, isti oblik prvo potraži u svom.**
+
+**Neslaganje dva nezavisna izvora je ono što se pregleda okom.** Gde se tekst i
+čitač slažu, oba mogu biti pogrešna samo na isti način; gde se ne slažu,
+čovek presuđuje — 14 tabli umesto 66.
+
+**Podešavanje izabrano na skupu na kome se meri dokazuje se na drugom.**
+Klizanje od 10 px izabrano je na Silmanovih 24 table; na druge dve knjige je
+pušteno neizmenjeno i nije se pomerilo. A mali skup sakrije retku grešku: 23/24
+na nasumičnom skupu, dok je spisak nelegalnih pozicija iz cele knjige odmah
+pokazao klasu (crni kralj na tamnom polju čitan kao lovac) — zbog šablona koji
+je bio *sastavljen*, a ne viđen.
+
+Brojevi: aplikacija i server bez izmena.

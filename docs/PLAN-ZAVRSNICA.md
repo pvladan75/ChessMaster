@@ -40,6 +40,7 @@ document froze grew by these, and each has its own plan:
 | A tutorial read in its own language's voice | `PLAN-JEZIK-GLASA.md` | **Built** 11.9.2026; live check 150 |
 | Undo, the saved version, a line inserted into a part | `PLAN-STUDIO-ISTORIJA.md` | **Built** 11.9.2026; live check 151 |
 | The audience, General Audience 13+ | this document, below | **Decided and built** 8.9.2026 |
+| Reading book diagrams that are pictures | `PLAN-SKENER-SLIKE.md` | **Admitted 22.9.2026** by the owner after phase 0's measurement; phase 1 started the same day |
 
 ## Phase 1 — the freeze, and two cuts
 
