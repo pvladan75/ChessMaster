@@ -15,7 +15,11 @@ const { Chess } = require('chess.js');
 
 const MAX_POSITIONS_PER_CONFIRM = 300;
 const MAX_THEMES = 12;
-const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
+// 100 MB while the owner is the only user and tests with his own books
+// (22.9.2026): a book whose diagrams are pictures is large by nature — Silman,
+// the one the image path was measured on, is over 25. nginx allows 120
+// (deploy/app-setup.sh). Worth lowering again before the service opens.
+const MAX_DOCUMENT_BYTES = 100 * 1024 * 1024;
 
 /**
  * What to answer when the *upload* failed, before any scanning happened.

@@ -82,7 +82,7 @@ function loadImageFinder() {
 
 sweepLeftovers();
 
-// Parsing up to 40 pages of a 25 MB book is seconds of CPU on the thread that
+// Parsing up to 40 pages of a 100 MB book is seconds of CPU on the thread that
 // also draws films and answers everybody else, and nothing stopped an account
 // sending it in a loop. Counted per account, and checked before multer writes
 // the file.

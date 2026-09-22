@@ -6699,3 +6699,26 @@ Pamti se samo ono što je proradilo.
 bio PNG. Zamena je prvo proverena — zaglavlje i CRC svakog dela.
 
 Brojevi: aplikacija 3752 → 3778; server 1585 → 1596 / 1697 → 1709 (faza 3a).
+
+## 22.9.2026 — kalibracija se zatvarala sa editorom
+
+Vlasnikov živi prolaz: „Generate and Set Position" u kalibraciji vraćao je na
+prvi ekran skenera, a tabla ostajala nepostavljena. `AnalysisBoardSetupDialog`
+se sam zatvara posle `onPositionSet`, i tako ga koriste sva tri stara
+pozivaoca; `pickPositionWithEditor` ga je zatvarao i sam, pa je drugi `pop`
+odneo ekran kalibracije. Testovi faze 3 nisu mogli da ga vide: svaki je
+umesto editora imao lažni `PositionPicker`, a ekran je bio koren navigatora,
+gde suvišni `pop` nema šta da pokaže.
+
+**Lažnjak koji stoji umesto saradnika ne vidi ugovor sa njim.** Ko zatvara
+dijalog je deo ugovora editora, a ne skenera; novi slučaj ide kroz pravi
+editor, sa ekranom skenera postavljenim preko drugog ekrana kao u aplikaciji,
+i na starom kodu pada na „the screen underneath".
+
+Uz to: gornja granica PDF-a za skener 25 → 100 MB dok je vlasnik jedini
+korisnik (knjige sa dijagramima-slikama su velike). I nalaz bez izmene:
+`pawnvsking.pdf` nije knjiga sa slikama nego sa fontom `DiagramTTFritz`, za
+koji nema mape — a `scanDocument` za njega kaže `no_diagram_text`, dok
+`scan.mjs` na istim stranama vidi redove nepoznatog fonta.
+
+Brojevi: aplikacija 3778 → 3779; server 1596 bez baze, nepromenjen.

@@ -22,17 +22,23 @@ typedef PositionPicker = Future<String?> Function(
     BuildContext context, Uint8List picture, String initialPlacement);
 
 /// The board editor, with the book's picture beside the board.
+///
+/// The editor closes itself after `onPositionSet`, as it does for every other
+/// caller, so the callback only keeps the answer. Closing it here too was a
+/// close too many: it took the calibration screen with it (the owner's live
+/// pass of 22.9.2026).
 Future<String?> pickPositionWithEditor(
-    BuildContext context, Uint8List picture, String initialPlacement) {
-  return showDialog<String>(
+    BuildContext context, Uint8List picture, String initialPlacement) async {
+  String? placement;
+  await showDialog<void>(
     context: context,
     builder: (dialogContext) => AnalysisBoardSetupDialog(
       initialFen: '$initialPlacement w - - 0 1',
       referencePicture: picture,
-      onPositionSet: (fen) =>
-          Navigator.of(dialogContext).pop(fen.split(' ').first),
+      onPositionSet: (fen) => placement = fen.split(' ').first,
     ),
   );
+  return placement;
 }
 
 /// How many boards the trainer sets up by hand before the rest are read.

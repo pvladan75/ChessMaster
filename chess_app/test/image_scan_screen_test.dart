@@ -164,25 +164,35 @@ Future<void> _settle(WidgetTester tester, [int rounds = 12]) async {
 }
 
 Future<void> _pump(WidgetTester tester, _Server server,
-    {PositionPicker? pick, Size size = const Size(1280, 900)}) async {
+    {PositionPicker? pick,
+    Size size = const Size(1280, 900),
+    bool overAnotherScreen = false}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   final path = await tester.runAsync(_book);
   // A new key per pump: pumping the same widget type again reuses its State,
   // and the second screen of a case would keep the first one's answer.
-  await tester.pumpWidget(MaterialApp(
-    key: UniqueKey(),
-    theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
-    home: ImageScanScreen(
+  final screen = ImageScanScreen(
       api: ScannerApiService(authToken: 'tok', client: server.client()),
       filePath: path!,
       fileName: 'Silman.pdf',
       fromPage: 40,
       toPage: 44,
       pickPosition:
-          pick ?? (context, picture, initial) async => '8/8/8/8/8/8/8/K6k',
-    ),
+          pick ?? (context, picture, initial) async => '8/8/8/8/8/8/8/K6k');
+  await tester.pumpWidget(MaterialApp(
+    key: UniqueKey(),
+    theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+    // As in the app, where the scanner is pushed over the screen that
+    // opened it: a close too many then shows that screen, not nothing.
+    initialRoute: overAnotherScreen ? '/scan' : '/',
+    routes: {
+      '/': (_) => overAnotherScreen
+          ? const Scaffold(body: Text('the screen underneath'))
+          : screen,
+      '/scan': (_) => screen,
+    },
   ));
   await _settle(tester);
 }
@@ -279,6 +289,38 @@ void main() {
         '40:${picked[1]}',
         '44:${picked[2]}',
       ]);
+    });
+
+    // The owner's live pass of 22.9.2026: "Generate and Set Position" threw
+    // him back to the scanner, the board unset. The editor closes itself
+    // after `onPositionSet`, and the scanner's callback closed it too — so the
+    // second close took the calibration screen with it. The cases above stand
+    // a fake in for the editor and could not see it; this one runs the real
+    // one, through the scanner's own `pickPositionWithEditor`.
+    testWidgets('the real editor hands its board back and leaves the screen',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server,
+          overAnotherScreen: true,
+          pick: (context, picture, initial) =>
+              pickPositionWithEditor(context, picture, '4k3/8/8/8/8/8/8/4K3'));
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-setup-42-1')));
+      await tester.tap(find.byKey(const ValueKey('calibrate-setup-42-1')));
+      await _settle(tester, 4);
+      expect(find.text('Generate and Set Position'), findsOneWidget);
+      await tester.tap(find.text('Generate and Set Position'));
+      await _settle(tester, 4);
+
+      expect(find.text('Generate and Set Position'), findsNothing,
+          reason: 'the editor stayed open');
+      expect(find.text('the screen underneath'), findsNothing,
+          reason: 'the calibration screen was closed with the editor');
+      expect(find.byKey(const ValueKey('calibration-boards')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('calibrate-setup-42-1')), findsOneWidget);
+      expect(find.text('Edit'), findsOneWidget,
+          reason: 'the board set up in the editor did not arrive');
     });
 
     testWidgets(
