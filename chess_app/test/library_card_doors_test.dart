@@ -293,7 +293,9 @@ void main() {
 
       expect(server.deletes(), ['DELETE /recordings/44']);
       expect(_card('recording-44'), findsNothing);
-      expect(find.text('Recording deleted.'), findsOneWidget);
+      // Gone from the shelf is the whole answer: no message after a delete
+      // (the owner, 22.9.2026 — deleting many queued one message each).
+      expect(find.byType(SnackBar), findsNothing);
     });
 
     testWidgets('„Cancel" sends nothing and keeps the card', (tester) async {

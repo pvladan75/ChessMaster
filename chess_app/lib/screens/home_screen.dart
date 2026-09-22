@@ -618,7 +618,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     setState(
         () => _recordings = _recordings.where((r) => r['id'] != id).toList());
-    AppFeedback.success(context, 'Recording deleted.');
   }
 
   // There was an _addFriend() and a _removeFriend() here, calling

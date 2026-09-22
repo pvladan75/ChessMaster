@@ -1398,10 +1398,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       await _api.prune(color: widget.color, keys: orphans.keys);
     }
     if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _note = '${move.san} was removed from the repertoire.';
-    });
+    setState(() => _busy = false);
     await _loadKept();
     await _loadTree();
     _refreshCounts();
@@ -1437,9 +1434,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     if (!mounted) return false;
     setState(() {
       _busy = false;
-      _note = done
-          ? '$san was removed from the repertoire.'
-          : 'Opponent move was not removed — server did not respond.';
+      if (!done) {
+        _note = 'Opponent move was not removed — server did not respond.';
+      }
     });
     if (!done) return false;
     await _loadTree();

@@ -323,7 +323,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return;
     }
     _dropEntry(entry);
-    AppFeedback.success(context, 'Puzzle set deleted.');
   }
 
   Future<void> _deleteRecording(LibraryEntry entry) async {
@@ -337,7 +336,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return;
     }
     _dropEntry(entry);
-    AppFeedback.success(context, 'Recording deleted.');
   }
 
   Future<void> _deleteAnalysis(LibraryEntry entry) async {
@@ -354,7 +352,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return;
     }
     _dropEntry(entry);
-    AppFeedback.success(context, 'Analysis deleted.');
   }
 
   /// The sheet the room opens, over this card's position with nothing played

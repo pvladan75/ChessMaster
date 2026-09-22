@@ -699,7 +699,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.removed, ['b8c6']);
-      expect(find.textContaining('Nc6 was removed'), findsOneWidget);
+      // No note that it was removed: the tree shows it, and a deletion says
+      // nothing on success (the owner, 22.9.2026) — this line asserted the
+      // opposite until then.
+      expect(find.textContaining('Nc6 was removed'), findsNothing);
     });
 
     testWidgets('that would take moves of yours with it asks first',

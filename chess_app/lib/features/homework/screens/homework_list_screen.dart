@@ -110,7 +110,6 @@ class _HomeworkListScreenState extends State<HomeworkListScreen> {
       AppFeedback.error(context, widget.api.lastError ?? 'Could not delete.');
       return;
     }
-    AppFeedback.success(context, 'Homework deleted.');
     _load();
   }
 

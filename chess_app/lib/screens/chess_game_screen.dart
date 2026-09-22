@@ -1685,7 +1685,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       _showError(error);
       return;
     }
-    _showSuccess('Tutorial deleted.');
     fetchLibrary();
   }
 
@@ -2019,7 +2018,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
     parent.children.remove(node);
     _selectNode(parent);
-    _showSuccess('Variation deleted.');
   }
 
   // Jump to specific MoveNode in active history and broadcast state

@@ -185,10 +185,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     // Do the thing, then say it.
     await _load();
     if (!mounted) return;
-    if (done) {
-      AppFeedback.info(context,
-          'Deleted ${found.moves} imported ${found.moves == 1 ? "move" : "moves"}.');
-    } else {
+    if (!done) {
       AppFeedback.error(context, 'Not deleted — the server did not respond.');
     }
   }
@@ -355,9 +352,6 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     if (!mounted) return;
     if (!done) {
       AppFeedback.error(context, 'Not deleted — the server did not respond.');
-    } else if (withMoves && preview != null && preview.moves > 0) {
-      AppFeedback.info(context,
-          'Also deleted ${preview.moves} ${preview.moves == 1 ? "move" : "moves"}.');
     }
   }
 
@@ -453,10 +447,7 @@ class _RepertoireListScreenState extends State<RepertoireListScreen> {
     if (!mounted) return;
     await _load();
     if (!mounted) return;
-    if (done) {
-      AppFeedback.info(context,
-          'Deleted ${stats.moves} ${stats.moves == 1 ? "move" : "moves"} for $side.');
-    } else {
+    if (!done) {
       AppFeedback.error(context, 'Not deleted — the server did not respond.');
     }
   }

@@ -91,7 +91,6 @@ class TutorialRowActions {
       AppFeedback.error(context, error);
       return false;
     }
-    AppFeedback.success(context, 'Tutorial deleted.');
     return true;
   }
 
