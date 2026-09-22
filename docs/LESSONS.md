@@ -6722,3 +6722,27 @@ koji nema mape — a `scanDocument` za njega kaže `no_diagram_text`, dok
 `scan.mjs` na istim stranama vidi redove nepoznatog fonta.
 
 Brojevi: aplikacija 3778 → 3779; server 1596 bez baze, nepromenjen.
+
+## 22.9.2026 — DiagramTTFritz, font koji se ne čita po redovima
+
+`pawnvsking.pdf` je dobio „dijagrami su slike" a nije imao nijednu sliku:
+dijagrami su u ChessBase fontu `DiagramTTFritz`. Prazno svetlo polje je
+razmak, koji tekstualni sloj baca, pa rang ne stiže kao niz od osam znakova i
+nijedna mapa iz `fonts.mjs` ga ne može pročitati; a `classifyUnreadable`, koji
+traži osam složenih redova, zaključio je da redova nema. Novi `gridFont.mjs`
+stavlja svaki glif na polje ispod njega i proverava bojenje table (svako tamno
+polje nosi `+` ili masku, svetlo samo figuru), pa ispušten glif ili zalutalo
+slovo iz proze pada glasno. Mapa redova uvek ima prednost; mreža se pita tek
+kad nijedna ne pokrije uzorak, i to iz jednog mesta (`pickFontMap`) za rutu i
+za `scan.mjs`. Na knjizi: 16 tabli, 0 grešaka, 14 sa brojem.
+
+Tri preživele mutacije su bile rupe u testu, ne u kodu: zaglavlje strane
+leži levo od obe table, pa „broj nije iznad table" nije mogao da padne ni bez
+prozora po x ni bez granice po visini. **Fikstura iz stvarnih podataka vidi
+samo ono što podaci slučajno sadrže** — granica se testira tamo gde je ona
+jedino što drži broj napolju.
+
+Poznate su samo maske kralja (`m`) i pešaka (`z`); ostale figure na tamnom
+polju odbijaju se sa imenom polja dok ih knjiga ne pokaže.
+
+Brojevi: server 1596 → 1608 bez baze (12 novih); sa bazom nije meren.

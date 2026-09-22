@@ -6,6 +6,7 @@
 // Eight rows of diagram glyphs stacked in one column *is* the diagram.
 import { rowToFenRank, unknownGlyphs } from './fonts.mjs';
 import { mergeSpans } from './pdf.mjs';
+import { extractGridDiagrams } from './gridFont.mjs';
 
 const COLUMN_TOLERANCE = 3; // px; rows of one diagram share an x almost exactly
 const GAP_FACTOR = 1.6; // a gap this much larger than typical ends a diagram
@@ -122,6 +123,8 @@ function labelAbove(spans, firstRow, rowSpacing) {
  * later, from the book's own solution, not guessed here.
  */
 export function extractDiagrams(rawSpans, map, pageNo) {
+  // A font set square by square has no rows to read (gridFont.mjs).
+  if (map.layout === 'grid') return extractGridDiagrams(rawSpans, pageNo);
   const spans = mergeSpans(rawSpans);
   const rows = diagramRows(spans, map);
   const out = [];

@@ -8,11 +8,11 @@
 // that returned empty boards when its model was missing.
 import { writeFile, readFile } from 'node:fs/promises';
 import { openPdf, pageSpans, fontNames } from './pdf.mjs';
-import { selectFontMap, unknownGlyphs } from './fonts.mjs';
+import { unknownGlyphs } from './fonts.mjs';
 import { extractDiagrams } from './diagrams.mjs';
 import { readSolutions } from './solutions.mjs';
 import { buildPosition } from './verify.mjs';
-import { flagDuplicateNumbers } from './index.mjs';
+import { flagDuplicateNumbers, pickFontMap } from './index.mjs';
 
 function parseArgs(argv) {
   const args = { file: argv[0] };
@@ -50,13 +50,16 @@ async function main() {
 
   // --- pick a glyph map by alphabet, from a sample of pages -----------------
   const sample = [];
+  const sampled = [];
   const step = Math.max(1, Math.floor((pages.to - pages.from) / 8));
   for (let p = pages.from; p <= pages.to && sample.length < 400; p += step) {
-    for (const s of await pageSpans(doc, p)) {
+    const spans = await pageSpans(doc, p);
+    sampled.push(spans);
+    for (const s of spans) {
       if (!/\s/.test(s.text) && s.text.length >= 8 && s.text.length <= 12) sample.push(s.text);
     }
   }
-  const picked = selectFontMap(sample);
+  const picked = pickFontMap(sample, sampled);
   if (!picked) {
     console.error('\nNijedna mapa fonta ne objašnjava dijagrame u ovoj knjizi.');
     console.error('Nepoznati glifovi (znak, koliko puta):');

@@ -17,6 +17,7 @@
 import { openPdf, pageSpans, fontNames } from './pdf.mjs';
 import { selectFontMap } from './fonts.mjs';
 import { extractDiagrams, classifyUnreadable } from './diagrams.mjs';
+import { FRITZ_DIAGRAM, countGridBoards } from './gridFont.mjs';
 import { readSolutions } from './solutions.mjs';
 import { buildPosition } from './verify.mjs';
 
@@ -100,6 +101,20 @@ export function flagDuplicateNumbers(positions, numberOf = (p) => p.label) {
  * the rest rather than being dropped, because a scanner that silently discards
  * what it could not read is the failure this whole pipeline is built to avoid.
  */
+/**
+ * The map for a book, from a sample of its pages: `sample` the row-shaped
+ * strings, `sampledPages` the same pages' spans kept whole. A row map wins
+ * whenever one explains a row, so every book read before the grid font keeps
+ * its reader; the grid font is asked only when none does. Null when neither.
+ * Shared with `scan.mjs`, so the tool and the route cannot disagree.
+ */
+export function pickFontMap(sample, sampledPages) {
+  const byRows = selectFontMap(sample);
+  if (byRows) return byRows;
+  const boards = countGridBoards(sampledPages);
+  return boards > 0 ? { map: FRITZ_DIAGRAM, covered: boards } : null;
+}
+
 export async function scanDocument({
   filePath,
   fromPage = 1,
@@ -125,7 +140,7 @@ export async function scanDocument({
     }
   }
 
-  const picked = selectFontMap(sample);
+  const picked = pickFontMap(sample, sampled);
   if (!picked) {
     // Which of the three it is decides what the trainer does next: look for a
     // different book, or send this one to have a map derived from it. Saying
