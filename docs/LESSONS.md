@@ -6859,3 +6859,25 @@ fajla ide kroz platformski dijalog, pa ekran nema test; pokriveni su kartica i
 provera (`bookIsCalibrated`) svaka za sebe.
 
 Brojevi: aplikacija 3806 → 3811.
+
+## 23.9.2026 — kalibracija koja raste
+
+Vlasnik: „zar ne mogu pozicije koje sam ispravio da služe kao kalibracija?",
+pa „da bude dinamička". Posle „Save", tabla koju je trener postavio u editoru i
+koja pokazuje klasu koju je čitač morao da pogađa ulazi u kalibraciju knjige; kad
+je puna (8), zauzima mesto **suvišne** table — one čiju svaku klasu pokazuje neka
+druga koja ostaje, računajući i pridošlicu — i od suvišnih ide ona sa najmanje
+figura. Bez suvišne, ništa se ne izbacuje.
+
+Samo table iz editora, ne štiklirane: kalibracija je istina na kojoj stoji svako
+kasnije čitanje, pa bi tabla prihvaćena onakva kakva je pročitana mogla da nauči
+knjigu sopstvenoj grešci.
+
+Dve lekcije iz mutacija. Prvi test „pridošlica čini tablu suvišnom" nije mogao da
+padne: sve table su bile suvišne i bez nje — **fikstura u kojoj je svaka tabla
+zamenljiva ne može da vidi pravilo o tome koja je**. I jedna mutacija je dala
+pogrešno crveno: `if (false)` je razbilo promociju `hash` na non-null, pa je fajl
+pao na kompilaciji; ponovljena u obliku koji se kompajlira, pala je na pravom
+slučaju.
+
+Brojevi: aplikacija 3811 → 3825.

@@ -5928,6 +5928,12 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     kartica kaže „You set up this book before…", i „Read the pictures" čita
     odmah, bez tri table. Isto sa kopijom fajla pod drugim imenom. Za novu
     knjigu kartica i dalje objašnjava tri table.
+14. [ ] **Kalibracija raste.** Silman: na tabli „to check" otvori editor, potvrdi
+    (ili ispravi) i sačuvaj. Poruka kaže „The calibration now includes page …";
+    sledeće skeniranje drugih strana te knjige više ne navodi tu figuru u
+    napomeni o pogađanju. Kad je kalibracija puna (8), nova tabla zauzme mesto
+    one koja ne pokazuje ništa što druge ne pokazuju, i poruka kaže koje. Tabla
+    samo štiklirana, bez editora, ne ulazi.
 
 ## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
 

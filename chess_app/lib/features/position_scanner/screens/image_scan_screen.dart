@@ -274,6 +274,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       board.legal = fenIllegalReason('$placement w - - 0 1') == null ||
           fenIllegalReason('$placement b - - 0 1') == null;
       board.accepted = board.legal;
+      board.fixedByHand = true;
     });
   }
 
@@ -285,17 +286,41 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       positions: chosen.map((p) => p.toScannedPosition()).toList(),
     );
     if (!mounted) return;
-    setState(() => _saving = false);
     if (!outcome.ok) {
+      setState(() => _saving = false);
       AppFeedback.error(context, outcome.error ?? 'Save failed.');
       return;
     }
+
+    // Boards set up by hand that show what the calibration had to guess join
+    // it, so the next reading of this book reads them. Done, then said.
+    var grown = '';
+    final hash = _bookHash;
+    final growth = calibrationGrownBy(
+        current: _calibration, saved: chosen, composed: _result!.composed);
+    if (hash != null && growth.added.isNotEmpty) {
+      final error = await widget.api.saveCalibration(
+          bookHash: hash, bookName: widget.fileName, boards: growth.boards);
+      if (!mounted) return;
+      String where(List<CalibrationBoard> bs) =>
+          bs.map((b) => 'page ${b.ref.page}, board ${b.ref.index}').join('; ');
+      if (error == null) {
+        _calibration = growth.boards;
+        grown = ' The calibration now includes ${where(growth.added)}'
+            '${growth.removed.isEmpty ? '' : ' in place of ${where(growth.removed)}, which showed nothing the others do not'}'
+            ', so this book is read better next time.';
+      } else {
+        grown = ' The calibration could not be updated: $error';
+      }
+    }
+    setState(() => _saving = false);
+
     final router = GoRouter.maybeOf(context);
     AppFeedback.show(
       context,
       () => SnackBar(
         duration: const Duration(seconds: 8),
-        content: Text('In "Saved Positions": ${outcome.summary}.'),
+        content: Text('In "Saved Positions": ${outcome.summary}.$grown'),
         action: router == null
             ? null
             : SnackBarAction(

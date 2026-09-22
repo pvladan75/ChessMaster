@@ -558,6 +558,51 @@ void main() {
           reason: 'page 44 is not a position and must not be sent');
     });
 
+    // The owner, 23.9.2026: „zar ne mogu pozicije koje sam ispravio da služe
+    // kao kalibracija?" A board set up by hand that shows what the reader had
+    // to guess joins the book's calibration when it is saved.
+    testWidgets('a board set up by hand joins the calibration on save',
+        (tester) async {
+      final read = Map<String, dynamic>.from(_Server._defaultRead)
+        ..['composed'] = ['R/dark'];
+      final server = _Server(calibration: _calibrated, read: read);
+      await _pump(tester, server,
+          // A white rook on a1, a dark square: the class that was guessed.
+          pick: (context, picture, initial) async => '4k3/8/8/8/8/8/8/R3K3');
+      await tester.ensureVisible(find.byKey(const ValueKey('read-board-43-1')));
+      await tester.tap(find.byKey(const ValueKey('read-board-43-1')));
+      await _settle(tester, 2);
+      await tester.tap(find.byKey(const ValueKey('image-scan-save')));
+      await _settle(tester);
+
+      final puts = server.sent.where((r) => r.method == 'PUT').toList();
+      expect(puts, hasLength(1), reason: 'the calibration was not updated');
+      final boards =
+          ((jsonDecode(puts.single.body) as Map)['boards'] as List).cast<Map>();
+      expect(
+          boards.map((b) => '${b['page']}:${b['fen']}'),
+          [
+            '40:7k/8/8/3q4/8/8/8/1KQ5',
+            '41:8/3nk3/8/3Q1K2/8/8/8/8',
+            '42:5nk1/R5p1/p3p2p/2B1P2P/r4P2/1p4K1/6P1/8',
+            '43:4k3/8/8/8/8/8/8/R3K3',
+          ],
+          reason: 'the three it had, then the board set up by hand');
+      expect(find.textContaining('calibration now includes page 43'),
+          findsOneWidget);
+    });
+
+    testWidgets('a board only ticked does not touch the calibration',
+        (tester) async {
+      final read = Map<String, dynamic>.from(_Server._defaultRead)
+        ..['composed'] = ['R/dark'];
+      final server = _Server(calibration: _calibrated, read: read);
+      await _pump(tester, server);
+      await tester.tap(find.byKey(const ValueKey('image-scan-save')));
+      await _settle(tester);
+      expect(server.sent.where((r) => r.method == 'PUT'), isEmpty);
+    });
+
     testWidgets(
         'the note about a guessed piece appears only when a class was composed',
         (tester) async {

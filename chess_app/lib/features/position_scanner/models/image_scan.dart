@@ -106,6 +106,10 @@ class ReadBoard {
   String sideToMove = 'w';
   bool sideTouched = false;
 
+  /// Set up in the editor by the trainer, every square looked at — the only
+  /// boards trusted to join a calibration ([calibrationGrownBy]).
+  bool fixedByHand = false;
+
   String get fen => '$placement $sideToMove - - 0 1';
 
   void flipSide() {
@@ -184,4 +188,118 @@ class ImageScanResult {
               const [],
     );
   }
+}
+
+/// The piece classes a placement shows, as the reader names them:
+/// `R/dark` for a white rook on a dark square. a8 is light.
+Set<String> pieceClassesOf(String placement) {
+  final classes = <String>{};
+  final ranks = placement.split('/');
+  for (var row = 0; row < ranks.length && row < 8; row++) {
+    var file = 0;
+    for (final ch in ranks[row].split('')) {
+      final empty = int.tryParse(ch);
+      if (empty != null) {
+        file += empty;
+        continue;
+      }
+      classes.add('$ch/${(file + row) % 2 == 1 ? 'dark' : 'light'}');
+      file++;
+    }
+  }
+  return classes;
+}
+
+/// The most boards a calibration may hold — the server's `MAX_CALIBRATION`.
+const maxCalibrationBoards = 8;
+
+/// What saving did to a book's calibration: the whole new list, and which
+/// boards joined and left. [added] empty means nothing changed.
+class CalibrationGrowth {
+  const CalibrationGrowth(this.boards, this.added, this.removed);
+  final List<CalibrationBoard> boards;
+  final List<CalibrationBoard> added;
+  final List<CalibrationBoard> removed;
+}
+
+/// A book's calibration grown by what was just saved — the owner's questions
+/// of 23.9.2026: „zar ne mogu pozicije koje sam ispravio da služe kao
+/// kalibracija?", and then „da bude dinamička": pages 1–20 have no white
+/// queen on a light square, page 31 does, and confirming it teaches the book.
+///
+/// A calibration is the ground truth every later reading of the book stands
+/// on, so only a board the trainer **set up in the editor** is taken — every
+/// square looked at, as in the calibration itself; one ticked as it was read
+/// could carry the very mistake it would then teach. And only for what the
+/// calibration lacks: a board joins when it shows a class the reader had to
+/// guess (`composed`), the board covering the most first, until nothing is
+/// guessed.
+///
+/// When the calibration is full, a board that joins takes the place of one
+/// that is **redundant** — every class it shows is shown by another board
+/// that stays — so no class the reader already has is ever lost for one it
+/// lacks. The one with the fewest pieces goes, being the least evidence. With
+/// no redundant board the new one waits: nothing is evicted blind.
+CalibrationGrowth calibrationGrownBy({
+  required List<CalibrationBoard> current,
+  required Iterable<ReadBoard> saved,
+  required List<String> composed,
+  int max = maxCalibrationBoards,
+}) {
+  final missing = composed.toSet();
+  final boards = [...current];
+  final taken = {for (final c in current) c.ref};
+  final candidates = [
+    for (final b in saved)
+      if (b.fixedByHand && b.accepted && b.legal && !taken.contains(b.ref)) b
+  ];
+  final added = <CalibrationBoard>[];
+  final removed = <CalibrationBoard>[];
+
+  /// A board whose every class another board in [pool] also shows.
+  CalibrationBoard? redundantIn(List<CalibrationBoard> pool) {
+    CalibrationBoard? pick;
+    var pickPieces = 1 << 30;
+    for (final b in pool) {
+      final others = <String>{
+        for (final o in pool)
+          if (!identical(o, b)) ...pieceClassesOf(o.placement)
+      };
+      final mine = pieceClassesOf(b.placement);
+      if (!others.containsAll(mine)) continue;
+      if (mine.isEmpty) return b;
+      final pieces = b.placement.replaceAll(RegExp(r'[0-9/]'), '').length;
+      if (pieces < pickPieces) {
+        pick = b;
+        pickPieces = pieces;
+      }
+    }
+    return pick;
+  }
+
+  while (missing.isNotEmpty && candidates.isNotEmpty) {
+    ReadBoard? best;
+    var bestCount = 0;
+    for (final b in candidates) {
+      final count = pieceClassesOf(b.placement).intersection(missing).length;
+      if (count > bestCount) {
+        best = b;
+        bestCount = count;
+      }
+    }
+    if (best == null) break;
+    candidates.remove(best);
+    final joining = CalibrationBoard(ref: best.ref, placement: best.placement);
+    if (boards.length >= max) {
+      // Judged with the newcomer in: what it shows counts as covered.
+      final out = redundantIn([...boards, joining]);
+      if (out == null || identical(out, joining)) continue;
+      boards.remove(out);
+      if (!added.remove(out)) removed.add(out);
+    }
+    boards.add(joining);
+    added.add(joining);
+    missing.removeAll(pieceClassesOf(best.placement));
+  }
+  return CalibrationGrowth(boards, added, removed);
 }
