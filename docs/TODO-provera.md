@@ -5934,6 +5934,10 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     napomeni o pogađanju. Kad je kalibracija puna (8), nova tabla zauzme mesto
     one koja ne pokazuje ništa što druge ne pokazuju, i poruka kaže koje. Tabla
     samo štiklirana, bez editora, ne ulazi.
+15. [ ] **Strana na potezu bez Analize.** Saved Positions: na kartici bez potvrđene
+    strane vidi se ceo red „Side to move not confirmed — set it" (ranije je bio
+    odsečen); klik pita ko je na potezu, pamti odgovor i ostaje na listi. Klik
+    na samu poziciju i dalje prvo pita, pa otvara Analizu.
 
 ## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
 

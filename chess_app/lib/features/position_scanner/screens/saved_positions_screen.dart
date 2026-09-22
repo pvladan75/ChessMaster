@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,9 +27,12 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// deliberately plain — a position is useful the moment it can be opened on the
 /// analysis board, which is one tap from here.
 class SavedPositionsScreen extends StatefulWidget {
-  const SavedPositionsScreen({super.key, required this.session});
+  const SavedPositionsScreen({super.key, required this.session, this.api});
 
   final UserSession session;
+
+  /// Seam for a test; the real service against this session otherwise.
+  final ScannerApiService? api;
 
   /// What „Check with engine" may search to: from 12, every depth up to
   /// [AppSettingsService.kMaxEngineDepth]. It stopped at 24 until 17.9.2026.
@@ -42,7 +46,7 @@ class SavedPositionsScreen extends StatefulWidget {
 
 class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   late final ScannerApiService _api =
-      ScannerApiService(authToken: widget.session.token);
+      widget.api ?? ScannerApiService(authToken: widget.session.token);
   late final PositionLibraryService _library =
       PositionLibraryService(authToken: widget.session.token);
   late final LessonApiService _lessons =
@@ -349,7 +353,17 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
       context.push(AppRoutes.analysisPath(fen: position.fen));
       return;
     }
+    final fen = await _settleSide(position);
+    if (fen == null || !mounted) return;
+    context.push(AppRoutes.analysisPath(fen: fen));
+  }
 
+  /// Asks who is to move and keeps the answer; the settled FEN, or null when
+  /// nothing was settled. On its own since 23.9.2026: the question was asked
+  /// only on the way into Analysis, so answering it always opened Analysis —
+  /// „zašto me vodi u Analysis kad odgovorim ko je na potezu?" The row's
+  /// „Set who is to move" asks it and stays on the list.
+  Future<String?> _settleSide(SavedPosition position) async {
     final side = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -375,19 +389,17 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         ],
       ),
     );
-    if (side == null || !mounted) return;
+    if (side == null || !mounted) return null;
 
     final fen = await _api.setSideToMove(position.puzzleId, side);
-    if (!mounted) return;
+    if (!mounted) return null;
     if (fen == null) {
-      AppFeedback.show(
-          context,
-          () => const SnackBar(
-              content: Text('That side cannot be to move in this position.')));
-      return;
+      AppFeedback.error(
+          context, 'That side cannot be to move in this position.');
+      return null;
     }
     setState(() => position.settleSide(side, fen));
-    context.push(AppRoutes.analysisPath(fen: fen));
+    return fen;
   }
 
   Future<void> _delete(SavedPosition position) async {
@@ -528,6 +540,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
                   : setState(() => _togglePick(items[index])),
               onLongPress: () => setState(() => _togglePick(items[index])),
               onDelete: () => _delete(items[index]),
+              onSetSide: () => _settleSide(items[index]),
               onEditInstruction: () => _editInstruction(items[index]),
               onAccept: () {
                 final proposal = _proposals[items[index].puzzleId];
@@ -665,6 +678,7 @@ class _SavedCard extends StatelessWidget {
     required this.onLongPress,
     required this.onOpen,
     required this.onDelete,
+    required this.onSetSide,
     required this.onAccept,
     required this.onEditInstruction,
   });
@@ -682,6 +696,9 @@ class _SavedCard extends StatelessWidget {
   final VoidCallback onLongPress;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
+
+  /// Answers who is to move without leaving the list.
+  final VoidCallback onSetSide;
   final VoidCallback onAccept;
   final VoidCallback onEditInstruction;
 
@@ -702,6 +719,7 @@ class _SavedCard extends StatelessWidget {
             : colors.border;
 
     return InkWell(
+      key: ValueKey('saved-card-${position.puzzleId}'),
       onTap: onOpen,
       onLongPress: onLongPress,
       child: Container(
@@ -742,77 +760,91 @@ class _SavedCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Center(child: BoardThumbnail(fen: position.fen, size: 140)),
-            const Spacer(),
-            // The notes under the board grew from one line to three — solution,
-            // the unconfirmed-side warning, and the engine's opinion — and a
-            // fixed-height card cannot hold whatever arrives. Flexible with
-            // clipping means adding a fourth note can never overflow the tile
-            // again; the grid gives the block room for the usual three.
-            Flexible(
-              child: ClipRect(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // The task the student is sent. Plain text gave no sign it
-                    // could be edited, so nobody would ever have found it — the
-                    // pencil is the whole affordance.
-                    InkWell(
-                      onTap: onEditInstruction,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              position.instruction ?? 'add task for student',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.caption.copyWith(
-                                color: position.instruction == null
-                                    ? colors.warning
-                                    : colors.textPrimary,
-                                fontStyle: position.instruction == null
-                                    ? FontStyle.italic
-                                    : FontStyle.normal,
-                              ),
+            // The board takes what the notes leave, up to 140. Until 23.9.2026
+            // the notes were clipped instead, to keep a fixed-height card from
+            // overflowing — and clipping is not overflow: the last note, „side
+            // to move not confirmed", was cut off without a word on every card
+            // that had one (10 px, measured). A note is a sentence the trainer
+            // must read; the picture can be a little smaller.
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, c) => Center(
+                  child: BoardThumbnail(
+                      fen: position.fen,
+                      size: math.min(140, math.min(c.maxWidth, c.maxHeight))),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Builder(
+              builder: (context) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // The task the student is sent. Plain text gave no sign it
+                  // could be edited, so nobody would ever have found it — the
+                  // pencil is the whole affordance.
+                  InkWell(
+                    onTap: onEditInstruction,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            position.instruction ?? 'add task for student',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.caption.copyWith(
+                              color: position.instruction == null
+                                  ? colors.warning
+                                  : colors.textPrimary,
+                              fontStyle: position.instruction == null
+                                  ? FontStyle.italic
+                                  : FontStyle.normal,
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Icon(Icons.edit_outlined,
-                              size: 13, color: colors.textMuted),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                            position.sideToMove == 'w'
-                                ? Icons.circle
-                                : Icons.circle_outlined,
-                            size: 11,
-                            color: colors.textPrimary),
-                        const SizedBox(width: 5),
-                        Text(
-                          position.solutionSan ?? 'no solution',
-                          style: AppText.body.copyWith(
-                            color:
-                                incomplete ? colors.info : colors.textSecondary,
-                          ),
                         ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Icon(Icons.edit_outlined,
+                            size: 13, color: colors.textMuted),
                       ],
                     ),
-                    // Without this the yellow border says only "something", and
-                    // the trainer cannot know the side was never confirmed.
-                    if (position.needsReview)
-                      Text('side to move is not confirmed',
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                          position.sideToMove == 'w'
+                              ? Icons.circle
+                              : Icons.circle_outlined,
+                          size: 11,
+                          color: colors.textPrimary),
+                      const SizedBox(width: 5),
+                      Text(
+                        position.solutionSan ?? 'no solution',
+                        style: AppText.body.copyWith(
+                          color:
+                              incomplete ? colors.info : colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Without this the yellow border says only "something", and
+                  // the trainer cannot know the side was never confirmed.
+                  // A door of its own since 23.9.2026: answering it used to
+                  // be possible only by opening the position in Analysis.
+                  if (position.needsReview)
+                    InkWell(
+                      key: ValueKey('saved-set-side-${position.puzzleId}'),
+                      onTap: onSetSide,
+                      child: Text('Side to move not confirmed — set it',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style:
-                              AppText.caption.copyWith(color: colors.warning)),
-                    if (proposal != null) _proposalRow(context),
-                  ],
-                ),
+                          style: AppText.caption.copyWith(
+                              color: colors.warning,
+                              decoration: TextDecoration.underline)),
+                    ),
+                  if (proposal != null) _proposalRow(context),
+                ],
               ),
             ),
           ],

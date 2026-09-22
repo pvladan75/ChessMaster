@@ -6881,3 +6881,24 @@ pao na kompilaciji; ponovljena u obliku koji se kompajlira, pala je na pravom
 slučaju.
 
 Brojevi: aplikacija 3811 → 3825.
+
+## 23.9.2026 — „zašto me vodi u Analysis kad odgovorim ko je na potezu?"
+
+Na Saved Positions pitanje „Who is to move?" postojalo je samo na putu u Analizu,
+pa je svaki odgovor otvarao Analizu. Red sada ima svoja vrata („set it") koja
+pitaju, pamte i ostaju na listi; klik na poziciju i dalje prvo pita.
+
+Test novih vrata je našao stariji kvar: tap je pao na karticu, jer je poslednja
+beleška bila **odsečena za 10 px** — i na masteru. Kartica je imala `Spacer` i
+`Flexible(ClipRect(...))` jedan ispod drugog, a ta dva **dele ostatak visine na
+pola**: beleške su dobijale polovinu mesta koje im treba, iako ga je kartica
+imala. Komentar je tvrdio da ClipRect „never overflows" — tačno, i baš zato se
+red „side to move is not confirmed" nije video nigde, ni u testu ni u izdanju.
+**Odsecanje nije prelivanje** (pravilo od 21.9 ponovo): beleška je rečenica koju
+trener mora da pročita, pa sada tabla uzima ono što beleške ostave, do 140.
+
+Mutacija „tabla uvek 140" je preživela, i to je tačan odgovor, ne rupa: bez
+predloga motora sve beleške staju uz punu tablu, a predlog ne može da se napravi
+u testu bez motora. Zabeleženo kao inertno.
+
+Brojevi: aplikacija 3825 → 3829.
