@@ -130,17 +130,116 @@ owner to accept or change:
 Reinfeld is reported separately. 92 dpi may simply be too little, and a "no"
 there says nothing about the plan as a whole.
 
-### Phase 1 — find and cut out the board
+### Phase 1 — find and cut out the board [lead] — done 22.9.2026
 
-Only after phase 0 says go. Where it runs is decided by phase 0's findings:
+**Where it runs, decided by measurement.** It runs on the server, in Node, with
+no new dependency. `pdfjs-dist`, which the font scanner already uses, returns a
+page's images as pixels with no canvas: `getOperatorList` finds each
+`paintImageXObject`, and `page.objs` holds the pixels. Measured on the three
+books:
 
-- a Node server with `onnxruntime-node`;
-- a Python sidecar;
-- on the device.
+| Book | What pdfjs returns | Time per page |
+|---|---|---|
+| *Back to Basics* | 1-bit images, about 530 × 480 | 15–100 ms |
+| Reinfeld | RGB, 350 × 350 | 10–40 ms |
+| Silman | the whole page as one 1-bit image, 2007 × 2952 | about 20 ms |
 
-Rendering PDF pages to images needs a canvas, which is a native dependency and a
-change to `deploy/`. That cost is counted before the choice. The server's upload
-limits stay as they are (25 MB, 20 scans per 15 minutes per account).
+So the font scanner keeps its rule of no Python and nothing new on the server.
+Rendering a page is needed only for a board drawn in vectors, and that is out of
+scope (§6).
+
+**What it builds.** Everything goes into `chess_backend/services/positionScanner/`:
+
+- `images.mjs` — a page's images as 8-bit grey, with each image's rectangle on
+  the page, whatever the pdfjs kind: 1-bit, grey, RGB or RGBA.
+- `boards.mjs` — the two finders from phase 0, ported:
+  - `findBoard`, the frame inside a diagram image;
+  - `boardsOnScan`, the boards on a scanned page: a square outline, largest
+    first, whose inside alternates light and dark.
+
+  It also crops a board to 512 × 512 by area averaging.
+- `imageDiagrams.mjs` — `findImageDiagrams(filePath, {fromPage, toPage})`
+  decides per image:
+  - a diagram-shaped image is searched for a frame;
+  - a page-sized image is searched as a scan.
+
+  It returns each board with its page, its source (`image` or `scan`) and its
+  box, and counts what it refused, **by reason**.
+
+Nothing is reachable from a route yet. Phase 2 is the first phase with a
+reading to hand back, and the route and its failure codes change there, once.
+
+**Gate.** It lives in `services/positionScanner/imageDiagrams.test.mjs`, in
+`npm test`. Every fixture is drawn in the test with `@napi-rs/canvas` and wrapped
+in a PDF built by hand, the way the font scanner's no-text test does. No book is
+in the repository.
+
+1. A drawn diagram, with rank numbers beside the board and hatched dark
+   squares, has its frame found to within 1 px. A diagram-shaped image with no
+   frame is refused.
+2. Every pdfjs kind decodes to the same grey: the same picture stored as
+   1-bit, as 8-bit grey and as RGB.
+3. A scanned page with two boards, a block of text and a plain square (a figure
+   that is not a board) gives exactly the two boards:
+   - a board whose frame is broken is still found;
+   - a board with an inner and an outer frame is cut at the outer one.
+
+   These are the three faults phase 0 met on Silman.
+4. End to end through `findImageDiagrams`:
+   - a PDF with a diagram image and a scanned page gives three boards, with the
+     right pages and sources;
+   - a PDF with no images gives none and says so.
+
+**Parity with phase 0, by hand** (the books are not in the repository):
+`node services/positionScanner/imageDiagrams.mjs BOOK.pdf` prints the counts.
+
+| Book | Phase 0 found |
+|---|---|
+| *Back to Basics* | 391 |
+| Reinfeld | 1002 |
+| Silman | 648 |
+
+For the image books the boxes are compared with phase 0's own, which are in the
+same pixel space.
+
+**Done 22.9.2026. The gate has 9 cases, all green.** The draft of this list
+became 9 cases because mutation found two holes in it.
+
+Mutations run against the gate:
+
+- **Caught, each by the right case:** 1-bit read with 1 as black; the whole
+  image taken when there is no frame; no squareness test in `findBoard`; the
+  smallest region first; no overlap check; no checkered test; no page treated
+  as a scan; the page transform ignored.
+- **Two of them first survived, and both were holes in the fixtures:**
+  - The first draft drew the second frame *inside* the board. It touched the
+    hatching, so the two frames made one outline, and "smallest first" had no
+    order to get wrong. The fixture now draws it *outside* with paper between,
+    which is the book's shape.
+  - The table fixture's rules were too short to pass the frame-line test, so
+    squareness was never asked. Its rules are now tall enough that only the
+    shape refuses it.
+- **Inert, and recorded rather than chased:**
+  - The squareness filter on a scan region. `findBoard` inside the region
+    refuses anything that is not a square board anyway, so the filter only
+    saves time.
+  - A crop that picks one pixel instead of averaging. At about 480–600 px down
+    to 512, the two are practically the same.
+
+**Parity with phase 0, on the owner's books:**
+
+| Book | Boards found, Node vs phase 0 | Boxes | Time |
+|---|---|---|---|
+| *Back to Basics* | 391 vs 391 | identical to the pixel | 4.0 s |
+| Reinfeld | 1002 vs 1002 | identical to the pixel | 10.1 s |
+| Silman | 648 vs 648 | within 1.7 px | 26.0 s |
+
+Every page gives the same count as phase 0. Silman's boxes differ only because
+phase 0 rendered its pages at 200 dpi, while Node reads the scan at its own
+300 dpi. That difference is the resolution, and Node's cut is the finer one.
+
+Backend 1561 → **1570** without a database, 1673 → **1682** with one. Both
+were measured, the database half on a throwaway cluster.
 
 ### Phase 2 — classify, with confidence
 

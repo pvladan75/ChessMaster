@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 3752 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1673 with TEST_DATABASE_URL, 1561 without
+cd chess_backend && npm test          # node --test, 1682 with TEST_DATABASE_URL, 1570 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -506,6 +506,14 @@ door until then being the Analysis bar behind ⋮; the manual under `site/`
 still described the row taken away on 18.9 and was corrected with it. Beside
 it `docs/PLAN-SKENER-SLIKE.md`, diagrams that are pictures — nothing in code,
 and its phase 0 is a measurement whose numbers decide whether anything follows.
+The owner accepted phase 0's numbers the same day and lifted the freeze for it;
+phase 1 cuts the boards out on the server, in Node with no new dependency
+(`pdfjs-dist` hands back an image's pixels without a canvas), and matches phase
+0 board for board on all three books (backend → **1570 / 1682**, both measured).
+**A fixture that joins what the real thing keeps apart cannot see the order
+of the two**: an inner frame drawn touching the hatching made one outline, and
+"smallest first" survived until the frame was drawn outside, with paper
+between, as the book has it.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

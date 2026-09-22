@@ -6614,3 +6614,29 @@ pokazao klasu (crni kralj na tamnom polju čitan kao lovac) — zbog šablona ko
 je bio *sastavljen*, a ne viđen.
 
 Brojevi: aplikacija i server bez izmena.
+
+## Dijagrami kao slike, faza 1 — 22.9.2026
+
+Table se seku na serveru, u Node-u, bez nove zavisnosti: pdfjs daje piksele
+slike bez platna. Paritet sa fazom 0 na tri knjige: 391 / 1002 / 648, iste
+table na svakoj strani.
+
+**Fikstura koja spaja ono što stvarnost drži odvojeno ne može da vidi
+redosled.** Dupli okvir je prvo nacrtan *unutar* table; dodirivao je šrafuru,
+pa su oba okvira bila jedan obris — i mutacija „najmanji prvi" je preživela,
+jer nije bilo dva kandidata da se pobrkaju. Okvir nacrtan *spolja*, sa papirom
+između, kako ga knjiga ima, odmah je pada.
+
+**Fikstura koja pada na ranijem koraku ne testira kasniji.** Tabela je
+odbijena jer su joj vertikale bile kraće od 60% slike — pre nego što je iko
+pitao da li je kvadratna — pa je mutacija bez provere kvadratnosti prošla.
+Kad jedan slučaj treba da čuva jedno pravilo, fikstura mora da prođe sva
+pravila ispred njega.
+
+**Tolerancija napisana napamet nije provera.** „Kropovi se razlikuju za manje
+od 8" pao je na 19,5 — ne zbog koda, nego zato što 1-bitna slika legitimno
+nema antialiasing. Zamenjeno tačnom tvrdnjom: 1-bitni krop je krop iste slike
+pragovane na 128, piksel za piksel.
+
+Brojevi: server 1561 → 1570 bez baze, 1673 → 1682 sa bazom (oba izmerena);
+aplikacija bez izmena.

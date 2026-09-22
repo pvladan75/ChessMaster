@@ -28,6 +28,18 @@ node --test services/positionScanner        # iz chess_backend/
 | `solutions.mjs` | odeljak sa rešenjima → ko je na potezu i koji je potez |
 | `verify.mjs` | sastavljanje FEN-a i provera kroz `chess.js` |
 
+## Dijagrami kao slike (faza 1 plana `docs/PLAN-SKENER-SLIKE.md`)
+
+Drugi put, odvojen od ovog: knjiga čiji su dijagrami **slike** (sopstvena slika
+po dijagramu, ili cela skenirana strana). Za sada samo nalazi i iseca table;
+čitanje polja je faza 2.
+
+| | |
+|---|---|
+| `images.mjs` | slike strane kao 8-bitna siva, sa mestom na strani — pdfjs bez platna |
+| `boards.mjs` | okvir u slici dijagrama; table na skeniranoj strani; isecanje na 512 × 512 |
+| `imageDiagrams.mjs` | `findImageDiagrams`, i komandna linija: `node imageDiagrams.mjs knjiga.pdf [OD-DO] [--boxes izlaz.json]` |
+
 ## Tri stvari koje su koštale vremena
 
 **Dijagram se ne traži po broju.** Prva testna knjiga numeriše svaki dijagram,
