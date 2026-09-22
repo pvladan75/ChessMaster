@@ -915,6 +915,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onOpenPreparation: _openStudioRoom,
             onStartSession: _createRoom,
             onOpenLibrary: () => context.push(AppRoutes.library),
+            onOpenScanner: () => context.push(AppRoutes.scan),
             studentsSection: HomeFriendsTab(
               embedded: true,
               studentEmailController: _studentEmailController,

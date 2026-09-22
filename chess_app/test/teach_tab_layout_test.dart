@@ -35,7 +35,7 @@ const _students = [
 /// The tab inside a box exactly [width] wide, in a window of [window] — the
 /// two differ in one case, which is how reading the window gets caught.
 Future<void> _pump(WidgetTester tester, double width,
-    {Size window = const Size(1920, 1400)}) async {
+    {Size window = const Size(1920, 1400), VoidCallback? onOpenScanner}) async {
   tester.view.physicalSize = window;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -54,6 +54,7 @@ Future<void> _pump(WidgetTester tester, double width,
             onOpenPreparation: () {},
             onStartSession: () async {},
             onOpenLibrary: () {},
+            onOpenScanner: onOpenScanner ?? () {},
             studentsSection: HomeFriendsTab(
               embedded: true,
               studentEmailController: TextEditingController(),
@@ -89,6 +90,7 @@ const _order = [
   'Library',
   'Preparation',
   'New session',
+  'Scan a book',
 ];
 
 void main() {
@@ -128,6 +130,26 @@ void main() {
           reason: '„${_order[i]}" is not under „${_order[i - 1]}"');
       expect(below.left, above.left);
     }
+  });
+
+  testWidgets('the book scanner is a third live card, and it opens the scanner',
+      (tester) async {
+    // Until 22.9.2026 the scanner's only door was the Analysis bar, behind ⋮
+    // on a phone — kept there on 18.9 only so that removing a row did not
+    // close it. It makes material, so it belongs where a trainer works.
+    var opened = 0;
+    await _pump(tester, 1400, onOpenScanner: () => opened++);
+    final s = _card(tester, 'New session');
+    final scan = _card(tester, 'Scan a book');
+    expect(scan.top, s.top, reason: 'the scanner is not beside New session');
+    expect(scan.left, greaterThan(s.right));
+    expect(scan.height, s.height, reason: 'the live row ends at two heights');
+
+    await tester.tap(find.descendant(
+        of: find.byKey(const Key('teach-scan-card')),
+        matching: find.byType(ElevatedButton)));
+    await tester.pump();
+    expect(opened, 1);
   });
 
   testWidgets('decided from the box the tab is given, not the window',

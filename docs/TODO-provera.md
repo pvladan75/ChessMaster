@@ -5878,6 +5878,17 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 224. Skener na Teach — 22.9.2026, nije viđeno uživo
+
+**Samo aplikacija** (nov build, server bez izmena).
+
+1. [ ] **Kartica postoji.** Teach: pored „Preparation" i „New session" stoji
+   „Scan a book" sa dugmetom „Scan"; na širokom prozoru sve tri u jednom redu,
+   iste visine; na telefonu jedna ispod druge, „Scan a book" poslednja.
+2. [ ] **Vodi u skener.** „Scan" otvara ekran skenera; „Back" vraća na Teach.
+3. [ ] **Stara vrata rade.** U Analizi „Scan a book" (na telefonu iza ⋮) i
+   dalje otvara isti ekran.
+
 ## 223. Jedna sesija na dupli klik, jedna kopija na Windowsu — 22.9.2026, nije viđeno uživo
 
 **Server i aplikacija** (server restartovan sa novim `routes/rooms.js` i

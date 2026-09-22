@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3751 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3752 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1673 with TEST_DATABASE_URL, 1561 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -501,6 +501,11 @@ tap while a start is on its way. **A rule made of two queries holds for one
 request, not for two at once** — and a stub cannot see the race; only five
 starts on a real database could. A release build on Windows now runs one
 copy per user (a named mutex in `windows/runner/main.cpp`; debug is exempt).
+Then „Scan a book" became a card on Teach (→ **3752**, a full run), its only
+door until then being the Analysis bar behind ⋮; the manual under `site/`
+still described the row taken away on 18.9 and was corrected with it. Beside
+it `docs/PLAN-SKENER-SLIKE.md`, diagrams that are pictures — nothing in code,
+and its phase 0 is a measurement whose numbers decide whether anything follows.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

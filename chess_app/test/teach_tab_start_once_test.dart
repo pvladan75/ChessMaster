@@ -32,6 +32,7 @@ Future<void> _pump(WidgetTester tester, Future<void> Function() onStart) async {
         onOpenPreparation: () {},
         onStartSession: onStart,
         onOpenLibrary: () {},
+        onOpenScanner: () {},
         studentsSection: const SizedBox(),
       ),
     ),

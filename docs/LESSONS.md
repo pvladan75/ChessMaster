@@ -6566,3 +6566,27 @@ Windows: imenovani mutex u `main.cpp`, debug build izuzet. Provereno na
 release buildu, ne testom — nema Dart testa koji vidi drugi proces.
 
 Brojevi: aplikacija 3748 → 3751 (+3), server 1561 bez baze, 1671 → 1673 sa bazom (+2 na pravoj bazi).
+
+## Skener na Teach, i plan za dijagrame koji su slike — 22.9.2026
+
+Vlasnik je pitao da li skener staviti na tab. Jedina vrata su bila u traci
+Analize, gde je skener sklonjen 18.9. samo da ne bi nestao sa redom iznad
+table — **vrata sačuvana u žurbi nisu vrata postavljena tamo gde ih neko
+traži.** Sada je kartica na Teach, a `onOpenScanner` je obavezan parametar.
+
+Test je prvo pušten protiv parametra bez kartice, da crveno bude pravo (tri
+slučaja, sva jer kartice nema), a ne greška kompilacije; pa mutacija „kartica
+zove Library" — crven tačno novi slučaj.
+
+Usput: priručnik (`site/`) je i dalje opisivao red „My games / Scan a book"
+ukinut 18.9. Čuvar priručnika drži **oznake**, ne **mesta** — rečenica „pored
+table stoje…" ostala je zelena sa oznakama koje i dalje postoje negde u
+aplikaciji. Kad se kontrola seli, grepuje se njena oznaka i u `site/`, i čita
+se rečenica oko nje.
+
+Plan `PLAN-SKENER-SLIKE.md`: ponuđena ideja tvrdi „100% pouzdano", a
+klasifikator je verovatnoćni; najskuplja greška je legalna pozicija koja
+izgleda tačno. Zato faza 0 meri upravo nju („tiho pogrešne table"), a ne samo
+tačnost po polju.
+
+Brojevi: aplikacija 3751 → 3752 (+1), server bez izmena.

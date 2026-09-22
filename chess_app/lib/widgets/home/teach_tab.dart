@@ -21,6 +21,7 @@ class TeachTab extends StatelessWidget {
     required this.onOpenPreparation,
     required this.onStartSession,
     required this.onOpenLibrary,
+    required this.onOpenScanner,
     required this.studentsSection,
   });
 
@@ -42,6 +43,11 @@ class TeachTab extends StatelessWidget {
   /// room screen from being pushed over the first.
   final Future<void> Function() onStartSession;
   final VoidCallback onOpenLibrary;
+
+  /// Opens the book scanner. Required, not optional: until 22.9.2026 its only
+  /// door was the Analysis bar, behind ⋮ on a phone, and an optional door is
+  /// the one that gets left out.
+  final VoidCallback onOpenScanner;
 
   /// Requests, the student and trainer lists, groups — the people card.
   final Widget studentsSection;
@@ -65,6 +71,15 @@ class TeachTab extends StatelessWidget {
       line: 'Open a room and invite your student.',
       button: 'Start',
       onPressed: onStartSession,
+    );
+    final scanner = _ActionCard(
+      key: const Key('teach-scan-card'),
+      icon: Icons.document_scanner_outlined,
+      color: colors.brand,
+      title: 'Scan a book',
+      line: 'Diagrams from a PDF become positions and exercises.',
+      button: 'Scan',
+      onPressed: onOpenScanner,
     );
     final library = Card(
       key: const Key('teach-library-card'),
@@ -129,7 +144,7 @@ class TeachTab extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           AdaptiveCardRows(
             key: const Key('teach-live-flow'),
-            children: [preparation, session],
+            children: [preparation, session, scanner],
           ),
           const SizedBox(height: AppSpacing.xl),
           Padding(
@@ -149,6 +164,7 @@ class TeachTab extends StatelessWidget {
 
 class _ActionCard extends StatefulWidget {
   const _ActionCard({
+    super.key,
     required this.icon,
     required this.color,
     required this.title,

@@ -175,6 +175,7 @@ void main() {
               onOpenPreparation: () {},
               onStartSession: () async {},
               onOpenLibrary: () {},
+              onOpenScanner: () {},
               studentsSection: const SizedBox(),
             ),
           ),
