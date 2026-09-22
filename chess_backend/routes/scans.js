@@ -67,6 +67,19 @@ function loadScanner() {
   return scannerPromise;
 }
 
+// The image path (phase 2 of docs/PLAN-SKENER-SLIKE.md): a book whose diagrams
+// are pictures. ESM for the same reason, and cached the same way.
+let imageReaderPromise = null;
+function loadImageReader() {
+  if (!imageReaderPromise) imageReaderPromise = import('../services/positionScanner/imageRead.mjs');
+  return imageReaderPromise;
+}
+let imageFinderPromise = null;
+function loadImageFinder() {
+  if (!imageFinderPromise) imageFinderPromise = import('../services/positionScanner/imageDiagrams.mjs');
+  return imageFinderPromise;
+}
+
 sweepLeftovers();
 
 // Parsing up to 40 pages of a 25 MB book is seconds of CPU on the thread that
@@ -101,7 +114,25 @@ router.post('/', authenticateToken, scanLimiter, upload.single('document'), asyn
       });
     } catch (err) {
       if (err instanceof ScanError) {
-        return res.status(422).json({ error: err.message, code: err.code, details: err.details });
+        // A book with no text, or no text shaped like a diagram, may still hold
+        // its diagrams as pictures — and then this is a door, not a dead end.
+        // Counted after the refusal is settled: a count that fails leaves the
+        // refusal exactly as it was.
+        let details = err.details;
+        if (err.code === 'no_text' || err.code === 'no_diagram_text') {
+          try {
+            const { findImageDiagrams } = await loadImageFinder();
+            const from = Number(fromPage) || 1;
+            const found = await findImageDiagrams(req.file.path, {
+              fromPage: from,
+              toPage: Number(toPage) || from,
+            });
+            details = { ...(details || {}), imageDiagrams: found.diagrams.length };
+          } catch (countErr) {
+            logger.warn(`[SCAN] Brojanje slika-dijagrama nije uspelo: ${countErr.message}`);
+          }
+        }
+        return res.status(422).json({ error: err.message, code: err.code, details });
       }
       throw err;
     }
@@ -125,6 +156,56 @@ router.post('/', authenticateToken, scanLimiter, upload.single('document'), asyn
     });
   } catch (err) {
     logger.error(`[SCAN] Neuspešno skeniranje: ${err.stack || err.message}`);
+    res.status(500).json({ error: 'Failed to read document.' });
+  } finally {
+    removeQuietly(req.file.path);
+  }
+});
+
+// POST /scans/images — a book whose diagrams are pictures.
+//
+// Without a `calibration` field: the boards on those pages, a preview of each,
+// and the ones worth calibrating. With one (JSON: [{ page, index, fen,
+// ignore? }], the positions of a few of the book's own boards): every other
+// board read against them, each with `source: 'image'` and its uncertain
+// squares. The document is deleted in the `finally`, as above, and nothing is
+// saved: POST /scans/confirm takes what the trainer confirms.
+router.post('/images', authenticateToken, scanLimiter, upload.single('document'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No document sent.' });
+  }
+  const { fromPage, toPage, calibration } = req.body;
+
+  try {
+    const { scanImages, parseCalibration } = await loadImageReader();
+    const { ScanError } = await loadScanner();
+    let result;
+    try {
+      const from = Number(fromPage) || 1;
+      result = await scanImages({
+        filePath: req.file.path,
+        fromPage: from,
+        toPage: Number(toPage) || from,
+        calibration: parseCalibration(calibration),
+      });
+    } catch (err) {
+      if (err instanceof ScanError) {
+        return res.status(422).json({ error: err.message, code: err.code, details: err.details });
+      }
+      throw err;
+    }
+
+    await recordUsage(pool, req.user.id, METRIC.SCANNED_PAGES, result.scannedTo - result.scannedFrom + 1);
+    logger.info(
+      `[SCAN] slike user=${req.user.id} strane=${result.scannedFrom}-${result.scannedTo} ` +
+        (result.needsCalibration
+          ? `tabli=${result.boards.length}, bez kalibracije`
+          : `procitano=${result.positions.length} kalibracija=${result.calibration.length} ` +
+            `oznaka po tabli=${result.marksPerBoard.toFixed(1)}`)
+    );
+    res.json({ documentName: req.file.originalname, ...result });
+  } catch (err) {
+    logger.error(`[SCAN] Citanje slika nije uspelo: ${err.stack || err.message}`);
     res.status(500).json({ error: 'Failed to read document.' });
   } finally {
     removeQuietly(req.file.path);

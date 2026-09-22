@@ -241,14 +241,190 @@ phase 0 rendered its pages at 200 dpi, while Node reads the scan at its own
 Backend 1561 → **1570** without a database, 1673 → **1682** with one. Both
 were measured, the database half on a throwaway cluster.
 
-### Phase 2 — classify, with confidence
+### Phase 2 — classify, with confidence [lead] — done 22.9.2026
 
-- The output carries `source: 'image'` and a confidence for each square.
-- The font path's result shape is extended, not forked. A reader that does not
-  know `source` must not take an image result as a font result (rule 11:
-  absence is a third answer).
-- There is a new failure code beside `no_text`, `no_diagram_text` and
-  `unknown_font`, and `scanFailureMessage` gets its sentence.
+**Measured before designing.**
+
+- **A book cannot be read with another book's templates.** Templates from two
+  of the books, reading the third:
+
+  | Book read | Result |
+  |---|---|
+  | *Back to Basics* | 51 / 52, as well as its own templates did |
+  | Reinfeld | whole solution replays on only 126 / 150; 72 boards come out illegal |
+  | Silman | **0 / 24** |
+
+  Templates also cannot ship in the repository, because they would be cut from
+  the owner's books. **So every book is calibrated from its own boards**: the
+  trainer gives the position of a few of them, and the rest are read from
+  those.
+
+- **The reader in Node.** A faithful port of phase 0 read Silman's truth set
+  at 21/24, in **6.7 s a board**. Too slow for a request, and a porting
+  difference as well. Two changes:
+  1. **Each class looks for its own shift.** The class mean is searched over
+     the full ±10 px on every other pixel. The three best classes then compare
+     their examples within ±2 px of that shift.
+  2. **At most 6 examples per class**, chosen farthest-first.
+
+  Two ways of aligning that looked cheaper were measured and dropped:
+
+  | Alignment | Silman truth set |
+  |---|---|
+  | one shift for the whole board | 1 / 6 |
+  | one shift per square, taken from the best-fitting class | 20 / 24 |
+
+  With one shift per square, an empty square fits a rim square best by sliding
+  its piece out of view.
+
+  **The result matches Python on all three books, at under half a second a
+  board:**
+
+  | Book | Node | Python (phase 0) | Time per board |
+  |---|---|---|---|
+  | Silman | 23 / 24 | 23 / 24 | 0.44 s |
+  | *Back to Basics* | 51 / 52 | 51 / 52, the same board and squares | 0.48 s |
+  | Reinfeld | 291 / 300 whole solutions | 98.3% | 0.47 s |
+
+**Decisions.**
+
+1. **Nothing from the book is stored, still.** The calibration travels with the
+   request: `[{ page, index, fen, ignore? }]`, a board named by its page and its
+   place on that page, which stays the same across two uploads. The client
+   uploads the PDF again to read, and may keep the calibration for that book
+   so the next chapter needs none. A calibration board may lie outside the
+   pages being read; those pages are opened too.
+2. **The route.** `POST /scans/images`, with the same upload rules, temp file,
+   limiter and usage count as `POST /scans`:
+   - **Without a calibration**, it answers with the boards found, a preview of
+     each (PNG, 256 px), and the three boards it suggests calibrating: the
+     busiest, most pieces first.
+   - **With a calibration**, it answers the positions: for each board its page,
+     its index, `source: 'image'`, the placement read, the squares marked
+     uncertain, whether the placement is a legal position, and its preview.
+     The calibration boards are echoed as given.
+   - **Nothing is ever saved.** Saving stays `POST /scans/confirm`. That route
+     needs no change: an image-read position arrives there as a FEN the
+     trainer confirmed, with `needsReview` where the trainer left doubt.
+3. **Reading runs in a worker thread**, not on the thread that answers
+   everybody else. At most **60 boards** a request, about 30 s. Beyond that it
+   is refused with the number.
+4. **Marks keep phase 0's rule for now** (the 2nd percentile of the
+   calibration boards' own gaps). The count of marks per board goes into the
+   response, so phase 3 can see what the rule costs.
+5. **`POST /scans` says when a book's diagrams are pictures.** The font path's
+   `no_text` and `no_diagram_text` failures carry `details.imageDiagrams`, the
+   number of boards the image path found on those pages. The client can then
+   offer the other door, rather than a dead end.
+
+**Gate.** The fixtures are drawn in the test with geometric pieces, never
+letters: a test that draws text reads the machine's fonts (rule 8).
+
+1. **Reader.** Boards drawn from three calibration positions read other drawn
+   positions exactly, with each board shifted by up to 6 px and specks added.
+   A class the calibration never showed, a white rook on a light square, is
+   composed and read. *(As built, see "Done" below: a bound over 16 boards,
+   not an exact read of one.)*
+2. **Marks.** A teaching cross drawn on an empty square is marked, not read
+   quietly as a piece or as empty.
+3. **Route, without a calibration.** It gives the boards, their previews and
+   three suggestions. It saves no row. The temp file is gone afterwards,
+   whatever happened.
+4. **Route, with a calibration.**
+   - The positions carry `source: 'image'`.
+   - A calibration FEN that is not a placement is refused with
+     `calibration_invalid`.
+   - A calibration board that does not exist is refused with
+     `calibration_board_missing`.
+   - Too many boards are refused with `too_many_boards` and the number.
+5. **The font path points at the image path.** A PDF of image diagrams sent to
+   `POST /scans` fails with `no_text` and `details.imageDiagrams` equal to the
+   boards on it.
+
+**Done 22.9.2026.** Three pieces:
+
+- `reader.mjs` does the reading;
+- `readWorker.mjs` runs it off the main thread;
+- `imageRead.mjs` handles the calibration, the previews, the suggestions and
+  the answer.
+
+Behind them is `POST /scans/images`. `POST /scans` now counts the pictures when
+the font path finds no text.
+
+**The gate as built.** It has 14 cases: the reader's 7, the route's 6, and one
+more on the crop. Three differ from the draft above, and why is part of the
+result:
+
+1. **"Read exactly, drifting 6 px" became two claims.**
+   - On drawn boards, a black bishop on e7 was read as a pawn at every drift,
+     even 0. The fixture's bishop is a small filled diamond and its pawn a
+     small filled disc, and the calibration showed a black bishop on a dark
+     square only once, on the rim.
+   - Tuning the shapes until the case passed would have been choosing the
+     fixture. So the case asserts what was measured: at least 99% of squares
+     right over 16 boards at 3 px, with the composed rook right every time.
+   - The promise itself is a separate case: at 6 px, every wrong square is
+     marked. That promise is D1.
+2. **"Every wrong square is marked" holds up to 6 px, not beyond.** Measured
+   over the 16 boards:
+
+   | Drift | Wrong squares | Unmarked |
+   |---|---|---|
+   | 6 px | 2 | 0 |
+   | 8 px | 10 | 4 |
+   | 10 px | 21 | 10 |
+
+   Every unmarked miss at 8 px was the same square: a white rook on h1, a
+   composed class, drawn half over the frame. Two consequences:
+   - A square read *as* a composed class is now always marked. A composed
+     template is a guess, and a guess can be confidently wrong. There is a
+     case for this rule.
+   - A composed class that *loses* can still hide a piece. So the response
+     names the composed classes, and **phase 3 asks for one more calibration
+     board that shows them.**
+
+   A first version also marked squares where a composed class only came
+   second. It put **20 marks on a board** of *Back to Basics*: a composed
+   template is mostly its empty square, so it is the runner-up on nearly every
+   empty square.
+3. **The crop enlarges bilinearly.** A scanned board is smaller than 512
+   (Silman's are about 350 px), and enlarging a 1-bit picture in blocks makes
+   a line one pixel thick or two depending on where it falls. On the real
+   scan, white pawns on light squares read as empty on 4 boards in 24. OpenCV's
+   `INTER_AREA`, which phase 0 used, interpolates when enlarging. The new case
+   draws two lines that blocks give one column and two; blocks fail it.
+
+   **Phase 1's "inert" survivor was inert only for shrinking.** A mutation
+   that survives on one fixture can be load-bearing on data that fixture never
+   has (rule 6).
+
+**The whole Node pipeline on the owner's books.** These are Node's own crops,
+calibrated with phase 0's labels, and read with the final code:
+
+| Book | Result | Silently wrong | Marks per board | Time per board |
+|---|---|---|---|---|
+| *Back to Basics* | **51 / 52**, the same board as Python | 0 | 1.5 | 0.41 s |
+| Reinfeld | **291 / 300** solutions replay in full | — | — | — |
+| Silman | **22 / 24**; both errors marked | 0 | 0.6 | 0.49 s |
+
+The harness that produced these first reported *Back to Basics* at **27/52
+with 25 boards silently wrong**. The fault was the harness, not the reader. It
+matched phase 0's labels to Node's boards by the box *inside* the image, and a
+page with two diagrams has the same box in both. So the calibration was taught
+the wrong positions. It now matches by the image's place on the page.
+
+**A number that looks like a disaster is first a question about the
+instrument.** The crops were compared pixel for pixel, 0.79 grey levels apart
+on average, before anything in the reader was touched.
+
+**Backend 1570 → 1585 without a database.** That is 15: the 14 cases, plus
+`test/support/drawnBooks.mjs`, which `node --test` counts as a file of its own.
+With a database, 1682 → 1697.
+
+One unexplained failure: a single run with the database reported two
+failures. One was the drift case, which had become vacuous once the crop was
+fixed. The other was not captured by name, and it has not come back in three
+runs since.
 
 ### Phase 3 — the confirmation screen
 

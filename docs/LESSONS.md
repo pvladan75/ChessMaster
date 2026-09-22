@@ -6640,3 +6640,34 @@ pragovane na 128, piksel za piksel.
 
 Brojevi: server 1561 → 1570 bez baze, 1673 → 1682 sa bazom (oba izmerena);
 aplikacija bez izmena.
+
+## Dijagrami kao slike, faza 2 — 22.9.2026
+
+**Broj koji liči na katastrofu prvo je pitanje o instrumentu.** Cela Node cev
+na *Back to Basics* dala je 27/52 i 25 tiho pogrešnih — gore nego ikad. Pre
+ijedne izmene u čitaču kropovi su upoređeni sa Pythonovim piksel po piksel
+(0,79 sive razlike), pa je krivac nađen u mernom alatu: labele su vezivane po
+kutiji unutar slike, a strana sa dva dijagrama ima istu kutiju u obe. Posle
+popravke alata: 51/52, tiho pogrešnih 0.
+
+**Mutacija koja je preživela na jednoj fiksturi može nositi teret na podacima
+koje ta fikstura nema.** U fazi 1 „krop bira piksel umesto proseka" je
+zapisan kao inertan — tačno, za *smanjenje*. Silmanove table su *manje* od 512
+i uvećavaju se; tamo je blokovsko uvećanje koštalo 4 table od 24. Test koji
+sada to čuva je i sam prvo prošao na pogrešnom kodu: dve linije su pale na
+kolone koje blokovi daju isto. Kolone su izabrane računom, tek onda je test
+pao na blokovima.
+
+**Pravilo koje popravlja jedan slučaj meri se na svima.** „Ne veruj
+sastavljenoj klasi ni kad je druga" smanjilo je neoznačene greške na 8 px sa 4
+na 3 — i digla oznake na *Back to Basics* sa 1,5 na 20 po tabli, jer je
+sastavljen šablon uglavnom prazno polje, pa je drugi na skoro svakom praznom
+polju. Suženo na „kad pobedi".
+
+**Provera koja može da postane prazna mora to da kaže.** Slučaj „svako
+pogrešno polje je označeno" ima i tvrdnju „bar jedno polje je pogrešno". Kad je
+popravka kropa učinila da se na 6 px ništa ne pogreši, test je pao na toj
+tvrdnji, umesto da tiho prolazi bez ičega da proveri.
+
+Brojevi: server 1570 → 1585 bez baze, 1682 → 1697 sa bazom; aplikacija bez
+izmena.

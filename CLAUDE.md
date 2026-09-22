@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 3752 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1682 with TEST_DATABASE_URL, 1570 without
+cd chess_backend && npm test          # node --test, 1697 with TEST_DATABASE_URL, 1585 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -514,6 +514,19 @@ phase 1 cuts the boards out on the server, in Node with no new dependency
 of the two**: an inner frame drawn touching the hatching made one outline, and
 "smallest first" survived until the frame was drawn outside, with paper
 between, as the book has it.
+Then phase 2 (backend → **1585 / 1697**, both measured): `POST /scans/images`
+reads a book's picture diagrams against a **calibration** — the positions of a
+few of its own boards, sent with the request, because another book's
+templates read a scan at 0/24 and templates cut from a book are not kept. On
+the owner's books the whole Node pipeline gives 51/52, 291/300 solutions and
+22/24, nothing silently wrong, under half a second a board in a worker thread.
+**A number that looks like a disaster is first a question about the
+instrument**: the first end-to-end run said 27/52 with 25 silently wrong, and
+the fault was the harness matching labels by a box that two images on one page
+share — found by comparing crops pixel for pixel before touching the reader.
+And the phase-1 mutation recorded as inert (a crop that picks pixels) was
+inert only for shrinking: a scanned board is *enlarged*, and blocks cost 4
+boards in 24 until enlarging was bilinear.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

@@ -42,7 +42,7 @@ export class ScanError extends Error {
   }
 }
 
-function clampRange(from, to, pageCount, label) {
+export function clampRange(from, to, pageCount, label) {
   const start = Math.max(1, Math.min(Number(from) || 1, pageCount));
   const end = Math.max(start, Math.min(Number(to) || start, pageCount));
   if (end - start + 1 > MAX_PAGES_PER_SCAN) {

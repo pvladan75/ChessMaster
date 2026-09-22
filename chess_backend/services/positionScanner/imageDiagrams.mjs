@@ -26,7 +26,8 @@ function pageSized({ rect, pageSize }) {
  * Every board on pages fromPage..toPage (1-based, inclusive).
  *
  * Returns { diagrams, refused, imagesSeen, undecoded }. Each diagram is
- * { page, source, box, rect, board }:
+ * { page, index, source, box, rect, board }:
+ *  - `index` is its place on the page, from 1, in reading order;
  *  - `source` is 'image' (the picture is one diagram) or 'scan' (the board was
  *    found on a scanned page);
  *  - `box` is the board in the image's pixels;
@@ -35,17 +36,23 @@ function pageSized({ rect, pageSize }) {
  * `refused` counts every image that gave no board, by reason, so a book that
  * yields nothing says why.
  */
-export async function findImageDiagrams(filePath, { fromPage = 1, toPage } = {}) {
+export async function findImageDiagrams(filePath, { fromPage = 1, toPage, pages } = {}) {
   const doc = await openPdf(filePath);
   const last = Math.min(toPage ?? doc.numPages, doc.numPages);
+  // `pages`, when given, names exactly which pages to open — a range plus the
+  // pages a calibration board lies on, which need not be inside it.
+  const wanted = pages
+    ? [...new Set(pages)].filter((p) => p >= 1 && p <= doc.numPages).sort((x, y) => x - y)
+    : Array.from({ length: Math.max(0, last - fromPage + 1) }, (_, k) => fromPage + k);
   const diagrams = [];
   const refused = {};
   const refuse = (reason) => { refused[reason] = (refused[reason] ?? 0) + 1; };
   let imagesSeen = 0;
   let undecoded = 0;
   try {
-    for (let page = fromPage; page <= last; page++) {
+    for (const page of wanted) {
       const found = await pageImages(doc, page);
+      const before = diagrams.length;
       undecoded += found.undecoded;
       for (const img of found.images) {
         imagesSeen++;
@@ -68,6 +75,15 @@ export async function findImageDiagrams(filePath, { fromPage = 1, toPage } = {})
           refuse('not diagram-shaped');
         }
       }
+      // A board's name within its page: 1, 2, … in reading order — the image's
+      // place first, then the board's within a scanned page. The same file gives
+      // the same names on every upload, which is what lets a client name a
+      // calibration board once and send the book again.
+      const onPage = diagrams.splice(before);
+      onPage.sort((a, b) => a.rect[1] - b.rect[1] || a.rect[0] - b.rect[0]
+        || a.box.top - b.box.top || a.box.left - b.box.left);
+      onPage.forEach((d, k) => { d.index = k + 1; });
+      diagrams.push(...onPage);
     }
   } finally {
     await doc.destroy();

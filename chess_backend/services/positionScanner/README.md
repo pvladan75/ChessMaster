@@ -39,6 +39,13 @@ po dijagramu, ili cela skenirana strana). Za sada samo nalazi i iseca table;
 | `images.mjs` | slike strane kao 8-bitna siva, sa mestom na strani — pdfjs bez platna |
 | `boards.mjs` | okvir u slici dijagrama; table na skeniranoj strani; isecanje na 512 × 512 |
 | `imageDiagrams.mjs` | `findImageDiagrams`, i komandna linija: `node imageDiagrams.mjs knjiga.pdf [OD-DO] [--boxes izlaz.json]` |
+| `reader.mjs` | čitanje polja (faza 2): šabloni iz kalibracionih tabli iste knjige, svaka klasa traži svoj pomak, najbliži primer pobeđuje |
+| `readWorker.mjs` | čitanje van glavne niti |
+| `imageRead.mjs` | `scanImages` za `POST /scans/images`: kalibracija, pregledi, predlog tabli, odgovor |
+
+Knjiga se čita **samo sopstvenim tablama** — šabloni druge knjige daju 0/24 na
+skenu — a šabloni se ne čuvaju, pa kalibracija (pozicije nekoliko tabli)
+putuje sa zahtevom.
 
 ## Tri stvari koje su koštale vremena
 

@@ -167,14 +167,39 @@ export function boardsOnScan(gray, width, height) {
 }
 
 /**
- * The board inside `box`, resized to BOARD x BOARD by averaging every source
- * pixel an output pixel covers — shrinking by picking pixels would drop the
- * thin outline that is all that tells a white piece from an empty square.
+ * The board inside `box`, resized to BOARD x BOARD as OpenCV's INTER_AREA does
+ * (phase 0 cut its boards so):
+ *  - shrinking averages every source pixel an output pixel covers — picking
+ *    pixels would drop the thin outline that is all that tells a white piece
+ *    from an empty square;
+ *  - enlarging interpolates bilinearly. A scanned board is often smaller than
+ *    512, and enlarging a 1-bit picture in blocks lost the same outline:
+ *    measured on a real scan (phase 2), white pawns on light squares read as
+ *    empty on 4 boards in 24 until this was bilinear.
  */
 export function cropBoard(gray, width, box, size = BOARD) {
   const w = box.right - box.left + 1;
   const h = box.bottom - box.top + 1;
   const out = new Uint8Array(size * size);
+  if (w < size || h < size) {
+    const at = (x, y) => gray[(box.top + y) * width + box.left + x];
+    for (let oy = 0; oy < size; oy++) {
+      const sy = Math.min(Math.max((oy + 0.5) * (h / size) - 0.5, 0), h - 1);
+      const y0 = Math.floor(sy);
+      const y1 = Math.min(y0 + 1, h - 1);
+      const fy = sy - y0;
+      for (let ox = 0; ox < size; ox++) {
+        const sx = Math.min(Math.max((ox + 0.5) * (w / size) - 0.5, 0), w - 1);
+        const x0 = Math.floor(sx);
+        const x1 = Math.min(x0 + 1, w - 1);
+        const fx = sx - x0;
+        const top = at(x0, y0) * (1 - fx) + at(x1, y0) * fx;
+        const bottom = at(x0, y1) * (1 - fx) + at(x1, y1) * fx;
+        out[oy * size + ox] = Math.round(top * (1 - fy) + bottom * fy);
+      }
+    }
+    return out;
+  }
   for (let oy = 0; oy < size; oy++) {
     const y0 = box.top + Math.floor((oy * h) / size);
     const y1 = Math.max(y0 + 1, box.top + Math.floor(((oy + 1) * h) / size));
