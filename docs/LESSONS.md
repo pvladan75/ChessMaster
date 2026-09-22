@@ -6746,3 +6746,33 @@ Poznate su samo maske kralja (`m`) i pešaka (`z`); ostale figure na tamnom
 polju odbijaju se sa imenom polja dok ih knjiga ne pokaže.
 
 Brojevi: server 1596 → 1608 bez baze (12 novih); sa bazom nije meren.
+
+## 22.9.2026 — brisanje bez poruke, i glas lekcije koji telefon nije čuo
+
+**Brisanje.** Vlasnik je obrisao mnogo snimaka zaredom i gledao kako se
+„Recording deleted." ponavlja za svaki. Poruka posle uspešnog brisanja je
+skinuta svuda (snimak, set zagonetki, analiza, tutorijal, domaći, varijanta,
+potezi i strane repertoara, i beleška „… was removed from the repertoire");
+lista koja se promenila je odgovor. Poruke o grešci su ostale. Dva testa su
+tvrdila staro ponašanje i prepravljena su otvoreno.
+
+**Glas.** „Učenik ne čuje, trener čuje" izgledalo je kao pitanje prava, a
+server je bio nevin — to je dokazano pozivom sa linkom potpisanim za učenika
+(200 i 206, ceo fajl). Razlika je bila uređaj: učenik na telefonu, trener na
+Windowsu. Log telefona je rekao ostalo: Androidov plejer otvara `http://` kroz
+sistemski mrežni sloj, koji odbija nešifrovan saobraćaj koji manifest ne
+dozvoljava (`NuCachedSource2: source returned error -1`, deset pokušaja,
+`MEDIA_ERROR_UNKNOWN`), dok zahtevi same aplikacije idu kroz Dart i niko ih ne
+pita. Zato je sve ostalo radilo na telefonu. Sada aplikacija sama preuzme zvuk
+i plejeru da fajl, jednom; Play samo premota i nastavi, pa ne prekida
+učitavanje koje je u toku (to je bio drugi kvar, `Bad state: No element`).
+
+**„Ko" u prijavi je često „na čemu".** Kad jedna uloga radi a druga ne, prvo
+pitaj na kom je uređaju svaka — pa izmeri tamo. I: `http` na lokalnom serveru
+nije isto što i `https` u produkciji; kvar koji živi samo u fazi testiranja
+ipak je kvar koji vlasnik vidi.
+
+Test plejera stoji umesto audioplayers kanala, a mora i da odgovara kao
+platforma („prepared" posle izvora, „seek complete" posle premotavanja) — bez
+toga `setSource` i `seek` čekaju zauvek, i test ne vidi ništa. Tri mutacije,
+svaka crvena na pravoj tvrdnji.

@@ -5878,6 +5878,28 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 226. Posle živog prolaza 22.9.2026: kalibracija, font Fritz, brisanje bez poruke — nije viđeno uživo
+
+**Server i aplikacija** (server se sam restartovao; nov build).
+
+1. [ ] **Kalibracija ostaje.** Skener → knjiga sa slikama → „Read the pictures" →
+   „Set up this position" → postavi tablu → „Generate and Set Position". Editor
+   se zatvori, ostaješ na ekranu kalibracije, a ta tabla je postavljena (kvačica,
+   dugme „Edit"). Isto za sve tri; zatim „Read 3 boards" čita knjigu.
+2. [ ] **Velika knjiga.** Silman (preko 25 MB) se sada skenira; granica je 100 MB.
+3. [ ] **Fritz font.** `D:\chess books\pawnvsking.pdf`, strane 1–21 → „Scan".
+   Umesto poruke o slikama dolazi 16 pozicija (kraljevi i pešaci), 14 sa brojem
+   dijagrama; prva, sa strane 13: crni kralj e8, beli kralj f6, beli pešak e5.
+4. [ ] **Brisanje bez poruke.** Obriši nekoliko snimaka zaredom (Library i Home),
+   pa set zagonetki, analizu, tutorijal, domaći, varijantu u Analizi i potez ili
+   stranu u repertoaru: stavka nestane iz liste, a na dnu ekrana **ne** iskače
+   zelena poruka. Kad brisanje ne uspe (npr. ugašen server), poruka o grešci i
+   dalje stoji.
+5. [ ] **Zvuk lekcije na telefonu.** Nov APK. Na telefonu (učenik, pa i trener)
+   otvori podeljenu lekciju u plejeru i pritisni Play: glas se čuje, i drži
+   korak sa tablom. Pauza, pomeranje klizača i ponovo Play: glas nastavlja od
+   mesta na tabli. Na Windowsu i dalje radi kao pre.
+
 ## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
 
 **Server i aplikacija** (server restartovan — nova tabela `book_calibrations`

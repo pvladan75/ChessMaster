@@ -6,12 +6,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/game_screen/invite_students_dialog.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/services/lesson_audio_download.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
@@ -34,11 +36,16 @@ class ReplayPlayerScreen extends StatefulWidget {
   /// Injected by tests; the screen talks to the backend otherwise.
   final http.Client? client;
 
+  /// Where the lesson's sound is kept while it plays; the system's temporary
+  /// directory unless a test gives one.
+  final Future<Directory> Function()? audioDirectory;
+
   const ReplayPlayerScreen({
     super.key,
     required this.recordingId,
     required this.userSession,
     this.client,
+    this.audioDirectory,
   });
 
   @override
@@ -52,6 +59,11 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool isAudioAvailable = false;
+
+  /// The sound as a file on this device, set as the player's source once;
+  /// null inside when it could not be had. Play waits for it.
+  Future<String?>? _audioReady;
+  File? _downloadedAudio;
   bool isAudioPlaying = false;
 
   bool isPlaying = false;
@@ -164,7 +176,14 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   @override
   void dispose() {
     _playbackTimer?.cancel();
-    _audioPlayer.dispose();
+    final downloaded = _downloadedAudio;
+    _audioPlayer.dispose().whenComplete(() {
+      try {
+        downloaded?.deleteSync();
+      } catch (_) {
+        // A temporary file; the system clears the directory in time.
+      }
+    });
     super.dispose();
   }
 
@@ -183,18 +202,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           isLoading = false;
           if (rec.audioUrl != null && rec.audioUrl!.isNotEmpty) {
             isAudioAvailable = true;
-            // Skipped for a recording still sitting on this device: that one is
-            // a file path, not something setSourceUrl can fetch. Playback below
-            // handles it; this is only pre-buffering.
-            if (!File(rec.audioUrl!).existsSync()) {
-              // Best effort — an unhandled rejection here would surface as a
-              // crash on a screen that plays perfectly well without sound.
-              _audioPlayer
-                  .setSourceUrl(resolveMediaUrl(rec.audioUrl!))
-                  .catchError((Object e) {
-                debugPrint('[Replay] Audio could not be loaded: $e');
-              });
-            }
+            _audioReady = _prepareAudio(rec.audioUrl!);
           }
           if (rec.timelineEvents.isNotEmpty) {
             // The audio's own length when the recording knows it: a trainer
@@ -252,7 +260,40 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
       }
     });
 
-    _startAudioFrom(currentMs);
+    _startAudioFrom();
+  }
+
+  /// The sound on this device, set as the player's source — or null.
+  ///
+  /// A recording still on this device awaiting sync is already a file; any
+  /// other is fetched through the app's client (`downloadLessonAudio` says why
+  /// the platform player is never handed the URL).
+  Future<String?> _prepareAudio(String url) async {
+    try {
+      var path = url;
+      if (!File(url).existsSync()) {
+        final dir = await (widget.audioDirectory ?? getTemporaryDirectory)();
+        final file = await downloadLessonAudio(
+          _client,
+          Uri.parse(resolveMediaUrl(url)),
+          File('${dir.path}${Platform.pathSeparator}'
+              'replay_${widget.recordingId}_${DateTime.now().microsecondsSinceEpoch}.wav'),
+        );
+        if (file == null) {
+          debugPrint('[Replay] The sound could not be fetched.');
+          if (mounted) setState(() => isAudioAvailable = false);
+          return null;
+        }
+        _downloadedAudio = file;
+        path = file.path;
+      }
+      await _audioPlayer.setSource(DeviceFileSource(path));
+      return path;
+    } catch (e) {
+      debugPrint('[Replay] Audio could not be loaded: $e');
+      if (mounted) setState(() => isAudioAvailable = false);
+      return null;
+    }
   }
 
   /// Starts the voice track alongside the board.
@@ -260,24 +301,19 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   /// Failures are swallowed on purpose: a lesson whose audio will not play is
   /// still worth watching, and the indicator above the scrubber drops to
   /// "moves and arrows only" so the silence is explained rather than mysterious.
-  Future<void> _startAudioFrom(int positionMs) async {
-    if (!isAudioAvailable || recording?.audioUrl == null) return;
-    final url = recording!.audioUrl!;
+  Future<void> _startAudioFrom() async {
+    final ready = _audioReady;
+    if (!isAudioAvailable || ready == null) return;
     try {
+      // The source is set once, when the sound arrives; Play only seeks and
+      // resumes. Setting it again here aborted a load still under way.
+      final path = await ready;
+      if (path == null || !mounted || !isPlaying) return;
+      // Where the board is *now*: a slow fetch lets it run ahead, and the
+      // voice joins it there rather than where Play was pressed.
       await _audioPlayer.setVolume(1.0);
-      // Three shapes reach this line: an absolute URL from a recording saved
-      // before the server stored paths, a file still on this device awaiting
-      // sync, and the current form — a path to be joined with the backend.
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        await _audioPlayer.play(UrlSource(url));
-      } else if (File(url).existsSync()) {
-        await _audioPlayer.play(DeviceFileSource(url));
-      } else {
-        await _audioPlayer.play(UrlSource(resolveMediaUrl(url)));
-      }
-      if (positionMs > 0) {
-        await _audioPlayer.seek(Duration(milliseconds: positionMs));
-      }
+      await _audioPlayer.seek(Duration(milliseconds: currentMs));
+      await _audioPlayer.resume();
     } catch (e) {
       debugPrint('[Replay] Audio playback failed: $e');
       if (mounted) setState(() => isAudioAvailable = false);
