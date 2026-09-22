@@ -140,6 +140,19 @@ class CalibrationLoad {
 Future<String> bookHashOf(String filePath) async =>
     (await sha256.bind(File(filePath).openRead()).first).toString();
 
+/// Whether this account already has a calibration for the book at
+/// [filePath] — by the file's content, so a renamed copy is the same book.
+/// False when there is none **and** when the server could not be asked: the
+/// door then says what setting up means, which is never untrue.
+Future<bool> bookIsCalibrated(ScannerApiService api, String filePath) async {
+  try {
+    final load = await api.loadCalibration(await bookHashOf(filePath));
+    return load.error == null && !load.missing && load.boards.isNotEmpty;
+  } catch (_) {
+    return false;
+  }
+}
+
 class ScannerApiService {
   ScannerApiService({required this.authToken, http.Client? client})
       : _client = client;

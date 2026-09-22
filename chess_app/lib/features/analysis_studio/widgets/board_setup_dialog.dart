@@ -66,12 +66,22 @@ class AnalysisBoardSetupDialog extends StatefulWidget {
   /// from a picture means placing pieces while looking at it.
   final Uint8List? referencePicture;
 
+  /// Only where the pieces stand is wanted — the image scanner's calibration
+  /// and its „fix this board", which keep the placement and drop the rest.
+  /// The builder then asks neither who is to move nor castling (the owner,
+  /// 23.9.2026: „kako da znam ko je na potezu?" — he did not need to), and a
+  /// board is accepted when it is a position with **either** side to move,
+  /// the rule the scanner itself reads by: with the side hidden and left on
+  /// White, a board with Black to move would be refused with no way to say so.
+  final bool placementOnly;
+
   const AnalysisBoardSetupDialog({
     super.key,
     required this.initialFen,
     required this.onPositionSet,
     this.onPgnLoaded,
     this.referencePicture,
+    this.placementOnly = false,
   });
 
   @override
@@ -1112,6 +1122,13 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   /// rasporedi u dva reda". Their own rows, and `Expanded` rather than
   /// intrinsic widths, so the four are equal and the grid is a grid.
   Widget _builderPositionControls(AppColorTokens colors) {
+    if (widget.placementOnly) {
+      return Text(
+        'Only where the pieces stand is kept here — who is to move is not '
+        'needed.',
+        style: AppText.caption.copyWith(color: colors.textMuted),
+      );
+    }
     return LayoutBuilder(builder: (context, c) {
       final oneRow = c.maxWidth >= _castlingOneRowWidth;
       return Column(
@@ -1230,8 +1247,18 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   /// this" without „because there are two white kings" is what sends a trainer
   /// to count pieces.
   Widget _builderConfirmButton(AppColorTokens colors, {required bool compact}) {
-    final fen = _generateFenFromBuilder();
-    final illegal = fenIllegalReason(fen);
+    var fen = _generateFenFromBuilder();
+    var illegal = fenIllegalReason(fen);
+    if (widget.placementOnly) {
+      // Either side to move, no castling: what the scanner keeps and reads by.
+      final placement = fen.split(' ').first;
+      final asWhite = '$placement w - - 0 1';
+      final asBlack = '$placement b - - 0 1';
+      final whiteReason = fenIllegalReason(asWhite);
+      final blackReason = fenIllegalReason(asBlack);
+      fen = whiteReason == null ? asWhite : asBlack;
+      illegal = whiteReason == null || blackReason == null ? null : whiteReason;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

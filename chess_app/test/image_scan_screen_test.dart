@@ -215,13 +215,84 @@ void main() {
         theme:
             ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
         home: Scaffold(
-            body: ImageDiagramsDoor(count: 38, onOpen: () => opened++)),
+            body: ImageDiagramsDoor(
+                count: 38, calibrated: false, onOpen: () => opened++)),
       ));
       expect(
           find.text('The diagrams in this book are pictures'), findsOneWidget);
       expect(find.textContaining('38'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('image-diagrams-open')));
       expect(opened, 1);
+    });
+  });
+
+  // The owner, 23.9.2026: „mislim da me pita svaki put kada skeniram istu
+  // knjigu da uradim kalibraciju". The calibration was remembered all along —
+  // on the account, by the file's content — but the door said „set up three
+  // of them by hand" every time. It now asks first, and says which.
+  group('the door knows a book it has seen', () {
+    Future<void> door(WidgetTester tester, {required bool calibrated}) =>
+        tester.pumpWidget(MaterialApp(
+          theme: ThemeData.dark()
+              .copyWith(extensions: const [AppColorTokens.dark]),
+          home: Scaffold(
+              body: ImageDiagramsDoor(
+                  count: 12, calibrated: calibrated, onOpen: () {})),
+        ));
+
+    testWidgets('a calibrated book is not asked for three boards again',
+        (tester) async {
+      await door(tester, calibrated: true);
+      expect(find.textContaining('set up three'), findsNothing);
+      expect(find.textContaining('set up this book before'), findsOneWidget);
+    });
+
+    testWidgets('a new book is told what setting up means', (tester) async {
+      await door(tester, calibrated: false);
+      expect(find.textContaining('set up three'), findsOneWidget);
+      expect(find.textContaining('set up this book before'), findsNothing);
+    });
+
+    test('the check goes by content: a renamed copy is the same book',
+        () async {
+      final dir = await Directory.systemTemp.createTemp('book_calibrated_');
+      addTearDown(() => dir.delete(recursive: true));
+      final original = File('${dir.path}/Silman.pdf');
+      await original.writeAsString('%PDF-1.4 a drawn book');
+      final renamed = await original.copy('${dir.path}/renamed copy.pdf');
+      final other = File('${dir.path}/Other.pdf');
+      await other.writeAsString('%PDF-1.4 another book');
+      final known = await bookHashOf(original.path);
+
+      final asked = <String>[];
+      final api = ScannerApiService(
+          authToken: 'tok',
+          client: MockClient((req) async {
+            asked.add(req.url.path);
+            return req.url.pathSegments.last == known
+                ? http.Response(jsonEncode(_calibrated), 200)
+                : http.Response(
+                    jsonEncode({'error': 'none', 'code': 'no_calibration'}),
+                    404);
+          }));
+
+      expect(await bookIsCalibrated(api, renamed.path), isTrue);
+      expect(await bookIsCalibrated(api, other.path), isFalse);
+      expect(asked, [
+        '/scans/calibrations/$known',
+        '/scans/calibrations/${await bookHashOf(other.path)}'
+      ]);
+    });
+
+    test('a server that cannot be asked is not a calibrated book', () async {
+      final dir = await Directory.systemTemp.createTemp('book_calibrated_');
+      addTearDown(() => dir.delete(recursive: true));
+      final book = File('${dir.path}/b.pdf');
+      await book.writeAsString('%PDF-1.4');
+      final api = ScannerApiService(
+          authToken: 'tok',
+          client: MockClient((req) async => http.Response('oops', 500)));
+      expect(await bookIsCalibrated(api, book.path), isFalse);
     });
   });
 
@@ -321,6 +392,39 @@ void main() {
           find.byKey(const ValueKey('calibrate-setup-42-1')), findsOneWidget);
       expect(find.text('Edit'), findsOneWidget,
           reason: 'the board set up in the editor did not arrive');
+    });
+
+    // The owner, 23.9.2026, looking at the editor over a book's picture: „kako
+    // da znam ko je na potezu?" He does not need to — the scanner keeps only
+    // where the pieces stand — so the editor does not ask. And a board that is
+    // a position only with Black to move is still a board: the rook on e1
+    // gives check to the king on e8, which with White to move would be
+    // refused, with no side to change it by.
+    testWidgets('the editor asks only for the pieces, and takes either side',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server,
+          overAnotherScreen: true,
+          pick: (context, picture, initial) => pickPositionWithEditor(
+              context, picture, '4k3/8/8/8/8/8/8/4R1K1'));
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-setup-42-1')));
+      await tester.tap(find.byKey(const ValueKey('calibrate-setup-42-1')));
+      await _settle(tester, 4);
+
+      expect(find.text('To move:'), findsNothing,
+          reason: 'the editor asks who is to move, which the scanner drops');
+      expect(find.textContaining('O-O'), findsNothing,
+          reason: 'castling is asked for and then dropped');
+      expect(
+          find.textContaining('Only where the pieces stand'), findsOneWidget);
+      expect(find.byKey(const ValueKey('builder-illegal')), findsNothing,
+          reason: 'a position legal with Black to move was refused');
+
+      await tester.tap(find.text('Generate and Set Position'));
+      await _settle(tester, 4);
+      expect(find.text('Edit'), findsOneWidget,
+          reason: 'the board did not arrive');
     });
 
     testWidgets(

@@ -35,6 +35,7 @@ Future<String?> pickPositionWithEditor(
     builder: (dialogContext) => AnalysisBoardSetupDialog(
       initialFen: '$initialPlacement w - - 0 1',
       referencePicture: picture,
+      placementOnly: true,
       onPositionSet: (fen) => placement = fen.split(' ').first,
     ),
   );

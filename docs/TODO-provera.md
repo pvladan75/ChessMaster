@@ -5920,6 +5920,14 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
 11. [ ] **Obaveštenja.** Zvonce: svako obaveštenje ima × i nestane; „Clear all"
     briše sva, a zahtev koji čeka odgovor ostaje. Posle zatvaranja i ponovnog
     otvaranja obrisana se ne vraćaju.
+12. [ ] **Editor u skeneru ne pita ko je na potezu.** Kalibracija i „Fix" na
+    pročitanoj tabli: nema „To move" ni rokada, stoji rečenica da se čuva samo
+    raspored figura. Tabla na kojoj je crni kralj u šahu (dakle crni na potezu)
+    se prihvata.
+13. [ ] **Kartica zna knjigu.** Skeniraj Silman ili 1001 (kalibrisane 22.9):
+    kartica kaže „You set up this book before…", i „Read the pictures" čita
+    odmah, bez tri table. Isto sa kopijom fajla pod drugim imenom. Za novu
+    knjigu kartica i dalje objašnjava tri table.
 
 ## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
 

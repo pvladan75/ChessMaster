@@ -6835,3 +6835,27 @@ povratne pozive.
 
 Brojevi: aplikacija 3793 → 3806; server 1609 → 1611 bez baze, 1729 → 1741 sa
 bazom.
+
+## 23.9.2026 — „ko je na potezu" i „pita svaki put"
+
+Dva pitanja vlasnika o skeneru slika, oba bez kvara u pamćenju ili čitanju.
+
+„Kako da znam ko je na potezu?" — ne mora: kalibracija i „Fix" čuvaju samo
+raspored figura, a editor je ipak pitao za stranu i rokade. Sada ih ne pita
+(`placementOnly`), i tabla se prihvata ako je pozicija sa **bilo kojom** stranom
+na potezu — inače bi sakrivena strana, ostavljena na belom, odbila tablu sa
+crnim na potezu bez načina da se to kaže. Obe mutacije crvene.
+
+„Pita me svaki put da kalibrišem" — kalibracija je bila zapamćena (dve knjige,
+po SHA-256 sadržaja), server ju je vraćao, čitanje ju je koristilo. Mereno pre
+menjanja: red u bazi, otisak fajla na disku, odgovor servera koji radi. Ono što
+je pitalo svaki put bila je **kartica**: „They can be read once you have set up
+three of them by hand" — rečenica tačna samo za novu knjigu, a prikazana za
+svaku. **Rečenica koja opisuje prvi put, prikazana i drugi put, čita se kao
+kvar.** Kartica sada pita server i kaže koje je od dva.
+
+Nije pokriveno: da ekran skenera zaista postavlja zastavicu kartice — izbor
+fajla ide kroz platformski dijalog, pa ekran nema test; pokriveni su kartica i
+provera (`bookIsCalibrated`) svaka za sebe.
+
+Brojevi: aplikacija 3806 → 3811.

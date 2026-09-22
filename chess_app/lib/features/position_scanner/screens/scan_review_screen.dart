@@ -51,6 +51,12 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
   /// there is no door to offer.
   int? _imageDoor;
 
+  /// Whether the book behind the door was calibrated before. The door used to
+  /// say „set up three of them by hand" every time, calibrated or not, and the
+  /// owner read it as the scanner asking again for a book it remembered
+  /// (23.9.2026).
+  bool _doorCalibrated = false;
+
   /// The messenger this screen's messages go to, taken while it is still
   /// mounted.
   ///
@@ -112,6 +118,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     setState(() {
       _scanning = true;
       _imageDoor = null;
+      _doorCalibrated = false;
     });
     final outcome = await _api.scan(
       filePath: _filePath!,
@@ -133,6 +140,13 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
       // Not a refusal to read out: the pictures can be read another way, and
       // the screen says so where the positions would have been.
       setState(() => _imageDoor = door);
+      final path = _filePath;
+      if (path != null) {
+        final calibrated = await bookIsCalibrated(_api, path);
+        if (mounted && path == _filePath && _imageDoor == door) {
+          setState(() => _doorCalibrated = calibrated);
+        }
+      }
     } else if (!outcome.ok) {
       _toast(scanFailureMessage(outcome));
     } else if (outcome.result!.positions.isEmpty) {
@@ -242,7 +256,8 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     if (result == null && door != null) {
       return SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: ImageDiagramsDoor(count: door, onOpen: _openImagePath),
+        child: ImageDiagramsDoor(
+            count: door, calibrated: _doorCalibrated, onOpen: _openImagePath),
       );
     }
     if (result == null) {
@@ -612,9 +627,15 @@ int imageDoorFor(ScanOutcome outcome) {
 /// The door from a book the font path cannot read to the image path.
 class ImageDiagramsDoor extends StatelessWidget {
   const ImageDiagramsDoor(
-      {super.key, required this.count, required this.onOpen});
+      {super.key,
+      required this.count,
+      required this.calibrated,
+      required this.onOpen});
 
   final int count;
+
+  /// This book was set up before, so its boards are read straight away.
+  final bool calibrated;
   final VoidCallback onOpen;
 
   @override
@@ -644,9 +665,13 @@ class ImageDiagramsDoor extends StatelessWidget {
                     style: AppText.body.copyWith(color: colors.textSecondary),
                   ),
                   Text(
-                    'They can be read once you have set up three of them by '
-                    'hand, so the scanner learns how this book draws its '
-                    'pieces. Nothing from the book is kept.',
+                    calibrated
+                        ? 'You set up this book before, so they are read '
+                            'straight away. Nothing from the book is kept.'
+                        : 'They can be read once you have set up three of '
+                            'them by hand, so the scanner learns how this book '
+                            'draws its pieces. It remembers the book, even '
+                            'renamed. Nothing from the book is kept.',
                     style: AppText.body.copyWith(color: colors.textSecondary),
                   ),
                   const SizedBox(height: AppSpacing.sm),
