@@ -592,6 +592,87 @@ void main() {
           findsOneWidget);
     });
 
+    // The owner, 23.9.2026: the counters „23 to check" and „13 not a
+    // position" looked like filters and did nothing, and saving only what he
+    // had confirmed meant unticking the rest one by one.
+    group('filters and selecting in bulk', () {
+      Set<String> shown(WidgetTester tester) => {
+            for (final e in tester.widgetList(find.byWidgetPredicate((w) =>
+                w.key is ValueKey<String> &&
+                (w.key as ValueKey<String>).value.startsWith('read-board-'))))
+              (e.key as ValueKey<String>).value.replaceFirst('read-board-', '')
+          };
+
+      Future<void> show(WidgetTester tester, String which) async {
+        await tester
+            .ensureVisible(find.byKey(ValueKey('image-scan-show-$which')));
+        await tester.tap(find.byKey(ValueKey('image-scan-show-$which')));
+        await tester.pump();
+      }
+
+      Future<List<String>> saved(WidgetTester tester, _Server server) async {
+        await tester.tap(find.byKey(const ValueKey('image-scan-save')));
+        await _settle(tester);
+        final confirm =
+            server.sent.lastWhere((r) => r.url.path == '/scans/confirm');
+        return [
+          for (final p
+              in ((jsonDecode(confirm.body) as Map)['positions'] as List)
+                  .cast<Map>())
+            '${p['page']}'
+        ];
+      }
+
+      testWidgets('each filter shows its own boards, and only those',
+          (tester) async {
+        await _pump(tester, _Server(calibration: _calibrated),
+            pick: (context, picture, initial) async => '4k3/8/8/8/8/8/8/R3K3');
+        expect(shown(tester), {'40-1', '43-1', '44-1'});
+        await show(tester, 'to-check');
+        expect(shown(tester), {'43-1'});
+        await show(tester, 'not-position');
+        expect(shown(tester), {'44-1'});
+        await show(tester, 'set-up');
+        expect(shown(tester), isEmpty);
+
+        await show(tester, 'all');
+        await tester
+            .ensureVisible(find.byKey(const ValueKey('read-board-43-1')));
+        await tester.tap(find.byKey(const ValueKey('read-board-43-1')));
+        await _settle(tester, 2);
+        await show(tester, 'set-up');
+        expect(shown(tester), {'43-1'});
+      });
+
+      testWidgets('„Only the ones I set up" saves exactly those',
+          (tester) async {
+        final server = _Server(calibration: _calibrated);
+        await _pump(tester, server,
+            pick: (context, picture, initial) async => '4k3/8/8/8/8/8/8/R3K3');
+        await tester
+            .ensureVisible(find.byKey(const ValueKey('read-board-43-1')));
+        await tester.tap(find.byKey(const ValueKey('read-board-43-1')));
+        await _settle(tester, 2);
+        await tester
+            .tap(find.byKey(const ValueKey('image-scan-select-set-up')));
+        await tester.pump();
+        expect(await saved(tester, server), ['43']);
+      });
+
+      testWidgets('„Unselect shown" touches only what the filter shows',
+          (tester) async {
+        final server = _Server(calibration: _calibrated);
+        await _pump(tester, server);
+        await show(tester, 'to-check');
+        await tester
+            .tap(find.byKey(const ValueKey('image-scan-unselect-shown')));
+        await tester.pump();
+        await show(tester, 'all');
+        expect(await saved(tester, server), ['40'],
+            reason: 'page 43 was shown and unselected; 40 was not shown');
+      });
+    });
+
     testWidgets('a board only ticked does not touch the calibration',
         (tester) async {
       final read = Map<String, dynamic>.from(_Server._defaultRead)

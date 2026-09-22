@@ -5938,6 +5938,11 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     strane vidi se ceo red „Side to move not confirmed — set it" (ranije je bio
     odsečen); klik pita ko je na potezu, pamti odgovor i ostaje na listi. Klik
     na samu poziciju i dalje prvo pita, pa otvara Analizu.
+16. [ ] **Filteri i izbor u skeneru slika.** Iznad tabli: „All / To check / Not a
+    position / Set up by me" sa brojem, i klik prikazuje samo te table. „Select
+    shown" / „Unselect shown" rade na prikazanim; „Only the ones I set up"
+    ostavlja izabrane samo table potvrđene u editoru, a na njihovoj kartici piše
+    „Set up by you". Save onda čuva tačno njih.
 
 ## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
 

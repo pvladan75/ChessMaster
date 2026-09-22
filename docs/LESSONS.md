@@ -6902,3 +6902,15 @@ predloga motora sve beleške staju uz punu tablu, a predlog ne može da se napra
 u testu bez motora. Zabeleženo kao inertno.
 
 Brojevi: aplikacija 3825 → 3829.
+
+## 23.9.2026 — brojači koji izgledaju kao filteri
+
+„23 to check" i „13 not a position" bili su `Chip`-ovi bez akcije pored jednog
+`FilterChip`-a — isti oblik, samo jedan radi. Vlasnik je kliknuo na njih i
+ništa se nije desilo; i da sačuva samo ono što je potvrdio, morao je da skida
+kvačice jednu po jednu. Sada su četiri izbora (All / To check / Not a position /
+Set up by me) sa brojem, i tri dugmeta za izbor u grupi. **Nešto što izgleda kao
+kontrola mora da bude kontrola.** Stari „Only the ones to check" nije imao
+nijedan test; sada svaki filter ima slučaj, četiri mutacije crvene.
+
+Brojevi: aplikacija 3829 → 3832.

@@ -47,6 +47,10 @@ const calibrationBoards = 3;
 
 enum _Stage { working, calibrating, confirming, failed }
 
+/// Which boards the confirming screen shows. The counters above the boards
+/// looked like filters and did nothing until 23.9.2026; now they are.
+enum _Show { all, toCheck, notPosition, setUp }
+
 /// A book whose diagrams are pictures — phase 3 of `docs/PLAN-SKENER-SLIKE.md`.
 ///
 /// The scanner reads a book with templates from a few of its own boards, so
@@ -93,7 +97,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
 
   ImageScanResult? _result;
   List<CalibrationBoard> _calibration = const [];
-  bool _onlyToCheck = false;
+  _Show _show = _Show.all;
   bool _saving = false;
 
   ScaffoldMessengerState? _messenger;
@@ -249,7 +253,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     }
     setState(() {
       _result = result;
-      _onlyToCheck = false;
+      _show = _Show.all;
       _stage = _Stage.confirming;
     });
     return true;
@@ -466,10 +470,31 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
 
   List<ReadBoard> get _visible {
     final all = _result?.positions ?? const <ReadBoard>[];
-    return _onlyToCheck
-        ? all.where((p) => p.uncertain.isNotEmpty || !p.legal).toList()
-        : all;
+    return all.where((p) => _shows(_show, p)).toList();
   }
+
+  static bool _shows(_Show show, ReadBoard p) => switch (show) {
+        _Show.all => true,
+        _Show.toCheck => p.legal && p.uncertain.isNotEmpty,
+        _Show.notPosition => !p.legal,
+        _Show.setUp => p.fixedByHand,
+      };
+
+  /// Ticks or unticks every board the filter shows; one that is not a
+  /// position cannot be ticked.
+  void _selectShown(bool accepted) => setState(() {
+        for (final p in _visible) {
+          p.accepted = accepted && p.legal;
+        }
+      });
+
+  /// Saving only what was confirmed, in one tap rather than one untick per
+  /// board (the owner, 23.9.2026).
+  void _selectOnlySetUp() => setState(() {
+        for (final p in _result?.positions ?? const <ReadBoard>[]) {
+          p.accepted = p.fixedByHand && p.legal;
+        }
+      });
 
   String _composedWords(List<String> composed) {
     const names = {
@@ -545,14 +570,45 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
                 children: [
                   Text('${result.positions.length} boards, $selected selected',
                       style: AppText.body.copyWith(color: colors.textPrimary)),
-                  if (toCheck > 0) Chip(label: Text('$toCheck to check')),
-                  if (notPositions > 0)
-                    Chip(label: Text('$notPositions not a position')),
-                  FilterChip(
-                    key: const ValueKey('image-scan-only-to-check'),
-                    label: const Text('Only the ones to check'),
-                    selected: _onlyToCheck,
-                    onSelected: (v) => setState(() => _onlyToCheck = v),
+                  for (final (show, label) in [
+                    (_Show.all, 'All'),
+                    (_Show.toCheck, 'To check'),
+                    (_Show.notPosition, 'Not a position'),
+                    (_Show.setUp, 'Set up by me'),
+                  ])
+                    ChoiceChip(
+                      key: ValueKey('image-scan-show-${switch (show) {
+                        _Show.all => 'all',
+                        _Show.toCheck => 'to-check',
+                        _Show.notPosition => 'not-position',
+                        _Show.setUp => 'set-up',
+                      }}'),
+                      label: Text('$label '
+                          '(${result.positions.where((p) => _shows(show, p)).length})'),
+                      selected: _show == show,
+                      onSelected: (_) => setState(() => _show = show),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  TextButton(
+                    key: const ValueKey('image-scan-select-shown'),
+                    onPressed: () => _selectShown(true),
+                    child: const Text('Select shown'),
+                  ),
+                  TextButton(
+                    key: const ValueKey('image-scan-unselect-shown'),
+                    onPressed: () => _selectShown(false),
+                    child: const Text('Unselect shown'),
+                  ),
+                  TextButton(
+                    key: const ValueKey('image-scan-select-set-up'),
+                    onPressed: _selectOnlySetUp,
+                    child: const Text('Only the ones I set up'),
                   ),
                 ],
               ),
@@ -896,6 +952,8 @@ class _ReadBoardCard extends StatelessWidget {
     final String status;
     if (!board.legal) {
       status = 'Not a position — fix it before saving';
+    } else if (board.fixedByHand) {
+      status = 'Set up by you';
     } else if (board.uncertain.isNotEmpty) {
       status = board.uncertain.length == 1
           ? '1 square to check'
