@@ -212,6 +212,89 @@ router.post('/images', authenticateToken, scanLimiter, upload.single('document')
   }
 });
 
+// /scans/calibrations/:hash — a book's calibration, remembered on the account.
+//
+// Phase 3a of docs/PLAN-SKENER-SLIKE.md. `hash` is the SHA-256 of the book's
+// file, worked out by the app. What is kept is what `POST /scans/images`
+// takes as its calibration, checked by the same reader (`parseCalibration`) —
+// positions and their place in the book, never a picture from it. Every query
+// names the account: a hash is no secret, the same book is on many accounts.
+const BOOK_HASH = /^[0-9a-f]{64}$/;
+
+function badHash(req, res) {
+  if (BOOK_HASH.test(String(req.params.hash))) return false;
+  res.status(400).json({ error: 'That is not a book.', code: 'bad_book_hash' });
+  return true;
+}
+
+router.get('/calibrations/:hash', authenticateToken, async (req, res) => {
+  if (badHash(req, res)) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT book_name, boards, updated_at FROM book_calibrations
+        WHERE user_id = $1 AND book_hash = $2`,
+      [req.user.id, req.params.hash]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ error: 'This book has no calibration yet.', code: 'no_calibration' });
+    }
+    res.json({ bookName: rows[0].book_name, boards: rows[0].boards, updatedAt: rows[0].updated_at });
+  } catch (err) {
+    logger.error(`[SCAN] Citanje kalibracije nije uspelo: ${err.message}`);
+    res.status(500).json({ error: 'Failed to read the calibration.' });
+  }
+});
+
+router.put('/calibrations/:hash', authenticateToken, async (req, res) => {
+  if (badHash(req, res)) return;
+  const { bookName, boards } = req.body || {};
+  let cleaned;
+  try {
+    const { parseCalibration } = await loadImageReader();
+    const { ScanError } = await loadScanner();
+    try {
+      cleaned = parseCalibration(Array.isArray(boards) ? boards : null);
+    } catch (err) {
+      if (err instanceof ScanError) {
+        return res.status(422).json({ error: err.message, code: err.code, details: err.details });
+      }
+      throw err;
+    }
+    if (!cleaned.length) {
+      return res.status(422).json({ error: 'A calibration needs at least one board.', code: 'calibration_invalid' });
+    }
+    await pool.query(
+      `INSERT INTO book_calibrations (user_id, book_hash, book_name, boards, updated_at)
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id, book_hash) DO UPDATE
+         SET book_name = EXCLUDED.book_name, boards = EXCLUDED.boards, updated_at = CURRENT_TIMESTAMP`,
+      [req.user.id, req.params.hash, typeof bookName === 'string' ? bookName.slice(0, 255) : null,
+        JSON.stringify(cleaned.map(({ page, index, fen, ignore }) => ({ page, index, fen, ignore })))]
+    );
+    res.json({ saved: cleaned.length });
+  } catch (err) {
+    logger.error(`[SCAN] Cuvanje kalibracije nije uspelo: ${err.message}`);
+    res.status(500).json({ error: 'Failed to save the calibration.' });
+  }
+});
+
+router.delete('/calibrations/:hash', authenticateToken, async (req, res) => {
+  if (badHash(req, res)) return;
+  try {
+    const { rowCount } = await pool.query(
+      `DELETE FROM book_calibrations WHERE user_id = $1 AND book_hash = $2 RETURNING book_hash`,
+      [req.user.id, req.params.hash]
+    );
+    if (!rowCount) {
+      return res.status(404).json({ error: 'This book has no calibration.', code: 'no_calibration' });
+    }
+    res.sendStatus(204);
+  } catch (err) {
+    logger.error(`[SCAN] Brisanje kalibracije nije uspelo: ${err.message}`);
+    res.status(500).json({ error: 'Failed to delete the calibration.' });
+  }
+});
+
 // POST /scans/confirm — save the positions the trainer accepted.
 router.post('/confirm', authenticateToken, async (req, res) => {
   const { sourceTitle, positions } = req.body || {};

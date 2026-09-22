@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3752 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3778 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1697 with TEST_DATABASE_URL, 1585 without
+cd chess_backend && npm test          # node --test, 1709 with TEST_DATABASE_URL, 1596 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -527,6 +527,16 @@ share — found by comparing crops pixel for pixel before touching the reader.
 And the phase-1 mutation recorded as inert (a crop that picks pixels) was
 inert only for shrinking: a scanned board is *enlarged*, and blocks cost 4
 boards in 24 until enlarging was bilinear.
+Then phase 3, the screens (→ **3778**; backend → **1596 / 1709**): the door on
+the Position Scanner, three boards set up beside their pictures and
+remembered on the account (`book_calibrations`, by the file's SHA-256), and
+every board read beside its picture with uncertain squares marked by shape.
+**A seam that only some calls go through is a false one**: `confirm()` still
+called `http.post`, so the save test watched the save go past its fake. And
+**a `try` does not catch what happens later**: `AppFeedback.dismiss` animated
+the message out, and the animation asserts `mounted` after the messenger is
+gone — the font scanner had carried that fault since August, because no test
+had closed it with a message showing.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

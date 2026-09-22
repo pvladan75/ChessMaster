@@ -304,6 +304,24 @@ async function initDB(target = pool) {
     `);
     logger.info('Verified database table: puzzle_sets');
 
+    // A book's calibration for the image scanner (docs/PLAN-SKENER-SLIKE.md,
+    // phase 3a): the positions of a few of its own boards, and where they are
+    // in the book — never a picture from it. Kept on the account, not the
+    // device, on the owner's word (22.9.2026). The book is its file's SHA-256,
+    // worked out by the app; the key is (user_id, book_hash) because the same
+    // book belongs to many accounts, and every query names the account.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS book_calibrations (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        book_hash CHAR(64) NOT NULL,
+        book_name VARCHAR(255),
+        boards JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, book_hash)
+      );
+    `);
+    logger.info('Verified database table: book_calibrations');
+
     // Create trainer_students table
     await client.query(`
       CREATE TABLE IF NOT EXISTS trainer_students (

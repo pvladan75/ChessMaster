@@ -65,9 +65,17 @@ abstract final class AppFeedback {
   ///
   /// Same rule as everything else here: the message must never be able to take
   /// down the thing it was reporting on, and that includes its own removal.
+  ///
+  /// Removed at once, not animated out. A screen that is going away can take
+  /// the messenger with it, and an animated hide asserts `mounted` when its
+  /// animation ends — after the messenger is gone, in a callback no `try` here
+  /// can reach. Found on 22.9.2026 by a test that closed the image scanner with
+  /// its save message still showing; the font scanner had the same fault, and
+  /// no test had ever closed it mid-message.
   static void dismiss(ScaffoldMessengerState? messenger) {
+    if (messenger == null || !messenger.mounted) return;
     try {
-      messenger?.hideCurrentSnackBar();
+      messenger.removeCurrentSnackBar();
     } catch (e) {
       AppLogger.log('[Feedback] not dismissed: $e');
     }

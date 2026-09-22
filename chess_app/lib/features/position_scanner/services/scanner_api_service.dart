@@ -1,18 +1,29 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
 
+import '../models/image_scan.dart';
 import '../models/scanned_position.dart';
 
 /// Outcome of a scan, with the server's own words when it refused.
 class ScanOutcome {
-  const ScanOutcome({this.result, this.error, this.code});
+  const ScanOutcome({this.result, this.error, this.code, this.details});
 
   final ScanResult? result;
   final String? error;
+
+  /// What the server added to a refusal. `imageDiagrams` is the one read here:
+  /// on `no_text` and `no_diagram_text` it counts the diagrams on those pages
+  /// that are pictures, and more than none opens the image path.
+  final Map<String, dynamic>? details;
+
+  /// Diagrams on the scanned pages that are pictures, when the server counted.
+  int get imageDiagrams => (details?['imageDiagrams'] as num?)?.toInt() ?? 0;
 
   /// Worth telling apart in the UI, because each asks the trainer for
   /// something different: `range_too_large` asks for fewer pages,
@@ -89,10 +100,63 @@ class SaveOutcome {
   }
 }
 
+/// The answer of `POST /scans/images`, with the server's words and code when
+/// it refused — `too_many_boards` names the count and the ceiling itself.
+class ImageScanOutcome {
+  const ImageScanOutcome({this.result, this.error, this.code, this.details});
+
+  final ImageScanResult? result;
+  final String? error;
+  final String? code;
+  final Map<String, dynamic>? details;
+
+  bool get ok => result != null;
+}
+
+/// A remembered calibration, read back. "The book has none" and "the server
+/// could not be asked" are different answers: the first leads to calibrating,
+/// the second to trying again, and neither may pose as the other.
+class CalibrationLoad {
+  const CalibrationLoad.found(this.boards)
+      : missing = false,
+        error = null;
+  const CalibrationLoad.missing()
+      : boards = const [],
+        missing = true,
+        error = null;
+  const CalibrationLoad.failed(this.error)
+      : boards = const [],
+        missing = false;
+
+  final List<CalibrationBoard> boards;
+  final bool missing;
+  final String? error;
+
+  bool get found => error == null && !missing;
+}
+
+/// The SHA-256 of a book's file, as lowercase hex — how the account knows a
+/// book again without the server ever keeping a page of it.
+Future<String> bookHashOf(String filePath) async =>
+    (await sha256.bind(File(filePath).openRead()).first).toString();
+
 class ScannerApiService {
-  ScannerApiService({required this.authToken});
+  ScannerApiService({required this.authToken, http.Client? client})
+      : _client = client;
 
   final String authToken;
+
+  /// Null means one client shared by the process. Every request goes through
+  /// here or through [_send] — a seam that some calls went round would let a
+  /// test believe it saw every request (phase 3d: the save went past it).
+  final http.Client? _client;
+
+  /// The package's own client, for when none was injected — one per process,
+  /// as `http.get` and friends use one per call.
+  static final http.Client _shared = http.Client();
+
+  Future<http.StreamedResponse> _send(http.BaseRequest request) =>
+      (_client ?? _shared).send(request);
 
   Map<String, String> get _jsonHeaders => {
         'Content-Type': 'application/json',
@@ -105,6 +169,131 @@ class ScannerApiService {
           fallback;
     } catch (_) {
       return fallback;
+    }
+  }
+
+  Map<String, dynamic>? _detailsFrom(String body) {
+    try {
+      final details = (jsonDecode(body) as Map<String, dynamic>)['details'];
+      return details is Map<String, dynamic> ? details : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// A book whose diagrams are pictures. Without [calibration] the answer is
+  /// the boards found and a preview of each; with it, every other board read
+  /// against those. The file is sent again each time — the server keeps none.
+  Future<ImageScanOutcome> scanImages({
+    required String filePath,
+    required String fileName,
+    required int fromPage,
+    required int toPage,
+    List<CalibrationBoard> calibration = const [],
+  }) async {
+    try {
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$backendUrl/scans/images'));
+      if (authToken.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $authToken';
+      }
+      request.fields['fromPage'] = '$fromPage';
+      request.fields['toPage'] = '$toPage';
+      if (calibration.isNotEmpty) {
+        request.fields['calibration'] =
+            jsonEncode(calibration.map((c) => c.toJson()).toList());
+      }
+      request.files.add(await http.MultipartFile.fromPath('document', filePath,
+          filename: fileName));
+
+      // Reading runs about half a second a board, 60 at most, on the server.
+      final streamed = await _send(request).timeout(const Duration(minutes: 3));
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode == 200) {
+        return ImageScanOutcome(
+          result: ImageScanResult.fromJson(
+              jsonDecode(response.body) as Map<String, dynamic>),
+        );
+      }
+      return ImageScanOutcome(
+        error: _errorFrom(response.body,
+            'Reading the pictures failed (${response.statusCode}).'),
+        code: _codeFrom(response.body),
+        details: _detailsFrom(response.body),
+      );
+    } catch (e) {
+      AppLogger.log('Image scan failed: $e', name: 'PositionScanner');
+      return const ImageScanOutcome(error: 'Could not reach the server.');
+    }
+  }
+
+  Uri _calibrationUri(String bookHash) =>
+      Uri.parse('$backendUrl/scans/calibrations/$bookHash');
+
+  /// The calibration this account remembered for a book, if any.
+  Future<CalibrationLoad> loadCalibration(String bookHash) async {
+    try {
+      final uri = _calibrationUri(bookHash);
+      final response = await (_client ?? _shared)
+          .get(uri, headers: _jsonHeaders)
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final boards = ((jsonDecode(response.body)
+                    as Map<String, dynamic>)['boards'] as List? ??
+                const [])
+            .map((e) => CalibrationBoard.fromJson(e as Map<String, dynamic>))
+            .toList();
+        return CalibrationLoad.found(boards);
+      }
+      if (response.statusCode == 404 &&
+          _codeFrom(response.body) == 'no_calibration') {
+        return const CalibrationLoad.missing();
+      }
+      return CalibrationLoad.failed(_errorFrom(response.body,
+          'Reading the calibration failed (${response.statusCode}).'));
+    } catch (e) {
+      AppLogger.log('Load calibration failed: $e', name: 'PositionScanner');
+      return const CalibrationLoad.failed('Could not reach the server.');
+    }
+  }
+
+  /// Remembers a book's calibration on the account. Null when saved, the
+  /// server's words otherwise.
+  Future<String?> saveCalibration({
+    required String bookHash,
+    required String bookName,
+    required List<CalibrationBoard> boards,
+  }) async {
+    try {
+      final uri = _calibrationUri(bookHash);
+      final body = jsonEncode({
+        'bookName': bookName,
+        'boards': boards.map((b) => b.toJson()).toList(),
+      });
+      final response = await (_client ?? _shared)
+          .put(uri, headers: _jsonHeaders, body: body)
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) return null;
+      return _errorFrom(response.body,
+          'Saving the calibration failed (${response.statusCode}).');
+    } catch (e) {
+      AppLogger.log('Save calibration failed: $e', name: 'PositionScanner');
+      return 'Could not reach the server.';
+    }
+  }
+
+  /// Forgets a book's calibration, to set it up again. True when it is gone,
+  /// including when there was none.
+  Future<bool> deleteCalibration(String bookHash) async {
+    try {
+      final uri = _calibrationUri(bookHash);
+      final response = await (_client ?? _shared)
+          .delete(uri, headers: _jsonHeaders)
+          .timeout(const Duration(seconds: 30));
+      return response.statusCode == 204 || response.statusCode == 404;
+    } catch (e) {
+      AppLogger.log('Delete calibration failed: $e', name: 'PositionScanner');
+      return false;
     }
   }
 
@@ -146,7 +335,7 @@ class ScannerApiService {
       request.files.add(await http.MultipartFile.fromPath('document', filePath,
           filename: fileName));
 
-      final streamed = await request.send().timeout(const Duration(minutes: 3));
+      final streamed = await _send(request).timeout(const Duration(minutes: 3));
       final response = await http.Response.fromStream(streamed);
 
       if (response.statusCode == 200) {
@@ -159,6 +348,7 @@ class ScannerApiService {
         error:
             _errorFrom(response.body, 'Scan failed (${response.statusCode}).'),
         code: _codeFrom(response.body),
+        details: _detailsFrom(response.body),
       );
     } catch (e) {
       AppLogger.log('Scan failed: $e', name: 'PositionScanner');
@@ -171,7 +361,7 @@ class ScannerApiService {
     required List<ScannedPosition> positions,
   }) async {
     try {
-      final response = await http
+      final response = await (_client ?? _shared)
           .post(
             Uri.parse('$backendUrl/scans/confirm'),
             headers: _jsonHeaders,
@@ -206,7 +396,7 @@ class ScannerApiService {
   /// the same on screen.
   Future<List<SavedPosition>?> listSaved() async {
     try {
-      final response = await http
+      final response = await (_client ?? _shared)
           .get(Uri.parse('$backendUrl/scans/puzzles'), headers: _jsonHeaders)
           .timeout(const Duration(seconds: 30));
       if (response.statusCode != 200) return null;
@@ -227,7 +417,7 @@ class ScannerApiService {
   /// that side cannot be the one to move in this position.
   Future<String?> setSideToMove(String puzzleId, String side) async {
     try {
-      final response = await http
+      final response = await (_client ?? _shared)
           .patch(
             Uri.parse('$backendUrl/scans/puzzles/$puzzleId'),
             headers: _jsonHeaders,
@@ -249,7 +439,7 @@ class ScannerApiService {
   /// and the server tells them apart by which field arrives.
   Future<bool> setInstruction(String puzzleId, String instruction) async {
     try {
-      final response = await http
+      final response = await (_client ?? _shared)
           .patch(
             Uri.parse('$backendUrl/scans/puzzles/$puzzleId'),
             headers: _jsonHeaders,
@@ -265,7 +455,7 @@ class ScannerApiService {
 
   Future<bool> deleteSaved(String puzzleId) async {
     try {
-      final response = await http
+      final response = await (_client ?? _shared)
           .delete(Uri.parse('$backendUrl/scans/puzzles/$puzzleId'),
               headers: _jsonHeaders)
           .timeout(const Duration(seconds: 30));

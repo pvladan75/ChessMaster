@@ -11,6 +11,7 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
 import '../services/scanner_api_service.dart';
+import 'image_scan_screen.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
 /// Reads positions out of a trainer's own book and lets them confirm each one.
@@ -44,6 +45,11 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
   bool _scanning = false;
   bool _saving = false;
   bool _onlyDoubtful = false;
+
+  /// How many diagrams on the last pages scanned are pictures, when the font
+  /// path found none it could read — the door to the image path. Null when
+  /// there is no door to offer.
+  int? _imageDoor;
 
   /// The messenger this screen's messages go to, taken while it is still
   /// mounted.
@@ -103,7 +109,10 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
       return;
     }
 
-    setState(() => _scanning = true);
+    setState(() {
+      _scanning = true;
+      _imageDoor = null;
+    });
     final outcome = await _api.scan(
       filePath: _filePath!,
       fileName: _fileName ?? 'document.pdf',
@@ -119,7 +128,12 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
       _onlyDoubtful = false;
     });
 
-    if (!outcome.ok) {
+    final door = imageDoorFor(outcome);
+    if (door > 0) {
+      // Not a refusal to read out: the pictures can be read another way, and
+      // the screen says so where the positions would have been.
+      setState(() => _imageDoor = door);
+    } else if (!outcome.ok) {
       _toast(scanFailureMessage(outcome));
     } else if (outcome.result!.positions.isEmpty) {
       _toast('There are no diagrams we can read on those pages.');
@@ -169,6 +183,22 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     setState(() => _result = null);
   }
 
+  void _openImagePath() {
+    final path = _filePath;
+    if (path == null) return;
+    final from = int.tryParse(_fromController.text.trim()) ?? 1;
+    final to = int.tryParse(_toController.text.trim()) ?? from;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => ImageScanScreen(
+        api: _api,
+        filePath: path,
+        fileName: _fileName ?? 'document.pdf',
+        fromPage: from,
+        toPage: to,
+      ),
+    ));
+  }
+
   void _toast(String message) {
     if (!mounted) return;
     AppFeedback.show(context, () => SnackBar(content: Text(message)));
@@ -208,6 +238,13 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     final result = _result;
+    final door = _imageDoor;
+    if (result == null && door != null) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: ImageDiagramsDoor(count: door, onOpen: _openImagePath),
+      );
+    }
     if (result == null) {
       return const _EmptyHint();
     }
@@ -553,6 +590,72 @@ class _EmptyHint extends StatelessWidget {
               'chess font work. The document is not stored on the server.',
               style: AppText.body.copyWith(color: colors.textMuted),
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// How many diagrams a refusal says are pictures, when that is the reason the
+/// font path found nothing — the only refusals that open the image path. The
+/// owner decided on 22.9.2026 that the door opens by itself and there is no
+/// switch for it (docs/PLAN-SKENER-SLIKE.md, phase 3).
+int imageDoorFor(ScanOutcome outcome) {
+  if (outcome.ok) return 0;
+  if (outcome.code != 'no_text' && outcome.code != 'no_diagram_text') return 0;
+  return outcome.imageDiagrams;
+}
+
+/// The door from a book the font path cannot read to the image path.
+class ImageDiagramsDoor extends StatelessWidget {
+  const ImageDiagramsDoor(
+      {super.key, required this.count, required this.onOpen});
+
+  final int count;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Card(
+      key: const ValueKey('image-diagrams-door'),
+      shape: AppRadii.cardShape,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.image_outlined, color: colors.textSecondary),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('The diagrams in this book are pictures',
+                      style: AppText.title.copyWith(color: colors.textPrimary)),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    count == 1
+                        ? 'There is 1 on these pages. '
+                        : 'There are $count on these pages. ',
+                    style: AppText.body.copyWith(color: colors.textSecondary),
+                  ),
+                  Text(
+                    'They can be read once you have set up three of them by '
+                    'hand, so the scanner learns how this book draws its '
+                    'pieces. Nothing from the book is kept.',
+                    style: AppText.body.copyWith(color: colors.textSecondary),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  FilledButton(
+                    key: const ValueKey('image-diagrams-open'),
+                    onPressed: onOpen,
+                    child: const Text('Read the pictures'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

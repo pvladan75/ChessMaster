@@ -5878,6 +5878,39 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (server restartovan — nova tabela `book_calibrations`
+se pravi sama pri pokretanju; nov build). Knjige: *Back to Basics*
+(`D:\chess\pdf_books`), Reinfeld 1001 i Silman.
+
+1. [ ] **Vrata.** Position Scanner → Silman, strane 40–60 → „Scan". Umesto
+   crvene poruke stoji kartica „The diagrams in this book are pictures" sa
+   brojem dijagrama i dugmetom „Read the pictures". Za knjigu u šahovskom fontu
+   (npr. `completechesscoursexcerpt.pdf`) kartice nema, sken radi kao i pre.
+2. [ ] **Kalibracija.** „Read the pictures" → tri predložene table, svaka sa
+   slikom iz knjige i praznom tablom pored. „Read N boards" je sivo dok sve tri
+   nisu postavljene. „Set up this position" otvara editor table **sa slikom iz
+   knjige** (na Windowsu pored kontrola, na telefonu iznad palete).
+   „Choose a different board" nudi ostale table.
+3. [ ] **Čitanje.** Posle tri table → „Read N boards" → svaka tabla kao slika
+   pored pročitanog; nesigurno polje ima **isprekidan okvir i „?"** — vidi se
+   po obliku, ne po boji. Tabla koja nije pozicija nema kvadratić dok se ne
+   ispravi dodirom na tablu.
+4. [ ] **Pamćenje.** Isti PDF, druge strane (npr. 61–80) → posle „Read the
+   pictures" nema kalibracije, ide pravo na čitanje. Isto na **drugom uređaju**
+   sa istim nalogom (kalibracija je na nalogu, ne na uređaju).
+5. [ ] **Čuvanje.** „Save (N)" → „In Saved Positions: …". U Saved Positions:
+   table čiji potez nije menjan su označene za proveru, one gde je potez
+   postavljen nisu.
+6. [ ] **Napomena o pogađanju.** Ako tri table ne pokazuju neku figuru na nekoj
+   boji polja, iznad tabli stoji napomena koja je imenuje („a white rook on a
+   light square") i nudi „Set up again".
+7. [ ] **Previše tabli.** *Back to Basics*, strane 41–80 (izmereno: 72
+   dijagrama) → poruka koja kaže koliko ih ima (72), da se čita najviše 60, i
+   da se izabere manje strana. (Opseg preko 40 strana odbija se ranije, sa
+   drugom porukom.)
+
 ## 224. Skener na Teach — 22.9.2026, nije viđeno uživo
 
 **Samo aplikacija** (nov build, server bez izmena).

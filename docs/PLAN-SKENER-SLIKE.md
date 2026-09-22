@@ -426,15 +426,148 @@ failures. One was the drift case, which had become vacuous once the crop was
 fixed. The other was not captured by name, and it has not come back in three
 runs since.
 
-### Phase 3 — the confirmation screen
+### Phase 3 — the screens [lead] — built 22.9.2026, awaiting the owner's live check (TODO-provera 225)
 
-- The classified board, with uncertain squares marked by **shape**, not only by
-  colour. The owner is colourblind, so a live check by the owner proves
-  shape and brightness, never hue.
-- The question of who is on the move.
-- The solution check's verdict, when the solution could be read.
-- Nothing is saved until it is confirmed. A correction is made on the board, in
-  the editor the app already has.
+The owner's decisions on the sketch, 22.9.2026 (all three recommendations):
+
+1. **A book's calibration is remembered on the account, not the device.** It
+   is kept in a small table:
+   - the positions of the calibration boards and where they are in the book;
+   - never a picture from it.
+
+   The book is known by the **SHA-256 of the PDF file**, which the app works
+   out. This is the lesson of the puzzle sets: data kept per device must either
+   say so or stop being per device.
+2. **The door opens only by itself.** When the font path fails with `no_text`
+   or `no_diagram_text` and `details.imageDiagrams > 0`, the scan screen
+   offers "Read the pictures" in place of the refusal. There is no manual
+   switch. A book with both a chess font and picture diagrams will not be
+   offered this path; that is accepted.
+3. **More than 60 boards gets a message, not a split.** The server's own
+   sentence: "choose fewer pages".
+
+**The screens.** The sketch the owner accepted has three steps:
+
+1. **The door**, described above.
+2. **Teaching the scanner the book.**
+   - Three suggested boards, each as a picture beside the trainer's own setup
+     in the board editor.
+   - "Choose a different board" picks any other one.
+   - "Read N boards" is enabled once all three are set up.
+3. **Confirming.** Every board is shown as a picture beside what was read.
+   - An uncertain square has a **dashed outline and a question mark**, so it
+     reads by shape, not only colour (the owner is colourblind).
+   - The side to move is one tap, as on the font path's card.
+   - A board that is not a position cannot be saved until it is fixed.
+   - Tapping a board opens the editor, with its picture beside it.
+   - When the answer names composed classes, a note offers "Add a board".
+   - Saving goes through `POST /scans/confirm`. `needsReview` is set when the
+     side to move was never touched, as the font path does for a side the book
+     does not give.
+
+**Phase 3a — the calibration on the account (server).**
+
+- The table `book_calibrations (user_id, book_hash, book_name, boards JSONB,
+  updated_at)`, keyed by user and hash, deleted with the user.
+- Three routes, each scoped by `user_id` in its `WHERE`:
+  - `GET /scans/calibrations/:hash` answers the boards, or 404 with
+    `no_calibration`;
+  - `PUT` validates through `parseCalibration`, the same reader
+    `POST /scans/images` uses (one rule, one home), and upserts;
+  - `DELETE` removes one.
+
+Gate: `test/book_calibrations_routes.test.js`, handlers called directly,
+asserting on the SQL.
+- Every route is behind sign-in.
+- A hash that is not 64 hex characters is refused.
+- `PUT` with a board that is not a placement is refused, and nothing is
+  written.
+- `PUT` upserts with the account's id.
+- `GET` of another account's hash asks with *this* account's id, and so
+  answers 404.
+- `DELETE` is scoped by account.
+- A real-database case in the database half: two accounts with the same hash
+  keep separate rows.
+
+**Phase 3b — the app's side of the wire.**
+
+`ScannerApiService` gets an optional `http.Client`, the pattern of
+`PuzzleSetApiService`, and four new calls:
+- `scanImages`, without and with a calibration;
+- `loadCalibration`, `saveCalibration` and `deleteCalibration`.
+
+`scanFailureMessage` also returns the door: `imageDiagrams` read off the
+refusal.
+
+Gate: `MockClient` tests that assert **the request**:
+- the multipart fields, including the calibration as JSON;
+- the hash in the path;
+- a 404 read as "none", not as an error.
+
+**Phase 3c — the door and the calibration screen.**
+
+Gate: widget tests.
+- The refusal with `imageDiagrams` shows the door; one without it does not.
+- A remembered calibration skips straight to reading.
+- "Read N boards" waits for three boards.
+- The picture of a board is on screen beside its editor, at 360 dp and at
+  1280.
+
+**Phase 3d — the confirmation screen.**
+
+Gate: widget tests.
+- An uncertain square is drawn with its outline and question mark: found by
+  its key and measured, not just said.
+- A board that is not a position has no tick box until it is fixed.
+- Saving sends exactly the accepted boards, with `needsReview` where the side
+  was never touched.
+- The composed-class note appears only when the answer names a composed class.
+- Nothing overflows at 360 dp, and the pictures are square (measured, since
+  clipping is not overflow).
+
+**The live check is the owner's**, on the three books, with its own item in
+`TODO-provera.md`.
+
+**Built 22.9.2026.** The four parts, and what each gate measured:
+
+| Part | Where | Gate |
+|---|---|---|
+| 3a | `book_calibrations`, `/scans/calibrations/:hash` | 11 cases plus one on a real database; 6 mutations caught, among them the primary key on the hash alone, which only the real database sees |
+| 3b | `ScannerApiService` (an `http.Client` seam, `scanImages`, the three calibration calls, `details` on a refusal), `bookHashOf` | 13 cases on the request; 7 mutations caught |
+| 3c | the door (`imageDoorFor`, `ImageDiagramsDoor`) on `ScanReviewScreen`; `ImageScanScreen`; `AnalysisBoardSetupDialog.referencePicture` | together with 3d, 13 cases |
+| 3d | the confirmation, `ReadBoardView` with a dashed outline and a question mark | 11 mutations caught |
+
+The app goes 3752 → **3778** (a full run).
+
+Found while building, and fixed:
+
+1. **A failed reading would have been remembered.** The calibration was saved
+   after the read, whatever came back. A calibration that failed would then
+   be offered again on every visit, failing the same way each time. It is now
+   saved only after a reading that came back, and the error screen offers "Set
+   up the boards again".
+2. **The boards the trainer set up could not be saved.** They are positions
+   from the book too, confirmed by being set up. The server now reports their
+   legality, and the app offers them with the rest, in the book's order.
+3. **The seam went round the save.** `confirm()` and the older calls used the
+   package's own functions, not the injected client, so a test watched the
+   save go past it. Every call now goes through one client. A seam that only
+   some calls use lets a test believe it sees every request.
+4. **`AppFeedback.dismiss` could still throw.** It animated the message out,
+   and the animation asserts that the messenger is still mounted when it ends,
+   after the messenger is gone, in a callback no `try` reaches. It now removes
+   the message at once. The font scanner had the same fault; no test had ever
+   closed it with a message showing. The source guard now also forbids a
+   direct `removeCurrentSnackBar`.
+5. **The first fixture PNG was not a PNG.** It was written by hand, and Flutter
+   could not decode it. It was replaced by one whose chunks and CRCs were
+   checked first.
+6. **The 360 dp case failed for the wrong reason under a mutation.** A note
+   above the boards pushed the measured board below the fold, and a lazy list
+   does not build it. The case now scrolls to the board before measuring, and
+   the note has its own case at 360 dp.
+
+
 
 ### Phase 4 — into exercises
 

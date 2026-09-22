@@ -214,7 +214,10 @@ export async function scanImages({ filePath, fromPage, toPage, calibration = [] 
     needsCalibration: false,
     calibration: calibrationBoards
       .filter((c) => c.page >= start && c.page <= end)
-      .map((c) => ({ page: c.page, index: c.index, source: 'image', placement: c.fen, calibration: true, preview: preview(c.board) })),
+      .map((c) => ({
+        page: c.page, index: c.index, source: 'image', placement: c.fen, calibration: true,
+        uncertain: [], legal: legal(c.fen), preview: preview(c.board),
+      })),
     positions,
     composed,
     marksPerBoard: positions.length ? marks / positions.length : 0,

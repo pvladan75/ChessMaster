@@ -116,6 +116,16 @@ test('4. with a calibration: every other board is read, source image, and the ca
     assert.equal(status, 200, JSON.stringify(body));
     assert.equal(body.needsCalibration, false);
     assert.deepEqual(body.calibration.map((c) => `${c.page}:${c.calibration}`), ['1:true', '2:true', '3:true']);
+    // The app offers the boards the trainer set up for saving with the rest,
+    // and keeps the ones that are not positions out: it reads both of these.
+    for (const c of body.calibration) {
+      assert.deepEqual(c.uncertain, [], `calibration board ${c.page} names uncertain squares`);
+      assert.equal(typeof c.legal, 'boolean', `calibration board ${c.page} does not say whether it is a position`);
+    }
+    // All three are positions (the first is the opening position without its
+    // h1 rook). A board the reader calls "not a position" is the app's case,
+    // image_scan_screen_test.dart; here the field has to be there and true.
+    assert.deepEqual(body.calibration.map((c) => c.legal), [true, true, true]);
     assert.deepEqual(body.positions.map((p) => [p.page, p.source, p.placement]),
       [[4, 'image', TO_READ[0]], [5, 'image', TO_READ[1]]]);
     for (const p of body.positions) {

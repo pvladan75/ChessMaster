@@ -52,7 +52,9 @@ void main() {
       // a direct call does not.
       final offenders = [
         for (final entry in sources.entries)
-          if (entry.value.contains('.hideCurrentSnackBar(')) entry.key,
+          if (entry.value.contains('.hideCurrentSnackBar(') ||
+              entry.value.contains('.removeCurrentSnackBar('))
+            entry.key,
       ];
       expect(offenders, isEmpty,
           reason: 'poruka se sklanja kroz AppFeedback.dismiss: '

@@ -6671,3 +6671,31 @@ tvrdnji, umesto da tiho prolazi bez ičega da proveri.
 
 Brojevi: server 1570 → 1585 bez baze, 1682 → 1697 sa bazom; aplikacija bez
 izmena.
+
+## Dijagrami kao slike, faza 3 — 22.9.2026
+
+**Šav koji pokriva samo deo poziva je lažan šav.** `ScannerApiService` je
+dobio `http.Client` za nove pozive, a `confirm()` je i dalje zvao `http.post`.
+Test čuvanja je gledao lažni klijent i nije video ništa — zahtev je otišao
+pored. U produkciji bez posledica, ali test je verovao da vidi sve zahteve.
+Sada svaki poziv ide kroz jedan klijent.
+
+**`try` ne hvata ono što se desi kasnije.** `AppFeedback.dismiss` je bio
+„zaštićen" `try`-em, a `hideCurrentSnackBar` pokreće animaciju čiji kraj
+tvrdi `mounted` na messengeru — posle njegovog nestanka, u povratnom pozivu.
+Stari skener je imao isti kvar od avgusta (ISSUE-012); nijedan test ga nije zatvorio sa
+porukom na ekranu.
+
+**Mutacija koja crveni pogrešan slučaj otkriva krhak slučaj.** „Napomena
+uvek prikazana" oborila je i slučaj za 360 dp — ne zbog prelivanja, nego zato
+što je napomena gurnula tablu ispod ivice, a lenja lista je ne gradi. Slučaj
+sada skroluje do table pre merenja, a napomena ima svoj slučaj na 360 dp.
+
+**Redosled „uradi pa zapamti" važi i za pamćenje.** Kalibracija se čuvala
+posle čitanja bez obzira na ishod; neuspela bi se vraćala pri svakoj poseti.
+Pamti se samo ono što je proradilo.
+
+**Fikstura napisana napamet nije fikstura.** Ručno napisan PNG od 1×1 nije
+bio PNG. Zamena je prvo proverena — zaglavlje i CRC svakog dela.
+
+Brojevi: aplikacija 3752 → 3778; server 1585 → 1596 / 1697 → 1709 (faza 3a).

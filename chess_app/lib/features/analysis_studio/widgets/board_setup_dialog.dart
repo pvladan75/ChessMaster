@@ -59,11 +59,19 @@ class AnalysisBoardSetupDialog extends StatefulWidget {
   final Function(String fen) onPositionSet;
   final Function(String pgn)? onPgnLoaded;
 
+  /// A picture of the board being copied — a diagram from a book the image
+  /// scanner is learning (docs/PLAN-SKENER-SLIKE.md, phase 3). Drawn only when
+  /// given, beside the controls where there is room and above the palette
+  /// where there is not, and the builder tab opens first: setting up a board
+  /// from a picture means placing pieces while looking at it.
+  final Uint8List? referencePicture;
+
   const AnalysisBoardSetupDialog({
     super.key,
     required this.initialFen,
     required this.onPositionSet,
     this.onPgnLoaded,
+    this.referencePicture,
   });
 
   @override
@@ -125,7 +133,12 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(
+      length: _tabs.length,
+      vsync: this,
+      initialIndex:
+          widget.referencePicture != null ? _tabs.indexOf(_SetupTab.manual) : 0,
+    );
     _fenTextController = TextEditingController(text: widget.initialFen);
     _validateFen(widget.initialFen);
     _initBuilderBoardFromFen(widget.initialFen);
@@ -729,6 +742,11 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (widget.referencePicture != null) ...[
+                    _referencePicture(
+                        math.min(220.0, c.maxWidth - side - AppSpacing.md)),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   _builderPalette(colors),
                   const SizedBox(height: AppSpacing.sm),
                   // The three buttons sit **below** the side to move and the
@@ -759,10 +777,17 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       // and pay for it in height: on a narrow tab the four castling rights
       // wrap onto a second and third line and take the board's space with
       // them. A height test alone let a 320dp phone through by sixteen pixels.
-      final tall = c.maxHeight >= 380 && c.maxWidth >= 300;
+      final pictureSide = widget.referencePicture == null
+          ? 0.0
+          : math.min(150.0, c.maxWidth * 0.45);
+      final tall = c.maxHeight >= 380 + pictureSide && c.maxWidth >= 300;
       final column = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (widget.referencePicture != null) ...[
+            Center(child: _referencePicture(pictureSide)),
+            const SizedBox(height: AppSpacing.xs),
+          ],
           _builderPalette(colors),
           const SizedBox(height: AppSpacing.xs),
           if (tall)
@@ -794,6 +819,18 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       return tall ? column : SingleChildScrollView(child: column);
     });
   }
+
+  /// The picture being copied, square, never stretched out of shape.
+  Widget _referencePicture(double side) => SizedBox.square(
+        key: const ValueKey('setup-reference-picture'),
+        dimension: side,
+        child: Image.memory(
+          widget.referencePicture!,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+          semanticLabel: 'The diagram in the book',
+        ),
+      );
 
   /// Two rows of six, White above Black, in the same order on both.
   ///
