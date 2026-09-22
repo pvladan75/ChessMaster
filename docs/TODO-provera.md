@@ -5911,6 +5911,15 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
    da se briše i video i nudi „Download video" (to ništa ne briše). Posle
    „Delete" u `chess_backend/exports/` više nema tog MP4. Isto iz Preparation
    kolone; tamo pozicija pita „Delete position?", ne „Delete tutorial?".
+9. [ ] **Brisanje partija.** My games: na kartici igrača kanta; dijalog kaže
+   koliko partija i čijih; posle „Delete" igrača nema na listi, a greške iz tih
+   partija nestaju iz drila. Dok uvoz tog igrača traje, brisanje se odbija sa
+   porukom. Ponovni uvoz ih vraća.
+10. [ ] **Greška iz drila.** Mistake drill: „Remove from drill" pita, pa
+    prelazi na sledeću grešku; ta se više ne vraća. Partija ostaje u arhivi.
+11. [ ] **Obaveštenja.** Zvonce: svako obaveštenje ima × i nestane; „Clear all"
+    briše sva, a zahtev koji čeka odgovor ostaje. Posle zatvaranja i ponovnog
+    otvaranja obrisana se ne vraćaju.
 
 ## 225. Dijagrami kao slike: kalibracija i potvrda — 22.9.2026, nije viđeno uživo
 

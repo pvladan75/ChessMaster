@@ -6823,8 +6823,8 @@ korisnika**, i to se vidi u `CREATE TABLE`, ne u imenu.
 
 Mutacije su našle dve iste rupe: ni u „My games" ni u drilu nijedan test nije
 pritisnuo „Cancel", pa „pita, pa briše šta god da je odgovor" nije moglo da
-padne. **Test potvrde koji nikad ne kaže „ne" ne testira potvrdu.** Beside
-it: četiri od pet lažnih `ArchiveApiService` pišu svaku metodu ručno, pa
+padne. **Test potvrde koji nikad ne kaže „ne" ne testira potvrdu.** Pored toga:
+četiri od pet lažnih `ArchiveApiService` pišu svaku metodu ručno, pa
 nova metoda ruši kompilaciju — a pretpostavka „svi koriste noSuchMethod" bila
 je iz jednog pročitanog fajla. I redosled ruta ima svoj test:
 `/notifications/read` mora pre `/notifications/:id`, inače „read" postaje id.
