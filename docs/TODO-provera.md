@@ -5878,6 +5878,26 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 235. Svoji zadaci-partije se igraju i beleže — 23.9.2026, nije viđeno uživo
+
+**Aplikacija i server** (nov build, restart backenda — nova ruta
+`POST /exercises/:id/game-result`). `PLAN-MATERIJAL.md`, faza 5.
+
+1. [ ] **Play na kartici.** Biblioteka → Exercises → tvoj zadatak „Win" /
+   „Draw or better" / „Play N moves": na kartici je dugme „Play" (trougao).
+   Na Find zadatku ga nema (tamo je „Solve"), ni na zadatku sa oznakom
+   „Side to move not set".
+2. [ ] **Pobeda.** Odigraj „Win" do mata: „Goal met". Na Practise se kartica
+   „My exercises" ne menja (partije nisu u redu za rešavanje), ali je pokušaj
+   upisan.
+3. [ ] **„Draw or better" za N poteza** sa malo figura: posle N poteza sud
+   daje tablebase — „Goal met" ili „Goal not met". Ako tablebase ne odgovori:
+   „Not judged yet" i rečenica da partija nije uračunata.
+4. [ ] **„Play N moves".** Posle N poteza piše „Played", i nigde se ne pominje
+   trener.
+5. [ ] **Domaći se ne dira.** Ista partija kao domaći i dalje ide treneru kao
+   pre; sama odigrana ne menja nijedan domaći.
+
 ## 234. Zagonetke iz partije su zadaci; puzzle sets više nema — 23.9.2026, nije viđeno uživo
 
 **Aplikacija i server** (nov build, restart backenda — tabela `puzzle_sets` je

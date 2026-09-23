@@ -293,3 +293,129 @@ test('GET /api/puzzles/retry?source=own answers through the existing fold', asyn
   assert.equal(out.status, 200);
   assert.deepEqual(out.json, { source: 'own', ids: ['cust_a'] });
 });
+
+// ── one's own game exercise, played out (docs/PLAN-MATERIJAL.md, phase 5) ──
+//
+// Judged as a homework's game is — the rules, then a tablebase where the game
+// stopped at its move target — and logged as `own` only when something judged
+// it. „Play N moves" has no goal and alone no trainer: nothing is written. A
+// silent tablebase writes nothing and says `pending`.
+
+const soloService = require('../services/exerciseSolo');
+const { TablebaseUnavailable } = require('../services/tablebaseService');
+
+const ROOK_FEN = '4k3/8/8/8/8/8/8/4K2R w - - 0 1';
+const THREE_MOVES = 'Rh2 Kd8 Rh3 Ke8 Rh4';
+
+function gameRow(task, over = {}) {
+  return {
+    puzzle_id: 'ex_game', fen: ROOK_FEN, task: { type: 'game', ...task },
+    solution: null, solution_san: null, needs_review: false, ...over,
+  };
+}
+
+/// The service over one stored row, recording every query and every probe.
+async function playOwn(row, { moves, resigned, probe } = {}) {
+  const calls = [];
+  const probed = [];
+  const pool = {
+    query: async (text, values = []) => {
+      const flat = String(text).replace(/\s+/g, ' ').trim();
+      calls.push({ text: flat, params: values });
+      return /FROM custom_puzzles/.test(flat) ? { rowCount: 1, rows: [row] } : { rowCount: 0, rows: [] };
+    },
+  };
+  const tablebase = {
+    probe: async (fen) => {
+      probed.push(fen);
+      if (probe instanceof Error) throw probe;
+      return { category: probe ?? 'draw' };
+    },
+  };
+  const out = await soloService.gameResultOwn(pool, {
+    ownerId: 5, puzzleId: row.puzzle_id, moves, resigned, tablebase,
+  });
+  return { out, inserts: attemptInserts(calls), probed };
+}
+
+test('POST /exercises/:id/game-result is mounted and behind sign-in', () => {
+  assert.equal(handlersOf(exercisesRouter, 'post', '/:id/game-result')[0], authenticateToken);
+});
+
+test('a win judged by the rules writes a solved own attempt', async () => {
+  const row = gameRow({ side: 'w', goal: 'win' }, { fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1' });
+  const { out, inserts, probed } = await playOwn(row, { moves: 'Rd8#' });
+  assert.deepEqual(out.result, { goalMet: true, judgedBy: 'rules', pending: false, ending: 'checkmate', outcome: 'won' });
+  assert.deepEqual(inserts.map((c) => c.params), [[5, 'ex_game', 'own', true]]);
+  assert.deepEqual(probed, [], 'a win is never asked of a tablebase');
+});
+
+test('a hold stopped at its move target asks the tablebase, and writes by its answer', async () => {
+  const row = gameRow({ side: 'w', goal: 'hold', surviveMoves: 3 });
+  const held = await playOwn(row, { moves: THREE_MOVES, probe: 'draw' });
+  assert.deepEqual(held.probed, ['4k3/8/8/8/7R/8/8/4K3 b - - 5 3'], 'the position the game reached');
+  assert.equal(held.out.result.judgedBy, 'tablebase');
+  assert.deepEqual(held.inserts.map((c) => c.params[3]), [true]);
+
+  // Black to move and winning: White did not hold.
+  const lost = await playOwn(row, { moves: THREE_MOVES, probe: 'win' });
+  assert.equal(lost.out.result.goalMet, false);
+  assert.deepEqual(lost.inserts.map((c) => c.params[3]), [false]);
+});
+
+test('a silent tablebase writes nothing and says pending', async () => {
+  const row = gameRow({ side: 'w', goal: 'hold', surviveMoves: 3 });
+  const { out, inserts } = await playOwn(row, { moves: THREE_MOVES, probe: new TablebaseUnavailable('down') });
+  assert.deepEqual(out.result, { goalMet: null, judgedBy: null, pending: true, ending: 'moveTarget', outcome: 'undecided' });
+  assert.equal(inserts.length, 0);
+});
+
+test('„Play N moves" alone is played and nothing more: no row, no judge, nothing pending', async () => {
+  const row = gameRow({ side: 'w', goal: 'play', surviveMoves: 3 });
+  const { out, inserts, probed } = await playOwn(row, { moves: THREE_MOVES });
+  assert.equal(out.result.judgedBy, null);
+  assert.equal(out.result.goalMet, null);
+  assert.equal(out.result.pending, false, 'nothing will ever judge it, so nothing waits');
+  assert.equal(inserts.length, 0);
+  assert.deepEqual(probed, []);
+});
+
+test('a game not over yet is refused, and nothing is written', async () => {
+  const row = gameRow({ side: 'w', goal: 'hold', surviveMoves: 3 });
+  const { out, inserts } = await playOwn(row, { moves: 'Rh2 Kd8' });
+  assert.equal(out.status, 422);
+  assert.equal(inserts.length, 0);
+});
+
+test('a find exercise is not played out: 409, with the reason', async () => {
+  const { out, inserts } = await playOwn(exerciseRow({ puzzle_id: 'ex_game' }), { moves: 'Ra8#' });
+  assert.equal(out.status, 409);
+  assert.match(out.error, /asks for a move/);
+  assert.equal(inserts.length, 0);
+});
+
+test('somebody else\'s game exercise is 404, asked by owner', async () => {
+  const out = await call(exercisesRouter, 'post', '/:id/game-result', {
+    params: { id: 'ex_game' },
+    body: { moves: 'Rd8#' },
+    userId: 6,
+    answer: () => ({ rows: [] }),
+  });
+  assert.equal(out.status, 404);
+  const select = out.calls.find((c) => /FROM custom_puzzles/.test(c.text));
+  assert.match(select.text, /owner_id = \$2/);
+  assert.deepEqual(select.params, ['ex_game', 6]);
+});
+
+test('an own game touches no homework', async () => {
+  const row = gameRow({ side: 'w', goal: 'win' }, { fen: '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1' });
+  const calls = [];
+  const pool = {
+    query: async (text, values) => {
+      calls.push(String(text));
+      return /FROM custom_puzzles/.test(text) ? { rowCount: 1, rows: [row] } : { rowCount: 0, rows: [] };
+    },
+  };
+  await soloService.gameResultOwn(pool, { ownerId: 5, puzzleId: 'ex_game', moves: 'Rd8#' });
+  assert.equal(calls.filter((t) => /assignment/.test(t)).length, 0);
+});

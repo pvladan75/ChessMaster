@@ -152,6 +152,37 @@ class ExerciseApiService {
     }
   }
 
+  /// One's own game exercise, played to its end (`POST /exercises/:id/
+  /// game-result`, `docs/PLAN-MATERIJAL.md` phase 5): the moves, and whether
+  /// it ended by resigning — nothing about who won, which is the server's to
+  /// say. Answers the server's body, the homework route's shape, or null when
+  /// no answer came back.
+  Future<Map<String, dynamic>?> gameResult(String id, List<String> moves,
+      {bool resigned = false}) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse(
+                '$backendUrl/exercises/${Uri.encodeComponent(id)}/game-result'),
+            headers: _headers,
+            body: jsonEncode({
+              'moves': moves,
+              if (resigned) 'resigned': true,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode != 200) {
+        AppLogger.log('[Exercises] Game result refused (${res.statusCode}).');
+        return null;
+      }
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } catch (e) {
+      AppLogger.log('[Exercises] Game result not sent: $e');
+      return null;
+    }
+  }
+
   /// The account's own exercises waiting to be solved. **Null when the server
   /// could not be asked** — not an empty queue, which would say the account
   /// has nothing.

@@ -639,7 +639,18 @@ presented. Both counts fall by the deleted tests; the arithmetic in
 **a line appended under each, never a reworded body** (`spoji.py` matches on
 the text).
 
-### Phase 5 — Own game exercises are recorded [lead: route · implementer: door]
+### Phase 5 — Own game exercises are recorded [lead: route · implementer: door] — built 23.9.2026
+
+*Built by the lead inline, both halves. App 3901 → 3906, backend 1658 →
+1667 / 1794 → 1803, as predicted before the run; analyze unchanged; six server
+and seven app mutations, all red. Departures:* **`askTablebase` and
+`sharedTablebase` are exported from `assignmentService.js`** rather than
+moved — one home either way, and the homework's code stays where it is.
+**`pending` is false for „Play N moves"** played alone: nothing will judge it,
+so nothing waits. **The end-of-game dialog says so, for one's own game only**:
+„Played" for a game with no goal, no trainer named, and for a tablebase that
+did not answer, that the game was not counted — a homework's pending game is
+asked again later (`judgePendingGames`), one's own is not.
 
 - App: the own game exercise's card gets **„Play"** (Solve for a game):
   `AiStudioScreen(initialCategory: 'engine_game', engineGameTask:

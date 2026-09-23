@@ -17,8 +17,9 @@
 // (`puzzleProgress.SERVER_JUDGED`). Nothing touches `assignment_items`: an
 // answer given alone is not homework handed in.
 
-const { exerciseColumns, firstMoveOf, assignableProblem } = require('./exercise');
+const { exerciseColumns, exerciseOf, firstMoveOf, assignableProblem } = require('./exercise');
 const { judgeAttempt } = require('./customPuzzleJudge');
+const { judgeEngineGame } = require('./engineGameTask');
 const { attemptsOf, retryIds } = require('./puzzleProgress');
 
 const SOURCE = 'own';
@@ -129,4 +130,71 @@ async function queueOf(pool, ownerId) {
   };
 }
 
-module.exports = { SOURCE, attemptOwn, queueOf };
+/**
+ * One's own game exercise, played to its end (docs/PLAN-MATERIJAL.md,
+ * phase 5). The body carries the moves and nothing about who won: the verdict
+ * is the server's, from the task — the rules, then a tablebase where the game
+ * stopped at its move target — exactly as a homework's game is judged
+ * (`recordEngineGameResult`), and through the same two calls.
+ *
+ * An `own` attempt is logged **only when something judged the game**:
+ * - „Play N moves" has no goal, and alone there is no trainer to give one —
+ *   „played and nothing more" (decision 4): nothing is written, and nothing
+ *   is pending either, because nothing will ever come.
+ * - A tablebase that does not answer leaves the game unjudged: nothing is
+ *   written, and the answer says `pending` — absence is a third answer.
+ *
+ * Answers `{ goalMet, judgedBy, pending, ending, outcome }`, the homework
+ * route's shape; 404 for „no such exercise" and „not yours" alike, 409 for a
+ * row that is not a game to play, 422 for moves that are not a finished game.
+ */
+async function gameResultOwn(pool, { ownerId, puzzleId, moves, resigned, tablebase }) {
+  if (typeof puzzleId !== 'string' || (!Array.isArray(moves) && typeof moves !== 'string')) {
+    return { ok: false, status: 400, error: 'The moves are required.' };
+  }
+  const found = await pool.query(
+    `SELECT puzzle_id, ${exerciseColumns()}
+       FROM custom_puzzles
+      WHERE puzzle_id = $1 AND owner_id = $2`,
+    [puzzleId, ownerId]
+  );
+  if (found.rowCount === 0) return { ok: false, status: 404, error: 'No such exercise.' };
+  const row = found.rows[0];
+
+  const problem = assignableProblem(row, { as: 'game' });
+  if (problem) return { ok: false, status: 409, error: `This exercise ${problem}.` };
+
+  // The task as the one reader gives it, with the row's position in it; the
+  // judge reads the engine-game task, which has no `type`.
+  const { type: _game, ...task } = exerciseOf(row).task;
+  const verdict = judgeEngineGame({ task, moves, resigned: resigned === true });
+  if (!verdict.ok) return { ok: false, status: 422, error: verdict.error };
+  if (verdict.ending === null) return { ok: false, status: 422, error: 'The game is not over yet.' };
+
+  let goalMet = verdict.needsTrainer ? null : verdict.goalMet;
+  let judgedBy = verdict.needsTrainer ? null : 'rules';
+  let pending = false;
+  if (verdict.needsTablebase) {
+    // Required late, as its home does: the tablebase builds a pacer.
+    const { askTablebase, sharedTablebase } = require('./assignmentService');
+    const asked = await askTablebase(tablebase ?? sharedTablebase(), { task: verdict.task, fen: verdict.fen });
+    goalMet = asked.judged ? asked.goalMet : null;
+    judgedBy = asked.judged ? 'tablebase' : null;
+    pending = !asked.judged;
+  }
+
+  if (judgedBy !== null) {
+    await pool.query(
+      `INSERT INTO user_puzzle_attempts (user_id, puzzle_id, source, solved)
+       VALUES ($1, $2, $3, $4)`,
+      [ownerId, row.puzzle_id, SOURCE, goalMet === true]
+    );
+  }
+
+  return {
+    ok: true,
+    result: { goalMet, judgedBy, pending, ending: verdict.ending, outcome: verdict.outcome },
+  };
+}
+
+module.exports = { SOURCE, attemptOwn, queueOf, gameResultOwn };

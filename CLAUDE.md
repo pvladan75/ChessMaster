@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3901 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3906 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1794 with TEST_DATABASE_URL, 1658 without
+cd chess_backend && npm test          # node --test, 1803 with TEST_DATABASE_URL, 1667 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -631,6 +631,16 @@ adding phase 2's column. Stopped, checked, said. That a file compiles is
 loads.** And a count taken from a test file by grepping `test(` missed a loop
 that ran one of them three times, so the expected total was 2 off until the
 two runs were compared by name.
+Then its phase 5 (→ **3906**; backend → **1667 / 1803**, both measured, each
+as predicted before the run): one's own game exercise has „Play" on its card,
+and its end goes to `POST /exercises/:id/game-result`, judged as a homework's
+game is (the rules, then `askTablebase`, now exported from its one home) and
+logged as `own` only when something judged it. **Alone, a game with no goal
+has no judge**: „Play N moves" says „Played", names no trainer and writes
+nothing, and a tablebase that does not answer is said not to have counted —
+a homework's pending game is asked again later, one's own is not. That
+finishes `docs/PLAN-MATERIJAL.md` but for the owner's live pass (items
+231–235).
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

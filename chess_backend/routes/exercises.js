@@ -62,6 +62,23 @@ router.post('/:id/attempt', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /exercises/:id/game-result — the owner played their own game exercise
+// to its end (docs/PLAN-MATERIJAL.md, phase 5). Judged here, as a homework's
+// game is; logged as an `own` attempt only when something judged it.
+router.post('/:id/game-result', authenticateToken, async (req, res) => {
+  try {
+    const { moves, resigned } = req.body || {};
+    const out = await solo.gameResultOwn(pool, {
+      ownerId: req.user.id, puzzleId: req.params.id, moves, resigned,
+    });
+    if (!out.ok) return res.status(out.status).json({ error: out.error });
+    res.json(out.result);
+  } catch (err) {
+    logger.error('Error recording an own game:', err);
+    res.status(500).json({ error: 'Error recording the game.' });
+  }
+});
+
 // GET /exercises/:id — one, with its solution, for its owner's editor.
 router.get('/:id', authenticateToken, async (req, res) => {
   try {

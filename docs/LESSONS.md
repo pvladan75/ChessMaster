@@ -7200,3 +7200,24 @@ Brojevi: aplikacija 3915 → 3901 (−9 `puzzle_sets_sync_test`, −6
 `library_card_doors_test`, +1 odgovor u testu ekstraktora, +7
 `game_review_exercises_test`); backend 1664 → 1658 bez baze (−9
 `puzzle_sets_routes`, +3), 1799 → 1794 sa bazom (+1 na bazi).
+
+## 23.9.2026 — PLAN-MATERIJAL faza 5: svoja partija se igra i beleži
+
+„Play" na kartici svog zadatka-partije otvara partiju protiv motora, a kraj ide
+na `POST /exercises/:id/game-result`: sudi se kao partija iz domaćeg (pravila,
+pa `askTablebase`, sada izvezen iz svog jednog doma), a `own` pokušaj se upisuje
+samo kad je nešto presudilo.
+
+Ono što vredi zapamtiti je rečenica koju ekran kaže, ne ruta: dijalog na kraju
+partije govorio je „Not judged yet" i „Your trainer will look at it" — tačno za
+domaći, **netačno kad igraš sam**, jer tu nijedan trener ne gleda i ništa kasnije
+ne pita tablebase ponovo (domaći ima `judgePendingGames`, svoja partija nema).
+Sad za svoju partiju: „Played" kad nema cilja, i rečenica da partija nije
+uračunata kad tablebase ćuti. **Ista reč na ekranu može biti istina u jednom
+toku i laž u drugom** — kad se tok doda, pročitaj šta ekran kaže u njemu.
+
+Brojevi su ovaj put izvedeni **pre** prolaza (1667 / 1803 / 3906) i prolaz ih je
+potvrdio tačno.
+
+Brojevi: aplikacija 3901 → 3906; backend 1658 → 1667 bez baze, 1794 → 1803 sa
+bazom.

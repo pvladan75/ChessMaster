@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
+import 'package:chess_app/core/models/engine_game_task.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/features/assignments/screens/custom_puzzle_solver_screen.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
@@ -31,6 +32,7 @@ import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
@@ -263,6 +265,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
               icon: const Icon(Icons.extension_outlined, size: 20),
               tooltip: 'Solve',
               onPressed: () => _solve(entry),
+            ),
+          if (_playableHere(entry))
+            IconButton(
+              icon: const Icon(Icons.play_arrow, size: 20),
+              tooltip: 'Play',
+              onPressed: () => _play(entry),
             ),
           if (entry.isExercise) ...[
             if (_hasStudents != false)
@@ -503,6 +511,33 @@ class _LibraryScreenState extends State<LibraryScreen> {
       entry.isExercise &&
       entry.assignable &&
       exerciseAskOf(entry.task) == ExerciseAsk.find;
+
+  /// Whether this account can play [entry] alone here: a game exercise,
+  /// settled — „Solve" for a game (`docs/PLAN-MATERIJAL.md`, phase 5). Only
+  /// asked of the account's own, as [_solvableHere] is.
+  bool _playableHere(LibraryEntry entry) =>
+      entry.isExercise &&
+      entry.assignable &&
+      exerciseAskOf(entry.task) != ExerciseAsk.find;
+
+  /// The game played against the engine, its end posted to the exercise and
+  /// judged there — logged as an own attempt when something judged it.
+  Future<void> _play(LibraryEntry entry) async {
+    final task = EngineGameTask.fromJson({...?entry.task, 'fen': entry.fen});
+    if (task == null) {
+      AppFeedback.error(context, 'This exercise cannot be played.');
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AiStudioScreen(
+        userSession: widget.session,
+        initialCategory: 'engine_game',
+        engineGameTask: task,
+        exerciseId: entry.id,
+        exerciseApi: _exerciseApi,
+      ),
+    ));
+  }
 
   /// One exercise on the solver, its answer judged by the server and logged
   /// as an own attempt.

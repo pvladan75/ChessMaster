@@ -1088,6 +1088,10 @@ module.exports = {
   markCompleteIfDone,
   recordPuzzleResult,
   recordEngineGameResult,
+  // One home for asking the tablebase about a played game — a homework's and,
+  // since docs/PLAN-MATERIJAL.md phase 5, one's own exercise's.
+  askTablebase,
+  sharedTablebase,
   recordTrainerVerdict,
   judgePendingGames,
   getStudentAssignments,

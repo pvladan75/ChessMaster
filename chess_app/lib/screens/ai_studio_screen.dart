@@ -37,6 +37,7 @@ import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
@@ -106,6 +107,15 @@ class AiStudioScreen extends ConsumerStatefulWidget {
   /// nothing to post to (a task with no assignment cannot be graded).
   final int? assignmentId;
 
+  /// One's own game exercise [engineGameTask] is — its result is posted to
+  /// `POST /exercises/:id/game-result` instead (`docs/PLAN-MATERIJAL.md`,
+  /// phase 5). One or the other, never both.
+  final String? exerciseId;
+
+  /// Seam for [exerciseId]'s post; the real service against the session
+  /// otherwise.
+  final ExerciseApiService? exerciseApi;
+
   const AiStudioScreen({
     super.key,
     required this.userSession,
@@ -115,7 +125,10 @@ class AiStudioScreen extends ConsumerStatefulWidget {
     this.retry = false,
     this.engineGameTask,
     this.assignmentId,
-  });
+    this.exerciseId,
+    this.exerciseApi,
+  }) : assert(assignmentId == null || exerciseId == null,
+            'a game is posted to its homework or to its exercise, not both');
 
   @override
   ConsumerState<AiStudioScreen> createState() => _AiStudioScreenState();
@@ -2540,6 +2553,27 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       }
     }
 
+    final exerciseId = widget.exerciseId;
+    if (exerciseId != null) {
+      final api = widget.exerciseApi ??
+          ExerciseApiService(authToken: widget.userSession.token);
+      final body = await api.gameResult(
+        exerciseId,
+        List<String>.from(_engineGameMoves),
+        resigned: verdict.ending == GameEnding.resignation,
+      );
+      if (!mounted) return;
+      if (body == null) {
+        _showSnackBar('This result could not be recorded.');
+      } else if (verdict.needsTablebase) {
+        try {
+          serverVerdict = EngineGameServerVerdict.fromJson(body);
+        } catch (_) {
+          serverVerdict = null;
+        }
+      }
+    }
+
     _showEngineGameEndedDialog(verdict, server: serverVerdict);
   }
 
@@ -2575,11 +2609,18 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (!mounted) return;
     final ending = verdict.ending!;
     final said = engineGameSaid(verdict, server);
-    final icon = switch (said) {
-      EngineGameSaid.met => Icons.emoji_events,
-      EngineGameSaid.notMet => Icons.flag,
-      EngineGameSaid.notJudged => Icons.hourglass_empty,
-    };
+    // One's own „Play N moves": nothing judges it — no trainer is watching —
+    // so it is „Played", not „Not judged yet" (docs/PLAN-MATERIJAL.md §3,
+    // decision 4: „played and nothing more").
+    final alone = widget.exerciseId != null;
+    final playedOnly = alone && verdict.needsTrainer;
+    final icon = playedOnly
+        ? Icons.check
+        : switch (said) {
+            EngineGameSaid.met => Icons.emoji_events,
+            EngineGameSaid.notMet => Icons.flag,
+            EngineGameSaid.notJudged => Icons.hourglass_empty,
+          };
     final iconColor = switch (said) {
       EngineGameSaid.met => context.colors.warning,
       EngineGameSaid.notMet => context.colors.danger,
@@ -2592,7 +2633,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           children: [
             Icon(icon, color: iconColor, size: 28),
             const SizedBox(width: AppSpacing.sm),
-            Text(engineGameSaidWords(said),
+            Text(playedOnly ? 'Played' : engineGameSaidWords(said),
                 style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
@@ -2600,7 +2641,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         // will, so „Not judged yet" does not read as something gone wrong.
         content: Text('The game ended: '
             '${engineGameEndingWords(_engineGameTask, ending)}.'
-            '${verdict.needsTrainer ? ' Your trainer will look at it.' : ''}'),
+            '${verdict.needsTrainer && !alone ? ' Your trainer will look at it.' : ''}'
+            // Alone, nothing asks the tablebase again later, as a
+            // homework's pending game is asked.
+            '${alone && said == EngineGameSaid.notJudged && !playedOnly ? ' The tablebase did not answer, so this game was not counted.' : ''}'),
         actions: [
           ElevatedButton.icon(
             icon: const Icon(Icons.arrow_back),
