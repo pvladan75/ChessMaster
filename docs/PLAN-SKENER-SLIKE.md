@@ -991,6 +991,53 @@ two gaps were closed: the case for "Done waits for unchecked boards" could not
 see it while the missing black queen also kept "Done" off, and the route's own
 exclusion is only visible on a real database.
 
+### Phase 3h — a rendered page when no glyph map reads the book [lead] — decided 23.9.2026, not built
+
+**The owner, 23.9.2026:** a book whose diagrams are set in a font we have no
+map for is read as a picture book, **only in that case**. A book that a glyph
+map reads keeps the font path, because that reading is exact and needs no
+calibration.
+
+This reverses one line of §6 and one of Phase 1: rendering a page was out of
+scope, because Phase 1 needed no canvas. Rendering still needs **no new
+dependency**: `@napi-rs/canvas` is already in `dependencies` for the video
+renderer.
+
+**When it applies.** `bookKind` today answers `font`, `pictures` or
+`unknown` with the font path's reason. The fallback takes over exactly
+`unknown_font` (text in diagram shape that no map explains) and
+`no_diagram_text` (no diagram in the text at all, which also covers boards
+drawn as vector paths, the §6 *Grandmaster Codex* case, approximately rather
+than exactly). `no_text` already goes to pictures. A book that a map reads but
+that refuses one page (a Fritz knight on a dark square, whose mask is not yet
+known) is **not** a fallback case: that refusal is how a map learns its next
+glyph, and the owner is to decide whether a trainer may send such pages to the
+picture path instead.
+
+**Measured 23.9.2026, a first look only:**
+
+| | |
+|---|---|
+| Rendering | pdfjs + `@napi-rs/canvas`, 200 dpi: 11–74 ms a page on `7809.pdf`, a clean picture, glyphs and hatching exact. pdfjs has to be given the canvas library's `Path2D`, `DOMMatrix` and `ImageData` on `globalThis` **before** it is imported, or the first glyph throws `InvalidArg` in `paintChar` |
+| Board finding | `boardsOnScan`, tuned on scans, found **1 of 7** boards on pages 13, 14 and 18 of `7809.pdf`, although every one is plain to the eye. Not yet diagnosed |
+| A second book | `completechesscoursexcerpt.pdf` (`LinaresDiagram`) printed nothing and exited 0 — no error, no result. A render must race a deadline and fail loudly before this goes near a route |
+
+**Measure before building (3h.0):**
+1. why `boardsOnScan` misses a rendered board (coordinates beside the frame,
+   the hatching of dark squares, the frame's thickness — measured, not
+   guessed);
+2. why the Linares render ends with nothing, and what a deadline catches;
+3. how the reader does on a clean render, **scored against the font path**:
+   the eight Fritz books now read exactly (155 boards), so each rendered board
+   has a known answer — the rare case where the gate is built from truth
+   rather than from labels (§7.1).
+
+**Then build (3h.1):** the fallback in `bookKind` and in the scan, the
+rendered page handed to the existing calibration and reader unchanged, and a
+render that cannot hang. Gate: the 155 Fritz boards, read by the picture path
+and compared square by square with the font path; silently wrong boards after
+confirmation marks (§5) is the number that decides it.
+
 ### Phase 4 — into exercises
 
 The confirmed positions go into the existing flow: the saved scans, then
@@ -1145,5 +1192,9 @@ the "line cut short" hazard §3 warns about, found in the phase's own tool.
   `DiagramTTFritz`. The font scanner has no map for it: "Nijedna mapa fonta ne
   objašnjava dijagrame". That is a third map, made with `derive.mjs` and
   `identify.mjs`, and not part of this plan.
+  *Since then:* a grid reader for it was written on 22.9 from `pawnvsking.pdf`
+  and extended on 23.9 to all eight books in that font — `-` as an empty
+  light square, the queen, rook and bishop masks, `L` for the bishop
+  (`docs/LESSONS.md`, 23.9.2026). 155 boards, all read.
 - `completechesscoursexcerpt.pdf` (`LinaresDiagram`) already reads with the
   Tactics Course map: 7 diagrams.

@@ -366,6 +366,16 @@ svim skupovima istine su samo 3 pogrešna polja); skenirane table greše na
 ivičnim redovima (1 i 8), uvek označeno. Usput: šest malih PDF-ova iz
 `D:\chess books` su u fontu `DiagramTTFritz`, za koji font-skener nema mapu —
 treća mapa, van ovog plana.
+*23.9.2026:* **rešeno.** Mapa za `DiagramTTFritz` je postojala od 22.9
+(`gridFont.mjs`, za `pawnvsking.pdf`), ali je poznavala samo kralja i pešaka i
+prazno svetlo polje kao razmak. Pet knjiga (`7809`, `7887`, `7931`,
+`chess endings`, `queenminorvsqueen`) svetlo polje piše kao `-`, pa je čitač
+odbacivao cele redove i javljao „font we cannot read yet"; `minorendings` i
+`rookminorvsrook` bi pale kasnije na lovcu. Izmereno na svih osam knjiga,
+svaka strana: maske `m` kralj, `w` dama, `t` top, `v` lovac, `z` pešak; lovac
+je `L`/`l`. Sve 155 tabli se čitaju, broj tabli = broj belih kraljeva po
+knjizi. Skakač na tamnom polju se još nije pojavio — njegova maska se ne
+pogađa, tabla s njim se glasno odbija.
 
 ## Skener na Teach, i plan za dijagrame koji su slike — 22.9.2026, kartica u kodu, ostaje provera uživo (stavka 224)
 

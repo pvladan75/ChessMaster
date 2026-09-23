@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 3906 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1803 with TEST_DATABASE_URL, 1667 without
+cd chess_backend && npm test          # node --test, 1807 with TEST_DATABASE_URL, 1671 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -641,6 +641,15 @@ nothing, and a tablebase that does not answer is said not to have counted —
 a homework's pending game is asked again later, one's own is not. That
 finishes `docs/PLAN-MATERIJAL.md` but for the owner's live pass (items
 231–235).
+Then the owner's first try of other books (backend → **1671** measured without
+a database; 1807 with it derived, not measured — the four new cases are pure):
+five PDFs were refused as „a font we cannot read yet" although their font,
+`DiagramTTFritz`, has had a reader since 22.9. That reader had been written
+from one book, which leaves an empty light square blank; these set it as `-`,
+so every rank was thrown away. They also brought the queen, rook and bishop
+masks and `L` for the bishop. **A map measured on one book knows that book's
+alphabet, not the font's** — all eight books of the font were measured, every
+page, before anything was added.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

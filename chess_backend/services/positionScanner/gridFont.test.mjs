@@ -111,3 +111,59 @@ test('a row font keeps its map; the grid font is asked only when none fits', () 
   assert.equal(pickFontMap([], [page()]).map.layout, 'grid');
   assert.equal(pickFontMap([], [[{ text: 'prose', x: 0, y: 0, width: 30, height: 11 }]]), null);
 });
+
+// Books that set an empty light square as `-` hand back whole ranks, masks and
+// all. The glyphs of two boards as pdfjs returns them (23.9.2026): page 14 of
+// `7809.pdf`, with its rook's mask as a zero-width span of its own, and page
+// 14 of `queenminorvsqueen.pdf`, which has a queen and a bishop on dark squares,
+// and page 13 of the same book, whose white bishop stands on a light square.
+const ranks = (rows, x, y0, loose = []) => [
+  ...rows.map((text, i) => ({ text, x, y: y0 + 18 * i, width: 144, height: 18 })),
+  ...loose.map(([text, row]) => ({ text, x, y: y0 + 18 * row, width: 0, height: 18 })),
+];
+const ROOK_BOARD = () =>
+  ranks(
+    ['-+-+-+-+', '+-+-+K+-', '-+-+-+-+', '+-+-+-+-', '-+-+pmk-+', '+-+-+-+-', '-+-+-+-+', 'R-+-+-+-'],
+    70.8,
+    425,
+    [['t', 7]]
+  );
+const QUEEN_BOARD = () =>
+  ranks(
+    ['-+-+-+-wQ', '+qvl-+-+-', '-+-+-+-+', '+-+-+-+-', '-+-+-+-+', '+K+-+-+-', '-+-+k+-+', '+-+-+-+-'],
+    253.7,
+    164
+  );
+const WHITE_BISHOP_BOARD = () =>
+  ranks(
+    ['-+-+-+KwQ', '+-+-+-+-', '-+-+-+L+', '+-+-+-+-', '-+-+-+-+', '+-+-+-+-', 'k+-+-+-+', 'q-+-+-+-'],
+    270.7,
+    281,
+    [['w', 7]]
+  );
+
+test('a book that sets light squares as `-` reads, with the rook, queen and bishop masks', () => {
+  const read = (spans) => extractGridDiagrams(spans, 14).diagrams.map((d) => d.placement);
+  assert.deepEqual(read(ROOK_BOARD()), ['8/5K2/8/8/4pk2/8/8/R7']);
+  // `L` is the bishop, `wQ` a white queen on h8 and `vl` a black bishop on c7.
+  assert.deepEqual(read(QUEEN_BOARD()), ['7Q/1qb5/8/8/8/1K6/4k3/8']);
+  assert.deepEqual(read(WHITE_BISHOP_BOARD()), ['6KQ/8/6B1/8/8/8/k7/q7']);
+  assert.equal(pickFontMap([], [QUEEN_BOARD()]).map.layout, 'grid');
+});
+
+test('a mask under a piece of another shape is refused, by square', () => {
+  const spans = QUEEN_BOARD().map((s) => ({ ...s, text: s.text.replace('wQ', 'tQ') }));
+  assert.throws(() => extractGridDiagrams(spans, 14), /dark square h8 has Q over the mask of another piece/);
+});
+
+test('`B` is not a glyph of this font: the bishop is `L`', () => {
+  const black = QUEEN_BOARD().map((s) => ({ ...s, text: s.text.replace('vl', 'vb') }));
+  assert.throws(() => extractGridDiagrams(black, 14));
+  const white = WHITE_BISHOP_BOARD().map((s) => ({ ...s, text: s.text.replace('L', 'B') }));
+  assert.throws(() => extractGridDiagrams(white, 13));
+});
+
+test('a light square holding anything but a piece or `-` is refused', () => {
+  const spans = ROOK_BOARD().map((s) => ({ ...s, text: s.text.replace('+K+-', '+K++') }));
+  assert.throws(() => extractGridDiagrams(spans, 14), /light square h7 holds "\+"/);
+});

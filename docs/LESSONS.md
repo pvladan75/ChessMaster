@@ -7221,3 +7221,29 @@ potvrdio tačno.
 
 Brojevi: aplikacija 3901 → 3906; backend 1658 → 1667 bez baze, 1794 → 1803 sa
 bazom.
+
+## 23.9.2026 — DiagramTTFritz: crtica na svetlom polju, i maske dame, topa i lovca
+
+Vlasnik je hteo da proba druge knjige iz `D:\chess books` i dobio „The
+diagrams in this book use a font we cannot read yet" za pet njih. Font nije
+bio nepoznat: `DiagramTTFritz` ima čitač od 22.9 (`gridFont.mjs`), napisan sa
+jedne knjige, `pawnvsking.pdf`, u kojoj je prazno svetlo polje razmak i u kojoj
+postoje samo kralj i pešak. Ostale knjige istog izdavača svetlo polje pišu kao
+`-`, pa pdfjs vraća cele redove (`-+-+pmk-+`), a čitač je odbacivao svaki red
+sa znakom koji ne poznaje — nula tabli, pa `unknown_font`.
+
+Izmereno na svih osam knjiga u tom fontu, svaka strana, pre ijedne izmene:
+maske `m` kralj, `w` dama, `t` top, `v` lovac, `z` pešak, svaka samo pod svojom
+figurom; lovac je `L`/`l`, a `B` se u fontu ne javlja i sada se odbija. Maska
+sada mora da odgovara obliku figure iznad nje. Skakač na tamnom polju se nije
+pojavio ni u jednoj knjizi, pa njegova maska ostaje nepoznata i tabla s njim
+se glasno odbija. Rezultat: 155 tabli, nijedna strana odbijena, broj tabli po
+knjizi jednak broju belih kraljeva.
+
+**Mapa izmerena na jednoj knjizi zna azbuku te knjige, ne fonta.** Od devet
+mutacija dve su preživele prvi prolaz — `B` kao lovac i `L` bez prevoda — jer
+fikstura nije imala belog lovca (pravilo 6); dodata je stvarna tabla sa belim
+lovcem i obe su pale.
+
+Brojevi: backend 1667 → 1671 bez baze (+4 u `gridFont.test.mjs`), izmereno;
+1803 → 1807 sa bazom izvedeno, ne izmereno.

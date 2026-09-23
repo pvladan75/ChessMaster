@@ -7,26 +7,38 @@
 // every glyph is one square wide — so a board is rebuilt by placing each glyph
 // on the square under it.
 //
-// The font, as measured on `pawnvsking.pdf` (22.9.2026, all 21 pages):
+// The font, as measured on `pawnvsking.pdf` (22.9.2026, all 21 pages) and on
+// seven more books from the same publisher (23.9.2026, every page):
 //   * `+` is an empty dark square;
-//   * a piece on a light square is its letter, `K` … `p`;
+//   * an empty light square is a space in some books and `-` in others. The
+//     space never reaches the text layer; `-` does, and a book that sets it
+//     hands back whole ranks such as `-+-+pmk-+`;
+//   * a piece on a light square is its letter — `K Q R N P` and `L` for the
+//     bishop (German Läufer), lower case for Black;
 //   * a piece on a dark square is a zero-width mask glyph drawn first — the
 //     dark square with the piece's silhouette left out — and then the letter
 //     at the same x. The mask follows the piece's *shape*, not its colour:
-//     `m` under both kings, `z` under the pawn.
-// That book holds only kings and pawns, so the masks of the other pieces are
-// not known yet. They are not guessed: a piece on a dark square without a
-// known mask under it is refused, loudly, with the square named, and the new
-// mask goes into MASKS below.
+//     `m` king, `w` queen, `t` rook, `v` bishop, `z` pawn. Counted over the
+//     eight books every mask sat under its own piece and no other.
+// No book has yet put a knight on a dark square, so its mask is not known. It
+// is not guessed: a piece on a dark square without a known mask under it is
+// refused, loudly, with the square named, and the new mask goes into MASKS
+// below. So is a mask under a piece of another shape.
 //
 // The colouring of the board is the check that makes this safe. Every dark
 // square must carry a glyph (`+` or a mask), and no light square may, other
-// than a bare piece — so a dropped glyph, a stray letter from the prose or a
-// board cut in two all fail instead of producing a legal-looking FEN.
+// than a bare piece or `-` — so a dropped glyph, a stray letter from the prose
+// or a board cut in two all fail instead of producing a legal-looking FEN.
 
-const PIECES = new Set(['K', 'Q', 'R', 'B', 'N', 'P', 'k', 'q', 'r', 'b', 'n', 'p']);
+// Glyph -> FEN letter. The bishop is `L`; `B` is not a glyph of this font.
+const PIECES = new Map([
+  ['K', 'K'], ['Q', 'Q'], ['R', 'R'], ['L', 'B'], ['N', 'N'], ['P', 'P'],
+  ['k', 'k'], ['q', 'q'], ['r', 'r'], ['l', 'b'], ['n', 'n'], ['p', 'p'],
+]);
 const DARK_EMPTY = '+';
-const MASKS = new Set(['m', 'z']);
+const LIGHT_EMPTY = '-';
+// Mask -> the shape of the piece it is cut for, as a lower-case FEN letter.
+const MASKS = new Map([['m', 'k'], ['w', 'q'], ['t', 'r'], ['v', 'b'], ['z', 'p']]);
 
 export const FRITZ_DIAGRAM = {
   id: 'fritz',
@@ -43,7 +55,7 @@ const STRAY = 8;
 const FULL_BOARD = 32;
 
 function isGridGlyph(c) {
-  return c === DARK_EMPTY || MASKS.has(c) || PIECES.has(c);
+  return c === DARK_EMPTY || c === LIGHT_EMPTY || MASKS.has(c) || PIECES.has(c);
 }
 
 /**
@@ -154,7 +166,11 @@ function placementOf(glyphs, where) {
       if (dark) {
         if (on.length === 1 && on[0] === DARK_EMPTY) piece = null;
         else if (on.length === 2 && on.some((c) => MASKS.has(c)) && on.some((c) => PIECES.has(c))) {
-          piece = on.find((c) => PIECES.has(c));
+          const mask = on.find((c) => MASKS.has(c));
+          piece = PIECES.get(on.find((c) => PIECES.has(c)));
+          if (MASKS.get(mask) !== piece.toLowerCase()) {
+            throw new Error(`${where}: the dark square ${name} has ${piece} over the mask of another piece (${JSON.stringify(mask)})`);
+          }
         }
         else if (on.length === 1 && PIECES.has(on[0])) {
           throw new Error(`${where}: ${on[0]} on the dark square ${name} has no mask glyph under it — a mask this map does not know yet`);
@@ -163,10 +179,10 @@ function placementOf(glyphs, where) {
         } else {
           throw new Error(`${where}: the dark square ${name} holds ${JSON.stringify(on.join(''))}`);
         }
-      } else if (on.length === 0) {
+      } else if (on.length === 0 || (on.length === 1 && on[0] === LIGHT_EMPTY)) {
         piece = null;
       } else if (on.length === 1 && PIECES.has(on[0])) {
-        piece = on[0];
+        piece = PIECES.get(on[0]);
       } else {
         throw new Error(`${where}: the light square ${name} holds ${JSON.stringify(on.join(''))}`);
       }
