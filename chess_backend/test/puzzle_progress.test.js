@@ -25,9 +25,12 @@ function row(over = {}) {
   };
 }
 
-test('the six sources are frozen and named', () => {
+// Six until 23.9.2026; `own` joined with docs/PLAN-MATERIJAL.md phase 1 — one's
+// own exercise solved alone, written only by POST /exercises/:id/attempt
+// (test/exercise_solo.test.js).
+test('the seven sources are frozen and named', () => {
   assert.deepEqual([...SOURCES], [
-    'lichess', 'mate_puzzle', 'winning_position', 'endgame', 'blunder_game', 'basic_mate',
+    'lichess', 'mate_puzzle', 'winning_position', 'endgame', 'blunder_game', 'basic_mate', 'own',
   ]);
   assert.ok(Object.isFrozen(SOURCES));
   assert.equal(isKnownSource('endgame'), true);

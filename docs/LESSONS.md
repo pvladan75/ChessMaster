@@ -7070,3 +7070,38 @@ voice"), u istoj sekundi kad i `game_tutorial_run_test`; sam prolazi 3 od 3.
 Isti test koji je pao na vremenu i 23.9 u fazi 3g (pravilo 19).
 
 Brojevi: aplikacija 3876 → 3879; backend nepromenjen.
+
+## 23.9.2026 — PLAN-MATERIJAL faza 1: svoj zadatak se rešava sam
+
+Obe polovine urađene u glavnoj sesiji. Server: `POST /exercises/:id/attempt`
+sudi istim dvema funkcijama kao domaći (`firstMoveOf` + `judgeAttempt`) i sam
+upisuje red u dnevnik pokušaja sa `source = 'own'`, po svojoj presudi;
+`GET /exercises/queue` daje nerešavane i promašene. Aplikacija: rešavač domaćeg
+dobio je `SolveTarget` (naslov, napomena, kuda ide odgovor, vrata posle
+presude), dugme „Solve" na kartici svog Find zadatka u Biblioteci, i kartica
+„My exercises" na Practise.
+
+Tri stvari koje vredi zapamtiti:
+
+- **Dodati izvor u dnevnik čiji pisac veruje klijentu znači otvoriti tog pisca
+  za taj izvor.** `POST /api/puzzles/attempt` prima `solved` od klijenta za
+  svaki poznati izvor; čim je `own` postao poznat, klijent je mogao da upiše
+  „rešeno" za zadatak koji niko nije sudio. Ruta sada odbija izvore koje sudi
+  server (`SERVER_JUDGED`). Plan to nije tražio — našlo se čitanjem pisca pre
+  dodavanja izvora.
+- **„Koliko ih je" i „daj mi jedan" moraju da broje isti skup** — pravilo od
+  20.9 još jednom: dnevnik pamti promašaje i na zadacima obrisanim u
+  međuvremenu, a red ih ne može poslužiti, pa broj na kartici i dugmetu uzima
+  red, ne dnevnik.
+- **Brava sa tri čuvara preživi uklanjanje bilo kog jednog.** Tabla je
+  zaključana po `_verdict` i `_alreadyAnswered`, a `_onMove` ima svoju
+  proveru; mutacija „bez brave" mora da ukloni sve tri. I: uslov
+  `!entry.fromTrainer` u „Solve" je preživeo jer `_actionsFor` trenerovom
+  materijalu ne daje nijedno dugme — uslov je obrisan kao mrtav, a mutacija je
+  premeštena na taj rani povratak, gde je crvena.
+
+Jedna mutacija je prvo bila nevažeća (skinuta provera `null` razbila je
+kompilaciju) i ponovljena u obliku koji se prevodi — pravilo 3.
+
+Brojevi: aplikacija 3879 → 3891; backend 1637 → 1656 bez baze, 1769 → 1788
+sa bazom (obe mere, `.env` sklonjen).

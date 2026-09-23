@@ -90,6 +90,7 @@ because it is the verb and the tab is a verb.
 | Roditelj | **Parent** | |
 | Saglasnost | **Consent** | The parent's, and the word the legal texts use. |
 | Zadatak (pozicija + cilj) | **Exercise** | A position **plus a task**, with a name and labels: what a trainer makes, keeps in the Library and puts in a homework. A bare **Position** cannot be sent. Its **Task** is *Find the move(s)*, *Win* or *Draw or better*. A number of moves on *Draw or better* is **for N moves**; on *Win* it is **Checkmate in N moves** — never „win for N moves" (19.9.2026). `custom_puzzles` on the wire, read only through `services/exercise.js`. `docs/PLAN-EXERCISE.md`. |
+| Rešiti (svoj zadatak) | **Solve** | Answering an exercise **alone**, for one's own growth rather than as homework: the Library card's „Solve" and Practise's „My exercises" (23.9.2026, `docs/PLAN-MATERIJAL.md` phase 1). The three verbs on an exercise are **Open** (study it), **Solve**, and **Assign to student** / **Send to student**. |
 | Zadatak (domaći) | **Assignment** | Homework. Matches `assignments` on the wire. Distinct from **Task**, which is what one part asks. |
 | Poziv | **Invitation** | |
 | Grupa | **Group** | |

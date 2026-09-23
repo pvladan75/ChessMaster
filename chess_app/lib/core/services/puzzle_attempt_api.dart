@@ -24,6 +24,11 @@ abstract final class PuzzleSource {
   static const String blunderGame = 'blunder_game';
   static const String basicMate = 'basic_mate';
 
+  /// One's own exercise, solved alone (`docs/PLAN-MATERIJAL.md`, phase 1). The
+  /// server judges it and writes the row itself; [PuzzleAttemptApi] never
+  /// reports one, and the server refuses it if it does.
+  static const String own = 'own';
+
   static const List<String> all = [
     lichess,
     matePuzzle,
@@ -31,6 +36,7 @@ abstract final class PuzzleSource {
     endgame,
     blunderGame,
     basicMate,
+    own,
   ];
 
   /// The sources whose puzzles can be served again by id — the ones a
@@ -41,6 +47,7 @@ abstract final class PuzzleSource {
     matePuzzle,
     winningPosition,
     endgame,
+    own,
   ];
 
   /// The first four FEN fields — the key `opening_nodes` and the repertoire

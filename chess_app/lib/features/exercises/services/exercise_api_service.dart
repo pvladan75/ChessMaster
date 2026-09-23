@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/features/assignments/models/assignment.dart';
 import 'package:chess_app/services/app_logger.dart';
 
 import '../models/exercise.dart';
@@ -25,6 +26,31 @@ class ExerciseSaveResult {
   final Exercise? exercise;
   final String? error;
   final int status;
+}
+
+/// What „Solve" on Practise works through (`GET /exercises/queue`,
+/// `docs/PLAN-MATERIJAL.md` phase 1): the account's own find exercises never
+/// tried alone, and those whose last attempt failed — each in the shape the
+/// solver draws, and never with its answer.
+class OwnExerciseQueue {
+  const OwnExerciseQueue({required this.fresh, required this.retry});
+
+  final List<CustomPosition> fresh;
+  final List<CustomPosition> retry;
+
+  /// Everything waiting, fresh first — what „Solve" serves.
+  List<CustomPosition> get all => [...fresh, ...retry];
+
+  static List<CustomPosition> _read(Object? raw) => raw is List
+      ? raw
+          .whereType<Map>()
+          .map((e) => CustomPosition.fromJson(Map<String, dynamic>.from(e)))
+          .toList()
+      : const [];
+
+  factory OwnExerciseQueue.fromJson(Map<String, dynamic> json) =>
+      OwnExerciseQueue(
+          fresh: _read(json['fresh']), retry: _read(json['retry']));
 }
 
 class ExerciseApiService {
@@ -93,6 +119,54 @@ class ExerciseApiService {
       AppLogger.log('[Exercises] Save failed: $e');
       return const ExerciseSaveResult(
           error: 'Cannot connect to server.', status: 0);
+    }
+  }
+
+  /// One answer to one of the account's own exercises, judged by the server
+  /// as homework is (`POST /exercises/:id/attempt`). Null when no verdict
+  /// came back — unreachable, refused, or unreadable — which the solver says
+  /// as „Answer not sent", the homework path's own words.
+  Future<CustomAttemptResult?> attempt(String id, String moveSan,
+      {int? msTaken}) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse(
+                '$backendUrl/exercises/${Uri.encodeComponent(id)}/attempt'),
+            headers: _headers,
+            body: jsonEncode({
+              'moveSan': moveSan,
+              if (msTaken != null) 'msTaken': msTaken,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) {
+        AppLogger.log('[Exercises] Attempt refused (${res.statusCode}).');
+        return null;
+      }
+      return CustomAttemptResult.fromJson(
+          jsonDecode(res.body) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Exercises] Attempt not sent: $e');
+      return null;
+    }
+  }
+
+  /// The account's own exercises waiting to be solved. **Null when the server
+  /// could not be asked** — not an empty queue, which would say the account
+  /// has nothing.
+  Future<OwnExerciseQueue?> queue() async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/exercises/queue'), headers: _headers)
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map) return null;
+      return OwnExerciseQueue.fromJson(Map<String, dynamic>.from(decoded));
+    } catch (e) {
+      AppLogger.log('[Exercises] Queue not read: $e');
+      return null;
     }
   }
 

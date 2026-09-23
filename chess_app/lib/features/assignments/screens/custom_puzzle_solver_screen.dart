@@ -13,6 +13,7 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/assignment.dart';
 import '../models/solve_order.dart';
+import '../models/solve_target.dart';
 import '../services/assignment_api_service.dart';
 import 'assignment_review_screen.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -25,20 +26,30 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// comparison: when the task was to mate, any mate counts. A child who finds a
 /// different mate has solved the exercise, and hearing otherwise teaches them
 /// to distrust the app rather than to look harder.
+///
+/// Homework passes [detail]; one's own exercises pass a [target] instead
+/// (`docs/PLAN-MATERIJAL.md`, phase 1). One of the two, never both.
 class CustomPuzzleSolverScreen extends StatefulWidget {
   const CustomPuzzleSolverScreen({
     super.key,
     required this.session,
-    required this.detail,
+    this.detail,
+    this.target,
     required this.positions,
     required this.startIndex,
     this.answered = const {},
     this.onAnswered,
     this.api,
-  });
+  }) : assert((detail == null) != (target == null),
+            'a solver is for a homework or for a target, exactly one');
 
   final UserSession session;
-  final AssignmentDetail detail;
+
+  /// The homework being solved, or null when [target] says what for.
+  final AssignmentDetail? detail;
+
+  /// What the positions are solved for, when it is not a homework.
+  final SolveTarget? target;
 
   /// Injectable for tests, the same seam `ChessGamePage.lessonApi` uses. The
   /// real one talks to the backend; a widget test that reached it would be
@@ -68,6 +79,7 @@ class CustomPuzzleSolverScreen extends StatefulWidget {
 
 class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   late final AssignmentApiService _api;
+  late final SolveTarget _target;
   final ChessBoardController _board = ChessBoardController();
 
   /// Every position, in the trainer's order.
@@ -98,11 +110,26 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   void initState() {
     super.initState();
     _api = widget.api ?? AssignmentApiService(authToken: widget.session.token);
+    _target = widget.target ?? _homeworkTarget(widget.detail!);
     _answered = Map<String, bool>.from(widget.answered);
     _index = widget.startIndex.clamp(0, (_queue.length - 1).clamp(0, 1 << 30));
 
     if (_queue.isNotEmpty) _load();
   }
+
+  /// Homework's four answers: its title, its note, its route for an answer,
+  /// and its review.
+  SolveTarget _homeworkTarget(AssignmentDetail detail) => SolveTarget(
+        title: detail.assignment.title,
+        note: detail.assignment.instructions,
+        submit: (puzzleId, moveSan, msTaken) => _api.submitCustomAttempt(
+          assignmentId: detail.assignment.id,
+          puzzleId: puzzleId,
+          moveSan: moveSan,
+          msTaken: msTaken,
+        ),
+        onReview: (_) => _openReview(detail),
+      );
 
   @override
   void dispose() {
@@ -169,11 +196,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   Future<void> _send(String san) async {
     final puzzleId = _current.puzzleId;
     setState(() => _sending = true);
-    final result = await _api.submitCustomAttempt(
-      assignmentId: widget.detail.assignment.id,
-      puzzleId: puzzleId,
-      moveSan: san,
-      msTaken: DateTime.now().difference(_shownAt).inMilliseconds,
+    final result = await _target.submit(
+      puzzleId,
+      san,
+      DateTime.now().difference(_shownAt).inMilliseconds,
     );
     if (!mounted) return;
 
@@ -225,13 +251,13 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     _load();
   }
 
-  Future<void> _openReview() async {
+  Future<void> _openReview(AssignmentDetail detail) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AssignmentReviewScreen(
           session: widget.session,
-          assignmentId: widget.detail.assignment.id,
-          title: widget.detail.assignment.title,
+          assignmentId: detail.assignment.id,
+          title: detail.assignment.title,
         ),
       ),
     );
@@ -243,8 +269,11 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
 
     if (_queue.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text(widget.detail.assignment.title)),
-        body: const Center(child: Text('This assignment has no positions.')),
+        appBar: AppBar(title: Text(_target.title)),
+        body: Center(
+            child: Text(widget.detail != null
+                ? 'This assignment has no positions.'
+                : 'Nothing is waiting to be solved.')),
       );
     }
 
@@ -252,7 +281,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
       backgroundColor: colors.canvas,
       appBar: AppBar(
         toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
-        title: Text(widget.detail.assignment.title),
+        title: Text(_target.title),
         actions: [
           const BoardViewMenu(),
           IconButton(
@@ -311,7 +340,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
 
   Widget _header() {
     final colors = context.colors;
-    final assignmentNote = widget.detail.assignment.instructions;
+    final assignmentNote = _target.note;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,11 +473,12 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
               spacing: 8,
               alignment: WrapAlignment.center,
               children: [
-                OutlinedButton.icon(
-                  onPressed: _openReview,
-                  icon: const Icon(Icons.rate_review_outlined, size: 16),
-                  label: const Text('Solution and comments'),
-                ),
+                if (_target.onReview != null)
+                  OutlinedButton.icon(
+                    onPressed: () => _target.onReview!(context),
+                    icon: const Icon(Icons.rate_review_outlined, size: 16),
+                    label: const Text('Solution and comments'),
+                  ),
                 FilledButton.icon(
                   onPressed: _next,
                   icon: const Icon(Icons.arrow_forward),
@@ -492,13 +522,30 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           Text('Solution: ${verdict.solutionSan}',
               style: AppText.bodyLarge.copyWith(color: colors.textSecondary)),
         const SizedBox(height: 10),
-        FilledButton.icon(
-          onPressed: _next,
-          icon: const Icon(Icons.arrow_forward),
-          // "Finish" only when nothing is left anywhere in the assignment —
-          // being at the end of the list is no longer the same thing.
-          label: Text(
-              _answered.length >= _queue.length ? 'Finish' : 'Next unsolved'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            // The exercise's own screen, for one's own exercise: its answer,
+            // its words, and the place to change them.
+            if (_target.onOpen != null)
+              OutlinedButton.icon(
+                key: const Key('solver-open'),
+                onPressed: () => _target.onOpen!(context, _current),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Open'),
+              ),
+            FilledButton.icon(
+              onPressed: _next,
+              icon: const Icon(Icons.arrow_forward),
+              // "Finish" only when nothing is left anywhere in the assignment
+              // — being at the end of the list is no longer the same thing.
+              label: Text(_answered.length >= _queue.length
+                  ? 'Finish'
+                  : 'Next unsolved'),
+            ),
+          ],
         ),
       ],
     );

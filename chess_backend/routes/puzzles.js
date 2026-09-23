@@ -558,6 +558,11 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
   if (!puzzleProgress.isKnownSource(source)) {
     return res.status(400).json({ error: `Unknown puzzle source: ${source}` });
   }
+  // An own exercise is judged here, not reported: a client that could write
+  // `solved: true` for one would be marking its own work.
+  if (puzzleProgress.isServerJudged(source)) {
+    return res.status(400).json({ error: `A ${source} attempt is judged by the server; send the move to its own route.` });
+  }
 
   const isSkipped = skipped === true;
   const isHinted = hinted === true;

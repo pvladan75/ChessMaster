@@ -39,6 +39,18 @@ class CategorySelectionHubWidget extends StatelessWidget {
   /// retryable source with something to retry.
   final void Function(String source)? onRetry;
 
+  /// „Solve" on the „My exercises" card — one's own find exercises, solved
+  /// alone (`docs/PLAN-MATERIJAL.md`, phase 1). **The card is drawn only when
+  /// this is given**: the screen passes it for an account that owns at least
+  /// one such exercise, and an account with none has no card to be puzzled
+  /// by.
+  final VoidCallback? onSelectOwnExercises;
+
+  /// How many of them are waiting, fresh and failed together. „Solve" is
+  /// offered unless this is 0; null is „not known" (the queue could not be
+  /// read), and a door that might lead somewhere stays open.
+  final int? ownExercisesWaiting;
+
   const CategorySelectionHubWidget({
     super.key,
     required this.onSelectMatePuzzle,
@@ -53,6 +65,8 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectMistakesDrill,
     this.progress,
     this.onRetry,
+    this.onSelectOwnExercises,
+    this.ownExercisesWaiting,
   });
 
   /// „Solved N" or „Solved N · M to retry", drawn only when the source was
@@ -205,6 +219,26 @@ class CategorySelectionHubWidget extends StatelessWidget {
         icon: const Icon(Icons.play_arrow),
         label: const Text('Start training'),
         onPressed: onSelectTactics,
+      ),
+    );
+  }
+
+  /// The account's own find exercises — made by hand, scanned from a book —
+  /// solved alone, judged as homework is.
+  Widget _buildOwnExercisesCard(AppColorTokens colors) {
+    return _CategoryCard(
+      key: const Key('hub-own-exercises'),
+      accentColor: colors.success,
+      icon: Icons.push_pin_outlined,
+      title: 'My exercises',
+      description: 'The find-the-move exercises you made or scanned, solved '
+          'on your own and checked the way homework is.',
+      progressLine: _progressLine(PuzzleSource.own),
+      retryButton: _retryButton(PuzzleSource.own),
+      action: FilledButton.icon(
+        icon: const Icon(Icons.play_arrow),
+        label: const Text('Solve'),
+        onPressed: ownExercisesWaiting == 0 ? null : onSelectOwnExercises,
       ),
     );
   }
@@ -403,6 +437,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
             final tactics = _phase(context, 'Tactics', [
               _buildTacticsCard(colors),
               _buildMatePuzzlesCard(colors),
+              if (onSelectOwnExercises != null) _buildOwnExercisesCard(colors),
             ]);
             final endgame = _phase(context, 'Endgame and technique', [
               _buildMasterEndgamesCard(colors),
@@ -454,6 +489,7 @@ class _CategoryCard extends StatelessWidget {
   final Widget? retryButton;
 
   const _CategoryCard({
+    super.key,
     required this.accentColor,
     required this.icon,
     required this.title,

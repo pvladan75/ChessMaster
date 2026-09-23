@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/screens/home_screen.dart' show kTabNames;
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -24,6 +25,7 @@ class TrainingHubScreen extends StatefulWidget {
     required this.session,
     this.embedded = false,
     this.attemptApi,
+    this.exerciseApi,
   });
 
   final UserSession session;
@@ -33,6 +35,10 @@ class TrainingHubScreen extends StatefulWidget {
   /// this screen reads again when a drill hands it back, which is the whole
   /// question behind the cards being stale.
   final PuzzleAttemptApi? attemptApi;
+
+  /// The reader of the account's own exercises waiting to be solved; same
+  /// seam, same reason.
+  final ExerciseApiService? exerciseApi;
 
   /// True when this sits inside the home screen's tab stack, which now draws
   /// the tab's name itself for all four tabs. Its own AppBar would then be a
@@ -47,6 +53,10 @@ class TrainingHubScreen extends StatefulWidget {
 class _TrainingHubScreenState extends State<TrainingHubScreen> {
   Map<String, SourceProgress>? _progress;
 
+  /// The account's own find exercises waiting (`docs/PLAN-MATERIJAL.md`,
+  /// phase 1). Null when not read or not readable.
+  OwnExerciseQueue? _ownQueue;
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +68,8 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
   /// player, and both are correct here (docs/PLAN-NAPREDAK-VEZBI.md §4).
   late final PuzzleAttemptApi _api =
       widget.attemptApi ?? PuzzleAttemptApi(authToken: widget.session.token);
+  late final ExerciseApiService _exercises =
+      widget.exerciseApi ?? ExerciseApiService(authToken: widget.session.token);
 
   Future<void> _loadProgress() async {
     if (widget.session.isGuest) return;
@@ -66,10 +78,43 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
     // overtake the write and answer with the log as it was one attempt ago.
     // That is the stale card reported live on 18.9.2026.
     await PuzzleAttemptWrites.settled();
-    final progress = await _api.progress();
+    final (progress, ownQueue) =
+        await (_api.progress(), _exercises.queue()).wait;
     if (!mounted) return;
-    setState(() => _progress = progress);
+    setState(() {
+      _progress = _withOwnRetry(progress, ownQueue);
+      _ownQueue = ownQueue;
+    });
   }
+
+  /// The own card counts what the queue can serve. The log also holds failed
+  /// attempts at exercises deleted or changed since, which no „Retry failed"
+  /// can bring back — so „to retry" and the button's number are the queue's,
+  /// the same set the retry route serves (two answers to „how many" over one
+  /// table must count the same set).
+  static Map<String, SourceProgress>? _withOwnRetry(
+      Map<String, SourceProgress>? progress, OwnExerciseQueue? queue) {
+    final own = progress?[PuzzleSource.own];
+    if (own == null || queue == null) return progress;
+    return {
+      ...progress!,
+      PuzzleSource.own: SourceProgress(
+        seen: own.seen,
+        solved: own.solved,
+        firstTry: own.firstTry,
+        failed: own.failed,
+        skipped: own.skipped,
+        toRetry: queue.retry.length,
+        buckets: own.buckets,
+      ),
+    };
+  }
+
+  /// Whether the account owns a find exercise it can solve: one is waiting,
+  /// or one has been tried. Otherwise the card is not drawn.
+  bool get _hasOwnExercises =>
+      (_ownQueue?.all.isNotEmpty ?? false) ||
+      (_progress?[PuzzleSource.own]?.seen ?? 0) > 0;
 
   /// Pushes a drill and refreshes the cards when the reader comes back —
   /// `context.push` already resolves on the pop, which is the cheapest way
@@ -90,6 +135,8 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
         _pushAndRefresh(AppRoutes.drillPath('winning_position', retry: true));
       case PuzzleSource.endgame:
         _pushAndRefresh('${AppRoutes.endgames}?retry=1');
+      case PuzzleSource.own:
+        _pushAndRefresh('${AppRoutes.ownExercises}?retry=1');
     }
   }
 
@@ -139,6 +186,10 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
                     _pushAndRefresh(AppRoutes.drillPath('winning_position')),
                 progress: _progress,
                 onRetry: _onRetry,
+                onSelectOwnExercises: _hasOwnExercises
+                    ? () => _pushAndRefresh(AppRoutes.ownExercises)
+                    : null,
+                ownExercisesWaiting: _ownQueue?.all.length,
               ),
             ],
           ),

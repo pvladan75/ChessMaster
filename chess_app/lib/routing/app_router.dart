@@ -35,6 +35,7 @@ import 'package:chess_app/features/archive/screens/opening_leak_report_screen.da
 import 'package:chess_app/features/archive/screens/player_profile_screen.dart';
 import 'package:chess_app/features/archive/screens/repertoire_diff_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
+import 'package:chess_app/features/exercises/screens/own_exercise_solve_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
@@ -248,6 +249,13 @@ final List<RouteBase> appRouteTable = [
         retry: state.uri.queryParameters['retry'] == '1',
       );
     },
+  ),
+  GoRoute(
+    path: AppRoutes.ownExercises,
+    builder: (context, state) => OwnExerciseSolveScreen(
+      session: SessionService.instance.current,
+      retry: state.uri.queryParameters['retry'] == '1',
+    ),
   ),
   GoRoute(
     path: AppRoutes.tactics,

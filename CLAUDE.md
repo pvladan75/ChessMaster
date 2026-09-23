@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3879 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3891 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1769 with TEST_DATABASE_URL, 1637 without
+cd chess_backend && npm test          # node --test, 1788 with TEST_DATABASE_URL, 1656 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -576,6 +576,18 @@ items only and refused every game; the direct dialog lists accepted students
 only. **A mutation that swaps a branch both ways cannot say which case
 catches which** — it turned all three red; the one-sided form (the game never
 takes its branch) turned exactly the game case red.
+Then its phase 1 (→ **3891**; backend → **1656 / 1788**, both measured): an
+exercise is solved alone — `POST /exercises/:id/attempt` judges with the
+homework's two calls and logs an `own` attempt from its own verdict,
+`GET /exercises/queue` serves the never-tried and the last-failed, the Library
+card has „Solve" and Practise a „My exercises" card. **Adding a source to a
+log whose writer trusts the client opens that writer to it**: `own` in
+`SOURCES` would have let `POST /api/puzzles/attempt` write `solved: true` for
+an exercise nothing judged, so that route now refuses server-judged sources.
+And the card's „to retry" is the queue's count, not the fold's — the log keeps
+failures on exercises deleted since, the rule of „Selected: N positions" again.
+**A lock with three guards survives the removal of any one** — the mutation
+that removes the lock removes all three.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

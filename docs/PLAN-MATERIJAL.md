@@ -339,7 +339,27 @@ exercise still posts to `/assignments/custom`; a pending student is not in
 the dialog's list. Mutation: swap the branch (game → dialog) → red; drop the
 status filter → red. Nothing on the server.
 
-### Phase 1 — Solve my own exercises, and „My exercises" on Practise
+### Phase 1 — Solve my own exercises, and „My exercises" on Practise — built 23.9.2026
+
+*Built by the lead inline, both halves (writing a gate precise enough to
+hand over cost as much as the code). App 3879 → 3891, backend 1637 → 1656
+without a database and 1769 → 1788 with one; analyze list unchanged. Where it
+departs from the text below:* **the queue carries positions, not ids** —
+`{fresh, retry}` in the shape `CustomPosition.fromJson` reads, never the
+answer, so the solver needs no second fetch; **`POST /api/puzzles/attempt`
+refuses `own`** (`SERVER_JUDGED` in `puzzleProgress.js`) — not in the plan,
+and without it `own` in `SOURCES` let a client log a solve nothing judged;
+**the card's „to retry" and its button are the queue's count**, because the
+fold keeps failures on exercises deleted or changed since; **the solver
+builds the homework's `SolveTarget` itself from `detail`**, so the overview
+and the three test files that construct it are untouched. The owner's `hw_`
+rows (made from a student's mistakes) are his own find exercises by this
+rule and sit in his queue. Mutations: server six of six red on the right
+case; app — each lock guard alone survives (there are three: the board's
+`_verdict` and `_alreadyAnswered`, and `_onMove`'s), all three removed is red;
+`!fromTrainer` in the Solve condition survived because `_actionsFor` gives a
+trainer's material no buttons at all, so the clause was deleted and the
+mutation moved to that early return, which is red.
 
 **Server [lead].**
 

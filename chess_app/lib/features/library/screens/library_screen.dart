@@ -6,10 +6,13 @@ import 'package:chess_app/core/services/puzzle_set_api_service.dart';
 import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
+import 'package:chess_app/features/assignments/models/assignment.dart';
+import 'package:chess_app/features/assignments/screens/custom_puzzle_solver_screen.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/exercises/models/exercise.dart';
 import 'package:chess_app/features/exercises/models/exercise_task_words.dart';
 import 'package:chess_app/features/exercises/screens/exercise_editor_screen.dart';
+import 'package:chess_app/features/exercises/screens/own_exercise_solve_screen.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
@@ -263,6 +266,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
             tooltip: 'Add to tutorial',
             onPressed: () => _addToTutorial(entry),
           ),
+          if (_solvableHere(entry))
+            IconButton(
+              icon: const Icon(Icons.extension_outlined, size: 20),
+              tooltip: 'Solve',
+              onPressed: () => _solve(entry),
+            ),
           if (entry.isExercise)
             IconButton(
               icon: const Icon(Icons.assignment_outlined, size: 20),
@@ -505,6 +514,35 @@ class _LibraryScreenState extends State<LibraryScreen> {
       return;
     }
     AppFeedback.success(context, 'Added to "${course.title}".');
+  }
+
+  /// Whether this account can solve [entry] alone here: a find exercise,
+  /// settled (`docs/PLAN-MATERIJAL.md`, phase 1); a game is played. Only
+  /// asked of the account's own — [_actionsFor] gives a trainer's material
+  /// no buttons at all, and a trainer's exercise is solved as homework.
+  bool _solvableHere(LibraryEntry entry) =>
+      entry.isExercise &&
+      entry.assignable &&
+      exerciseAskOf(entry.task) == ExerciseAsk.find;
+
+  /// One exercise on the solver, its answer judged by the server and logged
+  /// as an own attempt.
+  Future<void> _solve(LibraryEntry entry) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => CustomPuzzleSolverScreen(
+        session: widget.session,
+        target: ownSolveTarget(_exerciseApi, title: entry.title),
+        positions: [
+          CustomPosition(
+            puzzleId: entry.id,
+            fen: entry.fen,
+            sideToMove: sideToMoveOf(entry.fen),
+            instruction: entry.instruction,
+          ),
+        ],
+        startIndex: 0,
+      ),
+    ));
   }
 
   /// A find-the-move exercise is sent straight to one student. A game

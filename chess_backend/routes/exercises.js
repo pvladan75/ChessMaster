@@ -15,6 +15,7 @@ const logger = require('../services/logger');
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const authoring = require('../services/exerciseAuthoring');
+const solo = require('../services/exerciseSolo');
 
 const router = express.Router();
 
@@ -30,6 +31,34 @@ router.post('/', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error('Error creating exercise:', err);
     res.status(500).json({ error: 'Error saving the exercise.' });
+  }
+});
+
+// GET /exercises/queue — the owner's own find exercises to solve: never tried,
+// and failed last time (docs/PLAN-MATERIJAL.md, phase 1). Before `/:id`, or
+// Express would read „queue" as an id.
+router.get('/queue', authenticateToken, async (req, res) => {
+  try {
+    res.json(await solo.queueOf(pool, req.user.id));
+  } catch (err) {
+    logger.error('Error reading the exercise queue:', err);
+    res.status(500).json({ error: 'Error loading your exercises.' });
+  }
+});
+
+// POST /exercises/:id/attempt — the owner answers their own exercise, judged
+// here as homework is, and logged as an `own` attempt.
+router.post('/:id/attempt', authenticateToken, async (req, res) => {
+  try {
+    const { moveSan, msTaken } = req.body || {};
+    const out = await solo.attemptOwn(pool, {
+      ownerId: req.user.id, puzzleId: req.params.id, moveSan, msTaken,
+    });
+    if (!out.ok) return res.status(out.status).json({ error: out.error });
+    res.json(out.result);
+  } catch (err) {
+    logger.error('Error judging an own attempt:', err);
+    res.status(500).json({ error: 'Error checking answer.' });
   }
 });
 

@@ -45,6 +45,11 @@ abstract final class AppRoutes {
   /// screens would be three places to fix the same bug.
   static const String trainingDrill = '/training/drill';
 
+  /// One's own find exercises, solved alone — Practise's „My exercises"
+  /// (`docs/PLAN-MATERIJAL.md`, phase 1). `?retry=1` serves only the ones
+  /// that failed last time.
+  static const String ownExercises = '/exercises/solve';
+
   /// The student's own opening repertoire: the list of what they have started,
   /// and the screen that asks them what they would play. Its own route because
   /// it is a place, and because the training hub and Settings both name it.

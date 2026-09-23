@@ -31,7 +31,10 @@ void main() {
   Map<String, dynamic> bodyOf(http.Request r) =>
       jsonDecode(r.body) as Map<String, dynamic>;
 
-  test('the sources are the server\'s, and four of them can be retried', () {
+  // Six sources and four retryable until 23.9.2026; `own` — one's own
+  // exercise, solved alone — joined both with docs/PLAN-MATERIJAL.md phase 1,
+  // in step with the server's `SOURCES` (puzzle_progress.test.js).
+  test('the sources are the server\'s, and five of them can be retried', () {
     expect(PuzzleSource.all, [
       'lichess',
       'mate_puzzle',
@@ -39,9 +42,10 @@ void main() {
       'endgame',
       'blunder_game',
       'basic_mate',
+      'own',
     ]);
     expect(PuzzleSource.retryable,
-        ['lichess', 'mate_puzzle', 'winning_position', 'endgame']);
+        ['lichess', 'mate_puzzle', 'winning_position', 'endgame', 'own']);
     expect(PuzzleSource.basicMateId('easy', '8/8/8/8/8/8/8/K6k w - - 0 1'),
         'basic:easy:8/8/8/8/8/8/8/K6k w - -');
     expect(PuzzleSource.blunderGameId('42', 17), '42:17');

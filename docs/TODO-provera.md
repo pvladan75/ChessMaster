@@ -5878,6 +5878,32 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 231. Rešavanje svojih zadataka, i zadatak-partija kroz domaći — 23.9.2026, nije viđeno uživo
+
+**Aplikacija i server** (nov build, i restart backenda — nove rute
+`POST /exercises/:id/attempt` i `GET /exercises/queue`). `PLAN-MATERIJAL.md`,
+faze 0 i 1.
+
+1. [ ] **Faza 0: zadatak-partija se dodeljuje.** Biblioteka → Exercises →
+   kartica zadatka „Win" / „Draw or better" / „Play N moves" → „Assign to
+   student": otvara se editor domaćeg sa tom jednom stavkom (ne crveni prozor
+   kao do sada). Sačuvaj, pošalji učeniku — stiže mu kao partija.
+2. [ ] **Faza 0: samo prihvaćeni učenici.** „Assign to student" na Find
+   zadatku: u listi „Student" nema nikoga ko još nije prihvatio vezu.
+3. [ ] **Solve iz Biblioteke.** Na kartici svog Find zadatka (ne na poziciji,
+   ne na partiji, ne na onom sa oznakom „Side to move not set") je dugme sa
+   slagalicom, „Solve". Otvara tablu sa zadatkom; jedan potez je odgovor:
+   „Correct" ili „Not quite" sa rešenjem, i tabla više ne prima poteze.
+4. [ ] **„Open" posle odgovora** vodi na ekran tog zadatka (rešenje, reči,
+   oznake).
+5. [ ] **Practise → Tactics → „My exercises".** Kartica postoji samo ako
+   nalog ima bar jedan svoj Find zadatak. Posle nekoliko rešavanja piše
+   „Solved N" ili „Solved N · M to retry"; „Solve" daje prvo nerešavane, pa
+   promašene; „Retry failed (M)" samo promašene. Posle povratka broj je
+   osvežen.
+6. [ ] **Domaći se ne menja.** Isti zadatak rešen sam ne označava ništa u
+   domaćem koji ga sadrži; učenik i dalje rešava domaći kao pre.
+
 ## 230. Pozicija bez strane na potezu se ne koristi dok se ne pita — 23.9.2026, nije viđeno uživo
 
 **Samo aplikacija** (nov build). Pozicija čiju stranu niko nije postavio čuva

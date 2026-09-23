@@ -44,6 +44,9 @@ Future<void> _pump(WidgetTester tester, double width,
               onSelectRepertoire: () {},
               onSelectMyGames: () {},
               onSelectMistakesDrill: () {},
+              // Drawn, so its place in the Tactics column is held too
+              // (docs/PLAN-MATERIJAL.md, phase 1).
+              onSelectOwnExercises: () {},
             ),
           ),
         ),
@@ -60,7 +63,11 @@ const _endgame = 'ENDGAME AND TECHNIQUE';
 /// Each phase's label and the titles of the cards under it, in today's order.
 const _phases = {
   _opening: ['Opening repertoire', 'My games', 'My mistakes'],
-  _tactics: ['Tactics tailored to you', 'Puzzles: Mate in 1, 2 or 3 moves'],
+  _tactics: [
+    'Tactics tailored to you',
+    'Puzzles: Mate in 1, 2 or 3 moves',
+    'My exercises',
+  ],
   _endgame: [
     'Endgames from master games',
     'Practice basic checkmates',
@@ -101,7 +108,7 @@ void main() {
     expect(_at(tester, _tactics).top,
         greaterThan(_card(tester, 'My mistakes').bottom));
     expect(_at(tester, _endgame).top,
-        greaterThan(_card(tester, 'Puzzles: Mate in 1, 2 or 3 moves').bottom));
+        greaterThan(_card(tester, 'My exercises').bottom));
     for (final p in _phases.keys) {
       _expectPhaseStacked(tester, p);
     }

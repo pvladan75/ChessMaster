@@ -171,6 +171,7 @@ void main() {
             onSelectRepertoire: () {},
             onSelectMyGames: () {},
             onSelectMistakesDrill: () {},
+            onSelectOwnExercises: () {},
             progress: {
               for (final s in PuzzleSource.all)
                 s: _p(seen: 120, solved: 99, toRetry: 21),
@@ -182,6 +183,9 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('Retry failed (21)'), findsNWidgets(4));
+    // Four until 23.9.2026: `own` joined the retryable sources with
+    // docs/PLAN-MATERIJAL.md phase 1, and its card — „My exercises" — is
+    // drawn here, so a fifth button is the phase working, not a duplicate.
+    expect(find.text('Retry failed (21)'), findsNWidgets(5));
   });
 }
