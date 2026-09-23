@@ -5878,6 +5878,28 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 236. Knjiga čiji font nemamo čita se kao slike; svi Fritz dijagrami — 23.9.2026, nije viđeno uživo
+
+**Samo server** (restart backenda; aplikacija ista). `PLAN-SKENER-SLIKE.md`,
+faza 3h, i ispravka mape `DiagramTTFritz` istog dana.
+
+1. [ ] **Fritz knjige.** Teach → Scan a book, redom `7809.pdf`,
+   `queenminorvsqueen.pdf`, `minorendings.pdf`, `rookminorvsrook.pdf` iz
+   `D:\chess books`: nijedna ne kaže „font we cannot read yet"; skener ih
+   vodi fontom (bez kalibracije) i pokazuje dijagrame. Uporedi dva-tri sa
+   knjigom.
+2. [ ] **Knjiga bez mape.** `Grandmaster-Codex-Complete.pdf` (table nacrtane
+   linijama, do sada „No diagram was found…"): odmah posle izbora fajla vodi u
+   kalibraciju kao knjiga sa slikama. Npr. strane 300–305: table se vide u
+   pregledu, isečene čisto.
+3. [ ] **Čitanje.** Postavi kalibraciju (dve-tri table dok tabela figura nije
+   puna), pročitaj ostale: pozicije tačne, sumnjiva polja označena.
+4. [ ] **Knjiga sa slikama se ne menja.** `1001_Winning_Chess…pdf` radi kao
+   pre (stavke 225–229), bez vidljivog usporenja.
+5. [ ] **New In Chess.** `9087.pdf` iz `D:\chess\pdf_books`: skener ga vodi
+   fontom (NICRoest), bez kalibracije; dijagrami odgovaraju knjizi (51 u
+   celoj knjizi; na strani 3 početna pozicija, na strani 4 `2r1k2r/…`).
+
 ## 235. Svoji zadaci-partije se igraju i beleže — 23.9.2026, nije viđeno uživo
 
 **Aplikacija i server** (nov build, restart backenda — nova ruta

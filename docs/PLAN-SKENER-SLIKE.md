@@ -991,52 +991,71 @@ two gaps were closed: the case for "Done waits for unchecked boards" could not
 see it while the missing black queen also kept "Done" off, and the route's own
 exclusion is only visible on a real database.
 
-### Phase 3h — a rendered page when no glyph map reads the book [lead] — decided 23.9.2026, not built
+### Phase 3h — a drawn page when no glyph map reads the book [lead] — built 23.9.2026, awaiting the owner's live check (TODO-provera 236)
 
 **The owner, 23.9.2026:** a book whose diagrams are set in a font we have no
 map for is read as a picture book, **only in that case**. A book that a glyph
 map reads keeps the font path, because that reading is exact and needs no
-calibration.
+calibration. The owner first asked whether "Print to PDF" would do it: measured
+on `7809.pdf`, Microsoft Print to PDF keeps the text and the font, and only
+renames it (`CIDFont+F1` … `F15`), so the font path read the printed file board
+for board as the original — and a font no map knows stays unknown under a new
+name.
 
 This reverses one line of §6 and one of Phase 1: rendering a page was out of
-scope, because Phase 1 needed no canvas. Rendering still needs **no new
+scope, because Phase 1 needed no canvas. It still needs **no new
 dependency**: `@napi-rs/canvas` is already in `dependencies` for the video
 renderer.
 
-**When it applies.** `bookKind` today answers `font`, `pictures` or
-`unknown` with the font path's reason. The fallback takes over exactly
-`unknown_font` (text in diagram shape that no map explains) and
-`no_diagram_text` (no diagram in the text at all, which also covers boards
-drawn as vector paths, the §6 *Grandmaster Codex* case, approximately rather
-than exactly). `no_text` already goes to pictures. A book that a map reads but
-that refuses one page (a Fritz knight on a dark square, whose mask is not yet
-known) is **not** a fallback case: that refusal is how a map learns its next
-glyph, and the owner is to decide whether a trainer may send such pages to the
-picture path instead.
+**When it applies.** Inside `findImageDiagrams`, so browsing, the kind check
+and reading agree: pages are drawn only when the pictures gave **no** board on
+any page asked for, and then every page that is not a scan (a scan drawn again
+is the scan). A picture book is therefore read exactly as before, and a drawn
+book is drawn on every page, which keeps a board's name (page, index) stable.
+The kind check asks the font path first, so a book a map reads is never drawn.
+It also catches the §6 case: *Grandmaster Codex*, boards drawn as vector paths,
+was `no_diagram_text` and is now a picture book (8 boards in its 16 sampled
+pages, cut cleanly). A book a map reads but that refuses one page (a Fritz
+knight on a dark square) is still refused, not drawn — that refusal is how a
+map learns its next glyph.
 
-**Measured 23.9.2026, a first look only:**
+#### 3h.0 — measured 23.9.2026
+
+On the eight font books whose answers the font path knows — 146 boards
+(seven Fritz books, 139, and the Linares excerpt, 7):
 
 | | |
 |---|---|
-| Rendering | pdfjs + `@napi-rs/canvas`, 200 dpi: 11–74 ms a page on `7809.pdf`, a clean picture, glyphs and hatching exact. pdfjs has to be given the canvas library's `Path2D`, `DOMMatrix` and `ImageData` on `globalThis` **before** it is imported, or the first glyph throws `InvalidArg` in `paintChar` |
-| Board finding | `boardsOnScan`, tuned on scans, found **1 of 7** boards on pages 13, 14 and 18 of `7809.pdf`, although every one is plain to the eye. Not yet diagnosed |
-| A second book | `completechesscoursexcerpt.pdf` (`LinaresDiagram`) printed nothing and exited 0 — no error, no result. A render must race a deadline and fail loudly before this goes near a route |
+| Drawing | pdfjs + `@napi-rs/canvas`, 25–63 ms a page at 200 dpi |
+| **The crash** | Two books died natively while drawing (Windows `0xC0000374` / segmentation fault, exit 127 or 139 — no JS error, nothing printed). pdfjs-dist carries **its own copy** of the canvas library (0.1.100, beside our 1.0.3); left to make its own scratch canvas for a page's embedded picture, it handed that copy's picture to ours. Every page that crashed had a `paintImageXObject`. Giving pdfjs a `CanvasFactory` from our copy, and our `Path2D`/`DOMMatrix`/`ImageData` on `globalThis` before it loads (without them the first glyph throws `InvalidArg`), draws all of them. A newer canvas (1.0.9) crashed the same way; pdfjs's standard font data changed `fillText` to `fill` and crashed the same way — the fault was the mix of copies, not the glyphs |
+| Finding | `boardsOnScan` found **42 of 146**. The checkered test asked light cells to be 25 lighter than dark ones; a font's dark squares are hairline hatching, 229–233 against 255, so each board was a coin toss. At 15 (and at 10 and 5) **146 of 146**, nothing extra. On Silman's scan, all 543 pages, 25/15/10/5 give the same 648 boards page for page, so 15 costs the scans nothing |
+| Reading, 200 dpi | calibrated as the app requires (boards until every piece-on-colour is shown), 116 boards read: 8 wrong squares, **3 unmarked**, all a white pawn on the a-file's hatching read as empty; 4.6 marks a board |
+| Reading, 300 dpi | **1 wrong square, marked; 0 unmarked**; 1.6 marks a board. 400 dpi is no better (2 wrong, marked). 300 it is |
 
-**Measure before building (3h.0):**
-1. why `boardsOnScan` misses a rendered board (coordinates beside the frame,
-   the hatching of dark squares, the frame's thickness — measured, not
-   guessed);
-2. why the Linares render ends with nothing, and what a deadline catches;
-3. how the reader does on a clean render, **scored against the font path**:
-   the eight Fritz books now read exactly (155 boards), so each rendered board
-   has a known answer — the rare case where the gate is built from truth
-   rather than from labels (§7.1).
+#### 3h.1 — built 23.9.2026
 
-**Then build (3h.1):** the fallback in `bookKind` and in the scan, the
-rendered page handed to the existing calibration and reader unchanged, and a
-render that cannot hang. Gate: the 155 Fritz boards, read by the picture path
-and compared square by square with the font path; silently wrong boards after
-confirmation marks (§5) is the number that decides it.
+- `renderWorker.mjs` draws and cuts in a **child process**, never a worker
+  thread: a native crash ends the process it is in, and a worker thread's is
+  the server's. `render.mjs` starts it under a deadline (10 s + 3 s a page) and
+  turns a crash, an exit or a hang into an error that names how it ended and
+  the line of stderr that names the error.
+- `findImageDiagrams` draws as above (`source: 'render'`); a failed drawing is
+  `ScanError` `render_failed`, never "no boards", and `/scans/kind` answers it
+  as 422.
+- `boards.mjs`: `CHECKER_CONTRAST` 25 → 15.
+- Through `scanImages` itself (browse, then read with a full calibration) on
+  four books: 63 positions read, **0 wrong squares**; browsing 2–3 s, reading
+  5–9 s.
+
+Gate: `render.test.mjs`, 9 cases, on books drawn in the test — a board made of
+PDF operators (thin hatching, 7% ink, lighter than any book measured), the same
+with a picture beside it, the same with text in an embedded font
+(pdfjs-dist's own Liberation Sans, not the machine's). 8 mutations, each red on
+the right case. Two survived the first round, and both were holes in the
+fixture, not the code: without text on the page no glyph path is drawn, so
+removing the globals changed nothing (the text case closed it); and the hang
+case went red only as "cancelled" at the runner's 40 s, so it now races an 8 s
+deadline of its own. Backend 1671 → 1680 without a database.
 
 ### Phase 4 — into exercises
 
@@ -1198,3 +1217,10 @@ the "line cut short" hazard §3 warns about, found in the phase's own tool.
   (`docs/LESSONS.md`, 23.9.2026). 155 boards, all read.
 - `completechesscoursexcerpt.pdf` (`LinaresDiagram`) already reads with the
   Tactics Course map: 7 diagrams.
+- `9087.pdf` (New In Chess, `NICRoest`), 23.9.2026: a third row map, read off
+  the book's own starting position; 51 diagrams. Before it, SkakNew claimed
+  the book on 2 of its 184 diagram rows, which sent it down the font path and
+  kept it from phase 3h — so a row map now claims a book only when it explains
+  at least half of the rows that stack into diagrams (`pickFontMap`). The book
+  also prints every row twice at the same spot, which `pageSpans` now reads
+  once (`withoutOverprint`).

@@ -68,7 +68,31 @@ const TACTICS_COURSE = {
   },
 };
 
-export const FONT_MAPS = [SKAK_NEW, TACTICS_COURSE];
+/**
+ * NICRoest — New In Chess's diagram font (`9087.pdf`, measured 23.9.2026).
+ *
+ * A row is exactly 8 glyphs, no border, like SkakNew — and its letters overlap
+ * SkakNew's, which is why a map is chosen by how much of a book it explains,
+ * not by whether it explains a row. Read off the book's own starting position
+ * (its page 3): a white piece is its letter on a light square and the lower
+ * case on a dark one, a pawn being `I`/`i`; a black piece is another letter
+ * each — `M` king, `D` queen, `T` rook, `L` bishop, `S` knight, `J` pawn —
+ * lower case on a dark square. `.` is an empty light square and `_` a dark one.
+ */
+const NIC_ROEST = {
+  id: 'nicroest',
+  label: 'NICRoest (New In Chess)',
+  rowLength: 8,
+  squares: (text) => text,
+  isBorderRow: () => false,
+  glyphs: {
+    '.': '.', _: '.',
+    K: 'K', k: 'K', Q: 'Q', q: 'Q', R: 'R', r: 'R', B: 'B', b: 'B', N: 'N', n: 'N', I: 'P', i: 'P',
+    M: 'k', m: 'k', D: 'q', d: 'q', T: 'r', t: 'r', L: 'b', l: 'b', S: 'n', s: 'n', J: 'p', j: 'p',
+  },
+};
+
+export const FONT_MAPS = [SKAK_NEW, TACTICS_COURSE, NIC_ROEST];
 
 /** Glyphs a map understands, as a Set, for alphabet matching. */
 function alphabetOf(map) {

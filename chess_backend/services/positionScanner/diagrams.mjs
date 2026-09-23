@@ -58,6 +58,26 @@ function runsByColumn(rows) {
 const MAX_ROW_LENGTH = 12;
 
 /**
+ * The row-shaped spans of `pages` that stand eight or more high in one column:
+ * this pipeline's own definition of a diagram, minus the alphabet. One home
+ * for the two questions that need it — whether a book has diagram text at all
+ * (classifyUnreadable) and whether a map explains enough of it to be the
+ * book's map (pickFontMap in index.mjs).
+ */
+export function stackedRows(pages) {
+  const stacked = [];
+  for (const spans of pages) {
+    const shaped = mergeSpans(spans).filter(
+      (s) => !/\s/.test(s.text) && s.text.length >= 8 && s.text.length <= MAX_ROW_LENGTH
+    );
+    for (const run of runsByColumn(shaped)) {
+      if (run.length >= 8) stacked.push(...run);
+    }
+  }
+  return stacked;
+}
+
+/**
  * Why nothing could be read — and these are three different problems.
  *
  * They used to share one message, "the diagrams use a font we cannot read yet",
@@ -81,16 +101,7 @@ export function classifyUnreadable(pages) {
     return { code: 'no_text', unknownGlyphs: [] };
   }
 
-  const stacked = [];
-  for (const spans of pages) {
-    const shaped = mergeSpans(spans).filter(
-      (s) => !/\s/.test(s.text) && s.text.length >= 8 && s.text.length <= MAX_ROW_LENGTH
-    );
-    for (const run of runsByColumn(shaped)) {
-      if (run.length >= 8) stacked.push(...run);
-    }
-  }
-
+  const stacked = stackedRows(pages);
   if (stacked.length === 0) return { code: 'no_diagram_text', unknownGlyphs: [] };
   return { code: 'unknown_font', unknownGlyphs: unknownGlyphs(stacked.map((s) => s.text)) };
 }

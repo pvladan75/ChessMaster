@@ -4,6 +4,7 @@
 // are geometric shapes, never letters: a test that draws text reads the
 // machine's fonts (CLAUDE.md, rule 8).
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -129,14 +130,29 @@ export function encode({ gray, width, height }, storage) {
   return { bytes: out, cs: '/DeviceGray', bpc: 1 };
 }
 
-/** pages: [{ size: [w, h], images: [{ picture, storage, rect: [x, y, w, h] }] }]
- *  with `rect` in PDF points, y measured from the top of the page. */
+/** pages: [{ size: [w, h], images: [{ picture, storage, rect: [x, y, w, h] }],
+ *  content? }] with `rect` in PDF points, y measured from the top of the page.
+ *  `content` is drawing operators added after the images, in PDF's own
+ *  coordinates (vectorBoard writes them). `text: [{ x, top, size, str }]` is
+ *  set in an embedded font — pdfjs-dist's own Liberation Sans, never one of
+ *  the machine's (CLAUDE.md, rule 8) — so a page has glyphs to draw. */
 export function buildPdf(pages) {
   const objects = [];
   const add = (body) => { objects.push(body); return objects.length; };
   const catalog = add(null);
   const pagesId = add(null);
   const kids = [];
+  let font = null;
+  const fontId = () => {
+    if (font) return font;
+    const bytes = readFileSync(require.resolve('pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf'));
+    const file = add([`<< /Length ${bytes.length} /Length1 ${bytes.length} >>`, bytes]);
+    const descriptor = add(`<< /Type /FontDescriptor /FontName /LiberationSans /Flags 32 /FontBBox [-203 -303 1050 910]`
+      + ` /ItalicAngle 0 /Ascent 905 /Descent -212 /CapHeight 1409 /StemV 80 /FontFile2 ${file} 0 R >>`);
+    font = add(`<< /Type /Font /Subtype /TrueType /BaseFont /LiberationSans /Encoding /WinAnsiEncoding`
+      + ` /FontDescriptor ${descriptor} 0 R >>`);
+    return font;
+  };
   for (const page of pages) {
     const [pw, ph] = page.size;
     const xobjects = [];
@@ -152,9 +168,14 @@ export function buildPdf(pages) {
       const [x, y, w, h] = img.rect;
       content += `q ${w} 0 0 ${h} ${x} ${ph - y - h} cm /Im${k} Do Q\n`;
     });
+    content += page.content ?? '';
+    for (const { x, top, size, str } of page.text ?? []) {
+      content += `BT /F1 ${size} Tf ${x} ${ph - top - size} Td (${str}) Tj ET\n`;
+    }
+    const fonts = page.text?.length ? ` /Font << /F1 ${fontId()} 0 R >>` : '';
     const contentId = add([`<< /Length ${content.length} >>`, Buffer.from(content, 'latin1')]);
     kids.push(add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pw} ${ph}]`
-      + ` /Resources << /XObject << ${xobjects.join(' ')} >> >> /Contents ${contentId} 0 R >>`));
+      + ` /Resources << /XObject << ${xobjects.join(' ')} >>${fonts} >> /Contents ${contentId} 0 R >>`));
   }
   objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
   objects[pagesId - 1] = `<< /Type /Pages /Kids [${kids.map((k) => `${k} 0 R`).join(' ')}] /Count ${kids.length} >>`;
@@ -178,6 +199,47 @@ export function buildPdf(pages) {
   tail += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${length}\n%%EOF\n`;
   chunks.push(Buffer.from(tail, 'latin1'));
   return Buffer.concat(chunks);
+}
+
+/** A board drawn in PDF operators, as a chess font's page draws it when it is
+ *  rendered: a frame, dark squares hatched with hairlines, pieces as filled
+ *  discs. No font and no image — which is the book the image path could not
+ *  see before phase 3h. `hatch` and `spacing` are in points; the defaults ink
+ *  about 7% of a dark square, so its cells average some 237 against 255 on a
+ *  white one: lighter than the books measured (229–233), inside the contrast
+ *  15 accepts and outside the 25 that was there before. `x`, `top` put the
+ *  board's top-left corner, y from the top of a page `pageHeight` tall. */
+export function vectorBoard(x, top, size, pageHeight, { hatch = 0.2, spacing = 4, pieces = [[0, 4], [7, 4], [2, 2], [5, 6]] } = {}) {
+  const cell = size / 8;
+  const bottom = pageHeight - top - size;
+  const f = (v) => v.toFixed(3);
+  let ops = `q ${f(hatch)} w 0 G 0 g\n`;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if ((r + c) % 2 === 0) continue;
+      const sx = x + c * cell;
+      const sy = bottom + (7 - r) * cell;
+      ops += `q ${f(sx)} ${f(sy)} ${f(cell)} ${f(cell)} re W n\n`;
+      for (let k = -cell; k < cell; k += spacing) {
+        ops += `${f(sx + k)} ${f(sy)} m ${f(sx + k + cell)} ${f(sy + cell)} l S\n`;
+      }
+      ops += 'Q\n';
+    }
+  }
+  const K = 0.5523;
+  for (const [r, c] of pieces) {
+    const cx = x + (c + 0.5) * cell;
+    const cy = bottom + (7 - r + 0.5) * cell;
+    const rad = cell * 0.3;
+    const k = rad * K;
+    ops += `${f(cx + rad)} ${f(cy)} m `
+      + `${f(cx + rad)} ${f(cy + k)} ${f(cx + k)} ${f(cy + rad)} ${f(cx)} ${f(cy + rad)} c `
+      + `${f(cx - k)} ${f(cy + rad)} ${f(cx - rad)} ${f(cy + k)} ${f(cx - rad)} ${f(cy)} c `
+      + `${f(cx - rad)} ${f(cy - k)} ${f(cx - k)} ${f(cy - rad)} ${f(cx)} ${f(cy - rad)} c `
+      + `${f(cx + k)} ${f(cy - rad)} ${f(cx + rad)} ${f(cy - k)} ${f(cx + rad)} ${f(cy)} c f\n`;
+  }
+  ops += `1 w ${f(x)} ${f(bottom)} ${f(size)} ${f(size)} re S Q\n`;
+  return ops;
 }
 
 export async function tempPdf(t, pages) {

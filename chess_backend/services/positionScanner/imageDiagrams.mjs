@@ -11,6 +11,8 @@ import { pathToFileURL } from 'node:url';
 import { openPdf } from './pdf.mjs';
 import { pageImages } from './images.mjs';
 import { findBoard, boardsOnScan, cropBoard } from './boards.mjs';
+import { renderedBoards } from './render.mjs';
+import { ScanError } from './index.mjs';
 
 /** An image the size of a diagram: one board and its coordinates. */
 function diagramShaped({ width, height }) {
@@ -28,15 +30,37 @@ function pageSized({ rect, pageSize }) {
  * Returns { diagrams, refused, imagesSeen, undecoded }. Each diagram is
  * { page, index, source, box, rect, board }:
  *  - `index` is its place on the page, from 1, in reading order;
- *  - `source` is 'image' (the picture is one diagram) or 'scan' (the board was
- *    found on a scanned page);
- *  - `box` is the board in the image's pixels;
+ *  - `source` is 'image' (the picture is one diagram), 'scan' (the board was
+ *    found on a scanned page) or 'render' (found on the page as the server
+ *    drew it);
+ *  - `box` is the board in the image's pixels (or the drawn page's);
  *  - `rect` is where the image sits on the page, in points, y from the top;
  *  - `board` is the board cut to 512 x 512 grey.
  * `refused` counts every image that gave no board, by reason, so a book that
  * yields nothing says why.
+ *
+ * Pages are drawn (phase 3h, render.mjs) only when the pictures gave **no**
+ * board on any page asked for — a book whose diagrams are a chess font no map
+ * knows, or lines — and then only the pages that are not a scan, whose
+ * drawing would be the scan again. So a picture book is read exactly as
+ * before, and a book that is drawn is drawn on every page, which keeps a
+ * board's name (page and index) the same from one request to the next. A
+ * drawing that fails is a refusal, never "no boards".
  */
-export async function findImageDiagrams(filePath, { fromPage = 1, toPage, pages } = {}) {
+/**
+ * A page's boards, named 1, 2, … in reading order: the image's place first,
+ * then the board's within a scanned or drawn page. The same file gives the
+ * same names on every upload, which is what lets a client name a calibration
+ * board once and send the book again.
+ */
+function named(onPage) {
+  onPage.sort((a, b) => a.rect[1] - b.rect[1] || a.rect[0] - b.rect[0]
+    || a.box.top - b.box.top || a.box.left - b.box.left);
+  onPage.forEach((d, k) => { d.index = k + 1; });
+  return onPage;
+}
+
+export async function findImageDiagrams(filePath, { fromPage = 1, toPage, pages, render = renderedBoards } = {}) {
   const doc = await openPdf(filePath);
   const last = Math.min(toPage ?? doc.numPages, doc.numPages);
   // `pages`, when given, names exactly which pages to open — a range plus the
@@ -49,6 +73,7 @@ export async function findImageDiagrams(filePath, { fromPage = 1, toPage, pages 
   const refuse = (reason) => { refused[reason] = (refused[reason] ?? 0) + 1; };
   let imagesSeen = 0;
   let undecoded = 0;
+  const scanned = new Set();
   try {
     for (const page of wanted) {
       const found = await pageImages(doc, page);
@@ -57,6 +82,7 @@ export async function findImageDiagrams(filePath, { fromPage = 1, toPage, pages 
       for (const img of found.images) {
         imagesSeen++;
         if (pageSized(img)) {
+          scanned.add(page);
           const boxes = boardsOnScan(img.gray, img.width, img.height);
           if (!boxes.length) refuse('scanned page with no board');
           for (const box of boxes) {
@@ -75,20 +101,32 @@ export async function findImageDiagrams(filePath, { fromPage = 1, toPage, pages 
           refuse('not diagram-shaped');
         }
       }
-      // A board's name within its page: 1, 2, … in reading order — the image's
-      // place first, then the board's within a scanned page. The same file gives
-      // the same names on every upload, which is what lets a client name a
-      // calibration board once and send the book again.
-      const onPage = diagrams.splice(before);
-      onPage.sort((a, b) => a.rect[1] - b.rect[1] || a.rect[0] - b.rect[0]
-        || a.box.top - b.box.top || a.box.left - b.box.left);
-      onPage.forEach((d, k) => { d.index = k + 1; });
-      diagrams.push(...onPage);
+      diagrams.push(...named(diagrams.splice(before)));
     }
   } finally {
     await doc.destroy();
   }
-  return { diagrams, refused, imagesSeen, undecoded };
+
+  const toDraw = diagrams.length ? [] : wanted.filter((p) => !scanned.has(p));
+  let rendered = 0;
+  if (toDraw.length) {
+    let drawn;
+    try {
+      drawn = await render(filePath, toDraw);
+    } catch (err) {
+      const refusal = new ScanError('The pages of this book could not be drawn to look for diagrams.', {
+        code: 'render_failed',
+      });
+      refusal.cause = err;
+      throw refusal;
+    }
+    for (const { page, rect, found } of drawn) {
+      rendered++;
+      if (!found.length) refuse('drawn page with no board');
+      diagrams.push(...named(found.map(({ box, board }) => ({ page, source: 'render', box, rect, board }))));
+    }
+  }
+  return { diagrams, refused, imagesSeen, undecoded, rendered };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -7,8 +7,9 @@ import assert from 'node:assert/strict';
 import { normalizeSan, splitFirstMove, parseSolutionLines } from './solutions.mjs';
 import { rowToFenRank, FONT_MAPS, selectFontMap } from './fonts.mjs';
 import { buildPosition, materialProblem } from './verify.mjs';
-import { flagDuplicateNumbers, scanDocument } from './index.mjs';
-import { classifyUnreadable } from './diagrams.mjs';
+import { flagDuplicateNumbers, scanDocument, pickFontMap } from './index.mjs';
+import { classifyUnreadable, extractDiagrams } from './diagrams.mjs';
+import { withoutOverprint, openPdf, pageSpans } from './pdf.mjs';
 import { writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -223,4 +224,58 @@ test('a PDF with no text reaches the caller as no_text, not as unknown_font', as
       return true;
     }
   );
+});
+
+// NICRoest, New In Chess's diagram font, as `9087.pdf` sets it: the glyphs of
+// two of its boards, the book's own starting position (page 3) and a middle
+// game (page 4), rows 14 pt apart. The book prints every row twice at the same
+// spot, once more in `NICRoest-Italic`.
+const NIC_START = ['TsLdMlSt', 'jJjJjJjJ', '._._._._', '_._._._.', '._._._._', '_._._._.', 'IiIiIiIi', 'rNbQkBnR'];
+const NIC_MIDDLE = ['._T_M_.t', '_._J_JjJ', 'J_._._D_', '_Jl.iRb.', '._._._._', '_._._.q.', 'IiI_._Ii', '_._R_._K'];
+const nicRows = (rows, x, top, { twice = false } = {}) => rows.flatMap((text, i) => {
+  const span = { text, x, y: top + 14 * i, width: 108, height: 13.5 };
+  return twice ? [span, { ...span, y: span.y + 0.1 }] : [span];
+});
+
+test('NICRoest reads the starting position and a middle game', () => {
+  const nic = FONT_MAPS.find((m) => m.id === 'nicroest');
+  const read = (rows) => extractDiagrams(nicRows(rows, 94, 357), nic, 3).diagrams.map((d) => d.placement);
+  assert.deepEqual(read(NIC_START), ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR']);
+  assert.deepEqual(read(NIC_MIDDLE), ['2r1k2r/3p1ppp/p5q1/1pb1PRB1/8/6Q1/PPP3PP/3R3K']);
+});
+
+test('a row printed twice at the same spot is one row', () => {
+  const nic = FONT_MAPS.find((m) => m.id === 'nicroest');
+  const spans = withoutOverprint(nicRows(NIC_MIDDLE, 280, 474, { twice: true }));
+  assert.equal(spans.length, 8);
+  assert.deepEqual(extractDiagrams(spans, nic, 4).diagrams.map((d) => d.placement), ['2r1k2r/3p1ppp/p5q1/1pb1PRB1/8/6Q1/PPP3PP/3R3K']);
+  // Not a copy: the same text a glyph away, and another text at the same spot
+  // (a Fritz mask under its piece).
+  const beside = { text: 'Qb', x: 10, y: 10, width: 20, height: 10 };
+  assert.equal(withoutOverprint([beside, { ...beside, x: 12 }]).length, 2);
+  assert.equal(withoutOverprint([{ ...beside, text: 'm', width: 0 }, { ...beside, text: 'K' }]).length, 2);
+});
+
+test('a map that explains a few of the diagram rows is not the book\'s map', () => {
+  // Eight rows stacked in a column: one of them reads in SkakNew (and in
+  // NICRoest), the other seven in no map — as SkakNew "read" 2 of the 184 rows
+  // of the New In Chess book and took it.
+  const rows = ['0Z0Z0§0Z', 'Z0Z0§0Z0', '0Z0Z0§0Z', 'rnbqkbnr', 'Z0Z0§0Z0', '0Z0Z0§0Z', 'Z0Z0§0Z0', '0Z0Z0§0Z'];
+  const page = rows.map((text, i) => ({ text, x: 50, y: 100 + 14 * i, width: 108, height: 13.5 }));
+  assert.equal(selectFontMap(rows).covered, 1);
+  assert.equal(pickFontMap(rows, [page]), null);
+  // Half is enough: four of eight.
+  const half = rows.map((r, i) => (i % 2 ? '0Z0Z0§0Z' : 'rnbqkbnr'));
+  const halfPage = half.map((text, i) => ({ ...page[i], text }));
+  assert.equal(selectFontMap(half).covered, 4);
+  assert.equal(pickFontMap(half, [halfPage]).map.id, 'skaknew');
+});
+
+test('a page read from a PDF drops the copy printed over a row', async (t) => {
+  const { tempPdf } = await import('../../test/support/drawnBooks.mjs');
+  const row = { x: 94, top: 357, size: 13.5, str: 'TsLdMlSt' };
+  const file = await tempPdf(t, [{ size: [300, 600], images: [], text: [row, row, { ...row, top: 371, str: 'jJjJjJjJ' }] }]);
+  const doc = await openPdf(file);
+  t.after(() => doc.destroy());
+  assert.deepEqual((await pageSpans(doc, 1)).map((s) => s.text), ['TsLdMlSt', 'jJjJjJjJ']);
 });

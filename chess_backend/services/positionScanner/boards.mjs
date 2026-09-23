@@ -56,6 +56,15 @@ function median(values) {
   return s[s.length >> 1];
 }
 
+// How much lighter the light cells must be than the dark ones. It was 25,
+// set on scans whose dark squares are grey. A page rendered from a chess font
+// (phase 3h) hatches its dark squares with hairlines, and their cells average
+// 229–233 against 255 — 22 to 26, so its boards were found by the toss of a
+// coin: 42 of 146 over eight books. At 15 all 146 are found and nothing else,
+// and on Silman's scan, all 543 pages, 25, 15, 10 and 5 give the same 648
+// boards page for page (measured 23.9.2026).
+const CHECKER_CONTRAST = 15;
+
 /**
  * Whether a square region alternates light and dark as a board does. The
  * middle half of each of the 64 cells is averaged; pieces sit on some cells,
@@ -81,7 +90,7 @@ export function checkered(gray, width, box) {
       ((r + c) % 2 === 0 ? light : dark).push(sum / Math.max(n, 1));
     }
   }
-  return median(light) - median(dark) > 25;
+  return median(light) - median(dark) > CHECKER_CONTRAST;
 }
 
 /** Bounding boxes of the 8-connected regions of ink (grey < 150). */

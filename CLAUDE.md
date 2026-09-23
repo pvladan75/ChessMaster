@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 3906 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1807 with TEST_DATABASE_URL, 1671 without
+cd chess_backend && npm test          # node --test, 1820 with TEST_DATABASE_URL, 1684 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -650,6 +650,21 @@ so every rank was thrown away. They also brought the queen, rook and bishop
 masks and `L` for the bishop. **A map measured on one book knows that book's
 alphabet, not the font's** — all eight books of the font were measured, every
 page, before anything was added.
+Then phase 3h of `docs/PLAN-SKENER-SLIKE.md` (backend → **1680** measured
+without a database; 1816 derived): a book no glyph map reads is drawn by the
+server and read as pictures. Two books crashed the drawing process with no
+message at all, and the cause was **two copies of one native library** —
+pdfjs-dist carries its own `@napi-rs/canvas` beside ours, and a picture from
+one handed to the other ends the process. **When a process dies without a word,
+look for a second copy of its native module before suspecting the input**; and
+native work goes in a child process, never a worker thread, whose crash is the
+server's.
+Then `9087.pdf`, New In Chess (backend → **1684** measured; 1820 derived): a
+third row map, `NICRoest`, and the reason the book had been refused with the
+wrong message — SkakNew had claimed it on 2 of its 184 diagram rows, because a
+map was taken as soon as it explained *a* row. **Explaining a row and explaining
+the book are two claims**: a row map now needs half of the rows that stack
+into diagrams (the right ones explain 80–100%, the wrong one 1%).
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

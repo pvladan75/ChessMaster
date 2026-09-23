@@ -261,6 +261,12 @@ router.post('/kind', authenticateToken, browseLimiter, upload.single('document')
     logger.info(`[SCAN] vrsta knjige user=${req.user.id} strana=${kind.pageCount} vrsta=${kind.kind}`);
     res.json({ documentName: req.file.originalname, ...kind });
   } catch (err) {
+    // Pages drawn for a book no glyph map reads (phase 3h) can fail in the
+    // drawing process; that is the book's answer, said as a refusal.
+    if (err.code === 'render_failed') {
+      logger.warn(`[SCAN] Crtanje strana nije uspelo: ${err.cause?.message || err.message}`);
+      return res.status(422).json({ error: err.message, code: err.code });
+    }
     logger.error(`[SCAN] Vrsta knjige nije utvrdjena: ${err.stack || err.message}`);
     res.status(500).json({ error: 'Failed to read document.' });
   } finally {

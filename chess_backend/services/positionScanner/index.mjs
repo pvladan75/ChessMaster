@@ -16,7 +16,7 @@
 //     simply unknown, which is a thing the confirmation screen can ask.
 import { openPdf, pageSpans, fontNames } from './pdf.mjs';
 import { selectFontMap } from './fonts.mjs';
-import { extractDiagrams, classifyUnreadable } from './diagrams.mjs';
+import { extractDiagrams, classifyUnreadable, stackedRows } from './diagrams.mjs';
 import { FRITZ_DIAGRAM, countGridBoards } from './gridFont.mjs';
 import { readSolutions } from './solutions.mjs';
 import { buildPosition } from './verify.mjs';
@@ -104,13 +104,22 @@ export function flagDuplicateNumbers(positions, numberOf = (p) => p.label) {
 /**
  * The map for a book, from a sample of its pages: `sample` the row-shaped
  * strings, `sampledPages` the same pages' spans kept whole. A row map wins
- * whenever one explains a row, so every book read before the grid font keeps
- * its reader; the grid font is asked only when none does. Null when neither.
+ * whenever it explains at least half of the rows that stack into diagrams,
+ * so every book read before the grid font keeps its reader; the grid font is
+ * asked only when none does. Null when neither.
+ *
+ * Half, because explaining *a* row proves nothing: NICRoest's letters overlap
+ * SkakNew's, and SkakNew "explained" 2 of the 184 diagram rows of a New In
+ * Chess book (`9087.pdf`) and was chosen, so the book went down the font path
+ * and was refused there, and the picture path never got it. Measured
+ * 23.9.2026 on the sample the kind check takes: the right map explains 80% to
+ * 100% of the stacked rows (Tactics Course 56/70, SkakNew 144/156, NICRoest
+ * 184/184), the wrong one 1%.
  * Shared with `scan.mjs`, so the tool and the route cannot disagree.
  */
 export function pickFontMap(sample, sampledPages) {
   const byRows = selectFontMap(sample);
-  if (byRows) return byRows;
+  if (byRows && 2 * byRows.covered >= stackedRows(sampledPages).length) return byRows;
   const boards = countGridBoards(sampledPages);
   return boards > 0 ? { map: FRITZ_DIAGRAM, covered: boards } : null;
 }

@@ -33,7 +33,35 @@ export async function pageSpans(doc, pageNo) {
   }
   spans.sort((a, b) => a.y - b.y || a.x - b.x);
   page.cleanup();
-  return spans;
+  return withoutOverprint(spans);
+}
+
+// Within this much of a point, two spans are at the same place.
+const SAME_PLACE = 0.5;
+
+/**
+ * Spans without the copies a book prints over themselves. New In Chess sets
+ * every diagram row twice at the same spot, in `NICRoest` and again in
+ * `NICRoest-Italic` (`9087.pdf`), and mergeSpans glued the two into one row of
+ * sixteen glyphs that no map reads. The same text at the same place is one
+ * thing on the page, whatever font drew it the second time. `spans` is
+ * sorted top-down; a copy lies within SAME_PLACE of it in y, so only spans
+ * that close are compared.
+ */
+export function withoutOverprint(spans) {
+  const out = [];
+  for (const s of spans) {
+    let copy = false;
+    for (let k = out.length - 1; k >= 0 && s.y - out[k].y <= SAME_PLACE; k--) {
+      const o = out[k];
+      if (o.text === s.text && Math.abs(o.x - s.x) <= SAME_PLACE && Math.abs(o.y - s.y) <= SAME_PLACE) {
+        copy = true;
+        break;
+      }
+    }
+    if (!copy) out.push(s);
+  }
+  return out;
 }
 
 /**

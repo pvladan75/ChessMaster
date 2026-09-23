@@ -7247,3 +7247,72 @@ lovcem i obe su pale.
 
 Brojevi: backend 1667 → 1671 bez baze (+4 u `gridFont.test.mjs`), izmereno;
 1803 → 1807 sa bazom izvedeno, ne izmereno.
+
+## 23.9.2026 — Faza 3h: strana koju crta server, i dve kopije iste biblioteke
+
+Knjiga čiji font nema mapu sada se crta i čita kao slike. Dve stvari nisu bile
+u kodu nego u okruženju, i obe su nađene tek merenjem na pravim knjigama.
+
+**Tihi pad bio je dve kopije jedne nativne biblioteke.** Dve knjige su prekidale
+proces bez ijedne reči (Windows `0xC0000374`, segfault, exit 127) — Linares
+knjiga je izgledala kao da je „završila bez rezultata". Suženo korak po korak:
+nije novija verzija (1.0.9 pada isto), nije `fillText` (sa fontovima pdfjs-a
+crta putanjama i opet pada), nije `save`/`restore`; pale su tačno strane sa
+ugrađenom slikom. pdfjs-dist ima svoj `@napi-rs/canvas` 0.1.100 pored našeg
+1.0.3, i pomoćno platno za sliku pravi svojom kopijom. **Kad proces padne bez
+poruke, prvo potraži drugu kopiju te nativne biblioteke u `node_modules`** —
+dve nativne kopije u jednom procesu nisu dve verzije nego dve nespojive
+memorije. Zato i poseban proces, ne worker nit: nativni pad u niti je pad
+servera.
+
+**Prag podešen na jednoj vrsti slike deli drugu vrstu nasumično.** Kontrast 25
+je bio dobar za skenove; šrafura fonta daje 22–26, pa je nađeno 42 od 146
+tabli — ne „neke table", nego bacanje novčića po tabli. Pre promene praga
+izmereno je šta on radi na starom: na Silmanu, 543 strane, isti broj tabli na
+svakoj strani za 25/15/10/5.
+
+Dve mutacije su preživele prvi krug i obe su bile rupe u fiksturi: bez teksta na
+strani nijedan glif se ne crta, pa brisanje globalnih `Path2D` nije ništa
+menjalo (dodata strana sa ugrađenim fontom iz samog pdfjs-dist, ne sa mašine);
+a slučaj „proces koji ne odgovara" padao je samo kao „cancelled" na 40 s
+izvršioca — sada ima svoj rok od 8 s. **Brojač koji čita samo `fail` ne vidi
+`cancelled`.**
+
+Usput ispravka sopstvenog broja: vlasniku je rečeno „162 table" — zbir po
+knjigama je 146. Pravilo 17, opet.
+
+Brojevi: backend 1671 → 1680 bez baze (+9 `render.test.mjs`), izmereno;
+1807 → 1816 sa bazom izvedeno, ne izmereno.
+
+## 23.9.2026 — `9087.pdf`: mapa koja „objasni jedan red" nije mapa knjige
+
+New In Chess knjiga u fontu `NICRoest`. Tri greške jedna iza druge, i samo je
+prva bila „nemamo mapu":
+
+1. **Tuđa mapa je uzela knjigu.** `selectFontMap` bira mapu koja objasni
+   najviše redova, a uzima je čim objasni *ijedan*. Slova NICRoest-a se
+   preklapaju sa SkakNew-ovim (`rNbQkBnR` je ispravan red u oba), pa je
+   SkakNew „objasnio" 2 od 184 reda dijagrama i provera vrste je rekla „font".
+   Knjiga je išla putem fonta, tamo odbijena, a nova faza 3h je nije ni videla.
+   Izmereno pre pravila: prava mapa objašnjava 80–100% složenih redova, lažna
+   1% — pa je prag polovina, i test stoji tačno na četiri od osam.
+2. **Knjiga štampa svaki red dvaput**, na istom mestu, drugi put u
+   `NICRoest-Italic`. `mergeSpans` je spojio dva primerka u red od šesnaest
+   znakova, pa je i ispravna mapa našla nula dijagrama. Ista reč na istom mestu
+   je jedna stvar na strani.
+3. Mapa je pročitana sa početne pozicije u samoj knjizi (strana 3) — knjiga koja
+   ima početnu poziciju daje celu azbuku u osam redova.
+
+**„Objašnjava red" i „objašnjava knjigu" su dva tvrđenja** — kao „postoji na
+masteru" i „dostižno na masteru". Pravilo izbora koje gleda samo pobednika, a ne
+koliko je pobedio, uzeće bilo koga kad nema pravog kandidata.
+
+Mutacija koja je preživela: `pageSpans` bez `withoutOverprint` — test je zvao
+funkciju direktno, a ne put kojim je koristi čitanje strane. Dodat slučaj kroz
+PDF sagrađen u testu sa istim redom odštampanim dvaput.
+
+Pre izmene čitanja strane sačuvan je izlaz skenera za svih osam ranijih knjiga;
+posle je bajt za bajt isti.
+
+Brojevi: backend 1680 → 1684 bez baze (+4 u `positionScanner.test.mjs`),
+izmereno; 1816 → 1820 sa bazom izvedeno, ne izmereno.
