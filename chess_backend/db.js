@@ -832,6 +832,17 @@ async function initDB(target = pool) {
       ALTER TABLE custom_puzzles ADD CONSTRAINT custom_puzzles_origin_check
         CHECK (origin IN ('book', 'manual', 'mistakes'));
     `);
+    // Who gave the stored move (docs/PLAN-MATERIJAL.md, phase 2): the book
+    // printed it, or the engine proposed it and a person accepted it. Null
+    // where there is no move, and on every row written before the column —
+    // no backfill, by the owner's decision 6. A fact beside the answer, never
+    // a second reader of it: the answer is still read through exercise.js.
+    await client.query(`
+      ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS solution_source VARCHAR(8);
+      ALTER TABLE custom_puzzles DROP CONSTRAINT IF EXISTS custom_puzzles_solution_source_check;
+      ALTER TABLE custom_puzzles ADD CONSTRAINT custom_puzzles_solution_source_check
+        CHECK (solution_source IS NULL OR solution_source IN ('book', 'engine'));
+    `);
     logger.info('Verified database table & indexes: custom_puzzles');
 
     // Create user_puzzle_attempts table.

@@ -11,6 +11,9 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
 import '../services/scanner_api_service.dart';
+import '../services/side_proposal.dart';
+import '../services/side_proposal_runner.dart';
+import '../widgets/side_suggestions.dart';
 import 'image_scan_screen.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
@@ -40,6 +43,7 @@ class ScanReviewScreen extends StatefulWidget {
     required this.session,
     this.api,
     this.pickDocument = pickPdfWithSystemPicker,
+    this.proposalRunner,
   });
 
   final UserSession session;
@@ -48,6 +52,10 @@ class ScanReviewScreen extends StatefulWidget {
   final ScannerApiService? api;
   final DocumentPicker pickDocument;
 
+  /// The engine behind „Suggest sides with the engine"; null is the real
+  /// one. A seam for a test, which cannot run Stockfish.
+  final SideProposalRunner? proposalRunner;
+
   @override
   State<ScanReviewScreen> createState() => _ScanReviewScreenState();
 }
@@ -55,6 +63,16 @@ class ScanReviewScreen extends StatefulWidget {
 class _ScanReviewScreenState extends State<ScanReviewScreen> {
   late final ScannerApiService _api =
       widget.api ?? ScannerApiService(authToken: widget.session.token);
+
+  /// The engine's proposals for the boards on screen, by `p<index>` in the
+  /// scan's list (`docs/PLAN-MATERIJAL.md`, phase 2).
+  late final SideSuggestions _suggestions =
+      SideSuggestions(runner: widget.proposalRunner)
+        ..addListener(_onSuggestions);
+
+  void _onSuggestions() {
+    if (mounted) setState(() {});
+  }
 
   /// What kind of book the chosen PDF is (phase 3f): null until asked, then
   /// `font`, `pictures` or `unknown`. A picture book goes to its calibration
@@ -108,12 +126,63 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
 
   @override
   void dispose() {
+    _suggestions.dispose();
     AppFeedback.dismiss(_messenger);
     _fromController.dispose();
     _toController.dispose();
     _solutionsFromController.dispose();
     _solutionsToController.dispose();
     super.dispose();
+  }
+
+  String _idOf(ScannedPosition p) => 'p${_result?.positions.indexOf(p) ?? -1}';
+
+  /// The proposal shown under [p]: only while its side is still unsettled —
+  /// once a person has set it, there is nothing left to propose.
+  SideProposal? _proposalFor(ScannedPosition p) =>
+      p.sideSource == 'unknown' ? _suggestions.proposals[_idOf(p)] : null;
+
+  List<ScannedPosition> get _unsettled =>
+      (_result?.positions ?? const <ScannedPosition>[])
+          .where((p) => p.wantsSideProposal)
+          .toList();
+
+  /// Boards with a confident proposal and a side still unsettled.
+  List<ScannedPosition> get _confident => _unsettled
+      .where((p) =>
+          _proposalFor(p)?.hasAnswer == true &&
+          _proposalFor(p)!.confidence == ProposalConfidence.high)
+      .toList();
+
+  Future<void> _suggest() async {
+    final outcome = await _suggestions.start([
+      for (final p in _unsettled) (id: _idOf(p), fen: p.fen),
+    ]);
+    if (outcome == SuggestOutcome.noLocalEngine) {
+      _toast(SideSuggestions.noLocalEngineMessage);
+    }
+  }
+
+  void _accept(ScannedPosition p, {required bool withAnswer}) {
+    final proposal = _proposalFor(p);
+    final side = proposal?.side;
+    if (proposal == null || side == null) return;
+    setState(() => p.acceptProposal(side,
+        answerSan: withAnswer ? proposal.answerSan : null));
+    _suggestions.forget(_idOf(p));
+  }
+
+  /// High proposals only, side and answer together — the rule of 19.8.2026:
+  /// a medium one is looked at one by one.
+  void _acceptConfident() {
+    for (final p in _confident) {
+      _accept(p, withAnswer: true);
+    }
+  }
+
+  void _flip(ScannedPosition p) {
+    setState(p.flipSide);
+    _suggestions.forget(_idOf(p));
   }
 
   List<ScannedPosition> get _visible {
@@ -282,6 +351,7 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
         fileName: _fileName ?? 'document.pdf',
         fromPage: withPages ? from : null,
         toPage: withPages ? to : null,
+        proposalRunner: widget.proposalRunner,
       ),
     ));
   }
@@ -300,9 +370,16 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
         title: const Text('Position Scanner'),
         backgroundColor: colors.surface,
       ),
-      body: Column(
-        children: [
-          _SetupPanel(
+      // One scroll for the whole screen. Until 23.9.2026 the setup panel and
+      // the summary sat in a Column above an Expanded grid, and on a phone
+      // they took the full height: at 360 x 640 the grid of scanned boards
+      // was 0 px tall — the scan found boards and showed none, which a
+      // release build clips rather than reports (measured on master while
+      // building `docs/PLAN-MATERIJAL.md` phase 2, whose bar made it worse).
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+              child: _SetupPanel(
             fileName: _fileName,
             fromController: _fromController,
             toController: _toController,
@@ -315,63 +392,97 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
             showRange: _kind != 'pictures',
             onPick: _pickDocument,
             onScan: _filePath == null || _identifying ? null : _scan,
-          ),
-          if (_result != null) _summary(_result!),
-          Expanded(child: _body()),
+          )),
+          if (_result != null) SliverToBoxAdapter(child: _summary(_result!)),
+          _body(),
         ],
       ),
       bottomNavigationBar: _result == null ? null : _saveBar(),
     );
   }
 
+  /// What sits under the panel and the summary, as a sliver of the screen's
+  /// one scroll.
   Widget _body() {
+    Widget rest(Widget child) =>
+        SliverFillRemaining(hasScrollBody: false, child: child);
     if (_scanning) {
-      return const Center(child: CircularProgressIndicator());
+      return rest(const Center(child: CircularProgressIndicator()));
     }
     if (_kind == 'pictures' && _result == null) {
-      return SingleChildScrollView(
+      return SliverPadding(
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: _PictureBook(
-          calibrated: _kindCalibrated,
-          onOpen: () => _openImagePath(withPages: false),
+        sliver: SliverToBoxAdapter(
+          child: _PictureBook(
+            calibrated: _kindCalibrated,
+            onOpen: () => _openImagePath(withPages: false),
+          ),
         ),
       );
     }
     final result = _result;
     final door = _imageDoor;
     if (result == null && door != null) {
-      return SingleChildScrollView(
+      return SliverPadding(
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: ImageDiagramsDoor(
-            count: door, calibrated: _doorCalibrated, onOpen: _openImagePath),
+        sliver: SliverToBoxAdapter(
+          child: ImageDiagramsDoor(
+              count: door, calibrated: _doorCalibrated, onOpen: _openImagePath),
+        ),
       );
     }
     if (result == null) {
-      return const _EmptyHint();
+      return rest(const _EmptyHint());
     }
     final items = _visible;
     if (items.isEmpty) {
-      return Center(
+      return rest(Center(
         child: Text(
           _onlyDoubtful ? 'No positions need review.' : 'No diagrams read.',
           style: TextStyle(color: context.colors.textSecondary),
         ),
-      );
+      ));
     }
-    return GridView.builder(
+    // Cells are one height; a proposal under a board needs room for its
+    // sentence and two buttons, so every cell grows while any is shown.
+    final anyProposal = items.any((p) => _proposalFor(p) != null);
+    // The count falls out of the width with a *minimum* per card: the old
+    // „at most 260" split a 360 dp phone into two cells of 158 around a
+    // 150 px board. 200 keeps five columns of 240 on a 1280 window.
+    const minCard = 200.0, gap = 12.0;
+    return SliverPadding(
       padding: const EdgeInsets.all(AppSpacing.md),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        mainAxisExtent: 290,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) => _PositionCard(
-        position: items[index],
-        onToggleAccepted: () =>
-            setState(() => items[index].accepted = !items[index].accepted),
-        onFlipSide: () => setState(items[index].flipSide),
+      sliver: SliverLayoutBuilder(
+        builder: (context, constraints) => SliverGrid.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount:
+                ((constraints.crossAxisExtent + gap) / (minCard + gap))
+                    .floor()
+                    .clamp(1, 1 << 10),
+            mainAxisExtent: anyProposal ? 410 : 290,
+            crossAxisSpacing: gap,
+            mainAxisSpacing: gap,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final p = items[index];
+            final proposal = _proposalFor(p);
+            return _PositionCard(
+              key: ValueKey('scan-card-${_idOf(p)}'),
+              position: p,
+              onToggleAccepted: () => setState(() => p.accepted = !p.accepted),
+              onFlipSide: () => _flip(p),
+              proposal: proposal == null
+                  ? null
+                  : ProposalNote(
+                      id: _idOf(p),
+                      proposal: proposal,
+                      onSetSide: () => _accept(p, withAnswer: false),
+                      onSetSideAndAnswer: () => _accept(p, withAnswer: true),
+                    ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -383,27 +494,40 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 10, AppSpacing.lg, 10),
       color: colors.surfaceRaised,
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 6,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${result.documentName} · pages ${result.scannedFrom}–${result.scannedTo} of ${result.pageCount}',
-            style: TextStyle(
-                color: colors.textPrimary, fontWeight: FontWeight.w600),
+          Wrap(
+            spacing: 16,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                '${result.documentName} · pages ${result.scannedFrom}–${result.scannedTo} of ${result.pageCount}',
+                style: TextStyle(
+                    color: colors.textPrimary, fontWeight: FontWeight.w600),
+              ),
+              Text('${result.positions.length} positions, $accepted selected',
+                  style: TextStyle(color: colors.textSecondary)),
+              if (result.needingReview > 0)
+                FilterChip(
+                  label: Text('${result.needingReview} needs a look'),
+                  selected: _onlyDoubtful,
+                  onSelected: (value) => setState(() => _onlyDoubtful = value),
+                  selectedColor: colors.warning.withValues(alpha: 0.25),
+                  labelStyle: TextStyle(color: colors.warning),
+                  backgroundColor: colors.surface,
+                ),
+            ],
           ),
-          Text('${result.positions.length} positions, $accepted selected',
-              style: TextStyle(color: colors.textSecondary)),
-          if (result.needingReview > 0)
-            FilterChip(
-              label: Text('${result.needingReview} needs a look'),
-              selected: _onlyDoubtful,
-              onSelected: (value) => setState(() => _onlyDoubtful = value),
-              selectedColor: colors.warning.withValues(alpha: 0.25),
-              labelStyle: TextStyle(color: colors.warning),
-              backgroundColor: colors.surface,
-            ),
+          const SizedBox(height: 6),
+          SuggestSidesBar(
+            suggestions: _suggestions,
+            eligible: _unsettled.length,
+            onSuggest: _suggest,
+            confident: _confident.length,
+            onAcceptConfident: _acceptConfident,
+          ),
         ],
       ),
     );
@@ -620,14 +744,19 @@ class _PageField extends StatelessWidget {
 
 class _PositionCard extends StatelessWidget {
   const _PositionCard({
+    super.key,
     required this.position,
     required this.onToggleAccepted,
     required this.onFlipSide,
+    this.proposal,
   });
 
   final ScannedPosition position;
   final VoidCallback onToggleAccepted;
   final VoidCallback onFlipSide;
+
+  /// The engine's proposal for this board, while its side is unsettled.
+  final Widget? proposal;
 
   @override
   Widget build(BuildContext context) {
@@ -699,9 +828,16 @@ class _PositionCard extends StatelessWidget {
                     : colors.textMuted,
               ),
             ),
+            if (proposal != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              proposal!,
+            ],
             const Spacer(),
             if (position.solutionSan != null && position.solutionLegal == true)
-              Text('solution: ${position.solutionSan}',
+              Text(
+                  position.solutionSource == 'engine'
+                      ? 'answer (engine): ${position.solutionSan}'
+                      : 'solution: ${position.solutionSan}',
                   style: AppText.body.copyWith(color: colors.textSecondary))
             else if (position.problem != null)
               Text(
@@ -722,6 +858,10 @@ class _PositionCard extends StatelessWidget {
         return 'from book solution';
       case 'only-legal-side':
         return 'only legal side';
+      case 'trainer':
+        return 'set by you';
+      case 'engine':
+        return 'engine proposal, accepted';
       default:
         return 'book does not say — check';
     }

@@ -208,4 +208,56 @@ void main() {
     await tester.tap(find.text('go 1'));
     expect(tapped, [4, 1]);
   });
+
+  // docs/PLAN-MATERIJAL.md, phase 2: a card that grows after its row was laid
+  // out — an engine proposal appearing under a scanned board — must take the
+  // row with it. Each card's last layout is tight, which makes it a relayout
+  // boundary, so until then it re-laid itself inside its old height,
+  // overflowed, and the row stayed as it was.
+  testWidgets('a card grown by a rebuild takes its row with it',
+      (tester) async {
+    tester.view.physicalSize = const Size(2400, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    var grown = false;
+    late StateSetter grow;
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 900,
+              child: StatefulBuilder(builder: (context, setState) {
+                grow = setState;
+                return AdaptiveCardRows(children: [
+                  _card(0),
+                  ColoredBox(
+                    key: const ValueKey('card-1'),
+                    color: Colors.grey,
+                    child: Column(children: [
+                      const SizedBox(height: 60),
+                      if (grown) const SizedBox(height: 100),
+                    ]),
+                  ),
+                ]);
+              }),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(_rect(tester, 1).height, 60);
+
+    grow(() => grown = true);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(_rect(tester, 1).height, 160,
+        reason: 'the card kept its old height');
+    expect(_rect(tester, 0).height, 160,
+        reason: 'its neighbour is no longer as tall as the row');
+  });
 }

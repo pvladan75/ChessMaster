@@ -7105,3 +7105,37 @@ kompilaciju) i ponovljena u obliku koji se prevodi — pravilo 3.
 
 Brojevi: aplikacija 3879 → 3891; backend 1637 → 1656 bez baze, 1769 → 1788
 sa bazom (obe mere, `.env` sklonjen).
+
+## 23.9.2026 — PLAN-MATERIJAL faza 2: motor pre čuvanja, i dve greške koje su čekale
+
+Motor sada predlaže stranu i potez **pre** čuvanja, na oba skenera; čovek
+prihvata („Set side", „Set side and answer", „Accept all confident" samo za
+sigurne), a `custom_puzzles.solution_source` pamti ko je dao potez. Server
+potez motora proverava kao štampani i odbacuje ga sa oznakom ako se ne može
+odigrati.
+
+Dve greške su već bile na masteru i obe je probudila ova faza (pravilo 14):
+
+- **Skener fonta na telefonu nije pokazivao nijednu tablu.** Panel i zbir su
+  stajali u `Column` iznad `Expanded` mreže, i na 360 x 640 mreža je bila
+  visoka 0 px — release build to seče bez reči. Izmereno na masteru pre
+  ikakve popravke (74 i 96 px prekoračenja); nova traka je samo pogoršala na
+  202. Ekran je sada jedan `CustomScrollView`, a mreža ima **najmanju** širinu
+  kartice: staro „najviše 260" delilo je 360 dp na dve ćelije od 158 oko
+  table od 150 px. Ista polovina pravila kao kod `AdaptiveCardGrid` pre faze 5
+  plana `PLAN-LISTE`.
+- **`AdaptiveCardRows` nije ponovo merio karticu koja naraste.** Poslednji
+  raspored svake kartice je tesan, a tesna ograničenja je čine granicom
+  ponovnog rasporeda: kartica se preslaže u staroj visini i prelije se, a red
+  ne sazna ništa. Do sada nijedna kartica nije rasla na mestu. Sada se red meri
+  pri svakom rebuild-u; slučaj u `adaptive_card_rows_test` je crven bez toga
+  sa tačno onim prelivanjem koje je ekran pokazao (100 px).
+
+I jedna o mutacijama: `sideTouched` pored `sideSource` na putu fonta preživeo
+je dve mutacije, jer ručno okretanje već prepisuje `sideSource` u `trainer`.
+**Dve zastavice za jednu činjenicu — preživela mutacija pokazuje koja je
+višak.** Obrisana je, a mutacija premeštena na red koji menja `sideSource`, gde
+je crvena.
+
+Brojevi: aplikacija 3891 → 3906; backend 1656 → 1660 bez baze, 1788 → 1794
+sa bazom (obe mere, `.env` sklonjen).

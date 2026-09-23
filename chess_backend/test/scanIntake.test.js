@@ -225,3 +225,42 @@ test('a re-scan fills a missing task but never overwrites one', () => {
   assert.equal(empty.action, 'fill');
   assert.equal(empty.fields.instruction, 'White mates in one move.');
 });
+
+// ── who gave the answer (docs/PLAN-MATERIJAL.md, phase 2) ────────────────
+//
+// An engine proposal the person accepted arrives as `solutionSource: 'engine'`
+// and is verified exactly as a printed move: the client proposed it, it is not
+// the authority on whether it plays.
+
+test('a printed move is from the book, an accepted proposal from the engine', () => {
+  assert.equal(prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#' }).solutionSource, 'book');
+  assert.equal(
+    prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#', solutionSource: 'engine' }).solutionSource,
+    'engine'
+  );
+  // Nothing else a client might send names a third source.
+  assert.equal(
+    prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#', solutionSource: 'oracle' }).solutionSource,
+    'book'
+  );
+});
+
+test('an engine move that does not play is dropped and the row flagged, as a printed one is', () => {
+  const row = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Rh8#', solutionSource: 'engine' });
+  assert.equal(row.solutionSan, null);
+  assert.equal(row.solutionSource, null, 'a source for a move that is not there');
+  assert.equal(row.needsReview, true);
+});
+
+test('no move, no source', () => {
+  assert.equal(prepareRow({ fen: MATE_IN_ONE }).solutionSource, null);
+  assert.equal(prepareRow({ fen: MATE_IN_ONE, solutionSource: 'engine' }).solutionSource, null);
+});
+
+test('an accepted engine answer fills a re-scanned gap with its source', () => {
+  const existing = { fen: MATE_IN_ONE, solution_san: null, themes: [] };
+  const incoming = prepareRow({ fen: MATE_IN_ONE, solutionSan: 'Qf1#', solutionSource: 'engine' });
+  const plan = mergePlan(existing, incoming);
+  assert.equal(plan.fields.solution_san, 'Qf1#');
+  assert.equal(plan.fields.solution_source, 'engine');
+});

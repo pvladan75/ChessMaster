@@ -13,6 +13,7 @@ class ScannedPosition {
     this.sideSource = 'unknown',
     this.solutionSan,
     this.solutionLegal,
+    this.solutionSource,
     this.themesText,
     this.repairs = const [],
     this.problem,
@@ -30,22 +31,40 @@ class ScannedPosition {
   /// so" deserve different amounts of trust. The three are written by
   /// `positionScanner/verify.mjs` and read here and in the review screen, so
   /// they are a wire contract and not copy — they were Serbian until 8.9.2026.
-  final String sideSource;
+  /// Two more are this app's own: `engine`, an engine proposal a person
+  /// accepted, and `trainer`, a side a person set by hand (phase 2 of
+  /// `docs/PLAN-MATERIJAL.md`; the picture path has said `trainer` since
+  /// phase 3 of `PLAN-SKENER-SLIKE.md`).
+  String sideSource;
 
-  final String? solutionSan;
-  final bool? solutionLegal;
+  String? solutionSan;
+  bool? solutionLegal;
+
+  /// Who gave [solutionSan]: null for the book's own, `engine` for an engine
+  /// proposal a person accepted. Sent with the move; the server stores it.
+  String? solutionSource;
+
   final String? themesText;
   final List<String> repairs;
 
   /// Set when the parser could not reconcile the position with the book.
-  final String? problem;
+  String? problem;
 
   /// Whether the trainer wants this one saved. Everything starts accepted:
   /// discarding is a decision, and so is keeping, but only one of them can be
   /// the default without hiding work.
   bool accepted;
 
+  /// A side the book did not give is in doubt until a person sets it — by
+  /// hand (`trainer`) or by accepting a proposal (`engine`) — as on the
+  /// picture path. [sideSource] is the one record of that: a flag beside it
+  /// saying the same thing was deleted when mutation showed it could never
+  /// decide anything.
   bool get needsReview => problem != null || sideSource == 'unknown';
+
+  /// Whether the engine may be asked about this board: kept, and its side
+  /// neither given by the book nor set by anybody here.
+  bool get wantsSideProposal => accepted && sideSource == 'unknown';
 
   String get sideToMove => fen.split(' ').length > 1 ? fen.split(' ')[1] : 'w';
 
@@ -59,6 +78,27 @@ class ScannedPosition {
     // the position illegal once the mover changes.
     if (parts.length > 3) parts[3] = '-';
     fen = parts.join(' ');
+    if (sideSource == 'unknown') sideSource = 'trainer';
+  }
+
+  /// A person accepted the engine's proposal: [side] to move, and with
+  /// [answerSan] the proposed move as the answer. The server verifies that
+  /// move as it verifies a printed one.
+  void acceptProposal(String side, {String? answerSan}) {
+    final parts = fen.split(' ');
+    if (parts.length > 1) {
+      parts[1] = side;
+      if (parts.length > 3) parts[3] = '-';
+      fen = parts.join(' ');
+    }
+    sideSource = 'engine';
+    if (answerSan != null) {
+      solutionSan = answerSan;
+      solutionLegal = true;
+      solutionSource = 'engine';
+      // The printed move this replaces is what the problem was about.
+      problem = null;
+    }
   }
 
   factory ScannedPosition.fromJson(Map<String, dynamic> json) =>
@@ -82,6 +122,10 @@ class ScannedPosition {
         if (label != null) 'label': label,
         if (solutionSan != null && solutionLegal == true)
           'solutionSan': solutionSan,
+        if (solutionSan != null &&
+            solutionLegal == true &&
+            solutionSource != null)
+          'solutionSource': solutionSource,
         'themes': _themes(),
         'needsReview': needsReview,
       };

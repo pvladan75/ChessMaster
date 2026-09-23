@@ -23,7 +23,11 @@ import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.da
 import 'package:chess_app/features/position_scanner/screens/image_scan_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
+import 'package:chess_app/features/position_scanner/services/side_proposal_runner.dart';
+import 'package:chess_app/features/position_scanner/widgets/side_suggestions.dart';
 import 'package:chess_app/theme/app_colors.dart';
+
+import 'support/fake_side_runner.dart';
 
 const _png =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
@@ -250,7 +254,8 @@ Future<void> _pump(WidgetTester tester, _Server server,
     Size size = const Size(1280, 900),
     bool overAnotherScreen = false,
     bool readPages = true,
-    bool withPages = true}) async {
+    bool withPages = true,
+    SideProposalRunner? runner}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -264,7 +269,8 @@ Future<void> _pump(WidgetTester tester, _Server server,
       fromPage: withPages ? 40 : null,
       toPage: withPages ? 44 : null,
       pickPosition:
-          pick ?? (context, picture, initial) async => '8/8/8/8/8/8/8/K6k');
+          pick ?? (context, picture, initial) async => '8/8/8/8/8/8/8/K6k',
+      proposalRunner: runner);
   await tester.pumpWidget(MaterialApp(
     key: UniqueKey(),
     theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
@@ -1268,6 +1274,112 @@ void main() {
       expect(board.width, picture.width);
       expect(picture.right, lessThanOrEqualTo(board.left));
       expect(board.right, lessThanOrEqualTo(360));
+    });
+  });
+
+  // docs/PLAN-MATERIJAL.md, phase 2: the engine is asked before saving here
+  // too. A picture book prints no solution, so this is where its answers come
+  // from. The font path's cases are in scan_settle_test.dart. Boards read:
+  // 40-1 (a calibration board), 43-1, and 44-1, which is not a position.
+  group('phase 2 — the engine before saving', () {
+    Map<String, Map> sentByPage(_Server server) {
+      final confirm =
+          server.sent.lastWhere((r) => r.url.path == '/scans/confirm');
+      return {
+        for (final p in ((jsonDecode(confirm.body) as Map)['positions'] as List)
+            .cast<Map>())
+          '${p['page']}': p,
+      };
+    }
+
+    Future<void> tapKey(WidgetTester tester, String key) async {
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.tap(find.byKey(ValueKey(key)));
+      await tester.pump();
+    }
+
+    final answers = {
+      '40-1': highProposal('w', 'Qc8+'),
+      '43-1': mediumProposal('b', 'Nd1'),
+      '44-1': highProposal('w', 'Kb1'),
+    };
+
+    testWidgets(
+        'asks about positions whose side nobody set — not one flipped by '
+        'hand, not one that is not a position', (tester) async {
+      final runner = FakeSideRunner(answers);
+      await _pump(tester, _Server(calibration: _calibrated), runner: runner);
+      await tester.ensureVisible(find.text('White to move').at(1));
+      await tester.tap(find.text('White to move').at(1)); // 43-1
+      await tester.pump();
+      await tapKey(tester, 'suggest-sides');
+      await _settle(tester, 4);
+      expect(runner.askedIds, ['40-1']);
+      expect(find.byKey(const ValueKey('proposal-40-1')), findsOneWidget);
+    });
+
+    testWidgets(
+        '„Set side and answer" saves the side and the move of the engine',
+        (tester) async {
+      final server = _Server(calibration: _calibrated);
+      await _pump(tester, server, runner: FakeSideRunner(answers));
+      await tapKey(tester, 'suggest-sides');
+      await _settle(tester, 4);
+      await tapKey(tester, 'proposal-set-answer-43-1');
+      await tester.tap(find.byKey(const ValueKey('image-scan-save')));
+      await _settle(tester);
+
+      final p43 = sentByPage(server)['43']!;
+      expect((p43['fen'] as String).split(' ')[1], 'b');
+      expect(p43['solutionSan'], 'Nd1');
+      expect(p43['solutionSource'], 'engine');
+      expect(p43['needsReview'], false);
+      // 40-1 was left alone: no answer, still in doubt.
+      expect(sentByPage(server)['40']!.containsKey('solutionSan'), isFalse);
+      expect(sentByPage(server)['40']!['needsReview'], true);
+    });
+
+    testWidgets('„Set side" takes the side and not the move', (tester) async {
+      final server = _Server(calibration: _calibrated);
+      await _pump(tester, server, runner: FakeSideRunner(answers));
+      await tapKey(tester, 'suggest-sides');
+      await _settle(tester, 4);
+      await tapKey(tester, 'proposal-set-side-43-1');
+      await tester.tap(find.byKey(const ValueKey('image-scan-save')));
+      await _settle(tester);
+
+      final p43 = sentByPage(server)['43']!;
+      expect((p43['fen'] as String).split(' ')[1], 'b');
+      expect(p43.containsKey('solutionSan'), isFalse);
+      expect(p43['needsReview'], false);
+    });
+
+    testWidgets('„Accept all confident" takes the high proposals only',
+        (tester) async {
+      final server = _Server(calibration: _calibrated);
+      await _pump(tester, server, runner: FakeSideRunner(answers));
+      await tapKey(tester, 'suggest-sides');
+      await _settle(tester, 4);
+      expect(find.text('Accept all confident (1)'), findsOneWidget);
+      await tapKey(tester, 'suggest-sides-accept-confident');
+      await tester.tap(find.byKey(const ValueKey('image-scan-save')));
+      await _settle(tester);
+
+      final sent = sentByPage(server);
+      expect(sent['40']!['solutionSan'], 'Qc8+');
+      expect(sent['40']!['needsReview'], false);
+      expect(sent['43']!.containsKey('solutionSan'), isFalse);
+      expect(sent['43']!['needsReview'], true);
+    });
+
+    testWidgets('a network engine is refused in words, and nothing is asked',
+        (tester) async {
+      final runner = FakeSideRunner(answers, usable: false);
+      await _pump(tester, _Server(calibration: _calibrated), runner: runner);
+      await tapKey(tester, 'suggest-sides');
+      await _settle(tester, 4);
+      expect(runner.runs, isEmpty);
+      expect(find.text(SideSuggestions.noLocalEngineMessage), findsOneWidget);
     });
   });
 }

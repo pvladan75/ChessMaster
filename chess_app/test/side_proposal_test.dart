@@ -50,6 +50,39 @@ void main() {
       expect(p.confidence, ProposalConfidence.medium);
     });
 
+    // docs/PLAN-MATERIJAL.md, phase 2: the proposal carries the proposed
+    // side's own best move — never the other side's — as the answer to offer.
+    test('the answer is the proposed side\'s move, high or medium', () {
+      final high = decideSide(
+          whiteEval: 'M1',
+          blackEval: '-2.50',
+          whiteBestSan: 'Ra8#',
+          blackBestSan: 'Kf8');
+      expect(high.answerSan, 'Ra8#');
+      final medium = decideSide(
+          whiteEval: '+0.20',
+          blackEval: '-4.00',
+          whiteBestSan: 'h3',
+          blackBestSan: 'Qxd1');
+      expect(medium.side, 'b');
+      expect(medium.answerSan, 'Qxd1');
+    });
+
+    test('no proposed side, no answer; no move named, no answer', () {
+      expect(
+          decideSide(
+                  whiteEval: '+0.30',
+                  blackEval: '+0.10',
+                  whiteBestSan: 'h3',
+                  blackBestSan: 'h6')
+              .answerSan,
+          isNull);
+      expect(
+          decideSide(whiteEval: 'M1', blackEval: '-2.50', whiteBestSan: ' ')
+              .answerSan,
+          isNull);
+    });
+
     test('when both sides have the same little, the engine says nothing', () {
       final p = decideSide(whiteEval: '+0.30', blackEval: '+0.10');
       expect(p.hasAnswer, isFalse);

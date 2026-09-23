@@ -5878,6 +5878,34 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 232. Strana i odgovor pre čuvanja, na oba skenera — 23.9.2026, nije viđeno uživo
+
+**Aplikacija i server** (nov build, restart backenda — nova kolona
+`custom_puzzles.solution_source`, dodaje je `initDB`). `PLAN-MATERIJAL.md`,
+faza 2. Lokalni motor mora da radi (Windows: Settings → Local engine).
+
+1. [ ] **Knjiga u fontu.** Position Scanner → skeniraj opseg gde knjiga ne kaže
+   ko je na potezu. Ispod zbira je dugme „Suggest sides with the engine" sa
+   izborom dubine. Pokreni: „n of N" raste, ispod svake table bez strane stiže
+   predlog (strana, potez, razlog, obe ocene) i dugmad „Set side" / „Set side
+   and answer". Tabla čiju stranu je dala knjiga ili koju si okrenuo rukom pre
+   pokretanja **nema** predlog.
+2. [ ] **Slike.** Isto na knjizi sa slikama posle kalibracije, ispod dugmadi
+   „Select shown…". Tabla koja nije pozicija se ne pita.
+3. [ ] **Prihvatanje.** „Set side" menja stranu i skida oznaku „check"; „Set
+   side and answer" još upisuje potez („answer (engine): …" na fontu). „Accept
+   all confident (N)" uzima samo sigurne; „likely" ostaju. Posle čuvanja, u
+   Biblioteci zadatak sa odgovorom motora je pod Exercises i može se rešiti
+   („Solve", stavka 231).
+4. [ ] **Stop** zaustavlja posle table koja se računa; predlozi koji su stigli
+   ostaju.
+5. [ ] **Telefon (font).** Posle skeniranja na telefonu table se vide, jedna
+   po redu — do sada je mreža bila visoka 0 px ispod panela i zbira.
+6. [ ] **Rukom okrenuta strana na fontu** se čuva kao postavljena (bez oznake
+   za proveru), kao na slikama.
+7. [ ] **Merenje (§7 plana):** koliko traje ceo paket slika na dubini 16 (upiši
+   broj tabli i vreme), i koliko „confident" predloga si okrenuo rukom.
+
 ## 231. Rešavanje svojih zadataka, i zadatak-partija kroz domaći — 23.9.2026, nije viđeno uživo
 
 **Aplikacija i server** (nov build, i restart backenda — nove rute

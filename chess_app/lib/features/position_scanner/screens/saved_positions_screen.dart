@@ -253,7 +253,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     }
 
     await runner.run(
-      targets,
+      [for (final p in targets) (id: p.puzzleId, fen: p.fen)],
       depth: _depth,
       onResult: (puzzleId, proposal) {
         if (!mounted) return;

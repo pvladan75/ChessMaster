@@ -107,6 +107,12 @@ class ReadBoard {
   String sideToMove = 'w';
   bool sideTouched = false;
 
+  /// Set by accepting an engine proposal (`docs/PLAN-MATERIJAL.md`, phase 2):
+  /// the side came from the engine, and [answerSan] — when the answer was
+  /// accepted too — is the proposed move.
+  bool sideFromEngine = false;
+  String? answerSan;
+
   /// Set up in the editor by the trainer, every square looked at — the only
   /// boards trusted to join a calibration ([calibrationGrownBy]).
   bool fixedByHand = false;
@@ -116,7 +122,22 @@ class ReadBoard {
   void flipSide() {
     sideToMove = sideToMove == 'w' ? 'b' : 'w';
     sideTouched = true;
+    sideFromEngine = false;
+    // A move proposed for the other side does not play for this one.
+    answerSan = null;
   }
+
+  /// A person accepted the engine's proposal, with or without its move.
+  void acceptProposal(String side, {String? answerSan}) {
+    sideToMove = side;
+    sideTouched = true;
+    sideFromEngine = true;
+    this.answerSan = answerSan;
+  }
+
+  /// Whether the engine may be asked about this board: kept, a position, and
+  /// its side not yet set by anybody.
+  bool get wantsSideProposal => accepted && legal && !sideTouched;
 
   /// The board as the save path takes it. The side to move counts as
   /// unknown — so the row is flagged `needsReview` — until the trainer has
@@ -124,7 +145,14 @@ class ReadBoard {
   ScannedPosition toScannedPosition() => ScannedPosition(
         fen: fen,
         page: ref.page,
-        sideSource: sideTouched ? 'trainer' : 'unknown',
+        sideSource: sideFromEngine
+            ? 'engine'
+            : sideTouched
+                ? 'trainer'
+                : 'unknown',
+        solutionSan: answerSan,
+        solutionLegal: answerSan == null ? null : true,
+        solutionSource: answerSan == null ? null : 'engine',
       );
 
   factory ReadBoard.fromJson(Map<String, dynamic> json) => ReadBoard(

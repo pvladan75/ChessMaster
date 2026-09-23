@@ -84,6 +84,11 @@ function prepareRow(position) {
     fen,
     side: board.turn(),
     solutionSan: verifiedSan,
+    // Who gave the move: the engine only when the client says so, the book
+    // otherwise. An engine's move is verified exactly as a printed one — the
+    // client proposed it, it is not the authority on whether it plays — and
+    // one that does not play is dropped with the row flagged, as above.
+    solutionSource: verifiedSan === null ? null : solutionSourceOf(position),
     // The trainer's own words win; a derived one only fills an empty field.
     instruction:
       typeof position.instruction === 'string' && position.instruction.trim()
@@ -95,6 +100,12 @@ function prepareRow(position) {
     // Two sources of doubt: the trainer's, and a solution that did not verify.
     needsReview: Boolean(position.needsReview) || (claimed !== '' && verifiedSan === null),
   };
+}
+
+/// `'engine'` when the client says the move is an accepted engine proposal,
+/// `'book'` for anything else — every move the scanner read was printed.
+function solutionSourceOf(position) {
+  return position?.solutionSource === 'engine' ? 'engine' : 'book';
 }
 
 /** Validate a batch, keeping the good rows and naming the bad ones. */
@@ -163,6 +174,7 @@ function mergePlan(existing, incoming) {
       };
     }
     fields.solution_san = incoming.solutionSan;
+    fields.solution_source = incoming.solutionSource ?? 'book';
     // The move verifying against the stored board settles what the row was
     // unsure about, so the flag goes with it.
     fields.needs_review = false;

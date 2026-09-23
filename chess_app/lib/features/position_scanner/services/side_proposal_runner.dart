@@ -1,10 +1,14 @@
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/stockfish_service_native.dart';
 
-import '../models/scanned_position.dart';
 import 'side_proposal.dart';
 
-/// Runs the engine over saved positions to propose whose move it is.
+/// One board the runner is asked about: an id the caller knows it by, and its
+/// position. Saved rows and boards still on a scanner screen alike
+/// (`docs/PLAN-MATERIJAL.md`, phase 2), so the check runs before saving.
+typedef SideCandidate = ({String id, String fen});
+
+/// Runs the engine over positions to propose whose move it is, and the move.
 ///
 /// Sequential on purpose. The engine is a shared singleton that the analysis
 /// board also uses, and `analyzePositionSync` is the entry point built to keep
@@ -54,14 +58,19 @@ class SideProposalRunner {
     return parts.join(' ');
   }
 
-  Future<String> _evalFor(String fen, int depth) async {
+  /// The evaluation and the best move of one search. The move was dropped
+  /// until phase 2 — the search had it and only the number was kept.
+  Future<({String eval, String? bestSan})> _search(
+      String fen, int depth) async {
     final lines = await _engine.analyzePositionSync(
       fen,
       depth: depth,
       multiPV: 1,
       timeout: _timeoutFor(depth),
     );
-    return lines.isEmpty ? '' : lines.first.evaluation;
+    if (lines.isEmpty) return (eval: '', bestSan: null);
+    final san = lines.first.bestMoveSan.trim();
+    return (eval: lines.first.evaluation, bestSan: san.isEmpty ? null : san);
   }
 
   /// Works through [positions], reporting each answer as it lands.
@@ -70,9 +79,9 @@ class SideProposalRunner {
   /// run is useful while it is still going, and so cancelling keeps whatever
   /// was already learned.
   Future<void> run(
-    List<SavedPosition> positions, {
+    List<SideCandidate> positions, {
     required int depth,
-    required void Function(String puzzleId, SideProposal proposal) onResult,
+    required void Function(String id, SideProposal proposal) onResult,
     required void Function(int done, int total) onProgress,
   }) async {
     _cancelled = false;
@@ -88,31 +97,39 @@ class SideProposalRunner {
 
       SideProposal proposal;
       try {
-        // A board only one side can legally be to move in answers itself, and
-        // costs no search at all.
+        // A board only one side can legally be to move in answers the side on
+        // its own; one search, for that side only, finds the move.
         final whitePlayable = isPlayableWith(position.fen, 'w');
         final blackPlayable = isPlayableWith(position.fen, 'b');
         if (whitePlayable != blackPlayable) {
           final side = whitePlayable ? 'w' : 'b';
+          final found = await _search(_withSide(position.fen, side), depth);
+          if (_cancelled) return;
           proposal = SideProposal(
             side: side,
             confidence: ProposalConfidence.high,
             reason: 'only ${side == 'w' ? 'white' : 'black'} can be to move',
-            whiteEval: '',
-            blackEval: '',
+            whiteEval: side == 'w' ? found.eval : '',
+            blackEval: side == 'b' ? found.eval : '',
+            answerSan: found.bestSan,
           );
         } else {
-          final whiteEval = await _evalFor(_withSide(position.fen, 'w'), depth);
+          final white = await _search(_withSide(position.fen, 'w'), depth);
           if (_cancelled) return;
-          final blackEval = await _evalFor(_withSide(position.fen, 'b'), depth);
-          proposal = decideSide(whiteEval: whiteEval, blackEval: blackEval);
+          final black = await _search(_withSide(position.fen, 'b'), depth);
+          proposal = decideSide(
+            whiteEval: white.eval,
+            blackEval: black.eval,
+            whiteBestSan: white.bestSan,
+            blackBestSan: black.bestSan,
+          );
         }
       } catch (e) {
-        AppLogger.log('[SideProposal] ${position.puzzleId}: $e');
+        AppLogger.log('[SideProposal] ${position.id}: $e');
         proposal = SideProposal.empty;
       }
 
-      onResult(position.puzzleId, proposal);
+      onResult(position.id, proposal);
       onProgress(i + 1, positions.length);
     }
   }

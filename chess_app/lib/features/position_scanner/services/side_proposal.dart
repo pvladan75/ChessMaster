@@ -28,6 +28,7 @@ class SideProposal {
     required this.reason,
     required this.whiteEval,
     required this.blackEval,
+    this.answerSan,
   });
 
   /// `'w'`, `'b'`, or null when the engine has nothing to offer.
@@ -40,6 +41,12 @@ class SideProposal {
   /// The evaluations as the engine gave them, both from White's perspective.
   final String whiteEval;
   final String blackEval;
+
+  /// The proposed side's best move, from the same search that judged it — a
+  /// proposal for the exercise's answer, accepted only by a person
+  /// (`docs/PLAN-MATERIJAL.md`, phase 2). Null when there is no proposed side
+  /// or the engine named no move.
+  final String? answerSan;
 
   bool get hasAnswer => side != null && confidence != ProposalConfidence.none;
 
@@ -98,11 +105,21 @@ bool isPlayableWith(String fen, String side) {
 /// score for white and its negation for black. In a book the side to move is
 /// the one with something to play — that is what a puzzle *is* — so the side
 /// whose move buys it far more is the proposal.
+///
+/// [whiteBestSan] and [blackBestSan] are each search's best move; the proposed
+/// side's becomes [SideProposal.answerSan].
 SideProposal decideSide({
   required String whiteEval,
   required String blackEval,
+  String? whiteBestSan,
+  String? blackBestSan,
   double decisiveGap = 3.0,
 }) {
+  String? answerFor(String side) {
+    final san = side == 'w' ? whiteBestSan : blackBestSan;
+    return san == null || san.trim().isEmpty ? null : san.trim();
+  }
+
   final white = parseEval(whiteEval);
   final black = parseEval(blackEval);
   if (white == null || black == null) {
@@ -137,6 +154,7 @@ SideProposal decideSide({
           : 'Black mates ($blackEval), White has no mate',
       whiteEval: whiteEval,
       blackEval: blackEval,
+      answerSan: answerFor(side),
     );
   }
 
@@ -154,6 +172,7 @@ SideProposal decideSide({
       reason: faster,
       whiteEval: whiteEval,
       blackEval: blackEval,
+      answerSan: answerFor(side),
     );
   }
 

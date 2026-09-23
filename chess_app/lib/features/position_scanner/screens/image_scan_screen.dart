@@ -15,6 +15,9 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/image_scan.dart';
 import '../services/scanner_api_service.dart';
+import '../services/side_proposal.dart';
+import '../services/side_proposal_runner.dart';
+import '../widgets/side_suggestions.dart';
 
 /// Sets up one board while looking at its picture; the placement, or null if
 /// the trainer backed out. A parameter so a test can stand in for the editor.
@@ -74,9 +77,14 @@ class ImageScanScreen extends StatefulWidget {
     this.fromPage,
     this.toPage,
     this.pickPosition = pickPositionWithEditor,
+    this.proposalRunner,
   });
 
   final ScannerApiService api;
+
+  /// The engine behind „Suggest sides with the engine"; null is the real
+  /// one. A seam for a test, which cannot run Stockfish.
+  final SideProposalRunner? proposalRunner;
   final String filePath;
   final String fileName;
 
@@ -127,6 +135,61 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
 
   ScaffoldMessengerState? _messenger;
 
+  /// The engine's proposals for the boards read, by `page-index`
+  /// (`docs/PLAN-MATERIJAL.md`, phase 2). A picture book prints no solution,
+  /// so this is where its answers come from.
+  late final SideSuggestions _suggestions =
+      SideSuggestions(runner: widget.proposalRunner)
+        ..addListener(_onSuggestions);
+
+  void _onSuggestions() {
+    if (mounted) setState(() {});
+  }
+
+  String _idOf(ReadBoard b) => '${b.ref.page}-${b.ref.index}';
+
+  SideProposal? _proposalFor(ReadBoard b) =>
+      b.sideTouched ? null : _suggestions.proposals[_idOf(b)];
+
+  List<ReadBoard> get _unsettled => (_result?.positions ?? const <ReadBoard>[])
+      .where((b) => b.wantsSideProposal)
+      .toList();
+
+  List<ReadBoard> get _confident => _unsettled
+      .where((b) =>
+          _proposalFor(b)?.hasAnswer == true &&
+          _proposalFor(b)!.confidence == ProposalConfidence.high)
+      .toList();
+
+  Future<void> _suggest() async {
+    final outcome = await _suggestions.start([
+      for (final b in _unsettled) (id: _idOf(b), fen: b.fen),
+    ]);
+    if (outcome == SuggestOutcome.noLocalEngine && mounted) {
+      AppFeedback.error(context, SideSuggestions.noLocalEngineMessage);
+    }
+  }
+
+  void _accept(ReadBoard b, {required bool withAnswer}) {
+    final proposal = _proposalFor(b);
+    final side = proposal?.side;
+    if (proposal == null || side == null) return;
+    setState(() => b.acceptProposal(side,
+        answerSan: withAnswer ? proposal.answerSan : null));
+    _suggestions.forget(_idOf(b));
+  }
+
+  void _acceptConfident() {
+    for (final b in _confident) {
+      _accept(b, withAnswer: true);
+    }
+  }
+
+  void _flip(ReadBoard b) {
+    setState(b.flipSide);
+    _suggestions.forget(_idOf(b));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -146,6 +209,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
 
   @override
   void dispose() {
+    _suggestions.dispose();
     AppFeedback.dismiss(_messenger);
     _fromPage.dispose();
     _toPage.dispose();
@@ -972,6 +1036,14 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: AppSpacing.xs),
+              SuggestSidesBar(
+                suggestions: _suggestions,
+                eligible: _unsettled.length,
+                onSuggest: _suggest,
+                confident: _confident.length,
+                onAcceptConfident: _acceptConfident,
+              ),
               const SizedBox(height: AppSpacing.sm),
               AdaptiveCardRows(
                 key: const ValueKey('image-scan-boards'),
@@ -985,8 +1057,18 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
                           ? () =>
                               setState(() => board.accepted = !board.accepted)
                           : null,
-                      onFlipSide: () => setState(board.flipSide),
+                      onFlipSide: () => _flip(board),
                       onFix: () => _fix(board),
+                      proposal: _proposalFor(board) == null
+                          ? null
+                          : ProposalNote(
+                              id: _idOf(board),
+                              proposal: _proposalFor(board)!,
+                              onSetSide: () =>
+                                  _accept(board, withAnswer: false),
+                              onSetSideAndAnswer: () =>
+                                  _accept(board, withAnswer: true),
+                            ),
                     ),
                 ],
               ),
@@ -1632,12 +1714,16 @@ class _ReadBoardCard extends StatelessWidget {
     required this.onToggle,
     required this.onFlipSide,
     required this.onFix,
+    this.proposal,
   });
 
   final ReadBoard board;
   final VoidCallback? onToggle;
   final VoidCallback onFlipSide;
   final VoidCallback onFix;
+
+  /// The engine's proposal for this board, while its side is unsettled.
+  final Widget? proposal;
 
   @override
   Widget build(BuildContext context) {
@@ -1739,8 +1825,19 @@ class _ReadBoardCard extends StatelessWidget {
                 ),
                 if (!board.sideTouched)
                   Text('The book does not say whose move — check',
+                      style:
+                          AppText.caption.copyWith(color: colors.textSecondary))
+                else if (board.sideFromEngine)
+                  Text(
+                      board.answerSan == null
+                          ? 'Side from the engine, accepted'
+                          : 'Side and answer (${board.answerSan}) from the engine, accepted',
                       style: AppText.caption
                           .copyWith(color: colors.textSecondary)),
+                if (proposal != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  proposal!,
+                ],
               ],
             ),
           ),

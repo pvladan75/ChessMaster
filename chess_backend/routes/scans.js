@@ -475,8 +475,8 @@ router.post('/confirm', authenticateToken, async (req, res) => {
 
       const result = await client.query(
         `INSERT INTO custom_puzzles
-           (puzzle_id, owner_id, fen, side_to_move, solution_san, instruction, themes, source_title, source_page, source_label, needs_review, origin)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'book')
+           (puzzle_id, owner_id, fen, side_to_move, solution_san, instruction, themes, source_title, source_page, source_label, needs_review, solution_source, origin)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'book')
          RETURNING puzzle_id, fen, needs_review`,
         [
           row.puzzleId,
@@ -490,6 +490,7 @@ router.post('/confirm', authenticateToken, async (req, res) => {
           row.page,
           row.label,
           row.needsReview,
+          row.solutionSource,
         ]
       );
       saved.push(result.rows[0]);

@@ -271,7 +271,16 @@ class _EqualHeightRows extends MultiChildRenderObjectWidget {
       BuildContext context, _RenderEqualHeightRows renderObject) {
     renderObject
       ..columns = columns
-      ..spacing = spacing;
+      ..spacing = spacing
+      // Measured again on every rebuild. Each card's last layout is tight to
+      // its row, which makes it a relayout boundary: a card that grew — an
+      // engine proposal appearing under a scanned board
+      // (`docs/PLAN-MATERIJAL.md`, phase 2) — re-laid itself inside its old
+      // height and overflowed, and the row never heard of it. The rows are
+      // tens of cards, so measuring them on a rebuild costs nothing worth
+      // saving. What this cannot see is a card that grows from its *own*
+      // `setState` with nothing above it rebuilt; no card here does that.
+      ..markNeedsLayout();
   }
 }
 

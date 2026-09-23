@@ -426,7 +426,26 @@ and its copy in `docs/gates/` go from four buttons to five **openly**, with
 the supersession written above the assertion; `training_hub_layout_test`
 gains the card title; 360 × 640. Live: item 231.
 
-### Phase 2 — Settle and propose before saving, on both scanner screens
+### Phase 2 — Settle and propose before saving, on both scanner screens — built 23.9.2026
+
+*Built by the lead inline, both halves. App 3891 → 3906, backend 1656 → 1660
+without a database and 1788 → 1794 with one; analyze list unchanged. The
+picture screen's cases live in `image_scan_screen_test.dart` (group „phase 2
+— the engine before saving"), which already walks a picture book to its
+boards; `scan_settle_test.dart` holds the font screen's. Departures and
+finds:* **a hand flip on the font path now settles the side** (`sideSource =
+'trainer'`), as it always had on the picture path — until now a flipped font
+board was still saved marked for review; **a board only one side can be to
+move in costs one search**, for that side, so its answer is known too (it
+cost none before and had no move); **the bar and the note are one widget
+file** (`widgets/side_suggestions.dart`) both screens draw, and
+`SideSuggestions.depths` is the depth list's home (`SavedPositionsScreen`
+keeps its own until phase 3 deletes it). **Two faults on master**: the font
+scanner's grid was 0 px tall on a phone (the screen is one scroll now, with a
+minimum card width), and `AdaptiveCardRows` never re-measured a card that grew
+in place (it does on every rebuild now, with a case in its own test). Twelve
+app mutations and four server ones, each red on its case; two survived first
+and removed a redundant flag.
 
 **Build.** [lead: runner, model, column · implementer: the screens]
 

@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3891 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3906 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1788 with TEST_DATABASE_URL, 1656 without
+cd chess_backend && npm test          # node --test, 1794 with TEST_DATABASE_URL, 1660 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -588,6 +588,21 @@ And the card's „to retry" is the queue's count, not the fold's — the log kee
 failures on exercises deleted since, the rule of „Selected: N positions" again.
 **A lock with three guards survives the removal of any one** — the mutation
 that removes the lock removes all three.
+Then its phase 2 (→ **3906**; backend → **1660 / 1794**, both measured): the
+engine proposes side and answer **before** saving, on both scanner screens
+(`SideSuggestions`), a person accepts, and `custom_puzzles.solution_source`
+says who gave the move. Two faults already on master came out of it. **The
+font scanner showed no boards on a phone** — at 360 x 640 the grid under the
+setup panel was 0 px tall, clipped in release — so the screen is one
+`CustomScrollView` now, and its grid has a *minimum* card width (the old „at
+most 260" split 360 dp into two cells of 158 around a 150 px board — the same
+half-rule as `AdaptiveCardGrid`'s). And **`AdaptiveCardRows` lays each card
+out tight**, which makes it a relayout boundary: a card that grew after the
+row was measured overflowed inside its old height, so the row now re-measures
+on every rebuild (rule 14 — nothing had grown a card in place before). **Two
+flags for one fact are one flag too many**: `sideTouched` beside
+`sideSource` on the font path survived two mutations because the flip
+already rewrote `sideSource`; it was deleted.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

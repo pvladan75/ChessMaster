@@ -115,6 +115,64 @@ describe('the exercise columns on a real database', skipUnlessDatabase() ?? {}, 
     assert.deepEqual(row.rows[0], { origin: 'book', solution_san: 'Rd8#', task: null, solution: null });
   });
 
+  // ---- who gave the answer (docs/PLAN-MATERIJAL.md, phase 2) ----------------
+
+  /// POST /scans/confirm on the real table, answering what the route sent.
+  async function confirm(positions) {
+    const dbModule = require('../db');
+    const router = require('../routes/scans');
+    const layer = router.stack.find((l) => l.route && l.route.path === '/confirm' && l.route.methods.post);
+    const handler = layer.route.stack[layer.route.stack.length - 1].handle;
+    const original = dbModule.pool.connect;
+    dbModule.pool.connect = () => pool.connect();
+    const answered = { status: 200, body: null };
+    const res = {
+      status(code) { answered.status = code; return this; },
+      json(payload) { answered.body = payload; return this; },
+    };
+    try {
+      await handler({ user: { id: ownerId }, body: { sourceTitle: 'Engine book', positions }, headers: {} }, res);
+    } finally {
+      dbModule.pool.connect = original;
+    }
+    assert.equal(answered.status, 201, JSON.stringify(answered.body));
+    const ids = answered.body.puzzles.map((p) => p.puzzle_id);
+    const rows = await pool.query(
+      `SELECT source_label, solution_san, solution_source, needs_review FROM custom_puzzles
+        WHERE puzzle_id = ANY($1::varchar[]) ORDER BY source_label`,
+      [ids]
+    );
+    return rows.rows;
+  }
+
+  test('a scan stores who gave the answer: the book, the engine, or nobody', async () => {
+    const rows = await confirm([
+      { fen: FEN, solutionSan: 'Rd8#', label: 'e1', page: 1 },
+      { fen: FEN, solutionSan: 'Rd8#', solutionSource: 'engine', label: 'e2', page: 1 },
+      { fen: FEN, label: 'e3', page: 1 },
+      // An engine move that does not play here is dropped and the row marked,
+      // exactly as a misread printed move is.
+      { fen: FEN, solutionSan: 'Qh5#', solutionSource: 'engine', label: 'e4', page: 1 },
+    ]);
+    assert.deepEqual(rows, [
+      { source_label: 'e1', solution_san: 'Rd8#', solution_source: 'book', needs_review: false },
+      { source_label: 'e2', solution_san: 'Rd8#', solution_source: 'engine', needs_review: false },
+      { source_label: 'e3', solution_san: null, solution_source: null, needs_review: false },
+      { source_label: 'e4', solution_san: null, solution_source: null, needs_review: true },
+    ]);
+  });
+
+  test('the table takes only the two sources it knows', async () => {
+    await assert.rejects(
+      pool.query(
+        `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, solution_san, origin, solution_source)
+         VALUES ('cust_badsource', $1, $2, 'w', 'Rd8#', 'book', 'oracle')`,
+        [ownerId, FEN]
+      ),
+      (err) => err.code === '23514'
+    );
+  });
+
   test('a position made from a mistake is stored as coming from mistakes', async () => {
     const { storePositions, puzzleIdFor } = require('../services/homeworkFromArchive');
     const mistake = { id: 1, kind: 'tactic', theme: 'mate', fen_before: FEN, best_uci: 'd1d8', played_uci: 'd1e1' };
