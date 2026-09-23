@@ -23,8 +23,6 @@ const { validateFen } = require('chess.js');
 export const MAX_IMAGE_BOARDS = 60;
 /** Calibration boards in one request. */
 export const MAX_CALIBRATION = 8;
-/** Boards suggested for calibrating when none is given. */
-export const SUGGESTED = 3;
 
 const SQUARE = /^[a-h][1-8]$/;
 
@@ -72,7 +70,12 @@ export function parseCalibration(raw) {
   });
 }
 
-/** A board as a PNG, 256 px, for the trainer to look at beside what was read. */
+/**
+ * A board as a JPEG, 256 px, for the trainer to look at beside what was read
+ * and to find calibration boards by. A PNG of the same picture was 50–150 KB
+ * a board on the owner's books, this about 20 (plan, 3e.0 (d)): a whole book
+ * is browsed through these.
+ */
 export function preview(board, size = 512) {
   const half = size / 2;
   const canvas = createCanvas(half, half);
@@ -88,29 +91,7 @@ export function preview(board, size = 512) {
     }
   }
   ctx.putImageData(img, 0, 0);
-  return canvas.toBuffer('image/png').toString('base64');
-}
-
-/**
- * How many squares of a board hold something: the middle of a square whose
- * share of ink differs from the other squares of its colour. The boards worth
- * calibrating show the most pieces.
- */
-export function busy(board) {
-  const ink = [];
-  for (let i = 0; i < 64; i++) {
-    const r = (i / 8) | 0;
-    const c = i % 8;
-    let n = 0;
-    for (let y = r * 64 + 12; y < r * 64 + 52; y++) {
-      for (let x = c * 64 + 12; x < c * 64 + 52; x++) if (board[y * 512 + x] < 100) n++;
-    }
-    ink.push(n / 1600);
-  }
-  const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
-  const light = median(ink.filter((_, i) => (((i / 8) | 0) + (i % 8)) % 2 === 0));
-  const dark = median(ink.filter((_, i) => (((i / 8) | 0) + (i % 8)) % 2 === 1));
-  return ink.filter((v, i) => Math.abs(v - ((((i / 8) | 0) + (i % 8)) % 2 ? dark : light)) > 0.08).length;
+  return canvas.toBuffer('image/jpeg', 80).toString('base64');
 }
 
 /** Whether a placement is a position with either side to move. */
@@ -135,8 +116,10 @@ function readInWorker(calibration, boards) {
 
 /**
  * The image path of one upload. Without a calibration: the boards found on
- * the pages, with a preview each and the ones suggested for calibrating. With
- * one: every other board read, `source: 'image'`, its uncertain squares named.
+ * the pages, with a preview each — the trainer browses the book through
+ * these and chooses the calibration boards himself (phase 3e of the plan). With
+ * one: every other board read, `source: 'image'`, its uncertain squares named,
+ * and `unseen` naming any piece the calibration shows on neither colour.
  */
 export async function scanImages({ filePath, fromPage, toPage, calibration = [] }) {
   const doc = await openPdf(filePath);
@@ -169,7 +152,10 @@ export async function scanImages({ filePath, fromPage, toPage, calibration = [] 
   });
   const calibrated = new Set(calibration.map(key));
   const toRead = inRange.filter((d) => !calibrated.has(key(d)));
-  if ((calibration.length ? toRead.length : inRange.length) > MAX_IMAGE_BOARDS) {
+  // Only reading is limited: finding boards and drawing their previews is a
+  // fraction of a second a page (plan, 3e.0 (d)), and the page range is
+  // already capped.
+  if (calibration.length && toRead.length > MAX_IMAGE_BOARDS) {
     throw new ScanError(
       `Those pages hold ${inRange.length} diagrams; at most ${MAX_IMAGE_BOARDS} are read at a time. Choose fewer pages.`,
       { code: 'too_many_boards', details: { boards: inRange.length, max: MAX_IMAGE_BOARDS } },
@@ -179,20 +165,14 @@ export async function scanImages({ filePath, fromPage, toPage, calibration = [] 
   const base = { pageCount, scannedFrom: start, scannedTo: end, refused: found.refused };
 
   if (!calibration.length) {
-    const suggested = [...inRange]
-      .map((d) => ({ d, n: busy(d.board) }))
-      .sort((a, b) => b.n - a.n || a.d.page - b.d.page || a.d.index - b.d.index)
-      .slice(0, SUGGESTED)
-      .map(({ d }) => ({ page: d.page, index: d.index }));
     return {
       ...base,
       needsCalibration: true,
       boards: inRange.map((d) => ({ page: d.page, index: d.index, source: 'image', preview: preview(d.board) })),
-      suggested,
     };
   }
 
-  const { cells, composed } = await readInWorker(
+  const { cells, composed, unseen } = await readInWorker(
     calibrationBoards.map(({ board, fen, ignore }) => ({ board, fen, ignore })),
     toRead.map((d) => d.board),
   );
@@ -220,6 +200,7 @@ export async function scanImages({ filePath, fromPage, toPage, calibration = [] 
       })),
     positions,
     composed,
+    unseen,
     marksPerBoard: positions.length ? marks / positions.length : 0,
   };
 }

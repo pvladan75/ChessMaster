@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { findBoard, cropBoard } from './boards.mjs';
-import { calibrate, readBoard, squareName } from './reader.mjs';
+import { calibrate, readBoard, squareName, unsureOf, UNKNOWN_INK } from './reader.mjs';
 import { positionImage, cellsOf } from '../../test/support/drawnBooks.mjs';
 
 /** A drawn position cut to the 512 x 512 board the reader takes. */
@@ -125,4 +125,63 @@ test('2. a clean board of the same book is not covered in marks', () => {
   const cells = readPlacement('8/5k2/8/3Q4/8/2n5/5B2/6K1', { seed: 55 });
   const marked = cells.filter((c) => c.unsure);
   assert.ok(marked.length <= 3, `${marked.length} squares marked on a clean board`);
+});
+
+// Phase 3e of the plan: a piece the calibration never showed on either colour
+// cannot be composed. Its squares come out as whatever fits best, so the
+// answer names the piece, and a square that far from everything known is
+// marked however clear its gap.
+const NO_BLACK_QUEEN = [
+  'rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBN1',
+  '7k/8/8/8/8/8/8/1KQ5',
+  'r3k2r/1b1n1p2/2p5/8/3B4/2N5/1P3P2/2R3K1',
+];
+let withoutQueen;
+function calibrationWithoutQueen() {
+  withoutQueen ??= calibrate(NO_BLACK_QUEEN.map((fen, k) => ({ board: board(fen, { seed: 40 + k }), fen })));
+  return withoutQueen;
+}
+
+test('3e. a piece shown on neither colour is named unseen, and a composed one is not', () => {
+  const c = calibrationWithoutQueen();
+  assert.deepEqual(c.unseen, ['q']);
+  assert.ok(!c.composed.some((k) => k.startsWith('q/')), `composed: ${c.composed}`);
+  // The full calibration shows every piece: nothing unseen, R/light composed.
+  assert.deepEqual(calibration().unseen, []);
+});
+
+test('3e. a square farther than UNKNOWN_INK from every example is marked, whatever its gap', () => {
+  // The threshold was measured on the owner's three books (plan, 3e.0): with
+  // a piece left out of the calibration, its squares on a scan sat above it
+  // and known pieces below. These drawn pieces are small plain shapes, all
+  // within 0.055 of one another, so a drawn board cannot stand on that line;
+  // the rule is held here at its boundary, and its number by the measurement.
+  const calibrated = { cut: 0.02 };
+  const clear = { gap: 0.5, guessed: false };
+  assert.equal(unsureOf({ ...clear, d1: UNKNOWN_INK }, calibrated), false, 'at the threshold is not beyond it');
+  assert.equal(unsureOf({ ...clear, d1: UNKNOWN_INK + 0.001 }, calibrated), true, 'just beyond it is marked');
+  assert.equal(unsureOf({ ...clear, d1: 0.05 }, calibrated), false, 'a known piece stays unmarked');
+  // The two older rules still hold on their own.
+  assert.equal(unsureOf({ gap: 0.01, guessed: false, d1: 0 }, calibrated), true, 'a small gap');
+  assert.equal(unsureOf({ gap: 0.5, guessed: true, d1: 0 }, calibrated), true, 'a composed class');
+  assert.equal(UNKNOWN_INK, 0.1, 'the measured threshold; change it only with a new measurement');
+});
+
+test('3e. a reading marks ink the calibration never showed, with the gap taken out of it', () => {
+  // A teaching cross is such ink: no calibration board shows one. With the cut
+  // set below every gap, only the distance can mark it.
+  const noGap = { ...calibration(), cut: -Infinity };
+  const cells = readBoard(board('r3k3/8/8/8/8/8/8/4K2R', { crosses: ['d5'], seed: 7 }), noGap);
+  assert.ok(cells[27].d1 > UNKNOWN_INK, `the cross on d5 is only ${cells[27].d1} from ${cells[27].piece}`);
+  assert.equal(cells[27].guessed, false);
+  assert.ok(cells[27].unsure, 'd5 holds a cross the calibration never showed, and is unmarked');
+});
+
+test('3e. pieces the calibration did show are never that far', () => {
+  // The distance mark only means something if it stays off known pieces.
+  for (const [k, placement] of READING.entries()) {
+    const cells = readPlacement(placement, { drift: 3, specks: 30, seed: 500 + k });
+    const far = cells.flatMap((c, i) => (c.d1 > UNKNOWN_INK ? [`${squareName(i)} ${c.piece} ${c.d1.toFixed(3)}`] : []));
+    assert.deepEqual(far, [], `squares of known pieces marked as unknown ink on ${placement}`);
+  }
 });

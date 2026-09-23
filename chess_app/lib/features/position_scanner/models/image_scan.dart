@@ -69,7 +69,8 @@ class FoundBoard {
 
   final BoardRef ref;
 
-  /// The board's picture from the book, a 256 px PNG.
+  /// The board's picture from the book, 256 px (a JPEG since phase 3e: a
+  /// whole book is browsed through these).
   final Uint8List preview;
 
   factory FoundBoard.fromJson(Map<String, dynamic> json) => FoundBoard(
@@ -143,24 +144,33 @@ class ImageScanResult {
     required this.needsCalibration,
     required this.scannedFrom,
     required this.scannedTo,
+    this.pageCount = 0,
     this.boards = const [],
-    this.suggested = const [],
     this.positions = const [],
     this.composed = const [],
+    this.unseen = const [],
   });
 
-  /// True when no calibration was sent: [boards] and [suggested] are filled,
+  /// True when no calibration was sent: [boards] is filled — the book's
+  /// boards on those pages, which is how the trainer browses it — and
   /// [positions] is empty.
   final bool needsCalibration;
   final int scannedFrom;
   final int scannedTo;
+
+  /// Pages in the whole book.
+  final int pageCount;
   final List<FoundBoard> boards;
-  final List<BoardRef> suggested;
   final List<ReadBoard> positions;
 
   /// Classes no calibration board showed, guessed from the same piece on the
   /// other colour — `R/light` and the like. Worth one more calibration board.
   final List<String> composed;
+
+  /// Pieces no calibration board showed on either colour — `q` and the like.
+  /// They are not read at all: a square holding one comes out as something
+  /// else, marked only when it looks like nothing known.
+  final List<String> unseen;
 
   factory ImageScanResult.fromJson(Map<String, dynamic> json) {
     List<Map<String, dynamic>> list(String key) =>
@@ -171,8 +181,8 @@ class ImageScanResult {
       needsCalibration: json['needsCalibration'] == true,
       scannedFrom: (json['scannedFrom'] as num?)?.toInt() ?? 0,
       scannedTo: (json['scannedTo'] as num?)?.toInt() ?? 0,
+      pageCount: (json['pageCount'] as num?)?.toInt() ?? 0,
       boards: list('boards').map(FoundBoard.fromJson).toList(),
-      suggested: list('suggested').map(BoardRef.fromJson).toList(),
       // The boards the trainer set up are positions from the book too, and
       // were confirmed by being set up: they are offered for saving with the
       // rest, in the book's order.
@@ -186,8 +196,122 @@ class ImageScanResult {
       composed:
           (json['composed'] as List?)?.map((e) => e.toString()).toList() ??
               const [],
+      unseen: (json['unseen'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
     );
   }
+}
+
+/// The twelve pieces, in the order the coverage table lists them.
+const pieceLetters = 'PNBRQKpnbrqk';
+
+const _pieceNames = {
+  'P': 'white pawn',
+  'N': 'white knight',
+  'B': 'white bishop',
+  'R': 'white rook',
+  'Q': 'white queen',
+  'K': 'white king',
+  'p': 'black pawn',
+  'n': 'black knight',
+  'b': 'black bishop',
+  'r': 'black rook',
+  'q': 'black queen',
+  'k': 'black king',
+};
+
+/// `q` → „black queen".
+String pieceName(String letter) => _pieceNames[letter] ?? letter;
+
+/// `R/light` → „a white rook on a light square".
+String classWords(String pieceClass) {
+  final parts = pieceClass.split('/');
+  return 'a ${pieceName(parts.first)} on a ${parts.last} square';
+}
+
+/// What the reader knows of one piece on one colour of square.
+enum ClassState {
+  /// A calibration board shows it: it is read.
+  seen,
+
+  /// Only the other colour is shown: it is composed from that, and every
+  /// square read as it is marked.
+  guessed,
+
+  /// Neither colour is shown: it is not read at all.
+  unknown,
+}
+
+/// What a set of calibration boards teaches the reader — phase 3e of
+/// `docs/PLAN-SKENER-SLIKE.md`. The reader compares a square only with
+/// examples on its own colour and never by where it stands, so what a
+/// calibration needs is 24 classes: 12 pieces on a light and a dark square.
+/// Worked out from the placements alone, so the table on the screen follows
+/// every board the moment it is set up.
+class CalibrationCoverage {
+  CalibrationCoverage._(this.counts, this.absent);
+
+  /// [absent] names pieces the trainer says the book never draws: they are
+  /// not asked for.
+  factory CalibrationCoverage.of(Iterable<String> placements,
+      {Set<String> absent = const {}}) {
+    final counts = <String, int>{};
+    for (final placement in placements) {
+      for (final c in pieceClassesOf(placement)) {
+        counts[c] = (counts[c] ?? 0) + 1;
+      }
+    }
+    return CalibrationCoverage._(counts, absent);
+  }
+
+  /// Boards showing each class, `R/light` → 2.
+  final Map<String, int> counts;
+  final Set<String> absent;
+
+  ClassState stateOf(String piece, {required bool dark}) {
+    final want = '$piece/${dark ? 'dark' : 'light'}';
+    final other = '$piece/${dark ? 'light' : 'dark'}';
+    if ((counts[want] ?? 0) > 0) return ClassState.seen;
+    if ((counts[other] ?? 0) > 0) return ClassState.guessed;
+    return ClassState.unknown;
+  }
+
+  /// Pieces on neither colour, leaving out the ones said to be absent.
+  List<String> get unknownPieces => [
+        for (final p in pieceLetters.split(''))
+          if (!absent.contains(p) &&
+              stateOf(p, dark: false) == ClassState.unknown)
+            p
+      ];
+
+  /// Classes composed from the other colour: `R/light` and the like.
+  List<String> get guessedClasses => [
+        for (final p in pieceLetters.split(''))
+          for (final dark in const [false, true])
+            if (stateOf(p, dark: dark) == ClassState.guessed)
+              '$p/${dark ? 'dark' : 'light'}'
+      ];
+
+  /// Reading may start once no piece is unknown: an unknown piece is read as
+  /// something else, and a guessed class is at least marked.
+  bool get ready => unknownPieces.isEmpty;
+
+  /// What is still needed, most needed first: unknown pieces, then guessed
+  /// classes. Empty when everything is shown.
+  String get stillNeeded {
+    final parts = [
+      for (final p in unknownPieces) 'a ${pieceName(p)}, on any square',
+      for (final c in guessedClasses) classWords(c),
+    ];
+    return parts.join('; ');
+  }
+}
+
+/// The classes [placement] shows that none of [others] does — what a board
+/// adds to the rest of a calibration.
+Set<String> classesAddedBy(String placement, Iterable<String> others) {
+  final rest = <String>{for (final o in others) ...pieceClassesOf(o)};
+  return pieceClassesOf(placement).difference(rest);
 }
 
 /// The piece classes a placement shows, as the reader names them:

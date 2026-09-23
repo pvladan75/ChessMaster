@@ -52,9 +52,9 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
   int? _imageDoor;
 
   /// Whether the book behind the door was calibrated before. The door used to
-  /// say „set up three of them by hand" every time, calibrated or not, and the
-  /// owner read it as the scanner asking again for a book it remembered
-  /// (23.9.2026).
+  /// say „set up three of them by hand" (a few, since phase 3e) every time,
+  /// calibrated or not, and the owner read it as the scanner asking again for
+  /// a book it remembered (23.9.2026).
   bool _doorCalibrated = false;
 
   /// The messenger this screen's messages go to, taken while it is still
@@ -602,7 +602,7 @@ class _EmptyHint extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Diagrams set in a chess font are read at once; diagrams that '
-              'are pictures, after you set up three of them by hand. The '
+              'are pictures, after you set up a few of them by hand. The '
               'document is not stored on the server.',
               style: AppText.body.copyWith(color: colors.textMuted),
               textAlign: TextAlign.center,
@@ -668,10 +668,11 @@ class ImageDiagramsDoor extends StatelessWidget {
                     calibrated
                         ? 'You set up this book before, so they are read '
                             'straight away. Nothing from the book is kept.'
-                        : 'They can be read once you have set up three of '
-                            'them by hand, so the scanner learns how this book '
-                            'draws its pieces. It remembers the book, even '
-                            'renamed. Nothing from the book is kept.',
+                        : 'They can be read once you have set up a few of '
+                            'them by hand, chosen from anywhere in the book '
+                            'until every piece is shown, so the scanner learns '
+                            'how this book draws its pieces. It remembers the '
+                            'book, even renamed. Nothing from the book is kept.',
                     style: AppText.body.copyWith(color: colors.textSecondary),
                   ),
                   const SizedBox(height: AppSpacing.sm),

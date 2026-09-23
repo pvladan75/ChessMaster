@@ -42,8 +42,10 @@ Future<String?> pickPositionWithEditor(
   return placement;
 }
 
-/// How many boards the trainer sets up by hand before the rest are read.
-const calibrationBoards = 3;
+/// Pages the book browser asks for at a time. The server finds and draws a
+/// page's boards in a fraction of a second (plan, 3e.0 (d)); twenty is a
+/// window a trainer can look through, and well under its 40-page limit.
+const browsePages = 20;
 
 enum _Stage { working, calibrating, confirming, failed }
 
@@ -54,9 +56,11 @@ enum _Show { all, toCheck, notPosition, setUp }
 /// A book whose diagrams are pictures — phase 3 of `docs/PLAN-SKENER-SLIKE.md`.
 ///
 /// The scanner reads a book with templates from a few of its own boards, so
-/// the first time a book is opened the trainer sets up three of them, each
-/// beside its picture. That calibration is remembered on the account, by the
-/// SHA-256 of the file, and the next chapter goes straight to reading. Every
+/// the first time a book is opened the trainer chooses boards from anywhere in
+/// it and sets each up beside its picture, guided by a table of what the
+/// scanner has still not seen (phase 3e). That calibration is remembered on
+/// the account, by the SHA-256 of the file, and the next chapter goes straight
+/// to reading. Every
 /// board read is then shown beside its picture: an uncertain square is marked
 /// by shape — a dashed outline and a question mark — and nothing is saved
 /// until the trainer has looked.
@@ -88,12 +92,22 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
   String? _failure;
 
   String? _bookHash;
-  List<FoundBoard> _found = const [];
 
-  /// The boards chosen for calibrating, in order, and what the trainer set up
-  /// on each (null until set).
+  /// The boards chosen for calibrating, in the order they were chosen, what
+  /// the trainer set up on each, and each one's picture from the book.
   final List<BoardRef> _chosen = [];
   final Map<BoardRef, String> _placements = {};
+  final Map<BoardRef, Uint8List> _pictures = {};
+
+  /// Pieces the trainer says this book never draws: not asked for.
+  final Set<String> _absent = {};
+
+  /// The book's boards, by the first page of each browsed window, so turning
+  /// back does not upload the book again — kept as the request itself, so two
+  /// asking for one window at once share it.
+  final Map<int, Future<({List<FoundBoard> boards, String? error})>> _browsed =
+      {};
+  int _pageCount = 0;
 
   ImageScanResult? _result;
   List<CalibrationBoard> _calibration = const [];
@@ -146,70 +160,138 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     if (load.found) {
       await _read(load.boards);
     } else {
-      await _findBoards();
+      _calibrate(const []);
     }
   }
 
-  Future<void> _findBoards() async {
+  /// Opens the calibration with [boards] already set up — none for a new
+  /// book, the remembered ones when improving it.
+  void _calibrate(List<CalibrationBoard> boards) {
     setState(() {
-      _stage = _Stage.working;
-      _working = 'Finding the boards…';
+      _chosen
+        ..clear()
+        ..addAll(boards.map((b) => b.ref));
+      _placements
+        ..clear()
+        ..addEntries(boards.map((b) => MapEntry(b.ref, b.placement)));
+      for (final p in _result?.positions ?? const <ReadBoard>[]) {
+        _pictures.putIfAbsent(p.ref, () => p.preview);
+      }
+      _stage = _Stage.calibrating;
     });
+    // Boards remembered from outside the pages just read have no picture yet:
+    // one request a window, however many of them it holds.
+    for (final first in {
+      for (final ref in _chosen)
+        if (!_pictures.containsKey(ref)) _windowOf(ref.page)
+    }) {
+      _loadPage(first);
+    }
+  }
+
+  int _windowOf(int page) => ((page - 1) ~/ browsePages) * browsePages + 1;
+
+  /// The book's boards on the window of pages starting at [first]; an error
+  /// sentence when the server could not say. A window that failed is asked
+  /// again next time.
+  Future<({List<FoundBoard> boards, String? error})> _loadWindow(int first) {
+    final pending = _browsed[first] ??= _fetchWindow(first);
+    pending.then((loaded) {
+      if (loaded.error != null && identical(_browsed[first], pending)) {
+        _browsed.remove(first);
+      }
+    });
+    return pending;
+  }
+
+  Future<({List<FoundBoard> boards, String? error})> _fetchWindow(
+      int first) async {
     final outcome = await widget.api.scanImages(
       filePath: widget.filePath,
       fileName: widget.fileName,
-      fromPage: widget.fromPage,
-      toPage: widget.toPage,
+      fromPage: first,
+      toPage: first + browsePages - 1,
     );
-    if (!mounted) return;
     final result = outcome.result;
     if (result == null) {
-      _fail(outcome.error ?? 'Reading the pictures failed.');
-      return;
+      // Pages with no picture on them are an empty window, not a failure.
+      if (outcome.code == 'no_image_diagrams') {
+        return (boards: const <FoundBoard>[], error: null);
+      }
+      return (
+        boards: const <FoundBoard>[],
+        error: outcome.error ?? 'The pages could not be loaded.'
+      );
     }
+    _pageCount = result.pageCount;
+    return (boards: result.boards, error: null);
+  }
+
+  Future<void> _loadPage(int first) async {
+    final loaded = await _loadWindow(first);
+    if (!mounted) return;
     setState(() {
-      _found = result.boards;
-      _chosen
-        ..clear()
-        ..addAll(result.suggested.take(calibrationBoards));
-      _placements.clear();
-      _stage = _Stage.calibrating;
+      for (final b in loaded.boards) {
+        if (_chosen.contains(b.ref)) {
+          _pictures.putIfAbsent(b.ref, () => b.preview);
+        }
+      }
     });
   }
 
-  FoundBoard? _foundBoard(BoardRef ref) {
-    for (final b in _found) {
-      if (b.ref == ref) return b;
-    }
-    return null;
+  /// The trainer looks through the book, picks a board and sets it up; it
+  /// joins the calibration only once it is set up.
+  Future<void> _findInBook() async {
+    final near = _chosen.isEmpty ? widget.fromPage : _chosen.last.page;
+    final picked = await showDialog<FoundBoard>(
+      context: context,
+      builder: (dialogContext) => Dialog.fullscreen(
+        child: BookBrowser(
+          load: _loadWindow,
+          pageCount: () => _pageCount,
+          firstPage: _windowOf(near),
+          taken: _chosen.toSet(),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    final placement =
+        await widget.pickPosition(context, picked.preview, '8/8/8/8/8/8/8/8');
+    if (placement == null || !mounted) return;
+    setState(() {
+      _pictures[picked.ref] = picked.preview;
+      _placements[picked.ref] = placement;
+      if (!_chosen.contains(picked.ref)) _chosen.add(picked.ref);
+    });
   }
 
   Future<void> _setUp(BoardRef ref) async {
-    final board = _foundBoard(ref);
-    if (board == null) return;
+    final picture = _pictures[ref];
+    if (picture == null) return;
     final placement = await widget.pickPosition(
-        context, board.preview, _placements[ref] ?? '8/8/8/8/8/8/8/8');
+        context, picture, _placements[ref] ?? '8/8/8/8/8/8/8/8');
     if (placement == null || !mounted) return;
     setState(() => _placements[ref] = placement);
   }
 
-  Future<void> _replace(BoardRef old) async {
-    final picked = await showModalBottomSheet<BoardRef>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => _BoardChooser(
-        boards: _found.where((b) => !_chosen.contains(b.ref)).toList(),
-      ),
-    );
-    if (picked == null || !mounted) return;
-    setState(() {
-      _chosen[_chosen.indexOf(old)] = picked;
-      _placements.remove(old);
-    });
-  }
+  void _remove(BoardRef ref) => setState(() {
+        _chosen.remove(ref);
+        _placements.remove(ref);
+      });
+
+  List<String> get _setUpPlacements => [
+        for (final ref in _chosen)
+          if (_placements[ref] case final p?) p
+      ];
+
+  CalibrationCoverage get _coverage =>
+      CalibrationCoverage.of(_setUpPlacements, absent: _absent);
 
   bool get _calibrationReady =>
-      _chosen.isNotEmpty && _chosen.every(_placements.containsKey);
+      _chosen.isNotEmpty &&
+      _chosen.length <= maxCalibrationBoards &&
+      _chosen.every(_placements.containsKey) &&
+      _coverage.ready;
 
   Future<void> _readWithChosen() async {
     final boards = [
@@ -259,13 +341,17 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     return true;
   }
 
-  /// Forget the book's calibration and set it up again.
+  /// Forget the book's calibration and set it up again — the way out of one
+  /// that no longer reads.
   Future<void> _recalibrate() async {
     final hash = _bookHash;
     if (hash != null) await widget.api.deleteCalibration(hash);
     if (!mounted) return;
-    await _findBoards();
+    _calibrate(const []);
   }
+
+  /// Back to the calibration with its boards, to add what it lacks.
+  void _improve() => _calibrate(_calibration);
 
   Future<void> _fix(ReadBoard board) async {
     final placement =
@@ -345,8 +431,8 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
           if (_stage == _Stage.confirming)
             TextButton(
               key: const ValueKey('image-scan-recalibrate'),
-              onPressed: _recalibrate,
-              child: const Text('Set up again'),
+              onPressed: _improve,
+              child: const Text('Improve the calibration'),
             ),
         ],
       ),
@@ -412,7 +498,22 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
 
   Widget _calibrating() {
     final colors = context.colors;
-    final toRead = _found.length - _chosen.length;
+    final coverage = _coverage;
+    final raw = CalibrationCoverage.of(_setUpPlacements);
+    final String status;
+    if (_chosen.isEmpty) {
+      status = 'Find a board in the book with many pieces on it to start.';
+    } else if (_chosen.length > maxCalibrationBoards) {
+      status = 'At most $maxCalibrationBoards boards: remove one that adds '
+          'nothing.';
+    } else if (!coverage.ready) {
+      status = 'Still needed before reading: ${coverage.stillNeeded}.';
+    } else if (coverage.guessedClasses.isNotEmpty) {
+      status = 'Ready. Still guessed, and marked wherever read: '
+          '${coverage.stillNeeded}.';
+    } else {
+      status = 'Ready: every piece is shown on both colours of square.';
+    }
     return SingleChildScrollView(
       padding: AppSpacing.screenPadding,
       child: Column(
@@ -422,11 +523,49 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
               style: AppText.headline.copyWith(color: colors.textPrimary)),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Set up these ${_chosen.length} positions by hand, each beside its '
-            'picture. The scanner learns from them how this book draws its '
-            'pieces, and reads the other $toRead. Your account remembers them '
-            'for this book; no picture from it is kept.',
+            'Choose boards from anywhere in the book and set each one up '
+            'beside its picture. The scanner learns from them how this book '
+            'draws each piece, on a light and on a dark square; the grid '
+            'shows what it has still not seen. Your account remembers the '
+            'boards for this book; no picture from it is kept.',
             style: AppText.body.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          CoverageTable(coverage: coverage),
+          const SizedBox(height: AppSpacing.sm),
+          Text(status,
+              key: const ValueKey('calibration-status'),
+              style: AppText.body.copyWith(color: colors.textPrimary)),
+          // „This book has none" once there is a board to go on — on an empty
+          // table every piece is missing and the chips say nothing. Not capped
+          // by how many are missing: a book of rook endings has no queens,
+          // bishops or knights, six pieces (the owner, 23.9.2026).
+          if (_chosen.isNotEmpty && raw.unknownPieces.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              children: [
+                for (final p in raw.unknownPieces)
+                  FilterChip(
+                    key: ValueKey('calibration-absent-$p'),
+                    label: Text('No ${pieceName(p)} in this book'),
+                    selected: _absent.contains(p),
+                    onSelected: (on) =>
+                        setState(() => on ? _absent.add(p) : _absent.remove(p)),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.tonalIcon(
+              key: const ValueKey('calibration-find'),
+              onPressed: _findInBook,
+              icon: const Icon(Icons.menu_book_outlined),
+              label: const Text('Find a board in the book'),
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           AdaptiveCardRows(
@@ -436,12 +575,18 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
                 _CalibrationCard(
                   key: ValueKey('calibrate-${ref.page}-${ref.index}'),
                   ref: ref,
-                  picture: _foundBoard(ref)?.preview,
+                  picture: _pictures[ref],
                   placement: _placements[ref],
+                  adds: _placements[ref] == null
+                      ? const {}
+                      : classesAddedBy(_placements[ref]!, [
+                          for (final o in _chosen)
+                            if (o != ref && _placements[o] != null)
+                              _placements[o]!
+                        ]),
+                  alone: _chosen.length == 1,
                   onSetUp: () => _setUp(ref),
-                  onReplace: _found.length > _chosen.length
-                      ? () => _replace(ref)
-                      : null,
+                  onRemove: () => _remove(ref),
                 ),
             ],
           ),
@@ -451,18 +596,9 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
             child: FilledButton(
               key: const ValueKey('calibration-read'),
               onPressed: _calibrationReady ? _readWithChosen : null,
-              child: Text('Read $toRead boards'),
+              child: Text('Read pages ${widget.fromPage}–${widget.toPage}'),
             ),
           ),
-          if (!_calibrationReady)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xs),
-              child: Text(
-                '${_placements.length} of ${_chosen.length} set up',
-                textAlign: TextAlign.right,
-                style: AppText.caption.copyWith(color: colors.textSecondary),
-              ),
-            ),
         ],
       ),
     );
@@ -496,25 +632,34 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
         }
       });
 
-  String _composedWords(List<String> composed) {
-    const names = {
-      'P': 'white pawn',
-      'N': 'white knight',
-      'B': 'white bishop',
-      'R': 'white rook',
-      'Q': 'white queen',
-      'K': 'white king',
-      'p': 'black pawn',
-      'n': 'black knight',
-      'b': 'black bishop',
-      'r': 'black rook',
-      'q': 'black queen',
-      'k': 'black king',
-    };
-    return composed.map((c) {
-      final parts = c.split('/');
-      return 'a ${names[parts.first] ?? parts.first} on a ${parts.last} square';
-    }).join(', ');
+  /// A note above the boards, with the way back to the calibration.
+  Widget _note(Key key, String text) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Container(
+        key: key,
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: AppRadii.roundedSm,
+          border: Border.all(color: colors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: colors.textSecondary),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(text,
+                  style: AppText.body.copyWith(color: colors.textPrimary)),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            OutlinedButton(
+                onPressed: _improve, child: const Text('Add a board')),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _confirming() {
@@ -531,38 +676,23 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
           padding: AppSpacing.screenPadding,
           sliver: SliverList.list(
             children: [
-              if (result.composed.isNotEmpty) ...[
-                Container(
-                  key: const ValueKey('image-scan-composed'),
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: AppRadii.roundedSm,
-                    border: Border.all(color: colors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: colors.textSecondary),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'No board you set up shows '
-                          '${_composedWords(result.composed)}, so the scanner '
-                          'is guessing how this book draws it. Setting up one '
-                          'that does makes the guess a reading.',
-                          style:
-                              AppText.body.copyWith(color: colors.textPrimary),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      OutlinedButton(
-                          onPressed: _recalibrate,
-                          child: const Text('Set up again')),
-                    ],
-                  ),
+              if (result.unseen.isNotEmpty)
+                _note(
+                  const ValueKey('image-scan-unseen'),
+                  'No board you set up shows '
+                  '${result.unseen.map((p) => 'a ${pieceName(p)}').join(', ')} '
+                  'at all, so the scanner cannot read one: it comes out as '
+                  'another piece, marked only when it looks like nothing '
+                  'known. Setting up a board that shows it fixes that.',
                 ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
+              if (result.composed.isNotEmpty)
+                _note(
+                  const ValueKey('image-scan-composed'),
+                  'No board you set up shows '
+                  '${result.composed.map(classWords).join(', ')}, so the '
+                  'scanner is guessing how this book draws it. Setting up one '
+                  'that does makes the guess a reading.',
+                ),
               Wrap(
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.xs,
@@ -718,20 +848,43 @@ class _CalibrationCard extends StatelessWidget {
     required this.ref,
     required this.picture,
     required this.placement,
+    required this.adds,
+    required this.alone,
     required this.onSetUp,
-    required this.onReplace,
+    required this.onRemove,
   });
 
   final BoardRef ref;
   final Uint8List? picture;
   final String? placement;
+
+  /// The classes this board shows and no other chosen board does.
+  final Set<String> adds;
+
+  /// The only board chosen: everything it shows is new, and saying so tells
+  /// nothing.
+  final bool alone;
   final VoidCallback onSetUp;
-  final VoidCallback? onReplace;
+  final VoidCallback onRemove;
+
+  /// `R/light` → „white rook (light)", in the table's order.
+  static String _short(Set<String> classes) {
+    final order = [
+      for (final p in pieceLetters.split(''))
+        for (final colour in const ['light', 'dark']) '$p/$colour'
+    ];
+    return [
+      for (final c in order)
+        if (classes.contains(c))
+          '${pieceName(c.split('/').first)} (${c.split('/').last})'
+    ].join(', ');
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final done = placement != null;
+    final redundant = done && !alone && adds.isEmpty;
     return Card(
       shape: AppRadii.cardShape,
       child: Padding(
@@ -739,23 +892,8 @@ class _CalibrationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text('Page ${ref.page}, board ${ref.index}',
-                      style:
-                          AppText.body.copyWith(color: colors.textSecondary)),
-                ),
-                // Set up or not, told by the shape of the icon, not its colour.
-                Icon(
-                    done
-                        ? Icons.check_circle_outline
-                        : Icons.radio_button_unchecked,
-                    size: 20,
-                    semanticLabel: done ? 'Set up' : 'Not set up yet',
-                    color: colors.textPrimary),
-              ],
-            ),
+            Text('Page ${ref.page}, board ${ref.index}',
+                style: AppText.body.copyWith(color: colors.textSecondary)),
             const SizedBox(height: AppSpacing.xs),
             _PictureAndBoard(
               pictureKey:
@@ -773,20 +911,30 @@ class _CalibrationCard extends StatelessWidget {
                       ),
                     ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xs),
+            if (done && !alone)
+              Text(
+                redundant
+                    ? 'Shows nothing the other boards do not.'
+                    : 'Adds: ${_short(adds)}',
+                key: ValueKey('calibrate-adds-${ref.page}-${ref.index}'),
+                style: AppText.body.copyWith(color: colors.textPrimary),
+              ),
+            const SizedBox(height: AppSpacing.xs),
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.xs,
               children: [
                 FilledButton.tonal(
                   key: ValueKey('calibrate-setup-${ref.page}-${ref.index}'),
-                  onPressed: onSetUp,
+                  onPressed: picture == null ? null : onSetUp,
                   child: Text(done ? 'Edit' : 'Set up this position'),
                 ),
-                if (onReplace != null)
-                  TextButton(
-                      onPressed: onReplace,
-                      child: const Text('Choose a different board')),
+                TextButton(
+                  key: ValueKey('calibrate-remove-${ref.page}-${ref.index}'),
+                  onPressed: onRemove,
+                  child: const Text('Remove'),
+                ),
               ],
             ),
           ],
@@ -796,50 +944,328 @@ class _CalibrationCard extends StatelessWidget {
   }
 }
 
-class _BoardChooser extends StatelessWidget {
-  const _BoardChooser({required this.boards});
+/// What a calibration shows, piece by piece and colour by colour — phase 3e
+/// of `docs/PLAN-SKENER-SLIKE.md`. Each cell is told by **shape**, never by
+/// colour alone (the owner is colourblind): a tick for shown, ≈ for guessed
+/// from the other colour, an empty circle for not shown at all.
+class CoverageTable extends StatelessWidget {
+  const CoverageTable({super.key, required this.coverage});
 
-  final List<FoundBoard> boards;
+  final CalibrationCoverage coverage;
+
+  static const _names = ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'];
+
+  Widget _cell(BuildContext context, String piece, bool dark) {
+    final colors = context.colors;
+    final key = ValueKey('coverage-$piece-${dark ? 'dark' : 'light'}');
+    if (coverage.absent.contains(piece)) {
+      return Center(
+          key: key,
+          child: Text('–',
+              semanticsLabel: 'not in this book',
+              style: AppText.body.copyWith(color: colors.textMuted)));
+    }
+    return Center(
+      key: key,
+      child: switch (coverage.stateOf(piece, dark: dark)) {
+        ClassState.seen => Icon(Icons.check,
+            size: 18, color: colors.textPrimary, semanticLabel: 'shown'),
+        ClassState.guessed => Text('≈',
+            semanticsLabel: 'guessed',
+            style: AppText.title.copyWith(color: colors.textPrimary)),
+        ClassState.unknown => Icon(Icons.radio_button_unchecked,
+            size: 16, color: colors.textSecondary, semanticLabel: 'not shown'),
+      },
+    );
+  }
+
+  Widget _side(BuildContext context, String title, String letters) {
+    final colors = context.colors;
+    final head = AppText.caption.copyWith(color: colors.textSecondary);
+    return Table(
+      columnWidths: const {
+        0: FlexColumnWidth(),
+        1: FixedColumnWidth(44),
+        2: FixedColumnWidth(44),
+      },
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      children: [
+        TableRow(children: [
+          Text(title,
+              style: AppText.body.copyWith(
+                  color: colors.textPrimary, fontWeight: FontWeight.w600)),
+          Center(child: Text('light', style: head)),
+          Center(child: Text('dark', style: head)),
+        ]),
+        for (var i = 0; i < 6; i++)
+          TableRow(children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Text(_names[i],
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body.copyWith(color: colors.textPrimary)),
+            ),
+            _cell(context, letters[i], false),
+            _cell(context, letters[i], true),
+          ]),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return SafeArea(
-      child: Padding(
-        padding: AppSpacing.screenPadding,
+    return Container(
+      key: const ValueKey('calibration-coverage'),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: AppRadii.roundedSm,
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _side(context, 'White', 'PNBRQK')),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: _side(context, 'Black', 'pnbrqk')),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '✓ shown   ≈ guessed from the other colour, marked when read   '
+            '○ not shown: cannot be read',
+            style: AppText.caption.copyWith(color: colors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The book, a window of pages at a time, to choose a calibration board from
+/// — anywhere in it, since what is missing is usually elsewhere (the owner,
+/// 23.9.2026). Answers the board chosen by popping it.
+class BookBrowser extends StatefulWidget {
+  const BookBrowser({
+    super.key,
+    required this.load,
+    required this.pageCount,
+    required this.firstPage,
+    required this.taken,
+  });
+
+  /// The boards on the window of pages starting at a page.
+  final Future<({List<FoundBoard> boards, String? error})> Function(int first)
+      load;
+
+  /// Pages in the book, known once a window has loaded; 0 before.
+  final int Function() pageCount;
+  final int firstPage;
+
+  /// Boards already in the calibration.
+  final Set<BoardRef> taken;
+
+  @override
+  State<BookBrowser> createState() => _BookBrowserState();
+}
+
+class _BookBrowserState extends State<BookBrowser> {
+  late int _first = widget.firstPage;
+  List<FoundBoard>? _boards;
+  String? _error;
+  final _jump = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _open(_first);
+  }
+
+  @override
+  void dispose() {
+    _jump.dispose();
+    super.dispose();
+  }
+
+  Future<void> _open(int first) async {
+    setState(() {
+      _first = first;
+      _boards = null;
+      _error = null;
+    });
+    final loaded = await widget.load(first);
+    if (!mounted || _first != first) return;
+    setState(() {
+      _boards = loaded.boards;
+      _error = loaded.error;
+    });
+  }
+
+  int get _last {
+    final count = widget.pageCount();
+    final last = _first + browsePages - 1;
+    return count > 0 && last > count ? count : last;
+  }
+
+  void _go(String text) {
+    final page = int.tryParse(text.trim());
+    if (page == null || page < 1) return;
+    final count = widget.pageCount();
+    final target = count > 0 && page > count ? count : page;
+    _open(((target - 1) ~/ browsePages) * browsePages + 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final count = widget.pageCount();
+    final boards = _boards;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Choose a board'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: 'Close',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SafeArea(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Choose a board to set up',
-                style: AppText.title.copyWith(color: colors.textPrimary)),
-            const SizedBox(height: AppSpacing.sm),
-            Flexible(
-              child: GridView.extent(
-                shrinkWrap: true,
-                maxCrossAxisExtent: 140,
-                mainAxisSpacing: AppSpacing.sm,
-                crossAxisSpacing: AppSpacing.sm,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  for (final b in boards)
-                    InkWell(
-                      onTap: () => Navigator.of(context).pop(b.ref),
-                      child: Column(
-                        children: [
-                          Expanded(
-                              child:
-                                  Image.memory(b.preview, fit: BoxFit.contain)),
-                          Text('p. ${b.ref.page} · ${b.ref.index}',
-                              style: AppText.caption
-                                  .copyWith(color: colors.textSecondary)),
-                        ],
-                      ),
+                  IconButton(
+                    key: const ValueKey('browse-previous'),
+                    tooltip: 'Earlier pages',
+                    onPressed: _first > 1
+                        ? () => _open(
+                            _first - browsePages < 1 ? 1 : _first - browsePages)
+                        : null,
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  Text(
+                    'Pages $_first–$_last${count > 0 ? ' of $count' : ''}',
+                    key: const ValueKey('browse-pages'),
+                    style: AppText.body.copyWith(color: colors.textPrimary),
+                  ),
+                  IconButton(
+                    key: const ValueKey('browse-next'),
+                    tooltip: 'Later pages',
+                    onPressed: count == 0 || _last < count
+                        ? () => _open(_first + browsePages)
+                        : null,
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                  SizedBox(
+                    width: 120,
+                    child: TextField(
+                      key: const ValueKey('browse-jump'),
+                      controller: _jump,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.go,
+                      decoration: const InputDecoration(
+                          isDense: true, labelText: 'Go to page'),
+                      onSubmitted: _go,
                     ),
+                  ),
                 ],
               ),
             ),
+            Expanded(
+              child: boards == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_error!,
+                                  textAlign: TextAlign.center,
+                                  style: AppText.body
+                                      .copyWith(color: colors.textPrimary)),
+                              const SizedBox(height: AppSpacing.sm),
+                              OutlinedButton(
+                                  onPressed: () => _open(_first),
+                                  child: const Text('Try again')),
+                            ],
+                          ),
+                        )
+                      : boards.isEmpty
+                          ? Center(
+                              child: Text('No diagram pictures on these pages.',
+                                  style: AppText.body
+                                      .copyWith(color: colors.textSecondary)),
+                            )
+                          : GridView.extent(
+                              key: const ValueKey('browse-boards'),
+                              padding: const EdgeInsets.all(AppSpacing.sm),
+                              maxCrossAxisExtent: 170,
+                              mainAxisSpacing: AppSpacing.sm,
+                              crossAxisSpacing: AppSpacing.sm,
+                              childAspectRatio: 0.85,
+                              children: [
+                                for (final b in boards)
+                                  _BrowsedBoard(
+                                    board: b,
+                                    taken: widget.taken.contains(b.ref),
+                                  ),
+                              ],
+                            ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BrowsedBoard extends StatelessWidget {
+  const _BrowsedBoard({required this.board, required this.taken});
+
+  final FoundBoard board;
+  final bool taken;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return InkWell(
+      key: ValueKey('browse-${board.ref.page}-${board.ref.index}'),
+      // A board already in the calibration is not chosen twice.
+      onTap: taken ? null : () => Navigator.of(context).pop(board),
+      child: Column(
+        children: [
+          Expanded(
+            child: Opacity(
+              opacity: taken ? 0.4 : 1,
+              child: Image.memory(board.preview,
+                  fit: BoxFit.contain,
+                  semanticLabel: 'Page ${board.ref.page}, board '
+                      '${board.ref.index}'),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (taken) ...[
+                Icon(Icons.check, size: 14, color: colors.textPrimary),
+                const SizedBox(width: 4),
+              ],
+              Text('p. ${board.ref.page} · ${board.ref.index}',
+                  style: AppText.caption.copyWith(color: colors.textSecondary)),
+            ],
+          ),
+        ],
       ),
     );
   }

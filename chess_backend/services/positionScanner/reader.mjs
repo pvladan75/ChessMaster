@@ -19,6 +19,15 @@ export const SHIFT = 10;
 // how far a square may move from the board's own offset.
 export const KEEP = Number(process.env.DV_KEEP ?? 6);
 export const LOCAL = Number(process.env.DV_LOCAL ?? 3);
+// A square this far from the nearest example of *any* class — the share of
+// its compared pixels that differ — holds something the calibration never
+// showed, and is marked whatever its gap (phase 3e.0 of the plan). Measured on
+// the three books with each piece left out of the calibration in turn: on the
+// scan, 32 of 386 squares of the missing piece were read wrong and unmarked by
+// the gap alone, 4 with this rule, at 0.02 new marks a board; on the two
+// digital books it added no mark at all. A cut relative to the median failed
+// there, whose median is near zero.
+export const UNKNOWN_INK = 0.1;
 const SIDE = CELL - 2 * INSET; // 52: the part of a square that is compared
 
 /** Otsu's threshold of a grey picture. */
@@ -132,6 +141,10 @@ export const squareName = (i) => SQUARE_NAMES[i];
  * outline the square does not show, so where the seen template differs from
  * its own empty square the piece is drawn, and elsewhere the missing colour's
  * empty square is. `composed` names every class made that way.
+ *
+ * A piece shown on neither colour cannot be composed and is not read at all:
+ * its squares come out as whatever fits best. `unseen` names those pieces, so
+ * the answer can say so rather than leave it to the marks.
  */
 export function learn(calibration) {
   const examples = [];
@@ -183,7 +196,8 @@ export function learn(calibration) {
       means.push({ piece: ex.piece, dark: ex.dark, v: ex.v });
     }
   }
-  return { examples: thin(examples, KEEP), means, composed };
+  const unseen = [...'PNBRQKpnbrqk'].filter((p) => !sums.has(`${p}|l`) && !sums.has(`${p}|d`));
+  return { examples: thin(examples, KEEP), means, composed, unseen };
 }
 
 /** Squared distance between two squares of the same size. */
@@ -271,9 +285,10 @@ function candidates(wide, means, dark) {
 }
 
 /**
- * Read one board: [{ piece, gap }] for its 64 squares, a8 first. `gap` is the
- * distance to the nearest other class minus the distance to the winner, per
- * pixel — small means unsure.
+ * Read one board: [{ piece, gap, guessed, d1 }] for its 64 squares, a8 first.
+ * `gap` is the distance to the nearest other class minus the distance to the
+ * winner, per pixel — small means unsure. `d1` is the distance to the winner,
+ * per pixel — large means nothing the calibration showed looks like it.
  */
 export function read(board, templates) {
   const prepared = prepare(board);
@@ -308,6 +323,7 @@ export function read(board, templates) {
       // its empty square, so it is the runner-up on nearly every empty square,
       // and marking those put 20 marks on a board of Back to Basics.
       guessed: templates.composed.includes(`${piece}/${colour}`),
+      d1: d1 / (SIDE * SIDE),
     });
   }
   return out;
@@ -329,7 +345,16 @@ export function calibrate(calibration) {
   return { ...templates, cut };
 }
 
+/**
+ * Whether a square read is marked for the trainer to check: its gap is under
+ * the calibration's cut, it was read as a composed class, or it is farther
+ * from every example than UNKNOWN_INK.
+ */
+export function unsureOf(cell, calibrated) {
+  return cell.gap < calibrated.cut || cell.guessed || cell.d1 > UNKNOWN_INK;
+}
+
 /** One board read with a calibration: [{ piece, gap, unsure }], a8 first. */
 export function readBoard(board, calibrated) {
-  return read(board, calibrated).map((c) => ({ ...c, unsure: c.gap < calibrated.cut || c.guessed }));
+  return read(board, calibrated).map((c) => ({ ...c, unsure: unsureOf(c, calibrated) }));
 }

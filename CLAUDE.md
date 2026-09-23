@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3832 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3848 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1741 with TEST_DATABASE_URL, 1611 without
+cd chess_backend && npm test          # node --test, 1747 with TEST_DATABASE_URL, 1617 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -537,6 +537,15 @@ called `http.post`, so the save test watched the save go past its fake. And
 the message out, and the animation asserts `mounted` after the messenger is
 gone — the font scanner had carried that fault since August, because no test
 had closed it with a message showing.
+Then phase 3e (→ **3848**, the last one a rook-endings book; backend → **1617 / 1747**, both measured on
+23.9.2026): the trainer chooses the calibration boards from anywhere in the
+book, a table of 12 pieces × two square colours says what is still unseen, and
+reading waits until every piece is shown; a square farther than 0.10 from every
+example is marked (`UNKNOWN_INK`). Measured first on every board of the three
+books — **a filter on a result must not be a function of the thing being
+counted** (a „no marks" filter removed exactly the boards that showed the
+composed classes it was counting), and the hints it meant to build were
+measured useless and not built.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

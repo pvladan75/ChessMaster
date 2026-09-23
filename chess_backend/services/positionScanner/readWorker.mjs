@@ -11,4 +11,5 @@ const calibrated = calibrate(calibration);
 parentPort.postMessage({
   cells: boards.map((board) => readBoard(board, calibrated)),
   composed: calibrated.composed,
+  unseen: calibrated.unseen,
 });

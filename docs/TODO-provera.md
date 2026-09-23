@@ -5878,6 +5878,41 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 227. Kalibraciju bira trener, uz tabelu šta nedostaje — 23.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (server se sam restartovao; nov build). Plan:
+`PLAN-SKENER-SLIKE.md`, faza 3e.
+
+1. [ ] **Prazna tabela.** Nova knjiga sa slikama (ili „Improve the calibration"
+   pa ukloni sve): ekran „Teach the scanner this book" pokazuje tabelu White /
+   Black × light / dark, sve ○, i „Find a board in the book". Knjiga se ne šalje
+   dok ne pritisneš to dugme.
+2. [ ] **Listanje knjige.** „Find a board in the book" otvara prozor „Choose a
+   board" na stranama oko onih koje čitaš (20 strana odjednom); strelice i „Go
+   to page" idu kroz celu knjigu. Strana bez slika kaže „No diagram pictures on
+   these pages." Tabla koju si već izabrao je bleda i ne može se izabrati ponovo.
+3. [ ] **Tabela prati table.** Izaberi tablu i postavi je: ćelije te figure
+   postanu ✓, a druga boja polja ≈ (pogađa se). Rečenica ispod kaže šta još
+   treba, prvo figure kojih nema nigde. „Read pages …" je ugašeno dok bilo koja
+   figura nije viđena ni na jednoj boji polja.
+4. [ ] **„Adds".** Na drugoj i sledećim tablama piše šta dodaju; tabla koja ne
+   dodaje ništa kaže „Shows nothing the other boards do not." i ima „Remove".
+5. [ ] **Tabla sa bilo koje strane.** Na Silmanu nađi damu (ili šta tabela
+   traži) daleko od strana koje čitaš; posle „Read" čitanje radi, i ta tabla je
+   zapamćena sa ostalima (sledeće skeniranje čita odmah).
+6. [ ] **„No … in this book".** Čim je jedna tabla postavljena, ispod rečenice
+   je po dugme za svaku figuru koje nema („No black queen in this book");
+   uključeno, figura se više ne traži. Knjiga topovskih završnica (kraljevi,
+   topovi, pešaci): šest dugmadi, sva uključena, i „Read" radi.
+7. [ ] **Popravka kalibracije.** Na ekranu pročitanih tabli „Improve the
+   calibration" (gore desno) ili „Add a board" u napomeni: vraća tabelu sa
+   zapamćenim tablama i njihovim slikama; ništa se ne briše dok ne pročitaš
+   ponovo.
+8. [ ] **Figura koju skener nikad nije video.** Stara kalibracija bez neke
+   figure: iznad tabli piše „No board you set up shows a … at all". Na skenu
+   (Silman) polja sa takvom figurom su sada označena „?" (ranije je oko 8% njih
+   prolazilo neoznačeno).
+
 ## 226. Posle živog prolaza 22.9.2026: kalibracija, font Fritz, brisanje bez poruke — nije viđeno uživo
 
 **Server i aplikacija** (server se sam restartovao; nov build).

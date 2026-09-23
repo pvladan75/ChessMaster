@@ -569,6 +569,347 @@ Found while building, and fixed:
 
 
 
+### Phase 3e — a calibration the trainer steers [lead] — built 23.9.2026, awaiting the owner's live check (TODO-provera 227)
+
+**The request (the owner, 23.9.2026).** The three suggested boards are the
+busiest in the range, so they are usually neighbours from one chapter with the
+same pieces, while the pieces that are missing sit elsewhere in the book and
+are never shown. The trainer should find the boards in the book himself, and
+while setting them up should always see **what is still needed — which pieces,
+on which squares** — so the process is half guided.
+
+**What "needed" means, from the reader.** `reader.mjs` compares a square only
+with examples *of its own colour*, and never with its place on the board. So a
+calibration needs **24 classes**: 12 pieces × a light and a dark square (the two
+empty classes come with any board). Each class is in one of three states:
+
+| State | Meaning today | Shown as |
+|---|---|---|
+| **seen** | at least one calibration board has it | ✓, and the count of boards |
+| **guessed** | only the other colour was seen; `learn` composes a template, every square read as it is marked | ≈ |
+| **unknown** | the piece was never seen on either colour | ○ |
+
+**A hole found while designing this.** An *unknown* piece is worse than a
+guessed one, and today nothing says so. `learn` composes a class only from the
+same piece on the other colour; a piece seen on neither is simply absent — not
+in `composed`, not in the answer, not marked. A black queen in a book whose
+calibration never showed one is read as whatever fits best (likely a king), and
+it is marked only if its gap happens to fall under the cut — **nothing
+guarantees a mark** (read from the code, not yet measured; 3e.0 (b) measures
+it). The response must name these (`unseen`), and the
+calibration screen must not let a reading start blind to them (decision 1).
+
+**The screen.** One screen replaces the three fixed cards:
+
+1. **"What the scanner still needs"** at the top — the 24 classes as a small
+   table, a piece per row, *light* and *dark* as the two columns, each cell
+   ✓ / ≈ / ○ by **shape** (the owner is colourblind). Under it one sentence in
+   priority order: unknown pieces first ("a black queen, on any square"), then
+   guessed classes ("a white rook on a light square"). Worked out in the app
+   from the placements already set up (`pieceClassesOf` already exists), so it
+   updates the moment a board is confirmed, with no request.
+2. **The boards set up so far**, each a card as today, with one line more:
+   **"Adds: ♖ light, ♛ dark"** — or "Adds nothing new — remove?", which is the
+   owner's complaint answered on the card itself.
+3. **"Find a board in the book"** opens a browser of **every board in the
+   book**, not only the pages being read, grouped by page, with a page jump.
+   Calibration boards may already lie outside the reading range (phase 2,
+   decision 1); only the browser was missing.
+4. **In the editor**, beside the picture, the same "still needed" line, live:
+   as the trainer places pieces it says which missing classes this board will
+   add. The editor stays what it is (`referencePicture`); this is one strip.
+5. **"Read N boards"** is enabled by decision 1, and its label says what is
+   still guessed: "Read 42 boards — 3 kinds still guessed, they will be marked".
+
+**Half guided: the hints (a later part, only if phase 3e.0 measures it
+useful).** Once a board or two is set up, the server can read the book's boards
+*provisionally* with that partial calibration and say, per board, what it
+**probably** shows that is missing. Two signals, both from the reader as it is:
+
+- a square read as a **composed** class → "may show a white rook on a light
+  square" — that board is worth opening;
+- a square with **unknown ink** — its best distance to every known class far
+  above what the calibration's own squares give → "shows a piece the scanner
+  does not know yet". This is the only signal that can point at an *unknown*
+  piece.
+
+The browser then gets a chip "Might show what is missing" that narrows it to
+those boards. The trainer still chooses; nothing is picked for him.
+
+The second signal is also a **safety net** worth having on its own: a square
+far from everything known is marked uncertain in the final reading too, so an
+unseen piece can no longer pass unmarked even if the trainer overrides
+decision 1.
+
+**Phases.**
+
+- **3e.0 — measure [lead].** On the three books, with phase 0's labels:
+  (a) how many boards a greedy cover needs for all 24 classes, and which
+  classes a whole book never shows (a book with no white queen on a light
+  square decides whether "seen on any colour" must be enough); (b) with one
+  piece left out of the calibration, whether its squares' best distance
+  separates from the calibration's own — the unknown-ink signal, and at what
+  cut; (c) the provisional read's cost over a whole book with only the coarse
+  stage (`candidates`, class means), since the full read is 0.45 s a board and
+  Reinfeld has 300; (d) the browser's size: all of a book's boards as 128 px
+  thumbnails, time and bytes.
+- **3e.1 — server.** The reading answer names `unseen` pieces beside
+  `composed`. A browse mode for `POST /scans/images`: boards and thumbnails of
+  a page range, without the 60-board limit (that limit is about reading time,
+  not finding), paged by the app. The unknown-ink mark if 3e.0 finds a cut.
+  `MAX_CALIBRATION` 8 → 12 if (a) says 8 is too few — reading cost does not
+  grow with it (6 examples a class), only `calibrate`'s read-back, 0.45 s a
+  board.
+- **3e.2 — app.** The coverage model (a pure function of the placements, with
+  its own test), the screen above, the browser, the editor's strip, and the
+  same screen behind "Improve the calibration" for a book that has one —
+  with `calibrationGrownBy` unchanged underneath.
+- **3e.3 — hints**, only if 3e.0 (c) and (b) say they are fast and right
+  enough.
+
+**Gate (drafted; written in full before each part is briefed).**
+- Coverage: a placement set gives the right state for all 24 classes; a
+  class seen only on light is *guessed* on dark; a piece seen nowhere is
+  *unknown*. Mutation: swapping light and dark in the square colour must go red
+  (a8 is light).
+- The server names a piece left out of the calibration in `unseen`, and does
+  not name a composed one there.
+- "Read" is not offered while decision 1's condition is unmet, and is at the
+  boundary (the last missing piece set up).
+- "Adds nothing new" appears on a board whose classes the others already show,
+  and not on the first board.
+- The browser reaches a board outside the reading range, and the reading
+  request then carries it.
+- At 360 dp the table, the sentence and the cards do not overflow; the pictures
+  stay square (measured — clipping is not overflow).
+
+**Decisions for the owner.**
+
+1. **When may reading start?** Recommended: every one of the 12 pieces seen at
+   least once, on either colour, so nothing is *unknown*; *guessed* classes are
+   allowed and marked. With a "This book has no black queen" tick per piece for
+   the rare book that really lacks one. The alternative, reading at any time
+   with a warning, keeps the hole above open unless the unknown-ink mark lands.
+2. **The browser: the whole book or the reading range ± some pages?**
+   Recommended: the whole book, paged, because the point is that the missing
+   pieces are elsewhere.
+3. **Hints:** build them after 3e.0, or leave the trainer with the table alone?
+   Recommended: measure first; build only the unknown-ink mark if the
+   provisional read is slow.
+4. **Keep one suggested first board?** Recommended: no fixed three any more;
+   the empty screen offers the busiest board of the book as a starting point,
+   and the table takes over after it.
+
+**The owner accepted all four recommendations on 23.9.2026** and asked for
+3e.0. Its numbers change two of them — 3 and 4 — so they go back to him
+rather than being built as accepted (below).
+
+#### 3e.0 — measured 23.9.2026
+
+The harness (`find_all`, `read_all`, `coverage`, `unseen`, `hints`, in the
+session's scratch directory, nothing from the books in the repository) reads
+**every board of all three books** with phase 0's calibration and uses those
+readings as each book's inventory: 391 boards of *Back to Basics*, 1002 of
+Reinfeld, 648 of Silman. The inventory is a reading, not truth (98% of boards
+right, §7); every number below that rests on it says so.
+
+**(a) What a book needs, and what the three busiest gave.** Counted over the
+boards that are a legal position (387, 998, 620):
+
+| Book | Kinds the whole book shows | Boards that cover all of them (greedy) | Old scheme, per reading window of ≤ 60 boards: kinds the 3 busiest cover / kinds the window's boards show | Windows where a piece was **unknown** |
+|---|---|---|---|---|
+| *Back to Basics* | 24 / 24 | **3** | 20.1 / 22.4 | 0 / 7 |
+| Reinfeld | 24 / 24 | **2** | 21.2 / 24.0 | 0 / 17 |
+| Silman | 24 / 24 | **3** | **12.7 / 21.1** | **8 / 11** |
+
+- **The owner's complaint is measured, and it is worst exactly where it
+  matters:** on the scan, eight reading windows in eleven were read with at
+  least one piece the calibration had never seen, 5.7 kinds a window, while
+  three boards chosen anywhere in the book cover everything.
+- **Every book shows all 24 kinds**, so no "this book has no …" tick was
+  needed on these three. It stays in the design for a book that does lack one.
+- **`MAX_CALIBRATION` stays 8**: two or three boards cover a whole book.
+- *A mistake in the instrument, caught before it was reported:* the first run
+  counted only boards with no mark, and reported that each book **never**
+  shows the very kinds its calibration composes (*Back to Basics* four,
+  Reinfeld one, Silman two). A composed class is always marked, so a filter on "no mark"
+  removes precisely the boards that show it. **A filter on a result must not
+  be a function of the thing being counted.**
+
+**(b) A piece the calibration never saw.** For every piece but the kings (a
+legal board always has both), a calibration was chosen from boards without
+it, greedily covering everything else, and 25 boards with it and 25 without
+were read:
+
+| Book | Squares of the unseen piece | Marked by today's rule | Left **unmarked and wrong** |
+|---|---|---|---|
+| *Back to Basics* | 192 | 192 | 0 |
+| Reinfeld | 562 | 562 | 0 |
+| Silman | 386 | 354 | **32** (8%), mostly a black pawn read as a black bishop |
+
+On the digital books the gap rule marks all of them, because a calibration
+missing a piece is thin and the cut falls high — at a price of many marks on
+the other squares (up to 12 a board on *Back to Basics*, 31 on Reinfeld with
+no black pawn). On *Back to Basics* only five pieces could be left out: no
+board lacks the others. **On the scan the hole is real.** The distance to the nearest example
+(`d1`, the share of the square that differs) separates it with **one absolute
+cut on all three books**:
+
+| Cut on `d1` | *Back to Basics* unmarked | Reinfeld unmarked | Silman unmarked | New marks per board, Silman |
+|---|---|---|---|---|
+| none (today) | 0 | 0 | 32 / 386 | — |
+| 0.08 | 0 | 0 | 3 | 0.11 |
+| **0.10** | 0 | 0 | **4** | **0.02** |
+
+A cut relative to the median `d1` was tried first and fails on digital
+renders, whose median is near zero (it added 7–10 marks a board there). The
+absolute cut added no mark at all on the two digital books. **So the unknown-ink
+mark is worth building on its own — `d1 > 0.10` marks a square — whatever
+happens to the hints.**
+
+**(c) Hints: not worth building.** A simulated trainer started from one
+board and, after each board, opened the top-hinted one:
+
+- The coarse stage is **not** cheap: 0.35–0.48 s a board on the digital books
+  (the search over ±10 px for every class mean is most of a read), so one
+  whole-book pass over Reinfeld is about 8 minutes — after every board set up.
+- The hints are right only while nearly everything is missing, which the table
+  says anyway. In the tail, where they are needed, precision fell to 1–43%,
+  and the top hint **added nothing** on *Back to Basics* at steps 3, 4 and 6
+  and on Silman at steps 5 and 6. Reinfeld was covered by its second board with
+  no help.
+
+The table and the trainer's own eye are the guide; the browser gets no
+"might show what is missing" chip.
+
+**(d) The browser.** Finding every board of a whole book: 4.6 s (*Back to
+Basics*), 13 s (Reinfeld), 27.5 s (Silman, whole-page scans). Today's 256 px
+PNG preview is 50–150 KB a board; a **128 px JPEG at quality 70 is 5–7 KB**
+(PNG at 128: 18–30 KB). Reinfeld's 1002 thumbnails are then about 5.5 MB, so
+the browser asks for the book in pages of 50 or so and keeps today's 256 px
+picture for the editor.
+
+**Decision 4 does not survive either.** The busiest board of the book by
+`busy()` — the starting point recommended above — covers 18 kinds of 24 on
+*Back to Basics* and 20 on Reinfeld, but **3 on Silman**: on a scan, ink
+is not pieces. So the recommendation changes to **no suggested board at all**;
+the empty table, which on an empty calibration reads "every piece, on either
+colour", is the start.
+
+**What changes for the owner to confirm:**
+1. Hints (decision 3): measured, **not built**; the unknown-ink mark
+   (`d1 > 0.10`) is built instead, and closes the scan's hole from 32 squares
+   to 4.
+2. The starting board (decision 4): **none**, because the busiest board is a
+   poor start on a scan.
+3. Unchanged: reading waits until all 12 pieces are seen (decision 1); the
+   browser covers the whole book (decision 2), paged, as 128 px JPEG.
+
+#### Who is to move, and where a language model could help — measured 23.9.2026
+
+The owner asked, the same day, where an LLM API could help, and whether with
+who is to move. Today the image path never knows: the trainer taps the side,
+and a board left untouched is saved with `needsReview` (D2).
+
+**What each book offers, measured on all its boards:**
+
+| Book | The rules alone (the side not to move is in check) | Text on the diagram's page | Where the side really is |
+|---|---|---|---|
+| *Back to Basics* | 9 / 391 (2%) | yes, running prose | in the prose around the diagram |
+| Reinfeld | 8 / 1002 (1%) | none on the diagram pages | **the book's solutions**: phase 0 read the side for 998 of 1006 |
+| Silman | 32 / 648 (5%) | none — whole pages are scans | the first move printed after "Diagram N", **inside the picture** |
+
+- **Reinfeld needs no model.** Its solutions say who moves (`1...Rd1+` is
+  Black), the font path already has `solutions.mjs`, and the solution is also
+  the strongest check on the board read (D3). Reading solutions on the image
+  path is the cheapest large win, and deterministic.
+- ***Back to Basics* is where a text model could help.** A plain rule — the
+  first move printed after the diagram, which must be legal for the side its
+  number names — found a move for 341 boards and a legal one for 272; but on
+  the 40 of those whose side phase 0 knows (by replaying the line printed
+  before them), it was **wrong on 11 (27%)**. The prose quotes threats and other
+  openings: *"In this position Black has the obvious threat of 8...Nxe4"* sits
+  under a board with White to move; *"the Queen's Gambit, 1 d4 d5 2 c4"* sits
+  under one with Black to move. That is reading comprehension, which a text
+  model does and a regular expression does not; DeepSeek is already wired in
+  (`services/llm/deepseek.js`). Legality is only a weak check here: in an
+  opening position most moves are legal for someone.
+- **Silman would need a model that sees.** The side is in printed text that
+  is part of the scan. DeepSeek is text-only; the Gemini key is on the free
+  tier (20 requests a day — 648 diagrams is a month of it). A vision model
+  would also receive **page images of a copyrighted book**, which is the
+  owner's call, not a technical one.
+- **Not for the pieces.** The template reader reads 98% of boards with its
+  errors marked, and a model's dangerous error — a legal-looking wrong board —
+  is exactly what D1 exists against. Not for the calibration either: the
+  trainer's setup is the truth everything else is measured by.
+- **Maybe for phase 4:** a caption such as "White to play and win" or "Mate in
+  2" names the exercise's task. English captions are mostly a pattern, not a
+  model's job; measure before choosing.
+
+**D2 says the side is never guessed, and a model's answer is a guess.** So a
+model's side can only be offered as the pre-set answer on the confirmation
+card, with `needsReview` kept unless something checks it — a solution move
+that is legal for that side and not the other. Whether a pre-set side the
+trainer did not touch may be saved without `needsReview` is the owner's
+decision.
+
+**The measurement that would decide it** (not run: it sends book text to
+DeepSeek and spends the key, so it waits for the owner's word): the 40
+*Back to Basics* boards whose side is known, each with its column of text and
+the placement read, asked "who is to move at this diagram, or cannot tell".
+Worth building if it is right on nearly all it answers and says "cannot tell"
+rather than guess — the 27% the rule gets wrong is the bar.
+
+**The owner, 23.9.2026: not pursued.** "We are complicating it" — the trainer
+chooses the calibration boards and sets who is to move on each board himself,
+as before. Nothing of this section is built; the side-to-move numbers stay
+here as the measurement behind that decision.
+
+#### Built 23.9.2026
+
+The owner's answer settled both changed decisions: no hints, the unknown-ink
+mark instead, and no suggested starting board.
+
+- **Server** (backend 1611 → **1617** without a database, 1741 → **1747** with
+  one, both full runs; app 3832 → **3848**):
+  `reader.mjs` gives every square its `d1` and marks one beyond
+  `UNKNOWN_INK = 0.10` (`unsureOf`, the one home of the marking rule), and
+  `learn` names `unseen` pieces, which the reading answer carries. A request
+  without a calibration is the **book browser**: boards and previews of the
+  pages asked for, no 60-board limit (that limit is about reading time), no
+  suggestions, and no usage counted. Previews are JPEG at quality 80.
+- **App**: `CalibrationCoverage` (a pure function of the placements, with
+  `absent` for "No … in this book"), `CoverageTable`, `BookBrowser` (20 pages a
+  window, cached as the request itself so two askers share one upload), cards
+  with "Adds: …" / "Shows nothing the other boards do not." and "Remove",
+  reading gated on `ready`, "Improve the calibration" and "Add a board" going
+  back to the table **without deleting** the remembered calibration, and a
+  note naming `unseen` pieces. The door says "a few" instead of "three".
+- **A rook-endings book** (the owner's question the same day): the "No … in
+  this book" buttons first appeared only for four or fewer missing pieces, so
+  a book with no queens, bishops or knights — six — could never be read. They
+  now appear once one board is set up, however many are missing; a case holds
+  it, red on the capped code.
+- **Not built:** the live "still needed" strip inside the editor (item 4 of the
+  screen above). The editor is the shared `AnalysisBoardSetupDialog`, and the
+  card says what the board adds the moment it closes.
+
+**Gate and mutations.** Server: 8 mutations, each red on the right case. The
+drawn fixtures' pieces are plain shapes within 0.055 of one another, so no
+drawn *piece* crosses the 0.10 line; the rule is held at its boundary through
+`unsureOf`, and through a reading by a teaching cross (0.187, ink no
+calibration shows) — a survivor (`readBoard` not using `unsureOf`) showed the
+second case was needed. App: 14 mutations, each red on the right case. The
+gate found one real fault while being written: two remembered boards in one
+page window uploaded the book twice.
+
+A flake worth knowing: one route test answered 500 once, because the owner's
+nodemon restarted on a saved test file and its startup sweep of the shared
+scan temp directory removed the test's upload. The server was right; a test
+run and a dev server share `os.tmpdir()`. Mutations then ran in a copy
+outside the repository with its own `TMP`.
+
 ### Phase 4 — into exercises
 
 The confirmed positions go into the existing flow: the saved scans, then

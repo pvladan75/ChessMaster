@@ -1,8 +1,9 @@
 // The screens of the image path — phases 3c and 3d of
 // docs/PLAN-SKENER-SLIKE.md.
 //
-// A book whose diagrams are pictures: the door from the font path, the three
-// boards the trainer sets up beside their pictures, and every board read shown
+// A book whose diagrams are pictures: the door from the font path, the boards
+// the trainer finds in the book and sets up beside their pictures, guided by
+// the table of what the scanner has not seen (phase 3e), and every board read shown
 // beside its picture with its uncertain squares marked by shape (the owner is
 // colourblind; a mark told only by colour is no mark for him). The server is a
 // MockClient that records every request; the board editor is replaced by a
@@ -56,41 +57,49 @@ const _calibrated = {
   ],
 };
 
-/// A fake server. [calibration] answers the GET; [find] and [read] answer
-/// POST /scans/images without and with a calibration field; every request is
-/// kept in [sent].
+/// The pages of the fake book that hold a picture diagram, one each. Page 22
+/// and page 95 lie outside the pages read (40–44): the missing pieces are
+/// usually elsewhere in the book.
+const _bookPages = [22, 40, 41, 42, 43, 44, 95];
+
+/// A fake server. [calibration] answers the GET; POST /scans/images without
+/// a calibration field answers the book's boards on the pages asked for, and
+/// [read] answers it with one; every request is kept in [sent].
 class _Server {
-  _Server(
-      {this.calibration,
-      Map<String, dynamic>? find,
-      Map<String, dynamic>? read,
-      this.readStatus = 200})
-      : find = find ?? _defaultFind,
-        read = read ?? _defaultRead;
+  _Server({this.calibration, Map<String, dynamic>? read, this.readStatus = 200})
+      : read = read ?? _defaultRead;
 
   final Map<String, dynamic>? calibration;
-  final Map<String, dynamic> find;
   final Map<String, dynamic> read;
   final int readStatus;
   final List<http.Request> sent = [];
 
-  static final _defaultFind = {
-    'needsCalibration': true,
-    'scannedFrom': 40,
-    'scannedTo': 44,
-    'boards': [
-      _found(40, 1),
-      _found(41, 1),
-      _found(42, 1),
-      _found(43, 1),
-      _found(44, 1)
-    ],
-    'suggested': [
-      {'page': 42, 'index': 1},
-      {'page': 40, 'index': 1},
-      {'page': 44, 'index': 1},
-    ],
-  };
+  static String? _field(http.Request req, String name) =>
+      RegExp('name="$name"\r\n\r\n(.*?)\r\n--', dotAll: true)
+          .firstMatch(req.body)
+          ?.group(1);
+
+  static http.Response _browse(http.Request req) {
+    final from = int.parse(_field(req, 'fromPage')!);
+    final to = int.parse(_field(req, 'toPage')!);
+    final pages = [
+      for (final p in _bookPages)
+        if (p >= from && p <= to) p
+    ];
+    if (pages.isEmpty) {
+      return http.Response(
+          jsonEncode({'error': 'none', 'code': 'no_image_diagrams'}), 422);
+    }
+    return http.Response(
+        jsonEncode({
+          'needsCalibration': true,
+          'pageCount': 120,
+          'scannedFrom': from,
+          'scannedTo': to,
+          'boards': [for (final p in pages) _found(p, 1)],
+        }),
+        200);
+  }
 
   static final _defaultRead = {
     'needsCalibration': false,
@@ -124,7 +133,7 @@ class _Server {
         }
         if (path == '/scans/images') {
           final withCalibration = req.body.contains('name="calibration"');
-          if (!withCalibration) return http.Response(jsonEncode(find), 200);
+          if (!withCalibration) return _browse(req);
           return readStatus == 200
               ? http.Response(jsonEncode(read), 200)
               : http.Response(
@@ -142,9 +151,50 @@ class _Server {
 
   List<String> get trail => [
         for (final r in sent)
-          '${r.method} ${r.url.path}${r.url.path == '/scans/images' ? (r.body.contains('name="calibration"') ? ' +calibration' : ' -calibration') : ''}'
+          '${r.method} ${r.url.path}${r.url.path == '/scans/images' ? (r.body.contains('name="calibration"') ? ' +calibration' : ' pages ${_field(r, 'fromPage')}-${_field(r, 'toPage')}') : ''}'
       ];
+
+  /// The calibration a reading sent, as `page:fen`.
+  List<String> calibrationSent() {
+    final req = sent.lastWhere((r) =>
+        r.url.path == '/scans/images' && r.body.contains('name="calibration"'));
+    return [
+      for (final b in jsonDecode(_field(req, 'calibration')!) as List)
+        '${b['page']}:${b['fen']}'
+    ];
+  }
 }
+
+// Every piece but the black queen; a black queen on d8, a dark square; and a
+// board that shows nothing the first does not.
+const _allButQueen = 'rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+const _blackQueen = '3qk3/8/8/8/8/8/8/4K3';
+const _kingsOnly = '4k3/8/8/8/8/8/8/4K3';
+
+/// A picker that answers [placements] in turn.
+PositionPicker _answers(List<String> placements) {
+  var next = 0;
+  return (context, picture, initial) async => placements[next++];
+}
+
+/// Finds board 1 of [page] in the book browser and sets it up.
+Future<void> _addBoard(WidgetTester tester, int page) async {
+  await tester.ensureVisible(find.byKey(const ValueKey('calibration-find')));
+  await tester.tap(find.byKey(const ValueKey('calibration-find')));
+  await _settle(tester);
+  final browsed = find.byKey(ValueKey('browse-$page-1'));
+  if (browsed.evaluate().isEmpty) {
+    await tester.enterText(find.byKey(const ValueKey('browse-jump')), '$page');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await _settle(tester);
+  }
+  expect(browsed, findsOneWidget, reason: 'board 1 of page $page not browsed');
+  await tester.tap(browsed);
+  await _settle(tester);
+}
+
+FilledButton _readButton(WidgetTester tester) =>
+    tester.widget(find.byKey(const ValueKey('calibration-read')));
 
 Future<String> _book() async {
   final dir = await Directory.systemTemp.createTemp('image_scan_screen_');
@@ -243,13 +293,13 @@ void main() {
     testWidgets('a calibrated book is not asked for three boards again',
         (tester) async {
       await door(tester, calibrated: true);
-      expect(find.textContaining('set up three'), findsNothing);
+      expect(find.textContaining('set up a few'), findsNothing);
       expect(find.textContaining('set up this book before'), findsOneWidget);
     });
 
     testWidgets('a new book is told what setting up means', (tester) async {
       await door(tester, calibrated: false);
-      expect(find.textContaining('set up three'), findsOneWidget);
+      expect(find.textContaining('set up a few'), findsOneWidget);
       expect(find.textContaining('set up this book before'), findsNothing);
     });
 
@@ -313,61 +363,191 @@ void main() {
       expect(find.byKey(const ValueKey('calibration-boards')), findsNothing);
     });
 
-    testWidgets(
-        '"Read" waits for all three boards, then reads and remembers them',
+    // Phase 3e (the owner, 23.9.2026): the three busiest boards of the pages
+    // being read were usually neighbours showing the same pieces, while the
+    // missing ones were elsewhere. The trainer now finds the boards himself,
+    // anywhere in the book, and a table says what is still missing. The
+    // cases of the three fixed boards are replaced by these.
+    testWidgets('a new book opens on an empty table and uploads nothing yet',
         (tester) async {
       final server = _Server();
-      final picked = <String>[];
-      await _pump(tester, server, pick: (context, picture, initial) async {
-        const placements = [
-          '5nk1/R5p1/8/8/8/8/8/6K1',
-          '7k/8/8/8/8/8/8/1KQ5',
-          '8/3nk3/8/3Q1K2/8/8/8/8'
-        ];
-        final p = placements[picked.length];
-        picked.add(p);
-        return p;
-      });
-      expect(server.trail.skip(1), ['POST /scans/images -calibration']);
-      expect(find.byKey(const ValueKey('calibration-boards')), findsOneWidget);
+      await _pump(tester, server);
+      expect(server.trail.skip(1), isEmpty,
+          reason: 'the book was sent before the trainer asked to browse it');
+      expect(
+          find.byKey(const ValueKey('calibration-coverage')), findsOneWidget);
+      expect(_readButton(tester).onPressed, isNull);
+      // Every piece is missing on an empty table: twelve „No … in this book"
+      // buttons would say nothing.
+      expect(find.byKey(const ValueKey('calibration-absent-q')), findsNothing);
+      // Nothing is shown yet: every piece is marked as not shown.
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('coverage-q-dark')),
+              matching: find.byIcon(Icons.radio_button_unchecked)),
+          findsOneWidget);
+    });
 
-      FilledButton read() =>
-          tester.widget(find.byKey(const ValueKey('calibration-read')));
-      expect(read().onPressed, isNull);
-      for (final ref in ['42-1', '40-1', '44-1']) {
-        expect(read().onPressed, isNull,
-            reason: 'enabled before $ref was set up');
-        await tester
-            .ensureVisible(find.byKey(ValueKey('calibrate-setup-$ref')));
-        await tester.tap(find.byKey(ValueKey('calibrate-setup-$ref')));
-        await _settle(tester, 2);
-      }
-      expect(read().onPressed, isNotNull);
-      expect(find.text('Read 2 boards'), findsOneWidget);
+    testWidgets(
+        'the browser opens near the pages being read and asks for one window',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server);
+      await tester.tap(find.byKey(const ValueKey('calibration-find')));
+      await _settle(tester);
+      expect(server.trail.last, 'POST /scans/images pages 21-40');
+      expect(find.text('Pages 21–40 of 120'), findsOneWidget);
+      expect(find.byKey(const ValueKey('browse-22-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('browse-40-1')), findsOneWidget);
+      // Turning on, and back: back is not uploaded again.
+      await tester.tap(find.byKey(const ValueKey('browse-next')));
+      await _settle(tester);
+      expect(server.trail.last, 'POST /scans/images pages 41-60');
+      expect(find.byKey(const ValueKey('browse-42-1')), findsOneWidget);
+      final asked = server.sent.length;
+      await tester.tap(find.byKey(const ValueKey('browse-previous')));
+      await _settle(tester);
+      expect(server.sent.length, asked,
+          reason: 'a window seen was fetched again');
+      // A page with no pictures is an empty window, not an error.
+      await tester.enterText(find.byKey(const ValueKey('browse-jump')), '70');
+      await tester.testTextInput.receiveAction(TextInputAction.go);
+      await _settle(tester);
+      expect(server.trail.last, 'POST /scans/images pages 61-80');
+      expect(find.text('No diagram pictures on these pages.'), findsOneWidget);
+    });
+
+    testWidgets(
+        'reading waits until every piece is shown, and reads with boards from anywhere',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server,
+          pick: _answers([_allButQueen, _kingsOnly, _blackQueen]));
+
+      await _addBoard(tester, 42);
+      expect(find.byKey(const ValueKey('calibrate-42-1')), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('coverage-R-dark')),
+              matching: find.byIcon(Icons.check)),
+          findsOneWidget);
+      expect(_readButton(tester).onPressed, isNull,
+          reason: 'read with the black queen never shown');
+      expect(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('calibration-status')))
+              .data,
+          contains('a black queen, on any square'));
+
+      // A board that shows nothing new says so.
+      await _addBoard(tester, 41);
+      expect(
+          find.text('Shows nothing the other boards do not.'), findsOneWidget);
+      expect(_readButton(tester).onPressed, isNull);
+
+      // The black queen, from page 95 — far outside the pages read.
+      await _addBoard(tester, 95);
+      expect(_readButton(tester).onPressed, isNotNull,
+          reason: 'every piece is shown, and reading still waits');
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('coverage-q-light')),
+              matching: find.text('≈')),
+          findsOneWidget,
+          reason: 'the queen on a light square is guessed');
 
       await tester
           .ensureVisible(find.byKey(const ValueKey('calibration-read')));
       await tester.tap(find.byKey(const ValueKey('calibration-read')));
       await _settle(tester);
-      expect(server.trail.skip(2), [
-        'POST /scans/images +calibration',
-        'PUT /scans/calibrations/${server.sent.first.url.pathSegments.last}',
+      expect(server.calibrationSent(), [
+        '42:$_allButQueen',
+        '41:$_kingsOnly',
+        '95:$_blackQueen',
       ]);
-      final sentBoards =
-          (jsonDecode(server.sent.last.body) as Map)['boards'] as List;
-      expect(sentBoards.map((b) => '${b['page']}:${b['fen']}'), [
-        '42:${picked[0]}',
-        '40:${picked[1]}',
-        '44:${picked[2]}',
-      ]);
+      final put = server.sent.lastWhere((r) => r.method == 'PUT');
+      expect(
+          ((jsonDecode(put.body) as Map)['boards'] as List)
+              .map((b) => '${b['page']}'),
+          ['42', '41', '95']);
+    });
+
+    testWidgets('a board removed leaves the calibration and the table',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server, pick: _answers([_allButQueen, _blackQueen]));
+      await _addBoard(tester, 42);
+      await _addBoard(tester, 95);
+      expect(_readButton(tester).onPressed, isNotNull);
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-remove-95-1')));
+      await tester.tap(find.byKey(const ValueKey('calibrate-remove-95-1')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('calibrate-95-1')), findsNothing);
+      expect(_readButton(tester).onPressed, isNull,
+          reason: 'the black queen left with its board');
+    });
+
+    testWidgets('a piece the book never draws can be left out, by name',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server, pick: _answers([_allButQueen]));
+      await _addBoard(tester, 42);
+      expect(_readButton(tester).onPressed, isNull);
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibration-absent-q')));
+      expect(find.text('No black queen in this book'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('calibration-absent-q')));
+      await tester.pump();
+      expect(_readButton(tester).onPressed, isNotNull);
+    });
+
+    // The owner, 23.9.2026: a book of rook endings has no queens, bishops or
+    // knights at all — six pieces missing, not one. The buttons first
+    // appeared only for four or fewer, so such a book could never be read.
+    testWidgets('a rook-endings book can say six pieces are not in it',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server, pick: _answers(['4k3/r6p/8/8/8/8/P6R/4K3']));
+      await _addBoard(tester, 42);
+      expect(_readButton(tester).onPressed, isNull);
+      for (final p in ['N', 'B', 'Q', 'n', 'b', 'q']) {
+        final chip = find.byKey(ValueKey('calibration-absent-$p'));
+        expect(chip, findsOneWidget, reason: 'no way to say there is no $p');
+        await tester.ensureVisible(chip);
+        await tester.tap(chip);
+        await tester.pump();
+      }
+      expect(_readButton(tester).onPressed, isNotNull,
+          reason: 'kings, rooks and pawns shown, the rest said absent');
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibration-read')));
+      await tester.tap(find.byKey(const ValueKey('calibration-read')));
+      await _settle(tester);
+      expect(server.calibrationSent(), ['42:4k3/r6p/8/8/8/8/P6R/4K3']);
+    });
+
+    testWidgets('a board already in the calibration cannot be chosen again',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server, pick: _answers([_allButQueen, _blackQueen]));
+      await _addBoard(tester, 42);
+      await tester.tap(find.byKey(const ValueKey('calibration-find')));
+      await _settle(tester);
+      await tester.enterText(find.byKey(const ValueKey('browse-jump')), '42');
+      await tester.testTextInput.receiveAction(TextInputAction.go);
+      await _settle(tester);
+      await tester.tap(find.byKey(const ValueKey('browse-42-1')));
+      await _settle(tester);
+      expect(find.text('Choose a board'), findsOneWidget,
+          reason: 'the browser closed on a board already chosen');
     });
 
     // The owner's live pass of 22.9.2026: "Generate and Set Position" threw
     // him back to the scanner, the board unset. The editor closes itself
     // after `onPositionSet`, and the scanner's callback closed it too — so the
-    // second close took the calibration screen with it. The cases above stand
-    // a fake in for the editor and could not see it; this one runs the real
-    // one, through the scanner's own `pickPositionWithEditor`.
+    // second close took the calibration screen with it. This case runs the
+    // real editor, through the scanner's own `pickPositionWithEditor`.
     testWidgets('the real editor hands its board back and leaves the screen',
         (tester) async {
       final server = _Server();
@@ -375,10 +555,7 @@ void main() {
           overAnotherScreen: true,
           pick: (context, picture, initial) =>
               pickPositionWithEditor(context, picture, '4k3/8/8/8/8/8/8/4K3'));
-      await tester
-          .ensureVisible(find.byKey(const ValueKey('calibrate-setup-42-1')));
-      await tester.tap(find.byKey(const ValueKey('calibrate-setup-42-1')));
-      await _settle(tester, 4);
+      await _addBoard(tester, 42);
       expect(find.text('Generate and Set Position'), findsOneWidget);
       await tester.tap(find.text('Generate and Set Position'));
       await _settle(tester, 4);
@@ -388,8 +565,6 @@ void main() {
       expect(find.text('the screen underneath'), findsNothing,
           reason: 'the calibration screen was closed with the editor');
       expect(find.byKey(const ValueKey('calibration-boards')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('calibrate-setup-42-1')), findsOneWidget);
       expect(find.text('Edit'), findsOneWidget,
           reason: 'the board set up in the editor did not arrive');
     });
@@ -407,10 +582,7 @@ void main() {
           overAnotherScreen: true,
           pick: (context, picture, initial) => pickPositionWithEditor(
               context, picture, '4k3/8/8/8/8/8/8/4R1K1'));
-      await tester
-          .ensureVisible(find.byKey(const ValueKey('calibrate-setup-42-1')));
-      await tester.tap(find.byKey(const ValueKey('calibrate-setup-42-1')));
-      await _settle(tester, 4);
+      await _addBoard(tester, 42);
 
       expect(find.text('To move:'), findsNothing,
           reason: 'the editor asks who is to move, which the scanner drops');
@@ -431,13 +603,9 @@ void main() {
         'a reading that fails remembers nothing, and offers the way out',
         (tester) async {
       final server = _Server(readStatus: 422);
-      await _pump(tester, server);
-      for (final ref in ['42-1', '40-1', '44-1']) {
-        await tester
-            .ensureVisible(find.byKey(ValueKey('calibrate-setup-$ref')));
-        await tester.tap(find.byKey(ValueKey('calibrate-setup-$ref')));
-        await _settle(tester, 2);
-      }
+      await _pump(tester, server, pick: _answers([_allButQueen, _blackQueen]));
+      await _addBoard(tester, 42);
+      await _addBoard(tester, 95);
       await tester
           .ensureVisible(find.byKey(const ValueKey('calibration-read')));
       await tester.tap(find.byKey(const ValueKey('calibration-read')));
@@ -447,6 +615,50 @@ void main() {
       expect(find.byKey(const ValueKey('image-scan-failure')), findsOneWidget);
       expect(find.byKey(const ValueKey('image-scan-failed-recalibrate')),
           findsOneWidget);
+    });
+
+    testWidgets(
+        'improving a remembered calibration brings its boards back, pictures and all',
+        (tester) async {
+      final server = _Server(calibration: _calibrated);
+      await _pump(tester, server);
+      await tester.tap(find.byKey(const ValueKey('image-scan-recalibrate')));
+      await _settle(tester, 6);
+      for (final page in [40, 41, 42]) {
+        expect(find.byKey(ValueKey('calibrate-$page-1')), findsOneWidget);
+        // Its picture arrived: the button that needs it is enabled.
+        final setUp = tester.widget<FilledButton>(
+            find.byKey(ValueKey('calibrate-setup-$page-1')));
+        expect(setUp.onPressed, isNotNull, reason: 'no picture for page $page');
+      }
+      // Page 40 came with the reading; 41 and 42 were fetched, once.
+      expect(server.trail.where((t) => t.contains('pages')).toList(),
+          ['POST /scans/images pages 41-60']);
+      expect(server.sent.where((r) => r.method == 'DELETE'), isEmpty,
+          reason: 'improving must not forget the calibration it improves');
+    });
+
+    testWidgets(
+        'at 360 dp the table and the cards fit, and pictures are square',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server,
+          size: const Size(360, 740),
+          pick: _answers([_allButQueen, _kingsOnly]));
+      await _addBoard(tester, 42);
+      await _addBoard(tester, 41);
+      expect(tester.takeException(), isNull);
+      final table =
+          tester.getRect(find.byKey(const ValueKey('calibration-coverage')));
+      expect(table.right, lessThanOrEqualTo(360));
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-picture-41-1')));
+      final picture =
+          tester.getRect(find.byKey(const ValueKey('calibrate-picture-41-1')));
+      expect(picture.width, picture.height);
+      expect(picture.width, greaterThan(100));
+      final adds = find.byKey(const ValueKey('calibrate-adds-41-1'));
+      expect(tester.getRect(adds).right, lessThanOrEqualTo(360));
     });
 
     for (final size in const [Size(360, 740), Size(1280, 800)]) {
@@ -695,6 +907,18 @@ void main() {
       expect(find.byKey(const ValueKey('image-scan-composed')), findsOneWidget);
       expect(
           find.textContaining('white rook on a light square'), findsOneWidget);
+    });
+
+    testWidgets('a piece never shown at all is named above the boards',
+        (tester) async {
+      await _pump(tester, _Server(calibration: _calibrated));
+      expect(find.byKey(const ValueKey('image-scan-unseen')), findsNothing);
+      final read = Map<String, dynamic>.from(_Server._defaultRead)
+        ..['unseen'] = ['q', 'N'];
+      await _pump(tester, _Server(calibration: _calibrated, read: read));
+      expect(find.byKey(const ValueKey('image-scan-unseen')), findsOneWidget);
+      expect(find.textContaining('a black queen, a white knight at all'),
+          findsOneWidget);
     });
 
     testWidgets('the note about a guessed piece fits a 360 dp phone',

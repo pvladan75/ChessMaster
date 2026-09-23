@@ -6914,3 +6914,51 @@ kontrola mora da bude kontrola.** Stari „Only the ones to check" nije imao
 nijedan test; sada svaki filter ima slučaj, četiri mutacije crvene.
 
 Brojevi: aplikacija 3829 → 3832.
+
+## 23.9.2026 — merenje 3e.0: filter koji briše ono što broji
+
+Faza 3e.0 `PLAN-SKENER-SLIKE.md` (kalibracija koju vodi trener) izmerena je
+čitanjem **svih** tabli tri knjige. Prvi izveštaj je tvrdio da svaka knjiga
+**nikad** ne pokazuje baš one vrste koje njena kalibracija sastavlja (*Back to
+Basics* četiri, Reinfeld jednu, Silman dve). Uzrok je bio instrument: brojao je
+samo table bez oznake, a sastavljena klasa je **uvek** označena — filter je
+izbacio tačno table koje su je pokazivale. Sa filterom „legalna pozicija" sve
+tri knjige pokazuju svih 24 vrsta. **Filter nad rezultatom ne sme da zavisi od
+onoga što se broji.**
+
+Drugo: prag „M puta medijana" za nepoznato mastilo radio je na skenu, a na
+digitalnim knjigama, gde je medijana skoro nula, dodao je 7–10 oznaka po tabli.
+Jedan apsolutni prag (`d1 > 0.10`) radi na sve tri. **Relativan prag ne prenosi
+se sa podataka sa šumom na podatke bez šuma.**
+
+Brojevi: bez promene koda.
+
+## 23.9.2026 — faza 3e izgrađena: kalibraciju bira trener
+
+Vlasnik je odbacio LLM („komplikujemo") i prihvatio izmene iz merenja: bez
+nagoveštaja, bez predložene početne table, oznaka „nepoznato mastilo" umesto
+toga. Tri stvari vredne pamćenja:
+
+- **Nacrtane figure ne mogu da stanu na izmerenu liniju.** Prag 0.10 je izmeren
+  na pravim knjigama; nacrtane figure testa su sve na 0.055 jedna od druge, pa
+  nijedna ne prelazi prag. Umesto da biram oblike dok test ne prođe, pravilo je
+  dobilo jedan dom (`unsureOf`) i test na granici, a čitanje table je dobilo
+  slučaj sa krstom za nastavu (0.187 — mastilo koje nijedna kalibracija ne
+  pokazuje). Mutacija koja je preživela bez tog slučaja je pokazala da je
+  potreban.
+- **Dva pitanja za isti prozor stranica su dva slanja knjige.** Keš koji se puni
+  tek kad odgovor stigne ne vidi zahtev koji je još na putu; sada se čuva sam
+  zahtev. Našao ga je test „poboljšaj kalibraciju", ne pregled koda.
+- **Test i razvojni server dele `os.tmpdir()`.** Jedan test rute je jednom vratio
+  500: nodemon se restartovao na sačuvan test fajl, a njegovo čišćenje privremenih
+  fajlova pri startu je obrisalo upload testa usred zahteva. Kod je bio ispravan;
+  mutacije su zato rađene u kopiji van repozitorijuma, sa sopstvenim `TMP`.
+
+Isti dan, vlasnikovo pitanje o knjizi topovskih završnica: dugmad „No … in this
+book" su se pojavljivala tek kad fale najviše četiri figure, a toj knjizi fali
+šest — ne bi mogla da se pročita. Granica je bila izmišljena da ekran ne bude
+pretrpan, a nijedan test nije imao knjigu kojoj fali više figura. **Broj
+nacrtan „od oka" je pravilo o podacima koje niko nije pogledao.**
+
+Brojevi: aplikacija 3832 → 3848; backend 1611 → 1617 bez baze, 1741 → 1747 sa
+bazom (obe mere).

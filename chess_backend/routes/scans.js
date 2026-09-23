@@ -165,8 +165,9 @@ router.post('/', authenticateToken, scanLimiter, upload.single('document'), asyn
 
 // POST /scans/images — a book whose diagrams are pictures.
 //
-// Without a `calibration` field: the boards on those pages, a preview of each,
-// and the ones worth calibrating. With one (JSON: [{ page, index, fen,
+// Without a `calibration` field: the boards on those pages and a preview of
+// each, which is how the trainer browses the book for calibration boards
+// (phase 3e of docs/PLAN-SKENER-SLIKE.md). With one (JSON: [{ page, index, fen,
 // ignore? }], the positions of a few of the book's own boards): every other
 // board read against them, each with `source: 'image'` and its uncertain
 // squares. The document is deleted in the `finally`, as above, and nothing is
@@ -196,7 +197,12 @@ router.post('/images', authenticateToken, scanLimiter, upload.single('document')
       throw err;
     }
 
-    await recordUsage(pool, req.user.id, METRIC.SCANNED_PAGES, result.scannedTo - result.scannedFrom + 1);
+    // Browsing is not scanning: finding boards costs a fraction of a second a
+    // page, and a trainer looking through a book for calibration boards would
+    // otherwise be counted for every page he turned. The reading is counted.
+    if (!result.needsCalibration) {
+      await recordUsage(pool, req.user.id, METRIC.SCANNED_PAGES, result.scannedTo - result.scannedFrom + 1);
+    }
     logger.info(
       `[SCAN] slike user=${req.user.id} strane=${result.scannedFrom}-${result.scannedTo} ` +
         (result.needsCalibration

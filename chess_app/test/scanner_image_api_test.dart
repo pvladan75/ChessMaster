@@ -50,9 +50,7 @@ void main() {
                 {'page': 40, 'index': 1, 'source': 'image', 'preview': _png},
                 {'page': 41, 'index': 2, 'source': 'image', 'preview': _png},
               ],
-              'suggested': [
-                {'page': 41, 'index': 2},
-              ],
+              'pageCount': 120,
             }),
             200,
           );
@@ -77,7 +75,9 @@ void main() {
       expect(result.needsCalibration, isTrue);
       expect(result.boards.map((b) => b.ref),
           [const BoardRef(40, 1), const BoardRef(41, 2)]);
-      expect(result.suggested, [const BoardRef(41, 2)]);
+      // Phase 3e: the trainer chooses the boards; the answer carries the
+      // book's length for browsing it, and no suggestions any more.
+      expect(result.pageCount, 120);
       expect(result.boards.first.preview.sublist(1, 4), utf8.encode('PNG'));
     });
 
@@ -106,6 +106,7 @@ void main() {
                 },
               ],
               'composed': ['R/light'],
+              'unseen': ['q'],
             }),
             200,
           );
@@ -145,6 +146,7 @@ void main() {
       expect(board.uncertain, ['c3']);
       expect(board.accepted, isTrue);
       expect(outcome.result!.composed, ['R/light']);
+      expect(outcome.result!.unseen, ['q']);
     });
 
     test('a refusal keeps its code and the numbers the server named', () async {

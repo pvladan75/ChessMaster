@@ -86,7 +86,7 @@ const CALIBRATION = [
 ];
 const TO_READ = ['8/5k2/8/3Q4/8/2n5/5B2/6K1', '4k2r/8/8/8/8/8/8/R3K2R'];
 
-test('3. without a calibration: the boards, a preview each, three suggestions, and nothing saved', async () => {
+test('3. without a calibration: the boards and a preview each, nothing saved and nothing counted', async () => {
   const pdf = await bookOf([...TO_READ, CALIBRATION[0]]);
   const before = tempFiles();
   queries.length = 0;
@@ -96,12 +96,16 @@ test('3. without a calibration: the boards, a preview each, three suggestions, a
     assert.equal(body.needsCalibration, true);
     assert.deepEqual(body.boards.map((b) => `${b.page}:${b.index}:${b.source}`), ['1:1:image', '2:1:image', '3:1:image']);
     for (const b of body.boards) {
-      assert.ok(Buffer.from(b.preview, 'base64').subarray(1, 4).toString() === 'PNG', 'a preview is a PNG');
+      // A JPEG, not a PNG: a whole book is browsed through these (plan, 3e.0 (d)).
+      const bytes = Buffer.from(b.preview, 'base64');
+      assert.deepEqual([...bytes.subarray(0, 3)], [0xff, 0xd8, 0xff], 'a preview is a JPEG');
     }
-    assert.equal(body.suggested.length, 3);
-    // The fullest board is suggested first: the opening position on page 3.
-    assert.deepEqual(body.suggested[0], { page: 3, index: 1 });
+    // The trainer chooses the calibration boards (phase 3e): nothing is picked for him.
+    assert.equal(body.suggested, undefined);
   });
+  // Browsing is not scanning: no usage is recorded for it.
+  assert.ok(!queries.some((q) => /usage/i.test(q) && /INSERT|UPDATE/.test(q)),
+    `browsing was counted: ${queries.filter((q) => /usage/i.test(q)).join(' | ')}`);
   assert.ok(!queries.some((q) => /INSERT INTO custom_puzzles|UPDATE custom_puzzles/.test(q)),
     `a position was written: ${queries.filter((q) => /custom_puzzles/.test(q)).join(' | ')}`);
   assert.deepEqual(tempFiles(), before, 'the uploaded document was left behind');
@@ -133,8 +137,21 @@ test('4. with a calibration: every other board is read, source image, and the ca
       assert.equal(p.legal, true);
     }
     assert.ok(body.composed.includes('R/light'), `composed: ${body.composed}`);
+    assert.deepEqual(body.unseen, [], 'this calibration shows every piece');
   });
   assert.deepEqual(tempFiles(), before, 'the uploaded document was left behind');
+});
+
+test('4. a piece the calibration shows on neither colour is named in unseen', async () => {
+  // Kings and queens only: every other piece is one the reader cannot read.
+  const pdf = await bookOf([CALIBRATION[1], ...TO_READ]);
+  await withApp(async (port) => {
+    const { status, body } = await upload(port, '/scans/images', pdf, {
+      fromPage: '1', toPage: '3', calibration: [{ page: 1, index: 1, fen: CALIBRATION[1] }],
+    });
+    assert.equal(status, 200, JSON.stringify(body).slice(0, 300));
+    assert.deepEqual(body.unseen, ['P', 'N', 'B', 'R', 'p', 'n', 'b', 'r']);
+  });
 });
 
 test('4. a calibration that is not a board is refused, never half-used', async () => {
@@ -160,6 +177,25 @@ test('4. a calibration naming a board that is not there is refused by name', asy
   });
 });
 
+test('4. browsing a page range with more boards than one reading takes is not refused', async () => {
+  const { MAX_IMAGE_BOARDS } = await import('../services/positionScanner/imageRead.mjs');
+  const { positionImage, buildPdf } = await books();
+  const picture = positionImage(TO_READ[0], { seed: 3 });
+  const pages = Math.ceil((MAX_IMAGE_BOARDS + 1) / 2);
+  const pdf = buildPdf(Array.from({ length: pages }, () => ({
+    size: [400, 600],
+    images: [
+      { picture, storage: 'bit1', rect: [40, 20, 268, 240] },
+      { picture, storage: 'bit1', rect: [40, 320, 268, 240] },
+    ],
+  })));
+  await withApp(async (port) => {
+    const { status, body } = await upload(port, '/scans/images', pdf, { fromPage: '1', toPage: String(pages) });
+    assert.equal(status, 200, JSON.stringify(body).slice(0, 300));
+    assert.equal(body.boards.length, pages * 2);
+  });
+});
+
 test('4. more boards than one request reads are refused with the number', async () => {
   const { MAX_IMAGE_BOARDS } = await import('../services/positionScanner/imageRead.mjs');
   // Pages with two boards each, so the count passes the ceiling within the
@@ -175,7 +211,10 @@ test('4. more boards than one request reads are refused with the number', async 
     ],
   })));
   await withApp(async (port) => {
-    const { status, body } = await upload(port, '/scans/images', pdf, { fromPage: '1', toPage: String(pages) });
+    // One calibration board, so this is a reading: all the others are to be read.
+    const { status, body } = await upload(port, '/scans/images', pdf, {
+      fromPage: '1', toPage: String(pages), calibration: [{ page: 1, index: 1, fen: TO_READ[0] }],
+    });
     assert.equal(status, 422, JSON.stringify(body).slice(0, 300));
     assert.equal(body.code, 'too_many_boards');
     assert.deepEqual(body.details, { boards: pages * 2, max: MAX_IMAGE_BOARDS });
