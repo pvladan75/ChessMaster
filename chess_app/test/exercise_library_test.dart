@@ -162,7 +162,8 @@ void main() {
         'Positions',
         'Analyses',
         'Recordings',
-        'Puzzle sets',
+        // „Puzzle sets" until 23.9.2026 — gone with the sets
+        // (docs/PLAN-MATERIJAL.md, phase 4).
       ]);
       final exercise = _entry('cust_1');
       final position = _entry('7', kind: 'position');

@@ -90,9 +90,8 @@ abstract final class AppRoutes {
   /// Reading positions out of a trainer's own book and confirming them.
   static const String scan = '/scan';
 
-
   /// Everything the trainer keeps, in one place — tutorials, positions,
-  /// analyses, recordings and puzzle sets. `docs/PLAN-REORGANIZACIJA.md`
+  /// analyses and recordings. `docs/PLAN-REORGANIZACIJA.md`
   /// phase 3a (S3).
   static const String library = '/library';
 

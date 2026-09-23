@@ -566,7 +566,23 @@ solution is an exercise — mutation `isExercise = hasSolution` → red);
 `position_library.test.js` keeps the owner scoping that the deleted route's
 tests held. Live: item 233.
 
-### Phase 4 — Puzzles from a game review are exercises; puzzle sets go
+### Phase 4 — Puzzles from a game review are exercises; puzzle sets go — built 23.9.2026
+
+*Built by the lead inline. The owner saw the count — 5 sets, 25 puzzles, on
+two test accounts — and said to delete them. App 3915 → 3901, backend 1664 →
+1658 / 1799 → 1794 (tests of deleted code went with it); analyze unchanged;
+seven app mutations and every server rule red. Departures:* **the list is its
+own widget** (`KeepPuzzlesPanel`), so the gate tests it and the draft builder
+without an engine; the dialog is tested once over a one-move game whose
+blunder is the last move, with an engine that implements `StockfishService`.
+**The kept count is said by the studio**, after the dialog closes, through
+`AppFeedback` (a raw snackbar from the dialog is what the guard forbids).
+**`last_move_reaches_board_test`'s floor went from 4 to 3**, openly: the
+studio's last-move marker was only ever set by the puzzle reveal. **The
+device key `analysis_studio_puzzle_sets` is left where it is** — nothing reads
+it, nothing migrates it. **The table was dropped by the lead's own mistaken
+start of the server**, three seconds against the managed database, after the
+owner's yes and with his server stopped (recorded in `LESSONS.md`).
 
 **Server [lead].**
 

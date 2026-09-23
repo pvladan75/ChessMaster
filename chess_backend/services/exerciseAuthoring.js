@@ -19,6 +19,9 @@ const { cleanThemes, deriveInstruction } = require('./scanIntake');
 
 const MAX_NAME = 120;
 const MAX_INSTRUCTION = 500;
+/// The columns they go into: `source_title VARCHAR(255)`, `source_label VARCHAR(16)`.
+const MAX_SOURCE_TITLE = 255;
+const MAX_SOURCE_LABEL = 16;
 
 // What the row asks comes through the one reader's own column list, so this
 // file never names the columns it would be tempted to interpret.
@@ -76,10 +79,35 @@ function parseExercise(raw, { keptFen = null } = {}) {
     return { ok: false, error: 'The task must be "find" or "game".' };
   }
 
+  // Where it came from (docs/PLAN-MATERIJAL.md, phase 4): made by hand, or
+  // found in a game's mistakes — a puzzle from „Review entire game". Only a
+  // scan may say „book", and it is written by the scan route, not here.
+  const origin = raw.origin === undefined || raw.origin === null ? 'manual' : raw.origin;
+  if (origin !== 'manual' && origin !== 'mistakes') {
+    return { ok: false, error: 'An exercise made here comes from „manual" or „mistakes"; only a scan comes from a book.' };
+  }
+  let source = { title: null, label: null };
+  if (raw.source !== undefined && raw.source !== null) {
+    if (typeof raw.source !== 'object' || Array.isArray(raw.source)) {
+      return { ok: false, error: 'The source must say a title and a label.' };
+    }
+    const title = typeof raw.source.title === 'string' ? raw.source.title.trim() : '';
+    const label = typeof raw.source.label === 'string' ? raw.source.label.trim() : '';
+    if (title.length > MAX_SOURCE_TITLE) {
+      return { ok: false, error: `The source's title is longer than ${MAX_SOURCE_TITLE} characters.` };
+    }
+    if (label.length > MAX_SOURCE_LABEL) {
+      return { ok: false, error: `The source's label is longer than ${MAX_SOURCE_LABEL} characters.` };
+    }
+    source = { title: title || null, label: label || null };
+  }
+
   const words = typeof raw.instruction === 'string' ? raw.instruction.trim().slice(0, MAX_INSTRUCTION) : '';
   return {
     ok: true,
     exercise: {
+      origin,
+      source,
       fen,
       side: board.turn(),
       name,
@@ -126,11 +154,13 @@ async function createExercise(pool, { ownerId, payload }) {
   const puzzleId = `ex_${crypto.randomBytes(8).toString('hex')}`;
   const result = await pool.query(
     `INSERT INTO custom_puzzles
-       (puzzle_id, owner_id, fen, side_to_move, name, instruction, themes, task, solution, origin)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::varchar[], $8, $9, 'manual')
+       (puzzle_id, owner_id, fen, side_to_move, name, instruction, themes, task, solution,
+        origin, source_title, source_label)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::varchar[], $8, $9, $10, $11, $12)
      RETURNING ${COLUMNS}`,
     [puzzleId, ownerId, e.fen, e.side, e.name, e.instruction, e.themes,
-      JSON.stringify(e.task), e.solution ? JSON.stringify(e.solution) : null]
+      JSON.stringify(e.task), e.solution ? JSON.stringify(e.solution) : null,
+      e.origin, e.source.title, e.source.label]
   );
   return { ok: true, exercise: present(result.rows[0]) };
 }

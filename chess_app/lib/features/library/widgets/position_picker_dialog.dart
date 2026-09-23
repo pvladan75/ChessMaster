@@ -312,8 +312,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
                     LibraryKind.recording => Icons.videocam_outlined,
                     // scan and position are handled by the thumbnail above.
                     LibraryKind.scan ||
-                    LibraryKind.position ||
-                    LibraryKind.puzzleSet =>
+                    LibraryKind.position =>
                       Icons.extension_outlined,
                   },
                   size: 18,

@@ -7169,3 +7169,34 @@ PLAN-SESIJA, i ovde je trebalo).
 Brojevi: aplikacija 3906 → 3915 (−5 `saved_positions_side_test`, −2 testa
 `SavedPosition`, +16 `library_one_shelf_test`); backend 1660 → 1664 bez baze,
 1794 → 1799 sa bazom.
+
+## 23.9.2026 — PLAN-MATERIJAL faza 4: zagonetke iz partije su zadaci, i server koji sam pokrenuo
+
+Zagonetke iz „Review entire game" se sada **navode** pre čuvanja, a štiklirane
+postaju Find zadaci iz „mistakes": odgovor je najbolji potez sledećeg trenutka
+(njegova pozicija „pre" je pozicija zagonetke „posle"), za poslednji potez
+partije motor se pita još jednom, a potez se odigra na poziciji pre nego što se
+išta pošalje. `puzzle_sets` (tabela, rute, repozitorijum, kopija na uređaju,
+sedmi čip, „puzzle mode" u Analizi) je obrisan — na vlasnikovo da, posle
+brojanja: 5 setova, 25 zagonetki, dva probna naloga.
+
+**Moja greška, zapisana onako kako se desila.** Da bih proverio da se
+`server.js` učitava, pokrenuo sam `node -e "require('./server.js')"` u
+pozadini. To **pokreće server**: slušao je na 3000 oko tri sekunde, na
+upravljanoj bazi, i njegov `initDB` je obrisao `puzzle_sets` (što je vlasnik
+upravo odobrio) i dodao kolonu `solution_source` iz faze 2 (dodavanje, isto bi
+uradio i njegov sledeći start). Proces sam ubio, proverio stanje baze i rekao
+vlasniku. Pravilo je već postojalo — server pokreće vlasnik — i prekršio sam ga
+provere radi. **Da li se fajl učitava proverava `sources_compile.test.js`; ne
+učitava se server da bi se videlo da li se učitava.**
+
+I jedna o brojanju: očekivani broj backend testova sam izveo brojeći `test(` u
+obrisanom fajlu i promašio za dva — jedan `test(` u petlji radi tri puta. Tek
+poređenje dva prolaza **po imenu** je reklo koji su testovi otišli. **Broj iz
+izvora je procena; broj iz prolaza je merenje.**
+
+Brojevi: aplikacija 3915 → 3901 (−9 `puzzle_sets_sync_test`, −6
+`library_puzzle_door_test`, −6 polovina `lists_grid_3a_test`, −1 slučaj u
+`library_card_doors_test`, +1 odgovor u testu ekstraktora, +7
+`game_review_exercises_test`); backend 1664 → 1658 bez baze (−9
+`puzzle_sets_routes`, +3), 1799 → 1794 sa bazom (+1 na bazi).

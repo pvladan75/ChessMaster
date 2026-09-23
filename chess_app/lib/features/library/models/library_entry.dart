@@ -24,11 +24,6 @@ enum LibraryKind {
 
   /// A recording of a session, this user's own. Played, never put on a board.
   recording,
-
-  /// A puzzle set written by „Review entire game". Device-local: the server
-  /// never sees one, so it has no wire name and `libraryKindFrom` never
-  /// answers it — the client adds these rows itself.
-  puzzleSet,
 }
 
 LibraryKind? libraryKindFrom(String? raw) => switch (raw) {
@@ -40,16 +35,13 @@ LibraryKind? libraryKindFrom(String? raw) => switch (raw) {
       _ => null,
     };
 
-/// The name the server knows a kind by. A puzzle set has none — asking the
-/// server for one is a programming error, not a request.
+/// The name the server knows a kind by.
 String libraryKindWire(LibraryKind kind) => switch (kind) {
       LibraryKind.scan => 'scan',
       LibraryKind.position => 'position',
       LibraryKind.analysis => 'analysis',
       LibraryKind.tutorial => 'tutorial',
       LibraryKind.recording => 'recording',
-      LibraryKind.puzzleSet => throw ArgumentError(
-          'a puzzle set is device-local and has no wire kind'),
     };
 
 String libraryKindLabel(LibraryKind kind) => switch (kind) {
@@ -58,7 +50,6 @@ String libraryKindLabel(LibraryKind kind) => switch (kind) {
       LibraryKind.analysis => 'analyses',
       LibraryKind.tutorial => 'tutorials',
       LibraryKind.recording => 'recordings',
-      LibraryKind.puzzleSet => 'puzzle sets',
     };
 
 class LibraryEntry {

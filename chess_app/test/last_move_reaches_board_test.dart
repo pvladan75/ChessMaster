@@ -126,7 +126,12 @@ void main() {
     // A gate that checked nothing would pass. Five screens track a last move as
     // of 12.9.2026; the bar is left below that so adding one is not a failure,
     // and far enough above zero that a renamed field is.
-    expect(checked, greaterThanOrEqualTo(4),
+    //
+    // 4 until 23.9.2026, when the analysis studio stopped tracking one: its
+    // `_lastMoveFrom` was only ever set by the puzzle mode's reveal of the
+    // blunder, and that mode is gone (docs/PLAN-MATERIJAL.md, phase 4) —
+    // every ordinary move there cleared it.
+    expect(checked, greaterThanOrEqualTo(3),
         reason: 'only $checked screens were found to track a last move, so the '
             'pattern this test recognises has probably been renamed and it is '
             'no longer checking anything');

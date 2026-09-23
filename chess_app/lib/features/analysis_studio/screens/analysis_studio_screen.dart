@@ -50,10 +50,7 @@ import 'package:chess_app/features/analysis_studio/services/analysis_draft_servi
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/quick_extend_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
-import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dialog.dart';
-import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
-import 'package:chess_app/core/services/puzzle_set_api_service.dart';
-import 'package:chess_app/core/services/puzzle_set_repository.dart';
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_import.dart';
 import 'package:chess_app/services/puzzle_api_service.dart';
@@ -98,25 +95,12 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// instead, which is behind „More tools" on a phone and costs no height.
   final VoidCallback? onOpenScanner;
 
-  /// A saved puzzle set to open straight into, rather than into free analysis.
-  ///
-  /// The fourth of the „open exactly this" parameters, and it exists for the
-  /// same reason the others do: until 20.9.2026 the only way into puzzle mode
-  /// was the dialog on this screen, so a puzzle set on the Library shelf was
-  /// drawn and answered nothing when tapped — reported live that day, together
-  /// with „I don't know where that is", which is the same fault said twice.
-  ///
-  /// Like [initialFen], [initialGame] and [initialTree] it wins over the draft
-  /// kept on the device: the caller asked for this set.
-  final List<LocalPuzzle>? initialPuzzles;
-
   const AnalysisStudioScreen({
     super.key,
     required this.userSession,
     this.initialFen,
     this.initialGame,
     this.initialTree,
-    this.initialPuzzles,
     this.onOpenScanner,
   });
 
@@ -158,26 +142,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   String? _pgnWhiteElo;
   String? _pgnBlackElo;
   String? _pgnResult;
-
-  // Puzzle-viewing mode: when non-null, the board is walking through
-  // [_activePuzzleSet] (extracted from a game) instead of free analysis.
-  // Entering a puzzle shows the position *before* the opponent's mistake
-  // first, then plays that move after a short delay so the solver actually
-  // sees what happened, highlighting the from/to squares via [_lastMoveFrom]
-  // / [_lastMoveTo].
-  /// The account's puzzle sets — the server's list, with this device's own as
-  /// the cache and as the answer when the server cannot be reached. Built
-  /// from the session, because a set belongs to the account and not to the
-  /// machine that extracted it (reported 21.9.2026).
-  late final PuzzleSetRepository _puzzleSets = PuzzleSetRepository(
-    api: PuzzleSetApiService(authToken: widget.userSession.token),
-  );
-
-  List<LocalPuzzle>? _activePuzzleSet;
-  int _activePuzzleIndex = 0;
-  String? _lastMoveFrom;
-  String? _lastMoveTo;
-  Timer? _puzzleRevealTimer;
 
   // Engine evaluation state.
   //
@@ -244,24 +208,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
     });
-    final puzzles = widget.initialPuzzles;
-    if (puzzles != null && puzzles.isNotEmpty) {
-      _activePuzzleSet = puzzles;
-      // `_loadPuzzleAtIndex` calls `setState` and shows a snackbar, and
-      // neither is allowed while this frame is being built — so it runs after
-      // it, not before. A caller's set is the one thing on this screen that
-      // has to survive the first frame to be seen at all.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadPuzzleAtIndex(0);
-      });
-    }
-    // An explicit initialFen, game, tree or puzzle set means the caller wants
-    // exactly that (e.g. exported from a game), so it must not be overwritten
-    // by a draft.
-    if (widget.initialFen == null &&
-        game == null &&
-        tree == null &&
-        widget.initialPuzzles == null) {
+    // An explicit initialFen, game or tree means the caller wants exactly
+    // that (e.g. exported from a game), so it must not be overwritten by a
+    // draft.
+    if (widget.initialFen == null && game == null && tree == null) {
       _restoreDraft();
     }
   }
@@ -322,7 +272,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   void dispose() {
     _shown?.removeListener(_onShownChanged);
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
-    _puzzleRevealTimer?.cancel();
     // A debounced write would be lost with this screen, so force it out first.
     unawaited(AnalysisDraftService.instance.flush(
       rootNode: _rootNode,
@@ -365,8 +314,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
           _showAutoAnalysisDialog),
       _ToolAction(Icons.trending_flat, context.colors.accent,
           'Extend branch (engine best line)', _showQuickExtendDialog),
-      _ToolAction(Icons.extension, context.colors.accent, 'Saved puzzle sets',
-          _showSavedPuzzleSetsDialog),
       // S2 of docs/PLAN-REORGANIZACIJA.md: the four doors into teaching
       // material — two "add to a tutorial" actions and two "start a new
       // tutorial" actions, the latter pair drawn only where the studio
@@ -482,8 +429,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     _boardController.loadFen(fen);
     final side = fen.split(' ')[1];
     _orientation = side == 'b' ? PlayerColor.black : PlayerColor.white;
-    _lastMoveFrom = null;
-    _lastMoveTo = null;
     _pgnWhiteName = null;
     _pgnBlackName = null;
     _pgnWhiteElo = null;
@@ -777,8 +722,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
       _chessGame = chess.Chess.fromFEN(node.fen);
       _boardController.loadFen(node.fen);
       _engineLinesMap.clear();
-      _lastMoveFrom = null;
-      _lastMoveTo = null;
     });
 
     if (isSingleStepForward && moveUci != null && moveUci.length >= 4) {
@@ -842,8 +785,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         _currentNode = childNode;
         _boardController.loadFen(newFen);
         _engineLinesMap.clear();
-        _lastMoveFrom = null;
-        _lastMoveTo = null;
       });
       // Read the piece back from its destination (post-move) rather than
       // using movingPiece directly: on a promotion, the piece sitting on
@@ -1379,148 +1320,41 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         onOpenEngineSettings: _openEngineSettings,
       );
 
-  void _showGameReviewDialog() {
-    showDialog(
+  Future<void> _showGameReviewDialog() async {
+    final kept = await showDialog<int>(
       context: context,
       // Long-running engine walk — barrier tap must not silently discard it.
       barrierDismissible: false,
       builder: (ctx) => GameReviewDialog(
-        puzzleSets: _puzzleSets,
         rootNode: _rootNode,
         currentNode: _currentNode,
         stockfishService: _stockfishService,
-        onCompleted: ({extractedPuzzles}) {
+        exerciseApi: ExerciseApiService(authToken: widget.userSession.token),
+        gameTitle: _gameTitleForExercises(),
+        onCompleted: () {
           setState(() {});
           _saveDraft();
-          if (extractedPuzzles != null && extractedPuzzles.isNotEmpty) {
-            AppFeedback.show(
-              context,
-              () => SnackBar(
-                content: Text(
-                    '🧩 Extracted ${extractedPuzzles.length} puzzles (saved)'),
-                backgroundColor: context.colors.accent,
-                duration: const Duration(seconds: 6),
-                action: SnackBarAction(
-                  label: 'Show',
-                  textColor: context.colors.canvas,
-                  onPressed: () {
-                    setState(() => _activePuzzleSet = extractedPuzzles);
-                    _loadPuzzleAtIndex(0);
-                  },
-                ),
-              ),
-            );
-          }
         },
       ),
     );
+    if (!mounted || kept == null || kept == 0) return;
+    AppFeedback.success(
+        context,
+        kept == 1
+            ? 'Kept 1 exercise — in the Library, under Exercises.'
+            : 'Kept $kept exercises — in the Library, under Exercises.');
   }
 
-  void _showSavedPuzzleSetsDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => SavedPuzzleSetsDialog(
-        puzzleSets: _puzzleSets,
-        onPuzzleSetOpened: (puzzles, startIndex) {
-          setState(() => _activePuzzleSet = puzzles);
-          _loadPuzzleAtIndex(startIndex);
-        },
-      ),
-    );
-  }
-
-  /// Loads puzzle [index] of [_activePuzzleSet]: shows the position right
-  /// before the mistake first, then (after a short pause so the solver can
-  /// register the starting position) plays that move and highlights its
-  /// from/to squares — rather than dropping the solver straight into the
-  /// post-mistake position with no context, as before.
-  void _loadPuzzleAtIndex(int index) {
-    _puzzleRevealTimer?.cancel();
-    final puzzle = _activePuzzleSet![index];
-    _activePuzzleIndex = index;
-
-    final canReveal = puzzle.fenBefore != null && puzzle.moveUci != null;
-    setState(() {
-      _initAnalysisTree(canReveal ? puzzle.fenBefore! : puzzle.fen);
-    });
-    _refreshArrows();
-    _saveDraft();
-    _triggerEngineAnalysis();
-
-    AppFeedback.show(
-      context,
-      () => SnackBar(
-          content: Text('🧩 ${puzzle.themeLabel}'),
-          backgroundColor: context.colors.accent),
-    );
-
-    if (canReveal) {
-      _puzzleRevealTimer = Timer(const Duration(milliseconds: 900), () {
-        if (!mounted) return;
-        _applyPuzzleOpponentMove(puzzle);
-      });
+  /// What the exercises a review keeps are named after: the players, when
+  /// the game says who they were, else nothing — the dialog then names them
+  /// by the date.
+  String? _gameTitleForExercises() {
+    final white = _pgnWhiteName?.trim();
+    final black = _pgnBlackName?.trim();
+    if (white == null || white.isEmpty || black == null || black.isEmpty) {
+      return null;
     }
-  }
-
-  /// Plays the blunder move ([LocalPuzzle.moveUci]) onto the current
-  /// position (the puzzle's "before" FEN) and highlights it, landing on the
-  /// same post-blunder position the rest of the app treats as [puzzle.fen].
-  void _applyPuzzleOpponentMove(LocalPuzzle puzzle) {
-    if (_chessGame == null) return;
-    final uci = puzzle.moveUci!;
-    final from = uci.substring(0, 2);
-    final to = uci.substring(2, 4);
-    final promo = uci.length > 4 ? uci.substring(4) : '';
-
-    String san = '$from$to';
-    final promoLower = promo.isEmpty ? null : promo.toLowerCase();
-    for (final m in legalMoves(_chessGame!)) {
-      if (m['from'] == from && m['to'] == to) {
-        if (promoLower == null || m['promotion'] == promoLower) {
-          san = (m['san'] as String?) ?? san;
-          break;
-        }
-      }
-    }
-
-    final moveMap = {
-      'from': from,
-      'to': to,
-      if (promo.isNotEmpty) 'promotion': promo,
-    };
-    final success = _chessGame!.move(moveMap);
-    if (!success) return;
-
-    final newFen = _chessGame!.fen;
-    final childNode =
-        _currentNode.addChild(childFen: newFen, san: san, uci: uci);
-
-    setState(() {
-      _currentNode = childNode;
-      _boardController.loadFen(newFen);
-      _lastMoveFrom = from;
-      _lastMoveTo = to;
-      _engineLinesMap.clear();
-    });
-    _refreshArrows();
-    _saveDraft();
-    _triggerEngineAnalysis();
-  }
-
-  void _goToPuzzle(int delta) {
-    final set = _activePuzzleSet;
-    if (set == null) return;
-    final newIndex = _activePuzzleIndex + delta;
-    if (newIndex < 0 || newIndex >= set.length) return;
-    _loadPuzzleAtIndex(newIndex);
-  }
-
-  void _exitPuzzleSet() {
-    _puzzleRevealTimer?.cancel();
-    setState(() {
-      _activePuzzleSet = null;
-      _activePuzzleIndex = 0;
-    });
+    return '$white – $black';
   }
 
   void _showSetupDialog() {
@@ -1740,11 +1574,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   Widget _buildPortraitLayout(double boardSize) {
     return Column(
       children: [
-        if (_activePuzzleSet != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: _buildPuzzleSetBar(),
-          ),
         // Static Fixed Board at top
         Padding(
           padding:
@@ -1826,7 +1655,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
                 orientation: _orientation,
               )
           : null,
-      header: _activePuzzleSet != null ? _buildPuzzleSetBar() : null,
       panels: Column(
         children: [
           _buildPositionInfoPanel(),
@@ -2020,8 +1848,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         SkinnedChessBoard(
           controller: _boardController,
           boardOrientation: _orientation,
-          lastMoveFrom: _lastMoveFrom,
-          lastMoveTo: _lastMoveTo,
           onMove: () {
             final history = _boardController.game.history;
             if (history.isNotEmpty) {
@@ -2097,50 +1923,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
   /// Shown above the board while stepping through an extracted puzzle set:
   /// which puzzle this is, and controls to move to the next/previous one or
   /// leave puzzle mode back to free analysis.
-  Widget _buildPuzzleSetBar() {
-    final set = _activePuzzleSet;
-    if (set == null) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceRaised,
-        borderRadius: AppRadii.roundedSm,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: Icon(Icons.chevron_left,
-                size: 20, color: context.colors.textPrimary),
-            tooltip: 'Previous puzzle',
-            onPressed: _activePuzzleIndex > 0 ? () => _goToPuzzle(-1) : null,
-          ),
-          Text(
-            'Puzzle ${_activePuzzleIndex + 1} / ${set.length}',
-            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
-          ),
-          IconButton(
-            icon: Icon(Icons.chevron_right,
-                size: 20, color: context.colors.textPrimary),
-            tooltip: 'Next puzzle',
-            onPressed: _activePuzzleIndex < set.length - 1
-                ? () => _goToPuzzle(1)
-                : null,
-          ),
-          IconButton(
-            icon: Icon(Icons.close,
-                size: 20, color: context.colors.textSecondary),
-            tooltip: 'Close puzzles',
-            onPressed: _exitPuzzleSet,
-          ),
-        ],
-      ),
-    );
-  }
-
   /// The one cursor this screen is walked by. The strip's buttons and the arrow
   /// keys read it from here rather than each building their own, so there is no
   /// second copy to fall out of step.

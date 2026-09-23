@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3915 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3901 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1799 with TEST_DATABASE_URL, 1664 without
+cd chess_backend && npm test          # node --test, 1794 with TEST_DATABASE_URL, 1658 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -616,6 +616,21 @@ screen; the header now scrolls with the rows below 640 and is capped at three
 quarters above it. The ninth-file lesson again, from the other side: the
 full run found `manual_labels_test` red — `site/` quoted two labels of the
 deleted screen, which no grep of `lib/` or `test/` could see.
+Then its phase 4 (→ **3901**; backend → **1658 / 1794**, both measured — the
+counts fall by the tests of deleted code): a puzzle from „Review entire game"
+is **listed**, and the ticked ones are kept as Find exercises from
+„mistakes" (`KeepPuzzlesPanel`), the answer the next moment's best move and
+replayed on the position before it is sent; `puzzle_sets`, its routes, the
+repository, the device copy, the seventh chip and the studio's puzzle mode are
+deleted — the table on the owner's yes, after a count (5 sets, 25 puzzles).
+**`require('./server.js')` starts the server**: the lead ran it to check the
+file loaded, and it listened on 3000 against the managed database for about
+three seconds, its `initDB` dropping the table the owner had just approved and
+adding phase 2's column. Stopped, checked, said. That a file compiles is
+`sources_compile.test.js`'s job — **never load the server to see if it
+loads.** And a count taken from a test file by grepping `test(` missed a loop
+that ran one of them three times, so the expected total was 2 off until the
+two runs were compared by name.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

@@ -123,6 +123,9 @@ class ExerciseDraft {
     this.themes = const [],
     required this.task,
     this.solution,
+    this.origin,
+    this.sourceTitle,
+    this.sourceLabel,
   });
 
   final String name;
@@ -132,6 +135,15 @@ class ExerciseDraft {
   final Map<String, dynamic> task;
   final List<ExerciseStep>? solution;
 
+  /// `mistakes` for a puzzle kept from „Review entire game"
+  /// (`docs/PLAN-MATERIJAL.md`, phase 4). Null says nothing, and the server
+  /// then records the exercise as made by hand.
+  final String? origin;
+
+  /// Where it came from — the game's name, and the move that was the mistake.
+  final String? sourceTitle;
+  final String? sourceLabel;
+
   Map<String, dynamic> toJson() => {
         'name': name,
         if (fen != null) 'fen': fen,
@@ -140,6 +152,12 @@ class ExerciseDraft {
         'task': task,
         if (solution != null)
           'solution': [for (final s in solution!) s.toJson()],
+        if (origin != null) 'origin': origin,
+        if (sourceTitle != null || sourceLabel != null)
+          'source': {
+            if (sourceTitle != null) 'title': sourceTitle,
+            if (sourceLabel != null) 'label': sourceLabel,
+          },
       };
 }
 

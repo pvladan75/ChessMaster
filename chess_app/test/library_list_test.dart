@@ -33,13 +33,12 @@ LibraryEntry _entry(LibraryKind kind, String title,
       createdAt: DateTime(2026, 9, 12, 18, 30),
     );
 
-final _six = <LibraryEntry>[
+final _shelf = <LibraryEntry>[
   _entry(LibraryKind.tutorial, 'Sicilian: the Najdorf', parts: 6, video: true),
   _entry(LibraryKind.position, 'Rook ending, 1.Kf2'),
   _entry(LibraryKind.scan, 'Diagram 41', book: 'Mat u 333', page: 41),
   _entry(LibraryKind.analysis, 'Game vs. Ana'),
   _entry(LibraryKind.recording, 'Endgames, part 1'),
-  _entry(LibraryKind.puzzleSet, 'Blunders, game 3'),
 ];
 
 void main() {
@@ -82,9 +81,9 @@ void main() {
       .map((t) => (t.title as Text).data!)
       .toList();
 
-  testWidgets('seven chips, in order, and All shows every kind',
+  testWidgets('six chips, in order, and All shows every kind',
       (tester) async {
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     final chips = tester
         .widgetList<ChoiceChip>(find.byType(ChoiceChip))
@@ -95,6 +94,11 @@ void main() {
     // (`docs/PLAN-EXERCISE.md`, decision 2, as amended when phase 4 was
     // briefed): a trainer does not send a position, they send an exercise,
     // so a scan is told apart as its own chip.
+    //
+    // Seven from then until 23.9.2026, the seventh „Puzzle sets". Superseded
+    // by docs/PLAN-MATERIJAL.md phase 4, decision 8: a puzzle from a game
+    // review is a Find exercise („From mistakes", under Exercises), and the
+    // sets are gone — so the shelf ends at six.
     expect(chips, [
       'All',
       'Tutorials',
@@ -102,9 +106,8 @@ void main() {
       'Positions',
       'Analyses',
       'Recordings',
-      'Puzzle sets',
     ]);
-    expect(titlesShown(tester).length, 6);
+    expect(titlesShown(tester).length, 5);
   });
 
   testWidgets('Exercises and Positions are told apart, not shared',
@@ -112,7 +115,7 @@ void main() {
     // Superseded 18.9.2026, same decision as above: a scan is an exercise,
     // not a position — it moved to its own chip and Positions narrowed to a
     // bare board.
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Exercises'));
@@ -126,13 +129,12 @@ void main() {
   });
 
   testWidgets('each other chip shows its one kind', (tester) async {
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     for (final (chip, title) in [
       ('Tutorials', 'Sicilian: the Najdorf'),
       ('Analyses', 'Game vs. Ana'),
       ('Recordings', 'Endgames, part 1'),
-      ('Puzzle sets', 'Blunders, game 3'),
     ]) {
       await tester.tap(find.widgetWithText(ChoiceChip, chip));
       await tester.pumpAndSettle();
@@ -141,13 +143,13 @@ void main() {
   });
 
   testWidgets('a tutorial row says how many parts it has', (tester) async {
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     expect(find.textContaining('6 parts'), findsOneWidget);
   });
 
   testWidgets('search narrows by title, across kinds', (tester) async {
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     await tester.enterText(
         find.widgetWithText(TextField, LibraryList.searchHint), 'end');
@@ -157,7 +159,7 @@ void main() {
 
   testWidgets('tapping a row opens that entry and nothing else',
       (tester) async {
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Game vs. Ana'));
     await tester.pumpAndSettle();
@@ -166,11 +168,11 @@ void main() {
 
   testWidgets('the row draws the actions it was given, and none otherwise',
       (tester) async {
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     expect(find.byTooltip('Send to student'), findsNothing);
 
-    await tester.pumpWidget(host(_six, actionsFor: (e) {
+    await tester.pumpWidget(host(_shelf, actionsFor: (e) {
       if (e.kind != LibraryKind.tutorial) return const [];
       return [
         IconButton(
@@ -195,10 +197,11 @@ void main() {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(host(_six));
+    await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.byType(ChoiceChip), findsNWidgets(7));
+    // Seven until 23.9.2026 (PLAN-MATERIJAL phase 4: puzzle sets are gone).
+    expect(find.byType(ChoiceChip), findsNWidgets(6));
   });
 
   // Phase 3b of docs/PLAN-REORGANIZACIJA.md — the room's left column reads
@@ -219,7 +222,7 @@ void main() {
 
     testWidgets('a subset of chips draws only those, and All shows their union',
         (tester) async {
-      await tester.pumpWidget(host(_six, chips: board));
+      await tester.pumpWidget(host(_shelf, chips: board));
       await tester.pumpAndSettle();
       final chips = tester
           .widgetList<ChoiceChip>(find.byType(ChoiceChip))
@@ -337,7 +340,7 @@ void main() {
                 children: [
                   const SizedBox(height: 400),
                   LibraryList(
-                    entries: _six,
+                    entries: _shelf,
                     onOpen: opened.add,
                     chips: board,
                     shrinkWrap: true,

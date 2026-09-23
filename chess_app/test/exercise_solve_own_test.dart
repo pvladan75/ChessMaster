@@ -28,8 +28,6 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
-import 'package:chess_app/core/services/puzzle_set_api_service.dart';
-import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/assignments/screens/custom_puzzle_solver_screen.dart';
 import 'package:chess_app/features/exercises/screens/exercise_editor_screen.dart';
@@ -191,9 +189,6 @@ Future<_Server> _openLibrary(WidgetTester tester,
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       exerciseApi: ExerciseApiService(authToken: 'tok', client: client),
       homeworkApi: HomeworkApiService(authToken: 'tok', client: client),
-      puzzleSets: PuzzleSetRepository(
-        api: PuzzleSetApiService(authToken: 'tok', client: client),
-      ),
       recordingApi: LessonRecordingApi(authToken: 'tok', client: client),
       scannerApi: ScannerApiService(authToken: 'tok', client: client),
     ),

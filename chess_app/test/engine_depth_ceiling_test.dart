@@ -12,11 +12,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/position_scanner/widgets/side_suggestions.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 
-import 'support/device_only_puzzle_sets.dart';
 import 'support/landscape.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 
@@ -55,11 +55,11 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: GameReviewDialog(
-          puzzleSets: deviceOnlyPuzzleSets(),
+          exerciseApi: ExerciseApiService(authToken: ''),
           rootNode: root,
           currentNode: root,
           stockfishService: StockfishService(),
-          onCompleted: ({extractedPuzzles}) {},
+          onCompleted: () {},
         ),
       ),
     ));

@@ -30,8 +30,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/core/services/puzzle_set_api_service.dart';
-import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
@@ -123,31 +121,6 @@ class _Server {
             200,
           );
         }
-        if (path.endsWith('/puzzle-sets')) {
-          return http.Response(
-            jsonEncode({
-              'items': [
-                {
-                  'id': 'set-1',
-                  'title': 'Blunders vs Ana',
-                  'createdAt': '2026-09-20T10:00:00.000',
-                  'puzzles': [
-                    {
-                      'id': 'set-1-a',
-                      'fen': '8/8/8/8/8/8/8/K6k w - - 0 1',
-                      'themeLabel': 'fork',
-                      'themeKey': 'fork',
-                      'swing': 2.5,
-                      'sourceMoveSan': 'Nf3',
-                      'sourcePlyIndex': 4,
-                    }
-                  ],
-                }
-              ],
-            }),
-            200,
-          );
-        }
         if (path.endsWith('/lessons/labels')) return http.Response('[]', 200);
         if (path.endsWith('/lessons')) return http.Response('[]', 200);
         return http.Response('{}', 404);
@@ -178,9 +151,6 @@ Future<_Server> _open(WidgetTester tester,
       positionLibrary: PositionLibraryService(authToken: 'tok', client: client),
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       exerciseApi: ExerciseApiService(authToken: 'tok', client: client),
-      puzzleSets: PuzzleSetRepository(
-        api: PuzzleSetApiService(authToken: 'tok', client: client),
-      ),
       recordingApi: LessonRecordingApi(authToken: 'tok', client: client),
       scannerApi: ScannerApiService(authToken: 'tok', client: client),
     ),
@@ -242,23 +212,9 @@ void main() {
     });
   });
 
-  group('3: a puzzle set and an analysis are deleted from the shelf', () {
-    testWidgets('a puzzle set: asked, sent, and gone from the shelf',
-        (tester) async {
-      final server = await _open(tester);
-      expect(_card('puzzleSet-set-1'), findsOneWidget);
-
-      await tester.tap(_button('puzzleSet-set-1', 'Delete puzzle set'));
-      await tester.pumpAndSettle();
-      expect(server.deletes(), isEmpty,
-          reason: 'deleted before the reader was asked');
-      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
-      await tester.pumpAndSettle();
-
-      expect(server.deletes(), ['DELETE /puzzle-sets/set-1']);
-      expect(_card('puzzleSet-set-1'), findsNothing);
-    });
-
+  // A puzzle set was deleted here too until 23.9.2026; the sets are gone
+  // (docs/PLAN-MATERIJAL.md, phase 4) and a game's puzzles are exercises.
+  group('3: an analysis is deleted from the shelf', () {
     testWidgets('an analysis: asked, sent, and gone from the shelf',
         (tester) async {
       final server = await _open(tester);
@@ -277,16 +233,9 @@ void main() {
       // The recurring bug of this codebase, in the one shape this door could
       // take: a card that vanishes while the server still has it, and is back
       // on the next load.
-      final server = await _open(tester, refuseDeletes: true);
-
-      await tester.tap(_button('puzzleSet-set-1', 'Delete puzzle set'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
-      await tester.pumpAndSettle();
-      expect(server.deletes(), ['DELETE /puzzle-sets/set-1']);
-      expect(_card('puzzleSet-set-1'), findsOneWidget,
-          reason: 'the card went although the server refused');
-      expect(find.textContaining('could not be deleted'), findsOneWidget);
+      // It began with a puzzle set until 23.9.2026; the sets are gone
+      // (docs/PLAN-MATERIJAL.md, phase 4).
+      await _open(tester, refuseDeletes: true);
 
       await tester.tap(_button('analysis-31', 'Delete analysis'));
       await tester.pumpAndSettle();
@@ -294,6 +243,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(_card('analysis-31'), findsOneWidget,
           reason: 'the card went although the server refused');
+      expect(find.textContaining('could not be deleted'), findsOneWidget,
+          reason: 'the refusal was not said');
     });
   });
 

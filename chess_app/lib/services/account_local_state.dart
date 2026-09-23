@@ -28,8 +28,10 @@ import 'package:chess_app/services/local_puzzle_service.dart';
 ///   uploads/` lives under. Nothing writes or reads it since the room stopped
 ///   recording (phase 5a of docs/PLAN-SESIJA.md); what a device still holds
 ///   there is left exactly where it is.
-/// * `analysis_studio_puzzle_sets` — sets the user named and kept. A library,
-///   not a session.
+/// * `analysis_studio_puzzle_sets` — sets the user named and kept. Nothing
+///   reads it since puzzle sets became exercises (phase 4 of
+///   docs/PLAN-MATERIJAL.md), and nothing migrates it; what a device holds
+///   there is left where it is, as the recordings above are.
 ///
 /// Both of those stay visible to the next account on the same device, which is
 /// a known and deliberate hole: a thing seen is recoverable, a thing deleted is

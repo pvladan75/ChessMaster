@@ -5878,6 +5878,25 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 234. Zagonetke iz partije su zadaci; puzzle sets više nema — 23.9.2026, nije viđeno uživo
+
+**Aplikacija i server** (nov build, restart backenda — tabela `puzzle_sets` je
+obrisana 23.9.2026 na vlasnikovo da). `PLAN-MATERIJAL.md`, faza 4.
+
+1. [ ] **Review entire game** sa uključenim „Extract puzzles…": posle
+   analize dijalog **navodi** nađene zagonetke — tabla, „After 23...Qe7",
+   odgovor motora, pad ocene, motiv — sve štiklirane, ime (igrači ako ih
+   partija ima, inače „Game of dd.mm.yyyy") i „Keep N as exercises".
+2. [ ] **Čuvanje.** Odštikliraj jednu i sačuvaj: poruka „Kept N exercises";
+   u Biblioteci pod Exercises → „From mistakes" su tačno one, sa imenom
+   „…, move N", i zadatkom „White/Black just played …".
+3. [ ] **Rešavanje.** „Solve" na jednoj od njih: odgovor motora je tačan
+   odgovor; drugi potez nije.
+4. [ ] **Poslednji potez partije** kao greška: i ona ima odgovor (motor je
+   pitan još jednom), ili piše „No answer found — cannot be kept".
+5. [ ] **Nema više setova.** U Biblioteci nema čipa „Puzzle sets" (šest
+   čipova), a u Analizi nema „Saved puzzle sets" među alatima.
+
 ## 233. Biblioteka je jedina polica; zadatak na mestu — 23.9.2026, nije viđeno uživo
 
 **Aplikacija i server** (nov build, restart backenda). `PLAN-MATERIJAL.md`,
@@ -6648,6 +6667,8 @@ napravio.
 7. [ ] **Stari setovi su preživeli.** Nijedan set koji si imao na Windows-u
    pre ove izmene nije nestao.
 
+**Zamenjeno 23.9.2026** (`PLAN-MATERIJAL.md`, faza 4): puzzle sets su obrisani — tabela, rute, kopija na uređaju, čip i „puzzle mode" u Analizi, na vlasnikovo da (5 setova, 25 zagonetki). Zagonetke iz „Review entire game" su sada zadaci iz „mistakes"; proverava se u stavci 234.
+
 ## 210. „Choose a game" kao prava tabela — 21.9.2026, nije viđeno uživo
 
 Samo aplikacija, faza 7 plana `PLAN-LISTE.md` — tražio je vlasnik pošto su mu
@@ -6800,6 +6821,8 @@ ekranu Analize na kom su izvučene.
 ne menja brojeve." Nije bio samo mrtav prekidač — katalog je brojao **i online
 partije**, a sam trening ih po podrazumevanom podešavanju **ne servira**, pa je
 ukupan broj bio veći od onoga što se može dobiti.
+
+**Zamenjeno 23.9.2026** (`PLAN-MATERIJAL.md`, faza 4): tačke 1–5 više nemaju šta da provere — puzzle sets su obrisani, na vlasnikovo da. Zagonetke iz „Review entire game" su sada zadaci; proverava se u stavci 234.
 
 6. [ ] **Prekidač pomera broj.** Practise → Endgames → bilo koja kartica.
    Uključi „Include online games": „Selected: N positions" u dnu se **poveća**.

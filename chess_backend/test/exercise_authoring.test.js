@@ -102,6 +102,34 @@ test('an exercise keeps its position', () => {
   assert.equal(parseExercise(find(), { keptFen: SCHOLAR }).exercise.fen, SCHOLAR);
 });
 
+// ---- where it came from (docs/PLAN-MATERIJAL.md, phase 4) -----------------
+//
+// A puzzle kept from „Review entire game" is a Find exercise from „mistakes",
+// with the game as its source. Only a scan comes from a book, and the scan
+// route writes that itself.
+
+test('an exercise is made by hand unless it says it came from mistakes', () => {
+  assert.equal(parseExercise(find()).exercise.origin, 'manual');
+  assert.equal(parseExercise(find({ origin: 'mistakes' })).exercise.origin, 'mistakes');
+});
+
+test('a client cannot say an exercise came from a book, or from nowhere known', () => {
+  for (const origin of ['book', 'lichess', '']) {
+    const parsed = parseExercise(find({ origin }));
+    assert.equal(parsed.ok, false, origin);
+    assert.match(parsed.error, /only a scan comes from a book/);
+  }
+});
+
+test('a source is a title and a label, each within its column', () => {
+  const kept = parseExercise(find({ source: { title: ' Game of 23.9.2026 ', label: '23...Qe7' } }));
+  assert.deepEqual(kept.exercise.source, { title: 'Game of 23.9.2026', label: '23...Qe7' });
+  assert.deepEqual(parseExercise(find()).exercise.source, { title: null, label: null });
+  assert.equal(parseExercise(find({ source: { title: 'x'.repeat(256) } })).ok, false);
+  assert.equal(parseExercise(find({ source: { label: 'x'.repeat(17) } })).ok, false);
+  assert.equal(parseExercise(find({ source: 'a game' })).ok, false);
+});
+
 // ---- the routes, on the real table ---------------------------------------
 
 describe('exercises on a real database', skipUnlessDatabase() ?? {}, () => {
@@ -173,6 +201,23 @@ describe('exercises on a real database', skipUnlessDatabase() ?? {}, () => {
     );
     assert.equal(assignableProblem(row.rows[0]), null);
     assert.equal(row.rows[0].solution_san, null, 'one home: the line is not also kept as a printed move');
+  });
+
+  test('a puzzle from a game is stored as from mistakes, with the game as its source', async () => {
+    const made = await route('post', '/', {
+      userId: trainerId,
+      body: find({ origin: 'mistakes', source: { title: 'Game of 23.9.2026', label: '23...Qe7' } }),
+    });
+    assert.equal(made.status, 201, JSON.stringify(made.body));
+    assert.equal(made.body.exercise.origin, 'mistakes');
+    assert.equal(made.body.exercise.sourceTitle, 'Game of 23.9.2026');
+    assert.equal(made.body.exercise.sourceLabel, '23...Qe7');
+    const row = await pool.query(
+      'SELECT origin, source_title, source_label FROM custom_puzzles WHERE puzzle_id = $1',
+      [made.body.exercise.id]
+    );
+    assert.deepEqual(row.rows[0],
+      { origin: 'mistakes', source_title: 'Game of 23.9.2026', source_label: '23...Qe7' });
   });
 
   test('a game exercise is written, and is assignable as a game and only as a game', async () => {

@@ -3,11 +3,11 @@
 //
 // Written by the lead before the phase was briefed, and proved on master.
 //
-// Both targets go through their real screens, with their real data paths — a
-// `MockClient` for the homework templates and a seeded `SharedPreferences` for
-// the saved puzzle sets, whose JSON is produced by the model's own `toJson`
-// rather than hand-written, so a change to the serializer cannot leave this
-// gate testing a shape the app no longer writes.
+// The target goes through its real screen, with its real data path — a
+// `MockClient` for the homework templates. The saved puzzle sets, this gate's
+// other half, were deleted with the sets themselves on 23.9.2026
+// (`docs/PLAN-MATERIJAL.md`, phase 4): a puzzle from a game review is an
+// exercise now.
 //
 // Every layout claim is read from **where the cards are actually painted**.
 // None of them is a width threshold: phase 1 learned that a width assertion on
@@ -23,16 +23,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
-import 'package:chess_app/core/services/local_puzzle_set_storage_service.dart';
-import 'package:chess_app/features/analysis_studio/widgets/saved_puzzle_sets_dialog.dart';
 import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
-import 'package:chess_app/widgets/adaptive_card_grid.dart';
-import 'support/device_only_puzzle_sets.dart';
 
 Widget _app(Widget home) => MaterialApp(
       theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
@@ -101,60 +95,6 @@ class _Homeworks {
 List<Key> _rowKeys(int count) =>
     [for (var i = 1; i <= count; i++) Key('homework-list-row-$i')];
 
-// ----------------------------------------------------------- saved puzzles
-
-LocalPuzzle _puzzle(String id) => LocalPuzzle(
-      id: id,
-      fen: '8/8/8/8/8/8/8/K6k w - - 0 1',
-      themeLabel: 'fork',
-      themeKey: 'fork',
-      swing: 2.5,
-      sourceMoveSan: 'Nf3',
-      sourcePlyIndex: 4,
-    );
-
-/// Seeds the real storage key with JSON the model itself produced.
-Future<void> _seedSets(int count) async {
-  final sets = [
-    for (var i = 1; i <= count; i++)
-      SavedPuzzleSet(
-        id: 'set-$i',
-        title: 'Set $i',
-        createdAt: DateTime(2026, 9, 20 - i),
-        puzzles: [_puzzle('p-$i-a'), _puzzle('p-$i-b')],
-      ),
-  ];
-  SharedPreferences.setMockInitialValues({
-    'analysis_studio_puzzle_sets':
-        jsonEncode(sets.map((s) => s.toJson()).toList()),
-  });
-}
-
-/// Opens the saved-puzzles dialog over a blank page of [size].
-Future<void> _openDialog(WidgetTester tester, Size size) async {
-  await _at(
-    tester,
-    size,
-    Builder(
-      builder: (context) => Scaffold(
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => SavedPuzzleSetsDialog(
-                  onPuzzleSetOpened: (_, __) {},
-                  puzzleSets: deviceOnlyPuzzleSets()),
-            ),
-            child: const Text('open'),
-          ),
-        ),
-      ),
-    ),
-  );
-  await tester.tap(find.text('open'));
-  await tester.pumpAndSettle();
-}
-
 void main() {
   // ================================================================ homework
 
@@ -207,179 +147,6 @@ void main() {
 
       expect(find.textContaining('3 items'), findsNWidgets(2));
       expect(find.textContaining('sent to 2'), findsOneWidget);
-    });
-  });
-
-  // =========================================================== saved puzzles
-
-  group('saved puzzle sets', () {
-    testWidgets('a wide window puts sets side by side', (tester) async {
-      await _seedSets(6);
-      await _at(
-        tester,
-        const Size(1400, 900),
-        Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => SavedPuzzleSetsDialog(
-                      onPuzzleSetOpened: (_, __) {},
-                      puzzleSets: deviceOnlyPuzzleSets()),
-                ),
-                child: const Text('open'),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-
-      final titles = [for (var i = 1; i <= 6; i++) find.text('Set $i')];
-      final tops = <double>[];
-      for (final t in titles) {
-        if (t.evaluate().isEmpty) continue;
-        tops.add(tester.getTopLeft(t).dy);
-      }
-      expect(tops, isNotEmpty, reason: 'no set was drawn');
-      final first = tops.reduce((a, b) => a < b ? a : b);
-      final onFirstRow = tops.where((t) => (t - first).abs() < 0.5).length;
-
-      expect(onFirstRow, greaterThanOrEqualTo(2),
-          reason: 'the dialog is still one column on a 1400 px window — note '
-              'that a dialog fixed at 460 cannot fit two columns of cards, so '
-              'this also asks that it take its size from the screen');
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('a phone still draws one set per line, without overflowing',
-        (tester) async {
-      await _seedSets(4);
-      await _at(
-        tester,
-        const Size(360, 640),
-        Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => SavedPuzzleSetsDialog(
-                      onPuzzleSetOpened: (_, __) {},
-                      puzzleSets: deviceOnlyPuzzleSets()),
-                ),
-                child: const Text('open'),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-
-      final tops = <double>[];
-      for (var i = 1; i <= 4; i++) {
-        final t = find.text('Set $i');
-        if (t.evaluate().isEmpty) continue;
-        tops.add(tester.getTopLeft(t).dy);
-      }
-      expect(tops, isNotEmpty);
-      final first = tops.reduce((a, b) => a < b ? a : b);
-      expect(tops.where((t) => (t - first).abs() < 0.5).length, 1);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('a single set leaves no empty column', (tester) async {
-      // Found on the owner's screen, 20.9.2026, against the first build of
-      // this phase: with one set the dialog still claimed the full 640 it is
-      // allowed, the grid correctly reserved two columns, and **half the
-      // dialog was void** — the card filled 49% of the row.
-      //
-      // That is the owner's original complaint in a new coat. The dialog was
-      // made *able* to use width without being made to take only the width it
-      // can fill. A grid is right for many cards and wrong for one, so the
-      // dialog asks for as many columns as it has cards, not as many as it is
-      // allowed.
-      await _seedSets(1);
-      await _openDialog(tester, const Size(1920, 1080));
-
-      final grid = tester.getSize(find.byType(AdaptiveCardGrid)).width;
-      final card = tester.getSize(find.byType(Card).first).width;
-      expect(card / grid, greaterThan(0.9),
-          reason: 'one set fills ${(card / grid * 100).round()}% of the row — '
-              'the rest is a reserved column with nothing in it');
-    });
-
-    testWidgets('but two sets still share a row', (tester) async {
-      // The other half of the rule, and the reason the case above cannot be
-      // satisfied by shrinking the dialog to one column for good.
-      await _seedSets(2);
-      await _openDialog(tester, const Size(1920, 1080));
-
-      expect(tester.getTopLeft(find.text('Set 1')).dy,
-          tester.getTopLeft(find.text('Set 2')).dy,
-          reason: 'two sets no longer sit side by side');
-    });
-
-    testWidgets('a card is not mostly empty space', (tester) async {
-      // 29 px of dead air between what a set says and the buttons that act on
-      // it, because a `Spacer` pushed them to the bottom of a tile taller than
-      // its content. Things that belong together are placed together.
-      await _seedSets(1);
-      await _openDialog(tester, const Size(1920, 1080));
-
-      final subtitle = tester.getRect(find.text('2 puzzles').first);
-      final open =
-          tester.getRect(find.widgetWithText(ElevatedButton, 'Open').first);
-      expect(open.top - subtitle.bottom, lessThan(12.0),
-          reason: 'the gap between a set and its buttons is '
-              '${(open.top - subtitle.bottom).round()} px');
-    });
-
-    testWidgets('opening a set still hands over that set\'s puzzles',
-        (tester) async {
-      // Green on master, and the only thing this dialog is for. The callback
-      // must carry the puzzles of the set whose button was pressed.
-      await _seedSets(3);
-      List<LocalPuzzle>? handed;
-      int? startIndex;
-      await _at(
-        tester,
-        const Size(1400, 900),
-        Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => SavedPuzzleSetsDialog(
-                    onPuzzleSetOpened: (puzzles, index) {
-                      handed = puzzles;
-                      startIndex = index;
-                    },
-                    puzzleSets: deviceOnlyPuzzleSets(),
-                  ),
-                ),
-                child: const Text('open'),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-
-      // "Set 1" has the newest date, so it is first; its puzzles are p-1-a/b.
-      final openButtons = find.widgetWithText(ElevatedButton, 'Open');
-      expect(openButtons, findsNWidgets(3));
-      await tester.tap(openButtons.first);
-      await tester.pumpAndSettle();
-
-      expect(handed, isNotNull, reason: 'the caller was never told');
-      expect(handed!.map((p) => p.id).toList(), ['p-1-a', 'p-1-b']);
-      expect(startIndex, 0);
     });
   });
 }

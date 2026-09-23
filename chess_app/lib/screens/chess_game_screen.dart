@@ -1534,7 +1534,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
         loadLessonPosition(fen, entry.pgn);
       case LibraryKind.analysis:
       case LibraryKind.recording:
-      case LibraryKind.puzzleSet:
         // Not on this column's chips.
         break;
     }
@@ -1601,7 +1600,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       case LibraryKind.scan:
       case LibraryKind.analysis:
       case LibraryKind.recording:
-      case LibraryKind.puzzleSet:
         return const [];
     }
   }

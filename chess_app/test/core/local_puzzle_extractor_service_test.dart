@@ -4,9 +4,12 @@ import 'package:chess_app/models/analysis_models.dart';
 
 class _SequencedFakeEngine {
   final List<String> evalSequence;
+
+  /// The engine's line at each call, in UCI; empty names no move.
+  final List<String> pvSequence;
   int callIndex = 0;
 
-  _SequencedFakeEngine(this.evalSequence);
+  _SequencedFakeEngine(this.evalSequence, [this.pvSequence = const []]);
 
   Future<List<AnalysisLine>> analyze(
     String fen, {
@@ -16,10 +19,11 @@ class _SequencedFakeEngine {
   }) async {
     final eval =
         callIndex < evalSequence.length ? evalSequence[callIndex] : '0.00';
+    final pv = callIndex < pvSequence.length ? pvSequence[callIndex] : '';
     callIndex++;
     return [
       AnalysisLine.fromPv(
-          multipv: 1, depth: depth, eval: eval, pvString: '', startingFen: fen)
+          multipv: 1, depth: depth, eval: eval, pvString: pv, startingFen: fen)
     ];
   }
 }
@@ -50,11 +54,27 @@ void main() {
       expect(puzzle.themeKey, 'hangingPiece');
       expect(puzzle.swing, lessThanOrEqualTo(-2.0));
 
-      final map = puzzle.toPuzzleMap();
-      expect(map['type'], 'winning_position');
-      expect(map['solutions'], isEmpty);
-      expect(map['isLocal'], isTrue);
-      expect(map['fen'], puzzle.fen);
+      // The game's last move: no next moment to take the answer from. The
+      // review asks the engine once for these (docs/PLAN-MATERIJAL.md,
+      // phase 4); until then this said how the puzzle mode would read it.
+      expect(puzzle.refutationSan, isNull);
+    });
+
+    test(
+        'the answer is the best move of the next moment — the reply the engine '
+        'found to the blunder, not the blunder itself', () async {
+      // Qd5?? and then Black takes it: the engine, asked about the position
+      // after Qd5, already named Rxd5.
+      final puzzles = await service.extractPuzzles(
+        startingFen: '3r2k1/8/8/8/8/8/8/3Q2K1 w - - 0 1',
+        uciMoves: ['d1d5', 'd8d5'],
+        analyzer: _SequencedFakeEngine(
+            ['+0.00', '-9.00', '-9.00'], ['d1d3', 'd8d5', '']).analyze,
+      );
+
+      expect(puzzles, hasLength(1));
+      expect(puzzles.single.sourceMoveSan, 'Qd5+');
+      expect(puzzles.single.refutationSan, 'Rxd5');
     });
 
     test(

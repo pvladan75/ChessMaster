@@ -192,8 +192,10 @@ enum LibraryChip {
   exercises('Exercises', {LibraryKind.scan}),
   positions('Positions', {LibraryKind.position}),
   analyses('Analyses', {LibraryKind.analysis}),
-  recordings('Recordings', {LibraryKind.recording}),
-  puzzleSets('Puzzle sets', {LibraryKind.puzzleSet});
+  recordings('Recordings', {LibraryKind.recording});
+  // „Puzzle sets" was a seventh chip until 23.9.2026: a puzzle from a game
+  // review is a Find exercise now, under Exercises („From mistakes"), and the
+  // sets are gone (`docs/PLAN-MATERIJAL.md`, phase 4, decision 8).
 
   const LibraryChip(this.label, this.kinds);
 
@@ -309,8 +311,6 @@ class _LibraryListState extends State<LibraryList> {
       case LibraryKind.recording:
         final d = entry.createdAt;
         return d == null ? '' : '${d.day}.${d.month}.${d.year}';
-      case LibraryKind.puzzleSet:
-        return 'puzzle set';
     }
   }
 
@@ -320,7 +320,6 @@ class _LibraryListState extends State<LibraryList> {
         LibraryKind.analysis => Icons.biotech_outlined,
         LibraryKind.tutorial => Icons.auto_stories_outlined,
         LibraryKind.recording => Icons.videocam_outlined,
-        LibraryKind.puzzleSet => Icons.extension_outlined,
       };
 
   void _previewBoard(BuildContext context, LibraryEntry entry) {

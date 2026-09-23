@@ -23,6 +23,13 @@ class LocalPuzzle {
   final String? fenBefore;
   final String? moveUci;
 
+  /// The answer: the engine's best move in [fen], for the side that did not
+  /// blunder — the next moment's own best move, since its position before is
+  /// this one's position after (`docs/PLAN-MATERIJAL.md`, phase 4). Null for
+  /// the game's last move, which has no next moment; the review then asks
+  /// the engine once, and keeps no puzzle it cannot answer.
+  final String? refutationSan;
+
   const LocalPuzzle({
     required this.id,
     required this.fen,
@@ -33,49 +40,20 @@ class LocalPuzzle {
     required this.sourcePlyIndex,
     this.fenBefore,
     this.moveUci,
+    this.refutationSan,
   });
 
-  /// Shape consumed by the rest of the app's puzzle-solving flow (see
-  /// `LocalPuzzleService` / `PuzzleApiService`): 'winning_position' puzzles
-  /// there are already solved by live engine verification of the player's
-  /// moves rather than a precomputed solution tree, which is exactly what a
-  /// freshly-extracted blunder needs — no solution tree to build.
-  Map<String, dynamic> toPuzzleMap() {
-    return {
-      'id': id,
-      'puzzle_id': id,
-      'fen': fen,
-      'type': 'winning_position',
-      'solutions': const {},
-      'isLocal': true,
-      'theme': themeKey,
-      'themeLabel': themeLabel,
-      'sourceMoveSan': sourceMoveSan,
-    };
-  }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'fen': fen,
-        'themeLabel': themeLabel,
-        'themeKey': themeKey,
-        'swing': swing,
-        'sourceMoveSan': sourceMoveSan,
-        'sourcePlyIndex': sourcePlyIndex,
-        'fenBefore': fenBefore,
-        'moveUci': moveUci,
-      };
-
-  factory LocalPuzzle.fromJson(Map<String, dynamic> json) => LocalPuzzle(
-        id: json['id'] as String,
-        fen: json['fen'] as String,
-        themeLabel: json['themeLabel'] as String,
-        themeKey: json['themeKey'] as String?,
-        swing: (json['swing'] as num?)?.toDouble() ?? 0,
-        sourceMoveSan: json['sourceMoveSan'] as String,
-        sourcePlyIndex: (json['sourcePlyIndex'] as num?)?.toInt() ?? 0,
-        fenBefore: json['fenBefore'] as String?,
-        moveUci: json['moveUci'] as String?,
+  LocalPuzzle withRefutation(String? san) => LocalPuzzle(
+        id: id,
+        fen: fen,
+        themeLabel: themeLabel,
+        themeKey: themeKey,
+        swing: swing,
+        sourceMoveSan: sourceMoveSan,
+        sourcePlyIndex: sourcePlyIndex,
+        fenBefore: fenBefore,
+        moveUci: moveUci,
+        refutationSan: san,
       );
 }
 
@@ -133,10 +111,25 @@ class LocalPuzzleExtractorService {
           // Worst blunders (most negative swing) first.
           ..sort((a, b) => a.swingForMover!.compareTo(b.swingForMover!));
 
-    return blunders.take(maxPuzzles).map(_buildPuzzle).toList();
+    return blunders
+        .take(maxPuzzles)
+        .map((m) => _buildPuzzle(m, next: _nextOf(m, moments)))
+        .toList();
   }
 
-  LocalPuzzle _buildPuzzle(GameMoment moment) {
+  /// The moment that starts where [moment] ended — the reply's own search,
+  /// which already holds the best answer to the blunder.
+  static GameMoment? _nextOf(GameMoment moment, List<GameMoment> moments) {
+    for (final m in moments) {
+      if (m.plyIndex == moment.plyIndex + 1 && m.fenBefore == moment.fenAfter) {
+        return m;
+      }
+    }
+    return null;
+  }
+
+  LocalPuzzle _buildPuzzle(GameMoment moment, {GameMoment? next}) {
+    final answer = next?.engineLineBefore?.bestMoveSan.trim();
     // `detect()` on the post-blunder position treats whoever just moved (the
     // blunderer) as "mover" — so a favorsMover=false finding is the thing
     // that now favors the opponent, i.e. the puzzle solver's winning idea.
@@ -159,6 +152,7 @@ class LocalPuzzleExtractorService {
       sourcePlyIndex: moment.plyIndex,
       fenBefore: moment.fenBefore,
       moveUci: moment.moveUci,
+      refutationSan: answer == null || answer.isEmpty ? null : answer,
     );
   }
 }

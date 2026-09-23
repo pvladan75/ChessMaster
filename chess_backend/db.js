@@ -277,32 +277,14 @@ async function initDB(target = pool) {
 
     // The puzzle sets „Review entire game" extracts, kept with the account.
     //
-    // Added 21.9.2026, on the owner's report that the Library showed his sets
-    // on Windows and nothing on the phone under the same account. They had
-    // only ever lived in `SharedPreferences` on the device that ran the
-    // extraction, so „the same account" had nothing to do with it.
-    //
-    // `puzzles` is JSONB rather than a child table for the reason
-    // `blunder_games.blunders` already states: nothing queries inside a set.
-    // A set holds at most five puzzles, a device keeps thirty, and it is
-    // always read whole.
-    //
-    // The key is (user_id, set_id) because the id is minted on the device —
-    // a timestamp, not a secret — so it is only unique within an account,
-    // and every query has to name the account anyway.
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS puzzle_sets (
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        set_id VARCHAR(64) NOT NULL,
-        title VARCHAR(255) NOT NULL,
-        puzzles JSONB NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id, set_id)
-      );
-      CREATE INDEX IF NOT EXISTS idx_puzzle_sets_user
-        ON puzzle_sets(user_id, created_at DESC);
-    `);
-    logger.info('Verified database table: puzzle_sets');
+    // `puzzle_sets` — the sets „Review entire game" kept, added 21.9.2026 —
+    // is gone (docs/PLAN-MATERIJAL.md, phase 4, decision 8): a puzzle from a
+    // game review is a Find exercise with origin „mistakes", in
+    // custom_puzzles, judged and sendable like any other. The owner saw the
+    // count (5 sets, 25 puzzles, on two test accounts) and said to delete
+    // them on 23.9.2026; nothing was carried over (decision 6). Dropped on
+    // every start, which is a no-op once it is gone.
+    await client.query('DROP TABLE IF EXISTS puzzle_sets');
 
     // A book's calibration for the image scanner (docs/PLAN-SKENER-SLIKE.md,
     // phase 3a): the positions of a few of its own boards, and where they are

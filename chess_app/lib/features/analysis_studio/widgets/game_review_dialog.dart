@@ -2,7 +2,8 @@ import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
-import 'package:chess_app/core/services/puzzle_set_repository.dart';
+import 'package:chess_app/features/analysis_studio/widgets/keep_puzzles_panel.dart';
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -17,8 +18,10 @@ import 'package:chess_app/widgets/app_slider.dart';
 ///   move by move);
 /// - optionally tags blunders ('??') and adds the engine's suggested
 ///   improvement as a short side variation ("Blunder Alert");
-/// - optionally extracts the same blunders as a set of puzzles, auto-saved
-///   on-device (see [LocalPuzzleSetStorageService]).
+/// - optionally finds the same blunders as puzzles, lists them, and keeps
+///   the ticked ones as Find exercises from „mistakes" ([KeepPuzzlesPanel],
+///   `docs/PLAN-MATERIJAL.md` phase 4 — until then they were a set of their
+///   own that nothing judged).
 ///
 /// Blunder tagging and puzzle extraction reuse the single engine walk this
 /// dialog already runs (via [GameAnalysisWalkerService.annotateNodeChain]'s
@@ -27,16 +30,23 @@ class GameReviewDialog extends StatefulWidget {
   final AnalysisNode rootNode;
   final AnalysisNode currentNode;
   final StockfishService stockfishService;
-  final void Function({List<LocalPuzzle>? extractedPuzzles}) onCompleted;
 
-  /// Where an extracted set is kept. Required rather than optional: a null
-  /// would put the set back on this device alone, which is the fault of
-  /// 21.9.2026 in a form nobody would notice.
-  final PuzzleSetRepository puzzleSets;
+  /// Called once the walk has written its comments, before any puzzle is
+  /// kept — the board behind is redrawn and its draft saved.
+  final VoidCallback onCompleted;
+
+  /// Where kept puzzles go (`POST /exercises`). Required: a puzzle found and
+  /// kept nowhere is the old set on one device in a new form.
+  final ExerciseApiService exerciseApi;
+
+  /// The game's name, which the kept exercises are named after; null names
+  /// them by the date.
+  final String? gameTitle;
 
   const GameReviewDialog({
     super.key,
-    required this.puzzleSets,
+    required this.exerciseApi,
+    this.gameTitle,
     required this.rootNode,
     required this.currentNode,
     required this.stockfishService,
@@ -135,26 +145,31 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
     }
 
     if (_extractPuzzlesEnabled) {
-      final puzzles = _puzzleExtractor.buildPuzzlesFromMoments(
+      final found = _puzzleExtractor.buildPuzzlesFromMoments(
         result.moments,
         blunderThreshold: _blunderThreshold,
         maxPuzzles: _maxPuzzles,
       );
-      if (puzzles.isNotEmpty) {
-        final now = DateTime.now();
-        final title =
-            'Puzzles from ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-        // Through the repository, so the set reaches the account rather than
-        // only the machine that ran the engine over the game.
-        await widget.puzzleSets.save(title: title, puzzles: puzzles);
+      // The game's last move has no next moment to take the answer from:
+      // one search at this dialog's depth, and a puzzle it cannot answer is
+      // listed as such and cannot be kept.
+      final answered = <LocalPuzzle>[];
+      for (final p in found) {
+        if (p.refutationSan != null) {
+          answered.add(p);
+          continue;
+        }
+        final lines = await widget.stockfishService
+            .analyzePositionSync(p.fen, depth: _engineDepth, multiPV: 1);
+        if (!mounted) return;
+        final san = lines.isEmpty ? '' : lines.first.bestMoveSan.trim();
+        answered.add(p.withRefutation(san.isEmpty ? null : san));
       }
-      if (!mounted) return;
-      _extractedPuzzles = puzzles;
+      _extractedPuzzles = answered;
     }
 
     if (!mounted) return;
-    widget.onCompleted(
-        extractedPuzzles: _extractedPuzzles.isEmpty ? null : _extractedPuzzles);
+    widget.onCompleted();
     setState(() => _isDone = true);
   }
 
@@ -385,6 +400,13 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
     ];
   }
 
+  /// „Game of 23.09.2026" — the name when the game has none of its own.
+  static String _gameOfToday() {
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return 'Game of ${two(now.day)}.${two(now.month)}.${now.year}';
+  }
+
   List<Widget> _buildDoneControls() {
     return [
       Center(
@@ -407,21 +429,29 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                   style:
                       AppText.body.copyWith(color: context.colors.textPrimary)),
             ],
-            if (_extractPuzzlesEnabled) ...[
+            if (_extractPuzzlesEnabled && _extractedPuzzles.isEmpty) ...[
               const SizedBox(height: 6),
               Text(
-                _extractedPuzzles.isEmpty
-                    ? 'No puzzles found.'
-                    : 'Extracted ${_extractedPuzzles.length} ${_extractedPuzzles.length == 1 ? "puzzle" : "puzzles"} (saved).',
+                'No puzzles found.',
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(color: context.colors.textPrimary),
               ),
             ],
             const SizedBox(height: AppSpacing.lg),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
+            if (_extractedPuzzles.isNotEmpty)
+              KeepPuzzlesPanel(
+                puzzles: _extractedPuzzles,
+                defaultName: widget.gameTitle ?? _gameOfToday(),
+                api: widget.exerciseApi,
+                // The exercises are written by now; the caller says so, on
+                // its own screen, after this dialog is gone.
+                onDone: (kept) => Navigator.pop(context, kept),
+              )
+            else
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
           ],
         ),
       ),

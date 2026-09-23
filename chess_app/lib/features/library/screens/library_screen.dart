@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
-import 'package:chess_app/core/services/puzzle_set_api_service.dart';
-import 'package:chess_app/core/services/puzzle_set_repository.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
@@ -62,7 +59,6 @@ class LibraryScreen extends StatefulWidget {
     this.groupApi,
     this.homeworkApi,
     this.exerciseApi,
-    this.puzzleSets,
     this.recordingApi,
     this.scannerApi,
   });
@@ -92,9 +88,6 @@ class LibraryScreen extends StatefulWidget {
   /// Seam for the door into `ExerciseEditorScreen` (phase 11); same rule.
   final ExerciseApiService? exerciseApi;
 
-  /// Seam for the account's puzzle sets; same rule as the seams above.
-  final PuzzleSetRepository? puzzleSets;
-
   /// Seam for deleting a recording; same rule as the seams above.
   final LessonRecordingApi? recordingApi;
 
@@ -115,13 +108,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   late final ExerciseApiService _exerciseApi =
       widget.exerciseApi ?? ExerciseApiService(authToken: widget.session.token);
 
-  /// The account's puzzle sets. Until 21.9.2026 this shelf read the device's
-  /// own store directly, so the owner's sets showed on Windows and the phone
-  /// had none under the same account.
-  late final PuzzleSetRepository _puzzleSets = widget.puzzleSets ??
-      PuzzleSetRepository(
-        api: PuzzleSetApiService(authToken: widget.session.token),
-      );
   late final LessonRecordingApi _recordingApi = widget.recordingApi ??
       LessonRecordingApi(authToken: widget.session.token);
   late final ScannerApiService _scanner =
@@ -186,7 +172,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
 
     final items = await _library.list();
-    final sets = await _puzzleSets.load();
     final rawRows = await _lessons.fetchAll();
     final labels = await _lessons.fetchLabels();
     if (!mounted) return;
@@ -205,21 +190,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
           Map<String, dynamic>.from(row),
     ];
 
-    final puzzleSets = [
-      for (final set in sets)
-        LibraryEntry(
-          kind: LibraryKind.puzzleSet,
-          id: set.id,
-          title: set.title,
-          fen: '',
-          assignable: false,
-          createdAt: set.createdAt,
-        ),
-    ];
-
     setState(() {
       _loading = false;
-      _entries = [...items, ...puzzleSets];
+      _entries = items;
       _rawTutorials = rawTutorials;
       _labels = labels;
     });
@@ -342,15 +315,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
             onPressed: () => _deleteAnalysis(entry),
           ),
         ];
-      case LibraryKind.puzzleSet:
-        return [
-          IconButton(
-            icon: Icon(Icons.delete_outline,
-                size: 20, color: context.colors.danger),
-            tooltip: 'Delete puzzle set',
-            onPressed: () => _deletePuzzleSet(entry),
-          ),
-        ];
     }
   }
 
@@ -361,17 +325,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// vanishes while the account still has it is back on the next load.
   void _dropEntry(LibraryEntry entry) {
     setState(() => _entries = _entries?.where((e) => e != entry).toList());
-  }
-
-  Future<void> _deletePuzzleSet(LibraryEntry entry) async {
-    if (!await _confirmDelete('puzzle set', entry.title)) return;
-    final deleted = await _puzzleSets.delete(entry.id);
-    if (!mounted) return;
-    if (!deleted) {
-      AppFeedback.error(context, notDeletedMessage(entry.title));
-      return;
-    }
-    _dropEntry(entry);
   }
 
   /// A position or an exercise, each through the table it lives in: a scan
@@ -671,42 +624,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         _openAnalysis(entry);
       case LibraryKind.recording:
         _openRecording(entry);
-      case LibraryKind.puzzleSet:
-        _openPuzzleSet(entry);
     }
-  }
-
-  /// Opens a saved puzzle set on the Analysis screen.
-  ///
-  /// Until 20.9.2026 this shelf drew puzzle sets and a tap on one did nothing,
-  /// because the only door into puzzle mode was the dialog on the screen the
-  /// set had been extracted in. The owner reported both halves of that the
-  /// same evening — the dead tap, and not knowing where saved puzzles were at
-  /// all — and the Library is where he looked.
-  ///
-  /// The set is re-read here rather than carried on the [LibraryEntry]: the
-  /// entry is a shelf row, deliberately slim, and the puzzles are on the
-  /// device anyway. A set that has since been deleted or emptied is said, not
-  /// opened.
-  Future<void> _openPuzzleSet(LibraryEntry entry) async {
-    final sets = await _puzzleSets.load();
-    if (!mounted) return;
-    final match = sets.where((set) => set.id == entry.id);
-    final puzzles = match.isEmpty ? const <LocalPuzzle>[] : match.first.puzzles;
-    if (puzzles.isEmpty) {
-      AppFeedback.error(context, 'That set has no puzzles left in it.');
-      return;
-    }
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AnalysisStudioScreen(
-          userSession: widget.session,
-          initialPuzzles: puzzles,
-        ),
-      ),
-    );
-    // A set can be finished or discarded in there, so the shelf is re-read.
-    if (mounted) _load();
   }
 
   Future<void> _openExercise(LibraryEntry entry) async {
