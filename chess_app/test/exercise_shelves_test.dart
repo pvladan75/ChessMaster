@@ -41,6 +41,9 @@ LibraryEntry _scan(
       'origin': 'book',
       'task': task ?? const {'type': 'find'},
       'hasSolution': hasSolution,
+      // As `listScanned` says it since docs/PLAN-MATERIJAL.md phase 3: an
+      // answer to judge, or a game its ending judges.
+      'isExercise': hasSolution || task?['type'] == 'game',
       'needsReview': needsReview,
       'sourceTitle': 'TacticsCourse.pdf',
       'sourcePage': 8,

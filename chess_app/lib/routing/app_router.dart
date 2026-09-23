@@ -38,8 +38,8 @@ import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/features/exercises/screens/own_exercise_solve_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
-import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
 import 'package:chess_app/features/library/screens/library_screen.dart';
+import 'package:chess_app/features/library/widgets/library_list.dart';
 import 'package:chess_app/screens/design_gallery_screen.dart';
 
 /// The app's navigation graph.
@@ -373,16 +373,17 @@ final List<RouteBase> appRouteTable = [
     ),
   ),
   GoRoute(
-    path: AppRoutes.savedPositions,
-    builder: (context, state) => SavedPositionsScreen(
-      session: SessionService.instance.current,
-    ),
-  ),
-  GoRoute(
     path: AppRoutes.library,
-    builder: (context, state) => LibraryScreen(
-      session: SessionService.instance.current,
-    ),
+    builder: (context, state) {
+      final query = state.uri.queryParameters;
+      return LibraryScreen(
+        session: SessionService.instance.current,
+        initialChip: LibraryChip.values
+            .where((c) => c.name == query['chip'])
+            .firstOrNull,
+        initialSource: query['source'],
+      );
+    },
   ),
   GoRoute(
     path: AppRoutes.preferences,

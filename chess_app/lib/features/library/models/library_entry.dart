@@ -85,6 +85,7 @@ class LibraryEntry {
     this.createdAt,
     this.origin = 'book',
     this.task,
+    this.isExercise = false,
   });
 
   final LibraryKind kind;
@@ -158,8 +159,13 @@ class LibraryEntry {
   /// shelf and in the homework picker, where the server then refused it (the
   /// owner's live pass of 19.9.2026). One home: the chips, the picker, the
   /// row's subtitle and the preview all ask this.
-  bool get isExercise =>
-      kind == LibraryKind.scan && (hasSolution || task?['type'] == 'game');
+  ///
+  /// Since phase 3 of `docs/PLAN-MATERIJAL.md` the server says it
+  /// (`positionLibrary.js`, from `exerciseOf`), and this reads the field: the
+  /// rule had two homes — this getter restated it — and a game exercise, a
+  /// line in `solution`, or the next shape a task takes would have had to be
+  /// taught to both.
+  final bool isExercise;
 
   factory LibraryEntry.fromJson(Map<String, dynamic> json) => LibraryEntry(
         kind: libraryKindFrom(json['kind']?.toString()) ?? LibraryKind.position,
@@ -185,6 +191,7 @@ class LibraryEntry {
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
         origin: _text(json['origin']) ?? 'book',
         task: (json['task'] as Map?)?.cast<String, dynamic>(),
+        isExercise: json['isExercise'] == true,
       );
 
   static String? _text(dynamic value) {

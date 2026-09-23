@@ -7139,3 +7139,33 @@ je crvena.
 
 Brojevi: aplikacija 3891 → 3906; backend 1656 → 1660 bez baze, 1788 → 1794
 sa bazom (obe mere, `.env` sklonjen).
+
+## 23.9.2026 — PLAN-MATERIJAL faza 3: Biblioteka je jedina polica
+
+Skenirana pozicija postaje zadatak **na mestu** (`PUT /exercises/:id`, red
+zadržava id, knjigu, stranu i broj), server šalje `isExercise` iz `exerciseOf`
+a aplikacija ga čita (pravilo je imalo dva doma), a Biblioteka je upila Saved
+Positions: izbor izvora, „Needs attention (n)", pretraga po knjizi, broju i
+zadatku, i „Assign to student" samo uz prihvaćenog učenika. Ekran, ruta,
+`listSaved`, `SavedPosition` i `GET /scans/puzzles` su obrisani.
+
+Prelazak `isExercise` sa izvedenog getter-a na polje oborio je 36 testova u 15
+fajlova — svi su bili fiksture koje su „zadatak" podrazumevale kroz
+`hasSolution`. Popravljene su tako da **kažu ono što server sada šalje**, a ne
+pomoćnom funkcijom koja bi pravilo ponovila treći put.
+
+Treća greška na telefonu u ovom planu, opet na masteru: zaglavlje Biblioteke je
+stajalo iznad kartica čim je visina bila veća od 480, a na 360 x 640 samo
+zaglavlje pod Exercises bilo je 136 px više od ekrana. Prvi pokušaj (zaglavlje
+najviše do pola) sakrio je pretragu na desktopu — **ograničenje koje popravlja
+telefon ne sme da pokvari prozor koji je bio dobar**. Sada se ispod 640
+zaglavlje pomera sa listom, a iznad je ograničeno na tri četvrtine.
+
+I deveti fajl, s druge strane: pun prolaz je našao `manual_labels_test` crven —
+priručnik pod `site/` je navodio dve oznake obrisanog ekrana. Grep `lib/` i
+`test/` to ne vidi; **brisanje ekrana znači grep i `site/`** (pravilo iz
+PLAN-SESIJA, i ovde je trebalo).
+
+Brojevi: aplikacija 3906 → 3915 (−5 `saved_positions_side_test`, −2 testa
+`SavedPosition`, +16 `library_one_shelf_test`); backend 1660 → 1664 bez baze,
+1794 → 1799 sa bazom.

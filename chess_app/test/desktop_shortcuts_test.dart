@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
+import 'package:chess_app/features/library/screens/library_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/routing/app_routes.dart';
@@ -53,17 +53,20 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
+    // Saved Positions, the screen this case opened until 23.9.2026, is gone
+    // (docs/PLAN-MATERIJAL.md, phase 3); the Library is where the scanner's
+    // „View" goes now.
     final router = await open(tester, AppRoutes.scan);
-    router.push(AppRoutes.savedPositions);
+    router.push(AppRoutes.library);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byType(SavedPositionsScreen), findsOneWidget);
+    expect(find.byType(LibraryScreen), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byType(SavedPositionsScreen), findsNothing);
+    expect(find.byType(LibraryScreen), findsNothing);
     expect(find.byType(ScanReviewScreen), findsOneWidget);
   });
 

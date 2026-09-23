@@ -61,6 +61,7 @@ List<Map<String, dynamic>> _shelf() => [
         'fen': _fen,
         'assignable': true,
         'hasSolution': true,
+        'isExercise': true,
         'sourceTitle': 'Mat u 333',
         'sourcePage': 41
       },

@@ -146,66 +146,6 @@ class ScannedPosition {
   }
 }
 
-/// A position that has been confirmed and stored — the other end of the scan.
-///
-/// Grouped by [sourceTitle] in the UI, because a trainer thinks in books, not
-/// in rows: "the twenty pages of mates I pulled out of that book last week".
-class SavedPosition {
-  SavedPosition({
-    required this.puzzleId,
-    required this.fen,
-    required this.sideToMove,
-    this.solutionSan,
-    this.instruction,
-    this.themes = const [],
-    this.sourceTitle,
-    this.sourcePage,
-    this.sourceLabel,
-    bool needsReview = false,
-  }) : needsReviewFlag = needsReview;
-
-  final String puzzleId;
-
-  /// Mutable because settling the side to move rewrites it in place — the
-  /// server returns the corrected FEN and the card must show it at once.
-  String fen;
-  String sideToMove;
-  bool needsReviewFlag;
-  final String? solutionSan;
-
-  /// What the student is asked to do. A board with no task is not an exercise —
-  /// a child sent this position used to see pieces and nothing else.
-  String? instruction;
-
-  final List<String> themes;
-  final String? sourceTitle;
-  final int? sourcePage;
-  final String? sourceLabel;
-
-  bool get needsReview => needsReviewFlag;
-
-  /// Records the trainer's answer locally after the server has stored it.
-  void settleSide(String side, String newFen) {
-    sideToMove = side;
-    fen = newFen;
-    needsReviewFlag = false;
-  }
-
-  factory SavedPosition.fromJson(Map<String, dynamic> json) => SavedPosition(
-        puzzleId: json['puzzle_id']?.toString() ?? '',
-        fen: json['fen']?.toString() ?? '',
-        sideToMove: json['side_to_move']?.toString() ?? 'w',
-        solutionSan: json['solution_san']?.toString(),
-        instruction: json['instruction']?.toString(),
-        themes: (json['themes'] as List?)?.map((e) => e.toString()).toList() ??
-            const [],
-        sourceTitle: json['source_title']?.toString(),
-        sourcePage: (json['source_page'] as num?)?.toInt(),
-        sourceLabel: json['source_label']?.toString(),
-        needsReview: json['needs_review'] == true,
-      );
-}
-
 /// What one scan produced.
 class ScanResult {
   ScanResult({

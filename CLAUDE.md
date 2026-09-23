@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3906 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3915 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1794 with TEST_DATABASE_URL, 1660 without
+cd chess_backend && npm test          # node --test, 1799 with TEST_DATABASE_URL, 1664 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -603,6 +603,19 @@ on every rebuild (rule 14 — nothing had grown a card in place before). **Two
 flags for one fact are one flag too many**: `sideTouched` beside
 `sideSource` on the font path survived two mutations because the flip
 already rewrote `sideSource`; it was deleted.
+Then its phase 3 (→ **3915**; backend → **1664 / 1799**, both measured): a
+scanned position becomes an exercise **in place** (`PUT`, the row keeps its
+book), the server says `isExercise` and the app reads it (the rule had two
+homes), and the Library absorbs Saved Positions — a source choice, „Needs
+attention (n)", a search over book, number and task, „Assign to student" only
+with an accepted student — while the screen, `/scan/saved`, `listSaved`,
+`SavedPosition` and `GET /scans/puzzles` are deleted. **A third phone fault on
+master**: the Library's header stood over the rows above 480 px of height, and
+at 360 x 640 the Exercises chip's header alone was 136 px taller than the
+screen; the header now scrolls with the rows below 640 and is capped at three
+quarters above it. The ninth-file lesson again, from the other side: the
+full run found `manual_labels_test` red — `site/` quoted two labels of the
+deleted screen, which no grep of `lib/` or `test/` could see.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

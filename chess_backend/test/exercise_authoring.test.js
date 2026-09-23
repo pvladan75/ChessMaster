@@ -263,4 +263,38 @@ describe('exercises on a real database', skipUnlessDatabase() ?? {}, () => {
     assert.equal(edited.body.exercise.origin, 'book', 'where it came from does not change');
     assert.deepEqual(edited.body.exercise.solution, [{ accept: ['Rd8#', 'Re8#'] }]);
   });
+
+  // docs/PLAN-MATERIJAL.md, phase 3: a scanned position with no answer
+  // becomes an exercise *in place* — the same row, its book kept — instead of
+  // a copy under a new id that forgot the book, the page and the number.
+  test('a bare scanned position becomes an exercise in place, its book kept', async () => {
+    await pool.query(
+      `INSERT INTO custom_puzzles
+         (puzzle_id, owner_id, fen, side_to_move, origin, source_title, source_page, source_label)
+       VALUES ('cust_bare_one', $1, $2, 'w', 'book', 'Mat u 333', 12, '97')`,
+      [trainerId, fixture.positions.backRank]
+    );
+    const { listScanned } = require('../services/positionLibrary');
+    const shelf = async () => (await listScanned(pool, trainerId, {}))
+      .find((e) => e.id === 'cust_bare_one');
+    assert.equal((await shelf()).isExercise, false, 'a bare position is not an exercise yet');
+
+    const made = await route('put', '/:id', {
+      userId: trainerId,
+      params: { id: 'cust_bare_one' },
+      body: { name: 'Back rank, p. 12', task: { type: 'find' }, solution: [{ accept: ['Rd8#'] }] },
+    });
+    assert.equal(made.status, 200, JSON.stringify(made.body));
+    assert.equal(made.body.exercise.id, 'cust_bare_one');
+    assert.equal(made.body.exercise.origin, 'book');
+    assert.equal(made.body.exercise.sourceTitle, 'Mat u 333');
+    assert.equal(made.body.exercise.sourcePage, 12);
+    assert.equal(made.body.exercise.sourceLabel, '97');
+    assert.equal((await shelf()).isExercise, true, 'the same row is an exercise now');
+    const copies = await pool.query(
+      `SELECT count(*)::int AS n FROM custom_puzzles WHERE owner_id = $1 AND source_title = 'Mat u 333'`,
+      [trainerId]
+    );
+    assert.equal(copies.rows[0].n, 1, 'a copy was made');
+  });
 });

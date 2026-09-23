@@ -24,6 +24,7 @@ LibraryEntry _entry(LibraryKind kind, String title,
       // As the server spells a scan whose book printed an answer; a scan
       // without one is a position (`exercise_shelves_test.dart`).
       hasSolution: kind == LibraryKind.scan,
+      isExercise: kind == LibraryKind.scan,
       assignable: false,
       partsCount: parts,
       hasVideo: video,

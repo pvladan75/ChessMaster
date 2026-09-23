@@ -44,6 +44,7 @@ void main() {
         fen: _fen,
         assignable: true,
         hasSolution: true,
+        isExercise: true,
       ),
       const LibraryEntry(
         kind: LibraryKind.scan,
@@ -53,6 +54,7 @@ void main() {
         assignable: true,
         origin: 'manual',
         task: _winTask,
+        isExercise: true,
       ),
       const LibraryEntry(
         kind: LibraryKind.position,
@@ -146,6 +148,7 @@ void main() {
             fen: _fen,
             assignable: true,
             hasSolution: true,
+            isExercise: true,
           ),
           const LibraryEntry(
             kind: LibraryKind.position,
@@ -201,6 +204,7 @@ void main() {
                     'fen': _fen,
                     'assignable': true,
                     'hasSolution': true,
+                    'isExercise': true,
                   },
                   {
                     'kind': 'scan',
@@ -210,6 +214,7 @@ void main() {
                     'assignable': true,
                     'origin': 'manual',
                     'task': _winTask,
+                    'isExercise': true,
                   },
                 ],
               }),

@@ -55,6 +55,7 @@ class LibraryScreen extends StatefulWidget {
     required this.session,
     this.initialChip,
     this.initialFromTrainer,
+    this.initialSource,
     this.lessonApi,
     this.positionLibrary,
     this.assignmentApi,
@@ -74,6 +75,10 @@ class LibraryScreen extends StatefulWidget {
   /// list that gave its rows no room on a phone.
   final LibraryChip? initialChip;
   final bool? initialFromTrainer;
+
+  /// The book (or game) the list opens filtered to, under Exercises or
+  /// Positions — the scanner's „View" after a save.
+  final String? initialSource;
 
   /// Seams for a test; defaulted to real services against this session.
   final LessonApiService? lessonApi;
@@ -121,12 +126,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
       LessonRecordingApi(authToken: widget.session.token);
   late final ScannerApiService _scanner =
       widget.scannerApi ?? ScannerApiService(authToken: widget.session.token);
+  late final GroupApiService _groups = widget.groupApi ?? GroupApiService();
   late final TutorialRowActions _tutorialActions = TutorialRowActions(
     lessonApi: _lessons,
     assignmentApi: widget.assignmentApi ??
         AssignmentApiService(authToken: widget.session.token),
-    groupApi: widget.groupApi ?? GroupApiService(),
+    groupApi: _groups,
   );
+
+  /// Whether this account has a student who accepted it: false hides
+  /// „Assign to student" (`docs/PLAN-MATERIJAL.md` §3, decision 5), null —
+  /// not asked yet, or the server could not be asked — keeps it, because a
+  /// server that cannot be reached is not an account with no students.
+  bool? _hasStudents;
 
   List<LibraryEntry>? _entries;
   bool _loading = true;
@@ -151,6 +163,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void initState() {
     super.initState();
     _load();
+    _loadStudents();
+  }
+
+  Future<void> _loadStudents() async {
+    final students = await _groups.acceptedStudents();
+    if (!mounted || students == null) return;
+    setState(() => _hasStudents = students.isNotEmpty);
   }
 
   Map<String, dynamic>? _rawTutorialFor(LibraryEntry entry) {
@@ -272,13 +291,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
               tooltip: 'Solve',
               onPressed: () => _solve(entry),
             ),
-          if (entry.isExercise)
-            IconButton(
-              icon: const Icon(Icons.assignment_outlined, size: 20),
-              tooltip: 'Assign to student',
-              onPressed: () => _assign(entry),
-            )
-          else
+          if (entry.isExercise) ...[
+            if (_hasStudents != false)
+              IconButton(
+                icon: const Icon(Icons.assignment_outlined, size: 20),
+                tooltip: 'Assign to student',
+                onPressed: () => _assign(entry),
+              ),
+          ] else
             IconButton(
               icon: const Icon(Icons.task_alt, size: 20),
               tooltip: 'Make exercise',
@@ -452,6 +472,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         api: _exerciseApi,
         moveTree: MoveTree(startingFen: fen),
         availableUserLabels: _labels,
+        // A scanned position becomes the exercise itself — the same row, its
+        // book, page and number kept (`docs/PLAN-MATERIJAL.md`, phase 3). A
+        // position saved from the board is a line with a root, and is copied
+        // from that root as before (decision 7).
+        existingId: entry.kind == LibraryKind.scan ? entry.id : null,
+        initialName: entry.title,
       ),
     );
     if (saved == null || !mounted) return;
@@ -770,6 +796,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
         actionsFor: _actionsFor,
         labels: _labels,
         initialChip: widget.initialChip,
+        // What Saved Positions had and this shelf lacked: by book, and what
+        // needs attention (`docs/PLAN-MATERIJAL.md`, phase 3).
+        materialFilters: true,
+        initialSource: widget.initialSource,
         originChips: widget.initialFromTrainer != null,
         initialFromTrainer: widget.initialFromTrainer,
         // Only where there is a pane to put it in. Null keeps the dialog,

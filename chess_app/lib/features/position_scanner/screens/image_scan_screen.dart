@@ -68,6 +68,19 @@ enum _Show { all, toCheck, notPosition, setUp }
 /// board read is then shown beside its picture: an uncertain square is marked
 /// by shape — a dashed outline and a question mark — and nothing is saved
 /// until the trainer has looked.
+/// Where „View" after a save goes: the Library, on the book just saved, under
+/// the chip that holds most of it — Exercises when most boards carry an
+/// answer, Positions otherwise (`docs/PLAN-MATERIJAL.md`, phase 3; Saved
+/// Positions, where it used to go, is gone).
+String savedViewPath(
+        {required String source,
+        required int withAnswer,
+        required int total}) =>
+    AppRoutes.libraryPath(
+      chip: withAnswer * 2 > total ? 'exercises' : 'positions',
+      source: source,
+    );
+
 class ImageScanScreen extends StatefulWidget {
   const ImageScanScreen({
     super.key,
@@ -618,12 +631,15 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       context,
       () => SnackBar(
         duration: const Duration(seconds: 8),
-        content: Text('In "Saved Positions": ${outcome.summary}.$grown'),
+        content: Text('In the Library: ${outcome.summary}.$grown'),
         action: router == null
             ? null
             : SnackBarAction(
                 label: 'View',
-                onPressed: () => router.push(AppRoutes.savedPositions),
+                onPressed: () => router.push(savedViewPath(
+                    source: widget.fileName,
+                    withAnswer: chosen.where((p) => p.answerSan != null).length,
+                    total: chosen.length)),
               ),
       ),
     );

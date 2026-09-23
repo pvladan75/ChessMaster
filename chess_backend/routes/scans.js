@@ -609,35 +609,9 @@ router.delete('/puzzles/:puzzleId', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /scans/puzzles — the caller's own scanned positions.
-router.get('/puzzles', authenticateToken, async (req, res) => {
-  try {
-    // Ordered the way the book is, not the way the rows were written.
-    //
-    // The scanner walks a page by position — down and then across — but a book
-    // numbers its diagrams down one column and then down the next, so insertion
-    // order comes out as 97, 100, 98, 101. Everything from one scan also shares
-    // a `created_at` to the microsecond, so sorting by time is really no sort at
-    // all. The printed number is what a trainer is looking for, and it is text,
-    // so it has to be compared as a number or 100 lands before 97.
-    const result = await pool.query(
-      `SELECT puzzle_id, fen, side_to_move, solution_san, instruction, themes,
-              source_title, source_page, source_label, needs_review, created_at
-         FROM custom_puzzles
-        WHERE owner_id = $1
-        ORDER BY source_title NULLS LAST,
-                 source_page NULLS LAST,
-                 CASE WHEN source_label ~ '^[0-9]+$' THEN source_label::int END NULLS LAST,
-                 id
-        LIMIT 500`,
-      [req.user.id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    logger.error(`[SCAN] Lista pozicija nije učitana: ${err.message}`);
-    res.status(500).json({ error: 'Failed to load positions.' });
-  }
-});
+// GET /scans/puzzles — the list Saved Positions read — was deleted with that
+// screen on 23.9.2026 (docs/PLAN-MATERIJAL.md, phase 3): the Library lists the
+// same rows (`services/positionLibrary.js`), scoped by owner the same way.
 
 /// Multer's own failures arrive here rather than as a 500 with no explanation.
 /// The upload aborts mid-stream, so the route above never runs: without this,

@@ -231,3 +231,45 @@ test('only the three known kinds are accepted', () => {
   assert.equal(isKind(''), false);
   assert.equal(isKind(undefined), false);
 });
+
+// ── position or exercise, said on the wire (docs/PLAN-MATERIJAL.md, phase 3) ─
+//
+// The app used to restate the rule (`LibraryEntry.isExercise`, a second home);
+// it now reads this field, decided by `exerciseOf`. A game exercise has no
+// solution and *is* an exercise — the case a rule of „has a solution" gets
+// wrong.
+
+test('a game exercise with no solution is an exercise', async () => {
+  const pool = stubPool([[scannedRow({
+    solution_san: null,
+    task: { type: 'game', side: 'w', goal: 'win' },
+    origin: 'manual',
+  })]]);
+  const [item] = await listScanned(pool, 5, {});
+  assert.equal(item.hasSolution, false);
+  assert.equal(item.isExercise, true);
+});
+
+test('a scan with a solution is an exercise, one with none is a position', async () => {
+  const pool = stubPool([[scannedRow(), scannedRow({ puzzle_id: 'cust_2', solution_san: null })]]);
+  const [withAnswer, bare] = await listScanned(pool, 5, {});
+  assert.equal(withAnswer.isExercise, true);
+  assert.equal(bare.isExercise, false);
+});
+
+test('a row still marked for review is still an exercise — its doors ask first', async () => {
+  const pool = stubPool([[scannedRow({ needs_review: true })]]);
+  const [item] = await listScanned(pool, 5, {});
+  assert.equal(item.isExercise, true);
+  assert.equal(item.assignable, false);
+});
+
+// GET /scans/puzzles, Saved Positions' own list, was deleted on 23.9.2026
+// (docs/PLAN-MATERIJAL.md, phase 3); the Library is now the only list of these
+// rows, so the rule that list held — only the caller's own — is held here.
+test('scanned rows are listed for their owner only', async () => {
+  const pool = stubPool([[]]);
+  await listScanned(pool, 42, {});
+  assert.match(pool.calls[0].text, /WHERE owner_id = \$1/);
+  assert.equal(pool.calls[0].params[0], 42);
+});

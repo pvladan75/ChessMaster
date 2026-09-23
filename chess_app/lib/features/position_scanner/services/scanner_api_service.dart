@@ -499,24 +499,6 @@ class ScannerApiService {
     }
   }
 
-  /// Everything this trainer has kept. Returns null when the server could not
-  /// be reached — an empty list means "none saved", and the two must not look
-  /// the same on screen.
-  Future<List<SavedPosition>?> listSaved() async {
-    try {
-      final response = await (_client ?? _shared)
-          .get(Uri.parse('$backendUrl/scans/puzzles'), headers: _jsonHeaders)
-          .timeout(const Duration(seconds: 30));
-      if (response.statusCode != 200) return null;
-      return (jsonDecode(response.body) as List)
-          .map((e) => SavedPosition.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      AppLogger.log('List saved failed: $e', name: 'PositionScanner');
-      return null;
-    }
-  }
-
   /// Settles whose move it is, and returns the rewritten FEN.
   ///
   /// The server does the rewriting: the en passant square belongs to the other

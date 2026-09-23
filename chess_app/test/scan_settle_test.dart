@@ -133,9 +133,6 @@ Future<_Server> _scanned(WidgetTester tester, FakeSideRunner runner,
         proposalRunner: runner,
       ),
     ),
-    GoRoute(
-        path: '/scan/saved',
-        builder: (_, __) => const Scaffold(body: Text('saved'))),
   ]);
   await tester.pumpWidget(MaterialApp.router(
     key: UniqueKey(),

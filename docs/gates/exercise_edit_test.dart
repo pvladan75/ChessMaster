@@ -723,6 +723,7 @@ void main() {
           'fen': scholar,
           'assignable': hasSolution,
           'hasSolution': hasSolution,
+          'isExercise': hasSolution,
           'fromTrainer': fromTrainer,
           'origin': origin,
           'task': {'type': 'find'}

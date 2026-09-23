@@ -86,6 +86,9 @@ Map<String, dynamic> _wire(String id,
       // a scan with *no* solution is not an exercise at all
       // (`exercise_shelves_test.dart`).
       if (kind == 'scan') 'hasSolution': task == null || task['type'] != 'game',
+      // Every scan in this file is an exercise — a find with its answer or a
+      // game — and since docs/PLAN-MATERIJAL.md phase 3 the server says so.
+      if (kind == 'scan') 'isExercise': true,
       'assignable': assignable,
       'blockedReason': assignable ? null : 'is marked for review',
       if (origin != null) 'origin': origin,

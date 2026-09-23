@@ -96,6 +96,7 @@ class _Server {
                   'title': 'Book, with solution',
                   'fen': _solvedFen,
                   'hasSolution': true,
+                  'isExercise': true,
                   'solutionSan': 'Ra8#',
                   'assignable': true,
                 },

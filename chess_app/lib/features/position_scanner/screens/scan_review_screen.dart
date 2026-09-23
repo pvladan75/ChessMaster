@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/models/user_session.dart';
-import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
@@ -319,16 +318,22 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     // context: by the time somebody taps the action the screen may be gone,
     // and `context.push` on a dead context throws inside the action.
     final router = GoRouter.of(context);
+    final view = savedViewPath(
+        source: result.documentName,
+        withAnswer: chosen
+            .where((p) => p.solutionSan != null && p.solutionLegal == true)
+            .length,
+        total: chosen.length);
     AppFeedback.show(
       context,
       () => SnackBar(
-        content: Text('In "Saved Positions": ${outcome.summary}.'),
+        content: Text('In the Library: ${outcome.summary}.'),
         // It covers the last row of scanned positions, and until now the only
         // way out of it was to follow it somewhere else.
         showCloseIcon: true,
         action: SnackBarAction(
           label: 'View',
-          onPressed: () => router.push(AppRoutes.savedPositions),
+          onPressed: () => router.push(view),
         ),
         duration: const Duration(seconds: 8),
       ),

@@ -54,7 +54,9 @@ class ExerciseEditorScreen extends StatefulWidget {
     required String this.exerciseId,
     this.availableUserLabels = const [],
     this.checker = defaultExerciseChecker,
-  }) : makingFen = null;
+  })  : makingFen = null,
+        existingId = null,
+        initialName = null;
 
   /// A new find exercise on [fen], its move still to be played here.
   const ExerciseEditorScreen.make({
@@ -63,6 +65,8 @@ class ExerciseEditorScreen extends StatefulWidget {
     required String fen,
     this.availableUserLabels = const [],
     this.checker = defaultExerciseChecker,
+    this.existingId,
+    this.initialName,
   })  : exerciseId = null,
         makingFen = fen;
 
@@ -73,6 +77,11 @@ class ExerciseEditorScreen extends StatefulWidget {
 
   /// The position of the exercise being made, or null for a saved one.
   final String? makingFen;
+
+  /// When making: the row it is made in place of, and the name to start
+  /// with (`MakeExerciseSheet.existingId`, `docs/PLAN-MATERIJAL.md` phase 3).
+  final String? existingId;
+  final String? initialName;
 
   bool get isMaking => makingFen != null;
   final List<String> availableUserLabels;
@@ -313,6 +322,8 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
               steps: _edit!.steps,
               availableUserLabels: widget.availableUserLabels,
               checker: widget.checker,
+              existingId: widget.existingId,
+              initialName: widget.initialName,
             ),
     );
     if (saved == null || !mounted) return;

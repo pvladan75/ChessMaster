@@ -79,6 +79,7 @@ class _MultiRecorder {
                     'fen': '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1',
                     'assignable': true,
                     'hasSolution': true,
+                    'isExercise': true,
                   },
                   // A game exercise — made in Preparation since phase 3b, and
                   // picked here through the same „Exercises" door as a
@@ -90,6 +91,7 @@ class _MultiRecorder {
                     'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1',
                     'assignable': true,
                     'origin': 'manual',
+                    'isExercise': true,
                     'task': {
                       'type': 'game',
                       'fen': '4k3/8/8/8/8/8/8/4K2R w - - 0 1',

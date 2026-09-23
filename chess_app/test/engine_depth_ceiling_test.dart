@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
-import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
+import 'package:chess_app/features/position_scanner/widgets/side_suggestions.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 
@@ -34,8 +34,10 @@ void main() {
     expect(AppSettingsService.kMaxEngineDepth, 50);
   });
 
-  test('Check with engine offers every depth from 12 to 50', () {
-    expect(SavedPositionsScreen.depths, [for (var d = 12; d <= 50; d++) d]);
+  // „Check with engine" lived on Saved Positions until 23.9.2026; the depth
+  // list moved with it to the scanners (docs/PLAN-MATERIJAL.md, phase 2).
+  test('Suggest sides with the engine offers every depth from 12 to 50', () {
+    expect(SideSuggestions.depths, [for (var d = 12; d <= 50; d++) d]);
   });
 
   // The Review dialog opens at the depth the board remembers, and its slider

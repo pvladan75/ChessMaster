@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/endgame_trainer/screens/blunder_walk_screen.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_picker_screen.dart';
-import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
+import 'package:chess_app/features/library/screens/library_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/routing/app_router.dart';
@@ -69,7 +69,10 @@ void main() {
       AppRoutes.blunderGames: BlunderWalkScreen,
       '${AppRoutes.endgamePicker}?mode=draw': EndgamePickerScreen,
       AppRoutes.scan: ScanReviewScreen,
-      AppRoutes.savedPositions: SavedPositionsScreen,
+      // Saved Positions is gone (docs/PLAN-MATERIJAL.md, phase 3); the
+      // scanner's „View" opens the Library on the book just saved.
+      AppRoutes.libraryPath(chip: 'positions', source: 'Book.pdf'):
+          LibraryScreen,
       AppRoutes.preferences: SettingsScreen,
       AppRoutes.training: TrainingHubScreen,
       // The assignment branch, which had no paths at all until now.
@@ -107,18 +110,18 @@ void main() {
     final router = await open(tester, AppRoutes.scan);
     expect(find.byType(ScanReviewScreen), findsOneWidget);
 
-    router.push(AppRoutes.savedPositions);
+    router.push(AppRoutes.library);
     // Two pumps: the first lets the router rebuild, the second runs out the
     // page transition. One long pump catches the new screen mid-slide and
     // finds nothing.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byType(SavedPositionsScreen), findsOneWidget);
+    expect(find.byType(LibraryScreen), findsOneWidget);
 
     router.pop();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byType(SavedPositionsScreen), findsNothing);
+    expect(find.byType(LibraryScreen), findsNothing);
     expect(find.byType(ScanReviewScreen), findsOneWidget,
         reason: 'povratak mora da vrati ekran sa kojeg se krenulo');
   });

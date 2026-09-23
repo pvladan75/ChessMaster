@@ -90,13 +90,22 @@ abstract final class AppRoutes {
   /// Reading positions out of a trainer's own book and confirming them.
   static const String scan = '/scan';
 
-  /// Positions the trainer has already confirmed and kept.
-  static const String savedPositions = '/scan/saved';
 
   /// Everything the trainer keeps, in one place — tutorials, positions,
   /// analyses, recordings and puzzle sets. `docs/PLAN-REORGANIZACIJA.md`
   /// phase 3a (S3).
   static const String library = '/library';
+
+  /// The Library opened on one chip (its `LibraryChip` name) and, under
+  /// Exercises or Positions, one source — where the scanner's „View" goes
+  /// after a save (`docs/PLAN-MATERIJAL.md`, phase 3).
+  static String libraryPath({String? chip, String? source}) {
+    final query = <String>[
+      if (chip != null) 'chip=$chip',
+      if (source != null) 'source=${Uri.encodeComponent(source)}',
+    ].join('&');
+    return query.isEmpty ? library : '$library?$query';
+  }
 
   /// App settings pushed *over* the current screen. Distinct from the Settings
   /// tab inside the home shell: this variant keeps the analysis board or a live

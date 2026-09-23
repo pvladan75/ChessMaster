@@ -489,7 +489,25 @@ the branch). Live: item 232 — including a real run on a picture book, timed:
 two searches per board at depth 16 are seconds each, and a batch of fifty is
 minutes; the number goes in the item.
 
-### Phase 3 — Exercise in place; the Library is the one shelf
+### Phase 3 — Exercise in place; the Library is the one shelf — built 23.9.2026
+
+*Built by the lead inline. App 3906 → 3915, backend 1660 → 1664 without a
+database and 1794 → 1799 with one; analyze list unchanged; fourteen app
+mutations and one server one, all red, none survived. Departures:* **the
+server's `search` stays** — `PositionPickerDialog` calls it, deliberately
+(only 500 rows per shelf arrive, so a client filter would hide what a big
+library looks for); **the picker was measured and kept**, only its empty text
+changed; the Library's own search now reads the same fields the server's
+does. **„View" after a save chooses the chip** — Exercises when most saved
+boards carry an answer, Positions otherwise — because a font book's positions
+are mostly exercises and a fixed Positions chip would open on nothing.
+**`isExercise` cases went to `position_library.test.js`**, which covers scanned
+rows; `library_kinds.test.js` does not. **Assign only** — the tutorial's
+„Send to student" was left as it was. **Optional „Suggest a move" not built.**
+Two faults on master found on the way: the Library header over the rows had
+no ceiling (136 px over the screen at 360 x 640), and `site/` quoted two
+labels of the deleted screen (`manual_labels_test` caught it; the manual now
+describes the Library).
 
 **Build.**
 

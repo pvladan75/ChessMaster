@@ -117,6 +117,7 @@ class _Server {
                   'fen': _mateFen,
                   'instruction': 'White mates in one.',
                   'hasSolution': true,
+                  'isExercise': true,
                   'assignable': true,
                 },
                 {
@@ -127,6 +128,7 @@ class _Server {
                   'assignable': true,
                   'origin': 'manual',
                   'task': {'type': 'game', 'side': 'b', 'goal': 'hold'},
+                  'isExercise': true,
                 },
                 {
                   'kind': 'scan',
@@ -134,6 +136,7 @@ class _Server {
                   'title': 'Side unknown',
                   'fen': _mateFen,
                   'hasSolution': true,
+                  'isExercise': true,
                   'assignable': false,
                   'needsReview': true,
                 },
@@ -143,6 +146,7 @@ class _Server {
                   'title': 'From my trainer',
                   'fen': _mateFen,
                   'hasSolution': true,
+                  'isExercise': true,
                   'assignable': true,
                   'fromTrainer': true,
                 },

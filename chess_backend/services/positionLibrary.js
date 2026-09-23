@@ -98,6 +98,11 @@ async function listScanned(pool, userId, { search }) {
     instruction: row.instruction,
     themes: row.themes || [],
     hasSolution: exerciseOf(row).solution !== null,
+    // Position or exercise, decided here by the one reader
+    // (docs/PLAN-MATERIJAL.md §3, decision 1): the app reads this field and
+    // no longer restates the rule. A row still marked for review can be an
+    // exercise — its doors ask about the side first.
+    isExercise: exerciseOf(row).problem === null,
     needsReview: row.needs_review === true,
     sourceTitle: row.source_title,
     sourcePage: row.source_page,

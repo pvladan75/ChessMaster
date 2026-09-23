@@ -40,6 +40,9 @@ class LibraryList extends StatefulWidget {
     this.onNewExercise,
     this.onSelect,
     this.selectedId,
+    this.materialFilters = false,
+    this.initialSource,
+    this.initialNeedsAttention = false,
   });
 
   final List<LibraryEntry> entries;
@@ -96,6 +99,21 @@ class LibraryList extends StatefulWidget {
   /// Which card is drawn as chosen, as [idOf] spells it. Null draws none.
   final String? selectedId;
 
+  /// Draw, under Exercises and Positions, what Saved Positions had and this
+  /// list lacked (`docs/PLAN-MATERIJAL.md`, phase 3, decision 9): a
+  /// **Source** choice — the books (and, later, games) the entries on the
+  /// chip came from — and **Needs attention (n)**, the entries whose side is
+  /// not set or whose answer did not play. The Library passes true; the
+  /// room's column has no use for either and draws neither (rule 15).
+  final bool materialFilters;
+
+  /// The source chosen when the list opens — the scanner's „View" after a
+  /// save opens the Library on the book just scanned.
+  final String? initialSource;
+
+  /// Whether „Needs attention" is on when the list opens.
+  final bool initialNeedsAttention;
+
   /// Which card is which, in one place.
   ///
   /// The kind belongs in it: ids come from different tables, so a position 12
@@ -126,7 +144,14 @@ class LibraryList extends StatefulWidget {
   static const double thumbnailSize = 48;
 
   /// Below this height the filters scroll with the list rather than above it.
-  static const double headerScrollsBelow = 480;
+  /// 480 until 23.9.2026, which left a phone held upright (a 584 px body at
+  /// 360 x 640) with a header over the rows that the Exercises chip alone
+  /// made taller than the screen — 136 px over, on master.
+  static const double headerScrollsBelow = 640;
+
+  /// Above [headerScrollsBelow], the most of the height the filters may take;
+  /// past it they scroll on their own, and the rows keep the rest.
+  static const double headerAtMost = 0.75;
 
   /// One card, top to bottom — phase 3b of `docs/PLAN-LISTE.md`.
   ///
@@ -144,6 +169,7 @@ class LibraryList extends StatefulWidget {
   static const double cardHeight = 132;
 
   static const String searchHint = 'Search';
+  static const String allSources = 'All sources';
   static const String empty = 'Nothing here yet.';
   static const String mine = 'Mine';
   static const String fromTrainer = 'From trainer';
@@ -204,6 +230,15 @@ class _LibraryListState extends State<LibraryList> {
   ExerciseAsk? _ask;
   ExerciseOrigin? _origin;
 
+  /// [LibraryList.materialFilters]: one source or all (null), and only what
+  /// needs attention or everything. Read only under Exercises and Positions.
+  late String? _source = widget.initialSource;
+  late bool _needsAttention = widget.initialNeedsAttention;
+
+  bool get _materialChip =>
+      widget.materialFilters &&
+      (_chip == LibraryChip.exercises || _chip == LibraryChip.positions);
+
   /// What „All" means here: every kind one of the given chips shows.
   Set<LibraryKind> get _allKinds => {
         for (final chip in widget.chips)
@@ -228,10 +263,20 @@ class _LibraryListState extends State<LibraryList> {
         : _include.any(themes.contains);
   }
 
-  bool _searchShown(LibraryEntry entry, String query) =>
-      query.isEmpty ||
-      entry.title.toLowerCase().contains(query) ||
-      entry.themes.any((t) => t.toLowerCase().contains(query));
+  /// What the search box matches: the title, the labels, the book, the
+  /// printed number and the task — the fields the server's own `search`
+  /// reads (`positionLibrary.js`), so a book's name finds its positions here
+  /// as it does in the homework picker.
+  bool _searchShown(LibraryEntry entry, String query) {
+    if (query.isEmpty) return true;
+    bool has(String? text) =>
+        text != null && text.toLowerCase().contains(query);
+    return has(entry.title) ||
+        entry.themes.any(has) ||
+        has(entry.sourceTitle) ||
+        has(entry.sourceLabel) ||
+        has(entry.instruction);
+  }
 
   @override
   void dispose() {
@@ -327,9 +372,26 @@ class _LibraryListState extends State<LibraryList> {
     // Drawn and read only under the Exercises chip — elsewhere the two
     // fields stay set but unused, so switching chips and back does not lose
     // what was chosen.
-    final shown = _chip == LibraryChip.exercises
+    final exerciseFiltered = _chip == LibraryChip.exercises
         ? filterExercises(kindFiltered, ask: _ask, origin: _origin)
         : kindFiltered;
+    // The sources on offer are those of what the chip shows before a source
+    // is chosen, so choosing one never hides the others from the choice.
+    final sources = _materialChip
+        ? ({
+            for (final e in exerciseFiltered)
+              if (e.sourceTitle != null) e.sourceTitle!
+          }.toList()
+          ..sort())
+        : const <String>[];
+    final attention =
+        _materialChip ? exerciseFiltered.where((e) => e.needsReview).length : 0;
+    final shown = _materialChip
+        ? exerciseFiltered
+            .where((e) => _source == null || e.sourceTitle == _source)
+            .where((e) => !_needsAttention || e.needsReview)
+            .toList()
+        : exerciseFiltered;
 
     return LayoutBuilder(builder: (context, constraints) {
       final compact = widget.shrinkWrap ||
@@ -413,110 +475,170 @@ class _LibraryListState extends State<LibraryList> {
               },
             );
 
-      final column = Column(
-        mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      final header = <Widget>[
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final chip in widget.chips)
+              ChoiceChip(
+                label: Text(chip.label),
+                selected: _chip == chip,
+                onSelected: (_) => setState(() => _chip = chip),
+              ),
+            if (widget.originChips) ...[
+              FilterChip(
+                label: const Text(LibraryList.mine),
+                selected: _fromTrainer == false,
+                onSelected: (on) =>
+                    setState(() => _fromTrainer = on ? false : null),
+              ),
+              FilterChip(
+                label: const Text(LibraryList.fromTrainer),
+                selected: _fromTrainer == true,
+                onSelected: (on) =>
+                    setState(() => _fromTrainer = on ? true : null),
+              ),
+            ],
+          ],
+        ),
+        // Only under the Exercises chip: „New exercise" and the two
+        // filters. `Wrap` on a phone so neither pushes the list off the
+        // screen (CLAUDE.md's release-build overflow lesson).
+        if (_chip == LibraryChip.exercises) ...[
+          const SizedBox(height: 8),
+          if (widget.onNewExercise != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                key: const Key('library-new-exercise'),
+                onPressed: widget.onNewExercise,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('New exercise'),
+              ),
+            ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 4,
             children: [
-              for (final chip in widget.chips)
+              for (final ask in ExerciseAsk.values)
                 ChoiceChip(
-                  label: Text(chip.label),
-                  selected: _chip == chip,
-                  onSelected: (_) => setState(() => _chip = chip),
+                  label: Text(ask.label),
+                  selected: _ask == ask,
+                  onSelected: (on) => setState(() => _ask = on ? ask : null),
                 ),
-              if (widget.originChips) ...[
-                FilterChip(
-                  label: const Text(LibraryList.mine),
-                  selected: _fromTrainer == false,
-                  onSelected: (on) =>
-                      setState(() => _fromTrainer = on ? false : null),
-                ),
-                FilterChip(
-                  label: const Text(LibraryList.fromTrainer),
-                  selected: _fromTrainer == true,
-                  onSelected: (on) =>
-                      setState(() => _fromTrainer = on ? true : null),
-                ),
-              ],
             ],
           ),
-          // Only under the Exercises chip: „New exercise" and the two
-          // filters. `Wrap` on a phone so neither pushes the list off the
-          // screen (CLAUDE.md's release-build overflow lesson).
-          if (_chip == LibraryChip.exercises) ...[
-            const SizedBox(height: 8),
-            if (widget.onNewExercise != null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  key: const Key('library-new-exercise'),
-                  onPressed: widget.onNewExercise,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New exercise'),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final origin in ExerciseOrigin.values)
+                ChoiceChip(
+                  label: Text(origin.label),
+                  selected: _origin == origin,
+                  onSelected: (on) =>
+                      setState(() => _origin = on ? origin : null),
                 ),
-              ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final ask in ExerciseAsk.values)
-                  ChoiceChip(
-                    label: Text(ask.label),
-                    selected: _ask == ask,
-                    onSelected: (on) => setState(() => _ask = on ? ask : null),
+            ],
+          ),
+        ],
+        if (_materialChip && (sources.isNotEmpty || _source != null)) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: DropdownButton<String?>(
+              key: const Key('library-source'),
+              value: _source,
+              isExpanded: false,
+              hint: const Text(LibraryList.allSources),
+              onChanged: (value) => setState(() => _source = value),
+              items: [
+                const DropdownMenuItem<String?>(
+                    value: null, child: Text(LibraryList.allSources)),
+                for (final source in {
+                  ...sources,
+                  if (_source != null) _source!
+                })
+                  DropdownMenuItem<String?>(
+                    value: source,
+                    child: Text(source, overflow: TextOverflow.ellipsis),
                   ),
               ],
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final origin in ExerciseOrigin.values)
-                  ChoiceChip(
-                    label: Text(origin.label),
-                    selected: _origin == origin,
-                    onSelected: (on) =>
-                        setState(() => _origin = on ? origin : null),
-                  ),
-              ],
-            ),
-          ],
-          if (widget.labels.isNotEmpty)
-            MatrixFilterPanel(
-              availableUserLabels: widget.labels,
-              selectedIncludeTags: _include,
-              selectedExcludeTags: _exclude,
-              filterMatchMode: _matchMode,
-              onFilterChanged: (include, exclude, mode) => setState(() {
-                _include = include;
-                _exclude = exclude;
-                _matchMode = mode;
-              }),
-            ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _search,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              hintText: LibraryList.searchHint,
-              prefixIcon: Icon(Icons.search, size: 18),
             ),
           ),
-          const SizedBox(height: 8),
-          if (compact) list else Expanded(child: list),
         ],
-      );
+        if (_materialChip && (attention > 0 || _needsAttention)) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilterChip(
+              key: const Key('library-needs-attention'),
+              label: Text('Needs attention ($attention)'),
+              selected: _needsAttention,
+              onSelected: (on) => setState(() => _needsAttention = on),
+            ),
+          ),
+        ],
+        if (widget.labels.isNotEmpty)
+          MatrixFilterPanel(
+            availableUserLabels: widget.labels,
+            selectedIncludeTags: _include,
+            selectedExcludeTags: _exclude,
+            filterMatchMode: _matchMode,
+            onFilterChanged: (include, exclude, mode) => setState(() {
+              _include = include;
+              _exclude = exclude;
+              _matchMode = mode;
+            }),
+          ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _search,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(
+            hintText: LibraryList.searchHint,
+            prefixIcon: Icon(Icons.search, size: 18),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ];
       // Below [headerScrollsBelow] the chips, the label panel and the search
       // box scroll away with the rows instead of standing over them: on a
       // phone held sideways (640 × 360) they took the whole height.
-      return (compact && !widget.shrinkWrap)
-          ? SingleChildScrollView(child: column)
-          : column;
+      if (compact) {
+        final column = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [...header, list],
+        );
+        return widget.shrinkWrap
+            ? column
+            : SingleChildScrollView(child: column);
+      }
+      // Above it the header stands over the rows, taking what it needs up to
+      // [headerAtMost] of the height and scrolling on its own past that; the
+      // rows take the rest. Until 23.9.2026 it took what it wanted, and a
+      // header taller than the screen left the rows nothing (measured while
+      // `docs/PLAN-MATERIJAL.md` phase 3 added two filters to it).
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: constraints.maxHeight * LibraryList.headerAtMost),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: header,
+              ),
+            ),
+          ),
+          Expanded(child: list),
+        ],
+      );
     });
   }
 }

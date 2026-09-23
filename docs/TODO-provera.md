@@ -5878,6 +5878,29 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 233. Biblioteka je jedina polica; zadatak na mestu — 23.9.2026, nije viđeno uživo
+
+**Aplikacija i server** (nov build, restart backenda). `PLAN-MATERIJAL.md`,
+faza 3. Saved Positions više ne postoji.
+
+1. [ ] **Posle skeniranja** poruka kaže „In the Library: …", a „View" otvara
+   Biblioteku na toj knjizi (Exercises ako većina tabli ima rešenje, inače
+   Positions), sa izabranim izvorom.
+2. [ ] **Zadatak na mestu.** Na skeniranoj poziciji bez rešenja „Make
+   exercise": ime je već upisano (naslov kartice). Sačuvaj — kartica prelazi
+   pod Exercises, pod „From a book", i dalje nosi knjigu i stranu; nema nove
+   kopije pod Positions.
+3. [ ] **Izvor i „Needs attention".** Pod Exercises i Positions je izbor
+   izvora („All sources" / ime knjige) i, kad ima takvih, „Needs attention
+   (n)". Pod ostalim čipovima ih nema.
+4. [ ] **Pretraga** nalazi po imenu knjige, po broju dijagrama iz knjige i po
+   rečima zadatka, ne samo po naslovu.
+5. [ ] **„Assign to student"** se ne vidi na nalogu bez prihvaćenog učenika; na
+   trenerovom nalogu se vidi.
+6. [ ] **Telefon uspravno.** Biblioteka → Exercises: filteri i kartice se
+   vide, zaglavlje se pomera zajedno sa listom (do sada je zaglavlje bilo više
+   od ekrana i kartica nije bilo).
+
 ## 232. Strana i odgovor pre čuvanja, na oba skenera — 23.9.2026, nije viđeno uživo
 
 **Aplikacija i server** (nov build, restart backenda — nova kolona

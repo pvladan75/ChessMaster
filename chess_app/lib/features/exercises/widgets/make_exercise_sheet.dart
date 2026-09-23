@@ -124,6 +124,8 @@ class MakeExerciseSheet extends StatefulWidget {
     required MoveTree this.moveTree,
     required this.availableUserLabels,
     this.checker = defaultExerciseChecker,
+    this.existingId,
+    this.initialName,
   })  : exercise = null,
         editSteps = null,
         makingFen = null;
@@ -139,6 +141,8 @@ class MakeExerciseSheet extends StatefulWidget {
     required List<ExerciseStep> steps,
     required this.availableUserLabels,
     this.checker = defaultExerciseChecker,
+    this.existingId,
+    this.initialName,
   })  : moveTree = null,
         exercise = null,
         editSteps = steps,
@@ -157,7 +161,9 @@ class MakeExerciseSheet extends StatefulWidget {
     this.checker = defaultExerciseChecker,
   })  : moveTree = null,
         editSteps = steps,
-        makingFen = null;
+        makingFen = null,
+        existingId = null,
+        initialName = null;
 
   final ExerciseApiService api;
   final MoveTree? moveTree;
@@ -171,6 +177,15 @@ class MakeExerciseSheet extends StatefulWidget {
   /// What asks the tablebase and the engine — the real one by default, which
   /// costs nothing to hold until [ExerciseChecker.check] is actually called.
   final ExerciseChecker checker;
+
+  /// The row this exercise is made **in place** of — a scanned position given
+  /// a task (`docs/PLAN-MATERIJAL.md`, phase 3). With it the sheet saves by
+  /// `PUT /exercises/:id`, without a position, and never creates a copy: the
+  /// row keeps its id, its book, page and number. Null makes a new one.
+  final String? existingId;
+
+  /// What the name field starts with — the entry's title when made in place.
+  final String? initialName;
 
   bool get isEditing => exercise != null;
 
@@ -240,6 +255,9 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
   @override
   void initState() {
     super.initState();
+    if (!widget.isEditing && widget.initialName != null) {
+      _nameController.text = widget.initialName!;
+    }
     if (widget.isEditing) {
       final exercise = widget.exercise!;
       _nameController.text = exercise.name;
@@ -323,6 +341,10 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
           fen: _fen,
           availableUserLabels: widget.availableUserLabels,
           checker: widget.checker,
+          existingId: widget.existingId,
+          initialName: _nameController.text.trim().isEmpty
+              ? widget.initialName
+              : _nameController.text.trim(),
         ),
       ),
     );
@@ -371,7 +393,8 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
     // exercise's position is the root's FEN, as everywhere in this feature. A
     // game exercise needs no line on the board, only the position: „play the
     // solution first" is a refusal that applies to Find alone.
-    final fen = widget.isEditing ? null : _fen;
+    final inPlace = widget.existingId;
+    final fen = widget.isEditing || inPlace != null ? null : _fen;
     final instruction = _instructionController.text.trim().isEmpty
         ? null
         : _instructionController.text.trim();
@@ -405,7 +428,9 @@ class _MakeExerciseSheetState extends State<MakeExerciseSheet> {
           );
     final result = widget.isEditing
         ? await widget.api.update(widget.exercise!.id, draft)
-        : await widget.api.create(draft);
+        : inPlace != null
+            ? await widget.api.update(inPlace, draft)
+            : await widget.api.create(draft);
     if (!mounted) return;
     if (result.exercise != null) {
       Navigator.of(context).pop(result.exercise);

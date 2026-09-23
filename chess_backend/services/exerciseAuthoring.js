@@ -23,7 +23,7 @@ const MAX_INSTRUCTION = 500;
 // What the row asks comes through the one reader's own column list, so this
 // file never names the columns it would be tempted to interpret.
 const COLUMNS = `puzzle_id, side_to_move, name, instruction, themes, origin, created_at,
-                 ${exerciseColumns()}`;
+                 source_title, source_page, source_label, ${exerciseColumns()}`;
 
 /// Reads what the editor sends, or says why it is not an exercise.
 ///
@@ -105,6 +105,12 @@ function present(row) {
     instruction: row.instruction,
     themes: row.themes || [],
     origin: row.origin,
+    // Where it came from — a book's name, page and printed number. Kept when
+    // a scanned position becomes an exercise in place (`PUT`, phase 3 of
+    // docs/PLAN-MATERIJAL.md), so the editor can say so.
+    sourceTitle: row.source_title ?? null,
+    sourcePage: row.source_page ?? null,
+    sourceLabel: row.source_label ?? null,
     task: read.task,
     solution: read.solution,
     needsReview: row.needs_review === true,

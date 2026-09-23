@@ -268,7 +268,7 @@ class _PositionPickerDialogState extends State<PositionPickerDialog> {
         child: Text(
           _search.text.trim().isEmpty
               ? (widget.purpose == PickerPurpose.homework
-                  ? 'No exercises yet. Make one in Preparation.'
+                  ? 'No exercises yet. Make one from a position in the Library, or in Preparation.'
                   : 'No saved positions. Scan diagrams from a book or '
                       'save a position from Analysis.')
               : 'Nothing matches your search.',
