@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3866 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3876 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1769 with TEST_DATABASE_URL, 1637 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -561,6 +561,13 @@ whole book), and a picture book goes to its calibration before any page is
 asked for. Then phase 3g (→ **3866**; backend → **1637 / 1769**): a
 calibration is shared by every user of the same file — merged from the others'
 each time, never stored, a board of theirs counting only once checked here.
+Then the side nobody set (→ **3876**): a position stored as White with
+`needs_review` is asked about before any door uses it — the Library's open,
+„Make exercise" and „Add to tutorial", Saved Positions' „Add to tutorial" and
+the room's board all go through `settledFen` (`side_to_move_gate.dart`). „Make
+exercise" was the hole that mattered: the new exercise carried no mark, so the
+homework check could not see the doubt. **When a flag guards a door, list
+every door; a new row made from a flagged one does not inherit the flag.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

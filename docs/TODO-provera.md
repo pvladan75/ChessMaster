@@ -5878,6 +5878,24 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 230. Pozicija bez strane na potezu se ne koristi dok se ne pita — 23.9.2026, nije viđeno uživo
+
+**Samo aplikacija** (nov build). Pozicija čiju stranu niko nije postavio čuva
+se kao „beli na potezu" sa oznakom za proveru; do sada ju je samo Saved
+Positions pitao.
+
+1. [ ] **Biblioteka pokazuje oznaku.** Kartica takve pozicije počinje sa „Side to
+   move not set · …"; pozicija sa poznatom stranom nema tu oznaku.
+2. [ ] **Otvaranje.** Tap na takvu karticu pita „Who is to move?"; posle
+   odgovora otvara Analysis sa tom stranom, a kartica gubi oznaku. Pozicija sa
+   poznatom stranom se otvara odmah, bez pitanja.
+3. [ ] **Make exercise.** Prvo pitanje, pa tek onda prozor za vežbu, i vežba je
+   na odabranoj strani. „Cancel" ne otvara ništa.
+4. [ ] **Add to tutorial.** Iz Biblioteke i iz Saved Positions: prvo pitanje, pa
+   izbor tutorijala; deo tutorijala ima odabranu stranu.
+5. [ ] **Soba.** Tap na takvu poziciju u koloni sobe pita pre nego što je stavi
+   na zajedničku tablu, i tabla je na odabranoj strani.
+
 ## 229. Deljena kalibracija — 23.9.2026, nije viđeno uživo
 
 **Server i aplikacija** (server se sam restartovao; nov build). Plan:

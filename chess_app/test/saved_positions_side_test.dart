@@ -14,6 +14,8 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/position_scanner/screens/saved_positions_screen.dart';
 import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -27,8 +29,17 @@ class _Server {
   _Server({this.instruction});
   final String? instruction;
   final List<String> sides = [];
+  final List<http.Request> sent = [];
 
   late final client = MockClient((req) async {
+    sent.add(req);
+    if (req.method == 'GET' && req.url.path == '/lessons') {
+      return http.Response(
+          jsonEncode([
+            {'id': 7, 'title': 'Rook endings', 'position_list': []}
+          ]),
+          200);
+    }
     if (req.method == 'GET' && req.url.path == '/scans/puzzles') {
       return http.Response(
           jsonEncode([
@@ -68,6 +79,9 @@ Future<_Server> _open(WidgetTester tester, {String? instruction}) async {
           session:
               UserSession(id: 1, token: 't', email: 'e', name: 'N', role: 'x'),
           api: ScannerApiService(authToken: 't', client: server.client),
+          library:
+              PositionLibraryService(authToken: 't', client: server.client),
+          lessons: LessonApiService(authToken: 't', client: server.client),
         ),
       ),
       GoRoute(
@@ -115,6 +129,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(server.sides, ['w']);
     expect(find.textContaining('ROUTE-ANALYSIS'), findsOneWidget);
+  });
+
+  // The owner, 23.9.2026 („popravi ovu rupu"): a tutorial shows its steps to
+  // students with the side the FEN says, and a side nobody set went in as
+  // White to move.
+  testWidgets('„Add to tutorial" asks first, and the step has the side chosen',
+      (tester) async {
+    final server = await _open(tester);
+    await tester.longPress(find.byKey(const ValueKey('saved-card-cust_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Add to tutorial'));
+    await tester.pumpAndSettle();
+    expect(find.text('Who is to move?'), findsOneWidget,
+        reason: 'added to a tutorial as White to move without asking');
+    await tester.tap(find.widgetWithText(TextButton, 'Black'));
+    await tester.pumpAndSettle();
+    expect(server.sides, ['b']);
+    await tester.tap(find.text('Rook endings'));
+    await tester.pumpAndSettle();
+    final step = server.sent.lastWhere(
+        (r) => r.method == 'POST' && r.url.path == '/lessons/7/steps');
+    expect(step.body, contains('4k3/8/8/8/8/8/8/R3K3 b - - 0 1'));
   });
 
   // Found by the first case: the card clipped its last note by 10 px, so

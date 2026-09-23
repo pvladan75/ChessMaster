@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/library_list.dart';
@@ -27,9 +28,18 @@ import 'support/dart_source.dart';
 
 const _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+/// Every request the room made, for the cases that read them.
+final List<http.Request> _sent = [];
+
 /// One client answering for the shelf, the labels and one row.
 http.Client _server() => MockClient((req) async {
+      _sent.add(req);
       final path = req.url.path;
+      if (req.method == 'PATCH' && path == '/scans/puzzles/u1') {
+        final side = (jsonDecode(req.body) as Map)['sideToMove'];
+        return http.Response(
+            jsonEncode({'fen': '4k3/8/8/8/8/8/8/R3K3 $side - - 0 1'}), 200);
+      }
       if (path.endsWith('/library/positions')) {
         return http.Response(
           jsonEncode({
@@ -57,6 +67,15 @@ http.Client _server() => MockClient((req) async {
                 'fen': _fen,
                 'partsCount': 1,
                 'fromTrainer': true,
+              },
+              // A diagram whose side nobody set (side_to_move_gate.dart).
+              {
+                'kind': 'scan',
+                'id': 'u1',
+                'title': 'Strana nije postavljena',
+                'fen': '4k3/8/8/8/8/8/8/R3K3 w - - 0 1',
+                'needsReview': true,
+                'fromTrainer': false,
               },
               // On the shelf, not on this column: nothing here can go on a
               // board by a tap.
@@ -106,6 +125,7 @@ Future<void> _openRoom(WidgetTester tester) async {
       initialRole: 'trener',
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       positionLibrary: PositionLibraryService(authToken: 'tok', client: client),
+      scannerApi: ScannerApiService(authToken: 'tok', client: client),
     ),
   ));
   await tester.pumpAndSettle();
@@ -186,6 +206,28 @@ void main() {
     // that waits for it is a test of the messenger's timer.
     expect(find.byType(CourseStepBar), findsOneWidget,
         reason: 'the tutorial is walked from its first part');
+  });
+
+  // The owner, 23.9.2026: a side nobody set went on the shared board as
+  // White to move, for everybody in the room.
+  testWidgets('a position whose side nobody set asks before the board takes it',
+      (tester) async {
+    _sent.clear();
+    await _openRoom(tester);
+    await tester.ensureVisible(find.text('Strana nije postavljena'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Strana nije postavljena'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('side-to-move-dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('side-to-move-black')));
+    await tester.pumpAndSettle();
+    final patch = _sent.where((r) => r.method == 'PATCH').toList();
+    expect(patch, hasLength(1));
+    expect(patch.single.body, contains('"sideToMove":"b"'));
+    // And the board holds the side answered, not the White nobody chose.
+    final room = tester.state(find.byType(ChessGamePage)) as dynamic;
+    expect(
+        room.moveTree.current.fen as String, '4k3/8/8/8/8/8/8/R3K3 b - - 0 1');
   });
 
   testWidgets('the trainer\'s material has no edit or delete on its row',

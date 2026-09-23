@@ -383,7 +383,16 @@ class _LibraryListState extends State<LibraryList> {
                           leading: _leadingFor(context, entry),
                           title: Text(entry.title,
                               overflow: TextOverflow.ellipsis),
-                          subtitle: Text(_subtitleFor(entry),
+                          // First, so an ellipsis never takes it: a side
+                          // nobody set is asked before the position is used
+                          // (side_to_move_gate.dart), and the card says so
+                          // before anyone taps it — in words, not colour.
+                          subtitle: Text(
+                              entry.needsReview
+                                  ? 'Side to move not set · ${_subtitleFor(entry)}'
+                                  : _subtitleFor(entry),
+                              key: ValueKey(
+                                  'library-subtitle-${LibraryList.idOf(entry)}'),
                               overflow: TextOverflow.ellipsis),
                           onTap: () => widget.onOpen(entry),
                         ),

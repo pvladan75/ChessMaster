@@ -16,6 +16,7 @@ import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
+import 'package:chess_app/features/position_scanner/widgets/side_to_move_gate.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
 import 'package:chess_app/features/library/widgets/board_preview_panel.dart';
@@ -397,12 +398,47 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// on it — so „Find the move" goes to the exercise's own screen („Play the
   /// move", phase 14), and „Win", „Draw or better" and „Play N moves" are
   /// saved from the sheet as they are in the room.
+  /// The position's FEN, its side asked first when nobody set it
+  /// (side_to_move_gate.dart); null when the trainer backed out. The shelf
+  /// is reloaded after an answer, so the card loses its mark.
+  Future<String?> _settled(LibraryEntry entry) async {
+    final fen = await settledFen(context,
+        api: _scanner,
+        puzzleId: entry.id,
+        fen: entry.fen,
+        needsReview: entry.needsReview);
+    if (fen != null && fen != entry.fen && mounted) _load();
+    return fen;
+  }
+
+  /// Not async: a side that is known opens as it always has, in the same
+  /// call — the question is the only thing that may stand between a tap and
+  /// the board, and an async body would also carry any error of the push into
+  /// a future nobody awaits.
+  void _openPosition(LibraryEntry entry) {
+    if (!entry.needsReview) {
+      context.push(AppRoutes.analysisPath(fen: entry.fen));
+      return;
+    }
+    _openSettled(entry);
+  }
+
+  Future<void> _openSettled(LibraryEntry entry) async {
+    final fen = await _settled(entry);
+    if (fen == null || !mounted) return;
+    context.push(AppRoutes.analysisPath(fen: fen));
+  }
+
   Future<void> _makeExercise(LibraryEntry entry) async {
+    // The exercise is a new row made from this FEN, and it carries no mark of
+    // its own: an unset side made here would reach a student as White to move.
+    final fen = await _settled(entry);
+    if (fen == null || !mounted) return;
     final saved = await showDialog<Exercise>(
       context: context,
       builder: (_) => MakeExerciseSheet(
         api: _exerciseApi,
-        moveTree: MoveTree(startingFen: entry.fen),
+        moveTree: MoveTree(startingFen: fen),
         availableUserLabels: _labels,
       ),
     );
@@ -443,6 +479,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _addToTutorial(LibraryEntry entry) async {
+    final fen = await _settled(entry);
+    if (fen == null || !mounted) return;
     final course = await showDialog<CourseSummary>(
       context: context,
       builder: (context) => CoursePickerDialog(service: _library),
@@ -453,7 +491,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       lessonId: course.id,
       step: {
         'title': entry.title,
-        'fen': entry.fen,
+        'fen': fen,
         if (entry.instruction != null) 'instruction': entry.instruction,
         if (entry.solutionSan != null) 'solutionSan': entry.solutionSan,
       },
@@ -531,16 +569,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
       case LibraryKind.tutorial:
         _openTutorial(entry);
       case LibraryKind.position:
-        context.push(AppRoutes.analysisPath(fen: entry.fen));
+        _openPosition(entry);
       case LibraryKind.scan:
         // A saved exercise of this trainer's own opens for reading and
         // editing (phase 11); everything else — a bare scan, or somebody
         // else's exercise, not this account's to change — opens on its bare
-        // position as it always has.
+        // position as it always has, its side asked first when nobody set it.
         if (entry.isExercise && !entry.fromTrainer) {
           _openExercise(entry);
         } else {
-          context.push(AppRoutes.analysisPath(fen: entry.fen));
+          _openPosition(entry);
         }
       case LibraryKind.analysis:
         _openAnalysis(entry);

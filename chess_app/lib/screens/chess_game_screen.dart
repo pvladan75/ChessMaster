@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:chess_app/widgets/confirm_delete.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
+import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
+import 'package:chess_app/features/position_scanner/widgets/side_to_move_gate.dart';
 import 'package:chess_app/services/agora_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -93,6 +95,9 @@ class ChessGamePage extends StatefulWidget {
   /// The shelf the left column reads (phase 3b). Same seam, same reason.
   final PositionLibraryService? positionLibrary;
 
+  /// Seam for settling a position's side before it goes on the board.
+  final ScannerApiService? scannerApi;
+
   /// Seam for a test: who this account's accepted students are, which decides
   /// whether it teaches in this room ([mayTeachInRoom]).
   final GroupApiService? groupApi;
@@ -115,6 +120,7 @@ class ChessGamePage extends StatefulWidget {
     this.initialRole,
     this.lessonApi,
     this.positionLibrary,
+    this.scannerApi,
     this.groupApi,
     this.roomSessionApi,
     this.lessonRecordingApi,
@@ -1508,8 +1514,24 @@ class _ChessGamePageState extends State<ChessGamePage> {
             'Loaded step 1/${steps.length} from tutorial: "${shownPartTitle(first['title']?.toString(), 0) ?? row['title']}"');
       case LibraryKind.position:
       case LibraryKind.scan:
+        // On the shared board a side nobody set would be White to move for
+        // everybody in the room: asked first (side_to_move_gate.dart). A
+        // known side goes up in the same frame, as it always has.
+        if (!entry.needsReview) {
+          setState(() => _activeCourseItems = null);
+          loadLessonPosition(entry.fen, entry.pgn);
+          return;
+        }
+        final fen = await settledFen(context,
+            api: widget.scannerApi ??
+                ScannerApiService(authToken: widget.userSession.token),
+            puzzleId: entry.id,
+            fen: entry.fen,
+            needsReview: entry.needsReview);
+        if (fen == null || !mounted) return;
+        if (fen != entry.fen) fetchLibrary();
         setState(() => _activeCourseItems = null);
-        loadLessonPosition(entry.fen, entry.pgn);
+        loadLessonPosition(fen, entry.pgn);
       case LibraryKind.analysis:
       case LibraryKind.recording:
       case LibraryKind.puzzleSet:

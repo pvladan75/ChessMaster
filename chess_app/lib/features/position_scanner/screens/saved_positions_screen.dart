@@ -15,6 +15,7 @@ import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import '../models/scanned_position.dart';
 import '../services/scanner_api_service.dart';
+import '../widgets/side_to_move_gate.dart';
 import '../services/side_proposal.dart';
 import '../services/side_proposal_runner.dart';
 import '../widgets/assign_positions_dialog.dart';
@@ -27,12 +28,20 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// deliberately plain — a position is useful the moment it can be opened on the
 /// analysis board, which is one tap from here.
 class SavedPositionsScreen extends StatefulWidget {
-  const SavedPositionsScreen({super.key, required this.session, this.api});
+  const SavedPositionsScreen({
+    super.key,
+    required this.session,
+    this.api,
+    this.library,
+    this.lessons,
+  });
 
   final UserSession session;
 
-  /// Seam for a test; the real service against this session otherwise.
+  /// Seams for a test; the real services against this session otherwise.
   final ScannerApiService? api;
+  final PositionLibraryService? library;
+  final LessonApiService? lessons;
 
   /// What „Check with engine" may search to: from 12, every depth up to
   /// [AppSettingsService.kMaxEngineDepth]. It stopped at 24 until 17.9.2026.
@@ -48,9 +57,9 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   late final ScannerApiService _api =
       widget.api ?? ScannerApiService(authToken: widget.session.token);
   late final PositionLibraryService _library =
-      PositionLibraryService(authToken: widget.session.token);
+      widget.library ?? PositionLibraryService(authToken: widget.session.token);
   late final LessonApiService _lessons =
-      LessonApiService(authToken: widget.session.token);
+      widget.lessons ?? LessonApiService(authToken: widget.session.token);
 
   List<SavedPosition>? _positions;
   bool _loading = true;
@@ -159,6 +168,17 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
         .toList();
     if (chosen.isEmpty) return;
 
+    // A tutorial shows its steps to students with the side the FEN says, so a
+    // side nobody set is asked first (side_to_move_gate.dart); backing out of
+    // one question adds nothing.
+    final fens = <String, String>{};
+    for (final position in chosen) {
+      final fen =
+          position.needsReview ? await _settleSide(position) : position.fen;
+      if (fen == null || !mounted) return;
+      fens[position.puzzleId] = fen;
+    }
+
     final course = await showDialog<CourseSummary>(
       context: context,
       builder: (context) =>
@@ -175,7 +195,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
           'title': position.sourceLabel == null
               ? 'Position from page ${position.sourcePage ?? '?'}'
               : '#${position.sourceLabel} · ${position.sourceTitle ?? 'book'}',
-          'fen': position.fen,
+          'fen': fens[position.puzzleId] ?? position.fen,
           if (position.instruction != null) 'instruction': position.instruction,
           if (position.solutionSan != null) 'solutionSan': position.solutionSan,
         },
@@ -364,31 +384,7 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
   /// „zašto me vodi u Analysis kad odgovorim ko je na potezu?" The row's
   /// „Set who is to move" asks it and stays on the list.
   Future<String?> _settleSide(SavedPosition position) async {
-    final side = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Who is to move?'),
-        content: Text(
-          position.sourceLabel == null
-              ? 'The book does not state it for this position (page ${position.sourcePage}). '
-                  'Until decided, the engine would analyze the wrong side.'
-              : 'The book does not state it for diagram #${position.sourceLabel} '
-                  '(page ${position.sourcePage}). Until decided, the engine would '
-                  'analyze the wrong side.',
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, 'b'),
-              child: const Text('Black')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, 'w'),
-              child: const Text('White')),
-        ],
-      ),
-    );
+    final side = await askSideToMove(context, detail: _sideDetail(position));
     if (side == null || !mounted) return null;
 
     final fen = await _api.setSideToMove(position.puzzleId, side);
@@ -401,6 +397,13 @@ class _SavedPositionsScreenState extends State<SavedPositionsScreen> {
     setState(() => position.settleSide(side, fen));
     return fen;
   }
+
+  String _sideDetail(SavedPosition position) => position.sourceLabel == null
+      ? 'The book does not state it for this position (page ${position.sourcePage}). '
+          'Until decided, the engine would analyze the wrong side.'
+      : 'The book does not state it for diagram #${position.sourceLabel} '
+          '(page ${position.sourcePage}). Until decided, the engine would '
+          'analyze the wrong side.';
 
   Future<void> _delete(SavedPosition position) async {
     final confirmed = await showDialog<bool>(

@@ -7020,3 +7020,27 @@ Dva puna prolaza aplikacije su pala na po jednom testu koji nije u ovoj izmeni
 
 Brojevi: aplikacija 3861 → 3866 (3865 prošlo i jedan mrežni u poslednjem
 punom prolazu); backend 1626 → 1637 bez baze, 1757 → 1769 sa bazom.
+
+## 23.9.2026 — pozicija bez strane na potezu: zastavica čuva vrata koja zna
+
+Vlasnik je pitao gde se sve koriste pozicije i da li negde prolazi pozicija
+kojoj niko nije odredio stranu. Takva se čuva kao „beli na potezu" sa
+`needs_review`, jer FEN ne može da kaže „ne zna se". Zastavicu su poštovala
+troja vrata (otvaranje iz Saved Positions, dodeljivanje, izbor u domaćem), a
+četvora nisu (otvaranje, „Make exercise" i „Add to tutorial" u Biblioteci,
+„Add to tutorial" u Saved Positions, i tabla u sobi). Najgore je bilo „Make
+exercise": pravi **novi red** od istog FEN-a, a novi red nema zastavicu — pa je
+provera na serveru za domaći bila potpuno ispravna i ništa nije videla.
+**Kad zastavica čuva vrata, nabroj sva vrata; red napravljen od označenog reda
+ne nasleđuje oznaku.** Sada sva vrata idu kroz `settledFen`.
+
+Dve sitnice iz gradnje: prvi pokušaj je otvaranje pozicije sa poznatom stranom
+stavio iza `await`, i dva stara testa su pala — `context.push` bez rutera je
+bacao grešku koju su testovi namerno gutali, a u `async` telu ta ista greška
+završi u budućnosti koju niko ne čeka. **Poznat slučaj ide kao i pre, istim
+pozivom; pitanje je jedino što sme da stane između dodira i table.** I:
+mutacija „soba učita stari FEN" je preživela dok test nije pročitao samu tablu
+iz stanja sobe — **proveri ono što korisnik vidi, ne samo da je pitanje
+postavljeno.**
+
+Brojevi: aplikacija 3866 → 3876.
