@@ -335,6 +335,33 @@ void main() {
     });
   });
 
+  test('the kind of a book is asked with the document alone', () async {
+    final sent = <http.Request>[];
+    var status = 200;
+    final api = ScannerApiService(
+      authToken: 'tok',
+      client: MockClient((req) async {
+        sent.add(req);
+        return status == 200
+            ? http.Response(
+                jsonEncode({'pageCount': 435, 'kind': 'pictures'}), 200)
+            : http.Response(
+                jsonEncode({'error': 'Too many pages turned'}), status);
+      }),
+    );
+    final book = await _book();
+    final known = await api.bookKind(filePath: book, fileName: 'book.pdf');
+    expect(sent.single.url.path, '/scans/kind');
+    expect(sent.single.body, contains('name="document"; filename="book.pdf"'));
+    expect(sent.single.body, isNot(contains('name="fromPage"')));
+    expect(known.kind, 'pictures');
+    expect(known.pageCount, 435);
+    status = 429;
+    final refused = await api.bookKind(filePath: book, fileName: 'book.pdf');
+    expect(refused.kind, isNull);
+    expect(refused.error, 'Too many pages turned');
+  });
+
   test('browsing a book goes to its own route, never as a scan', () async {
     late http.Request sent;
     final api = ScannerApiService(

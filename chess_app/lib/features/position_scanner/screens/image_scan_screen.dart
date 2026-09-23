@@ -47,7 +47,7 @@ Future<String?> pickPositionWithEditor(
 /// window a trainer can look through, and well under its 40-page limit.
 const browsePages = 20;
 
-enum _Stage { working, calibrating, confirming, failed }
+enum _Stage { working, calibrating, pages, confirming, failed }
 
 /// Which boards the confirming screen shows. The counters above the boards
 /// looked like filters and did nothing until 23.9.2026; now they are.
@@ -59,8 +59,9 @@ enum _Show { all, toCheck, notPosition, setUp }
 /// the first time a book is opened the trainer chooses boards from anywhere in
 /// it and sets each up beside its picture, guided by a table of what the
 /// scanner has still not seen (phase 3e). That calibration is remembered on
-/// the account, by the SHA-256 of the file, and the next chapter goes straight
-/// to reading. Every
+/// the account, by the SHA-256 of the file, as it is set up; once complete it
+/// is skipped, and the trainer chooses the pages to read (phase 3f: the
+/// calibration first, then the pages). Every
 /// board read is then shown beside its picture: an uncertain square is marked
 /// by shape — a dashed outline and a question mark — and nothing is saved
 /// until the trainer has looked.
@@ -70,16 +71,21 @@ class ImageScanScreen extends StatefulWidget {
     required this.api,
     required this.filePath,
     required this.fileName,
-    required this.fromPage,
-    required this.toPage,
+    this.fromPage,
+    this.toPage,
     this.pickPosition = pickPositionWithEditor,
   });
 
   final ScannerApiService api;
   final String filePath;
   final String fileName;
-  final int fromPage;
-  final int toPage;
+
+  /// The pages first offered for reading: the range a font scan found
+  /// pictures on, or null when the book was known to be pictures the moment
+  /// it was chosen (phase 3f) — the pages are then chosen after the
+  /// calibration.
+  final int? fromPage;
+  final int? toPage;
   final PositionPicker pickPosition;
 
   @override
@@ -128,9 +134,16 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     _messenger = AppFeedback.messengerOf(context);
   }
 
+  late final _fromPage = TextEditingController(text: '${widget.fromPage ?? 1}');
+  late final _toPage = TextEditingController(
+      text: '${widget.toPage ?? (widget.fromPage ?? 1) + browsePages - 1}');
+  String? _pagesProblem;
+
   @override
   void dispose() {
     AppFeedback.dismiss(_messenger);
+    _fromPage.dispose();
+    _toPage.dispose();
     super.dispose();
   }
 
@@ -161,17 +174,53 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       ..clear()
       ..addAll(load.absent);
     // A calibration is remembered as it is set up, so one left half-way comes
-    // back to the table; one that shows every piece goes straight to reading.
+    // back to the table; one that shows every piece is skipped, and the
+    // trainer chooses the pages to read (the owner, 23.9.2026: the
+    // calibration first, then the pages).
     final ready = load.found &&
         load.boards.isNotEmpty &&
         CalibrationCoverage.of(load.boards.map((b) => b.placement),
                 absent: _absent)
             .ready;
     if (ready) {
-      await _read(load.boards);
+      _toPages(load.boards);
     } else {
       _calibrate(load.boards);
     }
+  }
+
+  /// The choice of pages, read against [calibration].
+  void _toPages(List<CalibrationBoard> calibration) => setState(() {
+        _calibration = calibration;
+        _pagesProblem = null;
+        _stage = _Stage.pages;
+      });
+
+  /// The pages asked for, or null with the reason said on the screen.
+  ({int from, int to})? get _pagesAsked {
+    final from = int.tryParse(_fromPage.text.trim());
+    final to = int.tryParse(_toPage.text.trim());
+    String? problem;
+    if (from == null || to == null || from < 1) {
+      problem = 'Give the first and the last page.';
+    } else if (to < from) {
+      problem = 'The last page is before the first.';
+    } else if (to - from + 1 > 40) {
+      problem = 'At most 40 pages at a time.';
+    } else if (_pageCount > 0 && from > _pageCount) {
+      problem = 'The book has $_pageCount pages.';
+    }
+    if (problem != null) {
+      setState(() => _pagesProblem = problem);
+      return null;
+    }
+    return (from: from!, to: to!);
+  }
+
+  Future<void> _readPages() async {
+    final pages = _pagesAsked;
+    if (pages == null) return;
+    await _read(_calibration, from: pages.from, to: pages.to);
   }
 
   /// Opens the calibration with [boards] already set up — none for a new
@@ -252,7 +301,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
   /// The trainer looks through the book, picks a board and sets it up; it
   /// joins the calibration only once it is set up.
   Future<void> _findInBook() async {
-    final near = _chosen.isEmpty ? widget.fromPage : _chosen.last.page;
+    final near = _chosen.isEmpty ? (widget.fromPage ?? 1) : _chosen.last.page;
     final picked = await showDialog<FoundBoard>(
       context: context,
       builder: (dialogContext) => Dialog.fullscreen(
@@ -348,19 +397,18 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       _chosen.every(_placements.containsKey) &&
       _coverage.ready;
 
-  Future<void> _readWithChosen() async {
-    final boards = [
-      for (final ref in _chosen)
-        CalibrationBoard(ref: ref, placement: _placements[ref]!),
-    ];
-    // Remembered as it was set up (_remember); the reading does not decide
-    // it. It used to be remembered only after a reading came back, so a
-    // reading refused — by the scan limit, on 23.9.2026 — lost every board.
-    await _read(boards);
-  }
+  /// The calibration is done: on to the pages. It was remembered as it was
+  /// set up (_remember); it used to be remembered only after a reading came
+  /// back, so a reading refused — by the scan limit, on 23.9.2026 — lost
+  /// every board.
+  void _calibrationDone() => _toPages([
+        for (final ref in _chosen)
+          CalibrationBoard(ref: ref, placement: _placements[ref]!),
+      ]);
 
   /// Whether the reading came back.
-  Future<bool> _read(List<CalibrationBoard> calibration) async {
+  Future<bool> _read(List<CalibrationBoard> calibration,
+      {required int from, required int to}) async {
     setState(() {
       _stage = _Stage.working;
       _working = 'Reading the boards…';
@@ -369,8 +417,8 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     final outcome = await widget.api.scanImages(
       filePath: widget.filePath,
       fileName: widget.fileName,
-      fromPage: widget.fromPage,
-      toPage: widget.toPage,
+      fromPage: from,
+      toPage: to,
       calibration: calibration,
     );
     if (!mounted) return false;
@@ -530,6 +578,8 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
         );
       case _Stage.calibrating:
         return _calibrating();
+      case _Stage.pages:
+        return _pages();
       case _Stage.confirming:
         return _confirming();
     }
@@ -632,10 +682,86 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton(
-              key: const ValueKey('calibration-read'),
-              onPressed: _calibrationReady ? _readWithChosen : null,
-              child: Text('Read pages ${widget.fromPage}–${widget.toPage}'),
+              key: const ValueKey('calibration-done'),
+              onPressed: _calibrationReady ? _calibrationDone : null,
+              child: const Text('Done — choose pages'),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The pages to read, once the calibration is done or was found complete —
+  /// with the way back to it, since a calibration is never final.
+  Widget _pages() {
+    final colors = context.colors;
+    Widget field(String label, TextEditingController controller, Key key) =>
+        SizedBox(
+          width: 120,
+          child: TextField(
+            key: key,
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+                labelText: label,
+                isDense: true,
+                border: const OutlineInputBorder()),
+            onSubmitted: (_) => _readPages(),
+          ),
+        );
+    final problem = _pagesProblem;
+    return SingleChildScrollView(
+      padding: AppSpacing.screenPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Choose the pages to read',
+              style: AppText.headline.copyWith(color: colors.textPrimary)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'This book is read against ${_calibration.length} '
+            '${_calibration.length == 1 ? 'board' : 'boards'} you set up'
+            '${_pageCount > 0 ? '; it has $_pageCount pages' : ''}. At most '
+            '40 pages at a time.',
+            style: AppText.body.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              field('From page', _fromPage, const ValueKey('pages-from')),
+              field('To page', _toPage, const ValueKey('pages-to')),
+              FilledButton.icon(
+                key: const ValueKey('pages-read'),
+                onPressed: _readPages,
+                icon: const Icon(Icons.document_scanner_outlined),
+                label: const Text('Read'),
+              ),
+            ],
+          ),
+          if (problem != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Icon(Icons.error_outline, size: 16, color: colors.textPrimary),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(problem,
+                      key: const ValueKey('pages-problem'),
+                      style: AppText.body.copyWith(color: colors.textPrimary)),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          OutlinedButton.icon(
+            key: const ValueKey('pages-update-calibration'),
+            onPressed: _improve,
+            icon: const Icon(Icons.tune),
+            label: const Text('Update the calibration'),
           ),
         ],
       ),
@@ -821,9 +947,19 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.sm),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        // A Wrap: at 360 dp the two buttons in a Row overflowed by 22 px.
+        child: Wrap(
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
           children: [
+            // Chapter after chapter of one book: the calibration stays.
+            TextButton(
+              key: const ValueKey('image-scan-other-pages'),
+              onPressed: () => _toPages(_calibration),
+              child: const Text('Other pages'),
+            ),
             FilledButton.icon(
               key: const ValueKey('image-scan-save'),
               onPressed: _saving || chosen == 0 ? null : _save,

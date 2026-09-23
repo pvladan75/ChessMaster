@@ -113,6 +113,17 @@ class ImageScanOutcome {
   bool get ok => result != null;
 }
 
+/// What kind of book a PDF is, as `POST /scans/kind` answered: `font`,
+/// `pictures` or `unknown`. [kind] null with [error] when the server could
+/// not be asked — the scanner then asks for pages, as it always did.
+class BookKindOutcome {
+  const BookKindOutcome({this.kind, this.pageCount = 0, this.error});
+
+  final String? kind;
+  final int pageCount;
+  final String? error;
+}
+
 /// A remembered calibration, read back. "The book has none" and "the server
 /// could not be asked" are different answers: the first leads to calibrating,
 /// the second to trying again, and neither may pose as the other.
@@ -273,6 +284,38 @@ class ScannerApiService {
     } catch (e) {
       AppLogger.log('Image scan failed: $e', name: 'PositionScanner');
       return const ImageScanOutcome(error: 'Could not reach the server.');
+    }
+  }
+
+  /// Whether a book's diagrams are set in a chess font or are pictures,
+  /// asked the moment it is chosen (phase 3f): the trainer need not know.
+  Future<BookKindOutcome> bookKind({
+    required String filePath,
+    required String fileName,
+  }) async {
+    try {
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$backendUrl/scans/kind'));
+      if (authToken.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $authToken';
+      }
+      request.files.add(await http.MultipartFile.fromPath('document', filePath,
+          filename: fileName));
+      final streamed = await _send(request).timeout(const Duration(minutes: 2));
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        return BookKindOutcome(
+          kind: json['kind']?.toString(),
+          pageCount: (json['pageCount'] as num?)?.toInt() ?? 0,
+        );
+      }
+      return BookKindOutcome(
+          error: _errorFrom(response.body,
+              'The book could not be looked at (${response.statusCode}).'));
+    } catch (e) {
+      AppLogger.log('Book kind failed: $e', name: 'PositionScanner');
+      return const BookKindOutcome(error: 'Could not reach the server.');
     }
   }
 

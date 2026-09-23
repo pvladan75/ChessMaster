@@ -256,6 +256,35 @@ test('4. more boards than one request reads are refused with the number', async 
   });
 });
 
+test('3f. the kind of a book is asked once it is chosen: pictures, not counted, not a scan', async () => {
+  // The owner, 23.9.2026: a trainer need not know whether a book is set in a
+  // font or drawn in pictures, and a picture book is calibrated before its
+  // pages are chosen. Twenty-one asks on one account: over the scan limit.
+  const pdf = await bookOf(TO_READ);
+  const before = tempFiles();
+  queries.length = 0;
+  const token = jwt.sign({ id: nextUser++, email: 'x@example.test', role: 'korisnik' }, process.env.JWT_SECRET);
+  await withApp(async (port) => {
+    const statuses = [];
+    let last;
+    for (let k = 0; k < 21; k++) {
+      const form = new FormData();
+      form.append('document', new Blob([pdf], { type: 'application/pdf' }), 'book.pdf');
+      const res = await fetch(`http://127.0.0.1:${port}/scans/kind`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
+      });
+      statuses.push(res.status);
+      last = await res.json();
+    }
+    assert.deepEqual([...new Set(statuses)], [200], `asking was refused: ${statuses.join(' ')}`);
+    assert.equal(last.kind, 'pictures');
+    assert.equal(last.imageDiagrams, 2);
+    assert.equal(last.pageCount, 2);
+  });
+  assert.ok(!queries.some((q) => /usage/i.test(q) && /INSERT|UPDATE/.test(q)), 'asking what a book is was counted');
+  assert.deepEqual(tempFiles(), before, 'the uploaded document was left behind');
+});
+
 test('5. the font path points at the image path: no_text, with the pictures counted', async () => {
   const pdf = await bookOf(TO_READ);
   await withApp(async (port) => {

@@ -240,6 +240,34 @@ async function imagesRoute(req, res, { browse }) {
   }
 }
 
+// POST /scans/kind — whether a book's diagrams are set in a chess font or are
+// pictures, from a sample spread over the whole book (phase 3f): asked the
+// moment a book is chosen, so a picture book goes to its calibration before
+// anyone asks for pages. Turning to a book is not scanning it: the browse
+// limiter, and no pages counted.
+let bookKindPromise = null;
+function loadBookKind() {
+  if (!bookKindPromise) bookKindPromise = import('../services/positionScanner/bookKind.mjs');
+  return bookKindPromise;
+}
+
+router.post('/kind', authenticateToken, browseLimiter, upload.single('document'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No document sent.' });
+  }
+  try {
+    const { bookKind } = await loadBookKind();
+    const kind = await bookKind(req.file.path);
+    logger.info(`[SCAN] vrsta knjige user=${req.user.id} strana=${kind.pageCount} vrsta=${kind.kind}`);
+    res.json({ documentName: req.file.originalname, ...kind });
+  } catch (err) {
+    logger.error(`[SCAN] Vrsta knjige nije utvrdjena: ${err.stack || err.message}`);
+    res.status(500).json({ error: 'Failed to read document.' });
+  } finally {
+    removeQuietly(req.file.path);
+  }
+});
+
 // /scans/calibrations/:hash — a book's calibration, remembered on the account.
 //
 // Phase 3a of docs/PLAN-SKENER-SLIKE.md. `hash` is the SHA-256 of the book's

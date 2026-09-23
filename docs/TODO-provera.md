@@ -5878,6 +5878,28 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 228. Prvo kalibracija, pa strane — 23.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (server se sam restartovao; nov build). Plan:
+`PLAN-SKENER-SLIKE.md`, faza 3f.
+
+1. [ ] **Knjiga sa slikama se prepozna sama.** Skener → Select PDF → Back to
+   Basics (ili Silman): kratko „Looking at the book…", pa se odmah otvara
+   kalibracija (nova knjiga) ili „Choose the pages to read" (knjiga sa
+   završenom kalibracijom). Nigde se ne pitaju strane pre kalibracije.
+2. [ ] **Knjiga u fontu ide kao pre.** Knjiga sa dijagramima u šahovskom fontu
+   (npr. `completechesscoursexcerpt.pdf`): posle izbora se vide polja From / To
+   i „Scan", kao ranije.
+3. [ ] **Strane.** „Choose the pages to read": 60 do 50 kaže „The last page is
+   before the first", 1 do 41 „At most 40 pages at a time", i ništa se ne
+   šalje; 1 do 40 čita.
+4. [ ] **Ažuriranje kalibracije.** Na izboru strana „Update the calibration"
+   otvara tabelu sa zapamćenim tablama; „Done — choose pages" vraća na strane.
+5. [ ] **Druge strane.** Posle čitanja, dole „Other pages" vraća na izbor
+   strana bez diranja kalibracije; na telefonu (360) oba dugmeta stanu.
+6. [ ] **Nazad na skener.** Izađi iz kalibracije: skener pokazuje „The diagrams
+   in this book are pictures" i „Continue", bez polja za strane.
+
 ## 227. Kalibraciju bira trener, uz tabelu šta nedostaje — 23.9.2026, nije viđeno uživo
 
 **Server i aplikacija** (server se sam restartovao; nov build). Plan:

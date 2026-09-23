@@ -198,8 +198,19 @@ Future<void> _addBoard(WidgetTester tester, int page) async {
   await _settle(tester);
 }
 
+/// „Done — choose pages": enabled once the calibration may be read with.
 FilledButton _readButton(WidgetTester tester) =>
-    tester.widget(find.byKey(const ValueKey('calibration-read')));
+    tester.widget(find.byKey(const ValueKey('calibration-done')));
+
+/// Finishes the calibration and reads the pages offered (phase 3f: the pages
+/// are chosen after the calibration).
+Future<void> _doneAndRead(WidgetTester tester) async {
+  await tester.ensureVisible(find.byKey(const ValueKey('calibration-done')));
+  await tester.tap(find.byKey(const ValueKey('calibration-done')));
+  await _settle(tester, 2);
+  await tester.tap(find.byKey(const ValueKey('pages-read')));
+  await _settle(tester);
+}
 
 Future<String> _book() async {
   final dir = await Directory.systemTemp.createTemp('image_scan_screen_');
@@ -221,7 +232,9 @@ Future<void> _settle(WidgetTester tester, [int rounds = 12]) async {
 Future<void> _pump(WidgetTester tester, _Server server,
     {PositionPicker? pick,
     Size size = const Size(1280, 900),
-    bool overAnotherScreen = false}) async {
+    bool overAnotherScreen = false,
+    bool readPages = true,
+    bool withPages = true}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -232,8 +245,8 @@ Future<void> _pump(WidgetTester tester, _Server server,
       api: ScannerApiService(authToken: 'tok', client: server.client()),
       filePath: path!,
       fileName: 'Silman.pdf',
-      fromPage: 40,
-      toPage: 44,
+      fromPage: withPages ? 40 : null,
+      toPage: withPages ? 44 : null,
       pickPosition:
           pick ?? (context, picture, initial) async => '8/8/8/8/8/8/8/K6k');
   await tester.pumpWidget(MaterialApp(
@@ -250,6 +263,13 @@ Future<void> _pump(WidgetTester tester, _Server server,
     },
   ));
   await _settle(tester);
+  // A complete calibration opens on the choice of pages; the cases about the
+  // boards read go on to read the pages offered.
+  final read = find.byKey(const ValueKey('pages-read'));
+  if (readPages && read.evaluate().isNotEmpty) {
+    await tester.tap(read);
+    await _settle(tester);
+  }
 }
 
 void main() {
@@ -352,20 +372,83 @@ void main() {
   });
 
   group('3c — calibrating', () {
-    testWidgets('a remembered calibration goes straight to reading',
+    // The owner, 23.9.2026: the calibration first, then the pages. A complete
+    // calibration is skipped, and the trainer chooses the pages — it used to
+    // go straight to reading the pages given before it.
+    testWidgets(
+        'a complete calibration is skipped: the pages are chosen, then read',
+        (tester) async {
+      final server = _Server(calibration: _calibrated);
+      await _pump(tester, server, readPages: false, withPages: false);
+      expect(
+          server.trail,
+          [
+            'GET /scans/calibrations/${server.sent.first.url.pathSegments.last}',
+          ],
+          reason: 'read before any page was chosen');
+      expect(find.text('Choose the pages to read'), findsOneWidget);
+      expect(find.byKey(const ValueKey('calibration-boards')), findsNothing);
+      await tester.enterText(find.byKey(const ValueKey('pages-from')), '50');
+      await tester.enterText(find.byKey(const ValueKey('pages-to')), '61');
+      await tester.tap(find.byKey(const ValueKey('pages-read')));
+      await _settle(tester);
+      final read = server.sent.last;
+      expect(server.trail.last, 'POST /scans/images +calibration');
+      expect(read.body, contains('name="fromPage"\r\n\r\n50'));
+      expect(read.body, contains('name="toPage"\r\n\r\n61'));
+      final field =
+          RegExp(r'name="calibration"\r\n\r\n(.*?)\r\n--', dotAll: true)
+              .firstMatch(read.body)!;
+      expect((jsonDecode(field.group(1)!) as List).length, 3);
+      expect(find.byKey(const ValueKey('image-scan-boards')), findsOneWidget);
+    });
+
+    testWidgets('pages that cannot be read are said, and nothing is sent',
+        (tester) async {
+      final server = _Server(calibration: _calibrated);
+      await _pump(tester, server, readPages: false);
+      final asked = server.sent.length;
+      for (final (from, to, words) in const [
+        ('60', '50', 'before the first'),
+        ('1', '41', 'At most 40 pages'),
+        ('', '10', 'Give the first'),
+      ]) {
+        await tester.enterText(find.byKey(const ValueKey('pages-from')), from);
+        await tester.enterText(find.byKey(const ValueKey('pages-to')), to);
+        await tester.tap(find.byKey(const ValueKey('pages-read')));
+        await _settle(tester, 2);
+        expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('pages-problem')))
+                .data,
+            contains(words),
+            reason: '$from–$to');
+      }
+      expect(server.sent.length, asked, reason: 'a request went out');
+      // Forty exactly is allowed.
+      await tester.enterText(find.byKey(const ValueKey('pages-from')), '1');
+      await tester.enterText(find.byKey(const ValueKey('pages-to')), '40');
+      await tester.tap(find.byKey(const ValueKey('pages-read')));
+      await _settle(tester);
+      expect(server.trail.last, 'POST /scans/images +calibration');
+    });
+
+    testWidgets(
+        'the pages offer to update the calibration, and other pages come back to them',
         (tester) async {
       final server = _Server(calibration: _calibrated);
       await _pump(tester, server);
-      expect(server.trail, [
-        'GET /scans/calibrations/${server.sent.first.url.pathSegments.last}',
-        'POST /scans/images +calibration',
-      ]);
-      final field =
-          RegExp(r'name="calibration"\r\n\r\n(.*?)\r\n--', dotAll: true)
-              .firstMatch(server.sent[1].body)!;
-      expect((jsonDecode(field.group(1)!) as List).length, 3);
-      expect(find.byKey(const ValueKey('image-scan-boards')), findsOneWidget);
-      expect(find.byKey(const ValueKey('calibration-boards')), findsNothing);
+      // From the boards read, to other pages of the same book.
+      await tester.tap(find.byKey(const ValueKey('image-scan-other-pages')));
+      await _settle(tester, 2);
+      expect(find.text('Choose the pages to read'), findsOneWidget);
+      // And from the pages, to the calibration with its boards.
+      await tester.tap(find.byKey(const ValueKey('pages-update-calibration')));
+      await _settle(tester, 6);
+      for (final page in [40, 41, 42]) {
+        expect(find.byKey(ValueKey('calibrate-$page-1')), findsOneWidget);
+      }
+      expect(server.sent.where((r) => r.method == 'DELETE'), isEmpty);
     });
 
     // Phase 3e (the owner, 23.9.2026): the three busiest boards of the pages
@@ -461,10 +544,7 @@ void main() {
           findsOneWidget,
           reason: 'the queen on a light square is guessed');
 
-      await tester
-          .ensureVisible(find.byKey(const ValueKey('calibration-read')));
-      await tester.tap(find.byKey(const ValueKey('calibration-read')));
-      await _settle(tester);
+      await _doneAndRead(tester);
       expect(server.calibrationSent(), [
         '42:$_allButQueen',
         '41:$_kingsOnly',
@@ -525,10 +605,7 @@ void main() {
       }
       expect(_readButton(tester).onPressed, isNotNull,
           reason: 'kings, rooks and pawns shown, the rest said absent');
-      await tester
-          .ensureVisible(find.byKey(const ValueKey('calibration-read')));
-      await tester.tap(find.byKey(const ValueKey('calibration-read')));
-      await _settle(tester);
+      await _doneAndRead(tester);
       expect(server.calibrationSent(), ['42:4k3/r6p/8/8/8/8/P6R/4K3']);
     });
 
@@ -616,10 +693,7 @@ void main() {
       await _pump(tester, server, pick: _answers([_allButQueen, _blackQueen]));
       await _addBoard(tester, 42);
       await _addBoard(tester, 95);
-      await tester
-          .ensureVisible(find.byKey(const ValueKey('calibration-read')));
-      await tester.tap(find.byKey(const ValueKey('calibration-read')));
-      await _settle(tester);
+      await _doneAndRead(tester);
       expect(find.byKey(const ValueKey('image-scan-failure')), findsOneWidget);
       final put = server.sent.lastWhere((r) => r.method == 'PUT');
       expect(

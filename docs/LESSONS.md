@@ -6986,3 +6986,19 @@ mašini koja nema taj uslov.** Sada se briše samo fajl stariji od 15 minuta.
 
 Brojevi: aplikacija 3848 → 3853; backend 1617 → 1621 bez baze, 1747 → 1752 sa
 bazom (obe mere).
+
+## 23.9.2026 — faza 3f: redosled koji je diktirao način otkrivanja
+
+Vlasnik: za knjigu sa slikama prvo kalibracija, pa strane. Ekran je tražio
+strane prvo ne zato što je to bio dobar redosled, nego zato što je aplikacija
+za knjigu sa slikama saznavala tek kad skeniranje fonta na nekom opsegu ne
+uspe. **Kad je redosled koraka posledica toga kako program nešto saznaje, a ne
+toga šta korisnik radi, pitaj da li to može da se sazna ranije.** Sada server
+pogleda 16 strana raspoređenih po celoj knjizi (predgovor ne odlučuje), istim
+testom fonta kojim skenira (`sampleForFont`, jedan dom), pa tek onda slike.
+
+Test na 360 dp je našao da je donja traka sa novim „Other pages" širja od
+ekrana za 22 px — `Row` sa dva dugmeta postao je `Wrap`.
+
+Brojevi: aplikacija 3853 → 3861; backend 1621 → 1626 bez baze, 1752 → 1757 sa
+bazom (obe mere).

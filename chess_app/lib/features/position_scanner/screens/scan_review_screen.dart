@@ -21,10 +21,32 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// a solution the *book* printed wrong — no amount of accuracy removes the need
 /// for someone to look. So nothing here is dropped on the trainer's behalf:
 /// doubtful positions arrive selected, marked, and one tap from being fixed.
+/// A PDF chosen by the trainer, or null when they backed out. A parameter so a
+/// test can stand in for the system's file picker.
+typedef DocumentPicker = Future<({String path, String name})?> Function();
+
+Future<({String path, String name})?> pickPdfWithSystemPicker() async {
+  final picked = await FilePicker.pickFiles(
+      type: FileType.custom, allowedExtensions: ['pdf']);
+  if (picked == null || picked.files.isEmpty) return null;
+  final file = picked.files.single;
+  if (file.path == null) return (path: '', name: file.name);
+  return (path: file.path!, name: file.name);
+}
+
 class ScanReviewScreen extends StatefulWidget {
-  const ScanReviewScreen({super.key, required this.session});
+  const ScanReviewScreen({
+    super.key,
+    required this.session,
+    this.api,
+    this.pickDocument = pickPdfWithSystemPicker,
+  });
 
   final UserSession session;
+
+  /// The server; null builds one from [session].
+  final ScannerApiService? api;
+  final DocumentPicker pickDocument;
 
   @override
   State<ScanReviewScreen> createState() => _ScanReviewScreenState();
@@ -32,7 +54,16 @@ class ScanReviewScreen extends StatefulWidget {
 
 class _ScanReviewScreenState extends State<ScanReviewScreen> {
   late final ScannerApiService _api =
-      ScannerApiService(authToken: widget.session.token);
+      widget.api ?? ScannerApiService(authToken: widget.session.token);
+
+  /// What kind of book the chosen PDF is (phase 3f): null until asked, then
+  /// `font`, `pictures` or `unknown`. A picture book goes to its calibration
+  /// and then to the choice of pages; the others are scanned by a page range.
+  String? _kind;
+  bool _identifying = false;
+
+  /// Whether a picture book already has its calibration on the account.
+  bool _kindCalibrated = false;
 
   final _fromController = TextEditingController(text: '1');
   final _toController = TextEditingController(text: '20');
@@ -91,11 +122,9 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
   }
 
   Future<void> _pickDocument() async {
-    final picked = await FilePicker.pickFiles(
-        type: FileType.custom, allowedExtensions: ['pdf']);
-    if (picked == null || picked.files.isEmpty) return;
-    final file = picked.files.single;
-    if (file.path == null) {
+    final file = await widget.pickDocument();
+    if (file == null || !mounted) return;
+    if (file.path.isEmpty) {
       _toast('Cannot read the selected file.');
       return;
     }
@@ -103,7 +132,42 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
       _filePath = file.path;
       _fileName = file.name;
       _result = null;
+      _imageDoor = null;
+      _kind = null;
     });
+    await _identify(file.path);
+  }
+
+  /// Asks what kind of book [path] is, the moment it is chosen (the owner,
+  /// 23.9.2026: the trainer need not know). A book with a calibration on the
+  /// account is a picture book without asking. A picture book opens its
+  /// calibration — or, when that is complete, the choice of pages — at once.
+  Future<void> _identify(String path) async {
+    setState(() => _identifying = true);
+    var calibrated = false;
+    String? kind;
+    try {
+      final load = await _api.loadCalibration(await bookHashOf(path));
+      calibrated = load.found && load.boards.isNotEmpty;
+    } catch (_) {
+      calibrated = false;
+    }
+    if (calibrated) {
+      kind = 'pictures';
+    } else {
+      final outcome = await _api.bookKind(
+          filePath: path, fileName: _fileName ?? 'document.pdf');
+      // A book the server could not look at is scanned by a page range, as
+      // before; nothing is lost by not knowing.
+      kind = outcome.kind ?? 'unknown';
+    }
+    if (!mounted || path != _filePath) return;
+    setState(() {
+      _identifying = false;
+      _kind = kind;
+      _kindCalibrated = calibrated;
+    });
+    if (kind == 'pictures') _openImagePath(withPages: false);
   }
 
   Future<void> _scan() async {
@@ -197,7 +261,10 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     setState(() => _result = null);
   }
 
-  void _openImagePath() {
+  /// The image path. [withPages] carries the range the trainer scanned, when
+  /// the font scan of it found pictures; a book known to be pictures from the
+  /// start is asked for pages only after its calibration.
+  void _openImagePath({bool withPages = true}) {
     final path = _filePath;
     if (path == null) return;
     final from = int.tryParse(_fromController.text.trim()) ?? 1;
@@ -207,8 +274,8 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
         api: _api,
         filePath: path,
         fileName: _fileName ?? 'document.pdf',
-        fromPage: from,
-        toPage: to,
+        fromPage: withPages ? from : null,
+        toPage: withPages ? to : null,
       ),
     ));
   }
@@ -236,8 +303,12 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
             solutionsFromController: _solutionsFromController,
             solutionsToController: _solutionsToController,
             scanning: _scanning,
+            identifying: _identifying,
+            // A picture book is not scanned by a page range here: its pages
+            // are chosen after its calibration.
+            showRange: _kind != 'pictures',
             onPick: _pickDocument,
-            onScan: _filePath == null ? null : _scan,
+            onScan: _filePath == null || _identifying ? null : _scan,
           ),
           if (_result != null) _summary(_result!),
           Expanded(child: _body()),
@@ -250,6 +321,15 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
   Widget _body() {
     if (_scanning) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (_kind == 'pictures' && _result == null) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: _PictureBook(
+          calibrated: _kindCalibrated,
+          onOpen: () => _openImagePath(withPages: false),
+        ),
+      );
     }
     final result = _result;
     final door = _imageDoor;
@@ -364,10 +444,14 @@ class _SetupPanel extends StatelessWidget {
     required this.solutionsFromController,
     required this.solutionsToController,
     required this.scanning,
+    required this.identifying,
+    required this.showRange,
     required this.onPick,
     required this.onScan,
   });
 
+  final bool identifying;
+  final bool showRange;
   final String? fileName;
   final TextEditingController fromController;
   final TextEditingController toController;
@@ -407,36 +491,95 @@ class _SetupPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _PageField(label: 'From page', controller: fromController),
-              _PageField(label: 'To page', controller: toController),
-              _PageField(
-                  label: 'Solutions from',
-                  controller: solutionsFromController,
-                  optional: true),
-              _PageField(
-                  label: 'Solutions to',
-                  controller: solutionsToController,
-                  optional: true),
-              FilledButton.icon(
-                onPressed: scanning ? null : onScan,
-                icon: const Icon(Icons.document_scanner_outlined),
-                label: const Text('Scan'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Maximum 40 pages per pass. Solution pages are optional — '
-            'if provided, the side to move and solution move are read from them.',
-            style: AppText.body.copyWith(color: colors.textMuted),
-          ),
+          if (identifying) ...[
+            const SizedBox(height: 10),
+            Row(
+              key: const ValueKey('scan-identifying'),
+              children: [
+                const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2)),
+                const SizedBox(width: AppSpacing.sm),
+                Text('Looking at the book…',
+                    style: AppText.body.copyWith(color: colors.textSecondary)),
+              ],
+            ),
+          ] else if (showRange) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              key: const ValueKey('scan-range'),
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _PageField(label: 'From page', controller: fromController),
+                _PageField(label: 'To page', controller: toController),
+                _PageField(
+                    label: 'Solutions from',
+                    controller: solutionsFromController,
+                    optional: true),
+                _PageField(
+                    label: 'Solutions to',
+                    controller: solutionsToController,
+                    optional: true),
+                FilledButton.icon(
+                  onPressed: scanning ? null : onScan,
+                  icon: const Icon(Icons.document_scanner_outlined),
+                  label: const Text('Scan'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Maximum 40 pages per pass. Solution pages are optional — '
+              'if provided, the side to move and solution move are read from them.',
+              style: AppText.body.copyWith(color: colors.textMuted),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// A book whose diagrams are pictures, found so the moment it was chosen: the
+/// way back to its calibration and pages after the trainer has left them.
+class _PictureBook extends StatelessWidget {
+  const _PictureBook({required this.calibrated, required this.onOpen});
+
+  final bool calibrated;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Card(
+      key: const ValueKey('scan-picture-book'),
+      shape: AppRadii.cardShape,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('The diagrams in this book are pictures',
+                style: AppText.title.copyWith(color: colors.textPrimary)),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              calibrated
+                  ? 'You set up this book before. Choose the pages to read, or '
+                      'update its calibration.'
+                  : 'First teach the scanner how this book draws its pieces, '
+                      'then choose the pages to read.',
+              style: AppText.body.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FilledButton(
+              key: const ValueKey('scan-picture-book-open'),
+              onPressed: onOpen,
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
       ),
     );
   }

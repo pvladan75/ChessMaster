@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3853 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3861 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1752 with TEST_DATABASE_URL, 1621 without
+cd chess_backend && npm test          # node --test, 1757 with TEST_DATABASE_URL, 1626 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -554,7 +554,11 @@ the pieces a book never draws are kept with it (→ **3853**; backend → **1621
 process that loads the scan route swept the shared temp directory, and
 `node --test` runs files as parallel processes — **„at startup nothing is in
 flight" is true of one process, not of several**; only a file older than any
-request is a leftover now.
+request is a leftover now. Then phase 3f (→ **3861**; backend → **1626 /
+1757**): the scanner asks what kind of book a PDF is the moment it is chosen
+(`POST /scans/kind`, the font path's own test first, on pages spread over the
+whole book), and a picture book goes to its calibration before any page is
+asked for.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

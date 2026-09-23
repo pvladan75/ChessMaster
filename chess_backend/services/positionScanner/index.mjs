@@ -115,6 +115,26 @@ export function pickFontMap(sample, sampledPages) {
   return boards > 0 ? { map: FRITZ_DIAGRAM, covered: boards } : null;
 }
 
+/**
+ * The row-shaped strings of `pages` (`sample`, what picks a glyph map) and
+ * the same pages' spans kept whole and apart (`sampled`, for the diagnosis).
+ * One home for both the scan and the check of what kind of book it is
+ * (bookKind.mjs), so the two cannot disagree about a book.
+ */
+export async function sampleForFont(doc, pages) {
+  const sample = [];
+  const sampled = [];
+  for (const p of pages) {
+    if (sample.length >= 400) break;
+    const spans = await pageSpans(doc, p);
+    sampled.push(spans);
+    for (const s of spans) {
+      if (!/\s/.test(s.text) && s.text.length >= 8 && s.text.length <= 12) sample.push(s.text);
+    }
+  }
+  return { sample, sampled };
+}
+
 export async function scanDocument({
   filePath,
   fromPage = 1,
@@ -129,16 +149,10 @@ export async function scanDocument({
   // Pick the glyph map from a sample of the requested range. Selection goes by
   // alphabet, not font name: the second test book calls its diagram font
   // `TTE2BEAF20t00`, which identifies nothing.
-  const sample = [];
-  const sampled = []; // the same pages kept whole, and apart, for the diagnosis
   const step = Math.max(1, Math.floor((end - start) / 8));
-  for (let p = start; p <= end && sample.length < 400; p += step) {
-    const spans = await pageSpans(doc, p);
-    sampled.push(spans);
-    for (const s of spans) {
-      if (!/\s/.test(s.text) && s.text.length >= 8 && s.text.length <= 12) sample.push(s.text);
-    }
-  }
+  const pages = [];
+  for (let p = start; p <= end; p += step) pages.push(p);
+  const { sample, sampled } = await sampleForFont(doc, pages);
 
   const picked = pickFontMap(sample, sampled);
   if (!picked) {

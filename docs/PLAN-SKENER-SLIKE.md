@@ -920,6 +920,39 @@ swept the shared temp directory at startup, and `node --test` runs files as
 parallel processes. Only a file older than 15 minutes is swept now. Mutations then ran in a copy
 outside the repository with its own `TMP`.
 
+### Phase 3f — the calibration before the pages [lead] — built 23.9.2026, awaiting the owner's live check (TODO-provera 228)
+
+**The owner, 23.9.2026:** a picture book is calibrated first, and only then
+are the pages to read chosen; a calibration that exists is skipped but can be
+updated; and which kind of book a PDF is must be found out by itself — the
+trainer need not know. Until then the app learned a book was pictures only
+from a font scan of a page range that failed, so it had to ask for pages
+first.
+
+- **`POST /scans/kind`** (`bookKind.mjs`): 16 pages spread over the whole book
+  (a preface decides nothing), read by the font path's own test first —
+  `sampleForFont` and `pickFontMap`, now shared with `scanDocument`, so the
+  two cannot disagree — then by the picture finder on the same pages. It
+  answers `font`, `pictures` (with the boards counted) or `unknown` (with the
+  font path's reason). The browse limiter, no pages counted.
+- **The scanner asks the moment a PDF is chosen.** A book with a calibration on
+  the account is pictures without asking. A picture book opens its calibration
+  at once — or, when that is complete, the choice of pages — and the scanner
+  shows no page range for it, only "The diagrams in this book are pictures —
+  Continue". A font book, and one the server could not look at, are scanned by
+  a page range as before; the door from a failed font scan stays.
+- **The image screen has a stage for pages:** "Choose the pages to read", from
+  and to (at most 40, said on the screen, nothing sent), "Read", and "Update
+  the calibration". The calibration's button is "Done — choose pages"; the
+  boards read have "Other pages", which keeps the calibration.
+
+Gate: `bookKind.test.mjs` (4), a route case (21 asks on one account, over the
+scan limit; nothing counted; the upload removed), `scan_review_kind_test.dart`
+(5: picture book, calibrated book, font book, server down, 360 dp), 3 cases on
+the pages stage and one API case. 12 mutations, each red on the right case.
+The 360 dp case found the boards' bottom bar 22 px too wide once "Other pages"
+joined it; it is a `Wrap` now.
+
 ### Phase 4 — into exercises
 
 The confirmed positions go into the existing flow: the saved scans, then
