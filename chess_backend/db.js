@@ -319,6 +319,10 @@ async function initDB(target = pool) {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (user_id, book_hash)
       );
+      -- Pieces the trainer said the book never draws (phase 3e): a book of
+      -- rook endings has no queens, bishops or knights, and is not asked for
+      -- them again every chapter.
+      ALTER TABLE book_calibrations ADD COLUMN IF NOT EXISTS absent JSONB NOT NULL DEFAULT '[]'::jsonb;
     `);
     logger.info('Verified database table: book_calibrations');
 

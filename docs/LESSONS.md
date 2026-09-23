@@ -6962,3 +6962,27 @@ nacrtan „od oka" je pravilo o podacima koje niko nije pogledao.**
 
 Brojevi: aplikacija 3832 → 3848; backend 1611 → 1617 bez baze, 1741 → 1747 sa
 bazom (obe mere).
+
+## 23.9.2026 — izgubljena kalibracija i crveni CI, isti korak u dva oblika
+
+Vlasnik je proširivao kalibraciju za Back to Basics, izašao, vratio se — i
+dobio praznu tabelu i „Too many scans". U bazi kalibracije nije ni bilo. Dva
+pravila koja su svako bilo ispravno u fazi 3 sastala su se u fazi 3e: listanje
+je išlo kroz ograničenje skeniranja (20 za 15 minuta), a kalibracija se čuvala
+tek posle uspelog čitanja („da se ne vraća ona koja pada"). Listanje je
+potrošilo skeniranja, čitanje je odbijeno, a sa njim i sve postavljene table.
+**Pravilo „sačuvaj tek kad uspe" važi dok je rad jeftin; kad je rad korisnikov
+trud, čuva se onog trenutka kad je urađen.** I: **nova funkcija koja ide kroz
+staro ograničenje troši ga za staru** — pitaj šta ograničenje broji.
+
+Istog dana CI (i onaj od 22.9, na istom testu): `ENOENT` na uploadu i 500.
+Moje prvo objašnjenje — nodemon je restartovan pa je obrisao privremeni fajl —
+bilo je tačno za jedan lokalni pad i netačno kao uzrok: CI nema nodemon. Uzrok
+je `sweepLeftovers()` pri učitavanju rute, sa komentarom „pri startu ništa nije
+u toku". To važi za jedan proces; `node --test` pokreće fajlove kao paralelne
+procese, pet ih učitava rutu, i svaki pri startu briše tuđi upload. **Objašnjenje
+koje važi za mašinu na kojoj si ga video nije uzrok dok ga ne proveriš na
+mašini koja nema taj uslov.** Sada se briše samo fajl stariji od 15 minuta.
+
+Brojevi: aplikacija 3848 → 3853; backend 1617 → 1621 bez baze, 1747 → 1752 sa
+bazom (obe mere).

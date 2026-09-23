@@ -71,6 +71,19 @@ export function parseCalibration(raw) {
 }
 
 /**
+ * The pieces a trainer says a book never draws, from a request: null when
+ * the request says nothing about them (so what is stored stays), otherwise
+ * the piece letters, each once, or a ScanError with `calibration_invalid`.
+ */
+export function parseAbsent(raw) {
+  if (raw === undefined || raw === null) return null;
+  if (!Array.isArray(raw) || !raw.every((p) => typeof p === 'string' && /^[PNBRQKpnbrqk]$/.test(p))) {
+    throw new ScanError('Absent pieces are piece letters.', { code: 'calibration_invalid' });
+  }
+  return [...new Set(raw)];
+}
+
+/**
  * A board as a JPEG, 256 px, for the trainer to look at beside what was read
  * and to find calibration boards by. A PNG of the same picture was 50–150 KB
  * a board on the owner's books, this about 20 (plan, 3e.0 (d)): a whole book

@@ -30,16 +30,25 @@ const PGN_TMP_DIR = path.join(os.tmpdir(), 'chess-archives');
  * save is enough, and that is how this was found: a 5 MB copy of somebody's
  * book left sitting in the temp directory.
  *
- * At startup nothing is in flight by definition, so everything still here is
- * orphaned and goes.
+ * „At startup nothing is in flight" is true of one process and false of
+ * several: `node --test` runs test files as parallel processes, each loading
+ * the route and sweeping, and a dev server restarting beside a running suite
+ * does the same — one process's startup deleted another's upload mid-request
+ * (CI on 22.9 and 23.9.2026, ENOENT and a 500). So only an upload older than
+ * any request could still be using is a leftover; the longest a request
+ * lives is the app's three minutes for a reading.
  */
-function sweepLeftovers(dir = SCAN_TMP_DIR, prefix = 'scan_') {
+const LEFTOVER_AGE_MS = 15 * 60 * 1000;
+
+function sweepLeftovers(dir = SCAN_TMP_DIR, prefix = 'scan_', now = Date.now()) {
   if (!fs.existsSync(dir)) return 0;
   let removed = 0;
   for (const name of fs.readdirSync(dir)) {
     if (!name.startsWith(prefix)) continue;
     try {
-      fs.unlinkSync(path.join(dir, name));
+      const file = path.join(dir, name);
+      if (now - fs.statSync(file).mtimeMs < LEFTOVER_AGE_MS) continue;
+      fs.unlinkSync(file);
       removed += 1;
     } catch (err) {
       logger.warn(`[SCAN] Zaostali fajl ${name} nije obrisan: ${err.message}`);
@@ -61,4 +70,4 @@ function removeQuietly(filePath) {
   });
 }
 
-module.exports = { SCAN_TMP_DIR, PGN_TMP_DIR, sweepLeftovers, removeQuietly };
+module.exports = { SCAN_TMP_DIR, PGN_TMP_DIR, LEFTOVER_AGE_MS, sweepLeftovers, removeQuietly };

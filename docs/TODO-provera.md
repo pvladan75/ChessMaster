@@ -5912,6 +5912,14 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
    figure: iznad tabli piše „No board you set up shows a … at all". Na skenu
    (Silman) polja sa takvom figurom su sada označena „?" (ranije je oko 8% njih
    prolazilo neoznačeno).
+9. [ ] **Kalibracija se pamti dok se postavlja.** Postavi jednu ili dve table
+   pa izađi bez „Read": sledeći put ista knjiga otvara tabelu sa tim tablama
+   (ne praznu). Kad tabela pokazuje sve figure (ili su ostale označene „No …
+   in this book"), knjiga ide pravo na čitanje. Knjiga topovskih završnica
+   pamti šest „No …" i ne pita ponovo.
+10. [ ] **Listanje ne troši skeniranja.** Prelistaj knjigu kroz desetak prozora
+   od 20 strana, pa „Read" i „Scan": ne javlja se „Too many scans in a short
+   time".
 
 ## 226. Posle živog prolaza 22.9.2026: kalibracija, font Fritz, brisanje bez poruke — nije viđeno uživo
 

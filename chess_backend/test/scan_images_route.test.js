@@ -111,6 +111,41 @@ test('3. without a calibration: the boards and a preview each, nothing saved and
   assert.deepEqual(tempFiles(), before, 'the uploaded document was left behind');
 });
 
+test('3e. browsing has its own route and limiter: turning many pages is not refused as scanning', async () => {
+  // The owner, 23.9.2026: a look through one book for calibration boards used
+  // up the account's twenty scans, and the reading was then refused.
+  const pdf = await bookOf(TO_READ);
+  const token = jwt.sign({ id: nextUser++, email: 'x@example.test', role: 'korisnik' }, process.env.JWT_SECRET);
+  const post = async (port, path, fields) => {
+    const form = new FormData();
+    form.append('document', new Blob([pdf], { type: 'application/pdf' }), 'book.pdf');
+    for (const [k, v] of Object.entries(fields)) form.append(k, typeof v === 'string' ? v : JSON.stringify(v));
+    const res = await fetch(`http://127.0.0.1:${port}${path}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
+    });
+    return { status: res.status, body: await res.json() };
+  };
+  await withApp(async (port) => {
+    const statuses = [];
+    for (let k = 0; k < 25; k++) {
+      statuses.push((await post(port, '/scans/images/browse', { fromPage: '1', toPage: '2' })).status);
+    }
+    assert.deepEqual([...new Set(statuses)], [200], `browsing was refused: ${statuses.join(' ')}`);
+    // A calibration sent to the browser is not a reading.
+    const { body } = await post(port, '/scans/images/browse', {
+      fromPage: '1', toPage: '2', calibration: [{ page: 1, index: 1, fen: TO_READ[0] }],
+    });
+    assert.equal(body.needsCalibration, true);
+    assert.equal(body.boards.length, 2);
+    // Reading on the same account is counted by the scan limiter, and the
+    // browsing did not spend it.
+    const read = await post(port, '/scans/images', {
+      fromPage: '1', toPage: '2', calibration: [{ page: 1, index: 1, fen: TO_READ[0] }],
+    });
+    assert.equal(read.status, 200, JSON.stringify(read.body).slice(0, 200));
+  });
+});
+
 test('4. with a calibration: every other board is read, source image, and the calibration echoed', async () => {
   const pdf = await bookOf([...CALIBRATION, ...TO_READ]);
   const before = tempFiles();

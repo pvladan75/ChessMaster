@@ -157,10 +157,20 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       _fail(load.error!);
       return;
     }
-    if (load.found) {
+    _absent
+      ..clear()
+      ..addAll(load.absent);
+    // A calibration is remembered as it is set up, so one left half-way comes
+    // back to the table; one that shows every piece goes straight to reading.
+    final ready = load.found &&
+        load.boards.isNotEmpty &&
+        CalibrationCoverage.of(load.boards.map((b) => b.placement),
+                absent: _absent)
+            .ready;
+    if (ready) {
       await _read(load.boards);
     } else {
-      _calibrate(const []);
+      _calibrate(load.boards);
     }
   }
 
@@ -206,7 +216,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
 
   Future<({List<FoundBoard> boards, String? error})> _fetchWindow(
       int first) async {
-    final outcome = await widget.api.scanImages(
+    final outcome = await widget.api.browseImages(
       filePath: widget.filePath,
       fileName: widget.fileName,
       fromPage: first,
@@ -263,6 +273,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       _placements[picked.ref] = placement;
       if (!_chosen.contains(picked.ref)) _chosen.add(picked.ref);
     });
+    _remember();
   }
 
   Future<void> _setUp(BoardRef ref) async {
@@ -272,12 +283,56 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
         context, picture, _placements[ref] ?? '8/8/8/8/8/8/8/8');
     if (placement == null || !mounted) return;
     setState(() => _placements[ref] = placement);
+    _remember();
   }
 
-  void _remove(BoardRef ref) => setState(() {
-        _chosen.remove(ref);
-        _placements.remove(ref);
-      });
+  void _remove(BoardRef ref) {
+    setState(() {
+      _chosen.remove(ref);
+      _placements.remove(ref);
+    });
+    _remember();
+  }
+
+  void _setAbsent(String piece, bool absent) {
+    setState(() => absent ? _absent.add(piece) : _absent.remove(piece));
+    _remember();
+  }
+
+  /// The last save asked for, so saves go out one after another and the
+  /// account ends with the latest.
+  Future<void> _remembering = Future<void>.value();
+
+  /// Remembers the calibration as it stands, after every board set up,
+  /// changed or removed (the owner, 23.9.2026: a calibration set up and not
+  /// yet read was lost when the reading was refused). Setting up boards is the
+  /// trainer's work; it is kept the moment it is done, and said when it
+  /// cannot be.
+  void _remember() {
+    final hash = _bookHash;
+    if (hash == null) return;
+    final boards = [
+      for (final ref in _chosen)
+        if (_placements[ref] case final p?)
+          CalibrationBoard(ref: ref, placement: p)
+    ];
+    final absent = _absent.toList()..sort();
+    _remembering = _remembering.then((_) async {
+      final error = boards.isEmpty
+          ? (await widget.api.deleteCalibration(hash)
+              ? null
+              : 'Could not reach the server.')
+          : await widget.api.saveCalibration(
+              bookHash: hash,
+              bookName: widget.fileName,
+              boards: boards,
+              absent: absent);
+      if (error != null && mounted) {
+        AppFeedback.warning(
+            context, 'The calibration could not be remembered: $error');
+      }
+    });
+  }
 
   List<String> get _setUpPlacements => [
         for (final ref in _chosen)
@@ -298,19 +353,10 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       for (final ref in _chosen)
         CalibrationBoard(ref: ref, placement: _placements[ref]!),
     ];
-    // Read first, remember after: the reading is what the trainer asked for,
-    // and a calibration that could not be remembered only means setting it up
-    // again next time — said, never allowed to stop the reading. Remembered
-    // only once it has read: a calibration that fails would otherwise be
-    // offered back on every visit, failing the same way each time.
-    if (!await _read(boards)) return;
-    final hash = _bookHash;
-    if (hash == null) return;
-    final error = await widget.api.saveCalibration(
-        bookHash: hash, bookName: widget.fileName, boards: boards);
-    if (error != null && mounted) {
-      AppFeedback.warning(context, 'This book could not be remembered: $error');
-    }
+    // Remembered as it was set up (_remember); the reading does not decide
+    // it. It used to be remembered only after a reading came back, so a
+    // reading refused — by the scan limit, on 23.9.2026 — lost every board.
+    await _read(boards);
   }
 
   /// Whether the reading came back.
@@ -339,15 +385,6 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       _stage = _Stage.confirming;
     });
     return true;
-  }
-
-  /// Forget the book's calibration and set it up again — the way out of one
-  /// that no longer reads.
-  Future<void> _recalibrate() async {
-    final hash = _bookHash;
-    if (hash != null) await widget.api.deleteCalibration(hash);
-    if (!mounted) return;
-    _calibrate(const []);
   }
 
   /// Back to the calibration with its boards, to add what it lacks.
@@ -475,13 +512,15 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
                   children: [
                     OutlinedButton(
                         onPressed: _start, child: const Text('Try again')),
-                    // A remembered calibration that no longer reads would
-                    // fail the same way on every try; this is the way out.
+                    // A calibration that does not read would fail the same
+                    // way on every try; this is the way back to its table,
+                    // where a board can be changed or removed. Nothing is
+                    // forgotten on the way.
                     if (_calibration.isNotEmpty)
                       OutlinedButton(
                         key: const ValueKey('image-scan-failed-recalibrate'),
-                        onPressed: _recalibrate,
-                        child: const Text('Set up the boards again'),
+                        onPressed: _improve,
+                        child: const Text('Back to the calibration'),
                       ),
                   ],
                 ),
@@ -526,8 +565,8 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
             'Choose boards from anywhere in the book and set each one up '
             'beside its picture. The scanner learns from them how this book '
             'draws each piece, on a light and on a dark square; the grid '
-            'shows what it has still not seen. Your account remembers the '
-            'boards for this book; no picture from it is kept.',
+            'shows what it has still not seen. Your account remembers each '
+            'board as you set it up; no picture from the book is kept.',
             style: AppText.body.copyWith(color: colors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -551,8 +590,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
                     key: ValueKey('calibration-absent-$p'),
                     label: Text('No ${pieceName(p)} in this book'),
                     selected: _absent.contains(p),
-                    onSelected: (on) =>
-                        setState(() => on ? _absent.add(p) : _absent.remove(p)),
+                    onSelected: (on) => _setAbsent(p, on),
                   ),
               ],
             ),

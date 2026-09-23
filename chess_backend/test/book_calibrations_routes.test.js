@@ -116,6 +116,33 @@ test('a calibration is upserted under this account, the boards as the shared rea
   ]);
 });
 
+// Phase 3e: the pieces a book never draws are remembered with its boards, so a
+// book of rook endings is not asked for queens again every chapter.
+test('absent pieces are stored with the boards; a save that leaves them out leaves them alone', async () => {
+  const withAbsent = await call('put', PATH, {
+    params: { hash: HASH }, userId: 7, body: { bookName: 'Rooks', boards: BOARDS, absent: ['q', 'Q', 'q'] },
+  });
+  assert.equal(withAbsent.status, 200);
+  assert.deepEqual(JSON.parse(withAbsent.calls[0].params[4]), ['q', 'Q']);
+  const without = await call('put', PATH, {
+    params: { hash: HASH }, userId: 7, body: { bookName: 'Rooks', boards: BOARDS },
+  });
+  assert.equal(without.status, 200);
+  assert.equal(without.calls[0].params[4], null, 'a save that says nothing about absent pieces must not clear them');
+  assert.match(without.calls[0].text, /absent = COALESCE\(\$5::jsonb, book_calibrations\.absent\)/);
+});
+
+test('an absent piece that is not a piece letter is refused, and nothing is written', async () => {
+  for (const absent of ['q', ['x'], ['queen'], [1]]) {
+    const { status, json, calls } = await call('put', PATH, {
+      params: { hash: HASH }, body: { bookName: 'B', boards: BOARDS, absent },
+    });
+    assert.equal(status, 422, JSON.stringify(absent));
+    assert.equal(json.code, 'calibration_invalid');
+    assert.equal(calls.length, 0);
+  }
+});
+
 test('a read asks for this account\'s row, and another account\'s hash is a 404', async () => {
   const { status, json, calls } = await call('get', PATH, { params: { hash: HASH }, userId: 9 });
   assert.equal(status, 404);
@@ -128,11 +155,12 @@ test('a read asks for this account\'s row, and another account\'s hash is a 404'
 test('a read answers the boards the account saved', async () => {
   const { status, json } = await call('get', PATH, {
     params: { hash: HASH },
-    answer: () => ({ rows: [{ book_name: 'Silman', boards: BOARDS, updated_at: '2026-09-22T10:00:00Z' }] }),
+    answer: () => ({ rows: [{ book_name: 'Silman', boards: BOARDS, absent: ['n'], updated_at: '2026-09-22T10:00:00Z' }] }),
   });
   assert.equal(status, 200);
   assert.equal(json.bookName, 'Silman');
   assert.deepEqual(json.boards, BOARDS);
+  assert.deepEqual(json.absent, ['n']);
 });
 
 test('a delete names the account as well as the book', async () => {
@@ -194,5 +222,19 @@ test.describe('on a real database', skipUnlessDatabase() ?? {}, () => {
     assert.equal(readB.json.boards[0].fen, BOARDS[1].fen);
     const rows = await fresh.pool.query('SELECT COUNT(*)::int AS n FROM book_calibrations');
     assert.equal(rows.rows[0].n, 2);
+  });
+
+  test('absent pieces survive a save that does not mention them, and [] clears them', async () => {
+    const [a] = users;
+    const H = 'b'.repeat(64);
+    assert.equal((await onReal('put', { hash: H }, { bookName: 'R', boards: [BOARDS[0]] }, a)).status, 200);
+    assert.deepEqual((await onReal('get', { hash: H }, {}, a)).json.absent, [], 'a new row starts with none');
+    await onReal('put', { hash: H }, { bookName: 'R', boards: [BOARDS[0]], absent: ['q', 'b'] }, a);
+    await onReal('put', { hash: H }, { bookName: 'R', boards: BOARDS }, a);
+    const kept = await onReal('get', { hash: H }, {}, a);
+    assert.deepEqual(kept.json.absent, ['q', 'b']);
+    assert.equal(kept.json.boards.length, 2);
+    await onReal('put', { hash: H }, { bookName: 'R', boards: BOARDS, absent: [] }, a);
+    assert.deepEqual((await onReal('get', { hash: H }, {}, a)).json.absent, []);
   });
 });

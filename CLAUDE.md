@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3848 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3853 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1747 with TEST_DATABASE_URL, 1617 without
+cd chess_backend && npm test          # node --test, 1752 with TEST_DATABASE_URL, 1621 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -545,7 +545,16 @@ example is marked (`UNKNOWN_INK`). Measured first on every board of the three
 books — **a filter on a result must not be a function of the thing being
 counted** (a „no marks" filter removed exactly the boards that showed the
 composed classes it was counting), and the hints it meant to build were
-measured useless and not built.
+measured useless and not built. The owner's first live try lost a calibration:
+browsing counted as scanning (20 per 15 minutes) and the calibration was kept
+only after a reading came back, so a refused reading lost every board. Browsing
+has its own route and limiter now, a calibration is kept as it is set up, and
+the pieces a book never draws are kept with it (→ **3853**; backend → **1621 /
+1752**). The same day CI showed why a scan test had been red since 22.9: every
+process that loads the scan route swept the shared temp directory, and
+`node --test` runs files as parallel processes — **„at startup nothing is in
+flight" is true of one process, not of several**; only a file older than any
+request is a leftover now.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

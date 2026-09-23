@@ -17,11 +17,32 @@ test('a document orphaned by a killed scan is swept at startup', () => {
   fs.writeFileSync(path.join(dir, 'scan_123_abc.pdf'), 'ostatak');
   fs.writeFileSync(path.join(dir, 'scan_456_def.pdf'), 'ostatak');
   fs.writeFileSync(path.join(dir, 'nesto-drugo.txt'), 'ne diraj');
+  // Left by a process that died an hour ago.
+  const anHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  for (const name of fs.readdirSync(dir)) fs.utimesSync(path.join(dir, name), anHourAgo, anHourAgo);
 
   const removed = sweepLeftovers(dir);
 
   assert.equal(removed, 2);
   assert.deepEqual(fs.readdirSync(dir), ['nesto-drugo.txt'], 'only scan_ uploads are swept');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('an upload still in flight in another process is not swept', () => {
+  // Every process that loads the scan route sweeps at startup, and node --test
+  // runs test files as parallel processes: one file's startup deleted another
+  // file's upload mid-request (CI, 22.9 and 23.9.2026: ENOENT on the upload,
+  // a 500 from POST /scans/images). A dev server restarting beside a running
+  // suite did the same. A leftover is old; an upload in flight is seconds old.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sweep-test-'));
+  fs.writeFileSync(path.join(dir, 'scan_789_ghi.pdf'), 'u toku');
+  const old = path.join(dir, 'scan_111_old.pdf');
+  fs.writeFileSync(old, 'ostatak');
+  const anHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  fs.utimesSync(old, anHourAgo, anHourAgo);
+
+  assert.equal(sweepLeftovers(dir), 1);
+  assert.deepEqual(fs.readdirSync(dir), ['scan_789_ghi.pdf']);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

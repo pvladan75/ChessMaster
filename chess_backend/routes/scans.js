@@ -172,11 +172,32 @@ router.post('/', authenticateToken, scanLimiter, upload.single('document'), asyn
 // board read against them, each with `source: 'image'` and its uncertain
 // squares. The document is deleted in the `finally`, as above, and nothing is
 // saved: POST /scans/confirm takes what the trainer confirms.
-router.post('/images', authenticateToken, scanLimiter, upload.single('document'), async (req, res) => {
+// Browsing a book for calibration boards (phase 3e) asks for twenty pages at a
+// time, and a trainer turns many of them: counted by the scan limiter, a look
+// through one book used up the account's twenty scans and the reading was then
+// refused (the owner, 23.9.2026). Browsing gets its own route and a limiter
+// sized for turning pages; reading keeps the scan limiter.
+const browseLimiter = accountLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 150,
+  message: 'Too many pages turned in a short time. Please wait a few minutes.',
+});
+router.browseLimiter = browseLimiter;
+
+router.post('/images', authenticateToken, scanLimiter, upload.single('document'), (req, res) =>
+  imagesRoute(req, res, { browse: false }));
+
+// POST /scans/images/browse — the boards and previews of a page range, never
+// a reading: a calibration field is not read here.
+router.post('/images/browse', authenticateToken, browseLimiter, upload.single('document'), (req, res) =>
+  imagesRoute(req, res, { browse: true }));
+
+async function imagesRoute(req, res, { browse }) {
   if (!req.file) {
     return res.status(400).json({ error: 'No document sent.' });
   }
-  const { fromPage, toPage, calibration } = req.body;
+  const { fromPage, toPage } = req.body;
+  const calibration = browse ? undefined : req.body.calibration;
 
   try {
     const { scanImages, parseCalibration } = await loadImageReader();
@@ -217,7 +238,7 @@ router.post('/images', authenticateToken, scanLimiter, upload.single('document')
   } finally {
     removeQuietly(req.file.path);
   }
-});
+}
 
 // /scans/calibrations/:hash — a book's calibration, remembered on the account.
 //
@@ -238,14 +259,19 @@ router.get('/calibrations/:hash', authenticateToken, async (req, res) => {
   if (badHash(req, res)) return;
   try {
     const { rows } = await pool.query(
-      `SELECT book_name, boards, updated_at FROM book_calibrations
+      `SELECT book_name, boards, absent, updated_at FROM book_calibrations
         WHERE user_id = $1 AND book_hash = $2`,
       [req.user.id, req.params.hash]
     );
     if (!rows.length) {
       return res.status(404).json({ error: 'This book has no calibration yet.', code: 'no_calibration' });
     }
-    res.json({ bookName: rows[0].book_name, boards: rows[0].boards, updatedAt: rows[0].updated_at });
+    res.json({
+      bookName: rows[0].book_name,
+      boards: rows[0].boards,
+      absent: rows[0].absent ?? [],
+      updatedAt: rows[0].updated_at,
+    });
   } catch (err) {
     logger.error(`[SCAN] Citanje kalibracije nije uspelo: ${err.message}`);
     res.status(500).json({ error: 'Failed to read the calibration.' });
@@ -254,13 +280,15 @@ router.get('/calibrations/:hash', authenticateToken, async (req, res) => {
 
 router.put('/calibrations/:hash', authenticateToken, async (req, res) => {
   if (badHash(req, res)) return;
-  const { bookName, boards } = req.body || {};
+  const { bookName, boards, absent } = req.body || {};
   let cleaned;
+  let absentPieces;
   try {
-    const { parseCalibration } = await loadImageReader();
+    const { parseCalibration, parseAbsent } = await loadImageReader();
     const { ScanError } = await loadScanner();
     try {
       cleaned = parseCalibration(Array.isArray(boards) ? boards : null);
+      absentPieces = parseAbsent(absent);
     } catch (err) {
       if (err instanceof ScanError) {
         return res.status(422).json({ error: err.message, code: err.code, details: err.details });
@@ -271,12 +299,16 @@ router.put('/calibrations/:hash', authenticateToken, async (req, res) => {
       return res.status(422).json({ error: 'A calibration needs at least one board.', code: 'calibration_invalid' });
     }
     await pool.query(
-      `INSERT INTO book_calibrations (user_id, book_hash, book_name, boards, updated_at)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      // `absent` left out of a request leaves what is stored alone; `[]`
+      // clears it (rule 11: absence is a third answer).
+      `INSERT INTO book_calibrations (user_id, book_hash, book_name, boards, absent, updated_at)
+       VALUES ($1, $2, $3, $4, COALESCE($5::jsonb, '[]'::jsonb), CURRENT_TIMESTAMP)
        ON CONFLICT (user_id, book_hash) DO UPDATE
-         SET book_name = EXCLUDED.book_name, boards = EXCLUDED.boards, updated_at = CURRENT_TIMESTAMP`,
+         SET book_name = EXCLUDED.book_name, boards = EXCLUDED.boards,
+             absent = COALESCE($5::jsonb, book_calibrations.absent), updated_at = CURRENT_TIMESTAMP`,
       [req.user.id, req.params.hash, typeof bookName === 'string' ? bookName.slice(0, 255) : null,
-        JSON.stringify(cleaned.map(({ page, index, fen, ignore }) => ({ page, index, fen, ignore })))]
+        JSON.stringify(cleaned.map(({ page, index, fen, ignore }) => ({ page, index, fen, ignore }))),
+        absentPieces === null ? null : JSON.stringify(absentPieces)]
     );
     res.json({ saved: cleaned.length });
   } catch (err) {

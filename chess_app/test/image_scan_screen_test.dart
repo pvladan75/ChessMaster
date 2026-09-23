@@ -47,7 +47,7 @@ const _calibrated = {
   'bookName': 'Silman.pdf',
   'boards': [
     {'page': 40, 'index': 1, 'fen': '7k/8/8/3q4/8/8/8/1KQ5', 'ignore': []},
-    {'page': 41, 'index': 1, 'fen': '8/3nk3/8/3Q1K2/8/8/8/8', 'ignore': []},
+    {'page': 41, 'index': 1, 'fen': '8/3nk3/8/3Q1K2/8/2N5/8/5b2', 'ignore': []},
     {
       'page': 42,
       'index': 1,
@@ -131,9 +131,14 @@ class _Server {
           }
           return http.Response('', 204);
         }
+        if (path == '/scans/images/browse') return _browse(req);
         if (path == '/scans/images') {
           final withCalibration = req.body.contains('name="calibration"');
-          if (!withCalibration) return _browse(req);
+          // Browsing has its own route; a reading without a calibration
+          // would be the old way of browsing, counted as a scan.
+          if (!withCalibration) {
+            return http.Response('browse through /scans/images/browse', 500);
+          }
           return readStatus == 200
               ? http.Response(jsonEncode(read), 200)
               : http.Response(
@@ -151,7 +156,7 @@ class _Server {
 
   List<String> get trail => [
         for (final r in sent)
-          '${r.method} ${r.url.path}${r.url.path == '/scans/images' ? (r.body.contains('name="calibration"') ? ' +calibration' : ' pages ${_field(r, 'fromPage')}-${_field(r, 'toPage')}') : ''}'
+          '${r.method} ${r.url.path}${r.url.path == '/scans/images/browse' ? ' pages ${_field(r, 'fromPage')}-${_field(r, 'toPage')}' : r.url.path == '/scans/images' ? (r.body.contains('name="calibration"') ? ' +calibration' : ' -calibration') : ''}'
       ];
 
   /// The calibration a reading sent, as `page:fen`.
@@ -395,14 +400,14 @@ void main() {
       await _pump(tester, server);
       await tester.tap(find.byKey(const ValueKey('calibration-find')));
       await _settle(tester);
-      expect(server.trail.last, 'POST /scans/images pages 21-40');
+      expect(server.trail.last, 'POST /scans/images/browse pages 21-40');
       expect(find.text('Pages 21–40 of 120'), findsOneWidget);
       expect(find.byKey(const ValueKey('browse-22-1')), findsOneWidget);
       expect(find.byKey(const ValueKey('browse-40-1')), findsOneWidget);
       // Turning on, and back: back is not uploaded again.
       await tester.tap(find.byKey(const ValueKey('browse-next')));
       await _settle(tester);
-      expect(server.trail.last, 'POST /scans/images pages 41-60');
+      expect(server.trail.last, 'POST /scans/images/browse pages 41-60');
       expect(find.byKey(const ValueKey('browse-42-1')), findsOneWidget);
       final asked = server.sent.length;
       await tester.tap(find.byKey(const ValueKey('browse-previous')));
@@ -413,7 +418,7 @@ void main() {
       await tester.enterText(find.byKey(const ValueKey('browse-jump')), '70');
       await tester.testTextInput.receiveAction(TextInputAction.go);
       await _settle(tester);
-      expect(server.trail.last, 'POST /scans/images pages 61-80');
+      expect(server.trail.last, 'POST /scans/images/browse pages 61-80');
       expect(find.text('No diagram pictures on these pages.'), findsOneWidget);
     });
 
@@ -599,8 +604,13 @@ void main() {
           reason: 'the board did not arrive');
     });
 
+    // The owner, 23.9.2026: a calibration set up and not yet read was lost
+    // when the reading was refused — it was remembered only after a reading
+    // came back. It is now remembered as it is set up, and a reading that
+    // fails goes back to its table, not to an empty one. (Until then this
+    // case asserted the opposite: that nothing was remembered.)
     testWidgets(
-        'a reading that fails remembers nothing, and offers the way out',
+        'a reading that fails keeps the boards, and goes back to their table',
         (tester) async {
       final server = _Server(readStatus: 422);
       await _pump(tester, server, pick: _answers([_allButQueen, _blackQueen]));
@@ -610,11 +620,81 @@ void main() {
           .ensureVisible(find.byKey(const ValueKey('calibration-read')));
       await tester.tap(find.byKey(const ValueKey('calibration-read')));
       await _settle(tester);
-      expect(server.trail.where((t) => t.startsWith('PUT')), isEmpty,
-          reason: 'a calibration that did not read was remembered');
       expect(find.byKey(const ValueKey('image-scan-failure')), findsOneWidget);
-      expect(find.byKey(const ValueKey('image-scan-failed-recalibrate')),
-          findsOneWidget);
+      final put = server.sent.lastWhere((r) => r.method == 'PUT');
+      expect(
+          ((jsonDecode(put.body) as Map)['boards'] as List)
+              .map((b) => '${b['page']}'),
+          ['42', '95'],
+          reason: 'the boards set up were not remembered before reading');
+      await tester
+          .tap(find.byKey(const ValueKey('image-scan-failed-recalibrate')));
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('calibrate-42-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('calibrate-95-1')), findsOneWidget);
+      expect(server.sent.where((r) => r.method == 'DELETE'), isEmpty);
+    });
+
+    testWidgets(
+        'every board set up is remembered at once, with the pieces said absent',
+        (tester) async {
+      final server = _Server();
+      await _pump(tester, server, pick: _answers([_allButQueen]));
+      await _addBoard(tester, 42);
+      Map put() =>
+          jsonDecode(server.sent.lastWhere((r) => r.method == 'PUT').body)
+              as Map;
+      expect((put()['boards'] as List).map((b) => '${b['page']}:${b['fen']}'),
+          ['42:$_allButQueen']);
+      expect(put()['absent'], isEmpty);
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibration-absent-q')));
+      await tester.tap(find.byKey(const ValueKey('calibration-absent-q')));
+      await _settle(tester, 4);
+      expect(put()['absent'], ['q']);
+      // Removing the last board forgets the book's calibration.
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-remove-42-1')));
+      await tester.tap(find.byKey(const ValueKey('calibrate-remove-42-1')));
+      await _settle(tester, 4);
+      expect(server.sent.last.method, 'DELETE');
+    });
+
+    testWidgets(
+        'a calibration left half-way comes back to its table, not to a reading',
+        (tester) async {
+      final server = _Server(calibration: {
+        'bookName': 'Silman.pdf',
+        'boards': [
+          {'page': 42, 'index': 1, 'fen': _allButQueen, 'ignore': []},
+        ],
+        'absent': <String>[],
+      });
+      await _pump(tester, server);
+      expect(server.trail.where((t) => t.contains('+calibration')), isEmpty,
+          reason: 'read with the black queen never shown');
+      expect(find.byKey(const ValueKey('calibrate-42-1')), findsOneWidget);
+      expect(_readButton(tester).onPressed, isNull);
+    });
+
+    testWidgets(
+        'a rook-endings book remembered with its absent pieces is read straight away',
+        (tester) async {
+      final server = _Server(calibration: {
+        'bookName': 'Rooks.pdf',
+        'boards': [
+          {
+            'page': 42,
+            'index': 1,
+            'fen': '4k3/r6p/8/8/8/8/P6R/4K3',
+            'ignore': []
+          },
+        ],
+        'absent': ['N', 'B', 'Q', 'n', 'b', 'q'],
+      });
+      await _pump(tester, server);
+      expect(server.trail.last, 'POST /scans/images +calibration');
+      expect(find.byKey(const ValueKey('image-scan-boards')), findsOneWidget);
     });
 
     testWidgets(
@@ -633,7 +713,7 @@ void main() {
       }
       // Page 40 came with the reading; 41 and 42 were fetched, once.
       expect(server.trail.where((t) => t.contains('pages')).toList(),
-          ['POST /scans/images pages 41-60']);
+          ['POST /scans/images/browse pages 41-60']);
       expect(server.sent.where((r) => r.method == 'DELETE'), isEmpty,
           reason: 'improving must not forget the calibration it improves');
     });
@@ -795,7 +875,7 @@ void main() {
           boards.map((b) => '${b['page']}:${b['fen']}'),
           [
             '40:7k/8/8/3q4/8/8/8/1KQ5',
-            '41:8/3nk3/8/3Q1K2/8/8/8/8',
+            '41:8/3nk3/8/3Q1K2/8/2N5/8/5b2',
             '42:5nk1/R5p1/p3p2p/2B1P2P/r4P2/1p4K1/6P1/8',
             '43:4k3/8/8/8/8/8/8/R3K3',
           ],

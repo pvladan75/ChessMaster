@@ -117,18 +117,23 @@ class ImageScanOutcome {
 /// could not be asked" are different answers: the first leads to calibrating,
 /// the second to trying again, and neither may pose as the other.
 class CalibrationLoad {
-  const CalibrationLoad.found(this.boards)
+  const CalibrationLoad.found(this.boards, {this.absent = const []})
       : missing = false,
         error = null;
   const CalibrationLoad.missing()
       : boards = const [],
+        absent = const [],
         missing = true,
         error = null;
   const CalibrationLoad.failed(this.error)
       : boards = const [],
+        absent = const [],
         missing = false;
 
   final List<CalibrationBoard> boards;
+
+  /// Pieces the trainer said the book never draws (phase 3e).
+  final List<String> absent;
   final bool missing;
   final String? error;
 
@@ -203,10 +208,41 @@ class ScannerApiService {
     required int fromPage,
     required int toPage,
     List<CalibrationBoard> calibration = const [],
+  }) =>
+      _images('/scans/images',
+          filePath: filePath,
+          fileName: fileName,
+          fromPage: fromPage,
+          toPage: toPage,
+          calibration: calibration);
+
+  /// The boards and previews of a page range, to choose calibration boards
+  /// from. Its own route and limiter on the server: turning pages is not
+  /// scanning, and counted as scanning it used up the account's scans
+  /// (the owner, 23.9.2026).
+  Future<ImageScanOutcome> browseImages({
+    required String filePath,
+    required String fileName,
+    required int fromPage,
+    required int toPage,
+  }) =>
+      _images('/scans/images/browse',
+          filePath: filePath,
+          fileName: fileName,
+          fromPage: fromPage,
+          toPage: toPage);
+
+  Future<ImageScanOutcome> _images(
+    String path, {
+    required String filePath,
+    required String fileName,
+    required int fromPage,
+    required int toPage,
+    List<CalibrationBoard> calibration = const [],
   }) async {
     try {
       final request =
-          http.MultipartRequest('POST', Uri.parse('$backendUrl/scans/images'));
+          http.MultipartRequest('POST', Uri.parse('$backendUrl$path'));
       if (authToken.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $authToken';
       }
@@ -251,12 +287,14 @@ class ScannerApiService {
           .get(uri, headers: _jsonHeaders)
           .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
-        final boards = ((jsonDecode(response.body)
-                    as Map<String, dynamic>)['boards'] as List? ??
-                const [])
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final boards = (json['boards'] as List? ?? const [])
             .map((e) => CalibrationBoard.fromJson(e as Map<String, dynamic>))
             .toList();
-        return CalibrationLoad.found(boards);
+        final absent = (json['absent'] as List? ?? const [])
+            .map((e) => e.toString())
+            .toList();
+        return CalibrationLoad.found(boards, absent: absent);
       }
       if (response.statusCode == 404 &&
           _codeFrom(response.body) == 'no_calibration') {
@@ -271,17 +309,20 @@ class ScannerApiService {
   }
 
   /// Remembers a book's calibration on the account. Null when saved, the
-  /// server's words otherwise.
+  /// server's words otherwise. [absent] null leaves the pieces the book was
+  /// said not to draw as they are; a list, even empty, replaces them.
   Future<String?> saveCalibration({
     required String bookHash,
     required String bookName,
     required List<CalibrationBoard> boards,
+    List<String>? absent,
   }) async {
     try {
       final uri = _calibrationUri(bookHash);
       final body = jsonEncode({
         'bookName': bookName,
         'boards': boards.map((b) => b.toJson()).toList(),
+        if (absent != null) 'absent': absent,
       });
       final response = await (_client ?? _shared)
           .put(uri, headers: _jsonHeaders, body: body)

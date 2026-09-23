@@ -891,6 +891,15 @@ mark instead, and no suggested starting board.
   a book with no queens, bishops or knights — six — could never be read. They
   now appear once one board is set up, however many are missing; a case holds
   it, red on the capped code.
+- **The owner's first live try lost a calibration** (Back to Basics): browsing
+  counted against the scan limiter (20 per 15 minutes), and a calibration was
+  kept only after a reading came back — so the refused reading lost every
+  board. Browsing now has its own route (`POST /scans/images/browse`, 150 per
+  15 minutes), a calibration is kept after every board set up, changed or
+  removed, and the pieces said absent are kept with it
+  (`book_calibrations.absent`; left out of a save, they stay). A remembered
+  calibration that is not complete opens its table; a complete one reads.
+  App → **3853**; backend → **1621 / 1752**.
 - **Not built:** the live "still needed" strip inside the editor (item 4 of the
   screen above). The editor is the shared `AnalysisBoardSetupDialog`, and the
   card says what the board adds the moment it closes.
@@ -904,10 +913,11 @@ second case was needed. App: 14 mutations, each red on the right case. The
 gate found one real fault while being written: two remembered boards in one
 page window uploaded the book twice.
 
-A flake worth knowing: one route test answered 500 once, because the owner's
-nodemon restarted on a saved test file and its startup sweep of the shared
-scan temp directory removed the test's upload. The server was right; a test
-run and a dev server share `os.tmpdir()`. Mutations then ran in a copy
+A flake worth knowing, first misread: one route test answered 500 once, and
+it was blamed on the owner's nodemon restarting. CI, which has no nodemon,
+failed the same case on 22.9 and 23.9: every process that loads the scan route
+swept the shared temp directory at startup, and `node --test` runs files as
+parallel processes. Only a file older than 15 minutes is swept now. Mutations then ran in a copy
 outside the repository with its own `TMP`.
 
 ### Phase 4 — into exercises

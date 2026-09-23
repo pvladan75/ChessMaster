@@ -294,7 +294,76 @@ void main() {
           {'page': 44, 'index': 1, 'fen': '7k/8/8/3q4/8/8/8/1KQ5'},
         ],
       });
+      // Nothing said about absent pieces: the key is not sent, so the server
+      // leaves what it has (rule 11).
+      expect((jsonDecode(sent.body) as Map).containsKey('absent'), isFalse);
     });
+
+    test('pieces said absent travel both ways, an empty list included',
+        () async {
+      final bodies = <Map>[];
+      final api = ScannerApiService(
+        authToken: 'tok',
+        client: MockClient((req) async {
+          if (req.method == 'GET') {
+            return http.Response(
+                jsonEncode({
+                  'bookName': 'Rooks',
+                  'boards': [
+                    {'page': 1, 'index': 1, 'fen': '4k3/8/8/8/8/8/8/R3K3'},
+                  ],
+                  'absent': ['q', 'n'],
+                }),
+                200);
+          }
+          bodies.add(jsonDecode(req.body) as Map);
+          return http.Response(jsonEncode({'saved': 1}), 200);
+        }),
+      );
+      expect((await api.loadCalibration(_hash)).absent, ['q', 'n']);
+      const boards = [
+        CalibrationBoard(ref: BoardRef(1, 1), placement: '4k3/8/8/8/8/8/8/R3K3')
+      ];
+      await api.saveCalibration(
+          bookHash: _hash, bookName: 'Rooks', boards: boards, absent: ['q']);
+      await api.saveCalibration(
+          bookHash: _hash, bookName: 'Rooks', boards: boards, absent: []);
+      expect(bodies.map((b) => b['absent']), [
+        ['q'],
+        [],
+      ]);
+    });
+  });
+
+  test('browsing a book goes to its own route, never as a scan', () async {
+    late http.Request sent;
+    final api = ScannerApiService(
+      authToken: 'tok',
+      client: MockClient((req) async {
+        sent = req;
+        return http.Response(
+            jsonEncode({
+              'needsCalibration': true,
+              'pageCount': 300,
+              'scannedFrom': 21,
+              'scannedTo': 40,
+              'boards': [
+                {'page': 22, 'index': 1, 'source': 'image', 'preview': _png},
+              ],
+            }),
+            200);
+      }),
+    );
+    final outcome = await api.browseImages(
+        filePath: await _book(),
+        fileName: 'book.pdf',
+        fromPage: 21,
+        toPage: 40);
+    expect(sent.url.path, '/scans/images/browse');
+    expect(sent.body, contains('name="fromPage"\r\n\r\n21'));
+    expect(sent.body, isNot(contains('name="calibration"')));
+    expect(outcome.result!.pageCount, 300);
+    expect(outcome.result!.boards.single.ref, const BoardRef(22, 1));
   });
 
   test('a book is known by the SHA-256 of its file', () async {

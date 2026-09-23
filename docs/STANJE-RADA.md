@@ -76,7 +76,19 @@ polja svelo na 4, na digitalnim knjigama nije dodalo nijednu oznaku.
 Server: `unseen` u odgovoru (figura bez primera na obe boje), listanje bez
 granice od 60 tabli i bez brojanja strana, pregledi JPEG (5–7× manji od PNG).
 Aplikacija: `CalibrationCoverage`, `CoverageTable`, `BookBrowser`, „Improve the
-calibration". Nije napravljeno: živa traka „šta još treba" u samom editoru —
+calibration".
+
+Vlasnikov prvi pokušaj uživo (Back to Basics) izgubio je kalibraciju: listanje
+je trošilo ograničenje skeniranja (20 za 15 minuta), a kalibracija se pamtila
+tek posle uspelog čitanja — pa je odbijeno čitanje odnelo sve table (u bazi je
+nije ni bilo). Sada listanje ima svoju rutu i ograničenje
+(`POST /scans/images/browse`, 150), kalibracija se čuva posle svake table, a
+„No … in this book" se pamti uz nju (nova kolona `book_calibrations.absent`,
+dodata restartom servera 23.9). Nedovršena kalibracija se vraća u tabelu, a
+potpuna ide pravo na čitanje. Isti dan: CI je od 22.9 padao na testu skenera
+jer je svaki proces koji učita rutu brisao zajednički privremeni direktorijum, a
+`node --test` pokreće fajlove paralelno — sada se briše samo fajl stariji od 15
+minuta. Nije napravljeno: živa traka „šta još treba" u samom editoru —
 kartica kaže „Adds: …" čim se editor zatvori.
 
 ## Dijagrami kao slike: faza 3 — ekrani — 22.9.2026, u kodu, ostaje provera uživo (stavka 225)
