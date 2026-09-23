@@ -20,6 +20,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -166,6 +167,48 @@ void main() {
         reason: 'the button that finishes the job is off the bottom of a '
             '1280x800 screen');
   });
+
+  // Reported on 23.9.2026 from Windows: the pieces a trainer places were a
+  // fixed 28 px, two fifths of a 68 px square. A piece is now as large as its
+  // square, as on the live board — measured at a desktop and a phone size,
+  // because the square is what changes between them.
+  for (final size in const [Size(1280, 800), Size(360, 640)]) {
+    testWidgets(
+        'a placed piece fills its square at '
+        '${size.width.toInt()}x${size.height.toInt()}', (tester) async {
+      await pumpOnPhone(
+        tester,
+        Builder(
+          builder: (context) => ElevatedButton(
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => AnalysisBoardSetupDialog(
+                initialFen: _startFen,
+                onPositionSet: (_) {},
+              ),
+            ),
+            child: const Text('otvori'),
+          ),
+        ),
+        size: size,
+      );
+      await tester.tap(find.text('otvori'));
+      await tester.pumpAndSettle();
+      await selectTab(tester, 1);
+
+      // a8, the black rook of the starting position.
+      final square = find.byKey(const ValueKey('square-0-0'));
+      final rook =
+          find.descendant(of: square, matching: find.byType(BlackRook));
+      expect(rook, findsOneWidget);
+      final side = tester.getSize(square).shortestSide;
+      final piece = tester.getSize(rook);
+      expect(piece.width, greaterThanOrEqualTo(0.9 * side),
+          reason: 'a ${piece.width} px piece on a $side px square');
+      expect(piece.width, lessThanOrEqualTo(side),
+          reason: 'a ${piece.width} px piece spills out of a $side px square');
+    });
+  }
 
   /// Every piece in the palette, and the eraser: the thirteen things a trainer
   /// has to be able to arm.

@@ -1073,8 +1073,16 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
               color: isDarkSquare
                   ? AppSettingsService.instance.boardSkin.darkSquare
                   : AppSettingsService.instance.boardSkin.lightSquare,
-              child: Center(
-                child: chessPieceWidget(piece.isEmpty ? null : piece, size: 28),
+              // As large as its square, as on the live board and the
+              // thumbnails: a fixed 28 filled two fifths of a 68 px square
+              // on a desktop dialog.
+              child: LayoutBuilder(
+                builder: (context, cell) => Center(
+                  child: chessPieceWidget(
+                    piece.isEmpty ? null : piece,
+                    size: cell.biggest.shortestSide,
+                  ),
+                ),
               ),
             ),
           );

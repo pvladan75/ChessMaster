@@ -7316,3 +7316,16 @@ posle je bajt za bajt isti.
 
 Brojevi: backend 1680 → 1684 bez baze (+4 u `positionScanner.test.mjs`),
 izmereno; 1816 → 1820 sa bazom izvedeno, ne izmereno.
+
+## 23.9.2026 — Figure na tabli za postavljanje su veličine polja
+
+Vlasnik, sa Windowsa: figure koje stavlja u „Board Setup" su sitne. Bile su
+fiksnih 28 px, a polje na desktopu ima oko 68 — dve petine polja. Živa tabla i
+sličice crtaju figuru veličine polja (crtež ima svoju marginu), pa sada i ovaj
+editor: `LayoutBuilder` po polju, `size` = strana polja.
+
+Test meri pravougaonik figure prema polju na dve veličine, desktop i telefon,
+jer se polje menja između njih; na starom kodu oba crvena, telefon sa „a 28.0
+px piece on a 37.5 px square".
+
+Brojevi: aplikacija 3906 → 3908, pun prolaz; analyze isti 26 poznatih infoa.
