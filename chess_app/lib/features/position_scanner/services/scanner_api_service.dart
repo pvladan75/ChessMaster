@@ -323,9 +323,20 @@ class ScannerApiService {
       Uri.parse('$backendUrl/scans/calibrations/$bookHash');
 
   /// The calibration this account remembered for a book, if any.
-  Future<CalibrationLoad> loadCalibration(String bookHash) async {
+  Future<CalibrationLoad> loadCalibration(String bookHash) =>
+      _loadCalibrationFrom(_calibrationUri(bookHash), 'no_calibration');
+
+  /// The book as other users set it up (phase 3g): one calibration merged
+  /// from every other account's calibration of the same file, naming nobody.
+  /// Missing when nobody else has set it up.
+  Future<CalibrationLoad> loadSharedCalibration(String bookHash) =>
+      _loadCalibrationFrom(
+          Uri.parse('$backendUrl/scans/calibrations/$bookHash/shared'),
+          'no_shared_calibration');
+
+  Future<CalibrationLoad> _loadCalibrationFrom(
+      Uri uri, String missingCode) async {
     try {
-      final uri = _calibrationUri(bookHash);
       final response = await (_client ?? _shared)
           .get(uri, headers: _jsonHeaders)
           .timeout(const Duration(seconds: 30));
@@ -340,7 +351,7 @@ class ScannerApiService {
         return CalibrationLoad.found(boards, absent: absent);
       }
       if (response.statusCode == 404 &&
-          _codeFrom(response.body) == 'no_calibration') {
+          _codeFrom(response.body) == missingCode) {
         return const CalibrationLoad.missing();
       }
       return CalibrationLoad.failed(_errorFrom(response.body,

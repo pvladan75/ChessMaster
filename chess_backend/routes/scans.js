@@ -306,6 +306,38 @@ router.get('/calibrations/:hash', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /scans/calibrations/:hash/shared — the book as other users set it up
+// (phase 3g): one calibration merged from every other account's, worked out
+// each time, never stored. It names no account: what is shared is boards of a
+// book, not who has it.
+let sharedPromise = null;
+function loadShared() {
+  if (!sharedPromise) sharedPromise = import('../services/positionScanner/sharedCalibration.mjs');
+  return sharedPromise;
+}
+
+router.get('/calibrations/:hash/shared', authenticateToken, async (req, res) => {
+  if (badHash(req, res)) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT boards, absent FROM book_calibrations WHERE book_hash = $1 AND user_id <> $2`,
+      [req.params.hash, req.user.id]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Nobody else has set up this book.', code: 'no_shared_calibration' });
+    }
+    const { mergeCalibrations } = await loadShared();
+    const merged = mergeCalibrations(rows.map((r) => ({ boards: r.boards, absent: r.absent ?? [] })));
+    if (!merged.boards.length) {
+      return res.status(404).json({ error: 'Nobody else has set up this book.', code: 'no_shared_calibration' });
+    }
+    res.json(merged);
+  } catch (err) {
+    logger.error(`[SCAN] Deljena kalibracija nije procitana: ${err.message}`);
+    res.status(500).json({ error: 'Failed to read the shared calibration.' });
+  }
+});
+
 router.put('/calibrations/:hash', authenticateToken, async (req, res) => {
   if (badHash(req, res)) return;
   const { bookName, boards, absent } = req.body || {};

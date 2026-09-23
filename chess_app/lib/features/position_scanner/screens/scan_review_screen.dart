@@ -147,14 +147,20 @@ class _ScanReviewScreenState extends State<ScanReviewScreen> {
     var calibrated = false;
     String? kind;
     try {
-      final load = await _api.loadCalibration(await bookHashOf(path));
+      final hash = await bookHashOf(path);
+      final load = await _api.loadCalibration(hash);
       calibrated = load.found && load.boards.isNotEmpty;
+      // A book another user set up is pictures too (phase 3g): no need to
+      // send it to be looked at.
+      if (!calibrated && (await _api.loadSharedCalibration(hash)).found) {
+        kind = 'pictures';
+      }
     } catch (_) {
       calibrated = false;
     }
     if (calibrated) {
       kind = 'pictures';
-    } else {
+    } else if (kind == null) {
       final outcome = await _api.bookKind(
           filePath: path, fileName: _fileName ?? 'document.pdf');
       // A book the server could not look at is scanned by a page range, as

@@ -953,6 +953,44 @@ the pages stage and one API case. 12 mutations, each red on the right case.
 The 360 dp case found the boards' bottom bar 22 px too wide once "Other pages"
 joined it; it is a `Wrap` now.
 
+### Phase 3g — a calibration shared by every user of the same file [lead] — built 23.9.2026, awaiting the owner's live check (TODO-provera 229)
+
+**The owner, 23.9.2026:** a calibration is no private thing, and is shared
+without asking; the same file (its SHA-256) is the same book, which is
+enough. When several users have set a book up, the question of which
+calibration to offer was answered by not choosing one: **they are merged**.
+
+- **Nothing new is stored.** Every account keeps its own calibration; the
+  shared one is worked out from the others' each time
+  (`GET /scans/calibrations/:hash/shared`, `sharedCalibration.mjs`), so a
+  board one user fixes is fixed for the next at once. It names no account.
+- **The merge.** A board is named by page and place, so the same board from
+  two users is one board: set up alike it gains a vote; set up differently the
+  majority wins, and a tie leaves the board out. From what remains at most 8
+  boards are taken, each the one that adds most not yet shown, more votes
+  first among equals. A piece stays "not in this book" only if no board from
+  anybody shows it.
+- **Nothing is taken on someone else's word.** A board another user set up
+  arrives marked "Set up by another user: check it against the picture", with
+  "Correct", "Edit" and "Remove". It counts for nothing and is not saved until
+  it is checked, and "Done — choose pages" waits until none is left
+  unchecked.
+- A book new to the account is offered every shared board; one half set up,
+  or opened by "Update the calibration", only the boards that add something
+  it lacks. A book someone else set up is known to be pictures without
+  sending it to be looked at.
+
+No measurement ran for this phase: what it would have measured — how many
+boards cover a book — is 3e.0 (a), 2 to 3; and today only the owner's account
+has calibrations, so there is nothing yet to merge.
+
+Gate: 8 merge cases, 3 route cases and one on a real database (the asking
+account's own boards never come back as shared), 3 screen cases, one on the
+scanner and one on the API. 14 mutations, each red on the right case after
+two gaps were closed: the case for "Done waits for unchecked boards" could not
+see it while the missing black queen also kept "Done" off, and the route's own
+exclusion is only visible on a real database.
+
 ### Phase 4 — into exercises
 
 The confirmed positions go into the existing flow: the saved scans, then

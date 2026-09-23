@@ -37,7 +37,10 @@ const _complete = {
 };
 
 class _Server {
-  _Server({this.calibration, this.kind, this.kindStatus = 200});
+  _Server({this.calibration, this.shared, this.kind, this.kindStatus = 200});
+
+  /// The book as other users set it up; null when nobody has.
+  final Map<String, dynamic>? shared;
 
   final Map<String, dynamic>? calibration;
   final String? kind;
@@ -46,8 +49,17 @@ class _Server {
 
   http.Client client() => MockClient((req) async {
         trail.add(
-            '${req.method} ${req.url.path.startsWith('/scans/calibrations/') ? '/scans/calibrations' : req.url.path}');
+            '${req.method} ${req.url.path.endsWith('/shared') ? '/scans/calibrations/shared' : req.url.path.startsWith('/scans/calibrations/') ? '/scans/calibrations' : req.url.path}');
         final path = req.url.path;
+        if (path.startsWith('/scans/calibrations/') &&
+            path.endsWith('/shared')) {
+          return shared == null
+              ? http.Response(
+                  jsonEncode(
+                      {'error': 'none', 'code': 'no_shared_calibration'}),
+                  404)
+              : http.Response(jsonEncode(shared), 200);
+        }
         if (path.startsWith('/scans/calibrations/')) {
           return calibration == null
               ? http.Response(
@@ -121,9 +133,13 @@ void main() {
       (tester) async {
     final server = _Server(kind: 'pictures');
     await _choose(tester, server);
-    // Asked in this order; the calibration screen then reads its own.
-    expect(
-        server.trail.take(2), ['GET /scans/calibrations', 'POST /scans/kind']);
+    // Asked in this order — its own calibration, other users', then the
+    // book itself; the calibration screen then reads its own.
+    expect(server.trail.take(3), [
+      'GET /scans/calibrations',
+      'GET /scans/calibrations/shared',
+      'POST /scans/kind'
+    ]);
     expect(find.text('Teach the scanner this book'), findsOneWidget);
     // Back on the scanner: no page range for a picture book, and the way back.
     await tester.pageBack();
@@ -143,6 +159,19 @@ void main() {
     expect(find.text('Choose the pages to read'), findsOneWidget);
     expect(
         find.byKey(const ValueKey('pages-update-calibration')), findsOneWidget);
+  });
+
+  testWidgets(
+      'a book another user set up is known to be pictures without sending it',
+      (tester) async {
+    final server = _Server(shared: {
+      'boards': _complete['boards'],
+      'absent': [],
+      'contributors': 1,
+    }, kind: 'font');
+    await _choose(tester, server);
+    expect(server.trail.where((t) => t == 'POST /scans/kind'), isEmpty);
+    expect(find.text('Teach the scanner this book'), findsOneWidget);
   });
 
   testWidgets('a font book is scanned by a page range, as before',

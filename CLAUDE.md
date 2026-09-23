@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3861 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3866 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1757 with TEST_DATABASE_URL, 1626 without
+cd chess_backend && npm test          # node --test, 1769 with TEST_DATABASE_URL, 1637 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -558,7 +558,9 @@ request is a leftover now. Then phase 3f (→ **3861**; backend → **1626 /
 1757**): the scanner asks what kind of book a PDF is the moment it is chosen
 (`POST /scans/kind`, the font path's own test first, on pages spread over the
 whole book), and a picture book goes to its calibration before any page is
-asked for.
+asked for. Then phase 3g (→ **3866**; backend → **1637 / 1769**): a
+calibration is shared by every user of the same file — merged from the others'
+each time, never stored, a board of theirs counting only once checked here.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

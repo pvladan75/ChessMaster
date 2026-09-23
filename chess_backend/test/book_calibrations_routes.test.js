@@ -163,6 +163,38 @@ test('a read answers the boards the account saved', async () => {
   assert.deepEqual(json.absent, ['n']);
 });
 
+// Phase 3g: the book as other trainers set it up.
+const SHARED = '/calibrations/:hash/shared';
+
+test('the shared calibration is behind sign-in and asks for other accounts only', async () => {
+  assert.ok(handlersOf('get', SHARED).includes(authenticateToken));
+  const { status, json, calls } = await call('get', SHARED, { params: { hash: HASH }, userId: 9 });
+  assert.equal(status, 404);
+  assert.equal(json.code, 'no_shared_calibration');
+  assert.match(calls[0].text, /WHERE book_hash = \$1 AND user_id <> \$2/);
+  assert.deepEqual(calls[0].params, [HASH, 9]);
+});
+
+test('the shared calibration is merged and names nobody', async () => {
+  const { status, json } = await call('get', SHARED, {
+    params: { hash: HASH },
+    answer: () => ({ rows: [
+      { boards: [BOARDS[0]], absent: [] },
+      { boards: [BOARDS[0], BOARDS[1]], absent: ['n'] },
+    ] }),
+  });
+  assert.equal(status, 200);
+  assert.equal(json.contributors, 2);
+  assert.equal(json.boards.find((b) => b.page === 44).votes, 2);
+  assert.ok(!JSON.stringify(json).includes('user'), JSON.stringify(json));
+});
+
+test('a hash that is not a book is refused before the shared calibration is asked for', async () => {
+  const { status, calls } = await call('get', SHARED, { params: { hash: 'x' } });
+  assert.equal(status, 400);
+  assert.equal(calls.length, 0);
+});
+
 test('a delete names the account as well as the book', async () => {
   const { status, calls } = await call('delete', PATH, {
     params: { hash: HASH },
@@ -222,6 +254,26 @@ test.describe('on a real database', skipUnlessDatabase() ?? {}, () => {
     assert.equal(readB.json.boards[0].fen, BOARDS[1].fen);
     const rows = await fresh.pool.query('SELECT COUNT(*)::int AS n FROM book_calibrations');
     assert.equal(rows.rows[0].n, 2);
+  });
+
+  test('the shared calibration of a book is made of other users boards, never the asking account', async () => {
+    const [a, b] = users;
+    const H = 'c'.repeat(64);
+    await onReal('put', { hash: H }, { bookName: 'X', boards: [BOARDS[0]] }, a);
+    await onReal('put', { hash: H }, { bookName: 'X', boards: [BOARDS[1]] }, b);
+    const original = db.pool.query;
+    db.pool.query = (text, values) => fresh.pool.query(text, values);
+    try {
+      const handlers = handlersOf('get', SHARED);
+      const sent = { status: 200, json: null };
+      const res = { status(c) { sent.status = c; return res; }, json(p) { sent.json = p; return res; } };
+      await handlers[handlers.length - 1]({ params: { hash: H }, user: { id: a } }, res);
+      assert.equal(sent.status, 200);
+      assert.deepEqual(sent.json.boards.map((x) => x.page), [51], 'a was offered its own board');
+      assert.equal(sent.json.contributors, 1);
+    } finally {
+      db.pool.query = original;
+    }
   });
 
   test('absent pieces survive a save that does not mention them, and [] clears them', async () => {

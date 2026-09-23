@@ -5878,6 +5878,21 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 229. Deljena kalibracija — 23.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (server se sam restartovao; nov build). Plan:
+`PLAN-SKENER-SLIKE.md`, faza 3g. Za proveru trebaju **dva naloga** i isti PDF.
+
+1. [ ] **Drugi korisnik dobija table.** Nalog A kalibriše knjigu (npr. Back to
+   Basics). Nalog B izabere isti PDF: otvara se kalibracija sa A-ovim tablama,
+   svaka sa „Set up by another user: check it against the picture".
+2. [ ] **Ne računaju se dok se ne provere.** Na B tabela ostaje prazna dok se na
+   tabli ne pritisne „Correct" (ili „Edit"); „Done — choose pages" je ugašeno
+   dok ima neproverenih; posle provere tabla se pamti na B-ovom nalogu.
+3. [ ] **Samo ono što fali.** Nalog sa sopstvenom nedovršenom kalibracijom (npr.
+   bez crne dame) dobija samo tablu koja to dodaje, ne sve A-ove.
+4. [ ] **Ime se ne vidi.** Nigde se ne pojavljuje ko je postavio table.
+
 ## 228. Prvo kalibracija, pa strane — 23.9.2026, nije viđeno uživo
 
 **Server i aplikacija** (server se sam restartovao; nov build). Plan:

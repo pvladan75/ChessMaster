@@ -362,6 +362,46 @@ void main() {
     expect(refused.error, 'Too many pages turned');
   });
 
+  test('the book as other users set it up is asked for by its hash', () async {
+    final asked = <String>[];
+    var shared = true;
+    final api = ScannerApiService(
+      authToken: 'tok',
+      client: MockClient((req) async {
+        asked.add(req.url.path);
+        return shared
+            ? http.Response(
+                jsonEncode({
+                  'boards': [
+                    {
+                      'page': 95,
+                      'index': 1,
+                      'fen': '3qk3/8/8/8/8/8/8/4K3',
+                      'ignore': [],
+                      'votes': 2
+                    }
+                  ],
+                  'absent': ['N'],
+                  'contributors': 2,
+                }),
+                200)
+            : http.Response(
+                jsonEncode({'error': 'none', 'code': 'no_shared_calibration'}),
+                404);
+      }),
+    );
+    final found = await api.loadSharedCalibration(_hash);
+    expect(asked.single, '/scans/calibrations/$_hash/shared');
+    expect(found.found, isTrue);
+    expect(found.boards.single.ref, const BoardRef(95, 1));
+    expect(found.absent, ['N']);
+    shared = false;
+    final none = await api.loadSharedCalibration(_hash);
+    expect(none.missing, isTrue,
+        reason: 'nobody else set it up is not an error');
+    expect(none.error, isNull);
+  });
+
   test('browsing a book goes to its own route, never as a scan', () async {
     late http.Request sent;
     final api = ScannerApiService(

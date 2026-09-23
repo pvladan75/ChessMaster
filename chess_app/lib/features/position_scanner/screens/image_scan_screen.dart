@@ -108,6 +108,11 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
   /// Pieces the trainer says this book never draws: not asked for.
   final Set<String> _absent = {};
 
+  /// Boards another user set up, offered but not yet checked here against
+  /// their pictures (phase 3g). They count for nothing and are not remembered
+  /// until they are: a board is never taken on someone else's word.
+  final Set<BoardRef> _unconfirmed = {};
+
   /// The book's boards, by the first page of each browsed window, so turning
   /// back does not upload the book again — kept as the request itself, so two
   /// asking for one window at once share it.
@@ -186,7 +191,43 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       _toPages(load.boards);
     } else {
       _calibrate(load.boards);
+      // Another user's boards: the whole book as they set it up for a book new
+      // to this account, and only what is missing for one half set up.
+      _offerShared(onlyAdding: load.found);
     }
+  }
+
+  /// Offers the boards other users set up for this book (phase 3g), each to be
+  /// checked against its picture. [onlyAdding] offers only boards that show
+  /// something the calibration here does not.
+  Future<void> _offerShared({required bool onlyAdding}) async {
+    final hash = _bookHash;
+    if (hash == null) return;
+    final shared = await widget.api.loadSharedCalibration(hash);
+    if (!mounted || !shared.found || _stage != _Stage.calibrating) return;
+    final shown = <String>{
+      for (final p in _setUpPlacements) ...pieceClassesOf(p)
+    };
+    setState(() {
+      for (final b in shared.boards) {
+        if (_chosen.contains(b.ref)) continue;
+        if (_chosen.length >= maxCalibrationBoards) break;
+        final classes = pieceClassesOf(b.placement);
+        if (onlyAdding && classes.difference(shown).isEmpty) continue;
+        _chosen.add(b.ref);
+        _placements[b.ref] = b.placement;
+        _unconfirmed.add(b.ref);
+        shown.addAll(classes);
+      }
+      if (!onlyAdding && _absent.isEmpty) _absent.addAll(shared.absent);
+    });
+    _loadMissingPictures();
+  }
+
+  /// Another user's board, checked against its picture and found right.
+  void _confirm(BoardRef ref) {
+    setState(() => _unconfirmed.remove(ref));
+    _remember();
   }
 
   /// The choice of pages, read against [calibration].
@@ -233,13 +274,18 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       _placements
         ..clear()
         ..addEntries(boards.map((b) => MapEntry(b.ref, b.placement)));
+      _unconfirmed.clear();
       for (final p in _result?.positions ?? const <ReadBoard>[]) {
         _pictures.putIfAbsent(p.ref, () => p.preview);
       }
       _stage = _Stage.calibrating;
     });
-    // Boards remembered from outside the pages just read have no picture yet:
-    // one request a window, however many of them it holds.
+    _loadMissingPictures();
+  }
+
+  /// Boards remembered, or offered, from outside the pages just read have no
+  /// picture yet: one request a window, however many of them it holds.
+  void _loadMissingPictures() {
     for (final first in {
       for (final ref in _chosen)
         if (!_pictures.containsKey(ref)) _windowOf(ref.page)
@@ -331,7 +377,11 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     final placement = await widget.pickPosition(
         context, picture, _placements[ref] ?? '8/8/8/8/8/8/8/8');
     if (placement == null || !mounted) return;
-    setState(() => _placements[ref] = placement);
+    setState(() {
+      _placements[ref] = placement;
+      // Set up here, every square looked at: checked.
+      _unconfirmed.remove(ref);
+    });
     _remember();
   }
 
@@ -339,6 +389,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     setState(() {
       _chosen.remove(ref);
       _placements.remove(ref);
+      _unconfirmed.remove(ref);
     });
     _remember();
   }
@@ -362,8 +413,9 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     if (hash == null) return;
     final boards = [
       for (final ref in _chosen)
-        if (_placements[ref] case final p?)
-          CalibrationBoard(ref: ref, placement: p)
+        if (!_unconfirmed.contains(ref))
+          if (_placements[ref] case final p?)
+            CalibrationBoard(ref: ref, placement: p)
     ];
     final absent = _absent.toList()..sort();
     _remembering = _remembering.then((_) async {
@@ -383,9 +435,11 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     });
   }
 
+  /// The placements that count: set up or checked here.
   List<String> get _setUpPlacements => [
         for (final ref in _chosen)
-          if (_placements[ref] case final p?) p
+          if (!_unconfirmed.contains(ref))
+            if (_placements[ref] case final p?) p
       ];
 
   CalibrationCoverage get _coverage =>
@@ -395,6 +449,7 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
       _chosen.isNotEmpty &&
       _chosen.length <= maxCalibrationBoards &&
       _chosen.every(_placements.containsKey) &&
+      _unconfirmed.isEmpty &&
       _coverage.ready;
 
   /// The calibration is done: on to the pages. It was remembered as it was
@@ -435,8 +490,12 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     return true;
   }
 
-  /// Back to the calibration with its boards, to add what it lacks.
-  void _improve() => _calibrate(_calibration);
+  /// Back to the calibration with its boards, to add what it lacks — and
+  /// what other users set up that it lacks.
+  void _improve() {
+    _calibrate(_calibration);
+    _offerShared(onlyAdding: true);
+  }
 
   Future<void> _fix(ReadBoard board) async {
     final placement =
@@ -590,7 +649,12 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
     final coverage = _coverage;
     final raw = CalibrationCoverage.of(_setUpPlacements);
     final String status;
-    if (_chosen.isEmpty) {
+    if (_unconfirmed.isNotEmpty) {
+      status =
+          'Another user set up ${_unconfirmed.length == 1 ? 'a board' : '${_unconfirmed.length} boards'} '
+          'of this book. Check each against its picture: Correct, Edit or '
+          'Remove.';
+    } else if (_chosen.isEmpty) {
       status = 'Find a board in the book with many pieces on it to start.';
     } else if (_chosen.length > maxCalibrationBoards) {
       status = 'At most $maxCalibrationBoards boards: remove one that adds '
@@ -673,6 +737,8 @@ class _ImageScanScreenState extends State<ImageScanScreen> {
                               _placements[o]!
                         ]),
                   alone: _chosen.length == 1,
+                  unconfirmed: _unconfirmed.contains(ref),
+                  onConfirm: () => _confirm(ref),
                   onSetUp: () => _setUp(ref),
                   onRemove: () => _remove(ref),
                 ),
@@ -1024,9 +1090,15 @@ class _CalibrationCard extends StatelessWidget {
     required this.placement,
     required this.adds,
     required this.alone,
+    required this.unconfirmed,
+    required this.onConfirm,
     required this.onSetUp,
     required this.onRemove,
   });
+
+  /// Set up by another user and not yet checked here.
+  final bool unconfirmed;
+  final VoidCallback onConfirm;
 
   final BoardRef ref;
   final Uint8List? picture;
@@ -1068,6 +1140,21 @@ class _CalibrationCard extends StatelessWidget {
           children: [
             Text('Page ${ref.page}, board ${ref.index}',
                 style: AppText.body.copyWith(color: colors.textSecondary)),
+            if (unconfirmed)
+              Row(
+                key: ValueKey('calibrate-shared-${ref.page}-${ref.index}'),
+                children: [
+                  Icon(Icons.people_outline,
+                      size: 16, color: colors.textPrimary),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                        'Set up by another user: check it against the picture',
+                        style:
+                            AppText.body.copyWith(color: colors.textPrimary)),
+                  ),
+                ],
+              ),
             const SizedBox(height: AppSpacing.xs),
             _PictureAndBoard(
               pictureKey:
@@ -1099,6 +1186,13 @@ class _CalibrationCard extends StatelessWidget {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.xs,
               children: [
+                if (unconfirmed)
+                  FilledButton(
+                    key: ValueKey('calibrate-confirm-${ref.page}-${ref.index}'),
+                    // Checked against the picture, so not before it arrives.
+                    onPressed: picture == null ? null : onConfirm,
+                    child: const Text('Correct'),
+                  ),
                 FilledButton.tonal(
                   key: ValueKey('calibrate-setup-${ref.page}-${ref.index}'),
                   onPressed: picture == null ? null : onSetUp,

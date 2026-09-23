@@ -7002,3 +7002,21 @@ ekrana za 22 px — `Row` sa dva dugmeta postao je `Wrap`.
 
 Brojevi: aplikacija 3853 → 3861; backend 1621 → 1626 bez baze, 1752 → 1757 sa
 bazom (obe mere).
+
+## 23.9.2026 — faza 3g: deljena kalibracija, i dve mutacije koje su preživele s razlogom
+
+„Koju kalibraciju ponuditi kad ih ima više" rešeno je time što se ne bira:
+spajaju se, tabla po tabla, i računaju iz naloga pri svakom pitanju, pa nema
+kopije koja zastareva. Dve mutacije su preživele prvi krug, i obe su bile
+pitanje o testu, ne o kodu: „Done dok ima neproverenih tabli" nije se videlo
+jer je u testu i crna dama falila, pa je Done bio ugašen iz drugog razloga —
+**kad dva uslova gase isto dugme, test mora da ukloni jedan da bi video
+drugi**; a „vrati i sopstvenu kalibraciju" vidi samo test na pravoj bazi, koji
+se bez `TEST_DATABASE_URL` preskače — **mutacija koja dira SQL ide pod bazom**.
+
+Dva puna prolaza aplikacije su pala na po jednom testu koji nije u ovoj izmeni
+(`replay_audio_test` na vremenu, `syzygy_tablebase_service_test` na mreži —
+živi Lichess API, 6 s); oba prolaze sama, a nijedan nije pao dvaput.
+
+Brojevi: aplikacija 3861 → 3866 (3865 prošlo i jedan mrežni u poslednjem
+punom prolazu); backend 1626 → 1637 bez baze, 1757 → 1769 sa bazom.

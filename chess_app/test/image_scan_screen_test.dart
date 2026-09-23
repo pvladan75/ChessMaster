@@ -66,10 +66,17 @@ const _bookPages = [22, 40, 41, 42, 43, 44, 95];
 /// a calibration field answers the book's boards on the pages asked for, and
 /// [read] answers it with one; every request is kept in [sent].
 class _Server {
-  _Server({this.calibration, Map<String, dynamic>? read, this.readStatus = 200})
+  _Server(
+      {this.calibration,
+      this.shared,
+      Map<String, dynamic>? read,
+      this.readStatus = 200})
       : read = read ?? _defaultRead;
 
   final Map<String, dynamic>? calibration;
+
+  /// The book as other users set it up (phase 3g); null when nobody has.
+  final Map<String, dynamic>? shared;
   final Map<String, dynamic> read;
   final int readStatus;
   final List<http.Request> sent = [];
@@ -118,6 +125,15 @@ class _Server {
   http.Client client() => MockClient((req) async {
         sent.add(req);
         final path = req.url.path;
+        if (path.startsWith('/scans/calibrations/') &&
+            path.endsWith('/shared')) {
+          return shared == null
+              ? http.Response(
+                  jsonEncode(
+                      {'error': 'none', 'code': 'no_shared_calibration'}),
+                  404)
+              : http.Response(jsonEncode(shared), 200);
+        }
         if (path.startsWith('/scans/calibrations/')) {
           if (req.method == 'GET') {
             return calibration == null
@@ -460,7 +476,9 @@ void main() {
         (tester) async {
       final server = _Server();
       await _pump(tester, server);
-      expect(server.trail.skip(1), isEmpty,
+      // Phase 3g added a question — whether another user set the book up —
+      // but still no upload before the trainer asks to browse.
+      expect(server.trail.where((t) => t.startsWith('POST')), isEmpty,
           reason: 'the book was sent before the trainer asked to browse it');
       expect(
           find.byKey(const ValueKey('calibration-coverage')), findsOneWidget);
@@ -555,6 +573,141 @@ void main() {
           ((jsonDecode(put.body) as Map)['boards'] as List)
               .map((b) => '${b['page']}'),
           ['42', '41', '95']);
+    });
+
+    // Phase 3g (the owner, 23.9.2026): a calibration is no private thing. A
+    // book another user set up opens with their boards, each to be checked
+    // here against its picture before it counts or is remembered.
+    testWidgets(
+        'another user\'s boards are offered, and count only once checked',
+        (tester) async {
+      final server = _Server(shared: {
+        'boards': [
+          {
+            'page': 42,
+            'index': 1,
+            'fen': _allButQueen,
+            'ignore': [],
+            'votes': 2
+          },
+          {
+            'page': 95,
+            'index': 1,
+            'fen': _blackQueen,
+            'ignore': [],
+            'votes': 1
+          },
+        ],
+        'absent': <String>[],
+        'contributors': 2,
+      });
+      await _pump(tester, server);
+      await _settle(tester, 6);
+      expect(
+          find.byKey(const ValueKey('calibrate-shared-42-1')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('calibrate-shared-95-1')), findsOneWidget);
+      expect(find.textContaining('Set up by another user'), findsNWidgets(2));
+      // Not counted yet: the grid still has nothing, and nothing is kept.
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('coverage-R-dark')),
+              matching: find.byIcon(Icons.radio_button_unchecked)),
+          findsOneWidget);
+      expect(server.sent.where((r) => r.method == 'PUT'), isEmpty);
+      expect(_readButton(tester).onPressed, isNull);
+
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-confirm-42-1')));
+      await tester.tap(find.byKey(const ValueKey('calibrate-confirm-42-1')));
+      await _settle(tester, 4);
+      Map put() =>
+          jsonDecode(server.sent.lastWhere((r) => r.method == 'PUT').body)
+              as Map;
+      expect((put()['boards'] as List).map((b) => '${b['page']}'), ['42'],
+          reason: 'an unchecked board was remembered');
+      // Everything the checked board lacks said absent: only the unchecked
+      // board can keep the calibration from being done now.
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibration-absent-q')));
+      await tester.tap(find.byKey(const ValueKey('calibration-absent-q')));
+      await _settle(tester, 4);
+      expect(_readButton(tester).onPressed, isNull,
+          reason: 'done with a board still unchecked');
+
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-confirm-95-1')));
+      await tester.tap(find.byKey(const ValueKey('calibrate-confirm-95-1')));
+      await _settle(tester, 4);
+      expect(
+          (put()['boards'] as List).map((b) => '${b['page']}'), ['42', '95']);
+      expect(_readButton(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('another user\'s board set up again here is checked by it',
+        (tester) async {
+      final server = _Server(shared: {
+        'boards': [
+          {'page': 42, 'index': 1, 'fen': _kingsOnly, 'ignore': [], 'votes': 1},
+        ],
+        'absent': <String>[],
+        'contributors': 1,
+      });
+      await _pump(tester, server, pick: _answers([_allButQueen]));
+      await _settle(tester, 6);
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('calibrate-setup-42-1')));
+      await tester.tap(find.byKey(const ValueKey('calibrate-setup-42-1')));
+      await _settle(tester, 4);
+      expect(find.byKey(const ValueKey('calibrate-shared-42-1')), findsNothing);
+      final put = server.sent.lastWhere((r) => r.method == 'PUT');
+      expect(
+          ((jsonDecode(put.body) as Map)['boards'] as List)
+              .map((b) => '${b['page']}:${b['fen']}'),
+          ['42:$_allButQueen'],
+          reason: 'what was set up here is kept, not what was offered');
+    });
+
+    testWidgets(
+        'a calibration of ones own is offered only the boards that add to it',
+        (tester) async {
+      final server = _Server(
+        calibration: {
+          'bookName': 'Silman.pdf',
+          'boards': [
+            {'page': 42, 'index': 1, 'fen': _allButQueen, 'ignore': []},
+          ],
+          'absent': <String>[],
+        },
+        shared: {
+          'boards': [
+            {
+              'page': 41,
+              'index': 1,
+              'fen': _kingsOnly,
+              'ignore': [],
+              'votes': 3
+            },
+            {
+              'page': 95,
+              'index': 1,
+              'fen': _blackQueen,
+              'ignore': [],
+              'votes': 1
+            },
+          ],
+          'absent': <String>[],
+          'contributors': 3,
+        },
+      );
+      await _pump(tester, server);
+      await _settle(tester, 6);
+      expect(find.byKey(const ValueKey('calibrate-42-1')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('calibrate-shared-95-1')), findsOneWidget,
+          reason: 'the black queen this calibration lacks was not offered');
+      expect(find.byKey(const ValueKey('calibrate-41-1')), findsNothing,
+          reason: 'a board that adds nothing was offered');
     });
 
     testWidgets('a board removed leaves the calibration and the table',
