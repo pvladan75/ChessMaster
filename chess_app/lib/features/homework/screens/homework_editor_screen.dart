@@ -39,6 +39,7 @@ class HomeworkEditorScreen extends StatefulWidget {
     this.homeworkId,
     required this.api,
     this.groupApi,
+    this.initialItems = const [],
   });
 
   /// Null for a homework never saved — the first save is a `POST`.
@@ -48,6 +49,13 @@ class HomeworkEditorScreen extends StatefulWidget {
   /// The student list the send dialog offers. For tests, which have no
   /// server to answer.
   final GroupApiService? groupApi;
+
+  /// Rows a new homework opens with, added as „Add" would add them. The
+  /// Library's „Assign to student" on a game exercise lands here
+  /// (`docs/PLAN-MATERIJAL.md`, phase 0): `/assignments/custom` can only make
+  /// a find-the-move assignment, and the one writer of an `engine_game` item
+  /// is a homework's send.
+  final List<HomeworkItem> initialItems;
 
   @override
   State<HomeworkEditorScreen> createState() => _HomeworkEditorScreenState();
@@ -93,6 +101,7 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
   void initState() {
     super.initState();
     _savedId = widget.homeworkId;
+    _appendRows(widget.initialItems);
     if (widget.homeworkId != null) _load();
   }
 
@@ -163,12 +172,15 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
   /// both — see [homeworkItemsFromExercises]).
   void _addItems(Iterable<HomeworkItem> items) {
     if (items.isEmpty) return;
-    setState(() {
-      for (final item in items) {
-        _newCounter++;
-        _rows.add(_Row('new-$_newCounter', item));
-      }
-    });
+    setState(() => _appendRows(items));
+  }
+
+  /// [_addItems] without the rebuild, so `initState` can call it.
+  void _appendRows(Iterable<HomeworkItem> items) {
+    for (final item in items) {
+      _newCounter++;
+      _rows.add(_Row('new-$_newCounter', item));
+    }
   }
 
   Future<void> _onAdd() async {

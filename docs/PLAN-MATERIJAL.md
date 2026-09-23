@@ -310,7 +310,13 @@ suite with nothing else running, and every backend phase with `npm test` with
 `.env` moved aside (the environment CI has) and, where a route reaches the
 database, on a throwaway cluster (`CLAUDE.md`, the four commands).
 
-### Phase 0 — two small things first [implementer]
+### Phase 0 — two small things first [implementer] — built 23.9.2026
+
+*Built by the lead inline (too small to brief). Baseline measured in a
+worktree at `fe1af7e`: app 3876 (1 skipped), backend 1637 / 1769, analyze
+the 26 infos — all as quoted above. After: app 3879, analyze list identical,
+backend untouched. Both mutations red; the gate is
+`test/assign_game_exercise_test.dart`. Checked live inside item 231.*
 
 **Build.**
 

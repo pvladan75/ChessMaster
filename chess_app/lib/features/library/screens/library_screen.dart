@@ -8,10 +8,13 @@ import 'package:chess_app/features/analysis_studio/screens/analysis_studio_scree
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/assignments/services/assignment_api_service.dart';
 import 'package:chess_app/features/exercises/models/exercise.dart';
+import 'package:chess_app/features/exercises/models/exercise_task_words.dart';
 import 'package:chess_app/features/exercises/screens/exercise_editor_screen.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
 import 'package:chess_app/features/groups/services/group_api_service.dart';
+import 'package:chess_app/features/homework/models/homework_items_from_exercises.dart';
+import 'package:chess_app/features/homework/screens/homework_editor_screen.dart';
 import 'package:chess_app/features/homework/screens/homework_list_screen.dart';
 import 'package:chess_app/features/homework/services/homework_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
@@ -504,11 +507,31 @@ class _LibraryScreenState extends State<LibraryScreen> {
     AppFeedback.success(context, 'Added to "${course.title}".');
   }
 
+  /// A find-the-move exercise is sent straight to one student. A game
+  /// exercise cannot be: `/assignments/custom` makes find assignments only and
+  /// refused every game (`docs/PLAN-MATERIJAL.md` §2, „A bug on the way"), so
+  /// it opens a homework holding just that item, which is where a trainer
+  /// sees what is sent and whose send can carry a game.
   Future<void> _assign(LibraryEntry entry) async {
+    if (exerciseAskOf(entry.task) != ExerciseAsk.find) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => HomeworkEditorScreen(
+          api: _homework,
+          groupApi: widget.groupApi,
+          initialItems: homeworkItemsFromExercises([entry]),
+        ),
+      ));
+      return;
+    }
     final message = await showDialog<String>(
       context: context,
-      builder: (context) =>
-          AssignPositionsDialog(session: widget.session, puzzleIds: [entry.id]),
+      builder: (context) => AssignPositionsDialog(
+        session: widget.session,
+        puzzleIds: [entry.id],
+        // The client the homework door goes through: a test fakes one
+        // server for every way this screen assigns.
+        client: _homework.client,
+      ),
     );
     if (message == null || !mounted) return;
     AppFeedback.show(context, () => SnackBar(content: Text(message)));

@@ -7044,3 +7044,29 @@ iz stanja sobe — **proveri ono što korisnik vidi, ne samo da je pitanje
 postavljeno.**
 
 Brojevi: aplikacija 3866 → 3876.
+
+## 23.9.2026 — PLAN-MATERIJAL faza 0: zadatak-partija se dodeljuje kroz domaći
+
+Osnovica izmerena u zasebnom worktree-u pre ijedne izmene: aplikacija 3876
+(1 preskočen), backend 1637 bez baze / 1769 sa bazom, `flutter analyze` istih
+26 info — sve kao u `CLAUDE.md`.
+
+„Assign to student" na zadatku-partiji iz Biblioteke slao je na
+`/assignments/custom`, koji pravi samo Find stavke i odbijao je svaku partiju.
+Sada kartica otvara editor domaćeg sa tom jednom stavkom
+(`HomeworkEditorScreen.initialItems`, kroz `homeworkItemsFromExercises`), a
+Find zadatak ide kao i pre. Dijalog nudi samo prihvaćene učenike. `setState`
+ne sme u `initState`, pa je `_addItems` podeljen na dodavanje i ponovno
+crtanje.
+
+Mutacija „zameni granu" (`!=` → `==`) oborila je sva tri slučaja — tačna, ali
+ne kaže ništa o tome koji slučaj hvata koji. **Mutacija koja menja granu u oba
+smera ne kaže koji slučaj hvata koji**; jednostrani oblik (partija nikad ne
+ulazi u svoju granu) oborio je tačno slučaj partije, sa porukom „a game went to
+the dialog". Filter statusa: oboren tačno slučaj „samo prihvaćeni".
+
+Pun prolaz: 3878 prošlo, 1 pao — `replay_audio_test` („Play did not start the
+voice"), u istoj sekundi kad i `game_tutorial_run_test`; sam prolazi 3 od 3.
+Isti test koji je pao na vremenu i 23.9 u fazi 3g (pravilo 19).
+
+Brojevi: aplikacija 3876 → 3879; backend nepromenjen.

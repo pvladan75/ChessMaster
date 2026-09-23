@@ -19,10 +19,15 @@ class AssignPositionsDialog extends StatefulWidget {
     super.key,
     required this.session,
     required this.puzzleIds,
+    this.client,
   });
 
   final UserSession session;
   final List<String> puzzleIds;
+
+  /// Seam for a test, which fakes the server here (rule 7); null is a real
+  /// client.
+  final http.Client? client;
 
   @override
   State<AssignPositionsDialog> createState() => _AssignPositionsDialogState();
@@ -56,6 +61,8 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
     super.dispose();
   }
 
+  late final http.Client _client = widget.client ?? http.Client();
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${widget.session.token}',
@@ -68,7 +75,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
     // connection over a parsing mistake of ours.
     http.Response res;
     try {
-      res = await http
+      res = await _client
           .get(Uri.parse('$backendUrl/trainer/students'), headers: _headers)
           .timeout(const Duration(seconds: 20));
     } catch (e) {
@@ -93,10 +100,15 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
     }
 
     try {
-      // The endpoint answers `{ students: [...] }`, not a bare array.
+      // The endpoint answers `{ students: [...] }`, not a bare array, and it
+      // lists pending students too, with their status. Only an accepted one
+      // may be sent anything — the server refuses the rest — so a pending
+      // name here is a choice that can only fail (`docs/PLAN-MATERIJAL.md`,
+      // phase 0; the same filter as `GroupApiService.acceptedStudents`).
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final list = (body['students'] as List? ?? const [])
           .map((e) => Map<String, dynamic>.from(e as Map))
+          .where((s) => s['status'] == 'accepted')
           .toList();
       setState(() {
         _students = list;
@@ -126,7 +138,7 @@ class _AssignPositionsDialogState extends State<AssignPositionsDialog> {
     });
 
     try {
-      final res = await http
+      final res = await _client
           .post(
             Uri.parse('$backendUrl/assignments/custom'),
             headers: _headers,
