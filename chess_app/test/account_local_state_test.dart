@@ -1,8 +1,12 @@
+import 'dart:io';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/game_session_service.dart';
@@ -110,6 +114,34 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('solved_local_puzzles'), isNull);
     expect(prefs.getString('active_room_code'), isNull);
+  });
+
+  test('the engine answers kept for tutorials go with the account', () async {
+    // The device store lives under the support directory, which the test
+    // points at a folder of its own through the plugin's channel.
+    final support = Directory.systemTemp.createTempSync('support_');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async => support.path);
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(channel, null);
+      if (support.existsSync()) support.deleteSync(recursive: true);
+    });
+
+    await SessionService.instance.signIn(user(11), rememberMe: true);
+    final recorder = deviceFactsStore().recorder('game-1');
+    recorder.add('fen a', [
+      {'move': 'e4', 'eval': '+0.20', 'value_for_mover': 20, 'line': 'e4'},
+    ]);
+    await recorder.flush();
+    expect(await deviceFactsStore().load('game-1'), hasLength(1),
+        reason: 'the answers were never written');
+
+    await SessionService.instance.signOut();
+    await AccountLocalState.engineAnswersWiped;
+    expect(await deviceFactsStore().load('game-1'), isEmpty,
+        reason: 'the next account would find which games were analysed here');
   });
 
   test('what cannot be re-made is not deleted', () async {

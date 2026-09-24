@@ -4,8 +4,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
+import 'package:chess_app/services/account_local_state.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -14,6 +16,8 @@ List<Map<String, dynamic>> _cands(String move) => [
     ];
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late Directory dir;
   late GameFactsStore store;
 
@@ -102,6 +106,38 @@ void main() {
     over.add('fen a', _cands('e4'));
     await over.flush();
     expect(await store.load('torn'), hasLength(1));
+  });
+
+  test('clearing forgets every game, and a store never written clears too',
+      () async {
+    for (final key in ['g1', 'g2']) {
+      final rec = store.recorder(key);
+      rec.add('fen a', _cands('e4'));
+      await rec.flush();
+    }
+    await store.clear();
+    expect(await store.load('g1'), isEmpty);
+    expect(await store.load('g2'), isEmpty);
+    expect(dir.existsSync(), isFalse);
+
+    await store.clear();
+  });
+
+  test('a build begun before a sign-out writes nothing after it', () async {
+    SharedPreferences.setMockInitialValues({});
+    final before = store.recorder('g1');
+
+    await AccountLocalState.clear();
+    before.add('fen a', _cands('e4'));
+    await before.flush();
+    expect(await store.load('g1'), isEmpty,
+        reason: 'the last account\'s answers came back after the wipe');
+
+    // The fence is the wipe, not the recorder: one made after it writes.
+    final after = store.recorder('g1');
+    after.add('fen a', _cands('e4'));
+    await after.flush();
+    expect(await store.load('g1'), hasLength(1));
   });
 
   test('the engine is named by its binary, and a missing one is loud',

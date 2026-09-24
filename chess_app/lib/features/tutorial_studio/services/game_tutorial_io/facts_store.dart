@@ -25,6 +25,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:chess_app/services/account_local_state.dart';
+
 const int _storeVersion = 1;
 
 /// The name an engine binary's answers are kept under.
@@ -88,19 +90,34 @@ class GameFactsStore {
     }
   }
 
+  /// Forgets every game's answers. [AccountLocalState.clear] calls it when the
+  /// device passes to another account: which positions were searched names the
+  /// games that were, and the fault of 18.9.2026 was exactly one account
+  /// offered the last one's analysis. A cache, so clearing it costs time and
+  /// never a result.
+  Future<void> clear() async {
+    final dir = await _directory();
+    if (await dir.exists()) await dir.delete(recursive: true);
+  }
+
   /// Keeps answers under [key] as they arrive, starting from [initial].
+  ///
+  /// The recorder is fenced at birth ([AccountLocalState.epoch]): a build begun
+  /// before a sign-out writes nothing after it, or the wipe would be undone by
+  /// the last write of the account it was meant to forget.
   GameFactsRecorder recorder(String key,
           {Map<String, List<Map<String, dynamic>>> initial = const {}}) =>
-      GameFactsRecorder._(this, key, {...initial});
+      GameFactsRecorder._(this, key, {...initial}, AccountLocalState.epoch);
 }
 
 /// Writes a build's answers as they come, one write at a time.
 class GameFactsRecorder {
-  GameFactsRecorder._(this._store, this._key, this._answers);
+  GameFactsRecorder._(this._store, this._key, this._answers, this._epoch);
 
   final GameFactsStore _store;
   final String _key;
   final Map<String, List<Map<String, dynamic>>> _answers;
+  final int _epoch;
 
   Future<void> _chain = Future.value();
   bool _queued = false;
@@ -122,6 +139,7 @@ class GameFactsRecorder {
   Future<void> flush() => _chain;
 
   Future<void> _write() async {
+    if (!AccountLocalState.isCurrent(_epoch)) return;
     final file = await _store._file(_key);
     await file.parent.create(recursive: true);
     // Written beside the file and renamed onto it: a crash in the middle

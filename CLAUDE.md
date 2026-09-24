@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3908 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3911 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1820 with TEST_DATABASE_URL, 1684 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -665,6 +665,16 @@ wrong message — SkakNew had claimed it on 2 of its 184 diagram rows, because a
 map was taken as soon as it explained *a* row. **Explaining a row and explaining
 the book are two claims**: a row map now needs half of the rows that stack
 into diagrams (the right ones explain 80–100%, the wrong one 1%).
+Then the tutorial's engine answers go with the account (→ **3911**, a full
+run on 24.9.2026 with nothing else running; analyze the same 26 infos):
+`game_facts/` under the support folder named every game analysed on the device
+and outlived a sign-out, so it is wiped with the drafts and its recorder is
+fenced by `AccountLocalState.epoch` like them. **A cache is still the last
+account's data** when its keys name what that account looked at. The first full
+run hung four sign-out tests: the wipe asks `path_provider` over a platform
+channel, which a widget test's fake clock never answers — so the wipe is
+started and not awaited. **A step that brings I/O into a path that was only
+preferences changes what that path may wait for.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

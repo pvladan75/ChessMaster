@@ -7329,3 +7329,45 @@ jer se polje menja između njih; na starom kodu oba crvena, telefon sa „a 28.0
 px piece on a 37.5 px square".
 
 Brojevi: aplikacija 3906 → 3908, pun prolaz; analyze isti 26 poznatih infoa.
+
+## 24.9.2026 — Odgovori engine-a za tutorijale idu sa nalogom
+
+Fable je, recenzirajući plan zagonetki, primetio da skladište odgovora
+engine-a za tutorijale (`game_facts/` u support folderu aplikacije) nema
+ogradu naloga. Provereno: `facts_store.dart` ne pominje `AccountLocalState`, a
+`AccountLocalState.clear` ga nije brisao. Pozicija nije lična, ali ključevi
+fajlova su partije koje je neko analizirao — isti oblik kao greška od
+18.9.2026 (novi nalog dobije analizu prethodnog), samo blaži.
+
+Popravka po postojećem obrascu, ne novom: `GameFactsStore.clear()` briše
+folder i poziva se iz `AccountLocalState.clear` kao peti korak, a
+`GameFactsRecorder` uzima epohu pri rođenju i ne piše posle brisanja — inače bi
+build započet pre odjave vratio odgovore naloga koji je trebalo zaboraviti.
+
+Testovi napisani pre koda, sa praznim `clear()` da crveno bude pravo, a ne
+greška kompajliranja: sva tri nova crvena sa „Expected: empty". Dve mutacije,
+svaka crvena na tačno svom slučaju: bez ograde u `_write` pada „a build begun
+before a sign-out writes nothing after it", bez koraka u `clear` pada „the
+engine answers kept for tutorials go with the account". Test naloga usmerava
+`path_provider` kanal na privremeni folder — nijedan test pre ovoga to nije
+radio.
+
+**Keš je i dalje podatak prethodnog naloga** kada njegovi ključevi imenuju ono
+što je taj nalog gledao.
+
+**Pun prolaz je našao ono što šest fajlova nije**: četiri testa odjave
+(`age_gate_test`, `left_behind_on_sign_out_test`, dva u `session_expiry_test`)
+su visila do isteka („did not complete"). `signOut` je čekao brisanje keša, a
+brisanje prvo pita `path_provider` za folder — poziv preko platformskog kanala,
+čiji odgovor u `testWidgets` stiže na pravu petlju događaja koju lažni sat
+nikad ne pokrene. Test sa `test()` (pravo vreme) je prolazio, pa ga moja dva
+fajla nisu mogla videti. Popravka nije u testovima nego u pravilu: **odjava ne
+sme da stoji na disku** — brisanje se pokreće i ne čeka (`engineAnswersWiped`
+za test koji hoće da ga sačeka), a ograda epohe već sprečava da stari nalog
+upiše išta posle. Na uređaju to znači i da spor disk ne drži ekran za prijavu.
+**Korak koji uvodi I/O u put koji je do tada bio samo `SharedPreferences`
+menja šta taj put sme da čeka** — i to vidi samo test sa lažnim satom.
+
+Brojevi: aplikacija 3908 → 3911 (+2 u `game_tutorial_facts_store_test.dart`,
++1 u `account_local_state_test.dart`), pun prolaz posle popravke visećih
+testova, bez ičeg drugog pokrenutog; analyze isti 26 poznatih infoa.

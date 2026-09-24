@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/game_session_service.dart';
@@ -97,5 +99,17 @@ abstract final class AccountLocalState {
         AppLogger.log('[AccountLocalState] ❌ ${step.$1} not cleared: $e');
       }
     }
+    // Started, not waited for: it is file I/O behind a platform call, and a
+    // sign-out must not stand on a disk — a widget test's fake clock never
+    // completes that call, and a slow disk would hold the login screen. The
+    // recorders are already fenced by [_epoch] above, so a late wipe can cost
+    // the next account at most an answer it would search again.
+    engineAnswersWiped = deviceFactsStore().clear().catchError((Object e) {
+      AppLogger.log('[AccountLocalState] ❌ engine answers not cleared: $e');
+    });
   }
+
+  /// The wipe of the tutorials' engine answers that [clear] started last.
+  @visibleForTesting
+  static Future<void> engineAnswersWiped = Future.value();
 }
