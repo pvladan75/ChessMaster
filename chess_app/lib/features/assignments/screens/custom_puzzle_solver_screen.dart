@@ -2,6 +2,7 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -10,8 +11,11 @@ import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
+import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
 import '../models/assignment.dart';
+import '../models/puzzle_review.dart';
 import '../models/solve_order.dart';
 import '../models/solve_target.dart';
 import '../services/assignment_api_service.dart';
@@ -82,6 +86,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   late final SolveTarget _target;
   final ChessBoardController _board = ChessBoardController();
 
+  /// The portrait column's scroll, so choosing a line brings the board — and
+  /// the strip under it — back into view.
+  final ScrollController _scroll = ScrollController();
+
   /// Every position, in the trainer's order.
   List<CustomPosition> get _queue => widget.positions;
 
@@ -95,6 +103,16 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
 
   /// The server's verdict on the position on screen; null until it answers.
   CustomAttemptResult? _verdict;
+
+  /// What a puzzle from a game reveals, made from [_verdict]'s review when the
+  /// answer arrives (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 5); null for
+  /// every other exercise, and always before the move.
+  PuzzleReveal? _reveal;
+
+  /// The line the reveal is playing on the board, and how far into it; null
+  /// while the board shows the puzzle.
+  RevealLine? _revealLine;
+  int _revealPly = 0;
   bool _sending = false;
   DateTime _shownAt = DateTime.now();
 
@@ -134,6 +152,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
   @override
   void dispose() {
     _board.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -141,7 +160,43 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     _board.loadFen(_current.fen);
     setState(() {
       _verdict = null;
+      _reveal = null;
+      _revealLine = null;
+      _revealPly = 0;
       _shownAt = DateTime.now();
+    });
+  }
+
+  /// Plays [line] from its start, the first move shown as an arrow.
+  void _showLine(RevealLine line) {
+    _board.loadFen(line.fens.first);
+    setState(() {
+      _revealLine = line;
+      _revealPly = 0;
+    });
+    // The tiles sit under the verdict, below the board: a line walked on a
+    // board scrolled out of sight is a line nobody sees (found by looking at
+    // the screen at 360 x 640, where only three ranks were left in view).
+    if (_scroll.hasClients) {
+      _scroll.animateTo(0,
+          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    }
+  }
+
+  void _seekLine(int ply) {
+    final line = _revealLine;
+    if (line == null) return;
+    final to = ply.clamp(0, line.length);
+    _board.loadFen(line.fens[to]);
+    setState(() => _revealPly = to);
+  }
+
+  /// Back to the question's own position, whatever line was on the board.
+  void _backToPuzzle() {
+    _board.loadFen(_current.fen);
+    setState(() {
+      _revealLine = null;
+      _revealPly = 0;
     });
   }
 
@@ -217,9 +272,18 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
     // one is taken back, so the position shown is the one that was asked.
     if (!result.correct) _board.loadFen(_current.fen);
     widget.onAnswered?.call(puzzleId, result.correct);
+    final review = result.review;
     setState(() {
       _sending = false;
       _verdict = result;
+      _reveal = review == null
+          ? null
+          : PuzzleReveal.of(
+              fen: _current.fen,
+              review: review,
+              solverSan: result.playedSan,
+              correct: result.correct,
+            );
       _answered[puzzleId] = result.correct;
     });
   }
@@ -301,40 +365,70 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           ),
         ),
       ),
-      body: SafeArea(
-        child: LandscapeBoardLayout.applies(context)
-            ? LandscapeBoardLayout(
-                board: _boardView,
-                panels: _header(),
-                footer: [
-                  const SizedBox(height: AppSpacing.sm),
-                  _verdictPanel(),
-                ],
-              )
-            : LayoutBuilder(
-                builder: (context, constraints) {
-                  final heightBased =
-                      (constraints.maxHeight - 280).clamp(200.0, 520.0);
-                  final widthBased =
-                      (constraints.maxWidth - 24).clamp(180.0, 520.0);
-                  final boardSize =
-                      heightBased < widthBased ? heightBased : widthBased;
+      // The arrow keys walk the reveal's line, as its strip does. With no line
+      // on the board the cursor holds no positions, so the keys have nowhere
+      // to go while the position is still a question.
+      body: MoveKeyboardShortcuts(
+        cursor: _revealCursor(),
+        // The cursor's own onSeek already redraws the board.
+        onChanged: () {},
+        child: SafeArea(
+          child: LandscapeBoardLayout.applies(context)
+              ? LandscapeBoardLayout(
+                  board: _boardView,
+                  // The verdict scrolls with the task: with a reveal it is
+                  // taller than a pinned footer can hold on a phone on its side.
+                  panels: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _header(),
+                      const SizedBox(height: AppSpacing.sm),
+                      _verdictPanel(),
+                    ],
+                  ),
+                  footer: [
+                    if (_revealLine != null) _revealStrip(_revealLine!),
+                  ],
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final heightBased =
+                        (constraints.maxHeight - 280).clamp(200.0, 520.0);
+                    final widthBased =
+                        (constraints.maxWidth - 24).clamp(180.0, 520.0);
+                    final boardSize =
+                        heightBased < widthBased ? heightBased : widthBased;
 
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Column(
-                      children: [
-                        _header(),
-                        const SizedBox(height: 10),
-                        Center(child: _boardView(boardSize)),
-                        const SizedBox(height: AppSpacing.md),
-                        _verdictPanel(),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                    return SingleChildScrollView(
+                      controller: _scroll,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        children: [
+                          _header(),
+                          const SizedBox(height: 10),
+                          Center(child: _boardView(boardSize)),
+                          // The strip right under the board, so the line and
+                          // the board it walks are in view together.
+                          if (_revealLine != null) _revealStrip(_revealLine!),
+                          const SizedBox(height: AppSpacing.md),
+                          _verdictPanel(),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
       ),
+    );
+  }
+
+  /// The cursor over the reveal's line — the strip's and the keys' alike.
+  LinearMoveCursor _revealCursor() {
+    final line = _revealLine;
+    return LinearMoveCursor(
+      fens: line?.fens ?? const [],
+      index: _revealPly,
+      onSeek: _seekLine,
     );
   }
 
@@ -423,7 +517,7 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
               _verdict == null && !_sending && _alreadyAnswered == null,
           isDrawingMode: false,
           drawingStartSquare: null,
-          arrows: const [],
+          arrows: _revealLine?.arrowsAt(_revealPly) ?? const [],
           engineArrows: const [],
           onMove: _onMove,
           // Closed while the position is still the question, open once it is
@@ -521,6 +615,10 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
         if (!verdict.correct && verdict.solutionSan != null)
           Text('Solution: ${verdict.solutionSan}',
               style: AppText.bodyLarge.copyWith(color: colors.textSecondary)),
+        if (_reveal != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          _revealPanel(_reveal!),
+        ],
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -548,6 +646,92 @@ class _CustomPuzzleSolverScreenState extends State<CustomPuzzleSolverScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  /// The reveal, after the verdict and right or wrong: the words, each line
+  /// the review offers, and what is said of the solver's own move. The strip
+  /// that walks a chosen line is [_revealStrip], beside the board.
+  Widget _revealPanel(PuzzleReveal reveal) {
+    final colors = context.colors;
+    return Column(
+      key: const Key('reveal'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (reveal.words != null) ...[
+          Text(reveal.words!,
+              key: const Key('reveal-words'),
+              style: AppText.body.copyWith(color: colors.textPrimary)),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        for (final l in reveal.lines) ...[
+          _revealTile(l),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+        if (reveal.note != null)
+          Text(reveal.note!,
+              key: const Key('reveal-note'),
+              style: AppText.body.copyWith(color: colors.textSecondary)),
+      ],
+    );
+  }
+
+  /// The strip that walks [line], its moves, and the way back to the puzzle —
+  /// under the board in portrait, pinned under the panels on a phone on its
+  /// side.
+  Widget _revealStrip(RevealLine line) {
+    final colors = context.colors;
+    return Column(
+      key: const Key('reveal-strip'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MoveNavigationControls(
+          cursor: _revealCursor(),
+          centerLabel: '$_revealPly / ${line.length}',
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(line.sans.join(' '),
+                  key: const Key('reveal-moves'),
+                  style: AppText.body.copyWith(color: colors.textSecondary)),
+            ),
+            TextButton.icon(
+              key: const Key('reveal-back'),
+              onPressed: _backToPuzzle,
+              icon: const Icon(Icons.undo, size: 16),
+              label: const Text('Back to the puzzle'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _revealTile(RevealLine line) {
+    final colors = context.colors;
+    final chosen = identical(line, _revealLine) ||
+        (_revealLine?.kind == line.kind && _revealLine != null);
+    return OutlinedButton(
+      key: ValueKey('reveal-line-${line.kind.name}'),
+      onPressed: () => _showLine(line),
+      style: OutlinedButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        side: BorderSide(
+            color: chosen ? colors.accent : colors.border,
+            width: chosen ? 2 : 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(line.title,
+              style: AppText.bodyBold.copyWith(color: colors.textPrimary)),
+          Text(line.caption,
+              style: AppText.caption.copyWith(color: colors.textSecondary)),
+        ],
+      ),
     );
   }
 }

@@ -1332,6 +1332,29 @@ shows the second line, a third move shows the sentence and never the game's
 refutation; a text that must be read
 is measured (`didExceedMaxLines`), not only „fits".
 
+*Built 25.9.2026 by the lead* (app 4110 → **4132**, analyze the same 23; a
+full run). `PuzzleReview` and `PuzzleReveal` (`features/assignments/models/
+puzzle_review.dart`) — the second decides which line goes under which move,
+as pure code; the solve screen draws what it says: the words, a tile per
+line, the sentence for the solver's move, and, once a line is chosen, the
+app's one move strip (`MoveNavigationControls` over a `LinearMoveCursor`,
+the arrow keys too — `move_keys_everywhere_test` asked for them) **under the
+board**, the move about to be played as an arrow. Decided while building: an
+accepted answer that is not the best line's first move is told „Also right —
+no line is kept for this move"; the game's move played again is told so and
+keeps its own line; an only move (the game's move was the best) has one line.
+**Found by looking, not by the gate**: the first build put the strip under
+the tiles, and the real screen at 360 x 640 walked a line on a board scrolled
+down to three ranks — now the strip is under the board, choosing a line
+scrolls back to the top, and a case holds the whole board and the strip on
+the screen (red without the scroll). Eleven mutations, all red on their own
+case once „Back to the puzzle" was tested from a line's end rather than its
+start, where the board already is the puzzle. **Not able to fail on the
+client**: „nothing of the review before the move" — the review exists only in
+the attempt's answer, so the case guards the day that changes. Two keys'
+guards were equivalent (an empty cursor, a null line) and the redundant flag
+was dropped. **Not live-checkable until phase 4** sends a review.
+
 ### Phase 6 — the old puzzles [lead]
 
 Count the `origin = 'mistakes'` rows, report, delete on the owner's yes.

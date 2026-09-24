@@ -1,6 +1,7 @@
 /// Homework as the two sides see it: what was set, and how far it has got.
 library;
 
+import 'package:chess_app/features/assignments/models/puzzle_review.dart';
 import 'package:chess_app/features/homework/models/homework_child.dart';
 
 /// One assignment, with its progress counters already aggregated by the server.
@@ -347,6 +348,7 @@ class CustomAttemptResult {
     required this.reason,
     this.playedSan,
     this.solutionSan,
+    this.review,
   });
 
   final bool correct;
@@ -361,12 +363,18 @@ class CustomAttemptResult {
   final String? playedSan;
   final String? solutionSan;
 
+  /// What a puzzle from a game reveals, released with the answer
+  /// (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phases 2 and 5); null for every
+  /// other exercise.
+  final PuzzleReview? review;
+
   factory CustomAttemptResult.fromJson(Map<String, dynamic> json) {
     return CustomAttemptResult(
       correct: json['correct'] == true,
       reason: json['reason']?.toString() ?? '',
       playedSan: json['playedSan']?.toString(),
       solutionSan: json['solutionSan']?.toString(),
+      review: PuzzleReview.fromJson(json['review']),
     );
   }
 }

@@ -7725,3 +7725,36 @@ sada se poredi sa onim što je poslato, vrednost po vrednost.
 **Ispitna baza na Windows-u**: `pg_ctl … start | tail -1` nikad ne završi —
 proces baze nasledi cev, pa `tail` čeka zauvek, a suite iza njega ne krene.
 Pokretati sa `> fajl 2>&1`, bez cevi.
+
+## 25.9.2026 — faza 5: otkrivanje, i tabla koja je otišla sa ekrana
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md` faza 5. Posle odgovora, tačnog ili ne, ekran za
+rešavanje pokazuje reči, šta je odigrano i kako je kažnjeno, šta je bilo
+najbolje, i šta je sa učenikovim potezom — druga linija engine-a samo ako je
+učenik baš nju odigrao, inače rečenica da linije nema. Pravila su u čistom
+kodu (`PuzzleReveal`), ekran samo crta.
+
+Brojevi: aplikacija 4110 → **4132** (+22 u `puzzle_reveal_test`: osam čistih,
+šest slučajeva ekrana na dve veličine, strelice, i ekran bez pregleda), pun
+prolaz; `flutter analyze` isti 23.
+
+**Kapija zelena, ekran pogrešan.** Prva verzija je traku za korake stavila
+ispod pločica sa linijama, ispod presude, ispod table. Svi slučajevi su
+prolazili — koraci su menjali tablu, strelice su bile tačne. Tek slika pravog
+ekrana na 360 x 640, sa pravim fontom (`loadRoboto`), pokazala je da se linija
+šeta po tabli od koje su na ekranu ostala tri reda: da bi se stiglo do trake,
+tabla je morala da ode gore. Sada je traka odmah ispod table, izbor linije
+vraća prikaz na vrh, i slučaj traži da su cela tabla i traka na ekranu — crven
+bez vraćanja na vrh. **Vizuelna stvar nije gotova dok se ne pogleda**; test
+koji meri stanje table ne vidi gde je tabla.
+
+Uz to: pomoćna funkcija za dodir u testu (`ensureVisible`) sama pomera prikaz,
+pa prva slika posle popravke opet je izgledala loše — od alata, ne od
+aplikacije. **Kad slika iznenadi, pitaj prvo instrument.** I stražar koji čita
+izvor (`move_keys_everywhere_test`) je uhvatio traku bez strelica na
+tastaturi; dodat je i slučaj koji strelice zaista pritiska.
+
+Mutacije: jedanaest, sve crvene na svom slučaju pošto je „Back to the puzzle"
+testiran sa kraja linije — sa početka je tabla već bila zagonetka, pa dugme
+nije imalo šta da dokaže. Dva čuvara za tastere su bila ekvivalentna (prazan
+kursor i provera da linija postoji); višak (`enabled`) je obrisan.

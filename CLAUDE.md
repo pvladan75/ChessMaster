@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4110 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4132 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 23 known infos — read the list
 cd chess_backend && npm test          # node --test, 1854 with TEST_DATABASE_URL, 1703 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -749,6 +749,11 @@ Then its phase 2, built by the lead (backend → **1854 / 1703**, both
 measured): `custom_puzzles.review`, replayed on the way in and released only
 with the answer. **One fact guarded in two places survives the removal of
 either** — the second guard was deleted, not given a test.
+Then its phase 5, the reveal (→ **4132**, a full run): the lines under the
+solver's move, walked on the board by the app's one strip. The gate was green
+while the real screen at 360 x 640 walked a line on a board scrolled down to
+three ranks: **render the screen before calling a visual feature done** — the
+strip now sits under the board, and a case holds both on screen.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
