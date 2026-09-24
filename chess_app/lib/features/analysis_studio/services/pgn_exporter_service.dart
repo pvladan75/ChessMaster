@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
+import 'package:chess_app/move_tree.dart';
 
 class PgnExporterService {
   /// Converts an AnalysisNode tree into standard PGN text format.
@@ -41,6 +42,7 @@ class PgnExporterService {
         'SetUp': '1',
         'FEN': rootNode.fen,
       },
+      if (rootNode.timeControl != null) 'TimeControl': rootNode.timeControl!,
       ...?customHeaders,
     };
 
@@ -218,6 +220,10 @@ class PgnExporterService {
     if (node.squares.isNotEmpty) {
       parts.add('[%csl ${node.squares.map((s) => s.toString()).join(',')}]');
     }
+    // The clock read in from an online game, written back in its own command
+    // so the next read finds it (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3).
+    final clock = node.clockSeconds;
+    if (clock != null) parts.add(MoveTree.pgnClock(clock));
     if (parts.isEmpty) return null;
     return '{ ${parts.join(" ")} }';
   }

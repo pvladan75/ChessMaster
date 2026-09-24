@@ -57,12 +57,22 @@ class ReviewedGame {
     required this.pathUci,
     required this.mainLineUci,
     required this.startFen,
+    this.clocks = const [],
+    this.timeControl,
   });
 
   final String rootFen;
   final List<String> pathUci;
   final List<String> mainLineUci;
   final String startFen;
+
+  /// Every move's clock from the game's start — the path, then the main line
+  /// — null where a move carried none (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`,
+  /// phase 3). Move `i` of [mainLineUci] is `clocks[pathUci.length + i]`.
+  final List<double?> clocks;
+
+  /// The root's `TimeControl` header, when the game had one.
+  final String? timeControl;
 
   /// Walks [root] to the start node ([pathUci]), then along [mainLineUci] —
   /// matching every step by `moveUci`, never by child index — and answers the
@@ -98,24 +108,34 @@ class ReviewedGame {
     required AnalysisNode start,
   }) {
     final path = <String>[];
+    final pathClocks = <double?>[];
     var up = start;
     while (!identical(up, root) && up.parent != null) {
       final uci = up.moveUci;
-      if (uci != null) path.insert(0, uci);
+      if (uci != null) {
+        path.insert(0, uci);
+        pathClocks.insert(0, up.clockSeconds);
+      }
       up = up.parent!;
     }
     final mainLine = <String>[];
+    final mainClocks = <double?>[];
     var down = start;
     while (down.children.isNotEmpty) {
       down = down.children.first;
       final uci = down.moveUci;
-      if (uci != null) mainLine.add(uci);
+      if (uci != null) {
+        mainLine.add(uci);
+        mainClocks.add(down.clockSeconds);
+      }
     }
     return ReviewedGame(
       rootFen: root.fen,
       pathUci: path,
       mainLineUci: mainLine,
       startFen: start.fen,
+      clocks: [...pathClocks, ...mainClocks],
+      timeControl: root.timeControl,
     );
   }
 }

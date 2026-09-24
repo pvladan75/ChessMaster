@@ -56,6 +56,17 @@ AnalysisPgnImport? readAnalysisPgn(String text) {
   final hasFen = headerFen != null && headerFen.isNotEmpty;
   if (read.root.children.isEmpty && !hasFen) return null;
 
+  // Kept with the game, so the review can say how long a move took: the clock
+  // after a move includes the increment (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md,
+  // phase 3). `-` and `?` say there is none.
+  final timeControl = headers['TimeControl']?.trim();
+  if (timeControl != null &&
+      timeControl.isNotEmpty &&
+      timeControl != '-' &&
+      timeControl != '?') {
+    read.root.timeControl = timeControl;
+  }
+
   var tip = read.root;
   while (tip.children.isNotEmpty) {
     tip = tip.children.first;

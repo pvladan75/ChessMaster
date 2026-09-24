@@ -38,6 +38,16 @@ class AnalysisNode {
   List<ChessArrow> arrows;
   List<SquareMark> squares;
 
+  /// The mover's clock after this move, in seconds, when the game carried one
+  /// (`[%clk]`, read by [MoveTree.parsePgnClock]). Kept in the draft and
+  /// written back on export, so a clock read in is not silently lost.
+  double? clockSeconds;
+
+  /// The game's `TimeControl` header (`180+2`), on the root only — what the
+  /// review needs to say how long a move took, since the clock after a move
+  /// includes the increment (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 3).
+  String? timeControl;
+
   List<AnalysisNode> children;
   AnalysisNode? parent;
 
@@ -52,6 +62,8 @@ class AnalysisNode {
     List<SquareMark>? squares,
     List<AnalysisNode>? children,
     this.parent,
+    this.clockSeconds,
+    this.timeControl,
   })  : id = id ?? _generateId(),
         arrows = arrows ?? [],
         squares = squares ?? [],
@@ -151,6 +163,8 @@ class AnalysisNode {
       if (arrows.isNotEmpty) 'arrows': arrows.map((a) => a.toString()).toList(),
       if (squares.isNotEmpty)
         'squares': squares.map((s) => s.toString()).toList(),
+      if (clockSeconds != null) 'clock': clockSeconds,
+      if (timeControl != null) 'timeControl': timeControl,
       'children': children.map((c) => c.toJson()).toList(),
     };
   }
@@ -171,6 +185,8 @@ class AnalysisNode {
       arrows: MoveTree.parsePgnArrows('[%cal ${_asCsv(json['arrows'])}]'),
       squares: MoveTree.parsePgnSquares('[%csl ${_asCsv(json['squares'])}]'),
       parent: parent,
+      clockSeconds: (json['clock'] as num?)?.toDouble(),
+      timeControl: json['timeControl'] as String?,
     );
     final childrenJson = (json['children'] as List?) ?? const [];
     node.children = childrenJson

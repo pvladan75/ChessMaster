@@ -80,6 +80,7 @@ AnalysisNode _convert(MoveNode source, {String? fen}) {
     // one of them and the next save wrote the line back without them. A root
     // carries none — there is no move to assess.
     nag: isRoot ? null : source.nag,
+    clockSeconds: isRoot ? null : source.clockSeconds,
     // Copied rather than shared: the parsed tree is thrown away as soon as this
     // returns, but a list handed on by reference is the kind of sharing that
     // turns into two screens editing one object a year later.

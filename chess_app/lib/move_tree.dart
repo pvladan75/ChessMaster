@@ -69,6 +69,14 @@ class MoveNode {
   /// move it belongs to.
   String? nag;
 
+  /// The mover's clock after this move, in seconds — PGN's `[%clk H:MM:SS]`,
+  /// which online games write after every move. Read **before** the comment
+  /// is cleaned of its commands ([cleanPgnComment]); until 25.9.2026 it was
+  /// thrown away there with every other command, so the review could not say
+  /// how much time a move had or took (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`,
+  /// phase 3). Null where the game carries no clock.
+  double? clockSeconds;
+
   MoveNode? parent;
   final List<MoveNode> children = [];
   List<ChessArrow> arrows = [];
@@ -338,6 +346,34 @@ class MoveTree {
     return result;
   }
 
+  /// `[%clk 0:02:59.9]` as seconds (179.9), or null when [commentText] holds
+  /// no clock. Hours are optional (`[%clk 2:59]` is two minutes and
+  /// fifty-nine seconds), as some exporters write them.
+  static double? parsePgnClock(String commentText) {
+    final match =
+        RegExp(r'\[%clk\s+(?:(\d+):)?(\d{1,2}):(\d{1,2}(?:\.\d+)?)\s*\]')
+            .firstMatch(commentText);
+    if (match == null) return null;
+    final hours = int.parse(match.group(1) ?? '0');
+    final minutes = int.parse(match.group(2)!);
+    final seconds = double.parse(match.group(3)!);
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  /// The PGN command for [seconds] on a clock — the inverse of
+  /// [parsePgnClock], so a clock read in survives being written out.
+  static String pgnClock(double seconds) {
+    final inTenths = (seconds * 10).round();
+    final whole = inTenths ~/ 10;
+    final tenths = inTenths % 10;
+    final h = whole ~/ 3600;
+    final m = (whole % 3600) ~/ 60;
+    final s = whole % 60;
+    final base =
+        '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    return '[%clk ${tenths > 0 ? '$base.$tenths' : base}]';
+  }
+
   /// The words of a comment, with every PGN command taken out.
   ///
   /// Every command, and not a list of them. This stripped `[%cal]` alone, then
@@ -518,6 +554,8 @@ class MoveTree {
         final commentStr = currentCommentTokens.join(' ').trim();
         currentNode.arrows = parsePgnArrows(commentStr);
         currentNode.squares = parsePgnSquares(commentStr);
+        currentNode.clockSeconds =
+            parsePgnClock(commentStr) ?? currentNode.clockSeconds;
         currentNode.comment = cleanPgnComment(commentStr);
         continue;
       }
